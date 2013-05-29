@@ -2,7 +2,7 @@ __author__ = 'leifj'
 
 from eduid_am.celery import celery, get_attribute_manager
 from eduid_am.tasks import update_attributes
-from eduid_am.tests import MongoTestCase, MONGODB_TEST_PORT
+from eduid_am.tests import MongoTestCase
 from bson import ObjectId
 
 
@@ -30,7 +30,7 @@ class MessageTest(MongoTestCase):
             'CELERY_ALWAYS_EAGER': True,
             'CELERY_RESULT_BACKEND': "cache",
             'CELERY_CACHE_BACKEND': 'memory',
-            'MONGO_URI': 'mongodb://localhost:%d/' % MONGODB_TEST_PORT,
+            'MONGO_URI': 'mongodb://localhost:%d/' % self.port,
         }
 
         celery.conf.update(settings)
