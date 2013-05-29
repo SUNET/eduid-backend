@@ -43,3 +43,5 @@ class MessageTest(MongoTestCase):
         adb = self.conn['am']
         attrs = adb['attributes'].find_one({'_id': id})
         assert(attrs['eppn'] == 'vlindeman@eduid.se')
+        user = am.get_user_by_field('eppn', 'vlindeman@eduid.se')
+        assert(user['_id'] == attrs['_id'])

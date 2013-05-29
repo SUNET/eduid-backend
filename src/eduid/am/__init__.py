@@ -17,6 +17,19 @@ from pkg_resources import working_set, Environment
 from bson.objectid import ObjectId
 from celery import task
 
+
+class AttributeException(Exception):
+    pass
+
+
+class NoSuchUserException(AttributeException):
+    pass
+
+
+class MultipleMatchingUserException(AttributeException):
+    pass
+
+
 _instance = None
 
 
@@ -31,8 +44,19 @@ def get_instance():
         raise ValueError("Uninitialized")
     return _instance
 
+
 @task(name="eduid.am.update")
 def update(application, id):
+    """
+
+    :param application: The name of the application requesting the update
+    :param id: The id of the object updated
+
+Identifies all plugins associated with 'application' and looks up the 'update' entry point using
+iter_entry_points. For each application, lookup the object in the attribute manager MongoDB and
+either create it if missing or update it with the data returned by the plugin entry point.
+
+    """
     self = get_instance()
     logging.debug("update %s[%s]" % (application, id))
     try:
@@ -55,8 +79,8 @@ def update(application, id):
     except Exception, ex:
         logging.error(ex)
 
-class AttributeManager(object):
 
+class AttributeManager(object):
     def __init__(self, settings=dict()):
         self.settings = settings
         self._db = settings.get('_db', None)
@@ -96,11 +120,45 @@ class AttributeManager(object):
 
     def register(self, name, cb):
         """
-        Insert a single callback in the registry for 'name'. All callables must take two arguments.
 
         :param name: the name under which to register the callback
         :param cb: a callable object to register
+
+Insert a single callback in the registry for 'name'. All callables must take two arguments.
         """
         if not name in self._apps:
             self._apps[name] = []
         self._apps[name].append(cb)
+
+    def get_user_by_id(self, id, raise_on_missing=False):
+        """
+
+        :param id: An Object ID
+        :param raise_on_missing: If True, raise exception if no matching user object can be found.
+        :return: A user dict
+
+Return the user object in the attribute manager MongoDB with _id=id
+        """
+        return self.get_user_by_field('_id', id, raise_on_missing)
+
+    def get_user_by_field(self, field, value, raise_on_missing=False):
+        """
+
+        :param field: The name of a field
+        :param value: The field value
+        :param raise_on_missing: If True, raise exception if no matching user object can be found.
+        :return: A user dict
+
+Return the user object in the attribute manager MongoDB matching field=value
+        """
+        logging.debug("get_user_by_field %s=%s" % (field, value))
+        docs = self.db.attributes.find({field: value})
+        if 0 == docs.count():
+            if raise_on_missing:
+                raise NoSuchUserException("No user matching %s='%s'" % (field, value))
+            else:
+                return None
+        elif 1 > docs.count():
+            raise MultipleMatchingUserException("Multiple matching users for %s='%s'" % (field, value))
+        else:
+            return docs[0]
