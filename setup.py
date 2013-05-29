@@ -14,6 +14,10 @@ install_requires = [
     'celery',
 ]
 
+testing_extras = [
+    'nose==1.2.1',
+    'coverage==3.6',
+]
 
 setup(
     name='eduid_am',
@@ -32,5 +36,8 @@ setup(
     include_package_data=True,
     zip_safe=False,
     install_requires=install_requires,
+    extras_require={
+        'testing': testing_extras,
+    },
     test_suite='eduid_am',
 )
