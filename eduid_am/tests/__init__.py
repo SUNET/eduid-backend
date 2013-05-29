@@ -2,14 +2,13 @@ __author__ = 'leifj'
 
 import time
 import atexit
+import random
 import shutil
 import tempfile
 import unittest
 import subprocess
 import os
 import pymongo
-
-MONGODB_TEST_PORT = 45456
 
 
 class MongoTemporaryInstance(object):
@@ -30,8 +29,9 @@ class MongoTemporaryInstance(object):
 
     def __init__(self):
         self._tmpdir = tempfile.mkdtemp()
+        self._port = random.randint(40000, 50000)
         self._process = subprocess.Popen(['mongod', '--bind_ip', 'localhost',
-                                          '--port', str(MONGODB_TEST_PORT),
+                                          '--port', str(self._port),
                                           '--dbpath', self._tmpdir,
                                           '--nojournal', '--nohttpinterface',
                                           '--noauth', '--smallfiles',
@@ -47,7 +47,7 @@ class MongoTemporaryInstance(object):
         for i in range(3):
             time.sleep(0.1)
             try:
-                self._conn = pymongo.Connection('localhost', MONGODB_TEST_PORT)
+                self._conn = pymongo.Connection('localhost', self._port)
             except pymongo.errors.ConnectionFailure:
                 continue
             else:
@@ -60,6 +60,10 @@ class MongoTemporaryInstance(object):
     def conn(self):
         return self._conn
 
+    @property
+    def port(self):
+        return self._port
+
     def shutdown(self):
         if self._process:
             self._process.terminate()
@@ -71,13 +75,11 @@ class MongoTemporaryInstance(object):
 class MongoTestCase(unittest.TestCase):
     """TestCase with an embedded MongoDB temporary instance.
 
-    Each test runs on a temporary instance of MongoDB. Please note that
-    these tests are not thread-safe and different processes should set a
-    different value for the listening port of the MongoDB instance with the
-    settings `MONGODB_TEST_PORT`.
+    Each test runs on a temporary instance of MongoDB. The instance will
+    be listen in a random port between 40000 and 5000.
 
     A test can access the connection using the attribute `conn`.
-
+    A test can access the port using the attribute `port`
     """
     fixtures = []
 
@@ -85,6 +87,7 @@ class MongoTestCase(unittest.TestCase):
         super(MongoTestCase, self).__init__(*args, **kwargs)
         self.db = MongoTemporaryInstance.get_instance()
         self.conn = self.db.conn
+        self.port = self.db.port
 
     def setUp(self):
         super(MongoTestCase, self).setUp()
