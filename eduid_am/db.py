@@ -22,17 +22,12 @@ class MongoDB(object):
             port=self.db_uri.port or DEFAULT_MONGODB_PORT,
             tz_aware=True)
 
-        if self.db_uri.path:
-            self.database_name = self.db_uri.path[1:]
-        else:
-            self.database_name = DEFAULT_MONGODB_NAME
-
     def get_connection(self):
         return self.connection
 
-    def get_database(self):
-        database = self.connection[self.database_name]
-        if self.db_uri.username and self.db_uri.password:
-            database.authenticate(self.db_uri.username, self.db_uri.password)
+    def get_database(self, database_name, username=None, password=None):
+        database = self.connection[database_name]
+        if username and password:
+            database.authenticate(username, password)
 
         return database

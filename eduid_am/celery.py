@@ -14,3 +14,7 @@ celery = Celery('eduid_am.celery', include=['eduid_am.tasks'])
 def setup_celeryd(sender, conf, **kwargs):
     settings = read_configuration()
     conf.update(settings)
+
+
+def get_attribute_manager(celery_app):
+    return celery_app.tasks['eduid_am.tasks.update_attributes']

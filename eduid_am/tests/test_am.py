@@ -1,10 +1,14 @@
 __author__ = 'leifj'
 
-from . import MONGODB_TEST_PORT
-from celery import task
-from .. import AttributeManager, update
-from . import MongoTestCase
+from eduid_am.celery import celery, get_attribute_manager
+from eduid_am.tasks import update_attributes
+from eduid_am.tests import MongoTestCase, MONGODB_TEST_PORT
 from bson import ObjectId
+
+
+def plugin(db, user_id):
+    doc = db['user'].find_one({'_id': ObjectId(user_id)})
+    return {'eppn': "%s@eduid.se" % doc['uid']}
 
 
 class MessageTest(MongoTestCase):
@@ -17,7 +21,7 @@ class MessageTest(MongoTestCase):
         db = self.conn['test']
         doc = db['user'].find_one({'_id': ObjectId(id)})
 
-        return {'eppn': "%s@eduid.se" % doc['uid']}
+        return [{'eppn': "%s@eduid.se" % doc['uid']}]
 
     def testMessage(self):
         """
@@ -32,15 +36,22 @@ class MessageTest(MongoTestCase):
             'CELERY_ALWAYS_EAGER': True,
             'CELERY_RESULT_BACKEND': "cache",
             'CELERY_CACHE_BACKEND': 'memory',
-            '_db': self.conn['am']
+            'MONGO_URI': 'mongodb://localhost:%d/' % MONGODB_TEST_PORT,
         }
-        am = AttributeManager(settings)
-        am.register('test', self.plugin)
-        db = self.conn['test']
+
+        celery.conf.update(settings)
+        am = get_attribute_manager(celery)
+
+        am.registry.update(test=plugin)
+
+        db = am.conn.get_database('test')
+
         id = ObjectId()
         assert(db['user'].insert({'_id': id, 'uid': 'vlindeman'}) == id)
-        update.delay(application='test', id=id)
-        adb = self.conn['am']
+
+        update_attributes.delay(app_name='test', user_id=id)
+
+        adb = am.conn.get_database('am')
         attrs = adb['attributes'].find_one({'_id': id})
         assert(attrs['eppn'] == 'vlindeman@eduid.se')
         user = am.get_user_by_field('eppn', 'vlindeman@eduid.se')
