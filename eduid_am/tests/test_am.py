@@ -17,12 +17,6 @@ class MessageTest(MongoTestCase):
     transforms 'uid' to its urn:oid representation.
     """
 
-    def plugin(self, id):
-        db = self.conn['test']
-        doc = db['user'].find_one({'_id': ObjectId(id)})
-
-        return [{'eppn': "%s@eduid.se" % doc['uid']}]
-
     def testMessage(self):
         """
         This simulates the 'test' application that keeps its own data in the 'user' collection in the 'test' DB
