@@ -9,7 +9,7 @@ import bson
 
 from eduid_am.celery import celery
 from eduid_am.db import MongoDB, DEFAULT_MONGODB_URI
-from eduid_am.exceptions import UserDoesNotExist
+from eduid_am.exceptions import UserDoesNotExist, MultipleUsersReturned
 
 logger = get_task_logger(__name__)
 
@@ -74,11 +74,11 @@ Return the user object in the attribute manager MongoDB matching field=value
         docs = self.db.attributes.find({field: value})
         if 0 == docs.count():
             if raise_on_missing:
-                raise NoSuchUserException("No user matching %s='%s'" % (field, value))
+                raise UserDoesNotExist("No user matching %s='%s'" % (field, value))
             else:
                 return None
         elif 1 > docs.count():
-            raise MultipleMatchingUserException("Multiple matching users for %s='%s'" % (field, value))
+            raise MultipleUsersReturned("Multiple matching users for %s='%s'" % (field, value))
         else:
             return docs[0]
 
@@ -103,9 +103,8 @@ def update_attributes(app_name, user_id):
     plugin_db = self.conn.get_database(app_name)
     try:
         attributes = attribute_fetcher(plugin_db, _id)
-    except UserDoesNotExist:
-        logger.error('The user %s does not exist in the collection for app %s'
-                     % (user_id, app_name))
+    except UserDoesNotExist as error:
+        logger.error('The user %s does not exist in the database for app %s' % error)
         return
 
     logger.debug('Attributes fetched from app %s for user %s: %s'
