@@ -5,7 +5,10 @@ from setuptools import setup, find_packages
 __author__ = 'leifj'
 
 here = os.path.abspath(os.path.dirname(__file__))
-README = open(os.path.join(here, 'README.rst')).read()
+README_fn = os.path.join(here, 'README.rst')
+README = 'eduID Attribute Manager'
+if os.path.exists(README_fn):
+    README = open(README_fn).read()
 
 version = '0.1dev'
 
