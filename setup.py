@@ -10,6 +10,7 @@ README = open(os.path.join(here, 'README.rst')).read()
 version = '0.1dev'
 
 install_requires = [
+    'python-dateutil==2.1',
     'pymongo',
     'celery',
 ]
