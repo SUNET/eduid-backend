@@ -37,8 +37,8 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     package_data = {
-        'eduid_am': ['README.rst',
-                     ]
+        '': ['README.rst',
+             ]
         },
     zip_safe=False,
     install_requires=install_requires,
