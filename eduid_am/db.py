@@ -25,8 +25,11 @@ class MongoDB(object):
     def get_connection(self):
         return self.connection
 
-    def get_database(self, database_name, username=None, password=None):
+    def get_database(self, database_name, username=None, password=None, default_auth=False):
         database = self.connection[database_name]
+        if not username and not password and default_auth:
+            username = self.db_uri.username
+            password = self.db_uri.password
         if username and password:
             database.authenticate(username, password)
 
