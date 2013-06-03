@@ -14,7 +14,7 @@ version = '0.1dev'
 
 install_requires = [
     'python-dateutil==2.1',
-    'pymongo',
+    'pymongo==2.5.1',
     'celery',
 ]
 
