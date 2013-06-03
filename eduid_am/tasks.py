@@ -105,7 +105,8 @@ def update_attributes(app_name, user_id):
     try:
         attributes = attribute_fetcher(plugin_db, _id)
     except UserDoesNotExist as error:
-        logger.error('The user %s does not exist in the database for app : %s' % (_id, app_name, error))
+        logger.error('The user %s does not exist in the database for plugin %s : %s' % (
+                _id, app_name, error))
         return
 
     logger.debug('Attributes fetched from app %s for user %s: %s'
