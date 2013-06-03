@@ -31,6 +31,7 @@ class MessageTest(MongoTestCase):
             'CELERY_RESULT_BACKEND': "cache",
             'CELERY_CACHE_BACKEND': 'memory',
             'MONGO_URI': 'mongodb://localhost:%d/' % self.port,
+            'MONGO_DBNAME': 'am',
         }
 
         celery.conf.update(settings)
@@ -45,7 +46,7 @@ class MessageTest(MongoTestCase):
 
         update_attributes.delay(app_name='test', user_id=id)
 
-        adb = am.conn.get_database('am')
+        adb = am.conn.get_database(settings['MONGO_DBNAME'])
         attrs = adb['attributes'].find_one({'_id': id})
         assert(attrs['eppn'] == 'vlindeman@eduid.se')
         user = am.get_user_by_field('eppn', 'vlindeman@eduid.se')
