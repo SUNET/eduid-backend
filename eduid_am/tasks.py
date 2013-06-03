@@ -8,7 +8,7 @@ from pkg_resources import iter_entry_points
 import bson
 
 from eduid_am.celery import celery
-from eduid_am.db import MongoDB, DEFAULT_MONGODB_URI
+from eduid_am.db import MongoDB, DEFAULT_MONGODB_URI, DEFAULT_MONGODB_NAME
 from eduid_am.exceptions import UserDoesNotExist, MultipleUsersReturned
 
 logger = get_task_logger(__name__)
@@ -41,7 +41,7 @@ class AttributeManager(Task):
 
     @property
     def db(self):
-        return self.conn.get_database('am')
+        return self.conn.get_database(self.app.conf.get('MONGO_DBNAME', DEFAULT_MONGODB_NAME))
 
     def update_user(self, user_id, attributes):
         doc = {'_id': user_id}

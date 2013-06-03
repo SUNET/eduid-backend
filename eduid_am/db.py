@@ -5,7 +5,7 @@ import pymongo
 
 DEFAULT_MONGODB_HOST = 'localhost'
 DEFAULT_MONGODB_PORT = 27017
-DEFAULT_MONGODB_NAME = 'eduid'
+DEFAULT_MONGODB_NAME = 'eduid_am'
 DEFAULT_MONGODB_URI = 'mongodb://%s:%d/%s' % (DEFAULT_MONGODB_HOST,
                                               DEFAULT_MONGODB_PORT,
                                               DEFAULT_MONGODB_NAME)
