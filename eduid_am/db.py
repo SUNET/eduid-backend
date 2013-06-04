@@ -1,5 +1,3 @@
-import urlparse
-
 import pymongo
 
 
@@ -15,22 +13,43 @@ class MongoDB(object):
     """Simple wrapper to get pymongo real objects from the settings uri"""
 
     def __init__(self, db_uri=DEFAULT_MONGODB_URI,
-                 connection_factory=pymongo.Connection):
-        self.db_uri = urlparse.urlparse(db_uri)
+                 connection_factory=None, **kwargs):
+
+        self.db_uri = db_uri
+
+        if db_uri == "mongodb://":
+            db_uri = DEFAULT_MONGODB_URI
+
+        self.parsed_uri = pymongo.uri_parser.parse_uri(db_uri)
+
+        if 'replicaSet' in kwargs:
+            connection_factory = pymongo.MongoReplicaSetClient
+
+        elif connection_factory is None:
+            connection_factory = pymongo.MongoClient
+
         self.connection = connection_factory(
-            host=self.db_uri.hostname or DEFAULT_MONGODB_HOST,
-            port=self.db_uri.port or DEFAULT_MONGODB_PORT,
-            tz_aware=True)
+            host=self.db_uri,
+            tz_aware=True,
+            **kwargs)
+
+        if self.parsed_uri.get("database", None):
+            self.database_name = self.parsed_uri["database"]
+        else:
+            self.database_name = DEFAULT_MONGODB_NAME
 
     def get_connection(self):
         return self.connection
 
-    def get_database(self, database_name, username=None, password=None, default_auth=False):
-        database = self.connection[database_name]
-        if not username and not password and default_auth:
-            username = self.db_uri.username
-            password = self.db_uri.password
-        if username and password:
-            database.authenticate(username, password)
-
-        return database
+    def get_database(self, database_name=None, username=None, password=None,
+                     default_auth=False):
+        if database_name is None:
+            db = self.connection[self.database_name]
+        else:
+            db = self.connection[database_name]
+        if self.parsed_uri.get("username", None):
+            db.authenticate(
+                self.parsed_uri.get("username", None),
+                self.parsed_uri.get("password", None)
+            )
+        return db
