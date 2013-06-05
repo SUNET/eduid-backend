@@ -72,12 +72,12 @@ Return the user object in the attribute manager MongoDB matching field=value
         #logging.debug("get_user_by_field %s=%s" % (field, value))
 
         docs = self.db.attributes.find({field: value})
-        if 0 == docs.count():
+        if docs.count() == 0:
             if raise_on_missing:
                 raise UserDoesNotExist("No user matching %s='%s'" % (field, value))
             else:
                 return None
-        elif 1 > docs.count():
+        elif docs.count() > 1:
             raise MultipleUsersReturned("Multiple matching users for %s='%s'" % (field, value))
         else:
             return docs[0]
