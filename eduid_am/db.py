@@ -46,7 +46,9 @@ class MongoDB(object):
             db = self.connection[self.database_name]
         else:
             db = self.connection[database_name]
-        if self.parsed_uri.get("username", None):
+        if username and password:
+            db.authenticate(username, password)
+        elif self.parsed_uri.get("username", None):
             db.authenticate(
                 self.parsed_uri.get("username", None),
                 self.parsed_uri.get("password", None)
