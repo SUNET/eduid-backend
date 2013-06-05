@@ -41,8 +41,7 @@ class MongoDB(object):
     def get_connection(self):
         return self.connection
 
-    def get_database(self, database_name=None, username=None, password=None,
-                     default_auth=False):
+    def get_database(self, database_name=None, username=None, password=None):
         if database_name is None:
             db = self.connection[self.database_name]
         else:

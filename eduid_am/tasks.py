@@ -100,7 +100,7 @@ def update_attributes(app_name, user_id):
         logger.error('Invalid user_id %s from app %s' % (user_id, app_name))
         return
 
-    plugin_db = self.conn.get_database(app_name, default_auth=True)
+    plugin_db = self.conn.get_database(app_name)
     logger.debug("Got database {!r}/{!s} for plugin".format(plugin_db, plugin_db))
     try:
         attributes = attribute_fetcher(plugin_db, _id)
