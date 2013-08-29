@@ -82,6 +82,18 @@ Return the user object in the attribute manager MongoDB matching field=value
         else:
             return docs[0]
 
+    def exists_by_field(self, field, value):
+        """
+
+        :param field: The name of a field
+        :param value: The field value
+
+Return true if at least one doc matchs with the value
+        """
+
+        docs = self.db.attributes.find({field: value})
+        return docs.countt() != 1
+
 
 @celery.task(ignore_results=True, base=AttributeManager)
 def update_attributes(app_name, user_id):
@@ -112,5 +124,3 @@ def update_attributes(app_name, user_id):
     logger.debug('Attributes fetched from app %s for user %s: %s'
                  % (app_name, user_id, attributes))
     self.update_user(_id, attributes)
-
-
