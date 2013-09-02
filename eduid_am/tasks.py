@@ -45,8 +45,15 @@ class AttributeManager(Task):
 
     def update_user(self, user_id, attributes):
         doc = {'_id': user_id}
-        doc.update(attributes)
-        self.db.attributes.save(doc)
+
+        # check if any of doc attributes contains a modifer instruction.
+        # like any key starting with $
+        #
+        if all([attr.startswith('$') for attr in attributes]):
+            self.db.attributes.find_and_modify(doc, attributes)
+        else:
+            doc.update(attributes)
+            self.db.attributes.save(doc)
 
     def get_user_by_id(self, id, raise_on_missing=False):
         """
@@ -74,11 +81,13 @@ Return the user object in the attribute manager MongoDB matching field=value
         docs = self.db.attributes.find({field: value})
         if docs.count() == 0:
             if raise_on_missing:
-                raise UserDoesNotExist("No user matching %s='%s'" % (field, value))
+                raise UserDoesNotExist("No user matching %s='%s'" % (field,
+                                                                     value))
             else:
                 return None
         elif docs.count() > 1:
-            raise MultipleUsersReturned("Multiple matching users for %s='%s'" % (field, value))
+            raise MultipleUsersReturned("Multiple matching users for %s='%s'" %
+                                        (field, value))
         else:
             return docs[0]
 
@@ -113,12 +122,13 @@ def update_attributes(app_name, user_id):
         return
 
     plugin_db = self.conn.get_database(app_name)
-    logger.debug("Got database {!r}/{!s} for plugin".format(plugin_db, plugin_db))
+    logger.debug("Got database {!r}/{!s} for plugin".format(plugin_db,
+                                                            plugin_db))
     try:
         attributes = attribute_fetcher(plugin_db, _id)
     except UserDoesNotExist as error:
-        logger.error('The user %s does not exist in the database for plugin %s : %s' % (
-                _id, app_name, error))
+        logger.error('The user %s does not exist in the database for plugin %s: %s' % (
+            _id, app_name, error))
         return
 
     logger.debug('Attributes fetched from app %s for user %s: %s'
