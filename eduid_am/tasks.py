@@ -91,6 +91,23 @@ Return the user object in the attribute manager MongoDB matching field=value
         else:
             return docs[0]
 
+    def get_users(self, filter, proyection=None):
+        """
+
+        :param filter: a standard mongodb read operation filter
+        :param proyection: If not None, pass as proyection to mongo searcher
+        :return a list with users
+
+
+Return a list with users object in the attribute manager MongoDB matching the filter
+        """
+        #logging.debug("get_users %s=%s" % (filter))
+
+        if proyection is None:
+            return self.db.attributes.find(filter)
+        else:
+            return self.db.attributes.find(filter, proyection)
+
     def exists_by_field(self, field, value):
         """
 
@@ -101,7 +118,7 @@ Return true if at least one doc matchs with the value
         """
 
         docs = self.db.attributes.find({field: value})
-        return docs.countt() != 1
+        return docs.count() >= 1
 
 
 @celery.task(ignore_results=True, base=AttributeManager)
