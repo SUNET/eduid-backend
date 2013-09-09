@@ -41,7 +41,18 @@ class AttributeManager(Task):
 
     @property
     def db(self):
-        return self.conn.get_database(self.app.conf.get('MONGO_DBNAME', DEFAULT_MONGODB_NAME))
+        # Ensure index are defined
+        db = self.conn.get_database(self.app.conf.get('MONGO_DBNAME',
+                                                      DEFAULT_MONGODB_NAME))
+        db.attributes.ensure_index('email', name='email-index')
+        db.attributes.ensure_index([('norEduPersonNIN.norEduPersonNIN', 1),
+                                    ('norEduPersonNIN.verified', 1),
+                                    ('norEduPersonNIN.status', 1)],
+                                   name='norEduPersonNIN-index')
+        db.attributes.ensure_index([('mobile.mobile', 1),
+                                    ('mobile.verified', 1)],
+                                   name='mobile.index')
+        return db
 
     def update_user(self, user_id, attributes):
         doc = {'_id': user_id}
