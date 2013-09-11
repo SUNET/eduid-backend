@@ -29,4 +29,6 @@ def setup_celeryd(sender, conf, **kwargs):
 
 
 def get_attribute_manager(celery_app):
+    # without this import, celery suddenly says NotRegistered about update_attributes
+    import eduid_am.tasks
     return celery_app.tasks['eduid_am.tasks.update_attributes']
