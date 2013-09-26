@@ -112,6 +112,17 @@ Return a list with users object in the attribute manager MongoDB matching the fi
         else:
             return self.db.attributes.find(filter, proyection)
 
+    def exists_by_filter(self, filter):
+        """
+
+        :param filter: The filter used in the query
+
+Return true if at least one doc matchs with the value
+        """
+
+        docs = self.db.attributes.find(filter)
+        return docs.count() >= 1
+
     def exists_by_field(self, field, value):
         """
 
@@ -121,8 +132,7 @@ Return a list with users object in the attribute manager MongoDB matching the fi
 Return true if at least one doc matchs with the value
         """
 
-        docs = self.db.attributes.find({field: value})
-        return docs.count() >= 1
+        return self.exists_by_filter({field: value})
 
 
 @celery.task(ignore_results=True, base=AttributeManager)
