@@ -16,7 +16,8 @@ install_requires = [
     'python-dateutil==2.1',
     'pymongo',
     'celery',
-    'pysmscom'
+    'pysmscom',
+    'pymmclient'
 ]
 
 testing_extras = [
