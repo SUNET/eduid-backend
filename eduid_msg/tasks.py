@@ -20,7 +20,7 @@ def get_cache_db():
     logger.debug("Initiating cache object")
     return CacheMDB(celery.conf.get('MONGO_URI', DEFAULT_MONGODB_URI),
                     celery.conf.get('MONGO_DBNAME', DEFAULT_MONGODB_NAME),
-                    'eduid_cache_mm', ttl=10, expiration_freq=5)
+                    'eduid_cache_mm', ttl=7200, expiration_freq=120)
 
 
 _cache = get_cache_db()
@@ -133,7 +133,7 @@ def send_message(message_type, message_dict, recipient, template, language):
     elif message_type == 'email':
         pass
 
-@periodic_task(run_every=timedelta(seconds=5))
+@periodic_task(run_every=timedelta(minutes=5))
 def cache_expire_mm():
     global _cache
     logger.debug("Invoking expire_cache at %s" % datetime.fromtimestamp(time(), None))
