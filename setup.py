@@ -13,11 +13,11 @@ if os.path.exists(README_fn):
 version = '0.1dev'
 
 install_requires = [
-    'python-dateutil==2.1',
+    'python-dateutil == 2.1',
     'pymongo',
     'celery',
-    'pysmscom',
-    'pymmclient'
+    'pysmscom >= 0.3',
+    'pymmclient >= 0.4'
 ]
 
 testing_extras = [
