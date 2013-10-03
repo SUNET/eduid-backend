@@ -17,13 +17,14 @@ install_requires = [
     'pymongo',
     'celery',
     'pysmscom >= 0.3',
-    'pymmclient >= 0.4'
+    'pymmclient >= 0.6'
 ]
 
 testing_extras = [
     'nose==1.2.1',
     'nosexcover==1.0.8',
     'coverage==3.6',
+    'mock==1.0.1',
 ]
 
 setup(

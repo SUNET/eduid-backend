@@ -76,7 +76,6 @@ class MessageRelay(Task):
         @type social_sec_nr: int
         @return: Return True if the user is reachable, otherwise False
         """
-        print self.__repr__()
         result = self.cache.get_cache_item(social_sec_nr)
         if result is None:
             result = self.recipient.is_reachable(self.app.conf.get("MM_SENDER_ORG_NR"), social_sec_nr)[0]
@@ -125,7 +124,7 @@ class MessageRelay(Task):
                 if count > 0:
                     usleep(100)
                 status = self.message.check_distribution_status(self.app.conf.get("MM_SENDER_ORG_NR"), result)
-                if status[0].DeliveryStatus == 'Pending':
+                if status[0]['DeliveryStatus'] == 'Delivered':
                     break
                 count += 1
             status = status[0]
