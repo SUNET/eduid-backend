@@ -8,7 +8,7 @@ from celery.signals import celeryd_init
 
 from eduid_msg.config import read_configuration
 
-celery = Celery('eduid_msg.celery', backend='amqp', include=['eduid_msg.tasks'])
+celery = Celery('eduid_msg.celery', include=['eduid_msg.tasks'])
 
 # This signal is only emited when run as a worker
 @celeryd_init.connect

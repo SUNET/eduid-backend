@@ -100,6 +100,10 @@ class MessageRelay(Task):
         @type language: List of languages in the form (sv_SE, en_US)
         @param subject: (Optional) Subject used in my messages service or email deliveries
         @type subject: str
+        @return: For type 'sms' a message id is returned if successful, if unsucessful an error message is returned.
+        For type 'mm' a message id is returned if successful, the message id can be used to verify if that the message
+        has been delivered to the users mailbox service by calling check_distribution_status(message_id),
+        if unsuccessful an error message is returned.
         """
         tmpl = load_template(self.app.conf.get("TEMPLATE_DIR", None), template, language)
         if not tmpl:
