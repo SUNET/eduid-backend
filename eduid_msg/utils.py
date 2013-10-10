@@ -3,9 +3,10 @@ This module provides utility functions.
 """
 
 import os
+from jinja2 import Environment, FileSystemLoader
 
 
-def load_template(template_dir, filename, lang):
+def load_template(template_dir, filename, message_dict, lang):
     """
     This function loads a template file by provided language.
     """
@@ -14,12 +15,10 @@ def load_template(template_dir, filename, lang):
     if not os.path.isdir(template_dir):
         return False
     try:
-        # First try to load template with suffix lang otherwise use
-        # fallback template
-        _file = os.path.join(template_dir, '.'.join([filename, lang]))
-        if not os.path.exists(_file):
-            _file = os.path.join(template_dir, filename)
-        text = open(_file).read()
-        return text
+        f = '.'.join([filename, lang])
+        if os.path.exists(os.path.join(template_dir, f)):
+            filename = f
+        template = Environment(loader=FileSystemLoader(template_dir)).get_template(filename)
+        return template.render(message_dict)
     except OSError:
         return False

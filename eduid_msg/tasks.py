@@ -93,8 +93,8 @@ class MessageRelay(Task):
         @type message_dict: dict
         @param recipient: Recipient mobile phone number or social security number (depends on the choice of message_type)
         @type recipient: str
-        @param template: Name of the message template to use
-        @type template: str
+        @param tmpl: Name of the message template to use
+        @type tmpl: str
         @param language: List of preferred languages for the template. The list is processed in order and the first
         template matching a language will be used.
         @type language: List of languages in the form (sv_SE, en_US)
@@ -105,10 +105,9 @@ class MessageRelay(Task):
         has been delivered to the users mailbox service by calling check_distribution_status(message_id),
         if unsuccessful an error message is returned.
         """
-        tmpl = load_template(self.app.conf.get("TEMPLATE_DIR", None), template, language)
-        if not tmpl:
+        msg = load_template(self.app.conf.get("TEMPLATE_DIR", None), template, message_dict, language)
+        if not msg:
             raise RuntimeError("template not found")
-        msg = tmpl.format(**message_dict)
 
         if message_type == 'sms':
             status = self.sms.send(msg, self._sender, recipient, prio=2)

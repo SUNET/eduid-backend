@@ -17,7 +17,8 @@ install_requires = [
     'pymongo',
     'celery',
     'pysmscom >= 0.3',
-    'pymmclient >= 0.6.2'
+    'pymmclient >= 0.6.3',
+    'Jinja2',
 ]
 
 testing_extras = [
@@ -25,6 +26,7 @@ testing_extras = [
     'nosexcover==1.0.8',
     'coverage==3.6',
     'mock==1.0.1',
+    'jinja2',
 ]
 
 setup(

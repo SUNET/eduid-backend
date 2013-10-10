@@ -39,8 +39,8 @@ class TestTasks(MongoTestCase):
         status = send_message.delay('sms', self.msg_dict, '+466666', 'test.tmpl', 'sv_SE').get()
 
         # Test that the template was actually used in send_message function call to the sms service
-        template = load_template(celery.conf.get('TEMPLATE_DIR'), 'test.tmpl', 'sv_SE')
-        expected = [call(template.format(**self.msg_dict), 'Test sender', '+466666', prio=2)]
+        template = load_template(celery.conf.get('TEMPLATE_DIR'), 'test.tmpl', self.msg_dict, 'sv_SE')
+        expected = [call(template, 'Test sender', '+466666', prio=2)]
         self.assertEqual(sms_mock.mock_calls, expected)
         self.assertTrue(status)
 
@@ -71,8 +71,8 @@ class TestTasks(MongoTestCase):
         self.assertEqual(status['RecipientId'], '192705178354')
 
         # Test that the template was actually used in send_message function call to the mm service
-        template = load_template(celery.conf.get('TEMPLATE_DIR'), 'test.tmpl', 'sv_SE')
-        expected = call.create_secure_message('Test', template.format(**self.msg_dict), 'text/plain', 'svSE')
+        template = load_template(celery.conf.get('TEMPLATE_DIR'), 'test.tmpl', self.msg_dict, 'sv_SE')
+        expected = call.create_secure_message('Test', template, 'text/plain', 'svSE')
         self.assertEqual(message_mock.mock_calls[0], expected)
 
         # Testing failed delivery
