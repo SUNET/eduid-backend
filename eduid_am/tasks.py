@@ -134,6 +134,23 @@ Return true if at least one doc matchs with the value
 
         return self.exists_by_filter({field: value})
 
+    def get_identity_proofing(self, id):
+        """
+        :param id: The user object id
+
+Return the proofing urn value
+        """
+
+        # TODO
+        # This method need to be implemented
+        default_urn = 'http://www.swamid.se/assurance/al1'
+        user = self.db.attributes.find_one({'_id': id})
+        if user is None:
+            return default_urn
+        else:
+            return user.get('eduPersonIdentityProofing',
+                            'http://www.swamid.se/assurance/al1')
+
 
 @celery.task(ignore_results=True, base=AttributeManager)
 def update_attributes(app_name, user_id):
