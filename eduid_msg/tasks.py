@@ -109,6 +109,12 @@ class MessageRelay(Task):
         if not msg:
             raise RuntimeError("template not found")
 
+        # Only log the message if devel_mode is enabled
+        if self.app.conf.get("DEVEL_MODE") == 'true':
+            LOG.debug("\nType: %s\nRecipient: %s\nLang: %s\nSubject: %s\nMessage:\n %s" % (message_type, recipient,
+                                                                                           language, subject, msg))
+            return True
+
         if message_type == 'sms':
             status = self.sms.send(msg, self._sender, recipient, prio=2)
         elif message_type == 'mm':
