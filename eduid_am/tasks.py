@@ -154,6 +154,22 @@ Return the proofing urn value
 
 @celery.task(ignore_results=True, base=AttributeManager)
 def update_attributes(app_name, user_id):
+    """
+    Task executing on the Celery worker service as an RPC called from
+    the different eduID applications.
+
+    :param app_name: calling application name, like 'eduid_signup'
+    :param user_id: entry in the calling applications name that has changed (object id)
+    :type app_name: string
+    :type user_id: string
+    """
+    try:
+        return update_attributes_safe(app_name, user_id)
+    except Exception as exc:
+        logger.error("Got exception processing {!r}[{!r}]".format(app_name, user_id), exc_info = True)
+        raise
+
+def update_attributes_safe(app_name, user_id):
     self = update_attributes
     logger.debug("update %s[%s]" % (app_name, user_id))
 
