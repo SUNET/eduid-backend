@@ -1,3 +1,4 @@
+# -*- encoding: utf-8 -*-
 from __future__ import absolute_import
 
 from celery import Task
@@ -105,7 +106,7 @@ class MessageRelay(Task):
         has been delivered to the users mailbox service by calling check_distribution_status(message_id),
         if unsuccessful an error message is returned.
         """
-        msg = load_template(self.app.conf.get("TEMPLATE_DIR", None), template, message_dict, language)
+        msg = load_template(self.app.conf.get("TEMPLATE_DIR", None), template, message_dict, language).encode('utf-8')
         if not msg:
             raise RuntimeError("template not found")
 
@@ -116,6 +117,7 @@ class MessageRelay(Task):
             return True
 
         if message_type == 'sms':
+            LOG.debug("Sending SMS to '%s' using template '%s' and language '%s" % (recipient, template, language))
             status = self.sms.send(msg, self._sender, recipient, prio=2)
         elif message_type == 'mm':
             if not self.is_reachable(recipient):
