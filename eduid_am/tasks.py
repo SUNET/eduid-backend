@@ -56,8 +56,19 @@ class AttributeManager(Task):
         if all([attr.startswith('$') for attr in attributes]):
             self.db.attributes.find_and_modify(doc, attributes)
         else:
-            doc.update(attributes)
-            self.db.attributes.save(doc)
+            if self.db.attributes.find(doc).count() == 0:
+                # The object is a new object
+                doc.update(attributes)
+                self.db.attributes.save(doc)
+            else:
+                # Dont overwrite the entire object, only the defined
+                # attributes
+                self.db.attributes.find_and_modify(
+                    doc,
+                    {
+                        '$set': attributes,
+                    }
+                )
 
     def get_user_by_id(self, id, raise_on_missing=False):
         """
