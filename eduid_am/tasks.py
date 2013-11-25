@@ -120,6 +120,31 @@ class AttributeManager(Task):
             raise MultipleUsersReturned("Multiple matching users for %s='%s'" % (field, value))
         return docs[0]
 
+    def get_user_by_mail(self, email, raise_on_missing=False):
+        """
+        Return the user object in the attribute manager MongoDB having
+        a (verified) email address matching `email'.
+
+        :param email: The email address to look for
+        :param raise_on_missing: If True, raise exception if no matching user object can be found.
+        :return: A user dict
+        """
+        email = email.lower()
+        # Look for `email' in the `mail' attribute, and second in the `mailAliases' attribute
+        docs = self.db.attributes.find({'mail': email})
+        if docs.count() == 0:
+            spec = {'mailAliases.email': email,
+                    'mailAliases.verified': True,
+                    }
+            docs = self.db.attributes.find(spec)
+        if docs.count() == 0:
+            if raise_on_missing:
+                raise UserDoesNotExist("No user matching email {!r}".format(email))
+            return None
+        elif docs.count() > 1:
+            raise MultipleUsersReturned("Multiple matching users for email {!r}".format(email))
+        return docs[0]
+
     def get_users(self, spec, fields=None):
         """
         Return a list with users object in the attribute manager MongoDB matching the filter
