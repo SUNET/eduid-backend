@@ -26,6 +26,9 @@ def setup_celeryd(sender, conf, **kwargs):
     db.attributes.ensure_index([('mobile.mobile', 1),
                                 ('mobile.verified', 1)],
                                name='mobile-index')
+    db.attributes.ensure_index([('mailAliases.email', 1),
+                                ('mailAliases.verified', 1)],
+                               name='mailAliases-index')
 
 
 def get_attribute_manager(celery_app):
