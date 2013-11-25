@@ -41,13 +41,13 @@ class MessageTest(MongoTestCase):
 
         db = am.conn.get_database('test')
 
-        id = ObjectId()
-        assert(db['user'].insert({'_id': id, 'uid': 'vlindeman'}) == id)
+        _id = ObjectId()
+        assert(db['user'].insert({'_id': _id, 'uid': 'vlindeman'}) == _id)
 
-        update_attributes.delay(app_name='test', user_id=id)
+        update_attributes.delay(app_name='test', obj_id = _id)
 
         adb = am.conn.get_database(settings['MONGO_DBNAME'])
-        attrs = adb['attributes'].find_one({'_id': id})
+        attrs = adb['attributes'].find_one({'_id': _id})
         assert(attrs['eppn'] == 'vlindeman@eduid.se')
         user = am.get_user_by_field('eppn', 'vlindeman@eduid.se')
         assert(user['_id'] == attrs['_id'])

@@ -93,29 +93,29 @@ class AttributeManager(Task):
         else:
             return docs[0]
 
-    def get_users(self, filter, proyection=None):
+    def get_users(self, spec, fields=None):
         """
         Return a list with users object in the attribute manager MongoDB matching the filter
 
-        :param filter: a standard mongodb read operation filter
-        :param proyection: If not None, pass as proyection to mongo searcher
+        :param spec: a standard mongodb read operation filter
+        :param fields: If not None, pass as proyection to mongo searcher
         :return a list with users
         """
         #logging.debug("get_users %s=%s" % (filter))
 
-        if proyection is None:
-            return self.db.attributes.find(filter)
+        if fields is None:
+            return self.db.attributes.find(spec)
         else:
-            return self.db.attributes.find(filter, proyection)
+            return self.db.attributes.find(spec, fields)
 
-    def exists_by_filter(self, filter):
+    def exists_by_filter(self, spec):
         """
         Return true if at least one doc matchs with the value
 
-        :param filter: The filter used in the query
+        :param spec: The filter used in the query
         """
 
-        docs = self.db.attributes.find(filter)
+        docs = self.db.attributes.find(spec)
         return docs.count() >= 1
 
     def exists_by_field(self, field, value):
@@ -128,17 +128,17 @@ class AttributeManager(Task):
 
         return self.exists_by_filter({field: value})
 
-    def get_identity_proofing(self, id):
+    def get_identity_proofing(self, obj_id):
         """
         Return the proofing urn value
 
-        :param id: The user object id
+        :param obj_id: The user object id
         """
 
         # TODO
         # This method need to be implemented
         default_urn = 'http://www.swamid.se/assurance/al1'
-        user = self.db.attributes.find_one({'_id': id})
+        user = self.db.attributes.find_one({'_id': obj_id})
         if user is None:
             return default_urn
         else:
@@ -147,20 +147,20 @@ class AttributeManager(Task):
 
 
 @celery.task(ignore_results=True, base=AttributeManager)
-def update_attributes(app_name, user_id):
+def update_attributes(app_name, obj_id):
     """
     Task executing on the Celery worker service as an RPC called from
     the different eduID applications.
 
     :param app_name: calling application name, like 'eduid_signup'
-    :param user_id: entry in the calling applications name that has changed (object id)
+    :param obj_id: entry in the calling applications name that has changed (object id)
     :type app_name: string
-    :type user_id: string
+    :type obj_id: string
     """
     try:
-        return _update_attributes_safe(app_name, user_id)
+        return _update_attributes_safe(app_name, obj_id)
     except Exception as exc:
-        logger.error("Got exception processing {!r}[{!r}]".format(app_name, user_id), exc_info = True)
+        logger.error("Got exception processing {!r}[{!r}]".format(app_name, obj_id), exc_info = True)
         raise
 
 
