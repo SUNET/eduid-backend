@@ -8,7 +8,7 @@ from pkg_resources import iter_entry_points
 import bson
 
 from eduid_am.celery import celery
-from eduid_am.db import MongoDB, DEFAULT_MONGODB_URI, DEFAULT_MONGODB_NAME
+from eduid_am.db import MongoDB, DEFAULT_MONGODB_URI
 from eduid_am.exceptions import UserDoesNotExist, MultipleUsersReturned
 
 logger = get_task_logger(__name__)
@@ -61,24 +61,22 @@ class AttributeManager(Task):
 
     def get_user_by_id(self, id, raise_on_missing=False):
         """
+        Return the user object in the attribute manager MongoDB with _id=id
 
         :param id: An Object ID
         :param raise_on_missing: If True, raise exception if no matching user object can be found.
         :return: A user dict
-
-Return the user object in the attribute manager MongoDB with _id=id
         """
         return self.get_user_by_field('_id', id, raise_on_missing)
 
     def get_user_by_field(self, field, value, raise_on_missing=False):
         """
+        Return the user object in the attribute manager MongoDB matching field=value
 
         :param field: The name of a field
         :param value: The field value
         :param raise_on_missing: If True, raise exception if no matching user object can be found.
         :return: A user dict
-
-Return the user object in the attribute manager MongoDB matching field=value
         """
         #logging.debug("get_user_by_field %s=%s" % (field, value))
 
@@ -97,13 +95,11 @@ Return the user object in the attribute manager MongoDB matching field=value
 
     def get_users(self, filter, proyection=None):
         """
+        Return a list with users object in the attribute manager MongoDB matching the filter
 
         :param filter: a standard mongodb read operation filter
         :param proyection: If not None, pass as proyection to mongo searcher
         :return a list with users
-
-
-Return a list with users object in the attribute manager MongoDB matching the filter
         """
         #logging.debug("get_users %s=%s" % (filter))
 
@@ -114,10 +110,9 @@ Return a list with users object in the attribute manager MongoDB matching the fi
 
     def exists_by_filter(self, filter):
         """
+        Return true if at least one doc matchs with the value
 
         :param filter: The filter used in the query
-
-Return true if at least one doc matchs with the value
         """
 
         docs = self.db.attributes.find(filter)
@@ -125,20 +120,19 @@ Return true if at least one doc matchs with the value
 
     def exists_by_field(self, field, value):
         """
+        Return true if at least one doc matchs with the value
 
         :param field: The name of a field
         :param value: The field value
-
-Return true if at least one doc matchs with the value
         """
 
         return self.exists_by_filter({field: value})
 
     def get_identity_proofing(self, id):
         """
-        :param id: The user object id
+        Return the proofing urn value
 
-Return the proofing urn value
+        :param id: The user object id
         """
 
         # TODO
@@ -164,12 +158,13 @@ def update_attributes(app_name, user_id):
     :type user_id: string
     """
     try:
-        return update_attributes_safe(app_name, user_id)
+        return _update_attributes_safe(app_name, user_id)
     except Exception as exc:
         logger.error("Got exception processing {!r}[{!r}]".format(app_name, user_id), exc_info = True)
         raise
 
-def update_attributes_safe(app_name, user_id):
+
+def _update_attributes_safe(app_name, user_id):
     self = update_attributes
     logger.debug("update %s[%s]" % (app_name, user_id))
 
