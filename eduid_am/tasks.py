@@ -35,20 +35,40 @@ class AttributeManager(Task):
 
     @property
     def conn(self):
+        """
+        Get the MongoDB connection object.
+
+        :return: connection object
+        """
         if self._conn is None:
             self._conn = MongoDB(self.app.conf.get('MONGO_URI', DEFAULT_MONGODB_URI))
         return self._conn
 
     @property
     def db(self):
+        """
+        Get the MongoDB database object.
+
+        :return: database object
+        """
         db_name = (self.app.conf.get('MONGO_DBNAME') or None)
         if db_name:
             return self.conn.get_database(db_name)
         else:
             return self.conn.get_database()
 
-    def update_user(self, user_id, attributes):
-        doc = {'_id': user_id}
+    def update_user(self, obj_id, attributes):
+        """
+        Update user document in mongodb.
+
+        `attributes' can be either a dict with plain key-values, or a dict with
+        one or more find_and_modify modifier instructions ({'$set': ...}).
+
+        :param obj_id: ObjectId
+        :param attributes: dict
+        :return: None
+        """
+        doc = {'_id': obj_id}
 
         # check if any of doc attributes contains a modifer instruction.
         # like any key starting with $
@@ -70,15 +90,15 @@ class AttributeManager(Task):
                     }
                 )
 
-    def get_user_by_id(self, id, raise_on_missing=False):
+    def get_user_by_id(self, obj_id, raise_on_missing=False):
         """
         Return the user object in the attribute manager MongoDB with _id=id
 
-        :param id: An Object ID
+        :param obj_id: An Object ID
         :param raise_on_missing: If True, raise exception if no matching user object can be found.
         :return: A user dict
         """
-        return self.get_user_by_field('_id', id, raise_on_missing)
+        return self.get_user_by_field('_id', obj_id, raise_on_missing)
 
     def get_user_by_field(self, field, value, raise_on_missing=False):
         """
@@ -94,15 +114,11 @@ class AttributeManager(Task):
         docs = self.db.attributes.find({field: value})
         if docs.count() == 0:
             if raise_on_missing:
-                raise UserDoesNotExist("No user matching %s='%s'" % (field,
-                                                                     value))
-            else:
-                return None
+                raise UserDoesNotExist("No user matching %s='%s'" % (field, value))
+            return None
         elif docs.count() > 1:
-            raise MultipleUsersReturned("Multiple matching users for %s='%s'" %
-                                        (field, value))
-        else:
-            return docs[0]
+            raise MultipleUsersReturned("Multiple matching users for %s='%s'" % (field, value))
+        return docs[0]
 
     def get_users(self, spec, fields=None):
         """
@@ -170,7 +186,7 @@ def update_attributes(app_name, obj_id):
     """
     try:
         return _update_attributes_safe(app_name, obj_id)
-    except Exception as exc:
+    except Exception:
         logger.error("Got exception processing {!r}[{!r}]".format(app_name, obj_id), exc_info = True)
         raise
 
