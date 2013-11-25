@@ -15,3 +15,7 @@ sign.crt
 sign.key
 .cache
 _site
+
+.coverage
+coverage.xml
+nosetests.xml
