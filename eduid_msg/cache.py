@@ -30,6 +30,15 @@ class CacheMDB():
             return result['data']
         return result
 
+    def get_cached_items_by_query(self, query):
+        result = self.collection.find(query)
+        return result
+
+    def update_cache_item(self, identifier, data):
+        date = datetime.fromtimestamp(time(), None)
+        return self.collection.update({'identifier': identifier}, {'$set': {'data': data, 'updated_at': date}}, w=1,
+                                      getLastError=True)
+
     def remove_cache_item(self, identifier):
         return self.collection.remove({'identifier': identifier}, w=1, getLastError=True)
 

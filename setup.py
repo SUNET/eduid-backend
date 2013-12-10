@@ -17,7 +17,8 @@ install_requires = [
     'pymongo',
     'celery',
     'pysmscom >= 0.3',
-    'pymmclient >= 0.7',
+    'pymmclient >= 0.7.1',
+    'pynavet >= 0.5',
     'Jinja2',
 ]
 
