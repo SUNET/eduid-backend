@@ -12,6 +12,8 @@ DEFAULT_MONGODB_URI = 'mongodb://%s:%d/%s' % (DEFAULT_MONGODB_HOST,
 class MongoDB(object):
     """Simple wrapper to get pymongo real objects from the settings uri"""
 
+    _connection = None
+
     def __init__(self, db_uri=DEFAULT_MONGODB_URI,
                  connection_factory=None, **kwargs):
 
@@ -28,10 +30,11 @@ class MongoDB(object):
         elif connection_factory is None:
             connection_factory = pymongo.MongoClient
 
-        self.connection = connection_factory(
-            host=self.db_uri,
-            tz_aware=True,
-            **kwargs)
+        if self._connection is None:
+            self._connection = connection_factory(
+                host=self.db_uri,
+                tz_aware=True,
+                **kwargs)
 
         if self.parsed_uri.get("database", None):
             self.database_name = self.parsed_uri["database"]
@@ -39,13 +42,13 @@ class MongoDB(object):
             self.database_name = DEFAULT_MONGODB_NAME
 
     def get_connection(self):
-        return self.connection
+        return self._connection
 
     def get_database(self, database_name=None, username=None, password=None):
         if database_name is None:
-            db = self.connection[self.database_name]
+            db = self._connection[self.database_name]
         else:
-            db = self.connection[database_name]
+            db = self._connection[database_name]
         if username and password:
             db.authenticate(username, password)
         elif self.parsed_uri.get("username", None):
