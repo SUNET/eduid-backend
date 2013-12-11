@@ -4,6 +4,8 @@ from time import time
 
 
 class CacheMDB():
+    _init_collections = {}
+
     def __init__(self, mongo_dburi, mongo_dbname, mongo_collection, ttl, expiration_freq=60):
         self.conn = MongoDB(mongo_dburi)
         self.db = self.conn.get_database(mongo_dbname)
@@ -11,8 +13,7 @@ class CacheMDB():
         self._expiration_freq = expiration_freq
         self._last_expire_at = None
         self._ttl = ttl
-        self.collection.ensure_index('created_at', name='created_at_idx', unique=False)
-        self.collection.ensure_index('identifier', name='identifier_idx', unique=True)
+        self.ensure_indices(mongo_collection)
 
     def add_cache_item(self, identifier, data):
         date = datetime.fromtimestamp(time(), None)
@@ -50,3 +51,9 @@ class CacheMDB():
         date = datetime.fromtimestamp(ts, None)
         self.collection.remove({'created_at': {'$lt': date}}, w=1)
         return True
+
+    def ensure_indices(self, collection):
+        if collection not in self._init_collections:  # Only ensure indices once
+            self._init_collections[collection] = 1
+            self.db[collection].ensure_index('created_at', name='created_at_idx', unique=False)
+            self.db[collection].ensure_index('identifier', name='identifier_idx', unique=True)
