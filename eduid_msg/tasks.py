@@ -12,15 +12,14 @@ from eduid_msg.celery import celery
 from eduid_msg.cache import CacheMDB
 from eduid_msg.db import DEFAULT_MONGODB_URI, DEFAULT_MONGODB_NAME
 from eduid_msg.utils import load_template
+from eduid_msg.decorators import TransactionAudit
+from eduid_msg.config import read_configuration
 from time import time
 from datetime import datetime, timedelta
 from pynavet.postaladdress import PostalAddress
 
 
 LOG = get_task_logger(__name__)
-
-usleep = lambda x: sleep(x/1000000.0)
-
 _CACHE = {}
 MESSAGE_RATE_LIMIT = celery.conf.get("MESSAGE_RATE_LIMIT", None)
 
@@ -34,6 +33,7 @@ class MessageRelay(Task):
     _message = None
     _recipient = None
     _navet = None
+    _config = read_configuration()
 
     @property
     def sms(self):
@@ -90,6 +90,7 @@ class MessageRelay(Task):
             return True
         return False
 
+    @TransactionAudit(DEFAULT_MONGODB_URI)
     def get_is_reachable(self, identity_number):
         """
         Check if the user is registered with Swedish government mailbox service.
@@ -106,13 +107,15 @@ class MessageRelay(Task):
                 self.cache('recipient_cache').add_cache_item(identity_number, result)
         return result
 
+    @TransactionAudit(DEFAULT_MONGODB_URI)
     def send_message(self, message_type, message_dict, recipient, template, language, subject=None):
         """
         @param message_type: Message notification type (sms or mm)
         @type message_type: str (possible values 'sms' and 'mm')
         @param message_dict: A dict of key value pairs used in the template of choice
         @type message_dict: dict
-        @param recipient: Recipient mobile phone number or social security number (depends on the choice of message_type)
+        @param recipient: Recipient mobile phone number or social security number (depends on the choice of
+        message_type)
         @type recipient: str
         @param template: Name of the message template to use
         @type template: str
@@ -168,6 +171,7 @@ class MessageRelay(Task):
 
         return status
 
+    @TransactionAudit(DEFAULT_MONGODB_URI)
     def get_postal_address(self, identity_number):
         """
         Fetch name and postal address from NAVET

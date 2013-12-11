@@ -1,6 +1,18 @@
 from mock import patch, call
 from eduid_msg.tests import MongoTestCase
 from eduid_msg.celery import celery
+
+
+class FakeDecorator(object):
+    def __init__(self, uri):
+        pass
+
+    def __call__(self, f):
+        def inner(*args, **kwargs):
+            return f(*args, **kwargs)
+        return inner
+
+patch('eduid_msg.decorators.TransactionAudit', FakeDecorator).start()
 from eduid_msg.tasks import send_message, is_reachable
 from eduid_msg.utils import load_template
 import pkg_resources
@@ -87,7 +99,7 @@ class TestTasks(MongoTestCase):
         recipient_mock.is_reachable.return_value = self.recipient_data
         message_mock.create_secure_message.return_value = True
         message_mock.create_signed_delivery.return_value = True
-        status = send_message.delay('mm', self.msg_dict, '192705178354', 'test.tmpl', 'sv_SE', subject='Test').get()
+        send_message.delay('mm', self.msg_dict, '192705178354', 'test.tmpl', 'sv_SE', subject='Test').get()
 
         # Test that the template was actually used in send_message function call to the mm service
         template = load_template(celery.conf.get('TEMPLATE_DIR'), 'test.tmpl', self.msg_dict, 'sv_SE')
