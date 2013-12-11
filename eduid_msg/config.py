@@ -31,7 +31,7 @@ def get_config_file():
 
 
 def read_configuration():
-    "Read the settings from environment or .ini file and return them as a dict"
+    """Read the settings from environment or .ini file and return them as a dict"""
     settings = {}
 
     config = ConfigParser.RawConfigParser()
