@@ -91,7 +91,6 @@ class MessageRelay(Task):
             return True
         return False
 
-    @TransactionAudit(MONGODB_URI)
     def get_is_reachable(self, identity_number):
         """
         Check if the user is registered with Swedish government mailbox service.
@@ -102,11 +101,15 @@ class MessageRelay(Task):
         """
         result = self.cache('recipient_cache', 7200).get_cache_item(identity_number)
         if result is None:
-            result = self.recipient.is_reachable(identity_number)[0]
+            result = self._get_is_reachable(identity_number)
             # Only cache secure recipients if we are an accepted sender
             if result['AccountStatus']['Type'] == 'Secure' and result['SenderAccepted']:
                 self.cache('recipient_cache').add_cache_item(identity_number, result)
         return result
+
+    @TransactionAudit(MONGODB_URI)
+    def _get_is_reachable(self, identity_number):
+        return self.recipient.is_reachable(identity_number)[0]
 
     @TransactionAudit(MONGODB_URI)
     def send_message(self, message_type, message_dict, recipient, template, language, subject=None):
@@ -173,7 +176,6 @@ class MessageRelay(Task):
 
         return status
 
-    @TransactionAudit(MONGODB_URI)
     def get_postal_address(self, identity_number):
         """
         Fetch name and postal address from NAVET
@@ -184,17 +186,15 @@ class MessageRelay(Task):
         """
         result = self.cache('navet_cache').get_cache_item(identity_number)
         if result is None:
-            result = self.navet.get_name_and_official_address(identity_number)
+            result = self._get_postal_address(identity_number)
             if result is not None:
                 self.cache('navet_cache').add_cache_item(identity_number, result)
-
         return result
 
+    @TransactionAudit(MONGODB_URI)
+    def _get_postal_address(self, identity_number):
+        return self.navet.get_name_and_official_address(identity_number)
 
-@task(ignore_results=True, base=MessageRelay)
-def send_sms(msg, to):
-    self = send_sms
-    self.sms.send(msg, self._sender, to, prio=2)
 
 @task(base=MessageRelay)
 def is_reachable(identity_number):
