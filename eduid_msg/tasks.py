@@ -34,6 +34,7 @@ class MessageRelay(Task):
     _recipient = None
     _navet = None
     _config = read_configuration()
+    MONGODB_URI = _config['MONGO_URI'] if 'MONGO_URI' in _config else DEFAULT_MONGODB_URI
 
     @property
     def sms(self):
@@ -90,7 +91,7 @@ class MessageRelay(Task):
             return True
         return False
 
-    @TransactionAudit(DEFAULT_MONGODB_URI)
+    @TransactionAudit(MONGODB_URI)
     def get_is_reachable(self, identity_number):
         """
         Check if the user is registered with Swedish government mailbox service.
@@ -107,7 +108,7 @@ class MessageRelay(Task):
                 self.cache('recipient_cache').add_cache_item(identity_number, result)
         return result
 
-    @TransactionAudit(DEFAULT_MONGODB_URI)
+    @TransactionAudit(MONGODB_URI)
     def send_message(self, message_type, message_dict, recipient, template, language, subject=None):
         """
         @param message_type: Message notification type (sms or mm)
@@ -130,6 +131,7 @@ class MessageRelay(Task):
         if unsuccessful an error message is returned.
         """
         conf = self.app.conf
+
         msg = load_template(conf.get("TEMPLATE_DIR", None), template, message_dict, language).encode('utf-8')
         if not msg:
             raise RuntimeError("template not found")
@@ -171,7 +173,7 @@ class MessageRelay(Task):
 
         return status
 
-    @TransactionAudit(DEFAULT_MONGODB_URI)
+    @TransactionAudit(MONGODB_URI)
     def get_postal_address(self, identity_number):
         """
         Fetch name and postal address from NAVET
