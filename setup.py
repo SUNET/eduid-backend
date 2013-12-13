@@ -16,7 +16,7 @@ install_requires = [
     'python-dateutil == 2.1',
     'pymongo',
     'celery',
-    'pysmscom >= 0.3',
+    'pysmscom >= 0.4',
     'pymmclient >= 0.7.1',
     'pynavet >= 0.5',
     'Jinja2',
