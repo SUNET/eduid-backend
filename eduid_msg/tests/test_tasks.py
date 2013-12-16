@@ -137,7 +137,7 @@ class TestTasks(MongoTestCase):
     @patch('eduid_msg.tasks.Service')
     @patch('eduid_msg.tasks.MessageRelay.recipient')
     @patch('eduid_msg.tasks.MessageRelay.message')
-    def test_send_message_mm_recipient_not_existing(self, message_mock, recipient_mock, service_mock):
+    def test_send_message_mm_recipient_anonymous(self, message_mock, recipient_mock, service_mock):
         recipient_mock.is_reachable.return_value = self.recipient_anon
         message_mock.create_secure_message.return_value = True
         message_mock.create_signed_delivery.return_value = True
