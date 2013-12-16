@@ -84,28 +84,42 @@ class MessageRelay(Task):
                                           cache_name, ttl=ttl, expiration_freq=120)
         return _CACHE[cache_name]
 
-    def is_reachable(self, identity_number):
-        result = self.get_is_reachable(identity_number)
-        # Ensure the recipient has a secure account and accept us as sender
-        if result['AccountStatus']['Type'] == 'Secure' and result['SenderAccepted']:
-            return True
-        return False
-
-    def get_is_reachable(self, identity_number):
+    def is_reachable(self, identity_number, mailbox_url=False):
         """
         Check if the user is registered with Swedish government mailbox service.
 
         @param identity_number: User social security number
         @type identity_number: int
-        @return: Return True if the user is reachable, otherwise False
+        @param mailbox_url (optional): Return mailbox URL instead of true if the user exist and accept messages from
+        the sender.
+        @type mailbox_url: bool
+        @return: True if the user is reachable, False if the user is not registered with the government mailbox service.
+        'Anonymous' if the user is registered but has not confirmed their identity with the government mailbox service.
+        'Sender_not' if the sender (you) is blocked by the recipient.
         """
         result = self.cache('recipient_cache', 7200).get_cache_item(identity_number)
+        retval = False
+
         if result is None:
             result = self._get_is_reachable(identity_number)
-            # Only cache secure recipients if we are an accepted sender
             if result['AccountStatus']['Type'] == 'Secure' and result['SenderAccepted']:
                 self.cache('recipient_cache').add_cache_item(identity_number, result)
-        return result
+
+        if retval is False:
+            if result['AccountStatus']['Type'] == 'Secure':
+                if result['SenderAccepted']:
+                    retval = True
+                else:
+                    retval = 'Sender_not'
+            elif result['AccountStatus']['Type'] == 'Not':
+                pass
+            elif result['AccountStatus']['Type'] == 'Anonymous':
+                retval = 'Anonymous'
+
+        if mailbox_url is True and retval is True:
+            return result['AccountStatus']['ServiceSupplier']['ServiceAdress']
+
+        return retval
 
     @TransactionAudit(MONGODB_URI)
     def _get_is_reachable(self, identity_number):
@@ -149,21 +163,16 @@ class MessageRelay(Task):
             LOG.debug("Sending SMS to '%s' using template '%s' and language '%s" % (recipient, template, language))
             status = self.sms.send(msg, self._sender, recipient, prio=2)
         elif message_type == 'mm':
-            reachable = self.get_is_reachable(recipient)
-            if reachable['AccountStatus']['Type'] is not 'Secure' and not reachable['SenderAccepted']:
-                if reachable['AccountStatus']['Type'] == 'Not' or \
-                   reachable['AccountStatus']['Type'] == 'Anonymous':
-                    reason = reachable['AccountStatus']['Type']
-                elif not reachable['SenderAccepted']:
-                    reason = "SENDER_NOT"
+            reachable = self.is_reachable(recipient)
 
-                LOG.debug("User not reachable - reason: %s", reason)
-                return reason
+            if reachable is not True:
+                LOG.debug("User not reachable - reason: %s", reachable)
+                return reachable
 
             if subject is None:
                 subject = conf.get("MM_DEFAULT_SUBJECT")
 
-            service_address = reachable['AccountStatus']['ServiceSupplier']['ServiceAdress']
+            service_address = self.is_reachable(recipient, mailbox_url=True)
             secure_message = self.message.create_secure_message(subject, msg, 'text/plain',
                                                                 language.translate(None, '_'))
             signed_delivery = self.message.create_signed_delivery([recipient], secure_message)

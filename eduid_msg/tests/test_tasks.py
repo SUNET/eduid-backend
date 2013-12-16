@@ -65,6 +65,13 @@ class TestTasks(MongoTestCase):
                               u'ServiceAdress': u'x', u'Name': u'x'}, u'Type': u'Not',
                               u'RecipientId': u'192705178354', u'Pending': False}}]
 
+        self.recipient_anon = [{u'SenderAccepted': True,
+                               u'AccountStatus':
+                               {u'ServiceSupplier':
+                               {u'Id': u'162021005448',
+                               u'ServiceAdress': u'x', u'Name': u'x'}, u'Type': u'Anonymous',
+                               u'RecipientId': u'192705178354', u'Pending': False}}]
+
 
     @patch('smscom.SMSClient.send')
     def test_send_message_sms(self, sms_mock):
@@ -115,7 +122,7 @@ class TestTasks(MongoTestCase):
         message_mock.create_secure_message.return_value = True
         message_mock.create_signed_delivery.return_value = True
         status = send_message.delay('mm', self.msg_dict, '192705178354', 'test.tmpl', 'sv_SE', subject='Test').get()
-        self.assertEqual(status, "SENDER_NOT")
+        self.assertEqual(status, "Sender_not")
 
     @patch('eduid_msg.tasks.Service')
     @patch('eduid_msg.tasks.MessageRelay.recipient')
@@ -125,4 +132,14 @@ class TestTasks(MongoTestCase):
         message_mock.create_secure_message.return_value = True
         message_mock.create_signed_delivery.return_value = True
         status = send_message.delay('mm', self.msg_dict, '192705178354', 'test.tmpl', 'sv_SE', subject='Test').get()
-        self.assertEqual(status, "Not")
+        self.assertEqual(status, False)
+
+    @patch('eduid_msg.tasks.Service')
+    @patch('eduid_msg.tasks.MessageRelay.recipient')
+    @patch('eduid_msg.tasks.MessageRelay.message')
+    def test_send_message_mm_recipient_not_existing(self, message_mock, recipient_mock, service_mock):
+        recipient_mock.is_reachable.return_value = self.recipient_anon
+        message_mock.create_secure_message.return_value = True
+        message_mock.create_signed_delivery.return_value = True
+        status = send_message.delay('mm', self.msg_dict, '192705178354', 'test.tmpl', 'sv_SE', subject='Test').get()
+        self.assertEqual(status, "Anonymous")
