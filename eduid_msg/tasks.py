@@ -217,17 +217,6 @@ def is_reachable(identity_number):
     self = is_reachable
     return self.is_reachable(identity_number)
 
-@task(base=MessageRelay)
-def get_is_reachable(identity_number):
-    """
-    Get user reachable status from Swedish government mailbox service.
-
-    @param identity_number: Swedish national identity number
-    @type identity_number: str
-    @return: Dict containing information about the user status
-    """
-    self = get_is_reachable
-    return self.get_is_reachable(identity_number)
 
 @task(base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT, max_retries=10)
 def send_message(message_type, message_dict, recipient, template, language, subject=None):
@@ -254,6 +243,7 @@ def send_message(message_type, message_dict, recipient, template, language, subj
         LOG.debug("send_message task retrying in %d seconds, error %s", retry_countdown, e.message)
         send_message.retry(exc=e, countdown=retry_countdown)
 
+
 @task(base=MessageRelay)
 def get_postal_address(identity_number):
     """
@@ -266,6 +256,7 @@ def get_postal_address(identity_number):
     """
     self = get_postal_address
     return self.get_postal_address(identity_number)
+
 
 @periodic_task(run_every=timedelta(minutes=5))
 def cache_expire():
