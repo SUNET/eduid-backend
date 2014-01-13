@@ -1,18 +1,6 @@
 from mock import patch, call
 from eduid_msg.tests import MongoTestCase
 from eduid_msg.celery import celery
-
-
-class FakeDecorator(object):
-    def __init__(self, uri):
-        pass
-
-    def __call__(self, f):
-        def inner(*args, **kwargs):
-            return f(*args, **kwargs)
-        return inner
-
-patch('eduid_msg.decorators.TransactionAudit', FakeDecorator).start()
 from eduid_msg.tasks import send_message, is_reachable
 from eduid_msg.utils import load_template
 import pkg_resources

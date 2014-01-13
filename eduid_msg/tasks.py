@@ -35,6 +35,8 @@ class MessageRelay(Task):
     _navet = None
     _config = read_configuration()
     MONGODB_URI = _config['MONGO_URI'] if 'MONGO_URI' in _config else DEFAULT_MONGODB_URI
+    if 'AUDIT' in _config and _config['AUDIT'] == 'true':
+        TransactionAudit.enable()
 
     @property
     def sms(self):

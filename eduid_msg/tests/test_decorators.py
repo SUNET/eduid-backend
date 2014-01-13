@@ -7,6 +7,7 @@ import pkg_resources
 class TestTransactionAudit(MongoTestCase):
     def setUp(self):
         super(TestTransactionAudit, self).setUp()
+        TransactionAudit.enable()
         data_dir = pkg_resources.resource_filename(__name__, 'data')
         settings = {
             'BROKER_TRANSPORT': 'memory',
@@ -55,3 +56,25 @@ class TestTransactionAudit(MongoTestCase):
         send_message('dummy', 'sms', 'dummy', '3333')
         result = c.find_one({'data.recipient': '3333'})
         self.assertEquals(result['data']['recipient'], '3333')
+
+    def test_transaction_audit_toggle(self):
+        db = self.conn['test']
+        c = db['transaction_audit']
+        c.remove()  # Clear database
+        TransactionAudit.disable()
+
+        @TransactionAudit(celery.conf.get('MONGO_URI'), db_name='test')
+        def no_name():
+            return {'baka': 'kaka'}
+        no_name()
+
+        result = c.find()
+        self.assertEquals(result.count(), 0)
+
+        TransactionAudit.enable()
+        @TransactionAudit(celery.conf.get('MONGO_URI'), db_name='test')
+        def no_name2():
+            return {'baka': 'kaka'}
+        no_name2()
+        result = c.find()
+        self.assertEquals(result.count(), 1)

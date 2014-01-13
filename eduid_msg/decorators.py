@@ -5,12 +5,18 @@ from time import time
 
 
 class TransactionAudit(object):
-    def __init__(self, db_uri, db_name='eduid_msg', collection='transaction_audit'):
-        self.conn = MongoDB(db_uri)
-        self.db = self.conn.get_database(db_name)
-        self.collection = self.db[collection]
+    enabled = False
+    collection = None
+
+    def __init__(self, db_uri, db_name='eduid_msg', collection_name='transaction_audit'):
+        self.db_uri = db_uri
+        self.db_name = db_name
+        self.collection_name = collection_name
 
     def __call__(self, f):
+        if not self.enabled:
+            return f
+
         def audit(*args, **kwargs):
             ret = f(*args, **kwargs)
             if not isclass(ret):  # we can't save class objects in mongodb
@@ -20,7 +26,19 @@ class TransactionAudit(object):
                        'created_at': date}
                 self.collection.insert(doc)
             return ret
+        if self.collection is None:
+            conn = MongoDB(self.db_uri)
+            db = conn.get_database(self.db_name)
+            self.collection = db[self.collection_name]
         return audit
+
+    @classmethod
+    def enable(cls):
+        cls.enabled = True
+
+    @classmethod
+    def disable(cls):
+        cls.enabled = False
 
     def _filter(self, func, data, *args, **kwargs):
         if data is False:
