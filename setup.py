@@ -10,14 +10,14 @@ README = 'eduID Message Manager'
 if os.path.exists(README_fn):
     README = open(README_fn).read()
 
-version = '0.7.3'
+version = '0.7.4'
 
 install_requires = [
     'python-dateutil == 2.1',
     'pymongo',
     'celery',
     'pysmscom >= 0.4',
-    'pymmclient >= 0.7.1',
+    'pymmclient >= 0.7.2',
     'pynavet >= 0.5',
     'Jinja2',
 ]
