@@ -189,13 +189,13 @@ class AttributeManager(Task):
 
         # TODO
         # This method need to be implemented
-        default_urn = 'http://www.swamid.se/assurance/al1'
+        default_urn = 'http://www.swamid.se/assurance/policy/al1'
         user = self.db.attributes.find_one({'_id': obj_id})
         if user is None:
             return default_urn
         else:
             return user.get('eduPersonIdentityProofing',
-                            'http://www.swamid.se/assurance/al1')
+                            default_urn)
 
 
 @celery.task(ignore_results=True, base=AttributeManager)
