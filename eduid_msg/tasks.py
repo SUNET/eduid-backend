@@ -54,7 +54,9 @@ class MessageRelay(Task):
                                     sender_org_nr=conf.get("MM_SENDER_ORG_NR"),
                                     sender_org_name=conf.get("MM_SENDER_ORG_NAME"),
                                     support_text=conf.get("MM_SUPPORT_TEXT"),
-                                    verify=False, serializable=True)
+                                    verify=False,
+                                    serializable=True,
+                                    use_cache=False)
         return self._message
 
     @property
@@ -65,7 +67,8 @@ class MessageRelay(Task):
                                         key_file=conf.get("MM_KEY_FILE"),
                                         sender_org_nr=conf.get("MM_SENDER_ORG_NR"),
                                         verify=False,
-                                        serializable=True)
+                                        serializable=True,
+                                        use_cache=False)
         return self._recipient
 
     @property
