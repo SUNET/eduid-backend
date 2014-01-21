@@ -139,7 +139,13 @@ class AttributeManager(Task):
             docs = self.db.attributes.find(spec)
         if docs.count() == 0:
             if raise_on_missing:
-                raise UserDoesNotExist("No user matching email {!r}".format(email))
+                spec = {'mailAliases.email': email, }
+                docs = self.db.attributes.find(spec)
+                if docs.count() == 0:
+                    msg = "No user matching email {!r}"
+                else:
+                    msg = "The email {!r} is not verified"
+                raise UserDoesNotExist(msg.format(email))
             return None
         elif docs.count() > 1:
             raise MultipleUsersReturned("Multiple matching users for email {!r}".format(email))
