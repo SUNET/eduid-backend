@@ -142,9 +142,9 @@ class AttributeManager(Task):
                 spec = {'mailAliases.email': email, }
                 docs = self.db.attributes.find(spec)
                 if docs.count() == 0:
-                    msg = "No user matching email {!r}"
+                    msg = "No user matching email {}"
                 else:
-                    msg = "The email {!r} is not verified"
+                    msg = "The email {} is not verified"
                 raise UserDoesNotExist(msg.format(email))
             return None
         elif docs.count() > 1:
