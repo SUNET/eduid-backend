@@ -133,9 +133,7 @@ class AttributeManager(Task):
         # Look for `email' in the `mail' attribute, and second in the `mailAliases' attribute
         docs = self.db.attributes.find({'mail': email})
         if docs.count() == 0:
-            spec = {'mailAliases.email': email,
-                    'mailAliases.verified': True,
-                    }
+            spec = {'mailAliases': {'email': email, 'verified': True}}
             docs = self.db.attributes.find(spec)
         if docs.count() == 0:
             if raise_on_missing:
