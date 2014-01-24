@@ -133,13 +133,17 @@ class AttributeManager(Task):
         # Look for `email' in the `mail' attribute, and second in the `mailAliases' attribute
         docs = self.db.attributes.find({'mail': email})
         if docs.count() == 0:
-            spec = {'mailAliases.email': email,
-                    'mailAliases.verified': True,
-                    }
+            spec = {'mailAliases': {'email': email, 'verified': True}}
             docs = self.db.attributes.find(spec)
         if docs.count() == 0:
             if raise_on_missing:
-                raise UserDoesNotExist("No user matching email {!r}".format(email))
+                spec = {'mailAliases.email': email, }
+                docs = self.db.attributes.find(spec)
+                if docs.count() == 0:
+                    msg = "No user matching email {}"
+                else:
+                    msg = "The email {} is not verified"
+                raise UserDoesNotExist(msg.format(email))
             return None
         elif docs.count() > 1:
             raise MultipleUsersReturned("Multiple matching users for email {!r}".format(email))
@@ -189,13 +193,13 @@ class AttributeManager(Task):
 
         # TODO
         # This method need to be implemented
-        default_urn = 'http://www.swamid.se/assurance/al1'
+        default_urn = 'http://www.swamid.se/policy/assurance/al1'
         user = self.db.attributes.find_one({'_id': obj_id})
         if user is None:
             return default_urn
         else:
             return user.get('eduPersonIdentityProofing',
-                            'http://www.swamid.se/assurance/al1')
+                            default_urn)
 
 
 @celery.task(ignore_results=True, base=AttributeManager)
