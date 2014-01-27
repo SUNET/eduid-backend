@@ -5,7 +5,6 @@ from celery.signals import celeryd_init
 
 from eduid_am.config import read_configuration
 from eduid_am.db import MongoDB, DEFAULT_MONGODB_URI
-from eduid_am.tasks import AttributeManager
 
 
 celery = Celery('eduid_am.celery', include=['eduid_am.tasks'])
@@ -44,5 +43,6 @@ def get_attribute_manager(celery_app):
     # without this import, celery suddenly says NotRegistered about update_attributes
     import eduid_am.tasks
     am = celery_app.tasks['eduid_am.tasks.update_attributes']
+    from eduid_am.tasks import AttributeManager
     assert isinstance(am, AttributeManager)  # a type hint for IDEs and analyzers
     return am
