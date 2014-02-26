@@ -51,7 +51,10 @@ class User(object):
     """
 
     def __init__(self, mongo_doc):
-        self._mongo_doc = mongo_doc
+        if type(mongo_doc) is User:
+            self._mongo_doc = mongo_doc._mongo_doc
+        else:
+            self._mongo_doc = mongo_doc
 
     def __repr__(self):
         return '<User: {0}>'.format(self['displayName'])
@@ -69,7 +72,7 @@ class User(object):
         return self._mongo_doc
 
     def get_id(self):
-        return str(self._mongo_doc['_id'])
+        return self._mongo_doc['_id']
 
     def get_given_name(self):
         return self._mongo_doc.get('givenName', '')
@@ -181,8 +184,14 @@ class User(object):
     def get_passwords(self):
         return self._mongo_doc.get('passwords', [])
 
+    def set_passwords(self, passwords):
+        self._mongo_doc['passwords'] = passwords
+
     def get_entitlements(self):
         return self._mongo_doc.get('eduPersonEntitlement', [])
+
+    def set_entitlements(self, entitlements):
+        self._mongo_doc['eduPersonEntitlement'] = entitlements
 
     def get_preferred_language(self):
         return self._mongo_doc.get('preferredLanguage', None)
