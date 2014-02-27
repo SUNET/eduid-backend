@@ -18,7 +18,7 @@ def setup_celeryd(sender, conf, **kwargs):
 
     db_conn = MongoDB(settings.get('MONGO_URI', DEFAULT_MONGODB_URI))
     db = db_conn.get_database()
-    db.attributes.ensure_index('email', name='email-index')
+    db.attributes.ensure_index('mail', name='mail-index', unique=True)
     db.attributes.ensure_index('eduPersonPrincipalName', name='eppn-index', unique=True)
     db.attributes.ensure_index([('norEduPersonNIN.norEduPersonNIN', 1),
                                 ('norEduPersonNIN.verified', 1),
