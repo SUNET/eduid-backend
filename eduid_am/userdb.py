@@ -32,7 +32,7 @@ class UserDB(object):
         The name of the main attribute can be influenced in __init__().
 
         :param userid: string
-        :return: user as dict
+        :return: eduid_am.user.User
         :raise self.UserDoesNotExist: No user match the search criteria
         :raise self.MultipleUsersReturned: More than one user matches the search criteria
         """
@@ -67,7 +67,7 @@ class UserDB(object):
         Locate a user in the userdb given the user's _id.
 
         :param oid: ObjectId() or string
-        :return: user as dict
+        :return: eduid_am.user.User
         :raise self.UserDoesNotExist: No user match the search criteria
         :raise self.MultipleUsersReturned: More than one user matches the search criteria
         """
@@ -81,7 +81,7 @@ class UserDB(object):
 
         :param attr: The attribute to match on
         :param value: The value to match on
-        :return: user as dict
+        :return: eduid_am.user.User
         :raise self.UserDoesNotExist: No user match the search criteria
         :raise self.MultipleUsersReturned: More than one user matches the search criteria
         """
