@@ -15,7 +15,7 @@ version = '0.2'
 install_requires = [
     'python-dateutil==2.1',
     'pymongo==2.5.1',
-    'celery==3.1.8',
+    'celery==3.1.9',
 ]
 
 testing_extras = [
