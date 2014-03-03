@@ -45,9 +45,9 @@ class UserDB(object):
     def get_user_by_username(self, username):
         users = self.get_users({'eduPersonPrincipalName': username})
         if users.count() == 0:
-            raise self.UserDoesNotExist()
+            raise UserDoesNotExist()
         if users.count() > 1:
-            raise self.MultipleUsersReturned()
+            raise MultipleUsersReturned()
         return User(users[0])
 
     def get_user_by_nin(self, nin):
@@ -57,9 +57,9 @@ class UserDB(object):
             'norEduPersonNIN.active': True,
         })
         if users.count() == 0:
-            raise self.UserDoesNotExist()
+            raise UserDoesNotExist()
         if users.count() > 1:
-            raise self.MultipleUsersReturned()
+            raise MultipleUsersReturned()
         return User(users[0])
 
     def get_user_by_oid(self, oid):
@@ -93,10 +93,10 @@ class UserDB(object):
             return User(doc)
         except UserDoesNotExist:
             logger.debug("UserDoesNotExist, {!r} = {!r}".format(attr, value))
-            raise self.UserDoesNotExist()
+            raise UserDoesNotExist()
         except MultipleUsersReturned:
             logger.error("MultipleUsersReturned, {!r} = {!r}".format(attr, value))
-            raise self.MultipleUsersReturned()
+            raise MultipleUsersReturned()
 
     def exists_by_field(self, field, value):
         return self._db.exists_by_field(field, value)
