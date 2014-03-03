@@ -110,15 +110,6 @@ class UserDB(object):
     def get_identity_proofing(self, user):
         return self._db.get_identity_proofing(user['_id'])
 
-    class DuplicatedUser(Exception):
-        pass
-
-    class MultipleUsersReturned(Exception):
-        pass
-
-    class UserDoesNotExist(Exception):
-        pass
-
 
 def get_userdb(request):
     return request.registry.settings['userdb']
