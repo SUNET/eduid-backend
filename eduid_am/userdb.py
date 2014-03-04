@@ -1,8 +1,8 @@
 from bson import ObjectId
 
 from eduid_am.celery import celery, get_attribute_manager
-from eduid_am.exceptions import UserDoesNotExist, MultipleUsersReturned
 from eduid_am.user import User
+import eduid_am.exceptions
 import eduid_am.tasks  # flake8: noqa
 
 import logging
@@ -25,6 +25,8 @@ class UserDB(object):
         self.settings = settings
         self.user_main_attribute = settings.get('saml2.user_main_attribute',
                                                 'mail')
+        # provide access to our backends exceptions to users of this class
+        self.exceptions = eduid_am.exceptions
 
     def get_user(self, userid):
         """
@@ -45,9 +47,9 @@ class UserDB(object):
     def get_user_by_username(self, username):
         users = self.get_users({'eduPersonPrincipalName': username})
         if users.count() == 0:
-            raise UserDoesNotExist()
+            raise self.exceptions.UserDoesNotExist()
         if users.count() > 1:
-            raise MultipleUsersReturned()
+            raise self.exceptions.MultipleUsersReturned()
         return User(users[0])
 
     def get_user_by_nin(self, nin):
@@ -57,9 +59,9 @@ class UserDB(object):
             'norEduPersonNIN.active': True,
         })
         if users.count() == 0:
-            raise UserDoesNotExist()
+            raise self.exceptions.UserDoesNotExist()
         if users.count() > 1:
-            raise MultipleUsersReturned()
+            raise self.exceptions.MultipleUsersReturned()
         return User(users[0])
 
     def get_user_by_oid(self, oid):
@@ -91,12 +93,12 @@ class UserDB(object):
             doc = self._db.get_user_by_field(attr, value, raise_on_missing=True)
             logger.debug("Found user {!r}".format(doc))
             return User(doc)
-        except UserDoesNotExist:
+        except self.exceptions.UserDoesNotExist:
             logger.debug("UserDoesNotExist, {!r} = {!r}".format(attr, value))
-            raise UserDoesNotExist()
-        except MultipleUsersReturned:
+            raise self.exceptions.UserDoesNotExist()
+        except self.exceptions.MultipleUsersReturned:
             logger.error("MultipleUsersReturned, {!r} = {!r}".format(attr, value))
-            raise MultipleUsersReturned()
+            raise self.exceptions.MultipleUsersReturned()
 
     def exists_by_field(self, field, value):
         return self._db.exists_by_field(field, value)
