@@ -100,6 +100,30 @@ class UserDB(object):
             logger.error("MultipleUsersReturned, {!r} = {!r}".format(attr, value))
             raise self.exceptions.MultipleUsersReturned()
 
+    def get_user_by_filter(self, filter, fields=None):
+        """
+        Locate a user in the userdb using a custom search filter.
+
+        :param filter: the search filter
+        :type filter: dict
+        :param fields: the fields to return in the search result
+        :type fields: dict
+        :return: eduid_am.user.User
+        :raise self.UserDoesNotExist: No user matching the search criteria
+        :raise self.MultipleUsersReturned: More than one user matched the search criteria
+        """
+        logger.debug("Looking in {!r} using filter {!r}, returning fields {!r}".format(
+            self._db, filter, fields))
+        users = self.get_users(filter, fields)
+
+        if users.count() == 0:
+            raise self.exceptions.UserDoesNotExist()
+        elif users.count() > 1:
+            raise self.exceptions.MultipleUsersReturned()
+
+        logger.debug("Found user {!r}".format(users[0]))
+        return User(users[0])
+
     def exists_by_field(self, field, value):
         return self._db.exists_by_field(field, value)
 
