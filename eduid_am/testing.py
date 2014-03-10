@@ -1,3 +1,14 @@
+__author__ = 'leifj'
+
+import time
+import atexit
+import random
+import shutil
+import tempfile
+import unittest
+import subprocess
+import os
+import pymongo
 from datetime import datetime
 from copy import deepcopy
 
@@ -8,8 +19,8 @@ from eduid_am.userdb import UserDB
 from eduid_am.user import User
 
 
-MONGO_URI_TEST = 'mongodb://localhost:27017/eduid_dashboard_test'
 MONGO_URI_AM_TEST = 'mongodb://localhost:27017/eduid_am_test'
+MONGO_URI_TEST = 'mongodb://localhost:27017/eduid_dashboard_test'
 
 MOCKED_USER_STANDARD = {
     '_id': ObjectId('012345678901234567890123'),
@@ -134,3 +145,133 @@ def get_db(settings):
     else:
         mongodb = MongoDB(db_uri=settings['mongo_uri'])
     return mongodb.get_database()
+
+
+
+class MongoTemporaryInstance(object):
+    """Singleton to manage a temporary MongoDB instance
+
+    Use this for testing purpose only. The instance is automatically destroyed
+    at the end of the program.
+
+    """
+    _instance = None
+
+    @classmethod
+    def get_instance(cls):
+        if cls._instance is None:
+            cls._instance = cls()
+            atexit.register(cls._instance.shutdown)
+        return cls._instance
+
+    def __init__(self):
+        self._tmpdir = tempfile.mkdtemp()
+        self._port = random.randint(40000, 50000)
+        self._process = subprocess.Popen(['mongod', '--bind_ip', 'localhost',
+                                          '--port', str(self._port),
+                                          '--dbpath', self._tmpdir,
+                                          '--nojournal', '--nohttpinterface',
+                                          '--noauth', '--smallfiles',
+                                          '--syncdelay', '0',
+                                          '--maxConns', '10',
+                                          '--nssize', '1', ],
+                                         stdout=open(os.devnull, 'wb'),
+                                         stderr=subprocess.STDOUT)
+
+        # XXX: wait for the instance to be ready
+        #      Mongo is ready in a glance, we just wait to be able to open a
+        #      Connection.
+        for i in range(10):
+            time.sleep(0.2)
+            try:
+                self._conn = pymongo.Connection('localhost', self._port)
+            except pymongo.errors.ConnectionFailure:
+                continue
+            else:
+                break
+        else:
+            self.shutdown()
+            assert False, 'Cannot connect to the mongodb test instance'
+
+    @property
+    def conn(self):
+        return self._conn
+
+    @property
+    def port(self):
+        return self._port
+
+    def shutdown(self):
+        if self._process:
+            self._process.terminate()
+            self._process.wait()
+            self._process = None
+            shutil.rmtree(self._tmpdir, ignore_errors=True)
+
+
+class MongoTestCase(unittest.TestCase):
+    """TestCase with an embedded MongoDB temporary instance.
+
+    Each test runs on a temporary instance of MongoDB. The instance will
+    be listen in a random port between 40000 and 5000.
+
+    A test can access the connection using the attribute `conn`.
+    A test can access the port using the attribute `port`
+    """
+    fixtures = []
+
+    MockedUserDB = MockedUserDB
+
+    user = User(MOCKED_USER_STANDARD)
+    users = []
+
+    def __init__(self, *args, **kwargs):
+        super(MongoTestCase, self).__init__(*args, **kwargs)
+        self.db = MongoTemporaryInstance.get_instance()
+        self.conn = self.db.conn
+        self.port = self.db.port
+
+    def setUp(self):
+        super(MongoTestCase, self).setUp()
+
+        for db_name in self.conn.database_names():
+            self.conn.drop_database(db_name)
+
+        if getattr(self, 'settings', None) is None:
+            self.settings = {
+                'mongo_replicaset': None,
+                'mongo_uri': MONGO_URI_TEST,
+                'mongo_uri_am': MONGO_URI_AM_TEST,
+            }
+
+        mongo_replicaset = self.settings.get('mongo_replicaset', None)
+
+        self.db = get_db(self.settings)
+        self.amdb = get_db({
+            'mongo_replicaset': mongo_replicaset,
+            'mongo_uri': self.settings.get('mongo_uri_am'),
+        })
+
+        self.userdb = self.MockedUserDB(self.users)
+
+        self.db.profiles.drop()
+        self.db.verifications.drop()
+        self.initial_verifications = (getattr(self, 'initial_verifications', None)
+                                      or INITIAL_VERIFICATIONS)
+        for verification_data in self.initial_verifications:
+            self.db.verifications.insert(verification_data)
+        self.amdb.attributes.drop()
+
+        userdocs = []
+        for userdoc in self.userdb.all_userdocs():
+            userdocs.append(deepcopy(userdoc))
+
+        self.db.profiles.insert(userdocs)
+        self.amdb.attributes.insert(userdocs)
+
+    def tearDown(self):
+        super(MongoTestCase, self).tearDown()
+        self.db.profiles.drop()
+        self.db.verifications.drop()
+        self.db.reset_passwords.drop()
+        self.amdb.attributes.drop()
