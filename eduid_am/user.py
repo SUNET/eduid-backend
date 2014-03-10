@@ -32,6 +32,8 @@
 # Author : Fredrik Thulin <fredrik@thulin.net>
 #
 
+from eduid_am.tasks import update_attributes
+
 
 
 class User(object):
@@ -70,6 +72,9 @@ class User(object):
         '''
         request.db.profiles.save(self._mongo_doc, safe=True)
         request.context.propagate_user_changes(self._mongo_doc)
+
+    def update_am(self, app_name):
+        update_attributes.delay(app_name, str(self._mongo_doc['_id']))
 
     def get_doc(self):
         '''
