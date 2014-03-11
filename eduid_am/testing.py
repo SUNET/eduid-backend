@@ -14,7 +14,6 @@ from copy import deepcopy
 
 from bson import ObjectId
 
-from eduid_am.db import MongoDB
 from eduid_am.userdb import UserDB
 from eduid_am.user import User
 
@@ -27,7 +26,7 @@ MOCKED_USER_STANDARD = {
     'givenName': 'John',
     'sn': 'Smith',
     'displayName': 'John Smith',
-    'norEduPersonNIN': ['123456789013'],
+    'norEduPersonNIN': ['197801011234'],
     'photo': 'https://pointing.to/your/photo',
     'preferredLanguage': 'en',
     'eduPersonEntitlement': [
@@ -91,7 +90,7 @@ INITIAL_VERIFICATIONS = [{
     '_id': ObjectId(),
     'code': '123124',
     'model_name': 'norEduPersonNIN',
-    'obj_id': '123456789013',
+    'obj_id': '197801011234',
     'user_oid': ObjectId("012345678901234567890123"),
     'timestamp': datetime.utcnow(),
     'verified': True,
@@ -135,17 +134,6 @@ class MockedUserDB(UserDB):
     def all_userdocs(self):
         for user in self.test_users.values():
             yield deepcopy(user)
-
-
-def get_db(settings):
-    mongo_replicaset = settings.get('mongo_replicaset', None)
-    if mongo_replicaset is not None:
-        mongodb = MongoDB(db_uri=settings['mongo_uri'],
-                          replicaSet=mongo_replicaset)
-    else:
-        mongodb = MongoDB(db_uri=settings['mongo_uri'])
-    return mongodb.get_database()
-
 
 
 class MongoTemporaryInstance(object):
@@ -208,6 +196,7 @@ class MongoTemporaryInstance(object):
             self._process = None
             shutil.rmtree(self._tmpdir, ignore_errors=True)
 
+from eduid_am.celery import celery, get_attribute_manager
 
 class MongoTestCase(unittest.TestCase):
     """TestCase with an embedded MongoDB temporary instance.
@@ -225,53 +214,55 @@ class MongoTestCase(unittest.TestCase):
     user = User(MOCKED_USER_STANDARD)
     users = []
 
-    def __init__(self, *args, **kwargs):
-        super(MongoTestCase, self).__init__(*args, **kwargs)
-        self.db = MongoTemporaryInstance.get_instance()
-        self.conn = self.db.conn
-        self.port = self.db.port
 
     def setUp(self):
         super(MongoTestCase, self).setUp()
+        self.tmp_db = MongoTemporaryInstance.get_instance()
+        self.conn = self.tmp_db.conn
+        self.port = self.tmp_db.port
+        self.am_settings = {
+            'BROKER_TRANSPORT': 'memory',
+            'BROKER_URL': 'memory://',
+            'CELERY_EAGER_PROPAGATES_EXCEPTIONS': True,
+            'CELERY_ALWAYS_EAGER': True,
+            'CELERY_RESULT_BACKEND': "cache",
+            'CELERY_CACHE_BACKEND': 'memory',
+            'MONGO_URI': 'mongodb://localhost:%d/' % self.port,
+            'MONGO_DBNAME': 'am',
+        }
+
+        celery.conf.update(self.am_settings)
+        self.am = get_attribute_manager(celery)
 
         for db_name in self.conn.database_names():
             self.conn.drop_database(db_name)
 
-        if getattr(self, 'settings', None) is None:
-            self.settings = {
+        mongo_settings = {
                 'mongo_replicaset': None,
-                'mongo_uri': MONGO_URI_TEST,
-                'mongo_uri_am': MONGO_URI_AM_TEST,
+                'mongo_uri_am': self.am_settings['MONGO_URI'] + 'am',
             }
+
+
+        if getattr(self, 'settings', None) is None:
+            self.settings = mongo_settings
+        else:
+            self.settings.update(mongo_settings)
 
         mongo_replicaset = self.settings.get('mongo_replicaset', None)
 
-        self.db = get_db(self.settings)
-        self.amdb = get_db({
-            'mongo_replicaset': mongo_replicaset,
-            'mongo_uri': self.settings.get('mongo_uri_am'),
-        })
-
+        self.amdb = self.am.conn.get_database('am')
         self.userdb = self.MockedUserDB(self.users)
 
-        self.db.profiles.drop()
-        self.db.verifications.drop()
         self.initial_verifications = (getattr(self, 'initial_verifications', None)
                                       or INITIAL_VERIFICATIONS)
-        for verification_data in self.initial_verifications:
-            self.db.verifications.insert(verification_data)
         self.amdb.attributes.drop()
 
         userdocs = []
         for userdoc in self.userdb.all_userdocs():
             userdocs.append(deepcopy(userdoc))
 
-        self.db.profiles.insert(userdocs)
         self.amdb.attributes.insert(userdocs)
 
     def tearDown(self):
         super(MongoTestCase, self).tearDown()
-        self.db.profiles.drop()
-        self.db.verifications.drop()
-        self.db.reset_passwords.drop()
         self.amdb.attributes.drop()
