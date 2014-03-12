@@ -98,6 +98,8 @@ class AttributeManager(Task):
         :param raise_on_missing: If True, raise exception if no matching user object can be found.
         :return: A user dict
         """
+        if not isinstance(obj_id, bson.ObjectId):
+            obj_id = bson.ObjectId(obj_id)
         return self.get_user_by_field('_id', obj_id, raise_on_missing)
 
     def get_user_by_field(self, field, value, raise_on_missing=False):
