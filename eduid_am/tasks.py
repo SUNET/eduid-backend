@@ -134,22 +134,23 @@ class AttributeManager(Task):
         email = email.lower()
         # Look for `email' in the `mail' attribute, and second in the `mailAliases' attribute
         docs = self.db.attributes.find({'mail': email})
-        if docs.count() == 0:
-            spec = {'mailAliases': {'email': email, 'verified': True}}
-            docs = self.db.attributes.find(spec)
-        if docs.count() == 0:
+        users = []
+        if docs.count() > 0:
+            users = list(docs)
+        if not users:
+            has_alias = self.db.attributes.find({'mailAliases.email': email})
+            for user in has_alias:
+                # Filter out only the verified e-mail addresses from mailAliases
+                aliases = [x.get('email') for x in user.get('mailAliases', []) if x.get('verified') == True]
+                if email in aliases:
+                    users.append(match)
+        if not users:
             if raise_on_missing:
-                spec = {'mailAliases.email': email, }
-                docs = self.db.attributes.find(spec)
-                if docs.count() == 0:
-                    msg = "No user matching email {}"
-                else:
-                    msg = "The email {} is not verified"
-                raise UserDoesNotExist(msg.format(email))
+                raise UserDoesNotExist("No user matching email {!r}".format(email))
             return None
-        elif docs.count() > 1:
+        elif len(users) > 1:
             raise MultipleUsersReturned("Multiple matching users for email {!r}".format(email))
-        return docs[0]
+        return users[0]
 
     def get_users(self, spec, fields=None):
         """
