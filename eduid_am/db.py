@@ -54,7 +54,3 @@ class MongoDB(object):
                 self.parsed_uri.get("password", None)
             )
         return db
-
-
-def get_db(request):
-    return request.registry.settings['mongodb'].get_database()
