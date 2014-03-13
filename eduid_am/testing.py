@@ -35,7 +35,7 @@ MOCKED_USER_STANDARD = {
     ],
     'maxReachedLoa': 3,
     'mobile': [{
-        'mobile': '609609609',
+        'mobile': '+34609609609',
         'verified': True
     }, {
         'mobile': '+34 6096096096',
@@ -116,6 +116,7 @@ class MockedUserDB(UserDB):
     test_users['johnsmith@example.org']['mailAliases'][1]['email'] = 'johnsmith2@example.org'
     test_users['johnsmith@example.org']['_id'] = ObjectId('901234567890123456789012')
     test_users['johnsmith@example.org']['norEduPersonNIN'] = []
+    test_users['johnsmith@example.org']['mobile'] = []
 
     def __init__(self, users=[]):
         for user in users:
