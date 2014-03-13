@@ -10,13 +10,20 @@ from pymmclient.recipient import Recipient
 from pymmclient.service import Service
 from eduid_msg.celery import celery
 from eduid_msg.cache import CacheMDB
-from eduid_msg.db import DEFAULT_MONGODB_URI, DEFAULT_MONGODB_NAME
 from eduid_msg.utils import load_template
 from eduid_msg.decorators import TransactionAudit
 from eduid_msg.config import read_configuration
 from time import time
 from datetime import datetime, timedelta
 from pynavet.postaladdress import PostalAddress
+
+
+DEFAULT_MONGODB_HOST = 'localhost'
+DEFAULT_MONGODB_PORT = 27017
+DEFAULT_MONGODB_NAME = 'eduid_msg'
+DEFAULT_MONGODB_URI = 'mongodb://%s:%d/%s' % (DEFAULT_MONGODB_HOST,
+                                              DEFAULT_MONGODB_PORT,
+                                              DEFAULT_MONGODB_NAME)
 
 
 LOG = get_task_logger(__name__)
