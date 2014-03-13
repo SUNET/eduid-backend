@@ -14,12 +14,12 @@ version = '0.7.5'
 
 install_requires = [
     'python-dateutil == 2.1',
-    'pymongo',
-    'celery',
-    'pysmscom >= 0.4',
-    'pymmclient >= 0.7.2',
-    'pynavet >= 0.5',
-    'Jinja2',
+    'pymongo == 2.5.1',
+    'celery == 3.1.9',
+    'pysmscom == 0.4',
+    'pymmclient == 0.7.2',
+    'pynavet == 0.5',
+    'Jinja2 == 2.7.2',
 ]
 
 testing_extras = [
