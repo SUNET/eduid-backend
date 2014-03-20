@@ -19,7 +19,7 @@ install_requires = [
     'celery == 3.1.9',
     'pysmscom == 0.4',
     'pymmclient == 0.7.2',
-    'pynavet == 0.5',
+    'pynavet == 0.6.0',
     'Jinja2 == 2.7.2',
 ]
 
