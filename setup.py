@@ -15,7 +15,7 @@ version = '0.7.5'
 install_requires = [
     'eduid_am==0.4.0',
     'python-dateutil == 2.1',
-    'pymongo == 2.5.1',
+    'pymongo == 2.6.3',
     'celery == 3.1.9',
     'pysmscom == 0.4',
     'pymmclient == 0.7.2',
