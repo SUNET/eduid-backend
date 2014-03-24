@@ -99,7 +99,12 @@ class AttributeManager(Task):
         :return: A user dict
         """
         if not isinstance(obj_id, bson.ObjectId):
-            obj_id = bson.ObjectId(obj_id)
+            try:
+                obj_id = bson.ObjectId(obj_id)
+            except bson.errors.InvalidId:
+                if raise_on_missing:
+                    UserDoesNotExist("Invalid object id '%s'" % (value))
+                return None
         return self.get_user_by_field('_id', obj_id, raise_on_missing)
 
     def get_user_by_field(self, field, value, raise_on_missing=False):
