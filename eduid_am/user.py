@@ -330,7 +330,7 @@ class User(object):
 
         for old_address in user_addresses:
             if old_address.get('type') == 'official':
-                user_addresses.remove(user_address)
+                user_addresses.remove(old_address)
                 user_addresses.append(address)
                 break
         else:
