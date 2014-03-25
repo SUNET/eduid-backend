@@ -103,7 +103,7 @@ class AttributeManager(Task):
                 obj_id = bson.ObjectId(obj_id)
             except bson.errors.InvalidId:
                 if raise_on_missing:
-                    UserDoesNotExist("Invalid object id '%s'" % (value))
+                    raise UserDoesNotExist("Invalid object id '%s'".format(obj_id))
                 return None
         return self.get_user_by_field('_id', obj_id, raise_on_missing)
 
