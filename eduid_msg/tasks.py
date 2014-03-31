@@ -185,7 +185,7 @@ class MessageRelay(Task):
                 subject = conf.get("MM_DEFAULT_SUBJECT")
 
             service_address = self.is_reachable(recipient, mailbox_url=True)
-            secure_message = self.message.create_secure_message(subject, msg, 'text/plain',
+            secure_message = self.message.create_secure_message(subject, msg, 'text/html',
                                                                 language.translate(None, '_'))
             signed_delivery = self.message.create_signed_delivery([recipient], secure_message)
             service = Service(cert=conf.get("MM_CERT_FILE"),
