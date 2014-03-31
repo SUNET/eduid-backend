@@ -148,7 +148,7 @@ class AttributeManager(Task):
                 # Filter out only the verified e-mail addresses from mailAliases
                 aliases = [x.get('email') for x in user.get('mailAliases', []) if x.get('verified') == True]
                 if email in aliases:
-                    users.append(users)
+                    users.append(user)
         if not users:
             if raise_on_missing:
                 raise UserDoesNotExist("No user matching email {!r}".format(email))
