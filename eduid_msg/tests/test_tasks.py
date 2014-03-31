@@ -98,7 +98,7 @@ class TestTasks(MongoTestCase):
 
         # Test that the template was actually used in send_message function call to the mm service
         template = load_template(celery.conf.get('TEMPLATE_DIR'), 'test.tmpl', self.msg_dict, 'sv_SE')
-        expected = [call.create_secure_message('Test', template, 'text/plain', 'svSE'),
+        expected = [call.create_secure_message('Test', template, 'text/html', 'svSE'),
                     call.create_signed_delivery(['192705178354'], True)]
         self.assertEqual(message_mock.mock_calls, expected)
 
