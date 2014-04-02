@@ -35,7 +35,6 @@
 from eduid_am.tasks import update_attributes
 
 
-
 class User(object):
     """
     Class to embody users as they are stored on MongoDB,
@@ -52,7 +51,7 @@ class User(object):
             self._mongo_doc = mongo_doc
 
     def __repr__(self):
-        return '<User: {0}>'.format(self.get_display_name())
+        return '<User: {0}>'.format(self.get_eppn())
 
     def __getitem__(self, key):
         return self._mongo_doc[key]
@@ -461,3 +460,11 @@ class User(object):
         :type  entitlements: list
         '''
         self._mongo_doc['eduPersonEntitlement'] = entitlements
+
+    def get_eppn(self):
+        '''
+        Get the user's eduPersonPrincipalName.
+
+        :return: str
+        '''
+        return self._mongo_doc.get('eduPersonPrincipalName', '')
