@@ -10,7 +10,7 @@ README = 'eduID Message Manager'
 if os.path.exists(README_fn):
     README = open(README_fn).read()
 
-version = '0.7.9-dev'
+version = '0.7.9'
 
 install_requires = [
     'eduid_am==0.4.5',
