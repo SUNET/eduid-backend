@@ -54,9 +54,7 @@ class UserDB(object):
 
     def get_user_by_nin(self, nin):
         users = self.get_users({
-            'norEduPersonNIN.norEduPersonNIN': nin,
-            'norEduPersonNIN.verified': True,
-            'norEduPersonNIN.active': True,
+            'norEduPersonNIN': {'$in': [nin]},
         })
         if users.count() == 0:
             raise self.exceptions.UserDoesNotExist()
