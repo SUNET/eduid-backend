@@ -29,6 +29,7 @@ MOCKED_USER_STANDARD = {
     'norEduPersonNIN': ['197801011234'],
     'photo': 'https://pointing.to/your/photo',
     'preferredLanguage': 'en',
+    'eduPersonPrincipalName': 'hubba-bubba',
     'eduPersonEntitlement': [
         'urn:mace:eduid.se:role:admin',
         'urn:mace:eduid.se:role:student',
@@ -48,6 +49,9 @@ MOCKED_USER_STANDARD = {
     }, {
         'email': 'johnsmith2@example.com',
         'verified': True,
+    }, {
+        'email': 'johnsmith3@example.com',
+        'verified': False,
     }],
     'passwords': [{
         'id': ObjectId('112345678901234567890123'),
@@ -117,6 +121,7 @@ class MockedUserDB(UserDB):
     test_users['johnsmith@example.org']['_id'] = ObjectId('901234567890123456789012')
     test_users['johnsmith@example.org']['norEduPersonNIN'] = []
     test_users['johnsmith@example.org']['mobile'] = []
+    test_users['johnsmith@example.org']['eduPersonPrincipalName'] = 'babba-labba'
 
     def __init__(self, users=[]):
         for user in users:
@@ -199,6 +204,7 @@ class MongoTemporaryInstance(object):
 
 from eduid_am.celery import celery, get_attribute_manager
 
+
 class MongoTestCase(unittest.TestCase):
     """TestCase with an embedded MongoDB temporary instance.
 
@@ -214,7 +220,6 @@ class MongoTestCase(unittest.TestCase):
 
     user = User(MOCKED_USER_STANDARD)
     users = []
-
 
     def setUp(self):
         super(MongoTestCase, self).setUp()
@@ -239,10 +244,9 @@ class MongoTestCase(unittest.TestCase):
             self.conn.drop_database(db_name)
 
         mongo_settings = {
-                'mongo_replicaset': None,
-                'mongo_uri_am': self.am_settings['MONGO_URI'] + 'am',
-            }
-
+            'mongo_replicaset': None,
+            'mongo_uri_am': self.am_settings['MONGO_URI'] + 'am',
+        }
 
         if getattr(self, 'settings', None) is None:
             self.settings = mongo_settings

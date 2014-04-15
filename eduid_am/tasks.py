@@ -137,18 +137,14 @@ class AttributeManager(Task):
         :return: A user dict
         """
         email = email.lower()
-        # Look for `email' in the `mail' attribute, and second in the `mailAliases' attribute
-        docs = self.db.attributes.find({'mail': email})
+        docs = self.db.attributes.find(
+            {'$or': [
+                {'mail': email},
+                {'mailAliases': {'$elemMatch': {'email': email, 'verified': True}}}
+            ]})
         users = []
         if docs.count() > 0:
             users = list(docs)
-        if not users:
-            has_alias = self.db.attributes.find({'mailAliases.email': email})
-            for user in has_alias:
-                # Filter out only the verified e-mail addresses from mailAliases
-                aliases = [x.get('email') for x in user.get('mailAliases', []) if x.get('verified') == True]
-                if email in aliases:
-                    users.append(user)
         if not users:
             if raise_on_missing:
                 raise UserDoesNotExist("No user matching email {!r}".format(email))
