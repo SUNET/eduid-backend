@@ -37,6 +37,15 @@ def read_setting_from_env(settings, key, default=None):
         return settings.get(key, default)
 
 
+def read_setting_from_env_bool(settings, key, default=None):
+    value = read_setting_from_env(settings, key, '').lower()
+    if value == 'false':
+        return False
+    if value == 'true':
+        return True
+    return default
+
+
 def read_mapping(settings, prop, available_keys=None, default=None, required=True):
     raw = read_setting_from_env(settings, prop, '')
 
