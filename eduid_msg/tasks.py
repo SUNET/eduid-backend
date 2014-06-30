@@ -5,9 +5,6 @@ from celery import Task
 from celery.utils.log import get_task_logger
 from celery.task import periodic_task, task
 from smscom import SMSClient
-from pymmclient.message import Message
-from pymmclient.recipient import Recipient
-from pymmclient.service import Service
 from eduid_msg.celery import celery
 from eduid_msg.cache import CacheMDB
 from eduid_msg.utils import load_template
@@ -16,6 +13,8 @@ from eduid_msg.config import read_configuration
 from time import time
 from datetime import datetime, timedelta
 from pynavet.postaladdress import PostalAddress
+from hammock import Hammock
+import json
 
 
 DEFAULT_MONGODB_HOST = 'localhost'
@@ -24,6 +23,11 @@ DEFAULT_MONGODB_NAME = 'eduid_msg'
 DEFAULT_MONGODB_URI = 'mongodb://%s:%d/%s' % (DEFAULT_MONGODB_HOST,
                                               DEFAULT_MONGODB_PORT,
                                               DEFAULT_MONGODB_NAME)
+
+DEFAULT_MM_API_HOST = 'localhost'
+DEFAULT_MM_API_PORT = 8443
+DEFAULT_MM_API_URI = 'https://{0}:{1}'.format(DEFAULT_MM_API_HOST,
+                                              DEFAULT_MM_API_PORT)
 
 
 LOG = get_task_logger(__name__)
@@ -37,11 +41,11 @@ class MessageRelay(Task):
     """
     abstract = True
     _sms = None
-    _message = None
-    _recipient = None
+    _mm_api = None
     _navet = None
     _config = read_configuration()
     MONGODB_URI = _config['MONGO_URI'] if 'MONGO_URI' in _config else DEFAULT_MONGODB_URI
+    MM_API_URI = _config['MM_API_URI'] if 'MM_API_URI' in _config else DEFAULT_MM_API_URI
     if 'AUDIT' in _config and _config['AUDIT'] == 'true':
         TransactionAudit.enable()
 
@@ -53,30 +57,15 @@ class MessageRelay(Task):
         return self._sms
 
     @property
-    def message(self):
-        if self._message is None:
-            conf = self.app.conf
-            self._message = Message(cert=conf.get("MM_CERT_FILE"),
-                                    key_file=conf.get("MM_KEY_FILE"),
-                                    sender_org_nr=conf.get("MM_SENDER_ORG_NR"),
-                                    sender_org_name=conf.get("MM_SENDER_ORG_NAME"),
-                                    support_text=conf.get("MM_SUPPORT_TEXT"),
-                                    verify=False,
-                                    serializable=True,
-                                    use_cache=False)
-        return self._message
-
-    @property
-    def recipient(self):
-        if self._recipient is None:
-            conf = self.app.conf
-            self._recipient = Recipient(cert=conf.get("MM_CERT_FILE"),
-                                        key_file=conf.get("MM_KEY_FILE"),
-                                        sender_org_nr=conf.get("MM_SENDER_ORG_NR"),
-                                        verify=False,
-                                        serializable=True,
-                                        use_cache=False)
-        return self._recipient
+    def mm_api(self):
+        if self._mm_api is None:
+            verify_ssl = True
+            if self.app.conf.get("MM_API_VERIFY_SSL", None) == 'false':
+                verify_ssl = False
+            self._mm_api = Hammock(self.MM_API_URI,
+                                   auth=(self.app.conf.get("MM_API_USER"), self.app.conf.get("MM_API_PW")),
+                                   verify=verify_ssl)
+        return self._mm_api
 
     @property
     def navet(self):
@@ -101,7 +90,7 @@ class MessageRelay(Task):
         Check if the user is registered with Swedish government mailbox service.
 
         @param identity_number: User social security number
-        @type identity_number: int
+        @type identity_number: str
         @param mailbox_url (optional): Return mailbox URL instead of true if the user exist and accept messages from
         the sender.
         @type mailbox_url: bool
@@ -129,13 +118,20 @@ class MessageRelay(Task):
                 retval = 'Anonymous'
 
         if mailbox_url is True and retval is True:
-            return result['AccountStatus']['ServiceSupplier']['ServiceAdress']
+            return result['AccountStatus']['ServiceSupplier']['ServiceAddress']
 
         return retval
 
     @TransactionAudit(MONGODB_URI)
     def _get_is_reachable(self, identity_number):
-        return self.recipient.is_reachable(identity_number)[0]
+        data = json.dumps({'identity_number': identity_number})
+        response = self.mm_api.user.reachable.POST(data=data)
+        if response.status_code == 200:
+            return response.json()
+        error = 'MM API is_reachable response: {0} {1}'.format(response.status_code,
+                                                               response.json().get('message', 'No message'))
+        LOG.error(error)
+        raise RuntimeError(error)
 
     @TransactionAudit(MONGODB_URI)
     def send_message(self, message_type, message_dict, recipient, template, language, subject=None):
@@ -154,7 +150,7 @@ class MessageRelay(Task):
         @type language: List of languages in the form (sv_SE, en_US)
         @param subject: (Optional) Subject used in my messages service or email deliveries
         @type subject: str
-        @return: For type 'sms' a message id is returned if successful, if unsucessful an error message is returned.
+        @return: For type 'sms' a message id is returned if successful, if unsuccessful an error message is returned.
         For type 'mm' a message id is returned if successful, the message id can be used to verify if that the message
         has been delivered to the users mailbox service by calling check_distribution_status(message_id),
         if unsuccessful an error message is returned.
@@ -184,18 +180,25 @@ class MessageRelay(Task):
             if subject is None:
                 subject = conf.get("MM_DEFAULT_SUBJECT")
 
-            service_address = self.is_reachable(recipient, mailbox_url=True)
-            secure_message = self.message.create_secure_message(subject, msg, 'text/html',
-                                                                language.translate(None, '_'))
-            signed_delivery = self.message.create_signed_delivery([recipient], secure_message)
-            service = Service(cert=conf.get("MM_CERT_FILE"),
-                              key_file=conf.get("MM_KEY_FILE"),
-                              verify=False,
-                              ws_endpoint=service_address,
-                              serializable=True)
-            status = service.deliver_secure_message(signed_delivery)
+            status = self._send_mm_message(recipient, subject, 'text/html', language.translate(None, '_'), msg)
 
         return status
+
+    def _send_mm_message(self, recipient, subject, content_type, language, message):
+        data = json.dumps({
+            'recipient': recipient,
+            'subject': subject,
+            'content_type': content_type,
+            'language': language,
+            'message': message
+        })
+        response = self.mm_api.message.send.POST(data=data)
+        if response.status_code == 200:
+            return response.json()['transaction_id']
+        error = 'MM API send message response: {0} {1}'.format(response.status_code,
+                                                               response.json().get('message', 'No message'))
+        LOG.error(error)
+        raise RuntimeError(error)
 
     def get_postal_address(self, identity_number):
         """
