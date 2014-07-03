@@ -60,11 +60,12 @@ class MessageRelay(Task):
     def mm_api(self):
         if self._mm_api is None:
             verify_ssl = True
+            auth = None
             if self.app.conf.get("MM_API_VERIFY_SSL", None) == 'false':
                 verify_ssl = False
-            self._mm_api = Hammock(self.MM_API_URI,
-                                   auth=(self.app.conf.get("MM_API_USER"), self.app.conf.get("MM_API_PW")),
-                                   verify=verify_ssl)
+            if self.app.conf.get("MM_API_USER", None) and self.app.conf.get("MM_API_PW"):
+                auth = (self.app.conf.get("MM_API_USER"), self.app.conf.get("MM_API_PW"))
+            self._mm_api = Hammock(self.MM_API_URI, auth=auth, verify=verify_ssl)
         return self._mm_api
 
     @property
