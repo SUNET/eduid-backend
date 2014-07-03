@@ -43,61 +43,54 @@ class TestTasks(MongoTestCase):
         self.response = APIResponse
 
         self.recipient_ok = {
-            u'SenderAccepted': True,
             u'AccountStatus': {
-                u'ServiceSupplier': {
-                    u'Id': u'162021005448',
-                    u'ServiceAddress': u'x',
-                    u'Name': u'x'
-                },
-                u'Type': u'Secure',
                 u'RecipientId': u'192705178354',
-                u'Pending': False
-            }
+                u'ServiceSupplier': {
+                    u'ServiceAddress': u'https://notarealhost.skatteverket.se/webservice/accao/Service'
+                },
+                u'Type': u'Secure'
+            },
+            u'SenderAccepted': True
         }
 
         self.recipient_sender_not = {
-            u'SenderAccepted': False,
             u'AccountStatus': {
-                u'ServiceSupplier': {
-                    u'Id': u'162021005448',
-                    u'ServiceAddress': u'x',
-                    u'Name': u'x'
-                },
-                u'Type': u'Secure',
                 u'RecipientId': u'192705178354',
-                u'Pending': False
-            }
+                u'ServiceSupplier': {
+                    u'ServiceAddress': u'https://notarealhost.skatteverket.se/webservice/accao/Service'
+                },
+                u'Type': u'Secure'
+            },
+            u'SenderAccepted': False
         }
 
         self.recipient_not = {
-            u'SenderAccepted': False,
             u'AccountStatus': {
-                u'ServiceSupplier': {
-                    u'Id': u'162021005448',
-                    u'ServiceAddress': u'x',
-                    u'Name': u'x'
-                },
-                u'Type': u'Not',
                 u'RecipientId': u'192705178354',
-                u'Pending': False
-            }
+                u'ServiceSupplier': {
+                    u'ServiceAddress': u'https://notarealhost.skatteverket.se/webservice/accao/Service'
+                },
+                u'Type': u'Not'
+            },
+            u'SenderAccepted': False
         }
 
         self.recipient_anon = {
-            u'SenderAccepted': True,
             u'AccountStatus': {
-                u'ServiceSupplier': {
-                    u'Id': u'162021005448',
-                    u'ServiceAddress': u'x',
-                    u'Name': u'x'
-                },
-                u'Type': u'Anonymous',
                 u'RecipientId': u'192705178354',
-                u'Pending': False
-            }
+                u'ServiceSupplier': {
+                    u'ServiceAddress': u'https://notarealhost.skatteverket.se/webservice/accao/Service'
+                },
+                u'Type': u'Anonymous'
+            },
+            u'SenderAccepted': True
         }
 
+        self.message_delivered = {
+            u'delivered': True,
+            u'recipient': u'192705178354',
+            u'transaction_id': u'ab6895f8-7203-4695-b083-ca89d68bf346'
+        }
 
     @patch('smscom.SMSClient.send')
     def test_send_message_sms(self, sms_mock):
@@ -125,7 +118,7 @@ class TestTasks(MongoTestCase):
         self.assertTrue(status)
         mdb = self.conn['test']
         result = mdb['recipient_cache'].find_one({'identifier': '192705178354'})
-        self.assertEqual(result['data']['AccountStatus']['ServiceSupplier']['Id'], '162021005448')
+        self.assertEqual(result['data']['SenderAccepted'], True)
 
     @patch('eduid_msg.tasks.MessageRelay.mm_api')
     def test_send_message_mm(self, api_mock):
@@ -133,10 +126,11 @@ class TestTasks(MongoTestCase):
         reachable_response.data = self.recipient_ok
         api_mock.user.reachable.POST.return_value = reachable_response
         message_response = self.response()
-        message_response.data = {'transaction_id': 'transaction_id'}
+        message_response.data = self.message_delivered
         api_mock.message.send.POST.return_value = message_response
         recipient = '192705178354'
-        send_message.delay('mm', self.msg_dict, recipient, 'test.tmpl', 'sv_SE', subject='Test').get()
+        transaction_id = send_message.delay('mm', self.msg_dict, recipient, 'test.tmpl', 'sv_SE', subject='Test').get()
+        self.assertEqual(transaction_id, 'ab6895f8-7203-4695-b083-ca89d68bf346')
 
         # Test that the template was actually used in send_message function call to the mm service
         template = load_template(celery.conf.get('TEMPLATE_DIR'), 'test.tmpl', self.msg_dict, 'sv_SE')
@@ -151,9 +145,6 @@ class TestTasks(MongoTestCase):
         reachable_response = self.response()
         reachable_response.data = self.recipient_sender_not
         api_mock.user.reachable.POST.return_value = reachable_response
-        message_response = self.response()
-        message_response.data = {'transaction_id': 'transaction_id'}
-        api_mock.message.send.POST.return_value = message_response
         status = send_message.delay('mm', self.msg_dict, '192705178354', 'test.tmpl', 'sv_SE', subject='Test').get()
         self.assertEqual(status, "Sender_not")
 
