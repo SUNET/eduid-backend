@@ -10,7 +10,7 @@ README = 'eduID Message Manager'
 if os.path.exists(README_fn):
     README = open(README_fn).read()
 
-version = '0.8.0-dev'
+version = '0.8.0'
 
 install_requires = [
     'eduid_am>=0.4.8-dev',
@@ -20,7 +20,7 @@ install_requires = [
     'pysmscom == 0.4',
     'pynavet == 0.6.0',
     'Jinja2 == 2.7.3',
-    'hammock==0.2.4',
+    'hammock == 0.2.4',
 ]
 
 testing_extras = [
