@@ -47,7 +47,7 @@ class TransactionAudit(object):
             return {'identity_number': args[1]}
         elif func == 'send_message':
             if args[1] == 'mm':
-                return {'type': 'mm', 'recipient': args[3], 'transaction_id': data['TransId']}
+                return {'type': 'mm', 'recipient': args[3], 'transaction_id': data}
             elif args[1] == 'sms':
                 return {'type': 'sms', 'recipient': args[3], 'transaction_id': data}
         return data
