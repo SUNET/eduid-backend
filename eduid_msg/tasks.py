@@ -166,16 +166,17 @@ class MessageRelay(Task):
         if conf.get("DEVEL_MODE") == 'true':
             LOG.debug("\nType: %s\nRecipient: %s\nLang: %s\nSubject: %s\nMessage:\n %s" % (message_type, recipient,
                                                                                            language, subject, msg))
-            return True
+            return 'devel_mode'
 
         if message_type == 'sms':
             LOG.debug("Sending SMS to '%s' using template '%s' and language '%s" % (recipient, template, language))
             status = self.sms.send(msg, self._sender, recipient, prio=2)
         elif message_type == 'mm':
+            LOG.debug("Sending MM to '%s' using language '%s" % (recipient, language))
             reachable = self.is_reachable(recipient)
 
             if reachable is not True:
-                LOG.debug("User not reachable - reason: %s", reachable)
+                LOG.debug("User not reachable - reason: %s" % (reachable))
                 return reachable
 
             if subject is None:
@@ -194,6 +195,7 @@ class MessageRelay(Task):
             'message': message
         })
         response = self.mm_api.message.send.POST(data=data)
+        LOG.debug("_send_mm_message response for recipient '%s': '%r'" % (recipient, response))
         if response.status_code == 200:
             return response.json()['transaction_id']
         error = 'MM API send message response: {0} {1}'.format(response.status_code,
