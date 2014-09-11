@@ -15,18 +15,35 @@ celery = Celery('eduid_am.celery', backend='amqp', include=['eduid_am.tasks'])
 def setup_celeryd(sender, conf, **kwargs):
     settings = read_configuration()
     conf.update(settings)
+    setup_indexes(settings, 'attributes')
 
+
+def setup_indexes(settings, collection):
+    """
+    Ensure that indexes in eduid_am database are correctly setup.
+    To update an index add a new item in indexes and remove the previous version.
+    """
+    default_indexes = ['_id_']  # _id_ index can not be deleted from a mongo collection
+    indexes = {
+        # 'index-name': {'key': [('key', 1)], 'param1': True, 'param2': False}
+        # http://docs.mongodb.org/manual/reference/method/db.collection.ensureIndex/
+        'mail-index-v2': {'key': [('mail', 1)], 'unique': True, 'sparse': True},
+        'eppn-index-v1': {'key': [('eduPersonPrincipalName', 1)], 'unique': True},
+        'norEduPersonNIN-index-v2': {'key': [('norEduPersonNIN', 1)], 'unique': True, 'sparse': True},
+        'mobile-index-v1': {'key': [('mobile.mobile', 1), ('mobile.verified', 1)]},
+        'mailAliases-index-v1': {'key': [('mailAliases.email', 1), ('mailAliases.verified', 1)]}
+    }
     db_conn = MongoDB(settings.get('MONGO_URI', DEFAULT_MONGODB_URI))
     db = db_conn.get_database()
-    db.attributes.ensure_index('mail', name='mail-index', unique=True)
-    db.attributes.ensure_index('eduPersonPrincipalName', name='eppn-index', unique=True)
-    db.attributes.ensure_index('norEduPersonNIN', name='norEduPersonNIN-index', unique=True, sparse=True)
-    db.attributes.ensure_index([('mobile.mobile', 1),
-                                ('mobile.verified', 1)],
-                               name='mobile-index')
-    db.attributes.ensure_index([('mailAliases.email', 1),
-                                ('mailAliases.verified', 1)],
-                               name='mailAliases-index')
+    current_indexes = db[collection].index_information()
+    for name in current_indexes:
+        if name not in indexes and name not in default_indexes:
+            db[collection].drop_index(name)
+    for name, params in indexes.items():
+        if name not in current_indexes:
+            key = params.pop('key')
+            params['name'] = name
+            db[collection].ensure_index(key, **params)
 
 
 def get_attribute_manager(celery_app):
