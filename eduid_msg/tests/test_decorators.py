@@ -48,7 +48,7 @@ class TestTransactionAudit(MongoTestCase):
 
         @TransactionAudit(celery.conf.get('MONGO_URI'), db_name='test')
         def send_message(arg1, arg2, arg3, arg4):
-            return {'TransId': 'kaka'}
+            return 'kaka'
         send_message('dummy', 'mm', 'dummy', '2222')
         result = c.find_one({'data.transaction_id': 'kaka'})
         self.assertEquals(result['data']['recipient'], '2222')
