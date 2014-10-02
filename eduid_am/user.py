@@ -32,7 +32,10 @@
 # Author : Fredrik Thulin <fredrik@thulin.net>
 #
 
+import datetime
+
 from eduid_am.tasks import update_attributes
+from eduid_am.exceptions import UserOutOfSync
 
 
 class User(object):
@@ -49,6 +52,11 @@ class User(object):
             self._mongo_doc = mongo_doc._mongo_doc
         else:
             self._mongo_doc = mongo_doc
+        profiles_user = self.db.profiles.find_one({'_id': self.get_id()})
+        if profiles_user is None:
+            self._mongo_doc['modified_ts'] = None
+        else:
+            self._mongo_doc['modified_ts'] = profiles_user['modified_ts']
 
     def __repr__(self):
         return '<User: {0}>'.format(self.get_eppn())
@@ -64,12 +72,28 @@ class User(object):
 
     def save(self, request):
         '''
-        Save the user in MongoDB
+        Save the user in MongoDB. If the user has _id and timestamp,
+        it was already in the
 
         :param request: the HTTP request
         :type  request: webob.request.BaseRequest
         '''
-        request.db.profiles.save(self._mongo_doc, safe=True)
+        modified = self.get_modified_ts()
+        self.set_modified_ts(datetime.datetime.utcnow())
+        if modified is None:
+            # profile has never been modified through the dashboard.
+            # possibly just created in signup.
+            request.db.profiles.insert(self._mongo_doc)
+        else:
+            result = request.db.profiles.update(
+                {
+                    '_id': user.get_id(),
+                    'modified_ts': modified,
+                },
+                self._mongo_doc)
+            if result.nMatched == 0:
+                raise UserOutOfSync('The user data has been modified '
+                                    'since you started editing it.')
         request.context.propagate_user_changes(self._mongo_doc)
 
     def update_am(self, app_name):
@@ -112,6 +136,23 @@ class User(object):
         :return: str
         '''
         return self._mongo_doc.get('preferredLanguage', None)
+
+    def get_modified_ts(self):
+        '''
+        Get the timestamp for the last modification of the user.
+
+        :return: datetime
+        '''
+        return self._mongo_doc.get('modified_ts', None)
+
+    def set_modified_ts(self, ts):
+        '''
+        Set the timestamp for the last modification of the user.
+
+        :param ts:  present timestamp
+        :type  ts: datetime
+        '''
+        self._mongo_doc['modified_ts'] = ts
 
     def get_given_name(self):
         '''
