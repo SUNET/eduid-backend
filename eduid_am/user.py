@@ -82,11 +82,11 @@ class User(object):
         else:
             result = request.db.profiles.update(
                 {
-                    '_id': user.get_id(),
+                    '_id': self.get_id(),
                     'modified_ts': modified,
                 },
                 self._mongo_doc)
-            if result.nMatched == 0:
+            if result['n'] == 0:
                 raise UserOutOfSync('The user data has been modified '
                                     'since you started editing it.')
         request.context.propagate_user_changes(self._mongo_doc)
