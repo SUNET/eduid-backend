@@ -52,11 +52,6 @@ class User(object):
             self._mongo_doc = mongo_doc._mongo_doc
         else:
             self._mongo_doc = mongo_doc
-        profiles_user = self.db.profiles.find_one({'_id': self.get_id()})
-        if profiles_user is None:
-            self._mongo_doc['modified_ts'] = None
-        else:
-            self._mongo_doc['modified_ts'] = profiles_user['modified_ts']
 
     def __repr__(self):
         return '<User: {0}>'.format(self.get_eppn())
@@ -139,11 +134,24 @@ class User(object):
 
     def get_modified_ts(self):
         '''
-        Get the timestamp for the last modification of the user.
+        Get the timestamp for the last modification time of the user
+        in the dashboard.
 
         :return: datetime
         '''
         return self._mongo_doc.get('modified_ts', None)
+
+    def retrieve_modified_ts(self, profiles):
+        try:
+            userid = self.get_id()
+        except KeyError:
+            self._mongo_doc['modified_ts'] = None
+        else:
+            profiles_user = profiles.find_one({'_id': userid})
+            if profiles_user is None:
+                self._mongo_doc['modified_ts'] = None
+            else:
+                self._mongo_doc['modified_ts'] = profiles_user['modified_ts']
 
     def set_modified_ts(self, ts):
         '''
