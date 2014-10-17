@@ -30,6 +30,7 @@ MOCKED_USER_STANDARD = {
     'photo': 'https://pointing.to/your/photo',
     'preferredLanguage': 'en',
     'eduPersonPrincipalName': 'hubba-bubba',
+    'modified_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"),
     'eduPersonEntitlement': [
         'urn:mace:eduid.se:role:admin',
         'urn:mace:eduid.se:role:student',
