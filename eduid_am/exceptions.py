@@ -16,6 +16,6 @@ class MultipleUsersReturned(Exception):
 
 class UserOutOfSync(Exception):
     """
-    The user has been modified since it was rad from the db.
+    The user has been modified since it was read from the db.
     """
     pass

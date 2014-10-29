@@ -67,8 +67,7 @@ class User(object):
 
     def save(self, request):
         '''
-        Save the user in MongoDB. If the user has _id and timestamp,
-        it was already in the
+        Save the user in MongoDB.
 
         :param request: the HTTP request
         :type  request: webob.request.BaseRequest
