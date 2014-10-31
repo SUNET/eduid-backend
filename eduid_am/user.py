@@ -150,7 +150,7 @@ class User(object):
             if profiles_user is None:
                 self._mongo_doc['modified_ts'] = None
             else:
-                self._mongo_doc['modified_ts'] = profiles_user['modified_ts']
+                self._mongo_doc['modified_ts'] = profiles_user.get('modified_ts', None)
 
     def set_modified_ts(self, ts):
         '''
