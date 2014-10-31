@@ -13,3 +13,9 @@ class MultipleUsersReturned(Exception):
     More than one user in the database matched the given search criteria.
     """
     pass
+
+class UserOutOfSync(Exception):
+    """
+    The user has been modified since it was read from the db.
+    """
+    pass
