@@ -150,7 +150,15 @@ class User(object):
             if profiles_user is None:
                 self._mongo_doc['modified_ts'] = None
             else:
-                self._mongo_doc['modified_ts'] = profiles_user['modified_ts']
+                try:
+                    self._mongo_doc['modified_ts'] = profiles_user['modified_ts']
+                except KeyError:
+                    self._mongo_doc['modified_ts'] = datetime.datetime.utcnow()
+                    profiles.update(
+                        {
+                            '_id': userid,
+                        },
+                        self._mongo_doc)
 
     def set_modified_ts(self, ts):
         '''
