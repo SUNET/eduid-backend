@@ -65,12 +65,17 @@ class User(object):
     def keys(self):
         return self._mongo_doc.keys()
 
-    def save(self, request):
+    def save(self, request, check_sync=True, update_doc=None):
         '''
         Save the user in MongoDB.
 
         :param request: the HTTP request
         :type  request: webob.request.BaseRequest
+        :param check_sync: whether we want to check that the user is in sync
+        :type check_sync: bool
+        :param update_doc: if we want to save a doc other that self._mongo_doc.
+                           if it is a partial doc, it must carry the '$set' key.
+        :type update_doc: dict
         '''
         modified = self.get_modified_ts()
         self.set_modified_ts(datetime.datetime.utcnow())
@@ -79,12 +84,12 @@ class User(object):
             # possibly just created in signup.
             request.db.profiles.insert(self._mongo_doc)
         else:
-            result = request.db.profiles.update(
-                {
-                    '_id': self.get_id(),
-                    'modified_ts': modified,
-                },
-                self._mongo_doc)
+            if update_doc == None:
+                update_doc = self._mongo_doc
+            test_doc = {'_id': self.get_id()}
+            if check_sync:
+                test_doc['modified_ts'] = modified
+            result = request.db.profiles.update(test_doc, update_doc)
             if result['n'] == 0:
                 raise UserOutOfSync('The user data has been modified '
                                     'since you started editing it.')
