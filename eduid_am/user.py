@@ -89,7 +89,7 @@ class User(object):
             test_doc = {'_id': self.get_id()}
             if check_sync:
                 test_doc['modified_ts'] = modified
-            result = request.db.profiles.update(check_doc, update_doc)
+            result = request.db.profiles.update(test_doc, update_doc)
             if result['n'] == 0:
                 raise UserOutOfSync('The user data has been modified '
                                     'since you started editing it.')
