@@ -530,11 +530,11 @@ class User(object):
         '''
         return self._mongo_doc.get('eduPersonPrincipalName', '')
 
-    def set_terminated(self):
+    def set_terminated(self, terminate=True):
         '''
         Flag the account as terminated.
         '''
-        self._mongo_doc['terminated'] = True
+        self._mongo_doc['terminated'] = terminate
 
     def is_terminated(self):
         '''
