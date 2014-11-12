@@ -31,6 +31,7 @@ MOCKED_USER_STANDARD = {
     'preferredLanguage': 'en',
     'eduPersonPrincipalName': 'hubba-bubba',
     'modified_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"),
+    'terminated': None,
     'eduPersonEntitlement': [
         'urn:mace:eduid.se:role:admin',
         'urn:mace:eduid.se:role:student',

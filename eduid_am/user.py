@@ -90,7 +90,7 @@ class User(object):
             if check_sync:
                 test_doc['modified_ts'] = modified
             result = request.db.profiles.update(test_doc, update_doc)
-            if result['n'] == 0:
+            if check_sync and result['n'] == 0:
                 raise UserOutOfSync('The user data has been modified '
                                     'since you started editing it.')
         request.context.propagate_user_changes(self._mongo_doc)
@@ -529,3 +529,26 @@ class User(object):
         :return: str
         '''
         return self._mongo_doc.get('eduPersonPrincipalName', '')
+
+    def set_terminated(self, terminate=True):
+        '''
+        Flag the account as terminated.
+
+        :param terminate: whether we are terminating
+                          or reactivating the account
+        :type  terminate: bool
+        '''
+        if terminate:
+            terminated_ts = datetime.datetime.utcnow()
+        else:
+            terminated_ts = None
+        self._mongo_doc['terminated'] = terminated_ts
+
+    def is_terminated(self):
+        '''
+        Find out if (and when) the account for this user
+        has been set as terminated.
+
+        :return: bool or datetime
+        '''
+        return self._mongo_doc.get('terminated', None)
