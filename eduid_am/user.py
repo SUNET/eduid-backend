@@ -533,13 +533,25 @@ class User(object):
     def set_terminated(self, terminate=True):
         '''
         Flag the account as terminated.
+
+        :param terminate: whether we are terminating
+                          or reactivating the account
+        :type  terminate: bool
         '''
+        if terminate:
+            terminated_ts = datetime.datetime.utcnow()
+        else:
+            terminated_ts = None
         self._mongo_doc['terminated'] = terminate
+        self._mongo_doc['terminated_ts'] = terminated_ts
 
     def is_terminated(self):
         '''
-        Find out if the account for this user has been set as terminated.
+        Find out if (and when) the account for this user
+        has been set as terminated.
 
-        :return: bool
+        :return: bool or datetime
         '''
-        return self._mongo_doc.get('terminated', False)
+        if self._mongo_doc.get('terminated', False):
+            return self._mongo_doc.get('terminated_ts')
+        return False
