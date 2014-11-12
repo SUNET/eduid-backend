@@ -542,8 +542,7 @@ class User(object):
             terminated_ts = datetime.datetime.utcnow()
         else:
             terminated_ts = None
-        self._mongo_doc['terminated'] = terminate
-        self._mongo_doc['terminated_ts'] = terminated_ts
+        self._mongo_doc['terminated'] = terminated_ts
 
     def is_terminated(self):
         '''
@@ -552,6 +551,4 @@ class User(object):
 
         :return: bool or datetime
         '''
-        if self._mongo_doc.get('terminated', False):
-            return self._mongo_doc.get('terminated_ts')
-        return False
+        return self._mongo_doc.get('terminated', None)
