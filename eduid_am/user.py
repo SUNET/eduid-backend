@@ -32,7 +32,7 @@
 # Author : Fredrik Thulin <fredrik@thulin.net>
 #
 
-import datetime
+from datetime import datetime
 
 from eduid_am.tasks import update_attributes
 from eduid_am.exceptions import UserOutOfSync
@@ -78,7 +78,7 @@ class User(object):
         :type update_doc: dict
         '''
         modified = self.get_modified_ts()
-        self.set_modified_ts(datetime.datetime.utcnow())
+        self.set_modified_ts(datetime.utcnow())
         if modified is None:
             # profile has never been modified through the dashboard.
             # possibly just created in signup.
@@ -158,7 +158,7 @@ class User(object):
                 try:
                     self._mongo_doc['modified_ts'] = profiles_user['modified_ts']
                 except KeyError:
-                    self._mongo_doc['modified_ts'] = datetime.datetime.utcnow()
+                    self._mongo_doc['modified_ts'] = datetime.utcnow()
                     profiles.update(
                         {
                             '_id': userid,
@@ -539,7 +539,7 @@ class User(object):
         :type  terminate: bool
         '''
         if terminate:
-            terminated_ts = datetime.datetime.utcnow()
+            terminated_ts = datetime.utcnow()
         else:
             terminated_ts = None
         self._mongo_doc['terminated'] = terminated_ts
