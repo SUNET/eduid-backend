@@ -140,10 +140,12 @@ class MessageRelay(Task):
         raise RuntimeError(error)
 
     @TransactionAudit(MONGODB_URI)
-    def send_message(self, message_type, message_dict, recipient, template, language, subject=None):
+    def send_message(self, message_type, reference, message_dict, recipient, template, language, subject=None):
         """
         @param message_type: Message notification type (sms or mm)
         @type message_type: str (possible values 'sms' and 'mm')
+        @param reference: Unique reference id
+        @type reference: str
         @param message_dict: A dict of key value pairs used in the template of choice
         @type message_dict: dict
         @param recipient: Recipient mobile phone number or social security number (depends on the choice of
@@ -163,14 +165,19 @@ class MessageRelay(Task):
         """
         conf = self.app.conf
 
-        msg = load_template(conf.get("TEMPLATE_DIR", None), template, message_dict, language).encode('utf-8')
+        msg = load_template(conf.get("TEMPLATE_DIR", None), template, message_dict, language)
         if not msg:
             raise RuntimeError("template not found")
+        msg = msg.encode('utf-8')
 
         # Only log the message if devel_mode is enabled
         if conf.get("DEVEL_MODE") == 'true':
-            LOG.debug("\nType: %s\nRecipient: %s\nLang: %s\nSubject: %s\nMessage:\n %s" % (message_type, recipient,
-                                                                                           language, subject, msg))
+            LOG.debug("\nType: %s\nReference: %s\nRecipient: %s\nLang: %s\nSubject: %s\nMessage:\n %s" % (message_type,
+                                                                                                          reference,
+                                                                                                          recipient,
+                                                                                                          language,
+                                                                                                          subject,
+                                                                                                          msg))
             return 'devel_mode'
 
         if message_type == 'sms':
@@ -264,7 +271,7 @@ def is_reachable(identity_number):
 
 
 @task(base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT, max_retries=10)
-def send_message(message_type, message_dict, recipient, template, language, subject=None):
+def send_message(message_type, reference, message_dict, recipient, template, language, subject=None):
     """
     @param message_type: Message notification type (sms or mm)
     @type message_type: str (possible values 'sms' and 'mm')
@@ -280,7 +287,7 @@ def send_message(message_type, message_dict, recipient, template, language, subj
     """
     self = send_message
     try:
-        return self.send_message(message_type, message_dict, recipient, template, language, subject)
+        return self.send_message(message_type, reference, message_dict, recipient, template, language, subject)
     except Exception, e:
         # Increase countdown every time it fails (to a maximum of 1 day)
         countdown = 600 * send_message.request.retries ** 2

@@ -1,7 +1,6 @@
 from eduid_am.db import MongoDB
 from inspect import isclass
 from datetime import datetime
-from time import time
 
 
 class TransactionAudit(object):
@@ -20,7 +19,7 @@ class TransactionAudit(object):
         def audit(*args, **kwargs):
             ret = f(*args, **kwargs)
             if not isclass(ret):  # we can't save class objects in mongodb
-                date = datetime.fromtimestamp(time(), None)
+                date = datetime.utcnow()
                 doc = {'function': f.__name__,
                        'data': self._filter(f.__name__, ret, *args, **kwargs),
                        'created_at': date}
@@ -47,7 +46,7 @@ class TransactionAudit(object):
             return {'identity_number': args[1]}
         elif func == 'send_message':
             if args[1] == 'mm':
-                return {'type': 'mm', 'recipient': args[3], 'transaction_id': data}
+                return {'type': 'mm', 'recipient': args[4], 'transaction_id': data, 'audit_reference': args[2]}
             elif args[1] == 'sms':
-                return {'type': 'sms', 'recipient': args[3], 'transaction_id': data}
+                return {'type': 'sms', 'recipient': args[4], 'transaction_id': data, 'audit_reference': args[2]}
         return data
