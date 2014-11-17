@@ -125,6 +125,11 @@ class MessageRelay(Task):
 
     @TransactionAudit(MONGODB_URI)
     def _get_is_reachable(self, identity_number):
+        # Users always reachable in devel mode
+        conf = self.app.conf
+        if conf.get("DEVEL_MODE") == 'true':
+            LOG.debug("Faking that NIN %(identity_number) is reachable".format(identity_number=identity_number))
+            return {'AccountStatus': {'Type': 'Secure', 'ServiceSupplier': 'devel_mode'}, 'SenderAccepted': 'devel_mode'}
         data = json.dumps({'identity_number': identity_number})
         response = self.mm_api.user.reachable.POST(data=data)
         if response.status_code == 200:
@@ -211,11 +216,33 @@ class MessageRelay(Task):
         @type identity_number: str
         @return: dict containing name and postal address
         """
+        # Only log the message if devel_mode is enabled
+        conf = self.app.conf
+        if conf.get("DEVEL_MODE") == 'true':
+            return self.get_devel_postal_address()
+
         result = self.cache('navet_cache').get_cache_item(identity_number)
         if result is None:
             result = self._get_postal_address(identity_number)
             if result is not None:
                 self.cache('navet_cache').add_cache_item(identity_number, result)
+        return result
+
+    def get_devel_postal_address(self):
+        """
+        Return a OrderedDict just as we would get from navet.
+        """
+        from collections import OrderedDict
+        result = OrderedDict([
+            (u'Name', OrderedDict([
+                (u'@xmlns:xsi', u'http://www.w3.org/2001/XMLSchema-instance'),
+                (u'GivenNameMarking', u'20'), (u'GivenName', u'Testaren Test'),
+                (u'SurName', u'Testsson')])),
+            (u'OfficialAddress', OrderedDict([(u'@xmlns:xsi', u'http://www.w3.org/2001/XMLSchema-instance'),
+                                              (u'Address2', u'\xd6RGATAN 79 LGH 10'),
+                                              (u'PostalCode', u'12345'),
+                                              (u'City', u'LANDET')]))
+        ])
         return result
 
     @TransactionAudit(MONGODB_URI)
