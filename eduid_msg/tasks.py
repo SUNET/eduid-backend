@@ -10,6 +10,7 @@ from eduid_msg.cache import CacheMDB
 from eduid_msg.utils import load_template
 from eduid_msg.decorators import TransactionAudit
 from eduid_msg.config import read_configuration
+from eduid_am.db import MongoDB
 from time import time
 from datetime import datetime, timedelta
 from pynavet.postaladdress import PostalAddress
@@ -23,6 +24,9 @@ DEFAULT_MONGODB_NAME = 'eduid_msg'
 DEFAULT_MONGODB_URI = 'mongodb://%s:%d/%s' % (DEFAULT_MONGODB_HOST,
                                               DEFAULT_MONGODB_PORT,
                                               DEFAULT_MONGODB_NAME)
+
+TRANSACTION_AUDIT_DB = 'eduid_msg'
+TRANSACTION_AUDIT_COLLECTION = 'transaction_audit'
 
 DEFAULT_MM_API_HOST = 'localhost'
 DEFAULT_MM_API_PORT = 8443
@@ -256,6 +260,17 @@ class MessageRelay(Task):
     def _get_postal_address(self, identity_number):
         return self.navet.get_name_and_official_address(identity_number)
 
+    def set_audit_log_postal_address(self, audit_reference):
+        conn = MongoDB(self.MONGODB_URI)
+        db = conn.get_database(TRANSACTION_AUDIT_DB)
+        log_entry = db[TRANSACTION_AUDIT_COLLECTION].find_one({'data.audit_reference': audit_reference})
+        if log_entry and log_entry.get('data', {}).get('recipient', None):
+            address_dict = dict(get_postal_address(log_entry['data']['recipient']))
+            log_entry['data']['navet_response'] = address_dict
+            db[TRANSACTION_AUDIT_COLLECTION].update({'_id': log_entry['_id']}, log_entry)
+            return True
+        return False
+
 
 @task(base=MessageRelay)
 def is_reachable(identity_number):
@@ -297,7 +312,7 @@ def send_message(message_type, reference, message_dict, recipient, template, lan
         send_message.retry(exc=e, countdown=retry_countdown)
 
 
-@task(base=MessageRelay)
+@task(base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT, max_retries=10)
 def get_postal_address(identity_number):
     """
     Retrieve name and postal address from the Swedish population register using a Swedish national
@@ -308,7 +323,33 @@ def get_postal_address(identity_number):
     @return: Ordered dict
     """
     self = get_postal_address
-    return self.get_postal_address(identity_number)
+    try:
+        return self.get_postal_address(identity_number)
+    except Exception, e:
+        # Increase countdown every time it fails (to a maximum of 1 day)
+        countdown = 600 * send_message.request.retries ** 2
+        retry_countdown = countdown if countdown <= 86400 else 86400
+        LOG.error('get_postal_address task error', exc_info=True)
+        LOG.debug("get_postal_address task retrying in %d seconds, error %s", retry_countdown, e.message)
+        get_postal_address.retry(exc=e, countdown=retry_countdown)
+
+
+@task(base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT, max_retries=10)
+def set_audit_log_postal_address(audit_reference):
+    """
+    Looks in the transaction audit collection for the audit reference and make a postal address lookup and adds the
+    result to the transaction audit document.
+    """
+    self = set_audit_log_postal_address
+    try:
+        return self.set_audit_log_postal_address(audit_reference)
+    except Exception, e:
+        # Increase countdown every time it fails (to a maximum of 1 day)
+        countdown = 600 * send_message.request.retries ** 2
+        retry_countdown = countdown if countdown <= 86400 else 86400
+        LOG.error('set_audit_log_postal_address task error', exc_info=True)
+        LOG.debug("set_audit_log_postal_address task retrying in %d seconds, error %s", retry_countdown, e.message)
+        get_postal_address.retry(exc=e, countdown=retry_countdown)
 
 
 @periodic_task(run_every=timedelta(minutes=5))
