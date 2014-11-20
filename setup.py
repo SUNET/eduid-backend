@@ -10,7 +10,7 @@ README = 'eduID Attribute Manager'
 if os.path.exists(README_fn):
     README = open(README_fn).read()
 
-version = '0.5.0'
+version = '0.5.1-dev'
 
 install_requires = [
     'python-dateutil==2.1',
