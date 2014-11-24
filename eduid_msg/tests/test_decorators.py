@@ -47,15 +47,17 @@ class TestTransactionAudit(MongoTestCase):
         self.assertEquals(result['data']['identity_number'], '1111')
 
         @TransactionAudit(celery.conf.get('MONGO_URI'), db_name='test')
-        def send_message(arg1, arg2, arg3, arg4):
+        def send_message(arg1, arg2, arg3, arg4, arg5):
             return 'kaka'
-        send_message('dummy', 'mm', 'dummy', '2222')
+        send_message('dummy', 'mm', 'reference', 'dummy', '2222')
         result = c.find_one({'data.transaction_id': 'kaka'})
         self.assertEquals(result['data']['recipient'], '2222')
+        self.assertEquals(result['data']['audit_reference'], 'reference')
 
-        send_message('dummy', 'sms', 'dummy', '3333')
+        send_message('dummy', 'sms', 'reference', 'dummy', '3333')
         result = c.find_one({'data.recipient': '3333'})
         self.assertEquals(result['data']['recipient'], '3333')
+        self.assertEquals(result['data']['audit_reference'], 'reference')
 
     def test_transaction_audit_toggle(self):
         db = self.conn['test']

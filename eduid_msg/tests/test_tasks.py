@@ -95,7 +95,7 @@ class TestTasks(MongoTestCase):
     @patch('smscom.SMSClient.send')
     def test_send_message_sms(self, sms_mock):
         sms_mock.return_value = True
-        status = send_message.delay('sms', self.msg_dict, '+466666', 'test.tmpl', 'sv_SE').get()
+        status = send_message.delay('sms', 'reference', self.msg_dict, '+466666', 'test.tmpl', 'sv_SE').get()
 
         # Test that the template was actually used in send_message function call to the sms service
         template = load_template(celery.conf.get('TEMPLATE_DIR'), 'test.tmpl', self.msg_dict, 'sv_SE')
@@ -105,7 +105,7 @@ class TestTasks(MongoTestCase):
 
     def test_send_message_invalid_phone_number(self):
         try:
-            send_message.delay('sms', self.msg_dict, '+466666a', 'test.tmpl', 'sv_SE').get()
+            send_message.delay('sms', 'reference', self.msg_dict, '+466666a', 'test.tmpl', 'sv_SE').get()
         except ValueError, e:
             self.assertEqual(e.message, "'to' is not a valid phone number")
 
@@ -129,7 +129,8 @@ class TestTasks(MongoTestCase):
         message_response.data = self.message_delivered
         api_mock.message.send.POST.return_value = message_response
         recipient = '192705178354'
-        transaction_id = send_message.delay('mm', self.msg_dict, recipient, 'test.tmpl', 'sv_SE', subject='Test').get()
+        transaction_id = send_message.delay('mm', 'reference', self.msg_dict, recipient, 'test.tmpl', 'sv_SE',
+                                            subject='Test').get()
         self.assertEqual(transaction_id, 'ab6895f8-7203-4695-b083-ca89d68bf346')
 
         # Test that the template was actually used in send_message function call to the mm service
@@ -145,7 +146,8 @@ class TestTasks(MongoTestCase):
         reachable_response = self.response()
         reachable_response.data = self.recipient_sender_not
         api_mock.user.reachable.POST.return_value = reachable_response
-        status = send_message.delay('mm', self.msg_dict, '192705178354', 'test.tmpl', 'sv_SE', subject='Test').get()
+        status = send_message.delay('mm', 'reference', self.msg_dict, '192705178354', 'test.tmpl', 'sv_SE',
+                                    subject='Test').get()
         self.assertEqual(status, "Sender_not")
 
     @patch('eduid_msg.tasks.MessageRelay.mm_api')
@@ -153,7 +155,8 @@ class TestTasks(MongoTestCase):
         reachable_response = self.response()
         reachable_response.data = self.recipient_not
         api_mock.user.reachable.POST.return_value = reachable_response
-        status = send_message.delay('mm', self.msg_dict, '192705178354', 'test.tmpl', 'sv_SE', subject='Test').get()
+        status = send_message.delay('mm', 'reference', self.msg_dict, '192705178354', 'test.tmpl', 'sv_SE',
+                                    subject='Test').get()
         self.assertEqual(status, False)
 
     @patch('eduid_msg.tasks.MessageRelay.mm_api')
@@ -161,5 +164,6 @@ class TestTasks(MongoTestCase):
         reachable_response = self.response()
         reachable_response.data = self.recipient_anon
         api_mock.user.reachable.POST.return_value = reachable_response
-        status = send_message.delay('mm', self.msg_dict, '192705178354', 'test.tmpl', 'sv_SE', subject='Test').get()
+        status = send_message.delay('mm', 'reference', self.msg_dict, '192705178354', 'test.tmpl', 'sv_SE',
+                                    subject='Test').get()
         self.assertEqual(status, "Anonymous")
