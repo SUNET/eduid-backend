@@ -265,10 +265,12 @@ class MessageRelay(Task):
         db = conn.get_database(TRANSACTION_AUDIT_DB)
         log_entry = db[TRANSACTION_AUDIT_COLLECTION].find_one({'data.audit_reference': audit_reference})
         if log_entry and log_entry.get('data', {}).get('recipient', None):
-            address_dict = dict(get_postal_address(log_entry['data']['recipient']))
-            log_entry['data']['navet_response'] = address_dict
-            db[TRANSACTION_AUDIT_COLLECTION].update({'_id': log_entry['_id']}, log_entry)
-            return True
+            result = get_postal_address(log_entry['data']['recipient'])
+            if result:
+                address_dict = dict(result)
+                log_entry['data']['navet_response'] = address_dict
+                db[TRANSACTION_AUDIT_COLLECTION].update({'_id': log_entry['_id']}, log_entry)
+                return True
         return False
 
 
