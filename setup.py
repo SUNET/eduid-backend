@@ -10,12 +10,12 @@ README = 'eduID Attribute Manager'
 if os.path.exists(README_fn):
     README = open(README_fn).read()
 
-version = '0.5.1'
+version = '0.5.2-dev'
 
 install_requires = [
-    'python-dateutil==2.1',
-    'pymongo==2.6.3',
-    'celery==3.1.9',
+    'python-dateutil>=2.1',
+    'pymongo>=2.6.3',
+    'celery>=3.1.9',
 ]
 
 testing_extras = [
