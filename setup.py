@@ -16,6 +16,7 @@ install_requires = [
     'python-dateutil>=2.1',
     'pymongo>=2.6.3',
     'celery>=3.1.9',
+    'simplejson>=3.6.5',
 ]
 
 testing_extras = [

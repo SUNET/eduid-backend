@@ -1,5 +1,6 @@
 import os
 import os.path
+import simplejson as json
 import ConfigParser
 
 
@@ -85,16 +86,21 @@ def read_list(settings, prop, default=[]):
 def read_configuration():
     """
     Read the settings from environment or .ini file and return them as a dict
+
+    The values are decoded as JSON, or used as-is if they can't be decoded as JSON.
     """
     settings = {}
 
-    config = ConfigParser.RawConfigParser()
-
     config_file = get_config_file()
     if config_file is not None:
+        config = ConfigParser.RawConfigParser()
         config.read(config_file)
 
         if config.has_section('main'):
-            settings = dict([(s.upper(), v) for s, v in config.items('main')])
+            for s, v in config.items('main'):
+                try:
+                    settings[s.upper()] = json.loads(v)
+                except ValueError:
+                    settings[s.upper()] = v
 
     return settings
