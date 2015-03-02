@@ -259,6 +259,43 @@ class MessageRelay(Task):
         ])
         return result
 
+    def get_relations(self, identity_number):
+        """
+        Fetch information about someones relatives from NAVET
+
+        @param identity_number: Swedish national identity number
+        @type identity_number: str
+        @return: dict containing name and postal address
+        """
+        # Only log the message if devel_mode is enabled
+        conf = self.app.conf
+        if conf.get("DEVEL_MODE") == 'true':
+            return self.get_devel_relations()
+
+        data = self.cache('navet_cache').get_cache_item(identity_number)
+        if data is None:
+            data = self._get_navet_data(identity_number)
+            if data is not None:
+                self.cache('navet_cache').add_cache_item(identity_number, data)
+        # Filter name and address from the Navet lookup results
+        return self.navet.get_relations(identity_number, data)
+
+    def get_devel_relations(self):
+        """
+        Return a OrderedDict just as we would get from navet.
+        """
+        from collections import OrderedDict
+        result = OrderedDict([
+            (u'Relation', [OrderedDict([(u'@xmlns:xsi', u'http://www.w3.org/2001/XMLSchema-instance'),
+                                        (u'RelationId', OrderedDict([(u'NationalIdentityNumber',
+                                                                      '195001011234')
+                                                                     ])),
+                                        (u'RelationType', 'FA'),
+                                        ])
+                           ])
+                        ])
+        return result
+
     @TransactionAudit(MONGODB_URI)
     def _get_navet_data(self, identity_number):
         """
@@ -345,10 +382,67 @@ def get_postal_address(identity_number):
     except Exception, e:
         # Increase countdown every time it fails (to a maximum of 1 day)
         countdown = 600 * send_message.request.retries ** 2
-        retry_countdown = countdown if countdown <= 86400 else 86400
+        retry_countdown = min(countdown, 86400)
         LOG.error('get_postal_address task error', exc_info=True)
         LOG.debug("get_postal_address task retrying in %d seconds, error %s", retry_countdown, e.message)
         get_postal_address.retry(exc=e, countdown=retry_countdown)
+
+
+@task(base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT, max_retries=3)
+def get_relations_to(identity_number, relative_nin):
+    """
+    Get the relative status between identity_number and relative_nin.
+
+    What is returned is a list of Navet codes. Known codes:
+      M = spouse (make/maka)
+      B = child (barn)
+      FA = father
+      MO = mother
+      VF = some kind of legal guardian status. Childs typically have ['B', 'VF'] it seems.
+
+    @param identity_number: Swedish national identity number
+    @type identity_number: str
+    @param relative_nin: Swedish national identity number
+    @type relative_nin: str
+    @return: [str | unicode]
+    """
+    # Decorator task base=MessageRelay makes this an instance of MessageRelay().
+    # This funny looking assignment of self to this function supposedly lets us
+    # access other attributes etc. on the MessageRelay instance.
+    # http://docs.celeryproject.org/en/latest/userguide/tasks.html#instantiation
+    self = get_relations_to
+    try:
+        relations = self.get_relations(identity_number)
+        if not relations:
+            return []
+        result = []
+        # Entrys in relations['Relations']['Relation'] (a list) look like this:
+        #
+        #    {
+        #        "RelationId" : {
+        #                "NationalIdentityNumber" : "200001011234
+        #        },
+        #        "RelationType" : "B",
+        #        "RelationStartDate" : "20000101"
+        #    },
+        #
+        # (I wonder what other types of Relations than Relation that NAVET can come up with...)
+        import pprint
+        LOG.debug("Looking for relations between {!r} and {!r} in:{!s}".format(identity_number,
+                                                                               relative_nin,
+                                                                               pprint.pformat(relations)))
+        for d in relations['Relations']['Relation']:
+            if d.get('RelationId', {}).get("NationalIdentityNumber") == relative_nin:
+                if 'RelationType' in d:
+                    result.append(d['RelationType'])
+        return result
+    except Exception, e:
+        # Increase countdown every time it fails (to a maximum of 1 day)
+        countdown = 600 * send_message.request.retries ** 2
+        retry_countdown = min(countdown, 86400)
+        LOG.error('get_relations_to task error', exc_info=True)
+        LOG.debug("get_relations_to task retrying in %d seconds, error %s", retry_countdown, e.message)
+        get_relations_to.retry(exc=e, countdown=retry_countdown)
 
 
 @task(base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT, max_retries=10)
