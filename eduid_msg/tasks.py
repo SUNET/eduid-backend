@@ -76,10 +76,12 @@ class MessageRelay(Task):
     def navet(self):
         if self._navet is None:
             conf = self.app.conf
+            debug = conf.get("DEVEL_MODE") == 'true' or conf.get("DEBUG") == 'true'
             self._navet = PostalAddress(cert=conf.get("MM_CERT_FILE"),
                                         key_file=conf.get("MM_KEY_FILE"),
                                         order_id=conf.get("NAVET_ORDER_ID"),
-                                        verify=False)
+                                        verify=False,
+                                        debug=debug)
         return self._navet
 
     def cache(self, cache_name, ttl=7200):
@@ -96,7 +98,7 @@ class MessageRelay(Task):
 
         @param identity_number: User social security number
         @type identity_number: str
-        @param mailbox_url (optional): Return mailbox URL instead of true if the user exist and accept messages from
+        @param mailbox_url: (optional) Return mailbox URL instead of true if the user exist and accept messages from
         the sender.
         @type mailbox_url: bool
         @return: True if the user is reachable, False if the user is not registered with the government mailbox service.
@@ -232,12 +234,13 @@ class MessageRelay(Task):
         if conf.get("DEVEL_MODE") == 'true':
             return self.get_devel_postal_address()
 
-        result = self.cache('navet_cache').get_cache_item(identity_number)
-        if result is None:
-            result = self._get_postal_address(identity_number)
-            if result is not None:
-                self.cache('navet_cache').add_cache_item(identity_number, result)
-        return result
+        data = self.cache('navet_cache').get_cache_item(identity_number)
+        if data is None:
+            data = self._get_navet_data(identity_number)
+            if data is not None:
+                self.cache('navet_cache').add_cache_item(identity_number, data)
+        # Filter name and address from the Navet lookup results
+        return self.navet.get_name_and_official_address(identity_number, data)
 
     def get_devel_postal_address(self):
         """
@@ -257,8 +260,16 @@ class MessageRelay(Task):
         return result
 
     @TransactionAudit(MONGODB_URI)
-    def _get_postal_address(self, identity_number):
-        return self.navet.get_name_and_official_address(identity_number)
+    def _get_navet_data(self, identity_number):
+        """
+        Fetch all data about a NIN from Navet.
+
+        @param identity_number: Swedish national identity number
+        @type identity_number: str
+        @return: Parsed XML
+        @rtype: dict
+        """
+        return self.navet.get_all_data(identity_number)
 
     def set_audit_log_postal_address(self, audit_reference):
         conn = MongoDB(self.MONGODB_URI)
