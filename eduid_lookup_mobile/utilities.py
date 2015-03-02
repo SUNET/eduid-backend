@@ -5,6 +5,9 @@ import re
 
 
 def format_NIN(nin):
+    if nin is None:
+        return
+
     # Remove all non-digits
     nin = re.sub(r"\D", '', nin)
     # Format to 10 digits

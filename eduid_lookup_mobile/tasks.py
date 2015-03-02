@@ -1,17 +1,20 @@
 from __future__ import absolute_import
 from eduid_lookup_mobile.celery import app
-from eduid_lookup_mobile.client import mobile_lookup_client
+from eduid_lookup_mobile.client.mobile_lookup_client import MobileLookupClient
 
 @app.task
-def verify_by_mobile(mobile_number, national_identity_number):
+def verify_identity(national_identity_number, mobile_number_list):
     """
-    Does a lookup to see if the given mobile number is registered to the person with the given national identity number.
-    Uses the NIN as the key in the lookup.
-    :param mobile_number: A mobile number with country code
-    :param social_security_number:
-    :return: true if the mobile_number was registered to the nin, else false
+    Verify that one of the mobile numbers are registered to the given nin or parent
+    :param national_identity_number:
+    :param mobile_number_list:
+    :return: {'success': boolean, 'status': string, 'mobile': string}
+              success is true or false depending on if the validation was successful or not.
+              status holds information about the verification. no_phone, no_match, match, match_by_navet, bad_input
+              mobile holds the mobile number that where used to do the validation
     """
-    return mobile_lookup_client.verify_by_NIN(mobile_number, national_identity_number)
+    lookup_client = MobileLookupClient()
+    return lookup_client.verify_identity(national_identity_number, mobile_number_list)
 
 @app.task
 def find_mobiles_by_NIN(national_identity_number, number_region=None):
@@ -20,7 +23,8 @@ def find_mobiles_by_NIN(national_identity_number, number_region=None):
     :param national_identity_number:
     :return: a list of formatted mobile numbers
     """
-    return mobile_lookup_client.find_mobiles_by_NIN(national_identity_number, number_region)
+    lookup_client = MobileLookupClient()
+    return lookup_client.find_mobiles_by_NIN(national_identity_number, number_region)
 
 @app.task
 def find_NIN_by_mobile(mobile_number):
@@ -29,4 +33,5 @@ def find_NIN_by_mobile(mobile_number):
     :param mobile_number:
     :return: the nin with the registered mobile number
     """
-    return mobile_lookup_client.find_NIN_by_mobile(mobile_number)
+    lookup_client = MobileLookupClient()
+    return lookup_client.find_NIN_by_mobile(mobile_number)

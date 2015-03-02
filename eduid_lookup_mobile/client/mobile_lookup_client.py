@@ -1,9 +1,8 @@
 from suds.client import Client
 from eduid_lookup_mobile import log
-from eduid_lookup_mobile import conf
+from eduid_lookup_mobile import config
 from suds.plugin import MessagePlugin
-from eduid_lookup_mobile.utilities import format_NIN, format_mobile_number, get_region_from_number
-
+from eduid_lookup_mobile.utilities import format_NIN, format_mobile_number
 
 class LogPlugin(MessagePlugin):
 
@@ -24,39 +23,38 @@ class MobileLookupClient:
         self.client = Client(self.DEFAULT_CLIENT_URL)
         self.client.set_options(port=self.DEFAULT_CLIENT_PORT)
 
+        conf = config.read_configuration()
         self.DEFAULT_CLIENT_PASSWORD = unicode(conf['TELEADRESS_CLIENT_PASSWORD'])
         self.DEFAULT_CLIENT_USER = unicode(conf['TELEADRESS_CLIENT_USER'])
 
-    def verify_by_mobile_number(self, mobile_number, national_identity_number):
+    def verify_identity(self, national_identity_number, mobile_number_list):
+        result = {'success': False, 'status': 'bad_input', 'mobile': None}
+        if national_identity_number is None or mobile_number_list is None:
+            return result
+
         national_identity_number = format_NIN(national_identity_number)
-        person_information = self._search_by_mobile(mobile_number)
+        status = 'no_phone'
+        valid_mobile = None
 
-        if not person_information:
-            log.debug("Did not get search result from mobile number: {m_number}".format(m_number=mobile_number))
-            return False
+        for mobile_number in mobile_number_list:
+            status = 'no_match'
+            nin_mobile = self.find_NIN_by_mobile(mobile_number)
+            nin_mobile = format_NIN(nin_mobile)
 
-        found_nin = format_NIN(person_information['nin'])
-        return found_nin == national_identity_number
+            if nin_mobile == national_identity_number:
+                valid_mobile = mobile_number
+                status = 'match'
+                break
+            elif nin_mobile is not None:
+                # TODO check navet relatives
+                status = 'match_by_navet'
 
-    def verify_by_NIN(self, mobile_number, national_identity_number):
-        """ This function will check if the given mobile number is registered to the person with the given sson """
-        national_identity_number = format_NIN(national_identity_number)
-        person_information = self._search_by_SSNo(national_identity_number)
+        result = {'success': valid_mobile is not None, 'status': status, 'mobile': valid_mobile}
 
-        if not person_information:
-            log.debug("Did not get search result from NIN: {nin}".format(nin=national_identity_number))
-            return False
+        log.info("Validation result:: success:{success}, status:{status}, mobile number used:{mobile_number}".format(
+            success=result['success'], status=result['status'], mobile_number=result['mobile']))
 
-        # Get region of the number
-        region = get_region_from_number(mobile_number)
-        # Get the phone number in the same format for easy comparison
-        registered_number = format_mobile_number(mobile_number, region)
-        person_information['Mobiles'] = format_mobile_number(person_information['Mobiles'], region)
-
-        found_match = False
-        for one_number in person_information['Mobiles']:
-            found_match = found_match or (one_number == registered_number)
-        return found_match
+        return result
 
     def find_mobiles_by_NIN(self, national_identity_number, number_region=None):
         national_identity_number = format_NIN(national_identity_number)
@@ -68,7 +66,7 @@ class MobileLookupClient:
         person_information = self._search_by_mobile(mobile_number)
         if not person_information or person_information['nin'] is None:
             log.debug("Did not get search result from mobile number: {m_number}".format(m_number=mobile_number))
-            return ''
+            return
 
         found_nin = format_NIN(person_information['nin'])
         return found_nin
