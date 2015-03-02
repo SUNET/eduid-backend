@@ -356,7 +356,7 @@ def send_message(message_type, reference, message_dict, recipient, template, lan
     except Exception, e:
         # Increase countdown every time it fails (to a maximum of 1 day)
         countdown = 600 * send_message.request.retries ** 2
-        retry_countdown = countdown if countdown <= 86400 else 86400
+        retry_countdown = min(countdown, 86400)
         LOG.error('send_message task error', exc_info=True)
         LOG.debug("send_message task retrying in %d seconds, error %s", retry_countdown, e.message)
         send_message.retry(exc=e, countdown=retry_countdown)
@@ -461,7 +461,7 @@ def set_audit_log_postal_address(audit_reference):
     except Exception, e:
         # Increase countdown every time it fails (to a maximum of 1 day)
         countdown = 600 * send_message.request.retries ** 2
-        retry_countdown = countdown if countdown <= 86400 else 86400
+        retry_countdown = min(countdown, 86400)
         LOG.error('set_audit_log_postal_address task error', exc_info=True)
         LOG.debug("set_audit_log_postal_address task retrying in %d seconds, error %s", retry_countdown, e.message)
         set_audit_log_postal_address.retry(exc=e, countdown=retry_countdown)
