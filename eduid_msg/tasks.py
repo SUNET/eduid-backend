@@ -324,6 +324,10 @@ def get_postal_address(identity_number):
     @type identity_number: str
     @return: Ordered dict
     """
+    # Decorator task base=MessageRelay makes this an instance of MessageRelay().
+    # This funny looking assignment of self to this function supposedly lets us
+    # access other attributes etc. on the MessageRelay instance.
+    # http://docs.celeryproject.org/en/latest/userguide/tasks.html#instantiation
     self = get_postal_address
     try:
         return self.get_postal_address(identity_number)
@@ -342,6 +346,10 @@ def set_audit_log_postal_address(audit_reference):
     Looks in the transaction audit collection for the audit reference and make a postal address lookup and adds the
     result to the transaction audit document.
     """
+    # Decorator task base=MessageRelay makes this an instance of MessageRelay().
+    # This funny looking assignment of self to this function supposedly lets us
+    # access other attributes etc. on the MessageRelay instance.
+    # http://docs.celeryproject.org/en/latest/userguide/tasks.html#instantiation
     self = set_audit_log_postal_address
     try:
         return self.set_audit_log_postal_address(audit_reference)
