@@ -285,15 +285,18 @@ class MessageRelay(Task):
         Return a OrderedDict just as we would get from navet.
         """
         from collections import OrderedDict
-        result = OrderedDict([
-            (u'Relation', [OrderedDict([(u'@xmlns:xsi', u'http://www.w3.org/2001/XMLSchema-instance'),
-                                        (u'RelationId', OrderedDict([(u'NationalIdentityNumber',
-                                                                      '195001011234')
-                                                                     ])),
-                                        (u'RelationType', 'FA'),
-                                        ])
-                           ])
-                        ])
+        result = \
+            OrderedDict([(u'Relations', {u'Relation':
+                         [{u'RelationType': u'VF', u'RelationId': {u'NationalIdentityNumber': u'200202025678'},
+                           u'RelationStartDate': u'20020202'},
+                          {u'RelationType': u'VF', u'RelationId': {u'NationalIdentityNumber': u'200101014567'},
+                           u'RelationStartDate': u'20010101'},
+                          {u'RelationType': u'FA', u'RelationId': {u'NationalIdentityNumber': u'194004048989'}},
+                          {u'RelationType': u'MO', u'RelationId': {u'NationalIdentityNumber': u'195010106543'}},
+                          {u'RelationType': u'B', u'RelationId': {u'NationalIdentityNumber': u'200202025678'}},
+                          {u'RelationType': u'B', u'RelationId': {u'NationalIdentityNumber': u'200101014567'}},
+                          {u'RelationType': u'M', u'RelationId': {u'NationalIdentityNumber': u'197512125432'}}]}
+                          )])
         return result
 
     @TransactionAudit(MONGODB_URI)
