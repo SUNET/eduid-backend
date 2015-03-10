@@ -1,14 +1,11 @@
 import logging
-#from eduid_lookup_mobile import config
-
-#conf = config.read_configuration()
 
 # TODO the log file path and level from config?
 logging.basicConfig(filename='/var/log/eduid/eduid_lookup_mobile.log', level=logging.DEBUG)
 #logging.basicConfig(filename='./eduid_lookup_mobile.log', level=logging.DEBUG)
 
 # create logger
-log = logging.getLogger('eduididproofing_mobile')
+log = logging.getLogger('eduid_lookup_mobile')
 
 #create console handler and set level to debug
 ch = logging.StreamHandler()
