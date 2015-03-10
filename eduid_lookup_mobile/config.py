@@ -11,12 +11,12 @@ def get_config_file(conf_file_name):
     """Get the configuration file looking for it in several places.
 
     The lookup order is:
-    1. A file named acording to the value of the EDUID_IDPROOFING_MOBILE_CONFIG env variable
+    1. A file named acording to the value of the EDUID_LOOKUP_MOBILE_CONFIG env variable
     2. A file named eduid_lookup_mobile.ini In the current working directory
     3. A file named .eduid_lookup_mobile.ini in the user's home directory
     4. A file named eduid_lookup_mobile.ini in the system configuration directory
     """
-    file_name = os.path.join(os.environ.get('EDUID_IDPROOFING_MOBILE_CONFIG', '/'), conf_file_name)
+    file_name = os.path.join(os.environ.get('EDUID_LOOKUP_MOBILE_CONFIG', '/'), conf_file_name)
 
     if os.path.exists(file_name):
         return file_name
@@ -29,6 +29,10 @@ def get_config_file(conf_file_name):
     global_file = os.path.join('/etc', conf_file_name)
     if os.path.exists(global_file):
         return global_file
+
+    test_file = os.path.join('./', conf_file_name)
+    if os.path.exists(test_file):
+        return test_file
 
 
 def read_configuration():

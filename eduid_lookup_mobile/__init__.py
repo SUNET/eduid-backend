@@ -1,8 +1,13 @@
 import logging
+from eduid_lookup_mobile.config import read_configuration
 
-# TODO the log file path and level from config?
-logging.basicConfig(filename='/var/log/eduid/eduid_lookup_mobile.log', level=logging.DEBUG)
-#logging.basicConfig(filename='./eduid_lookup_mobile.log', level=logging.DEBUG)
+conf = read_configuration()
+
+if conf['LOG_PATH'] and not conf['LOG_PATH'] == "":
+    logging.basicConfig(filename=conf['LOG_PATH'], level=logging.DEBUG)
+else:
+    logging.basicConfig(level=logging.DEBUG)
+
 
 # create logger
 log = logging.getLogger('eduid_lookup_mobile')

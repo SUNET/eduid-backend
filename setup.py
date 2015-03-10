@@ -11,7 +11,7 @@ README = 'eduID Lookup Mobile'
 if os.path.exists(README_fn):
     README = open(README_fn).read()
 
-version = '0.0.1'
+version = '0.0.2'
 
 install_requires = [
     'celery >= 3.1.9',
