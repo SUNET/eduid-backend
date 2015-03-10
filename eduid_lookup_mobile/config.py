@@ -27,16 +27,16 @@ def get_config_file(file_name):
     if os.path.exists(global_file):
         return global_file
 
-    test_file = os.path.join('./', file_name)
-    if os.path.exists(test_file):
-        return test_file
+    # test_file = os.path.join('./', file_name)
+    # if os.path.exists(test_file):
+    #     return test_file
 
 
 def read_configuration():
     """Read the settings from environment or .ini file and return them as a dict"""
     settings = {}
     # Add config and passwords optionally from second config file
-    cfg_fn = os.environ.get('EDUID_IDPROOFING_MOBILE_CONFIG', DEFAULT_CONFIG_FILE_NAME)
+    cfg_fn = os.environ.get('EDUID_LOOKUP_MOBILE_CONFIG', DEFAULT_CONFIG_FILE_NAME)
     for fn in [cfg_fn, DEFAULT_PASSWORD_FILE_NAME]:
         config_file = get_config_file(fn)
         if config_file is not None:

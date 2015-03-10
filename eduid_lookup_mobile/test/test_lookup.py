@@ -1,9 +1,15 @@
 from unittest import TestCase
 from eduid_lookup_mobile.client.mobile_lookup_client import MobileLookupClient
 from eduid_lookup_mobile.tasks import logger
+import os
+import pkg_resources
 
 
 class TestVerifiers(TestCase):
+    def setUp(self):
+        data_dir = pkg_resources.resource_filename(__name__, 'data')
+        self.config_file = os.path.join(data_dir, 'test.ini')
+        os.environ['EDUID_LOOKUP_MOBILE_CONFIG'] = self.config_file
 
     def test_find_NIN_by_mobile(self):
         mobile_verifier = MobileLookupClient(logger)
