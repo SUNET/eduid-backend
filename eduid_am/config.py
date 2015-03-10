@@ -83,6 +83,12 @@ def read_list(settings, prop, default=[]):
     return [e for e in raw.split('\n') if e is not None and e.strip() != '']
 
 
+CONFIG_VAR_TYPES = {
+        # <var name>.lower(): (<read function>, <default>),
+        'celery_accept_content': (read_list, ['application/json']),
+        }
+
+
 def read_configuration():
     """
     Read the settings from environment or .ini file and return them as a dict
@@ -97,10 +103,12 @@ def read_configuration():
         config.read(config_file)
 
         if config.has_section('main'):
-            for s, v in config.items('main'):
-                try:
-                    settings[s.upper()] = json.loads(v)
-                except ValueError:
-                    settings[s.upper()] = v
+            for key, val in config.items('main'):
+                if key in CONFIG_VAR_TYPES:
+                    func, default = CONFIG_VAR_TYPES[key]
+                else:
+                    func = read_setting_from_env
+                    default = ''
+                settings[key.upper()] = func({key: val}, key, default=default)
 
     return settings
