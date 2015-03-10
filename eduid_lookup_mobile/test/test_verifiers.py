@@ -1,12 +1,13 @@
 from unittest import TestCase
 from eduid_lookup_mobile.client.mobile_lookup_client import MobileLookupClient
+from eduid_lookup_mobile.tasks import logger
 
 
 class TestVerifiers(TestCase):
 
     def test_verify_mobile(self):
 
-        mobile_verifier = MobileLookupClient()
+        mobile_verifier = MobileLookupClient(logger)
 
         self.assertTrue(mobile_verifier.find_NIN_by_mobile('+46700011222') == '200202025678')
         self.assertTrue(mobile_verifier.find_NIN_by_mobile('+46700011333') == '197512125432')
