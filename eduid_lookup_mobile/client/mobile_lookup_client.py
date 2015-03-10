@@ -1,5 +1,4 @@
 from suds.client import Client
-from eduid_lookup_mobile import log
 from eduid_lookup_mobile import config
 from suds.plugin import MessagePlugin
 from eduid_lookup_mobile.utilities import format_NIN, format_mobile_number
@@ -19,11 +18,11 @@ class MobileLookupClient:
     DEFAULT_CLIENT_PORT = 'NNAPIWebServiceSoap'
     DEFAULT_CLIENT_PERSON_CLASS = 'ns7:FindPersonClass'
 
-    def __init__(self):
-
+    def __init__(self, logger):
         #self.client = Client(self.DEFAULT_CLIENT_URL, plugins=[LogPlugin()])
         self.client = Client(self.DEFAULT_CLIENT_URL)
         self.client.set_options(port=self.DEFAULT_CLIENT_PORT)
+        self.logger = logger
 
         self.conf = config.read_configuration()
         self.DEFAULT_CLIENT_PASSWORD = unicode(self.conf['TELEADRESS_CLIENT_PASSWORD'])
@@ -34,7 +33,7 @@ class MobileLookupClient:
         person_information = self._search_by_SSNo(national_identity_number)
 
         if not person_information or person_information['Mobiles'] is None:
-            log.debug("Did not get search result from nin: {nin}".format(nin=national_identity_number))
+            self.logger.debug("Did not get search result from nin: {nin}".format(nin=national_identity_number))
             return []
 
         person_information['Mobiles'] = format_mobile_number(person_information['Mobiles'], number_region)
@@ -43,7 +42,7 @@ class MobileLookupClient:
     def find_NIN_by_mobile(self, mobile_number):
         person_information = self._search_by_mobile(mobile_number)
         if not person_information or person_information['nin'] is None:
-            log.debug("Did not get search result from mobile number: {m_number}".format(m_number=mobile_number))
+            self.logger.debug("Did not get search result from mobile number: {m_number}".format(m_number=mobile_number))
             return
 
         found_nin = format_NIN(person_information['nin'])
@@ -57,8 +56,8 @@ class MobileLookupClient:
             result = self.client.service.Find(param)
 
         if result._error_code != 0:
-            log.debug("Error code: {err_code}, error message: {err_message}".format(err_code=result._error_code,
-                                                                                    err_message=(result._error_text.encode('utf-8'))))
+            self.logger.debug("Error code: {err_code}, error message: {err_message}".format(
+                err_code=result._error_code, err_message=(result._error_text.encode('utf-8'))))
             return None
 
         # Check if the search got a hit
@@ -106,7 +105,7 @@ class MobileLookupClient:
         record = self._search(person_search)
 
         if record is None:
-            log.debug("Got no search result on mobile number: {m_number}".format(m_number=mobile_number))
+            self.logger.debug("Got no search result on mobile number: {m_number}".format(m_number=mobile_number))
             return {}
 
         return {'nin': record[0].SSNo}
