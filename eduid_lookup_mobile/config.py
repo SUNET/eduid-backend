@@ -27,7 +27,7 @@ def get_config_file(file_name):
     if os.path.exists(global_file):
         return global_file
 
-    test_file = os.path.join('./', conf_file_name)
+    test_file = os.path.join('./', file_name)
     if os.path.exists(test_file):
         return test_file
 
