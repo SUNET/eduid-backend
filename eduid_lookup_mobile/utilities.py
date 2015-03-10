@@ -11,9 +11,10 @@ def format_NIN(nin):
     # Remove all non-digits
     nin = re.sub(r"\D", '', nin)
     # Format to 10 digits
-    length = len(nin)
-    formatted_national_identity_number = nin[-(10-length):length]
-    return formatted_national_identity_number
+    # length = len(nin)
+    # formatted_national_identity_number = nin[-(10-length):length]
+    # return formatted_national_identity_number
+    return nin
 
 
 def get_region_from_number(number):
@@ -41,7 +42,9 @@ def format_mobile_number(number, region):
 
 
 def _format_number(number, region):
-    # if no region, just remove all non-digits
+    # if no region, just remove all non-digits, but keep + sign
     if region is None:
+        if number.startswith("+"):
+            return "+{number}".format(number=re.sub(r"\D", '', number))
         return re.sub(r"\D", '', number)
     return phonenumbers.format_number(phonenumbers.parse(number, region), phonenumbers.PhoneNumberFormat.E164)
