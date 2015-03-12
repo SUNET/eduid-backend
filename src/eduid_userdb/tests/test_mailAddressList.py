@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 import eduid_userdb.exceptions
-import eduid_userdb.primaryelement
+import eduid_userdb.element
 from eduid_userdb.mail import MailAddress, MailAddressList
 
 __author__ = 'ft'
@@ -59,7 +59,7 @@ class TestMailAddressList(TestCase):
 
     def test_add_duplicate(self):
         dup = self.two.find(self.two.primary.email)
-        with self.assertRaises(eduid_userdb.primaryelement.DuplicatePrimaryElementViolation):
+        with self.assertRaises(eduid_userdb.element.DuplicatePrimaryElementViolation):
             self.two.add(dup)
 
     def test_add_mailaddress(self):
@@ -72,7 +72,7 @@ class TestMailAddressList(TestCase):
                                                    'verified': True,
                                                    'primary': True,
                                                    })
-        with self.assertRaises(eduid_userdb.primaryelement.PrimaryElementViolation):
+        with self.assertRaises(eduid_userdb.element.PrimaryElementViolation):
             self.one.add(new)
 
     def test_update(self):
@@ -88,7 +88,7 @@ class TestMailAddressList(TestCase):
             self.one.remove('foo@no-such-address.example.org')
 
     def test_remove_primary(self):
-        with self.assertRaises(eduid_userdb.primaryelement.PrimaryElementViolation):
+        with self.assertRaises(eduid_userdb.element.PrimaryElementViolation):
             self.two.remove(self.two.primary.email)
 
     def test_remove_primary_single(self):
@@ -111,7 +111,7 @@ class TestMailAddressList(TestCase):
             self.one.primary = 'foo@no-such-address.example.org'
 
     def test_set_unverified_as_primary(self):
-        with self.assertRaises(eduid_userdb.primaryelement.PrimaryElementViolation):
+        with self.assertRaises(eduid_userdb.element.PrimaryElementViolation):
             self.three.primary = 'ft@three.example.org'
 
     def test_change_primary(self):

@@ -32,7 +32,7 @@
 # Author : Fredrik Thulin <fredrik@thulin.net>
 #
 
-from eduid_userdb.primaryelement import PrimaryElement, PrimaryElementList
+from eduid_userdb.element import PrimaryElement, PrimaryElementList
 from eduid_userdb.exceptions import UserDBValueError
 
 __author__ = 'ft'
