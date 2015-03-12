@@ -1,0 +1,10 @@
+*.pyc
+*~
+\#*
+.*~
+.coverage
+*.egg-info
+build/
+dist/
+metadata.xml
+.idea
