@@ -37,7 +37,6 @@ __author__ = 'ft'
 import copy
 import datetime
 
-import eduid_userdb.util
 from eduid_userdb.exceptions import EduIDUserDBError, UserHasUnknownData, UserDBValueError
 
 
@@ -217,7 +216,7 @@ class PrimaryElement(VerifiedElement):
     :type data: dict
     :type raise_on_unknown: bool
     """
-    def __init__(self, data, raise_on_unknown = True, ignore_data = []):
+    def __init__(self, data, raise_on_unknown = True, ignore_data = None):
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
 
@@ -225,6 +224,7 @@ class PrimaryElement(VerifiedElement):
 
         self.is_primary = data.pop('primary', False)
 
+        ignore_data = ignore_data or []
         leftovers = [x for x in data.keys() if x not in ignore_data]
         if leftovers:
             if raise_on_unknown:
@@ -378,38 +378,7 @@ class PrimaryElementList(ElementList):
                 assert _get_primary(elements) is not None
         except PrimaryElementViolation:
             raise PrimaryElementViolation("Operation would result in more or less than one primary element")
-        self._elements = elements
-
-    def to_list(self):
-        """
-        Return the list of elements as an iterable.
-        :return: List of elements
-        :rtype: [Element]
-        """
-        return self._elements
-
-    def to_list_of_dicts(self):
-        """
-        Get the elements in a serialized format that can be stored in MongoDB.
-
-        :return: List of dicts
-        :rtype: [dict]
-        """
-        return [this.to_dict() for this in self._elements]
-
-    def find(self, key):
-        """
-        Find an Element from the element list, using the key.
-
-        :param key: the key to look for in the list of elements
-        :type  key: str | unicode
-        """
-        res = [x for x in self._elements if x.key == key]
-        if len(res) == 1:
-            return res[0]
-        if len(res) > 1:
-            raise EduIDUserDBError("More than one element found")
-        return False
+        ElementList.__init__(self, elements)
 
     def add(self, element):
         """
@@ -421,7 +390,7 @@ class PrimaryElementList(ElementList):
         Raises DuplicatePrimaryElementViolation if the element already exist in
         the list.
 
-        :param element: Element
+        :param element: PrimaryElement to add
         :type element: PrimaryElement
         :return: PrimaryElementList
         """
@@ -472,7 +441,7 @@ class PrimaryElementList(ElementList):
         There must always be exactly one primary element in the list, so an
         PrimaryElementViolation is raised in case this assertion does not hold.
 
-        :rtype: Element
+        :rtype: PrimaryElement
         """
         return _get_primary(self._elements)
 

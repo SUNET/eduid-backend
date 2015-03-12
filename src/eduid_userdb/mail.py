@@ -103,6 +103,32 @@ class MailAddressList(PrimaryElementList):
 
         PrimaryElementList.__init__(self, elements)
 
+    @property
+    def primary(self):
+        """
+        :return: Return the primary MailAddress.
+
+        There must always be exactly one primary element in the list, so an
+        PrimaryElementViolation is raised in case this assertion does not hold.
+
+        :rtype: MailAddress
+        """
+        return PrimaryElementList.primary.fget(self)
+
+    @primary.setter
+    def primary(self, email):
+        """
+        Mark email as the users primary MailAddress.
+
+        This is a MailAddressList operation since it needs to atomically update more than one
+        element in the list. Marking an element as primary will result in some other element
+        loosing it's primary status.
+
+        :param email: the key of the element to set as primary
+        :type  email: str | unicode
+        """
+        PrimaryElementList.primary.fset(self, email)
+
 
 def address_from_dict(data, raise_on_unknown = True):
     """

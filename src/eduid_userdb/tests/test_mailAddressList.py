@@ -21,17 +21,17 @@ class TestMailAddressList(TestCase):
 
         self._two_dict = self._one_dict + \
             [{'email': 'ft@two.example.org',
-               'primary': False,
-               'verified': True,
-               }]
+              'primary': False,
+              'verified': True,
+              }]
         self.two = MailAddressList(self._two_dict)
 
         self._three_dict = self._two_dict + \
             [{'email': 'ft@three.example.org',
-               'primary': False,
-               'verified': False,
-               },
-              ]
+              'primary': False,
+              'verified': False,
+              },
+             ]
         self.three = MailAddressList(self._three_dict)
 
     def test_to_list(self):
@@ -74,10 +74,6 @@ class TestMailAddressList(TestCase):
                                                    })
         with self.assertRaises(eduid_userdb.element.PrimaryElementViolation):
             self.one.add(new)
-
-    def test_update(self):
-        #self.fail()
-        return
 
     def test_remove(self):
         now_two = self.three.remove('ft@three.example.org')
@@ -127,3 +123,8 @@ class TestMailAddressList(TestCase):
         """
         address = self.two.primary
         self.assertEqual(address.key, address.email)
+
+    def test_setting_invalid_mail(self):
+        this = self.one.primary
+        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
+            this.email = None
