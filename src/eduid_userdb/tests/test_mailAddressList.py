@@ -62,6 +62,11 @@ class TestMailAddressList(TestCase):
         with self.assertRaises(eduid_userdb.primaryelement.DuplicatePrimaryElementViolation):
             self.two.add(dup)
 
+    def test_add_mailaddress(self):
+        third = self.three.find('ft@three.example.org')
+        this = MailAddressList(self._two_dict + [third])
+        self.assertEqual(this.to_list_of_dicts(), self.three.to_list_of_dicts())
+
     def test_add_another_primary(self):
         new = eduid_userdb.mail.address_from_dict({'email': 'ft@primary.example.org',
                                                    'verified': True,
@@ -116,3 +121,9 @@ class TestMailAddressList(TestCase):
         updated = self.two.primary
         self.assertEqual(updated.email, 'ft@two.example.org')
 
+    def test_key(self):
+        """
+        Test that the 'key' property (used by PrimaryElementList) works for the MailAddress.
+        """
+        address = self.two.primary
+        self.assertEqual(address.key, address.email)

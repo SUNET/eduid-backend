@@ -39,7 +39,10 @@ import datetime
 from eduid_userdb.exceptions import EduIDUserDBError, UserHasUnknownData, UserDBValueError
 
 
-class PrimaryElementViolation(EduIDUserDBError):
+class PrimaryElementError(EduIDUserDBError):
+    pass
+
+class PrimaryElementViolation(PrimaryElementError):
     """
     Raised when some operation would result in more or less than one 'primary'
     e-mail element in an MailelementList.
@@ -47,7 +50,7 @@ class PrimaryElementViolation(EduIDUserDBError):
     pass
 
 
-class DuplicatePrimaryElementViolation(EduIDUserDBError):
+class DuplicatePrimaryElementViolation(PrimaryElementError):
     """
     Raised when some operation would result in duplicate e-mail elements in a list.
     """
@@ -72,7 +75,6 @@ class PrimaryElement(object):
         #    # old-style mailAliases dicts don't have explicit ids
         #    data['id'] = bson.ObjectId
         #self.id = data.pop('id')
-        self.email = data.pop('email')
         self.is_primary = data.pop('primary', False)
         self.is_verified = data.pop('verified', False)
         self.verified_by = data.pop('verified_by', None)
@@ -305,21 +307,18 @@ class PrimaryElementList(object):
         """
         return [this.to_dict() for this in self._elements]
 
-    def find(self, email):
+    def find(self, key):
         """
         Find an Mailelement from the element list, using the e-mail element.
 
-        :param email: the email elements to look for
-        :type  email: str | unicode
+        :param key: the key to look for in the list of elements
+        :type  key: str | unicode
         """
-        if not isinstance(email, basestring):
-            raise UserDBValueError("Invalid 'e-mail': {!r}".format(email))
-
-        res = [x for x in self._elements if x.email == email]
+        res = [x for x in self._elements if x.key == key]
         if len(res) == 1:
             return res[0]
         if len(res) > 1:
-            raise EduIDUserDBError("More than one e-mail element found")
+            raise EduIDUserDBError("More than one element found")
         return False
 
     def add(self, element):
@@ -338,8 +337,8 @@ class PrimaryElementList(object):
         if not isinstance(element, PrimaryElement):
             raise UserDBValueError("Invalid Mailelement: {!r}".format(element))
 
-        if self.find(element.email):
-            raise DuplicatePrimaryElementViolation("element {!s} already in list".format(element.email))
+        if self.find(element.key):
+            raise DuplicatePrimaryElementViolation("element {!s} already in list".format(element.key))
 
         new_list = self._elements + [element]
         try:
@@ -366,7 +365,7 @@ class PrimaryElementList(object):
     #    found = False
     #    new_list = self._elements
     #    for idx in xrange(len(self._elements)):
-    #        if self._elements[idx].email == element.email:
+    #        if self._elements[idx].key == element.key:
     #            new_list[idx] = element
     #            found = True
     #            break
@@ -381,18 +380,18 @@ class PrimaryElementList(object):
     #    self._elements = new_list
     #    return self
 
-    def remove(self, email):
+    def remove(self, key):
         """
         Remove an existing Mailelement from the list.
 
         Raises PrimaryElementViolation if the operation results in != 1 primary
         e-mail element in the list.
 
-        :param email: E-mail element to remove
-        :type email: str | unicode
+        :param key: Key of element to remove
+        :type key: str | unicode
         :return: MailelementList
         """
-        match = self.find(email)
+        match = self.find(key)
         if not match:
             raise UserDBValueError("Mailelement not found in list")
 
@@ -419,7 +418,7 @@ class PrimaryElementList(object):
         return _get_primary(self._elements)
 
     @primary.setter
-    def primary(self, email):
+    def primary(self, key):
         """
         Mark e-mail element as the users primary e-mail element.
 
@@ -427,37 +426,37 @@ class PrimaryElementList(object):
         element in the list. Marking an element as primary will result in some other element
         loosing it's primary status.
 
-        :param email: the email elements to set as primary
-        :type  email: str | unicode
+        :param key: the key of the element to set as primary
+        :type  key: str | unicode
         """
-        match = self.find(email)
+        match = self.find(key)
 
         if not match:
-            raise UserDBValueError("E-mail element not found in list, can't set as primary")
+            raise UserDBValueError("Element not found in list, can't set as primary")
 
         if not match.is_verified:
-            raise PrimaryElementViolation("Primary e-mail element must be verified")
+            raise PrimaryElementViolation("Primary element must be verified")
 
-        # go through the whole list. Mark email as primary and all other as *not* primary.
+        # Go through the whole list. Mark element as primary and all other as *not* primary.
         for this in self._elements:
-            this.is_primary = bool(this.email == email)
+            this.is_primary = bool(this.key == key)
 
 
 def _get_primary(elements):
     """
-    Find the primary e-mail element in a list, and ensure there is exactly one (unless the list is empty).
+    Find the primary element in a list, and ensure there is exactly one (unless the list is empty).
 
     :param elements: List of Mailelement instances
     :type elements: [Mailelement]
     :return: Primary Mailelement
-    :rtype: Mailelement | None
+    :rtype: PrimaryElement | None
     """
     if not elements:
         return None
     res = [x for x in elements if x.is_primary is True]
     if len(res) != 1:
-        raise PrimaryElementViolation("List contains {!s}/{!s} primary e-mail elements".format(
+        raise PrimaryElementViolation("List contains {!s}/{!s} primary elements".format(
             len(res), len(elements)))
     if not res[0].is_verified:
-        raise PrimaryElementViolation("Primary e-mail element must be verified")
+        raise PrimaryElementViolation("Primary element must be verified")
     return res[0]
