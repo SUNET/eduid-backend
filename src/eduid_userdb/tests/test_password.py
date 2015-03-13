@@ -105,6 +105,11 @@ class TestPassword(TestCase):
         with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
             this.id = None
 
+    def test_setting_invalid_salt(self):
+        this = self.one.find(ObjectId('55002741d00690878ae9b600'))
+        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
+            this.salt = None
+
     def test_parse_cycle(self):
         """
         Tests that we output something we parsed back into the same thing we output.
