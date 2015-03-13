@@ -311,14 +311,14 @@ class ElementList(object):
         """
         return self._elements
 
-    def to_list_of_dicts(self):
+    def to_list_of_dicts(self, old_userdb_format=False):
         """
         Get the elements in a serialized format that can be stored in MongoDB.
 
         :return: List of dicts
         :rtype: [dict]
         """
-        return [this.to_dict() for this in self._elements]
+        return [this.to_dict(old_userdb_format) for this in self._elements]
 
     def find(self, key):
         """
