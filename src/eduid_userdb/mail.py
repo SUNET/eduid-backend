@@ -53,9 +53,10 @@ class MailAddress(PrimaryElement):
         data = copy.copy(data_in)  # to not modify callers data
 
         if 'added_timestamp' in data:
+            # old userdb-style creation timestamp
             data['created_ts'] = data.pop('added_timestamp')
         PrimaryElement.__init__(self, data, raise_on_unknown, ignore_data = ['email'])
-        self.email = data.get('email')
+        self.email = data.pop('email')
 
     # -----------------------------------------------------------------
     @property

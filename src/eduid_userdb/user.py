@@ -57,10 +57,12 @@ class User(object):
         # things without setters
         self._data['_id'] = data.pop('_id')
         _mail_addresses = data.pop('mailAliases', [])
-        for idx in xrange(len(_mail_addresses)):
-            if _mail_addresses[idx]['email'] == data['mail']:
-                _mail_addresses[idx]['primary'] = True
-        data.pop('mail')
+        if 'mail' in data:
+            # old-style userdb primary e-mail address indicator
+            for idx in xrange(len(_mail_addresses)):
+                if _mail_addresses[idx]['email'] == data['mail']:
+                    _mail_addresses[idx]['primary'] = True
+            data.pop('mail')
         self._mail_addresses = MailAddressList(_mail_addresses)
         self._phone_numbers = PhoneNumberList(data.pop('mobile', []))
         self._passwords = PasswordList(data.pop('passwords'))
@@ -143,7 +145,7 @@ class User(object):
         self._data['displayName'] = name
 
     @property
-    def sn(self):
+    def surname(self):
         """
         Get the user's sn (family name).
 
@@ -151,15 +153,15 @@ class User(object):
         """
         return self._data.get('sn', '')
 
-    @sn.setter
-    def sn(self, sn):
+    @surname.setter
+    def surname(self, surname):
         """
-        Set the user's sn (family name).
+        Set the user's surname (family name).
 
-        :param sn: the sn to set
-        :type  sn: str
+        :param surname: the surname to set
+        :type  surname: str | unicode
         """
-        self._data['sn'] = sn
+        self._data['sn'] = surname
 
     @property
     def mail_addresses(self):

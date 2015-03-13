@@ -52,8 +52,15 @@ class PhoneNumber(PrimaryElement):
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
 
-        PrimaryElement.__init__(self, data, raise_on_unknown, ignore_data = ['phone'])
-        self.number = data.get('phone')
+        if 'added_timestamp' in data:
+            # old userdb-style creation timestamp
+            data['created_ts'] = data.pop('added_timestamp')
+        if 'mobile' in data:
+            # old userdb-style entry
+            data['number'] = data.pop('mobile')
+
+        PrimaryElement.__init__(self, data, raise_on_unknown, ignore_data = ['number'])
+        self.number = data.pop('number')
 
     # -----------------------------------------------------------------
     @property
@@ -70,9 +77,9 @@ class PhoneNumber(PrimaryElement):
         This is the phone number.
 
         :return: phone number.
-        :rtype: str
+        :rtype: str | unicode
         """
-        return self._data['phone']
+        return self._data['number']
 
     @number.setter
     def number(self, value):
@@ -82,7 +89,25 @@ class PhoneNumber(PrimaryElement):
         """
         if not isinstance(value, basestring):
             raise UserDBValueError("Invalid 'number': {!r}".format(value))
-        self._data['phone'] = str(value.lower())
+        self._data['number'] = str(value.lower())
+
+    def to_dict(self, old_userdb_format=False):
+        """
+        Convert Element to a dict, that can be used to reconstruct the
+        Element later.
+
+        :param old_userdb_format: Set to True to get data back in legacy format.
+        :type old_userdb_format: bool
+        """
+        if not old_userdb_format:
+            return self._data
+        old = copy.copy(self._data)
+        # XXX created_ts -> added_timestamp
+        if 'created_ts' in old:
+            old['added_timestamp'] = old.pop('created_ts')
+        if 'number' in old:
+            old['mobile'] = old.pop('number')
+        return old
 
 
 class PhoneNumberList(PrimaryElementList):

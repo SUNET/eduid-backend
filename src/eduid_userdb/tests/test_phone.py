@@ -11,19 +11,19 @@ from eduid_userdb.phone import PhoneNumber, PhoneNumberList
 __author__ = 'ft'
 
 _one_dict = \
-    {'phone': '+46700000001',
+    {'number': '+46700000001',
      'primary': True,
      'verified': True,
      }
 
 _two_dict = \
-    {'phone': '+46700000002',
+    {'number': '+46700000002',
      'primary': False,
      'verified': True,
      }
 
 _three_dict = \
-    {'phone': '+46700000003',
+    {'number': '+46700000003',
      'primary': False,
      'verified': False,
      }
@@ -75,7 +75,7 @@ class TestPhoneNumberList(TestCase):
         self.assertEqual(this.to_list_of_dicts(), self.three.to_list_of_dicts())
 
     def test_add_another_primary(self):
-        new = eduid_userdb.phone.phone_from_dict({'phone': 'ft@primary.example.org',
+        new = eduid_userdb.phone.phone_from_dict({'number': '+46700000009',
                                                   'verified': True,
                                                   'primary': True,
                                                   })
@@ -122,7 +122,7 @@ class TestPhoneNumberList(TestCase):
 
     def test_set_unknown_as_primary(self):
         with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            self.one.primary = 'foo@no-such-address.example.org'
+            self.one.primary = '+46709999999'
 
     def test_set_unverified_as_primary(self):
         with self.assertRaises(eduid_userdb.element.PrimaryElementViolation):
