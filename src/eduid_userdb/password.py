@@ -45,10 +45,11 @@ class Password(Element):
     def __init__(self, data, raise_on_unknown=True):
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
+        if 'source' in data:  # XXX We should rename source in db
+            data['created_by'] = data.pop('source')
         Element.__init__(self, data)
         self.id = data.pop('id')
         self.salt = data.pop('salt')
-        self.created_by = data.pop('source', None)  # XXX We should rename source in db
 
         leftovers = data.keys()
         if leftovers:
