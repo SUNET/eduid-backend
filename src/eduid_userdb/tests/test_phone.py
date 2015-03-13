@@ -65,7 +65,7 @@ class TestPhoneNumberList(TestCase):
 
     def test_add_duplicate(self):
         dup = self.two.find(self.two.primary.number)
-        with self.assertRaises(eduid_userdb.element.DuplicatePrimaryElementViolation):
+        with self.assertRaises(eduid_userdb.element.DuplicateElementViolation):
             self.two.add(dup)
 
     def test_add_mailaddress(self):

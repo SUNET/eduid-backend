@@ -39,7 +39,21 @@ import datetime
 from eduid_userdb.exceptions import EduIDUserDBError, UserHasUnknownData, UserDBValueError
 
 
-class PrimaryElementError(EduIDUserDBError):
+class ElementError(EduIDUserDBError):
+    """
+    Base exception class for PrimaryElement errors.
+    """
+    pass
+
+
+class DuplicateElementViolation(ElementError):
+    """
+    Raised when some operation would result in duplicate elements in a list.
+    """
+    pass
+
+
+class PrimaryElementError(ElementError):
     """
     Base exception class for PrimaryElement errors.
     """
@@ -50,13 +64,6 @@ class PrimaryElementViolation(PrimaryElementError):
     """
     Raised when some operation would result in more or less than one 'primary'
     element in an PrimaryElementList.
-    """
-    pass
-
-
-class DuplicatePrimaryElementViolation(PrimaryElementError):
-    """
-    Raised when some operation would result in duplicate elements in a list.
     """
     pass
 
@@ -383,7 +390,7 @@ class PrimaryElementList(ElementList):
         Raises PrimaryElementViolation if the operation results in != 1 primary
         element in the list.
 
-        Raises DuplicatePrimaryElementViolation if the element already exist in
+        Raises DuplicateElementViolation if the element already exist in
         the list.
 
         :param element: PrimaryElement to add
@@ -394,7 +401,7 @@ class PrimaryElementList(ElementList):
             raise UserDBValueError("Invalid element: {!r}".format(element))
 
         if self.find(element.key):
-            raise DuplicatePrimaryElementViolation("element {!s} already in list".format(element.key))
+            raise DuplicateElementViolation("element {!s} already in list".format(element.key))
 
         _old_list = self._elements
         ElementList.add(self, element)
