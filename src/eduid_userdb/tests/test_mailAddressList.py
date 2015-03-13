@@ -1,38 +1,44 @@
 from unittest import TestCase
 
+import copy
+import datetime
+
 import eduid_userdb.exceptions
 import eduid_userdb.element
 from eduid_userdb.mail import MailAddress, MailAddressList
 
 __author__ = 'ft'
 
+_one_dict = \
+    {'email': 'ft@one.example.org',
+     'primary': True,
+     'verified': True,
+     }
+
+_two_dict = \
+    {'email': 'ft@two.example.org',
+     'primary': False,
+     'verified': True,
+     }
+
+_three_dict = \
+    {'email': 'ft@three.example.org',
+     'primary': False,
+     'verified': False,
+     }
+
 
 class TestMailAddressList(TestCase):
 
     def setUp(self):
         self.empty = MailAddressList([])
+        self.one = MailAddressList([_one_dict])
+        self.two = MailAddressList([_one_dict, _two_dict])
+        self.three = MailAddressList([_one_dict, _two_dict, _three_dict])
 
-        self._one_dict = \
-            [{'email': 'ft@one.example.org',
-              'primary': True,
-              'verified': True,
-              }]
-        self.one = MailAddressList(self._one_dict)
-
-        self._two_dict = self._one_dict + \
-            [{'email': 'ft@two.example.org',
-              'primary': False,
-              'verified': True,
-              }]
-        self.two = MailAddressList(self._two_dict)
-
-        self._three_dict = self._two_dict + \
-            [{'email': 'ft@three.example.org',
-              'primary': False,
-              'verified': False,
-              },
-             ]
-        self.three = MailAddressList(self._three_dict)
+    def test_init_bad_data(self):
+        with self.assertRaises(eduid_userdb.element.UserDBValueError):
+            MailAddressList('bad input data')
 
     def test_to_list(self):
         self.assertEqual([], self.empty.to_list(), list)
@@ -43,7 +49,7 @@ class TestMailAddressList(TestCase):
     def test_to_list_of_dicts(self):
         self.assertEqual([], self.empty.to_list_of_dicts(), list)
 
-        self.assertEqual(self._one_dict, self.one.to_list_of_dicts())
+        self.assertEqual([_one_dict], self.one.to_list_of_dicts())
 
     def test_find(self):
         match = self.one.find('ft@one.example.org')
@@ -64,7 +70,7 @@ class TestMailAddressList(TestCase):
 
     def test_add_mailaddress(self):
         third = self.three.find('ft@three.example.org')
-        this = MailAddressList(self._two_dict + [third])
+        this = MailAddressList([_one_dict, _two_dict, third])
         self.assertEqual(this.to_list_of_dicts(), self.three.to_list_of_dicts())
 
     def test_add_another_primary(self):
@@ -75,9 +81,15 @@ class TestMailAddressList(TestCase):
         with self.assertRaises(eduid_userdb.element.PrimaryElementViolation):
             self.one.add(new)
 
+    def test_add_wrong_type(self):
+        # XXX use Password() here to make test work like intended
+        new = eduid_userdb.phone.PhoneNumber({'phone': '+46700000000'})
+        with self.assertRaises(eduid_userdb.element.UserDBValueError):
+            self.one.add(new)
+
     def test_remove(self):
         now_two = self.three.remove('ft@three.example.org')
-        self.assertEqual(self._two_dict, now_two.to_list_of_dicts())
+        self.assertEqual(self.two.to_list_of_dicts(), now_two.to_list_of_dicts())
 
     def test_remove_unknown(self):
         with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
@@ -94,6 +106,9 @@ class TestMailAddressList(TestCase):
     def test_primary(self):
         match = self.one.primary
         self.assertEqual(match.email, 'ft@one.example.org')
+
+    def test_empty_primary(self):
+        self.assertEqual(None, self.empty.primary)
 
     def test_set_primary_to_same(self):
         match = self.one.primary
@@ -117,6 +132,29 @@ class TestMailAddressList(TestCase):
         updated = self.two.primary
         self.assertEqual(updated.email, 'ft@two.example.org')
 
+    def test_bad_input_two_primary(self):
+        one = copy.deepcopy(_one_dict)
+        two = copy.deepcopy(_two_dict)
+        one['primary'] = True
+        two['primary'] = True
+        with self.assertRaises(eduid_userdb.element.PrimaryElementViolation):
+            MailAddressList([one, two])
+
+    def test_bad_input_unverified_primary(self):
+        one = copy.deepcopy(_one_dict)
+        one['verified'] = False
+        with self.assertRaises(eduid_userdb.element.PrimaryElementViolation):
+            MailAddressList([one])
+
+
+class TestMailAddress(TestCase):
+
+    def setUp(self):
+        self.empty = MailAddressList([])
+        self.one = MailAddressList([_one_dict])
+        self.two = MailAddressList([_one_dict, _two_dict])
+        self.three = MailAddressList([_one_dict, _two_dict, _three_dict])
+
     def test_key(self):
         """
         Test that the 'key' property (used by PrimaryElementList) works for the MailAddress.
@@ -128,3 +166,108 @@ class TestMailAddressList(TestCase):
         this = self.one.primary
         with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
             this.email = None
+
+    def test_parse_cycle(self):
+        """
+        Tests that we output something we parsed back into the same thing we output.
+        """
+        for this in [self.one, self.two, self.three]:
+            this_dict = this.to_list_of_dicts()
+            self.assertEqual(MailAddressList(this_dict).to_list_of_dicts(), this.to_list_of_dicts())
+
+    def test_bad_is_primary(self):
+        this = self.one.to_list()[0]
+        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
+            this.is_primary = 'foo'
+
+    def test_unknown_input_data(self):
+        one = copy.deepcopy(_one_dict)
+        one['foo'] = 'bar'
+        with self.assertRaises(eduid_userdb.exceptions.UserHasUnknownData):
+            MailAddress(one)
+
+    def test_unknown_input_data_allowed(self):
+        one = copy.deepcopy(_one_dict)
+        one['foo'] = 'bar'
+        addr = MailAddress(one, raise_on_unknown = False)
+        out = addr.to_dict()
+        self.assertIn('foo', out)
+        self.assertEqual(out['foo'], one['foo'])
+
+    def test_changing_is_verified_on_primary(self):
+        this = self.one.primary
+        with self.assertRaises(eduid_userdb.element.PrimaryElementViolation):
+            this.is_verified = False
+
+    def test_changing_is_verified(self):
+        this = self.three.find('ft@three.example.org')
+        this.is_verified = False  # was False already
+        this.is_verified = True
+
+    def test_setting_invalid_is_verified(self):
+        this = self.three.find('ft@three.example.org')
+        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
+            this.is_verified = 1
+
+    def test_verified_by(self):
+        this = self.three.find('ft@three.example.org')
+        this.verified_by = 'unit test'
+        self.assertEqual(this.verified_by, 'unit test')
+        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
+            this.verified_by = False
+
+    def test_modify_verified_by(self):
+        this = self.three.find('ft@three.example.org')
+        this.verified_by = 'unit test'
+        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
+            this.verified_by = None
+        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
+            this.verified_by = 'test unit'
+
+    def test_verified_ts(self):
+        this = self.three.find('ft@three.example.org')
+        this.verified_ts = True
+        self.assertIsInstance(this.verified_ts, datetime.datetime)
+        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
+            this.verified_ts = False
+
+    def test_modify_verified_ts(self):
+        this = self.three.find('ft@three.example.org')
+        this.verified_ts = datetime.datetime.utcnow()
+        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
+            this.verified_ts = None
+        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
+            this.verified_ts = True
+
+    def test_created_by(self):
+        this = self.three.find('ft@three.example.org')
+        this.created_by = 'unit test'
+        self.assertEqual(this.created_by, 'unit test')
+        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
+            this.created_by = False
+
+    def test_modify_created_by(self):
+        this = self.three.find('ft@three.example.org')
+        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
+            this.created_by = 1
+        this.created_by = 'unit test'
+        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
+            this.created_by = None
+        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
+            this.created_by = 'test unit'
+
+    def test_created_ts(self):
+        this = self.three.find('ft@three.example.org')
+        this.created_ts = True
+        self.assertIsInstance(this.created_ts, datetime.datetime)
+        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
+            this.created_ts = False
+
+    def test_modify_created_ts(self):
+        this = self.three.find('ft@three.example.org')
+        this.created_ts = datetime.datetime.utcnow()
+        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
+            this.created_ts = None
+        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
+            this.created_ts = True
+

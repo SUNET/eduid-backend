@@ -13,3 +13,4 @@ __license__ = 'BSD'
 __authors__ = ['Fredrik Thulin']
 
 import eduid_userdb.exceptions
+import eduid_userdb.mail

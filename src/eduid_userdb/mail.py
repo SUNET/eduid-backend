@@ -129,6 +129,18 @@ class MailAddressList(PrimaryElementList):
         """
         PrimaryElementList.primary.fset(self, email)
 
+    def find(self, email):
+        """
+        Find an MailAddress from the element list, using the key.
+
+        :param email: the e-mail address to look for in the list of elements
+        :type email: str | unicode
+        :return: MailAddress instance if found, or False if none was found
+        :rtype: MailAddress | False
+        """
+        # implemented here to get proper type information
+        return PrimaryElementList.find(self, email)
+
 
 def address_from_dict(data, raise_on_unknown = True):
     """

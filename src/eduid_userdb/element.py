@@ -127,7 +127,7 @@ class Element(object):
                       Value None is ignored, True is short for datetime.utcnow().
         :type value: datetime.datetime | True | None
         """
-        _update_something_by(self._data, 'created_ts', value)
+        _update_something_ts(self._data, 'created_ts', value)
 
 
 class VerifiedElement(Element):
@@ -228,8 +228,8 @@ class PrimaryElement(VerifiedElement):
         leftovers = [x for x in data.keys() if x not in ignore_data]
         if leftovers:
             if raise_on_unknown:
-                raise UserHasUnknownData('PrimaryElement {!r} unknown data: {!r}'.format(
-                    self.key, leftovers,
+                raise UserHasUnknownData('PrimaryElement unknown data: {!r}'.format(
+                    leftovers,
                 ))
             # Just keep everything that is left as-is
             self._data.update(data)
@@ -264,7 +264,7 @@ class PrimaryElement(VerifiedElement):
         :return: True if this is a verified element.
         :rtype: bool
         """
-        return self._data['verified']
+        return VerifiedElement.is_verified.fget(self)
 
     @is_verified.setter
     def is_verified(self, value):
@@ -272,11 +272,10 @@ class PrimaryElement(VerifiedElement):
         :param value: New verification status
         :type value: bool
         """
-        if not isinstance(value, bool):
-            raise UserDBValueError("Invalid 'is_verified': {!r}".format(value))
         if value is False and self.is_primary:
             raise PrimaryElementViolation("Can't remove verified status of primary element")
-        self._data['verified'] = value
+        VerifiedElement.is_verified.fset(self, value)
+
     # -----------------------------------------------------------------
 
     def to_dict(self):
@@ -324,6 +323,8 @@ class ElementList(object):
         Find an Element from the element list, using the key.
 
         :param key: the key to look for in the list of elements
+        :return: Element found, or False if none was found
+        :rtype: Element | False
         """
         res = [x for x in self._elements if x.key == key]
         if len(res) == 1:
@@ -334,7 +335,7 @@ class ElementList(object):
 
     def add(self, element):
         """
-        Add a element to the list.
+        Add an element to the list.
 
         :param element: Element
         :type element: PrimaryElement
@@ -395,17 +396,19 @@ class PrimaryElementList(ElementList):
         :return: PrimaryElementList
         """
         if not isinstance(element, PrimaryElement):
-            raise UserDBValueError("Invalid Element: {!r}".format(element))
+            raise UserDBValueError("Invalid element: {!r}".format(element))
 
         if self.find(element.key):
             raise DuplicatePrimaryElementViolation("element {!s} already in list".format(element.key))
 
-        new_list = self._elements + [element]
+        _old_list = self._elements
+        ElementList.add(self, element)
+
         try:
-            assert _get_primary(new_list) is not None
+            assert self.primary is not None
         except PrimaryElementViolation:
+            self._elements = _old_list
             raise PrimaryElementViolation("Operation would result in more or less than one primary element")
-        self._elements = new_list
         return self
 
     def remove(self, key):
@@ -419,18 +422,15 @@ class PrimaryElementList(ElementList):
         :type key: str | unicode
         :return: ElementList
         """
-        match = self.find(key)
-        if not match:
-            raise UserDBValueError("Element not found in list")
-
-        new_list = [this for this in self._elements if this != match]
+        _old_list = self._elements
+        ElementList.remove(self, key)
 
         try:
-            if new_list:
-                assert _get_primary(new_list) is not None
+            if self._elements:
+                assert self.primary is not None
         except PrimaryElementViolation:
+            self._elements = _old_list
             raise PrimaryElementViolation("Operation would result in more or less than one primary element")
-        self._elements = new_list
         return self
 
     @property
@@ -501,12 +501,12 @@ def _update_something_by(data, key, value):
     :type value: str | unicode | None
     """
     if data.get(key) is not None:
-        # Once verified_by is set, it should not be modified.
-        raise UserDBValueError("Refusing to modify verified_by of element")
+        # Once verified_by etc. is set, it should not be modified.
+        raise UserDBValueError("Refusing to modify {!r} of element".format(key))
     if value is None:
         return
     if not isinstance(value, basestring):
-        raise UserDBValueError("Invalid 'verified_by' value: {!r}".format(value))
+        raise UserDBValueError("Invalid {!r} value: {!r}".format(key, value))
     data[key] = str(value)
 
 
@@ -521,8 +521,8 @@ def _update_something_ts(data, key, value):
     :type value: datetime.datetime | True | None
     """
     if data.get(key) is not None:
-        # Once verified_ts is set, it should not be modified.
-        raise UserDBValueError("Refusing to modify verified_ts of element")
+        # Once verified_ts etc. is set, it should not be modified.
+        raise UserDBValueError("Refusing to modify {!r} of element".format(key))
     if value is None:
         return
     if value is True:
