@@ -10,8 +10,8 @@ __author__ = 'ft'
 
 class TestUser(TestCase):
 
-    def test_init(self):
-        data = {u'_id': ObjectId('547357c3d00690878ae9b620'),
+    def setUp(self):
+        self.data = {u'_id': ObjectId('547357c3d00690878ae9b620'),
                 u'eduPersonPrincipalName': u'guvat-nalif',
                 u'mail': u'user@example.net',
                 u'mailAliases': [{u'added_timestamp': datetime.datetime(2014, 12, 18, 11, 25, 19, 804000),
@@ -22,7 +22,7 @@ class TestUser(TestCase):
                                 u'salt': u'$NDNv1H1$315d7$32$32$',
                                 u'source': u'dashboard'}],
                 u'subject': u'physical person'}
-        User(data)
+        self.user = User(self.data)
 
     def test_user_id(self):
         self.fail()
@@ -56,3 +56,6 @@ class TestUser(TestCase):
 
     def test_phone_numbers(self):
         self.fail()
+
+    def test_passwords(self):
+        self.assertEqual(self.user.passwords.to_list_of_dicts(old_userdb_format=True), self.data['passwords'])
