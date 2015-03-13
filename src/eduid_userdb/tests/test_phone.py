@@ -1,5 +1,6 @@
 from unittest import TestCase
 
+import bson
 import copy
 import datetime
 
@@ -82,8 +83,10 @@ class TestPhoneNumberList(TestCase):
             self.one.add(new)
 
     def test_add_wrong_type(self):
-        # XXX use Password() here to make test work like intended
-        new = eduid_userdb.phone.PhoneNumber({'phone': '+46700000000'})
+        pwdict = {'id': bson.ObjectId(),
+                  'salt': 'foo',
+                  }
+        new = eduid_userdb.password.Password(pwdict)
         with self.assertRaises(eduid_userdb.element.UserDBValueError):
             self.one.add(new)
 
