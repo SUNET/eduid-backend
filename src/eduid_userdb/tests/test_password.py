@@ -22,7 +22,7 @@ _one_dict = {
 }
 _two_dict = {
     'id': ObjectId('55002741d00690878ae9b601'),
-    'salt': 'thirdPasswordElement',
+    'salt': 'secondPasswordElement',
     'source': 'test'
 }
 _three_dict = {
@@ -55,10 +55,10 @@ class TestPasswordList(TestCase):
         self.assertEqual([_one_dict], self.one.to_list_of_dicts(old_userdb_format=True))
 
     def test_find(self):
-        match = self.one.find(ObjectId('55002741d00690878ae9b600'))
+        match = self.two.find(ObjectId('55002741d00690878ae9b601'))
         self.assertIsInstance(match, Password)
-        self.assertEqual(match.id, ObjectId('55002741d00690878ae9b600'))
-        self.assertEqual(match.salt, 'firstPasswordElement')
+        self.assertEqual(match.id, ObjectId('55002741d00690878ae9b601'))
+        self.assertEqual(match.salt, 'secondPasswordElement')
         self.assertEqual(match.created_by, 'test')
 
     def test_add(self):
