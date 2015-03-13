@@ -112,7 +112,9 @@ class Password(Element):
             return self._data
         old = copy.copy(self._data)
         # XXX created_by -> source
-        old['source'] = old.pop('created_by')
+        source = old.pop('created_by', None)
+        if source:
+            old['source'] = source
         return old
 
 
