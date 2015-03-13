@@ -34,13 +34,14 @@
 
 import copy
 
-from eduid_userdb.exceptions import EduIDUserDBError, UserDBValueError
+from eduid_userdb.exceptions import UserHasUnknownData
+from eduid_userdb.element import UserDBValueError
 
 from eduid_userdb.mail import MailAddressList
 from eduid_userdb.phone import PhoneNumberList
 from eduid_userdb.password import PasswordList
 
-from eduid_userdb.exceptions import UserHasUnknownData
+VALID_SUBJECT_VALUES = ['physical person']
 
 
 class User(object):
@@ -50,7 +51,7 @@ class User(object):
     :param data: MongoDB document representing a user
     :type  data: dict
     """
-    def __init__(self, data, raise_on_unknown = False):
+    def __init__(self, data, raise_on_unknown = True):
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
         self._data = dict()
@@ -66,6 +67,13 @@ class User(object):
         self._mail_addresses = MailAddressList(_mail_addresses)
         self._phone_numbers = PhoneNumberList(data.pop('mobile', []))
         self._passwords = PasswordList(data.pop('passwords'))
+        # generic (known) attributes
+        self.eppn = data.pop('eduPersonPrincipalName')
+        self.subject = data.pop('subject', None)
+        self.display_name = data.pop('displayName', '')
+        self.given_name = data.pop('givenName', '')
+        self.surname = data.pop('sn', '')
+        self.language = data.pop('preferredLanguage', '')
 
         if len(data) > 0:
             if raise_on_unknown:
@@ -78,6 +86,7 @@ class User(object):
     def __repr__(self):
         return '<eduID User: {!s}/{!s}>'.format(self.eppn, self.user_id)
 
+    # -----------------------------------------------------------------
     @property
     def user_id(self):
         """
@@ -87,6 +96,7 @@ class User(object):
         """
         return self._data['_id']
 
+    # -----------------------------------------------------------------
     @property
     def eppn(self):
         """
@@ -97,15 +107,16 @@ class User(object):
         return self._data.get('eduPersonPrincipalName', '')
 
     @eppn.setter
-    def eppn(self, eppn):
+    def eppn(self, value):
         """
-        :param eppn: Set the user's eduPersonPrincipalName.
-        :type eppn: str | unicode
+        :param value: Set the user's eduPersonPrincipalName.
+        :type value: str | unicode
         """
         if self._data.get('eduPersonPrincipalName') is not None:
             raise UserDBValueError('Overwriting an existing eduPersonPrincipalName is not allowed')
-        self._data['eduPersonPrincipalName'] = eppn
+        self._data['eduPersonPrincipalName'] = value
 
+    # -----------------------------------------------------------------
     @property
     def given_name(self):
         """
@@ -116,15 +127,16 @@ class User(object):
         return self._data.get('givenName', '')
 
     @given_name.setter
-    def given_name(self, name):
+    def given_name(self, value):
         """
         Set the user's givenName.
 
-        :param name: the givenName to set
-        :type  name: str | unicode
+        :param value: the givenName to set
+        :type  value: str | unicode
         """
-        self._data['givenName'] = name
+        self._data['givenName'] = value
 
+    # -----------------------------------------------------------------
     @property
     def display_name(self):
         """
@@ -135,15 +147,16 @@ class User(object):
         return self._data.get('displayName', '')
 
     @display_name.setter
-    def display_name(self, name):
+    def display_name(self, value):
         """
         Set the user's displayName.
 
-        :param name: the displayName to set
-        :type  name: str
+        :param value: the displayName to set
+        :type  value: str
         """
-        self._data['displayName'] = name
+        self._data['displayName'] = value
 
+    # -----------------------------------------------------------------
     @property
     def surname(self):
         """
@@ -154,15 +167,62 @@ class User(object):
         return self._data.get('sn', '')
 
     @surname.setter
-    def surname(self, surname):
+    def surname(self, value):
         """
         Set the user's surname (family name).
 
-        :param surname: the surname to set
-        :type  surname: str | unicode
+        :param value: the surname to set
+        :type  value: str | unicode
         """
-        self._data['sn'] = surname
+        self._data['sn'] = value
 
+    # -----------------------------------------------------------------
+    @property
+    def subject(self):
+        """
+        Get the user's subject type ('physical person', ...).
+
+        :rtype: str | unicode
+        """
+        return self._data.get('subject')
+
+    @subject.setter
+    def subject(self, value):
+        """
+        Set the user's subject type ('physical person', ...).
+
+        :param value: the subject to set
+        :type  value: str
+        """
+        if value is None:
+            # XXX does Kantara allow to remove subject?
+            del self._data['subject']
+            return
+        if value not in VALID_SUBJECT_VALUES:
+            raise UserDBValueError("Unknown 'subject' value: {!r}".format(value))
+        self._data['subject'] = value
+
+    # -----------------------------------------------------------------
+    @property
+    def language(self):
+        """
+        Get the user's preferred language ('sv', 'en', ...).
+
+        :rtype: str | unicode
+        """
+        return self._data.get('preferredLanguage')
+
+    @surname.setter
+    def language(self, value):
+        """
+        Set the user's preferred language.
+
+        :param value: the language preference to set ('sv', 'en', ...)
+        :type  value: str | unicode
+        """
+        self._data['preferredLanguage'] = value
+
+    # -----------------------------------------------------------------
     @property
     def mail_addresses(self):
         """
@@ -173,6 +233,7 @@ class User(object):
         # no setter for this one, as the MailAddressList object provides modification functions
         return self._mail_addresses
 
+    # -----------------------------------------------------------------
     @property
     def phone_numbers(self):
         """
@@ -183,6 +244,7 @@ class User(object):
         # no setter for this one, as the PhoneNumberList object provides modification functions
         return self._phone_numbers
 
+    # -----------------------------------------------------------------
     @property
     def passwords(self):
         """

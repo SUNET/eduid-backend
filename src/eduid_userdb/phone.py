@@ -91,6 +91,7 @@ class PhoneNumber(PrimaryElement):
             raise UserDBValueError("Invalid 'number': {!r}".format(value))
         self._data['number'] = str(value.lower())
 
+    # -----------------------------------------------------------------
     def to_dict(self, old_userdb_format=False):
         """
         Convert Element to a dict, that can be used to reconstruct the

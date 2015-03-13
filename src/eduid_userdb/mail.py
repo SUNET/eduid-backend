@@ -87,6 +87,7 @@ class MailAddress(PrimaryElement):
             raise UserDBValueError("Invalid 'email': {!r}".format(value))
         self._data['email'] = str(value.lower())
 
+    # -----------------------------------------------------------------
     def to_dict(self, old_userdb_format=False):
         """
         Convert Element to a dict, that can be used to reconstruct the
