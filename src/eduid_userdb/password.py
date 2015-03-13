@@ -36,7 +36,7 @@ __author__ = 'lundberg'
 
 from bson.objectid import ObjectId
 import copy
-from eduid_userdb.element import Element, ElementList, DuplicatePrimaryElementViolation
+from eduid_userdb.element import Element, ElementList, DuplicateElementViolation
 from eduid_userdb.exceptions import UserHasUnknownData, UserDBValueError
 
 
@@ -139,7 +139,7 @@ class PasswordList(ElementList):
 
     def add(self, element):
         if self.find(element.key):
-            raise DuplicatePrimaryElementViolation("password {!s} already in list".format(element.key))
+            raise DuplicateElementViolation("password {!s} already in list".format(element.key))
         super(PasswordList, self).add(element)
 
 
