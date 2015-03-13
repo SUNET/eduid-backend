@@ -51,7 +51,7 @@ class TestPasswordList(TestCase):
     def test_to_list_of_dicts(self):
         self.assertEqual([], self.empty.to_list_of_dicts(), list)
 
-        self.assertEqual(self._one_dict, self.one.to_list_of_dicts(old=True))
+        self.assertEqual(self._one_dict, self.one.to_list_of_dicts(old_userdb_format=True))
 
     def test_find(self):
         match = self.one.find(ObjectId('55002741d00690878ae9b600'))
@@ -67,7 +67,7 @@ class TestPasswordList(TestCase):
 
     def test_add_duplicate(self):
         dup = self.two.find(ObjectId('55002741d00690878ae9b601'))
-        with self.assertRaises(eduid_userdb.element.DuplicatePrimaryElementViolation):
+        with self.assertRaises(eduid_userdb.element.DuplicateElementViolation):
             self.two.add(dup)
 
     def test_add_password(self):
