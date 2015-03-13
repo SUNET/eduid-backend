@@ -32,9 +32,12 @@
 # Author : Fredrik Thulin <fredrik@thulin.net>
 #
 
+import copy
+
 from eduid_userdb.exceptions import EduIDUserDBError, UserDBValueError
 
 from eduid_userdb.mail import MailAddressList
+from eduid_userdb.phone import PhoneNumberList
 
 from eduid_userdb.exceptions import UserHasUnknownData
 
@@ -43,23 +46,30 @@ class User(object):
     """
     Generic eduID user object.
 
-    :param mongo_doc: MongoDB document representing a user
-    :type  mongo_doc: dict
+    :param data: MongoDB document representing a user
+    :type  data: dict
     """
-
-    def __init__(self, mongo_doc, raise_on_unknown = False):
+    def __init__(self, data, raise_on_unknown = False):
+        data_in = data
+        data = copy.copy(data_in)  # to not modify callers data
         self._data = dict()
         # things without setters
-        self._data['_id'] = mongo_doc.pop('_id')
-        self._mail_addresses = MailAddressList(mongo_doc.pop('mailAliases', []))
+        self._data['_id'] = data.pop('_id')
+        _mail_addresses = data.pop('mailAliases', [])
+        for idx in xrange(len(_mail_addresses)):
+            if _mail_addresses[idx]['email'] == data['mail']:
+                _mail_addresses[idx]['primary'] = True
+        data.pop('mail')
+        self._mail_addresses = MailAddressList(_mail_addresses)
+        self._phone_numbers = PhoneNumberList(data.pop('mobile', []))
 
-        if len(mongo_doc) > 0:
+        if len(data) > 0:
             if raise_on_unknown:
                 raise UserHasUnknownData('User {!s}/{!s} unknown data: {!r}'.format(
-                    self.user_id, self.eppn, mongo_doc.keys()
+                    self.user_id, self.eppn, data.keys()
                 ))
             # Just keep everything that is left as-is
-            self._data.update(mongo_doc)
+            self._data.update(data)
 
     def __repr__(self):
         return '<eduID User: {!s}/{!s}>'.format(self.eppn, self.user_id)
@@ -154,37 +164,17 @@ class User(object):
         """
         Get the user's email addresses.
         :return: MailAddressList object
-        :rtype: MailAddressList
+        :rtype: eduid_userdb.mail.MailAddressList
         """
-        return self._mail_addresses.to_list()
+        # no setter for this one, as the MailAddressList object provides modification functions
+        return self._mail_addresses
 
-    @mail_addresses.setter
-    def mail_addresses(self, emails):
+    @property
+    def phone_numbers(self):
         """
-        Set the user's email addresses,
-        given as a list of dictionaries with the form:
-            {
-            'email': 'johnsmith@example.com',
-            'verified': False,
-            }
-        This removes any previous list of email addresses
-        that the user might have had.
-
-        :param emails: the email addresses to set
-        :type  emails: list
+        Get the user's phone numbers.
+        :return: PhoneNumberList object
+        :rtype: eduid_userdb.phone.PhoneNumberList
         """
-        self._data['mailAliases'] = emails
-
-    def add_verified_email(self, verified_email):
-        """
-        Pick one email address from the user's list
-        and set it as verified.
-
-        :param verified_email: the verified address
-        :type verified_email: str
-        """
-        emails = self._data['mailAliases']
-        for email in emails:
-            if email['email'] == verified_email:
-                email['verified'] = True
-
+        # no setter for this one, as the PhoneNumberList object provides modification functions
+        return self._phone_numbers

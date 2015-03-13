@@ -136,10 +136,13 @@ class Element(object):
         _update_something_ts(self._data, 'created_ts', value)
 
     # -----------------------------------------------------------------
-    def to_dict(self):
+    def to_dict(self, old_userdb_format = False):
         """
         Convert Element to a dict, that can be used to reconstruct the
         Element later.
+
+        :param old_userdb_format: Set to True to get data back in legacy format.
+        :type old_userdb_format: bool
         """
         return self._data
 

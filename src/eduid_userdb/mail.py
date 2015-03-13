@@ -52,6 +52,8 @@ class MailAddress(PrimaryElement):
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
 
+        if 'added_timestamp' in data:
+            data['created_ts'] = data.pop('added_timestamp')
         PrimaryElement.__init__(self, data, raise_on_unknown, ignore_data = ['email'])
         self.email = data.get('email')
 
