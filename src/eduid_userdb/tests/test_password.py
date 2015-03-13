@@ -1,5 +1,7 @@
 from unittest import TestCase
 
+import copy
+import datetime
 from bson.objectid import ObjectId
 import eduid_userdb.exceptions
 import eduid_userdb.element
@@ -14,33 +16,32 @@ __author__ = 'lundberg'
 #    'created_ts': datetime.datetime.utcnow(),
 #}}
 
+_one_dict = {
+    'id': ObjectId('55002741d00690878ae9b600'),
+    'salt': 'firstPasswordElement',
+}
+_two_dict = {
+    'id': ObjectId('55002741d00690878ae9b601'),
+    'salt': 'thirdPasswordElement',
+    'source': 'test'
+}
+_three_dict = {
+    'id': ObjectId('55002741d00690878ae9b602'),
+    'salt': 'thirdPasswordElement',
+    'source': 'test'
+}
+
 
 class TestPasswordList(TestCase):
 
     def setUp(self):
         self.empty = PasswordList([])
 
-        self._one_dict = \
-            [{'id': ObjectId('55002741d00690878ae9b600'),
-              'salt': 'firstPasswordElement',
-              'source': 'test',
-              }]
-        self.one = PasswordList(self._one_dict)
+        self.one = PasswordList([_one_dict])
 
-        self._two_dict = self._one_dict + \
-            [{'id': ObjectId('55002741d00690878ae9b601'),
-              'salt': 'secondPasswordElement',
-              'source': 'test',
-              }]
-        self.two = PasswordList(self._two_dict)
+        self.two = PasswordList([_one_dict, _two_dict])
 
-        self._three_dict = self._two_dict + \
-            [{'id': ObjectId('55002741d00690878ae9b602'),
-              'salt': 'thirdPasswordElement',
-              'source': 'test',
-              },
-             ]
-        self.three = PasswordList(self._three_dict)
+        self.three = PasswordList([_one_dict, _two_dict, _three_dict])
 
     def test_to_list(self):
         self.assertEqual([], self.empty.to_list(), list)
@@ -51,7 +52,7 @@ class TestPasswordList(TestCase):
     def test_to_list_of_dicts(self):
         self.assertEqual([], self.empty.to_list_of_dicts(), list)
 
-        self.assertEqual(self._one_dict, self.one.to_list_of_dicts(old_userdb_format=True))
+        self.assertEqual([_one_dict], self.one.to_list_of_dicts(old_userdb_format=True))
 
     def test_find(self):
         match = self.one.find(ObjectId('55002741d00690878ae9b600'))
@@ -72,7 +73,7 @@ class TestPasswordList(TestCase):
 
     def test_add_password(self):
         third = self.three.find(ObjectId('55002741d00690878ae9b602'))
-        this = PasswordList(self._two_dict + [third])
+        this = PasswordList([_one_dict, _two_dict] + [third])
         self.assertEqual(this.to_list_of_dicts(), self.three.to_list_of_dicts())
 
     def test_remove(self):
@@ -81,7 +82,16 @@ class TestPasswordList(TestCase):
 
     def test_remove_unknown(self):
         with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            self.one.remove('foo@no-such-address.example.org')
+            self.one.remove(ObjectId('55002741d00690878ae9b603'))
+
+
+class TestPassword(TestCase):
+
+    def setUp(self):
+        self.empty = PasswordList([])
+        self.one = PasswordList([_one_dict])
+        self.two = PasswordList([_one_dict, _two_dict])
+        self.three = PasswordList([_one_dict, _two_dict, _three_dict])
 
     def test_key(self):
         """
@@ -90,7 +100,61 @@ class TestPasswordList(TestCase):
         password = self.one.find(ObjectId('55002741d00690878ae9b600'))
         self.assertEqual(password.key, password.id)
 
-    def test_setting_invalid_mail(self):
+    def test_setting_invalid_password(self):
         this = self.one.find(ObjectId('55002741d00690878ae9b600'))
         with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
             this.id = None
+
+    def test_parse_cycle(self):
+        """
+        Tests that we output something we parsed back into the same thing we output.
+        """
+        for this in [self.one, self.two, self.three]:
+            this_dict = this.to_list_of_dicts()
+            self.assertEqual(PasswordList(this_dict).to_list_of_dicts(), this.to_list_of_dicts())
+
+    def test_unknown_input_data(self):
+        one = copy.deepcopy(_one_dict)
+        one['foo'] = 'bar'
+        with self.assertRaises(eduid_userdb.exceptions.UserHasUnknownData):
+            Password(one)
+
+    def test_unknown_input_data_allowed(self):
+        one = copy.deepcopy(_one_dict)
+        one['foo'] = 'bar'
+        addr = Password(one, raise_on_unknown=False)
+        out = addr.to_dict()
+        self.assertIn('foo', out)
+        self.assertEqual(out['foo'], one['foo'])
+
+    def test_created_by(self):
+        this = self.three.find(ObjectId('55002741d00690878ae9b600'))
+        this.created_by = 'unit test'
+        self.assertEqual(this.created_by, 'unit test')
+        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
+            this.created_by = False
+
+    def test_modify_created_by(self):
+        this = self.three.find(ObjectId('55002741d00690878ae9b600'))
+        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
+            this.created_by = 1
+        this.created_by = 'unit test'
+        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
+            this.created_by = None
+        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
+            this.created_by = 'test unit'
+
+    def test_created_ts(self):
+        this = self.three.find(ObjectId('55002741d00690878ae9b600'))
+        this.created_ts = True
+        self.assertIsInstance(this.created_ts, datetime.datetime)
+        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
+            this.created_ts = False
+
+    def test_modify_created_ts(self):
+        this = self.three.find(ObjectId('55002741d00690878ae9b600'))
+        this.created_ts = datetime.datetime.utcnow()
+        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
+            this.created_ts = None
+        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
+            this.created_ts = True
