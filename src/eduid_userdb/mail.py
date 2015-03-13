@@ -86,6 +86,21 @@ class MailAddress(PrimaryElement):
             raise UserDBValueError("Invalid 'email': {!r}".format(value))
         self._data['email'] = str(value.lower())
 
+    def to_dict(self, old_userdb_format=False):
+        """
+        Convert Element to a dict, that can be used to reconstruct the
+        Element later.
+
+        :param old_userdb_format: Set to True to get data back in legacy format.
+        :type old_userdb_format: bool
+        """
+        if not old_userdb_format:
+            return self._data
+        old = copy.copy(self._data)
+        # XXX created_ts -> added_timestamp
+        if 'created_ts' in old:
+            old['added_timestamp'] = old.pop('created_ts')
+        return old
 
 class MailAddressList(PrimaryElementList):
     """

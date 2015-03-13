@@ -54,6 +54,13 @@ class TestUser(TestCase):
     def test_mail_addresses(self):
         self.fail()
 
+    def test_mail_addresses_to_old_userdb_format(self):
+        """
+        Test that we get back a dict identical to the one we put in for old-style userdb data.
+        """
+        to_dict_result = self.user.mail_addresses.to_list_of_dicts(old_userdb_format=True)
+        self.assertEqual(to_dict_result, self.data['mailAliases'])
+
     def test_phone_numbers(self):
         self.fail()
 
