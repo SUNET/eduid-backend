@@ -129,6 +129,14 @@ class Element(object):
         """
         _update_something_ts(self._data, 'created_ts', value)
 
+    # -----------------------------------------------------------------
+    def to_dict(self):
+        """
+        Convert Element to a dict, that can be used to reconstruct the
+        Element later.
+        """
+        return self._data
+
 
 class VerifiedElement(Element):
     """
@@ -275,15 +283,6 @@ class PrimaryElement(VerifiedElement):
         if value is False and self.is_primary:
             raise PrimaryElementViolation("Can't remove verified status of primary element")
         VerifiedElement.is_verified.fset(self, value)
-
-    # -----------------------------------------------------------------
-
-    def to_dict(self):
-        """
-        Convert Element to a dict, that can be used to reconstruct the
-        Element later.
-        """
-        return self._data
 
 
 class ElementList(object):
