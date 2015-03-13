@@ -32,6 +32,8 @@
 # Author : Fredrik Thulin <fredrik@thulin.net>
 #
 
+import copy
+
 from eduid_userdb.element import PrimaryElement, PrimaryElementList
 from eduid_userdb.exceptions import UserDBValueError
 
@@ -47,6 +49,9 @@ class MailAddress(PrimaryElement):
     :type raise_on_unknown: bool
     """
     def __init__(self, data, raise_on_unknown = True):
+        data_in = data
+        data = copy.copy(data_in)  # to not modify callers data
+
         PrimaryElement.__init__(self, data, raise_on_unknown, ignore_data = ['email'])
         self.email = data.get('email')
 

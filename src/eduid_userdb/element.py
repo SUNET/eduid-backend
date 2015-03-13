@@ -34,7 +34,6 @@
 
 __author__ = 'ft'
 
-import copy
 import datetime
 
 from eduid_userdb.exceptions import EduIDUserDBError, UserHasUnknownData, UserDBValueError
@@ -225,9 +224,6 @@ class PrimaryElement(VerifiedElement):
     :type raise_on_unknown: bool
     """
     def __init__(self, data, raise_on_unknown = True, ignore_data = None):
-        data_in = data
-        data = copy.copy(data_in)  # to not modify callers data
-
         VerifiedElement.__init__(self, data)
 
         self.is_primary = data.pop('primary', False)
