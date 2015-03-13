@@ -38,6 +38,7 @@ from eduid_userdb.exceptions import EduIDUserDBError, UserDBValueError
 
 from eduid_userdb.mail import MailAddressList
 from eduid_userdb.phone import PhoneNumberList
+from eduid_userdb.password import PasswordList
 
 from eduid_userdb.exceptions import UserHasUnknownData
 
@@ -62,6 +63,7 @@ class User(object):
         data.pop('mail')
         self._mail_addresses = MailAddressList(_mail_addresses)
         self._phone_numbers = PhoneNumberList(data.pop('mobile', []))
+        self._passwords = PasswordList(data.pop('passwords'))
 
         if len(data) > 0:
             if raise_on_unknown:
@@ -178,3 +180,13 @@ class User(object):
         """
         # no setter for this one, as the PhoneNumberList object provides modification functions
         return self._phone_numbers
+
+    @property
+    def passwords(self):
+        """
+        Get the user's phone numbers.
+        :return: PasswordList object
+        :rtype: eduid_userdb.password.PasswordList
+        """
+        # no setter for this one, as the PasswordList object provides modification functions
+        return self._passwords
