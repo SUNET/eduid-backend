@@ -30,17 +30,48 @@ def get_config_file():
         return global_file
 
 
-def read_configuration():
-    """Read the settings from environment or .ini file and return them as a dict"""
-    settings = {}
+def read_setting_from_env(settings, key, default=None):
+    env_variable = key.upper()
+    if env_variable in os.environ:
+        return os.environ[env_variable]
+    else:
+        return settings.get(key, default)
 
-    config = ConfigParser.RawConfigParser()
+
+def read_list(settings, prop, default=[]):
+    raw = read_setting_from_env(settings, prop, None)
+    if raw is None or raw.strip() == '':
+        return default
+
+    return [e for e in raw.split('\n') if e is not None and e.strip() != '']
+
+
+CONFIG_VAR_TYPES = {
+    # <var name>.lower(): (<read function>, <default>),
+    'celery_accept_content': (read_list, ['application/json']),
+}
+
+
+def read_configuration():
+    """
+    Read the settings from environment or .ini file and return them as a dict
+
+    The values are decoded as JSON, or used as-is if they can't be decoded as JSON.
+    """
+    settings = {}
 
     config_file = get_config_file()
     if config_file is not None:
+        config = ConfigParser.RawConfigParser()
         config.read(config_file)
 
         if config.has_section('main'):
-            settings = dict([(s.upper(), v) for s, v in config.items('main')])
+            for key, val in config.items('main'):
+                if key in CONFIG_VAR_TYPES:
+                    func, default = CONFIG_VAR_TYPES[key]
+                else:
+                    func = read_setting_from_env
+                    default = ''
+                settings[key.upper()] = func({key: val}, key, default=default)
 
     return settings
