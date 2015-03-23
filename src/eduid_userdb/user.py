@@ -157,6 +157,7 @@ class User(object):
         self._data['displayName'] = value
 
     # -----------------------------------------------------------------
+    # XXX refactor to store under 'surname', not 'sn'
     @property
     def surname(self):
         """
@@ -212,7 +213,7 @@ class User(object):
         """
         return self._data.get('preferredLanguage')
 
-    @surname.setter
+    @language.setter
     def language(self, value):
         """
         Set the user's preferred language.
