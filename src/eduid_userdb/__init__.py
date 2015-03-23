@@ -15,3 +15,7 @@ __authors__ = ['Fredrik Thulin']
 import eduid_userdb.exceptions
 import eduid_userdb.mail
 import eduid_userdb.phone
+
+from eduid_userdb.db import MongoDB
+from eduid_userdb.userdb import UserDB
+from eduid_userdb.user import User
