@@ -40,62 +40,56 @@ from eduid_userdb.exceptions import UserDBValueError
 __author__ = 'ft'
 
 
-class MailAddress(PrimaryElement):
+class Nin(PrimaryElement):
     """
-    :param data: Mail address parameters from database
+    :param data: Phone number parameters from database
     :param raise_on_unknown: Raise exception on unknown values in `data' or not.
 
     :type data: dict
     :type raise_on_unknown: bool
     """
-    def __init__(self, email=None, application=None, verified=False, created_ts=None, primary=None,
-                 data=None, raise_on_unknown=True):
+    def __init__(self, data, raise_on_unknown = True):
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
 
-        if data is None:
-            if created_ts is None:
-                created_ts = True
-            data = dict(email = email,
-                        created_by = application,
-                        created_ts = created_ts,
-                        verified = verified,
-                        primary = primary,
-                        )
         if 'added_timestamp' in data:
             # old userdb-style creation timestamp
             data['created_ts'] = data.pop('added_timestamp')
-        PrimaryElement.__init__(self, data, raise_on_unknown, ignore_data = ['email'])
-        self.email = data.pop('email')
+        if 'mobile' in data:
+            # old userdb-style entry
+            data['number'] = data.pop('mobile')
+
+        PrimaryElement.__init__(self, data, raise_on_unknown, ignore_data = ['number'])
+        self.number = data.pop('number')
 
     # -----------------------------------------------------------------
     @property
     def key(self):
         """
-        Return the element that is used as key for e-mail addresses in a PrimaryElementList.
+        Return the element that is used as key for nin numberes in a PrimaryElementList.
         """
-        return self.email
+        return self.number
 
     # -----------------------------------------------------------------
     @property
-    def email(self):
+    def number(self):
         """
-        This is the e-mail address.
+        This is the nin number.
 
-        :return: E-mail address.
-        :rtype: str
+        :return: nin number.
+        :rtype: str | unicode
         """
-        return self._data['email']
+        return self._data['number']
 
-    @email.setter
-    def email(self, value):
+    @number.setter
+    def number(self, value):
         """
-        :param value: e-mail address.
+        :param value: nin number.
         :type value: str | unicode
         """
         if not isinstance(value, basestring):
-            raise UserDBValueError("Invalid 'email': {!r}".format(value))
-        self._data['email'] = str(value.lower())
+            raise UserDBValueError("Invalid 'number': {!r}".format(value))
+        self._data['number'] = str(value.lower())
 
     # -----------------------------------------------------------------
     def to_dict(self, old_userdb_format=False):
@@ -112,28 +106,30 @@ class MailAddress(PrimaryElement):
         # XXX created_ts -> added_timestamp
         if 'created_ts' in old:
             old['added_timestamp'] = old.pop('created_ts')
+        if 'number' in old:
+            old['mobile'] = old.pop('number')
         return old
 
 
-class MailAddressList(PrimaryElementList):
+class NinList(PrimaryElementList):
     """
-    Hold a list of MailAddress instance.
+    Hold a list of Nin instance.
 
     Provide methods to add, update and remove elements from the list while
     maintaining some governing principles, such as ensuring there is exactly
-    one primary e-mail address in the list (except if the list is empty).
+    one primary nin number in the list (except if the list is empty).
 
-    :param addresses: List of e-mail addresses
-    :type addresses: [dict | MailAddress]
+    :param nins: List of nin number records
+    :type nins: [dict | Nin]
     """
-    def __init__(self, addresses, raise_on_unknown = True):
+    def __init__(self, nins, raise_on_unknown = True):
         elements = []
 
-        for this in addresses:
-            if isinstance(this, MailAddress):
+        for this in nins:
+            if isinstance(this, Nin):
                 address = this
             else:
-                address = address_from_dict(this, raise_on_unknown)
+                address = nin_from_dict(this, raise_on_unknown)
             elements.append(address)
 
         PrimaryElementList.__init__(self, elements)
@@ -141,70 +137,39 @@ class MailAddressList(PrimaryElementList):
     @property
     def primary(self):
         """
-        :return: Return the primary MailAddress.
+        :return: Return the primary Nin.
 
         There must always be exactly one primary element in the list, so an
         PrimaryElementViolation is raised in case this assertion does not hold.
 
-        :rtype: MailAddress
+        :rtype: Nin
         """
         return PrimaryElementList.primary.fget(self)
 
     @primary.setter
-    def primary(self, email):
+    def primary(self, nin):
         """
-        Mark email as the users primary MailAddress.
+        Mark nin as the users primary Nin.
 
-        This is a MailAddressList operation since it needs to atomically update more than one
+        This is a NinList operation since it needs to atomically update more than one
         element in the list. Marking an element as primary will result in some other element
         loosing it's primary status.
 
-        :param email: the key of the element to set as primary
-        :type  email: str | unicode
+        :param nin: the key of the element to set as primary
+        :type  nin: str | unicode
         """
-        PrimaryElementList.primary.fset(self, email)
-
-    def find(self, email):
-        """
-        Find an MailAddress from the element list, using the key.
-
-        :param email: the e-mail address to look for in the list of elements
-        :type email: str | unicode
-        :return: MailAddress instance if found, or False if none was found
-        :rtype: MailAddress | False
-        """
-        # implemented here to get proper type information
-        return PrimaryElementList.find(self, email)
+        PrimaryElementList.primary.fset(self, nin)
 
 
-def address_from_dict(data, raise_on_unknown = True):
+def nin_from_dict(data, raise_on_unknown = True):
     """
-    Create a MailAddress instance from a dict.
+    Create a Nin instance from a dict.
 
-    :param data: Mail address parameters from database
+    :param data: Phone number parameters from database
     :param raise_on_unknown: Raise exception on unknown values in `data' or not.
 
     :type data: dict
     :type raise_on_unknown: bool
-    :rtype: MailAddress
+    :rtype: Nin
     """
-    return MailAddress(data = data, raise_on_unknown = raise_on_unknown)
-
-
-def new(email, application, verified=False, created_ts=None):
-    """
-    Create a new MailAddress object.
-
-    :param email: E-mail address
-    :param application: Name of creating application ('signup', ...)
-    :param verified: Declare e-mail address verified/confirmed
-    :param created_ts: Timestamp of creation (or None to use current time)
-
-    :type email: str | unicode
-    :type application: str | unicode
-    :type verified: bool
-    :type created_ts: None | datetime.datetime
-
-    :return: New MailAddress instance
-    :rtype: MailAddress
-    """
+    return Nin(data=data, raise_on_unknown=raise_on_unknown)

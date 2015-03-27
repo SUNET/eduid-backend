@@ -32,7 +32,9 @@
 # Author : Fredrik Thulin <fredrik@thulin.net>
 #
 
+import bson
 import copy
+import datetime
 
 from eduid_userdb.exceptions import UserHasUnknownData
 from eduid_userdb.element import UserDBValueError
@@ -40,6 +42,7 @@ from eduid_userdb.element import UserDBValueError
 from eduid_userdb.mail import MailAddressList
 from eduid_userdb.phone import PhoneNumberList
 from eduid_userdb.password import PasswordList
+from eduid_userdb.nin import NinList
 
 VALID_SUBJECT_VALUES = ['physical person']
 
@@ -56,7 +59,12 @@ class User(object):
         data = copy.copy(data_in)  # to not modify callers data
         self._data = dict()
         # things without setters
-        self._data['_id'] = data.pop('_id')
+        _id = data.pop('_id', None)
+        if _id is None:
+            _id = bson.ObjectId()
+        if not isinstance(_id, bson.ObjectId):
+            _id = bson.ObjectId(_id)
+        self._data['_id'] = _id
         _mail_addresses = data.pop('mailAliases', [])
         if 'mail' in data:
             # old-style userdb primary e-mail address indicator
@@ -64,16 +72,22 @@ class User(object):
                 if _mail_addresses[idx]['email'] == data['mail']:
                     _mail_addresses[idx]['primary'] = True
             data.pop('mail')
+        if 'mobile' in data:
+            data['phone'] = data.pop('mobile')
+        if 'sn' in data:
+            data['surname'] = data.pop('sn')
         self._mail_addresses = MailAddressList(_mail_addresses)
-        self._phone_numbers = PhoneNumberList(data.pop('mobile', []))
-        self._passwords = PasswordList(data.pop('passwords'))
+        self._phone_numbers = PhoneNumberList(data.pop('phone', []))
+        self._nins = NinList(data.pop('norEduPersonNIN', []))
+        self._passwords = PasswordList(data.pop('passwords', []))
         # generic (known) attributes
-        self.eppn = data.pop('eduPersonPrincipalName')
+        self.eppn = data.pop('eduPersonPrincipalName')  # mandatory
         self.subject = data.pop('subject', None)
         self.display_name = data.pop('displayName', '')
         self.given_name = data.pop('givenName', '')
-        self.surname = data.pop('sn', '')
+        self.surname = data.pop('surname', '')
         self.language = data.pop('preferredLanguage', '')
+        self.modified_ts = data.pop('modified_ts', None)
 
         if len(data) > 0:
             if raise_on_unknown:
@@ -157,15 +171,14 @@ class User(object):
         self._data['displayName'] = value
 
     # -----------------------------------------------------------------
-    # XXX refactor to store under 'surname', not 'sn'
     @property
     def surname(self):
         """
-        Get the user's sn (family name).
+        Get the user's surname (family name).
 
         :rtype: str | unicode
         """
-        return self._data.get('sn', '')
+        return self._data.get('surname', '')
 
     @surname.setter
     def surname(self, value):
@@ -175,7 +188,7 @@ class User(object):
         :param value: the surname to set
         :type  value: str | unicode
         """
-        self._data['sn'] = value
+        self._data['surname'] = value
 
     # -----------------------------------------------------------------
     @property
@@ -196,8 +209,6 @@ class User(object):
         :type  value: str
         """
         if value is None:
-            # XXX does Kantara allow to remove subject?
-            del self._data['subject']
             return
         if value not in VALID_SUBJECT_VALUES:
             raise UserDBValueError("Unknown 'subject' value: {!r}".format(value))
@@ -255,3 +266,53 @@ class User(object):
         """
         # no setter for this one, as the PasswordList object provides modification functions
         return self._passwords
+
+    # -----------------------------------------------------------------
+    @property
+    def modified_ts(self):
+        """
+        :return: Timestamp of last modification in the database.
+                 None if User has never been written to the database.
+        :rtype: datetime.datetime | None
+        """
+        return self._data.get('modified_ts')
+
+    @modified_ts.setter
+    def modified_ts(self, value):
+        """
+        :param value: Timestamp of modification.
+                      Value None is ignored, True is short for datetime.utcnow().
+        :type value: datetime.datetime | True | None
+        """
+        if value is None:
+            return
+        if value is True:
+            value = datetime.datetime.utcnow()
+        self._data['modified_ts'] = value
+
+    # -----------------------------------------------------------------
+    def to_dict(self, old_userdb_format=False):
+        """
+        Return user data serialized into a dict that can be stored in MongoDB.
+
+        :param old_userdb_format: Set to True to get the dict in the old database format.
+        :type old_userdb_format: bool
+
+        :return: User as dict
+        :rtype: dict
+        """
+        res = copy.copy(self._data)  # avoid caller messing up our private _data
+        if old_userdb_format:
+            res['sn'] = res.pop('surname')
+            res['mail'] = self.mail_addresses.primary.email
+        res['mailAliases'] = self.mail_addresses.to_list_of_dicts(old_userdb_format=old_userdb_format)
+        res['phone'] = self.phone_numbers.to_list_of_dicts(old_userdb_format=old_userdb_format)
+        res['passwords'] = self.passwords.to_list_of_dicts(old_userdb_format=old_userdb_format)
+        if old_userdb_format:
+            if 'surname' in res:
+                res['sn'] = res.pop('surname')
+            res['mail'] = self.mail_addresses.primary.email
+            if 'mobile' in res:
+                res['mobile'] = res.pop('phone')
+
+        return res

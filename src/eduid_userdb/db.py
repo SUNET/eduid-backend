@@ -12,8 +12,11 @@ DEFAULT_MONGODB_URI = 'mongodb://%s:%d/%s' % (DEFAULT_MONGODB_HOST,
 class MongoDB(object):
     """Simple wrapper to get pymongo real objects from the settings uri"""
 
-    def __init__(self, db_uri=DEFAULT_MONGODB_URI,
+    def __init__(self, db_uri=None,
                  connection_factory=None, **kwargs):
+
+        if db_uri is None:
+            db_uri = DEFAULT_MONGODB_URI
 
         self.db_uri = db_uri
 

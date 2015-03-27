@@ -42,9 +42,19 @@ from eduid_userdb.exceptions import UserHasUnknownData, UserDBValueError
 
 class Password(Element):
 
-    def __init__(self, data, raise_on_unknown=True):
+    def __init__(self, credential_id=None, salt=None, application=None, created_ts=None, data=None, raise_on_unknown=True):
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
+
+        if data is None:
+            if created_ts is None:
+                created_ts = True
+            data = dict(id = credential_id,
+                        salt = salt,
+                        created_by = application,
+                        created_ts = created_ts,
+                        )
+
         if 'source' in data:  # XXX We should rename source in db
             data['created_by'] = data.pop('source')
         Element.__init__(self, data)
@@ -151,8 +161,10 @@ def password_from_dict(data, raise_on_unknown=True):
     Create a Password instance from a dict.
 
     :param data: Password parameters from database
+    :param raise_on_unknown: Raise UserHasUnknownData if unrecognized data is encountered
 
     :type data: dict
+    :type raise_on_unknown: bool
     :rtype: Password
     """
-    return Password(data, raise_on_unknown)
+    return Password(data=data, raise_on_unknown=raise_on_unknown)
