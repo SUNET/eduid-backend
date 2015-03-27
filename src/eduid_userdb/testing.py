@@ -248,6 +248,15 @@ class MongoTemporaryInstance(object):
             self._process = None
             #shutil.rmtree(self._tmpdir, ignore_errors=True)
 
+    def get_uri(self, dbname=''):
+        """
+        Convenience function to get a mongodb URI to the temporary database.
+
+        :param dbname: database name
+        :return: URI
+        """
+        return 'mongodb://localhost:{port!s}/{dbname!s}'.format(port=self.port, dbname=dbname)
+
 
 class MongoTestCase(unittest.TestCase):
     """TestCase with an embedded MongoDB temporary instance.
@@ -277,13 +286,13 @@ class MongoTestCase(unittest.TestCase):
             'CELERY_ALWAYS_EAGER': True,
             'CELERY_RESULT_BACKEND': "cache",
             'CELERY_CACHE_BACKEND': 'memory',
-            'MONGO_URI': 'mongodb://localhost:%d/' % self.port,
-            'MONGO_DBNAME': 'userdb',
+            'MONGO_URI': self.tmp_db.get_uri(),
+            'MONGO_DBNAME': 'eduid_userdb',
         }
 
         mongo_settings = {
             'mongo_replicaset': None,
-            'mongo_uri_am': self.am_settings['MONGO_URI'] + 'eduid_userdb',
+            'mongo_uri_am': self.tmp_db.get_uri('eduid_userdb'),
         }
 
         if getattr(self, 'settings', None) is None:
@@ -299,7 +308,7 @@ class MongoTestCase(unittest.TestCase):
 
         # Be sure to tell AttributeManager.get_userdb() about the temporary
         # mongodb instance.
-        self.am.default_db_uri = self.am_settings['MONGO_URI']
+        self.am.default_db_uri = self.tmp_db.get_uri()
         self.amdb = self.am.get_userdb('default')
 
         self.initial_verifications = (getattr(self, 'initial_verifications', None)
@@ -314,3 +323,6 @@ class MongoTestCase(unittest.TestCase):
     def tearDown(self):
         super(MongoTestCase, self).tearDown()
         self.amdb._drop_whole_collection()
+
+    def mongodb_uri(self, dbname=None):
+        return self.tmp_db.get_uri(dbname=dbname)
