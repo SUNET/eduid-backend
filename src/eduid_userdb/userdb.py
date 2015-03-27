@@ -185,6 +185,7 @@ class UserDB(object):
         :type old_format: bool
         :return:
         """
+        assert isinstance(user.user_id, ObjectId)
         # XXX add modified_by info. modified_ts alone is not unique when propagated to eduid_am.
 
         modified = user.modified_ts
@@ -192,7 +193,7 @@ class UserDB(object):
         if modified is None:
             # profile has never been modified through the dashboard.
             # possibly just created in signup.
-            result = self._coll.insert(user.to_dict(old_userdb_format =old_format))
+            result = self._coll.insert(user.to_dict(old_userdb_format=old_format))
             logging.debug("{!s} Inserted new user {!r} into {!r}: {!r}".format(self, user, self._coll, result))
         else:
             test_doc = {'_id': user.user_id}

@@ -302,9 +302,6 @@ class User(object):
         :rtype: dict
         """
         res = copy.copy(self._data)  # avoid caller messing up our private _data
-        if old_userdb_format:
-            res['sn'] = res.pop('surname')
-            res['mail'] = self.mail_addresses.primary.email
         res['mailAliases'] = self.mail_addresses.to_list_of_dicts(old_userdb_format=old_userdb_format)
         res['phone'] = self.phone_numbers.to_list_of_dicts(old_userdb_format=old_userdb_format)
         res['passwords'] = self.passwords.to_list_of_dicts(old_userdb_format=old_userdb_format)
