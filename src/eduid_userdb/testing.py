@@ -54,7 +54,6 @@ from eduid_userdb import UserDB, User
 
 from eduid_am.celery import celery, get_attribute_manager
 
-import eduid_userdb.db
 MONGO_URI_AM_TEST = 'mongodb://localhost:27017/eduid_userdb_test'
 MONGO_URI_TEST = 'mongodb://localhost:27017/eduid_dashboard_test'
 

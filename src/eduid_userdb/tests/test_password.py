@@ -122,7 +122,7 @@ class TestPassword(TestCase):
         one = copy.deepcopy(_one_dict)
         one['foo'] = 'bar'
         with self.assertRaises(eduid_userdb.exceptions.UserHasUnknownData):
-            Password(one)
+            Password(data=one)
 
     def test_unknown_input_data_allowed(self):
         one = copy.deepcopy(_one_dict)

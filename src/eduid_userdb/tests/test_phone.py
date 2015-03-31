@@ -86,7 +86,7 @@ class TestPhoneNumberList(TestCase):
         pwdict = {'id': bson.ObjectId(),
                   'salt': 'foo',
                   }
-        new = eduid_userdb.password.Password(pwdict)
+        new = eduid_userdb.password.Password(data=pwdict)
         with self.assertRaises(eduid_userdb.element.UserDBValueError):
             self.one.add(new)
 
