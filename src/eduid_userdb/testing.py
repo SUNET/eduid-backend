@@ -213,7 +213,7 @@ class MongoTemporaryInstance(object):
                                           '--nojournal', '--nohttpinterface',
                                           '--noauth', '--smallfiles',
                                           '--syncdelay', '0',
-                                          '--maxConns', '50',
+                                          '--maxConns', '100',
                                           '--nssize', '1', ],
                                          stdout=open('/tmp/mongo-temp.log', 'wb'),
                                          stderr=subprocess.STDOUT)
