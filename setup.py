@@ -35,7 +35,7 @@ setup(
     author_email='fredrik@thulin.net',
     url='https://www.eduid.se',
     license='BSD',
-    packages=find_packages(),
+    packages=find_packages('src'),
     include_package_data=True,
     package_data = {
         },
