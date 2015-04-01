@@ -35,10 +35,10 @@ setup(
     author_email='fredrik@thulin.net',
     url='https://www.eduid.se',
     license='BSD',
-    packages=find_packages('src'),
-    include_package_data=True,
-    package_data = {
-        },
+      packages=['eduid_userdb',],
+      package_dir = {'': 'src'},
+      #include_package_data=True,
+      #package_data = { },
     zip_safe=False,
     install_requires=install_requires,
     extras_require={
