@@ -39,11 +39,9 @@ __author__ = 'leifj'
 import time
 import atexit
 import random
-import shutil
 import tempfile
 import unittest
 import subprocess
-import os
 import pymongo
 from datetime import datetime
 from copy import deepcopy
@@ -51,8 +49,6 @@ from copy import deepcopy
 from bson import ObjectId
 
 from eduid_userdb import UserDB, User
-
-from eduid_am.celery import celery, get_attribute_manager
 
 MONGO_URI_AM_TEST = 'mongodb://localhost:27017/eduid_userdb_test'
 MONGO_URI_TEST = 'mongodb://localhost:27017/eduid_dashboard_test'
@@ -273,7 +269,28 @@ class MongoTestCase(unittest.TestCase):
     user = User(data=MOCKED_USER_STANDARD)
     users = []
 
-    def setUp(self):
+    def setUp(self, celery, get_attribute_manager):
+        """
+        Test case initialization.
+
+        To not get a circular dependency between eduid-userdb and eduid-am, celery
+        and get_attribute_manager needs to be imported in the place where this
+        module is called.
+
+        Usage:
+
+            from eduid_am.celery import celery, get_attribute_manager
+
+            class MyTest(MongoTestCase):
+
+                def setUp(self):
+                    super(MyTest, self, celery, get_attribute_manager).setUp()
+                    ...
+
+        :param celery: module
+        :param get_attribute_manager: callable
+        :return:
+        """
         super(MongoTestCase, self).setUp()
         self.tmp_db = MongoTemporaryInstance.get_instance()
         self.conn = self.tmp_db.conn
@@ -314,6 +331,7 @@ class MongoTestCase(unittest.TestCase):
                                       or INITIAL_VERIFICATIONS)
         self.amdb._drop_whole_collection()
 
+        # Set up two users (johnsmith@example.{com,org}) in the MongoDB. Read the users from MockedUserDB.
         _foo_userdb = self.MockedUserDB(self.users)
         for userdoc in _foo_userdb.all_userdocs():
             user = User(data=userdoc)
