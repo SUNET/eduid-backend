@@ -52,13 +52,6 @@ class Nin(PrimaryElement):
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
 
-        if 'added_timestamp' in data:
-            # old userdb-style creation timestamp
-            data['created_ts'] = data.pop('added_timestamp')
-        if 'mobile' in data:
-            # old userdb-style entry
-            data['number'] = data.pop('mobile')
-
         PrimaryElement.__init__(self, data, raise_on_unknown, ignore_data = ['number'])
         self.number = data.pop('number')
 
@@ -103,11 +96,6 @@ class Nin(PrimaryElement):
         if not old_userdb_format:
             return self._data
         old = copy.copy(self._data)
-        # XXX created_ts -> added_timestamp
-        if 'created_ts' in old:
-            old['added_timestamp'] = old.pop('created_ts')
-        if 'number' in old:
-            old['mobile'] = old.pop('number')
         return old
 
 

@@ -72,13 +72,26 @@ class User(object):
                 if _mail_addresses[idx]['email'] == data['mail']:
                     _mail_addresses[idx]['primary'] = True
             data.pop('mail')
+        _nins = data.pop('nins', [])
+        if 'norEduPersonNIN' in data:
+            # old-style list of verified nins
+            old_nins = data.pop('norEduPersonNIN')
+            for this in old_nins:
+                if not isinstance(this, basestring):
+                    raise UserDBValueError('Old-style NIN is not a string')
+                _primary = not _nins
+                # XXX lookup NIN in eduid-dashboards verifications to make sure it is verified somehow?
+                _nins.append({'number': this,
+                              'primary': _primary,
+                              'verified': True,
+                              })
         if 'mobile' in data:
             data['phone'] = data.pop('mobile')
         if 'sn' in data:
             data['surname'] = data.pop('sn')
         self._mail_addresses = MailAddressList(_mail_addresses)
         self._phone_numbers = PhoneNumberList(data.pop('phone', []))
-        self._nins = NinList(data.pop('norEduPersonNIN', []))
+        self._nins = NinList(_nins)
         self._passwords = PasswordList(data.pop('passwords', []))
         # generic (known) attributes
         self.eppn = data.pop('eduPersonPrincipalName')  # mandatory
@@ -269,6 +282,17 @@ class User(object):
 
     # -----------------------------------------------------------------
     @property
+    def nins(self):
+        """
+        Get the user's national identity numbers.
+        :return: NinList object
+        :rtype: eduid_userdb.nin.NinList
+        """
+        # no setter for this one, as the NinList object provides modification functions
+        return self._nins
+
+    # -----------------------------------------------------------------
+    @property
     def modified_ts(self):
         """
         :return: Timestamp of last modification in the database.
@@ -305,6 +329,7 @@ class User(object):
         res['mailAliases'] = self.mail_addresses.to_list_of_dicts(old_userdb_format=old_userdb_format)
         res['phone'] = self.phone_numbers.to_list_of_dicts(old_userdb_format=old_userdb_format)
         res['passwords'] = self.passwords.to_list_of_dicts(old_userdb_format=old_userdb_format)
+        res['nins'] = self.nins.to_list_of_dicts(old_userdb_format=old_userdb_format)
         if old_userdb_format:
             if 'surname' in res:
                 res['sn'] = res.pop('surname')
