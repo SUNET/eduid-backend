@@ -4,7 +4,7 @@ from celery import Celery
 from celery.signals import celeryd_init
 
 from eduid_am.config import read_configuration
-from eduid_am.db import MongoDB, DEFAULT_MONGODB_URI
+from eduid_userdb.db import MongoDB, DEFAULT_MONGODB_URI
 
 
 celery = Celery('eduid_am.celery', backend='amqp', include=['eduid_am.tasks'])

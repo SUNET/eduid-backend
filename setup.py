@@ -14,9 +14,10 @@ version = '0.5.2-dev'
 
 install_requires = [
     'python-dateutil>=2.1',
-    'pymongo>=2.6.3',
+    'pymongo>=2.6.3',   # XXX remove after eduid_userdb transition
     'celery>=3.1.9',
     'simplejson>=3.6.5',
+    'eduid_userdb >= 0.0.0',
 ]
 
 testing_extras = [

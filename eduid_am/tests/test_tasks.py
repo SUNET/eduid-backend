@@ -1,6 +1,5 @@
-from eduid_am.testing import MongoTestCase, MOCKED_USER_STANDARD as M
-from eduid_am.exceptions import MultipleUsersReturned, UserDoesNotExist
-from eduid_am.userdb import UserDB
+from eduid_userdb.testing import MongoTestCase, MOCKED_USER_STANDARD as M
+from eduid_userdb.exceptions import MultipleUsersReturned, UserDoesNotExist
 from bson import ObjectId
 import copy
 

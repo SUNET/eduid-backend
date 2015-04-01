@@ -2,7 +2,7 @@ __author__ = 'leifj'
 
 from eduid_am.celery import celery, get_attribute_manager
 from eduid_am.tasks import update_attributes
-from eduid_am.testing import MongoTestCase
+from eduid_userdb.testing import MongoTestCase
 from bson import ObjectId
 
 

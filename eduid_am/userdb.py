@@ -9,7 +9,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class UserDB(object):
+class UnusedOLDUserDB(object):
 
     def __init__(self, settings):
 

@@ -9,7 +9,7 @@ DEFAULT_MONGODB_URI = 'mongodb://%s:%d/%s' % (DEFAULT_MONGODB_HOST,
                                               DEFAULT_MONGODB_NAME)
 
 
-class MongoDB(object):
+class UnusedOLDMongoDB(object):
     """Simple wrapper to get pymongo real objects from the settings uri"""
 
     def __init__(self, db_uri=DEFAULT_MONGODB_URI,

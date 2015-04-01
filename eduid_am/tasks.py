@@ -8,11 +8,15 @@ from pkg_resources import iter_entry_points
 import bson
 
 from eduid_am.celery import celery
-from eduid_am.db import MongoDB, DEFAULT_MONGODB_URI
-from eduid_am.exceptions import UserDoesNotExist, MultipleUsersReturned
+#from eduid_am.db import MongoDB, DEFAULT_MONGODB_URI
+#from eduid_am.exceptions import UserDoesNotExist, MultipleUsersReturned
+from eduid_userdb import UserDB
+from eduid_userdb.db import DEFAULT_MONGODB_URI
+from eduid_userdb.exceptions import UserDoesNotExist, MultipleUsersReturned
 
 logger = get_task_logger(__name__)
 
+USERDBS={}
 
 class PluginsRegistry(dict):
 
@@ -31,66 +35,53 @@ class AttributeManager(Task):
 
     abstract = True  # This means Celery won't register this as another task
     registry = PluginsRegistry()
-    _conn = None
+    #_conn = None
 
-    @property
-    def conn(self):
-        """
-        Get the MongoDB connection object.
+    def __init__(self, db_uri=None):
+        if db_uri is None:
+            db_uri = self.app.conf.get('MONGO_URI', DEFAULT_MONGODB_URI)
+        # When testing, the default_db_uri can be overridden with a path to a temporary MongoDB instance.
+        self.default_db_uri = db_uri
+        self.userdbs = dict()
 
-        :return: connection object
-        """
-        if self._conn is None:
-            self._conn = MongoDB(self.app.conf.get('MONGO_URI', DEFAULT_MONGODB_URI))
-        return self._conn
-
-    @property
-    def db(self):
-        """
-        Get the MongoDB database object.
-
-        :return: database object
-        """
-        db_name = (self.app.conf.get('MONGO_DBNAME') or None)
-        if db_name:
-            return self.conn.get_database(db_name)
+    def get_userdb(self, application):
+        if application in self.userdbs:
+            res = self.userdbs[application]
+        elif application in USERDBS:
+            res = USERDBS[application]
+        elif application == 'default':
+            self.userdbs['default'] = UserDB(self.default_db_uri)
+            res = self.userdbs['default']
         else:
-            return self.conn.get_database()
+            raise ValueError('No userdb for application {!r}'.format(application))
+        assert isinstance(res, UserDB)   # for type checkers and IDEs
+        return res
 
-    def update_user(self, obj_id, attributes):
-        """
-        Update user document in mongodb.
+    #@property
+    #def conn(self):
+    #    """
+    #    Get the MongoDB connection object.
+    #
+    #    :return: connection object
+    #    """
+    #    if self._conn is None:
+    #        self._conn = MongoDB(self.app.conf.get('MONGO_URI', DEFAULT_MONGODB_URI))
+    #    return self._conn
 
-        `attributes' can be either a dict with plain key-values, or a dict with
-        one or more find_and_modify modifier instructions ({'$set': ...}).
+    #@property
+    #def db(self):
+    #    """
+    #    Get the MongoDB database object.
+    #
+    #    :return: database object
+    #    """
+    #    db_name = (self.app.conf.get('MONGO_DBNAME') or None)
+    #    if db_name:
+    #        return self.conn.get_database(db_name)
+    #    else:
+    #        return self.conn.get_database()
 
-        :param obj_id: ObjectId
-        :param attributes: dict
-        :return: None
-        """
-        doc = {'_id': obj_id}
-
-        # check if any of doc attributes contains a modifer instruction.
-        # like any key starting with $
-        #
-        if all([attr.startswith('$') for attr in attributes]):
-            self.db.attributes.find_and_modify(doc, attributes)
-        else:
-            if self.db.attributes.find(doc).count() == 0:
-                # The object is a new object
-                doc.update(attributes)
-                self.db.attributes.save(doc)
-            else:
-                # Dont overwrite the entire object, only the defined
-                # attributes
-                self.db.attributes.find_and_modify(
-                    doc,
-                    {
-                        '$set': attributes,
-                    }
-                )
-
-    def get_user_by_id(self, obj_id, raise_on_missing=False):
+    def Xget_user_by_id(self, obj_id, raise_on_missing=False):
         """
         Return the user object in the attribute manager MongoDB with _id=id
 
@@ -107,7 +98,7 @@ class AttributeManager(Task):
                 return None
         return self.get_user_by_field('_id', obj_id, raise_on_missing)
 
-    def get_user_by_field(self, field, value, raise_on_missing=False):
+    def Xget_user_by_field(self, field, value, raise_on_missing=False):
         """
         Return the user object in the attribute manager MongoDB matching field=value
 
@@ -127,7 +118,7 @@ class AttributeManager(Task):
             raise MultipleUsersReturned("Multiple matching users for %s='%s'" % (field, value))
         return docs[0]
 
-    def get_user_by_mail(self, email, raise_on_missing=False):
+    def Xget_user_by_mail(self, email, raise_on_missing=False):
         """
         Return the user object in the attribute manager MongoDB having
         a (verified) email address matching `email'.
@@ -153,7 +144,7 @@ class AttributeManager(Task):
             raise MultipleUsersReturned("Multiple matching users for email {!r}".format(email))
         return users[0]
 
-    def get_users(self, spec, fields=None):
+    def Xget_users(self, spec, fields=None):
         """
         Return a list with users object in the attribute manager MongoDB matching the filter
 
@@ -168,7 +159,7 @@ class AttributeManager(Task):
         else:
             return self.db.attributes.find(spec, fields)
 
-    def exists_by_filter(self, spec):
+    def Xexists_by_filter(self, spec):
         """
         Return true if at least one doc matchs with the value
 
@@ -178,7 +169,7 @@ class AttributeManager(Task):
         docs = self.db.attributes.find(spec)
         return docs.count() >= 1
 
-    def exists_by_field(self, field, value):
+    def Xexists_by_field(self, field, value):
         """
         Return true if at least one doc matchs with the value
 
@@ -188,7 +179,7 @@ class AttributeManager(Task):
 
         return self.exists_by_filter({field: value})
 
-    def get_identity_proofing(self, obj_id):
+    def Xget_identity_proofing(self, obj_id):
         """
         Return the proofing urn value
 
@@ -240,6 +231,7 @@ def update_attributes_keep_result(app_name, obj_id):
 
 
 def _update_attributes(app_name, obj_id):
+    logger.debug("Update attributes called for {!r} by {!r}".format(obj_id, app_name))
     try:
         return _update_attributes_safe(app_name, obj_id)
     except Exception:
@@ -261,13 +253,12 @@ def _update_attributes_safe(app_name, user_id):
         _id = bson.ObjectId(user_id)
     except bson.errors.InvalidId:
         logger.error('Invalid user_id %s from app %s' % (user_id, app_name))
-        return
+        raise ValueError('Bad user_id')
 
-    plugin_db = self.conn.get_database(app_name)
-    logger.debug("Got database {!r}/{!s} for plugin".format(plugin_db,
-                                                            plugin_db))
+    app_userdb = self.get_userdb(app_name)
+    logger.debug("Got database {!r}/{!s} for plugin".format(app_userdb, app_userdb._coll))
     try:
-        attributes = attribute_fetcher(plugin_db, _id)
+        attributes = attribute_fetcher(app_userdb, _id)
     except UserDoesNotExist as error:
         logger.error('The user %s does not exist in the database for plugin %s: %s' % (
             _id, app_name, error))
@@ -275,4 +266,5 @@ def _update_attributes_safe(app_name, user_id):
 
     logger.debug('Attributes fetched from app %s for user %s: %s'
                  % (app_name, user_id, attributes))
-    self.update_user(_id, attributes)
+    userdb = self.get_userdb('default')
+    userdb.update_user(_id, attributes)
