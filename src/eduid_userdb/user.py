@@ -56,7 +56,7 @@ class User(object):
     """
     def __init__(self, data, raise_on_unknown = True):
         data_in = data
-        data = copy.copy(data_in)  # to not modify callers data
+        data = copy.deepcopy(data_in)  # to not modify callers data
         self._data = dict()
         # things without setters
         _id = data.pop('_id', None)
