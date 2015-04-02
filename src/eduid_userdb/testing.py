@@ -284,7 +284,7 @@ class MongoTestCase(unittest.TestCase):
             class MyTest(MongoTestCase):
 
                 def setUp(self):
-                    super(MyTest, self, celery, get_attribute_manager).setUp()
+                    super(MyTest, self).setUp(celery, get_attribute_manager)
                     ...
 
         :param celery: module
