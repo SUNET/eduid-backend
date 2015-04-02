@@ -113,6 +113,7 @@ class MailAddress(PrimaryElement):
         # XXX created_ts -> added_timestamp
         if 'created_ts' in old:
             old['added_timestamp'] = old.pop('created_ts')
+        del old['primary']
         return old
 
 
