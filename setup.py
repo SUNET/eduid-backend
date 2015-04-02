@@ -17,7 +17,7 @@ install_requires = [
     'pymongo>=2.6.3',   # XXX remove after eduid_userdb transition
     'celery>=3.1.9',
     'simplejson>=3.6.5',
-    'eduid_userdb >= 0.0.0',
+    'eduid_userdb',
 ]
 
 testing_extras = [

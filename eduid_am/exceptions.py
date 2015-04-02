@@ -2,20 +2,10 @@
 Exceptions thrown by the eduid_am database lookup functions.
 """
 
-class UserDoesNotExist(Exception):
-    """
-    Requested user could not be found in the database.
-    """
-    pass
+# Import these here so that users of eduid-am doesn't have to know about the
+# underlying database being used.
 
-class MultipleUsersReturned(Exception):
-    """
-    More than one user in the database matched the given search criteria.
-    """
-    pass
+# XXX this might be unnecessary now that eduid-userdb is a proper stand-alone
+# module.
 
-class UserOutOfSync(Exception):
-    """
-    The user has been modified since it was read from the db.
-    """
-    pass
+from eduid_userdb.exceptions import UserDoesNotExist, MultipleUsersReturned, UserOutOfSync
