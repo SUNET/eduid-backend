@@ -143,7 +143,7 @@ class UserDB(object):
         logger.debug("{!s} Looking in {!r} for user with {!r} = {!r}".format(
             self, self._coll, attr, value))
         try:
-            doc = self._get_user_by_field(attr, value, raise_on_missing=True)
+            doc = self._get_document_by_attr(attr, value, raise_on_missing=True)
             logger.debug("{!s} Found user {!r}".format(self, doc))
             return self.UserClass(data=doc)
         except self.exceptions.UserDoesNotExist:
@@ -153,24 +153,24 @@ class UserDB(object):
             logger.error("MultipleUsersReturned, {!r} = {!r}".format(attr, value))
             raise
 
-    def _get_user_by_field(self, field, value, raise_on_missing=False):
+    def _get_document_by_attr(self, attr, value, raise_on_missing=False):
         """
         Return the user object in the attribute manager MongoDB matching field=value
 
-        :param field: The name of a field
+        :param attr: The name of a field
         :param value: The field value
         :param raise_on_missing: If True, raise exception if no matching user object can be found.
         :return: A user dict
         """
         #logging.debug("get_user_by_field %s=%s" % (field, value))
 
-        docs = self._coll.find({field: value})
+        docs = self._coll.find({attr: value})
         if docs.count() == 0:
             if raise_on_missing:
-                raise UserDoesNotExist("No user matching %s='%s'" % (field, value))
+                raise UserDoesNotExist("No user matching %s='%s'" % (attr, value))
             return None
         elif docs.count() > 1:
-            raise MultipleUsersReturned("Multiple matching users for %s='%s'" % (field, value))
+            raise MultipleUsersReturned("Multiple matching users for %s='%s'" % (attr, value))
         return docs[0]
 
     def save(self, user, check_sync=True, old_format=False):
@@ -199,7 +199,7 @@ class UserDB(object):
             test_doc = {'_id': user.user_id}
             if check_sync:
                 test_doc['modified_ts'] = modified
-            result = self._coll.update(test_doc, user.to_dict(old_userdb_format =old_format))
+            result = self._coll.update(test_doc, user.to_dict(old_userdb_format=old_format))
             logging.debug("{!s} Updated user {!r} in {!r}: {!r}".format(self, user, self._coll, result))
             if check_sync and result['n'] == 0:
                 raise eduid_userdb.exceptions.UserOutOfSync('Stale user object can\'t be saved')
@@ -249,13 +249,12 @@ class UserDB(object):
         :param attributes: dict
         :return: None
         """
-        import pprint
         logger.debug("{!s} updating user {!r} in {!s} with attributes:\n{!s}".format(
             self, obj_id, self._coll, attributes))
 
         doc = {'_id': obj_id}
 
-        # check if any of doc attributes contains a modifer instruction.
+        # check if any of doc attributes contains a modifier instruction.
         # like any key starting with $
         #
         if all([attr.startswith('$') for attr in attributes]):
