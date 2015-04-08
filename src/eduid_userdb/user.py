@@ -89,6 +89,8 @@ class User(object):
             data['phone'] = data.pop('mobile')
         if 'sn' in data:
             data['surname'] = data.pop('sn')
+        if 'eduPersonEntitlement' in data:
+            data['entitlements'] = data.pop('eduPersonEntitlement')
         self._mail_addresses = MailAddressList(_mail_addresses)
         self._phone_numbers = PhoneNumberList(data.pop('phone', []))
         self._nins = NinList(_nins)
@@ -101,6 +103,7 @@ class User(object):
         self.surname = data.pop('surname', '')
         self.language = data.pop('preferredLanguage', '')
         self.modified_ts = data.pop('modified_ts', None)
+        self.entitlements = data.pop('entitlements', None)
 
         if len(data) > 0:
             if raise_on_unknown:
@@ -315,6 +318,30 @@ class User(object):
         self._data['modified_ts'] = value
 
     # -----------------------------------------------------------------
+    @property
+    def entitlements(self):
+        """
+        :return: List of entitlements for this user.
+        :rtype: [str | unicode]
+        """
+        return self._data.get('entitlements')
+
+    @entitlements.setter
+    def entitlements(self, value):
+        """
+        :param value: List of entitlements (strings).
+        :type value: [str | unicode]
+        """
+        if value is None:
+            return
+        if not isinstance(value, list):
+            raise UserDBValueError("Unknown 'entitlements' value: {!r}".format(value))
+        for this in value:
+            if not isinstance(this, basestring):
+                raise UserDBValueError("Unknown 'entitlements' element: {!r}".format(this))
+        self._data['entitlements'] = value
+
+    # -----------------------------------------------------------------
     def to_dict(self, old_userdb_format=False):
         """
         Return user data serialized into a dict that can be stored in MongoDB.
@@ -334,7 +361,9 @@ class User(object):
             if 'surname' in res:
                 res['sn'] = res.pop('surname')
             res['mail'] = self.mail_addresses.primary.email
-            if 'mobile' in res:
+            if 'ohine' in res:
                 res['mobile'] = res.pop('phone')
+            if 'entitlements' in res:
+                res['eduPersonEntitlement'] = res.pop('entitlements')
 
         return res
