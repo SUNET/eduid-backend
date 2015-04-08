@@ -54,8 +54,6 @@ class UserDB(object):
         self._coll = self._db.get_collection(collection)
         logger.debug("{!s} UserDB connected to {!s} {!r} / {!s})".format(
             self, db_uri, collection, self._coll))
-        if db_uri.endswith('am'):
-            raise ValueError('foo')
         # XXX Backwards compatibility.
         # Was: provide access to our backends exceptions to users of this class
         self.exceptions = eduid_userdb.exceptions
