@@ -200,11 +200,20 @@ class UserDB(object):
             test_doc = {'_id': user.user_id}
             if check_sync:
                 test_doc['modified_ts'] = modified
-            result = self._coll.update(test_doc, user.to_dict(old_userdb_format=old_format))
-            logging.debug("{!s} Updated user {!r} in {!r} (old_format={!r}): {!r}".format(
-                self, user, self._coll, old_format, result))
+            result = self._coll.update(test_doc, user.to_dict(old_userdb_format=old_format), upsert=(not check_sync))
             if check_sync and result['n'] == 0:
+                db_ts = None
+                db_user = self._coll.find_one({'_id': user.user_id})
+                if db_user:
+                    db_ts = db_user['modified_ts']
+                logging.debug("{!s} FAILED Updating user {!r} (ts {!s}) in {!r} (old_format={!r}). "
+                              "ts in db = {!s}".format(
+                              self, user, modified, self._coll, old_format, db_ts))
                 raise eduid_userdb.exceptions.UserOutOfSync('Stale user object can\'t be saved')
+            logging.debug("{!s} Updated user {!r} (ts {!s}) in {!r} (old_format={!r}): {!r}".format(
+                self, user, modified, self._coll, old_format, result))
+            import pprint
+            logging.debug("Extra debug:\n{!s}".format(pprint.pformat(user.to_dict(old_userdb_format=old_format))))
         return result
 
     def remove_user_by_id(self, user_id):
