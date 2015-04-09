@@ -333,8 +333,9 @@ class MongoTestCase(unittest.TestCase):
         # Set up two users (johnsmith@example.{com,org}) in the MongoDB. Read the users from MockedUserDB.
         _foo_userdb = self.MockedUserDB(self.users)
         for userdoc in _foo_userdb.all_userdocs():
-            user = User(data=userdoc)
-            self.amdb.save(user, old_format=userdb_use_old_format)
+            this = deepcopy(userdoc)  # deep-copy to not have side effects between tests
+            user = User(data=this)
+            self.amdb.save(user, check_sync=False, old_format=userdb_use_old_format)
 
     def tearDown(self):
         super(MongoTestCase, self).tearDown()
