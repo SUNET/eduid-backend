@@ -398,14 +398,17 @@ class PrimaryElementList(ElementList):
     one primary element in the list (except if the list is empty).
 
     :param elements: List of elements
+    :param require_verified_primary: Is the primary element required to be verified?
     :type elements: [dict | Element]
+    :type require_verified_primary: bool
     """
-    def __init__(self, elements):
+    def __init__(self, elements, require_verified_primary=True):
+        self.require_verified_primary = require_verified_primary
         try:
             if elements:
-                assert _get_primary(elements) is not None
+                assert self._get_primary(elements) is not None
         except PrimaryElementViolation:
-            raise PrimaryElementViolation("Operation would result in more or less than one primary element")
+            raise
         ElementList.__init__(self, elements)
 
     def add(self, element):
@@ -470,7 +473,7 @@ class PrimaryElementList(ElementList):
 
         :rtype: PrimaryElement
         """
-        return _get_primary(self._elements)
+        return self._get_primary(self._elements)
 
     @primary.setter
     def primary(self, key):
@@ -496,25 +499,24 @@ class PrimaryElementList(ElementList):
         for this in self._elements:
             this.is_primary = bool(this.key == key)
 
+    def _get_primary(self, elements):
+        """
+        Find the primary element in a list, and ensure there is exactly one (unless the list is empty).
 
-def _get_primary(elements):
-    """
-    Find the primary element in a list, and ensure there is exactly one (unless the list is empty).
-
-    :param elements: List of Element instances
-    :type elements: [Element]
-    :return: Primary Element
-    :rtype: PrimaryElement | None
-    """
-    if not elements:
-        return None
-    res = [x for x in elements if x.is_primary is True]
-    if len(res) != 1:
-        raise PrimaryElementViolation("List contains {!s}/{!s} primary elements".format(
-            len(res), len(elements)))
-    if not res[0].is_verified:
-        raise PrimaryElementViolation("Primary element must be verified")
-    return res[0]
+        :param elements: List of Element instances
+        :type elements: [Element]
+        :return: Primary Element
+        :rtype: PrimaryElement | None
+        """
+        if not elements:
+            return None
+        res = [x for x in elements if x.is_primary is True]
+        if len(res) != 1:
+            raise PrimaryElementViolation("List contains {!s}/{!s} primary elements".format(
+                len(res), len(elements)))
+        if self.require_verified_primary and not res[0].is_verified:
+            raise PrimaryElementViolation("Primary element must be verified")
+        return res[0]
 
 
 def _update_something_by(data, key, value):

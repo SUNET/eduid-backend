@@ -127,12 +127,12 @@ class PhoneNumberList(PrimaryElementList):
 
         for this in phones:
             if isinstance(this, PhoneNumber):
-                address = this
+                phone = this
             else:
-                address = phone_from_dict(this, raise_on_unknown)
-            elements.append(address)
+                phone = phone_from_dict(this, raise_on_unknown)
+            elements.append(phone)
 
-        PrimaryElementList.__init__(self, elements)
+        PrimaryElementList.__init__(self, elements, require_verified_primary=False)
 
     @property
     def primary(self):

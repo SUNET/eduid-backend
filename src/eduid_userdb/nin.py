@@ -115,12 +115,12 @@ class NinList(PrimaryElementList):
 
         for this in nins:
             if isinstance(this, Nin):
-                address = this
+                nin = this
             else:
-                address = nin_from_dict(this, raise_on_unknown)
-            elements.append(address)
+                nin = nin_from_dict(this, raise_on_unknown)
+            elements.append(nin)
 
-        PrimaryElementList.__init__(self, elements)
+        PrimaryElementList.__init__(self, elements, require_verified_primary=False)
 
     @property
     def primary(self):
