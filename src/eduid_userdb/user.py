@@ -361,9 +361,10 @@ class User(object):
             if 'surname' in res:
                 res['sn'] = res.pop('surname')
             res['mail'] = self.mail_addresses.primary.email
-            if 'ohine' in res:
+            if 'phone' in res:
                 res['mobile'] = res.pop('phone')
             if 'entitlements' in res:
                 res['eduPersonEntitlement'] = res.pop('entitlements')
-
+            if 'nins' in res:
+                res['norEduPersonNIN'] = res.pop('nins')
         return res

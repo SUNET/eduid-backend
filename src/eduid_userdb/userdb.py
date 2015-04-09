@@ -192,13 +192,17 @@ class UserDB(object):
             # profile has never been modified through the dashboard.
             # possibly just created in signup.
             result = self._coll.insert(user.to_dict(old_userdb_format=old_format))
-            logging.debug("{!s} Inserted new user {!r} into {!r}: {!r}".format(self, user, self._coll, result))
+            logging.debug("{!s} Inserted new user {!r} into {!r} (old_format={!r}): {!r})".format(
+                self, user, self._coll, old_format, result))
+            import pprint
+            logging.debug("Extra debug:\n{!s}".format(pprint.pformat(user.to_dict(old_userdb_format=old_format))))
         else:
             test_doc = {'_id': user.user_id}
             if check_sync:
                 test_doc['modified_ts'] = modified
             result = self._coll.update(test_doc, user.to_dict(old_userdb_format=old_format))
-            logging.debug("{!s} Updated user {!r} in {!r}: {!r}".format(self, user, self._coll, result))
+            logging.debug("{!s} Updated user {!r} in {!r} (old_format={!r}): {!r}".format(
+                self, user, self._coll, old_format, result))
             if check_sync and result['n'] == 0:
                 raise eduid_userdb.exceptions.UserOutOfSync('Stale user object can\'t be saved')
         return result
@@ -281,3 +285,14 @@ class UserDB(object):
         :rtype: int
         """
         return self._coll.find({}).count()
+
+    def _get_all_userdocs(self):
+        """
+        Return all the user documents in the database.
+
+        Used in eduid-dashboard test cases.
+
+        :return: User documents
+        :rtype:
+        """
+        return self._coll.find({})

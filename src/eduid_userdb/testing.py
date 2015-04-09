@@ -70,10 +70,10 @@ MOCKED_USER_STANDARD = {
     'eduPersonPrincipalName': 'hubba-bubba',
     #'modified_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"),
     #'terminated': None,
-    #'eduPersonEntitlement': [
-    #    'urn:mace:eduid.se:role:admin',
-    #    'urn:mace:eduid.se:role:student',
-    #],
+    'eduPersonEntitlement': [
+        'urn:mace:eduid.se:role:admin',
+        'urn:mace:eduid.se:role:student',
+    ],
     #'maxReachedLoa': 3,
     'mobile': [{
         'mobile': '+34609609609',
@@ -208,7 +208,6 @@ class MongoTemporaryInstance(object):
                                           '--nojournal', '--nohttpinterface',
                                           '--noauth', '--smallfiles',
                                           '--syncdelay', '0',
-                                          '--maxConns', '100',
                                           '--nssize', '1', ],
                                          stdout=open('/tmp/mongo-temp.log', 'wb'),
                                          stderr=subprocess.STDOUT)
@@ -269,7 +268,7 @@ class MongoTestCase(unittest.TestCase):
     user = User(data=MOCKED_USER_STANDARD)
     users = []
 
-    def setUp(self, celery, get_attribute_manager):
+    def setUp(self, celery, get_attribute_manager, userdb_use_old_format=False):
         """
         Test case initialization.
 
@@ -335,7 +334,7 @@ class MongoTestCase(unittest.TestCase):
         _foo_userdb = self.MockedUserDB(self.users)
         for userdoc in _foo_userdb.all_userdocs():
             user = User(data=userdoc)
-            self.amdb.save(user)
+            self.amdb.save(user, old_format=userdb_use_old_format)
 
     def tearDown(self):
         super(MongoTestCase, self).tearDown()
