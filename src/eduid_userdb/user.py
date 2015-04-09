@@ -77,14 +77,23 @@ class User(object):
             # old-style list of verified nins
             old_nins = data.pop('norEduPersonNIN')
             for this in old_nins:
-                if not isinstance(this, basestring):
-                    raise UserDBValueError('Old-style NIN is not a string')
-                _primary = not _nins
-                # XXX lookup NIN in eduid-dashboards verifications to make sure it is verified somehow?
-                _nins.append({'number': this,
-                              'primary': _primary,
-                              'verified': True,
-                              })
+                if isinstance(this, basestring):
+                    # XXX lookup NIN in eduid-dashboards verifications to make sure it is verified somehow?
+                    _primary = not _nins
+                    _nins.append({'number': this,
+                                  'primary': _primary,
+                                  'verified': True,
+                                  })
+                elif isinstance(this, dict):
+                    _nins.append({'number': this.pop('number'),
+                                  'primary': this.pop('primary'),
+                                  'verified': this.pop('verified'),
+                                  })
+                    if len(this):
+                        raise UserDBValueError('Old-style NIN-as-dict has unknown data')
+                else:
+                    raise UserDBValueError('Old-style NIN is not a string or dict')
+
         if 'mobile' in data:
             data['phone'] = data.pop('mobile')
         if 'sn' in data:
