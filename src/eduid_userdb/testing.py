@@ -56,6 +56,7 @@ MONGO_URI_TEST = 'mongodb://localhost:27017/eduid_dashboard_test'
 #eduid_userdb.db.DEFAULT_MONGODB_URI = MONGO_URI_AM_TEST
 #eduid_userdb.db.DEFAULT_MONGODB_NAME = 'eduid_userdb_test'
 
+
 MOCKED_USER_STANDARD = {
     '_id': ObjectId('012345678901234567890123'),
     'givenName': 'John',
@@ -151,9 +152,16 @@ INITIAL_VERIFICATIONS = [{
 
 
 class MockedUserDB(UserDB):
+    """
+    Some mock users used in different tests.
+
+    Need to do deepcopy everywhere to better isolate tests from each other - since this is
+    an in-memory database, one test might manipulate the returned data and could otherwise
+    potentially affect other tests using the same data.
+    """
 
     test_users = {
-        'johnsmith@example.com': MOCKED_USER_STANDARD,
+        'johnsmith@example.com': deepcopy(MOCKED_USER_STANDARD),
         'johnsmith@example.org': deepcopy(MOCKED_USER_STANDARD),
     }
     test_users['johnsmith@example.org']['mail'] = 'johnsmith@example.org'
@@ -266,7 +274,7 @@ class MongoTestCase(unittest.TestCase):
     MockedUserDB = MockedUserDB
 
     user = User(data=MOCKED_USER_STANDARD)
-    users = []
+    mock_users_patches = []
 
     def setUp(self, celery, get_attribute_manager, userdb_use_old_format=False):
         """
@@ -330,8 +338,9 @@ class MongoTestCase(unittest.TestCase):
                                       or INITIAL_VERIFICATIONS)
         self.amdb._drop_whole_collection()
 
-        # Set up two users (johnsmith@example.{com,org}) in the MongoDB. Read the users from MockedUserDB.
-        _foo_userdb = self.MockedUserDB(self.users)
+        # Set up test users in the MongoDB. Read the users from MockedUserDB, which might
+        # be overridden by subclasses.
+        _foo_userdb = self.MockedUserDB(self.mock_users_patches)
         for userdoc in _foo_userdb.all_userdocs():
             this = deepcopy(userdoc)  # deep-copy to not have side effects between tests
             user = User(data=this)
@@ -339,6 +348,8 @@ class MongoTestCase(unittest.TestCase):
 
     def tearDown(self):
         super(MongoTestCase, self).tearDown()
+        for userdoc in self.amdb._get_all_userdocs():
+            assert User(userdoc)
         self.amdb._drop_whole_collection()
 
     def mongodb_uri(self, dbname=None):
