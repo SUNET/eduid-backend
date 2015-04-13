@@ -50,6 +50,10 @@ from bson import ObjectId
 
 from eduid_userdb import UserDB, User
 
+import logging
+logger = logging.getLogger(__name__)
+
+
 MONGO_URI_AM_TEST = 'mongodb://localhost:27017/eduid_userdb_test'
 MONGO_URI_TEST = 'mongodb://localhost:27017/eduid_dashboard_test'
 
@@ -62,10 +66,10 @@ MOCKED_USER_STANDARD = {
     'givenName': 'John',
     'sn': 'Smith',
     'displayName': 'John Smith',
-    'nins': [{'number': '197801011234',
-              'verified': True,
-              'primary': True,
-             }],
+    'norEduPersonNIN': [{'number': '197801011234',
+                         'verified': True,
+                         'primary': True,
+                         }],
     #'photo': 'https://pointing.to/your/photo',
     'preferredLanguage': 'en',
     'eduPersonPrincipalName': 'hubba-bubba',
@@ -173,9 +177,13 @@ class MockedUserDB(UserDB):
     test_users['johnsmith@example.org']['eduPersonPrincipalName'] = 'babba-labba'
 
     def __init__(self, users=[]):
+        import pprint
         for user in users:
-            if user.get('mail', '') in self.test_users:
-                self.test_users[user['mail']].update(user)
+            mail = user.get('mail', '')
+            if mail in self.test_users:
+                logger.debug("Updating MockedUser {!r} with:\n{!s}".format(mail, pprint.pformat(user)))
+                self.test_users[mail].update(user)
+                logger.debug("New MockedUser {!r}:\n{!s}".format(mail, pprint.pformat(self.test_users[mail])))
 
     def get_user(self, userid):
         if userid not in self.test_users:
