@@ -13,7 +13,7 @@ if os.path.exists(README_fn):
 version = '0.8.7'
 
 install_requires = [
-    'eduid-am>=0.5.2,<0.6',
+    'eduid-am==0.5.2',
     'python-dateutil>=2.1',
     'pymongo>=2.8,<3',
     'celery>=3.1.9',
