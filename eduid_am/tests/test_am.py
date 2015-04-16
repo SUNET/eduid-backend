@@ -7,7 +7,7 @@ from bson import ObjectId
 
 import eduid_userdb
 
-from eduid_am.exceptions import UserDoesNotExist
+from eduid_userdb.exceptions import UserDoesNotExist
 
 
 class AmTestUser(eduid_userdb.User):

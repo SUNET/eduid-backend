@@ -8,15 +8,14 @@ from pkg_resources import iter_entry_points
 import bson
 
 from eduid_am.celery import celery
-#from eduid_am.db import MongoDB, DEFAULT_MONGODB_URI
-#from eduid_am.exceptions import UserDoesNotExist, MultipleUsersReturned
 from eduid_userdb import UserDB
 from eduid_userdb.db import DEFAULT_MONGODB_URI
-from eduid_userdb.exceptions import UserDoesNotExist, MultipleUsersReturned
+from eduid_userdb.exceptions import UserDoesNotExist
 
 logger = get_task_logger(__name__)
 
-USERDBS={}
+USERDBS = {}
+
 
 class PluginsRegistry(dict):
 
@@ -47,156 +46,19 @@ class AttributeManager(Task):
     def get_userdb(self, application):
         if application in self.userdbs:
             res = self.userdbs[application]
+            logger.debug("Using previously initialized userdb for application {!r}: {!r}".format(application, res))
         elif application in USERDBS:
             res = USERDBS[application]
+            logger.debug("Using global default userdb for application {!r}: {!r}".format(application, res))
         elif application == 'default':
-            self.userdbs['default'] = UserDB(self.default_db_uri)
+            # XXX uses the attributes collection for now
+            self.userdbs['default'] = UserDB(self.default_db_uri, 'attributes')
             res = self.userdbs['default']
+            logger.debug("Using global default userdb: {!r}".format(res))
         else:
             raise ValueError('No userdb for application {!r}'.format(application))
         assert isinstance(res, UserDB)   # for type checkers and IDEs
         return res
-
-    #@property
-    #def conn(self):
-    #    """
-    #    Get the MongoDB connection object.
-    #
-    #    :return: connection object
-    #    """
-    #    if self._conn is None:
-    #        self._conn = MongoDB(self.app.conf.get('MONGO_URI', DEFAULT_MONGODB_URI))
-    #    return self._conn
-
-    #@property
-    #def db(self):
-    #    """
-    #    Get the MongoDB database object.
-    #
-    #    :return: database object
-    #    """
-    #    db_name = (self.app.conf.get('MONGO_DBNAME') or None)
-    #    if db_name:
-    #        return self.conn.get_database(db_name)
-    #    else:
-    #        return self.conn.get_database()
-
-    def Xget_user_by_id(self, obj_id, raise_on_missing=False):
-        """
-        Return the user object in the attribute manager MongoDB with _id=id
-
-        :param obj_id: An Object ID
-        :param raise_on_missing: If True, raise exception if no matching user object can be found.
-        :return: A user dict
-        """
-        if not isinstance(obj_id, bson.ObjectId):
-            try:
-                obj_id = bson.ObjectId(obj_id)
-            except bson.errors.InvalidId:
-                if raise_on_missing:
-                    raise UserDoesNotExist("Invalid object id '%s'".format(obj_id))
-                return None
-        return self.get_user_by_field('_id', obj_id, raise_on_missing)
-
-    def Xget_user_by_field(self, field, value, raise_on_missing=False):
-        """
-        Return the user object in the attribute manager MongoDB matching field=value
-
-        :param field: The name of a field
-        :param value: The field value
-        :param raise_on_missing: If True, raise exception if no matching user object can be found.
-        :return: A user dict
-        """
-        #logging.debug("get_user_by_field %s=%s" % (field, value))
-
-        docs = self.db.attributes.find({field: value})
-        if docs.count() == 0:
-            if raise_on_missing:
-                raise UserDoesNotExist("No user matching %s='%s'" % (field, value))
-            return None
-        elif docs.count() > 1:
-            raise MultipleUsersReturned("Multiple matching users for %s='%s'" % (field, value))
-        return docs[0]
-
-    def Xget_user_by_mail(self, email, raise_on_missing=False):
-        """
-        Return the user object in the attribute manager MongoDB having
-        a (verified) email address matching `email'.
-
-        :param email: The email address to look for
-        :param raise_on_missing: If True, raise exception if no matching user object can be found.
-        :return: A user dict
-        """
-        email = email.lower()
-        docs = self.db.attributes.find(
-            {'$or': [
-                {'mail': email},
-                {'mailAliases': {'$elemMatch': {'email': email, 'verified': True}}}
-            ]})
-        users = []
-        if docs.count() > 0:
-            users = list(docs)
-        if not users:
-            if raise_on_missing:
-                raise UserDoesNotExist("No user matching email {!r}".format(email))
-            return None
-        elif len(users) > 1:
-            raise MultipleUsersReturned("Multiple matching users for email {!r}".format(email))
-        return users[0]
-
-    def Xget_users(self, spec, fields=None):
-        """
-        Return a list with users object in the attribute manager MongoDB matching the filter
-
-        :param spec: a standard mongodb read operation filter
-        :param fields: If not None, pass as proyection to mongo searcher
-        :return a list with users
-        """
-        #logging.debug("get_users %s=%s" % (filter))
-
-        if fields is None:
-            return self.db.attributes.find(spec)
-        else:
-            return self.db.attributes.find(spec, fields)
-
-    def Xexists_by_filter(self, spec):
-        """
-        Return true if at least one doc matchs with the value
-
-        :param spec: The filter used in the query
-        """
-
-        docs = self.db.attributes.find(spec)
-        return docs.count() >= 1
-
-    def Xexists_by_field(self, field, value):
-        """
-        Return true if at least one doc matchs with the value
-
-        :param field: The name of a field
-        :param value: The field value
-        """
-
-        return self.exists_by_filter({field: value})
-
-    def Xget_identity_proofing(self, obj_id):
-        """
-        Return the proofing urn value
-
-        :param obj_id: The user object id
-        """
-
-        # TODO
-        # This method need to be implemented
-        al1_urn = 'http://www.swamid.se/policy/assurance/al1'
-        al2_urn = 'http://www.swamid.se/policy/assurance/al2'
-        user = self.db.attributes.find_one({'_id': obj_id})
-        if user is not None:
-            nins = user.get('norEduPersonNIN')
-            if nins is not None and len(nins) > 0:
-                return al2_urn
-
-        return al1_urn
 
 
 @celery.task(ignore_results=True, base=AttributeManager)
