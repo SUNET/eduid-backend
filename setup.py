@@ -13,7 +13,7 @@ if os.path.exists(README_fn):
 version = '0.0.1-dev'
 
 install_requires = [
-    'pymongo >= 2.6.3',
+    'pymongo >= 2.8.0, < 3.0',
 ]
 
 testing_extras = [
