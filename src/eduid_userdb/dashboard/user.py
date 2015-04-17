@@ -36,7 +36,6 @@
 import copy
 from datetime import datetime
 
-from eduid_am.tasks import update_attributes
 from eduid_userdb.exceptions import UserOutOfSync, UserDBValueError
 
 from eduid_userdb import User
@@ -103,8 +102,8 @@ class DashboardLegacyUser(object):
     Class to embody users as they are stored on MongoDB,
     that provides methods to access their attributes.
 
-    :param mongo_doc: MongoDB document representing a user
-    :type  mongo_doc: dict
+    :param data: MongoDB document representing a user
+    :type  data: dict
     """
 
     def __init__(self, data):
@@ -112,9 +111,6 @@ class DashboardLegacyUser(object):
             self._mongo_doc = data._mongo_doc
         else:
             self._mongo_doc = data
-        # XXX logging
-        import pprint
-        log.debug("CREATED USER {!s}:\n{!s}".format(self, pprint.pformat(data)))
 
     def __repr__(self):
         return '<DashboardLegacyUser: {0}/{1}>'.format(self.get_eppn(), self.get('_id'))
@@ -159,6 +155,9 @@ class DashboardLegacyUser(object):
         request.context.propagate_user_changes(self._mongo_doc)
 
     def update_am(self, app_name):
+        # yuck. avoid circular dependencies whenever possible.
+        from eduid_am.tasks import update_attributes
+
         update_attributes.delay(app_name, str(self._mongo_doc['_id']))
 
     def get_doc(self):
