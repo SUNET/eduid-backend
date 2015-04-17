@@ -13,11 +13,13 @@ if os.path.exists(README_fn):
 version = '0.6.0-dev'
 
 install_requires = [
+    'eduid_userdb >= 0.0.0, < 0.1.0',
+
+    'pymongo>=2.8,<3',   # XXX remove after eduid_userdb transition
+
     'python-dateutil>=2.1',
-    'pymongo>=2.6.3',   # XXX remove after eduid_userdb transition
-    'celery>=3.1.9',
+    'celery>=3.1.17, < 3.2.0',
     'simplejson>=3.6.5',
-    'eduid_userdb',
 ]
 
 testing_extras = [
