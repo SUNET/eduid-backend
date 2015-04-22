@@ -51,8 +51,7 @@ class AttributeManager(Task):
             res = USERDBS[application]
             logger.debug("Using global default userdb for application {!r}: {!r}".format(application, res))
         elif application == 'default':
-            # XXX uses the attributes collection for now
-            self.userdbs['default'] = UserDB(self.default_db_uri, 'attributes')
+            self.userdbs['default'] = UserDB(self.default_db_uri)
             res = self.userdbs['default']
             logger.debug("Using global default userdb: {!r}".format(res))
         else:
