@@ -42,13 +42,9 @@ class TransactionAudit(object):
     def _filter(self, func, data, *args, **kwargs):
         if data is False:
             return data
-        if func == 'get_postal_address':
+        if func == '_get_navet_data':
             return {'identity_number': args[1]}
         elif func == 'send_message':
-            if args[1] == 'mm':
-                return {'type': 'mm', 'recipient': args[4], 'transaction_id': data, 'audit_reference': args[2],
-                        'template': args[5]}
-            elif args[1] == 'sms':
-                return {'type': 'sms', 'recipient': args[4], 'transaction_id': data, 'audit_reference': args[2],
-                        'template': args[5]}
+            return {'type': args[1], 'recipient': args[4], 'transaction_id': data, 'audit_reference': args[2],
+                    'template': args[5]}
         return data
