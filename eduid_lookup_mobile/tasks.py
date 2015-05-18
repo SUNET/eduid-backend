@@ -5,6 +5,7 @@ from eduid_lookup_mobile.client.mobile_lookup_client import MobileLookupClient
 from celery.utils.log import get_task_logger
 logger = get_task_logger(__name__)
 
+
 @app.task
 def find_mobiles_by_NIN(national_identity_number, number_region=None):
     """
