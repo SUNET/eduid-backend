@@ -1,8 +1,10 @@
 from suds.client import Client
 from eduid_lookup_mobile import config
 from suds.plugin import MessagePlugin
+from eduid_lookup_mobile.decorators import TransactionAudit
 from eduid_lookup_mobile.utilities import format_NIN, format_mobile_number
 from eduid_lookup_mobile.development.development_search_result import _get_devel_search_result
+
 
 class LogPlugin(MessagePlugin):
 
@@ -14,9 +16,16 @@ class LogPlugin(MessagePlugin):
 
 
 class MobileLookupClient:
+    conf = config.read_configuration()
     DEFAULT_CLIENT_URL = 'http://api.teleadress.se/WSDL/nnapiwebservice.wsdl'
     DEFAULT_CLIENT_PORT = 'NNAPIWebServiceSoap'
     DEFAULT_CLIENT_PERSON_CLASS = 'ns7:FindPersonClass'
+
+    DEFAULT_MONGODB_HOST = 'localhost'
+    DEFAULT_MONGODB_PORT = 27017
+    DEFAULT_MONGODB_NAME = 'eduid_mobile_lookup'
+    DEFAULT_MONGODB_URI = 'mongodb://%s:%d/%s' % (DEFAULT_MONGODB_HOST, DEFAULT_MONGODB_PORT, DEFAULT_MONGODB_NAME)
+    MONGODB_URI = conf['MONGO_URI'] if 'MONGO_URI' in conf else DEFAULT_MONGODB_URI
 
     def __init__(self, logger):
         #self.client = Client(self.DEFAULT_CLIENT_URL, plugins=[LogPlugin()])
@@ -24,10 +33,10 @@ class MobileLookupClient:
         self.client.set_options(port=self.DEFAULT_CLIENT_PORT)
         self.logger = logger
 
-        self.conf = config.read_configuration()
         self.DEFAULT_CLIENT_PASSWORD = unicode(self.conf['TELEADRESS_CLIENT_PASSWORD'])
         self.DEFAULT_CLIENT_USER = unicode(self.conf['TELEADRESS_CLIENT_USER'])
 
+    @TransactionAudit(MONGODB_URI)
     def find_mobiles_by_NIN(self, national_identity_number, number_region=None):
         national_identity_number = format_NIN(national_identity_number)
         person_information = self._search_by_SSNo(national_identity_number)
@@ -39,6 +48,7 @@ class MobileLookupClient:
         person_information['Mobiles'] = format_mobile_number(person_information['Mobiles'], number_region)
         return person_information['Mobiles']
 
+    @TransactionAudit(MONGODB_URI)
     def find_NIN_by_mobile(self, mobile_number):
         person_information = self._search_by_mobile(mobile_number)
         if not person_information or person_information['nin'] is None:

@@ -11,9 +11,10 @@ README = 'eduID Lookup Mobile'
 if os.path.exists(README_fn):
     README = open(README_fn).read()
 
-version = '0.0.3-dev'
+version = '0.0.4b'
 
 install_requires = [
+    'eduid-userdb >= 0.0.2',
     'celery >= 3.1.9',
     'suds-jurko >= 0.6',
     'phonenumbers >= 7.0.2'
