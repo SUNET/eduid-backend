@@ -4,9 +4,8 @@ from celery import Celery
 from celery.signals import celeryd_init
 from eduid_lookup_mobile import config
 
-
 app = Celery('eduid_lookup_mobile.celery', include=['eduid_lookup_mobile.tasks'], backend='amqp')
-celery.conf.update(read_configuration())
+app.conf.update(config.read_configuration())
 
 
 # This signal is only emited when run as a worker
