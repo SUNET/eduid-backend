@@ -32,6 +32,8 @@ class MobileLookupClient:
 
         if 'MONGO_URI' in self.conf:
             self.MONGODB_URI = self.conf['MONGO_URI']
+        if 'transaction_audit' in self.conf and self.conf['transaction_audit'] == 'true':
+            TransactionAudit.enable()
 
         #self.client = Client(self.DEFAULT_CLIENT_URL, plugins=[LogPlugin()])
         self.client = Client(self.DEFAULT_CLIENT_URL)
