@@ -15,7 +15,9 @@ class TransactionAudit(object):
     enabled = False
 
     def __init__(self, db_uri, collection_name='transaction_audit'):
-        self.collection = MongoDB(db_uri).get_collection(collection_name)
+        self.db_uri = db_uri
+        self.collection_name = collection_name
+        self.collection = None
 
     def __call__(self, f):
         if not self.enabled:
@@ -30,6 +32,9 @@ class TransactionAudit(object):
                        'created_at': date}
                 self.collection.insert(doc)
             return ret
+        if self.collection is None:
+            # Do not initialize the db connection before we know the decorator is actually enabled
+            self.collection = MongoDB(self.db_uri).get_collection(self.collection_name)
         return audit
 
     @classmethod
