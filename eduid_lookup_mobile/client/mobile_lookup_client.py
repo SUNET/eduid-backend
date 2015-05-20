@@ -16,7 +16,7 @@ class LogPlugin(MessagePlugin):
 
 
 class MobileLookupClient:
-    conf = config.read_configuration()
+
     DEFAULT_CLIENT_URL = 'http://api.teleadress.se/WSDL/nnapiwebservice.wsdl'
     DEFAULT_CLIENT_PORT = 'NNAPIWebServiceSoap'
     DEFAULT_CLIENT_PERSON_CLASS = 'ns7:FindPersonClass'
@@ -25,9 +25,14 @@ class MobileLookupClient:
     DEFAULT_MONGODB_PORT = 27017
     DEFAULT_MONGODB_NAME = 'eduid_mobile_lookup'
     DEFAULT_MONGODB_URI = 'mongodb://%s:%d/%s' % (DEFAULT_MONGODB_HOST, DEFAULT_MONGODB_PORT, DEFAULT_MONGODB_NAME)
-    MONGODB_URI = conf['MONGO_URI'] if 'MONGO_URI' in conf else DEFAULT_MONGODB_URI
+    MONGODB_URI = DEFAULT_MONGODB_URI
 
-    def __init__(self, logger):
+    def __init__(self, logger, config_filename=None):
+        self.conf = config.read_configuration(filename=config_filename)
+
+        if 'MONGO_URI' in self.conf:
+            self.MONGODB_URI = self.conf['MONGO_URI']
+
         #self.client = Client(self.DEFAULT_CLIENT_URL, plugins=[LogPlugin()])
         self.client = Client(self.DEFAULT_CLIENT_URL)
         self.client.set_options(port=self.DEFAULT_CLIENT_PORT)

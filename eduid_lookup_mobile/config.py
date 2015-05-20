@@ -32,12 +32,28 @@ def get_config_file(file_name):
     #     return test_file
 
 
-def read_configuration():
-    """Read the settings from environment or .ini file and return them as a dict"""
+def read_configuration(filename=None):
+    """
+    Read the settings from environment or .ini file and return them as a dict
+
+    If filename is not given, environment variable EDUID_LOOKUP_MOBILE_CONFIG
+    is consulted and if that is not set, DEFAULT_CONFIG_FILE_NAME is used.
+
+    :param filename: Explicit filename of config to load.
+    :type filename: str or None
+
+    :return: Configuration
+    :rtype: dict
+    """
     settings = {}
     # Add config and passwords optionally from second config file
-    cfg_fn = os.environ.get('EDUID_LOOKUP_MOBILE_CONFIG', DEFAULT_CONFIG_FILE_NAME)
+    if filename is None:
+        cfg_fn = os.environ.get('EDUID_LOOKUP_MOBILE_CONFIG', DEFAULT_CONFIG_FILE_NAME)
+    else:
+        cfg_fn = filename
     for fn in [cfg_fn, DEFAULT_PASSWORD_FILE_NAME]:
+        import sys
+        sys.stderr.write("READING FILE {!r}\n".format(fn))
         config_file = get_config_file(fn)
         if config_file is not None:
             config = ConfigParser.RawConfigParser()
