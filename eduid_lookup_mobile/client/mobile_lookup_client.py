@@ -30,8 +30,8 @@ class MobileLookupClient:
     def __init__(self, logger, config_filename=None):
         self.conf = config.read_configuration(filename=config_filename)
 
-        if 'MONGO_URI' in self.conf:
-            self.MONGODB_URI = self.conf['MONGO_URI']
+        if 'mongo_uri' in self.conf:
+            self.MONGODB_URI = self.conf['mongo_uri']
         if 'transaction_audit' in self.conf and self.conf['transaction_audit'] == 'true':
             TransactionAudit.enable()
 
