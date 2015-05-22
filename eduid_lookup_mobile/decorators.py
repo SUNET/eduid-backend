@@ -13,9 +13,9 @@ from datetime import datetime
 
 class TransactionAudit(object):
     enabled = False
+    db_uri = None
 
-    def __init__(self, db_uri, collection_name='transaction_audit'):
-        self.db_uri = db_uri
+    def __init__(self, collection_name='transaction_audit'):
         self.collection_name = collection_name
         self.collection = None
 

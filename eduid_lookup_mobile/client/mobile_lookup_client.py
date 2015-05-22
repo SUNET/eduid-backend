@@ -21,18 +21,12 @@ class MobileLookupClient:
     DEFAULT_CLIENT_PORT = 'NNAPIWebServiceSoap'
     DEFAULT_CLIENT_PERSON_CLASS = 'ns7:FindPersonClass'
 
-    DEFAULT_MONGODB_HOST = 'localhost'
-    DEFAULT_MONGODB_PORT = 27017
-    DEFAULT_MONGODB_NAME = 'eduid_mobile_lookup'
-    DEFAULT_MONGODB_URI = 'mongodb://%s:%d/%s' % (DEFAULT_MONGODB_HOST, DEFAULT_MONGODB_PORT, DEFAULT_MONGODB_NAME)
-    MONGODB_URI = DEFAULT_MONGODB_URI
-
     def __init__(self, logger, config_filename=None):
         self.conf = config.read_configuration(filename=config_filename)
 
-        if 'mongo_uri' in self.conf:
-            self.MONGODB_URI = self.conf['mongo_uri']
-        if 'transaction_audit' in self.conf and self.conf['transaction_audit'] == 'true':
+        if 'MONGO_URI' in self.conf:
+            TransactionAudit.db_uri = self.conf['MONGO_URI']
+        if 'TRANSACTION_AUDIT' in self.conf and self.conf['TRANSACTION_AUDIT'] == 'true':
             TransactionAudit.enable()
 
         #self.client = Client(self.DEFAULT_CLIENT_URL, plugins=[LogPlugin()])
@@ -43,7 +37,7 @@ class MobileLookupClient:
         self.DEFAULT_CLIENT_PASSWORD = unicode(self.conf['TELEADRESS_CLIENT_PASSWORD'])
         self.DEFAULT_CLIENT_USER = unicode(self.conf['TELEADRESS_CLIENT_USER'])
 
-    @TransactionAudit(MONGODB_URI)
+    @TransactionAudit()
     def find_mobiles_by_NIN(self, national_identity_number, number_region=None):
         national_identity_number = format_NIN(national_identity_number)
         person_information = self._search_by_SSNo(national_identity_number)
@@ -55,7 +49,7 @@ class MobileLookupClient:
         person_information['Mobiles'] = format_mobile_number(person_information['Mobiles'], number_region)
         return person_information['Mobiles']
 
-    @TransactionAudit(MONGODB_URI)
+    @TransactionAudit()
     def find_NIN_by_mobile(self, mobile_number):
         person_information = self._search_by_mobile(mobile_number)
         if not person_information or person_information['nin'] is None:

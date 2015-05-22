@@ -15,10 +15,11 @@ class TestTransactionAudit(unittest.TestCase):
         self.conn = self.tmp_db.conn
         self.port = self.tmp_db.port
         self.MONGO_URI = self.tmp_db.get_uri(self.db_name)
+        TransactionAudit.db_uri = self.MONGO_URI
         TransactionAudit.enable()
 
     def test_successfull_transaction_audit(self):
-        @TransactionAudit(self.MONGO_URI)
+        @TransactionAudit()
         def find_mobiles_by_NIN(self, national_identity_number, number_region=None):
             return ['list', 'of', 'mobile_numbers']
         find_mobiles_by_NIN(self, '200202025678')
@@ -31,7 +32,7 @@ class TestTransactionAudit(unittest.TestCase):
         self.assertTrue(hit['data']['success'])
         c.remove()  # Clear database
 
-        @TransactionAudit(self.MONGO_URI)
+        @TransactionAudit()
         def find_NIN_by_mobile(self, mobile_number):
             return '200202025678'
         find_NIN_by_mobile(self, '+46700011222')
@@ -45,7 +46,7 @@ class TestTransactionAudit(unittest.TestCase):
         c.remove()  # Clear database
 
     def test_failed_transaction_audit(self):
-        @TransactionAudit(self.MONGO_URI)
+        @TransactionAudit()
         def find_mobiles_by_NIN(self, national_identity_number, number_region=None):
             return []
         find_mobiles_by_NIN(self, '200202025678')
@@ -56,7 +57,7 @@ class TestTransactionAudit(unittest.TestCase):
         self.assertFalse(result.next()['data']['success'])
         c.remove()  # Clear database
 
-        @TransactionAudit(self.MONGO_URI)
+        @TransactionAudit()
         def find_NIN_by_mobile(self, mobile_number):
             return
         find_NIN_by_mobile(self, '+46700011222')
@@ -73,7 +74,7 @@ class TestTransactionAudit(unittest.TestCase):
         c.remove()  # Clear database
         TransactionAudit.disable()
 
-        @TransactionAudit(self.MONGO_URI)
+        @TransactionAudit()
         def no_name():
             return {'baka': 'kaka'}
         no_name()
@@ -83,7 +84,7 @@ class TestTransactionAudit(unittest.TestCase):
 
         TransactionAudit.enable()
 
-        @TransactionAudit(self.MONGO_URI)
+        @TransactionAudit()
         def no_name2():
             return {'baka': 'kaka'}
         no_name2()
