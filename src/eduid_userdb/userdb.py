@@ -171,12 +171,6 @@ class UserDB(object):
             raise MultipleUsersReturned("Multiple matching users for %s='%s'" % (attr, value))
         return docs[0]
 
-    def in_sync(self, user):
-        central_user = self.get_user_by_id(user.user_id)
-        if central_user.modified_ts == user.modified_ts:
-            return True
-        return False
-
     def save(self, user, check_sync=True, old_format=False):
         """
 
