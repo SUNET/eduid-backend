@@ -52,8 +52,6 @@ def read_configuration(filename=None):
     else:
         cfg_fn = filename
     for fn in [cfg_fn, DEFAULT_PASSWORD_FILE_NAME]:
-        import sys
-        sys.stderr.write("READING FILE {!r}\n".format(fn))
         config_file = get_config_file(fn)
         if config_file is not None:
             config = ConfigParser.RawConfigParser()
