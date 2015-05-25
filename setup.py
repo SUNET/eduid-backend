@@ -11,7 +11,7 @@ README = 'eduID Lookup Mobile'
 if os.path.exists(README_fn):
     README = open(README_fn).read()
 
-version = '0.0.5b0'
+version = '0.0.5'
 
 install_requires = [
     'eduid-userdb >= 0.0.2',
