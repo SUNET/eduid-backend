@@ -14,9 +14,8 @@ class TestTransactionAudit(unittest.TestCase):
         self.tmp_db = MongoTemporaryInstance.get_instance()
         self.conn = self.tmp_db.conn
         self.port = self.tmp_db.port
-        self.MONGO_URI = self.tmp_db.get_uri(self.db_name)
-        TransactionAudit.db_uri = self.MONGO_URI
-        TransactionAudit.enable()
+        self.mongo_uri = self.tmp_db.get_uri(self.db_name)
+        self.transaction_audit = True
 
     def test_successfull_transaction_audit(self):
         @TransactionAudit()
@@ -29,7 +28,7 @@ class TestTransactionAudit(unittest.TestCase):
         self.assertEquals(result.count(), 1)
         hit = result.next()
         self.assertEquals(hit['data']['national_identity_number'], '200202025678')
-        self.assertTrue(hit['data']['success'])
+        self.assertTrue(hit['data']['data_returned'])
         c.remove()  # Clear database
 
         @TransactionAudit()
@@ -42,7 +41,7 @@ class TestTransactionAudit(unittest.TestCase):
         self.assertEquals(result.count(), 1)
         hit = result.next()
         self.assertEquals(hit['data']['mobile_number'], '+46700011222')
-        self.assertTrue(hit['data']['success'])
+        self.assertTrue(hit['data']['data_returned'])
         c.remove()  # Clear database
 
     def test_failed_transaction_audit(self):
@@ -54,7 +53,7 @@ class TestTransactionAudit(unittest.TestCase):
         c = db['transaction_audit']
         result = c.find()
         self.assertEquals(result.count(), 1)
-        self.assertFalse(result.next()['data']['success'])
+        self.assertFalse(result.next()['data']['data_returned'])
         c.remove()  # Clear database
 
         @TransactionAudit()
@@ -65,7 +64,7 @@ class TestTransactionAudit(unittest.TestCase):
         c = db['transaction_audit']
         result = c.find()
         self.assertEquals(result.count(), 1)
-        self.assertFalse(result.next()['data']['success'])
+        self.assertFalse(result.next()['data']['data_returned'])
         c.remove()  # Clear database
 
     def test_transaction_audit_toggle(self):
@@ -75,9 +74,9 @@ class TestTransactionAudit(unittest.TestCase):
         TransactionAudit.disable()
 
         @TransactionAudit()
-        def no_name():
+        def no_name(self):
             return {'baka': 'kaka'}
-        no_name()
+        no_name(self)
 
         result = c.find()
         self.assertEquals(result.count(), 0)
@@ -85,8 +84,8 @@ class TestTransactionAudit(unittest.TestCase):
         TransactionAudit.enable()
 
         @TransactionAudit()
-        def no_name2():
+        def no_name2(self):
             return {'baka': 'kaka'}
-        no_name2()
+        no_name2(self)
         result = c.find()
         self.assertEquals(result.count(), 1)
