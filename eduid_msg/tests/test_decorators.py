@@ -40,9 +40,9 @@ class TestTransactionAudit(MongoTestCase):
         self.assertEquals(result.next()['data']['baka'], 'kaka')
 
         @TransactionAudit(celery.conf.get('MONGO_URI'), db_name='test')
-        def get_postal_address(arg1, arg2):
+        def _get_navet_data(arg1, arg2):
             return {'baka', 'kaka'}
-        get_postal_address('dummy', '1111')
+        _get_navet_data('dummy', '1111')
         result = c.find_one({'data': {'identity_number': '1111'}})
         self.assertEquals(result['data']['identity_number'], '1111')
 
