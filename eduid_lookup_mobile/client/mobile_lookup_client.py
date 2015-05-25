@@ -14,20 +14,21 @@ class LogPlugin(MessagePlugin):
     def received(self, context):
         print(str(context.reply))
 
-
 class MobileLookupClient:
 
     DEFAULT_CLIENT_URL = 'http://api.teleadress.se/WSDL/nnapiwebservice.wsdl'
     DEFAULT_CLIENT_PORT = 'NNAPIWebServiceSoap'
     DEFAULT_CLIENT_PERSON_CLASS = 'ns7:FindPersonClass'
+    mongo_uri = None
+    transaction_audit = False
 
     def __init__(self, logger, config_filename=None):
         self.conf = config.read_configuration(filename=config_filename)
 
         if 'MONGO_URI' in self.conf:
-            TransactionAudit.db_uri = self.conf['MONGO_URI']
+            self.mongo_uri = self.conf['MONGO_URI']
         if 'TRANSACTION_AUDIT' in self.conf and self.conf['TRANSACTION_AUDIT'] == 'true':
-            TransactionAudit.enable()
+            self.transaction_audit = True
 
         #self.client = Client(self.DEFAULT_CLIENT_URL, plugins=[LogPlugin()])
         self.client = Client(self.DEFAULT_CLIENT_URL)

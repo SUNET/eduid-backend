@@ -12,7 +12,7 @@ from datetime import datetime
 
 
 class TransactionAudit(object):
-    enabled = False
+    enabled = True
     db_uri = None
 
     def __init__(self, collection_name='transaction_audit'):
@@ -20,21 +20,28 @@ class TransactionAudit(object):
         self.collection = None
 
     def __call__(self, f):
+
         if not self.enabled:
             return f
 
         def audit(*args, **kwargs):
             ret = f(*args, **kwargs)
-            if not isclass(ret):  # we can't save class objects in mongodb
-                date = datetime.utcnow()
-                doc = {'function': f.__name__,
-                       'data': self._filter(f.__name__, ret, *args, **kwargs),
-                       'created_at': date}
-                self.collection.insert(doc)
+            # XXX Ugly hack
+            # The class that uses the decorator needs to have self.mongo_uri  and self.transaction_audit set
+            # args[0] is wrapped methods self.
+            self.enabled = args[0].transaction_audit
+            if self.enabled:
+                if self.collection is None:
+                    self.db_uri = args[0].mongo_uri
+                    # Do not initialize the db connection before we know the decorator is actually enabled
+                    self.collection = MongoDB(self.db_uri).get_collection(self.collection_name)
+                if not isclass(ret):  # we can't save class objects in mongodb
+                    date = datetime.utcnow()
+                    doc = {'function': f.__name__,
+                           'data': self._filter(f.__name__, ret, *args, **kwargs),
+                           'created_at': date}
+                    self.collection.insert(doc)
             return ret
-        if self.collection is None:
-            # Do not initialize the db connection before we know the decorator is actually enabled
-            self.collection = MongoDB(self.db_uri).get_collection(self.collection_name)
         return audit
 
     @classmethod
@@ -52,8 +59,8 @@ class TransactionAudit(object):
             number_region = None
             if len(args) == 3:
                 number_region = args[2]
-            return {'national_identity_number': args[1], 'number_region': number_region, 'success': bool(data)}
+            return {'national_identity_number': args[1], 'number_region': number_region, 'data_returned': bool(data)}
         elif func == 'find_NIN_by_mobile':
-            return {'mobile_number': args[1], 'success': bool(data)}
+            return {'mobile_number': args[1], 'data_returned': bool(data)}
         return data
 
