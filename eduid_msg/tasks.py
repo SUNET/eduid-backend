@@ -190,7 +190,7 @@ class MessageRelay(Task):
             LOG.debug("Sending SMS to '%s' using template '%s' and language '%s" % (recipient, template, language))
             status = self.sms.send(msg, self._sender, recipient, prio=2)
         elif message_type == 'mm':
-            LOG.debug("Sending MM to '%s' using language '%s" % (recipient, language))
+            LOG.debug("Sending MM to '%s' using language '%s'" % (recipient, language))
             reachable = self.is_reachable(recipient)
 
             if reachable is not True:
@@ -200,7 +200,7 @@ class MessageRelay(Task):
             if subject is None:
                 subject = conf.get("MM_DEFAULT_SUBJECT")
 
-            status = self._send_mm_message(recipient, subject, 'text/html', language.translate(None, '_'), msg)
+            status = self._send_mm_message(recipient, subject, 'text/html', language.replace('_', ''), msg)
 
         return status
 
