@@ -18,8 +18,8 @@ from eduid_am.userdb import UserDB
 from eduid_am.user import User
 
 
-MONGO_URI_AM_TEST = 'mongodb://localhost:27017/eduid_am_test'
-MONGO_URI_TEST = 'mongodb://localhost:27017/eduid_dashboard_test'
+MONGO_URI_AM_TEST = 'mongodb://localhost:%d/am'
+MONGO_URI_TEST = 'mongodb://localhost:%d/dashboard'
 
 MOCKED_USER_STANDARD = {
     '_id': ObjectId('012345678901234567890123'),
@@ -169,7 +169,6 @@ class MongoTemporaryInstance(object):
                                           '--nojournal', '--nohttpinterface',
                                           '--noauth', '--smallfiles',
                                           '--syncdelay', '0',
-                                          '--maxConns', '10',
                                           '--nssize', '1', ],
                                          stdout=open(os.devnull, 'wb'),
                                          stderr=subprocess.STDOUT)
@@ -272,4 +271,13 @@ class MongoTestCase(unittest.TestCase):
 
     def tearDown(self):
         super(MongoTestCase, self).tearDown()
-        self.amdb.attributes.drop()
+        for db_name in self.conn.database_names():
+            if db_name == 'local':
+                continue
+            db = self.conn[db_name]
+            for col_name in db.collection_names():
+                if 'system' not in col_name:
+                    db.drop_collection(col_name)
+            del db
+            self.conn.drop_database(db_name)
+        self.conn.disconnect()
