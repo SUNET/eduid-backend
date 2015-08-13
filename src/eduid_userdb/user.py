@@ -125,6 +125,9 @@ class User(object):
     def __repr__(self):
         return '<eduID User: {!s}/{!s}>'.format(self.eppn, self.user_id)
 
+    def __eq__(self, other):
+        return self._data == other._data
+
     # -----------------------------------------------------------------
     @property
     def user_id(self):
