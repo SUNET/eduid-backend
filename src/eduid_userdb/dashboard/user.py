@@ -187,6 +187,8 @@ class DashboardLegacyUser(object):
 
         :return: bson.ObjectId
         '''
+        if not '_id' in self._mongo_doc:
+            raise UserDBValueError('No user_id in user')
         return self._mongo_doc['_id']
 
     def get_preferred_language(self):
