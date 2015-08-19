@@ -1,6 +1,5 @@
 import os
 import os.path
-import simplejson as json
 import ConfigParser
 
 
