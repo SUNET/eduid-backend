@@ -8,6 +8,7 @@ from eduid_userdb.db import MongoDB, DEFAULT_MONGODB_URI
 
 
 celery = Celery('eduid_am.celery', backend='amqp', include=['eduid_am.tasks'])
+celery.conf.update(read_configuration())
 
 
 # This signal is only emited when run as a worker
