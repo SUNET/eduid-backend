@@ -2,13 +2,56 @@ __author__ = 'leifj'
 
 from eduid_am.celery import celery, get_attribute_manager
 from eduid_am.tasks import update_attributes
-from eduid_am.testing import MongoTestCase
+from eduid_userdb.testing import MongoTestCase
 from bson import ObjectId
+
+import eduid_userdb
+
+from eduid_userdb.exceptions import UserDoesNotExist
+
+
+class AmTestUser(eduid_userdb.User):
+    """
+    User class for the 'test' plugin below.
+    """
+    def __init__(self, data):
+        self.uid = data.pop('uid', None)
+
+        eduid_userdb.User.__init__(self, data = data)
+
+    def to_dict(self, old_userdb_format=False):
+        res = eduid_userdb.User.to_dict(self, old_userdb_format=old_userdb_format)
+        res['uid'] = self.uid
+        return res
+
+
+class AmTestUserDb(eduid_userdb.UserDB):
+    """
+    UserDB for the 'test' plugin below.
+    """
+    UserClass = AmTestUser
 
 
 def plugin(db, user_id):
-    doc = db['user'].find_one({'_id': ObjectId(user_id)})
-    return {'eppn': "%s@eduid.se" % doc['uid']}
+    """
+    A small fake attribute manager plugin that reads a user and sets the 'eppn'
+    attribute to one based on the users _id.
+
+    :param db: User database
+    :param user_id: Unique identifier
+    :type db: AmTestUserDb
+    :type user_id: ObjectId
+
+    :return: update dict
+    :rtype: dict
+    """
+    assert isinstance(db, AmTestUserDb)
+
+    user = db.get_user_by_id(user_id)
+    if user is None:
+        raise UserDoesNotExist("No user matching _id='%s'" % user_id)
+
+    return {'eduPersonPrincipalName': "%s@eduid.se" % user.uid}
 
 
 class MessageTest(MongoTestCase):
@@ -16,6 +59,8 @@ class MessageTest(MongoTestCase):
     This testcase sets up an AttributeManager instance and sends a message to an internally defined plugin that
     transforms 'uid' to its urn:oid representation.
     """
+    def setUp(self):
+        super(MessageTest, self).setUp(celery, get_attribute_manager)
 
     def testMessage(self):
         """
@@ -37,17 +82,24 @@ class MessageTest(MongoTestCase):
         celery.conf.update(settings)
         am = get_attribute_manager(celery)
 
+        test_db_uri = self.tmp_db.get_uri('eduid_am_test_userdb')
+        test_userdb = AmTestUserDb(db_uri = test_db_uri)
+
+        am.userdbs['test'] = test_userdb
+
         am.registry.update(test=plugin)
 
-        db = am.conn.get_database('test')
+        db = self.tmp_db.conn['test']
 
         _id = ObjectId()
-        assert(db['user'].insert({'_id': _id, 'uid': 'vlindeman'}) == _id)
+        userdoc = {'_id': _id,
+                   'eduPersonPrincipalName': 'foo-bar',
+                   'uid': 'vlindeman',
+                   }
+        test_user = AmTestUser(userdoc)
+        test_userdb.save(test_user)
 
         update_attributes.delay(app_name='test', obj_id = _id)
 
-        adb = am.conn.get_database(settings['MONGO_DBNAME'])
-        attrs = adb['attributes'].find_one({'_id': _id})
-        assert(attrs['eppn'] == 'vlindeman@eduid.se')
-        user = am.get_user_by_field('eppn', 'vlindeman@eduid.se')
-        assert(user['_id'] == attrs['_id'])
+        am_user = self.amdb.get_user_by_id(_id)
+        self.assertEqual(am_user.eppn, 'vlindeman@eduid.se')
