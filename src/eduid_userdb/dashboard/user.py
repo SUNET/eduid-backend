@@ -344,6 +344,8 @@ class DashboardLegacyUser(object):
         '''
         Pick one email address from the user's list
         and set it as verified.
+        If it is the only email address the user has,
+        set it as the user's primary address.
 
         :param verified_email: the verified address
         :type verified_email: str
@@ -352,6 +354,8 @@ class DashboardLegacyUser(object):
         for email in emails:
             if email['email'] == verified_email:
                 email['verified'] = True
+                if len(emails) == 1:
+                    self.set_mail(email['email'])
 
     def get_nins(self):
         '''
