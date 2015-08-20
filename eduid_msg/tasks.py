@@ -4,16 +4,13 @@ from __future__ import absolute_import
 from celery import Task
 from celery.utils.log import get_task_logger
 from celery.task import periodic_task, task
-from smscom import SMSClient
 from eduid_msg.celery import celery
 from eduid_msg.cache import CacheMDB
 from eduid_msg.utils import load_template
 from eduid_msg.decorators import TransactionAudit
 from eduid_msg.config import read_configuration
-from eduid_am.db import MongoDB
 from time import time
 from datetime import datetime, timedelta
-from pynavet.postaladdress import PostalAddress
 from hammock import Hammock
 import json
 
@@ -56,6 +53,8 @@ class MessageRelay(Task):
     @property
     def sms(self):
         if self._sms is None:
+            from smscom import SMSClient
+
             self._sms = SMSClient(self.app.conf.get("SMS_ACC"), self.app.conf.get("SMS_KEY"))
             self._sender = self.app.conf.get("SMS_SENDER")
         return self._sms
@@ -75,6 +74,8 @@ class MessageRelay(Task):
     @property
     def navet(self):
         if self._navet is None:
+            from pynavet.postaladdress import PostalAddress
+
             conf = self.app.conf
             debug = conf.get("DEVEL_MODE") == 'true' or conf.get("DEBUG") == 'true'
             self._navet = PostalAddress(cert=conf.get("MM_CERT_FILE"),
@@ -312,6 +313,8 @@ class MessageRelay(Task):
         return self.navet.get_all_data(identity_number)
 
     def set_audit_log_postal_address(self, audit_reference):
+        from eduid_userdb import MongoDB
+
         conn = MongoDB(self.MONGODB_URI)
         db = conn.get_database(TRANSACTION_AUDIT_DB)
         log_entry = db[TRANSACTION_AUDIT_COLLECTION].find_one({'data.audit_reference': audit_reference})

@@ -4,13 +4,14 @@ This module provides utility functions.
 """
 
 import os
-from jinja2 import Environment, FileSystemLoader
 
 
 def load_template(template_dir, filename, message_dict, lang):
     """
     This function loads a template file by provided language.
     """
+    from jinja2 import Environment, FileSystemLoader
+
     if not isinstance(template_dir, basestring):
         return False
     if not os.path.isdir(template_dir):
