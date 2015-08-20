@@ -272,7 +272,7 @@ class MongoTestCase(unittest.TestCase):
     """TestCase with an embedded MongoDB temporary instance.
 
     Each test runs on a temporary instance of MongoDB. The instance will
-    be listen in a random port between 40000 and 5000.
+    be listen in a random port between 40000 and 50000.
 
     A test can access the connection using the attribute `conn`.
     A test can access the port using the attribute `port`
@@ -360,5 +360,6 @@ class MongoTestCase(unittest.TestCase):
             assert User(userdoc)
         self.amdb._drop_whole_collection()
 
-    def mongodb_uri(self, dbname=None):
+    def mongodb_uri(self, dbname):
+        self.assertIsNotNone(dbname)
         return self.tmp_db.get_uri(dbname=dbname)
