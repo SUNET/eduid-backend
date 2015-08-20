@@ -51,6 +51,7 @@ class UserDB(object):
     def __init__(self, db_uri, collection='userdb'):
 
         self._db_uri = db_uri
+        self._coll_name = collection
         self._db = MongoDB(db_uri)
         self._coll = self._db.get_collection(collection)
         logger.debug("{!s} UserDB connected to {!s} {!r} / {!s})".format(
@@ -60,7 +61,7 @@ class UserDB(object):
         self.exceptions = eduid_userdb.exceptions
 
     def __repr__(self):
-        return '<eduID UserDB: {!s}>'.format(self._db_uri)
+        return '<eduID UserDB: {!s} {!r} / {!s}>'.format(self._db_uri, self._coll_name, self._coll)
 
     def get_user_by_id(self, user_id):
         """
