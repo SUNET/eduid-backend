@@ -61,7 +61,8 @@ class UserDB(object):
         self.exceptions = eduid_userdb.exceptions
 
     def __repr__(self):
-        return '<eduID UserDB: {!s} {!r} / {!s}>'.format(self._db_uri, self._coll_name, self._coll)
+        return '<eduID UserDB: {!s} {!r} (class {!s})>'.format(self._db_uri, self._coll_name,
+                                                               type(self.UserClass).__name__)
 
     def get_user_by_id(self, user_id):
         """
