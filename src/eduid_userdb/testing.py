@@ -358,7 +358,17 @@ class MongoTestCase(unittest.TestCase):
         super(MongoTestCase, self).tearDown()
         for userdoc in self.amdb._get_all_userdocs():
             assert User(userdoc)
+        for db_name in self.conn.database_names():
+            if db_name == 'local':
+                continue
+            db = self.conn[db_name]
+            for col_name in db.collection_names():
+                if 'system' not in col_name:
+                    db.drop_collection(col_name)
+            del db
+            self.conn.drop_database(db_name)
         self.amdb._drop_whole_collection()
+        self.conn.disconnect()
 
     def mongodb_uri(self, dbname):
         self.assertIsNotNone(dbname)
