@@ -258,7 +258,7 @@ class MongoTemporaryInstance(object):
             self._process = None
             #shutil.rmtree(self._tmpdir, ignore_errors=True)
 
-    def get_uri(self, dbname=''):
+    def get_uri(self, dbname):
         """
         Convenience function to get a mongodb URI to the temporary database.
 
@@ -317,7 +317,7 @@ class MongoTestCase(unittest.TestCase):
             'CELERY_ALWAYS_EAGER': True,
             'CELERY_RESULT_BACKEND': "cache",
             'CELERY_CACHE_BACKEND': 'memory',
-            'MONGO_URI': self.tmp_db.get_uri(),
+            #'MONGO_URI': self.tmp_db.get_uri(''),
             'MONGO_DBNAME': 'eduid_userdb',
         }
 
@@ -339,7 +339,7 @@ class MongoTestCase(unittest.TestCase):
 
         # Be sure to tell AttributeManager.get_userdb() about the temporary
         # mongodb instance.
-        self.am.default_db_uri = self.tmp_db.get_uri()
+        self.am.default_db_uri = mongo_settings['mongo_uri_am']
         self.amdb = self.am.get_userdb('default')
 
         self.initial_verifications = (getattr(self, 'initial_verifications', None)
