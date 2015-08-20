@@ -1,4 +1,4 @@
-from eduid_am.db import MongoDB
+from eduid_userdb.db import MongoDB
 from datetime import datetime
 from time import time
 
