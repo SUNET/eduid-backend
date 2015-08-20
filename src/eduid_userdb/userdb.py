@@ -50,6 +50,7 @@ class UserDB(object):
 
     def __init__(self, db_uri, collection='userdb'):
 
+        self._db_uri = db_uri
         self._db = MongoDB(db_uri)
         self._coll = self._db.get_collection(collection)
         logger.debug("{!s} UserDB connected to {!s} {!r} / {!s})".format(
@@ -57,6 +58,9 @@ class UserDB(object):
         # XXX Backwards compatibility.
         # Was: provide access to our backends exceptions to users of this class
         self.exceptions = eduid_userdb.exceptions
+
+    def __repr__(self):
+        return '<eduID UserDB: {!s}>'.format(self._db_uri)
 
     def get_user_by_id(self, user_id):
         """
