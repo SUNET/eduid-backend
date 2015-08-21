@@ -87,6 +87,9 @@ MOCKED_USER_STANDARD = {
     }, {
         'mobile': '+34 6096096096',
         'verified': False
+    }, {
+        'mobile': '+34607507507',
+        'verified': True
     }],
     'mail': 'johnsmith@example.com',
     'mailAliases': [{
