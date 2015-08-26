@@ -52,22 +52,18 @@ class DashboardUserDB(UserDB):
         super(DashboardUserDB, self).save(user, check_sync=check_sync, old_format=old_format)
 
 
-class DashboardOldUserDB(UserDB):
+class DashboardOldUserDB(DashboardUserDB):
 
     UserClass = OldUser
 
-    def __init__(self, db_uri, collection='profiles'):
-        UserDB.__init__(self, db_uri, collection)
 
-
+# Wrapper for the central userdb, for now eduid_am.attributes
 class UserDBWrapper(UserDB):
 
     UserClass = OldUser
 
-    def get_user(self, email):
-        # XXX remove logging
-        logger.debug("GET USER {!r}".format(email))
-        return self.get_user_by_mail(email)
+    def __init__(self, db_uri, collection='attributes'):
+        UserDB.__init__(self, db_uri, collection)
 
     def get_user_by_oid(self, oid):
         # renamed method in UserDB

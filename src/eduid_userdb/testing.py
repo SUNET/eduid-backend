@@ -342,7 +342,7 @@ class MongoTestCase(unittest.TestCase):
 
         # Be sure to tell AttributeManager.get_userdb() about the temporary
         # mongodb instance.
-        self.am.default_db_uri = mongo_settings['mongo_uri_am']
+        self.am.default_db_uri = self.settings['mongo_uri_am']
         self.amdb = self.am.get_userdb('default')
 
         self.initial_verifications = (getattr(self, 'initial_verifications', None)
