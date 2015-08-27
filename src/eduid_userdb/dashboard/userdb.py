@@ -34,7 +34,7 @@ __author__ = 'ft'
 
 from eduid_userdb import UserDB, User
 from eduid_userdb.dashboard import DashboardUser
-from eduid_userdb.dashboard import DashboardLegacyUser as OldUser
+from eduid_userdb.dashboard import DashboardLegacyUser
 
 import logging
 logger = logging.getLogger('eduiddashboard')
@@ -54,7 +54,7 @@ class DashboardUserDB(UserDB):
 
 class DashboardOldUserDB(UserDB):
 
-    UserClass = OldUser
+    UserClass = DashboardLegacyUser
 
     def __init__(self, db_uri, collection='profiles'):
         UserDB.__init__(self, db_uri, collection)
@@ -62,7 +62,7 @@ class DashboardOldUserDB(UserDB):
 
 class UserDBWrapper(UserDB):
 
-    UserClass = OldUser
+    UserClass = DashboardLegacyUser
 
     def get_user(self, email):
         # XXX remove logging
@@ -131,7 +131,7 @@ class UserDBWrapper(UserDB):
         return self.exists_by_filter({field: value})
 
     def save(self, user, check_sync=True, old_format=True):
-        if isinstance(user, OldUser):
+        if isinstance(user, DashboardLegacyUser):
             user = User(data = user._mongo_doc)
         UserDB.save(self, user, check_sync, old_format)
 
