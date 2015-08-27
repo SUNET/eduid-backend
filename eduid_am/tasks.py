@@ -17,15 +17,26 @@ logger = get_task_logger(__name__)
 USERDBS = {}
 
 
-class PluginsRegistry(dict):
+class PluginsRegistry(object):
 
-    def __init__(self):
+    def __init__(self, db_uri, am_conf):
+        self.context = dict()
+        self.attribute_fetcher = dict()
+
+        for entry_point in iter_entry_points('eduid_am.plugin_init'):
+            if entry_point.name in self.context:
+                logger.warn("Duplicate plugin_init entry point: {}".format(entry_point.name))
+            else:
+                logger.debug("Calling plugin_init entry point: {}".format(entry_point.name))
+                plugin_init = entry_point.load()
+                self.context[entry_point.name] = plugin_init(db_uri, am_conf)
+
         for entry_point in iter_entry_points('eduid_am.attribute_fetcher'):
-            if entry_point.name in self:
+            if entry_point.name in self.attribute_fetcher:
                 logger.warn("Duplicate entry point: %s" % entry_point.name)
             else:
                 logger.debug("Registering entry point: %s" % entry_point.name)
-                self[entry_point.name] = entry_point.load()
+                self.attribute_fetcher[entry_point.name] = entry_point.load()
 
 
 class AttributeManager(Task):
@@ -33,8 +44,6 @@ class AttributeManager(Task):
     or the MongoDB database."""
 
     abstract = True  # This means Celery won't register this as another task
-    registry = PluginsRegistry()
-    #_conn = None
 
     def __init__(self, db_uri=None):
         """
@@ -44,38 +53,15 @@ class AttributeManager(Task):
             db_uri = self.app.conf.get('MONGO_URI', DEFAULT_MONGODB_URI)
         # When testing, the default_db_uri can be overridden with a path to a temporary MongoDB instance.
         self.default_db_uri = db_uri
-        self.userdbs = dict()
 
-    def get_userdb(self, application):
-        """
-        Get the UserDB for an application.
+        _collection = 'userdb'
+        # Hack to get right collection name while the configuration points to the old database
+        if self.default_db_uri.endswith('/eduid_am'):
+            _collection = 'attributes'
+        # self.userdb is the UserDB to which AM will write the updated users
+        self.userdb = UserDB(self.default_db_uri, collection=_collection)
 
-        The 'default' application is where AM will save updated users.
-
-        Expected results:
-
-          'default': UserDB()
-          'eduid_signup': SignupUserDB()
-          ...
-        """
-        if application in self.userdbs:
-            res = self.userdbs[application]
-            logger.debug("Using previously initialized userdb for application {!r}: {!r}".format(application, res))
-        elif application in USERDBS:
-            res = USERDBS[application]
-            logger.debug("Using global default userdb for application {!r}: {!r}".format(application, res))
-        elif application == 'default':
-            collection = 'userdb'
-            # Hack to get right collection name while the configuration points to the old database
-            if self.default_db_uri.endswith('/eduid_am'):
-                collection = 'attributes'
-            self.userdbs['default'] = UserDB(self.default_db_uri, collection=collection)
-            res = self.userdbs['default']
-            logger.debug("Using global default userdb: {!r}".format(res))
-        else:
-            raise ValueError('No userdb for application {!r}'.format(application))
-        assert isinstance(res, UserDB)   # for type checkers and IDEs
-        return res
+        self.registry = PluginsRegistry(db_uri, self.app.conf)
 
 
 @celery.task(ignore_results=True, base=AttributeManager)
@@ -123,9 +109,9 @@ def _update_attributes_safe(app_name, user_id):
     logger.debug("update %s[%s]" % (app_name, user_id))
 
     try:
-        attribute_fetcher = self.registry[app_name]
+        attribute_fetcher = self.registry.attribute_fetcher[app_name]
     except KeyError:
-        logger.error('Plugin for %s is not installed' % app_name)
+        logger.error('Plugin for %s is not installed'.format(app_name))
         return
 
     try:
@@ -134,10 +120,14 @@ def _update_attributes_safe(app_name, user_id):
         logger.error('Invalid user_id %s from app %s' % (user_id, app_name))
         raise ValueError('Bad user_id')
 
-    app_userdb = self.get_userdb(app_name)
-    logger.debug("Got database {!r}/{!s} for plugin".format(app_userdb, app_userdb._coll))
     try:
-        attributes = attribute_fetcher(app_userdb, _id)
+        _context = self.registry.context[app_name]
+    except KeyError:
+        logger.error('Plugin for %s is not initialized'.format(app_name))
+        return
+
+    try:
+        attributes = attribute_fetcher(_context, _id)
     except UserDoesNotExist as error:
         logger.error('The user %s does not exist in the database for plugin %s: %s' % (
             _id, app_name, error))
@@ -145,5 +135,4 @@ def _update_attributes_safe(app_name, user_id):
 
     logger.debug('Attributes fetched from app %s for user %s: %s'
                  % (app_name, user_id, attributes))
-    userdb = self.get_userdb('default')
-    userdb.update_user(_id, attributes)
+    self.userdb.update_user(_id, attributes)
