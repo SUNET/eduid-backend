@@ -318,13 +318,12 @@ class MongoTestCase(unittest.TestCase):
             'CELERY_RESULT_BACKEND': "cache",
             'CELERY_CACHE_BACKEND': 'memory',
             # Be sure to tell AttributeManager about the temporary mongodb instance.
-            'MONGO_URI': self.tmp_db.get_uri(userdb_db_name),
-            'MONGO_DBNAME': userdb_db_name,
+            'MONGO_URI': self.tmp_db.get_uri(''),
         }
 
         mongo_settings = {
             'mongo_replicaset': None,
-            'mongo_uri_am': self.tmp_db.get_uri(self.am_settings['MONGO_DBNAME']),
+            'mongo_uri': self.tmp_db.get_uri(''),
         }
 
         if getattr(self, 'settings', None) is None:
