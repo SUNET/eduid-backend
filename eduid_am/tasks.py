@@ -9,17 +9,14 @@ import bson
 
 from eduid_am.celery import celery
 from eduid_userdb import UserDB
-from eduid_userdb.db import DEFAULT_MONGODB_URI
 from eduid_userdb.exceptions import UserDoesNotExist
 
 logger = get_task_logger(__name__)
 
-USERDBS = {}
-
 
 class PluginsRegistry(object):
 
-    def __init__(self, db_uri, am_conf):
+    def __init__(self, am_conf):
         self.context = dict()
         self.attribute_fetcher = dict()
 
@@ -29,7 +26,7 @@ class PluginsRegistry(object):
             else:
                 logger.debug("Calling plugin_init entry point: {}".format(entry_point.name))
                 plugin_init = entry_point.load()
-                self.context[entry_point.name] = plugin_init(db_uri, am_conf)
+                self.context[entry_point.name] = plugin_init(am_conf)
 
         for entry_point in iter_entry_points('eduid_am.attribute_fetcher'):
             if entry_point.name in self.attribute_fetcher:
@@ -45,23 +42,15 @@ class AttributeManager(Task):
 
     abstract = True  # This means Celery won't register this as another task
 
-    def __init__(self, db_uri=None):
-        """
-        @param db_uri: Database URI to save updated users in (old: eduid_am.attributes, new: eduid_userdb.userdb)
-        """
-        if db_uri is None:
-            db_uri = self.app.conf.get('MONGO_URI', DEFAULT_MONGODB_URI)
-        # When testing, the default_db_uri can be overridden with a path to a temporary MongoDB instance.
-        self.default_db_uri = db_uri
+    def __init__(self, unknown_arg=None):
+        logger.warn("Initializing AttributeManager with unknown_arg {!r}".format(unknown_arg))
 
-        _collection = 'userdb'
-        # Hack to get right collection name while the configuration points to the old database
-        if self.default_db_uri.endswith('/eduid_am'):
-            _collection = 'attributes'
+        self.default_db_uri = self.app.conf.get('MONGO_URI')
+
         # self.userdb is the UserDB to which AM will write the updated users
-        self.userdb = UserDB(self.default_db_uri, collection=_collection)
+        self.userdb = UserDB(self.default_db_uri, 'eduid_am', 'attributes')
 
-        self.registry = PluginsRegistry(db_uri, self.app.conf)
+        self.registry = PluginsRegistry(self.app.conf)
 
 
 @celery.task(ignore_results=True, base=AttributeManager)
