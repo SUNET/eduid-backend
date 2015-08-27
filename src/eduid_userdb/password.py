@@ -42,7 +42,8 @@ from eduid_userdb.exceptions import UserHasUnknownData, UserDBValueError
 
 class Password(Element):
 
-    def __init__(self, credential_id=None, salt=None, application=None, created_ts=None, data=None, raise_on_unknown=True):
+    def __init__(self, credential_id=None, salt=None, application=None, created_ts=None, data=None,
+                 raise_on_unknown=True):
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
 

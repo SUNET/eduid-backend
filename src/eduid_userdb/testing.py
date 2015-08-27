@@ -285,7 +285,7 @@ class MongoTestCase(unittest.TestCase):
     mock_users_patches = []
 
     def setUp(self, celery, get_attribute_manager, userdb_use_old_format=False,
-              userclass=User, userdb_db_name='eduid_userdb'):
+              userdb_db_name='eduid_userdb'):
         """
         Test case initialization.
 
