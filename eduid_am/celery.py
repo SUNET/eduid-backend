@@ -21,10 +21,9 @@ def setup_celeryd(sender, conf, **kwargs):
 
 def setup_indexes(settings, collection):
     """
-    Ensure that indexes in eduid_am database are correctly setup.
+    Ensure that indexes in eduid_am.attributes collection are correctly setup.
     To update an index add a new item in indexes and remove the previous version.
     """
-    default_indexes = ['_id_']  # _id_ index can not be deleted from a mongo collection
     indexes = {
         # 'index-name': {'key': [('key', 1)], 'param1': True, 'param2': False}
         # http://docs.mongodb.org/manual/reference/method/db.collection.ensureIndex/
@@ -34,17 +33,8 @@ def setup_indexes(settings, collection):
         'mobile-index-v1': {'key': [('mobile.mobile', 1), ('mobile.verified', 1)]},
         'mailAliases-index-v1': {'key': [('mailAliases.email', 1), ('mailAliases.verified', 1)]}
     }
-    db_conn = MongoDB(settings['MONGO_URI'])
-    db = db_conn.get_database()
-    current_indexes = db[collection].index_information()
-    for name in current_indexes:
-        if name not in indexes and name not in default_indexes:
-            db[collection].drop_index(name)
-    for name, params in indexes.items():
-        if name not in current_indexes:
-            key = params.pop('key')
-            params['name'] = name
-            db[collection].ensure_index(key, **params)
+    db = UserDB(settings.get('MONGO_URI', DEFAULT_MONGODB_URI), collection=collection)
+    db.setup_indexes(indexes)
 
 
 def get_attribute_manager(celery_app):
