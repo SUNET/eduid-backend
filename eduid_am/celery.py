@@ -4,7 +4,7 @@ from celery import Celery
 from celery.signals import celeryd_init
 
 from eduid_am.config import read_configuration
-from eduid_userdb.db import MongoDB, DEFAULT_MONGODB_URI
+from eduid_userdb.db import MongoDB
 
 
 celery = Celery('eduid_am.celery', backend='amqp', include=['eduid_am.tasks'])
@@ -34,7 +34,7 @@ def setup_indexes(settings, collection):
         'mobile-index-v1': {'key': [('mobile.mobile', 1), ('mobile.verified', 1)]},
         'mailAliases-index-v1': {'key': [('mailAliases.email', 1), ('mailAliases.verified', 1)]}
     }
-    db_conn = MongoDB(settings.get('MONGO_URI', DEFAULT_MONGODB_URI))
+    db_conn = MongoDB(settings['MONGO_URI'])
     db = db_conn.get_database()
     current_indexes = db[collection].index_information()
     for name in current_indexes:
@@ -58,6 +58,5 @@ def get_attribute_manager(celery_app):
     # without this import, celery suddenly says NotRegistered about update_attributes
     import eduid_am.tasks
     am = celery_app.tasks['eduid_am.tasks.update_attributes']
-    from eduid_am.tasks import AttributeManager
-    assert isinstance(am, AttributeManager)  # a type hint for IDEs and analyzers
+    assert isinstance(am, eduid_am.tasks.AttributeManager)  # a type hint for IDEs and analyzers
     return am
