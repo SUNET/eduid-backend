@@ -12,6 +12,7 @@ class MongoDB(object):
 
         self._db_uri = db_uri
         self._database_name = db_name
+        self._sanitized_uri = None
 
         self._parsed_uri = pymongo.uri_parser.parse_uri(db_uri)
 
@@ -28,6 +29,33 @@ class MongoDB(object):
             host=self._db_uri,
             tz_aware=True,
             **kwargs)
+
+    @property
+    def sanitized_uri(self):
+        """
+        Return the database URI we're using in a format sensible for logging etc.
+
+        :return: db_uri
+        """
+        if self._sanitized_uri is None:
+            userpass = ''
+            if self._parsed_uri.get('username') is not None:
+                userpass = '{!s}:secret@'.format(self._parsed_uri.get('username'))
+            host, port = self._parsed_uri.get('nodelist')[0]
+            if port == '27017':
+                hostport = host
+            else:
+                if ':' in host and not host.endswith(']'):
+                    # IPv6 address without brackets
+                    host = '[{!s}]'.format(host)
+                hostport = '{!s}:{!s}'.format(host, port)
+
+            self._sanitized_uri = 'mongodb://{userpass!s}{hostport!s}/{dbname!s}'.format(
+                userpass = userpass,
+                hostport = hostport,
+                dbname = self._database_name,
+                )
+        return self._sanitized_uri
 
     def get_connection(self):
         """
