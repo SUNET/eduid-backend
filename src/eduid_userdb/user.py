@@ -126,7 +126,11 @@ class User(object):
         return '<eduID User: {!s}/{!s}>'.format(self.eppn, self.user_id)
 
     def __eq__(self, other):
-        return self._data == other._data
+        try:
+            other_data = getattr(other, '_data')
+        except AttributeError:
+            return False
+        return self._data == other_data
 
     # -----------------------------------------------------------------
     @property
