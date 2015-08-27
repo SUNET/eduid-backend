@@ -311,3 +311,20 @@ class UserDB(object):
         :rtype:
         """
         return self._coll.find({})
+
+    def setup_indexes(self, indexes):
+        """
+        To update an index add a new item in indexes and remove the previous version.
+        """
+        # indexes={'index-name': {'key': [('key', 1)], 'param1': True, 'param2': False}, }
+        # http://docs.mongodb.org/manual/reference/method/db.collection.ensureIndex/
+        default_indexes = ['_id_']  # _id_ index can not be deleted from a mongo collection
+        current_indexes = self._coll.index_information()
+        for name in current_indexes:
+            if name not in indexes and name not in default_indexes:
+                self._coll.drop_index(name)
+        for name, params in indexes.items():
+            if name not in current_indexes:
+                key = params.pop('key')
+                params['name'] = name
+                self._coll.ensure_index(key, **params)
