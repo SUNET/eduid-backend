@@ -48,11 +48,15 @@ class UserDB(object):
 
     UserClass = User
 
-    def __init__(self, db_uri, collection='userdb'):
+    def __init__(self, db_uri, db_name, collection='userdb'):
+
+        if db_name == 'eduid_am' and collection == 'userdb':
+            # Hack to get right collection name while the configuration points to the old database
+            collection = 'attributes'
 
         self._db_uri = db_uri
         self._coll_name = collection
-        self._db = MongoDB(db_uri)
+        self._db = MongoDB(db_uri, db_name)
         self._coll = self._db.get_collection(collection)
         logger.debug("{!s} UserDB connected to {!s} {!r} / {!s})".format(
             self, db_uri, collection, self._coll))
@@ -61,8 +65,8 @@ class UserDB(object):
         self.exceptions = eduid_userdb.exceptions
 
     def __repr__(self):
-        return '<eduID UserDB: {!s} {!r} (class {!s})>'.format(self._db_uri, self._coll_name,
-                                                               type(self.UserClass).__name__)
+        return '<eduID UserDB: {!s} {!r} ({!s})>'.format(self._db_uri, self._coll_name,
+                                                         self.UserClass)
 
     def get_user_by_id(self, user_id):
         """

@@ -1,49 +1,33 @@
 import pymongo
 
 
-DEFAULT_MONGODB_HOST = 'localhost'
-DEFAULT_MONGODB_PORT = 27017
-DEFAULT_MONGODB_NAME = 'eduid_userdb'
-DEFAULT_MONGODB_URI = 'mongodb://%s:%d/%s' % (DEFAULT_MONGODB_HOST,
-                                              DEFAULT_MONGODB_PORT,
-                                              DEFAULT_MONGODB_NAME)
-
-
 class MongoDB(object):
     """Simple wrapper to get pymongo real objects from the settings uri"""
 
-    def __init__(self, db_uri=None,
+    def __init__(self, db_uri, db_name=None,
                  connection_factory=None, **kwargs):
 
         if db_uri is None:
-            db_uri = DEFAULT_MONGODB_URI
+            raise ValueError('db_uri not supplied')
 
-        self.db_uri = db_uri
+        self._db_uri = db_uri
+        self._database_name = db_name
 
-        if db_uri == "mongodb://":
-            db_uri = DEFAULT_MONGODB_URI
+        self._parsed_uri = pymongo.uri_parser.parse_uri(db_uri)
 
-        self.parsed_uri = pymongo.uri_parser.parse_uri(db_uri)
-
-        _options = self.parsed_uri.get('options')
+        _options = self._parsed_uri.get('options')
         if 'replicaSet' in kwargs or 'replicaSet' in _options:
             connection_factory = pymongo.MongoReplicaSetClient
         if 'replicaSet' in _options:
             connection_factory = pymongo.MongoReplicaSetClient
             kwargs['replicaSet'] = _options['replicaSet']
-
         elif connection_factory is None:
             connection_factory = pymongo.MongoClient
 
         self._connection = connection_factory(
-            host=self.db_uri,
+            host=self._db_uri,
             tz_aware=True,
             **kwargs)
-
-        if self.parsed_uri.get("database", None):
-            self.database_name = self.parsed_uri["database"]
-        else:
-            self.database_name = DEFAULT_MONGODB_NAME
 
     def get_connection(self):
         """
@@ -59,21 +43,22 @@ class MongoDB(object):
         Authenticates using the username/password in the DB URI given to
         __init__() unless username/password is supplied as arguments.
 
-        :param database_name: (optional) Name of databas
+        :param database_name: (optional) Name of database
         :param username: (optional) Username to login with
         :param password: (optional) Password to login with
         :return: Pymongo database object
         """
         if database_name is None:
-            db = self._connection[self.database_name]
-        else:
-            db = self._connection[database_name]
+            database_name = self._database_name
+        if database_name is None:
+            raise ValueError('No database_name supplied, and no default provided to __init__')
+        db = self._connection[database_name]
         if username and password:
             db.authenticate(username, password)
-        elif self.parsed_uri.get("username", None):
+        elif self._parsed_uri.get("username", None):
             db.authenticate(
-                self.parsed_uri.get("username", None),
-                self.parsed_uri.get("password", None)
+                self._parsed_uri.get("username", None),
+                self._parsed_uri.get("password", None)
             )
         return db
 

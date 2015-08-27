@@ -41,8 +41,8 @@ class SignupUserDB(UserDB):
 
     UserClass = SignupUser
 
-    def __init__(self, db_uri, collection='registered'):
-        UserDB.__init__(self, db_uri, collection)
+    def __init__(self, db_uri, db_name='eduid_signup', collection='registered'):
+        UserDB.__init__(self, db_uri, db_name, collection)
 
     def get_user_by_mail_verification_code(self, code):
         docs = self._coll.find({'pending_mail_address.verification_code': code})

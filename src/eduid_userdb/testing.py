@@ -284,7 +284,8 @@ class MongoTestCase(unittest.TestCase):
     user = User(data=MOCKED_USER_STANDARD)
     mock_users_patches = []
 
-    def setUp(self, celery, get_attribute_manager, userdb_use_old_format=False):
+    def setUp(self, celery, get_attribute_manager, userdb_use_old_format=False,
+              userclass=User, userdb_db_name='eduid_userdb'):
         """
         Test case initialization.
 
@@ -311,19 +312,20 @@ class MongoTestCase(unittest.TestCase):
         self.conn = self.tmp_db.conn
         self.port = self.tmp_db.port
         self.am_settings = {
-            'BROKER_TRANSPORT': 'memory',
+            'BROKER_TRANSPORT': 'memory',  # Don't use AMQP bus when testing
             'BROKER_URL': 'memory://',
             'CELERY_EAGER_PROPAGATES_EXCEPTIONS': True,
             'CELERY_ALWAYS_EAGER': True,
             'CELERY_RESULT_BACKEND': "cache",
             'CELERY_CACHE_BACKEND': 'memory',
-            #'MONGO_URI': self.tmp_db.get_uri(''),
-            'MONGO_DBNAME': 'eduid_userdb',
+            # Be sure to tell AttributeManager about the temporary mongodb instance.
+            'MONGO_URI': self.tmp_db.get_uri(userdb_db_name),
+            'MONGO_DBNAME': userdb_db_name,
         }
 
         mongo_settings = {
             'mongo_replicaset': None,
-            'mongo_uri_am': self.tmp_db.get_uri('eduid_userdb'),
+            'mongo_uri_am': self.tmp_db.get_uri(self.am_settings['MONGO_DBNAME']),
         }
 
         if getattr(self, 'settings', None) is None:
@@ -337,10 +339,7 @@ class MongoTestCase(unittest.TestCase):
         for db_name in self.conn.database_names():
             self.conn.drop_database(db_name)
 
-        # Be sure to tell AttributeManager.get_userdb() about the temporary
-        # mongodb instance.
-        self.am.default_db_uri = mongo_settings['mongo_uri_am']
-        self.amdb = self.am.get_userdb('default')
+        self.amdb = self.am.userdb
 
         self.initial_verifications = (getattr(self, 'initial_verifications', None)
                                       or INITIAL_VERIFICATIONS)

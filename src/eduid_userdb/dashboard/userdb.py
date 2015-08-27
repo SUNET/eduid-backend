@@ -44,8 +44,8 @@ class DashboardUserDB(UserDB):
 
     UserClass = DashboardUser
 
-    def __init__(self, db_uri, collection='profiles'):
-        super(DashboardUserDB, self).__init__(db_uri, collection=collection)
+    def __init__(self, db_uri, db_name='eduid_dashboard', collection='profiles'):
+        super(DashboardUserDB, self).__init__(db_uri, db_name, collection=collection)
 
     def save(self, user, check_sync=True, old_format=True):
         # XXX old_format default is set to True here
@@ -56,17 +56,18 @@ class DashboardOldUserDB(UserDB):
 
     UserClass = DashboardLegacyUser
 
-    def __init__(self, db_uri, collection='profiles'):
-        UserDB.__init__(self, db_uri, collection)
+    def __init__(self, db_uri, db_name='eduid_dashboard', collection='profiles'):
+        UserDB.__init__(self, db_uri, db_name, collection)
 
 
 class UserDBWrapper(UserDB):
 
     UserClass = DashboardLegacyUser
 
+    def __init__(self, db_uri, db_name='eduid_am', collection='attributes'):
+        UserDB.__init__(self, db_uri, db_name, collection)
+
     def get_user(self, email):
-        # XXX remove logging
-        logger.debug("GET USER {!r}".format(email))
         return self.get_user_by_mail(email)
 
     def get_user_by_oid(self, oid):
