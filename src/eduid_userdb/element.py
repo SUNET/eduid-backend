@@ -388,6 +388,13 @@ class ElementList(object):
         self._elements = [this for this in self._elements if this != match]
         return self
 
+    @property
+    def count(self):
+        """
+        Return the number of elements in the list
+        """
+        return len(self._elements)
+
 
 class PrimaryElementList(ElementList):
     """
