@@ -52,14 +52,11 @@ class DashboardUserDB(UserDB):
         super(DashboardUserDB, self).save(user, check_sync=check_sync, old_format=old_format)
 
 
-class DashboardOldUserDB(UserDB):
+class DashboardOldUserDB(DashboardUserDB):
 
     UserClass = DashboardLegacyUser
 
-    def __init__(self, db_uri, db_name='eduid_dashboard', collection='profiles'):
-        UserDB.__init__(self, db_uri, db_name, collection)
-
-
+# Wrapper for the central userdb, for now eduid_am.attributes
 class UserDBWrapper(UserDB):
 
     UserClass = DashboardLegacyUser
