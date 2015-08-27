@@ -284,8 +284,7 @@ class MongoTestCase(unittest.TestCase):
     user = User(data=MOCKED_USER_STANDARD)
     mock_users_patches = []
 
-    def setUp(self, celery, get_attribute_manager, userdb_use_old_format=False,
-              userdb_db_name='eduid_userdb'):
+    def setUp(self, celery, get_attribute_manager, userdb_use_old_format=False):
         """
         Test case initialization.
 
@@ -332,18 +331,18 @@ class MongoTestCase(unittest.TestCase):
             self.settings = mongo_settings
         else:
             self.settings.update(mongo_settings)
-        celery.conf.update(self.am_settings)
 
+        celery.conf.update(self.am_settings)
         self.am = get_attribute_manager(celery)
 
         for db_name in self.conn.database_names():
             self.conn.drop_database(db_name)
 
         self.amdb = self.am.userdb
+        self.amdb._drop_whole_collection()
 
         self.initial_verifications = (getattr(self, 'initial_verifications', None)
                                       or INITIAL_VERIFICATIONS)
-        self.amdb._drop_whole_collection()
 
         # Set up test users in the MongoDB. Read the users from MockedUserDB, which might
         # be overridden by subclasses.
