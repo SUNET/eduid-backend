@@ -149,10 +149,12 @@ class DashboardLegacyUser(object):
             if check_sync:
                 test_doc['modified_ts'] = modified
             result = request.db.profiles.update(test_doc, update_doc)
-            if check_sync and result['n'] == 0:
-                raise UserOutOfSync('The user data has been modified '
-                                    'since you started editing it.')
-        request.context.propagate_user_changes(self._mongo_doc)
+            if result['n'] == 0:
+                if check_sync:
+                    raise UserOutOfSync('The user data has been modified '
+                                        'since you started editing it.')
+                log.notice("Tried saving user {!s} (test_doc {!s}) but failed (no check_sync)".format(self, test_doc))
+        request.context.propagate_user_changes(self)
 
     def update_am(self, app_name):
         # yuck. avoid circular dependencies whenever possible.
