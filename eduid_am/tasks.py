@@ -37,6 +37,9 @@ class AttributeManager(Task):
     #_conn = None
 
     def __init__(self, db_uri=None):
+        """
+        @param db_uri: Database URI to save updated users in (old: eduid_am.attributes, new: eduid_userdb.userdb)
+        """
         if db_uri is None:
             db_uri = self.app.conf.get('MONGO_URI', DEFAULT_MONGODB_URI)
         # When testing, the default_db_uri can be overridden with a path to a temporary MongoDB instance.
@@ -44,6 +47,17 @@ class AttributeManager(Task):
         self.userdbs = dict()
 
     def get_userdb(self, application):
+        """
+        Get the UserDB for an application.
+
+        The 'default' application is where AM will save updated users.
+
+        Expected results:
+
+          'default': UserDB()
+          'eduid_signup': SignupUserDB()
+          ...
+        """
         if application in self.userdbs:
             res = self.userdbs[application]
             logger.debug("Using previously initialized userdb for application {!r}: {!r}".format(application, res))
@@ -51,7 +65,11 @@ class AttributeManager(Task):
             res = USERDBS[application]
             logger.debug("Using global default userdb for application {!r}: {!r}".format(application, res))
         elif application == 'default':
-            self.userdbs['default'] = UserDB(self.default_db_uri)
+            collection = 'userdb'
+            # Hack to get right collection name while the configuration points to the old database
+            if self.default_db_uri.endswith('/eduid_am'):
+                collection = 'attributes'
+            self.userdbs['default'] = UserDB(self.default_db_uri, collection=collection)
             res = self.userdbs['default']
             logger.debug("Using global default userdb: {!r}".format(res))
         else:
