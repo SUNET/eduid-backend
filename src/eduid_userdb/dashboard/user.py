@@ -212,7 +212,7 @@ class DashboardLegacyUser(object):
     def retrieve_modified_ts(self, profiles):
         try:
             userid = self.get_id()
-        except KeyError:
+        except UserDBValueError:
             log.debug("User {!s} has no id, setting modified_ts to None".format(self))
             self._mongo_doc['modified_ts'] = None
         else:
