@@ -32,20 +32,21 @@ class AmTestUserDb(eduid_userdb.UserDB):
     UserClass = AmTestUser
 
 
-def plugin(db, user_id):
+def plugin_attribute_fetcher(context, user_id):
     """
     A small fake attribute manager plugin that reads a user and sets the 'eppn'
     attribute to one based on the users _id.
 
-    :param db: User database
+    :param context: User database
     :param user_id: Unique identifier
-    :type db: AmTestUserDb
+    :type context: AmTestUserDb
     :type user_id: ObjectId
 
     :return: update dict
     :rtype: dict
     """
-    assert isinstance(db, AmTestUserDb)
+    assert isinstance(context, AmTestUserDb)
+    db = context
 
     user = db.get_user_by_id(user_id)
     if user is None:
@@ -75,21 +76,17 @@ class MessageTest(MongoTestCase):
             'CELERY_ALWAYS_EAGER': True,
             'CELERY_RESULT_BACKEND': "cache",
             'CELERY_CACHE_BACKEND': 'memory',
-            'MONGO_URI': 'mongodb://localhost:%d/' % self.port,
-            'MONGO_DBNAME': 'am',
+            'MONGO_URI': self.tmp_db.get_uri(''),
         }
 
         celery.conf.update(settings)
         am = get_attribute_manager(celery)
 
-        test_db_uri = self.tmp_db.get_uri('eduid_am_test_userdb')
-        test_userdb = AmTestUserDb(db_uri = test_db_uri)
+        test_context = AmTestUserDb(db_uri = settings['MONGO_URI'], db_name='eduid_am_test')
 
-        am.userdbs['test'] = test_userdb
-
-        am.registry.update(test=plugin)
-
-        db = self.tmp_db.conn['test']
+        # register fake AMP plugin named 'test'
+        am.registry.attribute_fetcher['test'] = plugin_attribute_fetcher
+        am.registry.context['test'] = test_context
 
         _id = ObjectId()
         userdoc = {'_id': _id,
@@ -97,7 +94,7 @@ class MessageTest(MongoTestCase):
                    'uid': 'vlindeman',
                    }
         test_user = AmTestUser(userdoc)
-        test_userdb.save(test_user)
+        test_context.save(test_user)
 
         update_attributes.delay(app_name='test', obj_id = _id)
 
