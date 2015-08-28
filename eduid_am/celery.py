@@ -4,7 +4,7 @@ from celery import Celery
 from celery.signals import celeryd_init
 
 from eduid_am.config import read_configuration
-from eduid_userdb.db import UserDB
+from eduid_userdb import UserDB
 
 
 celery = Celery('eduid_am.celery', backend='amqp', include=['eduid_am.tasks'])
