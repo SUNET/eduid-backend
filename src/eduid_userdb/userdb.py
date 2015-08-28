@@ -58,15 +58,17 @@ class UserDB(object):
         self._coll_name = collection
         self._db = MongoDB(db_uri, db_name)
         self._coll = self._db.get_collection(collection)
-        logger.debug("{!s} UserDB connected to {!s} {!r} / {!s})".format(
-            self, db_uri, collection, self._coll))
+        logger.debug("{!s} connected to database".format(self, self._db.sanitized_uri, self._coll_name))
         # XXX Backwards compatibility.
         # Was: provide access to our backends exceptions to users of this class
         self.exceptions = eduid_userdb.exceptions
 
     def __repr__(self):
-        return '<eduID UserDB: {!s} {!r} ({!s})>'.format(self._db_uri, self._coll_name,
-                                                         self.UserClass)
+        return '<eduID {!s}: {!s} {!r} (returning {!s})>'.format(self.__class__.__name__,
+                                                                 self._db_uri,
+                                                                 self._coll_name,
+                                                                 self.UserClass.__name__,
+                                                                )
 
     def get_user_by_id(self, user_id):
         """
@@ -115,7 +117,7 @@ class UserDB(object):
         if docs.count() > 0:
             users = list(docs)
         if not users:
-            logging.debug("{!s} No user found with email {!r} in {!r}".format(self, email, self._coll))
+            logging.debug("{!s} No user found with email {!r} in {!r}".format(self, email, self._coll_name))
             if raise_on_missing:
                 raise UserDoesNotExist("No user matching email {!r}".format(email))
             return None
@@ -149,7 +151,7 @@ class UserDB(object):
         :raise self.MultipleUsersReturned: More than one user matches the search criteria
         """
         logger.debug("{!s} Looking in {!r} for user with {!r} = {!r}".format(
-            self, self._coll, attr, value))
+            self, self._coll_name, attr, value))
         try:
             doc = self._get_document_by_attr(attr, value, raise_on_missing=True)
             logger.debug("{!s} Found user {!r}".format(self, doc))
@@ -203,7 +205,7 @@ class UserDB(object):
             # possibly just created in signup.
             result = self._coll.insert(user.to_dict(old_userdb_format=old_format))
             logging.debug("{!s} Inserted new user {!r} into {!r} (old_format={!r}): {!r})".format(
-                self, user, self._coll, old_format, result))
+                self, user, self._coll_name, old_format, result))
             import pprint
             logging.debug("Extra debug:\n{!s}".format(pprint.pformat(user.to_dict(old_userdb_format=old_format))))
         else:
@@ -218,10 +220,10 @@ class UserDB(object):
                     db_ts = db_user['modified_ts']
                 logging.debug("{!s} FAILED Updating user {!r} (ts {!s}) in {!r} (old_format={!r}). "
                               "ts in db = {!s}".format(
-                              self, user, modified, self._coll, old_format, db_ts))
+                              self, user, modified, self._coll_name, old_format, db_ts))
                 raise eduid_userdb.exceptions.UserOutOfSync('Stale user object can\'t be saved')
             logging.debug("{!s} Updated user {!r} (ts {!s}) in {!r} (old_format={!r}): {!r}".format(
-                self, user, modified, self._coll, old_format, result))
+                self, user, modified, self._coll_name, old_format, result))
             import pprint
             logging.debug("Extra debug:\n{!s}".format(pprint.pformat(user.to_dict(old_userdb_format=old_format))))
         return result
@@ -245,7 +247,7 @@ class UserDB(object):
         :param user_id: User id
         :type user_id: bson.ObjectId
         """
-        logger.debug("{!s} Removing user with id {!r} from {!s}".format(self, user_id, self._coll))
+        logger.debug("{!s} Removing user with id {!r} from {!r}".format(self, user_id, self._coll_name))
         return self._coll.remove(spec_or_id=user_id)
 
     def _drop_whole_collection(self):
@@ -253,7 +255,7 @@ class UserDB(object):
         Drop the whole collection. Should ONLY be used in testing, obviously.
         :return:
         """
-        logging.warning("{!s} Dropping collection {!s}".format(self, self._coll))
+        logging.warning("{!s} Dropping collection {!r}".format(self, self._coll_name))
         return self._coll.drop()
 
     def update_user(self, obj_id, attributes):
@@ -270,8 +272,8 @@ class UserDB(object):
         :param attributes: dict
         :return: None
         """
-        logger.debug("{!s} updating user {!r} in {!s} with attributes:\n{!s}".format(
-            self, obj_id, self._coll, attributes))
+        logger.debug("{!s} updating user {!r} in {!r} with attributes:\n{!s}".format(
+            self, obj_id, self._coll_name, attributes))
 
         doc = {'_id': obj_id}
 

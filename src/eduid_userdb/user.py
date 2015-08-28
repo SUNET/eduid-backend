@@ -123,7 +123,10 @@ class User(object):
             self._data.update(data)
 
     def __repr__(self):
-        return '<eduID User: {!s}/{!s}>'.format(self.eppn, self.user_id)
+        return '<eduID {!s}: {!s}/{!s}>'.format(self.__class__.__name__,
+                                                self.eppn,
+                                                self.user_id,
+                                                )
 
     def __eq__(self, other):
         return self._data == other._data
