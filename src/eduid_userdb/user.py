@@ -384,5 +384,9 @@ class User(object):
                 # Extract all verified NINs and return as a list of strings
                 _nins = res.pop('nins')
                 verified_nins = [this['number'] for this in _nins if this['verified']]
-                res['norEduPersonNIN'] = verified_nins
+                # don't even put 'norEduPersonNIN' in res if it is empty
+                if verified_nins:
+                    res['norEduPersonNIN'] = verified_nins
+                elif 'norEduPersonNIN' in res:
+                    del res['norEduPersonNIN']
         return res
