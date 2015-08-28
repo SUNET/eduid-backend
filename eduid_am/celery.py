@@ -16,10 +16,10 @@ celery.conf.update(read_configuration())
 def setup_celeryd(sender, conf, **kwargs):
     settings = read_configuration()
     conf.update(settings)
-    setup_indexes(settings, 'attributes')
+    setup_indexes(settings, 'eduid_am', 'attributes')
 
 
-def setup_indexes(settings, collection):
+def setup_indexes(settings, db_name, collection):
     """
     Ensure that indexes in eduid_am.attributes collection are correctly setup.
     To update an index add a new item in indexes and remove the previous version.
@@ -33,7 +33,7 @@ def setup_indexes(settings, collection):
         'mobile-index-v1': {'key': [('mobile.mobile', 1), ('mobile.verified', 1)]},
         'mailAliases-index-v1': {'key': [('mailAliases.email', 1), ('mailAliases.verified', 1)]}
     }
-    userdb = UserDB(settings.get('MONGO_URI'), collection=collection)
+    userdb = UserDB(settings.get('MONGO_URI'), db_name=db_name, collection=collection)
     userdb.setup_indexes(indexes)
 
 
