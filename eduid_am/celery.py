@@ -4,7 +4,7 @@ from celery import Celery
 from celery.signals import celeryd_init
 
 from eduid_am.config import read_configuration
-from eduid_userdb.db import MongoDB
+from eduid_userdb.db import UserDB
 
 
 celery = Celery('eduid_am.celery', backend='amqp', include=['eduid_am.tasks'])
@@ -33,8 +33,8 @@ def setup_indexes(settings, collection):
         'mobile-index-v1': {'key': [('mobile.mobile', 1), ('mobile.verified', 1)]},
         'mailAliases-index-v1': {'key': [('mailAliases.email', 1), ('mailAliases.verified', 1)]}
     }
-    db = UserDB(settings.get('MONGO_URI', DEFAULT_MONGODB_URI), collection=collection)
-    db.setup_indexes(indexes)
+    userdb = UserDB(settings.get('MONGO_URI'), collection=collection)
+    userdb.setup_indexes(indexes)
 
 
 def get_attribute_manager(celery_app):
