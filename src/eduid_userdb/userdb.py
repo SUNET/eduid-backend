@@ -65,7 +65,7 @@ class UserDB(object):
 
     def __repr__(self):
         return '<eduID {!s}: {!s} {!r} (returning {!s})>'.format(self.__class__.__name__,
-                                                                 self._db_uri,
+                                                                 self._db.sanitized_uri,
                                                                  self._coll_name,
                                                                  self.UserClass.__name__,
                                                                 )
