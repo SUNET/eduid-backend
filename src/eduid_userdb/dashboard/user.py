@@ -136,6 +136,11 @@ class DashboardLegacyUser(object):
                            if it is a partial doc, it must carry the '$set' key.
         :type update_doc: dict
         '''
+        # Flush out any postalAddress that might exist on really old users.
+        # The user will not be parsed by the code in eduid-dashboard-amp if
+        # we put postalAddress in profiles documents.
+        if 'postalAddress' in self._mongo_doc:
+            del(self._mongo_doc['postalAddress'])
         modified = self.get_modified_ts()
         self.set_modified_ts(datetime.utcnow())
         if modified is None:

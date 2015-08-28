@@ -381,5 +381,8 @@ class User(object):
             if 'entitlements' in res:
                 res['eduPersonEntitlement'] = res.pop('entitlements')
             if 'nins' in res:
-                res['norEduPersonNIN'] = res.pop('nins')
+                # Extract all verified NINs and return as a list of strings
+                _nins = res.pop('nins')
+                verified_nins = [this['number'] for this in _nins if this['verified']]
+                res['norEduPersonNIN'] = verified_nins
         return res
