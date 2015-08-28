@@ -9,23 +9,35 @@ import bson
 
 from eduid_am.celery import celery
 from eduid_userdb import UserDB
-from eduid_userdb.db import DEFAULT_MONGODB_URI
 from eduid_userdb.exceptions import UserDoesNotExist
 
 logger = get_task_logger(__name__)
 
-USERDBS = {}
 
+class PluginsRegistry(object):
+    """
+    In-memory information about existing Attribute Manager plugins,
+    and the result of their initialization function (context).
+    """
 
-class PluginsRegistry(dict):
+    def __init__(self, am_conf):
+        self.context = dict()
+        self.attribute_fetcher = dict()
 
-    def __init__(self):
-        for entry_point in iter_entry_points('eduid_am.attribute_fetcher'):
-            if entry_point.name in self:
-                logger.warn("Duplicate entry point: %s" % entry_point.name)
+        for entry_point in iter_entry_points('eduid_am.plugin_init'):
+            if entry_point.name in self.context:
+                logger.warn('Duplicate plugin_init entry point: {!r}'.format(entry_point.name))
             else:
-                logger.debug("Registering entry point: %s" % entry_point.name)
-                self[entry_point.name] = entry_point.load()
+                logger.debug('Calling plugin_init entry point for {!r}'.format(entry_point.name))
+                plugin_init = entry_point.load()
+                self.context[entry_point.name] = plugin_init(am_conf)
+
+        for entry_point in iter_entry_points('eduid_am.attribute_fetcher'):
+            if entry_point.name in self.attribute_fetcher:
+                logger.warn('Duplicate attribute_fetcher entry point: {!r}'.format(entry_point.name))
+            else:
+                logger.debug('Registering attribute_fetcher entry point for {!r}'.format(entry_point.name))
+                self.attribute_fetcher[entry_point.name] = entry_point.load()
 
 
 class AttributeManager(Task):
@@ -33,31 +45,14 @@ class AttributeManager(Task):
     or the MongoDB database."""
 
     abstract = True  # This means Celery won't register this as another task
-    registry = PluginsRegistry()
-    #_conn = None
 
-    def __init__(self, db_uri=None):
-        if db_uri is None:
-            db_uri = self.app.conf.get('MONGO_URI', DEFAULT_MONGODB_URI)
-        # When testing, the default_db_uri can be overridden with a path to a temporary MongoDB instance.
-        self.default_db_uri = db_uri
-        self.userdbs = dict()
+    def __init__(self):
+        self.default_db_uri = self.app.conf.get('MONGO_URI')
 
-    def get_userdb(self, application):
-        if application in self.userdbs:
-            res = self.userdbs[application]
-            logger.debug("Using previously initialized userdb for application {!r}: {!r}".format(application, res))
-        elif application in USERDBS:
-            res = USERDBS[application]
-            logger.debug("Using global default userdb for application {!r}: {!r}".format(application, res))
-        elif application == 'default':
-            self.userdbs['default'] = UserDB(self.default_db_uri)
-            res = self.userdbs['default']
-            logger.debug("Using global default userdb: {!r}".format(res))
-        else:
-            raise ValueError('No userdb for application {!r}'.format(application))
-        assert isinstance(res, UserDB)   # for type checkers and IDEs
-        return res
+        # self.userdb is the UserDB to which AM will write the updated users
+        self.userdb = UserDB(self.default_db_uri, 'eduid_am', 'attributes')
+
+        self.registry = PluginsRegistry(self.app.conf)
 
 
 @celery.task(ignore_results=True, base=AttributeManager)
@@ -92,40 +87,46 @@ def update_attributes_keep_result(app_name, obj_id):
 
 
 def _update_attributes(app_name, obj_id):
-    logger.debug("Update attributes called for {!r} by {!r}".format(obj_id, app_name))
+    logger.debug('Update attributes called for {!r} by {!r}'.format(obj_id, app_name))
     try:
         return _update_attributes_safe(app_name, obj_id)
     except Exception:
-        logger.error("Got exception processing {!r}[{!r}]".format(app_name, obj_id), exc_info = True)
+        logger.error('Got exception processing {!r}[{!r}]'.format(app_name, obj_id), exc_info = True)
         raise
 
 
 def _update_attributes_safe(app_name, user_id):
     self = update_attributes
-    logger.debug("update %s[%s]" % (app_name, user_id))
+    logger.debug('update {!s}[{!s}]'.format(app_name, user_id))
 
     try:
-        attribute_fetcher = self.registry[app_name]
+        attribute_fetcher = self.registry.attribute_fetcher[app_name]
     except KeyError:
-        logger.error('Plugin for %s is not installed' % app_name)
+        logger.error('Plugin for {!s} is not installed'.format(app_name))
         return
+
+    logger.debug("Attribute fetcher for {!s}: {!r}".format(app_name, attribute_fetcher))
 
     try:
         _id = bson.ObjectId(user_id)
     except bson.errors.InvalidId:
-        logger.error('Invalid user_id %s from app %s' % (user_id, app_name))
+        logger.error('Invalid user_id {!s} from app {!s}'.format(user_id, app_name))
         raise ValueError('Bad user_id')
 
-    app_userdb = self.get_userdb(app_name)
-    logger.debug("Got database {!r}/{!s} for plugin".format(app_userdb, app_userdb._coll))
     try:
-        attributes = attribute_fetcher(app_userdb, _id)
+        _context = self.registry.context[app_name]
+    except KeyError:
+        logger.error('Plugin for {!s} is not initialized'.format(app_name))
+        return
+
+    logger.debug("Context for {!s}: {!r}".format(app_name, _context))
+
+    try:
+        attributes = attribute_fetcher(_context, _id)
     except UserDoesNotExist as error:
-        logger.error('The user %s does not exist in the database for plugin %s: %s' % (
+        logger.error('The user {!s} does not exist in the database for plugin {!s}: {!s}'.format(
             _id, app_name, error))
         return
 
-    logger.debug('Attributes fetched from app %s for user %s: %s'
-                 % (app_name, user_id, attributes))
-    userdb = self.get_userdb('default')
-    userdb.update_user(_id, attributes)
+    logger.debug('Attributes fetched from app {!s} for user {!s}: {!s}'.format(app_name, user_id, attributes))
+    self.userdb.update_user(_id, attributes)
