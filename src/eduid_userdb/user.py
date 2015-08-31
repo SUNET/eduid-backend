@@ -113,6 +113,9 @@ class User(object):
         self.language = data.pop('preferredLanguage', '')
         self.modified_ts = data.pop('modified_ts', None)
         self.entitlements = data.pop('entitlements', None)
+        # obsolete attributes
+        if 'postalAddress' in data:
+            del data['postalAddress']
 
         if len(data) > 0:
             if raise_on_unknown:
