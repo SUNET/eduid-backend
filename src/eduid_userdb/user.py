@@ -129,6 +129,8 @@ class User(object):
                                                 )
 
     def __eq__(self, other):
+        if self.__class__ is not other.__class__:
+            raise TypeError('Trying to compare objects of different class')
         return self._data == other._data
 
     # -----------------------------------------------------------------
