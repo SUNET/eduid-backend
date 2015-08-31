@@ -126,11 +126,9 @@ class User(object):
         return '<eduID User: {!s}/{!s}>'.format(self.eppn, self.user_id)
 
     def __eq__(self, other):
-        try:
-            other_data = getattr(other, '_data')
-        except AttributeError:
-            return False
-        return self._data == other_data
+        if self.__class__ is not other.__class__:
+            raise TypeError('Trying to compare objects of different class')
+        return self._data == other._data
 
     # -----------------------------------------------------------------
     @property
