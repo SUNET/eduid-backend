@@ -67,6 +67,16 @@ class UserDBWrapper(UserDB):
     def get_user(self, email):
         return self.get_user_by_mail(email)
 
+    def get_user_by_nin(self, nin):
+        users = self._get_users({
+            'norEduPersonNIN': {'$in': [nin]},
+        })
+        if users.count() == 0:
+            raise self.exceptions.UserDoesNotExist()
+        if users.count() > 1:
+            raise self.exceptions.MultipleUsersReturned()
+        return User(users[0])
+
     def get_user_by_oid(self, oid):
         # renamed method in UserDB
         return self.get_user_by_id(oid)
