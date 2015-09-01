@@ -85,6 +85,11 @@ class User(object):
             for idx in xrange(len(_mail_addresses)):
                 if _mail_addresses[idx]['email'] == data['mail']:
                     _mail_addresses[idx]['primary'] = True
+                    if 'passwords' in data:
+                        # Work around a bug where one could signup, not follow the link in the e-mail
+                        # and then do a password request to set a password. The e-mail address is
+                        # implicitly verified by the password reset (which must have been done using e-mail).
+                        _mail_addresses[idx]['verified'] = True
             data.pop('mail')
         _nins = data.pop('nins', [])
         if 'norEduPersonNIN' in data:
