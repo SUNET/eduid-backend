@@ -138,11 +138,11 @@ class User(object):
                         _mail_addresses[idx]['verified'] = True
             self._data_in.pop('mail')
 
-            if len(_mail_addresses) == 1:
-                if 'primary' not in _mail_addresses[0] or \
-                        _mail_addresses[0]['primary'] is False:
-                    # A single mail address was not set as Primary until it was verified
-                    _mail_addresses[0]['primary'] = True
+        if len(_mail_addresses) == 1:
+            if 'primary' not in _mail_addresses[0] or \
+                    _mail_addresses[0]['primary'] is False:
+                # A single mail address was not set as Primary until it was verified
+                _mail_addresses[0]['primary'] = True
 
         self._mail_addresses = MailAddressList(_mail_addresses)
 
