@@ -55,3 +55,22 @@ class UserOutOfSync(EduIDUserDBError):
     The user has been modified since it was read from the db.
     """
     pass
+
+
+class UserIsRevoked(EduIDUserDBError):
+    """
+    The user has been permanently deleted from eduID.
+
+    The only things remaining are the _id and eppn, as placeholders to make sure
+    they are never ever re-used (Kantara requirement).
+    """
+    pass
+
+
+class UserHasNotCompletedSignup(EduIDUserDBError):
+    """
+    The user has not completed the Signup process.
+
+    Signup has created lots of users in the database with only eppn, mail and mailAliases.
+    """
+    pass

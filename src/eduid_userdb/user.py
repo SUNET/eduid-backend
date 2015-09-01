@@ -36,7 +36,7 @@ import bson
 import copy
 import datetime
 
-from eduid_userdb.exceptions import UserHasUnknownData
+from eduid_userdb.exceptions import UserHasUnknownData, UserIsRevoked, UserHasNotCompletedSignup
 from eduid_userdb.element import UserDBValueError
 
 from eduid_userdb.mail import MailAddressList
@@ -58,6 +58,20 @@ class User(object):
         data_in = data
         data = copy.deepcopy(data_in)  # to not modify callers data
         self._data = dict()
+
+        # Check users that can't be loaded for some known reason
+        if 'revoked_ts' in data:
+            raise UserIsRevoked('User {!s}/{!s} was revoked at {!s}'.format(
+                data.get('_id'), data.get('eduPersonPrincipalName'), data['revoked_ts']))
+        if len(data) == 4:
+            if sorted(data.keys()) == [u'_id', u'eduPersonPrincipalName', u'mail', u'mailAliases']:
+                raise UserHasNotCompletedSignup('User {!s}/{!s} is incomplete'.format(
+                    data.get('_id'), data.get('eduPersonPrincipalName')))
+        if len(data) == 5:
+            if sorted(data.keys()) == [u'_id', u'eduPersonPrincipalName', u'mail', u'mailAliases', u'subject']:
+                raise UserHasNotCompletedSignup('User {!s}/{!s} is incomplete'.format(
+                    data.get('_id'), data.get('eduPersonPrincipalName')))
+
         # things without setters
         _id = data.pop('_id', None)
         if _id is None:
