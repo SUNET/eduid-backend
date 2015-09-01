@@ -66,6 +66,9 @@ class MailAddress(PrimaryElement):
         if 'added_timestamp' in data:
             # old userdb-style creation timestamp
             data['created_ts'] = data.pop('added_timestamp')
+        # CSRF tokens were accidentally put in the database some time ago
+        if 'csrf' in data:
+            del data['csrf']
         PrimaryElement.__init__(self, data, raise_on_unknown, ignore_data = ['email'])
         self.email = data.pop('email')
 

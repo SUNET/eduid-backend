@@ -130,6 +130,8 @@ class User(object):
         # obsolete attributes
         if 'postalAddress' in data:
             del data['postalAddress']
+        if 'date' in data:
+            del data['date']
 
         if len(data) > 0:
             if raise_on_unknown:
