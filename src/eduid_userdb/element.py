@@ -264,7 +264,8 @@ class PrimaryElement(VerifiedElement):
         leftovers = [x for x in data.keys() if x not in ignore_data]
         if leftovers:
             if raise_on_unknown:
-                raise UserHasUnknownData('PrimaryElement unknown data: {!r}'.format(
+                raise UserHasUnknownData('{!s} has unknown data: {!r}'.format(
+                    self.__class__.__name__,
                     leftovers,
                 ))
             # Just keep everything that is left as-is
@@ -436,7 +437,7 @@ class PrimaryElementList(ElementList):
             raise UserDBValueError("Invalid element: {!r}".format(element))
 
         if self.find(element.key):
-            raise DuplicateElementViolation("element {!s} already in list".format(element.key))
+            raise DuplicateElementViolation("Element {!s} already in list".format(element.key))
 
         _old_list = self._elements
         ElementList.add(self, element)
@@ -519,10 +520,13 @@ class PrimaryElementList(ElementList):
             return None
         res = [x for x in elements if x.is_primary is True]
         if len(res) != 1:
-            raise PrimaryElementViolation("List contains {!s}/{!s} primary elements".format(
+            raise PrimaryElementViolation("{!s} contains {!s}/{!s} primary elements".format(
+                self.__class__.__name__,
                 len(res), len(elements)))
         if self.require_verified_primary and not res[0].is_verified:
-            raise PrimaryElementViolation("Primary element must be verified")
+            raise PrimaryElementViolation("Primary element of {!s} must be verified".format(
+                self.__class__.__name__,
+            ))
         return res[0]
 
 
