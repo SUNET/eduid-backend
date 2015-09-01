@@ -4,6 +4,7 @@ import datetime
 from unittest import TestCase
 
 from eduid_userdb.user import User
+from eduid_userdb.exceptions import UserHasUnknownData, UserHasNotCompletedSignup, UserIsRevoked
 
 __author__ = 'ft'
 
@@ -84,3 +85,99 @@ class TestUser(TestCase):
         Test that we get back a dict identical to the one we put in for old-style userdb data.
         """
         self.assertEqual(self.user1.passwords.to_list_of_dicts(old_userdb_format=True), self.data1['passwords'])
+
+    def test_obsolete_attributes(self):
+        """
+        Test that some obsolete attributes don't cause parse failures.
+        """
+        data = self.data1
+        data['postalAddress'] = {'foo': 'bar'}
+        data['date'] = 'anything'
+        user = User(data)
+        self.assertEqual(self.user1._data, user._data)
+
+    def test_unknown_attributes(self):
+        """
+        Test parsing a document with unknown data in it.
+        """
+        data = self.data1
+        data['unknown_attribute'] = 'something'
+        user = User(data, raise_on_unknown=False)
+        self.assertEqual(data['_id'], user.user_id)
+
+        with self.assertRaises(UserHasUnknownData):
+            User(data, raise_on_unknown=True)
+
+    def test_incomplete_signup_user(self):
+        """
+        Test parsing the incomplete documents left in the central userdb by older Signup application.
+        """
+        data = {u'_id': ObjectId(),
+                u'eduPersonPrincipalName': u'vohon-mufus',
+                u'mail': u'olle@example.org',
+                u'mailAliases': [{u'email': u'olle@example.org', u'verified': False}],
+                }
+        with self.assertRaises(UserHasNotCompletedSignup):
+            User(data)
+        data['subject'] = 'physical person'  # later signup added this attribute
+        with self.assertRaises(UserHasNotCompletedSignup):
+            User(data)
+        data[u'mailAliases'][0]['verified'] = True
+        data['sn'] = 'not signup-incomplete anymore'
+        user = User(data)
+        self.assertEqual(user.surname, data['sn'])
+
+    def test_revoked_user(self):
+        """
+        Test ability to identify revoked users.
+        """
+        data = {u'_id': ObjectId(),
+                u'eduPersonPrincipalName': u'binib-mufus',
+                u'revoked_ts': datetime.datetime(2015, 5, 26, 8, 33, 56, 826000),
+                }
+        with self.assertRaises(UserIsRevoked):
+            User(data)
+
+    def test_user_with_no_primary_mail(self):
+        mail = u'yahoo@example.com'
+        data = {u'_id': ObjectId(),
+                u'eduPersonPrincipalName': u'lutol-bafim',
+                u'mailAliases': [{u'email': mail, u'verified': True}],
+                u'passwords': [{u'created_ts': datetime.datetime(2014, 9, 4, 8, 57, 7, 362000),
+                                u'id': ObjectId(),
+                                u'salt': u'salt',
+                                u'source': u'dashboard'}],
+                }
+        user = User(data)
+        self.assertEqual(mail, user.mail_addresses.primary.email)
+
+    def test_user_with_indirectly_verified_primary_mail(self):
+        """
+        If a user has passwords set, the 'mail' attribute will be considered indirectly verified.
+        """
+        mail = u'yahoo@example.com'
+        data = {u'_id': ObjectId(),
+                u'eduPersonPrincipalName': u'lutol-bafim',
+                u'mail': mail,
+                u'mailAliases': [{u'email': mail, u'verified': False}],
+                u'passwords': [{u'created_ts': datetime.datetime(2014, 9, 4, 8, 57, 7, 362000),
+                                u'id': ObjectId(),
+                                u'salt': u'salt',
+                                u'source': u'dashboard'}],
+                }
+        user = User(data)
+        self.assertEqual(mail, user.mail_addresses.primary.email)
+
+    def test_user_with_csrf_junk_in_mail_address(self):
+        """
+        For a long time, Dashboard leaked CSRF tokens into the mail address dicts.
+        """
+        mail = u'yahoo@example.com'
+        data = {u'_id': ObjectId(),
+                u'eduPersonPrincipalName': u'test-test',
+                u'mailAliases': [{u'email': mail,
+                u'verified': True,
+                u'csrf': u'6ae1d4e95305b72318a683883e70e3b8e302cd75'}],
+               }
+        user = User(data)
+        self.assertEqual(mail, user.mail_addresses.primary.email)
