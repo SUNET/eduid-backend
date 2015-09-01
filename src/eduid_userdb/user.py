@@ -114,8 +114,22 @@ class User(object):
             data['surname'] = data.pop('sn')
         if 'eduPersonEntitlement' in data:
             data['entitlements'] = data.pop('eduPersonEntitlement')
+
+        if len(_mail_addresses) == 1:
+            if 'primary' not in _mail_addresses[0] or \
+                    _mail_addresses[0]['primary'] is False:
+                # A single mail address was not set as Primary until it was verified
+                _mail_addresses[0]['primary'] = True
+
+        _phones = data.pop('phone', [])
+        if len(_phones) == 1:
+            if 'primary' not in _phones[0] or \
+                    _phones[0]['primary'] is False:
+                # A single phone number was not set as Primary until it was verified
+                _phones[0]['primary'] = True
+
         self._mail_addresses = MailAddressList(_mail_addresses)
-        self._phone_numbers = PhoneNumberList(data.pop('phone', []))
+        self._phone_numbers = PhoneNumberList(_phones)
         self._nins = NinList(_nins)
         self._passwords = PasswordList(data.pop('passwords', []))
         # generic (known) attributes
