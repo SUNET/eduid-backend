@@ -22,7 +22,11 @@ class TestUser(TestCase):
                                       u'id': ObjectId('54735b588a7d2a2c4ec3e7d0'),
                                       u'salt': u'$NDNv1H1$315d7$32$32$',
                                       u'source': u'dashboard'}],
-                      u'subject': u'physical person'}
+                      u'norEduPersonNIN': [u'197801012345'],
+                      u'subject': u'physical person',
+                      u'eduPersonEntitlement': [u'http://foo.example.org'],
+                      u'preferredLanguage': u'en',
+                      }
         self.user1 = User(self.data1)
 
         self.data2 = {u'_id': ObjectId('549190b5d00690878ae9b622'),
@@ -181,3 +185,102 @@ class TestUser(TestCase):
                }
         user = User(data)
         self.assertEqual(mail, user.mail_addresses.primary.email)
+
+    def test_to_dict(self):
+        """
+        Test that User objects can be recreated.
+        """
+        d1 = self.user1.to_dict()
+        u2 = User(d1)
+        d2 = u2.to_dict()
+        self.assertEqual(d1, d2)
+
+    def test_to_dict_old_format(self):
+        """
+        Test that User objects can be recreated.
+        """
+        d1 = self.user1.to_dict(old_userdb_format=True)
+        u2 = User(d1)
+        d2 = u2.to_dict(old_userdb_format=True)
+        self.assertEqual(d1, d2)
+
+    def test_modified_ts(self):
+        """
+        Test the modified_ts property.
+        """
+        # ensure known starting point
+        self.assertIsNone(self.user1.modified_ts)
+        # set to current time
+        self.user1.modified_ts = True
+        _time1 = self.user1.modified_ts
+        self.assertIsInstance(_time1, datetime.datetime)
+        # Setting existing value to None should be ignored
+        self.user1.modified_ts = None
+        self.assertEqual(_time1, self.user1.modified_ts)
+        # update to current time
+        self.user1.modified_ts = True
+        _time2 = self.user1.modified_ts
+        self.assertNotEqual(_time1, _time2)
+        # set to a datetime instance
+        self.user1.modified_ts = _time1
+        self.assertEqual(_time1, self.user1.modified_ts)
+
+    def test_two_unverified_non_primary_phones(self):
+        """
+        Test that the first entry in the `mobile' list is chosen as primary when none are verified.
+        """
+        number1 = u'+9112345678'
+        number2 = u'+9123456789'
+        data = {u'_id': ObjectId(),
+                u'displayName': u'xxx yyy',
+                u'eduPersonPrincipalName': u'pohig-test',
+                u'givenName': u'xxx',
+                u'mail': u'test@gmail.com',
+                u'mailAliases': [{u'email': u'test@gmail.com', u'verified': True}],
+                u'mobile': [{u'csrf': u'47d42078719b8377db622c3ff85b94840b483c92',
+                             u'mobile': number1,
+                             u'primary': False,
+                             u'verified': False},
+                            {u'csrf': u'47d42078719b8377db622c3ff85b94840b483c92',
+                             u'mobile': number2,
+                             u'primary': False,
+                             u'verified': False}],
+                u'passwords': [{u'created_ts': datetime.datetime(2014, 6, 29, 17, 52, 37, 830000),
+                                u'id': ObjectId(),
+                                u'salt': u'$NDNv1H1$foo$32$32$',
+                                u'source': u'dashboard'}],
+                u'preferredLanguage': u'en',
+                u'sn': u'yyy',
+                }
+        user = User(data)
+        self.assertEqual(user.phone_numbers.primary.number, number1)
+
+    def test_two_non_primary_phones(self):
+        """
+        Test that the first verified number is chosen as primary, if there is a verified number.
+        """
+        number1 = u'+9112345678'
+        number2 = u'+9123456789'
+        data = {u'_id': ObjectId(),
+                u'displayName': u'xxx yyy',
+                u'eduPersonPrincipalName': u'pohig-test',
+                u'givenName': u'xxx',
+                u'mail': u'test@gmail.com',
+                u'mailAliases': [{u'email': u'test@gmail.com', u'verified': True}],
+                u'mobile': [{u'csrf': u'47d42078719b8377db622c3ff85b94840b483c92',
+                             u'mobile': number1,
+                             u'primary': False,
+                             u'verified': False},
+                            {u'csrf': u'47d42078719b8377db622c3ff85b94840b483c92',
+                             u'mobile': number2,
+                             u'primary': False,
+                             u'verified': True}],
+                u'passwords': [{u'created_ts': datetime.datetime(2014, 6, 29, 17, 52, 37, 830000),
+                                u'id': ObjectId(),
+                                u'salt': u'$NDNv1H1$foo$32$32$',
+                                u'source': u'dashboard'}],
+                u'preferredLanguage': u'en',
+                u'sn': u'yyy',
+                }
+        user = User(data)
+        self.assertEqual(user.phone_numbers.primary.number, number2)

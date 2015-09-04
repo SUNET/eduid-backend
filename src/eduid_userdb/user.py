@@ -154,10 +154,17 @@ class User(object):
         """
         if 'mobile' in self._data_in:
             _phones = self._data_in.pop('mobile')
-            if len(_phones) == 1:
-                if 'primary' not in _phones[0] or \
-                        _phones[0]['primary'] is False:
-                    # A single phone number was not set as Primary until it was verified
+            _primary = [x for x in _phones if x.get('primary', False)]
+            if _phones and not _primary:
+                # None of the phone numbers are primary. Promote either the first verified
+                # entry found, or failing that - the first entry in the list.
+                _primary_set = False
+                for _this in _phones:
+                    if _this.get('verified', False):
+                        _this['primary'] = True
+                        _primary_set = True
+                        break
+                if not _primary_set:
                     _phones[0]['primary'] = True
             self._data_in['phone'] = _phones
 
