@@ -467,4 +467,6 @@ class User(object):
                     res['norEduPersonNIN'] = verified_nins
                 elif 'norEduPersonNIN' in res:
                     del res['norEduPersonNIN']
+            if 'language' in res:
+                res['preferredLanguage'] = res.pop('language')
         return res
