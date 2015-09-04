@@ -110,14 +110,9 @@ class User(object):
         if 'revoked_ts' in self._data_in:
             raise UserIsRevoked('User {!s}/{!s} was revoked at {!s}'.format(
                 self._data_in.get('_id'), self._data_in.get('eduPersonPrincipalName'), self._data_in['revoked_ts']))
-        if len(self._data_in) == 4:
-            if sorted(self._data_in.keys()) == [u'_id', u'eduPersonPrincipalName', u'mail', u'mailAliases']:
-                raise UserHasNotCompletedSignup('User {!s}/{!s} is incomplete'.format(
-                    self._data_in.get('_id'), self._data_in.get('eduPersonPrincipalName')))
-        if len(self._data_in) == 5:
-            if sorted(self._data_in.keys()) == [u'_id', u'eduPersonPrincipalName', u'mail', u'mailAliases', u'subject']:
-                raise UserHasNotCompletedSignup('User {!s}/{!s} is incomplete'.format(
-                    self._data_in.get('_id'), self._data_in.get('eduPersonPrincipalName')))
+        if 'passwords' not in self._data_in:
+            raise UserHasNotCompletedSignup('User {!s}/{!s} is incomplete'.format(
+                self._data_in.get('_id'), self._data_in.get('eduPersonPrincipalName')))
 
     def _parse_mail_addresses(self):
         """"
