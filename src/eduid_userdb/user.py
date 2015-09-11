@@ -81,10 +81,10 @@ class User(object):
         # generic (known) attributes
         self.eppn = self._data_in.pop('eduPersonPrincipalName')  # mandatory
         self.subject = self._data_in.pop('subject', None)
-        self.display_name = self._data_in.pop('displayName', '')
-        self.given_name = self._data_in.pop('givenName', '')
-        self.surname = self._data_in.pop('surname', '')
-        self.language = self._data_in.pop('preferredLanguage', '')
+        self.display_name = self._data_in.pop('displayName', None)
+        self.given_name = self._data_in.pop('givenName', None)
+        self.surname = self._data_in.pop('surname', None)
+        self.language = self._data_in.pop('preferredLanguage', None)
         self.modified_ts = self._data_in.pop('modified_ts', None)
         self.entitlements = self._data_in.pop('entitlements', None)
         # obsolete attributes
@@ -445,10 +445,16 @@ class User(object):
         res['phone'] = self.phone_numbers.to_list_of_dicts(old_userdb_format=old_userdb_format)
         res['passwords'] = self.passwords.to_list_of_dicts(old_userdb_format=old_userdb_format)
         res['nins'] = self.nins.to_list_of_dicts(old_userdb_format=old_userdb_format)
+        # Remove these values if they have a value that evaluates to False
+        for _remove in ['displayName', 'givenName', 'surname', 'preferredLanguage', 'phone']:
+            if _remove in res and not res[_remove]:
+                del res[_remove]
         if old_userdb_format:
             if 'surname' in res:
                 res['sn'] = res.pop('surname')
-            res['mail'] = self.mail_addresses.primary.email
+            _primary = self.mail_addresses.primary
+            if _primary:
+                res['mail'] = _primary.email
             if 'phone' in res:
                 res['mobile'] = res.pop('phone')
             if 'entitlements' in res:
@@ -462,6 +468,6 @@ class User(object):
                     res['norEduPersonNIN'] = verified_nins
                 elif 'norEduPersonNIN' in res:
                     del res['norEduPersonNIN']
-            if 'language' in res:
-                res['preferredLanguage'] = res.pop('language')
+            if res.get('mailAliases') == []:
+                del res['mailAliases']
         return res
