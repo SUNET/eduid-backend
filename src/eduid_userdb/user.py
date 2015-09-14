@@ -36,7 +36,7 @@ import bson
 import copy
 import datetime
 
-from eduid_userdb.exceptions import UserHasUnknownData
+from eduid_userdb.exceptions import UserHasUnknownData, UserIsRevoked, UserHasNotCompletedSignup
 from eduid_userdb.element import UserDBValueError
 
 from eduid_userdb.mail import MailAddressList
@@ -55,27 +55,127 @@ class User(object):
     :type  data: dict
     """
     def __init__(self, data, raise_on_unknown = True):
-        data_in = data
-        data = copy.deepcopy(data_in)  # to not modify callers data
+        self._data_in = copy.deepcopy(data)  # to not modify callers data
         self._data = dict()
+
+        self._parse_check_invalid_users()
+
         # things without setters
-        _id = data.pop('_id', None)
+        _id = self._data_in.pop('_id', None)
         if _id is None:
             _id = bson.ObjectId()
         if not isinstance(_id, bson.ObjectId):
             _id = bson.ObjectId(_id)
         self._data['_id'] = _id
-        _mail_addresses = data.pop('mailAliases', [])
-        if 'mail' in data:
+
+        if 'sn' in self._data_in:
+            self._data_in['surname'] = self._data_in.pop('sn')
+        if 'eduPersonEntitlement' in self._data_in:
+            self._data_in['entitlements'] = self._data_in.pop('eduPersonEntitlement')
+
+        self._parse_mail_addresses()
+        self._parse_phone_numbers()
+        self._parse_nins()
+
+        self._passwords = PasswordList(self._data_in.pop('passwords', []))
+        # generic (known) attributes
+        self.eppn = self._data_in.pop('eduPersonPrincipalName')  # mandatory
+        self.subject = self._data_in.pop('subject', None)
+        self.display_name = self._data_in.pop('displayName', None)
+        self.given_name = self._data_in.pop('givenName', None)
+        self.surname = self._data_in.pop('surname', None)
+        self.language = self._data_in.pop('preferredLanguage', None)
+        self.modified_ts = self._data_in.pop('modified_ts', None)
+        self.entitlements = self._data_in.pop('entitlements', None)
+        # obsolete attributes
+        if 'postalAddress' in self._data_in:
+            del self._data_in['postalAddress']
+        if 'date' in self._data_in:
+            del self._data_in['date']
+
+        if len(self._data_in) > 0:
+            if raise_on_unknown:
+                raise UserHasUnknownData('User {!s}/{!s} unknown data: {!r}'.format(
+                    self.user_id, self.eppn, self._data_in.keys()
+                ))
+            # Just keep everything that is left as-is
+            self._data.update(self._data_in)
+
+    def _parse_check_invalid_users(self):
+        """"
+        Part of __init__().
+
+        Check users that can't be loaded for some known reason.
+        """
+        if 'revoked_ts' in self._data_in:
+            raise UserIsRevoked('User {!s}/{!s} was revoked at {!s}'.format(
+                self._data_in.get('_id'), self._data_in.get('eduPersonPrincipalName'), self._data_in['revoked_ts']))
+        if 'passwords' not in self._data_in:
+            raise UserHasNotCompletedSignup('User {!s}/{!s} is incomplete'.format(
+                self._data_in.get('_id'), self._data_in.get('eduPersonPrincipalName')))
+
+    def _parse_mail_addresses(self):
+        """"
+        Part of __init__().
+
+        Parse all the different formats of mail+mailAliases attributes in the database.
+        """
+        _mail_addresses = self._data_in.pop('mailAliases', [])
+        if 'mail' in self._data_in:
             # old-style userdb primary e-mail address indicator
             for idx in xrange(len(_mail_addresses)):
-                if _mail_addresses[idx]['email'] == data['mail']:
+                if _mail_addresses[idx]['email'] == self._data_in['mail']:
                     _mail_addresses[idx]['primary'] = True
-            data.pop('mail')
-        _nins = data.pop('nins', [])
-        if 'norEduPersonNIN' in data:
+                    if 'passwords' in self._data_in:
+                        # Work around a bug where one could signup, not follow the link in the e-mail
+                        # and then do a password request to set a password. The e-mail address is
+                        # implicitly verified by the password reset (which must have been done using e-mail).
+                        _mail_addresses[idx]['verified'] = True
+            self._data_in.pop('mail')
+
+        if len(_mail_addresses) == 1:
+            if 'primary' not in _mail_addresses[0] or \
+                    _mail_addresses[0]['primary'] is False:
+                # A single mail address was not set as Primary until it was verified
+                _mail_addresses[0]['primary'] = True
+
+        self._mail_addresses = MailAddressList(_mail_addresses)
+
+    def _parse_phone_numbers(self):
+        """"
+        Part of __init__().
+
+        Parse all the different formats of mobile/phone attributes in the database.
+        """
+        if 'mobile' in self._data_in:
+            _phones = self._data_in.pop('mobile')
+            _primary = [x for x in _phones if x.get('primary', False)]
+            if _phones and not _primary:
+                # None of the phone numbers are primary. Promote either the first verified
+                # entry found, or failing that - the first entry in the list.
+                _primary_set = False
+                for _this in _phones:
+                    if _this.get('verified', False):
+                        _this['primary'] = True
+                        _primary_set = True
+                        break
+                if not _primary_set:
+                    _phones[0]['primary'] = True
+            self._data_in['phone'] = _phones
+
+        _phones = self._data_in.pop('phone', [])
+        self._phone_numbers = PhoneNumberList(_phones)
+
+    def _parse_nins(self):
+        """"
+        Part of __init__().
+
+        Parse all the different formats of norEduPersonNIN attributes in the database.
+        """
+        _nins = self._data_in.pop('nins', [])
+        if 'norEduPersonNIN' in self._data_in:
             # old-style list of verified nins
-            old_nins = data.pop('norEduPersonNIN')
+            old_nins = self._data_in.pop('norEduPersonNIN')
             for this in old_nins:
                 if isinstance(this, basestring):
                     # XXX lookup NIN in eduid-dashboards verifications to make sure it is verified somehow?
@@ -93,37 +193,7 @@ class User(object):
                         raise UserDBValueError('Old-style NIN-as-dict has unknown data')
                 else:
                     raise UserDBValueError('Old-style NIN is not a string or dict')
-
-        if 'mobile' in data:
-            data['phone'] = data.pop('mobile')
-        if 'sn' in data:
-            data['surname'] = data.pop('sn')
-        if 'eduPersonEntitlement' in data:
-            data['entitlements'] = data.pop('eduPersonEntitlement')
-        self._mail_addresses = MailAddressList(_mail_addresses)
-        self._phone_numbers = PhoneNumberList(data.pop('phone', []))
         self._nins = NinList(_nins)
-        self._passwords = PasswordList(data.pop('passwords', []))
-        # generic (known) attributes
-        self.eppn = data.pop('eduPersonPrincipalName')  # mandatory
-        self.subject = data.pop('subject', None)
-        self.display_name = data.pop('displayName', '')
-        self.given_name = data.pop('givenName', '')
-        self.surname = data.pop('surname', '')
-        self.language = data.pop('preferredLanguage', '')
-        self.modified_ts = data.pop('modified_ts', None)
-        self.entitlements = data.pop('entitlements', None)
-        # obsolete attributes
-        if 'postalAddress' in data:
-            del data['postalAddress']
-
-        if len(data) > 0:
-            if raise_on_unknown:
-                raise UserHasUnknownData('User {!s}/{!s} unknown data: {!r}'.format(
-                    self.user_id, self.eppn, data.keys()
-                ))
-            # Just keep everything that is left as-is
-            self._data.update(data)
 
     def __repr__(self):
         return '<eduID {!s}: {!s}/{!s}>'.format(self.__class__.__name__,
@@ -377,10 +447,16 @@ class User(object):
         res['phone'] = self.phone_numbers.to_list_of_dicts(old_userdb_format=old_userdb_format)
         res['passwords'] = self.passwords.to_list_of_dicts(old_userdb_format=old_userdb_format)
         res['nins'] = self.nins.to_list_of_dicts(old_userdb_format=old_userdb_format)
+        # Remove these values if they have a value that evaluates to False
+        for _remove in ['displayName', 'givenName', 'surname', 'preferredLanguage', 'phone']:
+            if _remove in res and not res[_remove]:
+                del res[_remove]
         if old_userdb_format:
             if 'surname' in res:
                 res['sn'] = res.pop('surname')
-            res['mail'] = self.mail_addresses.primary.email
+            _primary = self.mail_addresses.primary
+            if _primary:
+                res['mail'] = _primary.email
             if 'phone' in res:
                 res['mobile'] = res.pop('phone')
             if 'entitlements' in res:
@@ -394,4 +470,6 @@ class User(object):
                     res['norEduPersonNIN'] = verified_nins
                 elif 'norEduPersonNIN' in res:
                     del res['norEduPersonNIN']
+            if res.get('mailAliases') == []:
+                del res['mailAliases']
         return res

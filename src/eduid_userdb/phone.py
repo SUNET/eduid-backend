@@ -58,6 +58,9 @@ class PhoneNumber(PrimaryElement):
         if 'mobile' in data:
             # old userdb-style entry
             data['number'] = data.pop('mobile')
+        # CSRF tokens were accidentally put in the database some time ago
+        if 'csrf' in data:
+            del data['csrf']
 
         PrimaryElement.__init__(self, data, raise_on_unknown, ignore_data = ['number'])
         self.number = data.pop('number')

@@ -154,8 +154,10 @@ class UserDB(object):
             self, self._coll_name, attr, value))
         try:
             doc = self._get_document_by_attr(attr, value, raise_on_missing=True)
-            logger.debug("{!s} Found user {!r}".format(self, doc))
-            return self.UserClass(data=doc)
+            logger.debug("{!s} Found user with id {!s}".format(self, doc['_id']))
+            user = self.UserClass(data=doc)
+            logger.debug("{!s} Returning user {!s}".format(self, user))
+            return user
         except self.exceptions.UserDoesNotExist:
             logger.debug("UserDoesNotExist, {!r} = {!r}".format(attr, value))
             raise
