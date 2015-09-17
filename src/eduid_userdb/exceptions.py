@@ -74,3 +74,17 @@ class UserHasNotCompletedSignup(EduIDUserDBError):
     Signup has created lots of users in the database with only eppn, mail and mailAliases.
     """
     pass
+
+
+class ActionMissingData(EduIDUserDBError):
+    """
+    There is missing data for an Action
+    """
+    pass
+
+
+class ActionHasUnknownData(EduIDUserDBError):
+    """
+    One or more elements of the action could not be interpreted.
+    """
+    pass
