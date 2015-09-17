@@ -8,3 +8,6 @@ build/
 dist/
 metadata.xml
 .idea
+.*.swp
+coverage.xml
+nosetests.xml
