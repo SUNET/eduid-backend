@@ -47,17 +47,17 @@ class ActionDB(object):
 
     ActionClass = Action
 
-    def __init__(self, db_uri, db_name='eduid_actions', collection='actions'):
+    def __init__(self, db_uri, db_name='eduid_actions',
+                               collection='actions', **kwargs):
 
         self._db_uri = db_uri
         self._coll_name = collection
-        self._db = MongoDB(db_uri, db_name)
+        if 'replicaSet' in kwargs and kwargs['replicaSet'] is None:
+            del kwargs['replicaSet']
+        self._db = MongoDB(db_uri, db_name=db_name, **kwargs)
         self._coll = self._db.get_collection(collection)
         self._cache = {}
         logger.debug("{!s} connected to database".format(self, self._db.sanitized_uri, self._coll_name))
-        # XXX Backwards compatibility.
-        # Was: provide access to our backends exceptions to users of this class
-        self.exceptions = eduid_userdb.exceptions
 
     def __repr__(self):
         return '<eduID {!s}: {!s} {!r} (returning {!s})>'.format(self.__class__.__name__,
@@ -66,7 +66,7 @@ class ActionDB(object):
                                                                  self.ActionClass.__name__,
                                                                 )
 
-    def _get_key(self, userid, session):
+    def _make_key(self, userid, session):
         if session is None:
             return session
         return userid + session
@@ -82,19 +82,21 @@ class ActionDB(object):
         :param session: The actions session for the user
         :type session: str
         '''
-        cachekey = self._get_key(userid, session)
-        del self._cache[cachekey]
+        cachekey = self._make_key(userid, session)
+        if cachekey in self._cache:
+            del self._cache[cachekey]
 
 
     def _retrieve_pending_actions(self, userid, session):
-        cachekey = self._get_key(userid, session)
+        cachekey = self._make_key(userid, session)
 
         if cachekey not in self._cache:
-            query = {'user_oid': userid}
+            query = {'user_oid': ObjectId(userid)}
             if session is None:
                 query['session'] = {'$exists': False}
             else:
-                query['session'] = {'$or': [{'$exists': False}, {'$eq': session}]}
+                query['$or'] = [ {'session': {'$exists': False}},
+                                 {'session': session} ]
 
             actions = self._coll.find(query).sort('precedence')
             if actions.count() > 0:
@@ -129,6 +131,7 @@ class ActionDB(object):
         If session is None, search actions with no session,
         otherwise search actions with either no session
         or with the specified session.
+        If there is no pending action, return None
 
         :param userid: The id of the user with possible pending actions
         :type userid: str
@@ -148,7 +151,7 @@ class ActionDB(object):
                 action = Action(data=action_doc)
         return action
 
-    def add_action(self, user_id, action_type, preference=100,
+    def add_action(self, user_id=None, action_type=None, preference=100,
                     session=None, params=None, data=None):
         """
         Add an action to the DB.
@@ -180,8 +183,8 @@ class ActionDB(object):
 
         # XXX deal with exceptions here ?
         action = Action(data)
-        result = self._coll.insert_one(action.to_dict())
-        if result.inserted_id == action.action_id:
+        result = self._coll.insert(action.to_dict())
+        if result == action.action_id:
             return action
 
     def remove_action_by_id(self, action_id):

@@ -30,5 +30,5 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from .db import ActionDB
 from .action import Action
+from .db import ActionDB

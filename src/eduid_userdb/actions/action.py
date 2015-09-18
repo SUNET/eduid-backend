@@ -68,20 +68,20 @@ class Action(object):
             _id = bson.ObjectId(_id)
         self._data['_id'] = _id
 
-        user_id = self.data_in.pop('user_oid')
+        user_id = self._data_in.pop('user_oid')
         self._data['user_oid'] = user_id
 
-        action_type = self.data_in.pop('action')
+        action_type = self._data_in.pop('action')
         self._data['action'] = action_type
 
-        preference = self.data_in.pop('preference', 100)
+        preference = self._data_in.pop('preference', 100)
         self._data['preference'] = preference
 
-        session = self.data_in.pop('session', None)
+        session = self._data_in.pop('session', None)
         if session is not None:
             self._data['session'] = session
 
-        params = self.data_in.pop('params', None)
+        params = self._data_in.pop('params', None)
         if params is not None:
             self._data['params'] = params
 
@@ -99,18 +99,20 @@ class Action(object):
 
         Check actions that can't be loaded for some known reason.
         """
-        if 'user_oid' not in self._data_in:
+        if 'user_oid' not in self._data_in or self._data_in['user_oid'] is None:
             raise ActionMissingData('Action {!s} has no user_oid'.format(
                 self._data_in.get('_id')))
-        if 'action' not in self._data_in:
+        if 'action' not in self._data_in or self._data_in['action'] is None:
             raise ActionMissingData('Action {!s} has no action'.format(
                 self._data_in.get('_id')))
 
     def __repr__(self):
-        return '<eduID {!s}: {!s}/{!s}>'.format(self.__class__.__name__,
+        return '<eduID {!s}: {!s} for {!s}>'.format(self.__class__.__name__,
                                                 self.action_type,
                                                 self.user_id,
                                                 )
+
+    __str__ = __repr__
 
     def __eq__(self, other):
         if self.__class__ is not other.__class__:
@@ -165,7 +167,7 @@ class Action(object):
 
         :rtype: str
         """
-        return self._data.get('preference')
+        return int(self._data.get('preference'))
 
     # -----------------------------------------------------------------
     @property
