@@ -1,0 +1,35 @@
+{
+    "PopulationItems": [
+        {
+            "CaseInformation": {
+                "lastChanged": "20030922000001"
+            },
+            "PersonItem": {
+                "Name": {
+                    "GivenName": "Saskariot Teofil",
+                    "Surname": "Nor\u00e9n"
+                },
+                "PersonId": {
+                    "NationalIdentityNumber": "197609272393"
+                },
+                "PostalAddresses": {
+                    "OfficialAddress": {
+                        "Address1": "\u00d6VER G\u00c5RDEN",
+                        "Address2": "MALMSKILLNADSGATAN 54 25 TR L\u00c4G 458",
+                        "CareOf": "MALMSTR\u00d6M",
+                        "City": "STOCKHOLM",
+                        "PostalCode": "11138"
+                    }
+                },
+                "Relations": [
+                    {
+                        "RelationId": {
+                            "NationalIdentityNumber": "196910199287"
+                        },
+                        "RelationType": "M"
+                    }
+                ]
+            }
+        }
+    ]
+}

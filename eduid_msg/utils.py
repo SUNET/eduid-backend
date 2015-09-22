@@ -4,6 +4,7 @@ This module provides utility functions.
 """
 
 import os
+from collections import OrderedDict
 
 
 def load_template(template_dir, filename, message_dict, lang):
@@ -24,3 +25,78 @@ def load_template(template_dir, filename, message_dict, lang):
         return template.render(message_dict)
     except OSError:
         return False
+
+
+def navet_get_name(navet_data):
+    """
+    :param navet_data: Loaded JSON response from eduid-navet_service
+    :type navet_data: dict
+    :return: Name data object
+    :rtype: OrderedDict
+    """
+    person = navet_get_person(navet_data)
+    result = OrderedDict([(u'Name', person['Name']), ])
+    return result
+
+
+def navet_get_official_address(navet_data):
+    """
+    :param navet_data:  Loaded JSON response from eduid-navet_service
+    :type navet_data: dict
+    :return: Official address data object
+    :rtype: OrderedDict
+    """
+    person = navet_get_person(navet_data)
+    result = OrderedDict([(u'OfficialAddress', person['PostalAddresses']['OfficialAddress']), ])
+    return result
+
+
+def navet_get_name_and_official_address(navet_data):
+    person = navet_get_person(navet_data)
+    result = OrderedDict([(u'Name', person['Name']),
+                          (u'OfficialAddress', person['PostalAddresses']['OfficialAddress']),
+                          ])
+    return result
+
+
+def navet_get_relations(navet_data):
+    person = navet_get_person(navet_data)
+    result = OrderedDict([(u'Relations', {u'Relation': person['Relations']}), ])
+    return result
+
+
+def navet_get_person(navet_data):
+    """
+    :param navet_data: Loaded JSON response from eduid-navet_service
+    :type navet_data: dict
+    :return: Personpost
+    {
+        "Name": {
+        "GivenName": "Saskariot Teofil",
+        "Surname": "Nor\u00e9n"
+        },
+        "PersonId": {
+            "NationalIdentityNumber": "197609272393"
+        },
+        "PostalAddresses": {
+            "OfficialAddress": {
+                "Address1": "\u00d6VER G\u00c5RDEN",
+                "Address2": "MALMSKILLNADSGATAN 54 25 TR L\u00c4G 458",
+                "CareOf": "MALMSTR\u00d6M",
+                "City": "STOCKHOLM",
+                "PostalCode": "11138"
+            }
+        },
+        "Relations": [
+            {
+                "RelationId": {
+                    "NationalIdentityNumber": "196910199287"
+                },
+                "RelationType": "M"
+            }
+        ]
+    }
+    :rtype: OrderedDict
+    """
+    result = OrderedDict(navet_data['PopulationItems'][0]['PersonItem'])
+    return result
