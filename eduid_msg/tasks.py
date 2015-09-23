@@ -26,14 +26,14 @@ TRANSACTION_AUDIT_DB = 'eduid_msg'
 TRANSACTION_AUDIT_COLLECTION = 'transaction_audit'
 
 DEFAULT_MM_API_HOST = 'eduid-mm-service.docker'
-DEFAULT_MM_API_PORT = 8443
-DEFAULT_MM_API_URI = 'https://{0}:{1}'.format(DEFAULT_MM_API_HOST,
-                                              DEFAULT_MM_API_PORT)
+DEFAULT_MM_API_PORT = 8080
+DEFAULT_MM_API_URI = 'http://{0}:{1}'.format(DEFAULT_MM_API_HOST,
+                                             DEFAULT_MM_API_PORT)
 
 DEFAULT_NAVET_API_HOST = 'eduid-navet-service.docker'
-DEFAULT_NAVET_API_PORT = 8443
-DEFAULT_NAVET_API_URI = 'https://{0}:{1}'.format(DEFAULT_NAVET_API_HOST,
-                                                 DEFAULT_NAVET_API_PORT)
+DEFAULT_NAVET_API_PORT = 8080
+DEFAULT_NAVET_API_URI = 'http://{0}:{1}'.format(DEFAULT_NAVET_API_HOST,
+                                                DEFAULT_NAVET_API_PORT)
 
 
 LOG = get_task_logger(__name__)
