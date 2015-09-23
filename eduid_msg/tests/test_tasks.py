@@ -1,6 +1,7 @@
 from mock import patch, call, MagicMock
 import json
-from eduid_msg.tests import MongoTestCase
+from eduid_userdb.testing import MongoTestCase
+from eduid_msg.tests import mock_celery, mock_get_attribute_manager
 from eduid_msg.celery import celery
 from eduid_msg.tasks import send_message, is_reachable
 from eduid_msg.utils import load_template
@@ -9,7 +10,7 @@ import pkg_resources
 
 class TestTasks(MongoTestCase):
     def setUp(self):
-        super(TestTasks, self).setUp()
+        super(TestTasks, self).setUp(celery=mock_celery(), get_attribute_manager=mock_get_attribute_manager)
         data_dir = pkg_resources.resource_filename(__name__, 'data')
         settings = {
             'BROKER_TRANSPORT': 'memory',
@@ -23,8 +24,6 @@ class TestTasks(MongoTestCase):
             'SMS_ACC': 'foo',
             'SMS_KEY': 'bar',
             'SMS_SENDER': 'Test sender',
-            'MM_DEFAULT_SUBJECT': 'Test case',
-            'MM_SENDER_ORG_NR': '1234567',
             'TEMPLATE_DIR': data_dir,
             'MESSAGE_RATE_LIMIT': '2/m',
         }

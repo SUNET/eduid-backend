@@ -1,4 +1,7 @@
-from eduid_msg.tests import MongoTestCase
+# -*- encoding: utf-8 -*-
+
+from eduid_userdb.testing import MongoTestCase
+from eduid_msg.tests import mock_celery, mock_get_attribute_manager
 from eduid_msg.celery import celery
 from eduid_msg.decorators import TransactionAudit
 import pkg_resources
@@ -6,7 +9,7 @@ import pkg_resources
 
 class TestTransactionAudit(MongoTestCase):
     def setUp(self):
-        super(TestTransactionAudit, self).setUp()
+        super(TestTransactionAudit, self).setUp(celery=mock_celery(), get_attribute_manager=mock_get_attribute_manager)
         TransactionAudit.enable()
         data_dir = pkg_resources.resource_filename(__name__, 'data')
         settings = {
@@ -21,8 +24,6 @@ class TestTransactionAudit(MongoTestCase):
             'SMS_ACC': 'foo',
             'SMS_KEY': 'bar',
             'SMS_SENDER': 'Test sender',
-            'MM_DEFAULT_SUBJECT': 'Test case',
-            'MM_SENDER_ORG_NR': '1234567',
             'TEMPLATE_DIR': data_dir,
             'MESSAGE_RATE_LIMIT': '2/m',
         }
