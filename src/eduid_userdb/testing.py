@@ -209,15 +209,18 @@ class MongoTemporaryInstance(object):
     _instance = None
 
     @classmethod
-    def get_instance(cls):
+    def get_instance(cls, port=None):
         if cls._instance is None:
-            cls._instance = cls()
+            cls._instance = cls(port=port)
             atexit.register(cls._instance.shutdown)
         return cls._instance
 
-    def __init__(self):
+    def __init__(self, port=None):
         self._tmpdir = tempfile.mkdtemp()
-        self._port = random.randint(40000, 50000)
+        if port is None:
+            self._port = random.randint(40000, 50000)
+        else:
+            self._port = port
         self._process = subprocess.Popen(['mongod', '--bind_ip', 'localhost',
                                           '--port', str(self._port),
                                           '--dbpath', self._tmpdir,
