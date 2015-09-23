@@ -79,7 +79,7 @@ MOCKED_USER_STANDARD = {
         'urn:mace:eduid.se:role:admin',
         'urn:mace:eduid.se:role:student',
     ],
-    #'maxReachedLoa': 3,
+        #'maxReachedLoa': 3,
     'mobile': [{
         'mobile': '+34609609609',
         'primary': True,
@@ -87,6 +87,9 @@ MOCKED_USER_STANDARD = {
     }, {
         'mobile': '+34 6096096096',
         'verified': False
+    }, {
+        'mobile': '+34607507507',
+        'verified': True
     }],
     'mail': 'johnsmith@example.com',
     'mailAliases': [{
