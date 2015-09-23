@@ -128,8 +128,13 @@ class TestUser(TestCase):
             User(data)
         data[u'mailAliases'][0]['verified'] = True
         data['sn'] = 'not signup-incomplete anymore'
+        data['passwords'] = [{u'created_ts': datetime.datetime(2014, 9, 4, 8, 57, 7, 362000),
+                              u'id': ObjectId(),
+                              u'salt': u'salt',
+                              u'created_by': u'dashboard'}]
         user = User(data)
         self.assertEqual(user.surname, data['sn'])
+        self.assertEqual(user.passwords.to_list_of_dicts(), data['passwords'])
 
     def test_revoked_user(self):
         """
@@ -182,6 +187,10 @@ class TestUser(TestCase):
                 u'mailAliases': [{u'email': mail,
                 u'verified': True,
                 u'csrf': u'6ae1d4e95305b72318a683883e70e3b8e302cd75'}],
+                u'passwords': [{u'created_ts': datetime.datetime(2014, 9, 4, 8, 57, 7, 362000),
+                                u'id': ObjectId(),
+                                u'salt': u'salt',
+                                u'source': u'dashboard'}],
                }
         user = User(data)
         self.assertEqual(mail, user.mail_addresses.primary.email)
