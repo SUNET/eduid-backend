@@ -6,7 +6,7 @@ from celery.utils.log import get_task_logger
 from celery.task import periodic_task, task
 from eduid_msg.celery import celery
 from eduid_msg.cache import CacheMDB
-from eduid_msg.utils import load_template
+from eduid_msg.utils import load_template, navet_get_name_and_official_address, navet_get_relations
 from eduid_msg.decorators import TransactionAudit
 from eduid_msg.config import read_configuration
 from time import time
@@ -25,10 +25,15 @@ DEFAULT_MONGODB_URI = 'mongodb://%s:%d/%s' % (DEFAULT_MONGODB_HOST,
 TRANSACTION_AUDIT_DB = 'eduid_msg'
 TRANSACTION_AUDIT_COLLECTION = 'transaction_audit'
 
-DEFAULT_MM_API_HOST = 'localhost'
+DEFAULT_MM_API_HOST = 'eduid-mm-service.docker'
 DEFAULT_MM_API_PORT = 8443
 DEFAULT_MM_API_URI = 'https://{0}:{1}'.format(DEFAULT_MM_API_HOST,
                                               DEFAULT_MM_API_PORT)
+
+DEFAULT_NAVET_API_HOST = 'eduid-navet-service.docker'
+DEFAULT_NAVET_API_PORT = 8443
+DEFAULT_NAVET_API_URI = 'https://{0}:{1}'.format(DEFAULT_NAVET_API_HOST,
+                                                 DEFAULT_NAVET_API_PORT)
 
 
 LOG = get_task_logger(__name__)
@@ -47,6 +52,7 @@ class MessageRelay(Task):
     _config = read_configuration()
     MONGODB_URI = _config['MONGO_URI'] if 'MONGO_URI' in _config else DEFAULT_MONGODB_URI
     MM_API_URI = _config['MM_API_URI'] if 'MM_API_URI' in _config else DEFAULT_MM_API_URI
+    NAVET_API_URI = _config['NAVET_API_URI'] if 'NAVET_API_URI' in _config else DEFAULT_NAVET_API_URI
     if 'AUDIT' in _config and _config['AUDIT'] == 'true':
         TransactionAudit.enable()
 
@@ -73,16 +79,14 @@ class MessageRelay(Task):
 
     @property
     def navet(self):
-        if self._navet is None:
-            from pynavet.postaladdress import PostalAddress
-
-            conf = self.app.conf
-            debug = conf.get("DEVEL_MODE") == 'true' or conf.get("DEBUG") == 'true'
-            self._navet = PostalAddress(cert=conf.get("MM_CERT_FILE"),
-                                        key_file=conf.get("MM_KEY_FILE"),
-                                        order_id=conf.get("NAVET_ORDER_ID"),
-                                        verify=False,
-                                        debug=debug)
+        if self._navet_api is None:
+            verify_ssl = True
+            auth = None
+            if self.app.conf.get("NAVET_API_VERIFY_SSL", None) == 'false':
+                verify_ssl = False
+            if self.app.conf.get("NAVET_API_USER", None) and self.app.conf.get("NAVET_API_PW"):
+                auth = (self.app.conf.get("NAVET_API_USER"), self.app.conf.get("NAVET_API_PW"))
+            self._navet = Hammock(self.NAVET_API_URI, auth=auth, verify=verify_ssl)
         return self._navet
 
     def cache(self, cache_name, ttl=7200):
@@ -235,13 +239,9 @@ class MessageRelay(Task):
         if conf.get("DEVEL_MODE") == 'true':
             return self.get_devel_postal_address()
 
-        data = self.cache('navet_cache').get_cache_item(identity_number)
-        if data is None:
-            data = self._get_navet_data(identity_number)
-            if data is not None:
-                self.cache('navet_cache').add_cache_item(identity_number, data)
+        data = self._get_navet_data(identity_number)
         # Filter name and address from the Navet lookup results
-        return self.navet.get_name_and_official_address(identity_number, data)
+        return navet_get_name_and_official_address(data)
 
     def get_devel_postal_address(self):
         """
@@ -250,11 +250,9 @@ class MessageRelay(Task):
         from collections import OrderedDict
         result = OrderedDict([
             (u'Name', OrderedDict([
-                (u'@xmlns:xsi', u'http://www.w3.org/2001/XMLSchema-instance'),
                 (u'GivenNameMarking', u'20'), (u'GivenName', u'Testaren Test'),
                 (u'SurName', u'Testsson')])),
-            (u'OfficialAddress', OrderedDict([(u'@xmlns:xsi', u'http://www.w3.org/2001/XMLSchema-instance'),
-                                              (u'Address2', u'\xd6RGATAN 79 LGH 10'),
+            (u'OfficialAddress', OrderedDict([(u'Address2', u'\xd6RGATAN 79 LGH 10'),
                                               (u'PostalCode', u'12345'),
                                               (u'City', u'LANDET')]))
         ])
@@ -273,13 +271,9 @@ class MessageRelay(Task):
         if conf.get("DEVEL_MODE") == 'true':
             return self.get_devel_relations()
 
-        data = self.cache('navet_cache').get_cache_item(identity_number)
-        if data is None:
-            data = self._get_navet_data(identity_number)
-            if data is not None:
-                self.cache('navet_cache').add_cache_item(identity_number, data)
-        # Filter name and address from the Navet lookup results
-        return self.navet.get_relations(identity_number, data)
+        data = self._get_navet_data(identity_number)
+        # Filter relations from the Navet lookup results
+        return navet_get_relations(data)
 
     def get_devel_relations(self):
         """
@@ -307,10 +301,18 @@ class MessageRelay(Task):
 
         @param identity_number: Swedish national identity number
         @type identity_number: str
-        @return: Parsed XML
+        @return: Loaded JSON
         @rtype: dict
         """
-        return self.navet.get_all_data(identity_number)
+        json_data = self.cache('navet_cache').get_cache_item(identity_number)
+        if json_data is None:
+            post_data = json.dumps({'identity_number': identity_number})
+            response = self._navet.personpost.navetnotification.POST(data=post_data)
+            if response.status_code == 200:
+                json_data = response.json()
+                if json_data.get('PopulationItems', None):
+                    self.cache('navet_cache').add_cache_item(identity_number, json_data)
+        return json_data
 
     def set_audit_log_postal_address(self, audit_reference):
         from eduid_userdb import MongoDB

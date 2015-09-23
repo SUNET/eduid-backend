@@ -18,7 +18,6 @@ install_requires = [
     'pymongo>=2.8,<3',
     'celery>=3.1.9',
     'pysmscom>=0.4',
-    'pynavet>=0.6.0',
     'Jinja2>=2.7.3',
     'hammock>=0.2.4',
 ]

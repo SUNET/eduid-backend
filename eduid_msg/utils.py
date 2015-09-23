@@ -32,10 +32,13 @@ def navet_get_name(navet_data):
     :param navet_data: Loaded JSON response from eduid-navet_service
     :type navet_data: dict
     :return: Name data object
-    :rtype: OrderedDict
+    :rtype: OrderedDict|None
     """
-    person = navet_get_person(navet_data)
-    result = OrderedDict([(u'Name', person['Name']), ])
+    try:
+        person = navet_get_person(navet_data)
+        result = OrderedDict([(u'Name', person['Name']), ])
+    except (KeyError, TypeError):
+        result = None
     return result
 
 
@@ -44,24 +47,45 @@ def navet_get_official_address(navet_data):
     :param navet_data:  Loaded JSON response from eduid-navet_service
     :type navet_data: dict
     :return: Official address data object
-    :rtype: OrderedDict
+    :rtype: OrderedDict|None
     """
-    person = navet_get_person(navet_data)
-    result = OrderedDict([(u'OfficialAddress', person['PostalAddresses']['OfficialAddress']), ])
+    try:
+        person = navet_get_person(navet_data)
+        result = OrderedDict([(u'OfficialAddress', person['PostalAddresses']['OfficialAddress']), ])
+    except (KeyError, TypeError):
+        result = None
     return result
 
 
 def navet_get_name_and_official_address(navet_data):
-    person = navet_get_person(navet_data)
-    result = OrderedDict([(u'Name', person['Name']),
-                          (u'OfficialAddress', person['PostalAddresses']['OfficialAddress']),
-                          ])
+    """
+    :param navet_data:  Loaded JSON response from eduid-navet_service
+    :type navet_data: dict
+    :return: Name and official address data objects
+    :rtype: OrderedDict|None
+    """
+    try:
+        person = navet_get_person(navet_data)
+        result = OrderedDict([(u'Name', person['Name']),
+                              (u'OfficialAddress', person['PostalAddresses']['OfficialAddress']),
+                              ])
+    except (KeyError, TypeError):
+        result = None
     return result
 
 
 def navet_get_relations(navet_data):
-    person = navet_get_person(navet_data)
-    result = OrderedDict([(u'Relations', {u'Relation': person['Relations']}), ])
+    """
+    :param navet_data:  Loaded JSON response from eduid-navet_service
+    :type navet_data: dict
+    :return: Relations data object
+    :rtype: OrderedDict|None
+    """
+    try:
+        person = navet_get_person(navet_data)
+        result = OrderedDict([(u'Relations', {u'Relation': person['Relations']}), ])
+    except (KeyError, TypeError):
+        result = None
     return result
 
 
@@ -98,5 +122,8 @@ def navet_get_person(navet_data):
     }
     :rtype: OrderedDict
     """
-    result = OrderedDict(navet_data['PopulationItems'][0]['PersonItem'])
+    try:
+        result = OrderedDict(navet_data['PopulationItems'][0]['PersonItem'])
+    except (KeyError, TypeError):
+        result = None
     return result
