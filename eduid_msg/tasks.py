@@ -389,7 +389,7 @@ def get_postal_address(identity_number):
         return self.get_postal_address(identity_number)
     except Exception, e:
         # Increase countdown every time it fails (to a maximum of 1 day)
-        countdown = 600 * send_message.request.retries ** 2
+        countdown = 600 * get_postal_address.request.retries ** 2
         retry_countdown = min(countdown, 86400)
         LOG.error('get_postal_address task error', exc_info=True)
         LOG.debug("get_postal_address task retrying in %d seconds, error %s", retry_countdown, e.message)
@@ -446,7 +446,7 @@ def get_relations_to(identity_number, relative_nin):
         return result
     except Exception, e:
         # Increase countdown every time it fails (to a maximum of 1 day)
-        countdown = 600 * send_message.request.retries ** 2
+        countdown = 600 * get_relations_to.request.retries ** 2
         retry_countdown = min(countdown, 86400)
         LOG.error('get_relations_to task error', exc_info=True)
         LOG.debug("get_relations_to task retrying in %d seconds, error %s", retry_countdown, e.message)
@@ -468,7 +468,7 @@ def set_audit_log_postal_address(audit_reference):
         return self.set_audit_log_postal_address(audit_reference)
     except Exception, e:
         # Increase countdown every time it fails (to a maximum of 1 day)
-        countdown = 600 * send_message.request.retries ** 2
+        countdown = 600 * set_audit_log_postal_address.request.retries ** 2
         retry_countdown = min(countdown, 86400)
         LOG.error('set_audit_log_postal_address task error', exc_info=True)
         LOG.debug("set_audit_log_postal_address task retrying in %d seconds, error %s", retry_countdown, e.message)
