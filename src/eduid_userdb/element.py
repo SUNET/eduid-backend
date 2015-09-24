@@ -77,6 +77,7 @@ class Element(object):
         Element
             VerifiedElement
                 PrimaryElement
+            EventElement
 
     Properties of Element:
 

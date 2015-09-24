@@ -137,7 +137,7 @@ class PasswordList(ElementList):
     maintaining some governing principles, such as ensuring there no duplicates in the list.
 
     :param passwords: List of passwords
-    :type passwords: [dict | Passwords]
+    :type passwords: [dict | Password]
     """
 
     def __init__(self, passwords, raise_on_unknown=True):
