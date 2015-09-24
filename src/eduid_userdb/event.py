@@ -57,10 +57,10 @@ class Event(Element):
             data = dict(created_by = application,
                         created_ts = created_ts,
                         event_type = event_type,
-                        event_id = event_id,
+                        id = event_id,
                         )
         Element.__init__(self, data)
-        self.event_type = data.pop('event_type')
+        self.event_type = data.pop('event_type', None)
         self.id = data.pop('id')
 
         ignore_data = ignore_data or []
@@ -98,6 +98,8 @@ class Event(Element):
         :param value: event type.
         :type value: str | unicode
         """
+        if value is None:
+            return
         if not isinstance(value, basestring):
             raise UserDBValueError("Invalid 'event_type': {!r}".format(value))
         self._data['event_type'] = str(value.lower())
@@ -123,15 +125,20 @@ class Event(Element):
         self._data['id'] = value
 
     # -----------------------------------------------------------------
-    def to_dict(self, old_userdb_format=False):
+    def to_dict(self, old_userdb_format=False, mixed_format=False):
         """
         Convert Element to a dict, that can be used to reconstruct the
         Element later.
 
         :param old_userdb_format: Ignored, there is no old format for events.
+        :param mixed_format: Tag each Event with the event_type. Used when list has multiple types of events.
         :type old_userdb_format: bool
+        :type mixed_format: bool
         """
-        return self._data
+        res = copy.copy(self._data)  # avoid caller messing with our _data
+        if not mixed_format:
+            del res['event_type']
+        return res
 
 
 class EventList(ElementList):
@@ -155,11 +162,17 @@ class EventList(ElementList):
         elements = []
         ElementList.__init__(self, elements)
 
+        if not isinstance(events, list):
+            raise UserDBValueError('events should be a list')
+
         for this in events:
             if isinstance(this, self._event_class):
                 self.add(this)
             else:
-                event = event_from_dict(this, raise_on_unknown)
+                if 'event_type' in this:
+                    event = event_from_dict(this, raise_on_unknown=raise_on_unknown)
+                else:
+                    event = self._event_class(data=this)
                 self.add(event)
 
     def add(self, event):
@@ -175,6 +188,22 @@ class EventList(ElementList):
             raise DuplicateElementViolation("event {!s} already in list".format(event.key))
         super(EventList, self).add(event)
 
+    def to_list_of_dicts(self, old_userdb_format=False, mixed_format=False):
+        """
+        Get the elements in a serialized format that can be stored in MongoDB.
+
+        :param old_userdb_format: Set to True to get data back in legacy format.
+        :param mixed_format: Tag each Event with the event_type. Used when list has multiple types of events.
+
+        :type old_userdb_format: bool
+        :type mixed_format: bool
+
+        :return: List of dicts
+        :rtype: [dict]
+        """
+        return [this.to_dict(old_userdb_format=old_userdb_format,
+                             mixed_format=mixed_format) for this in self._elements]
+
 
 def event_from_dict(data, raise_on_unknown=True):
     """
@@ -188,8 +217,8 @@ def event_from_dict(data, raise_on_unknown=True):
     :rtype: Event
     """
     if not 'event_type' in data:
-        return UserDBValueError('No event type specified')
+        raise UserDBValueError('No event type specified')
     if data['event_type'] == 'tou_event':
         from eduid_userdb.tou import ToUEvent  # avoid cyclic dependency by importing this here
         return ToUEvent(data=data, raise_on_unknown=raise_on_unknown)
-    raise BadEvent('Unknown event_type in data')
+    raise BadEvent('Unknown event_type in data: {!s}'.format(data['event_type']))

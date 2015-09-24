@@ -34,27 +34,29 @@
 
 import copy
 
-from eduid_userdb.event import Event
-from eduid_userdb.exceptions import UserDBValueError
+from eduid_userdb.event import Event, EventList
+from eduid_userdb.exceptions import BadEvent
 
 
 class ToUEvent(Event):
     """
     A record of a user's acceptance of a particular version of the Terms of Use.
     """
-    def __init__(self, version=None, application=None, created_ts=None,
+    def __init__(self, version=None, application=None, created_ts=None, event_id=None,
                  data=None, raise_on_unknown=True):
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
 
         if data is None:
-            if created_ts is None:
-                created_ts = True
             data = dict(version = version,
                         created_by = application,
                         created_ts = created_ts,
                         event_type = 'tou_event',
+                        id = event_id,
                         )
+        for required in ['created_by', 'created_ts']:
+            if required not in data or not data.get(required):
+                raise BadEvent('missing required data for event: {!s}'.format(required))
         Event.__init__(self, data=data, raise_on_unknown=raise_on_unknown, ignore_data = ['version'])
         self.version = data.pop('version')
 
@@ -76,7 +78,30 @@ class ToUEvent(Event):
         :type value: bson.ObjectId
         """
         if not isinstance(value, str) and not isinstance(value, unicode):
-            raise UserDBValueError("Invalid tou_event 'version': {!r}".format(value))
+            raise BadEvent("Invalid tou_event 'version': {!r}".format(value))
         self._data['version'] = value
 
     # -----------------------------------------------------------------
+
+
+class ToUList(EventList):
+    """
+    List of ToUEvents.
+    """
+    def __init__(self, events, raise_on_unknown=True, event_class=ToUEvent):
+        EventList.__init__(self, events, raise_on_unknown=raise_on_unknown, event_class=event_class)
+
+    def has_accepted(self, version):
+        """
+        Check if the user has accepted a particular version of the ToU.
+
+        :param version: Version of ToU
+        :type version: str | unicode
+
+        :return: True or False
+        :rtype: bool
+        """
+        for this in self._elements:
+            if this.version == version:
+                return True
+        return False
