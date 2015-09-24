@@ -48,7 +48,7 @@ class MessageRelay(Task):
     abstract = True
     _sms = None
     _mm_api = None
-    _navet = None
+    _navet_api = None
     _config = read_configuration()
     MONGODB_URI = _config['MONGO_URI'] if 'MONGO_URI' in _config else DEFAULT_MONGODB_URI
     MM_API_URI = _config['MM_API_URI'] if 'MM_API_URI' in _config else DEFAULT_MM_API_URI
@@ -78,7 +78,7 @@ class MessageRelay(Task):
         return self._mm_api
 
     @property
-    def navet(self):
+    def navet_api(self):
         if self._navet_api is None:
             verify_ssl = True
             auth = None
@@ -86,8 +86,8 @@ class MessageRelay(Task):
                 verify_ssl = False
             if self.app.conf.get("NAVET_API_USER", None) and self.app.conf.get("NAVET_API_PW"):
                 auth = (self.app.conf.get("NAVET_API_USER"), self.app.conf.get("NAVET_API_PW"))
-            self._navet = Hammock(self.NAVET_API_URI, auth=auth, verify=verify_ssl)
-        return self._navet
+            self._navet_api = Hammock(self.NAVET_API_URI, auth=auth, verify=verify_ssl)
+        return self._navet_api
 
     def cache(self, cache_name, ttl=7200):
         global _CACHE
@@ -307,7 +307,7 @@ class MessageRelay(Task):
         json_data = self.cache('navet_cache').get_cache_item(identity_number)
         if json_data is None:
             post_data = json.dumps({'identity_number': identity_number})
-            response = self._navet.personpost.navetnotification.POST(data=post_data)
+            response = self.navet_api.personpost.navetnotification.POST(data=post_data)
             if response.status_code == 200:
                 json_data = response.json()
                 if json_data.get('PopulationItems', None):
