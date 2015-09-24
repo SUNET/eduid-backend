@@ -34,6 +34,7 @@
 
 __author__ = 'ft'
 
+import copy
 import datetime
 
 from eduid_userdb.exceptions import EduIDUserDBError, UserHasUnknownData, UserDBValueError
@@ -145,7 +146,8 @@ class Element(object):
         :param old_userdb_format: Set to True to get data back in legacy format.
         :type old_userdb_format: bool
         """
-        return self._data
+        res = copy.copy(self._data)  # avoid caller messing with our _data
+        return res
 
 
 class VerifiedElement(Element):
@@ -342,10 +344,13 @@ class ElementList(object):
         """
         Get the elements in a serialized format that can be stored in MongoDB.
 
+        :param old_userdb_format: Set to True to get data back in legacy format.
+        :type old_userdb_format: bool
+
         :return: List of dicts
         :rtype: [dict]
         """
-        return [this.to_dict(old_userdb_format) for this in self._elements]
+        return [this.to_dict(old_userdb_format=old_userdb_format) for this in self._elements]
 
     def find(self, key):
         """
