@@ -40,22 +40,43 @@ class TestMongoDB(TestCase):
         uri = 'mongodb://db.example.com:1111'
         mdb = db.MongoDB(uri, db_name='testdb', connection_factory=DummyConnection)
         database = mdb.get_database()
-        self.assertEqual(mdb._db_uri, uri)
+        self.assertEqual(mdb._db_uri, uri + '/testdb')
         self.assertEqual(mdb._database_name, 'testdb')
         self.assertFalse(database.is_authenticated)
 
     def test_uri_without_port(self):
-        uri = 'mongodb://db.example.com'
+        uri = 'mongodb://db.example.com/'
         mdb = db.MongoDB(uri, connection_factory=DummyConnection)
         self.assertEqual(mdb._db_uri, uri)
         database = mdb.get_database('testdb')
         self.assertFalse(database.is_authenticated)
+        self.assertEqual(mdb.sanitized_uri, 'mongodb://db.example.com/')
 
     def test_uri_with_username_and_password(self):
-        uri = 'mongodb://john:secret@db.example.com:1111/testdb'
+        uri = 'mongodb://john:s3cr3t@db.example.com:1111/testdb'
         mdb = db.MongoDB(uri, db_name='testdb', connection_factory=DummyConnection)
         conn = mdb.get_connection()
         self.assertIsNotNone(conn)
         database = mdb.get_database()
         self.assertEqual(mdb._db_uri, uri)
         self.assertEqual(mdb._database_name, 'testdb')
+        self.assertEqual(mdb.sanitized_uri, 'mongodb://john:secret@db.example.com:1111/testdb')
+
+    def test_uri_with_replicaset(self):
+        uri = 'mongodb://john:s3cr3t@db.example.com,db2.example.com:27017,db3.example.com:1234/?replicaSet=rs9'
+        mdb = db.MongoDB(uri, db_name='testdb', connection_factory=DummyConnection)
+        self.assertEqual(mdb.sanitized_uri, 'mongodb://john:secret@db.example.com/testdb?replicaset=rs9')
+        self.assertEqual(mdb._db_uri, 'mongodb://john:s3cr3t@db.example.com,db2.example.com:27017,db3.example.com:1234'
+                                      '/testdb?replicaSet=rs9')
+
+    def test_uri_with_replicaset(self):
+        uri = 'mongodb://john:s3cr3t@db.example.com,db2.example.com:27017,db3.example.com:1234/?replicaSet=rs9'
+        mdb = db.MongoDB(uri, db_name='testdb', connection_factory=DummyConnection)
+        self.assertEqual(mdb.sanitized_uri, 'mongodb://john:secret@db.example.com/testdb?replicaset=rs9')
+        self.assertEqual(mdb._db_uri, 'mongodb://john:s3cr3t@db.example.com,db2.example.com,db3.example.com:1234'
+                         '/testdb?replicaset=rs9')
+
+    def test_uri_with_options(self):
+        uri = 'mongodb://john:s3cr3t@db.example.com:27017/?ssl=true&replicaSet=rs9'
+        mdb = db.MongoDB(uri, db_name='testdb', connection_factory=DummyConnection)
+        self.assertEqual(mdb.sanitized_uri, 'mongodb://john:secret@db.example.com/testdb?ssl=true&replicaset=rs9')
