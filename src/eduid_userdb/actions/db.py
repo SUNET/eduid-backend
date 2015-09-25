@@ -34,7 +34,6 @@ from bson import ObjectId
 
 from eduid_userdb.actions import Action
 from eduid_userdb.db import MongoDB
-import eduid_userdb.exceptions
 
 import logging
 logger = logging.getLogger(__name__)
@@ -72,7 +71,7 @@ class ActionDB(object):
         return userid + session
 
     def clean_cache(self, userid, session=None):
-        '''
+        """
         Delete cache for userid and IdP session.
         Called at the start of a session to clean up
         stale caches.
@@ -81,11 +80,10 @@ class ActionDB(object):
         :type user: eduid_idp.idp_user.IdPUser
         :param session: The actions session for the user
         :type session: str
-        '''
+        """
         cachekey = self._make_key(userid, session)
         if cachekey in self._cache:
             del self._cache[cachekey]
-
 
     def _retrieve_pending_actions(self, userid, session):
         cachekey = self._make_key(userid, session)
@@ -104,7 +102,7 @@ class ActionDB(object):
         return cachekey
 
     def has_pending_actions(self, userid, session=None):
-        '''
+        """
         Find out whether the user has pending actions.
         If session is None, search actions with no session,
         otherwise search actions with either no session
@@ -116,7 +114,7 @@ class ActionDB(object):
         :type session: str
 
         :rtype: bool
-        '''
+        """
         cachekey = self._retrieve_pending_actions(userid, session)
         if cachekey in self._cache:
             if self._cache[cachekey].count() > 0:
@@ -126,7 +124,7 @@ class ActionDB(object):
         return False
 
     def get_next_action(self, userid, session=None):
-        '''
+        """
         Return next pending action for userid and session.
         If session is None, search actions with no session,
         otherwise search actions with either no session
@@ -139,7 +137,7 @@ class ActionDB(object):
         :type session: str
 
         :rtype: eduid_userdb.actions:Action or None
-        '''
+        """
         cachekey = self._retrieve_pending_actions(userid, session)
         action = None
         if cachekey in self._cache:
@@ -156,8 +154,8 @@ class ActionDB(object):
         """
         Add an action to the DB.
 
-        :param userid: The id of the user who has to perform the action
-        :type userid: str
+        :param user_id: The id of the user who has to perform the action
+        :type user_id: str
         :param action_type: the kind of action to be performed
         :type action_type: str
         :param preference: preference to order actions

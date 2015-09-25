@@ -34,15 +34,8 @@
 
 import bson
 import copy
-import datetime
 
 from eduid_userdb.exceptions import ActionMissingData, ActionHasUnknownData
-from eduid_userdb.element import UserDBValueError
-
-from eduid_userdb.mail import MailAddressList
-from eduid_userdb.phone import PhoneNumberList
-from eduid_userdb.password import PasswordList
-from eduid_userdb.nin import NinList
 
 VALID_SUBJECT_VALUES = ['physical person']
 
