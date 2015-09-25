@@ -43,6 +43,7 @@ from eduid_userdb.mail import MailAddressList
 from eduid_userdb.phone import PhoneNumberList
 from eduid_userdb.password import PasswordList
 from eduid_userdb.nin import NinList
+from eduid_userdb.tou import ToUList
 
 VALID_SUBJECT_VALUES = ['physical person']
 
@@ -76,6 +77,7 @@ class User(object):
         self._parse_mail_addresses()
         self._parse_phone_numbers()
         self._parse_nins()
+        self._parse_tous()
 
         self._passwords = PasswordList(self._data_in.pop('passwords', []))
         # generic (known) attributes
@@ -102,7 +104,7 @@ class User(object):
             self._data.update(self._data_in)
 
     def _parse_check_invalid_users(self):
-        """"
+        """
         Part of __init__().
 
         Check users that can't be loaded for some known reason.
@@ -115,7 +117,7 @@ class User(object):
                 self._data_in.get('_id'), self._data_in.get('eduPersonPrincipalName')))
 
     def _parse_mail_addresses(self):
-        """"
+        """
         Part of __init__().
 
         Parse all the different formats of mail+mailAliases attributes in the database.
@@ -142,7 +144,7 @@ class User(object):
         self._mail_addresses = MailAddressList(_mail_addresses)
 
     def _parse_phone_numbers(self):
-        """"
+        """
         Part of __init__().
 
         Parse all the different formats of mobile/phone attributes in the database.
@@ -167,7 +169,7 @@ class User(object):
         self._phone_numbers = PhoneNumberList(_phones)
 
     def _parse_nins(self):
-        """"
+        """
         Part of __init__().
 
         Parse all the different formats of norEduPersonNIN attributes in the database.
@@ -194,6 +196,15 @@ class User(object):
                 else:
                     raise UserDBValueError('Old-style NIN is not a string or dict')
         self._nins = NinList(_nins)
+
+    def _parse_tous(self):
+        """
+        Part of __init__().
+
+        Parse the ToU acceptance events.
+        """
+        _tou = self._data_in.pop('tou', [])
+        self._tou = ToUList(_tou)
 
     def __repr__(self):
         return '<eduID {!s}: {!s}/{!s}>'.format(self.__class__.__name__,
@@ -430,6 +441,18 @@ class User(object):
             if not isinstance(this, basestring):
                 raise UserDBValueError("Unknown 'entitlements' element: {!r}".format(this))
         self._data['entitlements'] = value
+
+    # -----------------------------------------------------------------
+    @property
+    def tou(self):
+        """
+        Get the user's Terms of Use info.
+
+        :return: ToUList object
+        :rtype: eduid_userdb.nin.ToUList
+        """
+        # no setter for this one, as the ToUList object provides modification functions
+        return self._tou
 
     # -----------------------------------------------------------------
     def to_dict(self, old_userdb_format=False):

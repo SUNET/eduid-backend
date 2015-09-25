@@ -74,3 +74,17 @@ class UserHasNotCompletedSignup(EduIDUserDBError):
     Signup has created lots of users in the database with only eppn, mail and mailAliases.
     """
     pass
+
+
+class BadEvent(EduIDUserDBError):
+    """
+    General error in Event processing.
+    """
+    pass
+
+
+class EventHasUnknownData(BadEvent):
+    """
+    One or more elements of the event could not be interpreted.
+    """
+    pass

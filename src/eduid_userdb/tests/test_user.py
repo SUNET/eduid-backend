@@ -4,6 +4,7 @@ import datetime
 from unittest import TestCase
 
 from eduid_userdb.user import User
+from eduid_userdb.tou import ToUList
 from eduid_userdb.exceptions import UserHasUnknownData, UserHasNotCompletedSignup, UserIsRevoked
 
 __author__ = 'ft'
@@ -293,3 +294,21 @@ class TestUser(TestCase):
                 }
         user = User(data)
         self.assertEqual(user.phone_numbers.primary.number, number2)
+
+    def test_user_tou(self):
+        """
+        Basic test for user ToU.
+        """
+        tou_dict = \
+            {'id': ObjectId(),
+             'event_type': 'tou_event',
+             'version': '1',
+             'created_by': 'unit test',
+             'created_ts': True,
+             }
+        tou_events = ToUList([tou_dict])
+        data = self.data1
+        data.update({'tou': tou_events.to_list_of_dicts()})
+        user = User(data)
+        self.assertTrue(user.tou.has_accepted('1'))
+        self.assertFalse(user.tou.has_accepted('2'))
