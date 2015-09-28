@@ -149,13 +149,13 @@ class ActionDB(object):
                 action = Action(data=action_doc)
         return action
 
-    def add_action(self, user_id=None, action_type=None, preference=100,
+    def add_action(self, userid=None, action_type=None, preference=100,
                     session=None, params=None, data=None):
         """
         Add an action to the DB.
 
-        :param user_id: The id of the user who has to perform the action
-        :type user_id: str
+        :param userid: The id of the user who has to perform the action
+        :type userid: str
         :param action_type: the kind of action to be performed
         :type action_type: str
         :param preference: preference to order actions
@@ -170,7 +170,7 @@ class ActionDB(object):
         :rtype: Action
         """
         if data is None:
-            data = {'user_oid': user_id,
+            data = {'user_oid': userid,
                     'action': action_type,
                     'preference': preference,
                     }
