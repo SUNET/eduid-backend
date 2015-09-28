@@ -123,6 +123,21 @@ class ActionDB(object):
                 self.clean_cache(userid, session)
         return False
 
+    def has_actions(self, userid=None, session=None,
+                        action_type=None, params=None):
+        query = {}
+        if userid is not None:
+            query['user_oid'] = ObjectId(userid)
+        if session is not None:
+            query['session'] = session
+        if action_type is not None:
+            query['action'] = action_type
+        if params is not None:
+            query['params'] = params
+
+        actions = self._coll.find(query)
+        return actions.count() > 0
+
     def get_next_action(self, userid, session=None):
         """
         Return next pending action for userid and session.
