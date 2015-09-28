@@ -76,8 +76,8 @@ class ActionDB(object):
         Called at the start of a session to clean up
         stale caches.
 
-        :param user: The user with possible pending actions
-        :type user: eduid_idp.idp_user.IdPUser
+        :param userid: The id of the user with possible pending actions
+        :type userid: str
         :param session: The actions session for the user
         :type session: str
         """
