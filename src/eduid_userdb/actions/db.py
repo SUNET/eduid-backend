@@ -67,7 +67,7 @@ class ActionDB(object):
 
     def _make_key(self, userid, session):
         if session is None:
-            return session
+            return userid
         return userid + session
 
     def clean_cache(self, userid, session=None):
