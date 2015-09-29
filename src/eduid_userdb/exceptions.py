@@ -83,6 +83,13 @@ class ActionMissingData(EduIDUserDBError):
     pass
 
 
+class BadEvent(EduIDUserDBError):
+    """
+    General error in Event processing.
+    """
+    pass
+
+
 class ActionHasUnknownData(EduIDUserDBError):
     """
     One or more elements of the action could not be interpreted.
@@ -90,16 +97,8 @@ class ActionHasUnknownData(EduIDUserDBError):
     pass
 
 
-class ToUMissingData(EduIDUserDBError):
+class EventHasUnknownData(BadEvent):
     """
-    There is missing data for a ToU acceptance
-    """
-    pass
-
-
-class ToUHasUnknownData(EduIDUserDBError):
-    """
-    One or more elements of the ToU acceptance
-    could not be interpreted.
+    One or more elements of the event could not be interpreted.
     """
     pass

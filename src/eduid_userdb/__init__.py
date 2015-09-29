@@ -23,3 +23,5 @@ from eduid_userdb.password import Password
 from eduid_userdb.mail import MailAddress
 from eduid_userdb.phone import PhoneNumber
 from eduid_userdb.nin import Nin
+from eduid_userdb.event import EventList
+from eduid_userdb.tou import ToUEvent
