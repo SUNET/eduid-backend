@@ -38,6 +38,7 @@ setup(
       packages=['eduid_userdb',
                 'eduid_userdb.signup',
                 'eduid_userdb.dashboard',
+                'eduid_userdb.actions',
                 ],
       package_dir = {'': 'src'},
       #include_package_data=True,
