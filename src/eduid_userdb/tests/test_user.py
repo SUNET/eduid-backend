@@ -127,7 +127,11 @@ class TestUser(TestCase):
         with self.assertRaises(UserHasNotCompletedSignup):
             User(data)
         data[u'mailAliases'][0]['verified'] = True
-        data['sn'] = 'not signup-incomplete anymore'
+        data[u'sn'] = 'not signup-incomplete anymore'
+        data[u'passwords'] = [{u'created_ts': datetime.datetime(2014, 9, 4, 8, 57, 7, 362000),
+                                u'id': ObjectId(),
+                                u'salt': u'salt',
+                                u'source': u'dashboard'}]
         user = User(data)
         self.assertEqual(user.surname, data['sn'])
 
@@ -182,6 +186,10 @@ class TestUser(TestCase):
                 u'mailAliases': [{u'email': mail,
                 u'verified': True,
                 u'csrf': u'6ae1d4e95305b72318a683883e70e3b8e302cd75'}],
+                u'passwords': [{u'created_ts': datetime.datetime(2014, 9, 4, 8, 57, 7, 362000),
+                                u'id': ObjectId(),
+                                u'salt': u'salt',
+                                u'source': u'dashboard'}],
                }
         user = User(data)
         self.assertEqual(mail, user.mail_addresses.primary.email)
