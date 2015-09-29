@@ -4,6 +4,7 @@ import datetime
 from unittest import TestCase
 
 from eduid_userdb.user import User
+from eduid_userdb.tou import ToUList
 from eduid_userdb.exceptions import UserHasUnknownData, UserHasNotCompletedSignup, UserIsRevoked
 
 __author__ = 'ft'
@@ -127,13 +128,14 @@ class TestUser(TestCase):
         with self.assertRaises(UserHasNotCompletedSignup):
             User(data)
         data[u'mailAliases'][0]['verified'] = True
-        data[u'sn'] = 'not signup-incomplete anymore'
-        data[u'passwords'] = [{u'created_ts': datetime.datetime(2014, 9, 4, 8, 57, 7, 362000),
-                                u'id': ObjectId(),
-                                u'salt': u'salt',
-                                u'source': u'dashboard'}]
+        data['sn'] = 'not signup-incomplete anymore'
+        data['passwords'] = [{u'created_ts': datetime.datetime(2014, 9, 4, 8, 57, 7, 362000),
+                              u'id': ObjectId(),
+                              u'salt': u'salt',
+                              u'created_by': u'dashboard'}]
         user = User(data)
         self.assertEqual(user.surname, data['sn'])
+        self.assertEqual(user.passwords.to_list_of_dicts(), data['passwords'])
 
     def test_revoked_user(self):
         """
@@ -292,3 +294,21 @@ class TestUser(TestCase):
                 }
         user = User(data)
         self.assertEqual(user.phone_numbers.primary.number, number2)
+
+    def test_user_tou(self):
+        """
+        Basic test for user ToU.
+        """
+        tou_dict = \
+            {'id': ObjectId(),
+             'event_type': 'tou_event',
+             'version': '1',
+             'created_by': 'unit test',
+             'created_ts': True,
+             }
+        tou_events = ToUList([tou_dict])
+        data = self.data1
+        data.update({'tou': tou_events.to_list_of_dicts()})
+        user = User(data)
+        self.assertTrue(user.tou.has_accepted('1'))
+        self.assertFalse(user.tou.has_accepted('2'))

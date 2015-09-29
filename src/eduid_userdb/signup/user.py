@@ -36,6 +36,7 @@ import copy
 import bson
 
 from eduid_userdb import User, MailAddress
+from eduid_userdb.exceptions import UserIsRevoked
 
 
 class SignupUser(User):
@@ -67,6 +68,16 @@ class SignupUser(User):
         self.social_network = _social_network
         self.social_network_id = _social_network_id
         self.pending_mail_address = _pending_mail_address
+
+    def _parse_check_invalid_users(self):
+        """
+        Part of User.__init__().
+
+        Check users that can't be loaded for some known reason.
+        """
+        if 'revoked_ts' in self._data_in:
+            raise UserIsRevoked('User {!s}/{!s} was revoked at {!s}'.format(
+                self._data_in.get('_id'), self._data_in.get('eduPersonPrincipalName'), self._data_in['revoked_ts']))
 
     def to_dict(self, old_userdb_format=False):
         res = User.to_dict(self, old_userdb_format=old_userdb_format)
@@ -135,3 +146,5 @@ class SignupUser(User):
         if value is not None and not isinstance(value, MailAddress):
             raise ValueError('Must be eduid_userdb.mail.MailAddress')
         self._pending_mail_address = value
+
+
