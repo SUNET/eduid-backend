@@ -125,6 +125,23 @@ class ActionDB(object):
 
     def has_actions(self, userid=None, session=None,
                         action_type=None, params=None):
+        """
+        Check in the db (not in the cache) whether there are actions
+        with whatever attributes you feed to the method.
+        Used for example when adding a new ToU action, to check
+        that another app didn't create the action with anorther session.
+
+        :param userid: The id of the user with possible pending actions
+        :type userid: str
+        :param session: The actions session for the user
+        :type session: str
+        :param action_type: The type of action to be performed
+        :type action_type: str
+        :param params: Extra params specific to the action type
+        :type params: dict
+
+        :rtype: bool
+        """
         query = {}
         if userid is not None:
             query['user_oid'] = ObjectId(userid)
