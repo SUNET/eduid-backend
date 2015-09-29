@@ -470,6 +470,7 @@ class User(object):
         res['phone'] = self.phone_numbers.to_list_of_dicts(old_userdb_format=old_userdb_format)
         res['passwords'] = self.passwords.to_list_of_dicts(old_userdb_format=old_userdb_format)
         res['nins'] = self.nins.to_list_of_dicts(old_userdb_format=old_userdb_format)
+        res['tou'] = self.tou.to_list_of_dicts(old_userdb_format=old_userdb_format)
         # Remove these values if they have a value that evaluates to False
         for _remove in ['displayName', 'givenName', 'surname', 'preferredLanguage', 'phone']:
             if _remove in res and not res[_remove]:
