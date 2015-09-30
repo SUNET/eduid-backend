@@ -56,7 +56,7 @@ class ActionDB(object):
         self._db = MongoDB(db_uri, db_name=db_name, **kwargs)
         self._coll = self._db.get_collection(collection)
         self._cache = {}
-        logger.debug("{!s} connected to database".format(self, self._db.sanitized_uri, self._coll_name))
+        logger.debug("{!s} connected to database".format(self))
 
     def __repr__(self):
         return '<eduID {!s}: {!s} {!r} (returning {!s})>'.format(self.__class__.__name__,

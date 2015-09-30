@@ -44,8 +44,15 @@ logger = logging.getLogger(__name__)
 class UserDB(object):
     """
     Interface class to the central eduID UserDB.
-    """
 
+    :param db_uri: mongodb:// URI to connect to
+    :param db_name: mongodb database name
+    :param collection: mongodb collection name
+
+    :type db_uri: str or unicode
+    :type db_name: str or unicode
+    :type collection: str or unicode
+    """
     UserClass = User
 
     def __init__(self, db_uri, db_name, collection='userdb'):
@@ -58,7 +65,7 @@ class UserDB(object):
         self._coll_name = collection
         self._db = MongoDB(db_uri, db_name)
         self._coll = self._db.get_collection(collection)
-        logger.debug("{!s} connected to database".format(self, self._db.sanitized_uri, self._coll_name))
+        logger.debug("{!s} connected to database".format(self))
         # XXX Backwards compatibility.
         # Was: provide access to our backends exceptions to users of this class
         self.exceptions = eduid_userdb.exceptions
