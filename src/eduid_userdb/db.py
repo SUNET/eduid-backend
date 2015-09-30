@@ -30,6 +30,12 @@ class MongoDB(object):
             connection_factory = pymongo.MongoReplicaSetClient
             kwargs['replicaSet'] = _options['replicaSet']
 
+        if 'replicaSet' in kwargs:
+            if 'socketTimeoutMS' not in kwargs:
+                kwargs['socketTimeoutMS'] = 5000
+            if 'connectTimeoutMS' not in kwargs:
+                kwargs['connectTimeoutMS'] = 5000
+
         self._db_uri = _format_mongodb_uri(self._parsed_uri)
 
         self._connection = connection_factory(
