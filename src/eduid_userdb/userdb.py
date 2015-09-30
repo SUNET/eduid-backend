@@ -55,11 +55,14 @@ class UserDB(object):
     """
     UserClass = User
 
-    def __init__(self, db_uri, db_name, collection='userdb'):
+    def __init__(self, db_uri, db_name, collection='userdb', user_class=None):
 
         if db_name == 'eduid_am' and collection == 'userdb':
             # Hack to get right collection name while the configuration points to the old database
             collection = 'attributes'
+
+        if user_class is not None:
+            self.UserClass = user_class
 
         self._db_uri = db_uri
         self._coll_name = collection
