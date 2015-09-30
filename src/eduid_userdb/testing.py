@@ -123,41 +123,6 @@ MOCKED_USER_STANDARD = {
     #}],
 }
 
-INITIAL_VERIFICATIONS = [{
-    '_id': ObjectId('234567890123456789012301'),
-    'code': '9d392c',
-    'model_name': 'mobile',
-    'obj_id': '+34 6096096096',
-    'user_oid': ObjectId("012345678901234567890123"),
-    'timestamp': datetime.utcnow(),
-    'verified': False,
-}, {
-    '_id': ObjectId(),
-    'code': '123123',
-    'model_name': 'norEduPersonNIN',
-    'obj_id': '210987654321',
-    'user_oid': ObjectId("012345678901234567890123"),
-    'timestamp': datetime.utcnow(),
-    'verified': False,
-}, {
-    '_id': ObjectId(),
-    'code': '123124',
-    'model_name': 'norEduPersonNIN',
-    'obj_id': '197801011234',
-    'user_oid': ObjectId("012345678901234567890123"),
-    'timestamp': datetime.utcnow(),
-    'verified': True,
-}, {
-    '_id': ObjectId(),
-    'code': '123124',
-    'model_name': 'norEduPersonNIN',
-    'obj_id': '123456789050',
-    'user_oid': ObjectId("012345678901234567890123"),
-    'timestamp': datetime.utcnow(),
-    'verified': False,
-}]
-
-
 class MockedUserDB(UserDB):
     """
     Some mock users used in different tests.
@@ -342,9 +307,6 @@ class MongoTestCase(unittest.TestCase):
 
         self.amdb = self.am.userdb
         self.amdb._drop_whole_collection()
-
-        self.initial_verifications = (getattr(self, 'initial_verifications', None)
-                                      or INITIAL_VERIFICATIONS)
 
         # Set up test users in the MongoDB. Read the users from MockedUserDB, which might
         # be overridden by subclasses.
