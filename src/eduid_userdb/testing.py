@@ -43,7 +43,6 @@ import tempfile
 import unittest
 import subprocess
 import pymongo
-from datetime import datetime
 from copy import deepcopy
 
 from bson import ObjectId
@@ -79,7 +78,6 @@ MOCKED_USER_STANDARD = {
         'urn:mace:eduid.se:role:admin',
         'urn:mace:eduid.se:role:student',
     ],
-        #'maxReachedLoa': 3,
     'mobile': [{
         'mobile': '+34609609609',
         'primary': True,
@@ -122,41 +120,6 @@ MOCKED_USER_STANDARD = {
     #    'verified': False,
     #}],
 }
-
-INITIAL_VERIFICATIONS = [{
-    '_id': ObjectId('234567890123456789012301'),
-    'code': '9d392c',
-    'model_name': 'mobile',
-    'obj_id': '+34 6096096096',
-    'user_oid': ObjectId("012345678901234567890123"),
-    'timestamp': datetime.utcnow(),
-    'verified': False,
-}, {
-    '_id': ObjectId(),
-    'code': '123123',
-    'model_name': 'norEduPersonNIN',
-    'obj_id': '210987654321',
-    'user_oid': ObjectId("012345678901234567890123"),
-    'timestamp': datetime.utcnow(),
-    'verified': False,
-}, {
-    '_id': ObjectId(),
-    'code': '123124',
-    'model_name': 'norEduPersonNIN',
-    'obj_id': '197801011234',
-    'user_oid': ObjectId("012345678901234567890123"),
-    'timestamp': datetime.utcnow(),
-    'verified': True,
-}, {
-    '_id': ObjectId(),
-    'code': '123124',
-    'model_name': 'norEduPersonNIN',
-    'obj_id': '123456789050',
-    'user_oid': ObjectId("012345678901234567890123"),
-    'timestamp': datetime.utcnow(),
-    'verified': False,
-}]
-
 
 class MockedUserDB(UserDB):
     """
@@ -316,16 +279,25 @@ class MongoTestCase(unittest.TestCase):
         self.tmp_db = MongoTemporaryInstance.get_instance()
         self.conn = self.tmp_db.conn
         self.port = self.tmp_db.port
-        self.am_settings = {
-            'BROKER_TRANSPORT': 'memory',  # Don't use AMQP bus when testing
-            'BROKER_URL': 'memory://',
-            'CELERY_EAGER_PROPAGATES_EXCEPTIONS': True,
-            'CELERY_ALWAYS_EAGER': True,
-            'CELERY_RESULT_BACKEND': "cache",
-            'CELERY_CACHE_BACKEND': 'memory',
-            # Be sure to tell AttributeManager about the temporary mongodb instance.
-            'MONGO_URI': self.tmp_db.get_uri(''),
-        }
+
+        if celery and get_attribute_manager:
+            self.am_settings = {
+                'BROKER_TRANSPORT': 'memory',  # Don't use AMQP bus when testing
+                'BROKER_URL': 'memory://',
+                'CELERY_EAGER_PROPAGATES_EXCEPTIONS': True,
+                'CELERY_ALWAYS_EAGER': True,
+                'CELERY_RESULT_BACKEND': "cache",
+                'CELERY_CACHE_BACKEND': 'memory',
+                # Be sure to tell AttributeManager about the temporary mongodb instance.
+                'MONGO_URI': self.tmp_db.get_uri(''),
+            }
+            celery.conf.update(self.am_settings)
+            self.am = get_attribute_manager(celery)
+            self.amdb = self.am.userdb
+        else:
+            self.amdb = UserDB(self.tmp_db.get_uri(''), 'eduid_am')
+
+        self.amdb._drop_whole_collection()
 
         mongo_settings = {
             'mongo_replicaset': None,
@@ -337,17 +309,8 @@ class MongoTestCase(unittest.TestCase):
         else:
             self.settings.update(mongo_settings)
 
-        celery.conf.update(self.am_settings)
-        self.am = get_attribute_manager(celery)
-
         for db_name in self.conn.database_names():
             self.conn.drop_database(db_name)
-
-        self.amdb = self.am.userdb
-        self.amdb._drop_whole_collection()
-
-        self.initial_verifications = (getattr(self, 'initial_verifications', None)
-                                      or INITIAL_VERIFICATIONS)
 
         # Set up test users in the MongoDB. Read the users from MockedUserDB, which might
         # be overridden by subclasses.
