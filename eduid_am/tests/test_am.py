@@ -50,9 +50,15 @@ def plugin_attribute_fetcher(context, user_id):
 
     user = db.get_user_by_id(user_id)
     if user is None:
-        raise UserDoesNotExist("No user matching _id='%s'" % user_id)
+        raise UserDoesNotExist("No user matching _id={!r}".format(user_id))
 
-    return {'eduPersonPrincipalName': "%s@eduid.se" % user.uid}
+    # Transfer all attributes except `uid' from the test plugins database.
+    # Transform eduPersonPrincipalName on the way to make it clear that the
+    # update was done using this code.
+    res = user.to_dict(old_userdb_format=True)
+    res['eduPersonPrincipalName'] = "{!s}@eduid.se".format(user.uid)
+    del res['uid']
+    return res
 
 
 class MessageTest(MongoTestCase):
@@ -92,11 +98,17 @@ class MessageTest(MongoTestCase):
         userdoc = {'_id': _id,
                    'eduPersonPrincipalName': 'foo-bar',
                    'uid': 'vlindeman',
+                   'passwords': [{'id': ObjectId('112345678901234567890123'),
+                                  'salt': '$NDNv1H1$9c81...545$32$32$',
+                                  }],
                    }
         test_user = AmTestUser(userdoc)
+        # Save the user in the eduid_am_test database
         test_context.save(test_user)
 
         update_attributes.delay(app_name='test', obj_id = _id)
 
+        # verify the user has been propagated to the amdb
         am_user = self.amdb.get_user_by_id(_id)
         self.assertEqual(am_user.eppn, 'vlindeman@eduid.se')
+        
