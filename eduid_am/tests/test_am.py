@@ -1,7 +1,7 @@
 __author__ = 'leifj'
 
 from eduid_am.celery import celery, get_attribute_manager
-from eduid_am.tasks import update_attributes
+
 from eduid_userdb.testing import MongoTestCase
 from bson import ObjectId
 
@@ -93,9 +93,13 @@ class MessageTest(MongoTestCase):
         # Save the user in the eduid_am_test database
         test_context.save(test_user)
 
+        # It is important to not import eduid_am.tasks before the Celery config has been
+        # set up (done in MongoTestCase.setUp()). Since Celery uses decorators, it will
+        # have instantiated AttributeManagers without the right config if the import is
+        # done prior to the Celery app configuration.
+        from eduid_am.tasks import update_attributes
         update_attributes.delay(app_name='test', obj_id = _id)
 
         # verify the user has been propagated to the amdb
         am_user = self.amdb.get_user_by_id(_id)
         self.assertEqual(am_user.eppn, 'vlindeman@eduid.se')
-        
