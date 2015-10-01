@@ -83,7 +83,7 @@ class ActionDB(object):
         if cachekey in self._cache:
             del self._cache[cachekey]
 
-    def _retrieve_pending_actions(self, userid, session):
+    def _update_cache(self, userid, session):
         cachekey = self._make_key(userid, session)
 
         if cachekey not in self._cache:
@@ -114,7 +114,7 @@ class ActionDB(object):
 
         :rtype: bool
         """
-        cachekey = self._retrieve_pending_actions(userid, session)
+        cachekey = self._update_cache(userid, session)
         if cachekey in self._cache:
             if self._cache[cachekey].count() > 0:
                 return True
@@ -170,7 +170,7 @@ class ActionDB(object):
 
         :rtype: eduid_userdb.actions:Action or None
         """
-        cachekey = self._retrieve_pending_actions(userid, session)
+        cachekey = self._update_cache(userid, session)
         action = None
         if cachekey in self._cache:
             try:
