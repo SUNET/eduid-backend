@@ -33,7 +33,7 @@
 from bson import ObjectId
 
 from eduid_userdb.user import User
-from eduid_userdb.db import MongoDB
+from eduid_userdb.db import BaseDB
 import eduid_userdb.exceptions
 from eduid_userdb.exceptions import UserDoesNotExist, MultipleUsersReturned
 
@@ -41,7 +41,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class UserDB(object):
+class UserDB(BaseDB):
     """
     Interface class to the central eduID UserDB.
 
@@ -56,18 +56,15 @@ class UserDB(object):
     UserClass = User
 
     def __init__(self, db_uri, db_name, collection='userdb', user_class=None):
+        super(UserDB, self).__init__(db_uri, db_name, collection)
 
         if db_name == 'eduid_am' and collection == 'userdb':
             # Hack to get right collection name while the configuration points to the old database
-            collection = 'attributes'
+            self.collection = 'attributes'
 
         if user_class is not None:
             self.UserClass = user_class
 
-        self._db_uri = db_uri
-        self._coll_name = collection
-        self._db = MongoDB(db_uri, db_name)
-        self._coll = self._db.get_collection(collection)
         logger.debug("{!s} connected to database".format(self))
         # XXX Backwards compatibility.
         # Was: provide access to our backends exceptions to users of this class
@@ -78,7 +75,7 @@ class UserDB(object):
                                                                  self._db.sanitized_uri,
                                                                  self._coll_name,
                                                                  self.UserClass.__name__,
-                                                                )
+                                                                 )
 
     def get_user_by_id(self, user_id):
         """
@@ -168,32 +165,12 @@ class UserDB(object):
             user = self.UserClass(data=doc)
             logger.debug("{!s} Returning user {!s}".format(self, user))
             return user
-        except self.exceptions.UserDoesNotExist:
+        except self.exceptions.DocumentDoesNotExist:
             logger.debug("UserDoesNotExist, {!r} = {!r}".format(attr, value))
-            raise
-        except self.exceptions.MultipleUsersReturned:
+            raise UserDoesNotExist
+        except self.exceptions.MultipleDocumentsReturned:
             logger.error("MultipleUsersReturned, {!r} = {!r}".format(attr, value))
-            raise
-
-    def _get_document_by_attr(self, attr, value, raise_on_missing=False):
-        """
-        Return the user object in the attribute manager MongoDB matching field=value
-
-        :param attr: The name of a field
-        :param value: The field value
-        :param raise_on_missing: If True, raise exception if no matching user object can be found.
-        :return: A user dict
-        """
-        #logging.debug("get_user_by_field %s=%s" % (field, value))
-
-        docs = self._coll.find({attr: value})
-        if docs.count() == 0:
-            if raise_on_missing:
-                raise UserDoesNotExist("No user matching %s='%s'" % (attr, value))
-            return None
-        elif docs.count() > 1:
-            raise MultipleUsersReturned("Multiple matching users for %s='%s'" % (attr, value))
-        return docs[0]
+            raise MultipleUsersReturned
 
     def save(self, user, check_sync=True, old_format=False):
         """
@@ -262,14 +239,6 @@ class UserDB(object):
         logger.debug("{!s} Removing user with id {!r} from {!r}".format(self, user_id, self._coll_name))
         return self._coll.remove(spec_or_id=user_id)
 
-    def _drop_whole_collection(self):
-        """
-        Drop the whole collection. Should ONLY be used in testing, obviously.
-        :return:
-        """
-        logging.warning("{!s} Dropping collection {!r}".format(self, self._coll_name))
-        return self._coll.drop()
-
     def update_user(self, obj_id, attributes):
         """
         Update user document in mongodb.
@@ -308,41 +277,3 @@ class UserDB(object):
                         '$set': attributes,
                     }
                 )
-
-    def db_count(self):
-        """
-        Return number of entries in the database.
-
-        Used in eduid-signup test cases.
-        :return: User count
-        :rtype: int
-        """
-        return self._coll.find({}).count()
-
-    def _get_all_userdocs(self):
-        """
-        Return all the user documents in the database.
-
-        Used in eduid-dashboard test cases.
-
-        :return: User documents
-        :rtype:
-        """
-        return self._coll.find({})
-
-    def setup_indexes(self, indexes):
-        """
-        To update an index add a new item in indexes and remove the previous version.
-        """
-        # indexes={'index-name': {'key': [('key', 1)], 'param1': True, 'param2': False}, }
-        # http://docs.mongodb.org/manual/reference/method/db.collection.ensureIndex/
-        default_indexes = ['_id_']  # _id_ index can not be deleted from a mongo collection
-        current_indexes = self._coll.index_information()
-        for name in current_indexes:
-            if name not in indexes and name not in default_indexes:
-                self._coll.drop_index(name)
-        for name, params in indexes.items():
-            if name not in current_indexes:
-                key = params.pop('key')
-                params['name'] = name
-                self._coll.ensure_index(key, **params)

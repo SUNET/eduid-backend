@@ -1,6 +1,7 @@
 import copy
-
 import pymongo
+import logging
+from exceptions import DocumentDoesNotExist, MultipleDocumentsReturned
 
 
 class MongoDB(object):
@@ -151,3 +152,89 @@ def _format_mongodb_uri(parsed_uri):
         # collection is ignored
         options = options)
     return res
+
+
+class BaseDB(object):
+    """ Base class for common db operations """
+
+    def __init__(self, db_uri, db_name, collection):
+
+        self._db_uri = db_uri
+        self._coll_name = collection
+        self._db = MongoDB(db_uri, db_name=db_name)
+        self._coll = self._db.get_collection(collection)
+
+    def __repr__(self):
+        return '<eduID {!s}: {!s} {!r}>'.format(self.__class__.__name__,
+                                                self._db.sanitized_uri,
+                                                self._coll_name)
+
+    def _drop_whole_collection(self):
+        """
+        Drop the whole collection. Should ONLY be used in testing, obviously.
+        :return:
+        """
+        logging.warning("{!s} Dropping collection {!r}".format(self, self._coll_name))
+        return self._coll.drop()
+
+    def _get_all_docs(self):
+        """
+        Return all the user documents in the database.
+
+        Used in eduid-dashboard test cases.
+
+        :return: User documents
+        :rtype:
+        """
+        return self._coll.find({})
+
+    def _get_document_by_attr(self, attr, value, raise_on_missing=False):
+        """
+        Return the document in the MongoDB matching field=value
+
+        :param attr: The name of a field
+        :type attr: str
+        :param value: The field value
+        :type value: str
+        :param raise_on_missing:  If True, raise exception if no matching user object can be found.
+        :type raise_on_missing: bool
+        :return: A document dict
+        :rtype: dict | None
+        """
+        docs = self._coll.find({attr: value})
+        if docs.count() == 0:
+            if raise_on_missing:
+                raise DocumentDoesNotExist("No document matching %s='%s'" % (attr, value))
+            return None
+        elif docs.count() > 1:
+            raise MultipleDocumentsReturned("Multiple matching documents for %s='%s'" % (attr, value))
+        return docs[0]
+
+    def db_count(self):
+        """
+        Return number of entries in the database.
+
+        Used in test cases.
+
+        :return: User count
+        :rtype: int
+        """
+        return self._coll.find({}).count()
+
+    def setup_indexes(self, indexes):
+        """
+        To update an index add a new item in indexes and remove the previous version.
+        """
+        # indexes={'index-name': {'key': [('key', 1)], 'param1': True, 'param2': False}, }
+        # http://docs.mongodb.org/manual/reference/method/db.collection.ensureIndex/
+        default_indexes = ['_id_']  # _id_ index can not be deleted from a mongo collection
+        current_indexes = self._coll.index_information()
+        for name in current_indexes:
+            if name not in indexes and name not in default_indexes:
+                self._coll.drop_index(name)
+        for name, params in indexes.items():
+            if name not in current_indexes:
+                key = params.pop('key')
+                params['name'] = name
+                self._coll.ensure_index(key, **params)
+

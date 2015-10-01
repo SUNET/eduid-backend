@@ -319,7 +319,7 @@ class MongoTestCase(unittest.TestCase):
 
     def tearDown(self):
         super(MongoTestCase, self).tearDown()
-        for userdoc in self.amdb._get_all_userdocs():
+        for userdoc in self.amdb._get_all_docs():
             assert User(userdoc)
         for db_name in self.conn.database_names():
             if db_name == 'local':

@@ -2,8 +2,7 @@
 Exceptions thrown by the eduid_userdb database lookup functions.
 """
 
-
-class EduIDUserDBError(Exception):
+class EduIDDBError(Exception):
     """
     eduID userdb Exception class.
 
@@ -22,6 +21,35 @@ class EduIDUserDBError(Exception):
         )
 
 
+class DocumentDoesNotExist(EduIDDBError):
+    pass
+
+
+class UserDoesNotExist(DocumentDoesNotExist):
+    """
+    Requested user could not be found in the database.
+    """
+    pass
+
+
+class MultipleDocumentsReturned(EduIDDBError):
+    pass
+
+
+class MultipleUsersReturned(MultipleDocumentsReturned):
+    """
+    More than one user in the database matched the given search criteria.
+    """
+    pass
+
+
+class EduIDUserDBError(EduIDDBError):
+    """
+    eduID userdb Exception class.
+    """
+    pass
+
+
 class UserHasUnknownData(EduIDUserDBError):
     """
     One or more elements of the user could not be interpreted.
@@ -32,20 +60,6 @@ class UserHasUnknownData(EduIDUserDBError):
 class UserDBValueError(EduIDUserDBError):
     """
     Error regarding APIAuthUser instances.
-    """
-    pass
-
-
-class UserDoesNotExist(EduIDUserDBError):
-    """
-    Requested user could not be found in the database.
-    """
-    pass
-
-
-class MultipleUsersReturned(EduIDUserDBError):
-    """
-    More than one user in the database matched the given search criteria.
     """
     pass
 
