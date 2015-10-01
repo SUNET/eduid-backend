@@ -1,7 +1,7 @@
 __author__ = 'leifj'
 
 from eduid_am.celery import celery, get_attribute_manager
-from eduid_am.tasks import update_attributes
+
 from eduid_userdb.testing import MongoTestCase
 from bson import ObjectId
 
@@ -50,9 +50,15 @@ def plugin_attribute_fetcher(context, user_id):
 
     user = db.get_user_by_id(user_id)
     if user is None:
-        raise UserDoesNotExist("No user matching _id='%s'" % user_id)
+        raise UserDoesNotExist("No user matching _id={!r}".format(user_id))
 
-    return {'eduPersonPrincipalName': "%s@eduid.se" % user.uid}
+    # Transfer all attributes except `uid' from the test plugins database.
+    # Transform eduPersonPrincipalName on the way to make it clear that the
+    # update was done using this code.
+    res = user.to_dict(old_userdb_format=True)
+    res['eduPersonPrincipalName'] = "{!s}@eduid.se".format(user.uid)
+    del res['uid']
+    return res
 
 
 class MessageTest(MongoTestCase):
@@ -69,34 +75,31 @@ class MessageTest(MongoTestCase):
         and sends a message notifying the attribute manager instance (am) about a new entry in its dataset thereby
         calling the plugin (above) which is registered with the am in the test setup below.
         """
-        settings = {
-            'BROKER_TRANSPORT': 'memory',
-            'BROKER_URL': 'memory://',
-            'CELERY_EAGER_PROPAGATES_EXCEPTIONS': True,
-            'CELERY_ALWAYS_EAGER': True,
-            'CELERY_RESULT_BACKEND': "cache",
-            'CELERY_CACHE_BACKEND': 'memory',
-            'MONGO_URI': self.tmp_db.get_uri(''),
-        }
-
-        celery.conf.update(settings)
-        am = get_attribute_manager(celery)
-
-        test_context = AmTestUserDb(db_uri = settings['MONGO_URI'], db_name='eduid_am_test')
+        test_context = AmTestUserDb(db_uri = self.tmp_db.get_uri(''), db_name='eduid_am_test')
 
         # register fake AMP plugin named 'test'
-        am.registry.attribute_fetcher['test'] = plugin_attribute_fetcher
-        am.registry.context['test'] = test_context
+        self.am.registry.attribute_fetcher['test'] = plugin_attribute_fetcher
+        self.am.registry.context['test'] = test_context
 
         _id = ObjectId()
         userdoc = {'_id': _id,
                    'eduPersonPrincipalName': 'foo-bar',
                    'uid': 'vlindeman',
+                   'passwords': [{'id': ObjectId('112345678901234567890123'),
+                                  'salt': '$NDNv1H1$9c81...545$32$32$',
+                                  }],
                    }
         test_user = AmTestUser(userdoc)
+        # Save the user in the eduid_am_test database
         test_context.save(test_user)
 
+        # It is important to not import eduid_am.tasks before the Celery config has been
+        # set up (done in MongoTestCase.setUp()). Since Celery uses decorators, it will
+        # have instantiated AttributeManagers without the right config if the import is
+        # done prior to the Celery app configuration.
+        from eduid_am.tasks import update_attributes
         update_attributes.delay(app_name='test', obj_id = _id)
 
+        # verify the user has been propagated to the amdb
         am_user = self.amdb.get_user_by_id(_id)
         self.assertEqual(am_user.eppn, 'vlindeman@eduid.se')

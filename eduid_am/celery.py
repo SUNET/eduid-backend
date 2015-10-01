@@ -43,9 +43,12 @@ def get_attribute_manager(celery_app):
 
     :param celery_app: ???
     :return: AttributeManager
-    :rtype: AttributeManager()
+    :rtype: AttributeManager
     """
-    # without this import, celery suddenly says NotRegistered about update_attributes
+    # It is important to not import eduid_am.tasks before the Celery config has been set up
+    # (done by caller before calling this function). Since Celery uses decorators, it will
+    # have instantiated AttributeManagers without the right config the import is done prior
+    # to the Celery app configuration.
     import eduid_am.tasks
     am = celery_app.tasks['eduid_am.tasks.update_attributes']
     assert isinstance(am, eduid_am.tasks.AttributeManager)  # a type hint for IDEs and analyzers

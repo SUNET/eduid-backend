@@ -49,8 +49,11 @@ class AttributeManager(Task):
     def __init__(self):
         self.default_db_uri = self.app.conf.get('MONGO_URI')
 
-        # self.userdb is the UserDB to which AM will write the updated users
-        self.userdb = UserDB(self.default_db_uri, 'eduid_am', 'attributes')
+        if self.default_db_uri is not None:
+            # self.userdb is the UserDB to which AM will write the updated users. This setting
+            # will be None when this class is instantiated on the 'client' side of the AMQP bus,
+            # such as in the eduid-signup application.
+            self.userdb = UserDB(self.default_db_uri, 'eduid_am', 'attributes')
 
         self.registry = PluginsRegistry(self.app.conf)
 
