@@ -109,10 +109,10 @@ class Action(object):
         Check actions that can't be loaded for some known reason.
         """
         if self._data_in.get('user_oid') is None:
-            raise ActionMissingData('Action {!s} has no user_oid'.format(
+            raise ActionMissingData('Action {!s} has no key user_oid'.format(
                 self._data_in.get('_id')))
         if self._data_in.get('action') is None:
-            raise ActionMissingData('Action {!s} has no action'.format(
+            raise ActionMissingData('Action {!s} has no key action'.format(
                 self._data_in.get('_id')))
 
     def __repr__(self):
