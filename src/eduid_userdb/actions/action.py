@@ -171,4 +171,6 @@ class Action(object):
         :rtype: dict
         """
         res = copy.deepcopy(self._data)  # avoid caller messing up our private _data
+        if res['session'] == '':
+            del res['session']
         return res
