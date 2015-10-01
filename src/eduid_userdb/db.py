@@ -21,14 +21,23 @@ class MongoDB(object):
         if self._parsed_uri.get('database') is None:
             self._parsed_uri['database'] = db_name
 
+        if 'replicaSet' in kwargs and kwargs['replicaSet'] is None:
+            del kwargs['replicaSet']
+
         _options = self._parsed_uri.get('options')
         if connection_factory is None:
             connection_factory = pymongo.MongoClient
         if 'replicaSet' in kwargs:
             connection_factory = pymongo.MongoReplicaSetClient
-        if 'replicaSet' in _options:
+        if 'replicaSet' in _options and _options['replicaSet'] is not None:
             connection_factory = pymongo.MongoReplicaSetClient
             kwargs['replicaSet'] = _options['replicaSet']
+
+        if 'replicaSet' in kwargs:
+            if 'socketTimeoutMS' not in kwargs:
+                kwargs['socketTimeoutMS'] = 5000
+            if 'connectTimeoutMS' not in kwargs:
+                kwargs['connectTimeoutMS'] = 5000
 
         self._db_uri = _format_mongodb_uri(self._parsed_uri)
 

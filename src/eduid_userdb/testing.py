@@ -43,7 +43,6 @@ import tempfile
 import unittest
 import subprocess
 import pymongo
-from datetime import datetime
 from copy import deepcopy
 
 from bson import ObjectId
@@ -79,7 +78,6 @@ MOCKED_USER_STANDARD = {
         'urn:mace:eduid.se:role:admin',
         'urn:mace:eduid.se:role:student',
     ],
-        #'maxReachedLoa': 3,
     'mobile': [{
         'mobile': '+34609609609',
         'primary': True,
@@ -278,16 +276,25 @@ class MongoTestCase(unittest.TestCase):
         self.tmp_db = MongoTemporaryInstance.get_instance()
         self.conn = self.tmp_db.conn
         self.port = self.tmp_db.port
-        self.am_settings = {
-            'BROKER_TRANSPORT': 'memory',  # Don't use AMQP bus when testing
-            'BROKER_URL': 'memory://',
-            'CELERY_EAGER_PROPAGATES_EXCEPTIONS': True,
-            'CELERY_ALWAYS_EAGER': True,
-            'CELERY_RESULT_BACKEND': "cache",
-            'CELERY_CACHE_BACKEND': 'memory',
-            # Be sure to tell AttributeManager about the temporary mongodb instance.
-            'MONGO_URI': self.tmp_db.get_uri(''),
-        }
+
+        if celery and get_attribute_manager:
+            self.am_settings = {
+                'BROKER_TRANSPORT': 'memory',  # Don't use AMQP bus when testing
+                'BROKER_URL': 'memory://',
+                'CELERY_EAGER_PROPAGATES_EXCEPTIONS': True,
+                'CELERY_ALWAYS_EAGER': True,
+                'CELERY_RESULT_BACKEND': "cache",
+                'CELERY_CACHE_BACKEND': 'memory',
+                # Be sure to tell AttributeManager about the temporary mongodb instance.
+                'MONGO_URI': self.tmp_db.get_uri(''),
+            }
+            celery.conf.update(self.am_settings)
+            self.am = get_attribute_manager(celery)
+            self.amdb = self.am.userdb
+        else:
+            self.amdb = UserDB(self.tmp_db.get_uri(''), 'eduid_am')
+
+        self.amdb._drop_whole_collection()
 
         mongo_settings = {
             'mongo_replicaset': None,
@@ -299,14 +306,8 @@ class MongoTestCase(unittest.TestCase):
         else:
             self.settings.update(mongo_settings)
 
-        celery.conf.update(self.am_settings)
-        self.am = get_attribute_manager(celery)
-
         for db_name in self.conn.database_names():
             self.conn.drop_database(db_name)
-
-        self.amdb = self.am.userdb
-        self.amdb._drop_whole_collection()
 
         # Set up test users in the MongoDB. Read the users from MockedUserDB, which might
         # be overridden by subclasses.

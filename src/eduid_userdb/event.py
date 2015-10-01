@@ -136,7 +136,7 @@ class Event(Element):
         :type mixed_format: bool
         """
         res = copy.copy(self._data)  # avoid caller messing with our _data
-        if not mixed_format:
+        if not mixed_format and 'event_type' in res:
             del res['event_type']
         return res
 
