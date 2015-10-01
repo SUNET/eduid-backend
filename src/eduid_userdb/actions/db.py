@@ -33,26 +33,23 @@
 from bson import ObjectId
 
 from eduid_userdb.actions import Action
-from eduid_userdb.db import MongoDB
+from eduid_userdb.db import BaseDB
 from eduid_userdb.exceptions import ActionDBError
 
 import logging
 logger = logging.getLogger(__name__)
 
 
-class ActionDB(object):
+class ActionDB(BaseDB):
     """
     Interface class to the central eduID actions DB.
     """
 
     ActionClass = Action
 
-    def __init__(self, db_uri, db_name='eduid_actions', collection='actions', **kwargs):
+    def __init__(self, db_uri, db_name='eduid_actions', collection='actions'):
+        super(ActionDB, self).__init__(db_uri, db_name, collection)
 
-        self._db_uri = db_uri
-        self._coll_name = collection
-        self._db = MongoDB(db_uri, db_name=db_name, **kwargs)
-        self._coll = self._db.get_collection(collection)
         self._cache = {}
         logger.debug("{!s} connected to database".format(self))
 
@@ -230,50 +227,4 @@ class ActionDB(object):
         logger.debug("{!s} Removing action with id {!r} from {!r}".format(self, action_id, self._coll_name))
         return self._coll.remove(spec_or_id=action_id)
 
-    def _drop_whole_collection(self):
-        """
-        Drop the whole collection. Should ONLY be used in testing, obviously.
-        :return:
-        """
-        logging.warning("{!s} Dropping collection {!r}".format(self, self._coll_name))
-        return self._coll.drop()
-
-    def db_count(self):
-        """
-        Return number of entries in the database.
-
-        Used in test cases.
-
-        :return: User count
-        :rtype: int
-        """
-        return self._coll.find({}).count()
-
-    def _get_all_docs(self):
-        """
-        Return all the user documents in the database.
-
-        Used in eduid-dashboard test cases.
-
-        :return: User documents
-        :rtype:
-        """
-        return self._coll.find({})
-
-    def setup_indexes(self, indexes):
-        """
-        To update an index add a new item in indexes and remove the previous version.
-        """
-        # indexes={'index-name': {'key': [('key', 1)], 'param1': True, 'param2': False}, }
-        # http://docs.mongodb.org/manual/reference/method/db.collection.ensureIndex/
-        default_indexes = ['_id_']  # _id_ index can not be deleted from a mongo collection
-        current_indexes = self._coll.index_information()
-        for name in current_indexes:
-            if name not in indexes and name not in default_indexes:
-                self._coll.drop_index(name)
-        for name, params in indexes.items():
-            if name not in current_indexes:
-                key = params.pop('key')
-                params['name'] = name
-                self._coll.ensure_index(key, **params)
 
