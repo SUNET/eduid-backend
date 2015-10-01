@@ -50,8 +50,6 @@ class ActionDB(object):
 
         self._db_uri = db_uri
         self._coll_name = collection
-        if 'replicaSet' in kwargs and kwargs['replicaSet'] is None:
-            del kwargs['replicaSet']
         self._db = MongoDB(db_uri, db_name=db_name, **kwargs)
         self._coll = self._db.get_collection(collection)
         self._cache = {}
