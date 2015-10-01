@@ -53,30 +53,20 @@ class Action(object):
 
         self._parse_check_invalid_actions()
 
-        # things without setters
+        # ensure _id is always an ObjectId
         _id = self._data_in.pop('_id', None)
         if _id is None:
             _id = bson.ObjectId()
         elif not isinstance(_id, bson.ObjectId):
             _id = bson.ObjectId(_id)
+
+        # things without setters
         self._data['_id'] = _id
-
-        user_id = self._data_in.pop('user_oid')
-        self._data['user_oid'] = user_id
-
-        action_type = self._data_in.pop('action')
-        self._data['action'] = action_type
-
-        preference = self._data_in.pop('preference', 100)
-        self._data['preference'] = preference
-
-        session = self._data_in.pop('session', None)
-        if session is not None:
-            self._data['session'] = session
-
-        params = self._data_in.pop('params', None)
-        if params is not None:
-            self._data['params'] = params
+        self._data['user_oid'] = self._data_in.pop('user_oid')
+        self._data['action'] = self._data_in.pop('action')
+        self._data['preference'] = self._data_in.pop('preference', 100)
+        self._data['session'] = self._data_in.pop('session', '')
+        self._data['params'] = self._data_in.pop('params', {})
 
         if len(self._data_in) > 0:
             if raise_on_unknown:
@@ -92,18 +82,18 @@ class Action(object):
 
         Check actions that can't be loaded for some known reason.
         """
-        if 'user_oid' not in self._data_in or self._data_in['user_oid'] is None:
+        if self._data_in.get('user_oid') is None:
             raise ActionMissingData('Action {!s} has no user_oid'.format(
                 self._data_in.get('_id')))
-        if 'action' not in self._data_in or self._data_in['action'] is None:
+        if self._data_in.get('action') is None:
             raise ActionMissingData('Action {!s} has no action'.format(
                 self._data_in.get('_id')))
 
     def __repr__(self):
         return '<eduID {!s}: {!s} for {!s}>'.format(self.__class__.__name__,
-                                                self.action_type,
-                                                self.user_id,
-                                                )
+                                                    self.action_type,
+                                                    self.user_id,
+                                                    )
 
     __str__ = __repr__
 
@@ -150,7 +140,7 @@ class Action(object):
 
         :rtype: str
         """
-        return self._data.get('session', '')
+        return self._data.get('session')
 
     # -----------------------------------------------------------------
     @property
@@ -170,7 +160,7 @@ class Action(object):
 
         :rtype: str
         """
-        return self._data.get('params', {})
+        return self._data.get('params')
 
     # -----------------------------------------------------------------
     def to_dict(self):
@@ -182,4 +172,3 @@ class Action(object):
         """
         res = copy.deepcopy(self._data)  # avoid caller messing up our private _data
         return res
-
