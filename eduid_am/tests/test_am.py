@@ -75,24 +75,11 @@ class MessageTest(MongoTestCase):
         and sends a message notifying the attribute manager instance (am) about a new entry in its dataset thereby
         calling the plugin (above) which is registered with the am in the test setup below.
         """
-        settings = {
-            'BROKER_TRANSPORT': 'memory',
-            'BROKER_URL': 'memory://',
-            'CELERY_EAGER_PROPAGATES_EXCEPTIONS': True,
-            'CELERY_ALWAYS_EAGER': True,
-            'CELERY_RESULT_BACKEND': "cache",
-            'CELERY_CACHE_BACKEND': 'memory',
-            'MONGO_URI': self.tmp_db.get_uri(''),
-        }
-
-        celery.conf.update(settings)
-        am = get_attribute_manager(celery)
-
-        test_context = AmTestUserDb(db_uri = settings['MONGO_URI'], db_name='eduid_am_test')
+        test_context = AmTestUserDb(db_uri = self.tmp_db.get_uri(''), db_name='eduid_am_test')
 
         # register fake AMP plugin named 'test'
-        am.registry.attribute_fetcher['test'] = plugin_attribute_fetcher
-        am.registry.context['test'] = test_context
+        self.am.registry.attribute_fetcher['test'] = plugin_attribute_fetcher
+        self.am.registry.context['test'] = test_context
 
         _id = ObjectId()
         userdoc = {'_id': _id,
