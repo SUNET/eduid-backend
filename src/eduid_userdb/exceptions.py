@@ -83,6 +83,13 @@ class ActionMissingData(EduIDUserDBError):
     pass
 
 
+class ActionDBError(EduIDUserDBError):
+    """
+    There was an actions-database related error
+    """
+    pass
+
+
 class BadEvent(EduIDUserDBError):
     """
     General error in Event processing.

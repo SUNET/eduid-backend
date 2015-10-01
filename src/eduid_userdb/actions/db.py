@@ -34,6 +34,7 @@ from bson import ObjectId
 
 from eduid_userdb.actions import Action
 from eduid_userdb.db import MongoDB
+from eduid_userdb.exceptions import ActionDBError
 
 import logging
 logger = logging.getLogger(__name__)
@@ -126,7 +127,7 @@ class ActionDB(object):
         Check in the db (not in the cache) whether there are actions
         with whatever attributes you feed to the method.
         Used for example when adding a new ToU action, to check
-        that another app didn't create the action with anorther session.
+        that another app didn't create the action with another session.
 
         :param userid: The id of the user with possible pending actions
         :param session: The actions session for the user
@@ -216,6 +217,8 @@ class ActionDB(object):
         result = self._coll.insert(action.to_dict())
         if result == action.action_id:
             return action
+        logger.error("Failed inserting action {!r} into db".format(action))
+        raise ActionDBError('Failed inserting action into db')
 
     def remove_action_by_id(self, action_id):
         """
