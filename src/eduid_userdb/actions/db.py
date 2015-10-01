@@ -46,8 +46,7 @@ class ActionDB(object):
 
     ActionClass = Action
 
-    def __init__(self, db_uri, db_name='eduid_actions',
-                               collection='actions', **kwargs):
+    def __init__(self, db_uri, db_name='eduid_actions', collection='actions', **kwargs):
 
         self._db_uri = db_uri
         self._coll_name = collection
@@ -62,8 +61,7 @@ class ActionDB(object):
         return '<eduID {!s}: {!s} {!r} (returning {!s})>'.format(self.__class__.__name__,
                                                                  self._db.sanitized_uri,
                                                                  self._coll_name,
-                                                                 self.ActionClass.__name__,
-                                                                )
+                                                                 self.ActionClass.__name__)
 
     def _make_key(self, userid, session):
         if session is None:
@@ -77,8 +75,9 @@ class ActionDB(object):
         stale caches.
 
         :param userid: The id of the user with possible pending actions
-        :type userid: str
         :param session: The actions session for the user
+
+        :type userid: str
         :type session: str
         """
         cachekey = self._make_key(userid, session)
@@ -109,8 +108,9 @@ class ActionDB(object):
         or with the specified session.
 
         :param userid: The id of the user with possible pending actions
-        :type userid: str
         :param session: The actions session for the user
+
+        :type userid: str
         :type session: str
 
         :rtype: bool
@@ -123,8 +123,7 @@ class ActionDB(object):
                 self.clean_cache(userid, session)
         return False
 
-    def has_actions(self, userid=None, session=None,
-                        action_type=None, params=None):
+    def has_actions(self, userid=None, session=None, action_type=None, params=None):
         """
         Check in the db (not in the cache) whether there are actions
         with whatever attributes you feed to the method.
@@ -132,12 +131,13 @@ class ActionDB(object):
         that another app didn't create the action with anorther session.
 
         :param userid: The id of the user with possible pending actions
-        :type userid: str
         :param session: The actions session for the user
-        :type session: str
         :param action_type: The type of action to be performed
-        :type action_type: str
         :param params: Extra params specific to the action type
+
+        :type userid: str
+        :type session: str
+        :type action_type: str
         :type params: dict
 
         :rtype: bool
@@ -164,8 +164,9 @@ class ActionDB(object):
         If there is no pending action, return None
 
         :param userid: The id of the user with possible pending actions
-        :type userid: str
         :param session: The IdP session for the user
+
+        :type userid: str
         :type session: str
 
         :rtype: eduid_userdb.actions:Action or None
@@ -182,21 +183,22 @@ class ActionDB(object):
         return action
 
     def add_action(self, userid=None, action_type=None, preference=100,
-                    session=None, params=None, data=None):
+                   session=None, params=None, data=None):
         """
         Add an action to the DB.
 
         :param userid: The id of the user who has to perform the action
-        :type userid: str
         :param action_type: the kind of action to be performed
-        :type action_type: str
         :param preference: preference to order actions
-        :type preference: int
         :param session: The IdP session for the user
-        :type session: str
         :param params: Any params the action may need
-        :type params: dict
         :param data: all the previous params together
+
+        :type userid: str
+        :type action_type: str
+        :type preference: int
+        :type session: str
+        :type params: dict
         :type data: dict
 
         :rtype: Action
@@ -224,9 +226,7 @@ class ActionDB(object):
         :param action_id: Action id
         :type action_id: bson.ObjectId
         """
-        logger.debug("{!s} Removing action with id {!r} from {!r}".format(self,
-                                                                     action_id,
-                                                              self._coll_name))
+        logger.debug("{!s} Removing action with id {!r} from {!r}".format(self, action_id, self._coll_name))
         return self._coll.remove(spec_or_id=action_id)
 
     def _drop_whole_collection(self):
@@ -234,15 +234,15 @@ class ActionDB(object):
         Drop the whole collection. Should ONLY be used in testing, obviously.
         :return:
         """
-        logging.warning("{!s} Dropping collection {!r}".format(self,
-                                                          self._coll_name))
+        logging.warning("{!s} Dropping collection {!r}".format(self, self._coll_name))
         return self._coll.drop()
 
     def db_count(self):
         """
         Return number of entries in the database.
 
-        Used in eduid-signup test cases.
+        Used in test cases.
+
         :return: User count
         :rtype: int
         """
