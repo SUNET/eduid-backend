@@ -37,8 +37,6 @@ import copy
 
 from eduid_userdb.exceptions import ActionMissingData, ActionHasUnknownData
 
-VALID_SUBJECT_VALUES = ['physical person']
-
 
 class Action(object):
     """
