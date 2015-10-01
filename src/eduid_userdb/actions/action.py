@@ -44,12 +44,38 @@ class Action(object):
     """
     Generic eduID action object.
 
+    If the `data' argument is None (default), the Action will be created from the other
+    keyword arguments.
+
     :param data: MongoDB document representing an action
-    :type  data: dict
+    :param action_id: Unique identifier for the action
+    :param user_oid: User id
+    :param action_type: What action to perform
+    :param preference: Used to sort actions
+    :param session: IdP session identifier
+    :param params: Parameters for action
+    :param raise_on_unknown: Raise exception on unknown data or not
+
+    :type data: dict | None
+    :type action_id: bson.ObjectId | str | None
+    :type action_type: str | None
+    :type preference: int | None
+    :type session: str | None
+    :type params: dict | None
+    :type raise_on_unknown: bool
     """
-    def __init__(self, data, raise_on_unknown = True):
+    def __init__(self, action_id = None, user_oid = None, action_type = None, preference = None, session = None,
+                 params = None, data = None, raise_on_unknown = True):
         self._data_in = copy.deepcopy(data)  # to not modify callers data
         self._data = dict()
+
+        if self._data_in is None:
+            self._data_in = dict(_id = action_id,
+                                 user_oid = user_oid,
+                                 action = action_type,
+                                 preference = preference,
+                                 session = session or '',
+                                 params = params or {})
 
         self._parse_check_invalid_actions()
 
@@ -75,6 +101,8 @@ class Action(object):
                 ))
             # Just keep everything that is left as-is
             self._data.update(self._data_in)
+
+        del self._data_in
 
     def _parse_check_invalid_actions(self):
         """"

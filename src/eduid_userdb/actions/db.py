@@ -213,7 +213,7 @@ class ActionDB(object):
                 data['params'] = params
 
         # XXX deal with exceptions here ?
-        action = Action(data)
+        action = Action(data = data)
         result = self._coll.insert(action.to_dict())
         if result == action.action_id:
             return action
