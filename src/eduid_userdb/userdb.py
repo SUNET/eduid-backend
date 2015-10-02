@@ -165,12 +165,12 @@ class UserDB(BaseDB):
             user = self.UserClass(data=doc)
             logger.debug("{!s} Returning user {!s}".format(self, user))
             return user
-        except self.exceptions.DocumentDoesNotExist:
+        except self.exceptions.DocumentDoesNotExist as e:
             logger.debug("UserDoesNotExist, {!r} = {!r}".format(attr, value))
-            raise UserDoesNotExist
-        except self.exceptions.MultipleDocumentsReturned:
+            raise UserDoesNotExist(e.reason)
+        except self.exceptions.MultipleDocumentsReturned as e:
             logger.error("MultipleUsersReturned, {!r} = {!r}".format(attr, value))
-            raise MultipleUsersReturned
+            raise MultipleUsersReturned(e.reason)
 
     def save(self, user, check_sync=True, old_format=False):
         """
