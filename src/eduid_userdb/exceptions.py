@@ -29,6 +29,13 @@ class UserHasUnknownData(EduIDUserDBError):
     pass
 
 
+class UserMissingData(EduIDUserDBError):
+    """
+    There is missing data for a User
+    """
+    pass
+
+
 class UserDBValueError(EduIDUserDBError):
     """
     Error regarding APIAuthUser instances.
