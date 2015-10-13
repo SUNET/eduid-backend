@@ -13,8 +13,7 @@ if os.path.exists(README_fn):
 version = '0.6.1b0'
 
 install_requires = [
-    'eduid_userdb >= 0.0.0, < 0.1.0',
-
+    'eduid_userdb >= 0.0.4b4',
     'python-dateutil>=2.1',
     'celery>=3.1.17, < 3.2.0',
     'simplejson>=3.6.5',
