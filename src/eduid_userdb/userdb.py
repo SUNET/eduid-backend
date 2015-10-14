@@ -56,11 +56,13 @@ class UserDB(BaseDB):
     UserClass = User
 
     def __init__(self, db_uri, db_name, collection='userdb', user_class=None):
-        super(UserDB, self).__init__(db_uri, db_name, collection)
 
         if db_name == 'eduid_am' and collection == 'userdb':
             # Hack to get right collection name while the configuration points to the old database
-            self.collection = 'attributes'
+            collection = 'attributes'
+        self.collection = collection
+
+        super(UserDB, self).__init__(db_uri, db_name, collection)
 
         if user_class is not None:
             self.UserClass = user_class
