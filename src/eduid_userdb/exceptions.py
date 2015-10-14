@@ -63,6 +63,12 @@ class UserDBValueError(EduIDUserDBError):
     """
     pass
 
+class UserMissingData(EduIDUserDBError):
+    """
+    There is missing data for a User
+    """
+    pass
+
 
 class UserOutOfSync(EduIDUserDBError):
     """
