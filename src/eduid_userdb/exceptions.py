@@ -21,6 +21,13 @@ class EduIDDBError(Exception):
         )
 
 
+class MongoConnectionError(EduIDDBError):
+    """
+    Error connecting to MongoDB.
+    """
+    pass
+
+
 class DocumentDoesNotExist(EduIDDBError):
     pass
 
