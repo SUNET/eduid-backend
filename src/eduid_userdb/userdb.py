@@ -79,7 +79,7 @@ class UserDB(BaseDB):
                                                                  self.UserClass.__name__,
                                                                  )
 
-    def get_user_by_id(self, user_id):
+    def get_user_by_id(self, user_id, raise_on_missing=True):
         """
         Locate a user in the userdb given the user's _id.
 
@@ -93,9 +93,9 @@ class UserDB(BaseDB):
         """
         if not isinstance(user_id, ObjectId):
             user_id = ObjectId(user_id)
-        return self._get_user_by_attr('_id', user_id)
+        return self._get_user_by_attr('_id', user_id, raise_on_missing)
 
-    def get_user_by_mail(self, email, raise_on_missing=False, include_unconfirmed=False):
+    def get_user_by_mail(self, email, raise_on_missing=True, include_unconfirmed=False):
         """
         Return the user object in the central eduID UserDB having
         an email address matching `email'. Unless include_unconfirmed=True, the
@@ -134,7 +134,7 @@ class UserDB(BaseDB):
             raise MultipleUsersReturned("Multiple matching users for email {!r}".format(email))
         return self.UserClass(data=users[0])
 
-    def get_user_by_eppn(self, eppn):
+    def get_user_by_eppn(self, eppn, raise_on_missing=True):
         """
         Look for a user using the eduPersonPrincipalName.
 
@@ -144,9 +144,9 @@ class UserDB(BaseDB):
         :return: UserClass instance
         :rtype: UserClass
         """
-        return self._get_user_by_attr('eduPersonPrincipalName', eppn)
+        return self._get_user_by_attr('eduPersonPrincipalName', eppn, raise_on_missing)
 
-    def _get_user_by_attr(self, attr, value):
+    def _get_user_by_attr(self, attr, value, raise_on_missing=True):
         """
         Locate a user in the userdb using any attribute and value.
 
@@ -162,7 +162,7 @@ class UserDB(BaseDB):
         logger.debug("{!s} Looking in {!r} for user with {!r} = {!r}".format(
             self, self._coll_name, attr, value))
         try:
-            doc = self._get_document_by_attr(attr, value, raise_on_missing=True)
+            doc = self._get_document_by_attr(attr, value, raise_on_missing)
             logger.debug("{!s} Found user with id {!s}".format(self, doc['_id']))
             user = self.UserClass(data=doc)
             logger.debug("{!s} Returning user {!s}".format(self, user))
