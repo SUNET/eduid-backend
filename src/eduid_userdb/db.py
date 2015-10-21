@@ -1,7 +1,8 @@
 import copy
 import pymongo
 import logging
-from exceptions import DocumentDoesNotExist, MultipleDocumentsReturned
+from exceptions import (DocumentDoesNotExist, MultipleDocumentsReturned,
+        MongoConnectionError)
 
 
 class MongoDB(object):
@@ -42,10 +43,13 @@ class MongoDB(object):
 
         self._db_uri = _format_mongodb_uri(self._parsed_uri)
 
-        self._connection = connection_factory(
-            host=self._db_uri,
-            tz_aware=True,
-            **kwargs)
+        try:
+            self._connection = connection_factory(
+                host=self._db_uri,
+                tz_aware=True,
+                **kwargs)
+        except pymongo.errors.ConnectionFailure as e:
+            raise MongoConnectionError('Error connecting to mongo: ' + str(e))
 
     @property
     def sanitized_uri(self):
