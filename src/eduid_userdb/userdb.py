@@ -154,18 +154,20 @@ class UserDB(BaseDB):
 
         :param attr: The attribute to match on
         :param value: The value to match on
-        :return: UserClass instance
-        :rtype: UserClass
+        :return: UserClass instance | None
+        :rtype: UserClass | None
         :raise self.UserDoesNotExist: No user match the search criteria
         :raise self.MultipleUsersReturned: More than one user matches the search criteria
         """
+        user = None
         logger.debug("{!s} Looking in {!r} for user with {!r} = {!r}".format(
             self, self._coll_name, attr, value))
         try:
             doc = self._get_document_by_attr(attr, value, raise_on_missing)
-            logger.debug("{!s} Found user with id {!s}".format(self, doc['_id']))
-            user = self.UserClass(data=doc)
-            logger.debug("{!s} Returning user {!s}".format(self, user))
+            if doc is not None:
+                logger.debug("{!s} Found user with id {!s}".format(self, doc['_id']))
+                user = self.UserClass(data=doc)
+                logger.debug("{!s} Returning user {!s}".format(self, user))
             return user
         except self.exceptions.DocumentDoesNotExist as e:
             logger.debug("UserDoesNotExist, {!r} = {!r}".format(attr, value))
