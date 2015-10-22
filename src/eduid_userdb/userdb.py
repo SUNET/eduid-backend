@@ -31,6 +31,7 @@
 #
 
 from bson import ObjectId
+from bson.errors import InvalidId
 
 from eduid_userdb.user import User
 from eduid_userdb.db import BaseDB
@@ -79,23 +80,26 @@ class UserDB(BaseDB):
                                                                  self.UserClass.__name__,
                                                                  )
 
-    def get_user_by_id(self, user_id):
+    def get_user_by_id(self, user_id, raise_on_missing=True):
         """
         Locate a user in the userdb given the user's _id.
 
         :param user_id: User identifier
         :type user_id: bson.ObjectId | str | unicode
-        :return: UserClass instance
-        :rtype: UserClass
+        :return: UserClass instance | None
+        :rtype: UserClass | None
 
         :raise self.UserDoesNotExist: No user match the search criteria
         :raise self.MultipleUsersReturned: More than one user matches the search criteria
         """
         if not isinstance(user_id, ObjectId):
-            user_id = ObjectId(user_id)
-        return self._get_user_by_attr('_id', user_id)
+            try:
+                user_id = ObjectId(user_id)
+            except InvalidId:
+                return None
+        return self._get_user_by_attr('_id', user_id, raise_on_missing)
 
-    def get_user_by_mail(self, email, raise_on_missing=False, include_unconfirmed=False):
+    def get_user_by_mail(self, email, raise_on_missing=True, include_unconfirmed=False):
         """
         Return the user object in the central eduID UserDB having
         an email address matching `email'. Unless include_unconfirmed=True, the
@@ -134,7 +138,7 @@ class UserDB(BaseDB):
             raise MultipleUsersReturned("Multiple matching users for email {!r}".format(email))
         return self.UserClass(data=users[0])
 
-    def get_user_by_eppn(self, eppn):
+    def get_user_by_eppn(self, eppn, raise_on_missing=True):
         """
         Look for a user using the eduPersonPrincipalName.
 
@@ -144,9 +148,9 @@ class UserDB(BaseDB):
         :return: UserClass instance
         :rtype: UserClass
         """
-        return self._get_user_by_attr('eduPersonPrincipalName', eppn)
+        return self._get_user_by_attr('eduPersonPrincipalName', eppn, raise_on_missing)
 
-    def _get_user_by_attr(self, attr, value):
+    def _get_user_by_attr(self, attr, value, raise_on_missing=True):
         """
         Locate a user in the userdb using any attribute and value.
 
@@ -154,18 +158,20 @@ class UserDB(BaseDB):
 
         :param attr: The attribute to match on
         :param value: The value to match on
-        :return: UserClass instance
-        :rtype: UserClass
+        :return: UserClass instance | None
+        :rtype: UserClass | None
         :raise self.UserDoesNotExist: No user match the search criteria
         :raise self.MultipleUsersReturned: More than one user matches the search criteria
         """
+        user = None
         logger.debug("{!s} Looking in {!r} for user with {!r} = {!r}".format(
             self, self._coll_name, attr, value))
         try:
-            doc = self._get_document_by_attr(attr, value, raise_on_missing=True)
-            logger.debug("{!s} Found user with id {!s}".format(self, doc['_id']))
-            user = self.UserClass(data=doc)
-            logger.debug("{!s} Returning user {!s}".format(self, user))
+            doc = self._get_document_by_attr(attr, value, raise_on_missing)
+            if doc is not None:
+                logger.debug("{!s} Found user with id {!s}".format(self, doc['_id']))
+                user = self.UserClass(data=doc)
+                logger.debug("{!s} Returning user {!s}".format(self, user))
             return user
         except self.exceptions.DocumentDoesNotExist as e:
             logger.debug("UserDoesNotExist, {!r} = {!r}".format(attr, value))

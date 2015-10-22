@@ -192,7 +192,7 @@ class BaseDB(object):
         """
         return self._coll.find({})
 
-    def _get_document_by_attr(self, attr, value, raise_on_missing=False):
+    def _get_document_by_attr(self, attr, value, raise_on_missing=True):
         """
         Return the document in the MongoDB matching field=value
 
