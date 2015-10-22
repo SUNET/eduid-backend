@@ -30,37 +30,61 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-__author__ = 'ft'
+__author__ = 'eperez'
+
+import bson
+from copy import deepcopy
 
 from eduid_userdb import User
-from eduid_userdb.exceptions import UserMissingData
+from eduid_userdb.exceptions import UserMissingData, UserHasUnknownData
 
 
 class ToUUser(User):
     """
     Subclass of eduid_userdb.User with
     the eduid-actions plugin for ToU specific data.
+
+    :param userid: user id
+    :type userid: bson.ObjectId
+    :param tou: ToU  list
+    :type tou: list
+    :param data: userid and tou
+    :type data: dict
+    :param raise_on_unknown: whether to raise an exception if
+                             there is unknown data in the data dict
+    :type raise_on_unknown: bool
     """
 
-    def __init__(self, userid = None, tou = None, data = None):
+    def __init__(self, userid = None, tou = None, data = None,
+                                         raise_on_unknown = True):
+        """
+        """
         if data is None:
-            data = dict(_id = userid,
-                        tou = tou,
-                        eduPersonPrincipalName='dummy')
+            data = {'_id': userid, 'tou': tou}
 
-        User.__init__(self, data = data)
-
-    def _parse_check_invalid_users(self):
-        """
-        Part of User.__init__().
-
-        Check users that can't be loaded for some known reason.
-        """
-        if '_id' not in self._data_in or not self._data_in['_id']:
+        if '_id' not in data or data['_id'] is None:
             raise UserMissingData('Attempting to record a ToU acceptance '
                                   'for an unidentified user.')
-        if 'tou' not in self._data_in or self._data_in['tou'] is None:
+        if 'tou' not in data or data['tou'] is None:
             raise UserMissingData('Attempting to record the acceptance of '
                                   'an unknown version of the ToU for '
-                                  'the user with id ' + str(userid))
+                                  'the user with id ' + str(data['_id']))
 
+        self._data_in = deepcopy(data)
+        self._data = dict()
+
+        # things without setters
+        _id = self._data_in.pop('_id', None)
+        if not isinstance(_id, bson.ObjectId):
+            _id = bson.ObjectId(_id)
+        self._data['_id'] = _id
+
+        self._parse_tous()
+
+        if len(self._data_in) > 0:
+            if raise_on_unknown:
+                raise UserHasUnknownData('User {!s} unknown data: {!r}'.format(
+                    self.user_id, self._data_in.keys()
+                ))
+            # Just keep everything that is left as-is
+            self._data.update(self._data_in)

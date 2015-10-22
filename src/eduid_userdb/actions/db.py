@@ -31,6 +31,7 @@
 #
 
 from bson import ObjectId
+import pymongo
 
 from eduid_userdb.actions import Action
 from eduid_userdb.db import BaseDB
@@ -91,9 +92,10 @@ class ActionDB(BaseDB):
                 query['$or'] = [ {'session': {'$exists': False}},
                                  {'session': session} ]
 
-            actions = self._coll.find(query).sort('precedence')
-            if actions.count() > 0:
-                self._cache[cachekey] = actions
+            actions = self._coll.find(query).sort('preference')
+            count = actions.count()
+            if count > 0:
+                self._cache[cachekey] = [a for a in actions]
         return cachekey
 
     def has_pending_actions(self, userid, session=None):
@@ -113,7 +115,7 @@ class ActionDB(BaseDB):
         """
         cachekey = self._update_cache(userid, session)
         if cachekey in self._cache:
-            if self._cache[cachekey].count() > 0:
+            if len(self._cache[cachekey]) > 0:
                 return True
             else:
                 self.clean_cache(userid, session)
@@ -171,8 +173,8 @@ class ActionDB(BaseDB):
         action = None
         if cachekey in self._cache:
             try:
-                action_doc = self._cache[cachekey].next()
-            except StopIteration:
+                action_doc = self._cache[cachekey].pop()
+            except IndexError:
                 self.clean_cache(userid, session)
             else:
                 action = Action(data=action_doc)
@@ -226,5 +228,4 @@ class ActionDB(BaseDB):
         """
         logger.debug("{!s} Removing action with id {!r} from {!r}".format(self, action_id, self._coll_name))
         return self._coll.remove(spec_or_id=action_id)
-
 
