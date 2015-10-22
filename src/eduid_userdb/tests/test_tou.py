@@ -8,6 +8,8 @@ import eduid_userdb.exceptions
 import eduid_userdb.element
 from eduid_userdb.event import Event, EventList
 from eduid_userdb.tou import ToUEvent
+from eduid_userdb.actions.tou import ToUUser
+from eduid_userdb.exceptions import UserMissingData
 
 __author__ = 'ft'
 
@@ -125,3 +127,27 @@ class TestToUEvent(TestCase):
             this.event_type = 1
         exc = cm.exception
         self.assertEqual(exc.reason, "Invalid 'event_type': 1")
+
+
+USERID = '123467890123456789014567'
+
+
+class TestTouUser(TestCase):
+
+    def test_proper_user(self):
+        one = copy.deepcopy(_one_dict)
+        tou = ToUEvent(data = one, raise_on_unknown = False)
+        user = ToUUser(userid=USERID, tou=[tou])
+        self.assertEquals(user.tou.to_list_of_dicts()[0]['version'], '1')
+
+    def test_missing_tou(self):
+        one = copy.deepcopy(_one_dict)
+        tou = ToUEvent(data = one, raise_on_unknown = False)
+        with self.assertRaises(UserMissingData):
+            user = ToUUser(tou=[tou])
+
+    def test_missing_user(self):
+        one = copy.deepcopy(_one_dict)
+        tou = ToUEvent(data = one, raise_on_unknown = False)
+        with self.assertRaises(UserMissingData):
+            user = ToUUser(userid=USERID)
