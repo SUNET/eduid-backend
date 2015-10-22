@@ -31,6 +31,7 @@
 #
 
 from bson import ObjectId
+import pymongo
 
 from eduid_userdb.actions import Action
 from eduid_userdb.db import BaseDB
@@ -51,6 +52,7 @@ class ActionDB(BaseDB):
         super(ActionDB, self).__init__(db_uri, db_name, collection)
 
         self._cache = {}
+        self._left_in_cache = {}
         logger.debug("{!s} connected to database".format(self))
 
     def __repr__(self):
@@ -79,6 +81,7 @@ class ActionDB(BaseDB):
         cachekey = self._make_key(userid, session)
         if cachekey in self._cache:
             del self._cache[cachekey]
+            del self._left_in_cache[cachekey]
 
     def _update_cache(self, userid, session):
         cachekey = self._make_key(userid, session)
@@ -91,9 +94,12 @@ class ActionDB(BaseDB):
                 query['$or'] = [ {'session': {'$exists': False}},
                                  {'session': session} ]
 
-            actions = self._coll.find(query).sort('precedence')
-            if actions.count() > 0:
+            actions = self._coll.find(query).sort('preference',
+                                            pymongo.DESCENDING)
+            count = actions.count()
+            if count > 0:
                 self._cache[cachekey] = actions
+                self._left_in_cache[cachekey] = count
         return cachekey
 
     def has_pending_actions(self, userid, session=None):
@@ -112,8 +118,8 @@ class ActionDB(BaseDB):
         :rtype: bool
         """
         cachekey = self._update_cache(userid, session)
-        if cachekey in self._cache:
-            if self._cache[cachekey].count() > 0:
+        if cachekey in self._left_in_cache:
+            if self._left_in_cache[cachekey] > 0:
                 return True
             else:
                 self.clean_cache(userid, session)
@@ -175,6 +181,7 @@ class ActionDB(BaseDB):
             except StopIteration:
                 self.clean_cache(userid, session)
             else:
+                self._left_in_cache[cachekey] -= 1
                 action = Action(data=action_doc)
         return action
 
@@ -226,5 +233,4 @@ class ActionDB(BaseDB):
         """
         logger.debug("{!s} Removing action with id {!r} from {!r}".format(self, action_id, self._coll_name))
         return self._coll.remove(spec_or_id=action_id)
-
 
