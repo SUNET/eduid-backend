@@ -52,7 +52,6 @@ class ActionDB(BaseDB):
         super(ActionDB, self).__init__(db_uri, db_name, collection)
 
         self._cache = {}
-        self._left_in_cache = {}
         logger.debug("{!s} connected to database".format(self))
 
     def __repr__(self):
@@ -81,7 +80,6 @@ class ActionDB(BaseDB):
         cachekey = self._make_key(userid, session)
         if cachekey in self._cache:
             del self._cache[cachekey]
-            del self._left_in_cache[cachekey]
 
     def _update_cache(self, userid, session):
         cachekey = self._make_key(userid, session)
@@ -94,12 +92,10 @@ class ActionDB(BaseDB):
                 query['$or'] = [ {'session': {'$exists': False}},
                                  {'session': session} ]
 
-            actions = self._coll.find(query).sort('preference',
-                                            pymongo.DESCENDING)
+            actions = self._coll.find(query).sort('preference')
             count = actions.count()
             if count > 0:
-                self._cache[cachekey] = actions
-                self._left_in_cache[cachekey] = count
+                self._cache[cachekey] = [a for a in actions]
         return cachekey
 
     def has_pending_actions(self, userid, session=None):
@@ -118,8 +114,8 @@ class ActionDB(BaseDB):
         :rtype: bool
         """
         cachekey = self._update_cache(userid, session)
-        if cachekey in self._left_in_cache:
-            if self._left_in_cache[cachekey] > 0:
+        if cachekey in self._cache:
+            if len(self._cache[cachekey]) > 0:
                 return True
             else:
                 self.clean_cache(userid, session)
@@ -177,11 +173,10 @@ class ActionDB(BaseDB):
         action = None
         if cachekey in self._cache:
             try:
-                action_doc = self._cache[cachekey].next()
-            except StopIteration:
+                action_doc = self._cache[cachekey].pop()
+            except IndexError:
                 self.clean_cache(userid, session)
             else:
-                self._left_in_cache[cachekey] -= 1
                 action = Action(data=action_doc)
         return action
 
