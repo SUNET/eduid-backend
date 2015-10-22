@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-__author__ = 'ft'
+__author__ = 'eperez'
 
 from eduid_userdb import User
 from eduid_userdb.exceptions import UserMissingData
@@ -46,7 +46,13 @@ class ToUUser(User):
         if data is None:
             data = dict(_id = userid,
                         tou = tou,
+                        #  We do not have a eppn here, but it is required for User.
+                        #  Since from the tou db we only update the central db with
+                        #  ToUs, this dummy eppn has no effect.
                         eduPersonPrincipalName='dummy')
+        if '_id' not in data or data['_id'] is None:
+            raise UserMissingData('Attempting to record a ToU acceptance '
+                                  'for an unidentified user.')
 
         User.__init__(self, data = data)
 
@@ -56,11 +62,8 @@ class ToUUser(User):
 
         Check users that can't be loaded for some known reason.
         """
-        if '_id' not in self._data_in or not self._data_in['_id']:
-            raise UserMissingData('Attempting to record a ToU acceptance '
-                                  'for an unidentified user.')
         if 'tou' not in self._data_in or self._data_in['tou'] is None:
             raise UserMissingData('Attempting to record the acceptance of '
                                   'an unknown version of the ToU for '
-                                  'the user with id ' + str(userid))
+                                  'the user with id ' + str(self._data_in['_id']))
 
