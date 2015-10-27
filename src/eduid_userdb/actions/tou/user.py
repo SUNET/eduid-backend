@@ -81,6 +81,8 @@ class ToUUser(User):
 
         self._parse_tous()
 
+        self.modified_ts = self._data_in.pop('modified_ts', None)
+
         if len(self._data_in) > 0:
             if raise_on_unknown:
                 raise UserHasUnknownData('User {!s} unknown data: {!r}'.format(
@@ -88,3 +90,18 @@ class ToUUser(User):
                 ))
             # Just keep everything that is left as-is
             self._data.update(self._data_in)
+
+    # -----------------------------------------------------------------
+    def to_dict(self, old_userdb_format=False):
+        """
+        Return user data serialized into a dict that can be stored in MongoDB.
+
+        :param old_userdb_format: Set to True to get the dict in the old database format.
+        :type old_userdb_format: bool
+
+        :return: User as dict
+        :rtype: dict
+        """
+        res = deepcopy(self._data)  # avoid caller messing up our private _data
+        res['tou'] = self.tou.to_list_of_dicts(old_userdb_format=old_userdb_format)
+        return res
