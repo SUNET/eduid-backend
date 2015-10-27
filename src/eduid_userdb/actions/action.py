@@ -102,6 +102,9 @@ class Action(object):
 
         del self._data_in
 
+    def __repr__(self):
+        return '<eduID {!s}: {!r}>'.format(self.__class__.__name__, self._data)
+
     def _parse_check_invalid_actions(self):
         """"
         Part of __init__().

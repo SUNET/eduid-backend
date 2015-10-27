@@ -93,6 +93,9 @@ class Element(object):
         self.created_by = data.pop('created_by', None)
         self.created_ts = data.pop('created_ts', None)
 
+    def __repr__(self):
+        return '<eduID {!s}: {!r}>'.format(self.__class__.__name__, self._data)
+
     # -----------------------------------------------------------------
     @property
     def key(self):
@@ -331,6 +334,9 @@ class ElementList(object):
             if not isinstance(this, Element):
                 raise ValueError("Not an Element")
         self._elements = elements
+
+    def __repr__(self):
+        return '<eduID {!s}: {!r}>'.format(self.__class__.__name__, self._elements)
 
     def to_list(self):
         """

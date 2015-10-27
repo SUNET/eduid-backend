@@ -113,7 +113,7 @@ class DashboardLegacyUser(object):
             self._mongo_doc = data
 
     def __repr__(self):
-        return '<DashboardLegacyUser: {0}/{1}>'.format(self.get_eppn(), self.get('_id'))
+        return '<DashboardLegacyUser: {!s}/{!s}>'.format(self.get_eppn(), self.get('_id'))
 
     def __getitem__(self, key):
         return self._mongo_doc[key]

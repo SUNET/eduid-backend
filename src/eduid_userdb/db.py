@@ -51,6 +51,11 @@ class MongoDB(object):
         except pymongo.errors.ConnectionFailure as e:
             raise MongoConnectionError('Error connecting to mongo: ' + str(e))
 
+    def __repr__(self):
+        return '<eduID {!s}: {!s} {!s}>'.format(self.__class__.__name__,
+                                                self._db_uri,
+                                                self._database_name)
+
     @property
     def sanitized_uri(self):
         """

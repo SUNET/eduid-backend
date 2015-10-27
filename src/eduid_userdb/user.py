@@ -103,6 +103,17 @@ class User(object):
             # Just keep everything that is left as-is
             self._data.update(self._data_in)
 
+    def __repr__(self):
+        return '<eduID {!s}: {!s}/{!s}>'.format(self.__class__.__name__,
+                                                self.eppn,
+                                                self.user_id,
+                                                )
+
+    def __eq__(self, other):
+        if self.__class__ is not other.__class__:
+            raise TypeError('Trying to compare objects of different class')
+        return self._data == other._data
+
     def _parse_check_invalid_users(self):
         """
         Part of __init__().
@@ -205,17 +216,6 @@ class User(object):
         """
         _tou = self._data_in.pop('tou', [])
         self._tou = ToUList(_tou)
-
-    def __repr__(self):
-        return '<eduID {!s}: {!s}/{!s}>'.format(self.__class__.__name__,
-                                                self.eppn,
-                                                self.user_id,
-                                                )
-
-    def __eq__(self, other):
-        if self.__class__ is not other.__class__:
-            raise TypeError('Trying to compare objects of different class')
-        return self._data == other._data
 
     # -----------------------------------------------------------------
     @property
