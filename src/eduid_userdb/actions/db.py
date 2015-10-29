@@ -98,7 +98,7 @@ class ActionDB(BaseDB):
                 self._cache[cachekey] = [a for a in actions]
         return cachekey
 
-    def has_pending_actions(self, userid, session=None):
+    def has_pending_actions(self, userid, session=None, clean_cache=False):
         """
         Find out whether the user has pending actions.
         If session is None, search actions with no session,
@@ -107,15 +107,23 @@ class ActionDB(BaseDB):
 
         :param userid: The id of the user with possible pending actions
         :param session: The actions session for the user
+        :param clean_cache: Whether to clean the cache of pending actions
+                            When the IdP finds pending actions, it
+                            redirects to the actions app that takes care of
+                            them, and does not want to keep them in its own
+                            cache.
 
         :type userid: str
         :type session: str
+        :type clean_cache: bool
 
         :rtype: bool
         """
         cachekey = self._update_cache(userid, session)
         if cachekey in self._cache:
             if len(self._cache[cachekey]) > 0:
+                if clean_cache:
+                    self.clean_cache(userid, session)
                 return True
             else:
                 self.clean_cache(userid, session)
