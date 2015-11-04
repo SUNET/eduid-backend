@@ -31,19 +31,23 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from eduid_userdb.element import VerifiedElement
-from eduid_userdb.exceptions import UserHasUnknownData
+from eduid_userdb.element import Element, VerifiedElement, _update_something_by
+from eduid_userdb.exceptions import UserHasUnknownData, UserDBValueError
 
 __author__ = 'lundberg'
 
 
 class NinProofingElement(VerifiedElement):
     """
-    Elements that can be either primary or not.
+    Elements that can be verified or not.
 
-    Properties of PrimaryElement:
+    Properties of VerifiedElement:
 
-        is_primary
+        number
+        is_verified
+        verified_by
+        verified_ts
+        verification_code
 
     :param data: element parameters from database
     :param raise_on_unknown: Raise exception on unknown values in `data' or not.
@@ -66,3 +70,64 @@ class NinProofingElement(VerifiedElement):
                 ))
             # Just keep everything that is left as-is
             self._data.update(data)
+
+
+class ProofingLetterElement(Element):
+    """
+        Properties of SentLetterElement:
+
+        letter_sent
+        transaction_id
+        created_by
+        created_ts
+    """
+    def __init__(self, data, raise_on_unknown=True, ignore_data=None):
+        super(ProofingLetterElement, self).__init__(data)
+
+        self._data['is_sent'] = data.pop('letter_sent', False)
+        self._data['transaction_id'] = data.pop('transaction_id', None)
+
+        ignore_data = ignore_data or []
+        leftovers = [x for x in data.keys() if x not in ignore_data]
+        if leftovers:
+            if raise_on_unknown:
+                raise UserHasUnknownData('{!s} has unknown data: {!r}'.format(
+                    self.__class__.__name__,
+                    leftovers,
+                ))
+            # Just keep everything that is left as-is
+            self._data.update(data)
+
+    @property
+    def is_sent(self):
+        """
+        :return: True if this is a verified element.
+        :rtype: bool
+        """
+        return self._data['verified']
+
+    @is_sent.setter
+    def is_sent(self, value):
+        """
+        :param value: New verification status
+        :type value: bool
+        """
+        if not isinstance(value, bool):
+            raise UserDBValueError("Invalid 'is_sent': {!r}".format(value))
+        self._data['is_sent'] = value
+
+    @property
+    def transaction_id(self):
+        """
+        :return: Transaction information from the letter service
+        :rtype: str | unicode
+        """
+        return self._data.get('transaction_id', '')
+
+    @transaction_id.setter
+    def transaction_id(self, value):
+        """
+        :param value: Transaction information from letter service (None is no-op).
+        :type value: str | unicode | None
+        """
+        _update_something_by(self._data, 'transaction_id', value)

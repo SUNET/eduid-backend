@@ -162,6 +162,7 @@ class VerifiedElement(Element):
         is_verified
         verified_by
         verified_ts
+        verification_code
     """
 
     def __init__(self, data):

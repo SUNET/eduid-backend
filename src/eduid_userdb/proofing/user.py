@@ -34,7 +34,7 @@
 import bson
 import copy
 
-from .proofing_element import NinProofingElement
+from .proofing_element import NinProofingElement, ProofingLetterElement
 from eduid_userdb.exceptions import UserHasUnknownData
 
 __author__ = 'lundberg'
@@ -82,17 +82,9 @@ class ProofingUser(object):
 
 class NinProofingUser(ProofingUser):
     def __init__(self, data, raise_on_unknown=True):
-        super(NinProofingUser, self).__init__(data, False)
-
-        self._data['nin'] = NinProofingElement(self._data_in)
-
-        if len(self._data_in) > 0:
-            if raise_on_unknown:
-                raise UserHasUnknownData('User {!s} unknown data: {!r}'.format(
-                    self.user_id, self._data_in.keys()
-                ))
-            # Just keep everything that is left as-is
-            self._data.update(self._data_in)
+        _nin = NinProofingElement(data)
+        ProofingUser.__init__(self, data, raise_on_unknown)
+        self._data['nin'] = _nin
 
     @property
     def nin(self):
@@ -102,7 +94,6 @@ class NinProofingUser(ProofingUser):
         :rtype: NinProofingElement
         """
         return self._data['nin']
-
 
     def to_dict(self):
         """
@@ -117,5 +108,10 @@ class NinProofingUser(ProofingUser):
 
 
 class LetterNinProofingUser(NinProofingUser):
-    pass
+    def __init__(self, data, raise_on_unknown=True):
+
+        _proofing_letter = ProofingLetterElement(data)
+        NinProofingUser.__init__(self, data, raise_on_unknown)
+        self._data['proofing_letter'] = _proofing_letter
+
 
