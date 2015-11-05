@@ -33,6 +33,7 @@
 
 import bson
 import copy
+import datetime
 
 from .proofing_element import NinProofingElement, ProofingLetterElement
 from eduid_userdb.exceptions import UserHasUnknownData
@@ -59,6 +60,8 @@ class ProofingUser(object):
             user_id = bson.ObjectId(_id)
         self._data['user_id'] = user_id
 
+        self.modified_ts = self._data_in.pop('modified_ts', None)
+
         if len(self._data_in) > 0:
             if raise_on_unknown:
                 raise UserHasUnknownData('User {!s} unknown data: {!r}'.format(
@@ -79,23 +82,44 @@ class ProofingUser(object):
         """
         return self._data['user_id']
 
+    @property
+    def modified_ts(self):
+        """
+        :return: Timestamp of last modification in the database.
+                 None if User has never been written to the database.
+        :rtype: datetime.datetime | None
+        """
+        return self._data.get('modified_ts')
+
+    @modified_ts.setter
+    def modified_ts(self, value):
+        """
+        :param value: Timestamp of modification.
+                      Value None is ignored, True is short for datetime.utcnow().
+        :type value: datetime.datetime | True | None
+        """
+        if value is None:
+            return
+        if value is True:
+            value = datetime.datetime.utcnow()
+        self._data['modified_ts'] = value
+
+
 
 class NinProofingUser(ProofingUser):
     def __init__(self, data, raise_on_unknown=True):
-        _nin = NinProofingElement(data)
+        _nin = NinProofingElement(data=data.pop('nin'))
         ProofingUser.__init__(self, data, raise_on_unknown)
         self._data['nin'] = _nin
 
     @property
     def nin(self):
         """
-        Get the user's oid in MongoDB.
-
         :rtype: NinProofingElement
         """
         return self._data['nin']
 
-    def to_dict(self):
+    def to_dict(self, old_userdb_format=False):
         """
         Return user data serialized into a dict that can be stored in MongoDB.
 
@@ -110,8 +134,20 @@ class NinProofingUser(ProofingUser):
 class LetterNinProofingUser(NinProofingUser):
     def __init__(self, data, raise_on_unknown=True):
 
-        _proofing_letter = ProofingLetterElement(data)
+        _proofing_letter = ProofingLetterElement(data.pop('proofing_letter', {}))
         NinProofingUser.__init__(self, data, raise_on_unknown)
         self._data['proofing_letter'] = _proofing_letter
+
+    @property
+    def proofing_letter(self):
+        """
+        :rtype: ProofingLetterElement
+        """
+        return self._data['proofing_letter']
+
+    def to_dict(self, old_userdb_format=False):
+        res = super(LetterNinProofingUser, self).to_dict()
+        res['proofing_letter'] = self.proofing_letter.to_dict()
+        return res
 
 

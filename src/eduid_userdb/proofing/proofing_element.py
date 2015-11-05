@@ -31,8 +31,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from eduid_userdb.element import Element, VerifiedElement, _update_something_by
-from eduid_userdb.exceptions import UserHasUnknownData, UserDBValueError
+import copy
+
+from eduid_userdb.element import Element, VerifiedElement, _update_something_by, _update_something_ts
+from eduid_userdb.exceptions import UserDBValueError
+
 
 __author__ = 'lundberg'
 
@@ -41,35 +44,63 @@ class NinProofingElement(VerifiedElement):
     """
     Elements that can be verified or not.
 
-    Properties of VerifiedElement:
+    Properties of NinProofingElement:
 
         number
+        created_by
+        created_ts
         is_verified
         verified_by
         verified_ts
         verification_code
 
     :param data: element parameters from database
-    :param raise_on_unknown: Raise exception on unknown values in `data' or not.
 
     :type data: dict
-    :type raise_on_unknown: bool
     """
-    def __init__(self, data, raise_on_unknown=True, ignore_data=None):
-        super(NinProofingElement, self).__init__(data)
+    def __init__(self, number=None, application=None, created_ts=None, verified=False, verification_code=None,
+                 data=None):
 
-        self._data['number'] = data.pop('nin')
+        data_in = data
+        data = copy.copy(data_in)  # to not modify callers data
 
-        ignore_data = ignore_data or []
-        leftovers = [x for x in data.keys() if x not in ignore_data]
-        if leftovers:
-            if raise_on_unknown:
-                raise UserHasUnknownData('{!s} has unknown data: {!r}'.format(
-                    self.__class__.__name__,
-                    leftovers,
-                ))
-            # Just keep everything that is left as-is
-            self._data.update(data)
+        if data is None:
+            if created_ts is None:
+                created_ts = True
+            data = dict(number=number,
+                        created_by=application,
+                        created_ts=created_ts,
+                        verified=verified,
+                        verification_code=verification_code,
+                        )
+
+        VerifiedElement.__init__(self, data)
+        self.number = data.pop('number')
+
+    @property
+    def number(self):
+        """
+        This is the nin number.
+
+        :return: nin number.
+        :rtype: str | unicode
+        """
+        return self._data['number']
+
+    @number.setter
+    def number(self, value):
+        """
+        :param value: nin number.
+        :type value: str | unicode
+        """
+        if not isinstance(value, basestring):
+            raise UserDBValueError("Invalid 'number': {!r}".format(value))
+        self._data['number'] = str(value.lower())
+
+    def to_dict(self, old_userdb_format=False):
+        res = super(NinProofingElement, self).to_dict(old_userdb_format)
+        res['number'] = self.number
+        return res
 
 
 class ProofingLetterElement(Element):
@@ -81,22 +112,12 @@ class ProofingLetterElement(Element):
         created_by
         created_ts
     """
-    def __init__(self, data, raise_on_unknown=True, ignore_data=None):
+    def __init__(self, data):
         super(ProofingLetterElement, self).__init__(data)
 
         self._data['is_sent'] = data.pop('letter_sent', False)
+        self._data['sent_ts'] = data.pop('sent_ts', None)
         self._data['transaction_id'] = data.pop('transaction_id', None)
-
-        ignore_data = ignore_data or []
-        leftovers = [x for x in data.keys() if x not in ignore_data]
-        if leftovers:
-            if raise_on_unknown:
-                raise UserHasUnknownData('{!s} has unknown data: {!r}'.format(
-                    self.__class__.__name__,
-                    leftovers,
-                ))
-            # Just keep everything that is left as-is
-            self._data.update(data)
 
     @property
     def is_sent(self):
@@ -115,6 +136,23 @@ class ProofingLetterElement(Element):
         if not isinstance(value, bool):
             raise UserDBValueError("Invalid 'is_sent': {!r}".format(value))
         self._data['is_sent'] = value
+
+    @property
+    def sent_ts(self):
+        """
+        :return: Timestamp of when letter was delivered to letter service.
+        :rtype: datetime.datetime
+        """
+        return self._data.get('sent_ts')
+
+    @sent_ts.setter
+    def sent_ts(self, value):
+        """
+        :param value: Timestamp of when letter was delivered to letter service.
+                      Value None is ignored, True is short for datetime.utcnow().
+        :type value: datetime.datetime | True | None
+        """
+        _update_something_ts(self._data, 'sent_ts', value)
 
     @property
     def transaction_id(self):

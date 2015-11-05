@@ -31,6 +31,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
+from bson import ObjectId
+from bson.errors import InvalidId
+
 from eduid_userdb.userdb import UserDB
 from . import LetterNinProofingUser
 
@@ -43,4 +46,23 @@ class LetterNinProofingUserDB(UserDB):
 
     def __init__(self, db_uri, db_name='eduid_idproofing_letter', collection='proofing_data'):
         UserDB.__init__(self, db_uri, db_name, collection)
+
+    def get_user_by_id(self, user_id, raise_on_missing=True):
+        """
+        Locate a user in the userdb given the user's user_id.
+
+        :param user_id: User identifier
+        :type user_id: bson.ObjectId | str | unicode
+        :return: UserClass instance | None
+        :rtype: UserClass | None
+
+        :raise self.UserDoesNotExist: No user match the search criteria
+        :raise self.MultipleUsersReturned: More than one user matches the search criteria
+        """
+        if not isinstance(user_id, ObjectId):
+            try:
+                user_id = ObjectId(user_id)
+            except InvalidId:
+                return None
+        return self._get_user_by_attr('user_id', user_id, raise_on_missing)
 
