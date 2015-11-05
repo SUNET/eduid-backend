@@ -2,7 +2,7 @@ import copy
 import pymongo
 import logging
 from exceptions import (DocumentDoesNotExist, MultipleDocumentsReturned,
-        MongoConnectionError)
+                        MongoConnectionError)
 
 
 class MongoDB(object):
@@ -116,6 +116,9 @@ class MongoDB(object):
         """
         _db = self.get_database(database_name, username, password)
         return _db[collection]
+
+    def close(self):
+        self._connection.close()
 
 
 def _format_mongodb_uri(parsed_uri):
@@ -246,4 +249,7 @@ class BaseDB(object):
                 key = params.pop('key')
                 params['name'] = name
                 self._coll.ensure_index(key, **params)
+
+    def close(self):
+        self._db.close()
 
