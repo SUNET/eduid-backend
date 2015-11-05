@@ -180,7 +180,7 @@ class UserDB(BaseDB):
             logger.error("MultipleUsersReturned, {!r} = {!r}".format(attr, value))
             raise MultipleUsersReturned(e.reason)
 
-    def save(self, user, check_sync=True, old_format=False):
+    def save(self, user, check_sync=True, old_format=False, user_id_attr='_id'):
         """
 
         :param user: UserClass object
@@ -206,13 +206,13 @@ class UserDB(BaseDB):
             import pprint
             logging.debug("Extra debug:\n{!s}".format(pprint.pformat(user.to_dict(old_userdb_format=old_format))))
         else:
-            test_doc = {'_id': user.user_id}
+            test_doc = {user_id_attr: user.user_id}
             if check_sync:
                 test_doc['modified_ts'] = modified
             result = self._coll.update(test_doc, user.to_dict(old_userdb_format=old_format), upsert=(not check_sync))
             if check_sync and result['n'] == 0:
                 db_ts = None
-                db_user = self._coll.find_one({'_id': user.user_id})
+                db_user = self._coll.find_one({user_id_attr: user.user_id})
                 if db_user:
                     db_ts = db_user['modified_ts']
                 logging.debug("{!s} FAILED Updating user {!r} (ts {!s}) in {!r} (old_format={!r}). "
