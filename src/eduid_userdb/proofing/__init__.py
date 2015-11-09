@@ -1,4 +1,4 @@
 # -*- coding: utf-8 -*-
 
-from .user import LetterNinProofingUser
-from .userdb import LetterNinProofingUserDB
+from .proofing_state import LetterProofingState
+from .proofingdb import LetterProofingStateDB

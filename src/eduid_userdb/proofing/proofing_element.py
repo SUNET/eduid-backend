@@ -97,25 +97,26 @@ class NinProofingElement(VerifiedElement):
             raise UserDBValueError("Invalid 'number': {!r}".format(value))
         self._data['number'] = str(value.lower())
 
-    def to_dict(self, old_userdb_format=False):
-        res = super(NinProofingElement, self).to_dict(old_userdb_format)
+    def to_dict(self):
+        res = super(NinProofingElement, self).to_dict()
         res['number'] = self.number
         return res
 
 
-class ProofingLetterElement(Element):
+class SentLetterElement(Element):
     """
         Properties of SentLetterElement:
 
-        letter_sent
+        is_sent
+        sent_ts
         transaction_id
         created_by
         created_ts
     """
     def __init__(self, data):
-        super(ProofingLetterElement, self).__init__(data)
+        super(SentLetterElement, self).__init__(data)
 
-        self._data['is_sent'] = data.pop('letter_sent', False)
+        self._data['is_sent'] = data.pop('is_sent', False)
         self._data['sent_ts'] = data.pop('sent_ts', None)
         self._data['transaction_id'] = data.pop('transaction_id', None)
 
@@ -125,7 +126,7 @@ class ProofingLetterElement(Element):
         :return: True if this is a verified element.
         :rtype: bool
         """
-        return self._data['verified']
+        return self._data['is_sent']
 
     @is_sent.setter
     def is_sent(self, value):
@@ -169,3 +170,19 @@ class ProofingLetterElement(Element):
         :type value: str | unicode | None
         """
         _update_something_by(self._data, 'transaction_id', value)
+
+    @property
+    def address(self):
+        """
+        :return: Official address the letter should be sent to
+        :rtype: str | unicode
+        """
+        return self._data.get('address', None)
+
+    @address.setter
+    def address(self, value):
+        """
+        :param value: Official address the letter should be sent to
+        :type value: dict | None
+        """
+        self._data['address'] = value

@@ -76,8 +76,13 @@ class UserMissingData(EduIDUserDBError):
     """
     pass
 
+class DocumentOutOfSync(EduIDDBError):
+    """
+    The document has been modified since it was read from the db.
+    """
+    pass
 
-class UserOutOfSync(EduIDUserDBError):
+class UserOutOfSync(DocumentOutOfSync):
     """
     The user has been modified since it was read from the db.
     """

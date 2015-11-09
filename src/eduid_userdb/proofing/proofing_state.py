@@ -35,13 +35,13 @@ import bson
 import copy
 import datetime
 
-from .proofing_element import NinProofingElement, ProofingLetterElement
+from .proofing_element import NinProofingElement, SentLetterElement
 from eduid_userdb.exceptions import UserHasUnknownData
 
 __author__ = 'lundberg'
 
 
-class ProofingUser(object):
+class ProofingState(object):
     def __init__(self, data, raise_on_unknown=True):
         self._data_in = copy.deepcopy(data)  # to not modify callers data
         self._data = dict()
@@ -104,13 +104,19 @@ class ProofingUser(object):
             value = datetime.datetime.utcnow()
         self._data['modified_ts'] = value
 
+    def to_dict(self):
+        res = copy.copy(self._data)  # avoid caller messing with our _data
+        return res
 
 
-class NinProofingUser(ProofingUser):
+class LetterProofingState(ProofingState):
     def __init__(self, data, raise_on_unknown=True):
         _nin = NinProofingElement(data=data.pop('nin'))
-        ProofingUser.__init__(self, data, raise_on_unknown)
+        _proofing_letter = SentLetterElement(data.pop('proofing_letter', {}))
+
+        ProofingState.__init__(self, data, raise_on_unknown)
         self._data['nin'] = _nin
+        self._data['proofing_letter'] = _proofing_letter
 
     @property
     def nin(self):
@@ -119,25 +125,6 @@ class NinProofingUser(ProofingUser):
         """
         return self._data['nin']
 
-    def to_dict(self, old_userdb_format=False):
-        """
-        Return user data serialized into a dict that can be stored in MongoDB.
-
-        :return: User as dict
-        :rtype: dict
-        """
-        res = copy.copy(self._data)  # avoid caller messing up our private _data
-        res['nin'] = self.nin.to_dict()
-        return res
-
-
-class LetterNinProofingUser(NinProofingUser):
-    def __init__(self, data, raise_on_unknown=True):
-
-        _proofing_letter = ProofingLetterElement(data.pop('proofing_letter', {}))
-        NinProofingUser.__init__(self, data, raise_on_unknown)
-        self._data['proofing_letter'] = _proofing_letter
-
     @property
     def proofing_letter(self):
         """
@@ -145,8 +132,9 @@ class LetterNinProofingUser(NinProofingUser):
         """
         return self._data['proofing_letter']
 
-    def to_dict(self, old_userdb_format=False):
-        res = super(LetterNinProofingUser, self).to_dict()
+    def to_dict(self):
+        res = super(LetterProofingState, self).to_dict()
+        res['nin'] = self.nin.to_dict()
         res['proofing_letter'] = self.proofing_letter.to_dict()
         return res
 

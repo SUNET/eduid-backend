@@ -34,20 +34,24 @@
 from bson import ObjectId
 from bson.errors import InvalidId
 
-from eduid_userdb.userdb import UserDB
-from . import LetterNinProofingUser
+from eduid_userdb.db import BaseDB
+from eduid_userdb.exceptions import DocumentOutOfSync
+from . import LetterProofingState
+
+import logging
+logger = logging.getLogger(__name__)
 
 __author__ = 'lundberg'
 
 
-class LetterNinProofingUserDB(UserDB):
+class LetterProofingStateDB(BaseDB):
 
-    UserClass = LetterNinProofingUser
+    ProofingStateClass = LetterProofingState
 
     def __init__(self, db_uri, db_name='eduid_idproofing_letter', collection='proofing_data'):
-        UserDB.__init__(self, db_uri, db_name, collection)
+        BaseDB.__init__(self, db_uri, db_name, collection)
 
-    def get_user_by_id(self, user_id, raise_on_missing=True):
+    def get_state_by_user_id(self, user_id, raise_on_missing=True):
         """
         Locate a user in the userdb given the user's user_id.
 
@@ -64,5 +68,40 @@ class LetterNinProofingUserDB(UserDB):
                 user_id = ObjectId(user_id)
             except InvalidId:
                 return None
-        return self._get_user_by_attr('user_id', user_id, raise_on_missing)
+        state = self._get_document_by_attr('user_id', user_id, raise_on_missing)
+        if state:
+            return self.ProofingStateClass(state)
 
+    def save(self, state, check_sync=True):
+        """
+
+        :param state: ProofingStateClass object
+        :type state: ProofingStateClass
+        :param check_sync: Ensure the document hasn't been updated in the database since it was loaded
+        :type check_sync: bool
+        :return:
+        """
+        assert isinstance(state.user_id, ObjectId)
+
+        modified = state.modified_ts
+        state.modified_ts = True  # update to current time
+        if modified is None:
+            # document has never been modified
+            result = self._coll.insert(state.to_dict())
+            logging.debug("{!s} Inserted new state {!r} into {!r}): {!r})".format(
+                self, state, self._coll_name, result))
+        else:
+            test_doc = {'user_id': state.user_id}
+            if check_sync:
+                test_doc['modified_ts'] = modified
+            result = self._coll.update(test_doc, state.to_dict(), upsert=(not check_sync))
+            if check_sync and result['n'] == 0:
+                db_ts = None
+                db_state = self._coll.find_one({'user_id': state.user_id})
+                if db_state:
+                    db_ts = db_state['modified_ts']
+                logging.debug("{!s} FAILED Updating state {!r} (ts {!s}) in {!r}). "
+                              "ts in db = {!s}".format(self, state, modified, self._coll_name, db_ts))
+                raise DocumentOutOfSync('Stale state object can\'t be saved')
+            logging.debug("{!s} Updated state {!r} (ts {!s}) in {!r}): {!r}".format(
+                self, state, modified, self._coll_name, result))
