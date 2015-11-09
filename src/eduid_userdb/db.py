@@ -222,6 +222,26 @@ class BaseDB(object):
             raise MultipleDocumentsReturned("Multiple matching documents for %s='%s'" % (attr, value))
         return docs[0]
 
+    def _get_documents_by_attr(self, attr, value, raise_on_missing=True):
+        """
+        Return the document in the MongoDB matching field=value
+
+        :param attr: The name of a field
+        :type attr: str
+        :param value: The field value
+        :type value: str
+        :param raise_on_missing:  If True, raise exception if no matching user object can be found.
+        :type raise_on_missing: bool
+        :return: A document dict
+        :rtype: dict | None
+        """
+        docs = self._coll.find({attr: value})
+        if docs.count() == 0:
+            if raise_on_missing:
+                raise DocumentDoesNotExist("No document matching %s='%s'" % (attr, value))
+            return []
+        return docs
+
     def db_count(self):
         """
         Return number of entries in the database.
