@@ -119,6 +119,7 @@ class SentLetterElement(Element):
         self._data['is_sent'] = data.pop('is_sent', False)
         self._data['sent_ts'] = data.pop('sent_ts', None)
         self._data['transaction_id'] = data.pop('transaction_id', None)
+        self._data['address'] = data.pop('address', None)
 
     @property
     def is_sent(self):
