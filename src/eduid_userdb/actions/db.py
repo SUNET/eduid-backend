@@ -200,7 +200,7 @@ class ActionDB(BaseDB):
         :param params: Any params the action may need
         :param data: all the previous params together
 
-        :type userid: str
+        :type userid: bson.ObjectId
         :type action_type: str
         :type preference: int
         :type session: str

@@ -101,6 +101,9 @@ class ToUList(EventList):
         :return: True or False
         :rtype: bool
         """
+        # All users have implicitly accepted the first ToU version (info stored in another collection)
+        if version in ['2014-v1', '2014-dev-v1']:
+            return True
         for this in self._elements:
             if this.version == version:
                 return True
