@@ -10,7 +10,7 @@ README = 'eduID User Database interface module'
 if os.path.exists(README_fn):
     README = open(README_fn).read()
 
-version = '0.0.4b5'
+version = '0.0.4b6'
 
 install_requires = [
     'pymongo >= 2.8.0, < 3.0',
@@ -40,6 +40,7 @@ setup(
                 'eduid_userdb.dashboard',
                 'eduid_userdb.actions',
                 'eduid_userdb.actions.tou',
+                'eduid_userdb.proofing',
                 ],
       package_dir = {'': 'src'},
       #include_package_data=True,

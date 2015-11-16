@@ -245,7 +245,7 @@ class UserDB(BaseDB):
         :type user_id: bson.ObjectId
         """
         logger.debug("{!s} Removing user with id {!r} from {!r}".format(self, user_id, self._coll_name))
-        return self._coll.remove(spec_or_id=user_id)
+        return self.remove_document(spec_or_id=user_id)
 
     def update_user(self, obj_id, attributes):
         """

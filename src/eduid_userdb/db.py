@@ -2,7 +2,7 @@ import copy
 import pymongo
 import logging
 from exceptions import (DocumentDoesNotExist, MultipleDocumentsReturned,
-        MongoConnectionError)
+                        MongoConnectionError)
 
 
 class MongoDB(object):
@@ -117,6 +117,9 @@ class MongoDB(object):
         _db = self.get_database(database_name, username, password)
         return _db[collection]
 
+    def close(self):
+        self._connection.close()
+
 
 def _format_mongodb_uri(parsed_uri):
     """
@@ -219,6 +222,26 @@ class BaseDB(object):
             raise MultipleDocumentsReturned("Multiple matching documents for %s='%s'" % (attr, value))
         return docs[0]
 
+    def _get_documents_by_attr(self, attr, value, raise_on_missing=True):
+        """
+        Return the document in the MongoDB matching field=value
+
+        :param attr: The name of a field
+        :type attr: str
+        :param value: The field value
+        :type value: str
+        :param raise_on_missing:  If True, raise exception if no matching user object can be found.
+        :type raise_on_missing: bool
+        :return: A document dict
+        :rtype: dict | None
+        """
+        docs = self._coll.find({attr: value})
+        if docs.count() == 0:
+            if raise_on_missing:
+                raise DocumentDoesNotExist("No document matching %s='%s'" % (attr, value))
+            return []
+        return docs
+
     def db_count(self):
         """
         Return number of entries in the database.
@@ -229,6 +252,15 @@ class BaseDB(object):
         :rtype: int
         """
         return self._coll.find({}).count()
+
+    def remove_document(self, spec_or_id):
+        """
+        Remove a document in the db given the _id or dict spec.
+
+        :param spec_or_id: spec or document id (_id)
+        :type spec_or_id: dict | bson.ObjectId
+        """
+        return self._coll.remove(spec_or_id=spec_or_id)
 
     def setup_indexes(self, indexes):
         """
@@ -246,4 +278,7 @@ class BaseDB(object):
                 key = params.pop('key')
                 params['name'] = name
                 self._coll.ensure_index(key, **params)
+
+    def close(self):
+        self._db.close()
 
