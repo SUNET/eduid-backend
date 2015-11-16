@@ -42,7 +42,8 @@ __author__ = 'lundberg'
 
 class NinProofingElement(VerifiedElement):
     """
-    Elements that can be verified or not.
+    Element for holding the state of a NIN proofing flow. It should contain meta data needed for logging
+    a proofing according to the Kantara specification.
 
     Properties of NinProofingElement:
 

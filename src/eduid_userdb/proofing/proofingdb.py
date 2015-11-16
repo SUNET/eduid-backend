@@ -44,24 +44,24 @@ logger = logging.getLogger(__name__)
 __author__ = 'lundberg'
 
 
-class LetterProofingStateDB(BaseDB):
+class ProofingStateDB(BaseDB):
 
-    ProofingStateClass = LetterProofingState
+    ProofingStateClass = None
 
-    def __init__(self, db_uri, db_name='eduid_idproofing_letter', collection='proofing_data'):
+    def __init__(self, db_uri, db_name, collection='proofing_data'):
         BaseDB.__init__(self, db_uri, db_name, collection)
 
     def get_state_by_user_id(self, user_id, raise_on_missing=True):
         """
-        Locate a user in the userdb given the user's user_id.
+        Locate a state in the db given the state's user_id.
 
         :param user_id: User identifier
         :type user_id: bson.ObjectId | str | unicode
-        :return: UserClass instance | None
-        :rtype: UserClass | None
+        :return: ProofingStateClass instance | None
+        :rtype: ProofingStateClass | None
 
-        :raise self.UserDoesNotExist: No user match the search criteria
-        :raise self.MultipleUsersReturned: More than one user matches the search criteria
+        :raise self.DocumentDoesNotExist: No user match the search criteria
+        :raise self.MultipleDocumentsReturned: More than one user matches the search criteria
         """
         if not isinstance(user_id, ObjectId):
             try:
@@ -105,3 +105,12 @@ class LetterProofingStateDB(BaseDB):
                 raise DocumentOutOfSync('Stale state object can\'t be saved')
             logging.debug("{!s} Updated state {!r} (ts {!s}) in {!r}): {!r}".format(
                 self, state, modified, self._coll_name, result))
+
+
+class LetterProofingStateDB(ProofingStateDB):
+
+    ProofingStateClass = LetterProofingState
+
+    def __init__(self, db_uri, db_name='eduid_idproofing_letter'):
+        ProofingStateDB.__init__(self, db_uri, db_name)
+

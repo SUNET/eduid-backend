@@ -255,22 +255,10 @@ class BaseDB(object):
 
     def remove_document(self, spec_or_id):
         """
-        Remove a document in the db given the _id or dict spec..
-
-        NOTE: Full removal of a user should never be done in the central userdb. Kantara
-        requires guarantees to not re-use user identifiers (eppn and _id in eduid) and
-        we implenent that by never removing the complete document from the central userdb.
-
-        Some other applications might have legitimate reasons to remove users from their
-        private userdb collections though (like eduid-signup, at the end of the signup
-        process).
-
-        This method should ideally then only be available on eduid_signup.userdb.SignupUserDB
-        objects, but then eduid-am would have to depend on eduid_signup... Maybe the cleanup
-        could be done by the Signup application itself though.
+        Remove a document in the db given the _id or dict spec.
 
         :param spec_or_id: spec or document id (_id)
-        :type spec_or_id: bson.ObjectId | dict
+        :type spec_or_id: dict | bson.ObjectId
         """
         return self._coll.remove(spec_or_id=spec_or_id)
 
