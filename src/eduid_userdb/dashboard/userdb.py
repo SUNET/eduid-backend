@@ -75,7 +75,7 @@ class UserDBWrapper(UserDB):
             raise self.exceptions.UserDoesNotExist()
         if users.count() > 1:
             raise self.exceptions.MultipleUsersReturned()
-        return User(users[0])
+        return self.UserClass(users[0])
 
     def get_user_by_oid(self, oid):
         # renamed method in UserDB
