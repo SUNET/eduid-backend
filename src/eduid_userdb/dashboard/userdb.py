@@ -56,6 +56,7 @@ class DashboardOldUserDB(DashboardUserDB):
 
     UserClass = DashboardLegacyUser
 
+
 # Wrapper for the central userdb, for now eduid_am.attributes
 class UserDBWrapper(UserDB):
 
@@ -72,10 +73,10 @@ class UserDBWrapper(UserDB):
             'norEduPersonNIN': {'$in': [nin]},
         })
         if users.count() == 0:
-            raise self.exceptions.UserDoesNotExist()
+            raise self.exceptions.UserDoesNotExist('No user matching NIN {!r}'.format(nin))
         if users.count() > 1:
-            raise self.exceptions.MultipleUsersReturned()
-        return User(users[0])
+            raise self.exceptions.MultipleUsersReturned('Multiple users with matching NIN {!r}'.format(nin))
+        return self.UserClass(users[0])
 
     def get_user_by_oid(self, oid):
         # renamed method in UserDB
