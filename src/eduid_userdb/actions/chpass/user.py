@@ -36,8 +36,9 @@ import bson
 from copy import deepcopy
 
 from eduid_userdb import User
-from eduid_userdb.password import PasswordList
+from eduid_userdb.password import PasswordList, Password
 from eduid_userdb.exceptions import UserMissingData, UserHasUnknownData
+from eduid_userdb.element import DuplicateElementViolation
 
 
 class ChpassUser(User):
@@ -91,6 +92,21 @@ class ChpassUser(User):
                 ))
             # Just keep everything that is left as-is
             self._data.update(self._data_in)
+    
+    @classmethod
+    def from_central_user(cls, user):
+        '''
+        Create user from generic user.
+
+        :param user: user from central db
+        :type user: eduid_userdb.user.User
+        '''
+        data = {
+                '_id': user.user_id,
+                'passwords': user.passwords.to_list_of_dicts(),
+                'modified_ts': user.modified_ts
+            }
+        return cls(data=data)
 
     # -----------------------------------------------------------------
     def to_dict(self, old_userdb_format=False):
@@ -107,3 +123,29 @@ class ChpassUser(User):
         res['passwords'] = self.passwords.to_list_of_dicts(
                 old_userdb_format=old_userdb_format)
         return res
+
+    #-------------------------------------------------------------------
+    # BBB methods
+    # To be used by eduid_common.authn, that has to use legacy users provided
+    # by the dashboard from eduid_userdb.dasboard.user.DashboardLegacyUser
+    #-------------------------------------------------------------------
+
+    # BBB
+    def get_passwords(self):
+        return self.passwords.to_list_of_dicts()
+
+    # BBB
+    def get_id(self):
+        return self.user_id
+
+    # BBB
+    def get_mail(self):
+        return None
+
+    # BBB
+    def set_passwords(self, passwords):
+        for passwd_dict in passwords:
+            try:
+                self.passwords.add(Password(data=passwd_dict))
+            except DuplicateElementViolation:
+                pass
