@@ -15,4 +15,4 @@ sessions/
 venv/
 nosetests.xml
 coverage.xml
-.idea
+.idea/
