@@ -224,14 +224,17 @@ class MongoTemporaryInstance(object):
             self._process = None
             #shutil.rmtree(self._tmpdir, ignore_errors=True)
 
-    def get_uri(self, dbname):
+    def get_uri(self, dbname=None):
         """
         Convenience function to get a mongodb URI to the temporary database.
 
         :param dbname: database name
         :return: URI
         """
-        return 'mongodb://localhost:{port!s}/{dbname!s}'.format(port=self.port, dbname=dbname)
+        if dbname:  # Backwards compability
+            return 'mongodb://localhost:{port!s}/{dbname!s}'.format(port=self.port, dbname=dbname)
+        else:
+            return 'mongodb://localhost:{port!s}'.format(port=self.port)
 
 
 class MongoTestCase(unittest.TestCase):
