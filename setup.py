@@ -5,6 +5,7 @@ version = '0.0.1'
 
 requires = [
     'pysaml2>=3.0.2',
+    'redis>=2.10.5',
 ]
 
 test_requires = []
