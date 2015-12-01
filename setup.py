@@ -3,7 +3,9 @@ from setuptools import setup, find_packages
 
 version = '0.0.1'
 
-requires = []
+requires = [
+    'pysaml2>=3.0.2',
+]
 
 test_requires = []
 
