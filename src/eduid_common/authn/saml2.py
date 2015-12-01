@@ -45,13 +45,13 @@ class BadSAMLResponse(Exception):
     '''Bad SAML response'''
 
 
-def get_authn_request(config, session, came_from, selected_idp,
+def get_authn_request(settings, session, came_from, selected_idp,
                       required_loa=None, force_authn=False):
     # Request the right AuthnContext for workmode
     # (AL1 for 'personal', AL2 for 'helpdesk' and AL3 for 'admin' by default)
     if required_loa is None:
-        required_loa = config.get('required_loa', {})
-        workmode = config.get('workmode')
+        required_loa = settings.get('required_loa', {})
+        workmode = settings.get('workmode')
         required_loa = required_loa.get(workmode, '')
     logger.debug('Requesting AuthnContext {!r}'.format(required_loa))
     kwargs = {
@@ -63,7 +63,7 @@ def get_authn_request(config, session, came_from, selected_idp,
         "force_authn": str(force_authn).lower(),
     }
 
-    client = Saml2Client(config['saml2_config'])
+    client = Saml2Client(settings['saml2_config'])
     try:
         (session_id, info) = client.prepare_for_authenticate(
             entityid=selected_idp,
@@ -80,9 +80,9 @@ def get_authn_request(config, session, came_from, selected_idp,
     return info
 
 
-def get_authn_rersponse(config, session, raw_response):
+def get_authn_response(settings, session, raw_response):
 
-    client = Saml2Client(config['saml2_config'],
+    client = Saml2Client(settings['saml2_config'],
                          identity_cache=IdentityCache(session))
 
     oq_cache = OutstandingQueriesCache(session)
