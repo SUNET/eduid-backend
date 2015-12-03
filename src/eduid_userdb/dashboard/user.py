@@ -158,7 +158,7 @@ class DashboardLegacyUser(object):
                 if check_sync:
                     raise UserOutOfSync('The user data has been modified '
                                         'since you started editing it.')
-                log.notice("Tried saving user {!s} (test_doc {!s}) but failed (no check_sync)".format(self, test_doc))
+                log.info("Tried saving user {!s} (test_doc {!s}) but failed (no check_sync)".format(self, test_doc))
         request.context.propagate_user_changes(self)
 
     def update_am(self, app_name):
