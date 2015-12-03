@@ -124,28 +124,3 @@ class ChpassUser(User):
                 old_userdb_format=old_userdb_format)
         return res
 
-    #-------------------------------------------------------------------
-    # BBB methods
-    # To be used by eduid_common.authn, that has to use legacy users provided
-    # by the dashboard from eduid_userdb.dasboard.user.DashboardLegacyUser
-    #-------------------------------------------------------------------
-
-    # BBB
-    def get_passwords(self):
-        return self.passwords.to_list_of_dicts()
-
-    # BBB
-    def get_id(self):
-        return self.user_id
-
-    # BBB
-    def get_mail(self):
-        return None
-
-    # BBB
-    def set_passwords(self, passwords):
-        for passwd_dict in passwords:
-            try:
-                self.passwords.add(Password(data=passwd_dict))
-            except DuplicateElementViolation:
-                pass
