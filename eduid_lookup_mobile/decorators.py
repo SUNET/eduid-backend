@@ -15,7 +15,8 @@ class TransactionAudit(object):
     enabled = True
     db_uri = None
 
-    def __init__(self, collection_name='transaction_audit'):
+    def __init__(self, db_name='eduid_lookup_mobile', collection_name='transaction_audit'):
+        self.db_name = db_name
         self.collection_name = collection_name
         self.collection = None
 
@@ -34,7 +35,9 @@ class TransactionAudit(object):
                 if self.collection is None:
                     self.db_uri = args[0].mongo_uri
                     # Do not initialize the db connection before we know the decorator is actually enabled
-                    self.collection = MongoDB(self.db_uri).get_collection(self.collection_name)
+                    conn = MongoDB(self.db_uri)
+                    db = conn.get_database(self.db_name)
+                    self.collection = db[self.collection_name]
                 if not isclass(ret):  # we can't save class objects in mongodb
                     date = datetime.utcnow()
                     doc = {'function': f.__name__,
@@ -63,4 +66,3 @@ class TransactionAudit(object):
         elif func == 'find_NIN_by_mobile':
             return {'mobile_number': args[1], 'data_returned': bool(data)}
         return data
-
