@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 __author__ = 'lundberg'
 
+import sys
 import unittest
 from eduid_userdb.testing import MongoTemporaryInstance
 from eduid_lookup_mobile.decorators import TransactionAudit
@@ -10,11 +11,13 @@ class TestTransactionAudit(unittest.TestCase):
 
     def setUp(self):
         super(TestTransactionAudit, self).setUp()
-        self.db_name = 'test'
+        _db_name = 'eduid_lookup_mobile'
         self.tmp_db = MongoTemporaryInstance.get_instance()
         self.conn = self.tmp_db.conn
+        self.db = self.tmp_db.conn[_db_name]
         self.port = self.tmp_db.port
-        self.mongo_uri = self.tmp_db.get_uri(self.db_name)
+        self.mongo_uri = self.tmp_db.get_uri(_db_name)
+        sys.stderr.write('Set up temp db at {!r}\n'.format(self.mongo_uri))
         self.transaction_audit = True
 
     def test_successfull_transaction_audit(self):
@@ -22,8 +25,7 @@ class TestTransactionAudit(unittest.TestCase):
         def find_mobiles_by_NIN(self, national_identity_number, number_region=None):
             return ['list', 'of', 'mobile_numbers']
         find_mobiles_by_NIN(self, '200202025678')
-        db = self.conn['test']
-        c = db['transaction_audit']
+        c = self.db['transaction_audit']
         result = c.find()
         self.assertEquals(result.count(), 1)
         hit = result.next()
@@ -35,8 +37,7 @@ class TestTransactionAudit(unittest.TestCase):
         def find_NIN_by_mobile(self, mobile_number):
             return '200202025678'
         find_NIN_by_mobile(self, '+46700011222')
-        db = self.conn['test']
-        c = db['transaction_audit']
+        c = self.db['transaction_audit']
         result = c.find()
         self.assertEquals(result.count(), 1)
         hit = result.next()
@@ -49,8 +50,7 @@ class TestTransactionAudit(unittest.TestCase):
         def find_mobiles_by_NIN(self, national_identity_number, number_region=None):
             return []
         find_mobiles_by_NIN(self, '200202025678')
-        db = self.conn['test']
-        c = db['transaction_audit']
+        c = self.db['transaction_audit']
         result = c.find()
         self.assertEquals(result.count(), 1)
         self.assertFalse(result.next()['data']['data_returned'])
@@ -60,16 +60,14 @@ class TestTransactionAudit(unittest.TestCase):
         def find_NIN_by_mobile(self, mobile_number):
             return
         find_NIN_by_mobile(self, '+46700011222')
-        db = self.conn['test']
-        c = db['transaction_audit']
+        c = self.db['transaction_audit']
         result = c.find()
         self.assertEquals(result.count(), 1)
         self.assertFalse(result.next()['data']['data_returned'])
         c.remove()  # Clear database
 
     def test_transaction_audit_toggle(self):
-        db = self.conn['test']
-        c = db['transaction_audit']
+        c = self.db['transaction_audit']
         c.remove()  # Clear database
         TransactionAudit.disable()
 
