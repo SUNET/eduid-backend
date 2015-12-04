@@ -233,7 +233,8 @@ class BaseDB(object):
         :param raise_on_missing:  If True, raise exception if no matching user object can be found.
         :type raise_on_missing: bool
         :return: A document dict
-        :rtype: dict | None
+        :rtype: cursor | []
+        :raise DocumentDoesNotExist: No document matching the search criteria
         """
         docs = self._coll.find({attr: value})
         if docs.count() == 0:
