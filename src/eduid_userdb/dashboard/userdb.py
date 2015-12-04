@@ -106,6 +106,10 @@ class UserDBWrapper(UserDB):
         logger.debug("Found user {!r}".format(users[0]))
         return self.UserClass(users[0])
 
+    def get_users_by_filter(self, spec, fields=None, raise_on_missing=True):
+        for doc in self._get_documents_by_filter(spec, fields, raise_on_missing):
+            yield self.UserClass(doc)
+
     def _get_users(self, spec, fields=None):
         """
         Return a list with users object in the attribute manager MongoDB matching the filter

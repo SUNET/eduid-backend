@@ -243,6 +243,28 @@ class BaseDB(object):
             return []
         return docs
 
+    def _get_documents_by_filter(self, spec, fields=None, raise_on_missing=True):
+        """
+        Locate a documents in the db using a custom search filter.
+
+        :param spec: the search filter
+        :type spec: dict
+        :param fields: the fields to return in the search result
+        :type fields: dict
+        :return: A document dict
+        :rtype: cursor | []
+        :raise DocumentDoesNotExist: No document matching the search criteria
+        """
+        if fields is None:
+            docs = self._coll.find(spec)
+        else:
+            docs = self._coll.find(spec, fields)
+        if docs.count() == 0:
+            if raise_on_missing:
+                raise DocumentDoesNotExist('No document matching {!s}'.format(spec))
+            return []
+        return docs
+
     def db_count(self):
         """
         Return number of entries in the database.
