@@ -213,6 +213,7 @@ class DashboardLegacyUser(object):
         in the dashboard.
 
         :return: datetime
+        :rtype: datetime
         '''
         return self._mongo_doc.get('modified_ts', None)
 
@@ -634,3 +635,12 @@ class DashboardLegacyUser(object):
         :return: bool or datetime
         '''
         return self._mongo_doc.get('terminated', None)
+
+    def set_letter_proofing_data(self, data):
+        '''
+        Store letter proofing data on the user.
+
+        :param data: Proofing data from the letter id proofing service
+        :type  data: [dict]
+        '''
+        self._mongo_doc['letter_proofing_data'] = data
