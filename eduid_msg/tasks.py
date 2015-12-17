@@ -251,7 +251,7 @@ class MessageRelay(Task):
         result = OrderedDict([
             (u'Name', OrderedDict([
                 (u'GivenNameMarking', u'20'), (u'GivenName', u'Testaren Test'),
-                (u'SurName', u'Testsson')])),
+                (u'Surname', u'Testsson')])),
             (u'OfficialAddress', OrderedDict([(u'Address2', u'\xd6RGATAN 79 LGH 10'),
                                               (u'PostalCode', u'12345'),
                                               (u'City', u'LANDET')]))
