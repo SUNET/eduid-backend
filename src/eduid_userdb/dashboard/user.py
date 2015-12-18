@@ -636,6 +636,14 @@ class DashboardLegacyUser(object):
         '''
         return self._mongo_doc.get('terminated', None)
 
+    def get_letter_proofing_data(self):
+        '''
+        Get letter proofing data for the user.
+
+        :rtype: [dict]
+        '''
+        self._mongo_doc.get('letter_proofing_data', [])
+
     def set_letter_proofing_data(self, data):
         '''
         Store letter proofing data on the user.
