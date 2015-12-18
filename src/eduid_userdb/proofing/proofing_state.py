@@ -54,6 +54,7 @@ class ProofingState(object):
         if not isinstance(_id, bson.ObjectId):
             _id = bson.ObjectId(_id)
         self._data['_id'] = _id
+        # TODO: Start using eppn instead of the users Mongo _id
         # user_id
         user_id = self._data_in.pop('user_id')
         if not isinstance(_id, bson.ObjectId):
@@ -73,6 +74,7 @@ class ProofingState(object):
     def __repr__(self):
         return '<eduID {!s}: {!s}>'.format(self.__class__.__name__, self.user_id)
 
+    # TODO: Start using eppn instead of the users Mongo _id
     @property
     def user_id(self):
         """
