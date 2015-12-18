@@ -642,7 +642,7 @@ class DashboardLegacyUser(object):
 
         :rtype: [dict]
         '''
-        self._mongo_doc.get('letter_proofing_data', [])
+        return self._mongo_doc.get('letter_proofing_data', [])
 
     def set_letter_proofing_data(self, data):
         '''
