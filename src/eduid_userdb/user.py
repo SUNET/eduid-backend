@@ -94,6 +94,10 @@ class User(object):
             del self._data_in['postalAddress']
         if 'date' in self._data_in:
             del self._data_in['date']
+        # temporary data we just want to retain as is
+        for copy_attribute in ['letter_proofing_data']:
+            if copy_attribute in self._data_in:
+                self._data[copy_attribute] = self._data_in.pop(copy_attribute)
 
         if len(self._data_in) > 0:
             if raise_on_unknown:
