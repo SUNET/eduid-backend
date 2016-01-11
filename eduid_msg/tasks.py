@@ -9,6 +9,7 @@ from eduid_msg.cache import CacheMDB
 from eduid_msg.utils import load_template, navet_get_name_and_official_address, navet_get_relations
 from eduid_msg.decorators import TransactionAudit
 from eduid_msg.config import read_configuration
+from eduid_msg.exceptions import NavetException, NavetAPIException
 from time import time
 from datetime import datetime, timedelta
 from hammock import Hammock
@@ -308,10 +309,12 @@ class MessageRelay(Task):
         if json_data is None:
             post_data = json.dumps({'identity_number': identity_number})
             response = self.navet_api.personpost.navetnotification.POST(data=post_data)
-            if response.status_code == 200:
-                json_data = response.json()
-                if json_data.get('PopulationItems', None):
-                    self.cache('navet_cache').add_cache_item(identity_number, json_data)
+            if response.status_code != 200:
+                raise NavetAPIException(repr(response))
+            json_data = response.json()
+            if not json_data.get('PopulationItems', False):
+                raise NavetException('No PopulationItems returned')
+            self.cache('navet_cache').add_cache_item(identity_number, json_data)
         return json_data
 
     def set_audit_log_postal_address(self, audit_reference):
