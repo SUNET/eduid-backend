@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 version = '0.1.2'
 
 requires = [
-    'pysaml2>=3.0.2',
+    'pysaml2>=1.0.0',
     'redis>=2.10.5',
 ]
 
