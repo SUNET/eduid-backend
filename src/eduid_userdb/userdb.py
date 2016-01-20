@@ -99,7 +99,8 @@ class UserDB(BaseDB):
                 return None
         return self._get_user_by_attr('_id', user_id, raise_on_missing)
 
-    def get_user_by_mail(self, email, raise_on_missing=True, include_unconfirmed=False):
+    def get_user_by_mail(self, email, raise_on_missing=True, raise_on_multiple=True,
+                         include_unconfirmed=False):
         """
         Return the user object in the central eduID UserDB having
         an email address matching `email'. Unless include_unconfirmed=True, the
@@ -107,10 +108,12 @@ class UserDB(BaseDB):
 
         :param email: The email address to look for
         :param raise_on_missing: If True, raise exception if no matching user object can be found.
+        :param raise_on_multiple: If True, raise exception if multiple matching user objects were found.
         :param include_unconfirmed: Require email address to be confirmed/verified.
 
         :type email: str | unicode
         :type raise_on_missing: bool
+        :type raise_on_multiple: bool
         :type include_unconfirmed: bool
 
         :return: User instance
@@ -134,7 +137,7 @@ class UserDB(BaseDB):
             if raise_on_missing:
                 raise UserDoesNotExist("No user matching email {!r}".format(email))
             return None
-        elif len(users) > 1:
+        elif len(users) > 1 and raise_on_multiple:
             raise MultipleUsersReturned("Multiple matching users for email {!r}".format(email))
         return self.UserClass(data=users[0])
 
