@@ -1,31 +1,35 @@
 
+import pickle
 import uuid
 import collections
 from Crypto.Hash import HMAC, SHA as SHA1
 import redis
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 class SessionManager(object):
 
-    def __init__(self, uri, whitelist=None, raise_on_unknown=False):
+    def __init__(self, host, port, db, whitelist=None, raise_on_unknown=False):
         '''
         '''
-        self.uri = uri
-        self.pool = redis.ConnectionPool.from_url(uri)
+        self.pool = redis.ConnectionPool(host=host, port=port, db=db)
         self.whitelist = whitelist
         self.raise_on_unknown = raise_on_unknown
 
-    def get_session(self, token=None, data=None):
+    def get_session(self, token=None, data=None, secret=None):
         '''
         '''
         return Session(self.pool, token=token, data=data,
-                whitelist=whitelist, raise_on_unknown=raise_on_unknown)
+                      secret=secret, whitelist=self.whitelist,
+                      raise_on_unknown=self.raise_on_unknown)
 
 
 class Session(collections.MutableMapping):
 
-    def __init__(self, pool, token=None, data=None, whitelist=None,
-            raise_on_unknown=False):
+    def __init__(self, pool, token=None, data=None, secret='',
+            whitelist=None, raise_on_unknown=False):
         '''
         '''
         self.conn = redis.Redis(connection_pool=pool)
@@ -33,7 +37,7 @@ class Session(collections.MutableMapping):
         self.raise_on_unknown = raise_on_unknown
         if token is None:
             self.key = self.new_key()
-            self.token = self.encode(key)
+            self.token = self.encode(self.key, secret)
             self._data = {}
             if self.whitelist:
                 if self.raise_on_unknown:
@@ -49,14 +53,16 @@ class Session(collections.MutableMapping):
                     self._data[k] = v
         else:
             self.token = token
-            self.key = self.decode(token)
-            self._data = self.conn.get(self.key)
+            self.key = self.decode(token, secret)
+            data = self.conn.get(self.key)
+            self._data = pickle.loads(data)
+        logger.warn('Created session with key %s and token %s' % (self.key, self.token))
 
     def __getitem__(self, key, default=None):
         if key in self._data:
             return self._data[key]
         elif default is not None:
-            return dafault
+            return default
         raise KeyError('key {!r} not present in session'.format(key))
 
     def __setitem__(self, key, value):
@@ -84,7 +90,8 @@ class Session(collections.MutableMapping):
     def commit(self):
         '''
         '''
-        self.conn.set(self.key, self._data)
+        data = pickle.dumps(self._data)
+        self.conn.set(self.key, data)
 
     def new_key(self):
         '''
