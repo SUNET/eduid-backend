@@ -123,3 +123,9 @@ class Session(collections.MutableMapping):
             return None
         else:
             return val[40:]
+
+    def clear(self):
+        self._data = {}
+        self.conn.delete(self.key)
+        self.key = None
+        self.token = None
