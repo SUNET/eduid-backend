@@ -29,12 +29,11 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-
-__author__ = 'ft'
-
 from eduid_userdb.userdb import UserDB
 from eduid_userdb.signup import SignupUser
-from eduid_userdb.exceptions import MultipleUsersReturned
+
+
+__author__ = 'ft'
 
 
 class SignupUserDB(UserDB):
@@ -45,24 +44,8 @@ class SignupUserDB(UserDB):
         UserDB.__init__(self, db_uri, db_name, collection)
 
     def get_user_by_mail_verification_code(self, code):
-        docs = self._coll.find({'pending_mail_address.verification_code': code})
-        users = []
-        if docs.count() > 0:
-            users = list(docs)
-        if not users:
-            return None
-        elif len(users) > 1:
-            raise MultipleUsersReturned("Multiple matching users for code {!r}".format(code))
-        return self.UserClass(data=users[0])
+        return self._get_user_by_attr('pending_mail_address.verification_code', code, raise_on_missing = False)
 
     def get_user_by_pending_mail_address(self, mail):
         mail = mail.lower()
-        docs = self._coll.find({'pending_mail_address.email': mail})
-        users = []
-        if docs.count() > 0:
-            users = list(docs)
-        if not users:
-            return None
-        elif len(users) > 1:
-            raise MultipleUsersReturned("Multiple matching users for pending_mail_address {!r}".format(mail))
-        return self.UserClass(data=users[0])
+        return self._get_user_by_attr('pending_mail_address.email', mail, raise_on_missing = False)

@@ -161,12 +161,6 @@ class DashboardLegacyUser(object):
                 log.notice("Tried saving user {!s} (test_doc {!s}) but failed (no check_sync)".format(self, test_doc))
         request.context.propagate_user_changes(self)
 
-    def update_am(self, app_name):
-        # yuck. avoid circular dependencies whenever possible.
-        from eduid_am.tasks import update_attributes
-
-        update_attributes.delay(app_name, str(self._mongo_doc['_id']))
-
     def get_doc(self):
         '''
         Retrieve the MongoDB document.
