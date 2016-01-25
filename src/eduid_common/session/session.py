@@ -147,7 +147,7 @@ class Session(collections.MutableMapping):
             self.key = self.decode(token)
             data = self.conn.get(self.key)
             self._data = self.serializer.loads(data)
-        logger.warn('Created session with key %s and token %s' % (self.key, self.token))
+        logger.info('Created session with key %s and token %s' % (self.key, self.token))
 
     def __getitem__(self, key, default=None):
         if key in self._data:
