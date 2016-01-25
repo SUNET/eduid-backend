@@ -202,7 +202,9 @@ class Session(collections.MutableMapping):
         :rtype: str
         '''
         sig = HMAC.new(self.secret, key.encode('utf-8'), SHA1).hexdigest()
-        return "%s%s" % (sig, key)
+        # Prepend an 'a' so we always have a valid NCName, needed by
+        # pysaml2 for its session ids.
+        return "a%s%s" % (sig, key)
 
     def decode(self, token):
         '''
@@ -214,7 +216,10 @@ class Session(collections.MutableMapping):
         :return: the unsigned key
         :rtype: str
         '''
-        val = token.strip('"')
+        #  the slicing is to remove a leading 'a' needed so we have a
+        # valid NCName so pysaml2 doesn't complain when it uses the token as
+        # session id.
+        val = token.strip('"')[1:]
         sig = HMAC.new(self.secret, val[40:].encode('utf-8'), SHA1).hexdigest()
 
         # Avoid timing attacks
