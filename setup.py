@@ -1,11 +1,13 @@
 from setuptools import setup, find_packages
 
 
-version = '0.1.3'
+version = '0.1.3b1'
 
 requires = [
-    'pysaml2>=1.0.0',
-    'redis>=2.10.5',
+    # ft@ -- commented these out because I'm not sure we want
+    # them as hard depencencies everywhere eduid-common is used
+    #'pysaml2>=1.0.0',
+    #'redis>=2.10.5',
 ]
 
 test_requires = []
