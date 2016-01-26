@@ -1,7 +1,7 @@
 
 import uuid
 import collections
-from Crypto.Hash import HMAC, SHA as SHA1
+from Crypto.Hash import HMAC, SHA256
 import redis
 
 import logging
@@ -201,7 +201,7 @@ class Session(collections.MutableMapping):
         :return: a token with the signed key
         :rtype: str
         '''
-        sig = HMAC.new(self.secret, key.encode('utf-8'), SHA1).hexdigest()
+        sig = HMAC.new(self.secret, key.encode('utf-8'), SHA256).hexdigest()
         # Prepend an 'a' so we always have a valid NCName, needed by
         # pysaml2 for its session ids.
         return "a%s%s" % (sig, key)
@@ -220,11 +220,11 @@ class Session(collections.MutableMapping):
         # valid NCName so pysaml2 doesn't complain when it uses the token as
         # session id.
         val = token.strip('"')[1:]
-        sig = HMAC.new(self.secret, val[40:].encode('utf-8'), SHA1).hexdigest()
+        sig = HMAC.new(self.secret, val[64:].encode('utf-8'), SHA256).hexdigest()
 
         # Avoid timing attacks
         invalid_bits = 0
-        input_sig = val[:40]
+        input_sig = val[:64]
         if len(sig) != len(input_sig):
             return None
 
@@ -234,7 +234,7 @@ class Session(collections.MutableMapping):
         if invalid_bits:
             return None
         else:
-            return val[40:]
+            return val[64:]
 
     def clear(self):
         '''
