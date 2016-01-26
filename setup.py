@@ -4,14 +4,16 @@ from setuptools import setup, find_packages
 version = '0.1.3b1'
 
 requires = [
-    # ft@ -- commented these out because I'm not sure we want
-    # them as hard depencencies everywhere eduid-common is used
-    #'pysaml2>=1.0.0',
-    #'redis>=2.10.5',
 ]
 
-test_requires = []
+# Flavours
+webapp_requires = [
+    'pysaml2 >= 1.2.0beta2',  # version sync with dashboard to avoid pip catastrophies
+    'redis >= 2.10.5',
+]
+webapp_extras = webapp_requires + []
 
+test_requires = []
 testing_extras = test_requires + []
 
 long_description = open('README.txt').read()
@@ -37,6 +39,7 @@ setup(name='eduid-common',
       tests_require=test_requires,
       extras_require={
           'testing': testing_extras,
+          'webapp': webapp_extras,
       },
       entry_points="""
       """,
