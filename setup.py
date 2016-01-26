@@ -14,7 +14,7 @@ webapp_requires = [
 webapp_extras = webapp_requires + []
 
 test_requires = []
-testing_extras = test_requires + []
+testing_extras = test_requires + webapp_extras + []
 
 long_description = open('README.txt').read()
 
