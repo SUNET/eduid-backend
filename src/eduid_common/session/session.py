@@ -27,7 +27,7 @@ class SessionManager(object):
     '''
 
     def __init__(self, host, port, db, serializer=NoopSerializer(),
-            secret=None, whitelist=None, raise_on_unknown=False):
+            ttl=600, secret=None, whitelist=None, raise_on_unknown=False):
         '''
         Constructor for SessionManager
 
@@ -40,6 +40,8 @@ class SessionManager(object):
         :param serializer: serializer (to str) object 
                            with dumps and loads methods
         :type serializer: object
+        :param ttl: The time to live for the sessions
+        :type ttl: int
         :param secret: secret used to sign the keys associated
                        with the sessions
         :type secret: str
@@ -54,6 +56,7 @@ class SessionManager(object):
         self.db = db
         self.pool = redis.ConnectionPool(host=host, port=port, db=db)
         self.serializer = serializer
+        self.ttl = ttl
         self.secret =  secret
         self.whitelist = whitelist
         self.raise_on_unknown = raise_on_unknown
@@ -77,7 +80,7 @@ class SessionManager(object):
         '''
         return Session(self.pool, token=token, data=data,
                       secret=self.secret, serializer=self.serializer,
-                      whitelist=self.whitelist,
+                      ttl=self.ttl, whitelist=self.whitelist,
                       raise_on_unknown=self.raise_on_unknown)
 
 
@@ -87,7 +90,7 @@ class Session(collections.MutableMapping):
     '''
 
     def __init__(self, pool, token=None, data=None,
-            serializer=NoopSerializer(), secret='',
+            secret='', serializer=NoopSerializer(), ttl=None,
             whitelist=None, raise_on_unknown=False):
         '''
         Create a session for the given token or data.
@@ -112,6 +115,8 @@ class Session(collections.MutableMapping):
         :param serializer: serializer (to str) object 
                            with dumps and loads methods
         :type serializer: object
+        :param ttl: The time to live for the session
+        :type ttl: int
         :param secret: secret used to sign the key associated
                        with the session
         :type secret: str
@@ -121,8 +126,9 @@ class Session(collections.MutableMapping):
                                  to set a session key not in whitelist
         :type raise_on_unknown: bool
         '''
-        self.conn = redis.Redis(connection_pool=pool)
+        self.conn = redis.StrictRedis(connection_pool=pool)
         self.serializer = serializer
+        self.ttl = ttl
         self.secret =  secret
         self.whitelist = whitelist
         self.raise_on_unknown = raise_on_unknown
@@ -183,7 +189,7 @@ class Session(collections.MutableMapping):
         Persist the currently held data into the redis db.
         '''
         data = self.serializer.dumps(self._data)
-        self.conn.set(self.key, data)
+        self.conn.setex(self.key, self.ttl, data)
 
     def new_key(self):
         '''
@@ -193,7 +199,7 @@ class Session(collections.MutableMapping):
 
     def encode(self, key):
         '''
-        Sign a key
+        Sign a key. Copied from Beaker https://beaker.readthedocs.org/
 
         :param key: the key to be signed
         :type key: str
@@ -209,6 +215,7 @@ class Session(collections.MutableMapping):
     def decode(self, token):
         '''
         Check the signature of a key encapsulated in a token.
+        Copied from Beaker https://beaker.readthedocs.org/
 
         :param token: the token with the signed key
         :type token: str
@@ -244,3 +251,9 @@ class Session(collections.MutableMapping):
         self.conn.delete(self.key)
         self.key = None
         self.token = None
+
+    def renew_ttl(self):
+        '''
+        Restart the ttl countdown
+        '''
+        self.conn.expire(self.key, self.ttl)
