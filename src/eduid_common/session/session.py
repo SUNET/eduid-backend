@@ -3,6 +3,7 @@ import uuid
 import collections
 from Crypto.Hash import HMAC, SHA256
 import redis
+import redis.sentinel
 
 import logging
 logger = logging.getLogger(__name__)
@@ -26,18 +27,14 @@ class SessionManager(object):
     session objects.
     '''
 
-    def __init__(self, host, port, db, serializer=NoopSerializer(),
-            ttl=600, secret=None, whitelist=None, raise_on_unknown=False):
+    def __init__(self, cfg, serializer=NoopSerializer(), ttl=600,
+                 secret=None, whitelist=None, raise_on_unknown=False):
         '''
         Constructor for SessionManager
 
-        :param host: hostname of redis server
-        :type host: str
-        :param port: port of the redis server
-        :type port: int
-        :param db: redis database
-        :type db: int
-        :param serializer: serializer (to str) object 
+        :param cfg: Redis connection settings dict
+        :type cfg: dict
+        :param serializer: serializer (to str) object
                            with dumps and loads methods
         :type serializer: object
         :param ttl: The time to live for the sessions
@@ -51,10 +48,17 @@ class SessionManager(object):
                                  to set a session key not in whitelist
         :type raise_on_unknown: bool
         '''
-        self.host = host
-        self.port = port
-        self.db = db
-        self.pool = redis.ConnectionPool(host=host, port=port, db=db)
+        port = cfg['redis_port']
+        if cfg.get('redis_sentinel_hosts') and cfg.get('redis_sentinel_service_name'):
+            _hosts = cfg['redis_sentinel_hosts']
+            _name = cfg['redis_sentinel_service_name']
+            host_port = [(x, port) for x in _hosts]
+            manager = redis.sentinel.Sentinel(host_port, socket_timeout=0.1)
+            self.pool = redis.sentinel.SentinelConnectionPool(_name, manager)
+        else:
+            db = cfg['redis_db']
+            host = cfg['redis_host']
+            self.pool = redis.ConnectionPool(host=host, port=port, db=db)
         self.serializer = serializer
         self.ttl = ttl
         self.secret =  secret
