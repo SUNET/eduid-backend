@@ -5,19 +5,21 @@ version = '0.1.3b2'
 
 requires = [
     'setuptools>=2.2',
-    'pwgen==0.4',
     'eduid-userdb>=0.0.5',
-    'vccs_client>=0.4.1',
 ]
 
 # Flavours
 webapp_requires = [
     'pysaml2 >= 1.2.0beta2',  # version sync with dashboard to avoid pip catastrophies
     'redis >= 2.10.5',
+    'pwgen==0.4',
+    'vccs_client>=0.4.1',
 ]
 webapp_extras = webapp_requires + []
 
-test_requires = []
+test_requires = [
+    'mock==1.0.1',
+]
 testing_extras = test_requires + webapp_extras + []
 
 long_description = open('README.txt').read()
