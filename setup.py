@@ -4,6 +4,10 @@ from setuptools import setup, find_packages
 version = '0.1.3b2'
 
 requires = [
+    'setuptools>=2.2',
+    'pwgen==0.4',
+    'eduid-userdb>=0.0.5',
+    'vccs_client>=0.4.1',
 ]
 
 # Flavours
