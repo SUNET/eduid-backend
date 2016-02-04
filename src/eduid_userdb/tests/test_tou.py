@@ -162,4 +162,4 @@ class TestTouUser(TestCase):
         tou = ToUEvent(data = one, raise_on_unknown = False)
         data = dict(_id=USERID, tou=[tou], foo='bar')
         user = ToUUser(data=data, raise_on_unknown=False)
-        self.assertEquals(user._data['foo'], 'bar')
+        self.assertEquals(user.to_dict()['foo'], 'bar')
