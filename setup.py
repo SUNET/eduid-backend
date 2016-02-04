@@ -1,6 +1,6 @@
 import os
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 __author__ = 'ft'
 
@@ -35,14 +35,16 @@ setup(
     author_email='fredrik@thulin.net',
     url='https://www.eduid.se/',
     license='BSD',
-      packages=['eduid_userdb',
-                'eduid_userdb.signup',
-                'eduid_userdb.dashboard',
-                'eduid_userdb.actions',
-                'eduid_userdb.actions.tou',
-                'eduid_userdb.proofing',
-                ],
-      package_dir = {'': 'src'},
+    packages=find_packages('src'),
+    package_dir={'': 'src'},
+   #   packages=['eduid_userdb',
+   #             'eduid_userdb.signup',
+   #             'eduid_userdb.dashboard',
+   #             'eduid_userdb.actions',
+   #             'eduid_userdb.actions.tou',
+   #             'eduid_userdb.actions.chpass',
+   #             'eduid_userdb.proofing',
+   #             ],
       #include_package_data=True,
       #package_data = { },
     zip_safe=False,
