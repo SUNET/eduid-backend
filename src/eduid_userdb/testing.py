@@ -48,6 +48,7 @@ from copy import deepcopy
 from bson import ObjectId
 
 from eduid_userdb import UserDB, User
+from eduid_userdb.dashboard.user import DashboardUser
 
 import logging
 logger = logging.getLogger(__name__)
@@ -323,7 +324,7 @@ class MongoTestCase(unittest.TestCase):
     def tearDown(self):
         super(MongoTestCase, self).tearDown()
         for userdoc in self.amdb._get_all_docs():
-            assert User(userdoc)
+            assert DashboardUser(data=userdoc)
         for db_name in self.conn.database_names():
             if db_name == 'local':
                 continue
