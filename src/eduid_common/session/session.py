@@ -1,13 +1,18 @@
-
 import uuid
 import collections
-from Crypto.Hash import HMAC, SHA256
+#from Crypto.Hash import HMAC, SHA256
+import hmac
+import json
+import hashlib
 import redis
 import redis.sentinel
 
 import logging
 logger = logging.getLogger(__name__)
 
+# Prepend an 'a' so we always have a valid NCName,
+# needed by  pysaml2 for its session ids.
+TOKEN_PREFIX = 'a'
 
 class NoopSerializer(object):
     '''
@@ -128,6 +133,9 @@ class Session(collections.MutableMapping):
         self.whitelist = whitelist
         self.raise_on_unknown = raise_on_unknown
         if token is None:
+            if not isinstance(data, dict):
+                # mostly convince pycharms introspection what type data is here
+                raise ValueError('Data must be supplied when token is not')
             self.key = self.new_key()
             self.token = self.encode_token(self.key)
             self._data = {}
@@ -202,10 +210,10 @@ class Session(collections.MutableMapping):
         :return: a token with the signed key
         :rtype: str
         '''
-        sig = HMAC.new(self.secret, key.encode('utf-8'), SHA256).hexdigest()
+        sig = hmac.new(self.secret, key.encode('utf-8'), digestmod=hashlib.sha256).hexdigest()
         # Prepend an 'a' so we always have a valid NCName, needed by
         # pysaml2 for its session ids.
-        return "a%s%s" % (sig, key)
+        return ''.join([TOKEN_PREFIX, sig, key])
 
     def decode_token(self, token):
         '''
@@ -221,8 +229,10 @@ class Session(collections.MutableMapping):
         #  the slicing is to remove a leading 'a' needed so we have a
         # valid NCName so pysaml2 doesn't complain when it uses the token as
         # session id.
-        val = token.strip('"')[1:]
-        sig = HMAC.new(self.secret, val[64:].encode('utf-8'), SHA256).hexdigest()
+        if not token.startswith(TOKEN_PREFIX):
+            raise ValueError('Invalid token string {!r}'.format(token))
+        val = token.strip('"')[len(TOKEN_PREFIX):]
+        sig = hmac.new(self.secret, val[64:].encode('utf-8'), digestmod=hashlib.sha256).hexdigest()
 
         # Avoid timing attacks
         invalid_bits = 0
@@ -238,10 +248,10 @@ class Session(collections.MutableMapping):
         else:
             return val[64:]
 
-    def sign_data(self, key, data_dict):
+    def sign_data(self, data_dict):
         return json.dumps(data_dict)
 
-    def verify_data(self, key, data_str):
+    def verify_data(self, data_str):
         return json.loads(data_str)
 
     def clear(self):
