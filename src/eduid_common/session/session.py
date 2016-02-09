@@ -240,17 +240,17 @@ class Session(collections.MutableMapping):
             return val[64:]
 
     def sign_data(self, data_dict):
-        versioned = {1: data_dict}
+        versioned = {'v1': data_dict}
         # XXX remove this extra debug logging after burn-in period
-        logger.debug('Storing version 1 data in cache: {!r]'.format(versioned[1]))
+        logger.debug('Storing version 1 data in cache: {!r}'.format(versioned['v1']))
         return json.dumps(versioned)
 
     def verify_data(self, data_str):
         versioned = json.loads(data_str)
-        if 1 in versioned:
+        if 'v1' in versioned:
             # XXX remove this extra debug logging after burn-in period
-            logger.debug('Loaded version 1 data from cache: {!r]'.format(versioned[1]))
-            return versioned[1]
+            logger.debug('Loaded version 1 data from cache: {!r}'.format(versioned['v1']))
+            return versioned['v1']
         logger.error('Unknown data retrieved from cache: {!r}'.format(data_str))
         raise ValueError('Unknown data retrieved from cache')
 
