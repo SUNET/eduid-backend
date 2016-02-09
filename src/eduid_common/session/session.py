@@ -26,16 +26,17 @@ class SessionManager(object):
         Constructor for SessionManager
 
         :param cfg: Redis connection settings dict
-        :type cfg: dict
         :param ttl: The time to live for the sessions
-        :type ttl: int
         :param secret: secret used to sign the keys associated
                        with the sessions
-        :type secret: str
         :param whitelist: list of allowed keys for the sessions
-        :type whitelist: list
         :param raise_on_unknown: Whether to raise an exception on an attempt
                                  to set a session key not in whitelist
+
+        :type cfg: dict
+        :type ttl: int
+        :type secret: str
+        :type whitelist: list
         :type raise_on_unknown: bool
         """
         port = cfg['redis_port']
@@ -64,8 +65,9 @@ class SessionManager(object):
         data is stored in the db keyed by the newly generated key.
 
         :param token: the token containing the key for the session
-        :type token: str or None
         :param data: the data for the (new) session
+
+        :type token: str or None
         :type data: dict or None
 
         :return: the session
@@ -99,20 +101,21 @@ class Session(collections.MutableMapping):
         non-whitelisted key.
 
         :param pool: Pool from which to get the redis connection
-        :type pool: redis.ConnectionPool
         :param token: the token containing the key for the session
-        :type token: str or None
         :param data: the data for the (new) session
-        :type data: dict or None
         :param ttl: The time to live for the session
-        :type ttl: int
         :param secret: secret used to sign the key associated
                        with the session
-        :type secret: str
         :param whitelist: list of allowed keys for the sessions
-        :type whitelist: list
         :param raise_on_unknown: Whether to raise an exception on an attempt
                                  to set a session key not in whitelist
+
+        :type pool: redis.ConnectionPool
+        :type token: str or None
+        :type data: dict or None
+        :type secret: str
+        :type ttl: int
+        :type whitelist: list
         :type raise_on_unknown: bool
         """
         self.conn = redis.StrictRedis(connection_pool=pool)
