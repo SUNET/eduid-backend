@@ -240,10 +240,15 @@ class Session(collections.MutableMapping):
             return val[64:]
 
     def sign_data(self, data_dict):
-        return json.dumps(data_dict)
+        versioned = {1: data_dict}
+        return json.dumps(versioned)
 
     def verify_data(self, data_str):
-        return json.loads(data_str)
+        versioned = json.loads(data_str)
+        if 1 in versioned:
+            return versioned[1]
+        logger.error('Unknown data retrived from cache: {!r}'.format(data_str))
+        raise ValueError('Unknown data retrieved from cache')
 
     def clear(self):
         """
