@@ -1,9 +1,8 @@
 import uuid
-import collections
-#from Crypto.Hash import HMAC, SHA256
 import hmac
 import json
 import hashlib
+import collections
 import redis
 import redis.sentinel
 
@@ -14,42 +13,32 @@ logger = logging.getLogger(__name__)
 # needed by  pysaml2 for its session ids.
 TOKEN_PREFIX = 'a'
 
-class NoopSerializer(object):
-    '''
-    dummy serializer that does nothing.
-    '''
-
-    def dumps(self, data):
-        return data
-
-    def loads(self, data):
-        return data
-
 
 class SessionManager(object):
-    '''
+    """
     Factory objects that hold some configuration data and provide
     session objects.
-    '''
+    """
 
     def __init__(self, cfg, ttl=600,
                  secret=None, whitelist=None, raise_on_unknown=False):
-        '''
+        """
         Constructor for SessionManager
 
         :param cfg: Redis connection settings dict
-        :type cfg: dict
         :param ttl: The time to live for the sessions
-        :type ttl: int
         :param secret: secret used to sign the keys associated
                        with the sessions
-        :type secret: str
         :param whitelist: list of allowed keys for the sessions
-        :type whitelist: list
         :param raise_on_unknown: Whether to raise an exception on an attempt
                                  to set a session key not in whitelist
+
+        :type cfg: dict
+        :type ttl: int
+        :type secret: str
+        :type whitelist: list
         :type raise_on_unknown: bool
-        '''
+        """
         port = cfg['redis_port']
         if cfg.get('redis_sentinel_hosts') and cfg.get('redis_sentinel_service_name'):
             _hosts = cfg['redis_sentinel_hosts']
@@ -67,7 +56,7 @@ class SessionManager(object):
         self.raise_on_unknown = raise_on_unknown
 
     def get_session(self, token=None, data=None):
-        '''
+        """
         Create a session for the given token or data.
         If the token param is provided, the data param is ignored,
         and the session data is retrieved from the db keyed by the key
@@ -76,27 +65,28 @@ class SessionManager(object):
         data is stored in the db keyed by the newly generated key.
 
         :param token: the token containing the key for the session
-        :type token: str or None
         :param data: the data for the (new) session
+
+        :type token: str or None
         :type data: dict or None
 
         :return: the session
         :rtype: Session
-        '''
+        """
         return Session(self.pool, token=token, data=data,
-                      secret=self.secret, ttl=self.ttl,
-                      whitelist=self.whitelist,
-                      raise_on_unknown=self.raise_on_unknown)
+                       secret=self.secret, ttl=self.ttl,
+                       whitelist=self.whitelist,
+                       raise_on_unknown=self.raise_on_unknown)
 
 
 class Session(collections.MutableMapping):
-    '''
+    """
     Session objects that keep their data in a redis db.
-    '''
+    """
 
     def __init__(self, pool, token=None, data=None, secret='', ttl=None,
-            whitelist=None, raise_on_unknown=False):
-        '''
+                 whitelist=None, raise_on_unknown=False):
+        """
         Create a session for the given token or data.
 
         If the token param is provided, the data param is ignored,
@@ -111,22 +101,23 @@ class Session(collections.MutableMapping):
         non-whitelisted key.
 
         :param pool: Pool from which to get the redis connection
-        :type pool: redis.ConnectionPool
         :param token: the token containing the key for the session
-        :type token: str or None
         :param data: the data for the (new) session
-        :type data: dict or None
         :param ttl: The time to live for the session
-        :type ttl: int
         :param secret: secret used to sign the key associated
                        with the session
-        :type secret: str
         :param whitelist: list of allowed keys for the sessions
-        :type whitelist: list
         :param raise_on_unknown: Whether to raise an exception on an attempt
                                  to set a session key not in whitelist
+
+        :type pool: redis.ConnectionPool
+        :type token: str or None
+        :type data: dict or None
+        :type secret: str
+        :type ttl: int
+        :type whitelist: list
         :type raise_on_unknown: bool
-        '''
+        """
         self.conn = redis.StrictRedis(connection_pool=pool)
         self.ttl = ttl
         self.secret =  secret
@@ -144,7 +135,7 @@ class Session(collections.MutableMapping):
                     for k in data:
                         if k not in self.whitelist:
                             raise ValueError('key {!r} not allowed '
-                                    'in session'.format(k))
+                                             'in session'.format(k))
                 for k, v in data.items():
                     if k in self.whitelist:
                         self._data[k] = v
@@ -170,7 +161,7 @@ class Session(collections.MutableMapping):
             if key not in self.whitelist:
                 if self.raise_on_unknown:
                     raise ValueError('key {!r} not allowed '
-                                'in session'.format(key))
+                                     'in session'.format(key))
                 else:
                     return
         self._data[key] = value
@@ -188,20 +179,20 @@ class Session(collections.MutableMapping):
         return self._data.__contains__(key)
 
     def commit(self):
-        '''
+        """
         Persist the currently held data into the redis db.
-        '''
+        """
         data = self.sign_data(self._data)
         self.conn.setex(self.key, self.ttl, data)
 
     def new_key(self):
-        '''
+        """
         Generate a new key
-        '''
+        """
         return uuid.uuid4().hex
 
     def encode_token(self, key):
-        '''
+        """
         Sign a key. Copied from Beaker https://beaker.readthedocs.org/
 
         :param key: the key to be signed
@@ -209,14 +200,14 @@ class Session(collections.MutableMapping):
 
         :return: a token with the signed key
         :rtype: str
-        '''
+        """
         sig = hmac.new(self.secret, key.encode('utf-8'), digestmod=hashlib.sha256).hexdigest()
         # Prepend an 'a' so we always have a valid NCName, needed by
         # pysaml2 for its session ids.
         return ''.join([TOKEN_PREFIX, sig, key])
 
     def decode_token(self, token):
-        '''
+        """
         Check the signature of a key encapsulated in a token.
         Copied from Beaker https://beaker.readthedocs.org/
 
@@ -225,7 +216,7 @@ class Session(collections.MutableMapping):
 
         :return: the unsigned key
         :rtype: str
-        '''
+        """
         #  the slicing is to remove a leading 'a' needed so we have a
         # valid NCName so pysaml2 doesn't complain when it uses the token as
         # session id.
@@ -249,22 +240,31 @@ class Session(collections.MutableMapping):
             return val[64:]
 
     def sign_data(self, data_dict):
-        return json.dumps(data_dict)
+        versioned = {'v1': data_dict}
+        # XXX remove this extra debug logging after burn-in period
+        logger.debug('Storing version 1 data in cache: {!r}'.format(versioned['v1']))
+        return json.dumps(versioned)
 
     def verify_data(self, data_str):
-        return json.loads(data_str)
+        versioned = json.loads(data_str)
+        if 'v1' in versioned:
+            # XXX remove this extra debug logging after burn-in period
+            logger.debug('Loaded version 1 data from cache: {!r}'.format(versioned['v1']))
+            return versioned['v1']
+        logger.error('Unknown data retrieved from cache: {!r}'.format(data_str))
+        raise ValueError('Unknown data retrieved from cache')
 
     def clear(self):
-        '''
+        """
         Discard all data contained in the session.
-        '''
+        """
         self._data = {}
         self.conn.delete(self.key)
         self.key = None
         self.token = None
 
     def renew_ttl(self):
-        '''
+        """
         Restart the ttl countdown
-        '''
+        """
         self.conn.expire(self.key, self.ttl)
