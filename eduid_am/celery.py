@@ -7,19 +7,17 @@ from eduid_am.config import read_configuration
 from eduid_userdb import UserDB
 
 
-celery = Celery('eduid_am.celery', backend='amqp', include=['eduid_am.tasks'])
+celery = Celery('eduid_am.celery', include=['eduid_am.tasks'])
 celery.conf.update(read_configuration())
 
 
 # This signal is only emited when run as a worker
 @celeryd_init.connect
 def setup_celeryd(sender, conf, **kwargs):
-    settings = read_configuration()
-    conf.update(settings)
-    setup_indexes(settings, 'eduid_am', 'attributes')
+    setup_indexes('eduid_am', 'attributes')
 
 
-def setup_indexes(settings, db_name, collection):
+def setup_indexes(db_name, collection):
     """
     Ensure that indexes in eduid_am.attributes collection are correctly setup.
     To update an index add a new item in indexes and remove the previous version.
@@ -33,7 +31,7 @@ def setup_indexes(settings, db_name, collection):
         'mobile-index-v1': {'key': [('mobile.mobile', 1), ('mobile.verified', 1)]},
         'mailAliases-index-v1': {'key': [('mailAliases.email', 1), ('mailAliases.verified', 1)]}
     }
-    userdb = UserDB(settings.get('MONGO_URI'), db_name=db_name, collection=collection)
+    userdb = UserDB(celery.conf.get('MONGO_URI'), db_name=db_name, collection=collection)
     userdb.setup_indexes(indexes)
 
 
