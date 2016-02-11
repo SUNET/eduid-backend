@@ -1,5 +1,4 @@
 from suds.client import Client
-from eduid_lookup_mobile import config
 from suds.plugin import MessagePlugin
 from eduid_lookup_mobile.decorators import TransactionAudit
 from eduid_lookup_mobile.utilities import format_NIN, format_mobile_number
@@ -22,8 +21,8 @@ class MobileLookupClient:
     mongo_uri = None
     transaction_audit = False
 
-    def __init__(self, logger, config_filename=None):
-        self.conf = config.read_configuration(filename=config_filename)
+    def __init__(self, logger, config=None):
+        self.conf = config
 
         if 'MONGO_URI' in self.conf:
             self.mongo_uri = self.conf['MONGO_URI']
