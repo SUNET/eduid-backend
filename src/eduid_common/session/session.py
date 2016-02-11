@@ -215,21 +215,23 @@ class Session(collections.MutableMapping):
         if not token.startswith(TOKEN_PREFIX):
             raise ValueError('Invalid token string {!r}'.format(token))
         val = token.strip('"')[len(TOKEN_PREFIX):]
-        sig = hmac.new(self.secret, val[64:].encode('utf-8'), digestmod=hashlib.sha256).hexdigest()
+        sha256_hex_len = 256 / 8 * 2
+        data, data_sig = val[sha256_hex_len:], val[:sha256_hex_len]
+        calculated_sig = hmac.new(self.secret, data.encode('utf-8'),
+                                  digestmod=hashlib.sha256).hexdigest()
 
         # Avoid timing attacks
         invalid_bits = 0
-        input_sig = val[:64]
-        if len(sig) != len(input_sig):
+        if len(calculated_sig) != len(data_sig):
             return None
 
-        for a, b in zip(sig, input_sig):
+        for a, b in zip(calculated_sig, data_sig):
             invalid_bits += a != b
 
         if invalid_bits:
             return None
         else:
-            return val[64:]
+            return data
 
     def sign_data(self, data_dict):
         versioned = {'v1': data_dict}
