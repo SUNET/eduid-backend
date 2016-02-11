@@ -1,6 +1,8 @@
 import uuid
 import hmac
+import jose
 import json
+import bcrypt
 import hashlib
 import collections
 import redis
@@ -12,6 +14,8 @@ logger = logging.getLogger(__name__)
 # Prepend an 'a' so we always have a valid NCName,
 # needed by  pysaml2 for its session ids.
 TOKEN_PREFIX = 'a'
+
+HMAC_DIGEST_SIZE = 256 / 8
 
 
 class SessionManager(object):
@@ -27,11 +31,11 @@ class SessionManager(object):
 
         :param cfg: Redis connection settings dict
         :param ttl: The time to live for the sessions
-        :param secret: secret used to sign the keys associated
+        :param secret: signing_key used to sign the keys associated
                        with the sessions
         :param whitelist: list of allowed keys for the sessions
         :param raise_on_unknown: Whether to raise an exception on an attempt
-                                 to set a session key not in whitelist
+                                 to set a session session_id not in whitelist
 
         :type cfg: dict
         :type ttl: int
@@ -59,12 +63,12 @@ class SessionManager(object):
         """
         Create a session for the given token or data.
         If the token param is provided, the data param is ignored,
-        and the session data is retrieved from the db keyed by the key
+        and the session data is retrieved from the db keyed by the session_id
         encapsulated in the token. If token is not provided, data must
-        be provided, a new key and token are generated, and the provided
-        data is stored in the db keyed by the newly generated key.
+        be provided, a new session_id and token are generated, and the provided
+        data is stored in the db keyed by the newly generated session_id.
 
-        :param token: the token containing the key for the session
+        :param token: the token containing the session_id for the session
         :param data: the data for the (new) session
 
         :type token: str or None
@@ -91,25 +95,25 @@ class Session(collections.MutableMapping):
         Create a session for the given token or data.
 
         If the token param is provided, the data param is ignored,
-        and the session data is retrieved from the db keyed by the key
+        and the session data is retrieved from the db keyed by the session_id
         encapsulated in the token. If token is not provided, data must
-        be provided, a new key and token are generated, and the provided
-        data is stored in the db keyed by the newly generated key.
+        be provided, a new session_id and token are generated, and the provided
+        data is stored in the db keyed by the newly generated session_id.
 
         If whitelist is provided, no keys will be set unless they are
         explicitly listed in it; and if raise_on_unknown is True,
         a ValueError will be raised on every attempt to set a
-        non-whitelisted key.
+        non-whitelisted session_id.
 
         :param conn: Redis connection instance
-        :param token: the token containing the key for the session
+        :param token: the token containing the session_id for the session
         :param data: the data for the (new) session
         :param ttl: The time to live for the session
-        :param secret: secret used to sign the key associated
+        :param secret: signing_key used to sign the session_id associated
                        with the session
         :param whitelist: list of allowed keys for the sessions
         :param raise_on_unknown: Whether to raise an exception on an attempt
-                                 to set a session key not in whitelist
+                                 to set a session session_id not in whitelist
 
         :type conn: redis.StrictRedis
         :type token: str or None
@@ -121,15 +125,16 @@ class Session(collections.MutableMapping):
         """
         self.conn = conn
         self.ttl = ttl
-        self.secret = secret
         self.whitelist = whitelist
         self.raise_on_unknown = raise_on_unknown
+        self.app_secret = secret
         if token is None:
             if not isinstance(data, dict):
                 # mostly convince pycharms introspection what type data is here
                 raise ValueError('Data must be supplied when token is not')
-            self.key = self.new_key()
-            self.token = self.encode_token(self.key)
+            self.session_id = _generate_session_id()
+            self.signing_key = _derive_key(self.app_secret, self.session_id, 'sign')
+            self.token = self.encode_token(self.session_id)
             self._data = {}
 
             for k, v in data.items():
@@ -140,19 +145,22 @@ class Session(collections.MutableMapping):
                 self._data[k] = v
         else:
             self.token = token
-            self.key = self.decode_token(token)
-            data = self.conn.get(self.key)
+            self.session_id, signature = self.decode_token(token)
+            self.signing_key = _derive_key(self.app_secret, self.session_id, 'sign')
+            if not verify_session_id(self.session_id, self.signing_key, signature):
+                raise ValueError('Token signature check failed')
+            data = self.conn.get(self.session_id)
             if not data:
-                raise KeyError('Session not found: {!r}'.format(self.key))
+                raise KeyError('Session not found: {!r}'.format(self.session_id))
             self._data = self.verify_data(data)
-        logger.info('Created session with key %s and token %s' % (self.key, self.token))
+        logger.info('Created session with session_id %s and token %s' % (self.session_id, self.token))
 
     def __getitem__(self, key, default=None):
         if key in self._data:
             return self._data[key]
         elif default is not None:
             return default
-        raise KeyError('key {!r} not present in session'.format(key))
+        raise KeyError('session_id {!r} not present in session'.format(key))
 
     def __setitem__(self, key, value):
         if self.whitelist and key not in self.whitelist:
@@ -178,39 +186,33 @@ class Session(collections.MutableMapping):
         Persist the currently held data into the redis db.
         """
         data = self.sign_data(self._data)
-        self.conn.setex(self.key, self.ttl, data)
+        self.conn.setex(self.session_id, self.ttl, data)
 
-    def new_key(self):
+    def encode_token(self, session_id):
         """
-        Generate a new key
-        """
-        return uuid.uuid4().hex
+        Encode a session id and it's signature into a token that is stored
+        in the users browser as a cookie.
 
-    def encode_token(self, key):
-        """
-        Sign a key. Copied from Beaker https://beaker.readthedocs.org/
+        :param session_id: the session_id (Redis key)
+        :type session_id: str | unicode
 
-        :param key: the key to be signed
-        :type key: str
-
-        :return: a token with the signed key
-        :rtype: str
+        :return: a token with the signed session_id
+        :rtype: str | unicode
         """
-        sig = hmac.new(self.secret, key.encode('utf-8'), digestmod=hashlib.sha256).hexdigest()
+        sig = sign_session_id(session_id, self.signing_key)
         # Prepend an 'a' so we always have a valid NCName, needed by
         # pysaml2 for its session ids.
-        return ''.join([TOKEN_PREFIX, sig, key])
+        return ''.join([TOKEN_PREFIX, sig, session_id])
 
     def decode_token(self, token):
         """
-        Check the signature of a key encapsulated in a token.
-        Copied from Beaker https://beaker.readthedocs.org/
+        Decode a token (token is what is stored in a cookie) into it's components.
 
-        :param token: the token with the signed key
-        :type token: str
+        :param token: the token with the signed session_id
+        :type token: str | unicode
 
-        :return: the unsigned key
-        :rtype: str
+        :return: the session_id and signature
+        :rtype: str | unicode, str | unicode
         """
         #  the slicing is to remove a leading 'a' needed so we have a
         # valid NCName so pysaml2 doesn't complain when it uses the token as
@@ -218,36 +220,42 @@ class Session(collections.MutableMapping):
         if not token.startswith(TOKEN_PREFIX):
             raise ValueError('Invalid token string {!r}'.format(token))
         val = token.strip('"')[len(TOKEN_PREFIX):]
-        sha256_hex_len = 256 / 8 * 2
-        data, data_sig = val[sha256_hex_len:], val[:sha256_hex_len]
-        calculated_sig = hmac.new(self.secret, data.encode('utf-8'),
-                                  digestmod=hashlib.sha256).hexdigest()
+        digest_len = HMAC_DIGEST_SIZE * 2
+        # Split the token into it's two parts - the session_id and the HMAC signature of it
+        data, data_sig = val[digest_len:], val[:digest_len]
+        return data, data_sig
 
-        # Avoid timing attacks
-        invalid_bits = 0
-        if len(calculated_sig) != len(data_sig):
-            return None
+    def sign_data(self, data_dict, alg='HS256'):
+        """
+        Sign (and encrypt) data before storing it in Redis.
 
-        for a, b in zip(calculated_sig, data_sig):
-            invalid_bits += a != b
-
-        if invalid_bits:
-            return None
-        else:
-            return data
-
-    def sign_data(self, data_dict):
-        versioned = {'v1': data_dict}
+        :param data_dict: Data to be stored
+        :param alg: JOSE encryption algorithm
+        :return: serialized data
+        :rtype: str | unicode
+        """
         # XXX remove this extra debug logging after burn-in period
-        logger.debug('Storing version 1 data in cache: {!r}'.format(versioned['v1']))
+        logger.debug('Storing v2 data in cache: {!r}'.format(data_dict))
+
+        jwk = {'k': self.signing_key.encode('hex')}
+        jws = jose.sign(data_dict, jwk, alg=alg)
+        signed_claims = jose.serialize_compact(jws)
+        versioned = {'v2': signed_claims}
         return json.dumps(versioned)
 
-    def verify_data(self, data_str):
+    def verify_data(self, data_str, alg='HS256'):
         versioned = json.loads(data_str)
         if 'v1' in versioned:
             # XXX remove this extra debug logging after burn-in period
             logger.debug('Loaded version 1 data from cache: {!r}'.format(versioned['v1']))
             return versioned['v1']
+        if 'v2' in versioned:
+            jwk = {'k': self.signing_key.encode('hex')}
+            to_verify = jose.deserialize_compact(versioned['v2'].replace("\n", ''))
+            jwt = jose.verify(to_verify, jwk, alg=alg)
+            logger.debug('Loaded v2 data from cache: {!r}'.format(jwt.claims))
+            return jwt.claims
+
         logger.error('Unknown data retrieved from cache: {!r}'.format(data_str))
         raise ValueError('Unknown data retrieved from cache')
 
@@ -256,12 +264,77 @@ class Session(collections.MutableMapping):
         Discard all data contained in the session.
         """
         self._data = {}
-        self.conn.delete(self.key)
-        self.key = None
+        self.conn.delete(self.session_id)
+        self.session_id = None
         self.token = None
 
     def renew_ttl(self):
         """
         Restart the ttl countdown
         """
-        self.conn.expire(self.key, self.ttl)
+        self.conn.expire(self.session_id, self.ttl)
+
+
+def _generate_session_id():
+    """
+    Generate a new session_id
+    """
+    return uuid.uuid4().hex
+
+
+def _derive_key(app_key, session_key, usage):
+    """
+    Derive a cryptographic session_id for a specific usage from the app_key and the session_key.
+
+    The app_key is a shared secret between all instances of this app (e.g. eduid-dashboard).
+    The session_key is a randomized session_id unique to this session.
+
+    :param app_key: Application shared session_id
+    :param usage: 'sign' or 'encrypt'
+    :param session_key: Session unique session_id
+
+    :return: session_id as raw bytes
+    :rtype: str | unicode
+    """
+    return bcrypt.kdf(app_key, ''.join([usage, session_key]), HMAC_DIGEST_SIZE, 1)
+
+
+def sign_session_id(session_id, signing_key):
+    """
+    Generate a HMAC signature of session_id using the session-unique signing key.
+
+    :param session_id: Session id (Redis key)
+    :param signing_key: Key for generating the signature
+
+    :return: Signature
+    :rtype: str | unicode
+    """
+    return hmac.new(signing_key, session_id.encode('utf-8'),
+                    digestmod=hashlib.sha256).hexdigest()
+
+
+def verify_session_id(session_id, signing_key, signature):
+    """
+    Verify the HMAC signature on a session_id using the session-unique signing key.
+
+    :param session_id: Session id (Redis key)
+    :param signing_key: Key for generating the signature
+    :param signature: Signature of session_id
+
+    :return: True if the signature matches, false otherwise
+    :rtype: bool
+    """
+
+    calculated_sig = hmac.new(signing_key, session_id.encode('utf-8'),
+                              digestmod=hashlib.sha256).hexdigest()
+
+    # Avoid timing attacks, copied from Beaker https://beaker.readthedocs.org/
+
+    invalid_bits = 0
+    if len(calculated_sig) != len(signature):
+        return None
+
+    for a, b in zip(calculated_sig, signature):
+        invalid_bits += a != b
+
+    return bool(not invalid_bits)
