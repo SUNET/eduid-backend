@@ -8,10 +8,7 @@ from celery.signals import celeryd_init
 
 from eduid_common.config.parsers import IniConfigParser
 
-DEFAULT_CONFIG_FILE_NAME = 'eduid_msg.ini'
-DEFAULT_CONFIG_ENV_VAR = 'EDUID_MSG_CONFIG'
-
-config_parser = IniConfigParser(DEFAULT_CONFIG_FILE_NAME, DEFAULT_CONFIG_ENV_VAR)
+config_parser = IniConfigParser('eduid_msg.ini', 'EDUID_MSG_CONFIG')
 
 celery = Celery('eduid_msg.celery', include=['eduid_msg.tasks'])
 celery.conf.update(config_parser.read_configuration())
