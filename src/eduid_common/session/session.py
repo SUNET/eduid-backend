@@ -51,7 +51,7 @@ class SessionManager(object):
             host = cfg['redis_host']
             self.pool = redis.ConnectionPool(host=host, port=port, db=db)
         self.ttl = ttl
-        self.secret =  secret
+        self.secret = secret
         self.whitelist = whitelist
         self.raise_on_unknown = raise_on_unknown
 
@@ -120,7 +120,7 @@ class Session(collections.MutableMapping):
         """
         self.conn = redis.StrictRedis(connection_pool=pool)
         self.ttl = ttl
-        self.secret =  secret
+        self.secret = secret
         self.whitelist = whitelist
         self.raise_on_unknown = raise_on_unknown
         if token is None:
@@ -130,18 +130,13 @@ class Session(collections.MutableMapping):
             self.key = self.new_key()
             self.token = self.encode_token(self.key)
             self._data = {}
-            if self.whitelist:
-                if self.raise_on_unknown:
-                    for k in data:
-                        if k not in self.whitelist:
-                            raise ValueError('key {!r} not allowed '
-                                             'in session'.format(k))
-                for k, v in data.items():
-                    if k in self.whitelist:
-                        self._data[k] = v
-            else:
-                for k, v in data.items():
-                    self._data[k] = v
+
+            for k, v in data.items():
+                if self.whitelist and k not in self.whitelist:
+                    if self.raise_on_unknown:
+                        raise ValueError('Key {!r} not allowed in session'.format(k))
+                    continue
+                self._data[k] = v
         else:
             self.token = token
             self.key = self.decode_token(token)
@@ -157,13 +152,10 @@ class Session(collections.MutableMapping):
         raise KeyError('key {!r} not present in session'.format(key))
 
     def __setitem__(self, key, value):
-        if self.whitelist:
-            if key not in self.whitelist:
-                if self.raise_on_unknown:
-                    raise ValueError('key {!r} not allowed '
-                                     'in session'.format(key))
-                else:
-                    return
+        if self.whitelist and key not in self.whitelist:
+            if self.raise_on_unknown:
+                raise ValueError('Key {!r} not allowed in session'.format(key))
+            return
         self._data[key] = value
 
     def __delitem__(self, key):
