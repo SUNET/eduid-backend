@@ -1,12 +1,13 @@
-import uuid
 import hmac
-import jose
 import json
 import bcrypt
 import hashlib
 import collections
 import redis
 import redis.sentinel
+import nacl.secret
+import nacl.utils
+import nacl.encoding
 
 import logging
 logger = logging.getLogger(__name__)
@@ -31,7 +32,7 @@ class SessionManager(object):
 
         :param cfg: Redis connection settings dict
         :param ttl: The time to live for the sessions
-        :param secret: signing_key used to sign the keys associated
+        :param secret: token_key used to sign the keys associated
                        with the sessions
         :param whitelist: list of allowed keys for the sessions
         :param raise_on_unknown: Whether to raise an exception on an attempt
@@ -109,7 +110,7 @@ class Session(collections.MutableMapping):
         :param token: the token containing the session_id for the session
         :param data: the data for the (new) session
         :param ttl: The time to live for the session
-        :param secret: signing_key used to sign the session_id associated
+        :param secret: token_key used to sign the session_id associated
                        with the session
         :param whitelist: list of allowed keys for the sessions
         :param raise_on_unknown: Whether to raise an exception on an attempt
@@ -132,9 +133,12 @@ class Session(collections.MutableMapping):
             if not isinstance(data, dict):
                 # mostly convince pycharms introspection what type data is here
                 raise ValueError('Data must be supplied when token is not')
-            self.session_id = _generate_session_id()
-            self.signing_key = _derive_key(self.app_secret, self.session_id, 'sign')
-            self.token = self.encode_token(self.session_id)
+            _bin_session_id = nacl.utils.random(256 / 8)
+            self.token_key = _derive_key(self.app_secret, _bin_session_id, 'hmac', HMAC_DIGEST_SIZE)
+            _nacl_key = _derive_key(self.app_secret, _bin_session_id, 'nacl', nacl.secret.SecretBox.KEY_SIZE)
+            self.nacl_box = nacl.secret.SecretBox(_nacl_key)
+            self.token = self.encode_token(_bin_session_id)
+            self.session_id = _bin_session_id.encode('hex')
             self._data = {}
 
             for k, v in data.items():
@@ -145,13 +149,16 @@ class Session(collections.MutableMapping):
                 self._data[k] = v
         else:
             self.token = token
-            self.session_id, signature = self.decode_token(token)
-            self.signing_key = _derive_key(self.app_secret, self.session_id, 'sign')
-            if not verify_session_id(self.session_id, self.signing_key, signature):
+            _bin_session_id, _bin_signature = self.decode_token(token)
+            self.token_key = _derive_key(self.app_secret, _bin_session_id, 'hmac', HMAC_DIGEST_SIZE)
+            self.session_id = _bin_session_id.encode('hex')
+            if not verify_session_id(_bin_session_id, self.token_key, _bin_signature):
                 raise ValueError('Token signature check failed')
             data = self.conn.get(self.session_id)
             if not data:
                 raise KeyError('Session not found: {!r}'.format(self.session_id))
+            _nacl_key = _derive_key(self.app_secret, _bin_session_id, 'nacl', nacl.secret.SecretBox.KEY_SIZE)
+            self.nacl_box = nacl.secret.SecretBox(_nacl_key)
             self._data = self.verify_data(data)
         logger.info('Created session with session_id %s and token %s' % (self.session_id, self.token))
 
@@ -199,10 +206,15 @@ class Session(collections.MutableMapping):
         :return: a token with the signed session_id
         :rtype: str | unicode
         """
-        sig = sign_session_id(session_id, self.signing_key)
+        sig = sign_session_id(session_id, self.token_key)
         # Prepend an 'a' so we always have a valid NCName, needed by
         # pysaml2 for its session ids.
-        return ''.join([TOKEN_PREFIX, sig, session_id])
+        encoder = nacl.encoding.Base64Encoder()
+        combined = encoder.encode('.'.join([session_id, sig]))
+        # equal-signs are disallowed in NCNames
+        while combined[-1] == '=':
+            combined = combined[:-1]
+        return ''.join([TOKEN_PREFIX, combined])
 
     def decode_token(self, token):
         """
@@ -220,41 +232,50 @@ class Session(collections.MutableMapping):
         if not token.startswith(TOKEN_PREFIX):
             raise ValueError('Invalid token string {!r}'.format(token))
         val = token.strip('"')[len(TOKEN_PREFIX):]
-        digest_len = HMAC_DIGEST_SIZE * 2
         # Split the token into it's two parts - the session_id and the HMAC signature of it
-        data, data_sig = val[digest_len:], val[:digest_len]
-        return data, data_sig
+        decoder = nacl.encoding.Base64Encoder()
+        # the == was removed in encode_token() to keep it a valid NCName
+        _parts = decoder.decode(val + '==').split('.')
+        _bin_session_id = _parts[0]
+        _bin_sig = _parts[1]
+        return _bin_session_id, _bin_sig
 
-    def sign_data(self, data_dict, alg='HS256'):
+    def sign_data(self, data_dict):
         """
         Sign (and encrypt) data before storing it in Redis.
 
         :param data_dict: Data to be stored
-        :param alg: JOSE encryption algorithm
         :return: serialized data
         :rtype: str | unicode
         """
         # XXX remove this extra debug logging after burn-in period
         logger.debug('Storing v2 data in cache: {!r}'.format(data_dict))
-
-        jwk = {'k': self.signing_key.encode('hex')}
-        jws = jose.sign(data_dict, jwk, alg=alg)
-        signed_claims = jose.serialize_compact(jws)
-        versioned = {'v2': signed_claims}
+        nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
+        # Version data to make it easier to know how to decode it on reading
+        versioned = {'v2': self.nacl_box.encrypt(json.dumps(data_dict), nonce,
+                                                 encoder = nacl.encoding.Base64Encoder)
+                     }
         return json.dumps(versioned)
 
-    def verify_data(self, data_str, alg='HS256'):
+    def verify_data(self, data_str):
+        """
+        Verify (and decrypt) session data read from Redis.
+
+        :param data_str: Data read from Redis
+        :return: dict
+        :rtype: dict
+        """
         versioned = json.loads(data_str)
         if 'v1' in versioned:
             # XXX remove this extra debug logging after burn-in period
-            logger.debug('Loaded version 1 data from cache: {!r}'.format(versioned['v1']))
+            logger.debug('Loaded v1 data from cache: {!r}'.format(versioned['v1']))
             return versioned['v1']
         if 'v2' in versioned:
-            jwk = {'k': self.signing_key.encode('hex')}
-            to_verify = jose.deserialize_compact(versioned['v2'].replace("\n", ''))
-            jwt = jose.verify(to_verify, jwk, alg=alg)
-            logger.debug('Loaded v2 data from cache: {!r}'.format(jwt.claims))
-            return jwt.claims
+            _data = self.nacl_box.decrypt(versioned['v2'],
+                                          encoder = nacl.encoding.Base64Encoder)
+            decrypted = json.loads(_data)
+            logger.debug('Loaded v2 data from cache: {!r}'.format(decrypted))
+            return decrypted
 
         logger.error('Unknown data retrieved from cache: {!r}'.format(data_str))
         raise ValueError('Unknown data retrieved from cache')
@@ -275,14 +296,7 @@ class Session(collections.MutableMapping):
         self.conn.expire(self.session_id, self.ttl)
 
 
-def _generate_session_id():
-    """
-    Generate a new session_id
-    """
-    return uuid.uuid4().hex
-
-
-def _derive_key(app_key, session_key, usage):
+def _derive_key(app_key, session_key, usage, size):
     """
     Derive a cryptographic session_id for a specific usage from the app_key and the session_key.
 
@@ -290,13 +304,14 @@ def _derive_key(app_key, session_key, usage):
     The session_key is a randomized session_id unique to this session.
 
     :param app_key: Application shared session_id
-    :param usage: 'sign' or 'encrypt'
+    :param usage: 'sign' or 'encrypt' or something else
     :param session_key: Session unique session_id
+    :param size: Size of key requested in bytes
 
     :return: session_id as raw bytes
     :rtype: str | unicode
     """
-    return bcrypt.kdf(app_key, ''.join([usage, session_key]), HMAC_DIGEST_SIZE, 1)
+    return bcrypt.kdf(app_key, ''.join([usage, session_key]), size, 1)
 
 
 def sign_session_id(session_id, signing_key):
@@ -307,10 +322,9 @@ def sign_session_id(session_id, signing_key):
     :param signing_key: Key for generating the signature
 
     :return: Signature
-    :rtype: str | unicode
+    :rtype: bytes
     """
-    return hmac.new(signing_key, session_id.encode('utf-8'),
-                    digestmod=hashlib.sha256).hexdigest()
+    return hmac.new(signing_key, session_id, digestmod=hashlib.sha256).digest()
 
 
 def verify_session_id(session_id, signing_key, signature):
@@ -325,8 +339,7 @@ def verify_session_id(session_id, signing_key, signature):
     :rtype: bool
     """
 
-    calculated_sig = hmac.new(signing_key, session_id.encode('utf-8'),
-                              digestmod=hashlib.sha256).hexdigest()
+    calculated_sig = hmac.new(signing_key, session_id, digestmod=hashlib.sha256).digest()
 
     # Avoid timing attacks, copied from Beaker https://beaker.readthedocs.org/
 
