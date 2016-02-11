@@ -73,7 +73,8 @@ class SessionManager(object):
         :return: the session
         :rtype: Session
         """
-        return Session(self.pool, token=token, data=data,
+        conn = redis.StrictRedis(connection_pool=self.pool)
+        return Session(conn, token=token, data=data,
                        secret=self.secret, ttl=self.ttl,
                        whitelist=self.whitelist,
                        raise_on_unknown=self.raise_on_unknown)
@@ -84,7 +85,7 @@ class Session(collections.MutableMapping):
     Session objects that keep their data in a redis db.
     """
 
-    def __init__(self, pool, token=None, data=None, secret='', ttl=None,
+    def __init__(self, conn, token=None, data=None, secret='', ttl=None,
                  whitelist=None, raise_on_unknown=False):
         """
         Create a session for the given token or data.
@@ -100,7 +101,7 @@ class Session(collections.MutableMapping):
         a ValueError will be raised on every attempt to set a
         non-whitelisted key.
 
-        :param pool: Pool from which to get the redis connection
+        :param conn: Redis connection instance
         :param token: the token containing the key for the session
         :param data: the data for the (new) session
         :param ttl: The time to live for the session
@@ -110,7 +111,7 @@ class Session(collections.MutableMapping):
         :param raise_on_unknown: Whether to raise an exception on an attempt
                                  to set a session key not in whitelist
 
-        :type pool: redis.ConnectionPool
+        :type conn: redis.StrictRedis
         :type token: str or None
         :type data: dict or None
         :type secret: str
@@ -118,7 +119,7 @@ class Session(collections.MutableMapping):
         :type whitelist: list
         :type raise_on_unknown: bool
         """
-        self.conn = redis.StrictRedis(connection_pool=pool)
+        self.conn = conn
         self.ttl = ttl
         self.secret = secret
         self.whitelist = whitelist
@@ -141,6 +142,8 @@ class Session(collections.MutableMapping):
             self.token = token
             self.key = self.decode_token(token)
             data = self.conn.get(self.key)
+            if not data:
+                raise KeyError('Session not found: {!r}'.format(self.key))
             self._data = self.verify_data(data)
         logger.info('Created session with key %s and token %s' % (self.key, self.token))
 
