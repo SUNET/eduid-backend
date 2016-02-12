@@ -1,6 +1,83 @@
+#
+# Copyright (c) 2016 NORDUnet A/S
+# All rights reserved.
+#
+#   Redistribution and use in source and binary forms, with or
+#   without modification, are permitted provided that the following
+#   conditions are met:
+#
+#     1. Redistributions of source code must retain the above copyright
+#        notice, this list of conditions and the following disclaimer.
+#     2. Redistributions in binary form must reproduce the above
+#        copyright notice, this list of conditions and the following
+#        disclaimer in the documentation and/or other materials provided
+#        with the distribution.
+#     3. Neither the name of the NORDUnet nor the names of its
+#        contributors may be used to endorse or promote products derived
+#        from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+# COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+#
+"""
+Applications that need to store state in a distributed fashion can
+use this module.
+
+Basic usage:
+
+    manager = SessionManager(redis_config)
+    session = manager.get_session(data={})
+    session['foo'] = 'bar'
+    session.commit()
+    set_cookie(session.token)
+
+Sessions are stored in a Redis backend (the currently deployed one
+in eduID has three servers, one master and two slaves, and uses
+Redis sentinel for high availability).
+
+Since Redis does not do authorization, and to prevent data leakage
+if the Redis server would get compromized, all data stored in Redis
+is signed and encrypted. The current implementation uses the NaCl
+crypto library to conventiently handle this.
+
+To be able to decrypt a session from Redis, one needs the application
+specific key which is expected to be shared by all instances of an
+application that needs to share session state.
+
+The sessions are encrypted with session encryption keys that are
+derived from the session id (which is also the Redis key) plus the
+application specific key.
+
+When the session id is shared with the user it is in the form of a
+token. The token is the session id plus an HMAC signature of the
+session id. The HMAC key is also derived from the application key
+and the session id, but it is not the same as the session encryption
+key.
+
+The token has to be a valid XML NCName since pysaml2 will use it
+in such a way. That means it has to start with a letter and can't
+contain certain characters. For this reason, the format used for
+tokens is
+
+  'a' + base32(session_id + hmac + padding)
+
+the padding made up so that base32 does not need to pad itself by
+appending equal-signs ('=') at the end, since that is not allowed
+in an NCName.
+"""
+
 import hmac
 import json
-import bcrypt
 import hashlib
 import collections
 import redis
@@ -8,6 +85,7 @@ import redis.sentinel
 import nacl.secret
 import nacl.utils
 import nacl.encoding
+import base64
 
 import logging
 logger = logging.getLogger(__name__)
@@ -17,6 +95,7 @@ logger = logging.getLogger(__name__)
 TOKEN_PREFIX = 'a'
 
 HMAC_DIGEST_SIZE = 256 / 8
+SESSION_KEY_BITS = 256
 
 
 class SessionManager(object):
@@ -133,9 +212,9 @@ class Session(collections.MutableMapping):
             if not isinstance(data, dict):
                 # mostly convince pycharms introspection what type data is here
                 raise ValueError('Data must be supplied when token is not')
-            _bin_session_id = nacl.utils.random(256 / 8)
-            self.token_key = _derive_key(self.app_secret, _bin_session_id, 'hmac', HMAC_DIGEST_SIZE)
-            _nacl_key = _derive_key(self.app_secret, _bin_session_id, 'nacl', nacl.secret.SecretBox.KEY_SIZE)
+            _bin_session_id = nacl.utils.random(SESSION_KEY_BITS / 8)
+            self.token_key = _derive_key(self.app_secret, _bin_session_id, b'hmac', HMAC_DIGEST_SIZE)
+            _nacl_key = _derive_key(self.app_secret, _bin_session_id, b'nacl', nacl.secret.SecretBox.KEY_SIZE)
             self.nacl_box = nacl.secret.SecretBox(_nacl_key)
             self.token = self.encode_token(_bin_session_id)
             self.session_id = _bin_session_id.encode('hex')
@@ -150,14 +229,14 @@ class Session(collections.MutableMapping):
         else:
             self.token = token
             _bin_session_id, _bin_signature = self.decode_token(token)
-            self.token_key = _derive_key(self.app_secret, _bin_session_id, 'hmac', HMAC_DIGEST_SIZE)
+            self.token_key = _derive_key(self.app_secret, _bin_session_id, b'hmac', HMAC_DIGEST_SIZE)
             self.session_id = _bin_session_id.encode('hex')
             if not verify_session_id(_bin_session_id, self.token_key, _bin_signature):
                 raise ValueError('Token signature check failed')
             data = self.conn.get(self.session_id)
             if not data:
                 raise KeyError('Session not found: {!r}'.format(self.session_id))
-            _nacl_key = _derive_key(self.app_secret, _bin_session_id, 'nacl', nacl.secret.SecretBox.KEY_SIZE)
+            _nacl_key = _derive_key(self.app_secret, _bin_session_id, b'nacl', nacl.secret.SecretBox.KEY_SIZE)
             self.nacl_box = nacl.secret.SecretBox(_nacl_key)
             self._data = self.verify_data(data)
         logger.info('Created session with session_id %s and token %s' % (self.session_id, self.token))
@@ -207,13 +286,9 @@ class Session(collections.MutableMapping):
         :rtype: str | unicode
         """
         sig = sign_session_id(session_id, self.token_key)
-        # Prepend an 'a' so we always have a valid NCName, needed by
-        # pysaml2 for its session ids.
-        encoder = nacl.encoding.Base64Encoder()
-        combined = encoder.encode('.'.join([session_id, sig]))
-        # equal-signs are disallowed in NCNames
-        while combined[-1] == '=':
-            combined = combined[:-1]
+        # The last byte ('x') is padding to prevent b32encode from adding an = at the end
+        combined = base64.b32encode(session_id + sig + 'x')
+        assert not combined.endswith('=')
         return ''.join([TOKEN_PREFIX, combined])
 
     def decode_token(self, token):
@@ -233,11 +308,9 @@ class Session(collections.MutableMapping):
             raise ValueError('Invalid token string {!r}'.format(token))
         val = token.strip('"')[len(TOKEN_PREFIX):]
         # Split the token into it's two parts - the session_id and the HMAC signature of it
-        decoder = nacl.encoding.Base64Encoder()
-        # the == was removed in encode_token() to keep it a valid NCName
-        _parts = decoder.decode(val + '==').split('.')
-        _bin_session_id = _parts[0]
-        _bin_sig = _parts[1]
+        # (the last byte is ignored - it is padding to make b32encode not put an = at the end)
+        _decoded = base64.b32decode(val)
+        _bin_session_id, _bin_sig = _decoded[:HMAC_DIGEST_SIZE], _decoded[HMAC_DIGEST_SIZE:-1]
         return _bin_session_id, _bin_sig
 
     def sign_data(self, data_dict):
@@ -308,10 +381,18 @@ def _derive_key(app_key, session_key, usage, size):
     :param session_key: Session unique session_id
     :param size: Size of key requested in bytes
 
-    :return: session_id as raw bytes
-    :rtype: str | unicode
+    :type app_key: bytes
+    :type usage: bytes
+    :type session_key: bytes
+    :type size: int
+
+    :return: Derived key
+    :rtype: bytes
     """
-    return bcrypt.kdf(app_key, ''.join([usage, session_key]), size, 1)
+    # the low number of rounds (3) is not important here - we use this to derive two keys
+    # (different 'usage') from a single key which is comprised of a 256 bit app_key
+    # (shared between instances), and a random session key of 128 bits.
+    return hashlib.pbkdf2_hmac('sha256', app_key, usage + session_key, 3, dklen = size)
 
 
 def sign_session_id(session_id, signing_key):
@@ -320,6 +401,9 @@ def sign_session_id(session_id, signing_key):
 
     :param session_id: Session id (Redis key)
     :param signing_key: Key for generating the signature
+
+    :type session_id: bytes
+    :type signing_key: bytes
 
     :return: Signature
     :rtype: bytes
@@ -335,14 +419,16 @@ def verify_session_id(session_id, signing_key, signature):
     :param signing_key: Key for generating the signature
     :param signature: Signature of session_id
 
+    :type session_id: bytes
+    :type signing_key: bytes
+    :type signature: bytes
+
     :return: True if the signature matches, false otherwise
     :rtype: bool
     """
-
     calculated_sig = hmac.new(signing_key, session_id, digestmod=hashlib.sha256).digest()
 
     # Avoid timing attacks, copied from Beaker https://beaker.readthedocs.org/
-
     invalid_bits = 0
     if len(calculated_sig) != len(signature):
         return None

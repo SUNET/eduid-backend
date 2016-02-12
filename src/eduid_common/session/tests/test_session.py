@@ -27,8 +27,11 @@ class FakeRedisConn(object):
 
 class TestSession(TestCase):
 
-    def test_create_session(self):
+    def setUp(self):
         self.conn = FakeRedisConn()
+
+    def test_create_session(self):
+        """ Test creating a session and reading it back """
         session1 = self._get_session(data={'foo': 'bar'})
         session1.commit()
 
@@ -37,7 +40,7 @@ class TestSession(TestCase):
         self.assertEqual(session2['foo'], session1['foo'])
 
     def test_clear_session(self):
-        self.conn = FakeRedisConn()
+        """ Test creating a session, clearing it and verifying it is gone """
         session1 = self._get_session(data={'foo': 'bar'})
         session1.commit()
 
@@ -53,6 +56,13 @@ class TestSession(TestCase):
         # check that it is no longer there
         with self.assertRaises(KeyError):
             self._get_session(token=token)
+
+    def test_usable_token_encoding(self):
+        """ Pysaml uses the token as an XML NCName so it can't contain some characters. """
+        for i in range(1024):
+            session = self._get_session(data={'foo': 'bar'})
+            self.assertRegexpMatches(session.token, '^[a-z][a-zA-Z0-9.]+$')
+
 
     def _get_session(self, token=None, data=None, secret='s3cr3t', ttl=10,
                      whitelist=None, raise_on_unknown=False):
