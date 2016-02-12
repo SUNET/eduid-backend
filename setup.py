@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 
-version = '0.1.3b5'
+version = '0.2.0b0'
 
 requires = [
     'setuptools >= 2.2',
@@ -10,13 +10,20 @@ requires = [
 
 # Flavours
 webapp_requires = [
-    'pysaml2 >= 1.2.0beta2',  # version sync with dashboard to avoid pip catastrophies
+    'pysaml2 >= 4.0.3rc1',  # version sync with dashboard to avoid pip catastrophies
     'redis >= 2.10.5',
     'pwgen == 0.4',
     'vccs_client >= 0.4.1',
-    'jose >= 0.3.0',
+    'PyNaCl >= 1.0.1',
 ]
 webapp_extras = webapp_requires + []
+
+idp_requires = ['pysaml2 >= 1.2.0beta2',
+                'redis >= 2.10.5',
+                'vccs_client >= 0.4.2',
+                'PyNaCl >= 1.0.1',
+                ]
+idp_extras = idp_requires + []
 
 test_requires = [
     'mock == 1.0.1',
@@ -30,8 +37,8 @@ setup(name='eduid-common',
       description="Common code for eduID applications",
       long_description=long_description,
       classifiers=[
-        "Programming Language :: Python",
-        ],
+          "Programming Language :: Python",
+      ],
       keywords='',
       author='NORDUnet A/S',
       author_email='',
@@ -47,6 +54,7 @@ setup(name='eduid-common',
       extras_require={
           'testing': testing_extras,
           'webapp': webapp_extras,
+          'idp': idp_extras,
       },
       entry_points="""
       """,
