@@ -18,11 +18,12 @@ webapp_requires = [
 ]
 webapp_extras = webapp_requires + []
 
-idp_requires = ['pysaml2 >= 1.2.0beta2',
-                'redis >= 2.10.5',
-                'vccs_client >= 0.4.2',
-                'PyNaCl >= 1.0.1',
-                ]
+idp_requires = [
+    'pysaml2 >= 1.2.0beta2',
+    'redis >= 2.10.5',
+    'vccs_client >= 0.4.2',
+    'PyNaCl >= 1.0.1',
+]
 idp_extras = idp_requires + []
 
 test_requires = [
