@@ -35,7 +35,7 @@ use this module.
 
 Basic usage:
 
-    manager = SessionManager(redis_config)
+    manager = SessionManager(redis_config, secret=app_secret)
     session = manager.get_session(data={})
     session['foo'] = 'bar'
     session.commit()
@@ -139,29 +139,27 @@ class SessionManager(object):
         self.whitelist = whitelist
         self.raise_on_unknown = raise_on_unknown
 
-    def get_session(self, token=None, data=None):
+    def get_session(self, token=None, session_id=None, data=None):
         """
-        Create a session for the given token or data.
-        If the token param is provided, the data param is ignored,
-        and the session data is retrieved from the db keyed by the session_id
-        encapsulated in the token. If token is not provided, data must
-        be provided, a new session_id and token are generated, and the provided
-        data is stored in the db keyed by the newly generated session_id.
+        Create or fetch a session for the given token or data.
 
         :param token: the token containing the session_id for the session
+        :param session_id: the session_id to look for
         :param data: the data for the (new) session
 
-        :type token: str or None
-        :type data: dict or None
+        :type token: str | unicode | None
+        :type session_id: bytes
+        :type data: dict | None
 
         :return: the session
         :rtype: Session
         """
         conn = redis.StrictRedis(connection_pool=self.pool)
-        return Session(conn, token=token, data=data,
+        return Session(conn, token=token, session_id=session_id, data=data,
                        secret=self.secret, ttl=self.ttl,
                        whitelist=self.whitelist,
-                       raise_on_unknown=self.raise_on_unknown)
+                       raise_on_unknown=self.raise_on_unknown,
+                       )
 
 
 class Session(collections.MutableMapping):
@@ -169,34 +167,39 @@ class Session(collections.MutableMapping):
     Session objects that keep their data in a redis db.
     """
 
-    def __init__(self, conn, token=None, data=None, secret='', ttl=None,
+    def __init__(self, conn, token=None, session_id=None,
+                 data=None, secret='', ttl=None,
                  whitelist=None, raise_on_unknown=False):
         """
-        Create a session for the given token or data.
+        Retrive or create a session for the given token or data.
 
-        If the token param is provided, the data param is ignored,
-        and the session data is retrieved from the db keyed by the session_id
-        encapsulated in the token. If token is not provided, data must
-        be provided, a new session_id and token are generated, and the provided
-        data is stored in the db keyed by the newly generated session_id.
+        Preference order of parameter present:
+
+            data:       Create new session from data. If session_id was also
+                        present, use that as id, otherwise generate one.
+            token:      Validate token and use session_id from it
+                        to look up the session
+            session_id: Look up session using session_id
 
         If whitelist is provided, no keys will be set unless they are
         explicitly listed in it; and if raise_on_unknown is True,
         a ValueError will be raised on every attempt to set a
-        non-whitelisted session_id.
+        non-whitelisted key.
 
         :param conn: Redis connection instance
         :param token: the token containing the session_id for the session
+        :param session_id: session_id for the session, if token is not provided
         :param data: the data for the (new) session
         :param ttl: The time to live for the session
-        :param secret: token_key used to sign the session_id associated
+        :param secret: Application secret key used to sign the session_id associated
                        with the session
         :param whitelist: list of allowed keys for the sessions
         :param raise_on_unknown: Whether to raise an exception on an attempt
-                                 to set a session session_id not in whitelist
+                                 to set a session key not in whitelist
 
         :type conn: redis.StrictRedis
         :type token: str or None
+        :type session_id: bytes
         :type data: dict or None
         :type secret: str
         :type ttl: int
@@ -208,37 +211,57 @@ class Session(collections.MutableMapping):
         self.whitelist = whitelist
         self.raise_on_unknown = raise_on_unknown
         self.app_secret = secret
-        if token is None:
-            if not isinstance(data, dict):
-                # mostly convince pycharms introspection what type data is here
-                raise ValueError('Data must be supplied when token is not')
-            _bin_session_id = nacl.utils.random(SESSION_KEY_BITS / 8)
-            self.token_key = _derive_key(self.app_secret, _bin_session_id, b'hmac', HMAC_DIGEST_SIZE)
+        if data is None and (token or session_id):
+            logger.debug('Looking for session using token {!r} or session_id {!r}'.format(token, session_id))
+            if token:
+                self.token = token
+                _bin_session_id, _bin_signature = self.decode_token(token)
+                self.token_key = _derive_key(self.app_secret, _bin_session_id, b'hmac', HMAC_DIGEST_SIZE)
+                if not verify_session_id(_bin_session_id, self.token_key, _bin_signature):
+                    raise ValueError('Token signature check failed')
+            else:
+                _bin_session_id = bytes(session_id)
+                self.token_key = _derive_key(self.app_secret, _bin_session_id, b'hmac', HMAC_DIGEST_SIZE)
+                self.token = self.encode_token(_bin_session_id)
+
+            self.session_id = _bin_session_id.encode('hex')
+
+            # Fetch session from self.conn (Redis)
+            _encrypted_data = self.conn.get(self.session_id)
+            if not _encrypted_data:
+                raise KeyError('Session not found: {!r}'.format(self.session_id))
+
             _nacl_key = _derive_key(self.app_secret, _bin_session_id, b'nacl', nacl.secret.SecretBox.KEY_SIZE)
+            self.nacl_box = nacl.secret.SecretBox(_nacl_key)
+
+            # Decode and verify data
+            data = self.verify_data(_encrypted_data)
+        else:
+            if data is None:
+                raise ValueError('Data must be provided when token/session_id is not')
+            if session_id:
+                _bin_session_id = bytes(session_id)
+            else:
+                # Generate a random session_id
+                _bin_session_id = nacl.utils.random(SESSION_KEY_BITS / 8)
+            _nacl_key = _derive_key(self.app_secret, _bin_session_id, b'nacl', nacl.secret.SecretBox.KEY_SIZE)
+            self.token_key = _derive_key(self.app_secret, _bin_session_id, b'hmac', HMAC_DIGEST_SIZE)
             self.nacl_box = nacl.secret.SecretBox(_nacl_key)
             self.token = self.encode_token(_bin_session_id)
             self.session_id = _bin_session_id.encode('hex')
-            self._data = {}
 
-            for k, v in data.items():
-                if self.whitelist and k not in self.whitelist:
-                    if self.raise_on_unknown:
-                        raise ValueError('Key {!r} not allowed in session'.format(k))
-                    continue
-                self._data[k] = v
-        else:
-            self.token = token
-            _bin_session_id, _bin_signature = self.decode_token(token)
-            self.token_key = _derive_key(self.app_secret, _bin_session_id, b'hmac', HMAC_DIGEST_SIZE)
-            self.session_id = _bin_session_id.encode('hex')
-            if not verify_session_id(_bin_session_id, self.token_key, _bin_signature):
-                raise ValueError('Token signature check failed')
-            data = self.conn.get(self.session_id)
-            if not data:
-                raise KeyError('Session not found: {!r}'.format(self.session_id))
-            _nacl_key = _derive_key(self.app_secret, _bin_session_id, b'nacl', nacl.secret.SecretBox.KEY_SIZE)
-            self.nacl_box = nacl.secret.SecretBox(_nacl_key)
-            self._data = self.verify_data(data)
+        if not isinstance(data, dict):
+            # mostly convince pycharms introspection what type data is here
+            raise ValueError('Data must be a dict, not {!s}'.format(type(data)))
+
+        self._data = {}
+        for k, v in data.items():
+            if self.whitelist and k not in self.whitelist:
+                if self.raise_on_unknown:
+                    raise ValueError('Key {!r} not allowed in session'.format(k))
+                continue
+            self._data[k] = v
+
         logger.info('Created session with session_id %s and token %s' % (self.session_id, self.token))
 
     def __getitem__(self, key, default=None):
@@ -288,7 +311,9 @@ class Session(collections.MutableMapping):
         sig = sign_session_id(session_id, self.token_key)
         # The last byte ('x') is padding to prevent b32encode from adding an = at the end
         combined = base64.b32encode(session_id + sig + 'x')
-        assert not combined.endswith('=')
+        # Make sure token will be a valid NCName (pysaml2 requirement)
+        while combined.endswith('='):
+            combined = combined[:-1]
         return ''.join([TOKEN_PREFIX, combined])
 
     def decode_token(self, token):
