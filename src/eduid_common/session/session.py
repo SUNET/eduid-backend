@@ -216,12 +216,12 @@ class Session(collections.MutableMapping):
             if token:
                 self.token = token
                 _bin_session_id, _bin_signature = self.decode_token(token)
-                self.token_key = _derive_key(self.app_secret, _bin_session_id, b'hmac', HMAC_DIGEST_SIZE)
+                self.token_key = derive_key(self.app_secret, _bin_session_id, b'hmac', HMAC_DIGEST_SIZE)
                 if not verify_session_id(_bin_session_id, self.token_key, _bin_signature):
                     raise ValueError('Token signature check failed')
             else:
                 _bin_session_id = bytes(session_id)
-                self.token_key = _derive_key(self.app_secret, _bin_session_id, b'hmac', HMAC_DIGEST_SIZE)
+                self.token_key = derive_key(self.app_secret, _bin_session_id, b'hmac', HMAC_DIGEST_SIZE)
                 self.token = self.encode_token(_bin_session_id)
 
             self.session_id = _bin_session_id.encode('hex')
@@ -231,7 +231,7 @@ class Session(collections.MutableMapping):
             if not _encrypted_data:
                 raise KeyError('Session not found: {!r}'.format(self.session_id))
 
-            _nacl_key = _derive_key(self.app_secret, _bin_session_id, b'nacl', nacl.secret.SecretBox.KEY_SIZE)
+            _nacl_key = derive_key(self.app_secret, _bin_session_id, b'nacl', nacl.secret.SecretBox.KEY_SIZE)
             self.nacl_box = nacl.secret.SecretBox(_nacl_key)
 
             # Decode and verify data
@@ -244,8 +244,8 @@ class Session(collections.MutableMapping):
             else:
                 # Generate a random session_id
                 _bin_session_id = nacl.utils.random(SESSION_KEY_BITS / 8)
-            _nacl_key = _derive_key(self.app_secret, _bin_session_id, b'nacl', nacl.secret.SecretBox.KEY_SIZE)
-            self.token_key = _derive_key(self.app_secret, _bin_session_id, b'hmac', HMAC_DIGEST_SIZE)
+            _nacl_key = derive_key(self.app_secret, _bin_session_id, b'nacl', nacl.secret.SecretBox.KEY_SIZE)
+            self.token_key = derive_key(self.app_secret, _bin_session_id, b'hmac', HMAC_DIGEST_SIZE)
             self.nacl_box = nacl.secret.SecretBox(_nacl_key)
             self.token = self.encode_token(_bin_session_id)
             self.session_id = _bin_session_id.encode('hex')
@@ -394,7 +394,7 @@ class Session(collections.MutableMapping):
         self.conn.expire(self.session_id, self.ttl)
 
 
-def _derive_key(app_key, session_key, usage, size):
+def derive_key(app_key, session_key, usage, size):
     """
     Derive a cryptographic session_id for a specific usage from the app_key and the session_key.
 
