@@ -416,7 +416,8 @@ class PrimaryElementList(ElementList):
 
     Provide methods to add, update and remove elements from the list while
     maintaining some governing principles, such as ensuring there is exactly
-    one primary element in the list (except if the list is empty).
+    one primary element in the list (except if the list is empty or there are
+    no confirmed elements).
 
     :param elements: List of elements
     :type elements: [dict | Element]
@@ -442,7 +443,7 @@ class PrimaryElementList(ElementList):
         Add a element to the list.
 
         Raises PrimaryElementViolation if the operation results in != 1 primary
-        element in the list.
+        element in the list and there are confirmed elements.
 
         Raises DuplicateElementViolation if the element already exist in
         the list.
@@ -466,8 +467,8 @@ class PrimaryElementList(ElementList):
         """
         Remove an existing Element from the list.
 
-        Raises PrimaryElementViolation if the operation results in != 1 primary
-        element in the list.
+        Raises PrimaryElementViolation if the operation results in 0 primary
+        element in the list but there are confirmed elements.
 
         :param key: Key of element to remove
         :type key: str | unicode
@@ -479,7 +480,14 @@ class PrimaryElementList(ElementList):
         return self
 
     def _check_primary(self, old_list):
+        """
+        If there are confirmed elements, there must be exactly one primary
+        element. If there are no confirmed elements, there must be 0 primary
+        elements.
 
+        :param old_list: list of elements to get back to if the constraints are violated
+        :type old_list: list
+        """
         if self.verified.count > 0:
             try:
                 assert self.primary is not None
@@ -498,8 +506,9 @@ class PrimaryElementList(ElementList):
         """
         :return: Return the primary Element.
 
-        There must always be exactly one primary element in the list, so an
-        PrimaryElementViolation is raised in case this assertion does not hold.
+        There must always be exactly one primary element if there are confirmed
+        elements in the list, and exactly zero if there are no confirmed elements, so a
+        PrimaryElementViolation is raised in case any of these assertions do not hold.
 
         :rtype: PrimaryElement
         """
@@ -531,7 +540,8 @@ class PrimaryElementList(ElementList):
 
     def _get_primary(self, elements):
         """
-        Find the primary element in a list, and ensure there is exactly one (unless the list is empty).
+        Find the primary element in a list, and ensure there is exactly one (unless
+        there are no confirmed elements, in which case, ensure there are exactly zero).
 
         :param elements: List of Element instances
         :type elements: [Element]
