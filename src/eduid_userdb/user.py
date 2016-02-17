@@ -475,6 +475,8 @@ class User(object):
         res['passwords'] = self.passwords.to_list_of_dicts(old_userdb_format=old_userdb_format)
         res['nins'] = self.nins.to_list_of_dicts(old_userdb_format=old_userdb_format)
         res['tou'] = self.tou.to_list_of_dicts(old_userdb_format=old_userdb_format)
+        if 'eduPersonEntitlement' not in res:
+            res['eduPersonEntitlement'] = res.pop('entitlements', [])
         # Remove these values if they have a value that evaluates to False
         for _remove in ['displayName', 'givenName', 'surname', 'preferredLanguage', 'phone']:
             if _remove in res and not res[_remove]:
@@ -487,8 +489,6 @@ class User(object):
                 res['mail'] = _primary.email
             if 'phone' in res:
                 res['mobile'] = res.pop('phone')
-            if 'entitlements' in res:
-                res['eduPersonEntitlement'] = res.pop('entitlements')
             if 'nins' in res:
                 # Extract all verified NINs and return as a list of strings
                 _nins = res.pop('nins')
