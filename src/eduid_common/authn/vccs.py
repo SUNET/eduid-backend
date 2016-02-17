@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2015 NORDUnet A/S
+# Copyright (c) 2015, 2016 NORDUnet A/S
 # All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or
@@ -30,7 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from datetime import datetime
 from bson import ObjectId
 from eduid_userdb.dashboard import DashboardLegacyUser, DashboardUser
 from eduid_userdb import Password
@@ -66,7 +65,7 @@ def check_password(vccs_url, password, user, vccs=None):
 
     :type vccs_url: string
     :type password: string
-    :type user: dict
+    :type user: User | DashboardLegacyUser
     :type vccs: None or VCCSClient
     :rtype: bool or dict
     """
@@ -105,7 +104,7 @@ def add_credentials(vccs_url, old_password, new_password,
 
     :type vccs_url: string
     :type old_password: string
-    :type user: User
+    :type user: User | DashboardLegacyUser
     :rtype: bool
     """
     password_id = ObjectId()
@@ -192,8 +191,7 @@ def revoke_all_credentials(vccs_url, user, source='dashboard', vccs=None):
             reference=source
         )
         logger.debug("Revoked old credential (account termination)"
-                  " {!s} (user {!s})".format(
-                      credential_id, user))
+                     " {!s} (user {!s})".format(credential_id, user))
         to_revoke.append(factor)
     userid = str(user.user_id)
     vccs.revoke_credentials(userid, to_revoke)
