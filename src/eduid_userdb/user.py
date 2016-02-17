@@ -142,15 +142,16 @@ class User(object):
             # old-style userdb primary e-mail address indicator
             for idx in xrange(len(_mail_addresses)):
                 if _mail_addresses[idx]['email'] == self._data_in['mail']:
-                    _mail_addresses[idx]['primary'] = True
                     if 'passwords' in self._data_in:
                         # Work around a bug where one could signup, not follow the link in the e-mail
                         # and then do a password request to set a password. The e-mail address is
                         # implicitly verified by the password reset (which must have been done using e-mail).
                         _mail_addresses[idx]['verified'] = True
+                    if 'verified' in _mail_addresses[idx] and _mail_addresses[idx]['verified']:
+                        _mail_addresses[idx]['primary'] = True
             self._data_in.pop('mail')
 
-        if len(_mail_addresses) == 1:
+        if len(_mail_addresses) == 1 and 'verified' in _mail_addresses[0] and _mail_addresses[0]['verified']:
             if 'primary' not in _mail_addresses[0] or \
                     _mail_addresses[0]['primary'] is False:
                 # A single mail address was not set as Primary until it was verified
@@ -168,16 +169,14 @@ class User(object):
             _phones = self._data_in.pop('mobile')
             _primary = [x for x in _phones if x.get('primary', False)]
             if _phones and not _primary:
-                # None of the phone numbers are primary. Promote either the first verified
-                # entry found, or failing that - the first entry in the list.
+                # None of the phone numbers are primary. Promote the first verified
+                # entry found.
                 _primary_set = False
                 for _this in _phones:
                     if _this.get('verified', False):
                         _this['primary'] = True
                         _primary_set = True
                         break
-                if not _primary_set:
-                    _phones[0]['primary'] = True
             self._data_in['phone'] = _phones
 
         _phones = self._data_in.pop('phone', [])

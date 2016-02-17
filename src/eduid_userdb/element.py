@@ -419,17 +419,22 @@ class PrimaryElementList(ElementList):
     one primary element in the list (except if the list is empty).
 
     :param elements: List of elements
-    :param require_verified_primary: Is the primary element required to be verified?
     :type elements: [dict | Element]
-    :type require_verified_primary: bool
     """
-    def __init__(self, elements, require_verified_primary=True):
-        self.require_verified_primary = require_verified_primary
-        try:
-            if elements:
-                assert self._get_primary(elements) is not None
-        except PrimaryElementViolation:
-            raise
+    def __init__(self, elements):
+        verified = [e for e in elements if e.is_verified]
+        if len(verified) > 0:
+            try:
+                assert self._get_primary(verified) is not None
+            except (PrimaryElementViolation, AssertionError):
+                raise PrimaryElementViolation('Operation resulted in verified elements '
+                                          'but no primary element.')
+        else:
+            try:
+                assert self._get_primary(elements) is None
+            except (PrimaryElementViolation, AssertionError):
+                raise PrimaryElementViolation('Operation resulted no verified elements '
+                                          'but some primary element.')
         ElementList.__init__(self, elements)
 
     def add(self, element):
@@ -452,14 +457,9 @@ class PrimaryElementList(ElementList):
         if self.find(element.key):
             raise DuplicateElementViolation("Element {!s} already in list".format(element.key))
 
-        _old_list = self._elements
+        old_list = self._elements
         ElementList.add(self, element)
-
-        try:
-            assert self.primary is not None
-        except PrimaryElementViolation:
-            self._elements = _old_list
-            raise
+        self._check_primary(old_list)
         return self
 
     def remove(self, key):
@@ -473,16 +473,25 @@ class PrimaryElementList(ElementList):
         :type key: str | unicode
         :return: ElementList
         """
-        _old_list = self._elements
+        old_list = self._elements
         ElementList.remove(self, key)
-
-        try:
-            if self._elements:
-                assert self.primary is not None
-        except PrimaryElementViolation:
-            self._elements = _old_list
-            raise PrimaryElementViolation("Operation would result in more or less than one primary element")
+        self._check_primary(old_list)
         return self
+
+    def _check_primary(self, old_list):
+
+        if self.verified.count > 0:
+            try:
+                assert self.primary is not None
+            except (PrimaryElementViolation, AssertionError):
+                self._elements = old_list
+                raise PrimaryElementViolation("Operation would result in more or less than one primary element")
+        else:
+            try:
+                assert self.primary is None
+            except (PrimaryElementViolation, AssertionError):
+                self._elements = old_list
+                raise PrimaryElementViolation("Operation would result in more or less than one primary element")
 
     @property
     def primary(self):
@@ -531,16 +540,27 @@ class PrimaryElementList(ElementList):
         """
         if not elements:
             return None
-        res = [x for x in elements if x.is_primary is True]
+        verified = [x for x in elements if x.is_verified is True]
+        if len(verified) == 0:
+            try:
+                assert len([e for e in elements if e.is_primary]) == 0
+            except AssertionError:
+                raise PrimaryElementViolation('There are unconfirmed primary elements')
+            return None
+        res = [x for x in verified if x.is_primary is True]
         if len(res) != 1:
             raise PrimaryElementViolation("{!s} contains {!s}/{!s} primary elements".format(
                 self.__class__.__name__,
                 len(res), len(elements)))
-        if self.require_verified_primary and not res[0].is_verified:
-            raise PrimaryElementViolation("Primary element of {!s} must be verified".format(
-                self.__class__.__name__,
-            ))
         return res[0]
+
+    @property
+    def verified(self):
+        """
+        get a PrimaryElementList with only the confirmed elements.
+        """
+        verified_elements = [e for e in self._elements if e.is_verified]
+        return PrimaryElementList(verified_elements)
 
 
 def _update_something_by(data, key, value):
