@@ -2,7 +2,7 @@ from unittest import TestCase
 
 import time
 
-from eduid_common.session.session import Session
+from eduid_common.session.session import Session, derive_key
 
 class FakeRedisConn(object):
 
@@ -29,6 +29,11 @@ class TestSession(TestCase):
 
     def setUp(self):
         self.conn = FakeRedisConn()
+        try:
+            # Detect too old Python (like on CI) and skip tests
+            _x = derive_key('unittest', 'session', 'test', 16)
+        except AttributeError:
+            self.skipTest('Python hashlib does not contain pbkdf2')
 
     def test_create_session(self):
         """ Test creating a session and reading it back """
