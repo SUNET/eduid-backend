@@ -278,7 +278,7 @@ class Session(collections.MutableMapping):
             return self._data[key]
         elif default is not None:
             return default
-        raise KeyError('session_id {!r} not present in session'.format(key))
+        raise KeyError('Key {!r} not present in session'.format(key))
 
     def __setitem__(self, key, value):
         if self.whitelist and key not in self.whitelist:
