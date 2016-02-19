@@ -497,14 +497,10 @@ class User(object):
         res['passwords'] = self.passwords.to_list_of_dicts(old_userdb_format=old_userdb_format)
         res['nins'] = self.nins.to_list_of_dicts(old_userdb_format=old_userdb_format)
         res['tou'] = self.tou.to_list_of_dicts(old_userdb_format=old_userdb_format)
-<<<<<<< HEAD
-        res['eduPersonEntitlement'] = res.pop('entitlements')
-=======
         if 'eduPersonEntitlement' not in res:
             res['eduPersonEntitlement'] = res.pop('entitlements', [])
         if 'surname' in res:
             res['sn'] = res.pop('surname')
->>>>>>> eperez-few-fixes
         # Remove these values if they have a value that evaluates to False
         for _remove in ['displayName', 'givenName', 'sn', 'preferredLanguage', 'phone']:
             if _remove in res and not res[_remove]:
