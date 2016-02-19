@@ -211,44 +211,26 @@ class Session(collections.MutableMapping):
         self.whitelist = whitelist
         self.raise_on_unknown = raise_on_unknown
         self.app_secret = secret
-        if data is None and (token or session_id):
-            logger.debug('Looking for session using token {!r} or session_id {!r}'.format(token, session_id))
-            if token:
-                self.token = token
-                _bin_session_id, _bin_signature = self.decode_token(token)
-                self.token_key = derive_key(self.app_secret, _bin_session_id, b'hmac', HMAC_DIGEST_SIZE)
-                if not verify_session_id(_bin_session_id, self.token_key, _bin_signature):
-                    raise ValueError('Token signature check failed')
-            else:
-                _bin_session_id = bytes(session_id)
-                self.token_key = derive_key(self.app_secret, _bin_session_id, b'hmac', HMAC_DIGEST_SIZE)
-                self.token = self.encode_token(_bin_session_id)
 
-            self.session_id = _bin_session_id.encode('hex')
+        _bin_session_id = self._init_token_and_session_id(token, session_id)
+        _encrypted_data = None
+        if data is None:
+            if not (token or session_id):
+                raise ValueError('Data must be provided when token/session_id is not')
+
+            logger.debug('Looking for session using token {!r} or session_id {!r}'.format(token, session_id))
 
             # Fetch session from self.conn (Redis)
             _encrypted_data = self.conn.get(self.session_id)
             if not _encrypted_data:
                 raise KeyError('Session not found: {!r}'.format(self.session_id))
 
-            _nacl_key = derive_key(self.app_secret, _bin_session_id, b'nacl', nacl.secret.SecretBox.KEY_SIZE)
-            self.nacl_box = nacl.secret.SecretBox(_nacl_key)
+        _nacl_key = derive_key(self.app_secret, _bin_session_id, b'nacl', nacl.secret.SecretBox.KEY_SIZE)
+        self.nacl_box = nacl.secret.SecretBox(_nacl_key)
 
-            # Decode and verify data
+        if _encrypted_data:
+            # Decode and verify data, need self.nacl_box to do this
             data = self.verify_data(_encrypted_data)
-        else:
-            if data is None:
-                raise ValueError('Data must be provided when token/session_id is not')
-            if session_id:
-                _bin_session_id = bytes(session_id)
-            else:
-                # Generate a random session_id
-                _bin_session_id = nacl.utils.random(SESSION_KEY_BITS / 8)
-            _nacl_key = derive_key(self.app_secret, _bin_session_id, b'nacl', nacl.secret.SecretBox.KEY_SIZE)
-            self.token_key = derive_key(self.app_secret, _bin_session_id, b'hmac', HMAC_DIGEST_SIZE)
-            self.nacl_box = nacl.secret.SecretBox(_nacl_key)
-            self.token = self.encode_token(_bin_session_id)
-            self.session_id = _bin_session_id.encode('hex')
 
         if not isinstance(data, dict):
             # mostly convince pycharms introspection what type data is here
@@ -263,6 +245,33 @@ class Session(collections.MutableMapping):
             self._data[k] = v
 
         logger.info('Created session with session_id %s and token %s' % (self.session_id, self.token))
+
+    def _init_token_and_session_id(self, token, session_id):
+        """
+        Part of __init__(). Initializes self.token, self.token_key, self.session_id and
+        returns the binary version of session_id.
+
+        :param token: the token containing the session_id for the session
+        :param session_id: session_id for the session, if token is not provided
+
+        :return: Binary session id
+        :rtype: bytes
+        """
+        if token:
+            self.token = token
+            _bin_session_id, _bin_signature = self.decode_token(token)
+            self.token_key = derive_key(self.app_secret, _bin_session_id, b'hmac', HMAC_DIGEST_SIZE)
+            if not verify_session_id(_bin_session_id, self.token_key, _bin_signature):
+                raise ValueError('Token signature check failed')
+        else:
+            if not session_id:
+                # Generate a random session_id
+                session_id = nacl.utils.random(SESSION_KEY_BITS / 8)
+            _bin_session_id = bytes(session_id)
+            self.token_key = derive_key(self.app_secret, _bin_session_id, b'hmac', HMAC_DIGEST_SIZE)
+            self.token = self.encode_token(_bin_session_id)
+        self.session_id = _bin_session_id.encode('hex')
+        return _bin_session_id
 
     def __getitem__(self, key, default=None):
         if key in self._data:
