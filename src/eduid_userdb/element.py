@@ -488,18 +488,14 @@ class PrimaryElementList(ElementList):
         :param old_list: list of elements to get back to if the constraints are violated
         :type old_list: list
         """
-        if self.verified.count > 0:
-            try:
+        try:
+            if self.verified.count > 0:
                 assert self.primary is not None
-            except (PrimaryElementViolation, AssertionError):
-                self._elements = old_list
-                raise PrimaryElementViolation("Operation would result in more or less than one primary element")
-        else:
-            try:
+            else:
                 assert self.primary is None
-            except (PrimaryElementViolation, AssertionError):
-                self._elements = old_list
-                raise PrimaryElementViolation("Operation would result in more or less than one primary element")
+        except (PrimaryElementViolation, AssertionError):
+            self._elements = old_list
+            raise PrimaryElementViolation("Operation would result in more or less than one primary element")
 
     @property
     def primary(self):
