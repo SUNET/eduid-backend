@@ -51,6 +51,22 @@ class DashboardUserDB(UserDB):
         # XXX old_format default is set to True here
         super(DashboardUserDB, self).save(user, check_sync=check_sync, old_format=old_format)
 
+    def get_identity_proofing(self, user):
+        """
+        Return the proofing urn value
+
+        :param user: The user object
+        :type user: User
+        """
+        al1_urn = 'http://www.swamid.se/policy/assurance/al1'
+        al2_urn = 'http://www.swamid.se/policy/assurance/al2'
+        user = self.get_user_by_id(user.user_id)
+        if user is not None:
+            if user.nins.count > 0:
+                return al2_urn
+
+        return al1_urn
+
 
 class DashboardOldUserDB(DashboardUserDB):
 

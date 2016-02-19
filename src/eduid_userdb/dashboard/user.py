@@ -61,40 +61,13 @@ class DashboardUser(User):
                         eduPersonPrincipalName = eppn,
                         subject = subject,
                         )
-        _terminated = data.pop('terminated', None)
 
         User.__init__(self, data = data)
-
-        # now self._data exists so we can call our setters
-        self.terminated = _terminated
 
     def to_dict(self, old_userdb_format=False):
         res = User.to_dict(self, old_userdb_format=old_userdb_format)
         res['terminated'] = self.terminated
         return res
-
-    # -----------------------------------------------------------------
-    @property
-    def terminated(self):
-        """
-        Get the user's terminated status (False or the timestamp when the user was terminated).
-
-        :rtype: False | datetime
-        """
-        return self._data.get('terminated', False)
-
-    @terminated.setter
-    def terminated(self, value):
-        """
-        :param value: Set the user's terminated status.
-        :type value: bool
-        """
-        if value is not None:
-            if not isinstance(value, bool) and not isinstance(value, datetime):
-                raise UserDBValueError('Non-bool/datetime terminated value')
-            if value is True:
-                value = datetime.utcnow()
-            self._data['terminated'] = value
 
 
 class DashboardLegacyUser(object):

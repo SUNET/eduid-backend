@@ -57,6 +57,7 @@ class User(object):
     """
     def __init__(self, data, raise_on_unknown = True):
         self._data_in = copy.deepcopy(data)  # to not modify callers data
+        self._data_orig = copy.deepcopy(data)  # to not modify callers data
         self._data = dict()
 
         self._parse_check_invalid_users()
@@ -89,6 +90,7 @@ class User(object):
         self.language = self._data_in.pop('preferredLanguage', None)
         self.modified_ts = self._data_in.pop('modified_ts', None)
         self.entitlements = self._data_in.pop('entitlements', None)
+        self.terminated = self._data_in.pop('terminated', None)
         # obsolete attributes
         if 'postalAddress' in self._data_in:
             del self._data_in['postalAddress']
@@ -142,15 +144,16 @@ class User(object):
             # old-style userdb primary e-mail address indicator
             for idx in xrange(len(_mail_addresses)):
                 if _mail_addresses[idx]['email'] == self._data_in['mail']:
-                    _mail_addresses[idx]['primary'] = True
                     if 'passwords' in self._data_in:
                         # Work around a bug where one could signup, not follow the link in the e-mail
                         # and then do a password request to set a password. The e-mail address is
                         # implicitly verified by the password reset (which must have been done using e-mail).
                         _mail_addresses[idx]['verified'] = True
+                    if 'verified' in _mail_addresses[idx] and _mail_addresses[idx]['verified']:
+                        _mail_addresses[idx]['primary'] = True
             self._data_in.pop('mail')
 
-        if len(_mail_addresses) == 1:
+        if len(_mail_addresses) == 1 and 'verified' in _mail_addresses[0] and _mail_addresses[0]['verified']:
             if 'primary' not in _mail_addresses[0] or \
                     _mail_addresses[0]['primary'] is False:
                 # A single mail address was not set as Primary until it was verified
@@ -168,19 +171,15 @@ class User(object):
             _phones = self._data_in.pop('mobile')
             _primary = [x for x in _phones if x.get('primary', False)]
             if _phones and not _primary:
-                # None of the phone numbers are primary. Promote either the first verified
-                # entry found, or failing that - the first entry in the list.
-                _primary_set = False
+                # None of the phone numbers are primary. Promote the first verified
+                # entry found (or none if there are no verified entries).
                 for _this in _phones:
                     if _this.get('verified', False):
                         _this['primary'] = True
-                        _primary_set = True
                         break
-                if not _primary_set:
-                    _phones[0]['primary'] = True
-            self._data_in['phone'] = _phones
+            self._data_in['mobile'] = _phones
 
-        _phones = self._data_in.pop('phone', [])
+        _phones = self._data_in.pop('mobile', [])
         self._phone_numbers = PhoneNumberList(_phones)
 
     def _parse_nins(self):
@@ -459,6 +458,29 @@ class User(object):
         return self._tou
 
     # -----------------------------------------------------------------
+    @property
+    def terminated(self):
+        """
+        Get the user's terminated status (False or the timestamp when the user was terminated).
+
+        :rtype: False | datetime
+        """
+        return self._data.get('terminated', False)
+
+    @terminated.setter
+    def terminated(self, value):
+        """
+        :param value: Set the user's terminated status.
+        :type value: bool
+        """
+        if value is not None:
+            if not isinstance(value, bool) and not isinstance(value, datetime.datetime):
+                raise UserDBValueError('Non-bool/datetime terminated value')
+            if value is True:
+                value = datetime.datetime.utcnow()
+            self._data['terminated'] = value
+
+    # -----------------------------------------------------------------
     def to_dict(self, old_userdb_format=False):
         """
         Return user data serialized into a dict that can be stored in MongoDB.
@@ -471,11 +493,18 @@ class User(object):
         """
         res = copy.copy(self._data)  # avoid caller messing up our private _data
         res['mailAliases'] = self.mail_addresses.to_list_of_dicts(old_userdb_format=old_userdb_format)
-        res['phone'] = self.phone_numbers.to_list_of_dicts(old_userdb_format=old_userdb_format)
+        res['mobile'] = self.phone_numbers.to_list_of_dicts(old_userdb_format=old_userdb_format)
         res['passwords'] = self.passwords.to_list_of_dicts(old_userdb_format=old_userdb_format)
         res['nins'] = self.nins.to_list_of_dicts(old_userdb_format=old_userdb_format)
         res['tou'] = self.tou.to_list_of_dicts(old_userdb_format=old_userdb_format)
+<<<<<<< HEAD
         res['eduPersonEntitlement'] = res.pop('entitlements')
+=======
+        if 'eduPersonEntitlement' not in res:
+            res['eduPersonEntitlement'] = res.pop('entitlements', [])
+        if 'surname' in res:
+            res['sn'] = res.pop('surname')
+>>>>>>> eperez-few-fixes
         # Remove these values if they have a value that evaluates to False
         for _remove in ['displayName', 'givenName', 'sn', 'preferredLanguage', 'phone']:
             if _remove in res and not res[_remove]:

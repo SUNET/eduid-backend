@@ -263,7 +263,7 @@ class TestUser(TestCase):
                 u'sn': u'yyy',
                 }
         user = User(data)
-        self.assertEqual(user.phone_numbers.primary.number, number1)
+        self.assertEqual(user.phone_numbers.primary, None)
 
     def test_two_non_primary_phones(self):
         """

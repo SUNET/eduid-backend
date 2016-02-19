@@ -131,7 +131,7 @@ class NinList(PrimaryElementList):
                 nin = nin_from_dict(this, raise_on_unknown)
             elements.append(nin)
 
-        PrimaryElementList.__init__(self, elements, require_verified_primary=False)
+        PrimaryElementList.__init__(self, elements)
 
     @property
     def primary(self):
