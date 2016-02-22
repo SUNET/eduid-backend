@@ -6,11 +6,12 @@ from __future__ import absolute_import
 from celery import Celery
 from celery.signals import celeryd_init
 
-from eduid_msg.config import read_configuration
+from eduid_common.config.parsers import IniConfigParser
 
+config_parser = IniConfigParser('eduid_msg.ini', 'EDUID_MSG_CONFIG')
 
 celery = Celery('eduid_msg.celery', include=['eduid_msg.tasks'])
-celery.conf.update(read_configuration())
+celery.conf.update(config_parser.read_configuration())
 
 
 # This signal is only emited when run as a worker

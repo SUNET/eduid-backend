@@ -4,11 +4,10 @@ from __future__ import absolute_import
 from celery import Task
 from celery.utils.log import get_task_logger
 from celery.task import periodic_task, task
-from eduid_msg.celery import celery
+from eduid_msg.celery import celery, config_parser
 from eduid_msg.cache import CacheMDB
 from eduid_msg.utils import load_template, navet_get_name_and_official_address, navet_get_relations
 from eduid_msg.decorators import TransactionAudit
-from eduid_msg.config import read_configuration
 from eduid_msg.exceptions import NavetException, NavetAPIException
 from time import time
 from datetime import datetime, timedelta
@@ -50,7 +49,7 @@ class MessageRelay(Task):
     _sms = None
     _mm_api = None
     _navet_api = None
-    _config = read_configuration()
+    _config = config_parser.read_configuration()
     MONGODB_URI = _config['MONGO_URI'] if 'MONGO_URI' in _config else DEFAULT_MONGODB_URI
     MM_API_URI = _config['MM_API_URI'] if 'MM_API_URI' in _config else DEFAULT_MM_API_URI
     NAVET_API_URI = _config['NAVET_API_URI'] if 'NAVET_API_URI' in _config else DEFAULT_NAVET_API_URI
