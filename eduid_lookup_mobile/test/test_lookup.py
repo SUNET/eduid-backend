@@ -1,4 +1,5 @@
 from unittest import TestCase
+from eduid_common.config.parsers import IniConfigParser
 from eduid_lookup_mobile.client.mobile_lookup_client import MobileLookupClient
 from eduid_lookup_mobile.tasks import logger
 import os
@@ -8,10 +9,12 @@ import pkg_resources
 class TestVerifiers(TestCase):
     def setUp(self):
         data_dir = pkg_resources.resource_filename(__name__, 'data')
-        self.config_file = os.path.join(data_dir, 'test.ini')
+        config_file = os.path.join(data_dir, 'test.ini')
+        self.config_parser = IniConfigParser(config_file)
 
     def test_find_NIN_by_mobile(self):
-        mobile_verifier = MobileLookupClient(logger, config_filename=self.config_file)
+        config = self.config_parser.read_configuration()
+        mobile_verifier = MobileLookupClient(logger, config)
 
         self.assertTrue(mobile_verifier.find_NIN_by_mobile('+46700011222') == '200202025678')
         self.assertTrue(mobile_verifier.find_NIN_by_mobile('+46700011333') == '197512125432')
