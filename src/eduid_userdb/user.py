@@ -167,7 +167,9 @@ class User(object):
         Parse all the different formats of mobile/phone attributes in the database.
         """
         if 'mobile' in self._data_in:
-            _phones = self._data_in.pop('mobile')
+            self._data_in['phone'] = self._data_in.pop('mobile')
+        if 'phone' in self._data_in:
+            _phones = self._data_in.pop('phone')
             _primary = [x for x in _phones if x.get('primary', False)]
             if _phones and not _primary:
                 # None of the phone numbers are primary. Promote the first verified
@@ -176,9 +178,9 @@ class User(object):
                     if _this.get('verified', False):
                         _this['primary'] = True
                         break
-            self._data_in['mobile'] = _phones
+            self._data_in['phone'] = _phones
 
-        _phones = self._data_in.pop('mobile', [])
+        _phones = self._data_in.pop('phone', [])
         self._phone_numbers = PhoneNumberList(_phones)
 
     def _parse_nins(self):
@@ -492,7 +494,7 @@ class User(object):
         """
         res = copy.copy(self._data)  # avoid caller messing up our private _data
         res['mailAliases'] = self.mail_addresses.to_list_of_dicts(old_userdb_format=old_userdb_format)
-        res['mobile'] = self.phone_numbers.to_list_of_dicts(old_userdb_format=old_userdb_format)
+        res['phone'] = self.phone_numbers.to_list_of_dicts(old_userdb_format=old_userdb_format)
         res['passwords'] = self.passwords.to_list_of_dicts(old_userdb_format=old_userdb_format)
         res['nins'] = self.nins.to_list_of_dicts(old_userdb_format=old_userdb_format)
         res['tou'] = self.tou.to_list_of_dicts(old_userdb_format=old_userdb_format)

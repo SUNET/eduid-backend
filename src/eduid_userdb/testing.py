@@ -79,15 +79,15 @@ MOCKED_USER_STANDARD = {
         'urn:mace:eduid.se:role:admin',
         'urn:mace:eduid.se:role:student',
     ],
-    'mobile': [{
-        'mobile': '+34609609609',
+    'phone': [{
+        'number': '+34609609609',
         'primary': True,
         'verified': True
     }, {
-        'mobile': '+34 6096096096',
+        'number': '+34 6096096096',
         'verified': False
     }, {
-        'mobile': '+34607507507',
+        'number': '+34607507507',
         'verified': True
     }],
     'mail': 'johnsmith@example.com',
@@ -140,7 +140,7 @@ class MockedUserDB(UserDB):
     test_users['johnsmith@example.org']['mailAliases'][1]['email'] = 'johnsmith2@example.org'
     test_users['johnsmith@example.org']['_id'] = ObjectId('901234567890123456789012')
     test_users['johnsmith@example.org']['norEduPersonNIN'] = []
-    test_users['johnsmith@example.org']['mobile'] = []
+    test_users['johnsmith@example.org']['phone'] = []
     test_users['johnsmith@example.org']['eduPersonPrincipalName'] = 'babba-labba'
 
     def __init__(self, users=[]):

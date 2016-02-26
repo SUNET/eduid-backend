@@ -132,7 +132,7 @@ NEW_BASIC_USER_EXAMPLE = {
         'verification_code': '1234',
         'primary': False,
     }],
-    'mobile': [{
+    'phone': [{
         'number': '+34609609609',
         'created_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"), 
         'created_by': 'dashboard',
@@ -142,7 +142,7 @@ NEW_BASIC_USER_EXAMPLE = {
         'verification_code': '1234',
         'primary': True,
     }, {
-        'mobile': '+34 6096096096',
+        'number': '+34 6096096096',
         'created_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"), 
         'created_by': 'dashboard',
         'verified': True,

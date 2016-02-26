@@ -237,7 +237,7 @@ class TestUser(TestCase):
 
     def test_two_unverified_non_primary_phones(self):
         """
-        Test that the first entry in the `mobile' list is chosen as primary when none are verified.
+        Test that the first entry in the `phone' list is chosen as primary when none are verified.
         """
         number1 = u'+9112345678'
         number2 = u'+9123456789'
@@ -247,12 +247,12 @@ class TestUser(TestCase):
                 u'givenName': u'xxx',
                 u'mail': u'test@gmail.com',
                 u'mailAliases': [{u'email': u'test@gmail.com', u'verified': True}],
-                u'mobile': [{u'csrf': u'47d42078719b8377db622c3ff85b94840b483c92',
-                             u'mobile': number1,
+                u'phone': [{u'csrf': u'47d42078719b8377db622c3ff85b94840b483c92',
+                             u'number': number1,
                              u'primary': False,
                              u'verified': False},
                             {u'csrf': u'47d42078719b8377db622c3ff85b94840b483c92',
-                             u'mobile': number2,
+                             u'number': number2,
                              u'primary': False,
                              u'verified': False}],
                 u'passwords': [{u'created_ts': datetime.datetime(2014, 6, 29, 17, 52, 37, 830000),
@@ -277,12 +277,12 @@ class TestUser(TestCase):
                 u'givenName': u'xxx',
                 u'mail': u'test@gmail.com',
                 u'mailAliases': [{u'email': u'test@gmail.com', u'verified': True}],
-                u'mobile': [{u'csrf': u'47d42078719b8377db622c3ff85b94840b483c92',
-                             u'mobile': number1,
+                u'phone': [{u'csrf': u'47d42078719b8377db622c3ff85b94840b483c92',
+                             u'number': number1,
                              u'primary': False,
                              u'verified': False},
                             {u'csrf': u'47d42078719b8377db622c3ff85b94840b483c92',
-                             u'mobile': number2,
+                             u'number': number2,
                              u'primary': False,
                              u'verified': True}],
                 u'passwords': [{u'created_ts': datetime.datetime(2014, 6, 29, 17, 52, 37, 830000),
