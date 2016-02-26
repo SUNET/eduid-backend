@@ -64,7 +64,7 @@ MONGO_URI_TEST = 'mongodb://localhost:27017/eduid_dashboard_test'
 MOCKED_USER_STANDARD = {
     '_id': ObjectId('012345678901234567890123'),
     'givenName': 'John',
-    'sn': 'Smith',
+    'surname': 'Smith',
     'displayName': 'John Smith',
     'norEduPersonNIN': [{'number': '197801011234',
                          'verified': True,

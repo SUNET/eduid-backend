@@ -49,7 +49,7 @@ class TestUser(TestCase):
                                       u'salt': u'$NDNv1H1$db011fc$32$32$',
                                       u'source': u'dashboard'}],
                       u'preferredLanguage': u'sv',
-                      u'sn': u'\xf6ne',
+                      u'surname': u'\xf6ne',
                       u'subject': u'physical person'}
         self.user2 = User(self.data2)
 
@@ -66,7 +66,7 @@ class TestUser(TestCase):
         self.assertEqual(self.user2.display_name, self.data2['displayName'])
 
     def test_surname(self):
-        self.assertEqual(self.user2.surname, self.data2['sn'])
+        self.assertEqual(self.user2.surname, self.data2['surname'])
 
     def test_mail_addresses(self):
         self.assertEqual(self.user1.mail_addresses.primary.email, self.data1['mailAliases'][0]['email'])
@@ -128,13 +128,13 @@ class TestUser(TestCase):
         with self.assertRaises(UserHasNotCompletedSignup):
             User(data)
         data[u'mailAliases'][0]['verified'] = True
-        data['sn'] = 'not signup-incomplete anymore'
+        data['surname'] = 'not signup-incomplete anymore'
         data['passwords'] = [{u'created_ts': datetime.datetime(2014, 9, 4, 8, 57, 7, 362000),
                               u'id': ObjectId(),
                               u'salt': u'salt',
                               u'created_by': u'dashboard'}]
         user = User(data)
-        self.assertEqual(user.surname, data['sn'])
+        self.assertEqual(user.surname, data['surname'])
         self.assertEqual(user.passwords.to_list_of_dicts(), data['passwords'])
 
     def test_revoked_user(self):
@@ -260,7 +260,7 @@ class TestUser(TestCase):
                                 u'salt': u'$NDNv1H1$foo$32$32$',
                                 u'source': u'dashboard'}],
                 u'preferredLanguage': u'en',
-                u'sn': u'yyy',
+                u'surname': u'yyy',
                 }
         user = User(data)
         self.assertEqual(user.phone_numbers.primary, None)
@@ -290,7 +290,7 @@ class TestUser(TestCase):
                                 u'salt': u'$NDNv1H1$foo$32$32$',
                                 u'source': u'dashboard'}],
                 u'preferredLanguage': u'en',
-                u'sn': u'yyy',
+                u'surname': u'yyy',
                 }
         user = User(data)
         self.assertEqual(user.phone_numbers.primary.number, number2)

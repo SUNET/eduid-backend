@@ -70,8 +70,8 @@ class User(object):
             _id = bson.ObjectId(_id)
         self._data['_id'] = _id
 
-        if 'surname' in self._data_in:
-            self._data_in['sn'] = self._data_in.pop('surname')
+        if 'sn' in self._data_in:
+            self._data_in['surname'] = self._data_in.pop('sn')
         if 'eduPersonEntitlement' in self._data_in:
             self._data_in['entitlements'] = self._data_in.pop('eduPersonEntitlement')
 
@@ -86,7 +86,7 @@ class User(object):
         self.subject = self._data_in.pop('subject', None)
         self.display_name = self._data_in.pop('displayName', None)
         self.given_name = self._data_in.pop('givenName', None)
-        self.surname = self._data_in.pop('sn', None)
+        self.surname = self._data_in.pop('surname', None)
         self.language = self._data_in.pop('preferredLanguage', None)
         self.modified_ts = self._data_in.pop('modified_ts', None)
         self.entitlements = self._data_in.pop('entitlements', None)
@@ -297,7 +297,7 @@ class User(object):
 
         :rtype: str | unicode
         """
-        return self._data.get('sn', '')
+        return self._data.get('surname', '')
 
     @surname.setter
     def surname(self, value):
@@ -307,7 +307,7 @@ class User(object):
         :param value: the surname to set
         :type  value: str | unicode
         """
-        self._data['sn'] = value
+        self._data['surname'] = value
 
     # -----------------------------------------------------------------
     @property
@@ -498,10 +498,8 @@ class User(object):
         res['tou'] = self.tou.to_list_of_dicts(old_userdb_format=old_userdb_format)
         if 'eduPersonEntitlement' not in res:
             res['eduPersonEntitlement'] = res.pop('entitlements', [])
-        if 'surname' in res:
-            res['sn'] = res.pop('surname')
         # Remove these values if they have a value that evaluates to False
-        for _remove in ['displayName', 'givenName', 'sn', 'preferredLanguage', 'phone']:
+        for _remove in ['displayName', 'givenName', 'surname', 'preferredLanguage', 'phone']:
             if _remove in res and not res[_remove]:
                 del res[_remove]
         if old_userdb_format:
@@ -510,6 +508,8 @@ class User(object):
                 res['mail'] = _primary.email
             if 'phone' in res:
                 res['mobile'] = res.pop('phone')
+            if 'surname' in res:
+                res['sn'] = res.pop('surname')
             if 'nins' in res:
                 # Extract all verified NINs and return as a list of strings
                 _nins = res.pop('nins')
