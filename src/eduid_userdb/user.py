@@ -149,13 +149,12 @@ class User(object):
                         # and then do a password request to set a password. The e-mail address is
                         # implicitly verified by the password reset (which must have been done using e-mail).
                         _mail_addresses[idx]['verified'] = True
-                    if 'verified' in _mail_addresses[idx] and _mail_addresses[idx]['verified']:
+                    if _mail_addresses[idx].get('verified', False):
                         _mail_addresses[idx]['primary'] = True
             self._data_in.pop('mail')
 
-        if len(_mail_addresses) == 1 and 'verified' in _mail_addresses[0] and _mail_addresses[0]['verified']:
-            if 'primary' not in _mail_addresses[0] or \
-                    _mail_addresses[0]['primary'] is False:
+        if len(_mail_addresses) == 1 and _mail_addresses[0].get('verified', False):
+            if not _mail_addresses[0].get('primary', False):
                 # A single mail address was not set as Primary until it was verified
                 _mail_addresses[0]['primary'] = True
 
