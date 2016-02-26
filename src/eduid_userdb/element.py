@@ -566,7 +566,7 @@ class PrimaryElementList(ElementList):
         get a PrimaryElementList with only the confirmed elements.
         """
         verified_elements = [e for e in self._elements if e.is_verified]
-        return PrimaryElementList(verified_elements)
+        return self.__class__(verified_elements)
 
 
 def _update_something_by(data, key, value):
