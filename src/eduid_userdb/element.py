@@ -423,19 +423,7 @@ class PrimaryElementList(ElementList):
     :type elements: [dict | Element]
     """
     def __init__(self, elements):
-        verified = [e for e in elements if e.is_verified]
-        if len(verified) > 0:
-            try:
-                assert self._get_primary(verified) is not None
-            except (PrimaryElementViolation, AssertionError):
-                raise PrimaryElementViolation('Operation resulted in verified elements '
-                                          'but no primary element.')
-        else:
-            try:
-                assert self._get_primary(elements) is None
-            except (PrimaryElementViolation, AssertionError):
-                raise PrimaryElementViolation('Operation resulted no verified elements '
-                                          'but some primary element.')
+        self._get_primary(elements)
         ElementList.__init__(self, elements)
 
     def add(self, element):
@@ -479,24 +467,6 @@ class PrimaryElementList(ElementList):
         self._check_primary(old_list)
         return self
 
-    def _check_primary(self, old_list):
-        """
-        If there are confirmed elements, there must be exactly one primary
-        element. If there are no confirmed elements, there must be 0 primary
-        elements.
-
-        :param old_list: list of elements to get back to if the constraints are violated
-        :type old_list: list
-        """
-        try:
-            if self.verified.count > 0:
-                assert self.primary is not None
-            else:
-                assert self.primary is None
-        except (PrimaryElementViolation, AssertionError):
-            self._elements = old_list
-            raise PrimaryElementViolation("Operation would result in more or less than one primary element")
-
     @property
     def primary(self):
         """
@@ -534,6 +504,21 @@ class PrimaryElementList(ElementList):
         for this in self._elements:
             this.is_primary = bool(this.key == key)
 
+    def _check_primary(self, old_list):
+        """
+        If there are confirmed elements, there must be exactly one primary
+        element. If there are no confirmed elements, there must be 0 primary
+        elements.
+
+        :param old_list: list of elements to get back to if the constraints are violated
+        :type old_list: list
+        """
+        try:
+            self._get_primary(self._elements)
+        except PrimaryElementViolation:
+            self._elements = copy.copy(old_list)
+            raise
+
     def _get_primary(self, elements):
         """
         Find the primary element in a list, and ensure there is exactly one (unless
@@ -548,9 +533,7 @@ class PrimaryElementList(ElementList):
             return None
         verified = [x for x in elements if x.is_verified is True]
         if len(verified) == 0:
-            try:
-                assert len([e for e in elements if e.is_primary]) == 0
-            except AssertionError:
+            if len([e for e in elements if e.is_primary]) > 0:
                 raise PrimaryElementViolation('There are unconfirmed primary elements')
             return None
         res = [x for x in verified if x.is_primary is True]
