@@ -146,8 +146,8 @@ class TestPhoneNumberList(TestCase):
     def test_unverified_primary(self):
         one = copy.deepcopy(_one_dict)
         one['verified'] = False
-        this = PhoneNumberList([one])
-        self.assertEqual(len(this.to_list()), 1)
+        with self.assertRaises(eduid_userdb.element.PrimaryElementViolation):
+            this = PhoneNumberList([one])
 
 
 class TestPhoneNumber(TestCase):

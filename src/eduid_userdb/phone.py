@@ -135,7 +135,7 @@ class PhoneNumberList(PrimaryElementList):
                 phone = phone_from_dict(this, raise_on_unknown)
             elements.append(phone)
 
-        PrimaryElementList.__init__(self, elements, require_verified_primary=False)
+        PrimaryElementList.__init__(self, elements)
 
     @property
     def primary(self):

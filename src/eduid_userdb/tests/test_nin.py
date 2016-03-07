@@ -143,11 +143,11 @@ class TestNinList(TestCase):
         with self.assertRaises(eduid_userdb.element.PrimaryElementViolation):
             NinList([one, two])
 
-    def test_unverified_primary(self):
+    def test_bad_input_unverified_primary(self):
         one = copy.deepcopy(_one_dict)
         one['verified'] = False
-        this = NinList([one])
-        self.assertEqual(len(this.to_list()), 1)
+        with self.assertRaises(eduid_userdb.element.PrimaryElementViolation):
+            this = NinList([one])
 
 
 class TestNin(TestCase):

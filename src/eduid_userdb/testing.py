@@ -48,6 +48,7 @@ from copy import deepcopy
 from bson import ObjectId
 
 from eduid_userdb import UserDB, User
+from eduid_userdb.dashboard.user import DashboardUser
 
 import logging
 logger = logging.getLogger(__name__)
@@ -63,7 +64,7 @@ MONGO_URI_TEST = 'mongodb://localhost:27017/eduid_dashboard_test'
 MOCKED_USER_STANDARD = {
     '_id': ObjectId('012345678901234567890123'),
     'givenName': 'John',
-    'sn': 'Smith',
+    'surname': 'Smith',
     'displayName': 'John Smith',
     'norEduPersonNIN': [{'number': '197801011234',
                          'verified': True,
@@ -78,15 +79,15 @@ MOCKED_USER_STANDARD = {
         'urn:mace:eduid.se:role:admin',
         'urn:mace:eduid.se:role:student',
     ],
-    'mobile': [{
-        'mobile': '+34609609609',
+    'phone': [{
+        'number': '+34609609609',
         'primary': True,
         'verified': True
     }, {
-        'mobile': '+34 6096096096',
+        'number': '+34 6096096096',
         'verified': False
     }, {
-        'mobile': '+34607507507',
+        'number': '+34607507507',
         'verified': True
     }],
     'mail': 'johnsmith@example.com',
@@ -139,7 +140,7 @@ class MockedUserDB(UserDB):
     test_users['johnsmith@example.org']['mailAliases'][1]['email'] = 'johnsmith2@example.org'
     test_users['johnsmith@example.org']['_id'] = ObjectId('901234567890123456789012')
     test_users['johnsmith@example.org']['norEduPersonNIN'] = []
-    test_users['johnsmith@example.org']['mobile'] = []
+    test_users['johnsmith@example.org']['phone'] = []
     test_users['johnsmith@example.org']['eduPersonPrincipalName'] = 'babba-labba'
 
     def __init__(self, users=[]):
@@ -323,7 +324,7 @@ class MongoTestCase(unittest.TestCase):
     def tearDown(self):
         super(MongoTestCase, self).tearDown()
         for userdoc in self.amdb._get_all_docs():
-            assert User(userdoc)
+            assert DashboardUser(data=userdoc)
         for db_name in self.conn.database_names():
             if db_name == 'local':
                 continue

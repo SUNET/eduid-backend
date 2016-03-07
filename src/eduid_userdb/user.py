@@ -57,6 +57,7 @@ class User(object):
     """
     def __init__(self, data, raise_on_unknown = True):
         self._data_in = copy.deepcopy(data)  # to not modify callers data
+        self._data_orig = copy.deepcopy(data)  # to not modify callers data
         self._data = dict()
 
         self._parse_check_invalid_users()
@@ -89,6 +90,7 @@ class User(object):
         self.language = self._data_in.pop('preferredLanguage', None)
         self.modified_ts = self._data_in.pop('modified_ts', None)
         self.entitlements = self._data_in.pop('entitlements', None)
+        self.terminated = self._data_in.pop('terminated', None)
         # obsolete attributes
         if 'postalAddress' in self._data_in:
             del self._data_in['postalAddress']
@@ -142,17 +144,17 @@ class User(object):
             # old-style userdb primary e-mail address indicator
             for idx in xrange(len(_mail_addresses)):
                 if _mail_addresses[idx]['email'] == self._data_in['mail']:
-                    _mail_addresses[idx]['primary'] = True
                     if 'passwords' in self._data_in:
                         # Work around a bug where one could signup, not follow the link in the e-mail
                         # and then do a password request to set a password. The e-mail address is
                         # implicitly verified by the password reset (which must have been done using e-mail).
                         _mail_addresses[idx]['verified'] = True
+                    if _mail_addresses[idx].get('verified', False):
+                        _mail_addresses[idx]['primary'] = True
             self._data_in.pop('mail')
 
-        if len(_mail_addresses) == 1:
-            if 'primary' not in _mail_addresses[0] or \
-                    _mail_addresses[0]['primary'] is False:
+        if len(_mail_addresses) == 1 and _mail_addresses[0].get('verified', False):
+            if not _mail_addresses[0].get('primary', False):
                 # A single mail address was not set as Primary until it was verified
                 _mail_addresses[0]['primary'] = True
 
@@ -165,19 +167,17 @@ class User(object):
         Parse all the different formats of mobile/phone attributes in the database.
         """
         if 'mobile' in self._data_in:
-            _phones = self._data_in.pop('mobile')
+            self._data_in['phone'] = self._data_in.pop('mobile')
+        if 'phone' in self._data_in:
+            _phones = self._data_in.pop('phone')
             _primary = [x for x in _phones if x.get('primary', False)]
             if _phones and not _primary:
-                # None of the phone numbers are primary. Promote either the first verified
-                # entry found, or failing that - the first entry in the list.
-                _primary_set = False
+                # None of the phone numbers are primary. Promote the first verified
+                # entry found (or none if there are no verified entries).
                 for _this in _phones:
                     if _this.get('verified', False):
                         _this['primary'] = True
-                        _primary_set = True
                         break
-                if not _primary_set:
-                    _phones[0]['primary'] = True
             self._data_in['phone'] = _phones
 
         _phones = self._data_in.pop('phone', [])
@@ -459,6 +459,29 @@ class User(object):
         return self._tou
 
     # -----------------------------------------------------------------
+    @property
+    def terminated(self):
+        """
+        Get the user's terminated status (False or the timestamp when the user was terminated).
+
+        :rtype: False | datetime
+        """
+        return self._data.get('terminated', False)
+
+    @terminated.setter
+    def terminated(self, value):
+        """
+        :param value: Set the user's terminated status.
+        :type value: bool
+        """
+        if value is not None:
+            if not isinstance(value, bool) and not isinstance(value, datetime.datetime):
+                raise UserDBValueError('Non-bool/datetime terminated value')
+            if value is True:
+                value = datetime.datetime.utcnow()
+            self._data['terminated'] = value
+
+    # -----------------------------------------------------------------
     def to_dict(self, old_userdb_format=False):
         """
         Return user data serialized into a dict that can be stored in MongoDB.
@@ -475,20 +498,20 @@ class User(object):
         res['passwords'] = self.passwords.to_list_of_dicts(old_userdb_format=old_userdb_format)
         res['nins'] = self.nins.to_list_of_dicts(old_userdb_format=old_userdb_format)
         res['tou'] = self.tou.to_list_of_dicts(old_userdb_format=old_userdb_format)
+        if 'eduPersonEntitlement' not in res:
+            res['eduPersonEntitlement'] = res.pop('entitlements', [])
         # Remove these values if they have a value that evaluates to False
         for _remove in ['displayName', 'givenName', 'surname', 'preferredLanguage', 'phone']:
             if _remove in res and not res[_remove]:
                 del res[_remove]
         if old_userdb_format:
-            if 'surname' in res:
-                res['sn'] = res.pop('surname')
             _primary = self.mail_addresses.primary
             if _primary:
                 res['mail'] = _primary.email
             if 'phone' in res:
                 res['mobile'] = res.pop('phone')
-            if 'entitlements' in res:
-                res['eduPersonEntitlement'] = res.pop('entitlements')
+            if 'surname' in res:
+                res['sn'] = res.pop('surname')
             if 'nins' in res:
                 # Extract all verified NINs and return as a list of strings
                 _nins = res.pop('nins')
