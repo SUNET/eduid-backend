@@ -29,3 +29,12 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+
+from flask import Flask
+
+from eduid_common.config.parsers import IniConfigParser
+
+
+app = Flask('eduID authn')
+config = IniConfigParser('eduid-authn.ini')
+app.config.update(config.read_configuration())
