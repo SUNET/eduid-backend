@@ -13,7 +13,8 @@ class LogPlugin(MessagePlugin):
     def received(self, context):
         print(str(context.reply))
 
-class MobileLookupClient:
+
+class MobileLookupClient(object):
 
     DEFAULT_CLIENT_URL = 'http://api.teleadress.se/WSDL/nnapiwebservice.wsdl'
     DEFAULT_CLIENT_PORT = 'NNAPIWebServiceSoap'
@@ -22,9 +23,13 @@ class MobileLookupClient:
     transaction_audit = False
 
     def __init__(self, logger, config=None):
+        if config is None:
+            from eduid_lookup_mobile.celery import config_parser
+            config = config_parser.read_configuration()
         self.conf = config
 
         if 'MONGO_URI' in self.conf:
+            # self.mongo_uri used in TransactionAudit decorator
             self.mongo_uri = self.conf['MONGO_URI']
         if 'TRANSACTION_AUDIT' in self.conf and self.conf['TRANSACTION_AUDIT'] == 'true':
             self.transaction_audit = True
