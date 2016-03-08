@@ -6,7 +6,7 @@ import sys
 version = '0.1.0'
 
 requires = [
-    'Flask==0.8',
+    'Flask==0.10.1',
     'Flask-RESTful==0.3.5',
 ]
 
