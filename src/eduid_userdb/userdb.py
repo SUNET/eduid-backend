@@ -99,6 +99,35 @@ class UserDB(BaseDB):
                 return None
         return self._get_user_by_attr('_id', user_id, raise_on_missing)
 
+    def _get_user_by_filter(self, filter, raise_on_missing=True,
+                            raise_on_multiple=True):
+        """
+        return the user matching the provided filter.
+
+        :param filter: The filter to match the user
+        :param raise_on_missing: If True, raise exception if no matching user object can be found.
+        :param raise_on_multiple: If True, raise exception if multiple matching user objects were found.
+
+        :type filter: dict
+        :type raise_on_missing: bool
+        :type raise_on_multiple: bool
+
+        :return: User instance
+        :rtype: UserClass
+        """
+        docs = self._coll.find(filter)
+        users = []
+        if docs.count() > 0:
+            users = list(docs)
+        if not users:
+            logging.debug("{!s} No user found with filter {!r} in {!r}".format(self, filter, self._coll_name))
+            if raise_on_missing:
+                raise UserDoesNotExist("No user matching filter {!r}".format(filter))
+            return None
+        elif len(users) > 1 and raise_on_multiple:
+            raise MultipleUsersReturned("Multiple matching users for filter {!r}".format(filter))
+        return self.UserClass(data=users[0])
+
     def get_user_by_mail(self, email, raise_on_missing=True, raise_on_multiple=True,
                          include_unconfirmed=False):
         """
@@ -123,23 +152,76 @@ class UserDB(BaseDB):
         elemmatch = {'email': email, 'verified': True}
         if include_unconfirmed:
             elemmatch = {'email': email}
-        # XXX this only looks in the legacy collection, in the legacy format
-        docs = self._coll.find(
-            {'$or': [
-                {'mail': email},
-                {'mailAliases': {'$elemMatch': elemmatch}}
-            ]})
-        users = []
-        if docs.count() > 0:
-            users = list(docs)
-        if not users:
-            logging.debug("{!s} No user found with email {!r} in {!r}".format(self, email, self._coll_name))
-            if raise_on_missing:
-                raise UserDoesNotExist("No user matching email {!r}".format(email))
-            return None
-        elif len(users) > 1 and raise_on_multiple:
-            raise MultipleUsersReturned("Multiple matching users for email {!r}".format(email))
-        return self.UserClass(data=users[0])
+        filter = {'$or':
+                     [{'mail': email},
+                      {'mailAliases': {'$elemMatch': elemmatch}}
+                     ]}
+        return self._get_user_by_filter(filter,
+                                        raise_on_missing=raise_on_missing,
+                                        raise_on_multiple=raise_on_multiple)
+
+    def get_user_by_nin(self, nin, raise_on_missing=True, raise_on_multiple=True,
+                         include_unconfirmed=False):
+        """
+        Return the user object in the central eduID UserDB having
+        a NIN matching `nin'. Unless include_unconfirmed=True, the
+        NIN has to be confirmed/verified.
+
+        :param nin: The nin to look for
+        :param raise_on_missing: If True, raise exception if no matching user object can be found.
+        :param raise_on_multiple: If True, raise exception if multiple matching user objects were found.
+        :param include_unconfirmed: Require nin to be confirmed/verified.
+
+        :type nin: str | unicode
+        :type raise_on_missing: bool
+        :type raise_on_multiple: bool
+        :type include_unconfirmed: bool
+
+        :return: User instance
+        :rtype: UserClass
+        """
+        old_filter = {'norEduPersonNIN': {'$elemMatch': {'$eq': nin}}}
+        newmatch = {'number': nin, 'verified': True}
+        if include_unconfirmed:
+            newmatch = {'number': nin}
+        new_filter = {'nins': {'$elemMatch': newmatch}}
+        filter = {'$or': [old_filter, new_filter]}
+        return self._get_user_by_filter(filter,
+                                        raise_on_missing=raise_on_missing,
+                                        raise_on_multiple=raise_on_multiple)
+
+    def get_user_by_phone(self, phone, raise_on_missing=True, raise_on_multiple=True,
+                         include_unconfirmed=False):
+        """
+        Return the user object in the central eduID UserDB having
+        a phone number matching `phone'. Unless include_unconfirmed=True, the
+        phone number has to be confirmed/verified.
+
+        :param phone: The phone to look for
+        :param raise_on_missing: If True, raise exception if no matching user object can be found.
+        :param raise_on_multiple: If True, raise exception if multiple matching user objects were found.
+        :param include_unconfirmed: Require phone to be confirmed/verified.
+
+        :type phone: str | unicode
+        :type raise_on_missing: bool
+        :type raise_on_multiple: bool
+        :type include_unconfirmed: bool
+
+        :return: User instance
+        :rtype: UserClass
+        """
+        oldmatch = {'mobile': phone, 'verified': True}
+        if include_unconfirmed:
+            oldmatch = {'mobile': phone}
+        old_filter = {'mobile': {'$elemMatch': oldmatch}}
+        newmatch = {'number': phone, 'verified': True}
+        if include_unconfirmed:
+            newmatch = {'number': phone}
+        new_filter = {'phone': {'$elemMatch': newmatch}}
+        filter = {'$or': [old_filter, new_filter]}
+        return self._get_user_by_filter(filter,
+                                        raise_on_missing=raise_on_missing,
+                                        raise_on_multiple=raise_on_multiple)
 
     def get_user_by_eppn(self, eppn, raise_on_missing=True):
         """
