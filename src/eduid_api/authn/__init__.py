@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2015 NORDUnet A/S
+# Copyright (c) 2016 NORDUnet A/S
 # All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or
@@ -36,13 +36,15 @@ from time import time
 from flask import Flask
 from flask.sessions import SessionInterface
 
-from eduid_common.config.parsers import IniConfigParser
-from eduid_common.session import SessionManager
+from eduid_api.authn.config import AuthnConfigParser
+from eduid_common.session.session import SessionManager
 
 
 app = Flask('eduID authn')
-config = IniConfigParser('eduid-authn.ini')
-app.config.update(config.read_configuration())
+config_parser = AuthnConfigParser('eduid-authn.ini',
+                                  config_environment_variable='EDUID_CONFIG')
+config = config_parser.read_configuration()
+app.config.update(config)
 
 
 
@@ -211,9 +213,9 @@ class SessionFactory(SessionInterface):
             return None
         token = request.cookies.get(cookie_name, None)
         if token is None:
-            base_session = self.manager.get_session(token=token)
-        else:
             base_session = self.manager.get_session(data={})
+        else:
+            base_session = self.manager.get_session(token=token)
 
     def save_session(self, app, session, response):
         session.persist()
@@ -234,4 +236,13 @@ class SessionFactory(SessionInterface):
                             )
 
 
-app.session_interface = SessionFactory
+app.session_interface = SessionFactory(config)
+
+
+@app.route('/')
+def index():
+    return 'ho ho ho'
+
+
+if __name__ ==  '__main__':
+    app.run()
