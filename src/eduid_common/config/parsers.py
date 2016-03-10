@@ -9,6 +9,8 @@ __author__ = 'lundberg'
 
 class IniConfigParser(object):
 
+    section = 'main'
+
     def __init__(self, config_file_name, config_environment_variable=None):
         """
         :param config_file_name: config files name
@@ -113,8 +115,8 @@ class IniConfigParser(object):
             config = ConfigParser.RawConfigParser()
             config.read(config_file)
 
-            if config.has_section('main'):
-                for key, val in config.items('main'):
+            if config.has_section(self.section):
+                for key, val in config.items(self.section):
                     if key in self.known_special_keys:
                         func, default = self.known_special_keys[key]
                     else:
