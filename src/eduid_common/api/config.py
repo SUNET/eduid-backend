@@ -35,6 +35,12 @@ from eduid_common.config.parsers import IniConfigParser
 
 class APIConfigParser(IniConfigParser):
     """
+    Base config parser for eduID APIs.
+    Subclasses can do 2 things:
+
+     * Set the name of the main section in the ini file,
+       in a class attribute named `section`
+     * Update the `known_special_keys` with new configuration options.
     """
     def __init__(self, config_file_name, config_environment_variable=None):
         super(APIConfigParser, self).__init__(config_file_name,

@@ -39,6 +39,10 @@ from eduid_api.authn.config import AuthnConfigParser
 
 def eduid_init_app(name):
     """
+    Prepare the flask app for eduID APIs.
+
+     * Add configuration
+     * Add eduID session
     """
     app = Flask(name)
     config_parser = AuthnConfigParser('eduid-{}.ini'.format(name),

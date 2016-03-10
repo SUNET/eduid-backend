@@ -187,6 +187,11 @@ class Session(collections.MutableMapping):
 
 class SessionFactory(SessionInterface):
     """
+    Session factory, implementing flask.session.SessionInterface,
+    to provide eduID redis-based sessions to the APIs.
+
+    :param config: the configuration for the session
+    :type config: dict
     """
     def __init__(self, config):
 
@@ -197,6 +202,9 @@ class SessionFactory(SessionInterface):
         self.manager = SessionManager(config, ttl=ttl_min, secret=secret)
 
     def open_session(self, app, request):
+        """
+        See flask.session.SessionInterface
+        """
         try:
             cookie_name = app.config['SESSION_COOKIE_NAME']
         except KeyError:
@@ -211,6 +219,9 @@ class SessionFactory(SessionInterface):
         return session
 
     def save_session(self, app, session, response):
+        """
+        See flask.session.SessionInterface
+        """
         session.persist()
 
         cookie_name = self.config.get('SESSION_COOKIE_NAME')
