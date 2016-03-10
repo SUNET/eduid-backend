@@ -63,6 +63,10 @@ class IniConfigParser(object):
             return True
         return default
 
+    def read_setting_from_env_int(self, settings, key, default=None):
+        value = self.read_setting_from_env(settings, key, '').lower()
+        return int(value)
+
     def read_mapping(self, settings, prop, available_keys=None, default=None, required=True):
         raw = self.read_setting_from_env(settings, prop, '')
 
