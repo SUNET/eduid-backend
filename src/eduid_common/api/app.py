@@ -37,7 +37,7 @@ from eduid_common.api.session import SessionFactory
 from eduid_api.authn.config import AuthnConfigParser
 
 
-def eduid_init_app(name):
+def eduid_init_app(name, config):
     """
     Prepare the flask app for eduID APIs.
 
@@ -47,7 +47,8 @@ def eduid_init_app(name):
     app = Flask(name)
     config_parser = AuthnConfigParser('eduid-{}.ini'.format(name),
                                       config_environment_variable='EDUID_CONFIG')
-    config = config_parser.read_configuration()
-    app.config.update(config)
-    app.session_interface = SessionFactory(config)
+    cfg = config_parser.read_configuration()
+    cfg.update(config)
+    app.config.update(cfg)
+    app.session_interface = SessionFactory(cfg)
     return app

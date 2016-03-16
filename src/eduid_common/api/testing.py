@@ -82,9 +82,8 @@ class EduidAPITestCase(unittest.TestCase):
         config['REDIS_PORT'] = str(self.redis_instance.port)
         for key, val in config.items():
             os.environ[key] = val
-        self.app = self.load_app()
+        self.app = self.load_app(config)
         self.app.config.update(TEST_CONFIG)
-        self.app.config['REDIS_PORT'] =  self.redis_instance.port
         self.browser = self.app.test_client()
 
     def tearDown(self):
@@ -107,6 +106,12 @@ class EduidAPITestCase(unittest.TestCase):
         Method that can be overriden by any subclass,
         where it can add configuration specific for that API
         before loading the app.
+
+        :param config: original configuration
+        :type config: dict
+
+        :return: the updated configuration
+        :rtype: dict
         """
         return config
                
