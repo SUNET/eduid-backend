@@ -178,6 +178,10 @@ class User(object):
                     if _this.get('verified', False):
                         _this['primary'] = True
                         break
+            # Clean up for non verified phone elements that where still primary
+            for _this in _phones:
+                if not _this.get('verified', False) and _this.get('primary', False):
+                    _this['primary'] = False
             self._data_in['phone'] = _phones
 
         _phones = self._data_in.pop('phone', [])
