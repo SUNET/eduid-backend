@@ -50,5 +50,5 @@ def eduid_init_app(name, config):
     cfg = config_parser.read_configuration()
     cfg.update(config)
     app.config.update(cfg)
-    app.session_interface = SessionFactory(cfg)
+    app.session_interface = SessionFactory(app.config)
     return app

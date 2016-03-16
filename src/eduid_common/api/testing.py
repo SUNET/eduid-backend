@@ -83,7 +83,6 @@ class EduidAPITestCase(unittest.TestCase):
         for key, val in config.items():
             os.environ[key] = val
         self.app = self.load_app(config)
-        self.app.config.update(TEST_CONFIG)
         self.browser = self.app.test_client()
 
     def tearDown(self):
