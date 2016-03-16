@@ -533,8 +533,9 @@ class PrimaryElementList(ElementList):
             return None
         verified = [x for x in elements if x.is_verified is True]
         if len(verified) == 0:
-            if len([e for e in elements if e.is_primary]) > 0:
-                raise PrimaryElementViolation('There are unconfirmed primary elements')
+            not_verified_primary = [e for e in elements if e.is_primary]
+            if len(not_verified_primary) > 0:
+                [y.is_primary(False) for y in not_verified_primary]
             return None
         res = [x for x in verified if x.is_primary is True]
         if len(res) != 1:
