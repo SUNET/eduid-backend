@@ -30,24 +30,18 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from eduid_common.api.config import APIConfigParser
+from eduid_common.authn.utils import get_saml2_config
+from eduid_common.api.app import eduid_init_app
+
+import logging
+logger = logging.getLogger(__name__)
 
 
-class AuthnConfigParser(APIConfigParser):
-    """
-    """
+def authn_init_app(name, config):
+    app = eduid_init_app(name, config)
+    app.saml2_config = get_saml2_config(app.config['SAML2.SETTINGS_MODULE'])
 
-    section = 'app:authn'
+    from eduid_webapp.authn.views import authn_views
+    app.register_blueprint(authn_views)
 
-    def __init__(self, config_file_name, config_environment_variable=None):
-        super(APIConfigParser, self).__init__(config_file_name,
-                                              config_environment_variable)
-        self.known_special_keys.update({
-            'saml2.login_redirect_url': (self.read_setting_from_env, '/'),
-            'saml2.settings_module': (self.read_setting_from_env,
-                                      'src/eduid_api/authn/tests/saml2_settings.py'),
-            'saml2.logout_redirect_url': (self.read_setting_from_env, 'http://html.docker/'),
-            # The attribute released by the IdP that we should use to locate the user logging in.
-            'saml2.user_main_attribute': (self.read_setting_from_env, 'eduPersonPrincipalName'),
-            'saml2.strip_saml_user_suffix': (self.read_setting_from_env, '@local.eduid.se'),
-            })
+    return app

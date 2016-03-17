@@ -24,7 +24,7 @@ testing_extras = test_requires + [
 ]
 
 setup(
-    name='eduid_api.authn',
+    name='eduid-webapp',
     version='0.1.0',
     license='bsd',
     url='https://www.github.com/eduID/',
@@ -36,7 +36,7 @@ setup(
     ],
     packages=find_packages('src'),
     package_dir={'': 'src'},
-    namespace_packages=['eduid_api'],
+    namespace_packages=['eduid_webapp'],
     zip_safe=False,
     include_package_data=True,
     install_requires=requires,

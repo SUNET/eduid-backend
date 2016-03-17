@@ -30,45 +30,16 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-import os
+from eduid_webapp.authn.app import authn_init_app
 
-import saml2
-from flask import request, session, Response
-
-from eduid_common.api.testing import EduidAPITestCase
-from eduid_common.authn.utils import get_location
-from eduid_common.authn.eduid_saml2 import get_authn_request
-from eduid_api.authn.app import authn_init_app
-
-HERE = os.path.abspath(os.path.dirname(__file__))
+import logging
+logger = logging.getLogger(__name__)
 
 
-class AuthnAPITestCase(EduidAPITestCase):
+name = 'authn'
+app = authn_init_app(name, {})
 
-    def update_config(self, config):
-        """
-        Called from the parent class, so that we can update the configuration
-        according to the needs of this test case.
-        """
-        saml_config = os.path.join(HERE, 'saml2_settings.py')
-        config.update({
-            'SAML2.LOGIN_REDIRECT_URL': '/',
-            'SAML2.SETTINGS_MODULE': saml_config,
-            })
-        return config
 
-    def load_app(self, config):
-        """
-        Called from the parent class, so we can provide the appropriate flask
-        app for this test case.
-        """
-        return authn_init_app('testing', config)
-
-    def test_authn(self):
-        with self.app.test_request_context('/login', method='GET'):
-            resp = self.app.dispatch_request()
-            authn_req = get_location(get_authn_request(self.app.config,
-                                                       session, '/', None))
-            idp_url = authn_req.split('?')[0]
-            self.assertEqual(resp.status_code, 302)
-            self.assertTrue(resp.location.startswith(idp_url))
+if __name__ == '__main__':
+    logger.info('Starting {} app...'.format(name))
+    app.run()

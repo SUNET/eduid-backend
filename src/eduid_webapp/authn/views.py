@@ -30,16 +30,47 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from eduid_api.authn.app import authn_init_app
+
+from flask import request, session, redirect, abort
+from flask import current_app, Blueprint
+
+from eduid_common.authn.utils import get_location
+from eduid_common.authn.eduid_saml2 import get_authn_request, get_authn_response
+from eduid_webapp.authn.acs_registry import get_action
 
 import logging
 logger = logging.getLogger(__name__)
 
-
-name = 'authn'
-app = authn_init_app(name, {})
+authn_views = Blueprint('authn', __name__, url_prefix='')
 
 
-if __name__ == '__main__':
-    logger.info('Starting {} app...'.format(name))
-    app.run()
+@authn_views.route('/login')
+def login():
+    """
+    login view, redirects to SAML2 IdP
+    """
+    redirect_url = current_app.config.get('SAML2.LOGIN_REDIRECT_URL', '/')
+    came_from = request.args.get('next', redirect_url)
+    idp = session.get('idp', None)
+    idp = request.args.get('idp', idp)
+    # XXX can we have more than one IdP configured?
+    # If we do, we should add a wayf chooser somewhere.
+    authn_request = get_authn_request(current_app.config,
+                                      session, came_from, idp)
+    logger.debug('Redirecting the user to the IdP')
+    return redirect(get_location(authn_request))
+
+
+@authn_views.route('/saml2-acs', methods=['POST'])
+def assertion_consumer_service():
+    """
+    Assertion consumer service, receives POSTs from SAML2 IdP's
+    """
+    if 'SAMLResponse' not in request.form:
+        abort(400)
+    xmlstr = request.form['SAMLResponse']
+    session_info = get_authn_response(current_app.config, session, xmlstr)
+    logger.debug('Trying to locate the user authenticated by the IdP')
+
+    action = get_action(session)
+    return action(request, session_info)
