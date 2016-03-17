@@ -29,28 +29,3 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-
-
-from flask import Flask
-
-from eduid_common.api.session import SessionFactory
-from eduid_api.authn.config import AuthnConfigParser
-
-
-app = Flask('eduID authn')
-config_parser = AuthnConfigParser('eduid-authn.ini',
-                                  config_environment_variable='EDUID_CONFIG')
-config = config_parser.read_configuration()
-app.config.update(config)
-
-
-app.session_interface = SessionFactory(config)
-
-
-@app.route('/')
-def index():
-    return 'ho ho ho'
-
-
-if __name__ ==  '__main__':
-    app.run()
