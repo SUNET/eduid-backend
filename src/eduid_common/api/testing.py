@@ -38,6 +38,9 @@ import subprocess
 from copy import deepcopy
 
 import redis
+import pymongo
+
+from eduid_userdb.testing import MongoTemporaryInstance
 
 
 TEST_CONFIG = {
@@ -60,6 +63,7 @@ TEST_CONFIG = {
     'JSON_AS_ASCII': 'False',
     'JSON_SORT_KEYS': 'True',
     'JSONIFY_PRETTYPRINT_REGULAR': 'True',
+    'MONGO_URI': 'mongodb://dummy',
     'REDIS_HOST': 'localhost',
     'REDIS_PORT': '6379',
     'REDIS_DB': '0',
@@ -77,9 +81,11 @@ class EduidAPITestCase(unittest.TestCase):
 
     def setUp(self):
         self.redis_instance = RedisTemporaryInstance.get_instance()
+        self.mongo_instance = MongoTemporaryInstance.get_instance()
         config = deepcopy(TEST_CONFIG)
         config = self.update_config(config)
         config['REDIS_PORT'] = str(self.redis_instance.port)
+        config['MONGO_URI'] = 'mongodb://localhost:{!d}/'.format(self.mongo_instance.port)
         for key, val in config.items():
             os.environ[key] = val
         self.app = self.load_app(config)

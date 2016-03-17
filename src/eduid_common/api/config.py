@@ -61,6 +61,7 @@ class APIConfigParser(IniConfigParser):
             'json_as_ascii': (self.read_setting_from_env_bool, False),
             'json_sort_keys': (self.read_setting_from_env_bool, True),
             'jsonify_prettyprint_regular': (self.read_setting_from_env_bool, True),
+            'mongo_uri': (self.read_setting_from_env, 'mongodb://'),
             'redis_port': (self.read_setting_from_env_int, 6379),
             'redis_db': (self.read_setting_from_env_int, 0),
             })

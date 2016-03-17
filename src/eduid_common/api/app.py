@@ -33,6 +33,7 @@
 
 from flask import Flask
 
+from eduid_userdb import UserDB
 from eduid_common.api.session import SessionFactory
 from eduid_api.authn.config import AuthnConfigParser
 
@@ -51,4 +52,5 @@ def eduid_init_app(name, config):
     cfg.update(config)
     app.config.update(cfg)
     app.session_interface = SessionFactory(app.config)
+    app.central_userdb = UserDB(config['MONGO_URI'], 'eduid_userdb')
     return app
