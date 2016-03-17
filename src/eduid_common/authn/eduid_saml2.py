@@ -53,7 +53,7 @@ def get_authn_request(config, session, came_from, selected_idp,
     # (AL1 for 'personal', AL2 for 'helpdesk' and AL3 for 'admin' by default)
     if required_loa is None:
         required_loa = config.get('required_loa', {})
-        workmode = config.get('workmode')
+        workmode = config.get('workmode', 'personal')
         required_loa = required_loa.get(workmode, '')
     logger.debug('Requesting AuthnContext {!r}'.format(required_loa))
     kwargs = {
