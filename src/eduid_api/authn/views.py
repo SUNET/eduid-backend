@@ -31,11 +31,12 @@
 #
 
 
-from flask import request, session, redirect
+from flask import request, session, redirect, abort
 from flask import current_app, Blueprint
 
 from eduid_common.authn.utils import get_location
-from eduid_common.authn.eduid_saml2 import get_authn_request
+from eduid_common.authn.eduid_saml2 import get_authn_request, get_authn_response
+from eduid_api.authn.acs_registry import get_action
 
 import logging
 logger = logging.getLogger(__name__)
@@ -57,3 +58,19 @@ def login():
                                       session, came_from, idp)
     logger.debug('Redirecting the user to the IdP')
     return redirect(get_location(authn_request))
+
+
+@authn_views.route('/saml2-acs', methods=['POST'])
+def assertion_consumer_service():
+    ''' '''
+    action = get_action(session)
+
+    if 'SAMLResponse' not in request.form:
+        abort(400)
+    xmlstr = request.form['SAMLResponse']
+
+    session_info = get_authn_response(current_app.config, session, xmlstr)
+
+    logger.debug('Trying to locate the user authenticated by the IdP')
+
+    return action(request, session_info)
