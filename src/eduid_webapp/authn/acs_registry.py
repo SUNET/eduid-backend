@@ -37,9 +37,11 @@ The actions are defined in the acs_actions module,
 ant they are performed in the assertion consumer service view,
 and are called with two positional parameters:
 
- * the HTTP request
  * the session_info given in the SAML response (a dict)
+ * The user object
 '''
+
+from flask import session
 
 import logging
 logger = logging.getLogger(__name__)
@@ -65,7 +67,7 @@ def acs_action(action_key):
     return outer
 
 
-def schedule_action(session, action_key):
+def schedule_action(action_key):
     '''
     Schedule an action to be executed after an IdP responds to a SAML request.
     This is called just before the SAML request is sent.
@@ -79,7 +81,7 @@ def schedule_action(session, action_key):
     session['post-authn-action'] = action_key
 
 
-def get_action(session):
+def get_action():
     '''
     retrieve an action from the registry based on the key
     stored in the session.

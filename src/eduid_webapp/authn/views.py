@@ -36,7 +36,7 @@ from flask import current_app, Blueprint
 
 from eduid_common.authn.utils import get_location
 from eduid_common.authn.eduid_saml2 import get_authn_request, get_authn_response
-from eduid_webapp.authn.acs_registry import get_action
+from eduid_webapp.authn.acs_registry import get_action, schedule_action
 
 import logging
 logger = logging.getLogger(__name__)
@@ -57,6 +57,7 @@ def login():
     # If we do, we should add a wayf chooser somewhere.
     authn_request = get_authn_request(current_app.config,
                                       session, came_from, idp)
+    schedule_action('login-action')
     logger.debug('Redirecting the user to the IdP')
     return redirect(get_location(authn_request))
 
@@ -72,5 +73,10 @@ def assertion_consumer_service():
     session_info = get_authn_response(current_app.config, session, xmlstr)
     logger.debug('Trying to locate the user authenticated by the IdP')
 
-    action = get_action(session)
-    return action(request, session_info)
+    user = authenticate(current_app, session_info)
+    if user is None:
+        log.error('Could not find the user identified by the IdP')
+        raise HTTPUnauthorized("Access not authorized")
+
+    action = get_action()
+    return action(session_info, user)
