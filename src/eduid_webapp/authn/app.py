@@ -30,15 +30,24 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
+from flask import Flask
+
 from eduid_common.authn.utils import get_saml2_config
 from eduid_common.api.app import eduid_init_app
+from eduid_webapp.authn.config import AuthnConfigParser
 
 import logging
 logger = logging.getLogger(__name__)
 
 
 def authn_init_app(name, config):
-    app = eduid_init_app(name, config)
+    app = Flask(name)
+    config_parser = AuthnConfigParser('eduid-{}.ini'.format(name),
+                                      config_environment_variable='EDUID_CONFIG')
+    cfg = config_parser.read_configuration()
+    cfg.update(config)
+    app.config.update(cfg)
+    app = eduid_init_app(app)
     app.saml2_config = get_saml2_config(app.config['SAML2.SETTINGS_MODULE'])
 
     from eduid_webapp.authn.views import authn_views
