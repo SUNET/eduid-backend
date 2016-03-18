@@ -37,7 +37,7 @@ from saml2.saml import AuthnContextClassRef
 from saml2.samlp import RequestedAuthnContext
 
 from .cache import IdentityCache, OutstandingQueriesCache, StateCache
-from .utils import get_saml2_config
+from .utils import get_saml2_config, get_saml_attribute
 
 import logging
 logger = logging.getLogger(__name__)
@@ -114,3 +114,45 @@ def get_authn_response(config, session, raw_response):
     logger.debug('Session info:\n{!s}\n\n'.format(pprint.pformat(session_info)))
 
     return session_info
+
+
+def authenticate(app, session_info):
+    """
+    Locate a user using the identity found in the SAML assertion.
+
+    :param request: Request object
+    :param session_info: Session info received by pysaml2 client
+
+    :returns: User
+
+    :type request: Request()
+    :type session_info: dict()
+    :rtype: User or None
+    """
+    if session_info is None:
+        raise TypeError('Session info is None')
+
+    attribute_values = get_saml_attribute(session_info, 'eduPersonPrincipalName')
+    if not attribute_values:
+        logger.error('Could not find attribute eduPersonPrincipalName in the SAML assertion')
+        return None
+
+    saml_user = attribute_values[0]
+
+    # eduPersonPrincipalName might be scoped and the scope (e.g. "@example.com") 
+    # might have to be removed before looking for the user in the database.
+    strip_suffix = app.config.get('SAML2.STRIP_SAML_USER_SUFFIX', '')
+    if strip_suffix:
+        if saml_user.endswith(strip_suffix):
+            saml_user = saml_user[:-len(strip_suffix)]
+
+    logger.debug('Looking for user with eduPersonPrincipalName == {!r}'.format(saml_user))
+    try:
+        user = app.central_userdb.get_user_by_eppn(saml_user)
+    except app.central_userdb.exceptions.UserDoesNotExist:
+        logger.error('No user with eduPersonPrincipalName = {!r} found'.format(saml_user))
+    except app.central_userdb.exceptions.MultipleUsersReturned:
+        logger.error("There are more than one user with eduPersonPrincipalName = {!r}".format(saml_user))
+    else:
+        return user
+    return None
