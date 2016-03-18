@@ -85,7 +85,7 @@ class EduidAPITestCase(unittest.TestCase):
         config = deepcopy(TEST_CONFIG)
         config = self.update_config(config)
         config['REDIS_PORT'] = str(self.redis_instance.port)
-        config['MONGO_URI'] = 'mongodb://localhost:{!d}/'.format(self.mongo_instance.port)
+        config['MONGO_URI'] = 'mongodb://localhost:{}/'.format(self.mongo_instance.port)
         for key, val in config.items():
             os.environ[key] = val
         self.app = self.load_app(config)

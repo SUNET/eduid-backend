@@ -31,26 +31,18 @@
 #
 
 
-from flask import Flask
 
 from eduid_userdb import UserDB
 from eduid_common.api.session import SessionFactory
-from eduid_api.authn.config import AuthnConfigParser
 
 
-def eduid_init_app(name, config):
+def eduid_init_app(app):
     """
     Prepare the flask app for eduID APIs.
 
      * Add configuration
      * Add eduID session
     """
-    app = Flask(name)
-    config_parser = AuthnConfigParser('eduid-{}.ini'.format(name),
-                                      config_environment_variable='EDUID_CONFIG')
-    cfg = config_parser.read_configuration()
-    cfg.update(config)
-    app.config.update(cfg)
+    app.central_userdb = UserDB(app.config['MONGO_URI'], 'eduid_userdb')
     app.session_interface = SessionFactory(app.config)
-    app.central_userdb = UserDB(config['MONGO_URI'], 'eduid_userdb')
     return app
