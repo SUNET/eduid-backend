@@ -47,6 +47,27 @@ class BadSAMLResponse(Exception):
     '''Bad SAML response'''
 
 
+def get_authn_ctx(session_info):
+    """
+    Get the SAML2 AuthnContext of the currently logged in users session.
+
+    session_info is a dict like
+
+        {'authn_info': [('http://www.swamid.se/policy/assurance/al1',
+                    ['https://dev.idp.eduid.se/idp.xml'])],
+         ...
+        }
+
+    :param session_info: The SAML2 session_info
+    :return: The first AuthnContext
+    :rtype: string | None
+    """
+    try:
+        return session_info['authn_info'][0][0]
+    except KeyError:
+        return None
+
+
 def get_authn_request(config, session, came_from, selected_idp,
                       required_loa=None, force_authn=False):
     # Request the right AuthnContext for workmode
@@ -84,7 +105,7 @@ def get_authn_request(config, session, came_from, selected_idp,
 
 def get_authn_response(config, session, raw_response):
 
-    client = Saml2Client(config['saml2_config'],
+    client = Saml2Client(config['SAML2_CONFIG'],
                          identity_cache=IdentityCache(session))
 
     oq_cache = OutstandingQueriesCache(session)

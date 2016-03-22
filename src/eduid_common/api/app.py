@@ -29,7 +29,10 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-
+"""
+Define a `eduid_init_app` function to accept a Flask app and update
+it with all attributes common to all eduID apps.
+"""
 
 
 from eduid_userdb import UserDB
@@ -38,10 +41,18 @@ from eduid_common.api.session import SessionFactory
 
 def eduid_init_app(app):
     """
-    Prepare the flask app for eduID APIs.
+    Prepare the flask app for eduID APIs with all the attributes
+    common to all  apps.
 
-     * Add configuration
+     * Add db connection
      * Add eduID session
+
+    :param app: Flask app, already with a `config` attr with
+                the configuration settings.
+    :type app: flask.Flask
+
+    :return: the updated application.
+    :rtype: flask.Flask
     """
     app.central_userdb = UserDB(app.config['MONGO_URI'], 'eduid_userdb')
     app.session_interface = SessionFactory(app.config)

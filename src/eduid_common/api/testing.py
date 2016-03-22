@@ -40,6 +40,8 @@ from copy import deepcopy
 import redis
 import pymongo
 
+from eduid_userdb import User
+from eduid_userdb.data_samples import NEW_USER_EXAMPLE
 from eduid_userdb.testing import MongoTemporaryInstance
 
 
@@ -90,6 +92,7 @@ class EduidAPITestCase(unittest.TestCase):
             os.environ[key] = val
         self.app = self.load_app(config)
         self.browser = self.app.test_client()
+        self.app.central_userdb.save(User(data=NEW_USER_EXAMPLE), check_sync=False)
 
     def tearDown(self):
         # XXX reset redis

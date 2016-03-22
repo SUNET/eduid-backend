@@ -66,20 +66,17 @@ class Session(collections.MutableMapping):
     to store the session data in redis.
     """
 
-    def __init__(self, app, request, base_session, new=False):
+    def __init__(self, app, base_session, new=False):
         """
         :param app: the flask app
-        :param request: the request
         :param base_session: The underlying session object
         :param new: whether the session is new or not.
 
         :type app: flask.Flask
-        :type request: flask.Request
         :type base_session: eduid_common.session.session.Session
         :type new: bool
         """
         self.app = app
-        self.request = request
         self._session = base_session
         self._created = time()
         self._new = new
@@ -184,6 +181,29 @@ class Session(collections.MutableMapping):
         self._invalidated = True
         self._session.clear()
 
+    def set_cookie(self, response):
+        """
+        Set the session cookie.
+
+        :param response: the response  object to carry the cookie
+        :type response: flask.Response
+        """
+        cookie_name = self.app.config.get('SESSION_COOKIE_NAME')
+        cookie_domain = self.app.config.get('SESSION_COOKIE_DOMAIN')
+        cookie_path = self.app.config.get('SESSION_COOKIE_PATH')
+        cookie_secure = self.app.config.get('SESSION_COOKIE_SECURE')
+        cookie_httponly = self.app.config.get('SESSION_COOKIE_HTTPONLY')
+        max_age = float(self.app.config.get('PERMANENT_SESSION_LIFETIME'))
+        response.set_cookie(cookie_name,
+                            value = self.token,
+                            domain = cookie_domain,
+                            path = cookie_path,
+                            secure = cookie_secure,
+                            httponly = cookie_httponly,
+                            max_age = max_age
+                            )
+
+
 
 class SessionFactory(SessionInterface):
     """
@@ -212,10 +232,10 @@ class SessionFactory(SessionInterface):
         token = request.cookies.get(cookie_name, None)
         if token is None:
             base_session = self.manager.get_session(data={})
-            session = Session(app, request, base_session, new=True)
+            session = Session(app, base_session, new=True)
         else:
             base_session = self.manager.get_session(token=token)
-            session = Session(app, request, base_session, new=False)
+            session = Session(app, base_session, new=False)
         return session
 
     def save_session(self, app, session, response):
@@ -223,18 +243,4 @@ class SessionFactory(SessionInterface):
         See flask.session.SessionInterface
         """
         session.persist()
-
-        cookie_name = self.config.get('SESSION_COOKIE_NAME')
-        cookie_domain = self.config.get('SESSION_COOKIE_DOMAIN')
-        cookie_path = self.config.get('SESSION_COOKIE_PATH')
-        cookie_secure = self.config.get('SESSION_COOKIE_SECURE')
-        cookie_httponly = self.config.get('SESSION_COOKIE_HTTPONLY')
-        max_age = float(self.config.get('PERMANENT_SESSION_LIFETIME'))
-        response.set_cookie(cookie_name,
-                            value = session.token,
-                            domain = cookie_domain,
-                            path = cookie_path,
-                            secure = cookie_secure,
-                            httponly = cookie_httponly,
-                            max_age = max_age
-                            )
+        session.set_cookie(response)
