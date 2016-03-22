@@ -31,13 +31,17 @@
 #
 
 import os
+import base64
 
 import saml2
 from flask import request, session, Response
 
+from eduid_common.api.session import SessionFactory
 from eduid_common.api.testing import EduidAPITestCase
+from eduid_common.authn.cache import OutstandingQueriesCache
 from eduid_common.authn.utils import get_location
 from eduid_common.authn.eduid_saml2 import get_authn_request
+from eduid_common.authn.tests.responses import auth_response
 from eduid_webapp.authn.app import authn_init_app
 
 HERE = os.path.abspath(os.path.dirname(__file__))
@@ -72,3 +76,25 @@ class AuthnAPITestCase(EduidAPITestCase):
             idp_url = authn_req.split('?')[0]
             self.assertEqual(resp.status_code, 302)
             self.assertTrue(resp.location.startswith(idp_url))
+
+    def test_assertion_consumer_service(self):
+
+        came_from = '/afterlogin/'
+        with self.app.test_request_context('/login', method='GET'):
+            resp = self.app.dispatch_request()
+            token = session._session.token
+
+        authr = auth_response(token, 'hubba-bubba')
+
+        with self.app.test_request_context('/saml2-acs', method='POST',
+                                           data={'SAMLResponse': base64.b64encode(authr),
+                                                 'RelayState': came_from}):
+
+            oq_cache = OutstandingQueriesCache(session)
+            oq_cache.set(token, came_from)
+
+            resp = self.app.dispatch_request()
+
+            self.assertEquals(resp.status_code, 302)
+            self.assertEquals(resp.location, came_from)
+            self.assertEquals(session['eduPersonPrincipalName'], 'hubba-bubba')

@@ -30,16 +30,30 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
+from saml2.ident import code
+from flask import session, request, redirect, current_app
+from eduid_common.authn.loa import get_loa
 from eduid_webapp.authn.acs_registry import acs_action
+
+import logging
+logger = logging.getLogger(__name__)
 
 
 @acs_action('login-action')
 def login_action(session_info, user):
 
-    headers = login(request, session_info, user)
-    _set_name_id(request.session, session_info['name_id'])
+    logger.info("User {!r} logging in (eduPersonPrincipalName: {!r})".format(
+        user.user_id,
+        user.eppn))
+    session['_saml2_session_name_id'] = code(session_info['name_id'])
+    session['eduPersonPrincipalName'] = user.eppn
+    loa = get_loa(current_app.config.get('AVAILABLE_LOA'), session_info)
+    session['eduPersonAssurance'] = loa
+    session.persist()
 
     # redirect the user to the view where he came from
-    relay_state = sanitize_post_key(request, 'RelayState', '/')
-    log.debug('Redirecting to the RelayState: ' + relay_state)
-    return HTTPFound(location=relay_state, headers=headers)
+    relay_state = request.form.get('RelayState', '/')
+    logger.debug('Redirecting to the RelayState: ' + relay_state)
+    response = redirect(location=relay_state)
+    session.set_cookie(response)
+    return response

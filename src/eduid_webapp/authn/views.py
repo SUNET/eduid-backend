@@ -36,6 +36,7 @@ from flask import current_app, Blueprint
 
 from eduid_common.authn.utils import get_location
 from eduid_common.authn.eduid_saml2 import get_authn_request, get_authn_response
+from eduid_common.authn.eduid_saml2 import authenticate
 from eduid_webapp.authn.acs_registry import get_action, schedule_action
 
 import logging
@@ -75,7 +76,7 @@ def assertion_consumer_service():
 
     user = authenticate(current_app, session_info)
     if user is None:
-        log.error('Could not find the user identified by the IdP')
+        logger.error('Could not find the user identified by the IdP')
         raise HTTPUnauthorized("Access not authorized")
 
     action = get_action()

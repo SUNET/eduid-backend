@@ -41,6 +41,27 @@ logger = logging.getLogger(__name__)
 
 
 def authn_init_app(name, config):
+    """
+    Create an instance of an authentication app.
+
+    First, it will load the configuration from the file system, according to
+    the logic in `eduid_common.config.parsers.INIConfigParser`, and update
+    it with any settings given in the `config` param.
+    
+    Then, the app instance will be updated with common stuff by `eduid_init_app`,
+    and finally all needed blueprints will be registered with it.
+    
+    :param name: The name of the instance, it will affect the configuration file
+                 loaded from the filesystem.
+    :type name: str
+    :param config: any additional configuration settings. Specially useful
+                   in test cases
+    :type config: dict
+
+    :return: the flask app
+    :rtype: flask.Flask
+    """
+    from . import acs_actions
     app = Flask(name)
     config_parser = AuthnConfigParser('eduid-{}.ini'.format(name),
                                       config_environment_variable='EDUID_CONFIG')
@@ -49,6 +70,7 @@ def authn_init_app(name, config):
     app.config.update(cfg)
     app = eduid_init_app(app)
     app.saml2_config = get_saml2_config(app.config['SAML2.SETTINGS_MODULE'])
+    app.config['SAML2_CONFIG'] = app.saml2_config
 
     from eduid_webapp.authn.views import authn_views
     app.register_blueprint(authn_views)
