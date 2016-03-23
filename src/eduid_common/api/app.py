@@ -37,6 +37,7 @@ it with all attributes common to all eduID apps.
 
 from eduid_userdb import UserDB
 from eduid_common.api.session import SessionFactory
+from eduid_common.api.logging import init_logging
 
 
 def eduid_init_app(app):
@@ -54,6 +55,7 @@ def eduid_init_app(app):
     :return: the updated application.
     :rtype: flask.Flask
     """
-    app.central_userdb = UserDB(app.config['MONGO_URI'], 'eduid_userdb')
+    app = init_logging(app)
+    app.central_userdb = UserDB(app.config['MONGO_URI'], 'eduid_am')
     app.session_interface = SessionFactory(app.config)
     return app
