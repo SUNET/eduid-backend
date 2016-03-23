@@ -30,30 +30,49 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 """
-Define a `eduid_init_app` function to accept a Flask app and update
-it with all attributes common to all eduID apps.
+Define a `eduid_init_app` function to create a Flask app and update
+it with all attributes common to all eduID services.
 """
 
 
 from eduid_userdb import UserDB
+from eduid_common.authn.middleware import AuthnApp
 from eduid_common.api.session import SessionFactory
+from eduid_common.config.parsers import IniConfigParser
 
 
-def eduid_init_app(app):
+def eduid_init_app(name, config, app_class=AuthnApp,
+                   config_class=IniConfigParser):
     """
-    Prepare the flask app for eduID APIs with all the attributes
+    Create and prepare the flask app for eduID APIs with all the attributes
     common to all  apps.
 
+     * Parse and merge configurations
      * Add db connection
      * Add eduID session
 
-    :param app: Flask app, already with a `config` attr with
-                the configuration settings.
-    :type app: flask.Flask
+    :param name: The name of the instance, it will affect the configuration file
+                 loaded from the filesystem.
+    :type name: str
+    :param config: any additional configuration settings. Specially useful
+                   in test cases
+    :type config: dict
+    :param app_class: The class used to build the flask app. Should be a
+                      descendant of flask.Flask
+    :type app_class: type
+    :param config_class: The class used to build the configuration parser,
+                         should be a descendant of
+                         eduid_common.config.parsers.IniConfigParser
 
-    :return: the updated application.
+    :return: the flask application.
     :rtype: flask.Flask
     """
+    app = app_class(name)
+    config_parser = config_class('eduid-{}.ini'.format(name),
+                                 config_environment_variable='EDUID_CONFIG')
+    cfg = config_parser.read_configuration()
+    cfg.update(config)
+    app.config.update(cfg)
     app.central_userdb = UserDB(app.config['MONGO_URI'], 'eduid_userdb')
     app.session_interface = SessionFactory(app.config)
     return app

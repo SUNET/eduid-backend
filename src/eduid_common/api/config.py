@@ -64,5 +64,6 @@ class APIConfigParser(IniConfigParser):
             'mongo_uri': (self.read_setting_from_env, 'mongodb://'),
             'redis_port': (self.read_setting_from_env_int, 6379),
             'redis_db': (self.read_setting_from_env_int, 0),
+            'token_service_url': (self.read_setting_from_env, 'http://authn.docker/login'),
             })
 
