@@ -38,6 +38,7 @@ from flask import request, session, Response
 
 from eduid_common.api.session import SessionFactory
 from eduid_common.api.testing import EduidAPITestCase
+from eduid_common.api.app import eduid_init_app
 from eduid_common.authn.cache import OutstandingQueriesCache
 from eduid_common.authn.utils import get_location
 from eduid_common.authn.eduid_saml2 import get_authn_request
@@ -98,3 +99,30 @@ class AuthnAPITestCase(EduidAPITestCase):
             self.assertEquals(resp.status_code, 302)
             self.assertEquals(resp.location, came_from)
             self.assertEquals(session['eduPersonPrincipalName'], 'hubba-bubba')
+
+
+class UnAuthnAPITestCase(EduidAPITestCase):
+
+    def update_config(self, config):
+        """
+        Called from the parent class, so that we can update the configuration
+        according to the needs of this test case.
+        """
+        saml_config = os.path.join(HERE, 'saml2_settings.py')
+        config.update({
+            'TOKEN_SERVICE_URL': 'http://login',
+            })
+        return config
+
+    def load_app(self, config):
+        """
+        Called from the parent class, so we can provide the appropriate flask
+        app for this test case.
+        """
+        return eduid_init_app('testing', config)
+
+    def test_no_cookie(self):
+        with self.app.test_client() as c:
+            resp = c.get('/')
+            self.assertEqual(resp.status_code, 302)
+            self.assertEqual(resp.location, self.app.config['TOKEN_SERVICE_URL'])
