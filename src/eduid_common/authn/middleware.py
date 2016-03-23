@@ -38,6 +38,7 @@ class AuthnApp(Flask):
     """
     def __call__(self, environ, start_response):
         cookie_name = self.config.get('SESSION_COOKIE_NAME')
+        # XXX properly parse the cookie, check valid token
         if 'HTTP_COOKIE' in environ and cookie_name in environ['HTTP_COOKIE']:
             return super(AuthnApp, self).__call__(environ, start_response)
         ts_url = self.config.get('TOKEN_SERVICE_URL')
