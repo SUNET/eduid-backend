@@ -62,13 +62,8 @@ def authn_init_app(name, config):
     :rtype: flask.Flask
     """
     from . import acs_actions
-    app = Flask(name)
-    config_parser = AuthnConfigParser('eduid-{}.ini'.format(name),
-                                      config_environment_variable='EDUID_CONFIG')
-    cfg = config_parser.read_configuration()
-    cfg.update(config)
-    app.config.update(cfg)
-    app = eduid_init_app(app)
+    app = eduid_init_app(name, config, app_class=Flask,
+                         config_class=AuthnConfigParser)
     app.saml2_config = get_saml2_config(app.config['SAML2.SETTINGS_MODULE'])
     app.config['SAML2_CONFIG'] = app.saml2_config
 
