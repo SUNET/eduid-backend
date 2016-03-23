@@ -38,7 +38,7 @@ def rotating(app):
             formatter = logging.Formatter(app.config['LOG_FORMAT'])
             handler.setFormatter(formatter)
             app.logger.addHandler(handler)
-            app.logger.info('Logging initiated')
+            app.logger.info('Rotating log handler initiated')
         except AttributeError as e:
             raise BadConfiguration(e.message)
     return app
@@ -54,7 +54,7 @@ def init_logging(app):
     app.config.setdefault('LOG_TYPE', ['rotating'])
 
     for log_type in app.config['LOG_TYPE']:
-        init_handler = locals().get(log_type)
+        init_handler = globals().get(log_type)
         if init_handler:
             app = init_handler(app)
     return app
