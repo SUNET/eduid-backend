@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import absolute_import
-from flask import Flask
 from eduid_common.api.app import eduid_init_app
 
 __author__ = 'lundberg'
@@ -28,11 +27,9 @@ def oidc_proofing_init_app(name, config):
     :rtype: flask.Flask
     """
 
-    app = Flask(name)
-    app.config.from_object('eduid_webapp.oidc_proofing.settings.common')
+    app = eduid_init_app(name, {})
     app.config.from_envvar('OIDC_PROOFING_SETTINGS', silent=True)
     app.config.update(config)
-    app = eduid_init_app(app)
 
     from eduid_webapp.oidc_proofing.views import oidc_proofing_views
     app.register_blueprint(oidc_proofing_views)
