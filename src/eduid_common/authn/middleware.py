@@ -30,6 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
+from werkzeug.http import parse_cookie
 from flask import Flask
 
 
@@ -37,9 +38,9 @@ class AuthnApp(Flask):
     """
     """
     def __call__(self, environ, start_response):
+        cookie = parse_cookie(environ)
         cookie_name = self.config.get('SESSION_COOKIE_NAME')
-        # XXX properly parse the cookie, check valid token
-        if 'HTTP_COOKIE' in environ and cookie_name in environ['HTTP_COOKIE']:
+        if cookie and cookie_name in cookie:
             return super(AuthnApp, self).__call__(environ, start_response)
         ts_url = self.config.get('TOKEN_SERVICE_URL')
         headers = [ ('Location', ts_url) ]
