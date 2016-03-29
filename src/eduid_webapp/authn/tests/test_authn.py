@@ -31,9 +31,11 @@
 #
 
 import os
+import json
 import base64
 
 import saml2
+from werkzeug.exceptions import NotFound
 from flask import request, session, Response
 
 from eduid_common.api.session import SessionFactory
@@ -70,8 +72,8 @@ class AuthnAPITestCase(EduidAPITestCase):
         return authn_init_app('testing', config)
 
     def test_authn(self):
-        with self.app.test_request_context('/login', method='GET'):
-            resp = self.app.dispatch_request()
+        with self.app.test_client() as c:
+            resp = c.get('/login')
             authn_req = get_location(get_authn_request(self.app.config,
                                                        session, '/', None))
             idp_url = authn_req.split('?')[0]
@@ -79,13 +81,12 @@ class AuthnAPITestCase(EduidAPITestCase):
             self.assertTrue(resp.location.startswith(idp_url))
 
     def test_assertion_consumer_service(self):
-
         came_from = '/afterlogin/'
-        with self.app.test_request_context('/login', method='GET'):
-            resp = self.app.dispatch_request()
+        eppn = 'hubba-bubba'
+        with self.app.test_client() as c:
+            resp = c.get('/login')
             token = session._session.token
-
-        authr = auth_response(token, 'hubba-bubba')
+            authr = auth_response(token, eppn)
 
         with self.app.test_request_context('/saml2-acs', method='POST',
                                            data={'SAMLResponse': base64.b64encode(authr),
@@ -98,7 +99,7 @@ class AuthnAPITestCase(EduidAPITestCase):
 
             self.assertEquals(resp.status_code, 302)
             self.assertEquals(resp.location, came_from)
-            self.assertEquals(session['eduPersonPrincipalName'], 'hubba-bubba')
+            self.assertEquals(session['eduPersonPrincipalName'], eppn)
 
 
 class UnAuthnAPITestCase(EduidAPITestCase):
@@ -126,3 +127,15 @@ class UnAuthnAPITestCase(EduidAPITestCase):
             resp = c.get('/')
             self.assertEqual(resp.status_code, 302)
             self.assertEqual(resp.location, self.app.config['TOKEN_SERVICE_URL'])
+
+    def test_cookie(self):
+        token = ('a7MPUEQQLAEEQEAQDGJOXKAMFM467EUW6HCETFI4VP5JCU3CDVJDQZSHMXAOSC'
+                 'U25WPZA66NY5ZVAA4RPCVMHBQBJSVGYQPPLZNIBTP3Y')
+        sessid = ('fb1f42420b0109020203325d750185673df252de388932a3957f522a6c43a'
+                  'a47')
+        self.redis_instance.conn.set(sessid, json.dumps({'v1': {'id': '0'}}))
+
+        with self.app.test_client() as c:
+            cookie_name = self.app.config.get('SESSION_COOKIE_NAME')
+            c.set_cookie('localhost', cookie_name, token)
+            self.assertRaises(NotFound, c.get, '/')
