@@ -67,7 +67,7 @@ class AuthnAPITestCase(EduidAPITestCase):
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        return authn_init_app('authn', config)
+        return authn_init_app('testing', config)
 
     def test_authn(self):
         with self.app.test_request_context('/login', method='GET'):
@@ -119,7 +119,7 @@ class UnAuthnAPITestCase(EduidAPITestCase):
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        return eduid_init_app('authn', config)
+        return eduid_init_app('testing', config)
 
     def test_no_cookie(self):
         with self.app.test_client() as c:
