@@ -28,6 +28,7 @@ def oidc_proofing_init_app(name, config):
     """
 
     app = eduid_init_app(name, {})
+    app.config.from_object('eduid_webapp.oidc.settings.common')
     app.config.from_envvar('OIDC_PROOFING_SETTINGS', silent=True)
     app.config.update(config)
 
