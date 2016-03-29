@@ -43,11 +43,11 @@ class AuthnConfigParser(APIConfigParser):
         super(APIConfigParser, self).__init__(config_file_name,
                                               config_environment_variable)
         self.known_special_keys.update({
-            'saml2.login_redirect_url': (self.read_setting_from_env, '/'),
-            'saml2.settings_module': (self.read_setting_from_env,
+            'saml2_login_redirect_url': (self.read_setting_from_env, '/'),
+            'saml2_settings_module': (self.read_setting_from_env,
                                       'src/eduid_webapp/authn/tests/saml2_settings.py'),
-            'saml2.logout_redirect_url': (self.read_setting_from_env, 'http://html.docker/'),
+            'saml2_logout_redirect_url': (self.read_setting_from_env, 'http://html.docker/'),
             # The attribute released by the IdP that we should use to locate the user logging in.
-            'saml2.user_main_attribute': (self.read_setting_from_env, 'eduPersonPrincipalName'),
-            'saml2.strip_saml_user_suffix': (self.read_setting_from_env, '@local.eduid.se'),
+            'saml2_user_main_attribute': (self.read_setting_from_env, 'eduPersonPrincipalName'),
+            'saml2_trip_saml_user_suffix': (self.read_setting_from_env, '@local.eduid.se'),
             })
