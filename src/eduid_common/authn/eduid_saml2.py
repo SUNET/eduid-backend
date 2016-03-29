@@ -86,7 +86,7 @@ def get_authn_request(config, session, came_from, selected_idp,
         "force_authn": str(force_authn).lower(),
     }
 
-    client = Saml2Client(get_saml2_config(config['SAML2.SETTINGS_MODULE']))
+    client = Saml2Client(get_saml2_config(config['SAML2_SETTINGS_MODULE']))
     try:
         (session_id, info) = client.prepare_for_authenticate(
             entityid=selected_idp,
