@@ -47,7 +47,7 @@ SESSION_COOKIE_NAME = 'sessid'
 
 # the domain for the session cookie. If this is not set, the cookie will
 # be valid for all subdomains of SERVER_NAME.
-SESSION_COOKIE_DOMAIN = 'docker'
+SESSION_COOKIE_DOMAIN = '.docker'
 
 # The URL scheme that should be used for URL generation if no URL scheme is
 # available. This defaults to http.
