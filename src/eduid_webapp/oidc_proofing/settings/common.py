@@ -23,13 +23,15 @@ SECRET_KEY = None
 
 # Logging
 LOG_FILE = None
-LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 LOG_LEVEL = 'INFO'
-LOG_MAX_BYTES = 1000000  # 1 MB
-LOG_BACKUP_COUNT = 10
 
 # Session
-PERMANENT_SESSION_LIFETIME = 3600  # Have no clue what is a good value
+PERMANENT_SESSION_LIFETIME = 300  # I have no clue what is a good value
+
+# OIDC
+PROVIDER_CONFIGURATION_INFO = {}
+CLIENT_REGISTRATION_INFO = {}
+USERINFO_ENDPOINT_METHOD = 'POST'
 
 # Api Spec config - https://github.com/OAI/OpenAPI-Specification
 # from apispec import APISpec
