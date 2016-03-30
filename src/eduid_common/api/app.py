@@ -38,6 +38,7 @@ it with all attributes common to all eduID services.
 from eduid_userdb import UserDB
 from eduid_common.authn.middleware import AuthnApp
 from eduid_common.api.session import SessionFactory
+from eduid_common.api.logging import init_logging
 from eduid_common.config.parsers import IniConfigParser
 
 
@@ -48,6 +49,7 @@ def eduid_init_app(name, config, app_class=AuthnApp,
     common to all  apps.
 
      * Parse and merge configurations
+     * Add logging
      * Add db connection
      * Add eduID session
 
@@ -68,11 +70,19 @@ def eduid_init_app(name, config, app_class=AuthnApp,
     :rtype: flask.Flask
     """
     app = app_class(name)
-    config_parser = config_class('eduid-{}.ini'.format(name),
+    config_parser = config_class('eduid-{!s}.ini'.format(name),
                                  config_environment_variable='EDUID_CONFIG')
     cfg = config_parser.read_configuration()
-    cfg.update(config)
-    app.config.update(cfg)
-    app.central_userdb = UserDB(app.config['MONGO_URI'], 'eduid_userdb')
+    # Ugly hack to use both ini and python files at the same time, we should choose one or the other
+    if cfg:
+        cfg.update(config)
+        app.config.update(cfg)
+    else:
+        app.config.from_object('eduid_webapp.settings.common')
+        app.config.from_envvar('EDUID_SETTINGS', silent=True)
+        app.config.update(config)
+
+    app = init_logging(app)
+    app.central_userdb = UserDB(app.config['MONGO_URI'], 'eduid_am')  # XXX: Needs updating when we change db
     app.session_interface = SessionFactory(app.config)
     return app
