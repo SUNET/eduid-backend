@@ -29,7 +29,10 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+import urlparse
+from urllib import urlencode
 
+from werkzeug import get_current_url
 from werkzeug.http import parse_cookie
 from flask import Flask
 
@@ -39,10 +42,22 @@ class AuthnApp(Flask):
     """
     def __call__(self, environ, start_response):
         cookie = parse_cookie(environ)
+        from nose.tools import set_trace;set_trace()
         cookie_name = self.config.get('SESSION_COOKIE_NAME')
         if cookie and cookie_name in cookie:
             return super(AuthnApp, self).__call__(environ, start_response)
         ts_url = self.config.get('TOKEN_SERVICE_URL')
-        headers = [ ('Location', ts_url) ]
+        next_url = get_current_url(environ)
+
+        params = {'next': next_url}
+
+        url_parts = list(urlparse.urlparse(ts_url))
+        query = urlparse.parse_qs(url_parts[4])
+        query.update(params)
+
+        url_parts[4] = urlencode(query)
+        location = urlparse.urlunparse(url_parts)
+
+        headers = [ ('Location', location) ]
         start_response('302 Found', headers)
         return []
