@@ -64,7 +64,7 @@ def authn_init_app(name, config):
     from . import acs_actions
     app = eduid_init_app(name, config, app_class=Flask,
                          config_class=AuthnConfigParser)
-    app.saml2_config = get_saml2_config(app.config['SAML2.SETTINGS_MODULE'])
+    app.saml2_config = get_saml2_config(app.config['SAML2_SETTINGS_MODULE'])
     app.config['SAML2_CONFIG'] = app.saml2_config
 
     from eduid_webapp.authn.views import authn_views

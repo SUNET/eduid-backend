@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 #
 # Copyright (c) 2016 NORDUnet A/S
 # All rights reserved.
@@ -30,24 +32,52 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from eduid_common.api.config import APIConfigParser
+# ==============#
+# Flask config #
+# ==============#
+
+# enable/disable debug mode
+DEBUG = True
+
+# the secret key
+SECRET_KEY = 'development'
+
+# the name of the session cookie
+SESSION_COOKIE_NAME = 'sessid'
+
+# the domain for the session cookie. If this is not set, the cookie will
+# be valid for all subdomains of SERVER_NAME.
+SESSION_COOKIE_DOMAIN = '.docker'
+
+# The URL scheme that should be used for URL generation if no URL scheme is
+# available. This defaults to http.
+PREFERRED_URL_SCHEME = 'http'
 
 
-class AuthnConfigParser(APIConfigParser):
-    """
-    """
+# ================#
+# mongodb config #
+# ================#
 
-    section = 'app:authn'
+MONGO_URI = 'mongodb://mongodb.docker:27017/'
 
-    def __init__(self, config_file_name, config_environment_variable=None):
-        super(APIConfigParser, self).__init__(config_file_name,
-                                              config_environment_variable)
-        self.known_special_keys.update({
-            'saml2_login_redirect_url': (self.read_setting_from_env, '/'),
-            'saml2_settings_module': (self.read_setting_from_env,
-                                      'src/eduid_webapp/authn/tests/saml2_settings.py'),
-            'saml2_logout_redirect_url': (self.read_setting_from_env, 'http://html.docker/'),
-            # The attribute released by the IdP that we should use to locate the user logging in.
-            'saml2_user_main_attribute': (self.read_setting_from_env, 'eduPersonPrincipalName'),
-            'saml2_trip_saml_user_suffix': (self.read_setting_from_env, '@local.eduid.se'),
-            })
+
+# ==============#
+# redis config #
+# ==============#
+
+REDIS_HOST = 'redis.docker'
+REDIS_PORT = 6379
+REDIS_DB = 0
+REDIS_SENTINEL_HOSTS = ''
+REDIS_SENTINEL_SERVICE_NAME = ''
+
+
+# =======#
+# SAML2 #
+# =======#
+
+SAML2_LOGIN_REDIRECT_URL = '/'
+SAML2_SETTINGS_MODULE = 'eduid_webapp.authn/src/eduid_webapp/authn/tests/saml2_settings.py'
+SAML2_LOGOUT_REDIRECT_URL = 'http://html.docker/'
+SAML2_USER_MAIN_ATTRIBUTE = 'eduPersonPrincipalName'
+SAML2_STRIP_SAML_USER_SUFFIX = '@local.eduid.se'

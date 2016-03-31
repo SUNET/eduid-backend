@@ -59,8 +59,8 @@ class AuthnAPITestCase(EduidAPITestCase):
         """
         saml_config = os.path.join(HERE, 'saml2_settings.py')
         config.update({
-            'SAML2.LOGIN_REDIRECT_URL': '/',
-            'SAML2.SETTINGS_MODULE': saml_config,
+            'SAML2_LOGIN_REDIRECT_URL': '/',
+            'SAML2_SETTINGS_MODULE': saml_config,
             })
         return config
 

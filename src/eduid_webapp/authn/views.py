@@ -50,7 +50,7 @@ def login():
     """
     login view, redirects to SAML2 IdP
     """
-    redirect_url = current_app.config.get('SAML2.LOGIN_REDIRECT_URL', '/')
+    redirect_url = current_app.config.get('SAML2_LOGIN_REDIRECT_URL', '/')
     came_from = request.args.get('next', redirect_url)
     idp = session.get('idp', None)
     idp = request.args.get('idp', idp)
