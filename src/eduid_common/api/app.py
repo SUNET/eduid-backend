@@ -79,7 +79,12 @@ def eduid_init_app(name, config, app_class=AuthnApp,
         app.config.update(cfg)
     else:
         app.config.from_object('eduid_webapp.settings.common')
-        app.config.from_envvar('EDUID_SETTINGS', silent=True)
+        app.config.from_object('eduid_webapp.settings.dev')  # XXX: Until etcd
+        try:
+            app.config.from_object('eduid_webapp.{!s}.settings.common'.format(name))
+            app.config.from_object('eduid_webapp.{!s}.settings.dev'.format(name))  # XXX: Until etcd
+        except ImportError:  # No app specific config found
+            pass
         app.config.update(config)
 
     app = init_logging(app)
