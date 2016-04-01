@@ -42,7 +42,6 @@ class AuthnApp(Flask):
     """
     def __call__(self, environ, start_response):
         cookie = parse_cookie(environ)
-        from nose.tools import set_trace;set_trace()
         cookie_name = self.config.get('SESSION_COOKIE_NAME')
         if cookie and cookie_name in cookie:
             return super(AuthnApp, self).__call__(environ, start_response)
