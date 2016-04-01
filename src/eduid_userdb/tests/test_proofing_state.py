@@ -3,11 +3,12 @@
 from unittest import TestCase
 
 from collections import OrderedDict
+from datetime import datetime
 from eduid_userdb.proofing.proofing_state import LetterProofingState
 
 __author__ = 'lundberg'
 
-USERID = '123467890123456789014567'
+EPPN = 'foob-arra'
 
 # Address as we get it from Navet
 ADDRESS = OrderedDict([
@@ -25,7 +26,7 @@ class ProofingStateTest(TestCase):
     def test_create_letterproofingstate(self):
         """
         {
-             'user_id': ObjectId(USERID),
+             'eppn': 'foob-arra',
              'nin': {
                  'created_by': 'eduid-userdb.tests',
                  'created_ts': datetime(2015, 11, 9, 12, 53, 9, 708761),
@@ -53,7 +54,7 @@ class ProofingStateTest(TestCase):
          }
         """
         state = LetterProofingState({
-            'user_id': USERID,
+            'eduPersonPrincipalName': EPPN,
             'nin': {
                 'number': '200102034567',
                 'created_by': 'eduid-userdb.tests',
@@ -64,11 +65,9 @@ class ProofingStateTest(TestCase):
         })
         state.proofing_letter.address = ADDRESS
         state_dict = state.to_dict()
-        self.assertItemsEqual(state_dict.keys(), ['_id', 'user_id', 'nin', 'proofing_letter'])
+        self.assertItemsEqual(state_dict.keys(), ['_id', 'eduPersonPrincipalName', 'nin', 'proofing_letter'])
         self.assertItemsEqual(state_dict['nin'].keys(), ['created_by', 'created_ts', 'number', 'verification_code',
                                                          'verified'])
         self.assertItemsEqual(state_dict['proofing_letter'].keys(), ['is_sent', 'sent_ts', 'transaction_id',
                                                                      'address'])
-
-
 
