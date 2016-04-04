@@ -3,8 +3,7 @@
 from unittest import TestCase
 
 from collections import OrderedDict
-from datetime import datetime
-from eduid_userdb.proofing.proofing_state import LetterProofingState
+from eduid_userdb.proofing.proofing_state import LetterProofingState, OidcProofingState
 
 __author__ = 'lundberg'
 
@@ -71,3 +70,19 @@ class ProofingStateTest(TestCase):
         self.assertItemsEqual(state_dict['proofing_letter'].keys(), ['is_sent', 'sent_ts', 'transaction_id',
                                                                      'address'])
 
+
+    def test_create_oidcproofingstate(self):
+        """
+        {
+             'eppn': 'foob-arra',
+             'state': '2c84fedd-a694-46f0-b235-7c4dd7982852',
+             'nonce': 'bbca50f6-5213-4784-b6e6-289bd1debda5'
+        }
+        """
+        state = OidcProofingState({
+            'eduPersonPrincipalName': EPPN,
+            'state': '2c84fedd-a694-46f0-b235-7c4dd7982852',
+            'nonce': 'bbca50f6-5213-4784-b6e6-289bd1debda5'
+        })
+        state_dict = state.to_dict()
+        self.assertItemsEqual(state_dict.keys(), ['_id', 'eduPersonPrincipalName', 'state', 'nonce'])

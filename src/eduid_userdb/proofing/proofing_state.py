@@ -109,10 +109,11 @@ class ProofingState(object):
 
 class LetterProofingState(ProofingState):
     def __init__(self, data, raise_on_unknown=True):
-        _nin = NinProofingElement(data=data.pop('nin'))
-        _proofing_letter = SentLetterElement(data.pop('proofing_letter', {}))
+        self._data_in = copy.deepcopy(data)  # to not modify callers data
+        _nin = NinProofingElement(data=self._data_in.pop('nin'))
+        _proofing_letter = SentLetterElement(self._data_in.pop('proofing_letter', {}))
 
-        ProofingState.__init__(self, data, raise_on_unknown)
+        ProofingState.__init__(self, self._data_in, raise_on_unknown)
         self._data['nin'] = _nin
         self._data['proofing_letter'] = _proofing_letter
 
@@ -136,4 +137,31 @@ class LetterProofingState(ProofingState):
         res['proofing_letter'] = self.proofing_letter.to_dict()
         return res
 
+
+class OidcProofingState(ProofingState):
+    def __init__(self, data, raise_on_unknown=True):
+        self._data_in = copy.deepcopy(data)  # to not modify callers data
+        # state
+        state = self._data_in.pop('state')
+        # nonce
+        nonce = self._data_in.pop('nonce')
+        
+        ProofingState.__init__(self, self._data_in, raise_on_unknown)
+
+        self._data['state'] = state
+        self._data['nonce'] = nonce
+
+    @property
+    def state(self):
+        """
+        :rtype: State hash
+        """
+        return self._data['state']
+
+    @property
+    def nonce(self):
+        """
+        :rtype: nonce hash
+        """
+        return self._data['nonce']
 
