@@ -51,12 +51,19 @@ class ProofingStateDB(BaseDB):
     def __init__(self, db_uri, db_name, collection='proofing_data'):
         BaseDB.__init__(self, db_uri, db_name, collection)
 
-    def get_state_by_user_id(self, user_id, raise_on_missing=True):
+    # XXX: Deprecated function that will be removed
+    def get_state_by_user_id(self, user_id, eppn, raise_on_missing=True):
         """
         Locate a state in the db given the state's user_id.
 
         :param user_id: User identifier
+        :param eppn: eduPersonPrincipalName
+        :param raise_on_missing: Raise exception if True else return None
+
         :type user_id: bson.ObjectId | str | unicode
+        :type eppn: str | unicode
+        :type raise_on_missing: bool
+
         :return: ProofingStateClass instance | None
         :rtype: ProofingStateClass | None
 
@@ -68,7 +75,39 @@ class ProofingStateDB(BaseDB):
                 user_id = ObjectId(user_id)
             except InvalidId:
                 return None
-        state = self._get_document_by_attr('user_id', user_id, raise_on_missing)
+        doc = self._get_document_by_attr('user_id', user_id, raise_on_missing)
+        if doc:
+            # Rewrite state document with eppn instead of user_id
+            doc['eduPersonPrincipalName'] = eppn  # Add eppn to data as it was missing
+            user_id = doc.pop('user_id')
+            proofing_state = self.ProofingStateClass(doc)
+            logger.info('Rewriting user_id proofing state to eppn proofing state')
+            logger.debug('Proofing state user_id: {!s}'.format(user_id))
+            logger.debug('Proofing state eppn: {!s}'.format(eppn))
+            self.remove_document({'user_id': user_id})
+            logger.info('Removed user_id proofing state')
+            self.save(proofing_state)
+            logger.info('Saved eppn proofing state')
+            return self.get_state_by_eppn(eppn, raise_on_missing)
+
+    def get_state_by_eppn(self, eppn, raise_on_missing=True):
+        """
+        Locate a state in the db given the state user's eppn.
+
+        :param eppn: eduPersonPrincipalName
+        :param raise_on_missing: Raise exception if True else return None
+
+        :type eppn: str | unicode
+        :type raise_on_missing: bool
+
+        :return: ProofingStateClass instance | None
+        :rtype: ProofingStateClass | None
+
+        :raise self.DocumentDoesNotExist: No user match the search criteria
+        :raise self.MultipleDocumentsReturned: More than one user matches the search criteria
+        """
+
+        state = self._get_document_by_attr('eduPersonPrincipalName', eppn, raise_on_missing)
         if state:
             return self.ProofingStateClass(state)
 
@@ -76,12 +115,13 @@ class ProofingStateDB(BaseDB):
         """
 
         :param state: ProofingStateClass object
-        :type state: ProofingStateClass
         :param check_sync: Ensure the document hasn't been updated in the database since it was loaded
+
+        :type state: ProofingStateClass
         :type check_sync: bool
+
         :return:
         """
-        assert isinstance(state.user_id, ObjectId)
 
         modified = state.modified_ts
         state.modified_ts = True  # update to current time
@@ -91,13 +131,13 @@ class ProofingStateDB(BaseDB):
             logging.debug("{!s} Inserted new state {!r} into {!r}): {!r})".format(
                 self, state, self._coll_name, result))
         else:
-            test_doc = {'user_id': state.user_id}
+            test_doc = {'eduPersonPrincipalName': state.eppn}
             if check_sync:
                 test_doc['modified_ts'] = modified
             result = self._coll.update(test_doc, state.to_dict(), upsert=(not check_sync))
             if check_sync and result['n'] == 0:
                 db_ts = None
-                db_state = self._coll.find_one({'user_id': state.user_id})
+                db_state = self._coll.find_one({'eduPersonPrincipalName': state.eppn})
                 if db_state:
                     db_ts = db_state['modified_ts']
                 logging.debug("{!s} FAILED Updating state {!r} (ts {!s}) in {!r}). "
@@ -112,5 +152,13 @@ class LetterProofingStateDB(ProofingStateDB):
     ProofingStateClass = LetterProofingState
 
     def __init__(self, db_uri, db_name='eduid_idproofing_letter'):
+        ProofingStateDB.__init__(self, db_uri, db_name)
+
+
+class OidcProofingStateDB(ProofingStateDB):
+
+    ProofingStateClass = None
+
+    def __init__(self, db_uri, db_name='eduid_oidc_proofing'):
         ProofingStateDB.__init__(self, db_uri, db_name)
 
