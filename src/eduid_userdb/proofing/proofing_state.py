@@ -76,7 +76,7 @@ class ProofingState(object):
         """
         Get the user's eppn
 
-        :rtype: str|unicode
+        :rtype: str | unicode
         """
         return self._data['eduPersonPrincipalName']
 
@@ -141,11 +141,10 @@ class LetterProofingState(ProofingState):
 class OidcProofingState(ProofingState):
     def __init__(self, data, raise_on_unknown=True):
         self._data_in = copy.deepcopy(data)  # to not modify callers data
-        # state
+        # Remove from _data_in before init super class
         state = self._data_in.pop('state')
-        # nonce
         nonce = self._data_in.pop('nonce')
-        
+
         ProofingState.__init__(self, self._data_in, raise_on_unknown)
 
         self._data['state'] = state
@@ -154,14 +153,14 @@ class OidcProofingState(ProofingState):
     @property
     def state(self):
         """
-        :rtype: State hash
+        :rtype: str | unicode
         """
         return self._data['state']
 
     @property
     def nonce(self):
         """
-        :rtype: nonce hash
+        :rtype: str | unicode
         """
         return self._data['nonce']
 

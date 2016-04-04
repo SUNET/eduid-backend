@@ -57,13 +57,15 @@ class ProofingStateDB(BaseDB):
         Locate a state in the db given the state's user_id.
 
         :param user_id: User identifier
-        :type user_id: bson.ObjectId | str | unicode
         :param eppn: eduPersonPrincipalName
+        :param raise_on_missing: Raise exception if True else return None
+
+        :type user_id: bson.ObjectId | str | unicode
         :type eppn: str | unicode
+        :type raise_on_missing: bool
+
         :return: ProofingStateClass instance | None
         :rtype: ProofingStateClass | None
-        :param raise_on_missing: Raise exception if True else return None
-        :type raise_on_missing: bool
 
         :raise self.DocumentDoesNotExist: No user match the search criteria
         :raise self.MultipleDocumentsReturned: More than one user matches the search criteria
@@ -73,14 +75,19 @@ class ProofingStateDB(BaseDB):
                 user_id = ObjectId(user_id)
             except InvalidId:
                 return None
-        state = self._get_document_by_attr('user_id', user_id, raise_on_missing)
-        if state:
+        doc = self._get_document_by_attr('user_id', user_id, raise_on_missing)
+        if doc:
             # Rewrite state document with eppn instead of user_id
-            state['eduPersonPrincipalName'] = eppn  # Add eppn to data as it was missing
-            user_id = state.pop('user_id')
-            proofing_state = self.ProofingStateClass(state)
+            doc['eduPersonPrincipalName'] = eppn  # Add eppn to data as it was missing
+            user_id = doc.pop('user_id')
+            proofing_state = self.ProofingStateClass(doc)
+            logger.info('Rewriting user_id proofing state to eppn proofing state')
+            logger.debug('Proofing state user_id: {!s}'.format(user_id))
+            logger.debug('Proofing state eppn: {!s}'.format(eppn))
             self.remove_document({'user_id': user_id})
+            logger.info('Removed user_id proofing state')
             self.save(proofing_state)
+            logger.info('Saved eppn proofing state')
             return self.get_state_by_eppn(eppn, raise_on_missing)
 
     def get_state_by_eppn(self, eppn, raise_on_missing=True):
@@ -88,11 +95,13 @@ class ProofingStateDB(BaseDB):
         Locate a state in the db given the state user's eppn.
 
         :param eppn: eduPersonPrincipalName
+        :param raise_on_missing: Raise exception if True else return None
+
         :type eppn: str | unicode
+        :type raise_on_missing: bool
+
         :return: ProofingStateClass instance | None
         :rtype: ProofingStateClass | None
-        :param raise_on_missing: Raise exception if True else return None
-        :type raise_on_missing: bool
 
         :raise self.DocumentDoesNotExist: No user match the search criteria
         :raise self.MultipleDocumentsReturned: More than one user matches the search criteria
@@ -106,9 +115,11 @@ class ProofingStateDB(BaseDB):
         """
 
         :param state: ProofingStateClass object
-        :type state: ProofingStateClass
         :param check_sync: Ensure the document hasn't been updated in the database since it was loaded
+
+        :type state: ProofingStateClass
         :type check_sync: bool
+
         :return:
         """
 
