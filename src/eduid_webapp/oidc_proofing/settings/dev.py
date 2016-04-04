@@ -31,7 +31,7 @@ except IOError:
     except IOError:
         raise Exception('Cannot open file `%s` for writing.' % SECRET_FILE)
 
-MONGO_URI = 'mongodb://eduid_idproofing_letter:eduid_idproofing_letter_pw@mongodb.docker'
+MONGO_URI = 'mongodb://eduid_oidc_proofing:eduid_oidc_proofing_pw@mongodb.docker'
 REDIS_HOST = 'redis.docker'
 
 LOG_FILE = join(APP_ROOT, 'logs/oidc_proofing.log')
@@ -42,3 +42,14 @@ APISPEC_SPEC = APISpec(
     version='v1',
     plugins=('apispec.ext.marshmallow',),
 )
+
+PROVIDER_CONFIGURATION_INFO = {
+    'issuer': 'can_not_be_empty_string',
+    'authorization_endpoint': 'http://nowhere.test',
+    'jwks_uri': '',
+    'response_types_supported': '',
+    'subject_types_supported': '',
+    'id_token_signing_alg_values_supported': '',
+
+}
+
