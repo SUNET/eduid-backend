@@ -123,16 +123,16 @@ class SessionManager(object):
         :type whitelist: list
         :type raise_on_unknown: bool
         """
-        port = cfg['REDIS_PORT']
-        if cfg.get('REDIS_SENTINEL_HOSTS') and cfg.get('REDIS_SENTINEL_SERVICE_NAME'):
-            _hosts = cfg['REDIS_SENTINEL_HOSTS']
-            _name = cfg['REDIS_SENTINEL_SERVICE_NAME']
+        port = cfg['redis_port']
+        if cfg.get('redis_sentinel_hosts') and cfg.get('redis_sentinel_service_name'):
+            _hosts = cfg['redis_sentinel_hosts']
+            _name = cfg['redis_sentinel_service_name']
             host_port = [(x, port) for x in _hosts]
             manager = redis.sentinel.Sentinel(host_port, socket_timeout=0.1)
             self.pool = redis.sentinel.SentinelConnectionPool(_name, manager)
         else:
-            db = cfg['REDIS_DB']
-            host = cfg['REDIS_HOST']
+            db = cfg['redis_db']
+            host = cfg['redis_host']
             self.pool = redis.ConnectionPool(host=host, port=port, db=db)
         self.ttl = ttl
         self.secret = secret
