@@ -162,7 +162,7 @@ def authenticate(app, session_info):
 
     # eduPersonPrincipalName might be scoped and the scope (e.g. "@example.com") 
     # might have to be removed before looking for the user in the database.
-    strip_suffix = app.config.get('SAML2.STRIP_SAML_USER_SUFFIX', '')
+    strip_suffix = app.config.get('SAML2_STRIP_SAML_USER_SUFFIX', '')
     if strip_suffix:
         if saml_user.endswith(strip_suffix):
             saml_user = saml_user[:-len(strip_suffix)]
