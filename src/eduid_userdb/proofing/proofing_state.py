@@ -54,35 +54,31 @@ class ProofingState(object):
         if not isinstance(_id, bson.ObjectId):
             _id = bson.ObjectId(_id)
         self._data['_id'] = _id
-        # TODO: Start using eppn instead of the users Mongo _id
-        # user_id
-        user_id = self._data_in.pop('user_id')
-        if not isinstance(_id, bson.ObjectId):
-            user_id = bson.ObjectId(_id)
-        self._data['user_id'] = user_id
+        # eppn
+        eppn = self._data_in.pop('eduPersonPrincipalName')
+        self._data['eduPersonPrincipalName'] = eppn
 
         self.modified_ts = self._data_in.pop('modified_ts', None)
 
         if len(self._data_in) > 0:
             if raise_on_unknown:
                 raise UserHasUnknownData('User {!s} unknown data: {!r}'.format(
-                    self.user_id, self._data_in.keys()
+                    self.eppn, self._data_in.keys()
                 ))
             # Just keep everything that is left as-is
             self._data.update(self._data_in)
 
     def __repr__(self):
-        return '<eduID {!s}: {!s}>'.format(self.__class__.__name__, self.user_id)
+        return '<eduID {!s}: {!s}>'.format(self.__class__.__name__, self.eppn)
 
-    # TODO: Start using eppn instead of the users Mongo _id
     @property
-    def user_id(self):
+    def eppn(self):
         """
-        Get the user's oid in MongoDB.
+        Get the user's eppn
 
-        :rtype: bson.ObjectId
+        :rtype: str | unicode
         """
-        return self._data['user_id']
+        return self._data['eduPersonPrincipalName']
 
     @property
     def modified_ts(self):
@@ -113,10 +109,11 @@ class ProofingState(object):
 
 class LetterProofingState(ProofingState):
     def __init__(self, data, raise_on_unknown=True):
-        _nin = NinProofingElement(data=data.pop('nin'))
-        _proofing_letter = SentLetterElement(data.pop('proofing_letter', {}))
+        self._data_in = copy.deepcopy(data)  # to not modify callers data
+        _nin = NinProofingElement(data=self._data_in.pop('nin'))
+        _proofing_letter = SentLetterElement(self._data_in.pop('proofing_letter', {}))
 
-        ProofingState.__init__(self, data, raise_on_unknown)
+        ProofingState.__init__(self, self._data_in, raise_on_unknown)
         self._data['nin'] = _nin
         self._data['proofing_letter'] = _proofing_letter
 
@@ -140,4 +137,30 @@ class LetterProofingState(ProofingState):
         res['proofing_letter'] = self.proofing_letter.to_dict()
         return res
 
+
+class OidcProofingState(ProofingState):
+    def __init__(self, data, raise_on_unknown=True):
+        self._data_in = copy.deepcopy(data)  # to not modify callers data
+        # Remove from _data_in before init super class
+        state = self._data_in.pop('state')
+        nonce = self._data_in.pop('nonce')
+
+        ProofingState.__init__(self, self._data_in, raise_on_unknown)
+
+        self._data['state'] = state
+        self._data['nonce'] = nonce
+
+    @property
+    def state(self):
+        """
+        :rtype: str | unicode
+        """
+        return self._data['state']
+
+    @property
+    def nonce(self):
+        """
+        :rtype: str | unicode
+        """
+        return self._data['nonce']
 
