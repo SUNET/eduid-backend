@@ -2,7 +2,15 @@
 
 import os
 import os.path
-import ConfigParser
+import sys
+import etcd
+import yaml
+import json
+try:
+    import ConfigParser as configparser
+except ImportError:
+    # Python 3
+    import configparser
 
 __author__ = 'lundberg'
 
@@ -12,9 +20,9 @@ class IniConfigParser(object):
     def __init__(self, config_file_name, config_environment_variable=None):
         """
         :param config_file_name: config files name
-        :type config_file_name: basestring
+        :type config_file_name: str | unicode
         :param config_environment_variable: Optional env variable to read config from
-        :type config_environment_variable: basestring
+        :type config_environment_variable: str | unicode
         :return: IniConfigParser object
         :rtype: IniConfigParser
         """
@@ -106,7 +114,7 @@ class IniConfigParser(object):
 
         config_file = self.get_config_file()
         if config_file is not None:
-            config = ConfigParser.RawConfigParser()
+            config = configparser.RawConfigParser()
             config.read(config_file)
 
             if config.has_section('main'):
@@ -119,3 +127,57 @@ class IniConfigParser(object):
                     settings[key.upper()] = func({key: val}, key, default=default)
 
         return settings
+
+
+class EtcdConfigParser(object):
+
+    def __init__(self, namespace, host=None, port=None):
+        """
+        :param namespace: etcd name space to read or write
+        :type namespace: str | unicode
+        :param host: Optional etcd host
+        :type host: str | unicode
+        :param port: Optional etcd port
+        :type port: int
+        :return: EtcdConfigParser object
+        :rtype: EtcdConfigParser
+        """
+        if not host:
+            host = os.environ.get('ETCD_HOST', '127.0.0.1')
+        if not port:
+            port = int(os.environ.get('ETCD_PORT', '2379'))
+        self.ns = namespace
+        self.client = etcd.Client(host, port)
+
+    def read_configuration(self):
+        settings = {}
+        for child in self.client.read(self.ns, recursive=True).children:
+            # Remove namespace and uppercase the key
+            key = child.key.lstrip(self.ns).upper()
+            # Load etcd string with json to handle complex structures
+            settings[key] = json.loads(child.value)
+        return settings
+
+    def write_configuration(self, config):
+        # Remove first and last slash and create key hierarchy
+        ns_keys = self.ns.lstrip('/').rstrip('/').split('/')
+        # Recurse to last key
+        for key in ns_keys:
+            config = config[key]
+        # Write keys and values to etcd
+        for key, value in config.items():
+            fq_key = '{!s}{!s}'.format(self.ns, key)
+            json_value = json.dumps(value)
+            self.client.write(fq_key, json_value)
+
+    def write_configuration_from_yaml_file(self, file_path):
+        with open(file_path) as f:
+            config = yaml.load(f)
+            if not config:
+                sys.stderr.writelines('No YAML found in {!s}\n'.format(file_path))
+                sys.exit(1)
+            self.write_configuration(config)
+
+
+
+
