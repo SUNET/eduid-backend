@@ -162,3 +162,23 @@ class OidcProofingStateDB(ProofingStateDB):
     def __init__(self, db_uri, db_name='eduid_oidc_proofing'):
         ProofingStateDB.__init__(self, db_uri, db_name)
 
+    def get_state_by_oidc_state(self, oidc_state, raise_on_missing=True):
+        """
+        Locate a state in the db given the user's OIDC state.
+
+        :param oidc_state: OIDC state param
+        :param raise_on_missing: Raise exception if True else return None
+
+        :type oidc_state: str | unicode
+        :type raise_on_missing: bool
+
+        :return: ProofingStateClass instance | None
+        :rtype: ProofingStateClass | None
+
+        :raise self.DocumentDoesNotExist: No user match the search criteria
+        :raise self.MultipleDocumentsReturned: More than one user matches the search criteria
+        """
+
+        state = self._get_document_by_attr('state', oidc_state, raise_on_missing)
+        if state:
+            return self.ProofingStateClass(state)
