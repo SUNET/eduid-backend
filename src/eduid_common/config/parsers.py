@@ -20,9 +20,11 @@ class IniConfigParser(object):
     def __init__(self, config_file_name, config_environment_variable=None):
         """
         :param config_file_name: config files name
-        :type config_file_name: str | unicode
         :param config_environment_variable: Optional env variable to read config from
+
+        :type config_file_name: str | unicode
         :type config_environment_variable: str | unicode
+
         :return: IniConfigParser object
         :rtype: IniConfigParser
         """
@@ -133,12 +135,14 @@ class EtcdConfigParser(object):
 
     def __init__(self, namespace, host=None, port=None):
         """
-        :param namespace: etcd name space to read or write
-        :type namespace: str | unicode
+        :param namespace: etcd namespace to read or write, ex. /eduid/webapp/common/
         :param host: Optional etcd host
-        :type host: str | unicode
         :param port: Optional etcd port
+
+        :type host: str | unicode
+        :type namespace: str | unicode
         :type port: int
+
         :return: EtcdConfigParser object
         :rtype: EtcdConfigParser
         """
@@ -146,10 +150,25 @@ class EtcdConfigParser(object):
             host = os.environ.get('ETCD_HOST', '127.0.0.1')
         if not port:
             port = int(os.environ.get('ETCD_PORT', '2379'))
-        self.ns = namespace
+        self.ns = namespace.lower()
         self.client = etcd.Client(host, port)
 
+    def _fq_key(self, key):
+        """
+        :param key: Key to look up
+
+        :type key: str | unicode
+
+        :return: Fully qualified key, self.ns + key
+        :rtype: str | unicode
+        """
+        return '{!s}{!s}'.format(self.ns, key.lower())
+
     def read_configuration(self):
+        """
+        :return: Config dict
+        :rtype: dict
+        """
         settings = {}
         for child in self.client.read(self.ns, recursive=True).children:
             # Remove namespace and uppercase the key
@@ -158,7 +177,28 @@ class EtcdConfigParser(object):
             settings[key] = json.loads(child.value)
         return settings
 
+    def get(self, key):
+        """
+        :param key: Key to look up
+
+        :type key: str | unicode
+
+        :return: JSON loaded value
+        :rtype: str | unicode | int | float | list | dict
+        """
+        value = self.client.read(self._fq_key(key)).value
+        return json.loads(value)
+
+    def set(self, key, value):
+        json_value = json.dumps(value)
+        self.client.write(self._fq_key(key), json_value)
+
     def write_configuration(self, config):
+        """
+        :param config: Configuration
+
+        :type config: dict
+        """
         # Remove first and last slash and create key hierarchy
         ns_keys = self.ns.lstrip('/').rstrip('/').split('/')
         # Recurse to last key
@@ -166,11 +206,14 @@ class EtcdConfigParser(object):
             config = config[key]
         # Write keys and values to etcd
         for key, value in config.items():
-            fq_key = '{!s}{!s}'.format(self.ns, key)
-            json_value = json.dumps(value)
-            self.client.write(fq_key, json_value)
+            self.set(key, value)
 
     def write_configuration_from_yaml_file(self, file_path):
+        """
+        :param file_path: Full path to a file with yaml content
+
+        :type file_path: str | unicode
+        """
         with open(file_path) as f:
             config = yaml.load(f)
             if not config:
