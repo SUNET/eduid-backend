@@ -15,6 +15,8 @@ webapp_requires = [
     'pwgen == 0.4',
     'vccs_client >= 0.4.1',
     'PyNaCl >= 1.0.1',
+    'python-etcd >= 0.4.3',
+    'PyYAML >= 3.11'
 ]
 webapp_extras = webapp_requires + []
 
