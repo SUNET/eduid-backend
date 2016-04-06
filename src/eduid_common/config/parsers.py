@@ -9,6 +9,8 @@ __author__ = 'lundberg'
 
 class IniConfigParser(object):
 
+    section = 'main'
+
     def __init__(self, config_file_name, config_environment_variable=None):
         """
         :param config_file_name: config files name
@@ -63,6 +65,10 @@ class IniConfigParser(object):
             return True
         return default
 
+    def read_setting_from_env_int(self, settings, key, default=None):
+        value = self.read_setting_from_env(settings, key, '').lower()
+        return int(value)
+
     def read_mapping(self, settings, prop, available_keys=None, default=None, required=True):
         raw = self.read_setting_from_env(settings, prop, '')
 
@@ -109,8 +115,8 @@ class IniConfigParser(object):
             config = ConfigParser.RawConfigParser()
             config.read(config_file)
 
-            if config.has_section('main'):
-                for key, val in config.items('main'):
+            if config.has_section(self.section):
+                for key, val in config.items(self.section):
                     if key in self.known_special_keys:
                         func, default = self.known_special_keys[key]
                     else:
