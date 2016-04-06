@@ -37,6 +37,7 @@ from saml2.saml import AuthnContextClassRef
 from saml2.samlp import RequestedAuthnContext
 
 from .cache import IdentityCache, OutstandingQueriesCache, StateCache
+from .utils import get_saml2_config, get_saml_attribute
 
 import logging
 logger = logging.getLogger(__name__)
@@ -46,13 +47,34 @@ class BadSAMLResponse(Exception):
     '''Bad SAML response'''
 
 
-def get_authn_request(settings, session, came_from, selected_idp,
+def get_authn_ctx(session_info):
+    """
+    Get the SAML2 AuthnContext of the currently logged in users session.
+
+    session_info is a dict like
+
+        {'authn_info': [('http://www.swamid.se/policy/assurance/al1',
+                    ['https://dev.idp.eduid.se/idp.xml'])],
+         ...
+        }
+
+    :param session_info: The SAML2 session_info
+    :return: The first AuthnContext
+    :rtype: string | None
+    """
+    try:
+        return session_info['authn_info'][0][0]
+    except KeyError:
+        return None
+
+
+def get_authn_request(config, session, came_from, selected_idp,
                       required_loa=None, force_authn=False):
     # Request the right AuthnContext for workmode
     # (AL1 for 'personal', AL2 for 'helpdesk' and AL3 for 'admin' by default)
     if required_loa is None:
-        required_loa = settings.get('required_loa', {})
-        workmode = settings.get('workmode')
+        required_loa = config.get('required_loa', {})
+        workmode = config.get('workmode', 'personal')
         required_loa = required_loa.get(workmode, '')
     logger.debug('Requesting AuthnContext {!r}'.format(required_loa))
     kwargs = {
@@ -64,7 +86,7 @@ def get_authn_request(settings, session, came_from, selected_idp,
         "force_authn": str(force_authn).lower(),
     }
 
-    client = Saml2Client(settings['saml2_config'])
+    client = Saml2Client(get_saml2_config(config['SAML2_SETTINGS_MODULE']))
     try:
         (session_id, info) = client.prepare_for_authenticate(
             entityid=selected_idp,
@@ -81,9 +103,9 @@ def get_authn_request(settings, session, came_from, selected_idp,
     return info
 
 
-def get_authn_response(settings, session, raw_response):
+def get_authn_response(config, session, raw_response):
 
-    client = Saml2Client(settings['saml2_config'],
+    client = Saml2Client(config['SAML2_CONFIG'],
                          identity_cache=IdentityCache(session))
 
     oq_cache = OutstandingQueriesCache(session)
@@ -113,3 +135,45 @@ def get_authn_response(settings, session, raw_response):
     logger.debug('Session info:\n{!s}\n\n'.format(pprint.pformat(session_info)))
 
     return session_info
+
+
+def authenticate(app, session_info):
+    """
+    Locate a user using the identity found in the SAML assertion.
+
+    :param request: Request object
+    :param session_info: Session info received by pysaml2 client
+
+    :returns: User
+
+    :type request: Request()
+    :type session_info: dict()
+    :rtype: User or None
+    """
+    if session_info is None:
+        raise TypeError('Session info is None')
+
+    attribute_values = get_saml_attribute(session_info, 'eduPersonPrincipalName')
+    if not attribute_values:
+        logger.error('Could not find attribute eduPersonPrincipalName in the SAML assertion')
+        return None
+
+    saml_user = attribute_values[0]
+
+    # eduPersonPrincipalName might be scoped and the scope (e.g. "@example.com") 
+    # might have to be removed before looking for the user in the database.
+    strip_suffix = app.config.get('SAML2_STRIP_SAML_USER_SUFFIX', '')
+    if strip_suffix:
+        if saml_user.endswith(strip_suffix):
+            saml_user = saml_user[:-len(strip_suffix)]
+
+    logger.debug('Looking for user with eduPersonPrincipalName == {!r}'.format(saml_user))
+    try:
+        user = app.central_userdb.get_user_by_eppn(saml_user)
+    except app.central_userdb.exceptions.UserDoesNotExist:
+        logger.error('No user with eduPersonPrincipalName = {!r} found'.format(saml_user))
+    except app.central_userdb.exceptions.MultipleUsersReturned:
+        logger.error("There are more than one user with eduPersonPrincipalName = {!r}".format(saml_user))
+    else:
+        return user
+    return None
