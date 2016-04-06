@@ -83,7 +83,7 @@ OLD_VERIFICATIONS_EXAMPLE = [{
 }]
 
 
-NEW_BASIC_USER_EXAMPLE = {
+NEW_USER_EXAMPLE = {
     '_id': ObjectId('012345678901234567890123'),
     'eduPersonPrincipalName': 'hubba-bubba',
     'givenName': 'John',
@@ -93,6 +93,7 @@ NEW_BASIC_USER_EXAMPLE = {
     'preferredLanguage': 'en',
     'modified_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"),
     'mail': 'johnsmith@example.com',
+    'terminated': False,
     'mailAliases': [{
         'email': 'johnsmith@example.com',
         'created_by': 'signup',
@@ -164,7 +165,7 @@ NEW_BASIC_USER_EXAMPLE = {
 }
 
 
-NEW_SIGNUP_USER_EXAMPLE = deepcopy(NEW_BASIC_USER_EXAMPLE)
+NEW_SIGNUP_USER_EXAMPLE = deepcopy(NEW_USER_EXAMPLE)
 NEW_SIGNUP_USER_EXAMPLE.update({
     'social_network': 'facebook',
     'social_network_id': 'hubba-1234',
@@ -181,26 +182,4 @@ NEW_SIGNUP_USER_EXAMPLE.update({
 })
 
 
-NEW_DASHBOARD_USER_EXAMPLE = deepcopy(NEW_BASIC_USER_EXAMPLE)
-NEW_DASHBOARD_USER_EXAMPLE.update({
-    'terminated': False,
-})
-
-# {
-#     'postalAddress': [{
-#         'type': 'home',
-#         'country': 'SE',
-#         'address': "Long street, 48",
-#         'postalCode': "123456",
-#         'locality': "Stockholm",
-#         'verified': True,
-#     }, {
-#         'type': 'work',
-#         'country': 'ES',
-#         'address': "Calle Ancha, 49",
-#         'postalCode': "123456",
-#         'locality': "Punta Umbria",
-#         'verified': False,
-#     }],
-# }
-
+NEW_DASHBOARD_USER_EXAMPLE = deepcopy(NEW_USER_EXAMPLE)
