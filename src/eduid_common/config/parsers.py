@@ -2,7 +2,6 @@
 
 import os
 import os.path
-import sys
 import etcd
 import yaml
 import json
@@ -13,6 +12,16 @@ except ImportError:
     import configparser
 
 __author__ = 'lundberg'
+
+
+class ParserException(Exception):
+
+    def __init__(self, message):
+        Exception.__init__(self)
+        self.value = message
+
+    def __str__(self):
+        return self.value
 
 
 class IniConfigParser(object):
@@ -156,13 +165,15 @@ class EtcdConfigParser(object):
             host = os.environ.get('ETCD_HOST', '127.0.0.1')
         if not port:
             port = int(os.environ.get('ETCD_PORT', '2379'))
+        if not namespace.startswith('/') or not namespace.endswith('/'):
+            raise ParserException('Namespace {!s} has to start and end with a \"/\" character'.format(namespace))
         self.ns = namespace.lower()
+
         self.client = etcd.Client(host, port)
 
     def _fq_key(self, key):
         """
         :param key: Key to look up
-
         :type key: str | unicode
 
         :return: Fully qualified key, self.ns + key
@@ -186,7 +197,6 @@ class EtcdConfigParser(object):
     def get(self, key):
         """
         :param key: Key to look up
-
         :type key: str | unicode
 
         :return: JSON loaded value
@@ -201,15 +211,43 @@ class EtcdConfigParser(object):
 
     def write_configuration(self, config):
         """
-        :param config: Configuration
+        Transforms a dict using the namespace to key-value pairs that get written to
+        etcd in the set namespace.
 
+        Values will be json encoded on write and json decoded on read.
+
+        Ex.
+
+        ns = '/eduid/webapp/common/'
+
+        config = {
+            'eduid': {
+                'webapp': {
+                    'common': {
+                        'SAML_CONFIG': {
+                            'xmlsec_binary': '/usr/bin/xmlsec1'
+                        }
+                    }
+                }
+            }
+        }
+
+        will end up in etcd as:
+
+        /eduid/webapp/common/saml_config -> "{xmlsec_binary': '/usr/bin/xmlsec1'}"
+
+
+        :param config: Config dict
         :type config: dict
         """
         # Remove first and last slash and create key hierarchy
         ns_keys = self.ns.lstrip('/').rstrip('/').split('/')
-        # Recurse to last key
-        for key in ns_keys:
-            config = config[key]
+        # Traverse the dict using the list of keys from the namespace
+        try:
+            for key in ns_keys:
+                config = config[key]
+        except KeyError as e:
+            raise ParserException('Namespace does not match configuration structure: {!s}'.format(e))
         # Write keys and values to etcd
         for key, value in config.items():
             self.set(key, value)
@@ -223,10 +261,5 @@ class EtcdConfigParser(object):
         with open(file_path) as f:
             config = yaml.load(f)
             if not config:
-                sys.stderr.writelines('No YAML found in {!s}\n'.format(file_path))
-                sys.exit(1)
+                raise ParserException('No YAML found in {!s}'.format(file_path))
             self.write_configuration(config)
-
-
-
-
