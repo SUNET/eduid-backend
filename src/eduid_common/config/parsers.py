@@ -183,6 +183,24 @@ class EtcdConfigParser(object):
 
     def read_configuration(self):
         """
+        Recurse over keys in a given namespace and create a dict from the key-value pairs.
+
+        Values will be json encoded on write and json decoded on read.
+
+        Ex.
+
+        ns = '/eduid/webapp/common/'
+
+        Key and value in etcd:
+        /eduid/webapp/common/saml_config -> "{xmlsec_binary': '/usr/bin/xmlsec1'}"
+
+        This will return:
+        {
+            'SAML_CONFIG': {
+                'xmlsec_binary': '/usr/bin/xmlsec1'
+            }
+        }
+
         :return: Config dict
         :rtype: dict
         """
