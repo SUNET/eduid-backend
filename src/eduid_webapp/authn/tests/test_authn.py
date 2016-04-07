@@ -126,7 +126,7 @@ class UnAuthnAPITestCase(EduidAPITestCase):
         with self.app.test_client() as c:
             resp = c.get('/')
             self.assertEqual(resp.status_code, 302)
-            self.assertEqual(resp.location, self.app.config['TOKEN_SERVICE_URL'])
+            self.assertTrue(resp.location.startswith(self.app.config['TOKEN_SERVICE_URL']))
 
     def test_cookie(self):
         token = ('a7MPUEQQLAEEQEAQDGJOXKAMFM467EUW6HCETFI4VP5JCU3CDVJDQZSHMXAOSC'
