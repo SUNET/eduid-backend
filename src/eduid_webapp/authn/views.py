@@ -42,7 +42,7 @@ from eduid_webapp.authn.acs_registry import get_action, schedule_action
 import logging
 logger = logging.getLogger(__name__)
 
-authn_views = Blueprint('authn', __name__, url_prefix='')
+authn_views = Blueprint('authn', __name__)
 
 
 @authn_views.route('/login')
@@ -54,8 +54,6 @@ def login():
     came_from = request.args.get('next', redirect_url)
     idp = session.get('idp', None)
     idp = request.args.get('idp', idp)
-    # XXX can we have more than one IdP configured?
-    # If we do, we should add a wayf chooser somewhere.
     authn_request = get_authn_request(current_app.config,
                                       session, came_from, idp)
     schedule_action('login-action')
