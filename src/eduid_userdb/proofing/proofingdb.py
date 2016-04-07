@@ -146,6 +146,14 @@ class ProofingStateDB(BaseDB):
             logging.debug("{!s} Updated state {!r} (ts {!s}) in {!r}): {!r}".format(
                 self, state, modified, self._coll_name, result))
 
+    def remove_state(self, state):
+        """
+        :param state: ProofingStateClass object
+
+        :type state: ProofingStateClass
+        """
+        self.remove_document({'eduPersonPrincipalName': state.eppn})
+
 
 class LetterProofingStateDB(ProofingStateDB):
 
