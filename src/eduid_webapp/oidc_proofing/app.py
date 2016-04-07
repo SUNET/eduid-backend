@@ -4,7 +4,7 @@ from __future__ import absolute_import
 
 from flask import Flask
 from oic.oic import Client
-from oic.oic.message import ProviderConfigurationResponse
+from oic.oic.message import ProviderConfigurationResponse, RegistrationRequest
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 
 from eduid_common.api.app import eduid_init_app
@@ -16,8 +16,8 @@ __author__ = 'lundberg'
 
 def init_oidc_client(app):
     provider_config = ProviderConfigurationResponse(**app.config['PROVIDER_CONFIGURATION_INFO'])
-    oidc_client = Client(client_id=app.config['CLIENT_ID'],
-                         client_authn_method=CLIENT_AUTHN_METHOD)
+    oidc_client = Client(client_authn_method=CLIENT_AUTHN_METHOD)
+    oidc_client.store_registration_info(RegistrationRequest(**app.config['CLIENT_REGISTRATION_INFO']))
     oidc_client.handle_provider_config(provider_config, provider_config['issuer'])
     return oidc_client
 

@@ -37,9 +37,7 @@ def authorization_response():
     # do token request
     args = {
         'code': authn_resp['code'],
-        'redirect_uri': current_app.oidc_client.registration_response['redirect_uris'][0],
-        'client_id': current_app.oidc_client.client_id,
-        'client_secret': current_app.oidc_client.client_secret
+        'redirect_uri': current_app.oidc_client.registration_response['redirect_uris'][0]
     }
     token_resp = current_app.oidc_client.do_access_token_request(scope='openid', state=authn_resp['state'],
                                                                  request_args=args,
@@ -62,7 +60,7 @@ def authorization_response():
     current_app.logger.debug(userinfo)
 
     # Remove users proofing state
-    current_app.proofing_statedb.remove_document({'eduPersonPrincipalName': proofing_state.eppn})
+    current_app.proofing_statedb.remove_state(proofing_state)
 
 
 @oidc_proofing_views.route('/get-state')
@@ -78,7 +76,7 @@ def get_state():
         # Initiate proofing
         args = {
             'client_id': current_app.oidc_client.client_id,
-            'response_type': 'token id_token',
+            'response_type': 'code id_token token',
             'scope': ['openid'],
             'redirect_uri': url_for('oidc_proofing.authorization_response', _external=True),
             'state': state,

@@ -29,7 +29,12 @@ LOG_LEVEL = 'INFO'
 PERMANENT_SESSION_LIFETIME = 300  # I have no clue what is a good value
 
 # OIDC
-CLIENT_ID = 'can_not_be_empty_string'
+
+CLIENT_REGISTRATION_INFO = {
+    'client_id': 'can_not_be_empty_string',
+    'client_secret': ''
+}
+
 PROVIDER_CONFIGURATION_INFO = {
     'issuer': 'can_not_be_empty_string',
     'authorization_endpoint': '',

@@ -43,13 +43,3 @@ APISPEC_SPEC = APISpec(
     plugins=('apispec.ext.marshmallow',),
 )
 
-PROVIDER_CONFIGURATION_INFO = {
-    'issuer': 'can_not_be_empty_string',
-    'authorization_endpoint': 'http://nowhere.test',
-    'jwks_uri': '',
-    'response_types_supported': '',
-    'subject_types_supported': '',
-    'id_token_signing_alg_values_supported': '',
-
-}
-
