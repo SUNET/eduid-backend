@@ -1,5 +1,5 @@
 Flask==0.10.1
 redis==2.10.5
 pynacl==1.0.1
-eduid-userdb>=0.0.7b2
+eduid-userdb>=0.1.0b1
 eduid-common==0.2.0b0
