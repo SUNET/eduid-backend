@@ -39,11 +39,10 @@ from eduid_userdb import UserDB
 from eduid_common.authn.middleware import AuthnApp
 from eduid_common.api.session import SessionFactory
 from eduid_common.api.logging import init_logging
-from eduid_common.config.parsers import IniConfigParser
+from eduid_common.config.parsers import EtcdConfigParser
 
 
-def eduid_init_app(name, config, app_class=AuthnApp,
-                   config_class=IniConfigParser):
+def eduid_init_app(name, config, app_class=AuthnApp):
     """
     Create and prepare the flask app for eduID APIs with all the attributes
     common to all  apps.
@@ -62,32 +61,36 @@ def eduid_init_app(name, config, app_class=AuthnApp,
     :param app_class: The class used to build the flask app. Should be a
                       descendant of flask.Flask
     :type app_class: type
-    :param config_class: The class used to build the configuration parser,
-                         should be a descendant of
-                         eduid_common.config.parsers.IniConfigParser
 
     :return: the flask application.
     :rtype: flask.Flask
     """
     app = app_class(name)
-    config_parser = config_class('eduid-{!s}.ini'.format(name),
-                                 config_environment_variable='EDUID_CONFIG')
-    cfg = config_parser.read_configuration()
-    # Ugly hack to use both ini and python files at the same time, we should choose one or the other
-    if cfg:
-        cfg.update(config)
-        app.config.update(cfg)
-    else:
-        app.config.from_object('eduid_webapp.settings.common')
-        app.config.from_object('eduid_webapp.settings.dev')  # XXX: Until etcd
-        try:
-            app.config.from_object('eduid_webapp.{!s}.settings.common'.format(name))
-            app.config.from_object('eduid_webapp.{!s}.settings.dev'.format(name))  # XXX: Until etcd
-        except ImportError:  # No app specific config found
-            pass
-        app.config.update(config)
 
+    # Init etcd config parsers
+    common_parser = EtcdConfigParser('/eduid/webapp/common/')
+    app_parser = EtcdConfigParser('/eduid/webapp/{!s}/'.format(name))
+
+    # Load project wide default settings
+    app.config.from_object('eduid_webapp.settings.common')
+
+    try:
+        # Load optional app specific default settings
+        app.config.from_object('eduid_webapp.{!s}.settings.common'.format(name))
+    except ImportError:  # No app specific default config found
+        pass
+
+    # Load project wide settings
+    app.config.update(common_parser.read_configuration())
+    # Load optional app specific settings
+    app.config.update(app_parser.read_configuration(silent=True))
+
+    # Load optional init time settings
+    app.config.update(config)
+
+    # Initialize shared features
     app = init_logging(app)
     app.central_userdb = UserDB(app.config['MONGO_URI'], 'eduid_am')  # XXX: Needs updating when we change db
     app.session_interface = SessionFactory(app.config)
+
     return app
