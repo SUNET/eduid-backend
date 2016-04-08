@@ -1,0 +1,35 @@
+eduid:
+    webapp:
+        common:
+            # enable disable debug mode
+            DEBUG: yes
+            # the name of the session cookie
+            SESSION_COOKIE_NAME: sessid
+            # the domain for the session cookie. If this is not set, the cookie will
+            # be valid for all subdomains of SERVER_NAME.
+            SESSION_COOKIE_DOMAIN: .docker
+            # The URL scheme that should be used for URL generation if no URL scheme is
+            # available. This defaults to http
+            PREFERRED_URL_SCHEME: http
+            # Redis config
+            REDIS_HOST: redis.docker
+            # SAML2 config
+            SAML2_LOGIN_REDIRECT_URL: /
+            SAML2_SETTINGS_MODULE: ../authn/tests/saml2_settings.py
+            SAML2_LOGOUT_REDIRECT_URL: http://html.docker/
+            SAML2_USER_MAIN_ATTRIBUTE: eduPersonPrincipalName
+            SAML2_STRIP_SAML_USER_SUFFIX: "@local.eduid.se"
+            TOKEN_SERVICE_URL: authn.docker
+        oidc_proofing:
+            SECRET_KEY: supersecretkey
+            LOG_FILE: logs/oidc_proofing.log
+            LOG_LEVEL: DEBUG
+            APISPEC_SPEC:
+                title: eduid-oidc-proofing
+                version: v1
+                plugins:
+                    - apispec.ext.marshmallow
+            MONGO_URI: mongodb://eduid_oidc_proofing:eduid_oidc_proofing_pw@mongodb.docker
+        authn:
+            SECRET_KEY: supersecretkey
+            MONGO_URI: mongodb://eduid_authn:eduid_authn_pw@mongodb.docker
