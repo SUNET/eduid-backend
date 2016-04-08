@@ -29,8 +29,21 @@ LOG_LEVEL = 'INFO'
 PERMANENT_SESSION_LIFETIME = 300  # I have no clue what is a good value
 
 # OIDC
-PROVIDER_CONFIGURATION_INFO = {}
-CLIENT_REGISTRATION_INFO = {}
+
+CLIENT_REGISTRATION_INFO = {
+    'client_id': 'can_not_be_empty_string',
+    'client_secret': ''
+}
+
+PROVIDER_CONFIGURATION_INFO = {
+    'issuer': 'can_not_be_empty_string',
+    'authorization_endpoint': '',
+    'jwks_uri': '',
+    'response_types_supported': '',
+    'subject_types_supported': '',
+    'id_token_signing_alg_values_supported': '',
+
+}
 USERINFO_ENDPOINT_METHOD = 'POST'
 
 # Api Spec config - https://github.com/OAI/OpenAPI-Specification
