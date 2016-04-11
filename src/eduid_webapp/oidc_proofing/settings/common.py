@@ -25,11 +25,7 @@ SECRET_KEY = None
 LOG_FILE = None
 LOG_LEVEL = 'INFO'
 
-# Session
-PERMANENT_SESSION_LIFETIME = 300  # I have no clue what is a good value
-
 # OIDC
-
 CLIENT_REGISTRATION_INFO = {
     'client_id': 'can_not_be_empty_string',
     'client_secret': ''
