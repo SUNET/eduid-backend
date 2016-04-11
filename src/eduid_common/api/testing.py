@@ -39,6 +39,7 @@ from copy import deepcopy
 
 import redis
 import pymongo
+import etcd
 
 from eduid_userdb import User
 from eduid_userdb.data_samples import NEW_USER_EXAMPLE
@@ -123,7 +124,6 @@ class EduidAPITestCase(unittest.TestCase):
         :rtype: dict
         """
         return config
-               
 
 
 class RedisTemporaryInstance(object):
@@ -186,3 +186,63 @@ class RedisTemporaryInstance(object):
         :return: host, port, dbname
         """
         return 'localhost', self.port, 0
+
+
+class EtcdTemporaryInstance(object):
+    """Singleton to manage a temporary Etcd instance
+
+    Use this for testing purpose only. The instance is automatically destroyed
+    at the end of the program.
+
+    """
+    _instance = None
+
+    @classmethod
+    def get_instance(cls):
+        if cls._instance is None:
+            cls._instance = cls()
+            atexit.register(cls._instance.shutdown)
+        return cls._instance
+
+    def __init__(self):
+        self._port = random.randint(40000, 50000)
+        self._process = subprocess.Popen(['docker', 'run', '--rm',
+                                          '-p', '{!s}:2379'.format(self._port),
+                                          'docker.sunet.se/library/etcd:v2.2.5',
+                                          '-advertise-client-urls', 'http://${HostIP}:2379',
+                                          '-listen-client-urls', 'http://0.0.0.0:2379'],
+                                         stdout=open('/tmp/etcd-temp.log', 'wb'),
+                                         stderr=subprocess.STDOUT)
+
+        for i in range(10):
+            time.sleep(0.2)
+            try:
+                self._conn = etcd.Client('localhost', self._port)
+                self._conn.stats  # Check connection
+            except etcd.EtcdConnectionFailed:
+                continue
+            else:
+                break
+        else:
+            self.shutdown()
+            assert False, 'Cannot connect to the etcd test instance'
+
+    @property
+    def conn(self):
+        return self._conn
+
+    @property
+    def host(self):
+        return self._conn.host
+
+    @property
+    def port(self):
+        return self._port
+
+    def shutdown(self):
+        if self._process:
+            self._process.terminate()
+            self._process.wait()
+            self._process = None
+
+
