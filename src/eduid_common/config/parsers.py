@@ -181,8 +181,13 @@ class EtcdConfigParser(object):
         """
         return '{!s}{!s}'.format(self.ns, key.lower())
 
-    def read_configuration(self):
+    def read_configuration(self, silent=False):
         """
+        :param silent: set to `True` if you want silent failure for missing keys.
+        :type silent: bool
+        :return: Configuration dict
+        :rtype: dict
+
         Recurse over keys in a given namespace and create a dict from the key-value pairs.
 
         Values will be json encoded on write and json decoded on read.
@@ -205,11 +210,15 @@ class EtcdConfigParser(object):
         :rtype: dict
         """
         settings = {}
-        for child in self.client.read(self.ns, recursive=True).children:
-            # Remove namespace and uppercase the key
-            key = child.key.lstrip(self.ns).upper()
-            # Load etcd string with json to handle complex structures
-            settings[key] = json.loads(child.value)
+        try:
+            for child in self.client.read(self.ns, recursive=True).children:
+                # Remove namespace and uppercase the key
+                key = child.key.split('/')[-1].upper()
+                # Load etcd string with json to handle complex structures
+                settings[key] = json.loads(child.value)
+        except etcd.EtcdKeyNotFound as e:
+            if not silent:
+                raise e
         return settings
 
     def get(self, key):
