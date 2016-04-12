@@ -3,7 +3,7 @@
 import unittest
 from eduid_common.api.testing import EtcdTemporaryInstance
 
-from eduid_common.config.parsers import EtcdConfigParser
+from eduid_common.config.parsers.etcd import EtcdConfigParser
 
 __author__ = 'lundberg'
 
