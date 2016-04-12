@@ -5,7 +5,11 @@ from __future__ import absolute_import
 import os
 
 from eduid_common.config.parsers.ini import IniConfigParser
-from eduid_common.config.parsers.etcd import EtcdConfigParser
+try:
+    # Do not force applications that does not use EtcdConfigParser to have yaml and etcd installed
+    from eduid_common.config.parsers.etcd import EtcdConfigParser
+except ImportError:
+    EtcdConfigParser = None
 from eduid_common.config.parsers.exceptions import ParserException
 
 __author__ = 'lundberg'
