@@ -1,5 +1,6 @@
 Flask==0.10.1
 redis==2.10.5
 pynacl==1.0.1
+python-etcd==0.4.3
 eduid-userdb>=0.1.0b1
-eduid-common==0.2.0b0
+eduid-common>=0.2.1b4
