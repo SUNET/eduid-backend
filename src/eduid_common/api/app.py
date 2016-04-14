@@ -80,8 +80,8 @@ def eduid_init_app(name, config, app_class=AuthnApp):
     except ImportError:  # No app specific default config found
         pass
 
-    # Load project wide settings
-    app.config.update(common_parser.read_configuration())
+    # Load optional project wide settings
+    app.config.update(common_parser.read_configuration(silent=True))
     # Load optional app specific settings
     app.config.update(app_parser.read_configuration(silent=True))
 
