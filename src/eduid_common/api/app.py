@@ -39,7 +39,7 @@ from eduid_userdb import UserDB
 from eduid_common.authn.middleware import AuthnApp
 from eduid_common.api.session import SessionFactory
 from eduid_common.api.logging import init_logging
-from eduid_common.config.parsers import EtcdConfigParser
+from eduid_common.config.parsers.etcd import EtcdConfigParser
 
 
 def eduid_init_app(name, config, app_class=AuthnApp):
