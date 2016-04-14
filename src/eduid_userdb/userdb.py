@@ -123,13 +123,13 @@ class UserDB(BaseDB):
         if return_list:
             return [self.UserClass(data=user) for user in users]
 
+        if len(users) == 0:
+            return None
+
         if len(users) > 1:
             raise MultipleUsersReturned("Multiple matching users for filter {!r}".format(filter))
 
-        try:
-            return self.UserClass(data=users[0])
-        except IndexError:
-            return None
+        return self.UserClass(data=users[0])
 
     def get_user_by_mail(self, email, raise_on_missing=True, return_list=False,
                          include_unconfirmed=False):
