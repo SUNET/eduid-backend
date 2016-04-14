@@ -86,6 +86,7 @@ class EduidAPITestCase(unittest.TestCase):
     def setUp(self):
         self.redis_instance = RedisTemporaryInstance.get_instance()
         self.mongo_instance = MongoTemporaryInstance.get_instance()
+        self.etcd_instance = EtcdTemporaryInstance.get_instance()
         config = deepcopy(TEST_CONFIG)
         config = self.update_config(config)
         config['REDIS_PORT'] = str(self.redis_instance.port)
