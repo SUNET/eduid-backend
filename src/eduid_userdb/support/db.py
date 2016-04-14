@@ -11,6 +11,11 @@ from eduid_userdb.support.models import SupportUser, SupportDashboardUser, Suppo
 
 __author__ = 'lundberg'
 
+"""
+Database classes for use in support applications to filter user data returned to support personnel. This
+way we can minimize the risk of accidentally sharing any secret user data.
+"""
+
 
 class SupportUserDB(UserDB):
 
