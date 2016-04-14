@@ -6,6 +6,7 @@ import os
 import etcd
 import yaml
 import json
+import logging
 
 from eduid_common.config.parsers.exceptions import ParserException
 
@@ -82,7 +83,8 @@ class EtcdConfigParser(object):
                 key = child.key.split('/')[-1].upper()
                 # Load etcd string with json to handle complex structures
                 settings[key] = json.loads(child.value)
-        except etcd.EtcdKeyNotFound as e:
+        except (etcd.EtcdKeyNotFound, etcd.EtcdConnectionFailed) as e:
+            logging.info(e)
             if not silent:
                 raise e
         return settings
