@@ -16,3 +16,4 @@ venv/
 nosetests.xml
 coverage.xml
 .idea/
+revision.txt
