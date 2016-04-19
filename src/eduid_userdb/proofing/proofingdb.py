@@ -86,7 +86,9 @@ class ProofingStateDB(BaseDB):
             logger.debug('Proofing state eppn: {!s}'.format(eppn))
             self.remove_document({'user_id': user_id})
             logger.info('Removed user_id proofing state')
-            self.save(proofing_state)
+
+            # The old document is removed and therefore no sync check is needed
+            self.save(proofing_state, check_sync=False)
             logger.info('Saved eppn proofing state')
             return self.get_state_by_eppn(eppn, raise_on_missing)
 
@@ -143,6 +145,7 @@ class ProofingStateDB(BaseDB):
                 logging.debug("{!s} FAILED Updating state {!r} (ts {!s}) in {!r}). "
                               "ts in db = {!s}".format(self, state, modified, self._coll_name, db_ts))
                 raise DocumentOutOfSync('Stale state object can\'t be saved')
+
             logging.debug("{!s} Updated state {!r} (ts {!s}) in {!r}): {!r}".format(
                 self, state, modified, self._coll_name, result))
 
