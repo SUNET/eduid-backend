@@ -3,6 +3,7 @@ from __future__ import absolute_import
 
 from flask import request, session, url_for, make_response
 from flask import current_app, Blueprint
+from flask_apispec import use_kwargs, marshal_with
 from oic.oic.message import AuthorizationResponse
 import requests
 import qrcode
@@ -10,6 +11,8 @@ import qrcode.image.svg
 from eduid_common.api.utils import get_unique_hash, StringIO
 from eduid_common.api.exceptions import ApiException
 from eduid_userdb.proofing import OidcProofingState
+from eduid_webapp.oidc_proofing import schemas, mock_auth
+from eduid_webapp.oidc_proofing.mock_proof import Proof, DocumentDoesNotExist
 
 
 __author__ = 'lundberg'
@@ -24,17 +27,17 @@ oidc_proofing_views = Blueprint('oidc_proofing', __name__, url_prefix='')
 @oidc_proofing_views.route('/authorization-response')
 def authorization_response():
     # parse authentication response
-    current_app.logger.debug('Authorization response received')
     query_string = request.query_string.decode('utf-8')
     authn_resp = current_app.oidc_client.parse_response(AuthorizationResponse, info=query_string,
                                                         sformat='urlencoded')
+    current_app.logger.debug('Authorization response received: {!s}'.format(authn_resp))
+
     user_oidc_state = authn_resp['state']
     proofing_state = current_app.proofing_statedb.get_state_by_oidc_state(user_oidc_state)
     if not proofing_state:
         msg = 'The \'state\' parameter ({!s}) does not match a user state.'.format(user_oidc_state)
         current_app.logger.error(msg)
         raise ApiException(payload={'error': msg})
-
     current_app.logger.debug('Proofing state {!s} for user {!s} found'.format(proofing_state.state,
                                                                               proofing_state.eppn))
     # do token request
@@ -52,9 +55,8 @@ def authorization_response():
         current_app.logger.error('The \'nonce\' parameter does not match for user {!s}.'.format(proofing_state.eppn))
         raise ApiException(payload={'error': 'The \'nonce\' parameter does not match match.'})
 
-    access_token = token_resp['access_token']
-    current_app.logger.debug('Trying to do userinfo request: {!s}')
     # do userinfo request
+    current_app.logger.debug('Trying to do userinfo request:')
     userinfo = current_app.oidc_client.do_user_info_request(method=current_app.config['USERINFO_ENDPOINT_METHOD'],
                                                             state=authn_resp['state'])
     current_app.logger.debug('userinfo received: {!s}'.format(userinfo))
@@ -63,19 +65,32 @@ def authorization_response():
             proofing_state.eppn))
         raise ApiException(payload={'The \'sub\' of userinfo does not match \'sub\' of ID Token'})
 
-    # TODO: Using id_token, access_token and userinfo create ProofingData and
+    # TODO: Using id_token, access_token and userinfo create Proof and
     # TODO: hand that over to the Proofing Consumer service
+
+    # TODO: Remove saving of proof
+    # Save proof for demo purposes
+    proof_data = {
+        'eduPersonPrincipalName': proofing_state.eppn,
+        'authn_resp': authn_resp.to_dict(),
+        'token_resp': token_resp.to_dict(),
+        'userinfo': userinfo.to_dict()
+    }
+
+    current_app.proofdb.save(Proof(data=proof_data))
 
     # Remove users proofing state
     current_app.proofing_statedb.remove_state(proofing_state)
     return make_response('OK', 200)
 
 
-@oidc_proofing_views.route('/get-state')
-def get_state():
-    # TODO: Authenticate user
+@oidc_proofing_views.route('/get-state', methods=['POST'])
+@use_kwargs(schemas.EppnRequestSchema)
+@marshal_with(schemas.NonceResponseSchema)
+def get_state(**kwargs):
+    # TODO: Authenticate user authn response:
     # TODO: Look up user in central db
-    eppn = request.args.get('eppn')
+    eppn = mock_auth.authenticate(kwargs)
     current_app.logger.debug('Getting state for user with eppn {!s}.'.format(eppn))
     proofing_state = current_app.proofing_statedb.get_state_by_eppn(eppn, raise_on_missing=False)
     if not proofing_state:
@@ -115,8 +130,27 @@ def get_state():
     buf = StringIO()
     qrcode.make(proofing_state.nonce).save(buf)
     qr_b64 = buf.getvalue().encode('base64')
-    # TODO: Return json response
-    image_tag = '<img src="data:image/png;base64, {!s}"/>'.format(qr_b64)
-    body = '<html><body><p>{!s}</p><p>{!s}</p></body></html>'.format(proofing_state.nonce, image_tag)
-    return make_response(body)
+    ret = {
+        'nonce': proofing_state.nonce,
+        'qr_img': '<img src="data:image/png;base64, {!s}"/>'.format(qr_b64),
+    }
+    return ret
 
+
+# TODO Remove after demo
+@oidc_proofing_views.route('/proofs', methods=['POST'])
+@use_kwargs(schemas.EppnRequestSchema)
+#@marshal_with(schemas.VettingDataResponseSchema)
+def proofs(**kwargs):
+    eppn = mock_auth.authenticate(kwargs)
+    current_app.logger.debug('Getting proofs for user with eppn {!s}.'.format(eppn))
+    try:
+        proof_data = current_app.proofdb.get_proofs_by_eppn(eppn)
+    except DocumentDoesNotExist as e:
+        raise ApiException(status_code=400, payload={'error': str(e), 'reason': e.reason})
+    data = []
+    for proof in proof_data:
+        tmp = proof.to_dict()
+        del tmp['_id']
+        data.append(tmp)
+    return {'proofs': data}
