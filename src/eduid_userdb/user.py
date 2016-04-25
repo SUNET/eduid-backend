@@ -170,6 +170,10 @@ class User(object):
             self._data_in['phone'] = self._data_in.pop('mobile')
         if 'phone' in self._data_in:
             _phones = self._data_in.pop('phone')
+            # Clean up for non verified phone elements that where still primary
+            for _this in _phones:
+                if not _this.get('verified', False) and _this.get('primary', False):
+                    _this['primary'] = False
             _primary = [x for x in _phones if x.get('primary', False)]
             if _phones and not _primary:
                 # None of the phone numbers are primary. Promote the first verified
@@ -178,10 +182,6 @@ class User(object):
                     if _this.get('verified', False):
                         _this['primary'] = True
                         break
-            # Clean up for non verified phone elements that where still primary
-            for _this in _phones:
-                if not _this.get('verified', False) and _this.get('primary', False):
-                    _this['primary'] = False
             self._data_in['phone'] = _phones
 
         _phones = self._data_in.pop('phone', [])

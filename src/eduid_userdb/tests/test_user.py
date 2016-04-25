@@ -320,6 +320,30 @@ class TestUser(TestCase):
             for number in user.phone_numbers.to_list():
                 self.assertEqual(number.is_primary, False)
 
+    def test_primary_non_verified_phone2(self):
+        """
+        Test that if a non verified phone number is primary, due to earlier error, then that primary flag is removed.
+        """
+        data = {u'_id': ObjectId(),
+                u'eduPersonPrincipalName': u'pohig-test',
+                u'mail': u'test@gmail.com',
+                u'mailAliases': [{u'email': u'test@gmail.com', u'verified': True}],
+                u'phone': [{u'number': u'+11111111111',
+                            u'primary': True,
+                            u'verified': False},
+                           {u'number': u'+22222222222',
+                            u'primary': False,
+                            u'verified': True,
+                            }
+                           ],
+                u'passwords': [{u'created_ts': datetime.datetime(2014, 6, 29, 17, 52, 37, 830000),
+                                u'id': ObjectId(),
+                                u'salt': u'$NDNv1H1$foo$32$32$',
+                                u'source': u'dashboard'}],
+                }
+        user = User(data)
+        self.assertEqual(user.phone_numbers.primary.number, u'+22222222222')
+
     def test_user_tou(self):
         """
         Basic test for user ToU.
