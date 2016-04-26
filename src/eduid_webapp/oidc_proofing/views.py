@@ -28,9 +28,16 @@ oidc_proofing_views = Blueprint('oidc_proofing', __name__, url_prefix='')
 def authorization_response():
     # parse authentication response
     query_string = request.query_string.decode('utf-8')
+    current_app.logger.debug('query_string: {!s}'.format(query_string))
     authn_resp = current_app.oidc_client.parse_response(AuthorizationResponse, info=query_string,
                                                         sformat='urlencoded')
     current_app.logger.debug('Authorization response received: {!s}'.format(authn_resp))
+
+    if authn_resp.get('error'):
+        current_app.logger.error('AuthorizationError {!s} - {!s} ({!s})'.format(request.host, authn_resp['error'],
+                                                                                authn_resp.get('error_message'),
+                                                                                authn_resp.get('error_uri')))
+        return make_response('OK', 200)
 
     user_oidc_state = authn_resp['state']
     proofing_state = current_app.proofing_statedb.get_state_by_oidc_state(user_oidc_state)
