@@ -147,17 +147,18 @@ def get_state(**kwargs):
 # TODO Remove after demo
 @oidc_proofing_views.route('/proofs', methods=['POST'])
 @use_kwargs(schemas.EppnRequestSchema)
-#@marshal_with(schemas.VettingDataResponseSchema)
+@marshal_with(schemas.ProofResponseSchema)
 def proofs(**kwargs):
     eppn = mock_auth.authenticate(kwargs)
     current_app.logger.debug('Getting proofs for user with eppn {!s}.'.format(eppn))
     try:
         proof_data = current_app.proofdb.get_proofs_by_eppn(eppn)
-    except DocumentDoesNotExist as e:
-        raise ApiException(status_code=400, payload={'error': str(e), 'reason': e.reason})
+    except DocumentDoesNotExist:
+        return {'proofs': []}
     data = []
     for proof in proof_data:
         tmp = proof.to_dict()
         del tmp['_id']
         data.append(tmp)
     return {'proofs': data}
+

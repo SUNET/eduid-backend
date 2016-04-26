@@ -22,3 +22,9 @@ class NonceResponseSchema(Schema):
 
     nonce = fields.String(required=True)
     qr_img = fields.String(required=True)
+
+
+# TODO: Remove after demo stage
+class ProofResponseSchema(Schema):
+
+    proofs = fields.List(fields.Dict)
