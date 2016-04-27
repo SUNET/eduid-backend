@@ -5,6 +5,7 @@ from flask import request, session, url_for, make_response
 from flask import current_app, Blueprint
 from flask_apispec import use_kwargs, marshal_with
 from oic.oic.message import AuthorizationResponse
+from operator import itemgetter
 import requests
 import qrcode
 import qrcode.image.svg
@@ -13,7 +14,6 @@ from eduid_common.api.exceptions import ApiException
 from eduid_userdb.proofing import OidcProofingState
 from eduid_webapp.oidc_proofing import schemas, mock_auth
 from eduid_webapp.oidc_proofing.mock_proof import Proof, DocumentDoesNotExist
-
 
 __author__ = 'lundberg'
 
@@ -160,5 +160,6 @@ def proofs(**kwargs):
         tmp = proof.to_dict()
         del tmp['_id']
         data.append(tmp)
+    data = sorted(data, key=itemgetter('modified_ts'), reverse=True)
     return {'proofs': data}
 
