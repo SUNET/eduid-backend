@@ -64,6 +64,27 @@ class DashboardUser(User):
 
         User.__init__(self, data = data)
 
+    def add_letter_proofing_data(self, data):
+        """
+        Add letter proofing data about the user.
+
+        This is data from the time a user successfully verified their NIN using
+        the letter proofing service. We keep it on the users for now, but expect
+        to move it somewhere else and have a reference to it as metadata on the
+        verified Nin instead.
+
+        NOTE: The User.__init__ function will actually accept and copy the
+              'letter_proofing_data', although ordinary User objects doesn't do
+              anything else with this data.
+
+        :param data: Proofing data from the letter id proofing service
+        :type  data: [dict]
+        """
+        if not isinstance(data, dict):
+            raise TypeError('letter_proofing_data must be dict, not {!s}'.format(type(data)))
+        old_data = self._data.get('letter_proofing_data', [])
+        self._data['letter_proofing_data'] = old_data + [data]
+
     def to_dict(self, old_userdb_format=False):
         res = User.to_dict(self, old_userdb_format=old_userdb_format)
         res['terminated'] = self.terminated
