@@ -183,7 +183,7 @@ class UserDB(BaseDB):
         :return: User instance
         :rtype: UserClass
         """
-        old_filter = {'norEduPersonNIN': {'$elemMatch': {'$eq': nin}}}
+        old_filter = {'norEduPersonNIN': nin}
         newmatch = {'number': nin, 'verified': True}
         if include_unconfirmed:
             newmatch = {'number': nin}
