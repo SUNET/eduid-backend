@@ -85,7 +85,11 @@ class UserDB(BaseDB):
         Locate a user in the userdb given the user's _id.
 
         :param user_id: User identifier
+        :param raise_on_missing: If True, raise exception if no matching user object can be found.
+
         :type user_id: bson.ObjectId | str | unicode
+        :type raise_on_missing: bool
+
         :return: UserClass instance | None
         :rtype: UserClass | None
 
@@ -164,7 +168,7 @@ class UserDB(BaseDB):
                                         return_list=return_list)
 
     def get_user_by_nin(self, nin, raise_on_missing=True, return_list=False,
-                         include_unconfirmed=False):
+                        include_unconfirmed=False):
         """
         Return the user object in the central eduID UserDB having
         a NIN matching `nin'. Unless include_unconfirmed=True, the

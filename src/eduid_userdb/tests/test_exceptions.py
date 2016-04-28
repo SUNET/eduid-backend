@@ -1,8 +1,7 @@
 from unittest import TestCase
+import eduid_userdb.exceptions
 
 __author__ = 'ft'
-
-import eduid_userdb.exceptions
 
 
 class TestEduIDUserDBError(TestCase):
