@@ -54,4 +54,3 @@ class TestUserDB(MongoTestCase):
         self.amdb.save(test_user, old_format = True)
         res = self.amdb.get_user_by_nin(test_user.nins.primary.number)
         self.assertEqual(test_user.given_name, res.given_name)
-        self.fail('test')
