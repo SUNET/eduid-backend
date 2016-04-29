@@ -4,7 +4,7 @@ from __future__ import absolute_import
 from flask import request, session, url_for, make_response
 from flask import current_app, Blueprint
 from flask_apispec import use_kwargs, marshal_with
-from oic.oic.message import AuthorizationResponse
+from oic.oic.message import AuthorizationResponse, ClaimsRequest, Claims
 from operator import itemgetter
 import requests
 import qrcode
@@ -114,8 +114,9 @@ def get_state(**kwargs):
             'redirect_uri': url_for('oidc_proofing.authorization_response', _external=True),
             'state': state,
             'nonce': nonce,
+            'claims': ClaimsRequest(userinfo=Claims(identity=None)).to_json()
         }
-        current_app.logger.debug('AuthorizationRequest args:')
+        current_app.logger.debug('AuthenticationRequest args:')
         current_app.logger.debug(args)
         try:
             response = requests.post(current_app.oidc_client.authorization_endpoint, data=args)
@@ -123,7 +124,7 @@ def get_state(**kwargs):
             msg = 'No connection to authorization endpoint: {!s}'.format(e)
             current_app.logger.error(msg)
             raise ApiException(payload={'error': msg})
-        # If do_authorization_request went well save user state
+        # If authentication request went well save user state
         if response.status_code == 200:
             current_app.logger.debug('Authentication request delivered to provider {!s}'.format(
                 current_app.config['PROVIDER_CONFIGURATION_INFO']['issuer']))
