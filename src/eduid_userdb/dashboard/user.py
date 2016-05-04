@@ -137,22 +137,17 @@ class DashboardLegacyUser(object):
             del(self._mongo_doc['postalAddress'])
         modified = self.get_modified_ts()
         self.set_modified_ts(datetime.utcnow())
-        if modified is None:
-            # profile has never been modified through the dashboard.
-            # possibly just created in signup.
-            request.db.profiles.insert(self._mongo_doc)
-        else:
-            if update_doc == None:
-                update_doc = self._mongo_doc
-            test_doc = {'_id': self.get_id()}
+        if update_doc is None:
+            update_doc = self._mongo_doc
+        test_doc = {'_id': self.get_id()}
+        if check_sync and modified:
+            test_doc['modified_ts'] = modified
+        result = request.db.profiles.update(test_doc, update_doc, upsert=(not check_sync))
+        if result['n'] == 0:
             if check_sync:
-                test_doc['modified_ts'] = modified
-            result = request.db.profiles.update(test_doc, update_doc)
-            if result['n'] == 0:
-                if check_sync:
-                    raise UserOutOfSync('The user data has been modified '
-                                        'since you started editing it.')
-                log.info("Tried saving user {!s} (test_doc {!s}) but failed (no check_sync)".format(self, test_doc))
+                raise UserOutOfSync('The user data has been modified '
+                                    'since you started editing it.')
+            log.info("Tried saving user {!s} (test_doc {!s}) but failed (no check_sync)".format(self, test_doc))
         request.context.propagate_user_changes(self)
 
     def get_doc(self):
