@@ -5,6 +5,9 @@ from __future__ import absolute_import
 from flask import Flask
 
 from eduid_common.api.app import eduid_init_app
+from eduid_userdb.support.db import SupportUserDB, \
+    SupportAuthnInfoDB, \
+    SupportVerificationsDB
 
 
 def support_init_app(name, config):
@@ -32,5 +35,9 @@ def support_init_app(name, config):
 
     from eduid_webapp.support.views import support_views
     app.register_blueprint(support_views)
+
+    app.support_user_db = SupportUserDB(app.config['MONGO_URI'])
+    app.support_authn_db = SupportAuthnInfoDB(app.config['MONGO_URI'])
+    app.support_verification_db = SupportVerificationsDB(app.config['MONGO_URI'])
 
     return app

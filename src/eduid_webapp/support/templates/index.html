@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>eduID support app</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
+    <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+</head>
+<body>
+<div class="container">
+    <h3>Lookup a user using eppn, nin, mail address or phone number</h3>
+    <form role="form" action="/" method="POST">
+        <div class="form-group">
+            <p><input type=text name=query class="form-control" placeholder="Enter search term">
+            <p><button type="submit" value="Submit" class="btn btn-default">Submit</button>
+        </div>
+    </form>
+    {% if error %}
+        <p><h3>{{ error }}</h3></p>
+    {% endif %}
+
+    {% if users %}
+        <h3>The following users were found:</h3>
+        <table class="table table-hover">
+            {% for user in users %}
+                <tr>
+                    <th>eppn:</th>
+                    <td>{{ user.eppn }}</td>
+                </tr>
+                <tr>
+                    <th>Given name:</th>
+                    <td>{{ user.given_name }}</td>
+                </tr>
+                <tr>
+                    <th>Surname:</th>
+                    <td>{{ user.surname }}</td>
+                </tr>
+                <tr>
+                    <th>Display name:</th>
+                    <td>{{ user.display_name }}</td>
+                </tr>
+                <tr>
+                    <th>Mail addresses:</th>
+                    <td>
+                        {% for mail in mail_addresses %}
+                            -----------<br>
+                            Address: {{ mail['email'] }}<br>
+                            Primary: {{ mail['primary'] }}<br>
+                            Verified: {{ mail['verified'] }}<br>
+                            {% if mail['created_by'] %}
+                                Added using: {{ mail['created_by'] }}<br>
+                            {% endif %}
+                            Added timestamp: {{ mail['created_ts'] }}<br>
+                            {% if  mail['verified_ts'] %}
+                                Verified timestamp: {{ mail['verified_ts'] }}<br>
+                            {% endif %}
+                            -----------<br>
+                        {% endfor %}
+                    </td>
+                </tr>
+                <tr>
+                    <th>Phone numbers:</th>
+                    <td>{{ user.phone_numbers }}</td>
+                </tr>
+                <tr>
+                    <th>Terminated status:</th>
+                    <td>{{ user.terminated }}</td>
+                </tr>
+                <tr>
+                    <th>Language preferences:</th>
+                    <td>{{ user.language }}</td>
+                </tr>
+
+                {% if authn %}
+                    <tr>
+                        <th>Last successful login:</th>
+                        <td>{{ authn.success_ts }}</td>
+                    </tr>
+                    <tr>
+                        <th>Failed login attempts this month:</th>
+                        <td>{{ authn.fail_count }}</td>
+                    </tr>
+                    <tr>
+                        <th>Successful login attempts this month:</th>
+                        <td>{{ authn.success_count }}</td>
+                    </tr>
+                {% endif %}
+            {% endfor %}
+        </table>
+    {% endif %}
+</div>
+</body>
+</html>
