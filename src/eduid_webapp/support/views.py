@@ -74,10 +74,12 @@ def index(logged_in_user):
         lookup_authn = current_app.support_authn_db.get_authn_info(user_id=user.user_id)
 
         mail_addresses = user.mail_addresses.to_list_of_dicts()
+        phone_numbers = user.phone_numbers.to_list_of_dicts()
 
         current_app.logger.info('Support personnel: {!r} searched for {!r}'.format(logged_in_user, search_query))
 
         return render_template('index.html', users=lookup_users,
-                               authn=lookup_authn, mail_addresses=mail_addresses)
+                               authn=lookup_authn, mail_addresses=mail_addresses,
+                               phone_numbers=phone_numbers)
     else:
         return render_template('index.html')

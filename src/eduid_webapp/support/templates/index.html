@@ -62,7 +62,16 @@
                 </tr>
                 <tr>
                     <th>Phone numbers:</th>
-                    <td>{{ user.phone_numbers }}</td>
+                    <td>
+                        {% for phone in phone_numbers %}
+                            -----------<br>
+                            Number: {{ phone['number'] }}<br>
+                            Primary: {{ phone['primary'] }}<br>
+                            Verified: {{ phone['verified'] }}<br>
+                            Added timestamp: {{ phone['created_ts'] }}<br>
+                            -----------<br>
+                        {% endfor %}
+                    </td>
                 </tr>
                 <tr>
                     <th>Terminated status:</th>
