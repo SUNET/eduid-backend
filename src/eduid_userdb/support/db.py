@@ -7,7 +7,7 @@ from bson import ObjectId
 from eduid_userdb.userdb import BaseDB, UserDB
 from eduid_userdb.dashboard.userdb import DashboardUserDB
 from eduid_userdb.signup.userdb import SignupUserDB
-from eduid_userdb.support.models import SupportUser, SupportDashboardUser, SupportSignupUser
+from eduid_userdb.support import models
 
 __author__ = 'lundberg'
 
@@ -44,15 +44,17 @@ class SupportUserDB(UserDB):
 
 class SupportDashboardUserDB(DashboardUserDB):
 
-    UserClass = SupportDashboardUser
+    UserClass = models.SupportDashboardUser
 
 
 class SupportSignupUserDB(SignupUserDB):
 
-    UserClass = SupportSignupUser
+    UserClass = models.SupportSignupUser
 
 
 class SupportAuthnInfoDB(BaseDB):
+
+    model = models.UserAuthnInfo
 
     def __init__(self, db_uri):
         db_name = 'eduid_idp_authninfo'
@@ -68,10 +70,15 @@ class SupportAuthnInfoDB(BaseDB):
         """
         if not isinstance(user_id, ObjectId):
             user_id = ObjectId(user_id)
-        return self._get_document_by_attr('_id', user_id, raise_on_missing=False)
+        doc = self._get_document_by_attr('user_oid', user_id, raise_on_missing=False)
+        if doc:
+            doc = self.model(doc)
+        return doc
 
 
 class SupportVerificationsDB(BaseDB):
+
+    model = models.UserVerifications
 
     def __init__(self, db_uri):
         db_name = 'eduid_dashboard'
@@ -87,7 +94,27 @@ class SupportVerificationsDB(BaseDB):
         """
         if not isinstance(user_id, ObjectId):
             user_id = ObjectId(user_id)
-        return self._get_document_by_attr('user_oid', user_id, raise_on_missing=False)
+        docs = self._get_documents_by_attr('user_oid', user_id, raise_on_missing=False)
+        return [self.model(doc) for doc in docs]
 
 
+class SupportActionsDB(BaseDB):
 
+    model = models.UserActions
+
+    def __init__(self, db_uri):
+        db_name = 'eduid_actions'
+        collection = 'actions'
+        super(SupportActionsDB, self).__init__(db_uri, db_name, collection)
+
+    def get_actions(self, user_id):
+        """
+        :param user_id: User objects user_id property
+        :type user_id: ObjectId | str | unicode
+        :return: A document dict
+        :rtype: dict | None
+        """
+        if not isinstance(user_id, ObjectId):
+            user_id = ObjectId(user_id)
+        docs = self._get_documents_by_attr('user_oid', user_id, raise_on_missing=False)
+        return [self.model(doc) for doc in docs]
