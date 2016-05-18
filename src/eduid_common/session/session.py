@@ -216,7 +216,7 @@ class Session(collections.MutableMapping):
         _encrypted_data = None
         if data is None:
             if not (token or session_id):
-                raise ValueError('Data must be provided when token/session_id is not')
+                raise ValueError('Data must be provided when token/session_id is not provided')
 
             logger.debug('Looking for session using token {!r} or session_id {!r}'.format(token, session_id))
 
