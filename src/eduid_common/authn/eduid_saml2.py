@@ -36,6 +36,8 @@ from saml2.client import Saml2Client
 from saml2.saml import AuthnContextClassRef
 from saml2.samlp import RequestedAuthnContext
 
+from xml.etree.ElementTree import ParseError
+
 from .cache import IdentityCache, OutstandingQueriesCache, StateCache
 from .utils import get_saml2_config, get_saml_attribute
 
@@ -122,6 +124,12 @@ def get_authn_response(config, session, raw_response):
             """SAML response is not verified. May be caused by the response
             was not issued at a reasonable time or the SAML status is not ok.
             Check the IDP datetime setup""")
+    except ParseError as e:
+        logger.error('SAML response is not correctly formatted: {!r}'.format(e))
+        raise BadSAMLResponse(
+            """SAML response is not correctly formatted and therefore the
+            XML document could not be parsed.
+            """)
 
     if response is None:
         logger.error('SAML response is None')
