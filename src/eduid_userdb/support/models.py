@@ -10,17 +10,7 @@ from eduid_userdb.signup.user import SignupUser
 
 __author__ = 'lundberg'
 
-
-class SupportUser(User):
-    pass
-
-
-class SupportDashboardUser(DashboardUser):
-    pass
-
-
-class SupportSignupUser(SignupUser):
-    pass
+# Models for filtering out unneeded or unwanted data from eduID database objects
 
 
 class GenericFilterDict(dict):
@@ -45,13 +35,70 @@ class GenericFilterDict(dict):
                     pass
         elif self.remove_keys:
             for key in self.remove_keys:
-                try:
-                    del _data[key]
-                except KeyError:
-                    pass
-            self.update(data)
+                _data.pop(key, None)
+            self.update(_data)
         else:
-            self.update(data)
+            self.update(_data)
+
+
+class SupportUser(GenericFilterDict):
+
+    remove_keys = ['_id', 'letter_proofing_data']
+
+    def __init__(self, data):
+        _data_in = User(data).to_dict()
+        _user_id = _data_in['_id']
+        super(SupportUser, self).__init__(_data_in)
+
+        self['user_id'] = _user_id
+        self['mailAliases'] = [MailAlias(alias) for alias in self['mailAliases']]
+        self['passwords'] = [Password(password) for password in self['passwords']]
+        self['tou'] = [ToU(tou) for tou in self['tou']]
+
+
+class SupportDashboardUser(GenericFilterDict):
+
+    remove_keys = ['_id', 'letter_proofing_data']
+
+    def __init__(self, data):
+        _data_in = DashboardUser(data=data).to_dict()
+        _user_id = _data_in['_id']
+        super(SupportDashboardUser, self).__init__(_data_in)
+
+        self['user_id'] = _user_id
+        self['mailAliases'] = [MailAlias(alias) for alias in self['mailAliases']]
+        self['passwords'] = [Password(password) for password in self['passwords']]
+        self['tou'] = [ToU(tou) for tou in self['tou']]
+
+
+class SupportSignupUser(GenericFilterDict):
+
+    remove_keys = ['_id', 'letter_proofing_data']
+
+    def __init__(self, data):
+        _data_in = SignupUser(data=data).to_dict()
+        _user_id = _data_in['_id']
+        super(SupportSignupUser, self).__init__(_data_in)
+
+        self['user_id'] = _user_id
+        self['mailAliases'] = [MailAlias(alias) for alias in self['mailAliases']]
+        self['passwords'] = [Password(password) for password in self['passwords']]
+        self['tou'] = [ToU(tou) for tou in self['tou']]
+
+
+class MailAlias(GenericFilterDict):
+
+    remove_keys = ['verification_code']
+
+
+class Password(GenericFilterDict):
+
+    add_keys = ['created_by', 'created_ts']
+
+
+class ToU(GenericFilterDict):
+
+    remove_keys = ['id']
 
 
 class UserAuthnInfo(GenericFilterDict):
@@ -69,7 +116,7 @@ class UserActions(GenericFilterDict):
     add_keys = ['action', 'params']
 
 
-class UserIdProofingLetter(GenericFilterDict):
+class UserLetterProofing(GenericFilterDict):
 
     add_keys = ['nin', 'proofing_letter']
 
@@ -81,6 +128,6 @@ class UserIdProofingLetter(GenericFilterDict):
 
     def __init__(self, data):
         _data = deepcopy(data)
-        super(UserIdProofingLetter, self).__init__(_data)
+        super(UserLetterProofing, self).__init__(_data)
         self['nin'] = self.Nin(self['nin'])
         self['proofing_letter'] = self.ProofingLetter(self['proofing_letter'])
