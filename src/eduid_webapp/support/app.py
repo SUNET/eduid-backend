@@ -5,9 +5,14 @@ from __future__ import absolute_import
 from flask import Flask
 
 from eduid_common.api.app import eduid_init_app
-from eduid_userdb.support.db import SupportUserDB, \
-    SupportAuthnInfoDB, \
-    SupportVerificationsDB
+from eduid_userdb.support import db
+
+
+def register_template_filters(app):
+
+    @app.template_filter('datetimeformat')
+    def datetimeformat(value, format='%Y-%m-%d %H:%M %Z'):
+        return value.strftime(format)
 
 
 def support_init_app(name, config):
@@ -36,8 +41,14 @@ def support_init_app(name, config):
     from eduid_webapp.support.views import support_views
     app.register_blueprint(support_views)
 
-    app.support_user_db = SupportUserDB(app.config['MONGO_URI'])
-    app.support_authn_db = SupportAuthnInfoDB(app.config['MONGO_URI'])
-    app.support_verification_db = SupportVerificationsDB(app.config['MONGO_URI'])
+    app.support_user_db = db.SupportUserDB(app.config['MONGO_URI'])
+    app.support_authn_db = db.SupportAuthnInfoDB(app.config['MONGO_URI'])
+    app.support_verification_db = db.SupportVerificationsDB(app.config['MONGO_URI'])
+    app.support_dashboard_db = db.SupportDashboardUserDB(app.config['MONGO_URI'])
+    app.support_signup_db = db.SupportSignupUserDB(app.config['MONGO_URI'])
+    app.support_actions_db = db.SupportActionsDB(app.config['MONGO_URI'])
+    app.support_letter_proofing_db = db.SupportLetterProofingDB(app.config['MONGO_URI'])
+
+    register_template_filters(app)
 
     return app
