@@ -44,6 +44,7 @@ def support_init_app(name, config):
     app.support_user_db = db.SupportUserDB(app.config['MONGO_URI'])
     app.support_authn_db = db.SupportAuthnInfoDB(app.config['MONGO_URI'])
     app.support_verification_db = db.SupportVerificationsDB(app.config['MONGO_URI'])
+    app.support_proofing_log_db = db.SupportProofingLogDB(app.config['MONGO_URI'])
     app.support_dashboard_db = db.SupportDashboardUserDB(app.config['MONGO_URI'])
     app.support_signup_db = db.SupportSignupUserDB(app.config['MONGO_URI'])
     app.support_actions_db = db.SupportActionsDB(app.config['MONGO_URI'])
