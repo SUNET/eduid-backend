@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>eduID support app</title>
+    <title>eduID support</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
@@ -22,11 +22,9 @@
     {% endif %}
 
     {% if users %}
-        <h3>{{users|length}} user{% if users|length > 1 %}s were{% else %} was{% endif %} found:</h3>
+        <h3>{{users|length}} user{% if users|length > 1 %}s were{% else %} was{% endif %} found using query "{{ search_query }}":</h3>
+        {% import 'common_user_table_data.html' as common_user_table %}
         {% for item in users %}
-        {% for key, value in item.items() %}
-            {{ key }}: {{ value }}<br/>
-        {% endfor %}
         <div class="panel panel-default">
             <div class="panel-body">
                 <div class="row">
@@ -35,85 +33,7 @@
                             <caption>Central DB</caption>
                             <tbody>
                                 {% if item.user %}
-                                    <tr>
-                                        <th>eppn:</th>
-                                        <td>{{ item.user.eduPersonPrincipalName }}</td>
-                                    </tr>
-                                    <tr>
-                                        <th>Given name:</th>
-                                        <td>{{ item.user.givenName }}</td>
-                                    </tr>
-                                    <tr>
-                                        <th>Surname:</th>
-                                        <td>{{ item.user.surname }}</td>
-                                    </tr>
-                                    <tr>
-                                        <th>Display name:</th>
-                                        <td>{{ item.user.displayName }}</td>
-                                    </tr>
-                                    <tr>
-                                        <th>National Identity Numbers:</th>
-                                        <td>
-                                            {% for nin in item.dashboard_user.nins %}
-                                                -----------<br>
-                                                Number: {{ nin['number'] }}<br>
-                                                Primary: {{ nin['primary'] }}<br>
-                                                Verified: {{ nin['verified'] }}<br>
-                                                -----------<br>
-                                            {% endfor %}
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <th>Mail addresses:</th>
-                                        <td>
-                                            {% for mail in item.user.mailAliases %}
-                                                -----------<br>
-                                                Address: {{ mail['email'] }}<br>
-                                                Primary: {{ mail['primary'] }}<br>
-                                                Verified: {{ mail['verified'] }}<br>
-                                                {% if mail['created_by'] %}
-                                                    Added using: {{ mail['created_by'] }}<br>
-                                                {% endif %}
-                                                Added timestamp: {{ mail['created_ts']|datetimeformat }}<br>
-                                                {% if  mail['verified_ts'] %}
-                                                    Verified timestamp: {{ mail['verified_ts']|datetimeformat }}<br>
-                                                {% endif %}
-                                                -----------<br>
-                                            {% endfor %}
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <th>Phone numbers:</th>
-                                        <td>
-                                            {% for phone in item.user.phone %}
-                                                -----------<br>
-                                                Number: {{ phone['number'] }}<br>
-                                                Primary: {{ phone['primary'] }}<br>
-                                                Verified: {{ phone['verified'] }}<br>
-                                                Added timestamp: {{ phone['created_ts']|datetimeformat }}<br>
-                                                -----------<br>
-                                            {% endfor %}
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <th>Passwords:</th>
-                                        <td>
-                                            {% for password in item.user.passwords %}
-                                                -----------<br>
-                                                Added using: {{ password['created_by'] }}<br>
-                                                Added timestamp: {{ password['created_ts']|datetimeformat }}<br>
-                                                -----------<br>
-                                            {% endfor %}
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <th>Terminated status:</th>
-                                        <td>{{ item.user.terminated|default("False") }}</td>
-                                    </tr>
-                                    <tr>
-                                        <th>Language preferences:</th>
-                                        <td>{{ item.user.preferredLanguage }}</td>
-                                    </tr>
+                                    {{ common_user_table.input(item.user) }}
                                 {% else %}
                                     <tr><td>No data</td></tr>
                                 {% endif %}
@@ -125,98 +45,20 @@
                             <caption>Dashboard DB</caption>
                             <tbody>
                                 {% if item.dashboard_user %}
-                                    <tr>
-                                        <th>eppn:</th>
-                                        <td>{{ item.dashboard_user.eduPersonPrincipalName }}</td>
-                                    </tr>
-                                    <tr>
-                                        <th>Given name:</th>
-                                        <td>{{ item.dashboard_user.givenName }}</td>
-                                    </tr>
-                                    <tr>
-                                        <th>Surname:</th>
-                                        <td>{{ item.dashboard_user.surname }}</td>
-                                    </tr>
-                                    <tr>
-                                        <th>Display name:</th>
-                                        <td>{{ item.dashboard_user.displayName }}</td>
-                                    </tr>
-                                    <tr>
-                                        <th>National Identity Numbers:</th>
-                                        <td>
-                                            {% for nin in item.dashboard_user.nins %}
-                                                -----------<br>
-                                                Number: {{ nin['number'] }}<br>
-                                                Primary: {{ nin['primary'] }}<br>
-                                                Verified: {{ nin['verified'] }}<br>
-                                                -----------<br>
-                                            {% endfor %}
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <th>Mail addresses:</th>
-                                        <td>
-                                            {% for mail in item.dashboard_user.mailAliases %}
-                                                -----------<br>
-                                                Address: {{ mail['email'] }}<br>
-                                                Primary: {{ mail['primary'] }}<br>
-                                                Verified: {{ mail['verified'] }}<br>
-                                                {% if mail['created_by'] %}
-                                                    Added using: {{ mail['created_by'] }}<br>
-                                                {% endif %}
-                                                Added timestamp: {{ mail['created_ts']|datetimeformat }}<br>
-                                                {% if  mail['verified_ts'] %}
-                                                    Verified timestamp: {{ mail['verified_ts']|datetimeformat }}<br>
-                                                {% endif %}
-                                                -----------<br>
-                                            {% endfor %}
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <th>Phone numbers:</th>
-                                        <td>
-                                            {% for phone in item.dashboard_user.phone %}
-                                                -----------<br>
-                                                Number: {{ phone['number'] }}<br>
-                                                Primary: {{ phone['primary'] }}<br>
-                                                Verified: {{ phone['verified'] }}<br>
-                                                Added timestamp: {{ phone['created_ts']|datetimeformat }}<br>
-                                                -----------<br>
-                                            {% endfor %}
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <th>Passwords:</th>
-                                        <td>
-                                            {% for password in item.dashboard_user.passwords %}
-                                                -----------<br>
-                                                Added using: {{ password['created_by'] }}<br>
-                                                Added timestamp: {{ password['created_ts']|datetimeformat }}<br>
-                                                -----------<br>
-                                            {% endfor %}
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <th>Terminated status:</th>
-                                        <td>{{ item.dashboard_user.terminated|default("False") }}</td>
-                                    </tr>
-                                    <tr>
-                                        <th>Language preferences:</th>
-                                        <td>{{ item.dashboard_user.preferredLanguage }}</td>
-                                    </tr>
+                                    {{ common_user_table.input(item.dashboard_user) }}
                                     <tr>
                                         <th>Verifications</th>
                                         <td>
                                             {% for verification in item.verifications %}
-                                                -----------<br>
-                                                Type: {{ verification.model_name }}<br />
-                                                Data: {{ verification.obj_id }}<br />
-                                                Added timestamp: {{ verification.timestamp|datetimeformat }}<br />
-                                                Verified: {{ verification.verified }}<br />
-                                                {% if verification.verified_timestamp %}
-                                                    Verified timestamp: {{ verification.verified_timestamp|datetimeformat }}<br />
-                                                {% endif %}
-                                                -----------<br>
+                                                <dl>
+                                                    <dt>Type</dt><dd>{{ verification.model_name }}<dd>
+                                                    <dt>Data</dt><dd>{{ verification.obj_id }}<dd>
+                                                    <dt>Added timestamp</dt><dd>{{ verification.timestamp|datetimeformat }}<dd>
+                                                    <dt>Verified</dt><dd>{{ verification.verified }}<dd>
+                                                    {% if verification.verified_timestamp %}
+                                                        <dt>Verified timestamp</dt><dd>{{ verification.verified_timestamp|datetimeformat }}<dd>
+                                                    {% endif %}
+                                                </dl>
                                             {% endfor %}
                                         </td>
                                     </tr>
@@ -231,76 +73,31 @@
                             <caption>Signup DB</caption>
                             <tbody>
                             {% if item.signup_user %}
-                                {% for key, value in item.signup_user|dictsort %}
-                                    {{ key }}: {{ value }}<br/>
-                                {% endfor %}
-                                <tr>
-                                    <th>eppn:</th>
-                                    <td>{{ item.signup_user.eduPersonPrincipalName }}</td>
-                                </tr>
-                                <tr>
-                                    <th>Given name:</th>
-                                    <td>{{ item.signup_user.givenName }}</td>
-                                </tr>
-                                <tr>
-                                    <th>Surname:</th>
-                                    <td>{{ item.signup_user.surname }}</td>
-                                </tr>
-                                <tr>
-                                    <th>Display name:</th>
-                                    <td>{{ item.signup_user.displayName }}</td>
-                                </tr>
-                                <tr>
-                                    <th>Mail addresses:</th>
-                                    <td>
-                                        {% for mail in item.signup_user.mailAliases %}
-                                            -----------<br>
-                                            Address: {{ mail['email'] }}<br>
-                                            Primary: {{ mail['primary'] }}<br>
-                                            Verified: {{ mail['verified'] }}<br>
-                                            {% if mail['created_by'] %}
-                                                Added using: {{ mail['created_by'] }}<br>
-                                            {% endif %}
-                                            Added timestamp: {{ mail['created_ts']|datetimeformat }}<br>
-                                            {% if  mail['verified_ts'] %}
-                                                Verified timestamp: {{ mail['verified_ts']|datetimeformat }}<br>
-                                            {% endif %}
-                                            -----------<br>
-                                        {% endfor %}
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th>Phone numbers:</th>
-                                    <td>
-                                        {% for phone in item.signup_user.phone %}
-                                            -----------<br>
-                                            Number: {{ phone['number'] }}<br>
-                                            Primary: {{ phone['primary'] }}<br>
-                                            Verified: {{ phone['verified'] }}<br>
-                                            Added timestamp: {{ phone['created_ts']|datetimeformat }}<br>
-                                            -----------<br>
-                                        {% endfor %}
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th>Passwords:</th>
-                                    <td>
-                                        {% for password in item.signup_user.passwords %}
-                                            -----------<br>
-                                            Added using: {{ password['created_by'] }}<br>
-                                            Added timestamp: {{ password['created_ts']|datetimeformat }}<br>
-                                            -----------<br>
-                                        {% endfor %}
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th>Terminated status:</th>
-                                    <td>{{ item.signup_user.terminated|default("Not terminated") }}</td>
-                                </tr>
-                                <tr>
-                                    <th>Language preferences:</th>
-                                    <td>{{ item.signup_user.preferredLanguage }}</td>
-                                </tr>
+                                {{ common_user_table.input(item.signup_user) }}
+                                {% if item.signup_user.pending_mail_address %}
+                                    <tr>
+                                        <th>Pending mail address</th>
+                                        <td>
+                                            <dl>
+                                                <dt>Address</dt><dd>{{ item.signup_user.pending_mail_address['email'] }}</dd>
+                                                <dt>Primary</dt><dd>{{ item.signup_user.pending_mail_address['primary'] }}</dd>
+                                                <dt>Verified</dt><dd>{{ item.signup_user.pending_mail_address['verified'] }}</dd>
+                                                {% if item.signup_user.pending_mail_address['created_by'] %}
+                                                    <dt>Added using</dt><dd>{{ item.signup_user.pending_mail_address['created_by'] }}</dd>
+                                                {% endif %}
+                                                <dt>Added timestamp</dt><dd>{{ item.signup_user.pending_mail_address['created_ts']|datetimeformat }}</dd>
+                                                {% if  item.signup_user.pending_mail_address['verified_ts'] %}
+                                                    <dt>Verified timestamp</dt><dd>{{ item.signup_user.pending_mail_address['verified_ts']|datetimeformat }}</dd>
+                                                {% endif %}
+                                            </dl>
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                                {% if not item.signup_user.passwords %}
+                                    <tr>
+                                        <th>Completed signup</th><td>False</td>
+                                    </tr>
+                                {% endif %}
                             {% else %}
                                 <tr><td>No data</td></tr>
                             {% endif %}
@@ -308,25 +105,94 @@
                         </table>
                     </div>
                 </div>
-                {% if item.authn %}
-                    <table class="table table-hover">
-                        <caption>Authentication information</caption>
-                        <tbody>
+                <div class="row">
+                    <div class="col-md-5">
+                        <table class="table table-hover">
+                            <caption>Authentication information</caption>
+                            {% if item.authn %}
+                                <tr>
+                                    <th>Last successful login</th>
+                                    <td>{{ item.authn.success_ts|datetimeformat }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Failed login attempts</th>
+                                    <td>
+                                        <dl>
+                                        {% for month,count in item.authn.fail_count.items() %}
+                                            <dt>{{ month }}</dt><dd>{{ count }}</dd>
+                                        {% endfor %}
+                                        </dl>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Successful login attempts:</th>
+                                    <td>
+                                        <dl>
+                                        {% for month,count in item.authn.success_count.items() %}
+                                            <dt>{{ month }}</dt><dd>{{ count }}</dd>
+                                        {% endfor %}
+                                        </dl>
+                                    </td>
+                                </tr>
+                            {% else %}
+                                <tr><td>No data</td></tr>
+                            {% endif %}
+                        </table>
+                    </div>
+                    <div class="col-md-7">
+                        <table class="table table-hover">
+                            <caption>Letter proofing</caption>
+                            {% if item.letter_proofing %}
+                                <tr>
+                                    <th>Letter sent</th><td>{{ item.letter_proofing.proofing_letter.is_sent|default("False") }}</td>
+                                </tr>
+                                {% if item.letter_proofing.proofing_letter.is_sent %}
+                                    <tr>
+                                        <th>Letter sent timestamp</th><td>{{ item.letter_proofing.proofing_letter.sent_ts|datetimeformat }}</td>
+                                    </tr>
+                                {% endif %}
+                                <tr>
+                                    <th>National identity number</th><td>{{ item.letter_proofing.nin.number }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Official address</th>
+                                    <td>
+                                        {{ item.letter_proofing.proofing_letter.address.Name.GivenName }} {{ item.letter_proofing.proofing_letter.address.Name.MiddleName }} {{ item.letter_proofing.proofing_letter.address.Name.Surname }}<br />
+                                        {% if item.letter_proofing.proofing_letter.address.OfficialAddress.CareOf %}
+                                            C/O {{ item.letter_proofing.proofing_letter.address.OfficialAddress.CareOf }}<br />
+                                        {% endif %}
+                                        {{ item.letter_proofing.proofing_letter.address.OfficialAddress.Address2 }}<br />
+                                        {{ item.letter_proofing.proofing_letter.address.OfficialAddress.PostalCode }} {{ item.letter_proofing.proofing_letter.address.OfficialAddress.City }}
+                                    </td>
+                                </tr>
+                            {% else %}
+                                <tr><td>No data</td></tr>
+                            {% endif %}
+                        </table>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12">
+                        <table class="table table-hover">
+                            <caption>Id proofing log</caption>
+                            {% if item.proofing_log %}
                             <tr>
-                                <th>Last successful login:</th>
-                                <td>{{ item.authn.success_ts|datetimeformat }}</td>
+                                <th>Timestamp</th><th>National identity number</th><th>Proofing method</th>
                             </tr>
-                            <tr>
-                                <th>Failed login attempts this month:</th>
-                                <td>{{ item.authn.fail_count }}</td>
-                            </tr>
-                            <tr>
-                                <th>Successful login attempts this month:</th>
-                                <td>{{ item.authn.success_count }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                {% endif %}
+                            {% for entry in item.proofing_log %}
+                                <tr>
+                                    <td>{{ entry.created|datetimeformat }}</td>
+                                    <td>{{ entry.nin }}</td>
+                                    <td>{{ entry.proofing_method }}</td>
+                                </tr>
+                            {% endfor %}
+                            {% else %}
+                                <tr><td>No data</td></tr>
+                            {% endif %}
+                        </table>
+
+                    </div>
+                </div>
             </div>
             {% endfor %}
     {% endif %}
