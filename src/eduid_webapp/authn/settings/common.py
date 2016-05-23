@@ -1,4 +1,4 @@
-# -*- coding = 'utf-8 -*-
+# -*- coding: utf-8 -*-
 __author__ = 'lundberg'
 
 SECRET_KEY = 'supersecretkey'
