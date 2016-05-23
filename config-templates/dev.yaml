@@ -33,3 +33,7 @@ eduid:
         authn:
             SECRET_KEY: supersecretkey
             MONGO_URI: mongodb://eduid_authn:eduid_authn_pw@mongodb.docker
+            required_loa:
+                personal: http://www.swamid.se/policy/assurance/al1
+                helpdesk: http://www.swamid.se/policy/assurance/al2
+                admin: http://www.swamid.se/policy/assurance/al3
