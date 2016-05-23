@@ -15,7 +15,9 @@ apt-get -y install \
     libjpeg8-dev \
     zlib1g-dev \
     libfreetype6-dev \
-    libssl-dev
+    libssl-dev \
+    xmlsec1 \
+    libxml2-utils
 
 apt-get clean
 rm -rf /var/lib/apt/lists/*
