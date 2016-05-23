@@ -14,4 +14,3 @@ PYPI="https://pypi.nordu.net/simple/"
 /opt/eduid/bin/pip install -i ${PYPI} -r requirements/prod.txt
 
 /opt/eduid/bin/pip freeze
-

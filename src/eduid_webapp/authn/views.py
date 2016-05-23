@@ -31,6 +31,7 @@
 #
 
 
+from werkzeug.exceptions import Forbidden
 from flask import request, session, redirect, abort
 from flask import current_app, Blueprint
 
@@ -75,7 +76,7 @@ def assertion_consumer_service():
     user = authenticate(current_app, session_info)
     if user is None:
         logger.error('Could not find the user identified by the IdP')
-        raise HTTPUnauthorized("Access not authorized")
+        raise Forbidden("Access not authorized")
 
     action = get_action()
     return action(session_info, user)
