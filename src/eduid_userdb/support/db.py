@@ -38,7 +38,7 @@ class SupportUserDB(UserDB):
         results.append(self.get_user_by_nin(query, raise_on_missing=False))
         results.extend(self.get_user_by_mail(query, raise_on_missing=False, return_list=True))
         results.extend(self.get_user_by_phone(query, raise_on_missing=False, return_list=True))
-        users = list(set([user for user in results if user]))
+        users = [user for user in results if user]
         return users
 
 
@@ -66,7 +66,7 @@ class SupportAuthnInfoDB(BaseDB):
         :param user_id: User objects user_id property
         :type user_id: ObjectId | str | unicode
         :return: A document dict
-        :rtype: dict | None
+        :rtype: dict
         """
         if not isinstance(user_id, ObjectId):
             user_id = ObjectId(user_id)
@@ -89,8 +89,8 @@ class SupportVerificationsDB(BaseDB):
         """
         :param user_id: User objects user_id property
         :type user_id: ObjectId | str | unicode
-        :return: A document dict
-        :rtype: dict | None
+        :return: A list of dict
+        :rtype: list
         """
         if not isinstance(user_id, ObjectId):
             user_id = ObjectId(user_id)
@@ -111,8 +111,8 @@ class SupportActionsDB(BaseDB):
         """
         :param user_id: User objects user_id property
         :type user_id: ObjectId | str | unicode
-        :return: A document dict
-        :rtype: dict | None
+        :return: A list of dicts
+        :rtype: list
         """
         if not isinstance(user_id, ObjectId):
             user_id = ObjectId(user_id)
@@ -134,7 +134,29 @@ class SupportLetterProofingDB(BaseDB):
         :param eppn: User objects eduPersonPrincipalName property
         :type eppn: str | unicode
         :return: A document dict
-        :rtype: dict | None
+        :rtype: dict
         """
         doc = self._get_document_by_attr('eduPersonPrincipalName', eppn, raise_on_missing=False)
-        return self.model(doc)
+        if doc:
+            doc = self.model(doc)
+        return doc
+
+
+class SupportProofingLogDB(BaseDB):
+
+    model = models.ProofingLogEntry
+
+    def __init__(self, db_uri):
+        db_name = 'eduid_dashboard'
+        collection = 'id_proofing_log'
+        super(SupportProofingLogDB, self).__init__(db_uri, db_name, collection)
+
+    def get_entries(self, eppn):
+        """
+        :param eppn: User objects eduPersonPrincipalName property
+        :type eppn: str | unicode
+        :return: A list of dicts
+        :rtype: list
+        """
+        docs = self._get_documents_by_attr('eppn', eppn, raise_on_missing=False)
+        return [self.model(doc) for doc in docs]
