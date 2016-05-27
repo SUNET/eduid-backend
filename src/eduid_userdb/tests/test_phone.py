@@ -106,6 +106,15 @@ class TestPhoneNumberList(TestCase):
         now_empty = self.one.remove(self.one.primary.number)
         self.assertEqual([], now_empty.to_list())
 
+    def test_remove_all(self):
+        for mobile in self.three.verified.to_list():
+            if not mobile.is_primary:
+                self.three.remove(mobile.number)
+        self.three.remove(self.three.primary.number)
+        for mobile in self.three.to_list():
+            self.three.remove(mobile.number)
+        self.assertEqual([], self.three.to_list())
+
     def test_primary(self):
         match = self.one.primary
         self.assertEqual(match.number, '+46700000001')
