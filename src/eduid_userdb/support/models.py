@@ -84,11 +84,16 @@ class SupportSignupUser(GenericFilterDict):
         self['mailAliases'] = [MailAlias(alias) for alias in self['mailAliases']]
         self['passwords'] = [Password(password) for password in self['passwords']]
         self['tou'] = [ToU(tou) for tou in self['tou']]
+        self['pending_mail_address'] = PendingMailAddress(self.get('pending_mail_address'))
 
 
 class MailAlias(GenericFilterDict):
 
     remove_keys = ['verification_code']
+
+
+class PendingMailAddress(MailAlias):
+    pass
 
 
 class Password(GenericFilterDict):
@@ -114,6 +119,11 @@ class UserVerifications(GenericFilterDict):
 class UserActions(GenericFilterDict):
 
     add_keys = ['action', 'params']
+
+
+class ProofingLogEntry(GenericFilterDict):
+
+    add_keys = ['nin', 'created', 'proofing_method']
 
 
 class UserLetterProofing(GenericFilterDict):
