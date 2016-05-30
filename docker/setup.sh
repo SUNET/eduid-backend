@@ -16,6 +16,8 @@ apt-get -y install \
     zlib1g-dev \
     libfreetype6-dev \
     libssl-dev \
+    libxml2-dev \
+    libxslt1-dev \
     xmlsec1 \
     libxml2-utils
 
