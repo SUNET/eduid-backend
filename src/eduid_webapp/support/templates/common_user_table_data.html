@@ -1,0 +1,81 @@
+{% macro input(user_dict) -%}
+    <tr>
+        <th>eppn:</th>
+        <td>{{ user_dict.eduPersonPrincipalName }}</td>
+    </tr>
+    <tr>
+        <th>Given name:</th>
+        <td>{{ user_dict.givenName }}</td>
+    </tr>
+    <tr>
+        <th>Surname:</th>
+        <td>{{ user_dict.surname }}</td>
+    </tr>
+    <tr>
+        <th>Display name:</th>
+        <td>{{ user_dict.displayName }}</td>
+    </tr>
+    <tr>
+        <th>National identity numbers:</th>
+        <td>
+            {% for nin in user_dict.nins %}
+                <dl>
+                    <dt>Number</dt><dd>{{ nin['number'] }}</dd>
+                    <dt>Primary</dt><dd>{{ nin['primary'] }}</dd>
+                    <dt>Verified</dt><dd>{{ nin['verified'] }}</dd>
+                </dl>
+            {% endfor %}
+        </td>
+    </tr>
+    <tr>
+        <th>Mail addresses:</th>
+        <td>
+            {% for mail in user_dict.mailAliases %}
+                <dl>
+                    <dt>Address</dt><dd>{{ mail['email'] }}</dd>
+                    <dt>Primary</dt><dd>{{ mail['primary'] }}</dd>
+                    <dt>Verified</dt><dd>{{ mail['verified'] }}</dd>
+                    {% if mail['created_by'] %}
+                        <dt>Added using</dt><dd>{{ mail['created_by'] }}</dd>
+                    {% endif %}
+                    <dt>Added timestamp</dt><dd>{{ mail['created_ts']|datetimeformat }}</dd>
+                    {% if  mail['verified_ts'] %}
+                        <dt>Verified timestamp</dt><dd>{{ mail['verified_ts']|datetimeformat }}</dd>
+                    {% endif %}
+                </dl>
+            {% endfor %}
+        </td>
+    </tr>
+    <tr>
+        <th>Phone numbers:</th>
+        <td>
+            {% for phone in user_dict.phone %}
+                <dl>
+                    <dt>Number</dt><dd>{{ phone['number'] }}</dd>
+                    <dt>Primary</dt><dd>{{ phone['primary'] }}</dd>
+                    <dt>Verified</dt><dd>{{ phone['verified'] }}</dd>
+                    <dt>Added timestamp</dt><dd>{{ phone['created_ts']|datetimeformat }}</dd>
+                </dl>
+            {% endfor %}
+        </td>
+    </tr>
+    <tr>
+        <th>Passwords:</th>
+        <td>
+            {% for password in user_dict.passwords %}
+                <dl>
+                    <dt>Added using</dt><dd>{{ password['created_by'] }}</dd>
+                    <dt>Added timestamp</dt><dd>{{ password['created_ts']|datetimeformat }}</dd>
+                </dl>
+            {% endfor %}
+        </td>
+    </tr>
+    <tr>
+        <th>Terminated status:</th>
+        <td>{{ user_dict.terminated|default("False") }}</td>
+    </tr>
+    <tr>
+        <th>Language preferences:</th>
+        <td>{{ user_dict.preferredLanguage }}</td>
+    </tr>
+{%- endmacro %}
