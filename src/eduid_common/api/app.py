@@ -39,6 +39,7 @@ from eduid_userdb import UserDB
 from eduid_common.authn.middleware import AuthnApp
 from eduid_common.api.session import SessionFactory
 from eduid_common.api.logging import init_logging
+from eduid_common.api.exceptions import init_exception_handlers
 from eduid_common.config.parsers.etcd import EtcdConfigParser
 
 
@@ -90,6 +91,7 @@ def eduid_init_app(name, config, app_class=AuthnApp):
 
     # Initialize shared features
     app = init_logging(app)
+    app = init_exception_handlers(app)
     app.central_userdb = UserDB(app.config['MONGO_URI'], 'eduid_am')  # XXX: Needs updating when we change db
     app.session_interface = SessionFactory(app.config)
 
