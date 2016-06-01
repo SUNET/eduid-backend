@@ -28,6 +28,12 @@ _three_dict = \
      'verified': False,
      }
 
+_four_dict = \
+    {'number': '+46700000004',
+     'primary': False,
+     'verified': False,
+     }
+
 
 class TestPhoneNumberList(TestCase):
 
@@ -36,6 +42,7 @@ class TestPhoneNumberList(TestCase):
         self.one = PhoneNumberList([_one_dict])
         self.two = PhoneNumberList([_one_dict, _two_dict])
         self.three = PhoneNumberList([_one_dict, _two_dict, _three_dict])
+        self.four = PhoneNumberList([_three_dict, _four_dict])
 
     def test_init_bad_data(self):
         with self.assertRaises(eduid_userdb.element.UserDBValueError):
@@ -106,14 +113,36 @@ class TestPhoneNumberList(TestCase):
         now_empty = self.one.remove(self.one.primary.number)
         self.assertEqual([], now_empty.to_list())
 
-    def test_remove_all(self):
-        for mobile in self.three.verified.to_list():
-            if not mobile.is_primary:
-                self.three.remove(mobile.number)
-        self.three.remove(self.three.primary.number)
+    def test_remove_all_mix(self):
+        verified = self.three.verified.to_list()
+        if verified:
+            for mobile in verified:
+                if not mobile.is_primary:
+                    self.three.remove(mobile.number)
+            self.three.remove(self.three.primary.number)
         for mobile in self.three.to_list():
             self.three.remove(mobile.number)
         self.assertEqual([], self.three.to_list())
+
+    def test_remove_all_no_verified(self):
+        verified = self.four.verified.to_list()
+        if verified:
+            for mobile in verified:
+                if not mobile.is_primary:
+                    self.four.remove(mobile.number)
+            self.four.remove(self.four.primary.number)
+        for mobile in self.four.to_list():
+            self.four.remove(mobile.number)
+        self.assertEqual([], self.four.to_list())
+
+    def test_unverify_all(self):
+        verified = self.three.verified.to_list()
+        if verified:
+            self.three.primary.is_primary = False
+            for mobile in verified:
+                if not mobile.is_primary:
+                    mobile.is_verified = False
+        self.assertTrue(all([not x.is_verified for x in self.three.to_list()]))
 
     def test_primary(self):
         match = self.one.primary
