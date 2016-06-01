@@ -3,7 +3,7 @@
 from setuptools import setup, find_packages
 import sys
 
-version = '0.1.2b1'
+version = '0.1.2b2'
 
 requires = [
     'eduid-common>=0.2.3b0',

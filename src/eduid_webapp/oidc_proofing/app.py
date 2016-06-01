@@ -12,11 +12,6 @@ from eduid_common.api.app import eduid_init_app
 from eduid_userdb.proofing import OidcProofingStateDB
 from eduid_webapp.oidc_proofing.mock_proof import ProofDB
 
-# TODO: Move to base app
-from webargs.flaskparser import parser as webargs_flaskparser
-from eduid_common.api.exceptions import ApiException
-from flask import jsonify
-
 __author__ = 'lundberg'
 
 
@@ -66,20 +61,6 @@ def oidc_proofing_init_app(name, config):
     # Initialize db
     app.proofing_statedb = OidcProofingStateDB(app.config['MONGO_URI'])
     app.proofdb = ProofDB(app.config['MONGO_URI'])
-
-    # TODO: Move to base app
-    @webargs_flaskparser.error_handler
-    def handle_webargs_exception(error):
-        app.logger.error('ApiException {!r}'.format(error))
-        raise (ApiException(error.messages, error.status_code))
-
-    # TODO: Move to base app
-    @app.errorhandler(ApiException)
-    def handle_flask_exception(error):
-        app.logger.error('ApiException {!r}'.format(error))
-        response = jsonify(error.to_dict())
-        response.status_code = error.status_code
-        return response
 
     return app
 
