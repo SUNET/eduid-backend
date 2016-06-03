@@ -1,7 +1,7 @@
 import copy
 import pymongo
 import logging
-from exceptions import (DocumentDoesNotExist, MultipleDocumentsReturned,
+from .exceptions import (DocumentDoesNotExist, MultipleDocumentsReturned,
                         MongoConnectionError)
 
 

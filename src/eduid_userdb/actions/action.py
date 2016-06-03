@@ -86,7 +86,10 @@ class Action(object):
 
         # things without setters
         self._data['_id'] = _id
-        self._data['user_oid'] = self._data_in.pop('user_oid')
+        user_oid = self._data_in.pop('user_oid')
+        if not isinstance(user_oid, bson.ObjectId):
+            user_oid = bson.ObjectId(user_oid)
+        self._data['user_oid'] = user_oid
         self._data['action'] = self._data_in.pop('action')
         self._data['preference'] = self._data_in.pop('preference', 100)
         self._data['session'] = self._data_in.pop('session', '')
