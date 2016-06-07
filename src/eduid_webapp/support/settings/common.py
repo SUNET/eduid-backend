@@ -24,3 +24,6 @@ LOG_LEVEL = 'INFO'
 
 # Support
 SUPPORT_PERSONNEL = ['']
+
+# authn service
+TOKEN_SERVICE_URL = 'http://authn.eduid.docker:8080/'

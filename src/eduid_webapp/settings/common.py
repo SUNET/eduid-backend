@@ -171,3 +171,9 @@ SAML2_SETTINGS_MODULE = ''
 SAML2_LOGOUT_REDIRECT_URL = 'https://www.eduid.se/'
 SAML2_USER_MAIN_ATTRIBUTE = 'eduPersonPrincipalName'
 SAML2_STRIP_SAML_USER_SUFFIX = '@eduid.se'
+
+#===============#
+# AUTHN SERVICE #
+#===============#
+
+TOKEN_SERVICE_URL = 'http://authn.eduid.docker:8080/'

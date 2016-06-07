@@ -7,19 +7,19 @@ eduid:
             SESSION_COOKIE_NAME: sessid
             # the domain for the session cookie. If this is not set, the cookie will
             # be valid for all subdomains of SERVER_NAME.
-            SESSION_COOKIE_DOMAIN: .docker
+            SESSION_COOKIE_DOMAIN: .eduid.docker
             # The URL scheme that should be used for URL generation if no URL scheme is
             # available. This defaults to http
             PREFERRED_URL_SCHEME: http
             # Redis config
-            REDIS_HOST: redis.docker
+            REDIS_HOST: redis.eduid_dev
             # SAML2 config
             SAML2_LOGIN_REDIRECT_URL: /
             SAML2_SETTINGS_MODULE: ../authn/tests/saml2_settings.py
-            SAML2_LOGOUT_REDIRECT_URL: http://html.docker/
+            SAML2_LOGOUT_REDIRECT_URL: http://html.eduid.docker/
             SAML2_USER_MAIN_ATTRIBUTE: eduPersonPrincipalName
             SAML2_STRIP_SAML_USER_SUFFIX: "@local.eduid.se"
-            TOKEN_SERVICE_URL: authn.docker
+            TOKEN_SERVICE_URL: http://authn.eduid.docker:8080/
         oidc_proofing:
             SECRET_KEY: supersecretkey
             LOG_FILE: logs/oidc_proofing.log
