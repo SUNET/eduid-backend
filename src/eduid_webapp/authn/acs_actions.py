@@ -30,6 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
+import time
 from saml2.ident import code
 from flask import session, request, redirect, current_app
 from eduid_common.authn.loa import get_loa
@@ -55,4 +56,19 @@ def login_action(session_info, user):
     logger.debug('Redirecting to the RelayState: ' + relay_state)
     response = redirect(location=relay_state)
     session.set_cookie(response)
+    logger.info('Redirecting user {!r} to {!r}'.format(user, relay_state))
     return response
+
+
+@acs_action('change-password-action')
+def chpass_action(session_info, user):
+
+    logger.info("User {!r} to change password.".format(user))
+    session['_saml2_session_name_id'] = code(session_info['name_id'])
+    session['reauthn-for-chpass'] = int(time.time())
+    session.persist()
+
+    # redirect the user to the view where he came from
+    relay_state = request.form.get('RelayState', '/')
+    logger.debug('Redirecting to the RelayState: ' + relay_state)
+    return redirect(location=relay_state)
