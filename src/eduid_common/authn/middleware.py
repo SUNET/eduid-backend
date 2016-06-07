@@ -34,7 +34,7 @@ from urllib import urlencode
 
 from werkzeug import get_current_url
 from werkzeug.http import parse_cookie, dump_cookie
-from flask import Flask, request, session
+from flask import Flask, session
 
 
 class AuthnApp(Flask):
