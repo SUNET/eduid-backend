@@ -33,19 +33,23 @@ import urlparse
 from urllib import urlencode
 
 from werkzeug import get_current_url
-from werkzeug.http import parse_cookie
-from flask import Flask
+from werkzeug.http import parse_cookie, dump_cookie
+from flask import Flask, session
 
 
 class AuthnApp(Flask):
     """
+    WSGI middleware that checks whether the request is authenticated,
+    and in case it isn't, redirects to the authn service.
     """
     def __call__(self, environ, start_response):
         cookie = parse_cookie(environ)
         cookie_name = self.config.get('SESSION_COOKIE_NAME')
         if cookie and cookie_name in cookie:
             return super(AuthnApp, self).__call__(environ, start_response)
+
         ts_url = self.config.get('TOKEN_SERVICE_URL')
+        ts_url = urlparse.urljoin(ts_url, 'login')
         next_url = get_current_url(environ)
 
         params = {'next': next_url}
@@ -57,6 +61,17 @@ class AuthnApp(Flask):
         url_parts[4] = urlencode(query)
         location = urlparse.urlunparse(url_parts)
 
-        headers = [ ('Location', location) ]
-        start_response('302 Found', headers)
-        return []
+        with self.request_context(environ):
+
+            headers = [ ('Location', location) ]
+            cookie = dump_cookie(cookie_name, session._session.token,
+                                 max_age=float(self.config.get('PERMANENT_SESSION_LIFETIME')),
+                                 path=self.config.get('SESSION_COOKIE_PATH'),
+                                 domain=self.config.get('SESSION_COOKIE_DOMAIN'),
+                                 secure=self.config.get('SESSION_COOKIE_SECURE'),
+                                 httponly=self.config.get('SESSION_COOKIE_HTTPONLY'))
+            session.persist()
+            headers.append(('Set-Cookie', cookie))
+
+            start_response('302 Found', headers)
+            return []
