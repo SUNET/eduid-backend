@@ -30,7 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-
 from werkzeug.exceptions import Forbidden
 from flask import request, session, redirect, abort
 from flask import current_app, Blueprint
@@ -51,14 +50,30 @@ def login():
     """
     login view, redirects to SAML2 IdP
     """
+    return _authn('login-action')
+
+
+@authn_views.route('/chpass')
+def chpass():
+    """
+    Reauthn view, sends a SAML2 reauthn request to the IdP.
+    """
+    return _authn('change-password-action', force_authn=True)
+
+
+def _authn(action, force_authn=False):
     redirect_url = current_app.config.get('SAML2_LOGIN_REDIRECT_URL', '/')
-    came_from = request.args.get('next', redirect_url)
-    idp = session.get('idp', None)
+    relay_state = request.args.get('next', redirect_url)
+    idps = current_app.saml2_config.getattr('idp')
+    assert len(idps) == 1
+    idp = idps.keys()[0]
     idp = request.args.get('idp', idp)
-    authn_request = get_authn_request(current_app.config,
-                                      session, came_from, idp)
-    schedule_action('login-action')
-    logger.debug('Redirecting the user to the IdP')
+    loa = request.args.get('required_loa', None)
+    authn_request = get_authn_request(current_app.config, session,
+                                      relay_state, idp, required_loa=loa,
+                                      force_authn=force_authn)
+    schedule_action(action)
+    logger.info('Redirecting the user to the IdP for ' + action)
     return redirect(get_location(authn_request))
 
 
