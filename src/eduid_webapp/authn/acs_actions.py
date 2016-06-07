@@ -42,11 +42,10 @@ logger = logging.getLogger(__name__)
 @acs_action('login-action')
 def login_action(session_info, user):
 
-    logger.info("User {!r} logging in (eduPersonPrincipalName: {!r})".format(
-        user.user_id,
-        user.eppn))
+    logger.info("User {!r} logging in.".format(user))
     session['_saml2_session_name_id'] = code(session_info['name_id'])
     session['eduPersonPrincipalName'] = user.eppn
+    session['user_eppn'] = user.eppn
     loa = get_loa(current_app.config.get('AVAILABLE_LOA'), session_info)
     session['eduPersonAssurance'] = loa
     session.persist()
