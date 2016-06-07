@@ -32,13 +32,12 @@
 
 import os
 import json
+import time
 import base64
 
-import saml2
 from werkzeug.exceptions import NotFound
-from flask import request, session, Response
+from flask import session
 
-from eduid_common.api.session import SessionFactory
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.api.app import eduid_init_app
 from eduid_common.authn.cache import OutstandingQueriesCache
@@ -50,7 +49,7 @@ from eduid_webapp.authn.app import authn_init_app
 HERE = os.path.abspath(os.path.dirname(__file__))
 
 
-class AuthnAPITestCase(EduidAPITestCase):
+class AuthnAPITestBase(EduidAPITestCase):
 
     def update_config(self, config):
         """
@@ -71,24 +70,27 @@ class AuthnAPITestCase(EduidAPITestCase):
         """
         return authn_init_app('testing', config)
 
-    def test_authn(self):
+    def _authn(self, url, force_authn=False):
         with self.app.test_client() as c:
-            resp = c.get('/login')
+            resp = c.get(url)
             authn_req = get_location(get_authn_request(self.app.config,
-                                                       session, '/', None))
+                                                       session, '/', None,
+                                                       force_authn=force_authn))
             idp_url = authn_req.split('?')[0]
             self.assertEqual(resp.status_code, 302)
             self.assertTrue(resp.location.startswith(idp_url))
 
-    def test_assertion_consumer_service(self):
-        came_from = '/afterlogin/'
+    def _acs(self, url, check_fn):
+        came_from = '/camefrom/'
         eppn = 'hubba-bubba'
         with self.app.test_client() as c:
-            resp = c.get('/login')
+            resp = c.get(url)
+            cookie = resp.headers['Set-Cookie']
             token = session._session.token
             authr = auth_response(token, eppn)
 
         with self.app.test_request_context('/saml2-acs', method='POST',
+                                           headers={'Cookie': cookie},
                                            data={'SAMLResponse': base64.b64encode(authr),
                                                  'RelayState': came_from}):
 
@@ -99,7 +101,35 @@ class AuthnAPITestCase(EduidAPITestCase):
 
             self.assertEquals(resp.status_code, 302)
             self.assertEquals(resp.location, came_from)
+            check_fn()
+
+
+class LoginAPITestCase(AuthnAPITestBase):
+
+    def test_authn(self):
+        self._authn('/login')
+
+    def test_assertion_consumer_service(self):
+        def _check():
+            eppn = 'hubba-bubba'
             self.assertEquals(session['eduPersonPrincipalName'], eppn)
+
+        self._acs('/login', _check)
+
+
+class ChpassAPITestCase(AuthnAPITestBase):
+
+    def test_authn(self):
+        self._authn('/chpass', force_authn=True)
+
+    def test_assertion_consumer_service(self):
+        def _check():
+            self.assertIn('reauthn-for-chpass', session)
+            then = session['reauthn-for-chpass']
+            now = int(time.time())
+            self.assertTrue(now - then < 5)
+
+        self._acs('/chpass', _check)
 
 
 class UnAuthnAPITestCase(EduidAPITestCase):
@@ -112,6 +142,7 @@ class UnAuthnAPITestCase(EduidAPITestCase):
         saml_config = os.path.join(HERE, 'saml2_settings.py')
         config.update({
             'TOKEN_SERVICE_URL': 'http://login',
+            'SAML2_SETTINGS_MODULE': saml_config,
             })
         return config
 
