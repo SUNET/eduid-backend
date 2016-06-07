@@ -7,29 +7,9 @@ from flask import Blueprint, current_app, request, session, abort, render_templa
 support_views = Blueprint('support', __name__, url_prefix='')
 
 
-# This should probably be replaced with authn when it's ready
-def login_required(f):
+def check_support_personnel(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # If the application is running at a subdomain that is allowed to
-        # read the dashboard cookie, for example support.dashboard.docker,
-        # then we can verify if the session in the cookie corresponds
-        # to the session in Redis if we share the same HMAC-key.
-        # Although the cookie is named sessid, it is actually a token
-        # that contains the session id and a HMAC signature.
-        session_token = request.cookies.get('sessid', None)
-
-        if session_token is None:
-            abort(403)
-
-        try:
-            session = current_app.session_interface.manager.get_session(token=session_token)
-            # We are probably only interested in KeyError,
-            # but any error should be considered as an
-            # unauthorized request.
-        except:
-            abort(403)
-
         session_user = session.get('user_eppn', None)
 
         # If the logged in user is whitelisted then we
@@ -45,7 +25,7 @@ def login_required(f):
 
 
 @support_views.route('/', methods=['GET', 'POST'])
-@login_required
+@check_support_personnel
 def index(logged_in_user=None):
     if request.method == 'POST':
         search_query = request.form.get('query')
