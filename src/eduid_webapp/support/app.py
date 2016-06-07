@@ -2,8 +2,6 @@
 
 from __future__ import absolute_import
 
-from flask import Flask
-
 from eduid_common.api.app import eduid_init_app
 from eduid_userdb.support import db
 
@@ -35,7 +33,7 @@ def support_init_app(name, config):
     :rtype: flask.Flask
     """
 
-    app = eduid_init_app(name, config, app_class=Flask)
+    app = eduid_init_app(name, config)
     app.config.update(config)
 
     from eduid_webapp.support.views import support_views
