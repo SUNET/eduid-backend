@@ -4,7 +4,7 @@ from functools import wraps
 
 from flask import Blueprint, current_app, request, session, abort, render_template
 
-support_views = Blueprint('support', __name__, url_prefix='')
+support_views = Blueprint('support', __name__, url_prefix='', template_folder='templates')
 
 
 def check_support_personnel(f):
