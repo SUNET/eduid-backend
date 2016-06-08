@@ -31,7 +31,11 @@ idp_extras = idp_requires + []
 test_requires = [
     'mock == 1.0.1',
 ]
-testing_extras = test_requires + webapp_extras + []
+testing_extras = test_requires + webapp_extras + [
+    'nose',
+    'coverage',
+    'nosexcover',
+]
 
 long_description = open('README.txt').read()
 
