@@ -23,7 +23,6 @@ LOG_FILE = None
 LOG_LEVEL = 'INFO'
 
 # Support
+STATIC_URL = ''  # Use Flask default static dir if not set
 SUPPORT_PERSONNEL = ['']
 
-# authn service
-TOKEN_SERVICE_URL = 'http://authn.eduid.docker:8080/'

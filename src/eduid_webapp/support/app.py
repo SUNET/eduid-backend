@@ -21,9 +21,9 @@ def register_template_funcs(app):
     def static_url(filename):
         url = app.config.get('STATIC_URL')
 
-        if static_url:
+        if url:
             return urljoin(url, filename)
-
+        # If STATIC_URL is not set use Flask default
         return url_for('static', filename=filename)
 
 
