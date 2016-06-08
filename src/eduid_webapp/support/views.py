@@ -18,7 +18,8 @@ def check_support_personnel(f):
         if session_user in current_app.config['SUPPORT_PERSONNEL']:
             kwargs['logged_in_user'] = session_user
             return f(*args, **kwargs)
-
+        current_app.logger.warning('{!s} not in support personnel whitelist: {!s}'.format(
+            session_user, current_app.config['SUPPORT_PERSONNEL']))
         # Anything else is considered as an unauthorized request
         abort(403)
     return decorated_function
