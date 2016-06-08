@@ -4,13 +4,27 @@ from __future__ import absolute_import
 
 from eduid_common.api.app import eduid_init_app
 from eduid_userdb.support import db
+from flask import url_for
+try:
+    from urlparse import urljoin
+except ImportError:  # Python3
+    from urllib.parse import urljoin
 
 
-def register_template_filters(app):
+def register_template_funcs(app):
 
     @app.template_filter('datetimeformat')
     def datetimeformat(value, format='%Y-%m-%d %H:%M %Z'):
         return value.strftime(format)
+
+    @app.template_global()
+    def static_url(filename):
+        url = app.config.get('STATIC_URL')
+
+        if static_url:
+            return urljoin(url, filename)
+
+        return url_for('static', filename=filename)
 
 
 def support_init_app(name, config):
@@ -48,6 +62,8 @@ def support_init_app(name, config):
     app.support_actions_db = db.SupportActionsDB(app.config['MONGO_URI'])
     app.support_letter_proofing_db = db.SupportLetterProofingDB(app.config['MONGO_URI'])
 
-    register_template_filters(app)
+    register_template_funcs(app)
+
+    app.logger.info('Init {} app...'.format(name))
 
     return app
