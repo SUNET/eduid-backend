@@ -3,4 +3,4 @@ redis==2.10.5
 pynacl==1.0.1
 python-etcd==0.4.3
 eduid-userdb>=0.2.3b0
-eduid-common>=0.2.1b6
+eduid-common[webapp]>=0.2.1b6

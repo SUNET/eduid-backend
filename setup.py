@@ -6,7 +6,7 @@ import sys
 version = '0.1.2b2'
 
 requires = [
-    'eduid-common>=0.2.1b7',
+    'eduid-common[webapp]>=0.2.1b7',
     'Flask==0.10.1',
 ]
 
