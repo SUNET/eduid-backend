@@ -16,7 +16,7 @@ REDIS_PORT = 6379
 REDIS_DB = 0
 
 # Secret key
-SECRET_KEY = '123456'
+SECRET_KEY = ''
 
 # Logging
 LOG_FILE = None
