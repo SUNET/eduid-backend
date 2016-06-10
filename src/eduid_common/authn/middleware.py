@@ -35,6 +35,7 @@ from urllib import urlencode
 from werkzeug import get_current_url
 from werkzeug.http import parse_cookie, dump_cookie
 from flask import Flask, session
+from eduid_common.api.session import NoSessionDataFoundException
 
 
 class AuthnApp(Flask):
@@ -46,7 +47,12 @@ class AuthnApp(Flask):
         cookie = parse_cookie(environ)
         cookie_name = self.config.get('SESSION_COOKIE_NAME')
         if cookie and cookie_name in cookie:
-            return super(AuthnApp, self).__call__(environ, start_response)
+            try:
+                return super(AuthnApp, self).__call__(environ, start_response)
+            except NoSessionDataFoundException:
+                del environ['HTTP_COOKIE']  # Force relogin
+                # If HTTP_COOKIE is not removed self.request_context(environ) below
+                # will try to look up the Session data in the backend
 
         ts_url = self.config.get('TOKEN_SERVICE_URL')
         ts_url = urlparse.urljoin(ts_url, 'login')
