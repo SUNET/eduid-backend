@@ -116,7 +116,7 @@
                                         <th>Failed login attempts</th>
                                         <td>
                                             <dl>
-                                            {% for month,count in item.authn.fail_count.items() %}
+                                            {% for month,count in item.authn.fail_count|dictsort %}
                                                 <dt>{{ month }}</dt><dd>{{ count }}</dd>
                                             {% endfor %}
                                             </dl>
@@ -126,7 +126,7 @@
                                         <th>Successful login attempts:</th>
                                         <td>
                                             <dl>
-                                            {% for month,count in item.authn.success_count.items() %}
+                                            {% for month,count in item.authn.success_count|dictsort %}
                                                 <dt>{{ month }}</dt><dd>{{ count }}</dd>
                                             {% endfor %}
                                             </dl>
