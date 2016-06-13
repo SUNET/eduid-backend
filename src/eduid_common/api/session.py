@@ -38,6 +38,10 @@ from flask.sessions import SessionInterface
 from eduid_common.session.session import SessionManager
 
 
+class NoSessionDataFoundException(Exception):
+    pass
+
+
 def manage(action):
     """
     Decorator which causes the session to be marked as modified, so that it
@@ -204,7 +208,6 @@ class Session(collections.MutableMapping):
                             )
 
 
-
 class SessionFactory(SessionInterface):
     """
     Session factory, implementing flask.session.SessionInterface,
@@ -231,11 +234,17 @@ class SessionFactory(SessionInterface):
             return None
         token = request.cookies.get(cookie_name, None)
         if token is None:
+            # New session
             base_session = self.manager.get_session(data={})
             session = Session(app, base_session, new=True)
         else:
-            base_session = self.manager.get_session(token=token)
-            session = Session(app, base_session, new=False)
+            # Existing session
+            try:
+                base_session = self.manager.get_session(token=token)
+                session = Session(app, base_session, new=False)
+            except KeyError:
+                raise NoSessionDataFoundException('No session data found')
+
         return session
 
     def save_session(self, app, session, response):
