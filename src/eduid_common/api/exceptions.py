@@ -65,3 +65,14 @@ def init_exception_handlers(app):
             raise ApiException('Unprocessable Entity', error.status_code, error.messages)
 
     return app
+
+
+def init_sentry(app):
+    if app.config.get('SENTRY_DSN'):
+        try:
+            from raven.contrib.flask import Sentry
+            app = Sentry(app)
+        except ImportError:
+            app.logger.warning('SENTRY_DSN found but Raven not installed.')
+            pass
+    return app
