@@ -61,6 +61,14 @@ def chpass():
     return _authn('change-password-action', force_authn=True)
 
 
+@authn_views.route('/terminate')
+def terminate():
+    """
+    Reauthn view, sends a SAML2 reauthn request to the IdP.
+    """
+    return _authn('terminate-account-action', force_authn=True)
+
+
 def _authn(action, force_authn=False):
     redirect_url = current_app.config.get('SAML2_LOGIN_REDIRECT_URL', '/')
     relay_state = request.args.get('next', redirect_url)

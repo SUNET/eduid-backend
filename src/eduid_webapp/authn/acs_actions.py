@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-import time
+from time import time
 from saml2.ident import code
 from flask import session, request, redirect, current_app
 from eduid_common.authn.loa import get_loa
@@ -63,9 +63,20 @@ def login_action(session_info, user):
 @acs_action('change-password-action')
 def chpass_action(session_info, user):
 
-    logger.info("User {!r} to change password.".format(user))
+    return _reauthn('reauthn-for-chpass', session_info, user)
+
+
+@acs_action('terminate-account-action')
+def term_account_action(session_info, user):
+
+    return _reauthn('reauthn-for-termination', session_info, user)
+
+
+def _reauthn(reason, session_info, user):
+
+    logger.info("Reauthenticating user {!r} for {!r}.".format(user, reason))
     session['_saml2_session_name_id'] = code(session_info['name_id'])
-    session['reauthn-for-chpass'] = int(time.time())
+    session[reason] = int(time())
     session.persist()
 
     # redirect the user to the view where he came from
