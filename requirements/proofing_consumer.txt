@@ -1,0 +1,3 @@
+flask-apispec>=0.3.2
+eduid_am>=0.4.9
+jose>=0.3.0
