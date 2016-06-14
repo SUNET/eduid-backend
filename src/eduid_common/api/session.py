@@ -220,9 +220,8 @@ class SessionFactory(SessionInterface):
 
         self.config = config
         secret = config['SECRET_KEY']
-        ttl_sec = 2 * int(config['PERMANENT_SESSION_LIFETIME'])
-        ttl_min = int(ttl_sec / 60)
-        self.manager = SessionManager(config, ttl=ttl_min, secret=secret)
+        ttl = 2 * int(config['PERMANENT_SESSION_LIFETIME'])
+        self.manager = SessionManager(config, ttl=ttl, secret=secret)
 
     def open_session(self, app, request):
         """
