@@ -1,7 +1,6 @@
 -r common.txt
 -r authn.txt
 -r oidc_proofing.txt
--r proofing_consumer.txt
 gunicorn
 blinker
 raven
