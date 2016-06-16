@@ -132,6 +132,21 @@ class ChpassAPITestCase(AuthnAPITestBase):
         self._acs('/chpass', _check)
 
 
+class TerminationAPITestCase(AuthnAPITestBase):
+
+    def test_authn(self):
+        self._authn('/terminate', force_authn=True)
+
+    def test_assertion_consumer_service(self):
+        def _check():
+            self.assertIn('reauthn-for-termination', session)
+            then = session['reauthn-for-termination']
+            now = int(time.time())
+            self.assertTrue(now - then < 5)
+
+        self._acs('/terminate', _check)
+
+
 class UnAuthnAPITestCase(EduidAPITestCase):
 
     def update_config(self, config):
