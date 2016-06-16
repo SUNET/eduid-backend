@@ -145,14 +145,14 @@ JSON_AS_ASCII = False
 
 
 # ================#
-# mongodb config #
+#  mongodb config #
 # ================#
 
 MONGO_URI = 'mongodb://'
 
 
 # ==============#
-# redis config #
+#  redis config #
 # ==============#
 
 REDIS_HOST = ''
@@ -163,7 +163,7 @@ REDIS_SENTINEL_SERVICE_NAME = ''
 
 
 # =======#
-# SAML2 #
+#  SAML2 #
 # =======#
 
 SAML2_LOGIN_REDIRECT_URL = '/'
@@ -172,8 +172,8 @@ SAML2_LOGOUT_REDIRECT_URL = 'https://www.eduid.se/'
 SAML2_USER_MAIN_ATTRIBUTE = 'eduPersonPrincipalName'
 SAML2_STRIP_SAML_USER_SUFFIX = '@eduid.se'
 
-#===============#
-# AUTHN SERVICE #
-#===============#
+# ===============#
+#  AUTHN SERVICE #
+# ===============#
 
-TOKEN_SERVICE_URL = 'http://authn.eduid.docker:8080/'
+TOKEN_SERVICE_URL = 'https://'

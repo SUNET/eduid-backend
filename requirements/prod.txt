@@ -2,3 +2,5 @@
 -r authn.txt
 -r oidc_proofing.txt
 gunicorn
+blinker
+raven

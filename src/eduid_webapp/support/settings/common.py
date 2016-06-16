@@ -16,14 +16,13 @@ REDIS_PORT = 6379
 REDIS_DB = 0
 
 # Secret key
-SECRET_KEY = '123456'
+SECRET_KEY = ''
 
 # Logging
 LOG_FILE = None
 LOG_LEVEL = 'INFO'
 
 # Support
+STATIC_URL = ''  # Use Flask default static dir if not set
 SUPPORT_PERSONNEL = ['']
 
-# authn service
-TOKEN_SERVICE_URL = 'http://authn.eduid.docker:8080/'

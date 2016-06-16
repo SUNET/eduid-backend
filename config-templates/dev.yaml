@@ -3,8 +3,6 @@ eduid:
         common:
             # enable disable debug mode
             DEBUG: yes
-            # the name of the session cookie
-            SESSION_COOKIE_NAME: sessid
             # the domain for the session cookie. If this is not set, the cookie will
             # be valid for all subdomains of SERVER_NAME.
             SESSION_COOKIE_DOMAIN: .eduid.docker
@@ -13,27 +11,35 @@ eduid:
             PREFERRED_URL_SCHEME: http
             # Redis config
             REDIS_HOST: redis.eduid_dev
-            # SAML2 config
+            # SAML2 and SP config
             SAML2_LOGIN_REDIRECT_URL: /
-            SAML2_SETTINGS_MODULE: ../authn/tests/saml2_settings.py
+            SAML2_SETTINGS_MODULE: /opt/eduid/etc/saml2_settings.py
             SAML2_LOGOUT_REDIRECT_URL: http://html.eduid.docker/
             SAML2_USER_MAIN_ATTRIBUTE: eduPersonPrincipalName
             SAML2_STRIP_SAML_USER_SUFFIX: "@local.eduid.se"
             TOKEN_SERVICE_URL: http://authn.eduid.docker:8080/
         oidc_proofing:
             SECRET_KEY: supersecretkey
-            LOG_FILE: logs/oidc_proofing.log
+            LOG_FILE: /var/log/eduid/oidc_proofing.log
             LOG_LEVEL: DEBUG
-            APISPEC_SPEC:
-                title: eduid-oidc-proofing
-                version: v1
-                plugins:
-                    - apispec.ext.marshmallow
-            MONGO_URI: mongodb://eduid_oidc_proofing:eduid_oidc_proofing_pw@mongodb.docker
+            CLIENT_REGISTRATION_INFO:
+                client_id: client1
+                client_secret: abcdef
+            PROVIDER_CONFIGURATION_INFO:
+                issuer: http://localhost:5000
+            MONGO_URI: mongodb://eduid_oidc_proofing:eduid_oidc_proofing_pw@mongodb.eduid_dev
         authn:
+            SERVER_NAME: authn.eduid.docker:8080
             SECRET_KEY: supersecretkey
-            MONGO_URI: mongodb://eduid_authn:eduid_authn_pw@mongodb.docker
-            required_loa:
-                personal: http://www.swamid.se/policy/assurance/al1
-                helpdesk: http://www.swamid.se/policy/assurance/al2
-                admin: http://www.swamid.se/policy/assurance/al3
+            MONGO_URI: mongodb://eduid_authn:eduid_authn_pw@mongodb.eduid_dev
+            TESTING: no
+            LOG_FILE: /opt/eduid/log/authn.log
+            LOG_LEVEL: DEBUG
+        support:
+            SECRET_KEY: supersecretkey
+            LOG_FILE: /var/log/eduid/support.log
+            LOG_LEVEL: DEBUG
+            MONGO_URI: mongodb://eduid_support:eduid_support_pw@mongodb.eduid_dev
+            STATIC_URL: http://html.eduid.docker/static/
+            SUPPORT_PERSONNEL:
+              - your-eppn
