@@ -52,7 +52,6 @@ def login_action(session_info, user):
     :param user: the authenticated user
     :type user: eduid_userdb.User
     """
-    from nose.tools import set_trace;set_trace()
     logger.info("User {!r} logging in.".format(user))
     session['_saml2_session_name_id'] = code(session_info['name_id'])
     session['eduPersonPrincipalName'] = user.eppn
