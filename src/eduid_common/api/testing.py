@@ -38,8 +38,8 @@ import subprocess
 from copy import deepcopy
 
 import redis
-import pymongo
 import etcd
+from werkzeug.http import dump_cookie
 
 from eduid_userdb import User
 from eduid_userdb.data_samples import NEW_USER_EXAMPLE
@@ -91,8 +91,7 @@ class EduidAPITestCase(unittest.TestCase):
         config = self.update_config(config)
         config['REDIS_PORT'] = str(self.redis_instance.port)
         config['MONGO_URI'] = 'mongodb://localhost:{}/'.format(self.mongo_instance.port)
-        for key, val in config.items():
-            os.environ[key] = val
+        os.environ.update({'ETCD_PORT': str(self.etcd_instance.port)})
         self.app = self.load_app(config)
         self.browser = self.app.test_client()
         self.app.central_userdb.save(User(data=NEW_USER_EXAMPLE), check_sync=False)
@@ -101,7 +100,7 @@ class EduidAPITestCase(unittest.TestCase):
         # XXX reset redis
         pass
 
-    def load_app(self):
+    def load_app(self, config):
         """
         Method that must be implemented by any subclass, where the
         flask app must be imported and returned.
@@ -125,6 +124,17 @@ class EduidAPITestCase(unittest.TestCase):
         :rtype: dict
         """
         return config
+
+    def get_session_cookie(self, eppn):
+        with self.client.session_transaction() as sess:
+            sess['user_eppn'] = eppn
+            sess.persist()
+        return dump_cookie(self.app.config.get('SESSION_COOKIE_NAME'), sess._session.token,
+                           max_age=float(self.app.config.get('PERMANENT_SESSION_LIFETIME')),
+                           path=self.app.config.get('SESSION_COOKIE_PATH'),
+                           domain=self.app.config.get('SESSION_COOKIE_DOMAIN'),
+                           secure=self.app.config.get('SESSION_COOKIE_SECURE'),
+                           httponly=self.app.config.get('SESSION_COOKIE_HTTPONLY'))
 
 
 class RedisTemporaryInstance(object):
