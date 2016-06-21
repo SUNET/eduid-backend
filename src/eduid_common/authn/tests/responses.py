@@ -22,14 +22,14 @@ def auth_response(session_id, uid):
     tomorrow = datetime.datetime.now() + datetime.timedelta(days=1)
     yesterday = datetime.datetime.now() - datetime.timedelta(days=1)
 
-    sp_baseurl = 'http://eduid.example.com:6544/'
+    sp_baseurl = 'http://test.localhost:6544/'
 
 
     saml_response_tpl = """<?xml version='1.0' encoding='UTF-8'?>
 <samlp:Response xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion"
                 xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol"
                 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-                Destination="{sp_url}saml2/acs/"
+                Destination="{sp_url}saml2-acs"
                 ID="id-88b9f586a2a3a639f9327485cc37c40a"
                 InResponseTo="{session_id}"
                 IssueInstant="{timestamp}"
@@ -49,19 +49,19 @@ def auth_response(session_id, uid):
         <saml:Subject>
             <saml:NameID Format="urn:oasis:names:tc:SAML:2.0:nameid-format:transient"
                     NameQualifier=""
-                    SPNameQualifier="{sp_url}saml2/metadata/">
+                    SPNameQualifier="{sp_url}saml2-metadata">
                 1f87035b4c1325b296a53d92097e6b3fa36d7e30ee82e3fcb0680d60243c1f03
             </saml:NameID>
             <saml:SubjectConfirmation Method="urn:oasis:names:tc:SAML:2.0:cm:bearer">
                 <saml:SubjectConfirmationData InResponseTo="{session_id}"
                                               NotOnOrAfter="{tomorrow}"
-                                              Recipient="{sp_url}saml2/acs/" />
+                                              Recipient="{sp_url}saml2-acs" />
             </saml:SubjectConfirmation>
         </saml:Subject>
         <saml:Conditions NotBefore="{yesterday}"
                          NotOnOrAfter="{tomorrow}">
             <saml:AudienceRestriction>
-                <saml:Audience>{sp_url}saml2/metadata/</saml:Audience>
+                <saml:Audience>{sp_url}saml2-metadata</saml:Audience>
             </saml:AudienceRestriction>
         </saml:Conditions>
         <saml:AuthnStatement AuthnInstant="{timestamp}"
@@ -110,7 +110,7 @@ def logout_response(session_id):
                       ID="_57c8021aeb90bbf93d5a587f5c9c68cccfe42d95f6"
                       Version="2.0"
                       IssueInstant="{now}"
-                      Destination="http://eduid.example.com:6544/saml2/ls/"
+                      Destination="http://test.localhost:6544/saml2-ls"
                       InResponseTo="{session_id}"
                       >
     <saml:Issuer>https://idp.example.com/simplesaml/saml2/idp/metadata.php</saml:Issuer>
@@ -135,10 +135,10 @@ def logout_request(session_id, idp=None):
                      ID="{session_id}"
                      Version="2.0"
                      IssueInstant="{now}"
-                     Destination="http://eduid.example.com:6544/saml2/ls/"
+                     Destination="http://test.localhost:6544/saml2-ls"
                      >
     <saml:Issuer>{idp}</saml:Issuer>
-    <saml:NameID SPNameQualifier="http://eduid.example.com:6544/saml2/metadata/"
+    <saml:NameID SPNameQualifier="http://test.localhost:6544/saml2-metadata"
                  Format="urn:oasis:names:tc:SAML:2.0:nameid-format:transient"
                  >{session_id}</saml:NameID>
     <samlp:SessionIndex>{session_id}</samlp:SessionIndex>

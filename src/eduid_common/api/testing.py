@@ -57,7 +57,7 @@ TEST_CONFIG = {
     'SESSION_COOKIE_SECURE': 'False',
     'PERMANENT_SESSION_LIFETIME': '60',
     'LOGGER_NAME': 'testing',
-    'SERVER_NAME': 'localhost',
+    'SERVER_NAME': 'test.localhost',
     'PROPAGATE_EXCEPTIONS': 'True',
     'PRESERVE_CONTEXT_ON_EXCEPTION': 'True',
     'TRAP_HTTP_EXCEPTIONS': 'True',
@@ -72,7 +72,7 @@ TEST_CONFIG = {
     'REDIS_DB': '0',
     'REDIS_SENTINEL_HOSTS': '',
     'REDIS_SENTINEL_SERVICE_NAME': '',
-    'TOKEN_SERVICE_URL': 'http://localhost/login',
+    'TOKEN_SERVICE_URL': 'http://test.localhost/login',
 }
 
 
