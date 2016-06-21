@@ -29,7 +29,7 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-'''
+"""
 Registry for actions to be performed after an IdP sends a POST
 request in response to a SAML request initiated by the service
 
@@ -39,7 +39,7 @@ and are called with two positional parameters:
 
  * the session_info given in the SAML response (a dict)
  * The user object
-'''
+"""
 
 from flask import session
 
@@ -51,12 +51,12 @@ _actions = {}
 
 
 def acs_action(action_key):
-    '''
+    """
     Decorator to register a new assertion consumer service action.
 
     :param action_key: the key for the given action
     :type action_key: str
-    '''
+    """
     def outer(func):
         logger.info('Registering acs action ' + action_key)
         _actions[action_key] = func
@@ -68,30 +68,26 @@ def acs_action(action_key):
 
 
 def schedule_action(action_key):
-    '''
+    """
     Schedule an action to be executed after an IdP responds to a SAML request.
     This is called just before the SAML request is sent.
 
-    :param session: the session
-    :type session: Session
     :param action_key: the key for the given action
     :type action_key: str
-    '''
+    """
     logger.debug('Scheduling acs action ' + action_key)
     session['post-authn-action'] = action_key
     session.persist()
 
 
 def get_action():
-    '''
+    """
     retrieve an action from the registry based on the key
     stored in the session.
 
-    :param sesison: the session
-    :type session: Session
     :return: the action
     :rtype: function
-    '''
+    """
     try:
         action_key = session['post-authn-action']
     except KeyError:
