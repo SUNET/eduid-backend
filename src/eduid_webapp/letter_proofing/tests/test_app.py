@@ -33,7 +33,6 @@ class AppTests(EduidAPITestCase):
         ])
         self._json = 'application/json'
         self.client = self.app.test_client()
-        self.session_cookie = self.get_session_cookie(self.test_user_eppn)
 
     def load_app(self, config):
         """
@@ -62,7 +61,8 @@ class AppTests(EduidAPITestCase):
 
     # Helper methods
     def get_state(self):
-        response = self.client.get('/get-state', headers={'Cookie': self.session_cookie})
+        with self.session_cookie(self.client, self.test_user_eppn) as client:
+            response = client.get('/get-state')
         self.assertEqual(response.status_code, 200)
         return json.loads(response.data)
 
@@ -70,15 +70,15 @@ class AppTests(EduidAPITestCase):
     def send_letter(self, nin, mock_get_postal_address):
         mock_get_postal_address.return_value = self.mock_address
         data = {'nin': nin}
-        response = self.client.post('/send-letter', data=json.dumps(data), content_type=self._json,
-                                    headers={'Cookie': self.session_cookie})
+        with self.session_cookie(self.client, self.test_user_eppn) as client:
+            response = client.post('/send-letter', data=json.dumps(data), content_type=self._json)
         self.assertEqual(response.status_code, 200)
         return json.loads(response.data)
 
     def verify_code(self, code):
         data = {'verification_code': code}
-        response = self.client.post('/verify-code', data=json.dumps(data), content_type=self._json,
-                                    headers={'Cookie': self.session_cookie})
+        with self.session_cookie(self.client, self.test_user_eppn) as client:
+            response = client.post('/verify-code', data=json.dumps(data), content_type=self._json)
         self.assertEqual(response.status_code, 200)
         return json.loads(response.data)
     # End helper methods
@@ -86,7 +86,8 @@ class AppTests(EduidAPITestCase):
     def test_authenticate(self):
         response = self.client.get('/get-state')
         self.assertEqual(response.status_code, 302)  # Redirect to token service
-        response = self.client.get('/get-state', headers={'Cookie': self.session_cookie})
+        with self.session_cookie(self.client, self.test_user_eppn) as client:
+            response = client.get('/get-state')
         self.assertEqual(response.status_code, 200)  # Authenticated request
 
     def test_letter_not_sent_status(self):
