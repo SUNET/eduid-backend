@@ -2,7 +2,6 @@
 
 from __future__ import absolute_import
 
-from flask import Flask
 from requests.exceptions import ConnectionError
 from oic.oic import Client
 from oic.oic.message import RegistrationRequest
@@ -49,7 +48,7 @@ def oidc_proofing_init_app(name, config):
     :rtype: flask.Flask
     """
 
-    app = eduid_init_app(name, config, app_class=Flask)
+    app = eduid_init_app(name, config)
     app.config.update(config)
 
     from eduid_webapp.oidc_proofing.views import oidc_proofing_views

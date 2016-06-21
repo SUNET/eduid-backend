@@ -5,15 +5,6 @@ from marshmallow import Schema, fields
 __author__ = 'lundberg'
 
 
-# Input validation
-class EppnRequestSchema(Schema):
-
-    class Meta:
-        strict = True
-
-    eppn = fields.String(required=True)
-
-
 # Output validation
 class NonceResponseSchema(Schema):
 

@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
-from flask import request, session, url_for, make_response
+from flask import request, url_for, make_response
 from flask import current_app, Blueprint
-from flask_apispec import use_kwargs, marshal_with
+from flask_apispec import marshal_with
 from oic.oic.message import AuthorizationResponse, ClaimsRequest, Claims
 from operator import itemgetter
 import requests
@@ -92,12 +92,9 @@ def authorization_response():
 
 
 @oidc_proofing_views.route('/get-state', methods=['POST'])
-@use_kwargs(schemas.EppnRequestSchema)
 @marshal_with(schemas.NonceResponseSchema)
-def get_state(**kwargs):
-    # TODO: Authenticate user authn response:
-    # TODO: Look up user in central db
-    eppn = mock_auth.authenticate(kwargs)
+@user_eppn
+def get_state(eppn):
     current_app.logger.debug('Getting state for user with eppn {!s}.'.format(eppn))
     proofing_state = current_app.proofing_statedb.get_state_by_eppn(eppn, raise_on_missing=False)
     if not proofing_state:
@@ -147,10 +144,9 @@ def get_state(**kwargs):
 
 # TODO Remove after demo
 @oidc_proofing_views.route('/proofs', methods=['POST'])
-@use_kwargs(schemas.EppnRequestSchema)
 @marshal_with(schemas.ProofResponseSchema)
-def proofs(**kwargs):
-    eppn = mock_auth.authenticate(kwargs)
+@user_eppn
+def proofs(eppn):
     current_app.logger.debug('Getting proofs for user with eppn {!s}.'.format(eppn))
     try:
         proof_data = current_app.proofdb.get_proofs_by_eppn(eppn)
