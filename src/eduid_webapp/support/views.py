@@ -1,33 +1,15 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
-from functools import wraps
 
-from flask import Blueprint, current_app, request, session, abort, render_template
+from flask import Blueprint, current_app, request, render_template
+from eduid_common.api.decorators import require_support_personnel
 
 support_views = Blueprint('support', __name__, url_prefix='', template_folder='templates')
 
 
-def check_support_personnel(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        session_user = session.get('user_eppn', None)
-
-        # If the logged in user is whitelisted then we
-        # pass on the request to the decorated view
-        # together with the eppn of the logged in user.
-        if session_user in current_app.config['SUPPORT_PERSONNEL']:
-            kwargs['logged_in_user'] = session_user
-            return f(*args, **kwargs)
-        current_app.logger.warning('{!s} not in support personnel whitelist: {!s}'.format(
-            session_user, current_app.config['SUPPORT_PERSONNEL']))
-        # Anything else is considered as an unauthorized request
-        abort(403)
-    return decorated_function
-
-
 @support_views.route('/', methods=['GET', 'POST'])
-@check_support_personnel
-def index(logged_in_user=None):
+@require_support_personnel
+def index(logged_in_user):
     if request.method == 'POST':
         search_query = request.form.get('query')
         lookup_users = current_app.support_user_db.search_users(request.form.get('query'))
