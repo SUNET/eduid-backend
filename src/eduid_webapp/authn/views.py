@@ -33,8 +33,10 @@
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.ident import decode
 from saml2.client import Saml2Client
+from saml2.response import LogoutResponse
+from saml2.metadata import entity_descriptor
 from werkzeug.exceptions import Forbidden
-from flask import request, session, redirect, abort
+from flask import request, session, redirect, abort, make_response
 from flask import current_app, Blueprint
 
 from eduid_common.authn.utils import get_location
@@ -134,7 +136,10 @@ def logout():
     if csrf != session.get('_csrft_', None):
         abort(400)
 
-    logger.debug('Logout process started')
+    eppn = session.get('user_eppn')
+    user = current_app.central_userdb.get_user_by_eppn(eppn)
+
+    logger.debug('Logout process started for user {!r}'.format(user))
     state = StateCache(session)
     identity = IdentityCache(session)
 
@@ -145,15 +150,26 @@ def logout():
     subject_id = _get_name_id(session)
     if subject_id is None:
         logger.warning(
-            'The session does not contain the subject id for user ')
-        location = current_app.config.get('saml2.logout_redirect_url')
+            'The session does not contain '
+            'the subject id for user {!r}'.format(user))
+        location = current_app.config.get('SAML2_LOGOUT_REDIRECT_URL')
 
     else:
         logouts = client.global_logout(subject_id)
         loresponse = logouts.values()[0]
+        # loresponse is a dict for REDIRECT binding, and LogoutResponse for SOAP binding
+        if isinstance(loresponse, LogoutResponse):
+            if loresponse.status_ok():
+                logger.debug('Performing local logout for {!r}'.format(user))
+                session.clear()
+                location = current_app.config.get('saml2.logout_redirect_url')
+                return redirect(location)
+            else:
+                abort(500)
         headers_tuple = loresponse[1]['headers']
         location = headers_tuple[0][1]
-        logger.info('Redirecting to {!r} to continue the logout process'.format(location))
+        logger.info('Redirecting to {!r} to continue the logout process '
+                    'for user {!r}'.format(location, user))
 
     state.sync()
     return redirect(location)
@@ -177,7 +193,7 @@ def logout_service():
                          state_cache=state,
                          identity_cache=identity)
 
-    logout_redirect_url = current_app.config.get('saml2.logout_redirect_url')
+    logout_redirect_url = current_app.config.get('SAML2_LOGOUT_REDIRECT_URL')
     next_page = session.get('next', logout_redirect_url)
     next_page = request.args.get('next', next_page)
 
@@ -189,7 +205,7 @@ def logout_service():
         )
         state.sync()
         if response and response.status_ok():
-            session.delete()
+            session.clear()
             return redirect(next_page)
         else:
             logger.error('Unknown error during the logout')
@@ -217,7 +233,19 @@ def logout_service():
             )
             state.sync()
             location = get_location(http_info)
-            session.delete()
+            session.clear()
             return redirect(location)
     logger.error('No SAMLResponse or SAMLRequest parameter found')
     abort(400)
+
+
+@authn_views.route('/saml2-metadata')
+def metadata():
+    """
+    Returns an XML with the SAML 2.0 metadata for this
+    SP as configured in the saml2_settings.py file.
+    """
+    metadata = entity_descriptor(current_app.saml2_config)
+    response = make_response(metadata.to_string(), 200)
+    response.headers['Content-Type'] = "text/xml; charset=utf8"
+    return response
