@@ -1,0 +1,3 @@
+eduid-msg>=0.10.0
+xhtml2pdf>=0.0.6
+hammock==0.2.4
