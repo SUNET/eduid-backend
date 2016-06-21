@@ -39,8 +39,6 @@ from eduid_common.authn.eduid_saml2 import get_authn_request, get_authn_response
 from eduid_common.authn.eduid_saml2 import authenticate
 from eduid_webapp.authn.acs_registry import get_action, schedule_action
 
-import logging
-logger = logging.getLogger(__name__)
 
 authn_views = Blueprint('authn', __name__)
 
@@ -81,7 +79,7 @@ def _authn(action, force_authn=False):
                                       relay_state, idp, required_loa=loa,
                                       force_authn=force_authn)
     schedule_action(action)
-    logger.info('Redirecting the user to the IdP for ' + action)
+    current_app.logger.info('Redirecting the user to the IdP for ' + action)
     return redirect(get_location(authn_request))
 
 
@@ -94,11 +92,11 @@ def assertion_consumer_service():
         abort(400)
     xmlstr = request.form['SAMLResponse']
     session_info = get_authn_response(current_app.config, session, xmlstr)
-    logger.debug('Trying to locate the user authenticated by the IdP')
+    current_app.logger.debug('Trying to locate the user authenticated by the IdP')
 
     user = authenticate(current_app, session_info)
     if user is None:
-        logger.error('Could not find the user identified by the IdP')
+        current_app.logger.error('Could not find the user identified by the IdP')
         raise Forbidden("Access not authorized")
 
     action = get_action()

@@ -32,14 +32,11 @@
 
 from eduid_webapp.authn.app import authn_init_app
 
-import logging
-logger = logging.getLogger(__name__)
-
 
 name = 'authn'
 app = authn_init_app(name, {})
 
 
 if __name__ == '__main__':
-    logger.info('Starting {} app...'.format(name))
+    app.logger.info('Starting {} app...'.format(name))
     app.run()

@@ -35,9 +35,6 @@ from flask import Flask
 from eduid_common.authn.utils import get_saml2_config
 from eduid_common.api.app import eduid_init_app
 
-import logging
-logger = logging.getLogger(__name__)
-
 
 def authn_init_app(name, config):
     """
@@ -67,5 +64,7 @@ def authn_init_app(name, config):
 
     from eduid_webapp.authn.views import authn_views
     app.register_blueprint(authn_views)
+
+    app.logger.info('Init {} app...'.format(name))
 
     return app

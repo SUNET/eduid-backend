@@ -36,9 +36,6 @@ from flask import session, request, redirect, current_app
 from eduid_common.authn.loa import get_loa
 from eduid_webapp.authn.acs_registry import acs_action
 
-import logging
-logger = logging.getLogger(__name__)
-
 
 @acs_action('login-action')
 def login_action(session_info, user):
@@ -52,7 +49,7 @@ def login_action(session_info, user):
     :param user: the authenticated user
     :type user: eduid_userdb.User
     """
-    logger.info("User {!r} logging in.".format(user))
+    current_app.logger.info("User {!r} logging in.".format(user))
     session['_saml2_session_name_id'] = code(session_info['name_id'])
     session['eduPersonPrincipalName'] = user.eppn
     session['user_eppn'] = user.eppn
@@ -62,10 +59,10 @@ def login_action(session_info, user):
 
     # redirect the user to the view where he came from
     relay_state = request.form.get('RelayState', '/')
-    logger.debug('Redirecting to the RelayState: ' + relay_state)
+    current_app.logger.debug('Redirecting to the RelayState: ' + relay_state)
     response = redirect(location=relay_state)
     session.set_cookie(response)
-    logger.info('Redirecting user {!r} to {!r}'.format(user, relay_state))
+    current_app.logger.info('Redirecting user {!r} to {!r}'.format(user, relay_state))
     return response
 
 
@@ -103,12 +100,12 @@ def term_account_action(session_info, user):
 
 def _reauthn(reason, session_info, user):
 
-    logger.info("Reauthenticating user {!r} for {!r}.".format(user, reason))
+    current_app.logger.info("Reauthenticating user {!r} for {!r}.".format(user, reason))
     session['_saml2_session_name_id'] = code(session_info['name_id'])
     session[reason] = int(time())
     session.persist()
 
     # redirect the user to the view where he came from
     relay_state = request.form.get('RelayState', '/')
-    logger.debug('Redirecting to the RelayState: ' + relay_state)
+    current_app.logger.debug('Redirecting to the RelayState: ' + relay_state)
     return redirect(location=relay_state)
