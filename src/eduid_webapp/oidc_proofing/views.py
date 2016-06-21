@@ -10,9 +10,10 @@ import requests
 import qrcode
 import qrcode.image.svg
 from eduid_common.api.utils import get_unique_hash, StringIO
+from eduid_common.api.decorators import require_eppn
 from eduid_common.api.exceptions import ApiException
 from eduid_userdb.proofing import OidcProofingState
-from eduid_webapp.oidc_proofing import schemas, mock_auth
+from eduid_webapp.oidc_proofing import schemas
 from eduid_webapp.oidc_proofing.mock_proof import Proof, DocumentDoesNotExist
 
 __author__ = 'lundberg'
@@ -93,7 +94,7 @@ def authorization_response():
 
 @oidc_proofing_views.route('/get-state', methods=['POST'])
 @marshal_with(schemas.NonceResponseSchema)
-@user_eppn
+@require_eppn
 def get_state(eppn):
     current_app.logger.debug('Getting state for user with eppn {!s}.'.format(eppn))
     proofing_state = current_app.proofing_statedb.get_state_by_eppn(eppn, raise_on_missing=False)
@@ -145,7 +146,7 @@ def get_state(eppn):
 # TODO Remove after demo
 @oidc_proofing_views.route('/proofs', methods=['POST'])
 @marshal_with(schemas.ProofResponseSchema)
-@user_eppn
+@require_eppn
 def proofs(eppn):
     current_app.logger.debug('Getting proofs for user with eppn {!s}.'.format(eppn))
     try:
