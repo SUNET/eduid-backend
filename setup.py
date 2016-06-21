@@ -3,10 +3,10 @@
 from setuptools import setup, find_packages
 import sys
 
-version = '0.1.2b2'
+version = '0.1.2b3'
 
 requires = [
-    'eduid-common[webapp]>=0.2.1b7',
+    'eduid-common[webapp]>=0.2.1b9',
     'Flask==0.10.1',
 ]
 
