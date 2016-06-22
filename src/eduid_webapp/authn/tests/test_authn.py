@@ -31,20 +31,28 @@
 #
 
 import os
-import json
 import time
+import json
 import base64
 
 from werkzeug.exceptions import NotFound
+from werkzeug.http import dump_cookie
 from flask import session
+from saml2.s_utils import deflate_and_base64_encode
 
 from eduid_common.api.testing import EduidAPITestCase
-from eduid_common.api.app import eduid_init_app
 from eduid_common.authn.cache import OutstandingQueriesCache
 from eduid_common.authn.utils import get_location
 from eduid_common.authn.eduid_saml2 import get_authn_request
-from eduid_common.authn.tests.responses import auth_response
+from eduid_common.authn.tests.responses import (auth_response,
+                                                logout_response,
+                                                logout_request)
 from eduid_webapp.authn.app import authn_init_app
+from eduid_common.api.app import eduid_init_app
+
+
+import logging
+logger = logging.getLogger(__name__)
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 
@@ -59,6 +67,7 @@ class AuthnAPITestBase(EduidAPITestCase):
         saml_config = os.path.join(HERE, 'saml2_settings.py')
         config.update({
             'SAML2_LOGIN_REDIRECT_URL': '/',
+            'SAML2_LOGOUT_REDIRECT_URL': '/logged-out',
             'SAML2_SETTINGS_MODULE': saml_config,
             })
         return config
@@ -68,9 +77,71 @@ class AuthnAPITestBase(EduidAPITestCase):
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        return authn_init_app('testing', config)
+        return authn_init_app('test.localhost', config)
 
-    def _authn(self, url, force_authn=False):
+    def add_outstanding_query(self, came_from):
+        """
+        Add a SAML2 authentication query to the queries cache.
+        To be used before accessing the assertion consumer service.
+
+        :param came_from: url to redirect back the client
+                          after finishing with the authn service.
+        :type came_from: str
+
+        :return: the session token corresponding to the query
+        :rtype: str
+        """
+        with self.app.test_request_context('/login'):
+            self.app.dispatch_request()
+            oq_cache = OutstandingQueriesCache(session)
+            oq_cache.set(session.token, came_from)
+            session.persist()
+            return session.token
+
+    def login(self, eppn, came_from):
+        """
+        Add a SAML2 authentication query to the queries cache,
+        build a cookie with a session id corresponding to the added query,
+        build a SAML2 authn response for the added query,
+        and send both to the assertion consumer service,
+        so that the user is logged in (the session corresponding to the cookie
+        has her eppn).
+        This method returns the cookie that has to be sent with any
+        subsequent request that needs to be athenticated.
+
+        :param eppn: the eppn of the user to be logged in
+        :type eppn: str
+        :param came_from: url to redirect back the client
+                          after finishing with the authn service.
+        :type came_from: str
+
+        :return: the cookie corresponding to the authn session
+        :rtype: str
+        """
+        session_id = self.add_outstanding_query(came_from)
+        cookie = self.dump_session_cookie(session_id)
+        saml_response = auth_response(session_id, eppn)
+
+        with self.app.test_request_context('/saml2-acs', method='POST',
+                                headers={'Cookie': cookie},
+                                    data={'SAMLResponse': base64.b64encode(saml_response),
+                                                 'RelayState': came_from}):
+
+            response1 = self.app.dispatch_request()
+            cookie = response1.headers['Set-Cookie']
+            return cookie
+
+    def authn(self, url, force_authn=False):
+        """
+        Common code for the tests that need to send an authentication request.
+        This checks that the client is redirected to the idp.
+
+        :param url: the url of the desired authentication mode.
+        :type url: str
+        :param force_authn: whether to force reauthentication for an already
+                            authenticated client
+        :type force_authn: bool
+        """
         with self.app.test_client() as c:
             resp = c.get(url)
             authn_req = get_location(get_authn_request(self.app.config,
@@ -80,9 +151,19 @@ class AuthnAPITestBase(EduidAPITestCase):
             self.assertEqual(resp.status_code, 302)
             self.assertTrue(resp.location.startswith(idp_url))
 
-    def _acs(self, url, check_fn):
+    def acs(self, url, eppn, check_fn):
+        """
+        common code for the tests that need to access the assertion consumer service
+        and then check the side effects of this access.
+
+        :param url: the url of the desired authentication mode.
+        :type url: str
+        :param eppn: the eppn of the user to access the service
+        :type eppn: str
+        :param check_fn: the function that checks the side effects after accessing the acs
+        :type check_fn: callable
+        """
         came_from = '/camefrom/'
-        eppn = 'hubba-bubba'
         with self.app.test_client() as c:
             resp = c.get(url)
             cookie = resp.headers['Set-Cookie']
@@ -103,48 +184,64 @@ class AuthnAPITestBase(EduidAPITestCase):
             self.assertEquals(resp.location, came_from)
             check_fn()
 
+    def dump_session_cookie(self, session_id):
+        """
+        Get a cookie corresponding to an authenticated session.
 
-class LoginAPITestCase(AuthnAPITestBase):
+        :param session_id: the token for the session
+        :type session_id: str
 
-    def test_authn(self):
-        self._authn('/login')
+        :return: the cookie
+        """
+        return dump_cookie(self.app.config.get('SESSION_COOKIE_NAME'), session_id,
+                           max_age=float(self.app.config.get('PERMANENT_SESSION_LIFETIME')),
+                           path=self.app.config.get('SESSION_COOKIE_PATH'),
+                           domain=self.app.config.get('SESSION_COOKIE_DOMAIN'))
 
-    def test_assertion_consumer_service(self):
+
+class AuthnAPITestCase(AuthnAPITestBase):
+    """
+    Tests to check the different modes of authentication.
+    """
+    def test_login_authn(self):
+        self.authn('/login')
+
+    def test_chpass_authn(self):
+        self.authn('/chpass', force_authn=True)
+
+    def test_terminate_authn(self):
+        self.authn('/terminate', force_authn=True)
+
+    def test_login_assertion_consumer_service(self):
+        eppn = 'hubba-bubba'
+
         def _check():
             eppn = 'hubba-bubba'
             self.assertEquals(session['eduPersonPrincipalName'], eppn)
 
-        self._acs('/login', _check)
+        self.acs('/login', eppn, _check)
 
+    def test_chpass_assertion_consumer_service(self):
+        eppn = 'hubba-bubba'
 
-class ChpassAPITestCase(AuthnAPITestBase):
-
-    def test_authn(self):
-        self._authn('/chpass', force_authn=True)
-
-    def test_assertion_consumer_service(self):
         def _check():
             self.assertIn('reauthn-for-chpass', session)
             then = session['reauthn-for-chpass']
             now = int(time.time())
             self.assertTrue(now - then < 5)
 
-        self._acs('/chpass', _check)
+        self.acs('/chpass', eppn, _check)
 
+    def test_terminate_assertion_consumer_service(self):
+        eppn = 'hubba-bubba'
 
-class TerminationAPITestCase(AuthnAPITestBase):
-
-    def test_authn(self):
-        self._authn('/terminate', force_authn=True)
-
-    def test_assertion_consumer_service(self):
         def _check():
             self.assertIn('reauthn-for-termination', session)
             then = session['reauthn-for-termination']
             now = int(time.time())
             self.assertTrue(now - then < 5)
 
-        self._acs('/terminate', _check)
+        self.acs('/terminate', eppn, _check)
 
 
 class UnAuthnAPITestCase(EduidAPITestCase):
@@ -185,3 +282,133 @@ class UnAuthnAPITestCase(EduidAPITestCase):
             cookie_name = self.app.config.get('SESSION_COOKIE_NAME')
             c.set_cookie('localhost', cookie_name, token)
             self.assertRaises(NotFound, c.get, '/')
+
+
+class LogoutRequestTests(AuthnAPITestBase):
+
+    def test_metadataview(self):
+        with self.app.test_client() as c:
+            response = c.get('/saml2-metadata')
+            self.assertEqual(response.status, '200 OK')
+
+    def test_logout_nologgedin(self):
+        eppn = 'hubba-bubba'
+        csrft = 'csrf token'
+        with self.app.test_request_context('/logout', method='POST',
+                                    data={'csrf': csrft}):
+            session['_csrft_'] = csrft
+            session['user_eppn'] = eppn
+            session['eduPersonPrincipalName'] = eppn
+            response = self.app.dispatch_request()
+            self.assertEqual(response.status, '302 FOUND')
+            self.assertIn(self.app.config['SAML2_LOGOUT_REDIRECT_URL'], response.location)
+
+    def test_logout_loggedin(self):
+        eppn = 'hubba-bubba'
+        came_from = '/afterlogin/'
+        cookie = self.login(eppn, came_from)
+
+        csrft = 'csrf token'
+        with self.app.test_request_context('/logout', method='POST',
+                                headers={'Cookie': cookie},
+                                data={'csrf': csrft}):
+            session['_csrft_'] = csrft
+            response2 = self.app.dispatch_request()
+            self.assertEqual(response2.status, '302 FOUND')
+            self.assertIn('https://idp.example.com/simplesaml/saml2/idp/'
+                           'SingleLogoutService.php', response2.location)
+
+    def test_logout_service_startingSP(self):
+
+        came_from = '/afterlogin/'
+        session_id = self.add_outstanding_query(came_from)
+        cookie = self.dump_session_cookie(session_id)
+
+        with self.app.test_request_context('/saml2-ls', method='POST',
+                                headers={'Cookie': cookie},
+                                data={'SAMLResponse': deflate_and_base64_encode(
+                                            logout_response(session_id)
+                                        ),
+                                      'RelayState': 'testing-relay-state',
+                                    }):
+            response = self.app.dispatch_request()
+
+            self.assertEqual(response.status, '302 FOUND')
+            self.assertIn('testing-relay-state', response.location)
+
+    def test_logout_service_startingSP_already_logout(self):
+
+        came_from = '/afterlogin/'
+        session_id = self.add_outstanding_query(came_from)
+
+        with self.app.test_request_context('/saml2-ls', method='POST',
+                                data={'SAMLResponse': deflate_and_base64_encode(
+                                            logout_response(session_id)
+                                        ),
+                                      'RelayState': 'testing-relay-state',
+                                    }):
+            response = self.app.dispatch_request()
+
+            self.assertEqual(response.status, '302 FOUND')
+            self.assertIn('testing-relay-state', response.location)
+
+    def test_logout_service_startingIDP(self):
+
+        eppn = 'hubba-bubba'
+        came_from = '/afterlogin/'
+        session_id = self.add_outstanding_query(came_from)
+        cookie = self.dump_session_cookie(session_id)
+
+        saml_response = auth_response(session_id, eppn)
+
+        # Log in through IDP SAMLResponse
+        with self.app.test_request_context('/saml2-acs', method='POST',
+                                headers={'Cookie': cookie},
+                                data={'SAMLResponse': base64.b64encode(saml_response),
+                                      'RelayState': 'testing-relay-state',
+                                    }):
+            response = self.app.dispatch_request()
+
+        with self.app.test_request_context('/saml2-ls', method='POST',
+                                headers={'Cookie': cookie},
+                                data={'SAMLRequest': deflate_and_base64_encode(
+                                            logout_request(session_id)
+                                        ),
+                                      'RelayState': 'testing-relay-state',
+                                    }):
+            response = self.app.dispatch_request()
+
+            self.assertEqual(response.status, '302 FOUND')
+            self.assertIn('https://idp.example.com/simplesaml/saml2/idp/'
+                          'SingleLogoutService.php?SAMLResponse=', response.location)
+
+    def test_logout_service_startingIDP_no_subject_id(self):
+
+        eppn = 'hubba-bubba'
+        came_from = '/afterlogin/'
+        session_id = self.add_outstanding_query(came_from)
+        cookie = self.dump_session_cookie(session_id)
+
+        saml_response = auth_response(session_id, eppn)
+
+        # Log in through IDP SAMLResponse
+        with self.app.test_request_context('/saml2-acs', method='POST',
+                                headers={'Cookie': cookie},
+                                data={'SAMLResponse': base64.b64encode(saml_response),
+                                      'RelayState': 'testing-relay-state',
+                                    }):
+            response = self.app.dispatch_request()
+
+        with self.app.test_request_context('/saml2-ls', method='POST',
+                                headers={'Cookie': cookie},
+                                data={'SAMLRequest': deflate_and_base64_encode(
+                                            logout_request(session_id)
+                                        ),
+                                      'RelayState': 'testing-relay-state',
+                                    }):
+            del session['_saml2_session_name_id']
+            session.persist()
+            response = self.app.dispatch_request()
+
+            self.assertEqual(response.status, '302 FOUND')
+            self.assertIn('testing-relay-state', response.location)

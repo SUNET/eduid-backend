@@ -6,7 +6,7 @@ from saml2 import attributemaps
 
 DEFAULT_ATTRIBUTEMAPS = path.dirname(attributemaps.__file__)
 
-BASE_URL = 'http://eduid.example.com:6544/'
+BASE_URL = 'http://test.localhost:6544/'
 SAML2DIR = path.dirname(__file__)
 
 SAML_CONFIG = {
@@ -14,7 +14,7 @@ SAML_CONFIG = {
     'xmlsec_binary': '/usr/bin/xmlsec1',
 
     # your entity id, usually your subdomain plus the url to the metadata view
-    'entityid': '%ssaml2/metadata/' % BASE_URL,
+    'entityid': '%ssaml2-metadata' % BASE_URL,
 
     # directory with attribute mapping
     'attribute_map_dir': DEFAULT_ATTRIBUTEMAPS,
@@ -28,13 +28,13 @@ SAML_CONFIG = {
                 # url and binding to the assetion consumer service view
                 # do not change the binding or service name
                 'assertion_consumer_service': [
-                    ('%ssaml2/acs/' % BASE_URL,
+                    ('%ssaml2-acs' % BASE_URL,
                      saml2.BINDING_HTTP_POST),
                 ],
                 # url and binding to the single logout service view
                 # do not change the binding or service name
                 'single_logout_service': [
-                    ('%ssaml2/ls/' % BASE_URL,
+                    ('%ssaml2-ls' % BASE_URL,
                      saml2.BINDING_HTTP_REDIRECT),
                 ],
             },
