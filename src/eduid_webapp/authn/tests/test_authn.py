@@ -36,7 +36,7 @@ import json
 import base64
 
 from werkzeug.exceptions import NotFound
-from werkzeug.http import dump_cookie, parse_cookie
+from werkzeug.http import dump_cookie
 from flask import session
 from saml2.s_utils import deflate_and_base64_encode
 
@@ -320,7 +320,6 @@ class LogoutRequestTests(AuthnAPITestBase):
 
     def test_logout_service_startingSP(self):
 
-        eppn = 'hubba-bubba'
         came_from = '/afterlogin/'
         session_id = self.add_outstanding_query(came_from)
         cookie = self.dump_session_cookie(session_id)
@@ -339,7 +338,6 @@ class LogoutRequestTests(AuthnAPITestBase):
 
     def test_logout_service_startingSP_already_logout(self):
 
-        eppn = 'hubba-bubba'
         came_from = '/afterlogin/'
         session_id = self.add_outstanding_query(came_from)
 
