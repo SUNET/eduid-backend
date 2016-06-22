@@ -72,7 +72,7 @@ TEST_CONFIG = {
     'REDIS_DB': '0',
     'REDIS_SENTINEL_HOSTS': '',
     'REDIS_SENTINEL_SERVICE_NAME': '',
-    'TOKEN_SERVICE_URL': 'http://test.localhost/login',
+    'TOKEN_SERVICE_URL': 'http://test.localhost/',
 }
 
 
