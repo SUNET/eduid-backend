@@ -14,7 +14,7 @@ SAML_CONFIG = {
     'xmlsec_binary': '/usr/bin/xmlsec1',
 
     # your entity id, usually your subdomain plus the url to the metadata view
-    'entityid': '%ssaml2/metadata/' % BASE_URL,
+    'entityid': '%ssaml2-metadata' % BASE_URL,
 
     # directory with attribute mapping
     'attribute_map_dir': DEFAULT_ATTRIBUTEMAPS,
