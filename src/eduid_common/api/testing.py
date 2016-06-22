@@ -126,12 +126,10 @@ class EduidAPITestCase(unittest.TestCase):
         return config
 
     @contextmanager
-    def session_cookie(self, client, eppn, server_name='localhost', session_id=None):
-        if session_id is None:
-            with client.session_transaction() as sess:
-                sess['user_eppn'] = eppn
-                sess.persist()
-                session_id = sess._session.token
+    def session_cookie(self, client, eppn, server_name='localhost'):
+        with client.session_transaction() as sess:
+            sess['user_eppn'] = eppn
+            sess.persist()
         client.set_cookie(server_name, key=self.app.config.get('SESSION_COOKIE_NAME'), value=sess._session.token)
         yield client
 
@@ -254,5 +252,3 @@ class EtcdTemporaryInstance(object):
             self._process.terminate()
             self._process.wait()
             self._process = None
-
-
