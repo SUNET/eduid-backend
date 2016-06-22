@@ -162,7 +162,8 @@ def logout():
             if loresponse.status_ok():
                 logger.debug('Performing local logout for {!r}'.format(user))
                 session.clear()
-                location = current_app.config.get('saml2.logout_redirect_url')
+                location = current_app.config.get('SAML2_LOGOUT_REDIRECT_URL')
+                location = request.form.get('RelayState', location)
                 return redirect(location)
             else:
                 abort(500)
@@ -196,11 +197,12 @@ def logout_service():
     logout_redirect_url = current_app.config.get('SAML2_LOGOUT_REDIRECT_URL')
     next_page = session.get('next', logout_redirect_url)
     next_page = request.args.get('next', next_page)
+    next_page = request.form.get('RelayState', next_page)
 
-    if 'SAMLResponse' in request.args: # we started the logout
+    if 'SAMLResponse' in request.form: # we started the logout
         logger.debug('Receiving a logout response from the IdP')
         response = client.parse_logout_request_response(
-            request.args['SAMLResponse'],
+            request.form['SAMLResponse'],
             BINDING_HTTP_REDIRECT
         )
         state.sync()
@@ -212,7 +214,7 @@ def logout_service():
             abort(400)
 
     # logout started by the IdP
-    elif 'SAMLRequest' in request.args:
+    elif 'SAMLRequest' in request.form:
         logger.debug('Receiving a logout request from the IdP')
         subject_id = _get_name_id(session)
         if subject_id is None:
@@ -222,14 +224,14 @@ def logout_service():
                     session['eduPersonPrincipalName']
                 )
             )
-            session.delete()
+            session.clear()
             return redirect(next_page)
         else:
             http_info = client.handle_logout_request(
-                request.args['SAMLRequest'],
+                request.form['SAMLRequest'],
                 subject_id,
                 BINDING_HTTP_REDIRECT,
-                relay_state=request.args['RelayState']
+                relay_state=request.form['RelayState']
             )
             state.sync()
             location = get_location(http_info)
