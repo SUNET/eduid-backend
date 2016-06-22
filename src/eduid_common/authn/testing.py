@@ -30,7 +30,19 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
+import os
 import json
+import base64
+
+from werkzeug.http import dump_cookie
+from flask import session
+
+from eduid_common.api.testing import EduidAPITestCase
+from eduid_common.authn.cache import OutstandingQueriesCache
+from eduid_common.authn.utils import get_location
+from eduid_common.authn.eduid_saml2 import get_authn_request
+from eduid_common.authn.tests.responses import auth_response
+from eduid_webapp.authn.app import authn_init_app
 
 from bson import ObjectId
 import vccs_client
@@ -205,7 +217,7 @@ class AuthnAPITestBase(EduidAPITestCase):
         :rtype: str
         """
         with self.app.test_request_context('/login'):
-            response1 = self.app.dispatch_request()
+            self.app.dispatch_request()
             oq_cache = OutstandingQueriesCache(session)
             oq_cache.set(session.token, came_from)
             session.persist()
@@ -244,7 +256,7 @@ class AuthnAPITestBase(EduidAPITestCase):
                                 headers={'Cookie': cookie},
                                     data={'SAMLResponse': base64.b64encode(saml_response),
                                                  'RelayState': came_from}):
- 
+
             response1 = self.app.dispatch_request()
             cookie = response1.headers['Set-Cookie']
             return cookie
