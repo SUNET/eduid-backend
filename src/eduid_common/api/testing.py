@@ -130,7 +130,7 @@ class EduidAPITestCase(unittest.TestCase):
         with client.session_transaction() as sess:
             sess['user_eppn'] = eppn
             sess.persist()
-        self.client.set_cookie(server_name, key=self.app.config.get('SESSION_COOKIE_NAME'), value=sess._session.token)
+        client.set_cookie(server_name, key=self.app.config.get('SESSION_COOKIE_NAME'), value=sess._session.token)
         yield client
 
 
