@@ -28,13 +28,13 @@ SAML_CONFIG = {
                 # url and binding to the assetion consumer service view
                 # do not change the binding or service name
                 'assertion_consumer_service': [
-                    ('%ssaml2-acs/' % BASE_URL,
+                    ('%ssaml2-acs' % BASE_URL,
                      saml2.BINDING_HTTP_POST),
                 ],
                 # url and binding to the single logout service view
                 # do not change the binding or service name
                 'single_logout_service': [
-                    ('%ssaml2-ls/' % BASE_URL,
+                    ('%ssaml2-ls' % BASE_URL,
                      saml2.BINDING_HTTP_REDIRECT),
                 ],
             },
