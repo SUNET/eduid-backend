@@ -125,11 +125,13 @@ class EduidAPITestCase(unittest.TestCase):
         """
         return config
 
-    def get_session_cookie(self, eppn):
-        with self.client.session_transaction() as sess:
-            sess['user_eppn'] = eppn
-            sess.persist()
-        return dump_cookie(self.app.config.get('SESSION_COOKIE_NAME'), sess._session.token,
+    def get_session_cookie(self, eppn, session_id=None):
+        if session_id is None:
+            with self.client.session_transaction() as sess:
+                sess['user_eppn'] = eppn
+                sess.persist()
+                session_id = sess._session.token
+        return dump_cookie(self.app.config.get('SESSION_COOKIE_NAME'), session_id,
                            max_age=float(self.app.config.get('PERMANENT_SESSION_LIFETIME')),
                            path=self.app.config.get('SESSION_COOKIE_PATH'),
                            domain=self.app.config.get('SESSION_COOKIE_DOMAIN'),
