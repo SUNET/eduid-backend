@@ -71,7 +71,7 @@ class AuthnApp(Flask):
 
             headers = [ ('Location', location) ]
             cookie = dump_cookie(cookie_name, session._session.token,
-                                 max_age=float(self.config.get('PERMANENT_SESSION_LIFETIME')),
+                                 max_age=int(self.config.get('PERMANENT_SESSION_LIFETIME')),
                                  path=self.config.get('SESSION_COOKIE_PATH'),
                                  domain=self.config.get('SESSION_COOKIE_DOMAIN'),
                                  secure=self.config.get('SESSION_COOKIE_SECURE'),

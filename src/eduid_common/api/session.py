@@ -197,7 +197,7 @@ class Session(collections.MutableMapping):
         cookie_path = self.app.config.get('SESSION_COOKIE_PATH')
         cookie_secure = self.app.config.get('SESSION_COOKIE_SECURE')
         cookie_httponly = self.app.config.get('SESSION_COOKIE_HTTPONLY')
-        max_age = float(self.app.config.get('PERMANENT_SESSION_LIFETIME'))
+        max_age = int(self.app.config.get('PERMANENT_SESSION_LIFETIME'))
         response.set_cookie(cookie_name,
                             value = self.token,
                             domain = cookie_domain,

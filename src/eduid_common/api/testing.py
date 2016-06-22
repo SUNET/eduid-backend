@@ -35,11 +35,11 @@ import time
 import atexit
 import random
 import subprocess
+from contextlib import contextmanager
 from copy import deepcopy
 
 import redis
 import etcd
-from werkzeug.http import dump_cookie
 
 from eduid_userdb import User
 from eduid_userdb.data_samples import NEW_USER_EXAMPLE
@@ -125,18 +125,15 @@ class EduidAPITestCase(unittest.TestCase):
         """
         return config
 
-    def get_session_cookie(self, eppn, session_id=None):
+    @contextmanager
+    def session_cookie(self, client, eppn, server_name='localhost', session_id=None):
         if session_id is None:
-            with self.client.session_transaction() as sess:
+            with client.session_transaction() as sess:
                 sess['user_eppn'] = eppn
                 sess.persist()
                 session_id = sess._session.token
-        return dump_cookie(self.app.config.get('SESSION_COOKIE_NAME'), session_id,
-                           max_age=float(self.app.config.get('PERMANENT_SESSION_LIFETIME')),
-                           path=self.app.config.get('SESSION_COOKIE_PATH'),
-                           domain=self.app.config.get('SESSION_COOKIE_DOMAIN'),
-                           secure=self.app.config.get('SESSION_COOKIE_SECURE'),
-                           httponly=self.app.config.get('SESSION_COOKIE_HTTPONLY'))
+        client.set_cookie(server_name, key=self.app.config.get('SESSION_COOKIE_NAME'), value=sess._session.token)
+        yield client
 
 
 class RedisTemporaryInstance(object):
