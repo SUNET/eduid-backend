@@ -45,6 +45,9 @@ from eduid_common.authn.eduid_saml2 import authenticate
 from eduid_webapp.authn.acs_registry import get_action, schedule_action
 from eduid_common.authn.cache import IdentityCache, StateCache
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 authn_views = Blueprint('authn', __name__)
 
