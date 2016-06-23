@@ -190,6 +190,8 @@ class Session(collections.MutableMapping):
         '''
         if not queue:
             queue = 'default'
+        if 'flash_messages' not in self._session:
+            self._session['flash_messages'] = {'default': []}
         if queue not in self._session['flash_messages']:
             self._session['flash_messages'][queue] = []
         if not allow_duplicate:
@@ -205,6 +207,8 @@ class Session(collections.MutableMapping):
         '''
         if not queue:
             queue = 'default'
+        if 'flash_messages' not in self._session:
+            self._session['flash_messages'] = {'default': []}
         if queue in self._session['flash_messages']:
             msgs = self._session['flash_messages'].pop(queue)
             self._session.commit()
@@ -218,6 +222,8 @@ class Session(collections.MutableMapping):
         '''
         if not queue:
             queue = 'default'
+        if 'flash_messages' not in self._session:
+            self._session['flash_messages'] = {'default': []}
         return self._session['flash_messages'].get(queue, [])
 
     @manage('changed')
