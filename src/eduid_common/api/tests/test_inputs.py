@@ -36,6 +36,7 @@ from flask import make_response
 
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.api.session import SessionFactory
+from eduid_common.api.request import Request
 from eduid_userdb import UserDB
 
 
@@ -72,6 +73,7 @@ class InputsTests(EduidAPITestCase):
         app for this test case.
         """
         app = Flask('test.localhost')
+        app.request_class = Request
         app.config.update(config)
         app.register_blueprint(test_views)
         app.central_userdb = UserDB(app.config['MONGO_URI'], 'eduid_am')
