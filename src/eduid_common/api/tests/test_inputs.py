@@ -30,6 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
+from werkzeug.http import dump_cookie
 from flask import Flask, Blueprint
 from flask import request
 from flask import make_response
@@ -60,6 +61,15 @@ def get_param_view():
 def post_param_view():
     param = request.form.get('test-param')
     html = '<html><body>{}</body></html>'.format(param)
+    response = make_response(html, 200)
+    response.headers['Content-Type'] = "text/html; charset=utf8"
+    return response
+
+
+@test_views.route('/test-cookie')
+def cookie_view():
+    cookie = request.cookies.get('test-cookie')
+    html = '<html><body>{}</body></html>'.format(cookie)
     response = make_response(html, 200)
     response.headers['Content-Type'] = "text/html; charset=utf8"
     return response
@@ -110,6 +120,17 @@ class InputsTests(EduidAPITestCase):
         url = '/test-post-param'
         with self.app.test_request_context(url, method='POST',
                 data={'test-param': '<script>alert("ho")</script>'}):
+
+            response = self.app.dispatch_request()
+            self.assertNotIn('<script>', response.data)
+
+    def test_post_param_script(self):
+        """"""
+        url = '/test-cookie'
+
+        cookie = dump_cookie('test-cookie', '<script>alert("ho")</script>')
+        with self.app.test_request_context(url, method='GET',
+                                           headers={'Cookie': cookie}):
 
             response = self.app.dispatch_request()
             self.assertNotIn('<script>', response.data)
