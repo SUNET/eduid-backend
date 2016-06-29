@@ -56,6 +56,15 @@ def get_param_view():
     return response
 
 
+@test_views.route('/test-post-param', methods=['POST'])
+def post_param_view():
+    param = request.form.get('test-param')
+    html = '<html><body>{}</body></html>'.format(param)
+    response = make_response(html, 200)
+    response.headers['Content-Type'] = "text/html; charset=utf8"
+    return response
+
+
 class InputsTests(EduidAPITestCase):
 
     def update_config(self, config):
@@ -92,6 +101,15 @@ class InputsTests(EduidAPITestCase):
         """"""
         url = '/test-get-param?test-param=<script>alert("ho")</script>'
         with self.app.test_request_context(url, method='GET'):
+
+            response = self.app.dispatch_request()
+            self.assertNotIn('<script>', response.data)
+
+    def test_post_param_script(self):
+        """"""
+        url = '/test-post-param'
+        with self.app.test_request_context(url, method='POST',
+                data={'test-param': '<script>alert("ho")</script>'}):
 
             response = self.app.dispatch_request()
             self.assertNotIn('<script>', response.data)
