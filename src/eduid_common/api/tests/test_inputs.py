@@ -124,10 +124,9 @@ class InputsTests(EduidAPITestCase):
             response = self.app.dispatch_request()
             self.assertNotIn('<script>', response.data)
 
-    def test_post_param_script(self):
+    def test_cookie_script(self):
         """"""
         url = '/test-cookie'
-
         cookie = dump_cookie('test-cookie', '<script>alert("ho")</script>')
         with self.app.test_request_context(url, method='GET',
                                            headers={'Cookie': cookie}):

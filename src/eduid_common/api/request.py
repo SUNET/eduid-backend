@@ -57,6 +57,7 @@ from functools import partial
 
 from werkzeug._compat import iteritems, itervalues
 from werkzeug.datastructures import ImmutableMultiDict
+from werkzeug.datastructures import ImmutableTypeConversionDict
 
 from flask import Request as BaseRequest
 from flask import abort
@@ -189,7 +190,7 @@ class SanitationMixin(object):
 class SanitizedImmutableMultiDict(ImmutableMultiDict, SanitationMixin):
     """
     See `werkzeug.datastructures.ImmutableMultiDict`.
-    This class is an extension that overrides all "getter" methods to
+    This class is an extension that overrides all access methods to
     sanitize the extracted data.
     """
 
@@ -293,6 +294,42 @@ class SanitizedImmutableMultiDict(ImmutableMultiDict, SanitationMixin):
         return dict(self.lists())
 
 
+class SanitizedTypeConversionDict(ImmutableTypeConversionDict, SanitationMixin):
+    """
+    See `werkzeug.datastructures.TypeConversionDict`.
+    This class is an extension that overrides all access methods to
+    sanitize the extracted data.
+    """
+    def __init__(self, content_type, *args, **kwargs):
+        self.content_type = content_type
+        super(SanitizedTypeConversionDict, self).__init__(*args, **kwargs)
+
+    def __getitem__(self, key):
+        val = ImmutableTypeConversionDict.__getitem__(self, key)
+        return self.sanitize_input(val)
+
+    def get(self, key, default=None, type=None):
+        try:
+            val = self.sanitize_input(self[key])
+            if type is not None:
+                val = type(val)
+        except (KeyError, ValueError):
+            val = default
+        return val
+
+    def values(self):
+        return [self.sanitize_input(v) for v in
+                ImmutableTypeConversionDict.values(self)]
+
+    def items(self):
+        return [(v[0], self.sanitize_input(v[1])) for v in
+                ImmutableTypeConversionDict.items(self)]
+
+    def pop(self, key):
+        val = ImmutableTypeConversionDict.pop(key)
+        return self.sanitize_input(val)
+
+
 class Request(BaseRequest):
     """
     Request objects with sanitized inputs
@@ -301,3 +338,5 @@ class Request(BaseRequest):
         super(Request, self).__init__(*args, **kwargs)
         psc = partial(SanitizedImmutableMultiDict, self.content_type)
         self.parameter_storage_class = psc
+        tcd = partial(SanitizedTypeConversionDict, self.content_type)
+        self.dict_storage_class = tcd
