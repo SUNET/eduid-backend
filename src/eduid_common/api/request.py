@@ -29,6 +29,27 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+"""
+This module provides a Request class that extends flask.Request
+and adds sanitation to user inputs. This sanitation is performed
+on the methods of the datastructures that the request uses to
+hold data inputs by the user.
+Since those methods need to know the content_type header sent by
+users, the datastructure classes' constructors accept a first
+argument with the content type, and in the constructor for the
+request, where we have the content type, the datastructure classes
+constructors are partially applied with the content type, so then
+when the request implements those classes, they already know the
+content type.
+
+To use this request, assign it to the `request_class` attribute
+of the Flask application::
+
+    >>> from eduid_common.api.request import Request
+    >>> from flask import Flask
+    >>> app = Flask('name')
+    >>> app.request_class =  Request
+"""
 
 from bleach import clean
 from urllib import unquote, quote
