@@ -71,6 +71,18 @@ class SanitationMixin(object):
         :type untrusted_text: str | unicode
         :rtype: str | unicode
         """
+        try:
+            return self._sanitize_input(untrusted_text,
+                                        strip_characters=strip_characters,
+                                        percent_encoded=percent_encoded)
+        except UnicodeDecodeError:
+            logger.warn('A malicious user tried to crash the application '
+                        'by sending non-unicode input in a GET request')
+            raise abort(400)
+
+    def _sanitize_input(self, untrusted_text, strip_characters=False,
+                       percent_encoded=False):
+
         if untrusted_text is None:
             # If we are given None then there's nothing to clean
             return None
