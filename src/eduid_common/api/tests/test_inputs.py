@@ -1,3 +1,4 @@
+#  -*- encoding: utf-8 -*-
 #
 # Copyright (c) 2016 NORDUnet A/S
 # All rights reserved.
@@ -75,6 +76,15 @@ def cookie_view():
     return response
 
 
+@test_views.route('/test-header')
+def header_view():
+    test_header = request.headers.get('X-TEST')
+    html = '<html><body>{}</body></html>'.format(test_header)
+    response = make_response(html, 200)
+    response.headers['Content-Type'] = "text/html; charset=utf8"
+    return response
+
+
 class InputsTests(EduidAPITestCase):
 
     def update_config(self, config):
@@ -130,6 +140,16 @@ class InputsTests(EduidAPITestCase):
         cookie = dump_cookie('test-cookie', '<script>alert("ho")</script>')
         with self.app.test_request_context(url, method='GET',
                                            headers={'Cookie': cookie}):
+
+            response = self.app.dispatch_request()
+            self.assertNotIn('<script>', response.data)
+
+    def test_header_script(self):
+        """"""
+        url = '/test-header'
+        script = '<script>alert("ho")</script>'
+        with self.app.test_request_context(url, method='GET',
+                                           headers={'X-TEST': script}):
 
             response = self.app.dispatch_request()
             self.assertNotIn('<script>', response.data)

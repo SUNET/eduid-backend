@@ -56,8 +56,10 @@ from urllib import unquote, quote
 from functools import partial
 
 from werkzeug._compat import iteritems, itervalues
+from werkzeug.utils import cached_property
 from werkzeug.datastructures import ImmutableMultiDict
 from werkzeug.datastructures import ImmutableTypeConversionDict
+from werkzeug.datastructures import EnvironHeaders
 
 from flask import Request as BaseRequest
 from flask import abort
@@ -100,7 +102,7 @@ class SanitationMixin(object):
         except UnicodeDecodeError:
             logger.warn('A malicious user tried to crash the application '
                         'by sending non-unicode input in a GET request')
-            raise abort(400)
+            abort(400)
 
     def _sanitize_input(self, untrusted_text, strip_characters=False,
                        percent_encoded=False):
@@ -330,6 +332,23 @@ class SanitizedTypeConversionDict(ImmutableTypeConversionDict, SanitationMixin):
         return self.sanitize_input(val)
 
 
+class SanitizedEnvironHeaders(EnvironHeaders, SanitationMixin):
+    """
+    Sanitized and read only version of the headersfrom a WSGI environment.
+    """
+    def __init__(self, content_type, environ):
+        self.content_type = content_type
+        super(SanitizedEnvironHeaders, self).__init__(environ)
+
+    def __getitem__(self, key, _get_mode=False):
+        val = EnvironHeaders.__getitem__(self, key, _get_mode=_get_mode)
+        return self.sanitize_input(val)
+
+    def __iter__(self):
+        for val in EnvironHeaders.__iter__(self):
+            yield self.sanitize_input(val)
+
+
 class Request(BaseRequest):
     """
     Request objects with sanitized inputs
@@ -340,3 +359,11 @@ class Request(BaseRequest):
         self.parameter_storage_class = psc
         tcd = partial(SanitizedTypeConversionDict, self.content_type)
         self.dict_storage_class = tcd
+
+    @cached_property
+    def headers(self):
+        """
+        The headers from the WSGI environ as immutable and sanitized
+        :class:`~eduid_common.api.request.SanitizedEnvironHeaders`.
+        """
+        return SanitizedEnvironHeaders(self.content_type, self.environ)
