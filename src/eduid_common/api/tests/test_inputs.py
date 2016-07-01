@@ -49,40 +49,40 @@ logger = logging.getLogger(__name__)
 test_views = Blueprint('test', __name__)
 
 
-@test_views.route('/test-get-param', methods=['GET'])
-def get_param_view():
-    param = request.args.get('test-param')
-    html = '<html><body>{}</body></html>'.format(param)
+def _make_response(data):
+    html = '<html><body>{}</body></html>'.format(data)
     response = make_response(html, 200)
     response.headers['Content-Type'] = "text/html; charset=utf8"
     return response
+
+@test_views.route('/test-get-param', methods=['GET'])
+def get_param_view():
+    param = request.args.get('test-param')
+    return _make_response(param)
 
 
 @test_views.route('/test-post-param', methods=['POST'])
 def post_param_view():
     param = request.form.get('test-param')
-    html = '<html><body>{}</body></html>'.format(param)
-    response = make_response(html, 200)
-    response.headers['Content-Type'] = "text/html; charset=utf8"
-    return response
+    return _make_response(param)
 
 
 @test_views.route('/test-cookie')
 def cookie_view():
     cookie = request.cookies.get('test-cookie')
-    html = '<html><body>{}</body></html>'.format(cookie)
-    response = make_response(html, 200)
-    response.headers['Content-Type'] = "text/html; charset=utf8"
-    return response
+    return _make_response(cookie)
 
 
 @test_views.route('/test-header')
 def header_view():
-    test_header = request.headers.get('X-TEST')
-    html = '<html><body>{}</body></html>'.format(test_header)
-    response = make_response(html, 200)
-    response.headers['Content-Type'] = "text/html; charset=utf8"
-    return response
+    header = request.headers.get('X-TEST')
+    return _make_response(header)
+
+
+@test_views.route('/test-values', methods=['GET', 'POST'])
+def values_view():
+    param = request.values.get('test-param')
+    return _make_response(param)
 
 
 class InputsTests(EduidAPITestCase):
@@ -150,6 +150,23 @@ class InputsTests(EduidAPITestCase):
         script = '<script>alert("ho")</script>'
         with self.app.test_request_context(url, method='GET',
                                            headers={'X-TEST': script}):
+
+            response = self.app.dispatch_request()
+            self.assertNotIn('<script>', response.data)
+
+    def test_get_values_script(self):
+        """"""
+        url = '/test-values?test-param=test-param'
+        with self.app.test_request_context(url, method='GET'):
+
+            response = self.app.dispatch_request()
+            self.assertNotIn('<script>', response.data)
+
+    def test_post_values_script(self):
+        """"""
+        url = '/test-values'
+        with self.app.test_request_context(url, method='POST',
+                data={'test-param': '<script>alert("ho")</script>'}):
 
             response = self.app.dispatch_request()
             self.assertNotIn('<script>', response.data)
