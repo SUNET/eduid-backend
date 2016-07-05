@@ -37,6 +37,7 @@ it with all attributes common to all eduID services.
 
 from eduid_userdb import UserDB
 from eduid_common.authn.middleware import AuthnApp
+from eduid_common.api.request import Request
 from eduid_common.api.session import SessionFactory
 from eduid_common.api.logging import init_logging
 from eduid_common.api.exceptions import init_exception_handlers, init_sentry
@@ -67,6 +68,7 @@ def eduid_init_app(name, config, app_class=AuthnApp):
     :rtype: flask.Flask
     """
     app = app_class(name)
+    app.request_class = Request
 
     # Init etcd config parsers
     common_parser = EtcdConfigParser('/eduid/webapp/common/')
