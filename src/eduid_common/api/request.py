@@ -57,10 +57,6 @@ from werkzeug.datastructures import EnvironHeaders
 from flask import Request as BaseRequest
 from flask import abort, current_app
 
-# XXX there is a logging module in this package that interferes with th one in the standard library
-from logging import logging
-logger = logging.getLogger(__name__)
-
 
 class SanitationMixin(object):
     """
@@ -87,7 +83,7 @@ class SanitationMixin(object):
             return self._sanitize_input(untrusted_text,
                                         strip_characters=strip_characters)
         except UnicodeDecodeError:
-            logger.warn('A malicious user tried to crash the application '
+            current_app.logger.warn('A malicious user tried to crash the application '
                         'by sending non-unicode input in a GET request')
             abort(400)
 
@@ -127,7 +123,7 @@ class SanitationMixin(object):
         try:
             return clean(untrusted_text, strip=strip_characters)
         except KeyError:
-            logger.warn('A malicious user tried to crash the application by '
+            current_app.logger.warn('A malicious user tried to crash the application by '
                         'sending illegal UTF-8 in an URI or other untrusted '
                         'user input.')
             abort(400)
