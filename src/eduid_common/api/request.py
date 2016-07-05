@@ -32,8 +32,9 @@
 """
 This module provides a Request class that extends flask.Request
 and adds sanitation to user inputs. This sanitation is performed
-on the methods of the datastructures that the request uses to
+on the access methods of the datastructures that the request uses to
 hold data inputs by the user.
+For more information on these structures, see werkzeug.datastructures.
 
 To use this request, assign it to the `request_class` attribute
 of the Flask application::
@@ -233,10 +234,27 @@ class SanitizedTypeConversionDict(ImmutableTypeConversionDict, SanitationMixin):
     """
 
     def __getitem__(self, key):
+        """
+        Sanitized __getitem__
+        """
         val = ImmutableTypeConversionDict.__getitem__(self, key)
         return self.sanitize_input(val)
 
     def get(self, key, default=None, type=None):
+        """
+        Sanitized, type conversion get.
+        The value identified by `key` is sanitized, and if `type`
+        is provided, the value is cast to it.
+
+        :param key: the key for the value
+        :type key: str
+        :para default: the default if `key` is absent
+        :type default: str
+        :param type: The type to cast  the value
+        :type type: type
+
+        :rtype: object
+        """
         try:
             val = self.sanitize_input(self[key])
             if type is not None:
@@ -246,14 +264,26 @@ class SanitizedTypeConversionDict(ImmutableTypeConversionDict, SanitationMixin):
         return val
 
     def values(self):
+        """
+        sanitized values
+        """
         return [self.sanitize_input(v) for v in
                 ImmutableTypeConversionDict.values(self)]
 
     def items(self):
+        """
+        Sanitized items
+        """
         return [(v[0], self.sanitize_input(v[1])) for v in
                 ImmutableTypeConversionDict.items(self)]
 
     def pop(self, key):
+        """
+        Sanitized pop
+
+        :param key: the key for the value
+        :type key: str
+        """
         val = ImmutableTypeConversionDict.pop(key)
         return self.sanitize_input(val)
 
@@ -264,10 +294,22 @@ class SanitizedEnvironHeaders(EnvironHeaders, SanitationMixin):
     """
 
     def __getitem__(self, key, _get_mode=False):
+        """
+        Sanitized __getitem__
+
+        :param key: the key for the value
+        :type key: str
+        :param _get_mode: is a no-op for this class as there is no index but
+                          used because get() calls it.
+        :type _get_mode: bool
+        """
         val = EnvironHeaders.__getitem__(self, key, _get_mode=_get_mode)
         return self.sanitize_input(val)
 
     def __iter__(self):
+        """
+        Sanitized __iter__
+        """
         for val in EnvironHeaders.__iter__(self):
             yield self.sanitize_input(val)
 
