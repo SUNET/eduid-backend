@@ -1,4 +1,38 @@
 var React = require('react');
 var ReactDOM = require('react-dom');
 
-ReactDOM.render(<h1>Hello React!</h1>, document.getElementById('root'));
+var TextEntry = React.createClass({
+  render: function () {
+    return (
+        <div className="text-entry">
+          <input type="text" name={this.props.name} />
+        </div>
+    );
+  }
+});
+
+var TextSelect = React.createClass({
+  render: function () {
+    return (
+        <div className="text-entry">
+          <select name={this.props.name}>
+          </select>
+        </div>
+    );
+  }
+});
+
+var PersonalData = React.createClass({
+  render: function () {
+    return (
+        <div id="personal-data-form">
+          <TextEntry name="firstName" />
+          <TextEntry name="lastName" />
+          <TextEntry name="displayName" />
+          <TextSelect name="language" />
+        </div>
+    );
+  }
+});
+
+ReactDOM.render(<PersonalData />, document.getElementById('root'));
