@@ -35,7 +35,7 @@ from __future__ import absolute_import
 
 from eduid_webapp.personal_data.app import pd_init_app
 
-name = 'personal_data'
+name = 'personal-data'
 app = pd_init_app(name, {})
 
 if __name__ == '__main__':

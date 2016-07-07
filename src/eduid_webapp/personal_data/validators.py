@@ -31,40 +31,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from __future__ import absolute_import
-
-from flask import json
-from flask import Blueprint, current_app, request, abort
-
-from eduid_userdb.exceptions import UserOutOfSync
-from eduid_common.api.decorators import require_user
-from eduid_webapp.personal_data.schemas import PersonalDataSchema
-
-pd_views = Blueprint('', __name__, url_prefix='')
+from marshmallow import ValidationError
+from flask import current_app
 
 
-@pd_views.route('/available-languages', methods=['GET'])
-def available_languages():
-    langs = current_app.config.get('AVAILABLE_LANGUAGES')
-    return json.jsonify(langs)
-
-
-@pd_views.route('/user', methods=['GET', 'POST'])
-@require_user
-def user(user):
-    if request.method == 'POST':
-        schema = PersonalDataSchema().load(request.form)
-        if not schema.errors:
-            user.given_name = schema.data['given_name']
-            user.surname = schema.data['surname']
-            user.display_name = schema.data['display_name']
-            user.language = schema.data['language']
-            try:
-                current_app.dashboard_userdb.save(user, old_format=False)
-            except UserOutOfSync:
-                abort(400, 'user out of sync')
-        return schema.errors
-    elif reques.method == 'GET':
-        return PersonalDataSchema().dumps(user)
-
-
+def validate_language(lang):
+    available_langs = current_app.config.get('AVAILABLE_LANGUAGES')
+    if lang not in available_langs:
+        raise ValidationError('Language {!r} is not available'.format(lang))
