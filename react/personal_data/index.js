@@ -26,9 +26,9 @@ var PersonalData = React.createClass({
   render: function () {
     return (
         <div id="personal-data-form">
-          <TextEntry name="firstName" />
-          <TextEntry name="lastName" />
-          <TextEntry name="displayName" />
+          <TextEntry name="given_name" />
+          <TextEntry name="surname" />
+          <TextEntry name="display_name" />
           <TextSelect name="language" />
         </div>
     );
