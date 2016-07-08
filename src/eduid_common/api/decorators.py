@@ -5,6 +5,7 @@ from __future__ import absolute_import
 from functools import wraps
 from flask import session, abort, current_app
 from eduid_userdb.exceptions import UserDoesNotExist, MultipleUsersReturned
+from eduid_common.api.utils import retrieve_modified_ts
 from eduid_common.api.exceptions import ApiException
 
 __author__ = 'lundberg'
@@ -24,25 +25,39 @@ def require_eppn(f):
     return decorated_function
 
 
+def _get_user():
+    eppn = session.get('user_eppn', None)
+    if not eppn:
+        raise ApiException('Not authorized', status_code=401)
+    # Get user from central database
+    try:
+        return current_app.central_userdb.get_user_by_eppn(eppn, raise_on_missing=True)
+    except UserDoesNotExist as e:
+        current_app.logger.error('Could not find user central database.')
+        current_app.logger.error(e)
+        raise ApiException('Not authorized', status_code=401)
+    except MultipleUsersReturned as e:
+        current_app.logger.error('Found multiple users in central database.')
+        current_app.logger.error(e)
+        raise ApiException('Not authorized', status_code=401)
+
+
 def require_user(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        eppn = session.get('user_eppn', None)
-        if not eppn:
-            raise ApiException('Not authorized', status_code=401)
-        # Get user from central database
-        try:
-            user = current_app.central_userdb.get_user_by_eppn(eppn, raise_on_missing=True)
-            kwargs['user'] = user
-            return f(*args, **kwargs)
-        except UserDoesNotExist as e:
-            current_app.logger.error('Could not find user central database.')
-            current_app.logger.error(e)
-            raise ApiException('Not authorized', status_code=401)
-        except MultipleUsersReturned as e:
-            current_app.logger.error('Found multiple users in central database.')
-            current_app.logger.error(e)
-            raise ApiException('Not authorized', status_code=401)
+        user = _get_user()
+        kwargs['user'] = user
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+def require_dashboard_user(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        user = _get_user()
+        retrieve_modified_ts(user, current_app.dashboard_userdb)
+        kwargs['user'] = user
+        return f(*args, **kwargs)
     return decorated_function
 
 
