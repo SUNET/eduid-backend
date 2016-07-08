@@ -37,7 +37,8 @@ from flask import json
 from flask import Blueprint, current_app, request, abort
 
 from eduid_userdb.exceptions import UserOutOfSync
-from eduid_common.api.decorators import require_user
+from eduid_common.api.decorators import require_dashboard_user
+from eduid_common.api.utils import save_dashboard_user
 from eduid_webapp.personal_data.schemas import PersonalDataSchema
 
 pd_views = Blueprint('', __name__, url_prefix='')
@@ -50,7 +51,7 @@ def available_languages():
 
 
 @pd_views.route('/user', methods=['GET', 'POST'])
-@require_user
+@require_dashboard_user
 def user(user):
     if request.method == 'POST':
         schema = PersonalDataSchema().load(request.form)
@@ -60,11 +61,10 @@ def user(user):
             user.display_name = schema.data['display_name']
             user.language = schema.data['language']
             try:
-                current_app.dashboard_userdb.save(user, old_format=False)
+                save_dashboard_user(user)
             except UserOutOfSync:
                 abort(400, 'user out of sync')
-        return schema.errors
-    elif reques.method == 'GET':
-        return PersonalDataSchema().dumps(user)
-
-
+        return json.jsonify(schema.errors)
+    elif request.method == 'GET':
+        schema = PersonalDataSchema().dump(user)
+        return json.jsonify(schema.data)
