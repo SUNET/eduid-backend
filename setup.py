@@ -7,6 +7,7 @@ version = '0.1.2b3'
 
 requires = [
     'eduid-common[webapp]>=0.2.1b9',
+    'eduid_am >= 0.6.0',
     'Flask==0.10.1',
 ]
 
