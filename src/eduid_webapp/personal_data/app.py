@@ -34,6 +34,7 @@
 from __future__ import absolute_import
 
 from eduid_common.api.app import eduid_init_app
+from eduid_webapp.amrelay import AmRelay
 from eduid_userdb.dashboard import DashboardUserDB
 from flask import url_for
 
@@ -67,8 +68,10 @@ def pd_init_app(name, config):
     app = eduid_init_app(name, config)
     app.config.update(config)
 
-    from eduid_webapp.personal_data.views import support_views
+    from eduid_webapp.personal_data.views import pd_views
     app.register_blueprint(pd_views)
+
+    app.amrelay = AmRelay(app.config)
 
     app.dashboard_userdb = DashboardUserDB(app.config['MONGO_URI'])
 
