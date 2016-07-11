@@ -18,8 +18,6 @@ install_requires = [
     'python-dateutil>=2.1',
     'celery>=3.1.17, < 3.2.0',
     'simplejson>=3.6.5',
-    'kombu>=3.0.26',
-    'billiard>=3.3.0.20',
 ]
 
 testing_extras = [
