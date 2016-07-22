@@ -172,6 +172,9 @@ The development environment has a few pieces:
    ``react/src/test.webpack.js`` that acts as entry point for all tests for the
    runner.
 
+Bootstrap. We can use Bootstrap components from react, see
+`here <https://react-bootstrap.github.io/components.html>`_.
+
 The react components are kept in ``react/components``, and are used (inserted
 in the DOM) by scripts kept in ``react/src`` (e.g., ``personal-data.js``.)
 
@@ -207,7 +210,9 @@ css
 Custom css is managed with sass and webpack. There is a ``src/variables.scss``
 file to hold common settings. To add style to some component, we have to add an
 scss file to ``src/components/, import from it the ``variables.scss`` file,
-and then import in out js(x) component the new scss file.
+and then import in our js(x) component the new scss file. Our components (top
+level) also have to import the bootstrap.css from it's location under
+``node_modules``.
 
 Docker
 ------
