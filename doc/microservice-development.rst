@@ -204,7 +204,10 @@ An example of an internationalized formatted message::
 css
 ...
 
-
+Custom css is managed with sass and webpack. There is a ``src/variables.scss``
+file to hold common settings. To add style to some component, we have to add an
+scss file to ``src/components/, import from it the ``variables.scss`` file,
+and then import in out js(x) component the new scss file.
 
 Docker
 ------
