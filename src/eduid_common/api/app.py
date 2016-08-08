@@ -91,6 +91,10 @@ def eduid_init_app(name, config, app_class=AuthnApp):
     # Load optional init time settings
     app.config.update(config)
 
+    # Register JS config Blueprint for all apps
+    from eduid_common.api.js_config import config_views
+    app.register_blueprint(config_views)
+
     # Initialize shared features
     app = init_logging(app)
     app = init_exception_handlers(app)
