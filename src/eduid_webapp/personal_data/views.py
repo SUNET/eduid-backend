@@ -41,7 +41,7 @@ from eduid_common.api.decorators import require_dashboard_user
 from eduid_common.api.utils import save_dashboard_user
 from eduid_webapp.personal_data.schemas import PersonalDataSchema
 
-pd_views = Blueprint('', __name__, url_prefix='')
+pd_views = Blueprint('personal_data', __name__, url_prefix='')
 
 
 @pd_views.route('/available-languages', methods=['GET'])
