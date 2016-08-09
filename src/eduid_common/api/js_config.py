@@ -37,11 +37,11 @@ from flask import json
 from flask import Blueprint, current_app
 
 
-config_views = Blueprint('', __name__, url_prefix='')
+config_views = Blueprint('config', __name__, url_prefix='')
 
 
 @config_views.route('/config', methods=['GET'])
 def config():
     lang_dict = current_app.config.get('AVAILABLE_LANGUAGES')
-    data = {'available-languages': list(lang_dict.items())}
+    data = {'available_languages': list(lang_dict.items())}
     return json.jsonify(data)
