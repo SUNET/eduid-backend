@@ -178,13 +178,18 @@ Bootstrap. We can use Bootstrap components from react, see
 `here <https://react-bootstrap.github.io/components.html>`_.
 
 The react components are kept in ``react/components``, and are used (inserted
-in the DOM) by scripts kept in ``react/src`` (e.g., ``personal-data.js``.)
+in the DOM) by scripts kept in ``react/src/entry-points/``
+(e.g., ``personal-data.js``.) These are served by html.eduid.docker under
+`/static/build/`.
+
+i18n
+....
 
 For the internalization of the react apps we use react-intl and
 babel-plugin-react-intl, that hooks message extraction with the webpack build
-process. The messages are stored in ``react/i18n-messages``, and the translations
-are stored in ``react/l10n/<lang>.js``. Unfortunately this framework does not
-follow the gettext standard, and thus could not be used with transifex.
+process. The messages are stored in ``react/i18n``, and the translations
+are stored in ``react/i18n/l10n/<lang>.js``. Unfortunately this framework does not
+follow the gettext standard, and thus cannot be used with transifex.
 
 An example of an internationalized formatted message::
 
@@ -215,6 +220,16 @@ scss file to ``src/components/, import from it the ``variables.scss`` file,
 and then import in our js(x) component the new scss file. Our components (top
 level) also have to import the bootstrap.css from it's location under
 ``node_modules``.
+
+configuration
+.............
+
+TODO
+
+Development of a component
+..........................
+
+TODO
 
 Communication between front and back
 ------------------------------------
