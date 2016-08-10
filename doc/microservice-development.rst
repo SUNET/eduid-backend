@@ -172,6 +172,8 @@ The development environment has a few pieces:
    ``react/src/test.webpack.js`` that acts as entry point for all tests for the
    runner.
 
+ * We use redux to manage state centrally on the front app.
+
 Bootstrap. We can use Bootstrap components from react, see
 `here <https://react-bootstrap.github.io/components.html>`_.
 
@@ -213,6 +215,24 @@ scss file to ``src/components/, import from it the ``variables.scss`` file,
 and then import in our js(x) component the new scss file. Our components (top
 level) also have to import the bootstrap.css from it's location under
 ``node_modules``.
+
+Communication between front and back
+------------------------------------
+
+Data sent from server to the browser is json with the format of redux actions,
+as described in `this proposed standard
+<https://github.com/acdlite/flux-standard-action>`_. Basically, a message has
+a schema:
+
+ * `type` (required) a string identyfying the action.
+ * `payload` (optional) a structure with arbitrary data.
+ * `error` (optional) a structure with arbitrary error data.
+
+Available actions are located at `eduid-html/react/src/actions/`.
+
+Data sent from the browserto the server is in the form of
+`application/x-www-form-urlencoded` data.
+
 
 Docker
 ------
