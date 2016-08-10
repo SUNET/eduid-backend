@@ -44,4 +44,7 @@ config_views = Blueprint('config', __name__, url_prefix='')
 def config():
     lang_dict = current_app.config.get('AVAILABLE_LANGUAGES')
     data = {'available_languages': list(lang_dict.items())}
-    return json.jsonify(data)
+    return json.jsonify({
+        'type': 'GET_CONFIG_SUCCESS',
+        'payload': data
+        })
