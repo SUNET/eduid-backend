@@ -67,4 +67,7 @@ def user(user):
         return json.jsonify(schema.errors)
     elif request.method == 'GET':
         schema = PersonalDataSchema().dump(user)
-        return json.jsonify(schema.data)
+        return json.jsonify({
+                'type': 'GET_USERDATA_SUCCESS',
+                'payload': schema.data,
+                })
