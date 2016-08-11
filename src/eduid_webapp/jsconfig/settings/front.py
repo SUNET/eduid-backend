@@ -39,4 +39,6 @@ jsconfig = {
         ['sv', 'Svenska'],
     ],
 
+    'PERSONAL_DATA_URL': '/personal-data/user',
+
 }
