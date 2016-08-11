@@ -49,7 +49,14 @@ for this is implemented in ``eduid-common.config.parsers``.
 Defaults for the configuration parameters common to all apps are kept in
 ``eduid_webapp.settings.common``. Overrides of these settings for specific apps,
 and defaults for settings  that are specific for each app, are kept in a Python
-module (for each app), at ``eduid_webapp.<some_app>.settings.common``.
+module (for each app), at ``eduid_webapp.<some_app>.settings.common``. And
+the changes to these default settings particular to a deployment of the app,
+are kept in etcd, in `eduid-developer/etcd/conf.yaml`.
+
+When new settings are added to etcd, we must run a script to load them::
+
+  $ cd eduid-developer/etcd
+  $ python etcd_config_bootstrap.py -v --host etcd.eduid.docker
 
 **Logging**
 
@@ -130,6 +137,79 @@ In the session there is a key ``user_eppn`` with the eppn of the logged in user.
 If we need the logged in user in some view, we use the ``require_dashboard_user``
 decorator from ``eduid_common.api.decorators``, that provides a ``user`` argument
 to the decorated view.
+
+Creating a new microservice
+...........................
+
+We'll use the creation of a service to provide the js front-end apps with
+configuration parameters, which we'll call `jsconfig`.
+
+**Docker image**
+
+In eduid-dockerfiles, create a new directory with a Dockerfile and a `start.sh`
+script. The Dockerfile is in principle identical as in other services, e.g.
+`personal-data`, and the `start.sh` script, which is just in charge of running
+gunicorn, is also almos identical to that of other services, needing to change
+just a couple of places where the name of the service appears.
+
+**Docker environment**
+
+The docker environment is created with docker-compose, and is configured in
+`eduid-developer`. To add a new container based on the Dockerfile created above,
+we need to add a new entry in `eduid/compose.yml`. Just copy the entry for
+another ms, such as personal data, and change the image, the hostname, and the
+ipv4_address (add a new one).
+
+We also need a new directory in `eduid-developer`, named `eduid-jsconfig/`,
+that will hold the exposed logs, configuration, and pid file.
+
+Also, we need to add the new service to the DNS, in the script
+`eduid-developer/start.sh`.
+
+**Flask app**
+
+Let's now develop the flask app that will be in charge of the service. First
+we create a new subpackage in `eduid-webapp/src/eduid_webapp/`, which we call
+`jsconfig`, and add an `__init__.py` file.
+
+Then create a `settings` subpackage within the one created in the previous
+paragraph, and within it, a `common.py` module with all settings needed
+for the app. This module will hold the default settings. To change these
+settings, we have to tell the etcd config server, adding the settings in
+the `eduid-developer/eduid/conf.yml`.
+
+Then create a `views.py` module with a flask blueprint and views.
+
+Then we create an `app.py` module where we configure the application with all
+the utilities it may need: database connections, etc. We can copy the `app`
+module from an existing service and adapt it, for example `personal_data`.
+Also the blueprint developed in `views.py` is registered here.
+
+Finally, we create a `run.py` module that will run the app. This file is
+referenced in the `start.sh` script we added to the docker image, as the wsgi
+script to be run by gunicorn.
+
+**Serve from nginx**
+
+Configure nginx to act as reverse proxy for the service, adding a `location`
+entry in `eduid-developer/eduid-html/etc/html.conf`.
+
+**Starting the service**
+
+The first time we run the service we need to create the docker image::
+
+  $ cd eduid-dockerfiles/eduid-jsconfig
+  $ docker build -t docker.sunet.se/eduid/eduid-jsconfig .
+
+Then we start the whole environment::
+
+  $ cd eduid-developer
+  $ ./start.sh
+
+Or just the new service::
+
+  $ docker-compose -f eduid/compose.yml start jsconfig
+
 
 Development of front end applications
 -------------------------------------
