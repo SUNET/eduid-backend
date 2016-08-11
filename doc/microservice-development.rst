@@ -304,7 +304,13 @@ level) also have to import the bootstrap.css from it's location under
 configuration
 .............
 
-TODO
+To add a new configuration parameter for the react apps, it has to be added in
+2 different places.
+
+ * The default setting is set in Python format, in
+   `eduid_webapp.jsconfig.settings.front`
+ * This default can be overriden with a setting for etcd, added in the file
+   `eduid-developer/etcd/conf.yaml`, under the key `/eduid/webapp/jsapps`.
 
 Development of a component
 ..........................
