@@ -44,17 +44,12 @@ from eduid_webapp.personal_data.schemas import PersonalDataSchema
 pd_views = Blueprint('personal_data', __name__, url_prefix='')
 
 
-@pd_views.route('/available-languages', methods=['GET'])
-def available_languages():
-    langs = current_app.config.get('AVAILABLE_LANGUAGES')
-    return json.jsonify(langs)
-
-
 @pd_views.route('/user', methods=['GET', 'POST'])
 @require_dashboard_user
 def user(user):
     if request.method == 'POST':
-        schema = PersonalDataSchema().load(request.form)
+        data = json.loads(request.get_data())
+        schema = PersonalDataSchema().load(data)
         if not schema.errors:
             user.given_name = schema.data['given_name']
             user.surname = schema.data['surname']
@@ -63,8 +58,17 @@ def user(user):
             try:
                 save_dashboard_user(user)
             except UserOutOfSync:
-                abort(400, 'user out of sync')
-        return json.jsonify(schema.errors)
+                return json.jsonify({
+                    'type': 'POST_USERDATA_FAIL',
+                    'error': {'form': 'user-out-of-sync'},
+                    })
+            return json.jsonify({
+                'type': 'POST_USERDATA_SUCCESS',
+                })
+        return json.jsonify({
+            'type': 'POST_USERDATA_FAIL',
+            'error': schema.errors,
+            })
     elif request.method == 'GET':
         schema = PersonalDataSchema().dump(user)
         return json.jsonify({
