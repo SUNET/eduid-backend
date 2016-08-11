@@ -34,22 +34,24 @@
 from __future__ import absolute_import
 
 from flask import json
-from flask import Blueprint, current_app, request, abort
+from flask import Blueprint, current_app
 
-from eduid_userdb.exceptions import UserOutOfSync
-from eduid_common.api.decorators import require_dashboard_user
-from eduid_common.api.utils import save_dashboard_user
-from eduid_webapp.personal_data.schemas import PersonalDataSchema
+from eduid_common.config.parsers.etcd import EtcdConfigParser
+from eduid_webapp.jsconfig.settings.front import jsconfig
+
 
 jsconfig_views = Blueprint('jsconfig', __name__, url_prefix='')
 
 
 @jsconfig_views.route('/get-config', methods=['GET'])
 def get_config():
-    data = {
-        'available_languages': current_app.config.get('AVAILABLE_LANGUAGES'),
-        }
+
+    parser = EtcdConfigParser('/eduid/webapp/jsapps/')
+    config = parser.read_configuration(silent=True)
+
+    jsconfig.update(config)
+
     return json.jsonify({
             'type': 'GET_CONFIG_SUCCESS',
-            'payload': data,
+            'payload': jsconfig,
             })
