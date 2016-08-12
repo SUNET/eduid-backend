@@ -64,6 +64,7 @@ def user(user):
                     })
             return json.jsonify({
                 'type': 'POST_USERDATA_SUCCESS',
+                'payload': schema.data,
                 })
         return json.jsonify({
             'type': 'POST_USERDATA_FAIL',
