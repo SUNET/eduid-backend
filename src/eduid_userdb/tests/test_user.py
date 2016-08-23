@@ -98,6 +98,7 @@ class TestUser(TestCase):
         data = self.data1
         data['postalAddress'] = {'foo': 'bar'}
         data['date'] = 'anything'
+        data['csrf'] = 'long and secret string'
         user = User(data)
         self.assertEqual(self.user1._data, user._data)
 
