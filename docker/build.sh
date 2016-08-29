@@ -18,6 +18,7 @@ echo "#############################################################"
 #/opt/eduid/bin/pip install -i https://pypi.nordu.net/simple/ eduid-api-amp
 /opt/eduid/bin/pip install --pre -i ${PYPI} eduid-signup-amp
 /opt/eduid/bin/pip install --pre -i ${PYPI} eduid-dashboard-amp
+/opt/eduid/bin/pip install --pre -i ${PYPI} eduid-proofing-amp
 /opt/eduid/bin/pip install --pre -i ${PYPI} eduid_action.tou
 
 /opt/eduid/bin/pip freeze
