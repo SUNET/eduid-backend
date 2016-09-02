@@ -9,6 +9,8 @@ from operator import itemgetter
 import requests
 import qrcode
 import qrcode.image.svg
+from eduid_userdb.proofing import ProofingUser
+from eduid_userdb.nin import Nin
 from eduid_common.api.utils import get_unique_hash, StringIO
 from eduid_common.api.decorators import require_eppn
 from eduid_common.api.exceptions import ApiException
@@ -48,12 +50,14 @@ def authorization_response():
         raise ApiException(payload={'error': msg})
     current_app.logger.debug('Proofing state {!s} for user {!s} found'.format(proofing_state.state,
                                                                               proofing_state.eppn))
+    # TODO: We should save the auth response code to the proofing state to be able to continue a failed attempt
     # do token request
     args = {
         'code': authn_resp['code'],
         'redirect_uri': url_for('oidc_proofing.authorization_response', _external=True)
     }
     current_app.logger.debug('Trying to do token request: {!s}'.format(args))
+    # TODO: What and where should be save from the token response
     token_resp = current_app.oidc_client.do_access_token_request(scope='openid', state=authn_resp['state'],
                                                                  request_args=args,
                                                                  authn_method='client_secret_basic')
@@ -65,6 +69,7 @@ def authorization_response():
 
     # do userinfo request
     current_app.logger.debug('Trying to do userinfo request:')
+    # TODO: Do we need to save anything else from the userinfo response
     userinfo = current_app.oidc_client.do_user_info_request(method=current_app.config['USERINFO_ENDPOINT_METHOD'],
                                                             state=authn_resp['state'])
     current_app.logger.debug('userinfo received: {!s}'.format(userinfo))
@@ -73,8 +78,26 @@ def authorization_response():
             proofing_state.eppn))
         raise ApiException(payload={'The \'sub\' of userinfo does not match \'sub\' of ID Token'})
 
-    # TODO: Using id_token, access_token and userinfo create Proof and
-    # TODO: hand that over to the Proofing Consumer service
+    # TODO: Check nin validity/format
+    nin = userinfo['identity']
+    # TODO: Break out in parts to be able to continue the proofing process after a successful authorization response
+    # TODO: even if the token request, userinfo request or something internal fails
+    am_user = current_app.central_userdb.get_user_by_eppn(proofing_state.eppn)
+    user = ProofingUser(data=am_user.to_dict())
+    nin = Nin(number=nin, application='eduid_oidc_proofing', verified=True)
+    # Save user to private db
+    user.nins.add(nin)
+    # User from central db is as up to date as it can be no need to check for modified time
+    current_app.proofing_userdb.save(user, check_sync=False)
+    try:
+        current_app.logger.info('Request sync for user {!s}'.format(user))
+        result = current_app.am_relay.request_sync(user)
+        current_app.logger.info('Sync result for user {!s}: {!s}'.format(user, result))
+    except Exception as e:
+        current_app.logger.error('Sync request failed for user {!s}'.format(user))
+        current_app.logger.error('Exception: {!s}'.format(e))
+        # TODO: Need to able to retry this
+        return make_response('OK', 200)
 
     # TODO: Remove saving of proof
     # Save proof for demo purposes

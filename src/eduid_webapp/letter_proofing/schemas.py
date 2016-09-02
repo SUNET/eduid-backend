@@ -38,5 +38,6 @@ class GetStateResponseSchema(BaseResponseSchema):
 class VerifyCodeResponseSchema(BaseResponseSchema):
 
     success = fields.Boolean(required=True)
+    message = fields.String(required=False)
 
 # End output validation

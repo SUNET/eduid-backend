@@ -45,8 +45,9 @@ class AppTests(EduidAPITestCase):
         config.update({
             'EKOPOST_DEBUG_PDF': devnull,
             'LETTER_WAIT_TIME_HOURS': 336,
+            'MSG_BROKER_URL': 'amqp://dummy',
+            'AM_BROKER_URL': 'amqp://dummy',
             'CELERY_CONFIG': {
-                'BROKER_URL': 'amqp://dummy',
                 'CELERY_RESULT_BACKEND': 'amqp',
                 'CELERY_TASK_SERIALIZER': 'json'
             },
@@ -66,7 +67,7 @@ class AppTests(EduidAPITestCase):
         self.assertEqual(response.status_code, 200)
         return json.loads(response.data)
 
-    @patch('eduid_webapp.letter_proofing.views.get_postal_address')
+    @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
     def send_letter(self, nin, mock_get_postal_address):
         mock_get_postal_address.return_value = self.mock_address
         data = {'nin': nin}
@@ -75,7 +76,9 @@ class AppTests(EduidAPITestCase):
         self.assertEqual(response.status_code, 200)
         return json.loads(response.data)
 
-    def verify_code(self, code):
+    @patch('eduid_common.api.am.AmRelay.request_sync')
+    def verify_code(self, code, mock_request_sync):
+        mock_request_sync.return_value = True
         data = {'verification_code': code}
         with self.session_cookie(self.client, self.test_user_eppn) as client:
             response = client.post('/verify-code', data=json.dumps(data), content_type=self._json)
