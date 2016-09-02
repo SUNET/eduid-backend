@@ -55,16 +55,17 @@ class AmRelay(object):
         try:
             rtask = update_attributes_keep_result.delay(self.relay_for, user_id)
             result = rtask.get(timeout=3)
-            current_app.logger.debug("Attribute Manager sync result: {!r}".format(result))
+            current_app.logger.debug("Attribute Manager sync result: {!r} for user {!s}".format(result, user))
             return result
         except Exception as e:
             current_app.logger.exception("Exception: {!s}".format(e))
-            current_app.logger.exception("Failed Attribute Manager sync request. trying again")
+            current_app.logger.exception(
+                "Failed Attribute Manager sync request for user {!s}. trying again".format(user))
             try:
                 rtask = update_attributes_keep_result.delay(self.relay_for, user_id)
                 result = rtask.get(timeout=7)
-                current_app.logger.debug("Attribute Manager sync result: {!r}".format(result))
+                current_app.logger.debug("Attribute Manager sync result: {!r} for user {!s}".format(result, user))
                 return result
             except Exception as e:
-                current_app.logger.exception("Failed Attribute Manager sync request retry")
+                current_app.logger.exception("Failed Attribute Manager sync request retry for user {!s}".format(user))
                 raise e
