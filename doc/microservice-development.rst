@@ -332,7 +332,7 @@ a schema:
 Available actions are located at `eduid-html/react/src/actions/`.
 
 Data sent from the browserto the server is in the form of
-`application/x-www-form-urlencoded` data.
+json data.
 
 
 Docker
