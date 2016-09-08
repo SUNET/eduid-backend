@@ -35,7 +35,7 @@ def init_letter_proofing_app(name, config=None):
 
     # Init celery
     app = msg.init_relay(app)
-    app = am.init_relay(app, 'eduid_letter_proofing', (ProofingUser,))
+    app = am.init_relay(app, 'eduid_letter_proofing')
 
     # Initiate external modules
     app.ekopost = Ekopost(app)

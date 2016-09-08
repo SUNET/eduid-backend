@@ -3,7 +3,7 @@ from __future__ import absolute_import
 
 from flask import request, url_for, make_response
 from flask import current_app, Blueprint
-from flask_apispec import marshal_with
+from flask_apispec import marshal_with, use_kwargs
 from oic.oic.message import AuthorizationResponse, ClaimsRequest, Claims
 from operator import itemgetter
 import requests
@@ -12,7 +12,7 @@ import qrcode.image.svg
 from eduid_userdb.proofing import ProofingUser
 from eduid_userdb.nin import Nin
 from eduid_common.api.utils import get_unique_hash, StringIO
-from eduid_common.api.decorators import require_eppn
+from eduid_common.api.decorators import require_user, require_eppn
 from eduid_common.api.exceptions import ApiException
 from eduid_userdb.proofing import OidcProofingState
 from eduid_webapp.oidc_proofing import schemas
@@ -47,7 +47,7 @@ def authorization_response():
     if not proofing_state:
         msg = 'The \'state\' parameter ({!s}) does not match a user state.'.format(user_oidc_state)
         current_app.logger.error(msg)
-        raise ApiException(payload={'error': msg})
+        return make_response('OK', 200)
     current_app.logger.debug('Proofing state {!s} for user {!s} found'.format(proofing_state.state,
                                                                               proofing_state.eppn))
     # TODO: We should save the auth response code to the proofing state to be able to continue a failed attempt
@@ -65,7 +65,7 @@ def authorization_response():
     id_token = token_resp['id_token']
     if id_token['nonce'] != proofing_state.nonce:
         current_app.logger.error('The \'nonce\' parameter does not match for user {!s}.'.format(proofing_state.eppn))
-        raise ApiException(payload={'error': 'The \'nonce\' parameter does not match match.'})
+        return make_response('OK', 200)
 
     # do userinfo request
     current_app.logger.debug('Trying to do userinfo request:')
@@ -76,22 +76,31 @@ def authorization_response():
     if userinfo['sub'] != id_token['sub']:
         current_app.logger.error('The \'sub\' of userinfo does not match \'sub\' of ID Token for user {!s}.'.format(
             proofing_state.eppn))
-        raise ApiException(payload={'The \'sub\' of userinfo does not match \'sub\' of ID Token'})
+        return make_response('OK', 200)
 
-    # TODO: Check nin validity/format
+    # TODO: Check nin against OidcProofingState
     nin = userinfo['identity']
     # TODO: Break out in parts to be able to continue the proofing process after a successful authorization response
     # TODO: even if the token request, userinfo request or something internal fails
     am_user = current_app.central_userdb.get_user_by_eppn(proofing_state.eppn)
     user = ProofingUser(data=am_user.to_dict())
     nin = Nin(number=nin, application='eduid_oidc_proofing', verified=True)
+
     # Save user to private db
+    if user.nins.primary is None:  # No primary NIN found, make the only verified NIN primary
+        nin.is_primary = True
     user.nins.add(nin)
+
     # User from central db is as up to date as it can be no need to check for modified time
+    user.modified_ts = True
+    # XXX: Send proofing data to some kind of proofing log
     current_app.proofing_userdb.save(user, check_sync=False)
+
+    # TODO: Need to decide where to "steal" NIN if multiple users have the NIN verified
+    # Ask am to sync user to central db
     try:
         current_app.logger.info('Request sync for user {!s}'.format(user))
-        result = current_app.am_relay.request_sync(user)
+        result = current_app.am_relay.request_user_sync(user)
         current_app.logger.info('Sync result for user {!s}: {!s}'.format(user, result))
     except Exception as e:
         current_app.logger.error('Sync request failed for user {!s}'.format(user))
@@ -115,19 +124,27 @@ def authorization_response():
     return make_response('OK', 200)
 
 
-@oidc_proofing_views.route('/get-state', methods=['POST'])
+@oidc_proofing_views.route('/proofing', methods=['POST'])
+@use_kwargs(schemas.OidcProofingRequestSchema)
 @marshal_with(schemas.NonceResponseSchema)
-@require_eppn
-def get_state(eppn):
-    current_app.logger.debug('Getting state for user with eppn {!s}.'.format(eppn))
-    proofing_state = current_app.proofing_statedb.get_state_by_eppn(eppn, raise_on_missing=False)
+@require_user
+def proofing(user, **kwargs):
+    current_app.logger.debug('Getting state for user {!s}.'.format(user))
+
+    # TODO: Check if a user has a valid letter proofing
+    # For now a user can just have one verified NIN
+    if len(user.nins.to_list()) > 0:
+        raise ApiException('POST_OPENID_FAIL', 'User is already verified', status_code=200)
+
+    proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn, raise_on_missing=False)
     if not proofing_state:
-        current_app.logger.debug('No proofing state found, initializing new proofing flow.'.format(eppn))
+        current_app.logger.debug('No proofing state found for user {!}. Initializing new proofing flow.'.format(user))
         state = get_unique_hash()
         nonce = get_unique_hash()
-        proofing_state = OidcProofingState({'eduPersonPrincipalName': eppn, 'state': state, 'nonce': nonce})
+        # TODO: Read nin from kwargs and use in OidcProofingState
+        proofing_state = OidcProofingState({'eduPersonPrincipalName': user.eppn, 'state': state, 'nonce': nonce})
         # Initiate proofing
-        args = {
+        oidc_args = {
             'client_id': current_app.oidc_client.client_id,
             'response_type': 'code id_token token',
             'response_mode': 'query',
@@ -138,30 +155,33 @@ def get_state(eppn):
             'claims': ClaimsRequest(userinfo=Claims(identity=None)).to_json()
         }
         current_app.logger.debug('AuthenticationRequest args:')
-        current_app.logger.debug(args)
+        current_app.logger.debug(oidc_args)
         try:
-            response = requests.post(current_app.oidc_client.authorization_endpoint, data=args)
+            response = requests.post(current_app.oidc_client.authorization_endpoint, data=oidc_args)
         except requests.exceptions.ConnectionError as e:
             msg = 'No connection to authorization endpoint: {!s}'.format(e)
             current_app.logger.error(msg)
-            raise ApiException(payload={'error': msg})
+            raise ApiException('POST_OPENID_FAIL', payload={'message': msg})
         # If authentication request went well save user state
         if response.status_code == 200:
             current_app.logger.debug('Authentication request delivered to provider {!s}'.format(
                 current_app.config['PROVIDER_CONFIGURATION_INFO']['issuer']))
             current_app.proofing_statedb.save(proofing_state)
-            current_app.logger.debug('Proofing state {!s} for user {!s} saved'.format(proofing_state.state, eppn))
+            current_app.logger.debug('Proofing state {!s} for user {!s} saved'.format(proofing_state.state, user))
         else:
-            payload = {'error': response.reason, 'message': response.content}
-            raise ApiException(status_code=response.status_code, payload=payload)
+            payload = {'reason': response.reason, 'message': response.content}
+            raise ApiException('POST_OPENID_FAIL', status_code=response.status_code, payload=payload)
     # Return nonce and nonce as qr code
-    current_app.logger.debug('Returning nonce for user {!s}'.format(eppn))
+    current_app.logger.debug('Returning nonce for user {!s}'.format(user))
     buf = StringIO()
     qrcode.make(proofing_state.nonce).save(buf)
     qr_b64 = buf.getvalue().encode('base64')
     ret = {
-        'nonce': proofing_state.nonce,
-        'qr_img': '<img src="data:image/png;base64, {!s}"/>'.format(qr_b64),
+        'type': 'POST_OPENID_SUCCESS',
+        'payload': {
+            'nonce': proofing_state.nonce,
+            'qr_img': '<img src="data:image/png;base64, {!s}"/>'.format(qr_b64),
+        }
     }
     return ret
 

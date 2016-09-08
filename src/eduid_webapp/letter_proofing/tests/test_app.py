@@ -3,12 +3,15 @@
 from __future__ import absolute_import
 
 from os import devnull
+from copy import deepcopy
 import json
 from datetime import datetime
 from collections import OrderedDict
 from mock import patch
 from bson import ObjectId
 
+from eduid_userdb.data_samples import NEW_USER_EXAMPLE
+from eduid_userdb.user import User
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_webapp.letter_proofing.app import init_letter_proofing_app
 
@@ -33,6 +36,13 @@ class AppTests(EduidAPITestCase):
         ])
         self._json = 'application/json'
         self.client = self.app.test_client()
+
+        # Replace user with one without previous proofings
+        userdata = deepcopy(NEW_USER_EXAMPLE)
+        del userdata['nins']
+        user = User(data=userdata)
+        user.modified_ts = True
+        self.app.central_userdb.save(user, check_sync=False)
 
     def load_app(self, config):
         """
@@ -63,7 +73,7 @@ class AppTests(EduidAPITestCase):
     # Helper methods
     def get_state(self):
         with self.session_cookie(self.client, self.test_user_eppn) as client:
-            response = client.get('/get-state')
+            response = client.get('/proofing')
         self.assertEqual(response.status_code, 200)
         return json.loads(response.data)
 
@@ -72,13 +82,13 @@ class AppTests(EduidAPITestCase):
         mock_get_postal_address.return_value = self.mock_address
         data = {'nin': nin}
         with self.session_cookie(self.client, self.test_user_eppn) as client:
-            response = client.post('/send-letter', data=json.dumps(data), content_type=self._json)
+            response = client.post('/proofing', data=json.dumps(data), content_type=self._json)
         self.assertEqual(response.status_code, 200)
         return json.loads(response.data)
 
-    @patch('eduid_common.api.am.AmRelay.request_sync')
-    def verify_code(self, code, mock_request_sync):
-        mock_request_sync.return_value = True
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def verify_code(self, code, mock_request_user_sync):
+        mock_request_user_sync.return_value = True
         data = {'verification_code': code}
         with self.session_cookie(self.client, self.test_user_eppn) as client:
             response = client.post('/verify-code', data=json.dumps(data), content_type=self._json)
@@ -87,10 +97,10 @@ class AppTests(EduidAPITestCase):
     # End helper methods
 
     def test_authenticate(self):
-        response = self.client.get('/get-state')
+        response = self.client.get('/proofing')
         self.assertEqual(response.status_code, 302)  # Redirect to token service
         with self.session_cookie(self.client, self.test_user_eppn) as client:
-            response = client.get('/get-state')
+            response = client.get('/proofing')
         self.assertEqual(response.status_code, 200)  # Authenticated request
 
     def test_letter_not_sent_status(self):
@@ -99,7 +109,7 @@ class AppTests(EduidAPITestCase):
 
     def test_send_letter(self):
         json_data = self.send_letter(self.test_user_nin)
-        expires = json_data['letter_expires']
+        expires = json_data['payload']['letter_expires']
         expires = datetime.utcfromtimestamp(int(expires))
         self.assertIsInstance(expires, datetime)
         expires = expires.strftime('%Y-%m-%d')
@@ -108,8 +118,8 @@ class AppTests(EduidAPITestCase):
     def test_letter_sent_status(self):
         self.send_letter(self.test_user_nin)
         json_data = self.get_state()
-        self.assertIn('letter_sent', json_data)
-        expires = datetime.utcfromtimestamp(int(json_data['letter_expires']))
+        self.assertIn('letter_sent', json_data['payload'])
+        expires = datetime.utcfromtimestamp(int(json_data['payload']['letter_expires']))
         self.assertIsInstance(expires, datetime)
         expires = expires.strftime('%Y-%m-%d')
         self.assertIsInstance(expires, str)
@@ -121,12 +131,12 @@ class AppTests(EduidAPITestCase):
                 proofing_state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn,
                                                                              raise_on_missing=False)
         json_data = self.verify_code(proofing_state.nin.verification_code)
-        self.assertTrue(json_data['success'])
+        self.assertTrue(json_data['payload']['success'])
 
     def test_verify_letter_code_fail(self):
         self.send_letter(self.test_user_nin)
         json_data = self.verify_code('wrong code')
-        self.assertFalse(json_data['success'])
+        self.assertFalse(json_data['payload']['success'])
 
     def test_proofing_flow(self):
         self.get_state()
@@ -136,16 +146,16 @@ class AppTests(EduidAPITestCase):
             user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn, raise_on_missing=True)
             proofing_state = self.app.proofing_statedb.get_state_by_eppn(user.eppn, raise_on_missing=False)
         json_data = self.verify_code(proofing_state.nin.verification_code)
-        self.assertTrue(json_data['success'])
+        self.assertTrue(json_data['payload']['success'])
 
     def test_expire_proofing_state(self):
         self.send_letter(self.test_user_nin)
         json_data = self.get_state()
-        self.assertIn('letter_sent', json_data)
-        self.app.config.update({'LETTER_WAIT_TIME_HOURS': -1})
+        self.assertIn('letter_sent', json_data['payload'])
+        self.app.config.update({'LETTER_WAIT_TIME_HOURS': -24})
         json_data = self.get_state()
-        self.assertTrue(json_data['letter_expired'])
-        self.assertNotIn('letter_sent', json_data)
+        self.assertTrue(json_data['payload']['letter_expired'])
+        self.assertNotIn('letter_sent', json_data['payload'])
 
     def test_deprecated_proofing_state(self):
         deprecated_data = {
