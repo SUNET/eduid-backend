@@ -1,8 +1,17 @@
 # -*- coding: utf-8 -*-
 
 from marshmallow import Schema, fields
+from eduid_common.api.schemas.validators import validate_nin
 
 __author__ = 'lundberg'
+
+
+class ProofingRequestSchema(Schema):
+
+    class Meta:
+        strict = True
+
+    nin = fields.String(required=False, validate=validate_nin)
 
 
 class LetterProofingDataSchema(Schema):
