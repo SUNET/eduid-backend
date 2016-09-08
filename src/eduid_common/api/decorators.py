@@ -20,7 +20,7 @@ def require_eppn(f):
         if eppn:
             kwargs['eppn'] = eppn
             return f(*args, **kwargs)
-        raise ApiException('Not authorized', status_code=401)
+        raise ApiException(message='Not authorized', status_code=401)
     return decorated_function
 
 
@@ -29,7 +29,7 @@ def require_user(f):
     def decorated_function(*args, **kwargs):
         eppn = session.get('user_eppn', None)
         if not eppn:
-            raise ApiException('Not authorized', status_code=401)
+            raise ApiException(message='Not authorized', status_code=401)
         # Get user from central database
         try:
             user = current_app.central_userdb.get_user_by_eppn(eppn, raise_on_missing=True)
@@ -38,11 +38,11 @@ def require_user(f):
         except UserDoesNotExist as e:
             current_app.logger.error('Could not find user central database.')
             current_app.logger.error(e)
-            raise ApiException('Not authorized', status_code=401)
+            raise ApiException(message='Not authorized', status_code=401)
         except MultipleUsersReturned as e:
             current_app.logger.error('Found multiple users in central database.')
             current_app.logger.error(e)
-            raise ApiException('Not authorized', status_code=401)
+            raise ApiException(message='Not authorized', status_code=401)
     return decorated_function
 
 
