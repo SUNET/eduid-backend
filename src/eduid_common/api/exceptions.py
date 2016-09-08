@@ -8,28 +8,45 @@ __author__ = 'lundberg'
 class ApiException(Exception):
     status_code = 500
 
-    def __init__(self, message='ApiException', status_code=None, payload=None):
+    def __init__(self, flux_type='FAIL', message='ApiException', status_code=None, payload=None):
+        """
+        :param flux_type: Flux type
+        :param message: Error message
+        :param status_code: Http status code
+        :param payload: Data in dict structure
+
+        :type flux_type: str|unicode
+        :type message: str|unicode
+        :type status_code: int
+        :type payload: dict
+        """
         Exception.__init__(self)
+        self.flux_type = flux_type
         self.message = message
         if status_code is not None:
             self.status_code = status_code
         self.payload = payload
 
     def __repr__(self):
-        return u'ApiException(message={!s}, status_code={!s}, payload={!r})'.format(self.message, self.status_code,
-                                                                                    self.payload)
+        return u'ApiException {!s} (message={!s}, status_code={!s}, payload={!r})'.format(self.flux_type, self.message,
+                                                                                          self.status_code,
+                                                                                          self.payload)
 
     def __unicode__(self):
         return self.__str__()
 
     def __str__(self):
         if self.payload:
-            return u'{!s} {!s} {!r}'.format(self.status_code, self.message, self.payload)
-        return u'{!s} {!s}'.format(self.status_code, self.message)
+            return u'{!s} {!s} with message {!s} and payload {!r}'.format(self.status_code, self.flux_type,
+                                                                          self.message, self.payload)
+        return u'{!s} {!s} with message {!s}'.format(self.status_code, self.flux_type, self.message)
 
     def to_dict(self):
-        rv = dict(self.payload or ())
-        rv['message'] = self.message
+        rv = dict()
+        rv['type'] = self.flux_type
+        rv['error'] = True
+        rv['payload'] = dict(self.payload or ())
+        rv['payload']['message'] = self.message
         return rv
 
 
@@ -62,7 +79,8 @@ def init_exception_handlers(app):
         @webargs_flaskparser.error_handler
         def handle_webargs_exception(error):
             app.logger.error('ApiException {!s}'.format(error))
-            raise ApiException('Unprocessable Entity', error.status_code, error.messages)
+            # TODO: Get endpoint that raised exception
+            raise ApiException(message='Unprocessable Entity', status_code=error.status_code, payload=error.messages)
 
     return app
 
