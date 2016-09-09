@@ -21,7 +21,7 @@ def require_eppn(f):
         if eppn:
             kwargs['eppn'] = eppn
             return f(*args, **kwargs)
-        raise ApiException('Not authorized', status_code=401)
+        raise ApiException(message='Not authorized', status_code=401)
     return decorated_function
 
 
