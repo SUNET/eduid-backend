@@ -35,8 +35,9 @@ from bson import ObjectId
 from bson.errors import InvalidId
 
 from eduid_userdb.db import BaseDB
+from eduid_userdb.userdb import UserDB
 from eduid_userdb.exceptions import DocumentOutOfSync
-from . import LetterProofingState, OidcProofingState
+from eduid_userdb.proofing import LetterProofingState, OidcProofingState, ProofingUser
 
 import logging
 logger = logging.getLogger(__name__)
@@ -193,3 +194,27 @@ class OidcProofingStateDB(ProofingStateDB):
         state = self._get_document_by_attr('state', oidc_state, raise_on_missing)
         if state:
             return self.ProofingStateClass(state)
+
+
+class ProofingUserDB(UserDB):
+
+    UserClass = ProofingUser
+
+    def __init__(self, db_uri, db_name, collection='profiles'):
+        super(ProofingUserDB, self).__init__(db_uri, db_name, collection=collection)
+
+    def save(self, user, check_sync=True, old_format=True):
+        # XXX old_format default is set to True here
+        super(ProofingUserDB, self).save(user, check_sync=check_sync, old_format=old_format)
+
+
+class LetterProofingUserDB(ProofingUserDB):
+
+    def __init__(self, db_uri, db_name='eduid_idproofing_letter'):
+        ProofingUserDB.__init__(self, db_uri, db_name)
+
+
+class OidcProofingUserDB(ProofingUserDB):
+
+    def __init__(self, db_uri, db_name='eduid_oidc_proofing'):
+        ProofingUserDB.__init__(self, db_uri, db_name)
