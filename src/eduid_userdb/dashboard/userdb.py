@@ -47,10 +47,6 @@ class DashboardUserDB(UserDB):
     def __init__(self, db_uri, db_name='eduid_dashboard', collection='profiles'):
         super(DashboardUserDB, self).__init__(db_uri, db_name, collection=collection)
 
-    def save(self, user, check_sync=True, old_format=True):
-        # XXX old_format default is set to True here
-        super(DashboardUserDB, self).save(user, check_sync=check_sync, old_format=old_format)
-
 
 class DashboardOldUserDB(DashboardUserDB):
 
