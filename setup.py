@@ -7,7 +7,8 @@ version = '0.2.0b0'
 
 requires = [
     'eduid-common[webapp]>=0.2.1b12',
-    'Flask==0.10.1',
+    'eduid-am>=0.6.2b2',
+    'Flask>=0.10.1,<0.11',
 ]
 
 test_requires = [
@@ -16,9 +17,9 @@ test_requires = [
 ]
 
 testing_extras = test_requires + [
-    'nose==1.2.1',
-    'coverage==3.6',
-    'nosexcover==1.0.8',
+    'nose>=1.2.1',
+    'coverage>=3.6',
+    'nosexcover>=1.0.8',
 ]
 
 setup(
