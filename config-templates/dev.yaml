@@ -21,6 +21,9 @@ eduid:
             CELERY_CONFIG:
                 CELERY_RESULT_BACKEND: amqp
                 CELERY_TASK_SERIALIZER: json
+                # Avoid broken connections across firewall by disabling pool
+                # http://docs.celeryproject.org/en/latest/configuration.html#broker-pool-limit
+                BROKER_POOL_LIMIT: 0
         authn:
             SERVER_NAME: authn.eduid.docker:8080
             SECRET_KEY: supersecretkey

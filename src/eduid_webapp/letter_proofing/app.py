@@ -4,7 +4,7 @@ from __future__ import absolute_import
 
 from eduid_common.api.app import eduid_init_app
 from eduid_common.api import am, msg
-from eduid_userdb.proofing import LetterProofingStateDB, LetterProofingUserDB, ProofingUser
+from eduid_userdb.proofing import LetterProofingStateDB, LetterProofingUserDB
 from eduid_webapp.letter_proofing.ekopost import Ekopost
 
 __author__ = 'lundberg'
