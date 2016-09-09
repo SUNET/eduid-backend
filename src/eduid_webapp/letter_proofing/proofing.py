@@ -7,7 +7,6 @@ from datetime import datetime, timedelta
 
 from eduid_userdb.proofing import LetterProofingState
 from eduid_common.api.utils import get_short_hash
-from eduid_webapp.letter_proofing.schemas import SendLetterRequestSchema, VerifyCodeRequestSchema
 
 __author__ = 'lundberg'
 
@@ -16,45 +15,38 @@ def check_state(state):
     """
     :param state:  Users proofing state
     :type state:  LetterProofingState
-    :return: response
+    :return: payload
     :rtype: dict
     """
-    ret = dict()
     current_app.logger.info('Checking state for user with eppn {!s}'.format(state.eppn))
-    if not state.proofing_letter.is_sent:
-        current_app.logger.info('Letter is not sent for user with eppn {!s}'.format(state.eppn))
-        # User needs to accept sending a letter
-        ret.update({
-            'expected_fields': SendLetterRequestSchema().fields.keys()  # Do we want expected_fields?
-        })
-    elif state.proofing_letter.is_sent:
+    if state.proofing_letter.is_sent:
         current_app.logger.info('Letter is sent for user with eppn {!s}'.format(state.eppn))
         # Check how long ago the letter was sent
         sent_dt = state.proofing_letter.sent_ts
+        minutes_until_midnight = (24 - sent_dt.hour) * 60  # Give the user until midnight the day the code expires
         now = datetime.now(sent_dt.tzinfo)  # Use tz_info from timezone aware mongodb datetime
-        max_wait = timedelta(hours=current_app.config['LETTER_WAIT_TIME_HOURS'])
+        max_wait = timedelta(hours=current_app.config['LETTER_WAIT_TIME_HOURS'], minutes=minutes_until_midnight)
 
         time_since_sent = now - sent_dt
         if time_since_sent < max_wait:
             current_app.logger.info('User with eppn {!s} has to wait for letter to arrive.'.format(state.eppn))
             current_app.logger.info('Code expires: {!s}'.format(sent_dt + max_wait))
             # The user has to wait for the letter to arrive
-            ret.update({
+            return {
                 'letter_sent': sent_dt,
                 'letter_expires': sent_dt + max_wait,
-                'expected_fields': VerifyCodeRequestSchema().fields.keys(),  # Do we want expected_fields?
-            })
+            }
         else:
             # If the letter haven't reached the user within the allotted time
             # remove the previous proofing object and restart the proofing flow
             current_app.logger.info('Letter expired for user with eppn {!s}.'.format(state.eppn))
             current_app.proofing_statedb.remove_document({'eduPersonPrincipalName': state.eppn})
             current_app.logger.info('Removed {!s}'.format(state))
-            ret.update({
+            return {
                 'letter_expired': True,
-                'expected_fields': SendLetterRequestSchema().fields.keys(),  # Do we want expected_fields?
-            })
-    return ret
+            }
+    current_app.logger.info('Unfinished state for user with eppn {!s}'.format(state.eppn))
+    return {}
 
 
 def create_proofing_state(eppn, nin):

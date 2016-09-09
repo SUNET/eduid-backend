@@ -3,9 +3,9 @@
 from __future__ import absolute_import
 
 from eduid_common.api.app import eduid_init_app
-from eduid_userdb.proofing import LetterProofingStateDB
+from eduid_common.api import am, msg
+from eduid_userdb.proofing import LetterProofingStateDB, LetterProofingUserDB
 from eduid_webapp.letter_proofing.ekopost import Ekopost
-from eduid_webapp.letter_proofing.msg import init_celery
 
 __author__ = 'lundberg'
 
@@ -31,9 +31,11 @@ def init_letter_proofing_app(name, config=None):
 
     # Init dbs
     app.proofing_statedb = LetterProofingStateDB(app.config['MONGO_URI'])
+    app.proofing_userdb = LetterProofingUserDB(app.config['MONGO_URI'])
 
     # Init celery
-    init_celery(app)
+    app = msg.init_relay(app)
+    app = am.init_relay(app, 'eduid_letter_proofing')
 
     # Initiate external modules
     app.ekopost = Ekopost(app)

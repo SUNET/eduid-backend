@@ -60,7 +60,8 @@ def create_pdf(recipient, verification_code, created_timestamp, primary_mail_add
         name, care_of, address, misc_address, postal_code, city = format_address(recipient)
     except FormatException as e:
         current_app.logger.error('Postal address formatting failed: {!r}'.format(e))
-        raise ApiException('Postal address formatting failed', status_code=500, payload={'errors': ['{!r}'.format(e)]})
+        raise ApiException(message='Postal address formatting failed', status_code=500,
+                           payload={'errors': ['{!r}'.format(e)]})
 
     # Calculate the validity period of the verification
     # code that is to be shown in the letter.

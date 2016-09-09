@@ -3,14 +3,13 @@
 from setuptools import setup, find_packages
 import sys
 
-version = '0.1.2b3'
+version = '0.2.0b0'
 
 requires = [
-    'eduid_am >= 0.6.0',
-    'eduid-common[webapp]>=0.2.1b10',
-    'Flask==0.10.1',
+    'eduid-common[webapp]>=0.2.1b12',
+    'eduid-am>=0.6.2b2',
+    'Flask>=0.10.1,<0.11',
 ]
-
 
 test_requires = [
     'WebTest==2.0.18',
@@ -18,9 +17,9 @@ test_requires = [
 ]
 
 testing_extras = test_requires + [
-    'nose==1.2.1',
-    'coverage==3.6',
-    'nosexcover==1.0.8',
+    'nose>=1.2.1',
+    'coverage>=3.6',
+    'nosexcover>=1.0.8',
 ]
 
 setup(

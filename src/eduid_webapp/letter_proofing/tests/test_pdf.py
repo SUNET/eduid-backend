@@ -99,8 +99,9 @@ class CreatePDFTest(EduidAPITestCase):
     def update_config(self, config):
         config.update({
             'LETTER_WAIT_TIME_HOURS': 336,
+            'MSG_BROKER_URL': 'amqp://dummy',
+            'AM_BROKER_URL': 'amqp://dummy',
             'CELERY_CONFIG': {
-                'BROKER_URL': 'amqp://dummy',
                 'CELERY_RESULT_BACKEND': 'amqp',
                 'CELERY_TASK_SERIALIZER': 'json'
             },
