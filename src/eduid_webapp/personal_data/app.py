@@ -69,7 +69,7 @@ def pd_init_app(name, config):
     app.config.update(config)
 
     from eduid_webapp.personal_data.views import pd_views
-    app.register_blueprint(pd_views)
+    app.register_blueprint(pd_views, url_prefix=app.config.get('APPLICATION_ROOT', None))
 
     # XXX: Maybe we should extend eduid-dashboard or write a new amp to be able to narrow the
     # XXX: attributes that can be changed by a sync call

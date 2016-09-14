@@ -54,7 +54,7 @@ def oidc_proofing_init_app(name, config):
     app.config.update(config)
 
     from eduid_webapp.oidc_proofing.views import oidc_proofing_views
-    app.register_blueprint(oidc_proofing_views)
+    app.register_blueprint(oidc_proofing_views, url_prefix=app.config.get('APPLICATION_ROOT', '/'))
 
     # Init celery
     app = am.init_relay(app, 'eduid_oidc_proofing', (ProofingUser,))

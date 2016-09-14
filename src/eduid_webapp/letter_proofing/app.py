@@ -27,7 +27,7 @@ def init_letter_proofing_app(name, config=None):
 
     # Register views
     from eduid_webapp.letter_proofing.views import idproofing_letter_views
-    app.register_blueprint(idproofing_letter_views)
+    app.register_blueprint(idproofing_letter_views, url_prefix=app.config.get('APPLICATION_ROOT', None))
 
     # Init dbs
     app.proofing_statedb = LetterProofingStateDB(app.config['MONGO_URI'])

@@ -84,6 +84,15 @@ PERMANENT_SESSION_LIFETIME = 3600
 # the name of the logger
 LOGGER_NAME = 'eduid_webapp'
 
+# the name and port number of the server. Required for subdomain support (e.g.: 'myapp.dev:5000') Note that localhost
+# does not support subdomains so setting this to “localhost” does not help. Setting a SERVER_NAME also by default
+# enables URL generation without a request context but with an application context.
+SERVER_NAME = None
+
+# If the application does not occupy a whole domain or subdomain this can be set to the path where the application is
+# configured to live. This is for session cookie as path value. If domains are used, this should be None.
+APPLICATION_ROOT = None
+
 # the name and port number of the server. Required for subdomain support
 # (e.g.: 'myapp.dev:5000') Note that localhost does not support subdomains
 # so setting this to “localhost” does not help. Setting a SERVER_NAME also
