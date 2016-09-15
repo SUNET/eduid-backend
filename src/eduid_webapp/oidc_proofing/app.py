@@ -57,7 +57,7 @@ def oidc_proofing_init_app(name, config):
     app.register_blueprint(oidc_proofing_views, url_prefix=app.config.get('APPLICATION_ROOT', '/'))
 
     # Init celery
-    app = am.init_relay(app, 'eduid_oidc_proofing', (ProofingUser,))
+    app = am.init_relay(app, 'eduid_oidc_proofing')
 
     # Initialize the oidc_client after views to be able to set correct redirect_uris
     app.oidc_client = init_oidc_client(app)
