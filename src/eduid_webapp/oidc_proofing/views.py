@@ -149,7 +149,7 @@ def proofing(user, **kwargs):
             'response_type': 'code id_token token',
             'response_mode': 'query',
             'scope': ['openid'],
-            'redirect_uri': url_for('oidc_proofing.authorization_response', _external=True),
+            'redirect_uri': current_app.config['AUTHORIZATION_RESPONSE_URI'],
             'state': state,
             'nonce': nonce,
             'claims': ClaimsRequest(userinfo=Claims(identity=None)).to_json()
