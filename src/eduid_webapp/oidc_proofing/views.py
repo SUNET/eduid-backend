@@ -138,7 +138,7 @@ def proofing(user, **kwargs):
 
     proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn, raise_on_missing=False)
     if not proofing_state:
-        current_app.logger.debug('No proofing state found for user {!}. Initializing new proofing flow.'.format(user))
+        current_app.logger.debug('No proofing state found for user {!s}. Initializing new proofing flow.'.format(user))
         state = get_unique_hash()
         nonce = get_unique_hash()
         # TODO: Read nin from kwargs and use in OidcProofingState
