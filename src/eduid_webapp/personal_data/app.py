@@ -34,9 +34,9 @@
 from __future__ import absolute_import
 
 from eduid_common.api.app import eduid_init_app
-from eduid_webapp.amrelay import AmRelay
+from eduid_common.api import am
 from eduid_userdb.dashboard import DashboardUserDB
-from flask import url_for
+
 
 try:
     from urlparse import urljoin
@@ -69,9 +69,11 @@ def pd_init_app(name, config):
     app.config.update(config)
 
     from eduid_webapp.personal_data.views import pd_views
-    app.register_blueprint(pd_views)
+    app.register_blueprint(pd_views, url_prefix=app.config.get('APPLICATION_ROOT', None))
 
-    app.amrelay = AmRelay(app.config)
+    # XXX: Maybe we should extend eduid-dashboard or write a new amp to be able to narrow the
+    # XXX: attributes that can be changed by a sync call
+    app = am.init_relay(app, 'eduid_dashboard')
 
     app.dashboard_userdb = DashboardUserDB(app.config['MONGO_URI'])
 

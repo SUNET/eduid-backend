@@ -19,8 +19,9 @@ REDIS_PORT = 6379
 REDIS_DB = 0
 
 # Celery config
+AM_BROKER_URL = ''
+MSG_BROKER_URL = ''
 CELERY_CONFIG = {
-    'BROKER_URL': '',
     'CELERY_RESULT_BACKEND': 'amqp',
     'CELERY_TASK_SERIALIZER': 'json'
 }

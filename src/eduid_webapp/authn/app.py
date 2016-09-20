@@ -63,7 +63,7 @@ def authn_init_app(name, config):
     app.config['SAML2_CONFIG'] = app.saml2_config
 
     from eduid_webapp.authn.views import authn_views
-    app.register_blueprint(authn_views)
+    app.register_blueprint(authn_views, url_prefix=app.config.get('APPLICATION_ROOT', None))
 
     app.logger.info('Init {} app...'.format(name))
 

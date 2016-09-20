@@ -51,7 +51,7 @@ def support_init_app(name, config):
     app.config.update(config)
 
     from eduid_webapp.support.views import support_views
-    app.register_blueprint(support_views)
+    app.register_blueprint(support_views, url_prefix=app.config.get('APPLICATION_ROOT', None))
 
     app.support_user_db = db.SupportUserDB(app.config['MONGO_URI'])
     app.support_authn_db = db.SupportAuthnInfoDB(app.config['MONGO_URI'])

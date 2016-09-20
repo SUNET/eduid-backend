@@ -60,7 +60,7 @@ def jsconfig_init_app(name, config):
     app.config.update(config)
 
     from eduid_webapp.jsconfig.views import jsconfig_views
-    app.register_blueprint(jsconfig_views)
+    app.register_blueprint(jsconfig_views, url_prefix=app.config.get('APPLICATION_ROOT', None))
 
     app.logger.info('Init {} app...'.format(name))
 

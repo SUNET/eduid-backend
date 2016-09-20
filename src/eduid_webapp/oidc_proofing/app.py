@@ -8,7 +8,9 @@ from oic.oic.message import RegistrationRequest
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 
 from eduid_common.api.app import eduid_init_app
-from eduid_userdb.proofing import OidcProofingStateDB
+from eduid_common.api import am
+from eduid_userdb.proofing import OidcProofingStateDB, OidcProofingUserDB, ProofingUser
+
 from eduid_webapp.oidc_proofing.mock_proof import ProofDB
 
 __author__ = 'lundberg'
@@ -52,14 +54,18 @@ def oidc_proofing_init_app(name, config):
     app.config.update(config)
 
     from eduid_webapp.oidc_proofing.views import oidc_proofing_views
-    app.register_blueprint(oidc_proofing_views)
+    app.register_blueprint(oidc_proofing_views, url_prefix=app.config.get('APPLICATION_ROOT', '/'))
+
+    # Init celery
+    app = am.init_relay(app, 'eduid_oidc_proofing')
 
     # Initialize the oidc_client after views to be able to set correct redirect_uris
     app.oidc_client = init_oidc_client(app)
 
     # Initialize db
     app.proofing_statedb = OidcProofingStateDB(app.config['MONGO_URI'])
-    app.proofdb = ProofDB(app.config['MONGO_URI'])
+    app.proofing_userdb = OidcProofingUserDB(app.config['MONGO_URI'])
+    app.proofdb = ProofDB(app.config['MONGO_URI'])  # Temporary demo db
 
     return app
 
