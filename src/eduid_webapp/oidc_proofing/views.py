@@ -84,7 +84,7 @@ def authorization_response():
     # TODO: even if the token request, userinfo request or something internal fails
     am_user = current_app.central_userdb.get_user_by_eppn(proofing_state.eppn)
     user = ProofingUser(data=am_user.to_dict())
-    nin = Nin(number=nin, application='eduid_oidc_proofing', verified=True)
+    nin = Nin(number=nin, application='eduid_oidc_proofing', verified=True, primary=False)
 
     # Save user to private db
     if user.nins.primary is None:  # No primary NIN found, make the only verified NIN primary
