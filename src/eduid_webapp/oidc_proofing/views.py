@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
-from flask import request, url_for, make_response
+from flask import request, make_response
 from flask import current_app, Blueprint
 from flask_apispec import marshal_with, use_kwargs
 from oic.oic.message import AuthorizationResponse, ClaimsRequest, Claims
@@ -54,7 +54,7 @@ def authorization_response():
     # do token request
     args = {
         'code': authn_resp['code'],
-        'redirect_uri': url_for('oidc_proofing.authorization_response', _external=True)
+        'redirect_uri': current_app.config['AUTHORIZATION_RESPONSE_URI']
     }
     current_app.logger.debug('Trying to do token request: {!s}'.format(args))
     # TODO: What and where should be save from the token response
