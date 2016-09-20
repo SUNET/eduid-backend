@@ -317,6 +317,23 @@ Development of a component
 
 TODO
 
+Testing
+-------
+
+To run the tests, go to the `react/` directory  and run::
+
+  $ npm test
+
+If you want to debug the tests, you can insert a breackpoint in the js code
+with `debugger;`. Then you have to run::
+
+  $ npm run debug
+
+You will have then a browser's window open, with a DEBUG button on the upper
+right corner; click on it, and you will get a new tab in the browser. Open
+the  inspector in this new tab, reload the page, and the tests will be run
+until it hits a `debugger` where it will stop execution.
+
 Communication between front and back
 ------------------------------------
 
