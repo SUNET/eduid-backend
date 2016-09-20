@@ -146,8 +146,7 @@ def proofing(user, **kwargs):
         # Initiate proofing
         oidc_args = {
             'client_id': current_app.oidc_client.client_id,
-            'response_type': 'code id_token token',
-            'response_mode': 'query',
+            'response_type': 'code',
             'scope': ['openid'],
             'redirect_uri': current_app.config['AUTHORIZATION_RESPONSE_URI'],
             'state': state,
