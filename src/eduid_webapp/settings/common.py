@@ -152,6 +152,13 @@ JSON_AS_ASCII = False
 # X-Requested-With header)
 # JSONIFY_PRETTYPRINT_REGULAR
 
+# Whitelist of URLs that do not need authentication. Unauthenticated requests
+# for # these URLs will be served, rather than redirected to the authn service.
+# The list is a list of regex that are matched against the path of the
+# requested URL.
+NO_AUTHN_URLS = ['^/test$']
+
+
 
 # ================#
 #  mongodb config #
