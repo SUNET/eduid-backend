@@ -29,6 +29,7 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+import re
 import urlparse
 from urllib import urlencode
 
@@ -44,6 +45,14 @@ class AuthnApp(Flask):
     and in case it isn't, redirects to the authn service.
     """
     def __call__(self, environ, start_response):
+        next_url = get_current_url(environ)
+        next_path = list(urlparse.urlparse(next_url))[2]
+        whitelist = self.config.get('NO_AUTHN_URLS', [])
+        for regex in whitelist:
+            m = re.match(regex, next_path)
+            if m is not None:
+                return super(AuthnApp, self).__call__(environ, start_response)
+
         cookie = parse_cookie(environ)
         cookie_name = self.config.get('SESSION_COOKIE_NAME')
         if cookie and cookie_name in cookie:
@@ -56,7 +65,6 @@ class AuthnApp(Flask):
 
         ts_url = self.config.get('TOKEN_SERVICE_URL')
         ts_url = urlparse.urljoin(ts_url, 'login')
-        next_url = get_current_url(environ)
 
         params = {'next': next_url}
 
