@@ -186,7 +186,7 @@ def proofing(user, **kwargs):
 
 
 # TODO Remove after demo
-@oidc_proofing_views.route('/proofs', methods=['POST'])
+@oidc_proofing_views.route('/proofs', methods=['GET'])
 @marshal_with(schemas.ProofResponseSchema)
 @require_eppn
 def proofs(eppn):
