@@ -1,15 +1,18 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
+import requests
+import qrcode
+import qrcode.image.svg
+import json
+
 from flask import request, make_response
 from flask import current_app, Blueprint
 from flask_apispec import marshal_with, use_kwargs
 from oic.oic.message import AuthorizationResponse, ClaimsRequest, Claims
 from operator import itemgetter
-import requests
-import qrcode
-import qrcode.image.svg
-import json
+from marshmallow.exceptions import ValidationError
+
 from eduid_userdb.proofing import ProofingUser
 from eduid_userdb.nin import Nin
 from eduid_common.api.utils import get_unique_hash, StringIO
@@ -130,8 +133,9 @@ def authorization_response():
 @require_user
 def proofing(user):
     data = json.loads(request.get_data())
-    schema = schemas.OidcProofingRequestSchema().load(data)
-    if schema.errors:
+    try:
+        schema = schemas.OidcProofingRequestSchema().load(data)
+    except ValidationError:
         current_app.logger.error(schema.errors)
         raise ApiException('POST_OPENID_FAIL', payload={'error': schema.errors})
 
