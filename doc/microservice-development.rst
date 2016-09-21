@@ -275,7 +275,9 @@ Then we go to the react dir, and install all dependencies (for this we need
   $ cd eduid-html/react
   $ npm install
 
-We can now build the development bundle, or the production bundle::
+We can now build the development bundle, or the production bundle. The
+development bundle build procedure is continuous, the process stays on the
+foreground monitoring changes in the code and rebuilding::
 
   $ npm run build  # production build
   $ npm start  # development build
