@@ -79,7 +79,7 @@ providing connections for the local dbs needed by the microservice, in the form
 of proxies developed in ``eduid_userdb``.
 
 All manipulation of persistent data is made through the objects and db proxies
-developed ineduid_userdb.
+developed in eduid_userdb.
 
 run.py
 ......
@@ -149,7 +149,7 @@ configuration parameters, which we'll call `jsconfig`.
 In eduid-dockerfiles, create a new directory with a Dockerfile and a `start.sh`
 script. The Dockerfile is in principle identical as in other services, e.g.
 `personal-data`, and the `start.sh` script, which is just in charge of running
-gunicorn, is also almos identical to that of other services, needing to change
+gunicorn, is also almost identical to that of other services, needing to change
 just a couple of places where the name of the service appears.
 
 **Docker environment**
@@ -269,10 +269,14 @@ To get started developing js components, first is having the code::
 
   $ git clone git@github.com:SUNET/eduid-html.git
 
-Then we go to the react dir, and install all dependencies (for this we need
-`npm` in the system)::
+Download the build environment::
+
+  $ docker pull docker.sunet.se/eduid/debian-react:latest
+
+Then we go to the react dir, and install all dependencies::
 
   $ cd eduid-html/react
+  $ docker run --volume $PWD:/root/react -it docker.sunet.se/eduid/debian-react:latest
   $ npm install
 
 We can now build the development bundle, or the production bundle. The
