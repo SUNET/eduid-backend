@@ -9,6 +9,7 @@ from operator import itemgetter
 import requests
 import qrcode
 import qrcode.image.svg
+import json
 from eduid_userdb.proofing import ProofingUser
 from eduid_userdb.nin import Nin
 from eduid_common.api.utils import get_unique_hash, StringIO
@@ -125,10 +126,15 @@ def authorization_response():
 
 
 @oidc_proofing_views.route('/proofing', methods=['POST'])
-@use_kwargs(schemas.OidcProofingRequestSchema)
 @marshal_with(schemas.NonceResponseSchema)
 @require_user
-def proofing(user, **kwargs):
+def proofing(user):
+    data = json.loads(request.get_data())
+    schema = schemas.OidcProofingRequestSchema().load(data)
+    if schema.errors:
+        current_app.logger.error(schema.errors)
+        raise ApiException('POST_OPENID_FAIL', payload={'error': schema.errors})
+
     current_app.logger.debug('Getting state for user {!s}.'.format(user))
 
     # TODO: Check if a user has a valid letter proofing
@@ -141,7 +147,7 @@ def proofing(user, **kwargs):
         current_app.logger.debug('No proofing state found for user {!s}. Initializing new proofing flow.'.format(user))
         state = get_unique_hash()
         nonce = get_unique_hash()
-        # TODO: Read nin from kwargs and use in OidcProofingState
+        # TODO: Read nin from data and use in OidcProofingState
         proofing_state = OidcProofingState({'eduPersonPrincipalName': user.eppn, 'state': state, 'nonce': nonce})
         # Initiate proofing
         oidc_args = {
@@ -179,7 +185,7 @@ def proofing(user, **kwargs):
         'type': 'POST_OPENID_SUCCESS',
         'payload': {
             'nonce': proofing_state.nonce,
-            'qr_img': '<img src="data:image/png;base64, {!s}"/>'.format(qr_b64),
+            'qrcode': '<img src="data:image/png;base64, {!s}"/>'.format(qr_b64),
         }
     }
     return ret
