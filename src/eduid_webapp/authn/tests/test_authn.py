@@ -38,6 +38,7 @@ import base64
 from werkzeug.exceptions import NotFound
 from werkzeug.http import dump_cookie
 from flask import session
+from flask import Blueprint
 from saml2.s_utils import deflate_and_base64_encode
 
 from eduid_common.api.testing import EduidAPITestCase
@@ -282,6 +283,51 @@ class UnAuthnAPITestCase(EduidAPITestCase):
             cookie_name = self.app.config.get('SESSION_COOKIE_NAME')
             c.set_cookie('localhost', cookie_name, token)
             self.assertRaises(NotFound, c.get, '/')
+
+
+class NoAuthnAPITestCase(EduidAPITestCase):
+
+    def setUp(self):
+        super(NoAuthnAPITestCase, self).setUp()
+        test_views = Blueprint('testing', __name__)
+
+        @test_views.route('/test')
+        def test():
+            return 'OK'
+
+        self.app.register_blueprint(test_views)
+
+
+    def update_config(self, config):
+        """
+        Called from the parent class, so that we can update the configuration
+        according to the needs of this test case.
+        """
+        saml_config = os.path.join(HERE, 'saml2_settings.py')
+        config.update({
+            'TOKEN_SERVICE_URL': 'http://login',
+            'SAML2_SETTINGS_MODULE': saml_config,
+            'NO_AUTHN_URLS': ['^/test$'],
+            })
+        return config
+
+    def load_app(self, config):
+        """
+        Called from the parent class, so we can provide the appropriate flask
+        app for this test case.
+        """
+        return eduid_init_app('testing', config)
+
+    def test_no_authn(self):
+        with self.app.test_client() as c:
+            resp = c.get('/test')
+            self.assertEqual(resp.status_code, 200)
+
+    def test_authn(self):
+        with self.app.test_client() as c:
+            resp = c.get('/test2')
+            self.assertEqual(resp.status_code, 302)
+            self.assertTrue(resp.location.startswith(self.app.config['TOKEN_SERVICE_URL']))
 
 
 class LogoutRequestTests(AuthnAPITestBase):

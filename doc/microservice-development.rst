@@ -262,6 +262,47 @@ in the DOM) by scripts kept in ``react/src/entry-points/``
 (e.g., ``personal-data.js``.) These are served by html.eduid.docker under
 `/static/build/`.
 
+Getting started
+...............
+
+To get started developing js components, first is having the code::
+
+  $ git clone git@github.com:SUNET/eduid-html.git
+
+Then we go to the react dir, and install all dependencies (for this we need
+`npm` in the system)::
+
+  $ cd eduid-html/react
+  $ npm install
+
+We can now build the development bundle, or the production bundle. The
+development bundle build procedure is continuous, the process stays on the
+foreground monitoring changes in the code and rebuilding::
+
+  $ npm run build  # production build
+  $ npm start  # development build
+
+The available `npm` commands can be seen in the `scripts` section of the
+`package.json` file.
+
+Testing
+-------
+
+We can also run the tests. We can simply run them and see the test coverage,
+doing like this in the `react/` dir::
+
+  $ npm test
+
+If you want to debug the tests, you can insert a breackpoint in the js code
+with `debugger;`. Then you have to run::
+
+  $ npm run debug
+
+You will have then a browser's window open, with a DEBUG button on the upper
+right corner; click on it, and you will get a new tab in the browser. Open
+the  inspector/developer tools in this new tab, reload the page, and the tests
+will be run until it hits a `debugger` where it will stop execution.
+
 i18n
 ....
 
