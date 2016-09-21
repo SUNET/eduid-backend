@@ -282,6 +282,9 @@ foreground monitoring changes in the code and rebuilding::
   $ npm run build  # production build
   $ npm start  # development build
 
+The available `npm` commands can be seen in the `scripts` section of the
+`package.json` file.
+
 Testing
 -------
 
