@@ -137,7 +137,7 @@ def proofing(user):
         schema = schemas.OidcProofingRequestSchema().load(data)
     except ValidationError as e:
         current_app.logger.error(e)
-        raise ApiException('POST_OPENID_FAIL', payload={'error': e})
+        raise ApiException('POST_OPENID_FAIL', payload={'error': str(e)})
 
     current_app.logger.debug('Getting state for user {!s}.'.format(user))
 
