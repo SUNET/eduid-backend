@@ -189,7 +189,7 @@ def proofing(user):
         'type': 'POST_OPENID_SUCCESS',
         'payload': {
             'nonce': proofing_state.nonce,
-            'qrcode': '<img src="data:image/png;base64, {!s}"/>'.format(qr_b64),
+            'qrcode': 'data:image/png;base64, {!s}'.format(qr_b64),
         }
     }
     return ret
