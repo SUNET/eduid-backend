@@ -87,3 +87,18 @@ def get_saml_attribute(session_info, attr_name):
     for saml_attr, local_fields in attributes.items():
         if saml_attr.lower() == attr_name:
             return attributes[saml_attr]
+
+
+def no_authn_views(app, paths):
+    """
+    :param app: Flask app
+    :type app: flask.Flask
+    :param paths: Paths that does not require authentication
+    :type paths: list
+
+    :return: Flask app
+    :rtype: flask.Flask
+    """
+    new_paths = ['^{!s}$'.format(path) for path in paths if path not in app.config['NO_AUTHN_URLS']]
+    app.config['NO_AUTHN_URLS'].extend(new_paths)
+    return app
