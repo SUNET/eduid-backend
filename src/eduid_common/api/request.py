@@ -32,7 +32,7 @@
 """
 This module provides a Request class that extends flask.Request
 and adds sanitation to user inputs. This sanitation is performed
-on the access methods of the datastructures that the request uses to
+on the access methods of the data structures that the request uses to
 hold data inputs by the user.
 For more information on these structures, see werkzeug.datastructures.
 
@@ -85,7 +85,7 @@ class SanitationMixin(object):
                                         strip_characters=strip_characters)
         except UnicodeDecodeError:
             current_app.logger.warn('A malicious user tried to crash the application '
-                        'by sending non-unicode input in a GET request')
+                                    'by sending non-unicode input in a GET request')
             abort(400)
 
     def _sanitize_input(self, untrusted_text, strip_characters=False):
@@ -104,7 +104,7 @@ class SanitationMixin(object):
 
         if text_in_utf8 != cleaned_text:
             current_app.logger.warn('Some potential harmful characters were '
-                        'removed from untrusted user input.')
+                                    'removed from untrusted user input.')
 
         current_app.logger.debug('    Final text: ' + cleaned_text)
         return cleaned_text
@@ -125,8 +125,8 @@ class SanitationMixin(object):
             return clean(untrusted_text, strip=strip_characters)
         except KeyError:
             current_app.logger.warn('A malicious user tried to crash the application by '
-                        'sending illegal UTF-8 in an URI or other untrusted '
-                        'user input.')
+                                    'sending illegal UTF-8 in an URI or other untrusted '
+                                    'user input.')
             abort(400)
 
 
