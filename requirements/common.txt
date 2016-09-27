@@ -1,4 +1,4 @@
-Flask==0.10.1
+Flask>=0.10.1,<0.12
 redis==2.10.5
 pynacl==1.0.1
 python-etcd==0.4.3

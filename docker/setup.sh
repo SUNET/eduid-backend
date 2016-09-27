@@ -9,7 +9,6 @@ set -x
 apt-get update
 apt-get -y dist-upgrade
 apt-get -y install \
-    git \
     libffi-dev \
     libtiff5-dev \
     libjpeg8-dev \

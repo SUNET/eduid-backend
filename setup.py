@@ -8,7 +8,7 @@ version = '0.2.0b0'
 requires = [
     'eduid-common[webapp]>=0.2.1b12',
     'eduid-am>=0.6.2b2',
-    'Flask>=0.10.1,<0.11',
+    'Flask>=0.10.1,<0.12',
 ]
 
 test_requires = [

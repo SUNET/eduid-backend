@@ -4,16 +4,13 @@ MAINTAINER eduid-dev <eduid-dev@SEGATE.SUNET.SE>
 
 VOLUME ["/opt/eduid/etc", "/opt/eduid/run", "/opt/eduid/src", "/var/log"]
 
-ADD setup.sh /opt/eduid/setup.sh
-RUN /opt/eduid/setup.sh
+ADD . /opt/eduid/eduid-webapp
 
-# Add Dockerfile to the container as documentation
-ADD Dockerfile /Dockerfile
+RUN /opt/eduid/eduid-webapp/docker/setup.sh
 
 # revision.txt is dynamically updated by the CI for every build,
 # to ensure build.sh is executed every time
 ADD revision.txt /revision.txt
 
-ADD build.sh /opt/eduid/build.sh
-RUN /opt/eduid/build.sh
+RUN /opt/eduid/eduid-webapp/docker/build.sh
 
