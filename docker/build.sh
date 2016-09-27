@@ -6,8 +6,6 @@
 set -e
 set -x
 
-cd /opt/eduid/
-git clone https://github.com/SUNET/eduid-webapp.git
 cd /opt/eduid/eduid-webapp/
 
 PYPI="https://pypi.nordu.net/simple/"
