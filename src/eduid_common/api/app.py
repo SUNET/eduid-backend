@@ -35,6 +35,7 @@ it with all attributes common to all eduID services.
 """
 
 
+from werkzeug.contrib.fixers import ProxyFix
 from eduid_userdb import UserDB
 from eduid_common.authn.middleware import AuthnApp
 from eduid_common.api.request import Request
@@ -68,6 +69,7 @@ def eduid_init_app_no_db(name, config, app_class=AuthnApp):
     :rtype: flask.Flask
     """
     app = app_class(name)
+    app.wsgi_app = ProxyFix(app.wsgi_app)
     app.request_class = Request
 
     # Init etcd config parsers
