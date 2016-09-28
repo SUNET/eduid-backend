@@ -43,7 +43,7 @@ from saml2.s_utils import deflate_and_base64_encode
 
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.authn.cache import OutstandingQueriesCache
-from eduid_common.authn.utils import get_location
+from eduid_common.authn.utils import get_location, no_authn_views
 from eduid_common.authn.eduid_saml2 import get_authn_request
 from eduid_common.authn.tests.responses import (auth_response,
                                                 logout_response,
@@ -295,8 +295,11 @@ class NoAuthnAPITestCase(EduidAPITestCase):
         def test():
             return 'OK'
 
-        self.app.register_blueprint(test_views)
+        @test_views.route('/test3')
+        def test3():
+            return 'OK'
 
+        self.app.register_blueprint(test_views)
 
     def update_config(self, config):
         """
@@ -329,6 +332,16 @@ class NoAuthnAPITestCase(EduidAPITestCase):
             self.assertEqual(resp.status_code, 302)
             self.assertTrue(resp.location.startswith(self.app.config['TOKEN_SERVICE_URL']))
 
+    def test_no_authn_util(self):
+        no_authn_urls_before = [path for path in self.app.config['NO_AUTHN_URLS']]
+        no_authn_path = '/test3'
+        no_authn_views(self.app, [no_authn_path])
+        self.assertEqual(no_authn_urls_before + ['^{!s}$'.format(no_authn_path)], self.app.config['NO_AUTHN_URLS'])
+
+        with self.app.test_client() as c:
+            resp = c.get('/test3')
+            self.assertEqual(resp.status_code, 200)
+
 
 class LogoutRequestTests(AuthnAPITestBase):
 
@@ -341,7 +354,7 @@ class LogoutRequestTests(AuthnAPITestBase):
         eppn = 'hubba-bubba'
         csrft = 'csrf token'
         with self.app.test_request_context('/logout', method='POST',
-                                    data={'csrf': csrft}):
+                                           data={'csrf': csrft}):
             session['_csrft_'] = csrft
             session['user_eppn'] = eppn
             session['eduPersonPrincipalName'] = eppn
@@ -356,13 +369,13 @@ class LogoutRequestTests(AuthnAPITestBase):
 
         csrft = 'csrf token'
         with self.app.test_request_context('/logout', method='POST',
-                                headers={'Cookie': cookie},
-                                data={'csrf': csrft}):
+                                           headers={'Cookie': cookie},
+                                           data={'csrf': csrft}):
             session['_csrft_'] = csrft
             response2 = self.app.dispatch_request()
             self.assertEqual(response2.status, '302 FOUND')
             self.assertIn('https://idp.example.com/simplesaml/saml2/idp/'
-                           'SingleLogoutService.php', response2.location)
+                          'SingleLogoutService.php', response2.location)
 
     def test_logout_service_startingSP(self):
 
@@ -371,12 +384,12 @@ class LogoutRequestTests(AuthnAPITestBase):
         cookie = self.dump_session_cookie(session_id)
 
         with self.app.test_request_context('/saml2-ls', method='POST',
-                                headers={'Cookie': cookie},
-                                data={'SAMLResponse': deflate_and_base64_encode(
+                                           headers={'Cookie': cookie},
+                                           data={'SAMLResponse': deflate_and_base64_encode(
                                             logout_response(session_id)
-                                        ),
-                                      'RelayState': 'testing-relay-state',
-                                    }):
+                                           ),
+                                               'RelayState': 'testing-relay-state',
+                                           }):
             response = self.app.dispatch_request()
 
             self.assertEqual(response.status, '302 FOUND')
@@ -388,11 +401,11 @@ class LogoutRequestTests(AuthnAPITestBase):
         session_id = self.add_outstanding_query(came_from)
 
         with self.app.test_request_context('/saml2-ls', method='POST',
-                                data={'SAMLResponse': deflate_and_base64_encode(
-                                            logout_response(session_id)
-                                        ),
-                                      'RelayState': 'testing-relay-state',
-                                    }):
+                                           data={'SAMLResponse': deflate_and_base64_encode(
+                                               logout_response(session_id)
+                                           ),
+                                               'RelayState': 'testing-relay-state',
+                                           }):
             response = self.app.dispatch_request()
 
             self.assertEqual(response.status, '302 FOUND')
@@ -409,19 +422,19 @@ class LogoutRequestTests(AuthnAPITestBase):
 
         # Log in through IDP SAMLResponse
         with self.app.test_request_context('/saml2-acs', method='POST',
-                                headers={'Cookie': cookie},
-                                data={'SAMLResponse': base64.b64encode(saml_response),
-                                      'RelayState': 'testing-relay-state',
-                                    }):
+                                           headers={'Cookie': cookie},
+                                           data={'SAMLResponse': base64.b64encode(saml_response),
+                                                 'RelayState': 'testing-relay-state',
+                                                 }):
             response = self.app.dispatch_request()
 
         with self.app.test_request_context('/saml2-ls', method='POST',
-                                headers={'Cookie': cookie},
-                                data={'SAMLRequest': deflate_and_base64_encode(
-                                            logout_request(session_id)
-                                        ),
-                                      'RelayState': 'testing-relay-state',
-                                    }):
+                                           headers={'Cookie': cookie},
+                                           data={'SAMLRequest': deflate_and_base64_encode(
+                                               logout_request(session_id)
+                                           ),
+                                               'RelayState': 'testing-relay-state',
+                                           }):
             response = self.app.dispatch_request()
 
             self.assertEqual(response.status, '302 FOUND')
@@ -439,19 +452,19 @@ class LogoutRequestTests(AuthnAPITestBase):
 
         # Log in through IDP SAMLResponse
         with self.app.test_request_context('/saml2-acs', method='POST',
-                                headers={'Cookie': cookie},
-                                data={'SAMLResponse': base64.b64encode(saml_response),
-                                      'RelayState': 'testing-relay-state',
-                                    }):
+                                           headers={'Cookie': cookie},
+                                           data={'SAMLResponse': base64.b64encode(saml_response),
+                                                 'RelayState': 'testing-relay-state',
+                                                 }):
             response = self.app.dispatch_request()
 
         with self.app.test_request_context('/saml2-ls', method='POST',
-                                headers={'Cookie': cookie},
-                                data={'SAMLRequest': deflate_and_base64_encode(
-                                            logout_request(session_id)
-                                        ),
-                                      'RelayState': 'testing-relay-state',
-                                    }):
+                                           headers={'Cookie': cookie},
+                                           data={'SAMLRequest': deflate_and_base64_encode(
+                                               logout_request(session_id)
+                                           ),
+                                               'RelayState': 'testing-relay-state',
+                                           }):
             del session['_saml2_session_name_id']
             session.persist()
             response = self.app.dispatch_request()

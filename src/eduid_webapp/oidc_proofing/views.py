@@ -6,9 +6,9 @@ import qrcode
 import qrcode.image.svg
 import json
 
-from flask import request, make_response
+from flask import request, make_response, url_for
 from flask import current_app, Blueprint
-from flask_apispec import marshal_with, use_kwargs
+from flask_apispec import marshal_with
 from oic.oic.message import AuthorizationResponse, ClaimsRequest, Claims
 from operator import itemgetter
 from marshmallow.exceptions import ValidationError
@@ -58,7 +58,7 @@ def authorization_response():
     # do token request
     args = {
         'code': authn_resp['code'],
-        'redirect_uri': current_app.config['AUTHORIZATION_RESPONSE_URI']
+        'redirect_uri': url_for('oidc_proofing.authorization_response', _external=True)
     }
     current_app.logger.debug('Trying to do token request: {!s}'.format(args))
     # TODO: What and where should be save from the token response
@@ -158,7 +158,7 @@ def proofing(user):
             'client_id': current_app.oidc_client.client_id,
             'response_type': 'code',
             'scope': ['openid'],
-            'redirect_uri': current_app.config['AUTHORIZATION_RESPONSE_URI'],
+            'redirect_uri': url_for('oidc_proofing.authorization_response', _external=True),
             'state': state,
             'nonce': nonce,
             'claims': ClaimsRequest(userinfo=Claims(identity=None)).to_json()
