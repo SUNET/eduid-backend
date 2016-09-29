@@ -3,11 +3,10 @@
 from __future__ import absolute_import
 
 from flask import Blueprint, current_app, request
-from flask_apispec import use_kwargs, marshal_with  # TODO: Find a better module or rewrite ourselves
-import json
 
-from eduid_common.api.decorators import require_user
-from eduid_common.api.schemas.proofing import LetterProofingDataSchema  # XXX: Until we no longer wants to dump proofing to log
+import json  # XXX: Until we no longer wants to dump proofing to log
+
+from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
 from eduid_common.api.exceptions import ApiException
 from eduid_userdb.proofing import ProofingUser
 from eduid_userdb.nin import Nin
@@ -17,14 +16,14 @@ from eduid_webapp.letter_proofing.proofing import create_proofing_state, check_s
 
 __author__ = 'lundberg'
 
-idproofing_letter_views = Blueprint('idproofing_letter', __name__, url_prefix='', template_folder='templates')
+letter_proofing_views = Blueprint('letter_proofing', __name__, url_prefix='', template_folder='templates')
 
 
-@idproofing_letter_views.route('/proofing', methods=['GET', 'POST'])
-@use_kwargs(schemas.LetterProofingRequestSchema)
-@marshal_with(schemas.LetterProofingResponseSchema)
+@letter_proofing_views.route('/proofing', methods=['GET', 'POST'])
+@UnmarshalWith(schemas.LetterProofingRequestSchema)
+@MarshalWith(schemas.LetterProofingResponseSchema)
 @require_user
-def proofing(user, **kwargs):
+def proofing(user, nin):
     current_app.logger.info('Getting proofing state for user {!r}'.format(user))
     proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn, raise_on_missing=False)
 
@@ -36,73 +35,70 @@ def proofing(user, **kwargs):
             return {'type': 'GET_LETTER_PROOFING', 'payload': payload}
         return {'type': 'GET_LETTER_PROOFING'}
 
-    nin = kwargs.get('nin')
-    if not nin:
-        current_app.logger.info('No NIN supplied for user {!r} initiated'.format(user))
-        raise ApiException('POST_LETTER_PROOFING_FAIL', 'No NIN supplied', status_code=200)
-    current_app.logger.info('Send letter for user {!r} initiated'.format(user))
+    if request.method == 'POST' and nin:
+        current_app.logger.info('Send letter for user {!r} initiated'.format(user))
 
-    # For now a user can just have one verified NIN
-    # TODO: Check if a user has a valid letter proofing
-    if len(user.nins.to_list()) > 0:
-        raise ApiException('POST_LETTER_PROOFING_FAIL', 'User is already verified', status_code=200)
+        # For now a user can just have one verified NIN
+        # TODO: Check if a user has a valid letter proofing
+        if len(user.nins.to_list()) > 0:
+            raise ApiException('POST_LETTER_PROOFING_FAIL', 'User is already verified', status_code=200)
 
-    # No existing proofing state was found, create a new one
-    if not proofing_state:
-        # Create a LetterNinProofingUser in proofingdb
-        proofing_state = create_proofing_state(user.eppn, nin)
-        current_app.logger.info('Created proofing state for user {!r}'.format(user))
+        # No existing proofing state was found, create a new one
+        if not proofing_state:
+            # Create a LetterNinProofingUser in proofingdb
+            proofing_state = create_proofing_state(user.eppn, nin)
+            current_app.logger.info('Created proofing state for user {!r}'.format(user))
 
-    if proofing_state.proofing_letter.is_sent:
-        current_app.logger.info('User {!r} has already sent a letter'.format(user))
-        raise ApiException('POST_LETTER_PROOFING_FAIL', 'Letter already sent', status_code=200)
+        if proofing_state.proofing_letter.is_sent:
+            current_app.logger.info('User {!r} has already sent a letter'.format(user))
+            raise ApiException('POST_LETTER_PROOFING_FAIL', 'Letter already sent', status_code=200)
 
-    current_app.logger.info('Getting address for user {!r}'.format(user))
-    current_app.logger.debug('NIN: {!s}'.format(nin))
-    # Lookup official address via Navet
-    address = current_app.msg_relay.get_postal_address(nin)
-    if not address:
-        current_app.logger.error('No address found for user {!r}'.format(user))
-        raise ApiException('POST_LETTER_PROOFING_FAIL', 'No address found', status_code=200)
-    current_app.logger.debug('Official address: {!r}'.format(address))
+        current_app.logger.info('Getting address for user {!r}'.format(user))
+        current_app.logger.debug('NIN: {!s}'.format(nin))
+        # Lookup official address via Navet
+        address = current_app.msg_relay.get_postal_address(nin)
+        if not address:
+            current_app.logger.error('No address found for user {!r}'.format(user))
+            raise ApiException('POST_LETTER_PROOFING_FAIL', 'No address found', status_code=200)
+        current_app.logger.debug('Official address: {!r}'.format(address))
 
-    # Set and save official address
-    proofing_state.proofing_letter.address = address
-    current_app.proofing_statedb.save(proofing_state)
+        # Set and save official address
+        proofing_state.proofing_letter.address = address
+        current_app.proofing_statedb.save(proofing_state)
 
-    # Create the letter as a PDF-document and send it to our letter sender service
-    if current_app.config.get("EKOPOST_DEBUG_PDF", None):
-        pdf.create_pdf(proofing_state.proofing_letter.address,
-                       proofing_state.nin.verification_code,
-                       proofing_state.nin.created_ts,
-                       user.mail_addresses.primary.email)
-        campaign_id = 'debug mode transaction id'
-    else:
-        pdf_letter = pdf.create_pdf(proofing_state.proofing_letter.address,
-                                    proofing_state.nin.verification_code,
-                                    proofing_state.nin.created_ts,
-                                    user.mail_addresses.primary.email)
-        try:
-            campaign_id = current_app.ekopost.send(user.eppn, pdf_letter)
-        except ApiException as api_exception:
-            current_app.logger.error('ApiException {!r}'.format(api_exception.message))
-            api_exception.flux_type = 'POST_LETTER_PROOFING_FAIL'
-            raise api_exception
+        # Create the letter as a PDF-document and send it to our letter sender service
+        if current_app.config.get("EKOPOST_DEBUG_PDF", None):
+            pdf.create_pdf(proofing_state.proofing_letter.address,
+                           proofing_state.nin.verification_code,
+                           proofing_state.nin.created_ts,
+                           user.mail_addresses.primary.email)
+            campaign_id = 'debug mode transaction id'
+        else:
+            pdf_letter = pdf.create_pdf(proofing_state.proofing_letter.address,
+                                        proofing_state.nin.verification_code,
+                                        proofing_state.nin.created_ts,
+                                        user.mail_addresses.primary.email)
+            try:
+                campaign_id = current_app.ekopost.send(user.eppn, pdf_letter)
+            except ApiException as api_exception:
+                current_app.logger.error('ApiException {!r}'.format(api_exception.message))
+                api_exception.flux_type = 'POST_LETTER_PROOFING_FAIL'
+                raise api_exception
 
-    # Save the users proofing state
-    proofing_state.proofing_letter.transaction_id = campaign_id
-    proofing_state.proofing_letter.is_sent = True
-    proofing_state.proofing_letter.sent_ts = True
-    current_app.proofing_statedb.save(proofing_state)
-    payload = check_state(proofing_state)
-    return {'type': 'POST_LETTER_PROOFING_SUCCESS', 'payload': payload}
+        # Save the users proofing state
+        proofing_state.proofing_letter.transaction_id = campaign_id
+        proofing_state.proofing_letter.is_sent = True
+        proofing_state.proofing_letter.sent_ts = True
+        current_app.proofing_statedb.save(proofing_state)
+        payload = check_state(proofing_state)
+        return {'type': 'POST_LETTER_PROOFING_SUCCESS', 'payload': payload}
 
 
-@idproofing_letter_views.route('/verify-code', methods=['POST'])
-@use_kwargs(schemas.VerifyCodeRequestSchema)
-@marshal_with(schemas.VerifyCodeResponseSchema)
+@letter_proofing_views.route('/verify-code', methods=['POST'])
+@UnmarshalWith(schemas.VerifyCodeRequestSchema)
+@MarshalWith(schemas.VerifyCodeResponseSchema)
 @require_user
-def verify_code(user, **kwargs):
+def verify_code(user, verification_code):
     user = ProofingUser(data=user.to_dict())
     current_app.logger.info('Verifying code for user {!r}'.format(user))
     proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn, raise_on_missing=False)
@@ -111,7 +107,7 @@ def verify_code(user, **kwargs):
         raise ApiException('POST_LETTER_VERIFY_CODE_FAIL', message='No proofing state found', status_code=400)
 
     # Check if provided code matches the one in the letter
-    if not kwargs.get('verification_code') == proofing_state.nin.verification_code:
+    if not verification_code == proofing_state.nin.verification_code:
         current_app.logger.error('Verification code for user {!r} does not match'.format(user))
         # TODO: Throttling to discourage an adversary to try brute force
         raise ApiException('POST_LETTER_VERIFY_CODE_FAIL', message='Wrong code', payload={'success': False},
@@ -153,7 +149,7 @@ def verify_code(user, **kwargs):
 
     # XXX: Remove dumping data to log
     current_app.logger.info('Logging data for user: {!r}'.format(user))
-    current_app.logger.info(json.dumps(LetterProofingDataSchema().dump(letter_proofing_data)))
+    current_app.logger.info(json.dumps(schemas.LetterProofingDataSchema().dump(letter_proofing_data)))
     current_app.logger.info('End data')
 
     current_app.logger.info('Verified code for user {!r}'.format(user))
