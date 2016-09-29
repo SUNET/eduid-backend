@@ -3,7 +3,8 @@
 from __future__ import absolute_import
 
 from functools import wraps
-from flask import session, abort, current_app
+from flask import session, abort, current_app, request
+from marshmallow.exceptions import ValidationError
 from eduid_userdb.exceptions import UserDoesNotExist, MultipleUsersReturned
 from eduid_common.api.utils import retrieve_modified_ts
 from eduid_common.api.exceptions import ApiException
@@ -77,3 +78,36 @@ def require_support_personnel(f):
         # Anything else is considered as an unauthorized request
         abort(403)
     return decorated_function
+
+
+class MarshalWith(object):
+
+    def __init__(self, schema):
+        self.schema = schema
+
+    def __call__(self, f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            ret = f(*args, **kwargs)
+            return self.schema().dumps(ret).data
+        return decorated_function
+
+
+class UnmarshalWith(object):
+
+    def __init__(self, schema):
+        self.schema = schema
+
+    def __call__(self, f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            try:
+                json_data = request.get_json()
+                if json_data is None:
+                    json_data = {}
+                unmarshal_result = self.schema().load(json_data)
+                kwargs.update(unmarshal_result.data)
+            except ValidationError as e:
+                raise ApiException('TEMP_TYPE', payload={'error': e.normalized_messages()}, status_code=200)
+            return f(*args, **kwargs)
+        return decorated_function
