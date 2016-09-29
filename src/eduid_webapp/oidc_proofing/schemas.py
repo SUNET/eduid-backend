@@ -2,13 +2,17 @@
 
 from marshmallow import Schema, fields
 from eduid_common.api.schemas.base import FluxStandardAction
-from eduid_common.api.schemas.proofing import ProofingRequestSchema
+from eduid_common.api.schemas.validators import validate_nin
 
 __author__ = 'lundberg'
 
 
-class OidcProofingRequestSchema(ProofingRequestSchema):
-    pass
+class OidcProofingRequestSchema(Schema):
+
+    class Meta:
+        strict = True
+
+    nin = fields.String(required=True, validate=validate_nin)
 
 
 class NonceResponseSchema(FluxStandardAction):
