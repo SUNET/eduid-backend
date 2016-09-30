@@ -10,7 +10,7 @@ RUN /opt/eduid/eduid-webapp/docker/setup.sh
 
 # revision.txt is dynamically updated by the CI for every build,
 # to ensure build.sh is executed every time
-ADD revision.txt /revision.txt
+ADD docker/revision.txt /revision.txt
 
 RUN /opt/eduid/eduid-webapp/docker/build.sh
 
