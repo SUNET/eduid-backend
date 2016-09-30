@@ -6,9 +6,12 @@ import json
 import base64
 from datetime import datetime
 from hammock import Hammock
-from eduid_common.api.exceptions import ApiException
 
 __author__ = 'john'
+
+
+class EkopostException(Exception):
+    pass
 
 
 class Ekopost(object):
@@ -80,17 +83,14 @@ class Ekopost(object):
             'cost_center': cost_center
         })
 
-        response = self.ekopost_api.\
-            campaigns.POST(
-            data=campaign_data, headers={'Content-Type': 'application/json'})
+        response = self.ekopost_api.campaigns.POST(data=campaign_data, headers={'Content-Type': 'application/json'})
 
         if response.status_code == 200:
             return response.json()
 
-        raise ApiException('Ekopost exception: {!s}'.format(response.text), status_code=response.status_code)
+        raise EkopostException('Ekopost exception: {!s} {!s}'.format(response.status_code, response.text))
 
-    def _create_envelope(self, campaign_id, name, postage='priority',
-                        plex='simplex', color='false'):
+    def _create_envelope(self, campaign_id, name, postage='priority', plex='simplex', color='false'):
         """
         Create an envelope for a specified campaign
 
