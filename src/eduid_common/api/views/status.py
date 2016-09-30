@@ -70,13 +70,7 @@ def _check_redis():
 
 @status_views.route('/smoke-test', methods=['GET'])
 def smoke_test():
-    m = _check_mongo()
-    if m:
-        return m
-    r = _check_redis()
-    if r:
-        return r
-    return 0
+    return _check_mongo() or _check_redis()
 
 
 @status_views.route('/sanity-check', methods=['GET'])
