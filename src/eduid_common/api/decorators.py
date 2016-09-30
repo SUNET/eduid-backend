@@ -3,10 +3,11 @@
 from __future__ import absolute_import
 
 from functools import wraps
-from flask import session, abort, current_app, request
+from flask import session, abort, current_app, request, jsonify
 from marshmallow.exceptions import ValidationError
 from eduid_userdb.exceptions import UserDoesNotExist, MultipleUsersReturned
 from eduid_common.api.utils import retrieve_modified_ts
+from eduid_common.api.schemas.models import FluxSuccessResponse, FluxFailResponse
 from eduid_common.api.exceptions import ApiException
 
 __author__ = 'lundberg'
@@ -22,7 +23,7 @@ def require_eppn(f):
         if eppn:
             kwargs['eppn'] = eppn
             return f(*args, **kwargs)
-        raise ApiException(message='Not authorized', status_code=401)
+        raise ApiException('Not authorized', status_code=401)
     return decorated_function
 
 
@@ -89,7 +90,11 @@ class MarshalWith(object):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             ret = f(*args, **kwargs)
-            return self.schema().dumps(ret).data
+            if ret.pop('error', None):
+                response_data = FluxFailResponse(request, payload=ret)
+            else:
+                response_data = FluxSuccessResponse(request, payload=ret)
+            return jsonify(self.schema().dump(response_data.to_dict()).data)
         return decorated_function
 
 
@@ -108,6 +113,8 @@ class UnmarshalWith(object):
                 unmarshal_result = self.schema().load(json_data)
                 kwargs.update(unmarshal_result.data)
             except ValidationError as e:
-                raise ApiException('TEMP_TYPE', payload={'error': e.normalized_messages()}, status_code=200)
+                response_data = FluxFailResponse(request, payload={'error': e.normalized_messages()})
+                return jsonify(response_data.to_dict())
             return f(*args, **kwargs)
         return decorated_function
+

@@ -110,3 +110,18 @@ def urlappend(base, path):
     if not base.endswith('/'):
         base = '{!s}/'.format(base)
     return '{!s}{!s}'.format(base, path)
+
+
+def get_flux_type(req, suffix):
+    """
+    :param req: flask request
+    :type req: flask.request
+    :param suffix: SUCCESS|FAIL|?
+    :type suffix: str|unicode
+    :return: Flux type
+    :rtype: str|unicode
+    """
+    method = req.method
+    endpoint = ' '.join(req.endpoint.split('.'))  # blueprint.function
+    flux_type = '_'.join('{!s} {!s} {!s}'.format(method, endpoint, suffix.upper()).split()).upper()
+    return flux_type
