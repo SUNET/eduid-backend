@@ -2,6 +2,7 @@
 
 from uuid import uuid4
 import sys
+from string import maketrans
 from flask import current_app
 
 from eduid_userdb import User
@@ -122,6 +123,8 @@ def get_flux_type(req, suffix):
     :rtype: str|unicode
     """
     method = req.method
-    endpoint = ' '.join(req.endpoint.split('.'))  # blueprint.function
-    flux_type = '_'.join('{!s} {!s} {!s}'.format(method, endpoint, suffix.upper()).split()).upper()
+    blueprint = req.blueprint
+    table = maketrans('/-', '  ')
+    url_rule = req.url_rule.rule.translate(table)
+    flux_type = '_'.join('{!s} {!s} {!s} {!s}'.format(method, blueprint, url_rule, suffix.upper()).split()).upper()
     return flux_type
