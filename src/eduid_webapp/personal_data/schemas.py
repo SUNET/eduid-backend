@@ -32,14 +32,21 @@
 #
 
 from marshmallow import Schema, fields
+from eduid_common.api.schemas.base import FluxStandardAction, EduidSchema
 from eduid_webapp.personal_data.validators import validate_language
 
 __author__ = 'eperez'
 
 
-class PersonalDataSchema(Schema):
+class PersonalDataSchema(EduidSchema):
 
     given_name = fields.String(required=True)
     surname = fields.String(required=True)
     display_name = fields.String(required=True)
     language = fields.String(required=True, validate=validate_language)
+
+
+class PersonalDataResponseSchema(FluxStandardAction):
+
+    payload = PersonalDataSchema()
+
