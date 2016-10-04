@@ -7,6 +7,7 @@ from flask import session, abort, current_app, request, jsonify
 from marshmallow.exceptions import ValidationError
 from eduid_userdb.exceptions import UserDoesNotExist, MultipleUsersReturned
 from eduid_common.api.utils import retrieve_modified_ts
+from eduid_common.api.schemas.base import FluxStandardAction
 from eduid_common.api.schemas.models import FluxSuccessResponse, FluxFailResponse
 from eduid_common.api.exceptions import ApiException
 
@@ -90,10 +91,14 @@ class MarshalWith(object):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             ret = f(*args, **kwargs)
-            if ret.pop('error', None):
+
+            # Handle fail responses
+            if ret.pop('fail', False):
                 response_data = FluxFailResponse(request, payload=ret)
-            else:
-                response_data = FluxSuccessResponse(request, payload=ret)
+                return jsonify(FluxStandardAction().dump(response_data.to_dict()).data)
+
+            # Handle success responses
+            response_data = FluxSuccessResponse(request, payload=ret)
             return jsonify(self.schema().dump(response_data.to_dict()).data)
         return decorated_function
 
