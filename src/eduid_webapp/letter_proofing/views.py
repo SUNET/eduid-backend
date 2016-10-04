@@ -12,87 +12,74 @@ from eduid_userdb.nin import Nin
 from eduid_webapp.letter_proofing import pdf
 from eduid_webapp.letter_proofing import schemas
 from eduid_webapp.letter_proofing.ekopost import EkopostException
-from eduid_webapp.letter_proofing.proofing import create_proofing_state, check_state
+from eduid_webapp.letter_proofing.helpers import create_proofing_state, check_state, get_address, send_letter
 
 __author__ = 'lundberg'
 
 letter_proofing_views = Blueprint('letter_proofing', __name__, url_prefix='', template_folder='templates')
 
 
-@letter_proofing_views.route('/proofing', methods=['GET', 'POST'])
+@letter_proofing_views.route('/proofing', methods=['GET'])
+@MarshalWith(schemas.LetterProofingResponseSchema)
+@require_user
+def get_state(user):
+    current_app.logger.info('Getting proofing state for user {!r}'.format(user))
+    proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn, raise_on_missing=False)
+
+    if proofing_state:
+        current_app.logger.info('Found proofing state for user {!r}'.format(user))
+        return check_state(proofing_state)
+    return {}
+
+
+@letter_proofing_views.route('/proofing', methods=['POST'])
 @UnmarshalWith(schemas.LetterProofingRequestSchema)
 @MarshalWith(schemas.LetterProofingResponseSchema)
 @require_user
 def proofing(user, nin):
-    current_app.logger.info('Getting proofing state for user {!r}'.format(user))
+    current_app.logger.info('Send letter for user {!r} initiated'.format(user))
     proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn, raise_on_missing=False)
 
-    if request.method == 'GET':
-        if proofing_state:
-            current_app.logger.info('Found proofing state for user {!r}'.format(user))
-            # If a proofing state is found continue the flow
-            return check_state(proofing_state)
-        return {}
+    # For now a user can just have one verified NIN
+    # TODO: Check if a user has a valid letter proofing
+    if user.nins.count > 0:
+        return {'fail': True, 'error': 'User is already verified'}
 
-    if request.method == 'POST' and nin:
-        current_app.logger.info('Send letter for user {!r} initiated'.format(user))
+    # No existing proofing state was found, create a new one
+    if not proofing_state:
+        # Create a LetterNinProofingUser in proofingdb
+        proofing_state = create_proofing_state(user.eppn, nin)
+        current_app.logger.info('Created proofing state for user {!r}'.format(user))
 
-        # For now a user can just have one verified NIN
-        # TODO: Check if a user has a valid letter proofing
-        if len(user.nins.to_list()) > 0:
-            return {'error': True, 'message': 'User is already verified'}
+    if proofing_state.proofing_letter.is_sent:
+        current_app.logger.info('User {!r} has already sent a letter'.format(user))
+        return {'fail': True, 'error': 'Letter already sent'}
 
-        # No existing proofing state was found, create a new one
-        if not proofing_state:
-            # Create a LetterNinProofingUser in proofingdb
-            proofing_state = create_proofing_state(user.eppn, nin)
-            current_app.logger.info('Created proofing state for user {!r}'.format(user))
+    address = get_address(user, proofing_state)
+    if not address:
+        current_app.logger.error('No address found for user {!r}'.format(user))
+        return {'fail': True, 'error': 'No address found'}
 
-        if proofing_state.proofing_letter.is_sent:
-            current_app.logger.info('User {!r} has already sent a letter'.format(user))
-            return {'error': True, 'message': 'Letter already sent'}
+    # Set and save official address
+    proofing_state.proofing_letter.address = address
+    current_app.proofing_statedb.save(proofing_state)
 
-        current_app.logger.info('Getting address for user {!r}'.format(user))
-        current_app.logger.debug('NIN: {!s}'.format(nin))
-        # Lookup official address via Navet
-        address = current_app.msg_relay.get_postal_address(nin)
-        if not address:
-            current_app.logger.error('No address found for user {!r}'.format(user))
-            return {'error': True, 'message': 'No address found'}
-        current_app.logger.debug('Official address: {!r}'.format(address))
+    try:
+        campaign_id = send_letter(user, proofing_state)
+    except pdf.AddressFormatException as e:
+        current_app.logger.error('{!r}'.format(e.message))
+        return {'fail': True, 'error': 'Bad postal address'}
+    except EkopostException as e:
+        current_app.logger.error('{!r}'.format(e.message))
+        return {'fail': True, 'error': 'Temporary technical problem'}
 
-        # Set and save official address
-        proofing_state.proofing_letter.address = address
-        current_app.proofing_statedb.save(proofing_state)
-
-        # Create the letter as a PDF-document and send it to our letter sender service
-        if current_app.config.get("EKOPOST_DEBUG_PDF", None):
-            pdf.create_pdf(proofing_state.proofing_letter.address,
-                           proofing_state.nin.verification_code,
-                           proofing_state.nin.created_ts,
-                           user.mail_addresses.primary.email)
-            campaign_id = 'debug mode transaction id'
-        else:
-            pdf_letter = pdf.create_pdf(proofing_state.proofing_letter.address,
-                                        proofing_state.nin.verification_code,
-                                        proofing_state.nin.created_ts,
-                                        user.mail_addresses.primary.email)
-            try:
-                campaign_id = current_app.ekopost.send(user.eppn, pdf_letter)
-            except pdf.AddressFormatException as e:
-                current_app.logger.error('{!r}'.format(e.message))
-                return {'error': True, 'message': 'Bad postal address'}
-            except EkopostException as e:
-                current_app.logger.error('{!r}'.format(e.message))
-                return {'error': True, 'message': 'Temporary technical problem'}
-
-        # Save the users proofing state
-        proofing_state.proofing_letter.transaction_id = campaign_id
-        proofing_state.proofing_letter.is_sent = True
-        proofing_state.proofing_letter.sent_ts = True
-        current_app.proofing_statedb.save(proofing_state)
-        payload = check_state(proofing_state)
-        return payload
+    # Save the users proofing state
+    proofing_state.proofing_letter.transaction_id = campaign_id
+    proofing_state.proofing_letter.is_sent = True
+    proofing_state.proofing_letter.sent_ts = True
+    current_app.proofing_statedb.save(proofing_state)
+    payload = check_state(proofing_state)
+    return payload
 
 
 @letter_proofing_views.route('/verify-code', methods=['POST'])
@@ -105,13 +92,13 @@ def verify_code(user, verification_code):
     proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn, raise_on_missing=False)
 
     if not proofing_state:
-        return {'error': True, 'message': 'No proofing state found'}
+        return {'fail': True, 'error': 'No proofing state found'}
 
     # Check if provided code matches the one in the letter
     if not verification_code == proofing_state.nin.verification_code:
         current_app.logger.error('Verification code for user {!r} does not match'.format(user))
         # TODO: Throttling to discourage an adversary to try brute force
-        return {'error': True, 'message': 'Wrong code'}
+        return {'fail': True, 'error': 'Wrong code'}
 
     # Update proofing state to use to create nin element
     proofing_state.nin.is_verified = True
@@ -145,7 +132,7 @@ def verify_code(user, verification_code):
         current_app.logger.error('Sync request failed for user {!s}'.format(user))
         current_app.logger.error('Exception: {!s}'.format(e))
         # XXX: Probably not str(e) as message?
-        return {'error': True, 'message': 'Sync request failed for user'}
+        return {'fail': True, 'error': 'Sync request failed for user'}
 
     # XXX: Remove dumping data to log
     current_app.logger.info('Logging data for user: {!r}'.format(user))
