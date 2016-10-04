@@ -8,7 +8,6 @@ import json
 
 from flask import request, make_response, url_for
 from flask import current_app, Blueprint
-from flask_apispec import marshal_with
 from oic.oic.message import AuthorizationResponse, ClaimsRequest, Claims
 from operator import itemgetter
 from marshmallow.exceptions import ValidationError
@@ -16,8 +15,7 @@ from marshmallow.exceptions import ValidationError
 from eduid_userdb.proofing import ProofingUser
 from eduid_userdb.nin import Nin
 from eduid_common.api.utils import get_unique_hash, StringIO
-from eduid_common.api.decorators import require_user, require_eppn
-from eduid_common.api.exceptions import ApiException
+from eduid_common.api.decorators import require_user, require_eppn, MarshalWith, UnmarshalWith
 from eduid_userdb.proofing import OidcProofingState
 from eduid_webapp.oidc_proofing import schemas
 from eduid_webapp.oidc_proofing.mock_proof import Proof, DocumentDoesNotExist
@@ -129,22 +127,17 @@ def authorization_response():
 
 
 @oidc_proofing_views.route('/proofing', methods=['POST'])
-@marshal_with(schemas.NonceResponseSchema)
+@UnmarshalWith(schemas.OidcProofingRequestSchema)
+@MarshalWith(schemas.NonceResponseSchema)
 @require_user
-def proofing(user):
-    data = json.loads(request.get_data())
-    try:
-        schema = schemas.OidcProofingRequestSchema().load(data)
-    except ValidationError as e:
-        current_app.logger.error(e)
-        raise ApiException('POST_OPENID_FAIL', payload={'error': str(e)}, status_code=200)
+def proofing(user, nin):
 
     current_app.logger.debug('Getting state for user {!s}.'.format(user))
 
     # TODO: Check if a user has a valid letter proofing
     # For now a user can just have one verified NIN
     if len(user.nins.to_list()) > 0:
-        raise ApiException('POST_OPENID_FAIL', 'User is already verified', status_code=200)
+        return {'fail': True, 'error': 'User is already verified'}
 
     proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn, raise_on_missing=False)
     if not proofing_state:
@@ -170,7 +163,7 @@ def proofing(user):
         except requests.exceptions.ConnectionError as e:
             msg = 'No connection to authorization endpoint: {!s}'.format(e)
             current_app.logger.error(msg)
-            raise ApiException('POST_OPENID_FAIL', payload={'message': msg})
+            return {'fail': True, 'error': msg}
         # If authentication request went well save user state
         if response.status_code == 200:
             current_app.logger.debug('Authentication request delivered to provider {!s}'.format(
@@ -178,26 +171,23 @@ def proofing(user):
             current_app.proofing_statedb.save(proofing_state)
             current_app.logger.debug('Proofing state {!s} for user {!s} saved'.format(proofing_state.state, user))
         else:
-            payload = {'reason': response.reason, 'message': response.content}
-            raise ApiException('POST_OPENID_FAIL', status_code=response.status_code, payload=payload)
+            current_app.logger.error('Bad response from OP: {!s} {!s} {!s}'.format(response.status_code,
+                                                                                   response.reason, response.content))
+            return {'fail': True, 'error': 'Temporary technical problems'}
     # Return nonce and nonce as qr code
     current_app.logger.debug('Returning nonce for user {!s}'.format(user))
     buf = StringIO()
     qrcode.make(proofing_state.nonce).save(buf)
     qr_b64 = buf.getvalue().encode('base64')
-    ret = {
-        'type': 'POST_OPENID_SUCCESS',
-        'payload': {
-            'nonce': proofing_state.nonce,
-            'qrcode': 'data:image/png;base64, {!s}'.format(qr_b64),
-        }
+    return {
+        'nonce': proofing_state.nonce,
+        'qrcode': 'data:image/png;base64, {!s}'.format(qr_b64),
     }
-    return ret
 
 
 # TODO Remove after demo
 @oidc_proofing_views.route('/proofs', methods=['GET'])
-@marshal_with(schemas.ProofResponseSchema)
+@MarshalWith(schemas.ProofResponseSchema)
 @require_eppn
 def proofs(eppn):
     current_app.logger.debug('Getting proofs for user with eppn {!s}.'.format(eppn))
