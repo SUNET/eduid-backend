@@ -81,7 +81,7 @@ def save_dashboard_user(user):
         # turn it into a DashboardUser before saving it in the dashboard private db
         user = DashboardUser(data = user.to_dict())
     current_app.dashboard_userdb.save(user)
-    return current_app.amrelay.request_user_sync(user)
+    return current_app.am_relay.request_user_sync(user)
 
 
 def urlappend(base, path):
