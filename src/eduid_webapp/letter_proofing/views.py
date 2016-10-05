@@ -43,7 +43,7 @@ def proofing(user, nin):
     # For now a user can just have one verified NIN
     # TODO: Check if a user has a valid letter proofing
     if user.nins.count > 0:
-        return {'fail': True, 'error': 'User is already verified'}
+        return {'_status': 'error', 'message': 'User is already verified'}
 
     # No existing proofing state was found, create a new one
     if not proofing_state:
@@ -53,12 +53,12 @@ def proofing(user, nin):
 
     if proofing_state.proofing_letter.is_sent:
         current_app.logger.info('User {!r} has already sent a letter'.format(user))
-        return {'fail': True, 'error': 'Letter already sent'}
+        return {'_status': 'error', 'message': 'Letter already sent'}
 
     address = get_address(user, proofing_state)
     if not address:
         current_app.logger.error('No address found for user {!r}'.format(user))
-        return {'fail': True, 'error': 'No address found'}
+        return {'_status': 'error', 'message': 'No address found'}
 
     # Set and save official address
     proofing_state.proofing_letter.address = address
@@ -68,10 +68,10 @@ def proofing(user, nin):
         campaign_id = send_letter(user, proofing_state)
     except pdf.AddressFormatException as e:
         current_app.logger.error('{!r}'.format(e.message))
-        return {'fail': True, 'error': 'Bad postal address'}
+        return {'_status': 'error', 'message': 'Bad postal address'}
     except EkopostException as e:
         current_app.logger.error('{!r}'.format(e.message))
-        return {'fail': True, 'error': 'Temporary technical problem'}
+        return {'_status': 'error', 'message': 'Temporary technical problem'}
 
     # Save the users proofing state
     proofing_state.proofing_letter.transaction_id = campaign_id
@@ -92,13 +92,13 @@ def verify_code(user, verification_code):
     proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn, raise_on_missing=False)
 
     if not proofing_state:
-        return {'fail': True, 'error': 'No proofing state found'}
+        return {'_status': 'error', 'message': 'No proofing state found'}
 
     # Check if provided code matches the one in the letter
     if not verification_code == proofing_state.nin.verification_code:
         current_app.logger.error('Verification code for user {!r} does not match'.format(user))
         # TODO: Throttling to discourage an adversary to try brute force
-        return {'fail': True, 'error': 'Wrong code'}
+        return {'_status': 'error', 'message': 'Wrong code'}
 
     # Update proofing state to use to create nin element
     proofing_state.nin.is_verified = True
@@ -132,7 +132,7 @@ def verify_code(user, verification_code):
         current_app.logger.error('Sync request failed for user {!s}'.format(user))
         current_app.logger.error('Exception: {!s}'.format(e))
         # XXX: Probably not str(e) as message?
-        return {'fail': True, 'error': 'Sync request failed for user'}
+        return {'_status': 'error', 'message': 'Sync request failed for user'}
 
     # XXX: Remove dumping data to log
     current_app.logger.info('Logging data for user: {!r}'.format(user))

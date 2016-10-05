@@ -63,7 +63,7 @@ def post_user(user, given_name, surname, display_name, language):
         save_dashboard_user(user)
     except UserOutOfSync:
         return {
-            'fail': True,
+            '_status': 'error',
             'error': {'form': 'user-out-of-sync'}
         }
     return PersonalDataSchema().dump(user).data

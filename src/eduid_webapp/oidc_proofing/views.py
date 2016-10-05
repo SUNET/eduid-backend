@@ -137,7 +137,7 @@ def proofing(user, nin):
     # TODO: Check if a user has a valid letter proofing
     # For now a user can just have one verified NIN
     if len(user.nins.to_list()) > 0:
-        return {'fail': True, 'error': 'User is already verified'}
+        return {'_status': 'error', 'error': 'User is already verified'}
 
     proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn, raise_on_missing=False)
     if not proofing_state:
@@ -163,7 +163,7 @@ def proofing(user, nin):
         except requests.exceptions.ConnectionError as e:
             msg = 'No connection to authorization endpoint: {!s}'.format(e)
             current_app.logger.error(msg)
-            return {'fail': True, 'error': msg}
+            return {'_status': 'error', 'error': msg}
         # If authentication request went well save user state
         if response.status_code == 200:
             current_app.logger.debug('Authentication request delivered to provider {!s}'.format(
@@ -173,7 +173,7 @@ def proofing(user, nin):
         else:
             current_app.logger.error('Bad response from OP: {!s} {!s} {!s}'.format(response.status_code,
                                                                                    response.reason, response.content))
-            return {'fail': True, 'error': 'Temporary technical problems'}
+            return {'_status': 'error', 'error': 'Temporary technical problems'}
     # Return nonce and nonce as qr code
     current_app.logger.debug('Returning nonce for user {!s}'.format(user))
     buf = StringIO()
