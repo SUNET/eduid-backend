@@ -5,6 +5,17 @@ from eduid_common.api.utils import get_flux_type
 __author__ = 'lundberg'
 
 
+class FluxResponseStatus(object):
+
+    @property
+    def ok(self):
+        return 'ok'
+
+    @property
+    def error(self):
+        return 'error'
+
+
 class FluxResponse(object):
 
     def __init__(self, req, suffix, payload, error=None, meta=None):

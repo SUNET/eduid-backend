@@ -8,7 +8,7 @@ from marshmallow.exceptions import ValidationError
 from eduid_userdb.exceptions import UserDoesNotExist, MultipleUsersReturned
 from eduid_common.api.utils import retrieve_modified_ts
 from eduid_common.api.schemas.base import FluxStandardAction
-from eduid_common.api.schemas.models import FluxSuccessResponse, FluxFailResponse
+from eduid_common.api.schemas.models import FluxResponseStatus, FluxSuccessResponse, FluxFailResponse
 from eduid_common.api.exceptions import ApiException
 
 __author__ = 'lundberg'
@@ -91,9 +91,10 @@ class MarshalWith(object):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             ret = f(*args, **kwargs)
+            response_status = ret.pop('_status', FluxResponseStatus.ok)
 
             # Handle fail responses
-            if ret.pop('fail', False):
+            if response_status != FluxResponseStatus.ok:
                 response_data = FluxFailResponse(request, payload=ret)
                 return jsonify(FluxStandardAction().dump(response_data.to_dict()).data)
 
@@ -117,9 +118,9 @@ class UnmarshalWith(object):
                     json_data = {}
                 unmarshal_result = self.schema().load(json_data)
                 kwargs.update(unmarshal_result.data)
+                return f(*args, **kwargs)
             except ValidationError as e:
                 response_data = FluxFailResponse(request, payload={'error': e.normalized_messages()})
                 return jsonify(response_data.to_dict())
-            return f(*args, **kwargs)
         return decorated_function
 
