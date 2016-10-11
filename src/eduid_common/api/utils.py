@@ -2,6 +2,7 @@
 
 from uuid import uuid4
 import sys
+from string import maketrans
 from flask import current_app
 
 from eduid_userdb import User
@@ -81,7 +82,7 @@ def save_dashboard_user(user):
         # turn it into a DashboardUser before saving it in the dashboard private db
         user = DashboardUser(data = user.to_dict())
     current_app.dashboard_userdb.save(user)
-    return current_app.amrelay.request_user_sync(user)
+    return current_app.am_relay.request_user_sync(user)
 
 
 def urlappend(base, path):
@@ -110,3 +111,20 @@ def urlappend(base, path):
     if not base.endswith('/'):
         base = '{!s}/'.format(base)
     return '{!s}{!s}'.format(base, path)
+
+
+def get_flux_type(req, suffix):
+    """
+    :param req: flask request
+    :type req: flask.request
+    :param suffix: SUCCESS|FAIL|?
+    :type suffix: str|unicode
+    :return: Flux type
+    :rtype: str|unicode
+    """
+    method = req.method
+    blueprint = req.blueprint
+    table = maketrans('/-', '  ')
+    url_rule = req.url_rule.rule.translate(table)
+    flux_type = '_'.join('{!s} {!s} {!s} {!s}'.format(method, blueprint, url_rule, suffix.upper()).split()).upper()
+    return flux_type
