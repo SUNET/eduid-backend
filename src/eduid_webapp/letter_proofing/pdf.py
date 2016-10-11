@@ -6,10 +6,9 @@ from flask import current_app
 from xhtml2pdf import pisa
 from StringIO import StringIO
 from datetime import timedelta
-from eduid_common.api.exceptions import ApiException
 
 
-class FormatException(Exception):
+class AddressFormatException(Exception):
     pass
 
 
@@ -27,17 +26,17 @@ def format_address(recipient):
         surname = recipient.get('Name')['Surname']                          # Mandatory
         name = u'{!s} {!s} {!s}'.format(given_name, middle_name, surname)
         # TODO: Take eventual CareOf and Address1(?) in to account
-        care_of = recipient.get('OfficialAddress').get('CareOf', '')        # Optional
-        address = recipient.get('OfficialAddress')['Address2']              # Mandatory
+        care_of = recipient.get('OfficialAddress').get('CareOf', '')         # Optional
+        address = recipient.get('OfficialAddress')['Address2']               # Mandatory
         # From Skatteverket's documentation it is not clear why Address1
         # is needed. In practice it is rarely used, but when actually
         # used it has been seen to often contains apartment numbers.
-        misc_address = recipient.get('OfficialAddress').get('Address1', '') # Optional
-        postal_code = recipient.get('OfficialAddress')['PostalCode']        # Mandatory
-        city = recipient.get('OfficialAddress')['City']                     # Mandatory
+        misc_address = recipient.get('OfficialAddress').get('Address1', '')  # Optional
+        postal_code = recipient.get('OfficialAddress')['PostalCode']         # Mandatory
+        city = recipient.get('OfficialAddress')['City']                      # Mandatory
         return name, care_of, address, misc_address, postal_code, city
     except (KeyError, TypeError, AttributeError) as e:
-        raise FormatException(e)
+        raise AddressFormatException(e)
 
 
 def create_pdf(recipient, verification_code, created_timestamp, primary_mail_address):
@@ -58,10 +57,9 @@ def create_pdf(recipient, verification_code, created_timestamp, primary_mail_add
 
     try:
         name, care_of, address, misc_address, postal_code, city = format_address(recipient)
-    except FormatException as e:
+    except AddressFormatException as e:
         current_app.logger.error('Postal address formatting failed: {!r}'.format(e))
-        raise ApiException(message='Postal address formatting failed', status_code=500,
-                           payload={'errors': ['{!r}'.format(e)]})
+        raise e
 
     # Calculate the validity period of the verification
     # code that is to be shown in the letter.

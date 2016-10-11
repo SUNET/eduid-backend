@@ -33,10 +33,11 @@
 
 from __future__ import absolute_import
 
-from flask import json
-from flask import Blueprint, current_app
+from flask import Blueprint
 
 from eduid_common.config.parsers.etcd import EtcdConfigParser
+from eduid_common.api.decorators import MarshalWith
+from eduid_common.api.schemas.base import FluxStandardAction
 from eduid_webapp.jsconfig.settings.front import jsconfig
 
 
@@ -44,6 +45,7 @@ jsconfig_views = Blueprint('jsconfig', __name__, url_prefix='')
 
 
 @jsconfig_views.route('/get-config', methods=['GET'])
+@MarshalWith(FluxStandardAction)
 def get_config():
 
     parser = EtcdConfigParser('/eduid/webapp/jsapps/')
@@ -51,7 +53,4 @@ def get_config():
 
     jsconfig.update(config)
 
-    return json.jsonify({
-            'type': 'GET_CONFIG_SUCCESS',
-            'payload': jsconfig,
-            })
+    return jsconfig
