@@ -33,46 +33,37 @@
 
 from __future__ import absolute_import
 
-from flask import json
-from flask import Blueprint, current_app, request, abort
+from flask import Blueprint
 
 from eduid_userdb.exceptions import UserOutOfSync
-from eduid_common.api.decorators import require_dashboard_user
+from eduid_common.api.decorators import require_dashboard_user, MarshalWith, UnmarshalWith
 from eduid_common.api.utils import save_dashboard_user
-from eduid_webapp.personal_data.schemas import PersonalDataSchema
+from eduid_webapp.personal_data.schemas import PersonalDataSchema, PersonalDataResponseSchema
 
 pd_views = Blueprint('personal_data', __name__, url_prefix='')
 
 
-@pd_views.route('/user', methods=['GET', 'POST'])
+@pd_views.route('/user', methods=['GET'])
+@MarshalWith(PersonalDataResponseSchema)
 @require_dashboard_user
-def user(user):
-    if request.method == 'POST':
-        data = json.loads(request.get_data())
-        schema = PersonalDataSchema().load(data)
-        if not schema.errors:
-            user.given_name = schema.data['given_name']
-            user.surname = schema.data['surname']
-            user.display_name = schema.data['display_name']
-            user.language = schema.data['language']
-            try:
-                save_dashboard_user(user)
-            except UserOutOfSync:
-                return json.jsonify({
-                    'type': 'POST_USERDATA_FAIL',
-                    'error': {'form': 'user-out-of-sync'},
-                    })
-            return json.jsonify({
-                'type': 'POST_USERDATA_SUCCESS',
-                'payload': schema.data,
-                })
-        return json.jsonify({
-            'type': 'POST_USERDATA_FAIL',
-            'error': schema.errors,
-            })
-    elif request.method == 'GET':
-        schema = PersonalDataSchema().dump(user)
-        return json.jsonify({
-                'type': 'GET_USERDATA_SUCCESS',
-                'payload': schema.data,
-                })
+def get_user(user):
+    return PersonalDataSchema().dump(user).data
+
+
+@pd_views.route('/user', methods=['POST'])
+@UnmarshalWith(PersonalDataSchema)
+@MarshalWith(PersonalDataResponseSchema)
+@require_dashboard_user
+def post_user(user, given_name, surname, display_name, language):
+    user.given_name = given_name
+    user.surname = surname
+    user.display_name = display_name
+    user.language = language
+    try:
+        save_dashboard_user(user)
+    except UserOutOfSync:
+        return {
+            '_status': 'error',
+            'error': {'form': 'user-out-of-sync'}
+        }
+    return PersonalDataSchema().dump(user).data

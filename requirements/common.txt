@@ -2,8 +2,7 @@ Flask>=0.10.1,<0.12
 redis==2.10.5
 pynacl==1.0.1
 python-etcd==0.4.3
-flask-apispec>=0.3.2
 Pillow>=3.0.0
 eduid-userdb>=0.2.3b0
-eduid-common[webapp]>=0.2.1b12
+eduid-common[webapp]>=0.2.1b17
 eduid-am>=0.6.2b2

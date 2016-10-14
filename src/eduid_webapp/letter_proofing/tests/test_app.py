@@ -136,7 +136,7 @@ class AppTests(EduidAPITestCase):
     def test_verify_letter_code_fail(self):
         self.send_letter(self.test_user_nin)
         json_data = self.verify_code('wrong code')
-        self.assertFalse(json_data['payload']['success'])
+        self.assertEqual(json_data['payload']['message'], 'Wrong code')
 
     def test_proofing_flow(self):
         self.get_state()
@@ -156,6 +156,17 @@ class AppTests(EduidAPITestCase):
         json_data = self.get_state()
         self.assertTrue(json_data['payload']['letter_expired'])
         self.assertNotIn('letter_sent', json_data['payload'])
+
+    @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
+    def test_unmarshal_error(self, mock_get_postal_address):
+        mock_get_postal_address.return_value = self.mock_address
+        data = {'nin': 'not a nin'}
+        with self.session_cookie(self.client, self.test_user_eppn) as client:
+            response = client.post('/proofing', data=json.dumps(data), content_type=self._json)
+        self.assertEqual(response.status_code, 200)
+        json_data = json.loads(response.data)
+        self.assertEqual(json_data['type'], 'POST_LETTER_PROOFING_PROOFING_FAIL')
+        self.assertIn('nin', json_data['payload']['error'].keys())
 
     def test_deprecated_proofing_state(self):
         deprecated_data = {

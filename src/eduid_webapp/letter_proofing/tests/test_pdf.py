@@ -84,7 +84,7 @@ class FormatAddressTest(unittest.TestCase):
         ]
 
         for response in failing_navet_responses:
-            self.assertRaises(pdf.FormatException, pdf.format_address, response)
+            self.assertRaises(pdf.AddressFormatException, pdf.format_address, response)
 
 
 class CreatePDFTest(EduidAPITestCase):

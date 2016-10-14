@@ -9,7 +9,8 @@ from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 
 from eduid_common.api.app import eduid_init_app
 from eduid_common.api import am
-from eduid_userdb.proofing import OidcProofingStateDB, OidcProofingUserDB, ProofingUser
+from eduid_common.authn.utils import no_authn_views
+from eduid_userdb.proofing import OidcProofingStateDB, OidcProofingUserDB
 
 from eduid_webapp.oidc_proofing.mock_proof import ProofDB
 
@@ -55,6 +56,9 @@ def init_oidc_proofing_app(name, config):
 
     from eduid_webapp.oidc_proofing.views import oidc_proofing_views
     app.register_blueprint(oidc_proofing_views)
+
+    # Register view path that should not be authorized
+    app = no_authn_views(app, ['/authorization-response'])
 
     # Init celery
     app = am.init_relay(app, 'eduid_oidc_proofing')

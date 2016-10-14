@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 
 from eduid_userdb.proofing import LetterProofingState
 from eduid_common.api.utils import get_short_hash
+from eduid_webapp.letter_proofing import pdf
 
 __author__ = 'lundberg'
 
@@ -61,3 +62,50 @@ def create_proofing_state(eppn, nin):
         }
     })
     return proofing_state
+
+
+def get_address(user, proofing_state):
+    """
+    :param user: User object
+    :param proofing_state: Users proofing state
+
+    :type user: eduid_userdb.proofing.ProofingUser
+    :type proofing_state: eduid_userdb.proofing.LetterProofingState
+
+    :return: Users offcial postal address
+    :rtype: OrderedDict|None
+    """
+    current_app.logger.info('Getting address for user {!r}'.format(user))
+    current_app.logger.debug('NIN: {!s}'.format(proofing_state.nin.number))
+    # Lookup official address via Navet
+    address = current_app.msg_relay.get_postal_address(proofing_state.nin.number)
+    current_app.logger.debug('Official address: {!r}'.format(address))
+    return address
+
+
+def send_letter(user, proofing_state):
+    """
+    :param user: User object
+    :param proofing_state: Users proofing state
+
+    :type user: eduid_userdb.proofing.ProofingUser
+    :type proofing_state: eduid_userdb.proofing.LetterProofingState
+
+    :return: Transaction id
+    :rtype: str|unicode
+    """
+    # Create the letter as a PDF-document and send it to our letter sender service
+    if current_app.config.get("EKOPOST_DEBUG_PDF", None):
+        pdf.create_pdf(proofing_state.proofing_letter.address,
+                       proofing_state.nin.verification_code,
+                       proofing_state.nin.created_ts,
+                       user.mail_addresses.primary.email)
+        campaign_id = 'debug mode transaction id'
+    else:
+        pdf_letter = pdf.create_pdf(proofing_state.proofing_letter.address,
+                                    proofing_state.nin.verification_code,
+                                    proofing_state.nin.created_ts,
+                                    user.mail_addresses.primary.email)
+
+        campaign_id = current_app.ekopost.send(user.eppn, pdf_letter)
+    return campaign_id
