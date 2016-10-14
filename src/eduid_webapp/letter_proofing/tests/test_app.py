@@ -34,7 +34,7 @@ class AppTests(EduidAPITestCase):
                                               (u'PostalCode', u'12345'),
                                               (u'City', u'LANDET')]))
         ])
-        self._json = 'application/json'
+
         self.client = self.app.test_client()
 
         # Replace user with one without previous proofings
@@ -82,7 +82,7 @@ class AppTests(EduidAPITestCase):
         mock_get_postal_address.return_value = self.mock_address
         data = {'nin': nin}
         with self.session_cookie(self.client, self.test_user_eppn) as client:
-            response = client.post('/proofing', data=json.dumps(data), content_type=self._json)
+            response = client.post('/proofing', data=json.dumps(data), content_type=self.content_type_json)
         self.assertEqual(response.status_code, 200)
         return json.loads(response.data)
 
@@ -91,7 +91,7 @@ class AppTests(EduidAPITestCase):
         mock_request_user_sync.return_value = True
         data = {'verification_code': code}
         with self.session_cookie(self.client, self.test_user_eppn) as client:
-            response = client.post('/verify-code', data=json.dumps(data), content_type=self._json)
+            response = client.post('/verify-code', data=json.dumps(data), content_type=self.content_type_json)
         self.assertEqual(response.status_code, 200)
         return json.loads(response.data)
     # End helper methods
