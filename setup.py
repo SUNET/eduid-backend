@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 
-version = '0.2.1b17'
+version = '0.2.1b18'
 
 requires = [
     'setuptools >= 2.2',
@@ -19,6 +19,7 @@ webapp_requires = [
     'python-etcd >= 0.4.3',
     'PyYAML >= 3.11',
     'bleach>=1.4.2',
+    'marshmallow>=2.10,<2.11',
 ]
 webapp_extras = webapp_requires + []
 
