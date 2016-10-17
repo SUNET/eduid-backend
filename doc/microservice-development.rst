@@ -379,6 +379,14 @@ Available actions are located at `eduid-html/react/src/actions/`.
 Data sent from the browserto the server is in the form of
 json data.
 
+The format for the action type names will be
+`METHOD_BLUEPRINTNAME_URLRULE` for the triggering action (only ever produced in
+the browser), and for the failure/success consequent actions, that can
+originate either in the server or in the browser, the format will be the same
+but appending either `_FAIL` or `_SUCCESS`. The canonical procedure to
+generate action type names can be checked out in
+`here <https://github.com/SUNET/eduid-common/blob/new_utils/src/eduid_common/api/utils.py#L116>`_.
+
 
 Docker
 ------
