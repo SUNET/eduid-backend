@@ -3,18 +3,17 @@
 from __future__ import absolute_import
 
 from eduid_common.api.app import eduid_init_app
+from eduid_common.api.utils import urlappend
 from eduid_userdb.support import db
 from flask import url_for
-try:
-    from urlparse import urljoin
-except ImportError:  # Python3
-    from urllib.parse import urljoin
 
 
 def register_template_funcs(app):
 
     @app.template_filter('datetimeformat')
     def datetimeformat(value, format='%Y-%m-%d %H:%M %Z'):
+        if not value:
+            return ''
         return value.strftime(format)
 
     @app.template_global()
@@ -22,7 +21,7 @@ def register_template_funcs(app):
         url = app.config.get('STATIC_URL')
 
         if url:
-            return urljoin(url, filename)
+            return urlappend(url, filename)
         # If STATIC_URL is not set use Flask default
         return url_for('static', filename=filename)
 

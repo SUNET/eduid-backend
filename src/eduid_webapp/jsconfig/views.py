@@ -44,7 +44,7 @@ from eduid_webapp.jsconfig.settings.front import jsconfig
 jsconfig_views = Blueprint('jsconfig', __name__, url_prefix='')
 
 
-@jsconfig_views.route('/get-config', methods=['GET'])
+@jsconfig_views.route('/config', methods=['GET'])
 @MarshalWith(FluxStandardAction)
 def get_config():
 

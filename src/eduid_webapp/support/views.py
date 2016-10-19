@@ -3,6 +3,7 @@ from __future__ import absolute_import
 
 from flask import Blueprint, current_app, request, render_template
 from eduid_common.api.decorators import require_support_personnel
+from eduid_userdb.exceptions import UserHasUnknownData
 
 support_views = Blueprint('support', __name__, url_prefix='', template_folder='templates')
 
@@ -36,8 +37,13 @@ def index(logged_in_user):
                                                                            raise_on_missing=False)
             user_data['dashboard_user'] = current_app.support_dashboard_db.get_user_by_id(user_id=user['user_id'],
                                                                                           raise_on_missing=False)
-            user_data['signup_user'] = current_app.support_signup_db.get_user_by_id(user_id=user['user_id'],
-                                                                                    raise_on_missing=False)
+            try:
+                user_data['signup_user'] = current_app.support_signup_db.get_user_by_id(user_id=user['user_id'],
+                                                                                        raise_on_missing=False)
+            except UserHasUnknownData:
+                # The user has completed signup but is in an old format, disregard
+                user_data['signup_user'] = None
+
             # Aux data
             user_data['authn'] = current_app.support_authn_db.get_authn_info(user_id=user['user_id'])
             user_data['verifications'] = current_app.support_verification_db.get_verifications(user_id=user['user_id'])
