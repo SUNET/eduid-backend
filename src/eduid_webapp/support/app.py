@@ -12,6 +12,8 @@ def register_template_funcs(app):
 
     @app.template_filter('datetimeformat')
     def datetimeformat(value, format='%Y-%m-%d %H:%M %Z'):
+        if not value:
+            return ''
         return value.strftime(format)
 
     @app.template_global()
