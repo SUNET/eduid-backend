@@ -34,6 +34,8 @@
 from saml2.config import SPConfig
 import imp
 
+from eduid_common.api.utils import urlappend
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -99,6 +101,11 @@ def no_authn_views(app, paths):
     :return: Flask app
     :rtype: flask.Flask
     """
-    new_paths = ['^{!s}$'.format(path) for path in paths if path not in app.config['NO_AUTHN_URLS']]
-    app.config['NO_AUTHN_URLS'].extend(new_paths)
+    app_root = app.config.get('APPLICATION_ROOT')
+    if app_root is None:
+        app_root = ''
+    for path in paths:
+        no_auth_regex = '^{!s}$'.format(urlappend(app_root, path))
+        if no_auth_regex not in app.config['NO_AUTHN_URLS']:
+            app.config['NO_AUTHN_URLS'].append(no_auth_regex)
     return app
