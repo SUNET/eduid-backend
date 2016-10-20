@@ -107,15 +107,13 @@ class ProofingState(object):
         return res
 
 
-class LetterProofingState(ProofingState):
+class NinProofingState(ProofingState):
     def __init__(self, data, raise_on_unknown=True):
         self._data_in = copy.deepcopy(data)  # to not modify callers data
         _nin = NinProofingElement(data=self._data_in.pop('nin'))
-        _proofing_letter = SentLetterElement(self._data_in.pop('proofing_letter', {}))
 
         ProofingState.__init__(self, self._data_in, raise_on_unknown)
         self._data['nin'] = _nin
-        self._data['proofing_letter'] = _proofing_letter
 
     @property
     def nin(self):
@@ -123,6 +121,20 @@ class LetterProofingState(ProofingState):
         :rtype: NinProofingElement
         """
         return self._data['nin']
+
+    def to_dict(self):
+        res = super(NinProofingState, self).to_dict()
+        res['nin'] = self.nin.to_dict()
+        return res
+
+
+class LetterProofingState(NinProofingState):
+    def __init__(self, data, raise_on_unknown=True):
+        self._data_in = copy.deepcopy(data)  # to not modify callers data
+        _proofing_letter = SentLetterElement(self._data_in.pop('proofing_letter', {}))
+
+        super(LetterProofingState, self).__init__(self._data_in, raise_on_unknown)
+        self._data['proofing_letter'] = _proofing_letter
 
     @property
     def proofing_letter(self):
@@ -133,20 +145,18 @@ class LetterProofingState(ProofingState):
 
     def to_dict(self):
         res = super(LetterProofingState, self).to_dict()
-        res['nin'] = self.nin.to_dict()
         res['proofing_letter'] = self.proofing_letter.to_dict()
         return res
 
 
-class OidcProofingState(ProofingState):
+class OidcProofingState(NinProofingState):
     def __init__(self, data, raise_on_unknown=True):
         self._data_in = copy.deepcopy(data)  # to not modify callers data
         # Remove from _data_in before init super class
         state = self._data_in.pop('state')
         nonce = self._data_in.pop('nonce')
 
-        ProofingState.__init__(self, self._data_in, raise_on_unknown)
-
+        super(OidcProofingState, self).__init__(self._data_in, raise_on_unknown)
         self._data['state'] = state
         self._data['nonce'] = nonce
 
@@ -163,4 +173,3 @@ class OidcProofingState(ProofingState):
         :rtype: str | unicode
         """
         return self._data['nonce']
-
