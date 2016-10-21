@@ -36,12 +36,14 @@ it with all attributes common to all eduID services.
 
 
 from werkzeug.contrib.fixers import ProxyFix
+
 from eduid_userdb import UserDB
 from eduid_common.authn.middleware import AuthnApp
 from eduid_common.api.request import Request
 from eduid_common.api.session import SessionFactory
 from eduid_common.api.logging import init_logging
 from eduid_common.api.exceptions import init_exception_handlers, init_sentry
+from eduid_common.api.mailer import init_mailer
 from eduid_common.config.parsers.etcd import EtcdConfigParser
 
 
@@ -97,6 +99,7 @@ def eduid_init_app_no_db(name, config, app_class=AuthnApp):
     app = init_logging(app)
     app = init_exception_handlers(app)
     app = init_sentry(app)
+    app = init_mailer(app)
     app.session_interface = SessionFactory(app.config)
 
     return app
