@@ -3,11 +3,13 @@
 from uuid import uuid4
 import sys
 from string import maketrans
-from flask import current_app
+from flask import current_app, session
 
 from eduid_userdb import User
 from eduid_userdb.dashboard import DashboardUser
 from eduid_userdb.exceptions import UserDBValueError
+from eduid_userdb.exceptions import UserDoesNotExist, MultipleUsersReturned
+from eduid_common.api.exceptions import ApiException
 
 PY3 = sys.version_info[0] == 3
 
@@ -66,6 +68,23 @@ def retrieve_modified_ts(user, dashboard_userdb):
     user.modified_ts = dashboard_user.modified_ts
     current_app.logger.debug("Updating {!s} with modified_ts from dashboard user {!s}: {!s}".format(
         user, dashboard_user, dashboard_user.modified_ts))
+
+
+def get_dashboard_user():
+    eppn = session.get('user_eppn', None)
+    if not eppn:
+        raise ApiException('Not authorized', status_code=401)
+    # Get user from central database
+    try:
+        return current_app.central_userdb.get_user_by_eppn(eppn, raise_on_missing=True)
+    except UserDoesNotExist as e:
+        current_app.logger.error('Could not find user central database.')
+        current_app.logger.error(e)
+        raise ApiException('Not authorized', status_code=401)
+    except MultipleUsersReturned as e:
+        current_app.logger.error('Found multiple users in central database.')
+        current_app.logger.error(e)
+        raise ApiException('Not authorized', status_code=401)
 
 
 def save_dashboard_user(user):

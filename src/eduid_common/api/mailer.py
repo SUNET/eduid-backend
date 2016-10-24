@@ -35,7 +35,7 @@ from flask_mail import Message, Mail
 
 
 def send_mail(subject, recipients, template, context):
-    pass
+    msg = Message(subject, recipients)
 
 
 def init_mailer(app):
