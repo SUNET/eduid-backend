@@ -39,7 +39,7 @@ __author__ = 'eperez'
 
 class EmailSchema(EduidSchema):
 
-    email = fields.String(required=True)
+    email = fields.Email(required=True)
     confirmed = fields.Boolean(default=False)
     primary = fields.Boolean(default=False)
 
