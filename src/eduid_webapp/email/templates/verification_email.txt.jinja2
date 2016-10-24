@@ -1,0 +1,13 @@
+{% trans verification_link=verification_link, site_url=site_url, site_name=site_name %}
+Thank you for registering with {{ site_name }}.
+
+To confirm that you own this email address, simply click on the following link:
+
+{{ verification_link }}
+
+If clicking on the link above does not work, go to your profile and emails section. Click on the
+verification icon and enter the following code:
+
+{{ code }}
+
+{% endtrans %}
