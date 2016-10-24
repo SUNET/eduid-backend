@@ -113,7 +113,7 @@ class UnmarshalWith(object):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             try:
-                json_data = request.get_json(force=True)
+                json_data = request.get_json()
                 if json_data is None:
                     json_data = {}
                 unmarshal_result = self.schema().load(json_data)
