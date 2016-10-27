@@ -32,7 +32,7 @@
 #
 
 from marshmallow import ValidationError
-from flask import current_app, request
+from flask import request
 from eduid_common.api.utils import get_dashboard_user
 
 
@@ -46,4 +46,4 @@ def validate_email(email):
 
     elif set(['verify', 'setprimary', 'remove']).intersection(set(request.POST)):
         if value not in user_emails:
-            raise colander.Invalid("This email address is unavailable")
+            raise ValidationError("This email address is unavailable")

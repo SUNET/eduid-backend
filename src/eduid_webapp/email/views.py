@@ -37,8 +37,10 @@ from flask import Blueprint
 
 from eduid_userdb.exceptions import UserOutOfSync
 from eduid_userdb.mail import MailAddress
+from eduid_userdb.proofing import EmailProofingElement, SentEmailElement
 from eduid_common.api.decorators import require_dashboard_user, MarshalWith, UnmarshalWith
 from eduid_common.api.utils import save_dashboard_user
+from eduid_common.api.utils import get_unique_hash
 from eduid_webapp.email.schemas import EmailSchema, EmailResponseSchema
 
 email_views = Blueprint('email', __name__, url_prefix='')
@@ -56,7 +58,6 @@ def get_all_emails(user):
 @MarshalWith(EmailResponseSchema)
 @require_dashboard_user
 def post_email(user, email, confirmed, primary):
-    # XXX create and store verification code, send it
     new_mail = MailAddress(email=email, application='dashboard',
                            verified=False, primary=False)
     user.mail_addresses.add(new_mail)
@@ -67,6 +68,13 @@ def post_email(user, email, confirmed, primary):
             '_status': 'error',
             'error': {'form': 'user-out-of-sync'}
         }
+
+    code = get_unique_hash()
+    
+    verification = EmailProofingElement(email=email,
+                                        verification_code=code,
+                                        application='dashboard')
+
     return EmailSchema().dump(new_mail).data
 
 

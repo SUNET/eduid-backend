@@ -33,13 +33,14 @@
 
 from marshmallow import fields
 from eduid_common.api.schemas.base import FluxStandardAction, EduidSchema
+from eduid_webapp.email.validators import validate_email
 
 __author__ = 'eperez'
 
 
 class EmailSchema(EduidSchema):
 
-    email = fields.Email(required=True)
+    email = fields.Email(required=True, validate=validate_email)
     confirmed = fields.Boolean(default=False)
     primary = fields.Boolean(default=False)
 
