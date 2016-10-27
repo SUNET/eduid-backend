@@ -36,6 +36,7 @@ import copy
 import datetime
 
 from .proofing_element import NinProofingElement, SentLetterElement
+from .proofing_element import EmailProofingElement, SentEmailElement
 from eduid_userdb.exceptions import UserHasUnknownData
 
 __author__ = 'lundberg'
@@ -135,6 +136,37 @@ class LetterProofingState(ProofingState):
         res = super(LetterProofingState, self).to_dict()
         res['nin'] = self.nin.to_dict()
         res['proofing_letter'] = self.proofing_letter.to_dict()
+        return res
+
+
+class EmailProofingState(ProofingState):
+    def __init__(self, data, raise_on_unknown=True):
+        self._data_in = copy.deepcopy(data)  # to not modify callers data
+        _email = EmailProofingElement(data=self._data_in.pop('email'))
+        _proofing_email = SentEmailElement(self._data_in.pop('proofing_email', {}))
+
+        ProofingState.__init__(self, self._data_in, raise_on_unknown)
+        self._data['email'] = _email
+        self._data['proofing_email'] = _proofing_email
+
+    @property
+    def email(self):
+        """
+        :rtype: EmailProofingElement
+        """
+        return self._data['email']
+
+    @property
+    def proofing_email(self):
+        """
+        :rtype: ProofingEmailElement
+        """
+        return self._data['proofing_email']
+
+    def to_dict(self):
+        res = super(EmailProofingState, self).to_dict()
+        res['email'] = self.email.to_dict()
+        res['proofing_email'] = self.proofing_email.to_dict()
         return res
 
 

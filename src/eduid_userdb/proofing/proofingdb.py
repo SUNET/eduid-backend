@@ -37,7 +37,8 @@ from bson.errors import InvalidId
 from eduid_userdb.db import BaseDB
 from eduid_userdb.userdb import UserDB
 from eduid_userdb.exceptions import DocumentOutOfSync
-from eduid_userdb.proofing import LetterProofingState, OidcProofingState, ProofingUser
+from eduid_userdb.proofing import LetterProofingState, OidcProofingState
+from eduid_userdb.proofing import EmailProofingState, ProofingUser
 
 import logging
 logger = logging.getLogger(__name__)
@@ -164,6 +165,14 @@ class LetterProofingStateDB(ProofingStateDB):
     ProofingStateClass = LetterProofingState
 
     def __init__(self, db_uri, db_name='eduid_idproofing_letter'):
+        ProofingStateDB.__init__(self, db_uri, db_name)
+
+
+class EmailProofingStateDB(ProofingStateDB):
+
+    ProofingStateClass = EmailProofingState
+
+    def __init__(self, db_uri, db_name='eduid_idproofing_email'):
         ProofingStateDB.__init__(self, db_uri, db_name)
 
 
