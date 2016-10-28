@@ -1,6 +1,10 @@
 # -*- encoding: utf-8 -*-
 from __future__ import absolute_import
 
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+
 from celery import Task
 from celery.utils.log import get_task_logger
 from celery.task import periodic_task, task
@@ -47,6 +51,7 @@ class MessageRelay(Task):
     """
     abstract = True
     _sms = None
+    _smtp = None
     _mm_api = None
     _navet_api = None
     _config = config_parser.read_configuration()
@@ -64,6 +69,27 @@ class MessageRelay(Task):
             self._sms = SMSClient(self.app.conf.get("SMS_ACC"), self.app.conf.get("SMS_KEY"))
             self._sender = self.app.conf.get("SMS_SENDER")
         return self._sms
+
+    @property
+    def smtp(self):
+        if self._smtp is None:
+            host = self.app.conf.get("MAIL_HOST")
+            port = self.app.conf.get("MAIL_PORT")
+            smtp = smtplib.SMTP(host, port)
+            stattls = self.app.conf.get("MAIL_STARTTLS")
+            if starttls:
+                keyfile = self.app.conf.get("MAIL_KEYFILE")
+                certfile = self.app.conf.get("MAIL_CERTFILE")
+                if keyfile and certfile:
+                    smtp.stattls(keyfile, cerfile)
+                else:
+                    smtp.stattls()
+            username = self.app.conf.get("MAIL_USERNAME")
+            password = self.app.conf.get("MAIL_PASSWORD")
+            if username and password:
+                smtp.login(username, password)
+            self._smtp = smtp
+        return self._smtp
 
     @property
     def mm_api(self):
@@ -331,6 +357,31 @@ class MessageRelay(Task):
                 return True
         return False
 
+    @TransactionAudit(MONGODB_URI)
+    def sendmail(self, subject, recipients, text=None, html=None):
+        '''
+        Send mail
+
+        :param subject: the subject of the email
+        :type subject: str
+        :param recipients: the recipients of the email
+        :type recipients: list of str
+        :param text: the plain text message
+        :type text: unicode
+        :param html: the html version of the message
+        :type html: unicode
+        '''
+        sender = self.app.conf.get("MAIL_DEFAULT_SENDER")
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = subject
+        msg['From'] = sender
+        msg['To'] = ', '.join(recipients)
+        if text:
+            msg.attach(MIMEText(text, 'plain'))
+        if html:
+            msg.attach(MIMEText(html, 'html'))
+        self.smtp.sendmail(sender, recipients, msg.as_string())
+
 
 @task(base=MessageRelay)
 def is_reachable(identity_number):
@@ -363,13 +414,37 @@ def send_message(message_type, reference, message_dict, recipient, template, lan
     self = send_message
     try:
         return self.send_message(message_type, reference, message_dict, recipient, template, language, subject)
-    except Exception, e:
+    except Exception as e:
         # Increase countdown every time it fails (to a maximum of 1 day)
         countdown = 600 * send_message.request.retries ** 2
         retry_countdown = min(countdown, 86400)
         LOG.error('send_message task error', exc_info=True)
         LOG.debug("send_message task retrying in %d seconds, error %s", retry_countdown, e.message)
         send_message.retry(exc=e, countdown=retry_countdown)
+
+
+@task(base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT, max_retries=10)
+def sendmail(subject, recipients, text=None, html=None):
+    """
+    :param subject: the subject of the email
+    :type subject: str
+    :param recipients: the recipients of the email
+    :type recipients: list of str
+    :param text: the plain text message
+    :type text: unicode
+    :param html: the html version of the message
+    :type html: unicode
+    """
+    self = sendmail
+    try:
+        return self.sendmail(subject, recipients, text=text, html=html)
+    except Exception as e:
+        # Increase countdown every time it fails (to a maximum of 1 day)
+        countdown = 600 * sendmail.request.retries ** 2
+        retry_countdown = min(countdown, 86400)
+        LOG.error('sendmail task error', exc_info=True)
+        LOG.debug("sendmail task retrying in %d seconds, error %s" % (retry_countdown, e.message))
+        sendmail.retry(exc=e, countdown=retry_countdown)
 
 
 @task(base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT, max_retries=10)
@@ -389,7 +464,7 @@ def get_postal_address(identity_number):
     self = get_postal_address
     try:
         return self.get_postal_address(identity_number)
-    except Exception, e:
+    except Exception as e:
         # Increase countdown every time it fails (to a maximum of 1 day)
         countdown = 600 * get_postal_address.request.retries ** 2
         retry_countdown = min(countdown, 86400)
@@ -446,7 +521,7 @@ def get_relations_to(identity_number, relative_nin):
                 if 'RelationType' in d:
                     result.append(d['RelationType'])
         return result
-    except Exception, e:
+    except Exception as e:
         # Increase countdown every time it fails (to a maximum of 1 day)
         countdown = 600 * get_relations_to.request.retries ** 2
         retry_countdown = min(countdown, 86400)
@@ -468,7 +543,7 @@ def set_audit_log_postal_address(audit_reference):
     self = set_audit_log_postal_address
     try:
         return self.set_audit_log_postal_address(audit_reference)
-    except Exception, e:
+    except Exception as e:
         # Increase countdown every time it fails (to a maximum of 1 day)
         countdown = 600 * set_audit_log_postal_address.request.retries ** 2
         retry_countdown = min(countdown, 86400)
