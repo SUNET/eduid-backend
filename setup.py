@@ -21,6 +21,7 @@ webapp_requires = [
     'bleach>=1.4.2',
     'marshmallow>=2.10,<2.11',
     'Flask-Mail == 0.9.1',
+    'eduid_msg >= 0.10.2',
 ]
 webapp_extras = webapp_requires + []
 

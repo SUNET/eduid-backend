@@ -30,14 +30,46 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from flask import current_app
-from flask_mail import Message, Mail
+from collections import OrderedDict
+
+from eduid_msg.celery import celery, get_message_relay
+from eduid_msg.tasks import sendmail
+
+import logging
+logger = logging.getLogger(__name__)
 
 
-def send_mail(subject, recipients, template, context):
-    msg = Message(subject, recipients)
+class MsgRelay(object):
 
+    class TaskFailed(Exception):
+        pass
 
-def init_mailer(app):
-    app.mailer = Mail(app)
-    return app
+    def __init__(self, settings):
+
+        config = settings.get('default_celery_conf')
+        config.update({
+            'BROKER_URL': settings.get('msg_broker_url'),
+            'MONGO_URI': settings.get('mongo_uri'),
+        })
+        celery.conf.update(config)
+
+        self._relay = get_message_relay(celery)
+        self.settings = settings
+        self._sendmail = sendmail
+
+    def sendmail(self, subject, recipients, text=None, html=None):
+        """
+        """
+        rtask = self._sendmail.apply_async(subject, recipients,
+                                           text=None, html=None)
+        # XXX this goes in its own thread
+        try:
+            rtask.wait()
+        except Exception as e:
+            raise self.TaskFailed('Error sending mail: {!r}'.format(e))
+
+        if rtask.successful():
+            result = rtask.get()
+            return result
+        else:
+            raise self.TaskFailed('Something went wrong')
