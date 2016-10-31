@@ -38,6 +38,11 @@ from eduid_webapp.email.validators import validate_email
 __author__ = 'eperez'
 
 
+class VerificationCodeSchema(EduidSchema):
+
+    code = fields.String(required=True)
+
+
 class EmailSchema(EduidSchema):
 
     email = fields.Email(required=True, validate=validate_email)

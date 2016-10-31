@@ -34,6 +34,7 @@
 from __future__ import absolute_import
 
 from flask import Blueprint
+from flask import render_template
 
 from eduid_userdb.exceptions import UserOutOfSync
 from eduid_userdb.mail import MailAddress
@@ -42,6 +43,7 @@ from eduid_common.api.decorators import require_dashboard_user, MarshalWith, Unm
 from eduid_common.api.utils import save_dashboard_user
 from eduid_common.api.utils import get_unique_hash
 from eduid_webapp.email.schemas import EmailSchema, EmailResponseSchema
+from eduid_webapp.email.schemas import VerificationCodeSchema
 
 email_views = Blueprint('email', __name__, url_prefix='')
 
@@ -70,10 +72,36 @@ def post_email(user, email, confirmed, primary):
         }
 
     code = get_unique_hash()
-    
     verification = EmailProofingElement(email=email,
                                         verification_code=code,
                                         application='dashboard')
+    link = url_for('verify', user=user, code=code)
+    site_name = current_app.config.get("site.name", "eduID")
+    site_url = current_app.config.get("site.url", "http://eduid.se")
+
+    context = {
+        "email": email,
+        "verification_link": link,
+        "site_url": site_url,
+        "site_name": site_name,
+        "code": code,
+    }
+
+    text = render_template(
+            "templates/verification_email.txt.jinja2",
+            **context
+    )
+    html = render_template(
+            "templates/verification_email.html.jinja2",
+            **context
+    )
+
+    # DEBUG
+    if current_app.config.get('developer_mode', False):
+        current_app.logger.debug(message.body)
+    else:
+        current_app.mail_relay.sendmail(sender, [email], text, html)
+    current_app.logger.debug("Sent verification mail to user {!r} with address {!s}.".format(request.context.user, email))
 
     return EmailSchema().dump(new_mail).data
 
@@ -83,4 +111,12 @@ def post_email(user, email, confirmed, primary):
 @MarshalWith(EmailResponseSchema)
 @require_dashboard_user
 def post_primary(user, email, confirmed, primary):
+    pass
+
+
+@mail_views.route('/verify', methods=['GET'])
+@UnmarshalWith(VerificationCodeSchema)
+@MarshalWith(EmailResponseSchema)
+@require_dashboard_user
+def verify(user, code):
     pass
