@@ -2,8 +2,6 @@
 from __future__ import absolute_import
 
 import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 
 from celery import Task
 from celery.utils.log import get_task_logger
@@ -358,29 +356,18 @@ class MessageRelay(Task):
         return False
 
     @TransactionAudit(MONGODB_URI)
-    def sendmail(self, subject, recipients, text=None, html=None):
+    def sendmail(self, sender, recipients, message):
         '''
         Send mail
 
-        :param subject: the subject of the email
-        :type subject: str
+        :param sender: the From of the email
+        :type sender: str
         :param recipients: the recipients of the email
         :type recipients: list of str
-        :param text: the plain text message
-        :type text: unicode
-        :param html: the html version of the message
-        :type html: unicode
+        :param message: the email message
+        :type message: email.mime.multipart.MIMEMultipart
         '''
-        sender = self.app.conf.get("MAIL_DEFAULT_SENDER")
-        msg = MIMEMultipart('alternative')
-        msg['Subject'] = subject
-        msg['From'] = sender
-        msg['To'] = ', '.join(recipients)
-        if text:
-            msg.attach(MIMEText(text, 'plain'))
-        if html:
-            msg.attach(MIMEText(html, 'html'))
-        self.smtp.sendmail(sender, recipients, msg.as_string())
+        self.smtp.sendmail(sender, recipients, message.as_string())
 
 
 @task(base=MessageRelay)
@@ -424,20 +411,18 @@ def send_message(message_type, reference, message_dict, recipient, template, lan
 
 
 @task(base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT, max_retries=10)
-def sendmail(subject, recipients, text=None, html=None):
+def sendmail(sender, recipients, message):
     """
-    :param subject: the subject of the email
-    :type subject: str
+    :param sender: the From of the email
+    :type sender: str
     :param recipients: the recipients of the email
     :type recipients: list of str
-    :param text: the plain text message
-    :type text: unicode
-    :param html: the html version of the message
-    :type html: unicode
+    :param message: the email message
+    :type message: email.mime.multipart.MIMEMultipart
     """
     self = sendmail
     try:
-        return self.sendmail(subject, recipients, text=text, html=html)
+        return self.sendmail(sender, recipients, message)
     except Exception as e:
         # Increase countdown every time it fails (to a maximum of 1 day)
         countdown = 600 * sendmail.request.retries ** 2
