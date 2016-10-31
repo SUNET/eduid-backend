@@ -30,8 +30,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from collections import OrderedDict
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
+from flask import current_app
 from eduid_msg.celery import celery, get_message_relay
 from eduid_msg.tasks import sendmail
 
@@ -39,14 +41,14 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class MsgRelay(object):
+class MailRelay(object):
 
     class TaskFailed(Exception):
         pass
 
     def __init__(self, settings):
 
-        config = settings.get('default_celery_conf')
+        config = settings.get('default_celery_conf', {})
         config.update({
             'BROKER_URL': settings.get('msg_broker_url'),
             'MONGO_URI': settings.get('mongo_uri'),
@@ -60,16 +62,46 @@ class MsgRelay(object):
     def sendmail(self, subject, recipients, text=None, html=None):
         """
         """
-        rtask = self._sendmail.apply_async(subject, recipients,
-                                           text=None, html=None)
-        # XXX this goes in its own thread
-        try:
-            rtask.wait()
-        except Exception as e:
-            raise self.TaskFailed('Error sending mail: {!r}'.format(e))
+        sender = current_app.conf.get("MAIL_DEFAULT_SENDER")
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = subject
+        msg['From'] = sender
+        msg['To'] = ', '.join(recipients)
+        if text:
+            msg.attach(MIMEText(text, 'plain'))
+        if html:
+            msg.attach(MIMEText(html, 'html'))
 
-        if rtask.successful():
-            result = rtask.get()
-            return result
-        else:
-            raise self.TaskFailed('Something went wrong')
+        logger.debug('About to send email:\n\n {}'.format(msg.as_string()))
+
+        def wait_for_sendmail():
+            rtask = self._sendmail.apply_async(sender, recipients, msg)
+            try:
+                rtask.wait()
+            except Exception as e:
+                err = 'Error sending mail: {!r}'.format(e)
+                logger.error(err)
+                raise self.TaskFailed(err)
+
+            if rtask.successful():
+                result = rtask.get()
+                logger.info('Success sending mail, {!r}'.format(result))
+            else:
+                err = 'Something went wrong'
+                logger.error(err)
+                raise self.TaskFailed(err)
+
+        t = threading.Thread(target=wait_for_sendmail)
+        t.daemon = True
+        t.start()
+
+
+def init_relay(app):
+    """
+    :param app: Flask app
+    :type app: flask.Flask
+    :return: Flask app
+    :rtype: flask.Flask
+    """
+    app.mail_relay = MailRelay(app.config)
+    return app
