@@ -86,4 +86,4 @@ class ProofingStateTest(TestCase):
             'token': 'de5b3f2a-14e9-49b8-9c78-a15fcf60d119'
         })
         state_dict = state.to_dict()
-        self.assertItemsEqual(state_dict.keys(), ['_id', 'eduPersonPrincipalName', 'state', 'nonce'])
+        self.assertItemsEqual(state_dict.keys(), ['_id', 'eduPersonPrincipalName', 'state', 'nonce', 'token'])
