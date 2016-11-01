@@ -144,11 +144,13 @@ class OidcProofingState(ProofingState):
         # Remove from _data_in before init super class
         state = self._data_in.pop('state')
         nonce = self._data_in.pop('nonce')
+        token = self._data_in.pop('token')
 
         ProofingState.__init__(self, self._data_in, raise_on_unknown)
 
         self._data['state'] = state
         self._data['nonce'] = nonce
+        self._data['token'] = token
 
     @property
     def state(self):
@@ -164,3 +166,9 @@ class OidcProofingState(ProofingState):
         """
         return self._data['nonce']
 
+    @property
+    def token(self):
+        """
+        :rtype: str | unicode
+        """
+        return self._data['token']
