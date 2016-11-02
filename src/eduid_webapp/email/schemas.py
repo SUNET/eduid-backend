@@ -41,6 +41,7 @@ __author__ = 'eperez'
 class VerificationCodeSchema(EduidSchema):
 
     code = fields.String(required=True)
+    email = fields.Email(required=True, validate=validate_email)
 
 
 class EmailSchema(EduidSchema):

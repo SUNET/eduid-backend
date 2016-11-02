@@ -38,7 +38,7 @@ from flask import render_template
 
 from eduid_userdb.exceptions import UserOutOfSync
 from eduid_userdb.mail import MailAddress
-from eduid_userdb.proofing import EmailProofingElement, SentEmailElement
+from eduid_userdb.proofing import EmailProofingElement, SentEmailElement, EmailProofingState
 from eduid_common.api.decorators import require_dashboard_user, MarshalWith, UnmarshalWith
 from eduid_common.api.utils import save_dashboard_user
 from eduid_common.api.utils import get_unique_hash
@@ -75,6 +75,15 @@ def post_email(user, email, confirmed, primary):
     verification = EmailProofingElement(email=email,
                                         verification_code=code,
                                         application='dashboard')
+    verification_data = {
+        'eduPersonPrincipalName': user.eppn,
+        'verification': verification.to_dict()
+        }
+    verification_state = EmailProofingState(verification_data)
+    # XXX This should be an atomic transaction together with saving
+    # the user and sending the letter.
+    current_app.verifications_db.save(verification_state)
+
     link = url_for('verify', user=user, code=code)
     site_name = current_app.config.get("site.name", "eduID")
     site_url = current_app.config.get("site.url", "http://eduid.se")
@@ -101,7 +110,9 @@ def post_email(user, email, confirmed, primary):
         current_app.logger.debug(message.body)
     else:
         current_app.mail_relay.sendmail(sender, [email], text, html)
-    current_app.logger.debug("Sent verification mail to user {!r} with address {!s}.".format(request.context.user, email))
+    current_app.logger.debug("Sent verification mail to user {!r}"
+                             " with address {!s}.".format(request.context.user,
+                                                          email))
 
     return EmailSchema().dump(new_mail).data
 
@@ -118,5 +129,50 @@ def post_primary(user, email, confirmed, primary):
 @UnmarshalWith(VerificationCodeSchema)
 @MarshalWith(EmailResponseSchema)
 @require_dashboard_user
-def verify(user, code):
-    pass
+def verify(user, code, email):
+    """
+    """
+    db = current_app.verifications_db
+    state = db.get_state_by_eppn_and_code(user.eppn, code)
+    verification = state.verification
+    timeout = current_app.config.get('EMAIL_VERIFICATION_TIMEOUT', 24)
+    if state.is_expired(timeout):
+        msg = "Verification code is expired: {!r}".format(verification)
+        current_app.logger.debug(msg)
+        return {'_status': 'error', 'error': msg}
+
+    if email == verification.email:
+        verification.is_verified = True
+        verification.verified_ts = datetime.datetime.now()
+        verification.verified_by = user.eppn
+        state.verification = verification
+        current_app.verifications_db.save(state)
+
+        other = current_app.dashboard_userdbb.get_user_by_mail(email)
+        if other and other.mail_addresses.primary and \
+                other.mail_addresses.primary.email == email:
+            # Promote some other verified e-mail address to primary
+            for address in other.mail_addresses.to_list():
+                if address.is_verified and address.email != email:
+                    other.mail_addresses.primary = address.email
+                    break
+            other.mail_addresses.remove(email)
+            save_dashboard_user(other)
+
+        new_email = MailAddress(email = email, application = 'dashboard',
+                                verified = True, primary = False)
+        if user.mail_addresses.primary is None:
+            new_email.is_primary = True
+        try:
+            user.mail_addresses.add(new_email)
+        except DuplicateElementViolation:
+            user.mail_addresses.find(email).is_verified = True
+
+        try:
+            save_dashboard_user(user)
+        except UserOutOfSync:
+            return {
+                '_status': 'error',
+                'error': {'form': 'user-out-of-sync'}
+            }
+        return new_email.to_dict()
