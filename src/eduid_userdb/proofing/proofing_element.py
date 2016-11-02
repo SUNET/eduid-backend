@@ -198,7 +198,6 @@ class SentElement(Element):
         transaction_id
         created_by
         created_ts
-        address
     """
     def __init__(self, data):
         super(SentElement, self).__init__(data)
@@ -259,6 +258,18 @@ class SentElement(Element):
         """
         _update_something_by(self._data, 'transaction_id', value)
 
+
+class SentLetterElement(SentElement):
+    """
+    Representation of a sent letter, adding address to the properties
+    of SentElement.
+    """
+
+    def __init__(self, data):
+        address = data.pop('address', None)
+        super(SentLetterElement, self).__init__(data)
+        self._data['address'] = address
+
     @property
     def address(self):
         """
@@ -276,13 +287,29 @@ class SentElement(Element):
         self._data['address'] = value
 
 
-class SentLetterElement(SentElement):
-    """
-    Representation of a sent letter
-    """
-
-
 class SentEmailElement(SentElement):
     """
-    Representation of a sent email
+    Representation of a sent email, adding email to the properties
+    of SentElement.
     """
+
+    def __init__(self, data):
+        email = data.pop('email', None)
+        super(SentLetterElement, self).__init__(data)
+        self._data['email'] = email
+
+    @property
+    def email(self):
+        """
+        :return: Address the email has to be sent to
+        :rtype: str | unicode
+        """
+        return self._data.get('email', None)
+
+    @email.setter
+    def email(self, value):
+        """
+        :param value: address the email should be sent to
+        :type value: dict | None
+        """
+        self._data['email'] = value

@@ -107,6 +107,21 @@ class ProofingState(object):
         res = copy.copy(self._data)  # avoid caller messing with our _data
         return res
 
+    def is_expired(self, timeout):
+        """
+        Check whether the verification code is expired.
+
+        :param timeout: the number of hours a verification code is valid
+        :type timeout: int
+
+        :rtype: bool
+        """
+        modified = self.modified_ts
+        delta = datetime.timedelta(hours=timeout)
+        expiry_date = modified + delta
+        now = datetime.datetime.now()
+        return expiry_date < now
+
 
 class LetterProofingState(ProofingState):
     def __init__(self, data, raise_on_unknown=True):
@@ -142,31 +157,21 @@ class LetterProofingState(ProofingState):
 class EmailProofingState(ProofingState):
     def __init__(self, data, raise_on_unknown=True):
         self._data_in = copy.deepcopy(data)  # to not modify callers data
-        _email = EmailProofingElement(data=self._data_in.pop('email'))
-        _proofing_email = SentEmailElement(self._data_in.pop('proofing_email', {}))
+        _verif = EmailProofingElement(data=self._data_in.pop('verification'))
 
         ProofingState.__init__(self, self._data_in, raise_on_unknown)
-        self._data['email'] = _email
-        self._data['proofing_email'] = _proofing_email
+        self._data['verification'] = _verif
 
     @property
-    def email(self):
+    def verification(self):
         """
         :rtype: EmailProofingElement
         """
-        return self._data['email']
-
-    @property
-    def proofing_email(self):
-        """
-        :rtype: ProofingEmailElement
-        """
-        return self._data['proofing_email']
+        return self._data['verification']
 
     def to_dict(self):
         res = super(EmailProofingState, self).to_dict()
-        res['email'] = self.email.to_dict()
-        res['proofing_email'] = self.proofing_email.to_dict()
+        res['verification'] = self.verification.to_dict()
         return res
 
 
