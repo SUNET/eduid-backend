@@ -122,7 +122,35 @@ def post_email(user, email, confirmed, primary):
 @MarshalWith(EmailResponseSchema)
 @require_dashboard_user
 def post_primary(user, email, confirmed, primary):
-    pass
+
+    try:
+        mail = user.mail_addresses.find(email)
+    except IndexError:
+        return {
+            '_status': 'error',
+            'error': {'form': 'user-out-of-sync'}
+        }
+
+    if not mail.is_verified:
+        message = ('You need to confirm your email address '
+                    'before it can become primary')
+        return {
+            'result': 'bad',
+            'message': message
+        }
+
+    self.user.mail_addresses.primary = mail.email
+    try:
+        save_dashboard_user(user)
+    except UserOutOfSync:
+        return {
+            '_status': 'error',
+            'error': {'form': 'user-out-of-sync'}
+        }
+    message = ('Your primary email address was '
+                'successfully changed')
+    return {'result': 'success',
+            'message': message}
 
 
 @mail_views.route('/verify', methods=['GET'])
@@ -176,3 +204,39 @@ def verify(user, code, email):
                 'error': {'form': 'user-out-of-sync'}
             }
         return new_email.to_dict()
+
+
+@mail_views.route('/remove', methods=['POST'])
+@UnmarshalWith(EmailSchema)
+@MarshalWith(EmailResponseSchema)
+@require_dashboard_user
+def post_remove(user, email, confirmed, primary):
+        emails = user.mail_addresses.to_list()
+        if len(emails) == 1:
+            message = ('Error: You only have one email address and it  '
+                        'can not be removed')
+            return {
+                'result': 'error',
+                'message': message,
+            }
+
+        try:
+            user.mail_addresses.remove(email)
+        except PrimaryElementViolation:
+            new_index = 1 if emails[0].email == email else 0
+            self.user.mail_addresses.primary = emails[new_index].email
+            self.user.mail_addresses.remove(remove_email)
+
+        try:
+            save_dashboard_user(user)
+        except UserOutOfSync:
+            return {
+                '_status': 'error',
+                'error': {'form': 'user-out-of-sync'}
+            }
+
+        message = ('Email address was successfully removed')
+        return {
+            'result': 'success',
+            'message': message,
+        }
