@@ -39,7 +39,7 @@ from eduid_userdb.userdb import UserDB
 from eduid_userdb.exceptions import DocumentOutOfSync
 from eduid_userdb.proofing import LetterProofingState, OidcProofingState
 from eduid_userdb.proofing import EmailProofingState, ProofingUser
-from eduid_userdb.exceptions import MultipleDocumentsReturned,
+from eduid_userdb.exceptions import MultipleDocumentsReturned
 
 import logging
 logger = logging.getLogger(__name__)
@@ -249,6 +249,12 @@ class ProofingUserDB(UserDB):
 class LetterProofingUserDB(ProofingUserDB):
 
     def __init__(self, db_uri, db_name='eduid_idproofing_letter'):
+        ProofingUserDB.__init__(self, db_uri, db_name)
+
+
+class EmailProofingUserDB(ProofingUserDB):
+
+    def __init__(self, db_uri, db_name='eduid_idproofing_email'):
         ProofingUserDB.__init__(self, db_uri, db_name)
 
 
