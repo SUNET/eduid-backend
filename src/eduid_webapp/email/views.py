@@ -38,7 +38,7 @@ from flask import render_template
 
 from eduid_userdb.exceptions import UserOutOfSync
 from eduid_userdb.mail import MailAddress
-from eduid_userdb.proofing import EmailProofingElement, SentEmailElement, EmailProofingState
+from eduid_userdb.proofing import EmailProofingElement, EmailProofingState
 from eduid_common.api.decorators import require_dashboard_user, MarshalWith, UnmarshalWith
 from eduid_common.api.utils import save_dashboard_user
 from eduid_common.api.utils import get_unique_hash
@@ -117,7 +117,7 @@ def post_email(user, email, confirmed, primary):
     return EmailSchema().dump(new_mail).data
 
 
-@mail_views.route('/primary', methods=['POST'])
+@email_views.route('/primary', methods=['POST'])
 @UnmarshalWith(EmailSchema)
 @MarshalWith(EmailResponseSchema)
 @require_dashboard_user
@@ -153,7 +153,7 @@ def post_primary(user, email, confirmed, primary):
             'message': message}
 
 
-@mail_views.route('/verify', methods=['GET'])
+@email_views.route('/verify', methods=['GET'])
 @UnmarshalWith(VerificationCodeSchema)
 @MarshalWith(EmailResponseSchema)
 @require_dashboard_user
@@ -206,7 +206,7 @@ def verify(user, code, email):
         return new_email.to_dict()
 
 
-@mail_views.route('/remove', methods=['POST'])
+@email_views.route('/remove', methods=['POST'])
 @UnmarshalWith(EmailSchema)
 @MarshalWith(EmailResponseSchema)
 @require_dashboard_user

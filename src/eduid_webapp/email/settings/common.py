@@ -50,19 +50,6 @@ REDIS_DB = 0
 # Secret key
 SECRET_KEY = ''
 
-# Mail settings
-
-MAIL_SERVER = 'localhost'
-MAIL_PORT = 25
-# MAIL_USE_TLS = False
-# MAIL_USE_SSL = False
-# MAIL_USERNAME : default None
-# MAIL_PASSWORD : default None
-MAIL_DEFAULT_SENDER = 'no-reply@eduid.se'
-# MAIL_MAX_EMAILS = None
-# MAIL_ASCII_ATTACHMENTS = False
-
-
 # Logging
 LOG_FILE = None
 LOG_LEVEL = 'INFO'

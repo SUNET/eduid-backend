@@ -35,7 +35,7 @@ from __future__ import absolute_import
 
 from eduid_webapp.email.app import email_init_app
 
-name = 'email'
+name = 'emails'
 app = email_init_app(name, {})
 
 if __name__ == '__main__':
