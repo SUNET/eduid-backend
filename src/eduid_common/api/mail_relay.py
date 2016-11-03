@@ -37,9 +37,6 @@ from flask import current_app
 from eduid_msg.celery import celery, get_message_relay
 from eduid_msg.tasks import sendmail
 
-import logging
-logger = logging.getLogger(__name__)
-
 
 class MailRelay(object):
 
@@ -72,7 +69,7 @@ class MailRelay(object):
         if html:
             msg.attach(MIMEText(html, 'html'))
 
-        logger.debug('About to send email:\n\n {}'.format(msg.as_string()))
+        current_app.logger.debug('About to send email:\n\n {}'.format(msg.as_string()))
 
         def wait_for_sendmail():
             rtask = self._sendmail.apply_async(sender, recipients, msg)
@@ -80,15 +77,15 @@ class MailRelay(object):
                 rtask.wait()
             except Exception as e:
                 err = 'Error sending mail: {!r}'.format(e)
-                logger.error(err)
+                current_app.logger.error(err)
                 raise self.TaskFailed(err)
 
             if rtask.successful():
                 result = rtask.get()
-                logger.info('Success sending mail, {!r}'.format(result))
+                current_app.logger.info('Success sending mail, {!r}'.format(result))
             else:
                 err = 'Something went wrong'
-                logger.error(err)
+                current_app.logger.error(err)
                 raise self.TaskFailed(err)
 
         t = threading.Thread(target=wait_for_sendmail)
