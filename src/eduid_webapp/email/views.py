@@ -64,7 +64,7 @@ def post_email(user, email, confirmed, primary):
                            verified=False, primary=False)
     user.mail_addresses.add(new_mail)
     try:
-        save_dashboard_user(user)
+        save_dashboard_user(user, dbattr_name='emails_userdb')
     except UserOutOfSync:
         return {
             '_status': 'error',
@@ -141,7 +141,7 @@ def post_primary(user, email, confirmed, primary):
 
     self.user.mail_addresses.primary = mail.email
     try:
-        save_dashboard_user(user)
+        save_dashboard_user(user, dbattr_name='emails_userdb')
     except UserOutOfSync:
         return {
             '_status': 'error',
@@ -176,7 +176,7 @@ def verify(user, code, email):
         state.verification = verification
         current_app.verifications_db.save(state)
 
-        other = current_app.dashboard_userdbb.get_user_by_mail(email)
+        other = current_app.emails_userdbb.get_user_by_mail(email)
         if other and other.mail_addresses.primary and \
                 other.mail_addresses.primary.email == email:
             # Promote some other verified e-mail address to primary
@@ -185,7 +185,7 @@ def verify(user, code, email):
                     other.mail_addresses.primary = address.email
                     break
             other.mail_addresses.remove(email)
-            save_dashboard_user(other)
+            save_dashboard_user(other, dbattr_name='emails_userdb')
 
         new_email = MailAddress(email = email, application = 'dashboard',
                                 verified = True, primary = False)
@@ -197,7 +197,7 @@ def verify(user, code, email):
             user.mail_addresses.find(email).is_verified = True
 
         try:
-            save_dashboard_user(user)
+            save_dashboard_user(user, dbattr_name='emails_userdb')
         except UserOutOfSync:
             return {
                 '_status': 'error',
@@ -228,7 +228,7 @@ def post_remove(user, email, confirmed, primary):
             self.user.mail_addresses.remove(remove_email)
 
         try:
-            save_dashboard_user(user)
+            save_dashboard_user(user, dbattr_name='emails_userdb')
         except UserOutOfSync:
             return {
                 '_status': 'error',

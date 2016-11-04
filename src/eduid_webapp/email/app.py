@@ -37,7 +37,7 @@ from eduid_common.api.app import eduid_init_app
 from eduid_common.api import mail_relay
 from eduid_common.api import am
 from eduid_userdb.dashboard import DashboardUserDB
-from eduid_userdb.proofing import EmailProofingStateDB
+from eduid_userdb.proofing import EmailProofingStateDB, EmailProofingUserDB
 
 
 try:
@@ -73,12 +73,10 @@ def email_init_app(name, config):
     from eduid_webapp.email.views import email_views
     app.register_blueprint(email_views, url_prefix=app.config.get('APPLICATION_ROOT', None))
 
-    # XXX: Maybe we should extend eduid-dashboard or write a new amp to be able to narrow the
-    # XXX: attributes that can be changed by a sync call
-    app = am.init_relay(app, 'eduid_dashboard')
+    app = am.init_relay(app, 'eduid_emails')
     app = mail_relay.init_relay(app)
 
-    app.dashboard_userdb = DashboardUserDB(app.config['MONGO_URI'])
+    app.emails_userdb = EmailProofingUserDB(app.config['MONGO_URI'])
     app.verifications_db = EmailProofingStateDB(app.config['MONGO_URI'])
 
     app.logger.info('Init {} app...'.format(name))
