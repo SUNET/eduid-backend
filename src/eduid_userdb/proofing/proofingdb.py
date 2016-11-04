@@ -173,7 +173,7 @@ class EmailProofingStateDB(ProofingStateDB):
 
     ProofingStateClass = EmailProofingState
 
-    def __init__(self, db_uri, db_name='eduid_idproofing_email'):
+    def __init__(self, db_uri, db_name='eduid_emails'):
         ProofingStateDB.__init__(self, db_uri, db_name)
 
     def get_state_by_eppn_and_code(self, eppn, code, raise_on_missing=True):
@@ -254,7 +254,7 @@ class LetterProofingUserDB(ProofingUserDB):
 
 class EmailProofingUserDB(ProofingUserDB):
 
-    def __init__(self, db_uri, db_name='eduid_idproofing_email'):
+    def __init__(self, db_uri, db_name='eduid_emails'):
         ProofingUserDB.__init__(self, db_uri, db_name)
 
 

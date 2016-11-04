@@ -33,21 +33,20 @@
 
 import copy
 
-from eduid_userdb.element import Element, VerifiedElement, _update_something_by, _update_something_ts
+from eduid_userdb.element import Element, _update_something_by, _update_something_ts
 from eduid_userdb.exceptions import UserDBValueError
 
 
 __author__ = 'lundberg'
 
 
-class ProofingElement(VerifiedElement):
+class ProofingElement(Element):
     """
     Element for holding the state of a proofing flow. It should contain meta data needed for logging
     a proofing according to the Kantara specification.
 
     Properties of ProofingElement:
 
-        number
         created_by
         created_ts
         is_verified
@@ -59,22 +58,103 @@ class ProofingElement(VerifiedElement):
 
     :type data: dict
     """
-    def __init__(self, application=None, created_ts=None, verified=False, verification_code=None,
-                 data=None):
+    def __init__(self, application=None, created_ts=None,
+                 verified=False, verified_by=False, verified_ts=None,
+                 verification_code=None, data=None):
 
-        data_in = data
-        data = copy.copy(data_in)  # to not modify callers data
+        data_in = copy.copy(data)  # to not modify callers data
 
-        if data is None:
+        if data_in is None:
             if created_ts is None:
                 created_ts = True
-            data = dict(created_by=application,
-                        created_ts=created_ts,
-                        verified=verified,
-                        verification_code=verification_code,
-                        )
+            data_in = dict(created_by=application,
+                           created_ts=created_ts,
+                           verified=verified,
+                           verified_by=verified_by,
+                           verified_ts=verified_ts,
+                           verification_code=verification_code,
+                           )
 
-        VerifiedElement.__init__(self, data)
+        Element.__init__(self, data_in)
+        self.is_verified = data.pop('verified', False)
+        self.verified_by = data.pop('verified_by', None)
+        self.verified_ts = data.pop('verified_ts', None)
+        self.verification_code = data.pop('verification_code', None)
+
+    # -----------------------------------------------------------------
+    @property
+    def is_verified(self):
+        """
+        :return: True if this is a verified element.
+        :rtype: bool
+        """
+        return self._data['verified']
+
+    @is_verified.setter
+    def is_verified(self, value):
+        """
+        :param value: New verification status
+        :type value: bool
+        """
+        if not isinstance(value, bool):
+            raise UserDBValueError("Invalid 'is_verified': {!r}".format(value))
+        self._data['verified'] = value
+
+    # -----------------------------------------------------------------
+    @property
+    def verified_by(self):
+        """
+        :return: Information about who verified the element.
+        :rtype: str | unicode
+        """
+        return self._data.get('verified_by', '')
+
+    @verified_by.setter
+    def verified_by(self, value):
+        """
+        :param value: Information about who verified a element (None is no-op).
+        :type value: str | unicode | None
+        """
+        _update_something_by(self._data, 'verified_by', value)
+
+    # -----------------------------------------------------------------
+    @property
+    def verified_ts(self):
+        """
+        :return: Timestamp of element verification.
+        :rtype: datetime.datetime
+        """
+        return self._data.get('verified_ts')
+
+    @verified_ts.setter
+    def verified_ts(self, value):
+        """
+        :param value: Timestamp of element verification.
+                      Value None is ignored, True is short for datetime.utcnow().
+        :type value: datetime.datetime | True | None
+        """
+        _update_something_ts(self._data, 'verified_ts', value)
+
+    # -----------------------------------------------------------------
+    @property
+    def verification_code(self):
+        """
+        :return: Confirmation code used to verify this element.
+        :rtype: str | unicode
+        """
+        return self._data['verification_code']
+
+    @verification_code.setter
+    def verification_code(self, value):
+        """
+        :param value: New verification_code
+        :type value: str | unicode | None
+        """
+        if value is None:
+            return
+        if not isinstance(value, basestring):
+            raise UserDBValueError("Invalid 'verification_code': {!r}".format(value))
+        self._data['verification_code'] = value
 
 
 class NinProofingElement(ProofingElement):
@@ -189,18 +269,19 @@ class EmailProofingElement(ProofingElement):
         return res
 
 
-class SentElement(Element):
+class SentLetterElement(Element):
     """
-        Properties of SentElement:
+    Properties of SentLetterElement:
 
-        is_sent
-        sent_ts
-        transaction_id
-        created_by
-        created_ts
+    address
+    is_sent
+    sent_ts
+    transaction_id
+    created_by
+    created_ts
     """
     def __init__(self, data):
-        super(SentElement, self).__init__(data)
+        super(SentLetterElement, self).__init__(data)
 
         self._data['is_sent'] = data.pop('is_sent', False)
         self._data['sent_ts'] = data.pop('sent_ts', None)
@@ -258,18 +339,6 @@ class SentElement(Element):
         """
         _update_something_by(self._data, 'transaction_id', value)
 
-
-class SentLetterElement(SentElement):
-    """
-    Representation of a sent letter, adding address to the properties
-    of SentElement.
-    """
-
-    def __init__(self, data):
-        address = data.pop('address', None)
-        super(SentLetterElement, self).__init__(data)
-        self._data['address'] = address
-
     @property
     def address(self):
         """
@@ -285,31 +354,3 @@ class SentLetterElement(SentElement):
         :type value: dict | None
         """
         self._data['address'] = value
-
-
-class SentEmailElement(SentElement):
-    """
-    Representation of a sent email, adding email to the properties
-    of SentElement.
-    """
-
-    def __init__(self, data):
-        email = data.pop('email', None)
-        super(SentLetterElement, self).__init__(data)
-        self._data['email'] = email
-
-    @property
-    def email(self):
-        """
-        :return: Address the email has to be sent to
-        :rtype: str | unicode
-        """
-        return self._data.get('email', None)
-
-    @email.setter
-    def email(self, value):
-        """
-        :param value: address the email should be sent to
-        :type value: dict | None
-        """
-        self._data['email'] = value
