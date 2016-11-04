@@ -2,6 +2,7 @@
 
 from __future__ import absolute_import
 
+import warnings
 from functools import wraps
 from flask import session, abort, current_app, request, jsonify
 from marshmallow.exceptions import ValidationError
@@ -107,3 +108,30 @@ class UnmarshalWith(object):
                 return jsonify(response_data.to_dict())
         return decorated_function
 
+
+class Deprecated(object):
+    """
+    Mark deprecated functions with this decorator.
+    
+    Attention! Use it as the closest one to the function you decorate.
+
+    :param message: The deprecation message
+    :type message: str | unicode
+    """
+
+    def __init__(self, message=None):
+        self.message = message
+
+    def __call__(self, func):
+        if self.message is None:
+            self.message = 'Deprecated function {!r} called'.format(func.__name__)
+
+        @wraps(func)
+        def new_func(*args, **kwargs):
+            warnings.warn(self.message, category=DeprecationWarning, stacklevel=2)
+            return func(*args, **kwargs)
+
+        # work around a bug in functools.wraps thats fixed in python 3.2
+        if getattr(new_func, '__wrapped__', None) is None:
+            new_func.__wrapped__ = func
+        return new_func
