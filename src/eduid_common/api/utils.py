@@ -87,7 +87,7 @@ def get_dashboard_user():
         raise ApiException('Not authorized', status_code=401)
 
 
-def save_dashboard_user(user):
+def save_dashboard_user(user, dbattr_name='dashboard_userdb'):
     """
     Save (new) user objects to the dashboard db in the new format,
     and propagate the changes to the central user db.
@@ -100,7 +100,7 @@ def save_dashboard_user(user):
     if isinstance(user, User) and not isinstance(user, DashboardUser):
         # turn it into a DashboardUser before saving it in the dashboard private db
         user = DashboardUser(data = user.to_dict())
-    current_app.dashboard_userdb.save(user)
+    getattr(current_app, dbattr_name).save(user)
     return current_app.am_relay.request_user_sync(user)
 
 
