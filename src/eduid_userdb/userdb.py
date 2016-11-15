@@ -121,7 +121,7 @@ class UserDB(BaseDB):
         try:
             users = list(self._get_documents_by_filter(filter, raise_on_missing=raise_on_missing))
         except DocumentDoesNotExist:
-            logging.debug("{!s} No user found with filter {!r} in {!r}".format(self, filter, self._coll_name))
+            logger.debug("{!s} No user found with filter {!r} in {!r}".format(self, filter, self._coll_name))
             raise UserDoesNotExist("No user matching filter {!r}".format(filter))
 
         if return_list:
@@ -298,10 +298,10 @@ class UserDB(BaseDB):
             # profile has never been modified through the dashboard.
             # possibly just created in signup.
             result = self._coll.insert(user.to_dict(old_userdb_format=old_format))
-            logging.debug("{!s} Inserted new user {!r} into {!r} (old_format={!r}): {!r})".format(
+            logger.debug("{!s} Inserted new user {!r} into {!r} (old_format={!r}): {!r})".format(
                 self, user, self._coll_name, old_format, result))
             import pprint
-            logging.debug("Extra debug:\n{!s}".format(pprint.pformat(user.to_dict(old_userdb_format=old_format))))
+            logger.debug("Extra debug:\n{!s}".format(pprint.pformat(user.to_dict(old_userdb_format=old_format))))
         else:
             test_doc = {'_id': user.user_id}
             if check_sync:
@@ -312,14 +312,14 @@ class UserDB(BaseDB):
                 db_user = self._coll.find_one({'_id': user.user_id})
                 if db_user:
                     db_ts = db_user['modified_ts']
-                logging.debug("{!s} FAILED Updating user {!r} (ts {!s}) in {!r} (old_format={!r}). "
+                logger.debug("{!s} FAILED Updating user {!r} (ts {!s}) in {!r} (old_format={!r}). "
                               "ts in db = {!s}".format(
                               self, user, modified, self._coll_name, old_format, db_ts))
                 raise eduid_userdb.exceptions.UserOutOfSync('Stale user object can\'t be saved')
-            logging.debug("{!s} Updated user {!r} (ts {!s}) in {!r} (old_format={!r}): {!r}".format(
+            logger.debug("{!s} Updated user {!r} (ts {!s}) in {!r} (old_format={!r}): {!r}".format(
                 self, user, modified, self._coll_name, old_format, result))
             import pprint
-            logging.debug("Extra debug:\n{!s}".format(pprint.pformat(user.to_dict(old_userdb_format=old_format))))
+            logger.debug("Extra debug:\n{!s}".format(pprint.pformat(user.to_dict(old_userdb_format=old_format))))
         return result
 
     def remove_user_by_id(self, user_id):
