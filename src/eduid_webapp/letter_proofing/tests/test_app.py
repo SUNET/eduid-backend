@@ -162,7 +162,7 @@ class AppTests(EduidAPITestCase):
         mock_get_postal_address.return_value = self.mock_address
         data = {'nin': 'not a nin'}
         with self.session_cookie(self.client, self.test_user_eppn) as client:
-            response = client.post('/proofing', data=json.dumps(data), content_type=self._json)
+            response = client.post('/proofing', data=json.dumps(data), content_type=self.content_type_json)
         self.assertEqual(response.status_code, 200)
         json_data = json.loads(response.data)
         self.assertEqual(json_data['type'], 'POST_LETTER_PROOFING_PROOFING_FAIL')
