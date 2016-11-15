@@ -52,6 +52,14 @@ def authorization_response():
         return make_response('OK', 200)
     current_app.logger.debug('Proofing state {!s} for user {!s} found'.format(proofing_state.state,
                                                                               proofing_state.eppn))
+
+    # Check if the token from the QR code matches the token we created when making the auth request
+    authorization_header = request.headers.get('Authorization')
+    if authorization_header != 'Bearer {}'.format(proofing_state.token):
+        current_app.logger.error('The authorization token ({!s}) did not match the expected'.format(
+            authorization_header))
+        return make_response('OK', 200)
+
     # TODO: We should save the auth response code to the proofing state to be able to continue a failed attempt
     # do token request
     args = {
@@ -144,8 +152,10 @@ def proofing(user, nin):
         current_app.logger.debug('No proofing state found for user {!s}. Initializing new proofing flow.'.format(user))
         state = get_unique_hash()
         nonce = get_unique_hash()
+        token = get_unique_hash()
         # TODO: Read nin from data and use in OidcProofingState
-        proofing_state = OidcProofingState({'eduPersonPrincipalName': user.eppn, 'state': state, 'nonce': nonce})
+        proofing_state = OidcProofingState({'eduPersonPrincipalName': user.eppn, 'state': state, 'nonce': nonce,
+                                            'token': token})
         # Initiate proofing
         oidc_args = {
             'client_id': current_app.oidc_client.client_id,
@@ -177,11 +187,13 @@ def proofing(user, nin):
     # Return nonce and nonce as qr code
     current_app.logger.debug('Returning nonce for user {!s}'.format(user))
     buf = StringIO()
-    qrcode.make(proofing_state.nonce).save(buf)
+    # The "1" below denotes the version of the data exchanged, right now only version 1 is supported.
+    qr_code = '1' + json.dumps({'nonce': proofing_state.nonce, 'token': proofing_state.token})
+    qrcode.make(qr_code).save(buf)
     qr_b64 = buf.getvalue().encode('base64')
     return {
-        'nonce': proofing_state.nonce,
-        'qrcode': 'data:image/png;base64, {!s}'.format(qr_b64),
+        'qr_code': qr_code,
+        'qr_img': 'data:image/png;base64, {!s}'.format(qr_b64),
     }
 
 
