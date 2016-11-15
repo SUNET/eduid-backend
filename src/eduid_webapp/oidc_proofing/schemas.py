@@ -15,8 +15,8 @@ class OidcProofingRequestSchema(EduidSchema):
 class NonceResponseSchema(FluxStandardAction):
 
     class NonceResponsePayload(EduidSchema):
-        nonce = fields.String(required=True)
-        qrcode = fields.String(required=True)
+        qr_code = fields.String(required=True)
+        qr_img = fields.String(required=True)
 
     payload = fields.Nested(NonceResponsePayload)
 
