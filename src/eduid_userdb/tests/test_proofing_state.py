@@ -53,15 +53,21 @@ class ProofingStateTest(TestCase):
              }
          }
         """
-        nin = Nin(number='200102034567', application='eduid_letter_proofing', verified=False, primary=False)
         state = LetterProofingState({
             'eduPersonPrincipalName': EPPN,
-            'nin': nin.to_dict()
+            'nin': {
+                'number': '200102034567',
+                'created_by': 'eduid_letter_proofing',
+                'created_ts': True,
+                'verified': False,
+                'verification_code': 'abc123'
+            }
         })
         state.proofing_letter.address = ADDRESS
         state_dict = state.to_dict()
         self.assertItemsEqual(state_dict.keys(), ['_id', 'eduPersonPrincipalName', 'nin', 'proofing_letter'])
-        self.assertItemsEqual(state_dict['nin'].keys(), ['created_by', 'created_ts', 'number', 'verified'])
+        self.assertItemsEqual(state_dict['nin'].keys(), ['created_by', 'created_ts', 'number', 'verified',
+                                                         'verification_code'])
         self.assertItemsEqual(state_dict['proofing_letter'].keys(), ['is_sent', 'sent_ts', 'transaction_id',
                                                                      'address'])
 
