@@ -96,6 +96,9 @@ class EduidAPITestCase(unittest.TestCase):
         self.browser = self.app.test_client()
         self.app.central_userdb.save(User(data=NEW_USER_EXAMPLE), check_sync=False)
 
+        # Helper constants
+        self.content_type_json = 'application/json'
+
     def tearDown(self):
         # XXX reset redis
         pass
