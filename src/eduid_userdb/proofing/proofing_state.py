@@ -157,7 +157,7 @@ class OidcProofingState(NinProofingState):
         nonce = self._data_in.pop('nonce')
         token = self._data_in.pop('token')
 
-        ProofingState.__init__(self, self._data_in, raise_on_unknown)
+        super(OidcProofingState, self).__init__(self._data_in, raise_on_unknown)
 
         self._data['state'] = state
         self._data['nonce'] = nonce
