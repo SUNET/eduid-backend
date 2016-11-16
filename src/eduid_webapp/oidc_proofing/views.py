@@ -159,7 +159,7 @@ def proofing(user, nin):
         nonce = get_unique_hash()
         token = get_unique_hash()
         nin = Nin(number=nin, application='eduid_oidc_proofing', verified=False, primary=False)
-        proofing_state = OidcProofingState({'eduPersonPrincipalName': user.eppn, 'nin': nin, 'state': state,
+        proofing_state = OidcProofingState({'eduPersonPrincipalName': user.eppn, 'nin': nin.to_dict(), 'state': state,
                                             'nonce': nonce, 'token': token})
         # Initiate proofing
         oidc_args = {
