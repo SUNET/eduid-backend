@@ -58,7 +58,7 @@ def authorization_response():
     if authorization_header != 'Bearer {}'.format(proofing_state.token):
         current_app.logger.error('The authorization token ({!s}) did not match the expected'.format(
             authorization_header))
-        return make_response('OK', 200)
+        return make_response('FORBIDDEN', 403)
 
     # TODO: We should save the auth response code to the proofing state to be able to continue a failed attempt
     # do token request
