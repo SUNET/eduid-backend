@@ -31,10 +31,10 @@
 #
 
 from __future__ import absolute_import
-from eduid_webapp.oidc_proofing.app import oidc_proofing_init_app
+from eduid_webapp.oidc_proofing.app import init_oidc_proofing_app
 
 name = 'oidc_proofing'
-app = oidc_proofing_init_app(name, {})
+app = init_oidc_proofing_app(name, {})
 
 
 if __name__ == '__main__':
