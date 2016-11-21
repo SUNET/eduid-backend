@@ -55,7 +55,7 @@ def init_oidc_proofing_app(name, config):
     app.config.update(config)
 
     from eduid_webapp.oidc_proofing.views import oidc_proofing_views
-    app.register_blueprint(oidc_proofing_views)
+    app.register_blueprint(oidc_proofing_views, url_prefix=app.config.get('APPLICATION_ROOT', None))
 
     # Register view path that should not be authorized
     app = no_authn_views(app, ['/authorization-response'])
