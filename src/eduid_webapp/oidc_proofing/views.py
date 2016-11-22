@@ -92,7 +92,7 @@ def authorization_response():
     number = userinfo['identity']
     if proofing_state.nin.number == number:
         nin = Nin(data=proofing_state.nin.to_dict())
-        nin.verified = True
+        nin.is_verified = True
 
         # TODO: Break out in parts to be able to continue the proofing process after a successful authorization response
         # TODO: even if the token request, userinfo request or something internal fails
