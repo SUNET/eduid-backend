@@ -36,7 +36,7 @@ import copy
 import datetime
 
 from .proofing_element import NinProofingElement, SentLetterElement
-from .proofing_element import EmailProofingElement, SentEmailElement
+from .proofing_element import EmailProofingElement
 from eduid_userdb.exceptions import UserHasUnknownData
 
 __author__ = 'lundberg'
