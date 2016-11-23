@@ -37,7 +37,6 @@ __author__ = 'ft'
 import copy
 import datetime
 
-from eduid_common.api.decorators import Deprecated
 from eduid_userdb.exceptions import EduIDUserDBError, UserHasUnknownData, UserDBValueError
 
 
@@ -175,7 +174,6 @@ class VerifiedElement(Element):
 
     # -----------------------------------------------------------------
     @property
-    @Deprecated("Verification md deprecated for elements in the central db")
     def is_verified(self):
         """
         :return: True if this is a verified element.
@@ -184,7 +182,6 @@ class VerifiedElement(Element):
         return self._data['verified']
 
     @is_verified.setter
-    @Deprecated("Verification md deprecated for elements in the central db")
     def is_verified(self, value):
         """
         :param value: New verification status
@@ -196,7 +193,6 @@ class VerifiedElement(Element):
 
     # -----------------------------------------------------------------
     @property
-    @Deprecated("Verification md deprecated for elements in the central db")
     def verified_by(self):
         """
         :return: Information about who verified the element.
@@ -205,7 +201,6 @@ class VerifiedElement(Element):
         return self._data.get('verified_by', '')
 
     @verified_by.setter
-    @Deprecated("Verification md deprecated for elements in the central db")
     def verified_by(self, value):
         """
         :param value: Information about who verified a element (None is no-op).
@@ -215,7 +210,6 @@ class VerifiedElement(Element):
 
     # -----------------------------------------------------------------
     @property
-    @Deprecated("Verification md deprecated for elements in the central db")
     def verified_ts(self):
         """
         :return: Timestamp of element verification.
@@ -224,7 +218,6 @@ class VerifiedElement(Element):
         return self._data.get('verified_ts')
 
     @verified_ts.setter
-    @Deprecated("Verification md deprecated for elements in the central db")
     def verified_ts(self, value):
         """
         :param value: Timestamp of element verification.
@@ -235,7 +228,6 @@ class VerifiedElement(Element):
 
     # -----------------------------------------------------------------
     @property
-    @Deprecated("Verification md deprecated for elements in the central db")
     def verification_code(self):
         """
         :return: Confirmation code used to verify this element.
@@ -244,7 +236,6 @@ class VerifiedElement(Element):
         return self._data['verification_code']
 
     @verification_code.setter
-    @Deprecated("Verification md deprecated for elements in the central db")
     def verification_code(self, value):
         """
         :param value: New verification_code
