@@ -75,12 +75,6 @@ class ProofingStateTest(TestCase):
         """
         {
             'eduPersonPrincipalName': 'foob-arra',
-            'nin': {
-                'created_ts': datetime.datetime(2016, 11, 16, 14, 47, 0, 379810),
-                'verified': False,
-                'number': '190101021234',
-                'created_by': 'eduid_oidc_proofing'
-            },
             'state': '2c84fedd-a694-46f0-b235-7c4dd7982852'
             'nonce': 'bbca50f6-5213-4784-b6e6-289bd1debda5',
             'token': 'de5b3f2a-14e9-49b8-9c78-a15fcf60d119',
@@ -90,11 +84,9 @@ class ProofingStateTest(TestCase):
         nin = Nin(number='200102034567', application='eduid_oidc_proofing', verified=False, primary=False)
         state = OidcProofingState({
             'eduPersonPrincipalName': EPPN,
-            'nin': nin.to_dict(),
             'state': '2c84fedd-a694-46f0-b235-7c4dd7982852',
             'nonce': 'bbca50f6-5213-4784-b6e6-289bd1debda5',
             'token': 'de5b3f2a-14e9-49b8-9c78-a15fcf60d119'
         })
         state_dict = state.to_dict()
-        self.assertItemsEqual(state_dict.keys(), ['_id', 'nin', 'eduPersonPrincipalName', 'state', 'nonce', 'token'])
-        self.assertItemsEqual(state_dict['nin'].keys(), ['created_by', 'created_ts', 'number', 'verified'])
+        self.assertItemsEqual(state_dict.keys(), ['_id', 'eduPersonPrincipalName', 'state', 'nonce', 'token'])
