@@ -52,6 +52,14 @@ def authorization_response():
         return make_response('OK', 200)
     current_app.logger.debug('Proofing state {!s} for user {!s} found'.format(proofing_state.state,
                                                                               proofing_state.eppn))
+
+    # Check if the token from the QR code matches the token we created when making the auth request
+    authorization_header = request.headers.get('Authorization')
+    if authorization_header != 'Bearer {}'.format(proofing_state.token):
+        current_app.logger.error('The authorization token ({!s}) did not match the expected'.format(
+            authorization_header))
+        return make_response('FORBIDDEN', 403)
+
     # TODO: We should save the auth response code to the proofing state to be able to continue a failed attempt
     # do token request
     args = {
@@ -80,46 +88,51 @@ def authorization_response():
             proofing_state.eppn))
         return make_response('OK', 200)
 
-    # TODO: Check nin against OidcProofingState
-    nin = userinfo['identity']
-    # TODO: Break out in parts to be able to continue the proofing process after a successful authorization response
-    # TODO: even if the token request, userinfo request or something internal fails
-    am_user = current_app.central_userdb.get_user_by_eppn(proofing_state.eppn)
-    user = ProofingUser(data=am_user.to_dict())
-    nin = Nin(number=nin, application='eduid_oidc_proofing', verified=True, primary=False)
+    # Check proofed nin against self proclaimed OidcProofingState.nin.number
+    number = userinfo['identity']
+    if proofing_state.nin.number == number:
+        nin = Nin(data=proofing_state.nin.to_dict())
+        nin.is_verified = True
 
-    # Save user to private db
-    if user.nins.primary is None:  # No primary NIN found, make the only verified NIN primary
-        nin.is_primary = True
-    user.nins.add(nin)
+        # TODO: Break out in parts to be able to continue the proofing process after a successful authorization response
+        # TODO: even if the token request, userinfo request or something internal fails
+        am_user = current_app.central_userdb.get_user_by_eppn(proofing_state.eppn)
+        user = ProofingUser(data=am_user.to_dict())
 
-    # User from central db is as up to date as it can be no need to check for modified time
-    user.modified_ts = True
-    # XXX: Send proofing data to some kind of proofing log
-    current_app.proofing_userdb.save(user, check_sync=False)
+        # Check if the user has more than one verified nin
+        if user.nins.primary is None:
+            # No primary NIN found, make the only verified NIN primary
+            nin.is_primary = True
+        user.nins.add(nin)
 
-    # TODO: Need to decide where to "steal" NIN if multiple users have the NIN verified
-    # Ask am to sync user to central db
-    try:
-        current_app.logger.info('Request sync for user {!s}'.format(user))
-        result = current_app.am_relay.request_user_sync(user)
-        current_app.logger.info('Sync result for user {!s}: {!s}'.format(user, result))
-    except Exception as e:
-        current_app.logger.error('Sync request failed for user {!s}'.format(user))
-        current_app.logger.error('Exception: {!s}'.format(e))
-        # TODO: Need to able to retry this
-        return make_response('OK', 200)
+        # XXX: Send proofing data to some kind of proofing log
 
-    # TODO: Remove saving of proof
-    # Save proof for demo purposes
-    proof_data = {
-        'eduPersonPrincipalName': proofing_state.eppn,
-        'authn_resp': authn_resp.to_dict(),
-        'token_resp': token_resp.to_dict(),
-        'userinfo': userinfo.to_dict()
-    }
+        # User from central db is as up to date as it can be no need to check for modified time
+        user.modified_ts = True
+        # Save user to private db
+        current_app.proofing_userdb.save(user, check_sync=False)
 
-    current_app.proofdb.save(Proof(data=proof_data))
+        # TODO: Need to decide where to "steal" NIN if multiple users have the NIN verified
+        # Ask am to sync user to central db
+        try:
+            current_app.logger.info('Request sync for user {!s}'.format(user))
+            result = current_app.am_relay.request_user_sync(user)
+            current_app.logger.info('Sync result for user {!s}: {!s}'.format(user, result))
+        except Exception as e:
+            current_app.logger.error('Sync request failed for user {!s}'.format(user))
+            current_app.logger.error('Exception: {!s}'.format(e))
+            # TODO: Need to able to retry this
+            return make_response('OK', 200)
+
+        # TODO: Remove saving of proof
+        # Save proof for demo purposes
+        proof_data = {
+            'eduPersonPrincipalName': proofing_state.eppn,
+            'authn_resp': authn_resp.to_dict(),
+            'token_resp': token_resp.to_dict(),
+            'userinfo': userinfo.to_dict()
+        }
+        current_app.proofdb.save(Proof(data=proof_data))
 
     # Remove users proofing state
     current_app.proofing_statedb.remove_state(proofing_state)
@@ -144,8 +157,10 @@ def proofing(user, nin):
         current_app.logger.debug('No proofing state found for user {!s}. Initializing new proofing flow.'.format(user))
         state = get_unique_hash()
         nonce = get_unique_hash()
-        # TODO: Read nin from data and use in OidcProofingState
-        proofing_state = OidcProofingState({'eduPersonPrincipalName': user.eppn, 'state': state, 'nonce': nonce})
+        token = get_unique_hash()
+        nin = Nin(number=nin, application='eduid_oidc_proofing', verified=False, primary=False)
+        proofing_state = OidcProofingState({'eduPersonPrincipalName': user.eppn, 'nin': nin.to_dict(), 'state': state,
+                                            'nonce': nonce, 'token': token})
         # Initiate proofing
         oidc_args = {
             'client_id': current_app.oidc_client.client_id,
@@ -177,11 +192,13 @@ def proofing(user, nin):
     # Return nonce and nonce as qr code
     current_app.logger.debug('Returning nonce for user {!s}'.format(user))
     buf = StringIO()
-    qrcode.make(proofing_state.nonce).save(buf)
+    # The "1" below denotes the version of the data exchanged, right now only version 1 is supported.
+    qr_code = '1' + json.dumps({'nonce': proofing_state.nonce, 'token': proofing_state.token})
+    qrcode.make(qr_code).save(buf)
     qr_b64 = buf.getvalue().encode('base64')
     return {
-        'nonce': proofing_state.nonce,
-        'qrcode': 'data:image/png;base64, {!s}'.format(qr_b64),
+        'qr_code': qr_code,
+        'qr_img': 'data:image/png;base64, {!s}'.format(qr_b64),
     }
 
 
