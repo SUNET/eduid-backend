@@ -64,6 +64,6 @@ def post_user(user, given_name, surname, display_name, language):
     except UserOutOfSync:
         return {
             '_status': 'error',
-            'error': {'form': 'user-out-of-sync'}
+            'message': 'user-out-of-sync'
         }
     return PersonalDataSchema().dump(user).data
