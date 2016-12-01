@@ -144,6 +144,6 @@ def get_flux_type(req, suffix):
     method = req.method
     blueprint = req.blueprint
     table = maketrans('/-', '  ')
-    url_rule = req.url_rule.rule.translate(table)
+    url_rule = str(req.url_rule.rule).translate(table)
     flux_type = '_'.join('{!s} {!s} {!s} {!s}'.format(method, blueprint, url_rule, suffix.upper()).split()).upper()
     return flux_type
