@@ -75,7 +75,14 @@ class MarshalWith(object):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             ret = f(*args, **kwargs)
-            response_status = ret.pop('_status', FluxResponseStatus.ok)
+            try:
+                response_status = ret.pop('_status', FluxResponseStatus.ok)
+            # ret may be a list:
+            except TypeError:
+                for item in ret:
+                    response_status = item.pop('_status', FluxResponseStatus.ok)
+                    if response_status != FluxResponseStatus.ok:
+                        break
 
             # Handle fail responses
             if response_status != FluxResponseStatus.ok:
