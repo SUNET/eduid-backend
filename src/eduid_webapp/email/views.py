@@ -52,7 +52,7 @@ email_views = Blueprint('email', __name__, url_prefix='')
 @MarshalWith(EmailResponseSchema)
 @require_dashboard_user
 def get_all_emails(user):
-    return EmailSchema(many=True).dump(user.mail_addresses).data
+    return EmailSchema(many=True).dump(user.mail_addresses.to_list()).data
 
 
 @email_views.route('/new', methods=['POST'])

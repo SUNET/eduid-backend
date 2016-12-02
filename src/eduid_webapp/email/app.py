@@ -37,7 +37,7 @@ from eduid_common.api.app import eduid_init_app
 from eduid_common.api import mail_relay
 from eduid_common.api import am
 from eduid_userdb.dashboard import DashboardUserDB
-from eduid_userdb.proofing import EmailProofingStateDB, EmailProofingUserDB
+from eduid_userdb.proofing import EmailProofingStateDB
 
 
 try:
@@ -76,7 +76,7 @@ def email_init_app(name, config):
     app = am.init_relay(app, 'eduid_emails')
     app = mail_relay.init_relay(app)
 
-    app.emails_userdb = EmailProofingUserDB(app.config['MONGO_URI'])
+    app.dashboard_userdb = DashboardUserDB(app.config['MONGO_URI'])
     app.verifications_db = EmailProofingStateDB(app.config['MONGO_URI'])
 
     app.logger.info('Init {} app...'.format(name))
