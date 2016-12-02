@@ -252,12 +252,6 @@ class LetterProofingUserDB(ProofingUserDB):
         ProofingUserDB.__init__(self, db_uri, db_name)
 
 
-class EmailProofingUserDB(ProofingUserDB):
-
-    def __init__(self, db_uri, db_name='eduid_emails'):
-        ProofingUserDB.__init__(self, db_uri, db_name)
-
-
 class OidcProofingUserDB(ProofingUserDB):
 
     def __init__(self, db_uri, db_name='eduid_oidc_proofing'):
