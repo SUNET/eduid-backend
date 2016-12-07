@@ -9,6 +9,7 @@ requires = [
     'eduid-common[webapp]>=0.2.1b18',
     'eduid-am>=0.6.2b2',
     'Flask>=0.10.1,<0.12',
+    'Flask-Babel>=0.11.1',
 ]
 
 test_requires = [

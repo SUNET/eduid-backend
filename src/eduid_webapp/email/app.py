@@ -33,6 +33,8 @@
 
 from __future__ import absolute_import
 
+from flask.ext.babel import Babel
+
 from eduid_common.api.app import eduid_init_app
 from eduid_common.api import mail_relay
 from eduid_common.api import am
@@ -80,5 +82,8 @@ def email_init_app(name, config):
     app.verifications_db = EmailProofingStateDB(app.config['MONGO_URI'])
 
     app.logger.info('Init {} app...'.format(name))
+
+    babel = Babel(app)
+    app.babel = babel
 
     return app
