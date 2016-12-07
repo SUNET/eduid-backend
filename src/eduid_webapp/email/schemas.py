@@ -51,6 +51,11 @@ class EmailSchema(EduidSchema):
     primary = fields.Boolean(default=False)
 
 
+class EmailListSchema(EduidSchema):
+
+    emails = fields.List(fields.Nested(EmailSchema))
+
+
 class EmailResponseSchema(FluxStandardAction):
 
-    payload = EmailSchema()
+    payload = fields.Nested(EmailListSchema)

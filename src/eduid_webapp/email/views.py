@@ -34,7 +34,7 @@
 from __future__ import absolute_import
 
 from flask import Blueprint
-from flask import render_template
+from flask import render_template, current_app, url_for
 
 from eduid_userdb.exceptions import UserOutOfSync
 from eduid_userdb.mail import MailAddress
@@ -45,7 +45,7 @@ from eduid_common.api.utils import get_unique_hash
 from eduid_webapp.email.schemas import EmailSchema, EmailResponseSchema
 from eduid_webapp.email.schemas import VerificationCodeSchema
 
-email_views = Blueprint('email', __name__, url_prefix='')
+email_views = Blueprint('email', __name__, url_prefix='', template_folder='templates')
 
 
 @email_views.route('/all', methods=['GET'])
@@ -64,7 +64,7 @@ def post_email(user, email, confirmed, primary):
                            verified=False, primary=False)
     user.mail_addresses.add(new_mail)
     try:
-        save_dashboard_user(user, dbattr_name='emails_userdb')
+        save_dashboard_user(user, dbattr_name='dashboard_userdb')
     except UserOutOfSync:
         return {
             '_status': 'error',
@@ -84,7 +84,7 @@ def post_email(user, email, confirmed, primary):
     # the user and sending the letter.
     current_app.verifications_db.save(verification_state)
 
-    link = url_for('verify', user=user, code=code)
+    link = url_for('email.verify', user=user, code=code)
     site_name = current_app.config.get("site.name", "eduID")
     site_url = current_app.config.get("site.url", "http://eduid.se")
 
@@ -97,22 +97,22 @@ def post_email(user, email, confirmed, primary):
     }
 
     text = render_template(
-            "templates/verification_email.txt.jinja2",
+            "verification_email.txt.jinja2",
             **context
     )
     html = render_template(
-            "templates/verification_email.html.jinja2",
+            "verification_email.html.jinja2",
             **context
     )
 
+    sender = current_app.config.get('MAIL_DEFAULT_FROM')
     # DEBUG
-    if current_app.config.get('developer_mode', False):
-        current_app.logger.debug(message.body)
+    if current_app.config.get('DEBUG', False):
+        current_app.logger.debug(text)
     else:
         current_app.mail_relay.sendmail(sender, [email], text, html)
     current_app.logger.debug("Sent verification mail to user {!r}"
-                             " with address {!s}.".format(request.context.user,
-                                                          email))
+                             " with address {!s}.".format(user, email))
 
     return EmailSchema().dump(new_mail).data
 
@@ -141,7 +141,7 @@ def post_primary(user, email, confirmed, primary):
 
     self.user.mail_addresses.primary = mail.email
     try:
-        save_dashboard_user(user, dbattr_name='emails_userdb')
+        save_dashboard_user(user, dbattr_name='dashboard_userdb')
     except UserOutOfSync:
         return {
             '_status': 'error',
@@ -153,7 +153,7 @@ def post_primary(user, email, confirmed, primary):
             'message': message}
 
 
-@email_views.route('/verify', methods=['GET'])
+@email_views.route('/verify', methods=['POST'])
 @UnmarshalWith(VerificationCodeSchema)
 @MarshalWith(EmailResponseSchema)
 @require_dashboard_user
@@ -185,7 +185,7 @@ def verify(user, code, email):
                     other.mail_addresses.primary = address.email
                     break
             other.mail_addresses.remove(email)
-            save_dashboard_user(other, dbattr_name='emails_userdb')
+            save_dashboard_user(other, dbattr_name='dashboard_userdb')
 
         new_email = MailAddress(email = email, application = 'dashboard',
                                 verified = True, primary = False)
@@ -197,7 +197,7 @@ def verify(user, code, email):
             user.mail_addresses.find(email).is_verified = True
 
         try:
-            save_dashboard_user(user, dbattr_name='emails_userdb')
+            save_dashboard_user(user, dbattr_name='dashboard_userdb')
         except UserOutOfSync:
             return {
                 '_status': 'error',
@@ -228,7 +228,7 @@ def post_remove(user, email, confirmed, primary):
             self.user.mail_addresses.remove(remove_email)
 
         try:
-            save_dashboard_user(user, dbattr_name='emails_userdb')
+            save_dashboard_user(user, dbattr_name='dashboard_userdb')
         except UserOutOfSync:
             return {
                 '_status': 'error',
