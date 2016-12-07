@@ -40,10 +40,10 @@ def validate_email(email):
     user = get_dashboard_user()
     user_emails = [e.email for e in user.mail_addresses.to_list()]
 
-    if request.POST.get('add', None) is not None:
+    if request.form.get('add', None) is not None:
         if value in user_emails:
             raise ValidationError("You already have this email address")
 
-    elif set(['verify', 'setprimary', 'remove']).intersection(set(request.POST)):
+    elif set(['verify', 'setprimary', 'remove']).intersection(set(request.form)):
         if value not in user_emails:
             raise ValidationError("This email address is unavailable")
