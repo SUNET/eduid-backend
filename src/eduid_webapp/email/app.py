@@ -75,7 +75,7 @@ def email_init_app(name, config):
     from eduid_webapp.email.views import email_views
     app.register_blueprint(email_views, url_prefix=app.config.get('APPLICATION_ROOT', None))
 
-    app = am.init_relay(app, 'eduid_emails')
+    app = am.init_relay(app, 'eduid_dashboard')
     app = mail_relay.init_relay(app)
 
     app.dashboard_userdb = DashboardUserDB(app.config['MONGO_URI'])

@@ -42,7 +42,7 @@ from eduid_userdb.proofing import EmailProofingElement, EmailProofingState
 from eduid_common.api.decorators import require_dashboard_user, MarshalWith, UnmarshalWith
 from eduid_common.api.utils import save_dashboard_user
 from eduid_common.api.utils import get_unique_hash
-from eduid_webapp.email.schemas import EmailSchema, EmailResponseSchema
+from eduid_webapp.email.schemas import EmailListPayload, EmailSchema, EmailResponseSchema
 from eduid_webapp.email.schemas import VerificationCodeSchema
 
 email_views = Blueprint('email', __name__, url_prefix='', template_folder='templates')
@@ -52,7 +52,8 @@ email_views = Blueprint('email', __name__, url_prefix='', template_folder='templ
 @MarshalWith(EmailResponseSchema)
 @require_dashboard_user
 def get_all_emails(user):
-    return EmailSchema(many=True).dump(user.mail_addresses.to_list()).data
+    emails = {'emails': user.mail_addresses.to_list()}
+    return EmailListPayload().dump(emails).data
 
 
 @email_views.route('/new', methods=['POST'])
@@ -114,7 +115,8 @@ def post_email(user, email, confirmed, primary):
     current_app.logger.debug("Sent verification mail to user {!r}"
                              " with address {!s}.".format(user, email))
 
-    return EmailSchema().dump(new_mail).data
+    emails = {'emails': user.mail_addresses.to_list()}
+    return EmailListPayload().dump(emails).data
 
 
 @email_views.route('/primary', methods=['POST'])
