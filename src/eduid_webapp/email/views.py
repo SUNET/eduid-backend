@@ -34,16 +34,15 @@
 from __future__ import absolute_import
 
 from flask import Blueprint
-from flask import render_template, current_app, url_for
+from flask import render_template, current_app
 
 from eduid_userdb.exceptions import UserOutOfSync
 from eduid_userdb.mail import MailAddress
-from eduid_userdb.proofing import EmailProofingElement, EmailProofingState
 from eduid_common.api.decorators import require_dashboard_user, MarshalWith, UnmarshalWith
 from eduid_common.api.utils import save_dashboard_user
-from eduid_common.api.utils import get_unique_hash
 from eduid_webapp.email.schemas import EmailListPayload, EmailSchema, EmailResponseSchema
 from eduid_webapp.email.schemas import VerificationCodeSchema
+from eduid_webapp.email.verifications import send_verification_code
 
 email_views = Blueprint('email', __name__, url_prefix='', template_folder='templates')
 
@@ -72,48 +71,7 @@ def post_email(user, email, confirmed, primary):
             'error': {'form': 'user-out-of-sync'}
         }
 
-    code = get_unique_hash()
-    verification = EmailProofingElement(email=email,
-                                        verification_code=code,
-                                        application='dashboard')
-    verification_data = {
-        'eduPersonPrincipalName': user.eppn,
-        'verification': verification.to_dict()
-        }
-    verification_state = EmailProofingState(verification_data)
-    # XXX This should be an atomic transaction together with saving
-    # the user and sending the letter.
-    current_app.verifications_db.save(verification_state)
-
-    link = url_for('email.verify', user=user, code=code)
-    site_name = current_app.config.get("site.name", "eduID")
-    site_url = current_app.config.get("site.url", "http://eduid.se")
-
-    context = {
-        "email": email,
-        "verification_link": link,
-        "site_url": site_url,
-        "site_name": site_name,
-        "code": code,
-    }
-
-    text = render_template(
-            "verification_email.txt.jinja2",
-            **context
-    )
-    html = render_template(
-            "verification_email.html.jinja2",
-            **context
-    )
-
-    sender = current_app.config.get('MAIL_DEFAULT_FROM')
-    # DEBUG
-    if current_app.config.get('DEBUG', False):
-        current_app.logger.debug(text)
-    else:
-        current_app.mail_relay.sendmail(sender, [email], text, html)
-    current_app.logger.debug("Sent verification mail to user {!r}"
-                             " with address {!s}.".format(user, email))
+    send_verification_code(email, user)
 
     emails = {'emails': user.mail_addresses.to_list()}
     return EmailListPayload().dump(emails).data
@@ -242,3 +200,21 @@ def post_remove(user, email, confirmed, primary):
             'result': 'success',
             'message': message,
         }
+
+
+@email_views.route('/resend-code', methods=['POST'])
+@UnmarshalWith(EmailSchema)
+@MarshalWith(EmailResponseSchema)
+@require_dashboard_user
+def resend_code(user, email):
+    if not user.mail_addresses.find(email):
+        current_app.logger.warning('Unknown email in resend_code_action, user {!s}'.format(user))
+        return {
+            '_status': 'error',
+            'error': {'form': 'user-out-of-sync'}
+        }
+    
+    send_verification_code(email, user)
+
+    emails = {'emails': user.mail_addresses.to_list()}
+    return EmailListPayload().dump(emails).data
