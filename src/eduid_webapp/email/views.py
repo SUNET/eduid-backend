@@ -68,7 +68,7 @@ def post_email(user, email, confirmed, primary):
     except UserOutOfSync:
         return {
             '_status': 'error',
-            'error': {'form': 'user-out-of-sync'}
+            'error': {'form': 'out_of_sync'}
         }
 
     send_verification_code(email, user)
@@ -88,7 +88,7 @@ def post_primary(user, email, confirmed, primary):
     except IndexError:
         return {
             '_status': 'error',
-            'error': {'form': 'user-out-of-sync'}
+            'error': {'form': 'out_of_sync'}
         }
 
     if not mail.is_verified:
@@ -105,7 +105,7 @@ def post_primary(user, email, confirmed, primary):
     except UserOutOfSync:
         return {
             '_status': 'error',
-            'error': {'form': 'user-out-of-sync'}
+            'error': {'form': 'out_of_sync'}
         }
     message = ('Your primary email address was '
                 'successfully changed')
@@ -161,7 +161,7 @@ def verify(user, code, email):
         except UserOutOfSync:
             return {
                 '_status': 'error',
-                'error': {'form': 'user-out-of-sync'}
+                'error': {'form': 'out_of_sync'}
             }
         return new_email.to_dict()
 
@@ -192,7 +192,7 @@ def post_remove(user, email, confirmed, primary):
         except UserOutOfSync:
             return {
                 '_status': 'error',
-                'error': {'form': 'user-out-of-sync'}
+                'error': {'form': 'out_of_sync'}
             }
 
         message = ('Email address was successfully removed')
@@ -211,7 +211,7 @@ def resend_code(user, email):
         current_app.logger.warning('Unknown email in resend_code_action, user {!s}'.format(user))
         return {
             '_status': 'error',
-            'error': {'form': 'user-out-of-sync'}
+            'error': {'form': 'out_of_sync'}
         }
     
     send_verification_code(email, user)
