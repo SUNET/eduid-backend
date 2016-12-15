@@ -127,43 +127,56 @@ def verify(user, code, email):
     if state.is_expired(timeout):
         msg = "Verification code is expired: {!r}".format(verification)
         current_app.logger.debug(msg)
-        return {'_status': 'error', 'error': msg}
+        return {
+            '_status': 'error',
+            'error': {'form': 'emails.code_expired'}
+        }
 
-    if email == verification.email:
-        verification.is_verified = True
-        verification.verified_ts = datetime.datetime.now()
-        verification.verified_by = user.eppn
-        state.verification = verification
-        current_app.verifications_db.save(state)
+    if email != verification.email:
+        msg = "Invalid verification code: {!r}".format(verification)
+        current_app.logger.debug(msg)
+        return {
+            '_status': 'error',
+            'error': {'form': 'emails.code_invalid'}
+        }
 
-        other = current_app.emails_userdbb.get_user_by_mail(email)
-        if other and other.mail_addresses.primary and \
-                other.mail_addresses.primary.email == email:
-            # Promote some other verified e-mail address to primary
-            for address in other.mail_addresses.to_list():
-                if address.is_verified and address.email != email:
-                    other.mail_addresses.primary = address.email
-                    break
-            other.mail_addresses.remove(email)
-            save_dashboard_user(other, dbattr_name='dashboard_userdb')
+    verification.is_verified = True
+    verification.verified_ts = datetime.datetime.now()
+    verification.verified_by = user.eppn
+    state.verification = verification
+    current_app.verifications_db.save(state)
 
-        new_email = MailAddress(email = email, application = 'dashboard',
-                                verified = True, primary = False)
+    other = current_app.emails_userdbb.get_user_by_mail(email)
+    if other and other.mail_addresses.primary and \
+            other.mail_addresses.primary.email == email:
+        # Promote some other verified e-mail address to primary
+        for address in other.mail_addresses.to_list():
+            if address.is_verified and address.email != email:
+                other.mail_addresses.primary = address.email
+                break
+        other.mail_addresses.remove(email)
+        save_dashboard_user(other, dbattr_name='dashboard_userdb')
+
+    new_email = MailAddress(email = email, application = 'dashboard',
+                            verified = True, primary = False)
+    if user.mail_addresses.primary is None:
+        new_email.is_primary = True
+    try:
+        user.mail_addresses.add(new_email)
+    except DuplicateElementViolation:
+        user.mail_addresses.find(email).is_verified = True
         if user.mail_addresses.primary is None:
-            new_email.is_primary = True
-        try:
-            user.mail_addresses.add(new_email)
-        except DuplicateElementViolation:
-            user.mail_addresses.find(email).is_verified = True
+            user.mail_addresses.find(email).is_primary = True
 
-        try:
-            save_dashboard_user(user, dbattr_name='dashboard_userdb')
-        except UserOutOfSync:
-            return {
-                '_status': 'error',
-                'error': {'form': 'out_of_sync'}
-            }
-        return new_email.to_dict()
+    try:
+        save_dashboard_user(user, dbattr_name='dashboard_userdb')
+    except UserOutOfSync:
+        return {
+            '_status': 'error',
+            'error': {'form': 'out_of_sync'}
+        }
+    emails = {'emails': user.mail_addresses.to_list()}
+    return EmailListPayload().dump(emails).data
 
 
 @email_views.route('/remove', methods=['POST'])
