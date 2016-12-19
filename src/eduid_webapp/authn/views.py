@@ -45,9 +45,6 @@ from eduid_common.authn.eduid_saml2 import authenticate
 from eduid_webapp.authn.acs_registry import get_action, schedule_action
 from eduid_common.authn.cache import IdentityCache, StateCache
 
-import logging
-logger = logging.getLogger(__name__)
-
 
 authn_views = Blueprint('authn', __name__)
 
@@ -132,15 +129,21 @@ def logout():
     This view initiates the SAML2 Logout request
     using the pysaml2 library to create the LogoutRequest.
     """
+    eppn = session.get('user_eppn')
+
+    if eppn == None:
+        # session cookie has expired, no logout action needed
+        location = current_app.config.get('SAML2_LOGOUT_REDIRECT_URL')
+        return redirect(location)
+
     # check csrf
     csrf = request.form['csrf']
     if csrf != session.get('_csrft_', None):
         abort(400)
 
-    eppn = session.get('user_eppn')
     user = current_app.central_userdb.get_user_by_eppn(eppn)
 
-    logger.debug('Logout process started for user {!r}'.format(user))
+    current_app.logger.debug('Logout process started for user {!r}'.format(user))
     state = StateCache(session)
     identity = IdentityCache(session)
 
@@ -150,7 +153,7 @@ def logout():
 
     subject_id = _get_name_id(session)
     if subject_id is None:
-        logger.warning(
+        current_app.logger.warning(
             'The session does not contain '
             'the subject id for user {!r}'.format(user))
         location = current_app.config.get('SAML2_LOGOUT_REDIRECT_URL')
@@ -161,7 +164,7 @@ def logout():
         # loresponse is a dict for REDIRECT binding, and LogoutResponse for SOAP binding
         if isinstance(loresponse, LogoutResponse):
             if loresponse.status_ok():
-                logger.debug('Performing local logout for {!r}'.format(user))
+                current_app.logger.debug('Performing local logout for {!r}'.format(user))
                 session.clear()
                 location = current_app.config.get('SAML2_LOGOUT_REDIRECT_URL')
                 location = request.form.get('RelayState', location)
@@ -170,7 +173,7 @@ def logout():
                 abort(500)
         headers_tuple = loresponse[1]['headers']
         location = headers_tuple[0][1]
-        logger.info('Redirecting to {!r} to continue the logout process '
+        current_app.logger.info('Redirecting to {!r} to continue the logout process '
                     'for user {!r}'.format(location, user))
 
     state.sync()
@@ -187,7 +190,7 @@ def logout_service():
     we didn't initiate the process as a single logout
     request started by another SP.
     """
-    logger.debug('Logout service started')
+    current_app.logger.debug('Logout service started')
 
     state = StateCache(session)
     identity = IdentityCache(session)
@@ -201,7 +204,7 @@ def logout_service():
     next_page = request.form.get('RelayState', next_page)
 
     if 'SAMLResponse' in request.form: # we started the logout
-        logger.debug('Receiving a logout response from the IdP')
+        current_app.logger.debug('Receiving a logout response from the IdP')
         response = client.parse_logout_request_response(
             request.form['SAMLResponse'],
             BINDING_HTTP_REDIRECT
@@ -211,15 +214,15 @@ def logout_service():
             session.clear()
             return redirect(next_page)
         else:
-            logger.error('Unknown error during the logout')
+            current_app.logger.error('Unknown error during the logout')
             abort(400)
 
     # logout started by the IdP
     elif 'SAMLRequest' in request.form:
-        logger.debug('Receiving a logout request from the IdP')
+        current_app.logger.debug('Receiving a logout request from the IdP')
         subject_id = _get_name_id(session)
         if subject_id is None:
-            logger.warning(
+            current_app.logger.warning(
                 'The session does not contain the subject id for user {0} '
                 'Performing local logout'.format(
                     session['eduPersonPrincipalName']
@@ -238,7 +241,7 @@ def logout_service():
             location = get_location(http_info)
             session.clear()
             return redirect(location)
-    logger.error('No SAMLResponse or SAMLRequest parameter found')
+    current_app.logger.error('No SAMLResponse or SAMLRequest parameter found')
     abort(400)
 
 
