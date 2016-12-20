@@ -2,7 +2,6 @@
 
 from uuid import uuid4
 import sys
-from string import maketrans
 from flask import current_app, session
 
 from eduid_userdb import User
@@ -143,7 +142,12 @@ def get_flux_type(req, suffix):
     """
     method = req.method
     blueprint = req.blueprint
-    table = maketrans('/-', '  ')
-    url_rule = str(req.url_rule.rule).translate(table)
-    flux_type = '_'.join('{!s} {!s} {!s} {!s}'.format(method, blueprint, url_rule, suffix.upper()).split()).upper()
+    # Remove APPLICATION_ROOT from request url rule
+    # XXX: There must be a better way to get the internal path info
+    app_root = current_app.config['APPLICATION_ROOT']
+    if app_root is None:
+        app_root = ''
+    url_rule = req.url_rule.rule.replace(app_root, '')
+    url_rule = url_rule.replace('/', ' ').replace('-', ' ')
+    flux_type = '_'.join('{!s} {!s} {!s} {!s}'.format(method, blueprint, url_rule, suffix).split()).upper()
     return flux_type
