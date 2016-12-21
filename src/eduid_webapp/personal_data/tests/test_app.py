@@ -31,6 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import json
+from mock import patch
 
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_webapp.personal_data.app import pd_init_app
@@ -72,7 +73,9 @@ class AppTests(EduidAPITestCase):
             self.assertEqual(user_data['payload']['display_name'], 'John Smith')
             self.assertEqual(user_data['payload']['language'], 'en')
 
-    def test_post_user(self):
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_post_user(self, mock_request_user_sync):
+        mock_request_user_sync.return_value = True
         eppn = self.test_user_data['eduPersonPrincipalName']
         with self.session_cookie(self.browser, eppn) as client:
             data = {
@@ -84,4 +87,8 @@ class AppTests(EduidAPITestCase):
             response = client.post('/user', data=json.dumps(data),
                                    content_type=self.content_type_json)
             resp_data = json.loads(response.data)
-            self.assertEqual(resp_data['type'], 'ho ho ho')
+            self.assertEqual(resp_data['type'], 'POST_PERSONAL_DATA_USER_SUCCESS')
+            self.assertEqual(resp_data['payload']['surname'], 'Johnson')
+            self.assertEqual(resp_data['payload']['given_name'], 'Peter')
+            self.assertEqual(resp_data['payload']['display_name'], 'Peter Johnson')
+            self.assertEqual(resp_data['payload']['language'], 'en')
