@@ -33,14 +33,15 @@
 
 import copy
 
-from eduid_userdb.element import Element, _update_something_by, _update_something_ts
+from eduid_userdb.element import VerifiedElement, Element
+from eduid_userdb.element import _update_something_by, _update_something_ts
 from eduid_userdb.exceptions import UserDBValueError
 
 
 __author__ = 'lundberg'
 
 
-class ProofingElement(Element):
+class ProofingElement(VerifiedElement):
     """
     Element for holding the state of a proofing flow. It should contain meta data needed for logging
     a proofing according to the Kantara specification.
@@ -59,7 +60,7 @@ class ProofingElement(Element):
     :type data: dict
     """
     def __init__(self, application=None, created_ts=None,
-                 verified=False, verified_by=False, verified_ts=None,
+                 verified=False, verified_by='', verified_ts=None,
                  verification_code=None, data=None):
 
         data_in = copy.copy(data)  # to not modify callers data
@@ -75,11 +76,7 @@ class ProofingElement(Element):
                            verification_code=verification_code,
                            )
 
-        Element.__init__(self, data_in)
-        self.is_verified = data.pop('verified', False)
-        self.verified_by = data.pop('verified_by', None)
-        self.verified_ts = data.pop('verified_ts', None)
-        self.verification_code = data.pop('verification_code', None)
+        VerifiedElement.__init__(self, data_in)
 
     # -----------------------------------------------------------------
     @property
