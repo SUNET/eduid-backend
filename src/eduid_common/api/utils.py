@@ -28,7 +28,7 @@ def get_short_hash(entropy=10):
     return uuid4().hex[:entropy]
 
 
-def retrieve_modified_ts(user, dashboard_userdb):
+def retrieve_modified_ts(user, dashboard_userdb=None):
     """
     When loading a user from the central userdb, the modified_ts has to be
     loaded from the dashboard private userdb (since it is not propagated to
@@ -44,6 +44,8 @@ def retrieve_modified_ts(user, dashboard_userdb):
 
     :return: None
     """
+    if dashboard_userdb is None:
+        dashboard_userdb = current_app.dashboard_userdb
     try:
         userid = user.user_id
     except UserDBValueError:

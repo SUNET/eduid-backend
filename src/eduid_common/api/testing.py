@@ -44,6 +44,7 @@ import etcd
 from eduid_userdb import User
 from eduid_userdb.data_samples import NEW_USER_EXAMPLE
 from eduid_userdb.testing import MongoTemporaryInstance
+from eduid_common.api.utils import retrieve_modified_ts
 
 
 TEST_CONFIG = {
@@ -94,7 +95,12 @@ class EduidAPITestCase(unittest.TestCase):
         os.environ.update({'ETCD_PORT': str(self.etcd_instance.port)})
         self.app = self.load_app(config)
         self.browser = self.app.test_client()
-        self.app.central_userdb.save(User(data=NEW_USER_EXAMPLE), check_sync=False)
+        self.test_user_data = deepcopy(NEW_USER_EXAMPLE)
+        self.test_user = User(data=self.test_user_data)
+        with self.app.app_context():
+            self.app.dashboard_userdb.save(self.test_user, check_sync=False)
+            self.app.central_userdb.save(self.test_user, check_sync=False)
+            retrieve_modified_ts(self.test_user)
 
         # Helper constants
         self.content_type_json = 'application/json'
