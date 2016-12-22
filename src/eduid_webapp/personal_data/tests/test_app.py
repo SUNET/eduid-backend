@@ -34,6 +34,7 @@ import json
 from mock import patch
 
 from eduid_common.api.testing import EduidAPITestCase
+from eduid_common.api.utils import retrieve_modified_ts
 from eduid_webapp.personal_data.app import pd_init_app
 
 
@@ -58,7 +59,7 @@ class AppTests(EduidAPITestCase):
         })
         return config
 
-    def init_data(self, config):
+    def init_data(self):
         self.app.dashboard_userdb.save(self.test_user, check_sync=False)
         retrieve_modified_ts(self.test_user)
 
