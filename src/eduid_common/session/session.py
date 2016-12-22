@@ -86,6 +86,7 @@ import nacl.secret
 import nacl.utils
 import nacl.encoding
 import base64
+from saml2.saml import NameID
 
 import logging
 logger = logging.getLogger(__name__)
@@ -111,6 +112,13 @@ def get_redis_pool(cfg):
         host = cfg['REDIS_HOST']
         pool = redis.ConnectionPool(host=host, port=port, db=db)
     return pool
+
+
+class NameIDEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, NameID):
+            return str(obj)
+        return json.JSONEncoder.default(self, obj)
 
 
 class SessionManager(object):
@@ -364,7 +372,8 @@ class Session(collections.MutableMapping):
         logger.debug('Storing v2 data in cache: {!r}'.format(data_dict))
         nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
         # Version data to make it easier to know how to decode it on reading
-        versioned = {'v2': self.nacl_box.encrypt(json.dumps(data_dict), nonce,
+        data_json = json.dumps(data_dict, cls=NameIDEncoder)
+        versioned = {'v2': self.nacl_box.encrypt(data_json, nonce,
                                                  encoder = nacl.encoding.Base64Encoder)
                      }
         return json.dumps(versioned)
