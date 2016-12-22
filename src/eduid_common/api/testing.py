@@ -44,7 +44,6 @@ import etcd
 from eduid_userdb import User
 from eduid_userdb.data_samples import NEW_USER_EXAMPLE
 from eduid_userdb.testing import MongoTemporaryInstance
-from eduid_common.api.utils import retrieve_modified_ts
 
 
 TEST_CONFIG = {
@@ -98,9 +97,8 @@ class EduidAPITestCase(unittest.TestCase):
         self.test_user_data = deepcopy(NEW_USER_EXAMPLE)
         self.test_user = User(data=self.test_user_data)
         with self.app.app_context():
-            self.app.dashboard_userdb.save(self.test_user, check_sync=False)
             self.app.central_userdb.save(self.test_user, check_sync=False)
-            retrieve_modified_ts(self.test_user)
+            self.init_data()
 
         # Helper constants
         self.content_type_json = 'application/json'
@@ -133,6 +131,13 @@ class EduidAPITestCase(unittest.TestCase):
         :rtype: dict
         """
         return config
+
+    def init_data(self):
+        """
+        Method that can be overriden by any subclass,
+        where it can add application specific data to the test dbs
+        """
+        pass
 
     @contextmanager
     def session_cookie(self, client, eppn, server_name='localhost'):
