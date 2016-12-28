@@ -92,14 +92,12 @@ def post_primary(user, email, confirmed, primary):
         }
 
     if not mail.is_verified:
-        message = ('You need to confirm your email address '
-                    'before it can become primary')
         return {
-            'result': 'bad',
-            'message': message
+            '_status': 'error',
+            'error': {'form': 'emails.unconfirmed_address_not_primary'}
         }
 
-    self.user.mail_addresses.primary = mail.email
+    user.mail_addresses.primary = mail.email
     try:
         save_dashboard_user(user, dbattr_name='dashboard_userdb')
     except UserOutOfSync:
@@ -107,10 +105,8 @@ def post_primary(user, email, confirmed, primary):
             '_status': 'error',
             'error': {'form': 'out_of_sync'}
         }
-    message = ('Your primary email address was '
-                'successfully changed')
-    return {'result': 'success',
-            'message': message}
+    emails = {'emails': user.mail_addresses.to_list()}
+    return EmailListPayload().dump(emails).data
 
 
 @email_views.route('/verify', methods=['POST'])
@@ -184,35 +180,30 @@ def verify(user, code, email):
 @MarshalWith(EmailResponseSchema)
 @require_dashboard_user
 def post_remove(user, email, confirmed, primary):
-        emails = user.mail_addresses.to_list()
-        if len(emails) == 1:
-            message = ('Error: You only have one email address and it  '
-                        'can not be removed')
-            return {
-                'result': 'error',
-                'message': message,
-            }
-
-        try:
-            user.mail_addresses.remove(email)
-        except PrimaryElementViolation:
-            new_index = 1 if emails[0].email == email else 0
-            self.user.mail_addresses.primary = emails[new_index].email
-            self.user.mail_addresses.remove(remove_email)
-
-        try:
-            save_dashboard_user(user, dbattr_name='dashboard_userdb')
-        except UserOutOfSync:
-            return {
-                '_status': 'error',
-                'error': {'form': 'out_of_sync'}
-            }
-
-        message = ('Email address was successfully removed')
+    emails = user.mail_addresses.to_list()
+    if len(emails) == 1:
         return {
-            'result': 'success',
-            'message': message,
+            '_status': 'error',
+            'error': {'form': 'emails.cannot_remove_unique'}
         }
+
+    try:
+        user.mail_addresses.remove(email)
+    except PrimaryElementViolation:
+        new_index = 1 if emails[0].email == email else 0
+        user.mail_addresses.primary = emails[new_index].email
+        user.mail_addresses.remove(email)
+
+    try:
+        save_dashboard_user(user, dbattr_name='dashboard_userdb')
+    except UserOutOfSync:
+        return {
+            '_status': 'error',
+            'error': {'form': 'out_of_sync'}
+        }
+
+    emails = {'emails': user.mail_addresses.to_list()}
+    return EmailListPayload().dump(emails).data
 
 
 @email_views.route('/resend-code', methods=['POST'])
