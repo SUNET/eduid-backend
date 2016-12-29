@@ -29,3 +29,61 @@
 # LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+
+import json
+
+from eduid_common.api.testing import EduidAPITestCase
+from eduid_webapp.email.app import email_init_app
+
+
+class EmailTests(EduidAPITestCase):
+
+    def load_app(self, config):
+        """
+        Called from the parent class, so we can provide the appropiate flask
+        app for this test case.
+        """
+        return email_init_app('testing', config)
+
+    def update_config(self, config):
+        config.update({
+            'AVAILABLE_LANGUAGES': {'en': 'English','sv': 'Svenska'},
+            'MSG_BROKER_URL': 'amqp://dummy',
+            'AM_BROKER_URL': 'amqp://dummy',
+            'CELERY_CONFIG': {
+                'CELERY_RESULT_BACKEND': 'amqp',
+                'CELERY_TASK_SERIALIZER': 'json'
+            },
+        })
+        return config
+
+    def test_get_all_emails(self):
+        response = self.browser.get('/all')
+        self.assertEqual(response.status_code, 302)  # Redirect to token service
+
+        eppn = self.test_user_data['eduPersonPrincipalName']
+        with self.session_cookie(self.browser, eppn) as client:
+            response2 = client.get('/all')
+
+            self.assertEqual(response.status_code, 302)
+
+            email_data = json.loads(response2.data)
+
+            self.assertEqual(email_data['type'], 'GET_EMAIL_ALL_SUCCESS')
+            self.assertEqual(email_data['payload']['emails'][0].get('email'), 'johnsmith@example.com')
+            self.assertEqual(email_data['payload']['emails'][0].get('confirmed'), False)
+            self.assertEqual(email_data['payload']['emails'][1].get('email'), 'johnsmith2@example.com')
+            self.assertEqual(email_data['payload']['emails'][1].get('confirmed'), False)
+
+    def test_post_email_error_no_data(self):
+        response = self.browser.post('/new')
+        self.assertEqual(response.status_code, 302) # Redirect to token service
+
+        eppn = self.test_user_data['eduPersonPrincipalName']
+        with self.session_cookie(self.browser, eppn) as client:
+            response2 = client.post('/new')
+
+            self.assertEqual(response.status_code, 302)
+
+            new_email_data = json.loads(response2.data)
+            self.assertEqual(new_email_data['type'], 'POST_EMAIL_NEW_FAIL')
