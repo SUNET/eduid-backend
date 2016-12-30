@@ -31,8 +31,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 import json
+from mock import patch
 
 from eduid_common.api.testing import EduidAPITestCase
+from eduid_common.api.utils import retrieve_modified_ts
 from eduid_webapp.email.app import email_init_app
 
 
@@ -56,6 +58,10 @@ class EmailTests(EduidAPITestCase):
             },
         })
         return config
+
+    def init_data(self):
+        self.app.dashboard_userdb.save(self.test_user, check_sync=False)
+        retrieve_modified_ts(self.test_user)
 
     def test_get_all_emails(self):
         response = self.browser.get('/all')
@@ -87,3 +93,28 @@ class EmailTests(EduidAPITestCase):
 
             new_email_data = json.loads(response2.data)
             self.assertEqual(new_email_data['type'], 'POST_EMAIL_NEW_FAIL')
+
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_post_email(self, mock_request_user_sync):
+        response = self.browser.post('/new')
+        self.assertEqual(response.status_code, 302)  # Redirect to token service
+
+        mock_request_user_sync.return_value = True
+        eppn = self.test_user_data['eduPersonPrincipalName']
+
+        with self.session_cookie(self.browser, eppn) as client:
+            data = {
+                'email': 'john-smith@example.com',
+                'confirmed': False,
+                'primary': False,
+            }
+            response2 = client.post('/new', data=json.dumps(data),
+                                   content_type=self.content_type_json)
+
+            self.assertEqual(response2.status_code, 200)
+
+            new_email_data = json.loads(response2.data)
+
+            self.assertEqual(new_email_data['type'], 'POST_EMAIL_NEW_SUCCESS')
+            self.assertEqual(new_email_data['payload']['emails'][2].get('email'), 'john-smith@example.com')
+            self.assertEqual(new_email_data['payload']['emails'][2].get('confirmed'), False)
