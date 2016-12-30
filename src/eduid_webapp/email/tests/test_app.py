@@ -118,3 +118,27 @@ class EmailTests(EduidAPITestCase):
             self.assertEqual(new_email_data['type'], 'POST_EMAIL_NEW_SUCCESS')
             self.assertEqual(new_email_data['payload']['emails'][2].get('email'), 'john-smith@example.com')
             self.assertEqual(new_email_data['payload']['emails'][2].get('confirmed'), False)
+
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_post_primary(self, mock_request_user_sync):
+        response = self.browser.post('/primary')
+        self.assertEqual(response.status_code, 302)  # Redirect to token service
+
+        mock_request_user_sync.return_value = True
+        eppn = self.test_user_data['eduPersonPrincipalName']
+
+        with self.session_cookie(self.browser, eppn) as client:
+            data = {
+                'email': 'johnsmith@example.com',
+                'confirmed': True,
+                'primary': True,
+            }
+
+            response2 = client.post('/primary', data=json.dumps(data),
+                                    content_type=self.content_type_json)
+
+            self.assertEqual(response2.status_code, 200)
+
+            new_email_data = json.loads(response2.data)
+
+            self.assertEqual(new_email_data['type'], 'POST_EMAIL_PRIMARY_SUCCESS')
