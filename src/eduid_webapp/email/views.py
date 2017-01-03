@@ -36,6 +36,7 @@ from __future__ import absolute_import
 from flask import Blueprint
 from flask import render_template, current_app
 
+from eduid_userdb.element import PrimaryElementViolation
 from eduid_userdb.exceptions import UserOutOfSync
 from eduid_userdb.mail import MailAddress
 from eduid_common.api.decorators import require_dashboard_user, MarshalWith, UnmarshalWith

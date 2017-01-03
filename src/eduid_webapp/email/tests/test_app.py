@@ -121,10 +121,11 @@ class EmailTests(EduidAPITestCase):
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def test_post_primary(self, mock_request_user_sync):
+        mock_request_user_sync.return_value = True
+
         response = self.browser.post('/primary')
         self.assertEqual(response.status_code, 302)  # Redirect to token service
 
-        mock_request_user_sync.return_value = True
         eppn = self.test_user_data['eduPersonPrincipalName']
 
         with self.session_cookie(self.browser, eppn) as client:
@@ -142,3 +143,29 @@ class EmailTests(EduidAPITestCase):
             new_email_data = json.loads(response2.data)
 
             self.assertEqual(new_email_data['type'], 'POST_EMAIL_PRIMARY_SUCCESS')
+
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_remove(self, mock_request_user_sync):
+        mock_request_user_sync.return_value = True
+
+        response = self.browser.post('/remove')
+        self.assertEqual(response.status_code, 302)  # Redirect to token service
+
+        eppn = self.test_user_data['eduPersonPrincipalName']
+
+        with self.session_cookie(self.browser, eppn) as client:
+            data = {
+                'email': 'johnsmith@example.com',
+                'confirmed': False,
+                'primary': False,
+            }
+
+            response2 = client.post('/remove', data=json.dumps(data),
+                                    content_type=self.content_type_json)
+
+            self.assertEqual(response2.status_code, 200)
+
+            delete_email_data = json.loads(response2.data)
+
+            self.assertEqual(delete_email_data['type'], 'POST_EMAIL_REMOVE_SUCCESS')
+            self.assertEqual(delete_email_data['payload']['emails'][0].get('email'), 'johnsmith2@example.com')
