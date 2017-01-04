@@ -35,6 +35,8 @@ from mock import patch
 
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.api.utils import retrieve_modified_ts
+from eduid_userdb.data_samples import MOCK_EPPN_CODE
+from eduid_userdb.proofing import EmailProofingState
 from eduid_webapp.email.app import email_init_app
 
 
@@ -145,6 +147,31 @@ class EmailTests(EduidAPITestCase):
             self.assertEqual(new_email_data['type'], 'POST_EMAIL_PRIMARY_SUCCESS')
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_post_primary_fail(self, mock_request_user_sync):
+        mock_request_user_sync.return_value = True
+
+        response = self.browser.post('/primary')
+        self.assertEqual(response.status_code, 302)  # Redirect to token service
+
+        eppn = self.test_user_data['eduPersonPrincipalName']
+
+        with self.session_cookie(self.browser, eppn) as client:
+            data = {
+                'email': 'johnsmith2@example.com',
+                'confirmed': True,
+                'primary': True,
+            }
+
+            response2 = client.post('/primary', data=json.dumps(data),
+                                    content_type=self.content_type_json)
+
+            self.assertEqual(response2.status_code, 200)
+
+            new_email_data = json.loads(response2.data)
+
+            self.assertEqual(new_email_data['type'], 'POST_EMAIL_PRIMARY_FAIL')
+
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def test_remove(self, mock_request_user_sync):
         mock_request_user_sync.return_value = True
 
@@ -169,3 +196,82 @@ class EmailTests(EduidAPITestCase):
 
             self.assertEqual(delete_email_data['type'], 'POST_EMAIL_REMOVE_SUCCESS')
             self.assertEqual(delete_email_data['payload']['emails'][0].get('email'), 'johnsmith2@example.com')
+
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_resend_code(self, mock_request_user_sync):
+        mock_request_user_sync.return_value = True
+
+        response = self.browser.post('/resend-code')
+        self.assertEqual(response.status_code, 302)  # Redirect to token service
+
+        eppn = self.test_user_data['eduPersonPrincipalName']
+
+        with self.session_cookie(self.browser, eppn) as client:
+            data = {
+                'email': 'johnsmith@example.com'
+            }
+
+            response2 = client.post('/resend-code', data=json.dumps(data),
+                                    content_type=self.content_type_json)
+
+            self.assertEqual(response2.status_code, 200)
+
+            delete_email_data = json.loads(response2.data)
+
+            self.assertEqual(delete_email_data['type'], 'POST_EMAIL_RESEND_CODE_SUCCESS')
+            self.assertEqual(delete_email_data['payload']['emails'][0].get('email'), 'johnsmith@example.com')
+            self.assertEqual(delete_email_data['payload']['emails'][1].get('email'), 'johnsmith2@example.com')
+
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid_userdb.proofing.proofingdb.EmailProofingStateDB.get_state_by_eppn_and_code')
+    def test_verify(self, mock_get_state, mock_request_user_sync):
+        mock_request_user_sync.return_value = False
+        mock_get_state.return_value = EmailProofingState(MOCK_EPPN_CODE)
+
+        response = self.browser.post('/verify')
+        self.assertEqual(response.status_code, 302)  # Redirect to token service
+
+        eppn = self.test_user_data['eduPersonPrincipalName']
+
+        with self.session_cookie(self.browser, eppn) as client:
+            data = {
+                'email': 'johnsmith2@example.com',
+                'code': 'a20c0ade-b43b-4e1b-9b43-7732a3cf2e84',
+            }
+
+            response2 = client.post('/verify', data=json.dumps(data),
+                                    content_type=self.content_type_json)
+
+            verify_email_data = json.loads(response2.data)
+            from nose.tools import set_trace;
+            set_trace()
+            self.assertEqual(verify_email_data['type'], 'POST_EMAIL_VERIFY_FAIL')
+            self.assertEqual(verify_email_data['payload']['error']['form'], 'emails.code_invalid')
+
+
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid_userdb.proofing.proofingdb.EmailProofingStateDB.get_state_by_eppn_and_code')
+    def test_verify_fails(self, mock_get_state, mock_request_user_sync):
+        mock_request_user_sync.return_value = False
+
+        mock_get_state.return_value = EmailProofingState(MOCK_EPPN_CODE)
+        # spec1 = {'eduPersonPrincipalName': u'hubba-bubba', 'verification.verification_code': u'df61fe5e-7c4d-4879-99eb-943c493d06a8'}
+
+        response = self.browser.post('/verify')
+        self.assertEqual(response.status_code, 302)  # Redirect to token service
+
+        eppn = self.test_user_data['eduPersonPrincipalName']
+
+        with self.session_cookie(self.browser, eppn) as client:
+            data = {
+                'email': 'johnsmith@example.com',
+                'code': 'a20c0ade-b43b-4e1b-9b43-7732a3cf2e84',
+            }
+
+            response2 = client.post('/verify', data=json.dumps(data),
+                                    content_type=self.content_type_json)
+
+            verify_email_data = json.loads(response2.data)
+
+            self.assertEqual(verify_email_data['type'], 'POST_EMAIL_VERIFY_FAIL')
+            self.assertEqual(verify_email_data['payload']['error']['form'], 'emails.code_invalid')
