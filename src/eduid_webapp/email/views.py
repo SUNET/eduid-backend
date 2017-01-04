@@ -33,10 +33,12 @@
 
 from __future__ import absolute_import
 
+import datetime
+
 from flask import Blueprint
 from flask import render_template, current_app
 
-from eduid_userdb.element import PrimaryElementViolation
+from eduid_userdb.element import PrimaryElementViolation, DuplicateElementViolation
 from eduid_userdb.exceptions import UserOutOfSync
 from eduid_userdb.mail import MailAddress
 from eduid_common.api.decorators import require_dashboard_user, MarshalWith, UnmarshalWith
@@ -83,7 +85,8 @@ def post_email(user, email, confirmed, primary):
 @MarshalWith(EmailResponseSchema)
 @require_dashboard_user
 def post_primary(user, email, confirmed, primary):
-
+    """
+    """
     try:
         mail = user.mail_addresses.find(email)
     except IndexError:
@@ -143,7 +146,7 @@ def verify(user, code, email):
     state.verification = verification
     current_app.verifications_db.save(state)
 
-    other = current_app.emails_userdbb.get_user_by_mail(email)
+    other = current_app.dashboard_userdb.get_user_by_mail(email)
     if other and other.mail_addresses.primary and \
             other.mail_addresses.primary.email == email:
         # Promote some other verified e-mail address to primary
