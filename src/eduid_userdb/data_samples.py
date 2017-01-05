@@ -181,4 +181,42 @@ NEW_SIGNUP_USER_EXAMPLE.update({
     }
 })
 
+NEW_COMPLETED_SIGNUP_USER_EXAMPLE = deepcopy(NEW_USER_EXAMPLE)
+NEW_COMPLETED_SIGNUP_USER_EXAMPLE.update({
+    '_id': ObjectId('012345678901234567890123'),
+    'nins': [],
+    'mailAliases': [
+        {
+            'created_ts': datetime.strptime("2017-01-04T15:47:27", "%Y-%m-%dT%H:%M:%S"),
+            'verified': True,
+            'verified_by': 'signup',
+            'verification_code': '1234',
+            'created_by': 'signup',
+            'primary': True,
+            'verified_ts': datetime.strptime("2017-01-04T16:47:27", "%Y-%m-%dT%H:%M:%S"),
+            'email': 'johnsmith3@example.com'
+        }
+    ],
+    'tou': [
+        {
+            'created_ts': datetime.strptime("2017-01-04T16:47:30", "%Y-%m-%dT%H:%M:%S"),
+            'version': '2016-v1',
+            'created_by': 'signup',
+            'id': ObjectId('912345678901234567890123')
+        }
+    ],
+    'eduPersonEntitlement': [],
+    'passwords': [
+        {
+            'created_ts': datetime.strptime("2017-01-04T16:47:30", "%Y-%m-%dT%H:%M:%S"),
+            'salt': '$NDNv1H1$2d465dcc9c68075aa095b646a98e2e3edb1c612c175ebdeaca6c9a55a0457833$32$32$',
+            'id': ObjectId('a12345678901234567890123'),
+            'created_by': 'signup'
+        }
+    ],
+    'eduPersonPrincipalName': 'hubba-fooo',
+    'modified_ts': datetime.strptime("2017-01-04T16:47:30", "%Y-%m-%dT%H:%M:%S"),
+    'subject': 'physical person'
+})
+
 NEW_DASHBOARD_USER_EXAMPLE = deepcopy(NEW_USER_EXAMPLE)
