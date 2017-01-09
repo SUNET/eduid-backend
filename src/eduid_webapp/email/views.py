@@ -122,28 +122,28 @@ def verify(user, code, email):
     """
     db = current_app.verifications_db
     state = db.get_state_by_eppn_and_code(user.eppn, code)
-    verification = state.verification
+
     timeout = current_app.config.get('EMAIL_VERIFICATION_TIMEOUT', 24)
     if state.is_expired(timeout):
-        msg = "Verification code is expired: {!r}".format(verification)
+        msg = "Verification code is expired: {!r}".format(state.verification)
         current_app.logger.debug(msg)
         return {
             '_status': 'error',
             'error': {'form': 'emails.code_expired'}
         }
 
-    if email != verification.email:
-        msg = "Invalid verification code: {!r}".format(verification)
+    if email != state.verification.email:
+        msg = "Invalid verification code: {!r}".format(state.verification)
         current_app.logger.debug(msg)
         return {
             '_status': 'error',
             'error': {'form': 'emails.code_invalid'}
         }
 
-    verification.is_verified = True
-    verification.verified_ts = datetime.datetime.now()
-    verification.verified_by = user.eppn
-    state.verification = verification
+    state.verification.is_verified = True
+    state.verification.verified_ts = datetime.datetime.now()
+    # state.verification.verified_by = user.eppn
+
     current_app.verifications_db.save(state)
 
     other = current_app.dashboard_userdb.get_user_by_mail(email)
