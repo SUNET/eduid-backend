@@ -142,11 +142,12 @@ def verify(user, code, email):
 
     state.verification.is_verified = True
     state.verification.verified_ts = datetime.datetime.now()
-    # state.verification.verified_by = user.eppn
+
+    state.verification.verified_by = user.eppn
 
     current_app.verifications_db.save(state)
 
-    other = current_app.dashboard_userdb.get_user_by_mail(email)
+    other = current_app.dashboard_userdb.get_user_by_mail(email, include_unconfirmed=True)
     if other and other.mail_addresses.primary and \
             other.mail_addresses.primary.email == email:
         # Promote some other verified e-mail address to primary
@@ -166,7 +167,7 @@ def verify(user, code, email):
     except DuplicateElementViolation:
         user.mail_addresses.find(email).is_verified = True
         if user.mail_addresses.primary is None:
-            user.mail_addresses.find(email).is_primary = True
+            user.maild_addresses.find(email).is_primary = True
 
     try:
         save_dashboard_user(user, dbattr_name='dashboard_userdb')
