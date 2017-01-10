@@ -35,8 +35,6 @@ from mock import patch
 
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.api.utils import retrieve_modified_ts
-from eduid_userdb.data_samples import MOCK_EPPN_CODE
-from eduid_userdb.proofing import EmailProofingState
 from eduid_webapp.email.app import email_init_app
 
 
