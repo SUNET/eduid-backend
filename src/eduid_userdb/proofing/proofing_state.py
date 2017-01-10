@@ -119,6 +119,7 @@ class ProofingState(object):
         modified = self.modified_ts
         delta = datetime.timedelta(hours=timeout)
         expiry_date = modified + delta
+        expiry_date = expiry_date.replace(tzinfo=None)
         now = datetime.datetime.now()
         return expiry_date < now
 
