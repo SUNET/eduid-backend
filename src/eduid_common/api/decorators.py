@@ -9,7 +9,6 @@ from eduid_userdb.exceptions import UserDoesNotExist, MultipleUsersReturned
 from eduid_common.api.utils import retrieve_modified_ts
 from eduid_common.api.schemas.base import FluxStandardAction
 from eduid_common.api.schemas.models import FluxResponseStatus, FluxSuccessResponse, FluxFailResponse
-from eduid_common.api.exceptions import ApiException
 
 __author__ = 'lundberg'
 
@@ -24,25 +23,25 @@ def require_eppn(f):
         if eppn:
             kwargs['eppn'] = eppn
             return f(*args, **kwargs)
-        raise ApiException('Not authorized', status_code=401)
+        abort(401)
     return decorated_function
 
 
 def _get_user():
     eppn = session.get('user_eppn', None)
     if not eppn:
-        raise ApiException('Not authorized', status_code=401)
+        abort(401)
     # Get user from central database
     try:
         return current_app.central_userdb.get_user_by_eppn(eppn, raise_on_missing=True)
     except UserDoesNotExist as e:
         current_app.logger.error('Could not find user central database.')
         current_app.logger.error(e)
-        raise ApiException('Not authorized', status_code=401)
+        abort(401)
     except MultipleUsersReturned as e:
         current_app.logger.error('Found multiple users in central database.')
         current_app.logger.error(e)
-        raise ApiException('Not authorized', status_code=401)
+        abort(401)
 
 
 def require_user(f):
