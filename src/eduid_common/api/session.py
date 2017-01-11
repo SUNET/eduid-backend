@@ -32,6 +32,8 @@
 
 import collections
 from time import time
+import os
+import binascii
 
 from flask.sessions import SessionInterface
 
@@ -206,6 +208,26 @@ class Session(collections.MutableMapping):
                             httponly=cookie_httponly,
                             max_age=max_age
                             )
+
+    @manage('changed')
+    def new_csrf_token(self):
+        """
+        Copied from pyramid_session.py
+        """
+        token = binascii.hexlify(os.urandom(20))
+        self['_csrft_'] = token
+        self.persist()
+        return token
+
+    @manage('accessed')
+    def get_csrf_token(self):
+        """
+        Copied from pyramid_session.py
+        """
+        token = self.get('_csrft_', None)
+        if token is None:
+            token = self.new_csrf_token()
+        return token
 
 
 class SessionFactory(SessionInterface):
