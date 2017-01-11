@@ -8,6 +8,15 @@
 </head>
 <body>
     <div class="container">
+        <div class="pull-right">
+            <form id="logout-form" class="form-inline" method="POST" action="{{ config.TOKEN_SERVICE_URL_LOGOUT }}">
+                <div class="form-group">
+                    {{ support_user.display_name }}
+                    <input type="hidden" name="csrf" value="{{ session.get_csrf_token() }}">
+                </div>
+                <button id="logout-button" class="btn btn-link" type="submit" name="submit">Log out</button>
+            </form>
+        </div>
         <h3>Lookup a user using eppn, nin, mail address or phone number</h3>
         <form role="form" action="/" method="POST">
             <div class="form-group">

@@ -1,16 +1,17 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
-from flask import Blueprint, current_app, request, render_template
+from flask import Blueprint, current_app, request, render_template, session, redirect
 from eduid_common.api.decorators import require_support_personnel
 from eduid_userdb.exceptions import UserHasUnknownData
+from eduid_common.api.utils import urlappend
 
 support_views = Blueprint('support', __name__, url_prefix='', template_folder='templates')
 
 
 @support_views.route('/', methods=['GET', 'POST'])
 @require_support_personnel
-def index(logged_in_user):
+def index(support_user):
     if request.method == 'POST':
         search_query = request.form.get('query')
         lookup_users = current_app.support_user_db.search_users(request.form.get('query'))
@@ -26,10 +27,10 @@ def index(logged_in_user):
                     lookup_users = [user]
             if len(lookup_users) == 0:
                 current_app.logger.warn('Support personnel: {!r} searched for {!r} without any match found'
-                                        .format(logged_in_user, search_query))
+                                        .format(support_user, search_query))
                 return render_template('index.html', error="No users matched the search query")
 
-        current_app.logger.info('Support personnel: {!r} searched for {!r}'.format(logged_in_user, search_query))
+        current_app.logger.info('Support personnel: {!r} searched for {!r}'.format(support_user, search_query))
         for user in lookup_users:
             user_data = dict()
             # Users
@@ -54,6 +55,6 @@ def index(logged_in_user):
                 eppn=user['eduPersonPrincipalName'])
             users.append(user_data)
 
-        return render_template('index.html', users=users, search_query=search_query)
+        return render_template('index.html', support_user=support_user, users=users, search_query=search_query)
     else:
-        return render_template('index.html')
+        return render_template('index.html', support_user=support_user)
