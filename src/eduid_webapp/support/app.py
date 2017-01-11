@@ -47,6 +47,8 @@ def support_init_app(name, config):
     """
 
     app = eduid_init_app(name, config)
+    if app.config.get('TOKEN_SERVICE_URL_LOGOUT') is None:
+        app.config['TOKEN_SERVICE_URL_LOGOUT'] = urlappend(app.config['TOKEN_SERVICE_URL'], 'logout')
     app.config.update(config)
 
     from eduid_webapp.support.views import support_views
