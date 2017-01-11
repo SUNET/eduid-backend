@@ -181,7 +181,7 @@ class Session(collections.MutableMapping):
         Invalidate the session. Clear the data from redis,
         and set an empty session cookie.
         """
-        self.modified =True
+        self.modified = True
         self._invalidated = True
         self._session.clear()
 
@@ -199,12 +199,12 @@ class Session(collections.MutableMapping):
         cookie_httponly = self.app.config.get('SESSION_COOKIE_HTTPONLY')
         max_age = int(self.app.config.get('PERMANENT_SESSION_LIFETIME'))
         response.set_cookie(cookie_name,
-                            value = self.token,
-                            domain = cookie_domain,
-                            path = cookie_path,
-                            secure = cookie_secure,
-                            httponly = cookie_httponly,
-                            max_age = max_age
+                            value=self.token,
+                            domain=cookie_domain,
+                            path=cookie_path,
+                            secure=cookie_secure,
+                            httponly=cookie_httponly,
+                            max_age=max_age
                             )
 
 
