@@ -131,7 +131,7 @@ def logout():
     """
     eppn = session.get('user_eppn')
 
-    if eppn == None:
+    if eppn is None:
         # session cookie has expired, no logout action needed
         location = current_app.config.get('SAML2_LOGOUT_REDIRECT_URL')
         return redirect(location)
@@ -174,7 +174,7 @@ def logout():
         headers_tuple = loresponse[1]['headers']
         location = headers_tuple[0][1]
         current_app.logger.info('Redirecting to {!r} to continue the logout process '
-                    'for user {!r}'.format(location, user))
+                                'for user {!r}'.format(location, user))
 
     state.sync()
     return redirect(location)
