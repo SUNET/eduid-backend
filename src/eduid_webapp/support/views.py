@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
-from flask import Blueprint, current_app, request, render_template, session, redirect
+from flask import Blueprint, current_app, request, render_template
 from eduid_common.api.decorators import require_support_personnel
 from eduid_userdb.exceptions import UserHasUnknownData
-from eduid_common.api.utils import urlappend
 
 support_views = Blueprint('support', __name__, url_prefix='', template_folder='templates')
 
