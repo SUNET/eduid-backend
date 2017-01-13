@@ -27,7 +27,8 @@ def index(support_user):
             if len(lookup_users) == 0:
                 current_app.logger.warn('Support personnel: {!r} searched for {!r} without any match found'
                                         .format(support_user, search_query))
-                return render_template('index.html', error="No users matched the search query")
+                return render_template('index.html', support_user=support_user,
+                                       error="No users matched the search query")
 
         current_app.logger.info('Support personnel: {!r} searched for {!r}'.format(support_user, search_query))
         for user in lookup_users:
