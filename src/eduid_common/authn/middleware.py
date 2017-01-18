@@ -37,6 +37,7 @@ from werkzeug import get_current_url
 from werkzeug.http import parse_cookie, dump_cookie
 from flask import Flask, session
 from eduid_common.api.session import NoSessionDataFoundException
+from eduid_common.api.utils import urlappend
 
 
 class AuthnApp(Flask):
@@ -53,18 +54,16 @@ class AuthnApp(Flask):
             if m is not None:
                 return super(AuthnApp, self).__call__(environ, start_response)
 
-        cookie = parse_cookie(environ)
-        cookie_name = self.config.get('SESSION_COOKIE_NAME')
-        if cookie and cookie_name in cookie:
+        with self.request_context(environ):
             try:
-                return super(AuthnApp, self).__call__(environ, start_response)
+                if session.get('user_eppn'):
+                    return super(AuthnApp, self).__call__(environ, start_response)
             except NoSessionDataFoundException:
                 del environ['HTTP_COOKIE']  # Force relogin
                 # If HTTP_COOKIE is not removed self.request_context(environ) below
                 # will try to look up the Session data in the backend
 
-        ts_url = self.config.get('TOKEN_SERVICE_URL')
-        ts_url = urlparse.urljoin(ts_url, 'login')
+        ts_url = urlappend(self.config.get('TOKEN_SERVICE_URL'), 'login')
 
         params = {'next': next_url}
 
@@ -76,7 +75,7 @@ class AuthnApp(Flask):
         location = urlparse.urlunparse(url_parts)
 
         with self.request_context(environ):
-
+            cookie_name = self.config.get('SESSION_COOKIE_NAME')
             headers = [ ('Location', location) ]
             cookie = dump_cookie(cookie_name, session._session.token,
                                  max_age=int(self.config.get('PERMANENT_SESSION_LIFETIME')),

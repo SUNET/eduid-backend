@@ -32,6 +32,8 @@
 
 import collections
 from time import time
+import os
+import binascii
 
 from flask.sessions import SessionInterface
 
@@ -181,7 +183,7 @@ class Session(collections.MutableMapping):
         Invalidate the session. Clear the data from redis,
         and set an empty session cookie.
         """
-        self.modified =True
+        self.modified = True
         self._invalidated = True
         self._session.clear()
 
@@ -199,13 +201,33 @@ class Session(collections.MutableMapping):
         cookie_httponly = self.app.config.get('SESSION_COOKIE_HTTPONLY')
         max_age = int(self.app.config.get('PERMANENT_SESSION_LIFETIME'))
         response.set_cookie(cookie_name,
-                            value = self.token,
-                            domain = cookie_domain,
-                            path = cookie_path,
-                            secure = cookie_secure,
-                            httponly = cookie_httponly,
-                            max_age = max_age
+                            value=self.token,
+                            domain=cookie_domain,
+                            path=cookie_path,
+                            secure=cookie_secure,
+                            httponly=cookie_httponly,
+                            max_age=max_age
                             )
+
+    @manage('changed')
+    def new_csrf_token(self):
+        """
+        Copied from pyramid_session.py
+        """
+        token = binascii.hexlify(os.urandom(20))
+        self['_csrft_'] = token
+        self.persist()
+        return token
+
+    @manage('accessed')
+    def get_csrf_token(self):
+        """
+        Copied from pyramid_session.py
+        """
+        token = self.get('_csrft_', None)
+        if token is None:
+            token = self.new_csrf_token()
+        return token
 
 
 class SessionFactory(SessionInterface):

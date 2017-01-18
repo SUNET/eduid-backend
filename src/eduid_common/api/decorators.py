@@ -10,7 +10,6 @@ from eduid_userdb.exceptions import UserDoesNotExist, MultipleUsersReturned
 from eduid_common.api.utils import retrieve_modified_ts, get_dashboard_user
 from eduid_common.api.schemas.base import FluxStandardAction
 from eduid_common.api.schemas.models import FluxResponseStatus, FluxSuccessResponse, FluxFailResponse
-from eduid_common.api.exceptions import ApiException
 
 __author__ = 'lundberg'
 
@@ -25,8 +24,25 @@ def require_eppn(f):
         if eppn:
             kwargs['eppn'] = eppn
             return f(*args, **kwargs)
-        raise ApiException('Not authorized', status_code=401)
+        abort(401)
     return decorated_function
+
+
+def _get_user():
+    eppn = session.get('user_eppn', None)
+    if not eppn:
+        abort(401)
+    # Get user from central database
+    try:
+        return current_app.central_userdb.get_user_by_eppn(eppn, raise_on_missing=True)
+    except UserDoesNotExist as e:
+        current_app.logger.error('Could not find user central database.')
+        current_app.logger.error(e)
+        abort(401)
+    except MultipleUsersReturned as e:
+        current_app.logger.error('Found multiple users in central database.')
+        current_app.logger.error(e)
+        abort(401)
 
 
 def require_user(f):
@@ -51,16 +67,15 @@ def require_dashboard_user(f):
 def require_support_personnel(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        eppn = session.get('user_eppn', None)
-
+        user = _get_user()
         # If the logged in user is whitelisted then we
         # pass on the request to the decorated view
         # together with the eppn of the logged in user.
-        if eppn in current_app.config['SUPPORT_PERSONNEL']:
-            kwargs['logged_in_user'] = eppn
+        if user.eppn in current_app.config['SUPPORT_PERSONNEL']:
+            kwargs['support_user'] = user
             return f(*args, **kwargs)
         current_app.logger.warning('{!s} not in support personnel whitelist: {!s}'.format(
-            eppn, current_app.config['SUPPORT_PERSONNEL']))
+            user, current_app.config['SUPPORT_PERSONNEL']))
         # Anything else is considered as an unauthorized request
         abort(403)
     return decorated_function
