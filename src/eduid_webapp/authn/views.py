@@ -104,6 +104,7 @@ def assertion_consumer_service():
     try:
         session_info = get_authn_response(current_app.config, session, xmlstr)
     except UnsolicitedResponse:
+        current_app.logger.info('Caught UnsolicitedResponse - redirecting to login')
         login()
 
     current_app.logger.debug('Trying to locate the user authenticated by the IdP')
@@ -139,7 +140,7 @@ def logout():
     eppn = session.get('user_eppn')
 
     if eppn is None:
-        # session cookie has expired, no logout action needed
+        current_app.logger.info('Session cookie has expired, no logout action needed')
         location = current_app.config.get('SAML2_LOGOUT_REDIRECT_URL')
         return redirect(location)
 
