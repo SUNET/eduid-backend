@@ -47,8 +47,8 @@ class VerificationCodeSchema(EduidSchema):
 class EmailSchema(EduidSchema):
 
     email = fields.Email(required=True, validate=validate_email)
-    confirmed = fields.Boolean(default=False)
-    primary = fields.Boolean(default=False)
+    verified = fields.Boolean(attribute='verified')
+    primary = fields.Boolean(attribute='primary')
 
 
 class EmailListPayload(EduidSchema):
@@ -59,3 +59,8 @@ class EmailListPayload(EduidSchema):
 class EmailResponseSchema(FluxStandardAction):
 
     payload = fields.Nested(EmailListPayload, only=('emails',))
+
+
+class SimpleEmailSchema(EduidSchema):
+
+    email = fields.Email(required=True, validate=validate_email)
