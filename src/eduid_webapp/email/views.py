@@ -76,7 +76,7 @@ def post_email(user, email, verified, primary):
 
     send_verification_code(email, user)
 
-    emails = {'emails': user.mail_addresses.to_list()}
+    emails = {'emails': user.mail_addresses.to_list_of_dicts()}
     return EmailListPayload().dump(emails).data
 
 
@@ -109,7 +109,7 @@ def post_primary(user, email):
             '_status': 'error',
             'error': {'form': 'out_of_sync'}
         }
-    emails = {'emails': user.mail_addresses.to_list()}
+    emails = {'emails': user.mail_addresses.to_list_of_dicts()}
     return EmailListPayload().dump(emails).data
 
 
@@ -177,7 +177,7 @@ def verify(user, code, email):
             '_status': 'error',
             'error': {'form': 'out_of_sync'}
         }
-    emails = {'emails': user.mail_addresses.to_list()}
+    emails = {'emails': user.mail_addresses.to_list_of_dicts()}
 
     return EmailListPayload().dump(emails).data
 
@@ -209,7 +209,7 @@ def post_remove(user, email):
             'error': {'form': 'out_of_sync'}
         }
 
-    emails = {'emails': user.mail_addresses.to_list()}
+    emails = {'emails': user.mail_addresses.to_list_of_dicts()}
     return EmailListPayload().dump(emails).data
 
 
@@ -227,5 +227,5 @@ def resend_code(user, email):
     
     send_verification_code(email, user)
 
-    emails = {'emails': user.mail_addresses.to_list()}
+    emails = {'emails': user.mail_addresses.to_list_of_dicts()}
     return EmailListPayload().dump(emails).data
