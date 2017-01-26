@@ -34,53 +34,33 @@
 from flask import current_app, url_for, render_template
 
 from eduid_common.api.utils import get_unique_hash
-from eduid_userdb.proofing import EmailProofingElement, EmailProofingState
+from eduid_userdb.proofing import PhoneProofingElement, PhoneProofingState
 
 
-def new_verification_code(email, user):
+def new_verification_code(phone, user):
     code = get_unique_hash()
-    verification = EmailProofingElement(email=email,
+    verification = PhoneProofingElement(phone=phone,
                                         verification_code=code,
                                         application='dashboard')
     verification_data = {
         'eduPersonPrincipalName': user.eppn,
         'verification': verification.to_dict()
         }
-    verification_state = EmailProofingState(verification_data)
+    verification_state = PhoneProofingState(verification_data)
     # XXX This should be an atomic transaction together with saving
     # the user and sending the letter.
     current_app.verifications_db.save(verification_state)
     return code
 
 
-def send_verification_code(email, user):
-    code = new_verification_code(email, user)
-    link = url_for('email.verify', user=user, code=code)
-    site_name = current_app.config.get("site.name", "eduID")
-    site_url = current_app.config.get("site.url", "http://eduid.se")
 
-    context = {
-        "email": email,
-        "verification_link": link,
-        "site_url": site_url,
-        "site_name": site_name,
-        "code": code,
-    }
+def send_verification_code(user, phone, code=None):
+    if code is None:
+        code = new_verification_code(phone, user)
 
-    text = render_template(
-            "verification_email.txt.jinja2",
-            **context
-    )
-    html = render_template(
-            "verification_email.html.jinja2",
-            **context
-    )
+    verification = current_app.verifications_db.get_state_by_eppn_and_code(user.appn, code)
+    reference = str(verification.object_id)
 
-    sender = current_app.config.get('MAIL_DEFAULT_FROM')
-    # DEBUG
-    if current_app.config.get('DEBUG', False):
-        current_app.logger.debug(text)
-    else:
-        current_app.mail_relay.sendmail(sender, [email], text, html)
-    current_app.logger.debug("Sent verification mail to user {!r}"
-                             " with address {!s}.".format(user, email))
+    current_app.msg_relay.mobile_validator(reference, phone, code, user.language())
+    current_app.logger.debug("Sent verification sms to user {!r}"
+                             " with phone number {!s}.".format(user, phone))
