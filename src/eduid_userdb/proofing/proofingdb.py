@@ -39,6 +39,7 @@ from eduid_userdb.userdb import UserDB
 from eduid_userdb.exceptions import DocumentOutOfSync
 from eduid_userdb.proofing import LetterProofingState, OidcProofingState
 from eduid_userdb.proofing import EmailProofingState, ProofingUser
+from eduid_userdb.proofing import PhoneProofingState
 from eduid_userdb.exceptions import MultipleDocumentsReturned
 
 import logging
@@ -195,6 +196,46 @@ class EmailProofingStateDB(ProofingStateDB):
         """
         spec = {'eduPersonPrincipalName': eppn,
                 'verification': {'verification_code': code}}
+        verifications = self._get_documents_by_filter(spec,
+                raise_on_missing=raise_on_missing)
+
+        if verifications.count() > 1:
+            raise MultipleDocumentsReturned("Multiple matching"
+                    " documents for {!r}".format(spec))
+
+        return self.ProofingStateClass(verification[0])
+
+
+class PhoneProofingStateDB(EmailProofingStateDB):
+
+    ProofingStateClass = PhoneProofingState
+
+    def __init__(self, db_uri, db_name='eduid_phones'):
+        ProofingStateDB.__init__(self, db_uri, db_name)
+
+    def get_state_by_mail_and_code(self, mail, code, raise_on_missing=True):
+        """
+        Locate a state in the db given the verification code.
+
+        :param code: verification code
+        :param raise_on_missing: Raise exception if True else return None
+
+        :type code: str | unicode
+        :type raise_on_missing: bool
+
+        :return: ProofingStateClass instance | None
+        :rtype: ProofingStateClass | None
+
+        :raise self.DocumentDoesNotExist: No user match the search criteria
+        :raise self.MultipleDocumentsReturned: More than one user
+                                               matches the search criteria
+        """
+        spec = {'$or': [
+            {'mail': email},
+            {'mailAliases': {'$elemMatch': {'email': email}}}
+          ],
+          'verification': {'verification_code': code}}
+
         verifications = self._get_documents_by_filter(spec,
                 raise_on_missing=raise_on_missing)
 

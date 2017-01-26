@@ -36,7 +36,7 @@ import copy
 import datetime
 
 from .proofing_element import NinProofingElement, SentLetterElement
-from .proofing_element import EmailProofingElement
+from .proofing_element import EmailProofingElement, PhoneProofingElement
 from eduid_userdb.exceptions import UserHasUnknownData
 
 __author__ = 'lundberg'
@@ -182,6 +182,27 @@ class EmailProofingState(ProofingState):
 
     def to_dict(self):
         res = super(EmailProofingState, self).to_dict()
+        res['verification'] = self.verification.to_dict()
+        return res
+
+
+class PhoneProofingState(ProofingState):
+    def __init__(self, data, raise_on_unknown=True):
+        self._data_in = copy.deepcopy(data)  # to not modify callers data
+        _verif = PhoneProofingElement(data=self._data_in.pop('verification'))
+
+        ProofingState.__init__(self, self._data_in, raise_on_unknown)
+        self._data['verification'] = _verif
+
+    @property
+    def verification(self):
+        """
+        :rtype: PhoneProofingElement
+        """
+        return self._data['verification']
+
+    def to_dict(self):
+        res = super(PhoneProofingState, self).to_dict()
         res['verification'] = self.verification.to_dict()
         return res
 

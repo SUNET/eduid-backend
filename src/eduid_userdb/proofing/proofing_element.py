@@ -266,6 +266,62 @@ class EmailProofingElement(ProofingElement):
         return res
 
 
+class PhoneProofingElement(ProofingElement):
+    """
+    Element for holding the state of a phone number proofing flow.
+
+    Properties of PhoneProofingElement:
+
+        number
+        created_by
+        created_ts
+        is_verified
+        verified_by
+        verified_ts
+        verification_code
+
+    :param data: element parameters from database
+
+    :type data: dict
+    """
+    def __init__(self, phone=None, application=None, created_ts=None,
+                 verified=False, verification_code=None, data=None):
+
+        data = copy.copy(data)
+        if phone == None:
+            phone = data.pop('number')
+
+        super(PhoneProofingElement, self).__init__(application=application,
+                                                   created_ts=created_ts, verified=verified,
+                                                   verification_code=verification_code, data=data)
+        self.number = phone
+
+    @property
+    def number(self):
+        """
+        This is the phone number.
+
+        :return: phone number.
+        :rtype: str | unicode
+        """
+        return self._data['number']
+
+    @number.setter
+    def number(self, value):
+        """
+        :param value: number.
+        :type value: str | unicode
+        """
+        if not isinstance(value, basestring):
+            raise UserDBValueError("Invalid 'phone number': {!r}".format(value))
+        self._data['number'] = str(value.lower())
+
+    def to_dict(self):
+        res = super(ProofingElement, self).to_dict()
+        res['number'] = self.number
+        return res
+
+
 class SentLetterElement(Element):
     """
     Properties of SentLetterElement:
