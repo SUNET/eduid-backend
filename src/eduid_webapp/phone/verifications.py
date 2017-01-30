@@ -31,7 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from flask import current_app, url_for, render_template
+from flask import current_app
 
 from eduid_common.api.utils import get_unique_hash
 from eduid_userdb.proofing import PhoneProofingElement, PhoneProofingState
@@ -61,6 +61,6 @@ def send_verification_code(user, phone, code=None):
     verification = current_app.verifications_db.get_state_by_eppn_and_code(user.appn, code)
     reference = str(verification.object_id)
 
-    current_app.msg_relay.mobile_validator(reference, phone, code, user.language())
+    current_app.msg_relay.mobile_validator(reference, phone, code, user.language)
     current_app.logger.debug("Sent verification sms to user {!r}"
                              " with phone number {!s}.".format(user, phone))

@@ -33,7 +33,7 @@
 
 from marshmallow import fields
 from eduid_common.api.schemas.base import FluxStandardAction, EduidSchema
-from eduid_webapp.email.validators import validate_unique_phone
+from eduid_webapp.phone.validators import validate_unique_phone
 
 __author__ = 'eperez'
 

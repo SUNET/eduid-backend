@@ -37,7 +37,7 @@ from flask.ext.babel import Babel
 
 from eduid_common.api.app import eduid_init_app
 from eduid_common.api import am
-from eduid_common.api.msg import msg_relay
+from eduid_common.api import msg
 from eduid_userdb.dashboard import DashboardUserDB
 from eduid_userdb.proofing import PhoneProofingStateDB
 
@@ -76,7 +76,7 @@ def phone_init_app(name, config):
     app.register_blueprint(phone_views, url_prefix=app.config.get('APPLICATION_ROOT', None))
 
     app = am.init_relay(app, 'eduid_dashboard')
-    app = msg_relay.init_relay(app)
+    app = msg.init_relay(app)
 
     app.dashboard_userdb = DashboardUserDB(app.config['MONGO_URI'])
     app.verifications_db = PhoneProofingStateDB(app.config['MONGO_URI'])
