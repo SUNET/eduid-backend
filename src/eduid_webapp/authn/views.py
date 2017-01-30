@@ -33,7 +33,7 @@
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.ident import decode
 from saml2.client import Saml2Client
-from saml2.response import LogoutResponse
+from saml2.response import LogoutResponse, UnsolicitedResponse
 from saml2.metadata import entity_descriptor
 from werkzeug.exceptions import Forbidden
 from flask import request, session, redirect, abort, make_response
@@ -97,9 +97,17 @@ def assertion_consumer_service():
     if 'SAMLResponse' not in request.form:
         abort(400)
     xmlstr = request.form['SAMLResponse']
-    session_info = get_authn_response(current_app.config, session, xmlstr)
-    current_app.logger.debug('Trying to locate the user authenticated by the IdP')
 
+    # An UnsolicitedResponse is thrown when e.g. you're at the Idp and try to
+    # (re-)authenticate using a cookie pointing to session that has expired,
+    # or posting to the support-app using an expired session.
+    try:
+        session_info = get_authn_response(current_app.config, session, xmlstr)
+    except UnsolicitedResponse:
+        current_app.logger.info('Caught UnsolicitedResponse - redirecting to login')
+        login()
+
+    current_app.logger.debug('Trying to locate the user authenticated by the IdP')
     user = authenticate(current_app, session_info)
     if user is None:
         current_app.logger.error('Could not find the user identified by the IdP')
@@ -132,7 +140,7 @@ def logout():
     eppn = session.get('user_eppn')
 
     if eppn is None:
-        # session cookie has expired, no logout action needed
+        current_app.logger.info('Session cookie has expired, no logout action needed')
         location = current_app.config.get('SAML2_LOGOUT_REDIRECT_URL')
         return redirect(location)
 
