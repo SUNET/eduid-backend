@@ -35,7 +35,7 @@ from urllib import urlencode
 
 from werkzeug import get_current_url
 from werkzeug.http import parse_cookie, dump_cookie
-from flask import Flask, session
+from flask import Flask, session, current_app
 from eduid_common.api.session import NoSessionDataFoundException
 from eduid_common.api.utils import urlappend
 
@@ -59,6 +59,7 @@ class AuthnApp(Flask):
                 if session.get('user_eppn'):
                     return super(AuthnApp, self).__call__(environ, start_response)
             except NoSessionDataFoundException:
+                current_app.logger.info('Caught a NoSessionDataFoundException - forcing the user to authenticate')
                 del environ['HTTP_COOKIE']  # Force relogin
                 # If HTTP_COOKIE is not removed self.request_context(environ) below
                 # will try to look up the Session data in the backend
