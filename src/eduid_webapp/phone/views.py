@@ -33,7 +33,7 @@
 
 from __future__ import absolute_import
 
-from flask import Blueprint
+from flask import Blueprint, session, abort
 from flask import render_template, current_app
 
 from eduid_userdb.exceptions import UserOutOfSync
@@ -52,7 +52,9 @@ phone_views = Blueprint('phone', __name__, url_prefix='', template_folder='templ
 @MarshalWith(PhoneResponseSchema)
 @require_dashboard_user
 def get_all_phones(user):
-    phones = {'phones': user.phone_numbers.to_list_of_dicts()}
+    csrf_token = session.get_csrf_token()
+    phones = {'phones': user.phone_numbers.to_list_of_dicts()
+              'csrf_token': csrf_token}
     return PhoneListPayload().dump(phones).data
 
 
@@ -60,7 +62,9 @@ def get_all_phones(user):
 @UnmarshalWith(PhoneSchema)
 @MarshalWith(PhoneResponseSchema)
 @require_dashboard_user
-def post_phone(user, phone, confirmed, primary):
+def post_phone(user, phone, confirmed, primary, csrf_token):
+    if session.get_csrf_token() != csrf_token:
+        abort(400)
     new_phone = PhoneNumber(phone=phone, application='dashboard',
                            verified=False, primary=False)
     user.phone_numbers.add(new_phone)
@@ -82,8 +86,9 @@ def post_phone(user, phone, confirmed, primary):
 @UnmarshalWith(PhoneSchema)
 @MarshalWith(PhoneResponseSchema)
 @require_dashboard_user
-def post_primary(user, phone, confirmed, primary):
-
+def post_primary(user, phone, confirmed, primary, csrf_token):
+    if session.get_csrf_token() != csrf_token:
+        abort(400)
     try:
         phone_el = user.phone_numbers.find(phone)
     except IndexError:
@@ -114,9 +119,11 @@ def post_primary(user, phone, confirmed, primary):
 @UnmarshalWith(VerificationCodeSchema)
 @MarshalWith(PhoneResponseSchema)
 @require_dashboard_user
-def verify(user, code, phone):
+def verify(user, code, phone, csrf_token):
     """
     """
+    if session.get_csrf_token() != csrf_token:
+        abort(400)
     db = current_app.verifications_db
     state = db.get_state_by_eppn_and_code(user.eppn, code)
     verification = state.verification
@@ -181,7 +188,9 @@ def verify(user, code, phone):
 @UnmarshalWith(PhoneSchema)
 @MarshalWith(PhoneResponseSchema)
 @require_dashboard_user
-def post_remove(user, phone, confirmed, primary):
+def post_remove(user, phone, confirmed, primary, csrf_token):
+    if session.get_csrf_token() != csrf_token:
+        abort(400)
     phones = user.phone_numbers.to_list()
     if len(phones) == 1:
         return {
@@ -212,7 +221,9 @@ def post_remove(user, phone, confirmed, primary):
 @UnmarshalWith(PhoneSchema)
 @MarshalWith(PhoneResponseSchema)
 @require_dashboard_user
-def resend_code(user, phone):
+def resend_code(user, phone, csrf_token):
+    if session.get_csrf_token() != csrf_token:
+        abort(400)
     if not user.phone_numbers.find(phone):
         current_app.logger.warning('Unknown phone in resend_code_action, user {!s}'.format(user))
         return {

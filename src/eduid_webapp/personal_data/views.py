@@ -33,7 +33,7 @@
 
 from __future__ import absolute_import
 
-from flask import Blueprint
+from flask import Blueprint, session, abort
 
 from eduid_userdb.exceptions import UserOutOfSync
 from eduid_common.api.decorators import require_dashboard_user, MarshalWith, UnmarshalWith
@@ -47,7 +47,11 @@ pd_views = Blueprint('personal_data', __name__, url_prefix='')
 @MarshalWith(PersonalDataResponseSchema)
 @require_dashboard_user
 def get_user(user):
-    return PersonalDataSchema().dump(user).data
+    # TODO verify this lines if csrf != session.get('_csrft_', None):
+    csrf_token = session.get_csrf_token()
+    data = {'user': user,
+            'csrf_token': csrf_token}
+    return PersonalDataSchema().dump(data).data
 
 
 @pd_views.route('/user', methods=['POST'])
@@ -55,6 +59,8 @@ def get_user(user):
 @MarshalWith(PersonalDataResponseSchema)
 @require_dashboard_user
 def post_user(user, given_name, surname, display_name, language):
+    if session.get_csrf_token() != csrf_token:
+        abort(400)
     user.given_name = given_name
     user.surname = surname
     user.display_name = display_name

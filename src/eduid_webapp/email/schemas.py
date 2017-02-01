@@ -54,8 +54,9 @@ class EmailSchema(EduidSchema):
 class EmailListPayload(EduidSchema):
 
     emails = fields.Nested(EmailSchema, many=True)
+    csrf_token = fields.String(attribute='csrf_token')
 
 
 class EmailResponseSchema(FluxStandardAction):
 
-    payload = fields.Nested(EmailListPayload, only=('emails',))
+    payload = fields.Nested(EmailListPayload, only=('emails', 'csrf_token'))

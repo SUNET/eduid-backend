@@ -30,10 +30,9 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-
 from __future__ import absolute_import
 
-from flask import Blueprint
+from flask import Blueprint, session, abort
 from flask import render_template, current_app
 
 from eduid_userdb.exceptions import UserOutOfSync
@@ -51,7 +50,9 @@ email_views = Blueprint('email', __name__, url_prefix='', template_folder='templ
 @MarshalWith(EmailResponseSchema)
 @require_dashboard_user
 def get_all_emails(user):
-    emails = {'emails': user.mail_addresses.to_list()}
+    csrf_token = session.get_csrf_token()
+    emails = {'emails': user.mail_addresses.to_list(),
+              'csrf_token': csrf_token}
     return EmailListPayload().dump(emails).data
 
 
@@ -59,7 +60,9 @@ def get_all_emails(user):
 @UnmarshalWith(EmailSchema)
 @MarshalWith(EmailResponseSchema)
 @require_dashboard_user
-def post_email(user, email, confirmed, primary):
+def post_email(user, email, confirmed, primary, csrf_token):
+    if session.get_csrf_token() != csrf_token:
+        abort(400)
     new_mail = MailAddress(email=email, application='dashboard',
                            verified=False, primary=False)
     user.mail_addresses.add(new_mail)
@@ -81,8 +84,9 @@ def post_email(user, email, confirmed, primary):
 @UnmarshalWith(EmailSchema)
 @MarshalWith(EmailResponseSchema)
 @require_dashboard_user
-def post_primary(user, email, confirmed, primary):
-
+def post_primary(user, email, confirmed, primary, csrf_token):
+    if session.get_csrf_token() != csrf_token:
+        abort(400)
     try:
         mail = user.mail_addresses.find(email)
     except IndexError:
@@ -113,9 +117,11 @@ def post_primary(user, email, confirmed, primary):
 @UnmarshalWith(VerificationCodeSchema)
 @MarshalWith(EmailResponseSchema)
 @require_dashboard_user
-def verify(user, code, email):
+def verify(user, code, email, csrf_token):
     """
     """
+    if session.get_csrf_token() != csrf_token:
+        abort(400)
     db = current_app.verifications_db
     state = db.get_state_by_eppn_and_code(user.eppn, code)
     verification = state.verification
@@ -179,7 +185,9 @@ def verify(user, code, email):
 @UnmarshalWith(EmailSchema)
 @MarshalWith(EmailResponseSchema)
 @require_dashboard_user
-def post_remove(user, email, confirmed, primary):
+def post_remove(user, email, confirmed, primary, csrf_token):
+    if session.get_csrf_token() != csrf_token:
+        abort(400)
     emails = user.mail_addresses.to_list()
     if len(emails) == 1:
         return {
@@ -210,7 +218,9 @@ def post_remove(user, email, confirmed, primary):
 @UnmarshalWith(EmailSchema)
 @MarshalWith(EmailResponseSchema)
 @require_dashboard_user
-def resend_code(user, email):
+def resend_code(user, email, csrf_token):
+    if session.get_csrf_token() != csrf_token:
+        abort(400)
     if not user.mail_addresses.find(email):
         current_app.logger.warning('Unknown email in resend_code_action, user {!s}'.format(user))
         return {

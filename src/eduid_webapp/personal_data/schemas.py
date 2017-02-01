@@ -44,6 +44,7 @@ class PersonalDataSchema(EduidSchema):
     surname = fields.String(required=True)
     display_name = fields.String(required=True)
     language = fields.String(required=True, validate=validate_language)
+    csrf_token = fields.String(attribute='csrf_token')
 
 
 class PersonalDataResponseSchema(FluxStandardAction):

@@ -54,8 +54,9 @@ class PhoneSchema(EduidSchema):
 class PhoneListPayload(EduidSchema):
 
     phones = fields.Nested(PhoneSchema, many=True)
+    csrf_token = fields.String(attribute='csrf_token')
 
 
 class PhoneResponseSchema(FluxStandardAction):
 
-    payload = fields.Nested(PhoneListPayload, only=('phones',))
+    payload = fields.Nested(PhoneListPayload, only=('phones', 'csrf_token'))
