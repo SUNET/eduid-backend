@@ -27,7 +27,10 @@ class GenericFilterDict(dict):
         """
         _data = deepcopy(data)
         super(GenericFilterDict, self).__init__()
-        if self.add_keys:
+
+        if _data is None:
+            pass
+        elif self.add_keys:
             for key in self.add_keys:
                 try:
                     self[key] = _data[key]
