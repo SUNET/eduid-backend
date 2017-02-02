@@ -32,14 +32,23 @@
 #
 from __future__ import absolute_import
 
+<<<<<<< HEAD
 from flask import Blueprint, session, abort
+||||||| merged common ancestors
+from flask import Blueprint
+=======
+import datetime
+
+from flask import Blueprint
+>>>>>>> eperez-email-ms
 from flask import render_template, current_app
 
+from eduid_userdb.element import PrimaryElementViolation, DuplicateElementViolation
 from eduid_userdb.exceptions import UserOutOfSync
 from eduid_userdb.mail import MailAddress
 from eduid_common.api.decorators import require_dashboard_user, MarshalWith, UnmarshalWith
 from eduid_common.api.utils import save_dashboard_user
-from eduid_webapp.email.schemas import EmailListPayload, EmailSchema, EmailResponseSchema
+from eduid_webapp.email.schemas import EmailListPayload, EmailSchema, SimpleEmailSchema, EmailResponseSchema
 from eduid_webapp.email.schemas import VerificationCodeSchema
 from eduid_webapp.email.verifications import send_verification_code
 
@@ -53,6 +62,7 @@ def get_all_emails(user):
     csrf_token = session.get_csrf_token()
     emails = {'emails': user.mail_addresses.to_list(),
               'csrf_token': csrf_token}
+
     return EmailListPayload().dump(emails).data
 
 
@@ -63,6 +73,7 @@ def get_all_emails(user):
 def post_email(user, email, confirmed, primary, csrf_token):
     if session.get_csrf_token() != csrf_token:
         abort(400)
+
     new_mail = MailAddress(email=email, application='dashboard',
                            verified=False, primary=False)
     user.mail_addresses.add(new_mail)
@@ -76,17 +87,18 @@ def post_email(user, email, confirmed, primary, csrf_token):
 
     send_verification_code(email, user)
 
-    emails = {'emails': user.mail_addresses.to_list()}
+    emails = {'emails': user.mail_addresses.to_list_of_dicts()}
     return EmailListPayload().dump(emails).data
 
 
 @email_views.route('/primary', methods=['POST'])
-@UnmarshalWith(EmailSchema)
+@UnmarshalWith(SimpleEmailSchema)
 @MarshalWith(EmailResponseSchema)
 @require_dashboard_user
 def post_primary(user, email, confirmed, primary, csrf_token):
     if session.get_csrf_token() != csrf_token:
         abort(400)
+
     try:
         mail = user.mail_addresses.find(email)
     except IndexError:
@@ -109,7 +121,7 @@ def post_primary(user, email, confirmed, primary, csrf_token):
             '_status': 'error',
             'error': {'form': 'out_of_sync'}
         }
-    emails = {'emails': user.mail_addresses.to_list()}
+    emails = {'emails': user.mail_addresses.to_list_of_dicts()}
     return EmailListPayload().dump(emails).data
 
 
@@ -124,31 +136,32 @@ def verify(user, code, email, csrf_token):
         abort(400)
     db = current_app.verifications_db
     state = db.get_state_by_eppn_and_code(user.eppn, code)
-    verification = state.verification
+
     timeout = current_app.config.get('EMAIL_VERIFICATION_TIMEOUT', 24)
     if state.is_expired(timeout):
-        msg = "Verification code is expired: {!r}".format(verification)
+        msg = "Verification code is expired: {!r}".format(state.verification)
         current_app.logger.debug(msg)
         return {
             '_status': 'error',
             'error': {'form': 'emails.code_expired'}
         }
 
-    if email != verification.email:
-        msg = "Invalid verification code: {!r}".format(verification)
+    if email != state.verification.email:
+        msg = "Invalid verification code: {!r}".format(state.verification)
         current_app.logger.debug(msg)
         return {
             '_status': 'error',
             'error': {'form': 'emails.code_invalid'}
         }
 
-    verification.is_verified = True
-    verification.verified_ts = datetime.datetime.now()
-    verification.verified_by = user.eppn
-    state.verification = verification
+    state.verification.is_verified = True
+    state.verification.verified_ts = datetime.datetime.now()
+
+    state.verification.verified_by = user.eppn
+
     current_app.verifications_db.save(state)
 
-    other = current_app.emails_userdbb.get_user_by_mail(email)
+    other = current_app.dashboard_userdb.get_user_by_mail(email, include_unconfirmed=True)
     if other and other.mail_addresses.primary and \
             other.mail_addresses.primary.email == email:
         # Promote some other verified e-mail address to primary
@@ -161,6 +174,7 @@ def verify(user, code, email, csrf_token):
 
     new_email = MailAddress(email = email, application = 'dashboard',
                             verified = True, primary = False)
+
     if user.mail_addresses.primary is None:
         new_email.is_primary = True
     try:
@@ -168,7 +182,7 @@ def verify(user, code, email, csrf_token):
     except DuplicateElementViolation:
         user.mail_addresses.find(email).is_verified = True
         if user.mail_addresses.primary is None:
-            user.mail_addresses.find(email).is_primary = True
+            user.maild_addresses.find(email).is_primary = True
 
     try:
         save_dashboard_user(user, dbattr_name='dashboard_userdb')
@@ -177,17 +191,19 @@ def verify(user, code, email, csrf_token):
             '_status': 'error',
             'error': {'form': 'out_of_sync'}
         }
-    emails = {'emails': user.mail_addresses.to_list()}
+    emails = {'emails': user.mail_addresses.to_list_of_dicts()}
+
     return EmailListPayload().dump(emails).data
 
 
 @email_views.route('/remove', methods=['POST'])
-@UnmarshalWith(EmailSchema)
+@UnmarshalWith(SimpleEmailSchema)
 @MarshalWith(EmailResponseSchema)
 @require_dashboard_user
 def post_remove(user, email, confirmed, primary, csrf_token):
     if session.get_csrf_token() != csrf_token:
         abort(400)
+
     emails = user.mail_addresses.to_list()
     if len(emails) == 1:
         return {
@@ -210,7 +226,7 @@ def post_remove(user, email, confirmed, primary, csrf_token):
             'error': {'form': 'out_of_sync'}
         }
 
-    emails = {'emails': user.mail_addresses.to_list()}
+    emails = {'emails': user.mail_addresses.to_list_of_dicts()}
     return EmailListPayload().dump(emails).data
 
 
@@ -230,5 +246,5 @@ def resend_code(user, email, csrf_token):
     
     send_verification_code(email, user)
 
-    emails = {'emails': user.mail_addresses.to_list()}
+    emails = {'emails': user.mail_addresses.to_list_of_dicts()}
     return EmailListPayload().dump(emails).data
