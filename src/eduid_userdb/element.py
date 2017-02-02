@@ -162,7 +162,6 @@ class Element(object):
         res = copy.copy(self._data)  # avoid caller messing with our _data
         return res
 
-
 class VerifiedElement(Element):
     """
     Elements that can be verified or not.
@@ -208,7 +207,7 @@ class VerifiedElement(Element):
         :return: Information about who verified the element.
         :rtype: str | unicode
         """
-        return self._data.get('verified_by', '')
+        return self._data.get('verified_by', None)
 
     @verified_by.setter
     def verified_by(self, value):

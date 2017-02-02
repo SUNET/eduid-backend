@@ -194,8 +194,9 @@ class EmailProofingStateDB(ProofingStateDB):
         :raise self.MultipleDocumentsReturned: More than one user
                                                matches the search criteria
         """
+
         spec = {'eduPersonPrincipalName': eppn,
-                'verification': {'verification_code': code}}
+                'verification.verification_code': code}
         verifications = self._get_documents_by_filter(spec,
                 raise_on_missing=raise_on_missing)
 
@@ -203,7 +204,7 @@ class EmailProofingStateDB(ProofingStateDB):
             raise MultipleDocumentsReturned("Multiple matching"
                     " documents for {!r}".format(spec))
 
-        return self.ProofingStateClass(verification[0])
+        return self.ProofingStateClass(verifications[0])
 
 
 class PhoneProofingStateDB(EmailProofingStateDB):
