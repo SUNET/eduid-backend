@@ -60,7 +60,7 @@ class ProofingElement(VerifiedElement):
     :type data: dict
     """
     def __init__(self, application=None, created_ts=None,
-                 verified=False, verified_by='', verified_ts=None,
+                 verified=False, verified_by=None, verified_ts=None,
                  verification_code=None, data=None):
 
         data_in = copy.copy(data)  # to not modify callers data
@@ -77,81 +77,6 @@ class ProofingElement(VerifiedElement):
                            )
 
         VerifiedElement.__init__(self, data_in)
-
-    # -----------------------------------------------------------------
-    @property
-    def is_verified(self):
-        """
-        :return: True if this is a verified element.
-        :rtype: bool
-        """
-        return self._data['verified']
-
-    @is_verified.setter
-    def is_verified(self, value):
-        """
-        :param value: New verification status
-        :type value: bool
-        """
-        if not isinstance(value, bool):
-            raise UserDBValueError("Invalid 'is_verified': {!r}".format(value))
-        self._data['verified'] = value
-
-    # -----------------------------------------------------------------
-    @property
-    def verified_by(self):
-        """
-        :return: Information about who verified the element.
-        :rtype: str | unicode
-        """
-        return self._data.get('verified_by', '')
-
-    @verified_by.setter
-    def verified_by(self, value):
-        """
-        :param value: Information about who verified a element (None is no-op).
-        :type value: str | unicode | None
-        """
-        _update_something_by(self._data, 'verified_by', value)
-
-    # -----------------------------------------------------------------
-    @property
-    def verified_ts(self):
-        """
-        :return: Timestamp of element verification.
-        :rtype: datetime.datetime
-        """
-        return self._data.get('verified_ts')
-
-    @verified_ts.setter
-    def verified_ts(self, value):
-        """
-        :param value: Timestamp of element verification.
-                      Value None is ignored, True is short for datetime.utcnow().
-        :type value: datetime.datetime | True | None
-        """
-        _update_something_ts(self._data, 'verified_ts', value)
-
-    # -----------------------------------------------------------------
-    @property
-    def verification_code(self):
-        """
-        :return: Confirmation code used to verify this element.
-        :rtype: str | unicode
-        """
-        return self._data['verification_code']
-
-    @verification_code.setter
-    def verification_code(self, value):
-        """
-        :param value: New verification_code
-        :type value: str | unicode | None
-        """
-        if value is None:
-            return
-        if not isinstance(value, basestring):
-            raise UserDBValueError("Invalid 'verification_code': {!r}".format(value))
-        self._data['verification_code'] = value
 
 
 class NinProofingElement(ProofingElement):
@@ -205,7 +130,7 @@ class NinProofingElement(ProofingElement):
         self._data['number'] = str(value.lower())
 
     def to_dict(self):
-        res = super(ProofingElement, self).to_dict()
+        res = super(NinProofingElement, self).to_dict()
         res['number'] = self.number
         return res
 
