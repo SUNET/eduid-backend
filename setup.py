@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 
-version = '0.2.2b1'
+version = '0.2.2b2'
 
 requires = [
     'setuptools >= 2.2',
@@ -20,6 +20,7 @@ webapp_requires = [
     'PyYAML >= 3.11',
     'bleach>=1.4.2',
     'marshmallow>=2.10,<2.11',
+    'statsd==3.2.1',
 ]
 webapp_extras = webapp_requires + []
 
@@ -28,6 +29,7 @@ idp_requires = [
     'redis >= 2.10.5',
     'vccs_client >= 0.4.2',
     'PyNaCl >= 1.0.1',
+    'statsd==3.2.1',
 ]
 idp_extras = idp_requires + []
 
