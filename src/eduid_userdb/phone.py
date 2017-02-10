@@ -48,16 +48,30 @@ class PhoneNumber(PrimaryElement):
     :type data: dict
     :type raise_on_unknown: bool
     """
-    def __init__(self, data, raise_on_unknown = True):
+    def __init__(self, number=None, application=None, verified=False, created_ts=None,
+                 primary=False, verification_code=None, data=None, raise_on_unknown = True):
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
 
+        if data is None:
+            if created_ts is None:
+                created_ts = True
+            # TODO: Created_by = application
+            data = dict(number = number,
+                        created_by = application,
+                        created_ts = created_ts,
+                        verified = verified,
+                        primary = primary,
+                        verification_code = verification_code,
+                        )
         if 'added_timestamp' in data:
             # old userdb-style creation timestamp
             data['created_ts'] = data.pop('added_timestamp')
+
         if 'mobile' in data:
             # old userdb-style entry
             data['number'] = data.pop('mobile')
+
         # CSRF tokens were accidentally put in the database some time ago
         if 'csrf' in data:
             del data['csrf']
@@ -147,6 +161,7 @@ class PhoneNumberList(PrimaryElementList):
 
         :rtype: PhoneNumber
         """
+
         return PrimaryElementList.primary.fget(self)
 
     @primary.setter
@@ -175,4 +190,4 @@ def phone_from_dict(data, raise_on_unknown = True):
     :type raise_on_unknown: bool
     :rtype: PhoneNumber
     """
-    return PhoneNumber(data, raise_on_unknown)
+    return PhoneNumber(data=data, raise_on_unknown=raise_on_unknown)

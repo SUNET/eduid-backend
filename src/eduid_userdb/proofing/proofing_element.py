@@ -213,7 +213,7 @@ class PhoneProofingElement(ProofingElement):
                  verified=False, verification_code=None, data=None):
 
         data = copy.copy(data)
-        if phone == None:
+        if not phone:
             phone = data.pop('number')
 
         super(PhoneProofingElement, self).__init__(application=application,
