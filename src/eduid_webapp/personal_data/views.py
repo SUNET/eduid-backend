@@ -47,10 +47,14 @@ pd_views = Blueprint('personal_data', __name__, url_prefix='')
 @MarshalWith(PersonalDataResponseSchema)
 @require_dashboard_user
 def get_user(user):
-    # TODO verify this lines if csrf != session.get('_csrft_', None):
     csrf_token = session.get_csrf_token()
-    data = {'user': user,
+
+    data = {'given_name': user.given_name ,
+            'surname': user.surname,
+            'display_name': user.display_name,
+            'language': user.language,
             'csrf_token': csrf_token}
+
     return PersonalDataSchema().dump(data).data
 
 
@@ -58,9 +62,10 @@ def get_user(user):
 @UnmarshalWith(PersonalDataSchema)
 @MarshalWith(PersonalDataResponseSchema)
 @require_dashboard_user
-def post_user(user, given_name, surname, display_name, language):
+def post_user(user, given_name, surname, display_name, language, csrf_token):
     if session.get_csrf_token() != csrf_token:
         abort(400)
+
     user.given_name = given_name
     user.surname = surname
     user.display_name = display_name
