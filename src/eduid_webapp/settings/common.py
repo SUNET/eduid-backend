@@ -72,7 +72,7 @@ SESSION_COOKIE_PATH = '/'
 SESSION_COOKIE_HTTPONLY = False
 
 # controls if the cookie should be set with the secure flag. Defaults to False
-SESSION_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = False
 
 # the lifetime of a permanent session as datetime.timedelta object.
 # Starting with Flask 0.8 this can also be an integer representing seconds.
