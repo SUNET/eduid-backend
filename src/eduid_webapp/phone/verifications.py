@@ -38,7 +38,9 @@ from eduid_userdb.proofing import PhoneProofingElement, PhoneProofingState
 
 
 def new_verification_code(phone, user):
+
     code = get_unique_hash()
+
     verification = PhoneProofingElement(phone=phone,
                                         verification_code=code,
                                         application='dashboard')
@@ -53,14 +55,14 @@ def new_verification_code(phone, user):
     return code
 
 
-
 def send_verification_code(user, phone, code=None):
+
     if code is None:
         code = new_verification_code(phone, user)
 
-    verification = current_app.verifications_db.get_state_by_eppn_and_code(user.appn, code)
-    reference = str(verification.object_id)
+    verification = current_app.verifications_db.get_state_by_eppn_and_code(user.eppn, code)
+    reference = str(verification._data['_id'])
 
-    current_app.msg_relay.mobile_validator(reference, phone, code, user.language)
+    current_app.msg_relay.phone_validator(reference, phone, code, user.language)
     current_app.logger.debug("Sent verification sms to user {!r}"
                              " with phone number {!s}.".format(user, phone))
