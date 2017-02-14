@@ -83,17 +83,20 @@ class AppTests(EduidAPITestCase):
         mock_request_user_sync.return_value = True
         eppn = self.test_user_data['eduPersonPrincipalName']
         with self.session_cookie(self.browser, eppn) as client:
-            data = {
-                'given_name': 'Peter',
-                'surname': 'Johnson',
-                'display_name': 'Peter Johnson',
-                'language': 'en',
-                }
-            response = client.post('/user', data=json.dumps(data),
-                                   content_type=self.content_type_json)
-            resp_data = json.loads(response.data)
-            self.assertEqual(resp_data['type'], 'POST_PERSONAL_DATA_USER_SUCCESS')
-            self.assertEqual(resp_data['payload']['surname'], 'Johnson')
-            self.assertEqual(resp_data['payload']['given_name'], 'Peter')
-            self.assertEqual(resp_data['payload']['display_name'], 'Peter Johnson')
-            self.assertEqual(resp_data['payload']['language'], 'en')
+            with client.session_transaction() as sess:
+
+                data = {
+                    'given_name': 'Peter',
+                    'surname': 'Johnson',
+                    'display_name': 'Peter Johnson',
+                    'language': 'en',
+                    'csrf_token': sess.get_csrf_token()
+                    }
+                response = client.post('/user', data=json.dumps(data),
+                                       content_type=self.content_type_json)
+                resp_data = json.loads(response.data)
+                self.assertEqual(resp_data['type'], 'POST_PERSONAL_DATA_USER_SUCCESS')
+                self.assertEqual(resp_data['payload']['surname'], 'Johnson')
+                self.assertEqual(resp_data['payload']['given_name'], 'Peter')
+                self.assertEqual(resp_data['payload']['display_name'], 'Peter Johnson')
+                self.assertEqual(resp_data['payload']['language'], 'en')
