@@ -87,5 +87,5 @@ def send_verification_code(email, user):
         current_app.logger.debug(text)
     else:
         current_app.mail_relay.sendmail(sender, [email], text, html)
-    current_app.logger.debug("Sent verification mail to user {!r}"
-                             " with address {!s}.".format(user, email))
+    current_app.logger.info("Sent email address verification mail to user {!r}"
+                             " about address {!s}.".format(user, email))
