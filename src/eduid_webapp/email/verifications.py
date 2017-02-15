@@ -50,18 +50,12 @@ def new_verification_code(email, user):
     # XXX This should be an atomic transaction together with saving
     # the user and sending the letter.
     current_app.verifications_db.save(verification_state)
+
+    current_app.logger.info('Created new email verification code '
+                           'for user {!r} and email {!r}.'.format(user, email))
+    current_app.logger.debug('Verification Code: {!s}.'.format(code))
+
     return code
-
-
-
-    doc_id = request.db.verifications.insert(obj)
-    reference = unicode(doc_id)
-    session_verifications = request.session.get('verifications', [])
-    session_verifications.append(code)
-    request.session['verifications'] = session_verifications
-    log.info('Created new {!s} verification code for user {!r}.'.format(model_name, user))
-    log.debug('Verification object id {!s}. Code: {!s}.'.format(obj_id, code))
-    return reference, code
 
 
 def send_verification_code(email, user):
