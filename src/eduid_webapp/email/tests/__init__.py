@@ -30,37 +30,3 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-
-from marshmallow import fields
-from eduid_common.api.schemas.base import FluxStandardAction, EduidSchema
-from eduid_webapp.email.validators import validate_email
-
-__author__ = 'eperez'
-
-
-class VerificationCodeSchema(EduidSchema):
-
-    code = fields.String(required=True)
-    email = fields.Email(required=True, validate=validate_email)
-
-
-class EmailSchema(EduidSchema):
-
-    email = fields.Email(required=True, validate=validate_email)
-    verified = fields.Boolean(attribute='verified')
-    primary = fields.Boolean(attribute='primary')
-
-
-class EmailListPayload(EduidSchema):
-
-    emails = fields.Nested(EmailSchema, many=True)
-
-
-class EmailResponseSchema(FluxStandardAction):
-
-    payload = fields.Nested(EmailListPayload, only=('emails',))
-
-
-class SimpleEmailSchema(EduidSchema):
-
-    email = fields.Email(required=True, validate=validate_email)

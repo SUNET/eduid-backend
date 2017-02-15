@@ -33,14 +33,17 @@
 
 from __future__ import absolute_import
 
+import datetime
+
 from flask import Blueprint
 from flask import render_template, current_app
 
+from eduid_userdb.element import PrimaryElementViolation, DuplicateElementViolation
 from eduid_userdb.exceptions import UserOutOfSync
 from eduid_userdb.mail import MailAddress
 from eduid_common.api.decorators import require_dashboard_user, MarshalWith, UnmarshalWith
 from eduid_common.api.utils import save_dashboard_user
-from eduid_webapp.email.schemas import EmailListPayload, EmailSchema, EmailResponseSchema
+from eduid_webapp.email.schemas import EmailListPayload, EmailSchema, SimpleEmailSchema, EmailResponseSchema
 from eduid_webapp.email.schemas import VerificationCodeSchema
 from eduid_webapp.email.verifications import send_verification_code
 
@@ -51,7 +54,7 @@ email_views = Blueprint('email', __name__, url_prefix='', template_folder='templ
 @MarshalWith(EmailResponseSchema)
 @require_dashboard_user
 def get_all_emails(user):
-    emails = {'emails': user.mail_addresses.to_list()}
+    emails = {'emails': user.mail_addresses.to_list_of_dicts()}
     return EmailListPayload().dump(emails).data
 
 
@@ -59,7 +62,7 @@ def get_all_emails(user):
 @UnmarshalWith(EmailSchema)
 @MarshalWith(EmailResponseSchema)
 @require_dashboard_user
-def post_email(user, email, confirmed, primary):
+def post_email(user, email, verified, primary):
     new_mail = MailAddress(email=email, application='dashboard',
                            verified=False, primary=False)
     user.mail_addresses.add(new_mail)
@@ -73,16 +76,17 @@ def post_email(user, email, confirmed, primary):
 
     send_verification_code(email, user)
 
-    emails = {'emails': user.mail_addresses.to_list()}
+    emails = {'emails': user.mail_addresses.to_list_of_dicts()}
     return EmailListPayload().dump(emails).data
 
 
 @email_views.route('/primary', methods=['POST'])
-@UnmarshalWith(EmailSchema)
+@UnmarshalWith(SimpleEmailSchema)
 @MarshalWith(EmailResponseSchema)
 @require_dashboard_user
-def post_primary(user, email, confirmed, primary):
-
+def post_primary(user, email):
+    """
+    """
     try:
         mail = user.mail_addresses.find(email)
     except IndexError:
@@ -105,7 +109,7 @@ def post_primary(user, email, confirmed, primary):
             '_status': 'error',
             'error': {'form': 'out_of_sync'}
         }
-    emails = {'emails': user.mail_addresses.to_list()}
+    emails = {'emails': user.mail_addresses.to_list_of_dicts()}
     return EmailListPayload().dump(emails).data
 
 
@@ -118,31 +122,32 @@ def verify(user, code, email):
     """
     db = current_app.verifications_db
     state = db.get_state_by_eppn_and_code(user.eppn, code)
-    verification = state.verification
+
     timeout = current_app.config.get('EMAIL_VERIFICATION_TIMEOUT', 24)
     if state.is_expired(timeout):
-        msg = "Verification code is expired: {!r}".format(verification)
+        msg = "Verification code is expired: {!r}".format(state.verification)
         current_app.logger.debug(msg)
         return {
             '_status': 'error',
             'error': {'form': 'emails.code_expired'}
         }
 
-    if email != verification.email:
-        msg = "Invalid verification code: {!r}".format(verification)
+    if email != state.verification.email:
+        msg = "Invalid verification code: {!r}".format(state.verification)
         current_app.logger.debug(msg)
         return {
             '_status': 'error',
             'error': {'form': 'emails.code_invalid'}
         }
 
-    verification.is_verified = True
-    verification.verified_ts = datetime.datetime.now()
-    verification.verified_by = user.eppn
-    state.verification = verification
+    state.verification.is_verified = True
+    state.verification.verified_ts = datetime.datetime.now()
+
+    state.verification.verified_by = user.eppn
+
     current_app.verifications_db.save(state)
 
-    other = current_app.emails_userdbb.get_user_by_mail(email)
+    other = current_app.dashboard_userdb.get_user_by_mail(email, include_unconfirmed=True)
     if other and other.mail_addresses.primary and \
             other.mail_addresses.primary.email == email:
         # Promote some other verified e-mail address to primary
@@ -155,6 +160,7 @@ def verify(user, code, email):
 
     new_email = MailAddress(email = email, application = 'dashboard',
                             verified = True, primary = False)
+
     if user.mail_addresses.primary is None:
         new_email.is_primary = True
     try:
@@ -162,7 +168,7 @@ def verify(user, code, email):
     except DuplicateElementViolation:
         user.mail_addresses.find(email).is_verified = True
         if user.mail_addresses.primary is None:
-            user.mail_addresses.find(email).is_primary = True
+            user.maild_addresses.find(email).is_primary = True
 
     try:
         save_dashboard_user(user, dbattr_name='dashboard_userdb')
@@ -171,15 +177,16 @@ def verify(user, code, email):
             '_status': 'error',
             'error': {'form': 'out_of_sync'}
         }
-    emails = {'emails': user.mail_addresses.to_list()}
+    emails = {'emails': user.mail_addresses.to_list_of_dicts()}
+
     return EmailListPayload().dump(emails).data
 
 
 @email_views.route('/remove', methods=['POST'])
-@UnmarshalWith(EmailSchema)
+@UnmarshalWith(SimpleEmailSchema)
 @MarshalWith(EmailResponseSchema)
 @require_dashboard_user
-def post_remove(user, email, confirmed, primary):
+def post_remove(user, email):
     emails = user.mail_addresses.to_list()
     if len(emails) == 1:
         return {
@@ -202,7 +209,7 @@ def post_remove(user, email, confirmed, primary):
             'error': {'form': 'out_of_sync'}
         }
 
-    emails = {'emails': user.mail_addresses.to_list()}
+    emails = {'emails': user.mail_addresses.to_list_of_dicts()}
     return EmailListPayload().dump(emails).data
 
 
@@ -220,5 +227,5 @@ def resend_code(user, email):
     
     send_verification_code(email, user)
 
-    emails = {'emails': user.mail_addresses.to_list()}
+    emails = {'emails': user.mail_addresses.to_list_of_dicts()}
     return EmailListPayload().dump(emails).data
