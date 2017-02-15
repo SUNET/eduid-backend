@@ -63,16 +63,22 @@ def get_all_emails(user):
 @MarshalWith(EmailResponseSchema)
 @require_dashboard_user
 def post_email(user, email, verified, primary):
+    current_app.logger.debug('Trying to save unconfirmed email {!r} '
+                            'for user {!r}'.format(email, user))
     new_mail = MailAddress(email=email, application='dashboard',
                            verified=False, primary=False)
     user.mail_addresses.add(new_mail)
     try:
         save_dashboard_user(user, dbattr_name='dashboard_userdb')
     except UserOutOfSync:
+        current_app.logger.debug('Couldnt save email {!r} for user {!r}, '
+                            'data out of sync'.format(email, user))
         return {
             '_status': 'error',
             'error': {'form': 'out_of_sync'}
         }
+    current_app.logger.info('Saved unconfirmed email {!r} '
+                            'for user {!r}'.format(email, user))
 
     send_verification_code(email, user)
 
@@ -87,15 +93,21 @@ def post_email(user, email, verified, primary):
 def post_primary(user, email):
     """
     """
+    current_app.logger.debug('Trying to save email address {!r} as primary '
+                             'for user {!r}'.format(email, user))
     try:
         mail = user.mail_addresses.find(email)
     except IndexError:
+        current_app.logger.debug('Couldnt save email {!r} as primary for user'
+                                 ' {!r}, data out of sync'.format(email, user))
         return {
             '_status': 'error',
             'error': {'form': 'out_of_sync'}
         }
 
     if not mail.is_verified:
+        current_app.logger.debug('Couldnt save email {!r} as primary for user'
+                                ' {!r}, email unconfirmed'.format(email, user))
         return {
             '_status': 'error',
             'error': {'form': 'emails.unconfirmed_address_not_primary'}
@@ -105,10 +117,14 @@ def post_primary(user, email):
     try:
         save_dashboard_user(user, dbattr_name='dashboard_userdb')
     except UserOutOfSync:
+        current_app.logger.debug('Couldnt save email {!r} as primary for user'
+                                 ' {!r}, data out of sync'.format(email, user))
         return {
             '_status': 'error',
             'error': {'form': 'out_of_sync'}
         }
+    current_app.logger.info('Email address {!r} made primary '
+                            'for user {!r}'.format(email, user))
     emails = {'emails': user.mail_addresses.to_list_of_dicts()}
     return EmailListPayload().dump(emails).data
 
@@ -120,6 +136,8 @@ def post_primary(user, email):
 def verify(user, code, email):
     """
     """
+    current_app.logger.debug('Trying to save email address {!r} as verified '
+                             'for user {!r}'.format(email, user))
     db = current_app.verifications_db
     state = db.get_state_by_eppn_and_code(user.eppn, code)
 
@@ -146,8 +164,11 @@ def verify(user, code, email):
     state.verification.verified_by = user.eppn
 
     current_app.verifications_db.save(state)
+    msg = 'Saved verification code: {!r} '.format(state.verification)
+    current_app.logger.debug(msg)
 
-    other = current_app.dashboard_userdb.get_user_by_mail(email, include_unconfirmed=True)
+    other = current_app.dashboard_userdb.get_user_by_mail(email,
+                                                     include_unconfirmed=True)
     if other and other.mail_addresses.primary and \
             other.mail_addresses.primary.email == email:
         # Promote some other verified e-mail address to primary
@@ -157,6 +178,10 @@ def verify(user, code, email):
                 break
         other.mail_addresses.remove(email)
         save_dashboard_user(other, dbattr_name='dashboard_userdb')
+        msg = 'Stole email {!r} from user {!r} for user {!r}'.format(email,
+                                                                     user,
+                                                                     other)
+        current_app.logger.info(msg)
 
     new_email = MailAddress(email = email, application = 'dashboard',
                             verified = True, primary = False)
@@ -173,12 +198,16 @@ def verify(user, code, email):
     try:
         save_dashboard_user(user, dbattr_name='dashboard_userdb')
     except UserOutOfSync:
+        current_app.logger.debug('Couldnt confirm email {!r} for user'
+                                 ' {!r}, data out of sync'.format(email, user))
         return {
             '_status': 'error',
             'error': {'form': 'out_of_sync'}
         }
-    emails = {'emails': user.mail_addresses.to_list_of_dicts()}
+    current_app.logger.info('Email address {!r} confirmed '
+                            'for user {!r}'.format(email, user))
 
+    emails = {'emails': user.mail_addresses.to_list_of_dicts()}
     return EmailListPayload().dump(emails).data
 
 
@@ -187,8 +216,12 @@ def verify(user, code, email):
 @MarshalWith(EmailResponseSchema)
 @require_dashboard_user
 def post_remove(user, email):
+    current_app.logger.debug('Trying to remove email address {!r} '
+                             'from user {!r}'.format(email, user))
     emails = user.mail_addresses.to_list()
     if len(emails) == 1:
+        msg = "Cannot remove unique address: {!r}".format(email)
+        current_app.logger.debug(msg)
         return {
             '_status': 'error',
             'error': {'form': 'emails.cannot_remove_unique'}
@@ -204,10 +237,14 @@ def post_remove(user, email):
     try:
         save_dashboard_user(user, dbattr_name='dashboard_userdb')
     except UserOutOfSync:
+        current_app.logger.debug('Couldnt remove email {!r} for user'
+                                 ' {!r}, data out of sync'.format(email, user))
         return {
             '_status': 'error',
             'error': {'form': 'out_of_sync'}
         }
+    current_app.logger.info('Email address {!r} removed '
+                            'for user {!r}'.format(email, user))
 
     emails = {'emails': user.mail_addresses.to_list_of_dicts()}
     return EmailListPayload().dump(emails).data
@@ -218,8 +255,11 @@ def post_remove(user, email):
 @MarshalWith(EmailResponseSchema)
 @require_dashboard_user
 def resend_code(user, email):
+    current_app.logger.debug('Trying to send new verification code for email '
+                             'address {!r} for user {!r}'.format(email, user))
     if not user.mail_addresses.find(email):
-        current_app.logger.warning('Unknown email in resend_code_action, user {!s}'.format(user))
+        current_app.logger.debug('Unknown email {!r} in resend_code_action,'
+                                 ' user {!s}'.format(email, user))
         return {
             '_status': 'error',
             'error': {'form': 'out_of_sync'}
