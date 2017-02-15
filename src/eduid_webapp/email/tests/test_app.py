@@ -103,7 +103,7 @@ class EmailTests(EduidAPITestCase):
         self.assertEqual(response.status_code, 302)  # Redirect to token service
 
         mock_request_user_sync.return_value = True
-        mock_code_verification.return_value = u'1234'
+        mock_code_verification.return_value = u'123456'
         eppn = self.test_user_data['eduPersonPrincipalName']
 
         with self.session_cookie(self.browser, eppn) as client:
@@ -165,7 +165,7 @@ class EmailTests(EduidAPITestCase):
         with self.session_cookie(self.browser, eppn) as client:
             data = {
                 'email': 'johnsmith2@example.com',
-                'confirmed': True,
+                'verified': True,
                 'primary': True,
             }
 
@@ -265,7 +265,7 @@ class EmailTests(EduidAPITestCase):
     @patch('eduid_webapp.email.verifications.get_unique_hash')
     def test_verify(self, mock_code_verification, mock_request_user_sync):
         mock_request_user_sync.return_value = False
-        mock_code_verification.return_value = u'1234'
+        mock_code_verification.return_value = u'432123425'
 
         response = self.browser.post('/verify')
         self.assertEqual(response.status_code, 302)  # Redirect to token service
@@ -275,8 +275,8 @@ class EmailTests(EduidAPITestCase):
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction() as sess:
                 data = {
-                    'email': 'john-smith3@example.com',
-                    'confirmed': False,
+                    'email': u'john-smith3@example.com',
+                    'verified': False,
                     'primary': False,
                     'csrf_token': sess.get_csrf_token()
                 }
@@ -285,8 +285,8 @@ class EmailTests(EduidAPITestCase):
                             content_type=self.content_type_json)
 
                 data = {
-                    'email': 'john-smith3@example.com',
-                    'code': '1234',
+                    'email': u'john-smith3@example.com',
+                    'code': u'432123425',
                     'csrf_token': sess.get_csrf_token()
                 }
 
@@ -295,4 +295,6 @@ class EmailTests(EduidAPITestCase):
 
                 verify_email_data = json.loads(response2.data)
                 self.assertEqual(verify_email_data['type'], 'POST_EMAIL_VERIFY_SUCCESS')
-                self.assertEqual(verify_email_data['payload']['emails'][2]['email'], u'john-smith@example.com')
+                self.assertEqual(verify_email_data['payload']['emails'][2]['email'], u'john-smith3@example.com')
+                self.assertEqual(verify_email_data['payload']['emails'][2]['verified'], True)
+                self.assertEqual(verify_email_data['payload']['emails'][2]['primary'], False)
