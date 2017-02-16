@@ -42,6 +42,7 @@ class VerificationCodeSchema(EduidSchema):
 
     code = fields.String(required=True)
     email = fields.Email(required=True, validate=validate_email)
+    csrf_token = fields.String(attribute='csrf_token')
 
 
 class EmailSchema(EduidSchema):
@@ -49,18 +50,22 @@ class EmailSchema(EduidSchema):
     email = fields.Email(required=True, validate=validate_email)
     verified = fields.Boolean(attribute='verified')
     primary = fields.Boolean(attribute='primary')
+    csrf_token = fields.String(required=True)
 
 
 class EmailListPayload(EduidSchema):
 
     emails = fields.Nested(EmailSchema, many=True)
+    csrf_token = fields.String(required=True)
 
 
 class EmailResponseSchema(FluxStandardAction):
 
-    payload = fields.Nested(EmailListPayload, only=('emails',))
+    payload = fields.Nested(EmailListPayload, only=('emails', 'csrf_token'))
+    csrf_token = fields.String(attribute='csrf_token')
 
 
 class SimpleEmailSchema(EduidSchema):
 
-    email = fields.Email(required=True, validate=validate_email)
+    email = fields.Email(required=True)
+    csrf_token = fields.String(required=True)

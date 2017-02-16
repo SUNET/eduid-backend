@@ -35,7 +35,7 @@ from __future__ import absolute_import
 
 import datetime
 
-from flask import Blueprint
+from flask import Blueprint, session, abort
 from flask import render_template, current_app
 
 from eduid_userdb.element import PrimaryElementViolation, DuplicateElementViolation
@@ -54,7 +54,9 @@ email_views = Blueprint('email', __name__, url_prefix='', template_folder='templ
 @MarshalWith(EmailResponseSchema)
 @require_dashboard_user
 def get_all_emails(user):
-    emails = {'emails': user.mail_addresses.to_list_of_dicts()}
+    csrf_token = session.get_csrf_token()
+    emails = {'emails': user.mail_addresses.to_list_of_dicts(),
+              'csrf_token': csrf_token}
     return EmailListPayload().dump(emails).data
 
 
@@ -62,12 +64,21 @@ def get_all_emails(user):
 @UnmarshalWith(EmailSchema)
 @MarshalWith(EmailResponseSchema)
 @require_dashboard_user
-def post_email(user, email, verified, primary):
+def post_email(user, email, verified, primary, csrf_token):
+    if session.get_csrf_token() != csrf_token:
+        abort(400)
+
     current_app.logger.debug('Trying to save unconfirmed email {!r} '
                             'for user {!r}'.format(email, user))
     new_mail = MailAddress(email=email, application='dashboard',
                            verified=False, primary=False)
-    user.mail_addresses.add(new_mail)
+    try:
+        user.mail_addresses.add(new_mail)
+    except DuplicateElementViolation:
+        return {
+            '_status': 'error',
+            'error': {'form': 'mail_duplicated'}
+        }
     try:
         save_dashboard_user(user, dbattr_name='dashboard_userdb')
     except UserOutOfSync:
@@ -90,9 +101,11 @@ def post_email(user, email, verified, primary):
 @UnmarshalWith(SimpleEmailSchema)
 @MarshalWith(EmailResponseSchema)
 @require_dashboard_user
-def post_primary(user, email):
+def post_primary(user, email, csrf_token):
     """
     """
+    if session.get_csrf_token() != csrf_token:
+        abort(400)
     current_app.logger.debug('Trying to save email address {!r} as primary '
                              'for user {!r}'.format(email, user))
     try:
@@ -133,9 +146,11 @@ def post_primary(user, email):
 @UnmarshalWith(VerificationCodeSchema)
 @MarshalWith(EmailResponseSchema)
 @require_dashboard_user
-def verify(user, code, email):
+def verify(user, code, email, csrf_token):
     """
     """
+    if session.get_csrf_token() != csrf_token:
+        abort(400)
     current_app.logger.debug('Trying to save email address {!r} as verified '
                              'for user {!r}'.format(email, user))
     db = current_app.verifications_db
@@ -215,7 +230,9 @@ def verify(user, code, email):
 @UnmarshalWith(SimpleEmailSchema)
 @MarshalWith(EmailResponseSchema)
 @require_dashboard_user
-def post_remove(user, email):
+def post_remove(user, email, csrf_token):
+    if session.get_csrf_token() != csrf_token:
+        abort(400)
     current_app.logger.debug('Trying to remove email address {!r} '
                              'from user {!r}'.format(email, user))
     emails = user.mail_addresses.to_list()
@@ -243,6 +260,11 @@ def post_remove(user, email):
             '_status': 'error',
             'error': {'form': 'out_of_sync'}
         }
+    except PrimaryElementViolation:
+        return {
+            '_status': 'error',
+            'error': {'form': 'emails.cannot_remove_primary'}
+        }
     current_app.logger.info('Email address {!r} removed '
                             'for user {!r}'.format(email, user))
 
@@ -254,7 +276,9 @@ def post_remove(user, email):
 @UnmarshalWith(EmailSchema)
 @MarshalWith(EmailResponseSchema)
 @require_dashboard_user
-def resend_code(user, email):
+def resend_code(user, email, csrf_token):
+    if session.get_csrf_token() != csrf_token:
+        abort(400)
     current_app.logger.debug('Trying to send new verification code for email '
                              'address {!r} for user {!r}'.format(email, user))
     if not user.mail_addresses.find(email):
