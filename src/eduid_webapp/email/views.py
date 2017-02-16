@@ -80,7 +80,7 @@ def post_email(user, email, verified, primary, csrf_token):
             'error': {'form': 'mail_duplicated'}
         }
     try:
-        save_dashboard_user(user, dbattr_name='dashboard_userdb')
+        save_dashboard_user(user)
     except UserOutOfSync:
         current_app.logger.debug('Couldnt save email {!r} for user {!r}, '
                             'data out of sync'.format(email, user))
@@ -128,7 +128,7 @@ def post_primary(user, email, csrf_token):
 
     user.mail_addresses.primary = mail.email
     try:
-        save_dashboard_user(user, dbattr_name='dashboard_userdb')
+        save_dashboard_user(user)
     except UserOutOfSync:
         current_app.logger.debug('Couldnt save email {!r} as primary for user'
                                  ' {!r}, data out of sync'.format(email, user))
@@ -192,7 +192,7 @@ def verify(user, code, email, csrf_token):
                 other.mail_addresses.primary = address.email
                 break
         other.mail_addresses.remove(email)
-        save_dashboard_user(other, dbattr_name='dashboard_userdb')
+        save_dashboard_user(other)
         msg = 'Stole email {!r} from user {!r} for user {!r}'.format(email,
                                                                      user,
                                                                      other)
@@ -211,7 +211,7 @@ def verify(user, code, email, csrf_token):
             user.maild_addresses.find(email).is_primary = True
 
     try:
-        save_dashboard_user(user, dbattr_name='dashboard_userdb')
+        save_dashboard_user(user)
     except UserOutOfSync:
         current_app.logger.debug('Couldnt confirm email {!r} for user'
                                  ' {!r}, data out of sync'.format(email, user))
@@ -252,7 +252,7 @@ def post_remove(user, email, csrf_token):
         user.mail_addresses.remove(email)
 
     try:
-        save_dashboard_user(user, dbattr_name='dashboard_userdb')
+        save_dashboard_user(user)
     except UserOutOfSync:
         current_app.logger.debug('Couldnt remove email {!r} for user'
                                  ' {!r}, data out of sync'.format(email, user))
