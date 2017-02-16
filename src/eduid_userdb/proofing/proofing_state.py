@@ -36,6 +36,7 @@ import copy
 import datetime
 
 from .proofing_element import NinProofingElement, SentLetterElement
+from .proofing_element import EmailProofingElement
 from eduid_userdb.exceptions import UserHasUnknownData
 
 __author__ = 'lundberg'
@@ -106,6 +107,22 @@ class ProofingState(object):
         res = copy.copy(self._data)  # avoid caller messing with our _data
         return res
 
+    def is_expired(self, timeout):
+        """
+        Check whether the verification code is expired.
+
+        :param timeout: the number of hours a verification code is valid
+        :type timeout: int
+
+        :rtype: bool
+        """
+        modified = self.modified_ts
+        delta = datetime.timedelta(hours=timeout)
+        expiry_date = modified + delta
+        expiry_date = expiry_date.replace(tzinfo=None)
+        now = datetime.datetime.now()
+        return expiry_date < now
+
 
 class NinProofingState(ProofingState):
     def __init__(self, data, raise_on_unknown=True):
@@ -149,7 +166,28 @@ class LetterProofingState(NinProofingState):
         return res
 
 
-class OidcProofingState(NinProofingState):
+class EmailProofingState(ProofingState):
+    def __init__(self, data, raise_on_unknown=True):
+        self._data_in = copy.deepcopy(data)  # to not modify callers data
+        _verif = EmailProofingElement(data=self._data_in.pop('verification'))
+
+        ProofingState.__init__(self, self._data_in, raise_on_unknown)
+        self._data['verification'] = _verif
+
+    @property
+    def verification(self):
+        """
+        :rtype: EmailProofingElement
+        """
+        return self._data['verification']
+
+    def to_dict(self):
+        res = super(EmailProofingState, self).to_dict()
+        res['verification'] = self.verification.to_dict()
+        return res
+
+
+class OidcProofingState(ProofingState):
     def __init__(self, data, raise_on_unknown=True):
         self._data_in = copy.deepcopy(data)  # to not modify callers data
         # Remove from _data_in before init super class

@@ -33,17 +33,55 @@
 
 import copy
 
-from eduid_userdb.element import Element, VerifiedElement, _update_something_by, _update_something_ts
+from eduid_userdb.element import VerifiedElement, Element
+from eduid_userdb.element import _update_something_by, _update_something_ts
 from eduid_userdb.exceptions import UserDBValueError
 
 
 __author__ = 'lundberg'
 
 
-class NinProofingElement(VerifiedElement):
+class ProofingElement(VerifiedElement):
     """
-    Element for holding the state of a NIN proofing flow. It should contain meta data needed for logging
+    Element for holding the state of a proofing flow. It should contain meta data needed for logging
     a proofing according to the Kantara specification.
+
+    Properties of ProofingElement:
+
+        created_by
+        created_ts
+        is_verified
+        verified_by
+        verified_ts
+        verification_code
+
+    :param data: element parameters from database
+
+    :type data: dict
+    """
+    def __init__(self, application=None, created_ts=None,
+                 verified=False, verified_by=None, verified_ts=None,
+                 verification_code=None, data=None):
+
+        data_in = copy.copy(data)  # to not modify callers data
+
+        if data_in is None:
+            if created_ts is None:
+                created_ts = True
+            data_in = dict(created_by=application,
+                           created_ts=created_ts,
+                           verified=verified,
+                           verified_by=verified_by,
+                           verified_ts=verified_ts,
+                           verification_code=verification_code,
+                           )
+
+        VerifiedElement.__init__(self, data_in)
+
+
+class NinProofingElement(ProofingElement):
+    """
+    Element for holding the state of a nin proofing flow.
 
     Properties of NinProofingElement:
 
@@ -59,24 +97,17 @@ class NinProofingElement(VerifiedElement):
 
     :type data: dict
     """
-    def __init__(self, number=None, application=None, created_ts=None, verified=False, verification_code=None,
-                 data=None):
+    def __init__(self, number=None, application=None, created_ts=None,
+                 verified=False, verification_code=None, data=None):
 
-        data_in = data
-        data = copy.copy(data_in)  # to not modify callers data
+        data = copy.copy(data)
+        if number == None:
+            number = data.pop('number')
 
-        if data is None:
-            if created_ts is None:
-                created_ts = True
-            data = dict(number=number,
-                        created_by=application,
-                        created_ts=created_ts,
-                        verified=verified,
-                        verification_code=verification_code,
-                        )
-
-        VerifiedElement.__init__(self, data)
-        self.number = data.pop('number')
+        super(NinProofingElement, self).__init__(application=application,
+                                                   created_ts=created_ts, verified=verified,
+                                                   verification_code=verification_code, data=data)
+        self.number = number
 
     @property
     def number(self):
@@ -104,15 +135,72 @@ class NinProofingElement(VerifiedElement):
         return res
 
 
-class SentLetterElement(Element):
+class EmailProofingElement(ProofingElement):
     """
-        Properties of SentLetterElement:
+    Element for holding the state of an email proofing flow.
 
-        is_sent
-        sent_ts
-        transaction_id
+    Properties of EmailProofingElement:
+
+        email
         created_by
         created_ts
+        is_verified
+        verified_by
+        verified_ts
+        verification_code
+
+    :param data: element parameters from database
+
+    :type data: dict
+    """
+    def __init__(self, email=None, application=None, created_ts=None,
+                 verified=False, verification_code=None, data=None):
+
+        data = copy.copy(data)
+        if email == None:
+            email = data.pop('email')
+
+        super(EmailProofingElement, self).__init__(application=application,
+                                                   created_ts=created_ts, verified=verified,
+                                                   verification_code=verification_code, data=data)
+        self.email = email
+
+    @property
+    def email(self):
+        """
+        This is the email.
+
+        :return: nin number.
+        :rtype: str | unicode
+        """
+        return self._data['email']
+
+    @email.setter
+    def email(self, value):
+        """
+        :param value: email.
+        :type value: str | unicode
+        """
+        if not isinstance(value, basestring):
+            raise UserDBValueError("Invalid 'email': {!r}".format(value))
+        self._data['email'] = str(value.lower())
+
+    def to_dict(self):
+        res = super(ProofingElement, self).to_dict()
+        res['email'] = self.email
+        return res
+
+
+class SentLetterElement(Element):
+    """
+    Properties of SentLetterElement:
+
+    address
+    is_sent
+    sent_ts
+    transaction_id
+    created_by
+    created_ts
     """
     def __init__(self, data):
         super(SentLetterElement, self).__init__(data)
