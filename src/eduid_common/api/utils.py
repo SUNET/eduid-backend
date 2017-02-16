@@ -77,7 +77,10 @@ def get_dashboard_user():
         raise ApiException('Not authorized', status_code=401)
     # Get user from central database
     try:
-        return current_app.central_userdb.get_user_by_eppn(eppn, raise_on_missing=True)
+        user = current_app.central_userdb.get_user_by_eppn(eppn, raise_on_missing=True)
+        dashboard_user = DashboardUser(data = user.to_dict())
+        retrieve_modified_ts(dashboard_user, current_app.dashboard_userdb)
+        return dashboard_user
     except UserDoesNotExist as e:
         current_app.logger.error('Could not find user central database.')
         current_app.logger.error(e)
@@ -88,7 +91,7 @@ def get_dashboard_user():
         raise ApiException('Not authorized', status_code=401)
 
 
-def save_dashboard_user(user, dbattr_name='dashboard_userdb'):
+def save_dashboard_user(user):
     """
     Save (new) user objects to the dashboard db in the new format,
     and propagate the changes to the central user db.
@@ -101,7 +104,7 @@ def save_dashboard_user(user, dbattr_name='dashboard_userdb'):
     if isinstance(user, User) and not isinstance(user, DashboardUser):
         # turn it into a DashboardUser before saving it in the dashboard private db
         user = DashboardUser(data = user.to_dict())
-    getattr(current_app, dbattr_name).save(user)
+    current_app.dashboard_userdb.save(user)
     return current_app.am_relay.request_user_sync(user)
 
 

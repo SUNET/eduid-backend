@@ -48,7 +48,7 @@ def _get_user():
 def require_user(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        user = get_dashboard_user()
+        user = _get_user()
         kwargs['user'] = user
         return f(*args, **kwargs)
     return decorated_function
@@ -58,7 +58,6 @@ def require_dashboard_user(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         user = get_dashboard_user()
-        retrieve_modified_ts(user, current_app.dashboard_userdb)
         kwargs['user'] = user
         return f(*args, **kwargs)
     return decorated_function
