@@ -53,7 +53,8 @@ def validate_phone(number):
 
 
 def validate_format_phone(number):
-    if not re.match(r"^\+\d{10,20}$|^07[0236]\d{7}$", number):
+
+    if not re.match(r"^\+\d{10,20}$|^07[0236]\d{7}$|\+\d{2}\s\d{8,18}$", number):
         raise ValidationError("phone.phone_format")
 
 
