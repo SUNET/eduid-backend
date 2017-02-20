@@ -142,6 +142,22 @@ def post_primary(user, email, csrf_token):
     return EmailListPayload().dump(emails).data
 
 
+def _steal_mail(email):
+    other = current_app.dashboard_userdb.get_user_by_mail(email,
+                                                     include_unconfirmed=True)
+    if other and other.mail_addresses.primary and \
+            other.mail_addresses.primary.email == email:
+        # Promote some other verified e-mail address to primary
+        for address in other.mail_addresses.to_list():
+            if address.is_verified and address.email != email:
+                other.mail_addresses.primary = address.email
+                break
+        other.mail_addresses.remove(email)
+        save_dashboard_user(other)
+        msg = 'Stole email {!r} from user {!r}'.format(email, other)
+        current_app.logger.info(msg)
+
+
 @email_views.route('/verify', methods=['POST'])
 @UnmarshalWith(VerificationCodeSchema)
 @MarshalWith(EmailResponseSchema)
@@ -154,18 +170,21 @@ def verify(user, code, email, csrf_token):
     current_app.logger.debug('Trying to save email address {!r} as verified '
                              'for user {!r}'.format(email, user))
     db = current_app.verifications_db
-    state = db.get_state_by_eppn_and_code(user.eppn, code)
+    state = db.get_state_by_eppn_and_email(user.eppn, email)
 
     timeout = current_app.config.get('EMAIL_VERIFICATION_TIMEOUT', 24)
     if state.is_expired(timeout):
-        msg = "Verification code is expired: {!r}".format(state.verification)
+        msg = "Verification code is expired: {!r}. Sending new code".format(
+                state.verification)
         current_app.logger.debug(msg)
+
+        send_verification_code(email, user)
         return {
             '_status': 'error',
-            'error': {'form': 'emails.code_expired'}
+            'error': {'form': 'emails.code_expired_send_new'}
         }
 
-    if email != state.verification.email:
+    if code != state.verification.verification_code:
         msg = "Invalid verification code: {!r}".format(state.verification)
         current_app.logger.debug(msg)
         return {
@@ -173,30 +192,11 @@ def verify(user, code, email, csrf_token):
             'error': {'form': 'emails.code_invalid'}
         }
 
-    state.verification.is_verified = True
-    state.verification.verified_ts = datetime.datetime.now()
-
-    state.verification.verified_by = user.eppn
-
-    current_app.verifications_db.save(state)
-    msg = 'Saved verification code: {!r} '.format(state.verification)
+    current_app.verifications_db.remove_state(state)
+    msg = 'Removed verification code: {!r} '.format(state.verification)
     current_app.logger.debug(msg)
 
-    other = current_app.dashboard_userdb.get_user_by_mail(email,
-                                                     include_unconfirmed=True)
-    if other and other.mail_addresses.primary and \
-            other.mail_addresses.primary.email == email:
-        # Promote some other verified e-mail address to primary
-        for address in other.mail_addresses.to_list():
-            if address.is_verified and address.email != email:
-                other.mail_addresses.primary = address.email
-                break
-        other.mail_addresses.remove(email)
-        save_dashboard_user(other)
-        msg = 'Stole email {!r} from user {!r} for user {!r}'.format(email,
-                                                                     user,
-                                                                     other)
-        current_app.logger.info(msg)
+    _steal_mail(email)
 
     new_email = MailAddress(email = email, application = 'dashboard',
                             verified = True, primary = False)
@@ -208,7 +208,7 @@ def verify(user, code, email, csrf_token):
     except DuplicateElementViolation:
         user.mail_addresses.find(email).is_verified = True
         if user.mail_addresses.primary is None:
-            user.maild_addresses.find(email).is_primary = True
+            user.mail_addresses.find(email).is_primary = True
 
     try:
         save_dashboard_user(user)
