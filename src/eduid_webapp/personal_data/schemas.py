@@ -51,4 +51,3 @@ class PersonalDataSchema(EduidSchema):
 class PersonalDataResponseSchema(FluxStandardAction):
 
     payload = PersonalDataSchema()
-

@@ -35,6 +35,8 @@ from __future__ import absolute_import
 from flask import Blueprint, session, abort
 import datetime
 
+from flask import Blueprint, session, abort
+
 from flask import render_template, current_app
 
 from eduid_userdb.element import PrimaryElementViolation, DuplicateElementViolation
@@ -68,8 +70,12 @@ def post_email(user, email, verified, primary, csrf_token):
     if session.get_csrf_token() != csrf_token:
         abort(400)
 
+    current_app.logger.debug('Trying to save unconfirmed email {!r} '
+                            'for user {!r}'.format(email, user))
+
     new_mail = MailAddress(email=email, application='dashboard',
                            verified=False, primary=False)
+
     try:
         user.mail_addresses.add(new_mail)
     except DuplicateElementViolation:
@@ -77,13 +83,18 @@ def post_email(user, email, verified, primary, csrf_token):
             '_status': 'error',
             'error': {'form': 'mail_duplicated'}
         }
+
     try:
-        save_dashboard_user(user, dbattr_name='dashboard_userdb')
+        save_dashboard_user(user)
     except UserOutOfSync:
+        current_app.logger.debug('Couldnt save email {!r} for user {!r}, '
+                            'data out of sync'.format(email, user))
         return {
             '_status': 'error',
             'error': {'form': 'out_of_sync'}
         }
+    current_app.logger.info('Saved unconfirmed email {!r} '
+                            'for user {!r}'.format(email, user))
 
     send_verification_code(email, user)
 
@@ -98,16 +109,22 @@ def post_email(user, email, verified, primary, csrf_token):
 def post_primary(user, email, csrf_token):
     if session.get_csrf_token() != csrf_token:
         abort(400)
+    current_app.logger.debug('Trying to save email address {!r} as primary '
+                             'for user {!r}'.format(email, user))
 
     try:
         mail = user.mail_addresses.find(email)
     except IndexError:
+        current_app.logger.debug('Couldnt save email {!r} as primary for user'
+                                 ' {!r}, data out of sync'.format(email, user))
         return {
             '_status': 'error',
             'error': {'form': 'out_of_sync'}
         }
 
     if not mail.is_verified:
+        current_app.logger.debug('Couldnt save email {!r} as primary for user'
+                                ' {!r}, email unconfirmed'.format(email, user))
         return {
             '_status': 'error',
             'error': {'form': 'emails.unconfirmed_address_not_primary'}
@@ -115,14 +132,34 @@ def post_primary(user, email, csrf_token):
 
     user.mail_addresses.primary = mail.email
     try:
-        save_dashboard_user(user, dbattr_name='dashboard_userdb')
+        save_dashboard_user(user)
     except UserOutOfSync:
+        current_app.logger.debug('Couldnt save email {!r} as primary for user'
+                                 ' {!r}, data out of sync'.format(email, user))
         return {
             '_status': 'error',
             'error': {'form': 'out_of_sync'}
         }
+    current_app.logger.info('Email address {!r} made primary '
+                            'for user {!r}'.format(email, user))
     emails = {'emails': user.mail_addresses.to_list_of_dicts()}
     return EmailListPayload().dump(emails).data
+
+
+def _steal_mail(email):
+    other = current_app.dashboard_userdb.get_user_by_mail(email,
+                                                     include_unconfirmed=True)
+    if other and other.mail_addresses.primary and \
+            other.mail_addresses.primary.email == email:
+        # Promote some other verified e-mail address to primary
+        for address in other.mail_addresses.to_list():
+            if address.is_verified and address.email != email:
+                other.mail_addresses.primary = address.email
+                break
+        other.mail_addresses.remove(email)
+        save_dashboard_user(other)
+        msg = 'Stole email {!r} from user {!r}'.format(email, other)
+        current_app.logger.info(msg)
 
 
 @email_views.route('/verify', methods=['POST'])
@@ -134,20 +171,25 @@ def verify(user, code, email, csrf_token):
     """
     if session.get_csrf_token() != csrf_token:
         abort(400)
+    current_app.logger.debug('Trying to save email address {!r} as verified '
+                             'for user {!r}'.format(email, user))
 
     db = current_app.verifications_db
-    state = db.get_state_by_eppn_and_code(user.eppn, code)
+    state = db.get_state_by_eppn_and_email(user.eppn, email)
 
     timeout = current_app.config.get('EMAIL_VERIFICATION_TIMEOUT', 24)
     if state.is_expired(timeout):
-        msg = "Verification code is expired: {!r}".format(state.verification)
+        msg = "Verification code is expired: {!r}. Sending new code".format(
+                state.verification)
         current_app.logger.debug(msg)
+
+        send_verification_code(email, user)
         return {
             '_status': 'error',
-            'error': {'form': 'emails.code_expired'}
+            'error': {'form': 'emails.code_expired_send_new'}
         }
 
-    if email != state.verification.email:
+    if code != state.verification.verification_code:
         msg = "Invalid verification code: {!r}".format(state.verification)
         current_app.logger.debug(msg)
         return {
@@ -155,23 +197,11 @@ def verify(user, code, email, csrf_token):
             'error': {'form': 'emails.code_invalid'}
         }
 
-    state.verification.is_verified = True
-    state.verification.verified_ts = datetime.datetime.now()
+    current_app.verifications_db.remove_state(state)
+    msg = 'Removed verification code: {!r} '.format(state.verification)
+    current_app.logger.debug(msg)
 
-    state.verification.verified_by = user.eppn
-
-    current_app.verifications_db.save(state)
-
-    other = current_app.dashboard_userdb.get_user_by_mail(email, include_unconfirmed=True)
-    if other and other.mail_addresses.primary and \
-            other.mail_addresses.primary.email == email:
-        # Promote some other verified e-mail address to primary
-        for address in other.mail_addresses.to_list():
-            if address.is_verified and address.email != email:
-                other.mail_addresses.primary = address.email
-                break
-        other.mail_addresses.remove(email)
-        save_dashboard_user(other, dbattr_name='dashboard_userdb')
+    _steal_mail(email)
 
     new_email = MailAddress(email = email, application = 'dashboard',
                             verified = True, primary = False)
@@ -183,17 +213,21 @@ def verify(user, code, email, csrf_token):
     except DuplicateElementViolation:
         user.mail_addresses.find(email).is_verified = True
         if user.mail_addresses.primary is None:
-            user.maild_addresses.find(email).is_primary = True
+            user.mail_addresses.find(email).is_primary = True
 
     try:
-        save_dashboard_user(user, dbattr_name='dashboard_userdb')
+        save_dashboard_user(user)
     except UserOutOfSync:
+        current_app.logger.debug('Couldnt confirm email {!r} for user'
+                                 ' {!r}, data out of sync'.format(email, user))
         return {
             '_status': 'error',
             'error': {'form': 'out_of_sync'}
         }
-    emails = {'emails': user.mail_addresses.to_list_of_dicts()}
+    current_app.logger.info('Email address {!r} confirmed '
+                            'for user {!r}'.format(email, user))
 
+    emails = {'emails': user.mail_addresses.to_list_of_dicts()}
     return EmailListPayload().dump(emails).data
 
 
@@ -204,9 +238,13 @@ def verify(user, code, email, csrf_token):
 def post_remove(user, email, csrf_token):
     if session.get_csrf_token() != csrf_token:
         abort(400)
+    current_app.logger.debug('Trying to remove email address {!r} '
+                             'from user {!r}'.format(email, user))
 
     emails = user.mail_addresses.to_list()
     if len(emails) == 1:
+        msg = "Cannot remove unique address: {!r}".format(email)
+        current_app.logger.debug(msg)
         return {
             '_status': 'error',
             'error': {'form': 'emails.cannot_remove_unique'}
@@ -220,17 +258,23 @@ def post_remove(user, email, csrf_token):
         user.mail_addresses.remove(email)
 
     try:
-        save_dashboard_user(user, dbattr_name='dashboard_userdb')
+        save_dashboard_user(user)
     except UserOutOfSync:
+        current_app.logger.debug('Couldnt remove email {!r} for user'
+                                 ' {!r}, data out of sync'.format(email, user))
         return {
             '_status': 'error',
             'error': {'form': 'out_of_sync'}
         }
+
     except PrimaryElementViolation:
         return {
             '_status': 'error',
             'error': {'form': 'emails.cannot_remove_primary'}
         }
+
+    current_app.logger.info('Email address {!r} removed '
+                            'for user {!r}'.format(email, user))
 
     emails = {'emails': user.mail_addresses.to_list_of_dicts()}
     return EmailListPayload().dump(emails).data
@@ -244,8 +288,12 @@ def resend_code(user, email, csrf_token):
     if session.get_csrf_token() != csrf_token:
         abort(400)
 
+    current_app.logger.debug('Trying to send new verification code for email '
+                             'address {!r} for user {!r}'.format(email, user))
+
     if not user.mail_addresses.find(email):
-        current_app.logger.warning('Unknown email in resend_code_action, user {!s}'.format(user))
+        current_app.logger.debug('Unknown email {!r} in resend_code_action,'
+                                 ' user {!s}'.format(email, user))
         return {
             '_status': 'error',
             'error': {'form': 'out_of_sync'}
