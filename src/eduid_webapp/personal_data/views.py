@@ -79,4 +79,6 @@ def post_user(user, given_name, surname, display_name, language, csrf_token):
             '_status': 'error',
             'message': 'user-out-of-sync'
         }
+    current_app.statsd(name='personal_data_saved', value=1)
+
     return PersonalDataSchema().dump(user).data
