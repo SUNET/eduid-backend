@@ -83,7 +83,7 @@ def post_phone(user, number, verified, primary, csrf_token):
         }
 
     try:
-        save_dashboard_user(user, dbattr_name='dashboard_userdb')
+        save_dashboard_user(user)
     except UserOutOfSync:
         current_app.logger.debug('Couldnt save mobile {!r} for user {!r}, '
                                  'data out of sync'.format(number, user))
@@ -94,10 +94,10 @@ def post_phone(user, number, verified, primary, csrf_token):
 
     current_app.logger.info('Saved unconfirmed mobile {!r} '
                             'for user {!r}'.format(number, user))
-    current_app.statsd(name='mobile_save_unconfirmed_mobile', value=1)
+    current_app.statsd.count(name='mobile_save_unconfirmed_mobile', value=1)
 
     send_verification_code(user, number)
-    current_app.statsd(name='mobile_send_verification_code', value=1)
+    current_app.statsd.count(name='mobile_send_verification_code', value=1)
 
     phones = {'phones': user.phone_numbers.to_list_of_dicts()}
     return PhoneListPayload().dump(phones).data
@@ -133,7 +133,7 @@ def post_primary(user, number, csrf_token):
 
     user.phone_numbers.primary = phone_el.number
     try:
-        save_dashboard_user(user, dbattr_name='dashboard_userdb')
+        save_dashboard_user(user)
     except UserOutOfSync:
         current_app.logger.debug('Couldnt save mobile {!r} as primary for user'
                                  ' {!r}, data out of sync'.format(number, user))
@@ -143,7 +143,7 @@ def post_primary(user, number, csrf_token):
         }
     current_app.logger.info('Mobile {!r} made primary '
                             'for user {!r}'.format(number, user))
-    current_app.statsd(name='mobile_set_primary', value=1)
+    current_app.statsd.count(name='mobile_set_primary', value=1)
 
     phones = {'phones': user.phone_numbers.to_list_of_dicts()}
     return PhoneListPayload().dump(phones).data
@@ -211,7 +211,7 @@ def verify(user, code, number, csrf_token):
             user.phone_numbers.find(number).is_primary = True
 
     try:
-        save_dashboard_user(user, dbattr_name='dashboard_userdb')
+        save_dashboard_user(user)
     except UserOutOfSync:
         current_app.logger.debug('Couldnt confirm mobile {!r} for user'
                                  ' {!r}, data out of sync'.format(number, user))
@@ -221,7 +221,7 @@ def verify(user, code, number, csrf_token):
         }
     current_app.logger.info('Mobile {!r} confirmed '
                             'for user {!r}'.format(number, user))
-    current_app.statsd(name='mobile_verify_success', value=1)
+    current_app.statsd.count(name='mobile_verify_success', value=1)
 
     phones = {'phones': user.phone_numbers.to_list_of_dicts()}
     return PhoneListPayload().dump(phones).data
@@ -255,7 +255,7 @@ def post_remove(user, number, csrf_token):
         user.phone_numbers.remove(number)
 
     try:
-        save_dashboard_user(user, dbattr_name='dashboard_userdb')
+        save_dashboard_user(user)
     except UserOutOfSync:
         current_app.logger.debug('Couldnt remove mobile {!r} for user'
                                  ' {!r}, data out of sync'.format(number, user))
@@ -266,7 +266,7 @@ def post_remove(user, number, csrf_token):
 
     current_app.logger.info('Mobile {!r} removed '
                             'for user {!r}'.format(number, user))
-    current_app.statsd(name='mobile_remove_success', value=1)
+    current_app.statsd.count(name='mobile_remove_success', value=1)
 
     phones = {'phones': user.phone_numbers.to_list_of_dicts()}
     return PhoneListPayload().dump(phones).data
@@ -293,7 +293,7 @@ def resend_code(user, number, csrf_token):
     send_verification_code(user, number)
     current_app.logger.debug('New verification code sended to '
                              'mobile {!r} for user {!r}'.format(number, user))
-    current_app.statsd(name='mobile_resend_code', value=1)
+    current_app.statsd.count(name='mobile_resend_code', value=1)
 
     phones = {'phones': user.phone_numbers.to_list_of_dicts()}
     return PhoneListPayload().dump(phones).data
