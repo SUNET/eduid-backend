@@ -94,8 +94,10 @@ def post_phone(user, number, verified, primary, csrf_token):
 
     current_app.logger.info('Saved unconfirmed mobile {!r} '
                             'for user {!r}'.format(number, user))
+    current_app.statsd(name='mobile_save_unconfirmed_mobile', value=1)
 
     send_verification_code(user, number)
+    current_app.statsd(name='mobile_send_verification_code', value=1)
 
     phones = {'phones': user.phone_numbers.to_list_of_dicts()}
     return PhoneListPayload().dump(phones).data
@@ -141,6 +143,8 @@ def post_primary(user, number, csrf_token):
         }
     current_app.logger.info('Mobile {!r} made primary '
                             'for user {!r}'.format(number, user))
+    current_app.statsd(name='mobile_set_primary', value=1)
+
     phones = {'phones': user.phone_numbers.to_list_of_dicts()}
     return PhoneListPayload().dump(phones).data
 
@@ -217,6 +221,8 @@ def verify(user, code, number, csrf_token):
         }
     current_app.logger.info('Mobile {!r} confirmed '
                             'for user {!r}'.format(number, user))
+    current_app.statsd(name='mobile_verify_success', value=1)
+
     phones = {'phones': user.phone_numbers.to_list_of_dicts()}
     return PhoneListPayload().dump(phones).data
 
@@ -260,6 +266,8 @@ def post_remove(user, number, csrf_token):
 
     current_app.logger.info('Mobile {!r} removed '
                             'for user {!r}'.format(number, user))
+    current_app.statsd(name='mobile_remove_success', value=1)
+
     phones = {'phones': user.phone_numbers.to_list_of_dicts()}
     return PhoneListPayload().dump(phones).data
 
@@ -283,6 +291,9 @@ def resend_code(user, number, csrf_token):
         }
 
     send_verification_code(user, number)
+    current_app.logger.debug('New verification code sended to '
+                             'mobile {!r} for user {!r}'.format(number, user))
+    current_app.statsd(name='mobile_resend_code', value=1)
 
     phones = {'phones': user.phone_numbers.to_list_of_dicts()}
     return PhoneListPayload().dump(phones).data
