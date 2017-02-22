@@ -33,48 +33,57 @@
 
 from __future__ import absolute_import
 
-from flask import Blueprint, session, abort
+from flask.ext.babel import Babel
 
-from eduid_userdb.exceptions import UserOutOfSync
-from eduid_common.api.decorators import require_dashboard_user, MarshalWith, UnmarshalWith
-from eduid_common.api.utils import save_dashboard_user
-from eduid_webapp.personal_data.schemas import PersonalDataSchema, PersonalDataResponseSchema
-
-pd_views = Blueprint('personal_data', __name__, url_prefix='')
-
-
-@pd_views.route('/user', methods=['GET'])
-@MarshalWith(PersonalDataResponseSchema)
-@require_dashboard_user
-def get_user(user):
-    csrf_token = session.get_csrf_token()
-
-    data = {'given_name': user.given_name ,
-            'surname': user.surname,
-            'display_name': user.display_name,
-            'language': user.language,
-            'csrf_token': csrf_token}
-
-    return PersonalDataSchema().dump(data).data
+from eduid_common.api.app import eduid_init_app
+from eduid_common.api import mail_relay
+from eduid_common.api import am
+from eduid_userdb.dashboard import DashboardUserDB
+from eduid_userdb.proofing import EmailProofingStateDB
 
 
-@pd_views.route('/user', methods=['POST'])
-@UnmarshalWith(PersonalDataSchema)
-@MarshalWith(PersonalDataResponseSchema)
-@require_dashboard_user
-def post_user(user, given_name, surname, display_name, language, csrf_token):
-    if session.get_csrf_token() != csrf_token:
-        abort(400)
+try:
+    from urlparse import urljoin
+except ImportError:  # Python3
+    from urllib.parse import urljoin
 
-    user.given_name = given_name
-    user.surname = surname
-    user.display_name = display_name
-    user.language = language
-    try:
-        save_dashboard_user(user)
-    except UserOutOfSync:
-        return {
-            '_status': 'error',
-            'message': 'user-out-of-sync'
-        }
-    return PersonalDataSchema().dump(user).data
+
+def email_init_app(name, config):
+    """
+    Create an instance of an eduid email app.
+
+    First, it will load the configuration from email.settings.common
+    then any settings given in the `config` param.
+
+    Then, the app instance will be updated with common stuff by `eduid_init_app`,
+    all needed blueprints will be registered with it,
+    and finally the app is configured with the necessary db connections.
+
+    :param name: The name of the instance, it will affect the configuration loaded.
+    :type name: str
+    :param config: any additional configuration settings. Specially useful
+                   in test cases
+    :type config: dict
+
+    :return: the flask app
+    :rtype: flask.Flask
+    """
+
+    app = eduid_init_app(name, config)
+    app.config.update(config)
+
+    from eduid_webapp.email.views import email_views
+    app.register_blueprint(email_views, url_prefix=app.config.get('APPLICATION_ROOT', None))
+
+    app = am.init_relay(app, 'eduid_dashboard')
+    app = mail_relay.init_relay(app)
+
+    app.dashboard_userdb = DashboardUserDB(app.config['MONGO_URI'])
+    app.verifications_db = EmailProofingStateDB(app.config['MONGO_URI'])
+
+    app.logger.info('Init {} app...'.format(name))
+
+    babel = Babel(app)
+    app.babel = babel
+
+    return app

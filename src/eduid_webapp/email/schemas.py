@@ -31,50 +31,41 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from __future__ import absolute_import
+from marshmallow import fields
+from eduid_common.api.schemas.base import FluxStandardAction, EduidSchema
+from eduid_webapp.email.validators import validate_email
 
-from flask import Blueprint, session, abort
-
-from eduid_userdb.exceptions import UserOutOfSync
-from eduid_common.api.decorators import require_dashboard_user, MarshalWith, UnmarshalWith
-from eduid_common.api.utils import save_dashboard_user
-from eduid_webapp.personal_data.schemas import PersonalDataSchema, PersonalDataResponseSchema
-
-pd_views = Blueprint('personal_data', __name__, url_prefix='')
+__author__ = 'eperez'
 
 
-@pd_views.route('/user', methods=['GET'])
-@MarshalWith(PersonalDataResponseSchema)
-@require_dashboard_user
-def get_user(user):
-    csrf_token = session.get_csrf_token()
+class VerificationCodeSchema(EduidSchema):
 
-    data = {'given_name': user.given_name ,
-            'surname': user.surname,
-            'display_name': user.display_name,
-            'language': user.language,
-            'csrf_token': csrf_token}
-
-    return PersonalDataSchema().dump(data).data
+    code = fields.String(required=True)
+    email = fields.Email(required=True, validate=validate_email)
+    csrf_token = fields.String(attribute='csrf_token')
 
 
-@pd_views.route('/user', methods=['POST'])
-@UnmarshalWith(PersonalDataSchema)
-@MarshalWith(PersonalDataResponseSchema)
-@require_dashboard_user
-def post_user(user, given_name, surname, display_name, language, csrf_token):
-    if session.get_csrf_token() != csrf_token:
-        abort(400)
+class EmailSchema(EduidSchema):
 
-    user.given_name = given_name
-    user.surname = surname
-    user.display_name = display_name
-    user.language = language
-    try:
-        save_dashboard_user(user)
-    except UserOutOfSync:
-        return {
-            '_status': 'error',
-            'message': 'user-out-of-sync'
-        }
-    return PersonalDataSchema().dump(user).data
+    email = fields.Email(required=True, validate=validate_email)
+    verified = fields.Boolean(attribute='verified')
+    primary = fields.Boolean(attribute='primary')
+    csrf_token = fields.String(required=True)
+
+
+class EmailListPayload(EduidSchema):
+
+    emails = fields.Nested(EmailSchema, many=True)
+    csrf_token = fields.String(required=True)
+
+
+class EmailResponseSchema(FluxStandardAction):
+
+    payload = fields.Nested(EmailListPayload, only=('emails', 'csrf_token'))
+    csrf_token = fields.String(attribute='csrf_token')
+
+
+class SimpleEmailSchema(EduidSchema):
+
+    email = fields.Email(required=True)
+    csrf_token = fields.String(required=True)

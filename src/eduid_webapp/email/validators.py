@@ -31,50 +31,19 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from __future__ import absolute_import
-
-from flask import Blueprint, session, abort
-
-from eduid_userdb.exceptions import UserOutOfSync
-from eduid_common.api.decorators import require_dashboard_user, MarshalWith, UnmarshalWith
-from eduid_common.api.utils import save_dashboard_user
-from eduid_webapp.personal_data.schemas import PersonalDataSchema, PersonalDataResponseSchema
-
-pd_views = Blueprint('personal_data', __name__, url_prefix='')
+from marshmallow import ValidationError
+from flask import request
+from eduid_common.api.utils import get_dashboard_user
 
 
-@pd_views.route('/user', methods=['GET'])
-@MarshalWith(PersonalDataResponseSchema)
-@require_dashboard_user
-def get_user(user):
-    csrf_token = session.get_csrf_token()
+def validate_email(email):
+    user = get_dashboard_user()
+    user_emails = [e.email for e in user.mail_addresses.to_list()]
 
-    data = {'given_name': user.given_name ,
-            'surname': user.surname,
-            'display_name': user.display_name,
-            'language': user.language,
-            'csrf_token': csrf_token}
+    if request.form.get('add', None) is not None:
+        if value in user_emails:
+            raise ValidationError("You already have this email address")
 
-    return PersonalDataSchema().dump(data).data
-
-
-@pd_views.route('/user', methods=['POST'])
-@UnmarshalWith(PersonalDataSchema)
-@MarshalWith(PersonalDataResponseSchema)
-@require_dashboard_user
-def post_user(user, given_name, surname, display_name, language, csrf_token):
-    if session.get_csrf_token() != csrf_token:
-        abort(400)
-
-    user.given_name = given_name
-    user.surname = surname
-    user.display_name = display_name
-    user.language = language
-    try:
-        save_dashboard_user(user)
-    except UserOutOfSync:
-        return {
-            '_status': 'error',
-            'message': 'user-out-of-sync'
-        }
-    return PersonalDataSchema().dump(user).data
+    elif set(['verify', 'setprimary', 'remove']).intersection(set(request.form)):
+        if value not in user_emails:
+            raise ValidationError("This email address is unavailable")

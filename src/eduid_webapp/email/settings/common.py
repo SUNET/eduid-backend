@@ -31,50 +31,25 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
+
 from __future__ import absolute_import
 
-from flask import Blueprint, session, abort
+"""
+For more built in configuration options see,
+http://flask.pocoo.org/docs/0.10/config/#builtin-configuration-values
+"""
 
-from eduid_userdb.exceptions import UserOutOfSync
-from eduid_common.api.decorators import require_dashboard_user, MarshalWith, UnmarshalWith
-from eduid_common.api.utils import save_dashboard_user
-from eduid_webapp.personal_data.schemas import PersonalDataSchema, PersonalDataResponseSchema
+DEBUG = False
 
-pd_views = Blueprint('personal_data', __name__, url_prefix='')
+# Database URIs
+MONGO_URI = ''
+REDIS_HOST = ''
+REDIS_PORT = 6379
+REDIS_DB = 0
 
+# Secret key
+SECRET_KEY = ''
 
-@pd_views.route('/user', methods=['GET'])
-@MarshalWith(PersonalDataResponseSchema)
-@require_dashboard_user
-def get_user(user):
-    csrf_token = session.get_csrf_token()
-
-    data = {'given_name': user.given_name ,
-            'surname': user.surname,
-            'display_name': user.display_name,
-            'language': user.language,
-            'csrf_token': csrf_token}
-
-    return PersonalDataSchema().dump(data).data
-
-
-@pd_views.route('/user', methods=['POST'])
-@UnmarshalWith(PersonalDataSchema)
-@MarshalWith(PersonalDataResponseSchema)
-@require_dashboard_user
-def post_user(user, given_name, surname, display_name, language, csrf_token):
-    if session.get_csrf_token() != csrf_token:
-        abort(400)
-
-    user.given_name = given_name
-    user.surname = surname
-    user.display_name = display_name
-    user.language = language
-    try:
-        save_dashboard_user(user)
-    except UserOutOfSync:
-        return {
-            '_status': 'error',
-            'message': 'user-out-of-sync'
-        }
-    return PersonalDataSchema().dump(user).data
+# Logging
+LOG_FILE = None
+LOG_LEVEL = 'INFO'
