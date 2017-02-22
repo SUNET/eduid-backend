@@ -20,6 +20,8 @@ webapp_requires = [
     'PyYAML >= 3.11',
     'bleach>=1.4.2',
     'marshmallow>=2.10,<2.11',
+    'Flask-Mail == 0.9.1',
+    'eduid_msg >= 0.10.2',
     'statsd==3.2.1',
 ]
 webapp_extras = webapp_requires + []

@@ -2,11 +2,12 @@
 
 from __future__ import absolute_import
 
+import warnings
 from functools import wraps
 from flask import session, abort, current_app, request, jsonify
 from marshmallow.exceptions import ValidationError
 from eduid_userdb.exceptions import UserDoesNotExist, MultipleUsersReturned
-from eduid_common.api.utils import retrieve_modified_ts
+from eduid_common.api.utils import retrieve_modified_ts, get_dashboard_user
 from eduid_common.api.schemas.base import FluxStandardAction
 from eduid_common.api.schemas.models import FluxResponseStatus, FluxSuccessResponse, FluxFailResponse
 
@@ -56,8 +57,7 @@ def require_user(f):
 def require_dashboard_user(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        user = _get_user()
-        retrieve_modified_ts(user, current_app.dashboard_userdb)
+        user = get_dashboard_user()
         kwargs['user'] = user
         return f(*args, **kwargs)
     return decorated_function
@@ -89,7 +89,14 @@ class MarshalWith(object):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             ret = f(*args, **kwargs)
-            response_status = ret.pop('_status', FluxResponseStatus.ok)
+            try:
+                response_status = ret.pop('_status', FluxResponseStatus.ok)
+            # ret may be a list:
+            except TypeError:
+                for item in ret:
+                    response_status = item.pop('_status', FluxResponseStatus.ok)
+                    if response_status != FluxResponseStatus.ok:
+                        break
 
             # Handle fail responses
             if response_status != FluxResponseStatus.ok:
@@ -122,3 +129,30 @@ class UnmarshalWith(object):
                 return jsonify(response_data.to_dict())
         return decorated_function
 
+
+class Deprecated(object):
+    """
+    Mark deprecated functions with this decorator.
+    
+    Attention! Use it as the closest one to the function you decorate.
+
+    :param message: The deprecation message
+    :type message: str | unicode
+    """
+
+    def __init__(self, message=None):
+        self.message = message
+
+    def __call__(self, func):
+        if self.message is None:
+            self.message = 'Deprecated function {!r} called'.format(func.__name__)
+
+        @wraps(func)
+        def new_func(*args, **kwargs):
+            warnings.warn(self.message, category=DeprecationWarning, stacklevel=2)
+            return func(*args, **kwargs)
+
+        # work around a bug in functools.wraps thats fixed in python 3.2
+        if getattr(new_func, '__wrapped__', None) is None:
+            new_func.__wrapped__ = func
+        return new_func

@@ -94,7 +94,11 @@ class EduidAPITestCase(unittest.TestCase):
         os.environ.update({'ETCD_PORT': str(self.etcd_instance.port)})
         self.app = self.load_app(config)
         self.browser = self.app.test_client()
-        self.app.central_userdb.save(User(data=NEW_USER_EXAMPLE), check_sync=False)
+        self.test_user_data = deepcopy(NEW_USER_EXAMPLE)
+        self.test_user = User(data=self.test_user_data)
+        with self.app.app_context():
+            self.app.central_userdb.save(self.test_user, check_sync=False)
+            self.init_data()
 
         # Helper constants
         self.content_type_json = 'application/json'
@@ -127,6 +131,13 @@ class EduidAPITestCase(unittest.TestCase):
         :rtype: dict
         """
         return config
+
+    def init_data(self):
+        """
+        Method that can be overriden by any subclass,
+        where it can add application specific data to the test dbs
+        """
+        pass
 
     @contextmanager
     def session_cookie(self, client, eppn, server_name='localhost'):
