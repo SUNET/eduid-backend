@@ -44,9 +44,11 @@ from eduid_common.api.session import SessionFactory
 from eduid_common.api.logging import init_logging
 from eduid_common.api.exceptions import init_exception_handlers, init_sentry
 from eduid_common.config.parsers.etcd import EtcdConfigParser
+from eduid_common.stats import NoOpStats, Statsd
 
 
 def eduid_init_app_no_db(name, config, app_class=AuthnApp):
+
     """
     Create and prepare the flask app for eduID APIs with all the attributes
     common to all  apps.
@@ -99,6 +101,13 @@ def eduid_init_app_no_db(name, config, app_class=AuthnApp):
     app = init_exception_handlers(app)
     app = init_sentry(app)
     app.session_interface = SessionFactory(app.config)
+
+    stats_hosts = app.config.get('STATS_HOSTS', False)
+    if not stats_hosts:
+        app.statsd = NoOpStats()
+    else:
+        #TODO port
+        app.statsd = Statsd(host=stats_hosts, port=22)
 
     return app
 
