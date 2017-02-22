@@ -216,7 +216,7 @@ def verify(user, code, number, csrf_token):
             'error': {'form': 'out_of_sync'}
         }
     current_app.logger.info('Mobile {!r} confirmed '
-                            'for user {!r}'.format(phone, user))
+                            'for user {!r}'.format(number, user))
     phones = {'phones': user.phone_numbers.to_list_of_dicts()}
     return PhoneListPayload().dump(phones).data
 
