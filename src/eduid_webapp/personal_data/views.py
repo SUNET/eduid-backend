@@ -33,7 +33,7 @@
 
 from __future__ import absolute_import
 
-from flask import Blueprint, session, abort
+from flask import abort, Blueprint, current_app, session
 
 from eduid_userdb.exceptions import UserOutOfSync
 from eduid_common.api.decorators import require_dashboard_user, MarshalWith, UnmarshalWith
@@ -65,6 +65,8 @@ def get_user(user):
 def post_user(user, given_name, surname, display_name, language, csrf_token):
     if session.get_csrf_token() != csrf_token:
         abort(400)
+
+    current_app.logger.debug('Trying to save new user {!r} {!r} '.format(given_name, surname))
 
     user.given_name = given_name
     user.surname = surname

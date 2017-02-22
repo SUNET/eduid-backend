@@ -71,7 +71,7 @@ def post_email(user, email, verified, primary, csrf_token):
         abort(400)
 
     current_app.logger.debug('Trying to save unconfirmed email {!r} '
-                            'for user {!r}'.format(email, user))
+                             'for user {!r}'.format(email, user))
 
     new_mail = MailAddress(email=email, application='dashboard',
                            verified=False, primary=False)

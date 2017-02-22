@@ -68,6 +68,9 @@ def post_phone(user, number, verified, primary, csrf_token):
     if session.get_csrf_token() != csrf_token:
         abort(400)
 
+    current_app.logger.debug('Trying to save unconfirmed mobile {!r} '
+                             'for user {!r}'.format(number, user))
+
     new_phone = PhoneNumber(number=number, application='dashboard',
                             verified=False, primary=False)
 
@@ -82,10 +85,15 @@ def post_phone(user, number, verified, primary, csrf_token):
     try:
         save_dashboard_user(user, dbattr_name='dashboard_userdb')
     except UserOutOfSync:
+        current_app.logger.debug('Couldnt save mobile {!r} for user {!r}, '
+                                 'data out of sync'.format(number, user))
         return {
             '_status': 'error',
             'error': {'form': 'out_of_sync'}
         }
+
+    current_app.logger.info('Saved unconfirmed mobile {!r} '
+                            'for user {!r}'.format(number, user))
 
     send_verification_code(user, number)
 
@@ -100,16 +108,22 @@ def post_phone(user, number, verified, primary, csrf_token):
 def post_primary(user, number, csrf_token):
     if session.get_csrf_token() != csrf_token:
         abort(400)
+    current_app.logger.debug('Trying to save mobile {!r} as primary '
+                             'for user {!r}'.format(number, user))
 
     try:
         phone_el = user.phone_numbers.find(number)
     except IndexError:
+        current_app.logger.debug('Couldnt save mobile {!r} as primary for user'
+                                 ' {!r}, data out of sync'.format(number, user))
         return {
             '_status': 'error',
             'error': {'form': 'out_of_sync'}
         }
 
     if not phone_el.is_verified:
+        current_app.logger.debug('Couldnt save mobile {!r} as primary for user'
+                                 ' {!r}, mobile unconfirmed'.format(number, user))
         return {
             '_status': 'error',
             'error': {'form': 'phones.unconfirmed_number_not_primary'}
@@ -119,10 +133,14 @@ def post_primary(user, number, csrf_token):
     try:
         save_dashboard_user(user, dbattr_name='dashboard_userdb')
     except UserOutOfSync:
+        current_app.logger.debug('Couldnt save mobile {!r} as primary for user'
+                                 ' {!r}, data out of sync'.format(number, user))
         return {
             '_status': 'error',
             'error': {'form': 'out_of_sync'}
         }
+    current_app.logger.info('Mobile {!r} made primary '
+                            'for user {!r}'.format(number, user))
     phones = {'phones': user.phone_numbers.to_list_of_dicts()}
     return PhoneListPayload().dump(phones).data
 
@@ -136,6 +154,8 @@ def verify(user, code, number, csrf_token):
     """
     if session.get_csrf_token() != csrf_token:
         abort(400)
+    current_app.logger.debug('Trying to save mobile {!r} as verified '
+                             'for user {!r}'.format(number, user))
 
     db = current_app.verifications_db
     state = db.get_state_by_eppn_and_code(user.eppn, code)
@@ -189,11 +209,14 @@ def verify(user, code, number, csrf_token):
     try:
         save_dashboard_user(user, dbattr_name='dashboard_userdb')
     except UserOutOfSync:
+        current_app.logger.debug('Couldnt confirm mobile {!r} for user'
+                                 ' {!r}, data out of sync'.format(number, user))
         return {
             '_status': 'error',
             'error': {'form': 'out_of_sync'}
         }
-
+    current_app.logger.info('Mobile {!r} confirmed '
+                            'for user {!r}'.format(phone, user))
     phones = {'phones': user.phone_numbers.to_list_of_dicts()}
     return PhoneListPayload().dump(phones).data
 
@@ -206,8 +229,13 @@ def post_remove(user, number, csrf_token):
     if session.get_csrf_token() != csrf_token:
         abort(400)
 
+    current_app.logger.debug('Trying to remove mobile {!r} '
+                             'from user {!r}'.format(number, user))
+
     phones = user.phone_numbers.to_list()
     if len(phones) == 1:
+        msg = "Cannot remove unique mobile: {!r}".format(number)
+        current_app.logger.debug(msg)
         return {
             '_status': 'error',
             'error': {'form': 'phones.cannot_remove_unique'}
@@ -223,11 +251,15 @@ def post_remove(user, number, csrf_token):
     try:
         save_dashboard_user(user, dbattr_name='dashboard_userdb')
     except UserOutOfSync:
+        current_app.logger.debug('Couldnt remove mobile {!r} for user'
+                                 ' {!r}, data out of sync'.format(number, user))
         return {
             '_status': 'error',
             'error': {'form': 'out_of_sync'}
         }
 
+    current_app.logger.info('Mobile {!r} removed '
+                            'for user {!r}'.format(number, user))
     phones = {'phones': user.phone_numbers.to_list_of_dicts()}
     return PhoneListPayload().dump(phones).data
 
@@ -239,6 +271,9 @@ def post_remove(user, number, csrf_token):
 def resend_code(user, number, csrf_token):
     if session.get_csrf_token() != csrf_token:
         abort(400)
+
+    current_app.logger.debug('Trying to send new verification code for mobile '
+                             ' {!r} for user {!r}'.format(number, user))
 
     if not user.phone_numbers.find(number):
         current_app.logger.warning('Unknown phone in resend_code_action, user {!s}'.format(user))
