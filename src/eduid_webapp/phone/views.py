@@ -127,6 +127,20 @@ def post_primary(user, number, csrf_token):
     return PhoneListPayload().dump(phones).data
 
 
+def _steal_phone(number):
+    other = current_app.dashboard_userdb.get_user_by_phone(number,
+            raise_on_missing=False)
+    if other and other.phone_numbers.primary and \
+            other.phone_numbers.primary.number == number:
+        # Promote some other verified phone number to primary
+        for phone_number in other.phone_numbers.to_list():
+            if phone_number.is_verified and phone_number.number != number:
+                other.phone_numbers.primary = phone_number.number
+                break
+        other.phone_numbers.remove(number)
+        save_dashboard_user(other)
+
+
 @phone_views.route('/verify', methods=['POST'])
 @UnmarshalWith(VerificationCodeSchema)
 @MarshalWith(PhoneResponseSchema)
@@ -157,22 +171,9 @@ def verify(user, code, number, csrf_token):
             'error': {'form': 'phones.code_invalid'}
         }
 
-    state.verification.is_verified = True
-    state.verification.verified_ts = datetime.datetime.now()
-    state.verification.verified_by = user.eppn
-    current_app.verifications_db.save(state)
+    current_app.verifications_db.remove_state(state)
 
-    other = current_app.dashboard_userdb.get_user_by_phone(number,
-            raise_on_missing=False)
-    if other and other.phone_numbers.primary and \
-            other.phone_numbers.primary.number == number:
-        # Promote some other verified phone number to primary
-        for phone_number in other.phone_numbers.to_list():
-            if phone_number.is_verified and phone_number.number != number:
-                other.phone_numbers.primary = phone_number.number
-                break
-        other.phone_numbers.remove(number)
-        save_dashboard_user(other, dbattr_name='dashboard_userdb')
+    _steal_phone(number)
 
     new_phone = PhoneNumber(number = number, application = 'dashboard',
                             verified = True, primary = False)
