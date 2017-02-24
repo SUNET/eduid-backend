@@ -94,6 +94,7 @@ def assertion_consumer_service():
     """
     Assertion consumer service, receives POSTs from SAML2 IdP's
     """
+
     if 'SAMLResponse' not in request.form:
         abort(400)
 
@@ -101,6 +102,7 @@ def assertion_consumer_service():
     session_info = get_authn_response(current_app.config, session, xmlstr)
     current_app.logger.debug('Trying to locate the user authenticated by the IdP')
     user = authenticate(current_app, session_info)
+
     if user is None:
         current_app.logger.error('Could not find the user identified by the IdP')
         raise Forbidden("Access not authorized")

@@ -33,14 +33,16 @@
 
 from __future__ import absolute_import
 
-from flask import Blueprint
+import datetime
+from flask import Blueprint, session, abort
 from flask import render_template, current_app
 
+from eduid_userdb.element import PrimaryElementViolation, DuplicateElementViolation
 from eduid_userdb.exceptions import UserOutOfSync
 from eduid_userdb.phone import PhoneNumber
 from eduid_common.api.decorators import require_dashboard_user, MarshalWith, UnmarshalWith
 from eduid_common.api.utils import save_dashboard_user
-from eduid_webapp.phone.schemas import PhoneListPayload, PhoneSchema, PhoneResponseSchema
+from eduid_webapp.phone.schemas import PhoneListPayload, SimplePhoneSchema, PhoneSchema, PhoneResponseSchema
 from eduid_webapp.phone.schemas import VerificationCodeSchema
 from eduid_webapp.phone.verifications import send_verification_code
 
@@ -52,7 +54,9 @@ phone_views = Blueprint('phone', __name__, url_prefix='', template_folder='templ
 @MarshalWith(PhoneResponseSchema)
 @require_dashboard_user
 def get_all_phones(user):
-    phones = {'phones': user.phone_numbers.to_list_of_dicts()}
+    csrf_token = session.get_csrf_token()
+    phones = {'phones': user.phone_numbers.to_list_of_dicts(),
+              'csrf_token': csrf_token}
     return PhoneListPayload().dump(phones).data
 
 
@@ -60,32 +64,45 @@ def get_all_phones(user):
 @UnmarshalWith(PhoneSchema)
 @MarshalWith(PhoneResponseSchema)
 @require_dashboard_user
-def post_phone(user, phone, confirmed, primary):
-    new_phone = PhoneNumber(phone=phone, application='dashboard',
-                           verified=False, primary=False)
-    user.phone_numbers.add(new_phone)
+def post_phone(user, number, verified, primary, csrf_token):
+    if session.get_csrf_token() != csrf_token:
+        abort(400)
+
+    new_phone = PhoneNumber(number=number, application='dashboard',
+                            verified=False, primary=False)
+
     try:
-        save_dashboard_user(user, dbattr_name='dashboard_userdb')
+        user.phone_numbers.add(new_phone)
+    except DuplicateElementViolation:
+        return {
+            '_status': 'error',
+            'error': {'form': 'phone_duplicated'}
+        }
+
+    try:
+        save_dashboard_user(user)
     except UserOutOfSync:
         return {
             '_status': 'error',
             'error': {'form': 'out_of_sync'}
         }
 
-    send_verification_code(phone, user)
+    send_verification_code(user, number)
 
     phones = {'phones': user.phone_numbers.to_list_of_dicts()}
     return PhoneListPayload().dump(phones).data
 
 
 @phone_views.route('/primary', methods=['POST'])
-@UnmarshalWith(PhoneSchema)
+@UnmarshalWith(SimplePhoneSchema)
 @MarshalWith(PhoneResponseSchema)
 @require_dashboard_user
-def post_primary(user, phone, confirmed, primary):
+def post_primary(user, number, csrf_token):
+    if session.get_csrf_token() != csrf_token:
+        abort(400)
 
     try:
-        phone_el = user.phone_numbers.find(phone)
+        phone_el = user.phone_numbers.find(number)
     except IndexError:
         return {
             '_status': 'error',
@@ -100,7 +117,7 @@ def post_primary(user, phone, confirmed, primary):
 
     user.phone_numbers.primary = phone_el.number
     try:
-        save_dashboard_user(user, dbattr_name='dashboard_userdb')
+        save_dashboard_user(user)
     except UserOutOfSync:
         return {
             '_status': 'error',
@@ -114,74 +131,81 @@ def post_primary(user, phone, confirmed, primary):
 @UnmarshalWith(VerificationCodeSchema)
 @MarshalWith(PhoneResponseSchema)
 @require_dashboard_user
-def verify(user, code, phone):
+def verify(user, code, number, csrf_token):
     """
     """
+    if session.get_csrf_token() != csrf_token:
+        abort(400)
+
     db = current_app.verifications_db
     state = db.get_state_by_eppn_and_code(user.eppn, code)
-    verification = state.verification
+
     timeout = current_app.config.get('PHONE_VERIFICATION_TIMEOUT', 24)
     if state.is_expired(timeout):
-        msg = "Verification code is expired: {!r}".format(verification)
+        msg = "Verification code is expired: {!r}".format(state.verification)
         current_app.logger.debug(msg)
         return {
             '_status': 'error',
             'error': {'form': 'phones.code_expired'}
         }
 
-    if phone != verification.phone:
-        msg = "Invalid verification code: {!r}".format(verification)
+    if number != state.verification.number:
+        msg = "Invalid verification code: {!r}".format(state.verification)
         current_app.logger.debug(msg)
         return {
             '_status': 'error',
             'error': {'form': 'phones.code_invalid'}
         }
 
-    verification.is_verified = True
-    verification.verified_ts = datetime.datetime.now()
-    verification.verified_by = user.eppn
-    state.verification = verification
+    state.verification.is_verified = True
+    state.verification.verified_ts = datetime.datetime.now()
+    state.verification.verified_by = user.eppn
     current_app.verifications_db.save(state)
 
-    other = current_app.dashboard_userdb.get_user_by_phone(phone,
+    other = current_app.dashboard_userdb.get_user_by_phone(number,
             raise_on_missing=False)
     if other and other.phone_numbers.primary and \
-            other.phone_numbers.primary.number == phone:
+            other.phone_numbers.primary.number == number:
         # Promote some other verified phone number to primary
         for phone_number in other.phone_numbers.to_list():
-            if phone_number.is_verified and phone_number.number != phone:
+            if phone_number.is_verified and phone_number.number != number:
                 other.phone_numbers.primary = phone_number.number
                 break
-        other.phone_numbers.remove(phone)
+        other.phone_numbers.remove(number)
         save_dashboard_user(other, dbattr_name='dashboard_userdb')
 
-    new_phone = PhoneNumber(phone = phone, application = 'dashboard',
+    new_phone = PhoneNumber(number = number, application = 'dashboard',
                             verified = True, primary = False)
+
     if user.phone_numbers.primary is None:
         new_phone.is_primary = True
     try:
         user.phone_numbers.add(new_phone)
     except DuplicateElementViolation:
-        user.phone_numbers.find(phone).is_verified = True
+        user.phone_numbers.find(number).is_verified = True
         if user.phone_numbers.primary is None:
-            user.phone_numbers.find(phone).is_primary = True
+            user.phone_numbers.find(number).is_primary = True
 
     try:
-        save_dashboard_user(user, dbattr_name='dashboard_userdb')
+        save_dashboard_user(user)
     except UserOutOfSync:
         return {
             '_status': 'error',
             'error': {'form': 'out_of_sync'}
         }
+
     phones = {'phones': user.phone_numbers.to_list_of_dicts()}
     return PhoneListPayload().dump(phones).data
 
 
 @phone_views.route('/remove', methods=['POST'])
-@UnmarshalWith(PhoneSchema)
+@UnmarshalWith(SimplePhoneSchema)
 @MarshalWith(PhoneResponseSchema)
 @require_dashboard_user
-def post_remove(user, phone, confirmed, primary):
+def post_remove(user, number, csrf_token):
+    if session.get_csrf_token() != csrf_token:
+        abort(400)
+
     phones = user.phone_numbers.to_list()
     if len(phones) == 1:
         return {
@@ -190,14 +214,14 @@ def post_remove(user, phone, confirmed, primary):
         }
 
     try:
-        user.phone_numbers.remove(phone)
+        user.phone_numbers.remove(number)
     except PrimaryElementViolation:
-        new_index = 1 if phones[0].number == phone else 0
+        new_index = 1 if phones[0].number == number else 0
         user.phone_numbers.primary = phones[new_index].number
-        user.phone_numbers.remove(phone)
+        user.phone_numbers.remove(number)
 
     try:
-        save_dashboard_user(user, dbattr_name='dashboard_userdb')
+        save_dashboard_user(user)
     except UserOutOfSync:
         return {
             '_status': 'error',
@@ -209,18 +233,21 @@ def post_remove(user, phone, confirmed, primary):
 
 
 @phone_views.route('/resend-code', methods=['POST'])
-@UnmarshalWith(PhoneSchema)
+@UnmarshalWith(SimplePhoneSchema)
 @MarshalWith(PhoneResponseSchema)
 @require_dashboard_user
-def resend_code(user, phone):
-    if not user.phone_numbers.find(phone):
+def resend_code(user, number, csrf_token):
+    if session.get_csrf_token() != csrf_token:
+        abort(400)
+
+    if not user.phone_numbers.find(number):
         current_app.logger.warning('Unknown phone in resend_code_action, user {!s}'.format(user))
         return {
             '_status': 'error',
             'error': {'form': 'out_of_sync'}
         }
-    
-    send_verification_code(phone, user)
+
+    send_verification_code(user, number)
 
     phones = {'phones': user.phone_numbers.to_list_of_dicts()}
     return PhoneListPayload().dump(phones).data

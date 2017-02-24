@@ -30,12 +30,13 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-
 from __future__ import absolute_import
 
+from flask import Blueprint, session, abort
 import datetime
 
 from flask import Blueprint, session, abort
+
 from flask import render_template, current_app
 
 from eduid_userdb.element import PrimaryElementViolation, DuplicateElementViolation
@@ -65,13 +66,16 @@ def get_all_emails(user):
 @MarshalWith(EmailResponseSchema)
 @require_dashboard_user
 def post_email(user, email, verified, primary, csrf_token):
+
     if session.get_csrf_token() != csrf_token:
         abort(400)
 
     current_app.logger.debug('Trying to save unconfirmed email {!r} '
                             'for user {!r}'.format(email, user))
+
     new_mail = MailAddress(email=email, application='dashboard',
                            verified=False, primary=False)
+
     try:
         user.mail_addresses.add(new_mail)
     except DuplicateElementViolation:
@@ -79,6 +83,7 @@ def post_email(user, email, verified, primary, csrf_token):
             '_status': 'error',
             'error': {'form': 'mail_duplicated'}
         }
+
     try:
         save_dashboard_user(user)
     except UserOutOfSync:
@@ -102,12 +107,11 @@ def post_email(user, email, verified, primary, csrf_token):
 @MarshalWith(EmailResponseSchema)
 @require_dashboard_user
 def post_primary(user, email, csrf_token):
-    """
-    """
     if session.get_csrf_token() != csrf_token:
         abort(400)
     current_app.logger.debug('Trying to save email address {!r} as primary '
                              'for user {!r}'.format(email, user))
+
     try:
         mail = user.mail_addresses.find(email)
     except IndexError:
@@ -169,6 +173,7 @@ def verify(user, code, email, csrf_token):
         abort(400)
     current_app.logger.debug('Trying to save email address {!r} as verified '
                              'for user {!r}'.format(email, user))
+
     db = current_app.verifications_db
     state = db.get_state_by_eppn_and_email(user.eppn, email)
 
@@ -235,6 +240,7 @@ def post_remove(user, email, csrf_token):
         abort(400)
     current_app.logger.debug('Trying to remove email address {!r} '
                              'from user {!r}'.format(email, user))
+
     emails = user.mail_addresses.to_list()
     if len(emails) == 1:
         msg = "Cannot remove unique address: {!r}".format(email)
@@ -260,11 +266,13 @@ def post_remove(user, email, csrf_token):
             '_status': 'error',
             'error': {'form': 'out_of_sync'}
         }
+
     except PrimaryElementViolation:
         return {
             '_status': 'error',
             'error': {'form': 'emails.cannot_remove_primary'}
         }
+
     current_app.logger.info('Email address {!r} removed '
                             'for user {!r}'.format(email, user))
 
@@ -279,8 +287,10 @@ def post_remove(user, email, csrf_token):
 def resend_code(user, email, csrf_token):
     if session.get_csrf_token() != csrf_token:
         abort(400)
+
     current_app.logger.debug('Trying to send new verification code for email '
                              'address {!r} for user {!r}'.format(email, user))
+
     if not user.mail_addresses.find(email):
         current_app.logger.debug('Unknown email {!r} in resend_code_action,'
                                  ' user {!s}'.format(email, user))

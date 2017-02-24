@@ -31,9 +31,31 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
+import re
+
 from marshmallow import ValidationError
+
 from flask import request
 from eduid_common.api.utils import get_dashboard_user
+
+
+def normalize_to_e_164(request, mobile):
+    if mobile.startswith(u'0'):
+        country_code = request.registry.settings.get('default_country_code')
+        return country_code + mobile.lstrip(u'0')
+    return mobile
+
+
+def validate_phone(number):
+
+    validate_format_phone(number)
+    validate_unique_phone(number)
+
+
+def validate_format_phone(number):
+
+    if not re.match(r"^\+\d{10,20}$|^07[0236]\d{7}$|\+\d{2}\s\d{8,18}$", number):
+        raise ValidationError("phone.phone_format")
 
 
 def validate_unique_phone(number):
@@ -41,5 +63,4 @@ def validate_unique_phone(number):
     phone = normalize_to_e_164(request, number)
 
     if user.phone_numbers.find(phone):
-        err = _("This phone phone was already registered")
-        raise colander.Invalid(node, get_localizer(request).translate(err))
+        raise ValidationError("phone.phone_duplicated")
