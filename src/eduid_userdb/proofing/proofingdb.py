@@ -242,6 +242,41 @@ class EmailProofingStateDB(ProofingStateDB):
             # and [].count() raises a TypeError
             return None
 
+    def get_state_by_eppn_and_mobile(self, eppn, number, raise_on_missing=True):
+        """
+        Locate a state in the db given the eppn of the user and the
+        mobile to be verified.
+
+        :param number: mobile to verify
+        :param raise_on_missing: Raise exception if True else return None
+
+        :type number: str | unicode
+        :type raise_on_missing: bool
+
+        :return: ProofingStateClass instance | None
+        :rtype: ProofingStateClass | None
+
+        :raise self.DocumentDoesNotExist: No user match the search criteria
+        :raise self.MultipleDocumentsReturned: More than one user
+                                               matches the search criteria
+        """
+        spec = {'eduPersonPrincipalName': eppn,
+                'verification.number': number}
+        verifications = self._get_documents_by_filter(spec,
+                raise_on_missing=raise_on_missing)
+        try:
+            if verifications.count() > 1:
+                raise MultipleDocumentsReturned("Multiple matching"
+                        " documents for {!r}".format(spec))
+
+            if verifications.count() == 1:
+                return self.ProofingStateClass(verifications[0])
+        except TypeError:
+            # no verifications, and do not raise on missing,
+            # produce an empty list;
+            # and [].count() raises a TypeError
+            return None
+
     def remove_state(self, state):
         """
         :param state: ProofingStateClass object
@@ -250,6 +285,15 @@ class EmailProofingStateDB(ProofingStateDB):
         """
         self.remove_document({'eduPersonPrincipalName': state.eppn,
                         'verification.email': state.verification.email})
+
+    def remove_state_phone(self, state):
+        """
+        :param state: ProofingStateClass object
+
+        :type state: ProofingStateClass
+        """
+        self.remove_document({'eduPersonPrincipalName': state.eppn,
+                              'verification.number': state.verification.number})
 
 
 class PhoneProofingStateDB(EmailProofingStateDB):

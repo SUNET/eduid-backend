@@ -146,10 +146,10 @@ NEW_USER_EXAMPLE = {
         'number': '+34 6096096096',
         'created_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"), 
         'created_by': 'dashboard',
-        'verified': True,
+        'verified': False,
         'verified_by': 'dashboard',
         'verified_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"), 
-        'verification_code': '1234',
+        'verification_code': '12345',
         'primary': False,
     }],
     'passwords': [{
