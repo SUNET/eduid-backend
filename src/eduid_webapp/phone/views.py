@@ -80,7 +80,7 @@ def post_phone(user, number, verified, primary, csrf_token):
         }
 
     try:
-        save_dashboard_user(user, dbattr_name='dashboard_userdb')
+        save_dashboard_user(user)
     except UserOutOfSync:
         return {
             '_status': 'error',
@@ -117,7 +117,7 @@ def post_primary(user, number, csrf_token):
 
     user.phone_numbers.primary = phone_el.number
     try:
-        save_dashboard_user(user, dbattr_name='dashboard_userdb')
+        save_dashboard_user(user)
     except UserOutOfSync:
         return {
             '_status': 'error',
@@ -187,7 +187,7 @@ def verify(user, code, number, csrf_token):
             user.phone_numbers.find(number).is_primary = True
 
     try:
-        save_dashboard_user(user, dbattr_name='dashboard_userdb')
+        save_dashboard_user(user)
     except UserOutOfSync:
         return {
             '_status': 'error',
@@ -221,7 +221,7 @@ def post_remove(user, number, csrf_token):
         user.phone_numbers.remove(number)
 
     try:
-        save_dashboard_user(user, dbattr_name='dashboard_userdb')
+        save_dashboard_user(user)
     except UserOutOfSync:
         return {
             '_status': 'error',
