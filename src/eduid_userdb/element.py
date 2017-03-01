@@ -553,7 +553,7 @@ class PrimaryElementList(ElementList):
                 self.__class__.__name__,
                 len(res), len(elements)))
         if len(res) == 0:
-            return res
+            return None
         return res[0]
 
     @property
