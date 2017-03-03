@@ -171,7 +171,7 @@ def verify(user, code, number, csrf_token):
         abort(400)
 
     db = current_app.verifications_db
-    state = db.get_state_by_eppn_and_code(user.eppn, code)
+    state = db.get_state_by_eppn_and_phone(user.eppn, number)
 
     timeout = current_app.config.get('PHONE_VERIFICATION_TIMEOUT', 24)
     if state.is_expired(timeout):
@@ -182,7 +182,7 @@ def verify(user, code, number, csrf_token):
             'error': {'form': 'phones.code_expired'}
         }
 
-    if number != state.verification.number:
+    if code != state.verification.verification_code:
         msg = "Invalid verification code: {!r}".format(state.verification)
         current_app.logger.debug(msg)
         return {
