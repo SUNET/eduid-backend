@@ -54,6 +54,9 @@ phone_views = Blueprint('phone', __name__, url_prefix='', template_folder='templ
 @MarshalWith(PhoneResponseSchema)
 @require_dashboard_user
 def get_all_phones(user):
+    '''
+    view to get a listing of all phones for the logged in user.
+    '''
     csrf_token = session.get_csrf_token()
     phones = {'phones': user.phone_numbers.to_list_of_dicts(),
               'csrf_token': csrf_token}
@@ -65,6 +68,12 @@ def get_all_phones(user):
 @MarshalWith(PhoneResponseSchema)
 @require_dashboard_user
 def post_phone(user, number, verified, primary, csrf_token):
+    '''
+    view to add a new phone to the user data of the currently
+    logged in user.
+
+    Returns a listing of  all phones for the logged in user.
+    '''
     if session.get_csrf_token() != csrf_token:
         abort(400)
 
@@ -98,24 +107,30 @@ def post_phone(user, number, verified, primary, csrf_token):
 @MarshalWith(PhoneResponseSchema)
 @require_dashboard_user
 def post_primary(user, number, csrf_token):
+    '''
+    view to mark one of the (verified) phone numbers of the logged in user
+    as the primary phone number.
+
+    Returns a listing of  all phones for the logged in user.
+    '''
     if session.get_csrf_token() != csrf_token:
         abort(400)
 
     try:
-        phone_el = user.phone_numbers.find(number)
+        phone_element = user.phone_numbers.find(number)
     except IndexError:
         return {
             '_status': 'error',
             'error': {'form': 'out_of_sync'}
         }
 
-    if not phone_el.is_verified:
+    if not phone_element.is_verified:
         return {
             '_status': 'error',
             'error': {'form': 'phones.unconfirmed_number_not_primary'}
         }
 
-    user.phone_numbers.primary = phone_el.number
+    user.phone_numbers.primary = phone_element.number
     try:
         save_dashboard_user(user)
     except UserOutOfSync:
@@ -128,17 +143,17 @@ def post_primary(user, number, csrf_token):
 
 
 def _steal_phone(number):
-    other = current_app.dashboard_userdb.get_user_by_phone(number,
+    previous_user = current_app.dashboard_userdb.get_user_by_phone(number,
             raise_on_missing=False)
-    if other and other.phone_numbers.primary and \
-            other.phone_numbers.primary.number == number:
-        # Promote some other verified phone number to primary
-        for phone_number in other.phone_numbers.to_list():
+    if previous_user and previous_user.phone_numbers.primary and \
+            previous_user.phone_numbers.primary.number == number:
+        # Promote some previous_user verified phone number to primary
+        for phone_number in previous_user.phone_numbers.to_list():
             if phone_number.is_verified and phone_number.number != number:
-                other.phone_numbers.primary = phone_number.number
+                previous_user.phone_numbers.primary = phone_number.number
                 break
-        other.phone_numbers.remove(number)
-        save_dashboard_user(other)
+        previous_user.phone_numbers.remove(number)
+        save_dashboard_user(previous_user)
 
 
 @phone_views.route('/verify', methods=['POST'])
@@ -146,13 +161,17 @@ def _steal_phone(number):
 @MarshalWith(PhoneResponseSchema)
 @require_dashboard_user
 def verify(user, code, number, csrf_token):
-    """
-    """
+    '''
+    view to mark one of the (unverified) phone numbers of the logged in user
+    as verified.
+
+    Returns a listing of  all phones for the logged in user.
+    '''
     if session.get_csrf_token() != csrf_token:
         abort(400)
 
     db = current_app.verifications_db
-    state = db.get_state_by_eppn_and_code(user.eppn, code)
+    state = db.get_state_by_eppn_and_phone(user.eppn, number)
 
     timeout = current_app.config.get('PHONE_VERIFICATION_TIMEOUT', 24)
     if state.is_expired(timeout):
@@ -163,7 +182,7 @@ def verify(user, code, number, csrf_token):
             'error': {'form': 'phones.code_expired'}
         }
 
-    if number != state.verification.number:
+    if code != state.verification.verification_code:
         msg = "Invalid verification code: {!r}".format(state.verification)
         current_app.logger.debug(msg)
         return {
@@ -204,6 +223,11 @@ def verify(user, code, number, csrf_token):
 @MarshalWith(PhoneResponseSchema)
 @require_dashboard_user
 def post_remove(user, number, csrf_token):
+    '''
+    view to remove one of the phone numbers of the logged in user.
+
+    Returns a listing of  all phones for the logged in user.
+    '''
     if session.get_csrf_token() != csrf_token:
         abort(400)
 
@@ -238,6 +262,12 @@ def post_remove(user, number, csrf_token):
 @MarshalWith(PhoneResponseSchema)
 @require_dashboard_user
 def resend_code(user, number, csrf_token):
+    '''
+    view to resend a new verification code for one of the (unverified)
+    phone numbers of the logged in user. 
+
+    Returns a listing of  all phones for the logged in user.
+    '''
     if session.get_csrf_token() != csrf_token:
         abort(400)
 

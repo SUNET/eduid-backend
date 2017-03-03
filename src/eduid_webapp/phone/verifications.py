@@ -43,7 +43,7 @@ def new_verification_code(phone, user):
     if old_verification is not None:
         current_app.logger.debug('removing old verification code:'
                                  ' {!r}.'.format(old_verification.to_dict()))
-        current_app.verifications_db.remove_state_phone(old_verification)
+        current_app.verifications_db.remove_state(old_verification)
     code = get_unique_hash()
 
     verification = PhoneProofingElement(phone=phone,
@@ -57,16 +57,12 @@ def new_verification_code(phone, user):
     # XXX This should be an atomic transaction together with saving
     # the user and sending the letter.
     current_app.verifications_db.save(verification_state)
-    return code
+    return code, str(verification._data['_id'])
 
 
-def send_verification_code(user, phone, code=None):
+def send_verification_code(user, phone):
 
-    if code is None:
-        code = new_verification_code(phone, user)
-
-    verification = current_app.verifications_db.get_state_by_eppn_and_code(user.eppn, code)
-    reference = str(verification._data['_id'])
+    code, reference = new_verification_code(phone, user)
 
     current_app.msg_relay.phone_validator(reference, phone, code, user.language)
     current_app.logger.debug("Sent verification sms to user {!r}"
