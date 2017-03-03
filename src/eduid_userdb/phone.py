@@ -56,7 +56,6 @@ class PhoneNumber(PrimaryElement):
         if data is None:
             if created_ts is None:
                 created_ts = True
-            # TODO: Created_by = application
             data = dict(number = number,
                         created_by = application,
                         created_ts = created_ts,
