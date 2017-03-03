@@ -95,6 +95,16 @@ class Element(object):
 
     def __repr__(self):
         return '<eduID {!s}: {!r}>'.format(self.__class__.__name__, self._data)
+    
+    # -----------------------------------------------------------------
+    @property
+    def object_id(self):
+        """
+        Get the element's oid in MongoDB.
+
+        :rtype: bson.ObjectId
+        """
+        return self._data['_id']
 
     # -----------------------------------------------------------------
     @property
@@ -531,15 +541,19 @@ class PrimaryElementList(ElementList):
         if not elements:
             return None
         verified = [x for x in elements if x.is_verified is True]
+
         if len(verified) == 0:
             if len([e for e in elements if e.is_primary]) > 0:
                 raise PrimaryElementViolation('There are unconfirmed primary elements')
             return None
         res = [x for x in verified if x.is_primary is True]
-        if len(res) != 1:
+
+        if len(res) > 1:
             raise PrimaryElementViolation("{!s} contains {!s}/{!s} primary elements".format(
                 self.__class__.__name__,
                 len(res), len(elements)))
+        if len(res) == 0:
+            return None
         return res[0]
 
     @property

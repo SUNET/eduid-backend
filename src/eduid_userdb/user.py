@@ -119,7 +119,7 @@ class User(object):
 
     def __eq__(self, other):
         if self.__class__ is not other.__class__:
-            raise TypeError('Trying to compare objects of different class')
+            raise TypeError('Trying to compare objects of different class {!r} - {!r} '.format(self.__class__, other.__class__))
         return self._data == other._data
 
     def _parse_check_invalid_users(self):
@@ -187,6 +187,7 @@ class User(object):
             self._data_in['phone'] = _phones
 
         _phones = self._data_in.pop('phone', [])
+
         self._phone_numbers = PhoneNumberList(_phones)
 
     def _parse_nins(self):
