@@ -177,35 +177,6 @@ class EmailProofingStateDB(ProofingStateDB):
     def __init__(self, db_uri, db_name='eduid_emails'):
         ProofingStateDB.__init__(self, db_uri, db_name)
 
-    def get_state_by_eppn_and_code(self, eppn, code, raise_on_missing=True):
-        """
-        Locate a state in the db given the verification code.
-
-        :param code: verification code
-        :param raise_on_missing: Raise exception if True else return None
-
-        :type code: str | unicode
-        :type raise_on_missing: bool
-
-        :return: ProofingStateClass instance | None
-        :rtype: ProofingStateClass | None
-
-        :raise self.DocumentDoesNotExist: No user match the search criteria
-        :raise self.MultipleDocumentsReturned: More than one user
-                                               matches the search criteria
-        """
-
-        spec = {'eduPersonPrincipalName': eppn,
-                'verification.verification_code': code}
-        verifications = self._get_documents_by_filter(spec,
-                raise_on_missing=raise_on_missing)
-
-        if verifications.count() > 1:
-            raise MultipleDocumentsReturned("Multiple matching"
-                    " documents for {!r}".format(spec))
-
-        return self.ProofingStateClass(verifications[0])
-
     def get_state_by_eppn_and_email(self, eppn, email, raise_on_missing=True):
         """
         Locate a state in the db given the eppn of the user and the
@@ -241,6 +212,23 @@ class EmailProofingStateDB(ProofingStateDB):
             # produce an empty list;
             # and [].count() raises a TypeError
             return None
+
+    def remove_state(self, state):
+        """
+        :param state: ProofingStateClass object
+
+        :type state: ProofingStateClass
+        """
+        self.remove_document({'eduPersonPrincipalName': state.eppn,
+                        'verification.email': state.verification.email})
+
+
+class PhoneProofingStateDB(ProofingStateDB):
+
+    ProofingStateClass = PhoneProofingState
+
+    def __init__(self, db_uri, db_name='eduid_phones'):
+        ProofingStateDB.__init__(self, db_uri, db_name)
 
     def get_state_by_eppn_and_mobile(self, eppn, number, raise_on_missing=True):
         """
@@ -284,56 +272,7 @@ class EmailProofingStateDB(ProofingStateDB):
         :type state: ProofingStateClass
         """
         self.remove_document({'eduPersonPrincipalName': state.eppn,
-                        'verification.email': state.verification.email})
-
-    def remove_state_phone(self, state):
-        """
-        :param state: ProofingStateClass object
-
-        :type state: ProofingStateClass
-        """
-        self.remove_document({'eduPersonPrincipalName': state.eppn,
                               'verification.number': state.verification.number})
-
-
-class PhoneProofingStateDB(EmailProofingStateDB):
-
-    ProofingStateClass = PhoneProofingState
-
-    def __init__(self, db_uri, db_name='eduid_phones'):
-        ProofingStateDB.__init__(self, db_uri, db_name)
-
-    def get_state_by_mail_and_code(self, mail, code, raise_on_missing=True):
-        """
-        Locate a state in the db given the verification code.
-
-        :param code: verification code
-        :param raise_on_missing: Raise exception if True else return None
-
-        :type code: str | unicode
-        :type raise_on_missing: bool
-
-        :return: ProofingStateClass instance | None
-        :rtype: ProofingStateClass | None
-
-        :raise self.DocumentDoesNotExist: No user match the search criteria
-        :raise self.MultipleDocumentsReturned: More than one user
-                                               matches the search criteria
-        """
-        spec = {'$or': [
-            {'mail': email},
-            {'mailAliases': {'$elemMatch': {'email': email}}}
-          ],
-          'verification': {'verification_code': code}}
-
-        verifications = self._get_documents_by_filter(spec,
-                raise_on_missing=raise_on_missing)
-
-        if verifications.count() > 1:
-            raise MultipleDocumentsReturned("Multiple matching"
-                    " documents for {!r}".format(spec))
-
-        return self.ProofingStateClass(verifications[0])
 
 
 class OidcProofingStateDB(ProofingStateDB):
