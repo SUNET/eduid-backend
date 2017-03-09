@@ -39,12 +39,12 @@ from eduid_userdb.proofing import PhoneProofingElement, PhoneProofingState
 
 def new_verification_code(phone, user):
     old_verification = current_app.verifications_db.get_state_by_eppn_and_mobile(
-        user.eppn, phone, raise_on_missing=False)
-
+                       user.eppn, phone, raise_on_missing=False)
     if old_verification is not None:
         current_app.logger.debug('removing old verification code:'
                                  ' {!r}.'.format(old_verification.to_dict()))
         current_app.verifications_db.remove_state_phone(old_verification)
+
     code = get_unique_hash()
     verification = PhoneProofingElement(phone=phone,
                                         verification_code=code,
@@ -64,10 +64,9 @@ def new_verification_code(phone, user):
     return code
 
 
-def send_verification_code(user, phone, code=None):
+def send_verification_code(user, phone):
 
-    if code is None:
-        code = new_verification_code(phone, user)
+    code = new_verification_code(phone, user)
 
     verification = current_app.verifications_db.get_state_by_eppn_and_code(user.eppn, code)
     reference = str(verification._data['_id'])
