@@ -44,8 +44,8 @@ def new_verification_code(phone, user):
         current_app.logger.debug('removing old verification code:'
                                  ' {!r}.'.format(old_verification.to_dict()))
         current_app.verifications_db.remove_state(old_verification)
-    code = get_unique_hash()
 
+    code = get_unique_hash()
     verification = PhoneProofingElement(phone=phone,
                                         verification_code=code,
                                         application='dashboard')
@@ -57,6 +57,10 @@ def new_verification_code(phone, user):
     # XXX This should be an atomic transaction together with saving
     # the user and sending the letter.
     current_app.verifications_db.save(verification_state)
+    current_app.logger.info('Created new mobile verification code '
+                            'for user {!r} and mobile {!r}.'.format(user, phone))
+    current_app.logger.debug('Verification Code:'
+                             ' {!r}.'.format(verification_state.to_dict()))
     return code, str(verification._data['_id'])
 
 
@@ -65,5 +69,5 @@ def send_verification_code(user, phone):
     code, reference = new_verification_code(phone, user)
 
     current_app.msg_relay.phone_validator(reference, phone, code, user.language)
-    current_app.logger.debug("Sent verification sms to user {!r}"
-                             " with phone number {!s}.".format(user, phone))
+    current_app.logger.info("Sent verification sms to user {!r}"
+                            " with phone number {!s}.".format(user, phone))
