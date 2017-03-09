@@ -61,15 +61,12 @@ def new_verification_code(phone, user):
                             'for user {!r} and mobile {!r}.'.format(user, phone))
     current_app.logger.debug('Verification Code:'
                              ' {!r}.'.format(verification_state.to_dict()))
-    return code
+    return code, str(verification._data['_id'])
 
 
 def send_verification_code(user, phone):
 
-    code = new_verification_code(phone, user)
-
-    verification = current_app.verifications_db.get_state_by_eppn_and_mobile(user.eppn, phone)
-    reference = str(verification._data['_id'])
+    code, reference = new_verification_code(phone, user)
 
     current_app.msg_relay.phone_validator(reference, phone, code, user.language)
     current_app.logger.info("Sent verification sms to user {!r}"
