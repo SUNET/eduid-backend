@@ -195,7 +195,7 @@ def verify(user, code, number, csrf_token):
                              'for user {!r}'.format(number, user))
 
     db = current_app.verifications_db
-    state = db.get_state_by_eppn_and_phone(user.eppn, number)
+    state = db.get_state_by_eppn_and_mobile(user.eppn, number)
 
     timeout = current_app.config.get('PHONE_VERIFICATION_TIMEOUT', 24)
     if state.is_expired(timeout):
