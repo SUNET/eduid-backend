@@ -48,7 +48,6 @@ from eduid_common.stats import NoOpStats, Statsd
 
 
 def eduid_init_app_no_db(name, config, app_class=AuthnApp):
-
     """
     Create and prepare the flask app for eduID APIs with all the attributes
     common to all  apps.
