@@ -9,7 +9,6 @@ from eduid_userdb.logs.element import ProofingLogElement, TeleAdressProofing, Te
 from eduid_userdb.logs.element import LetterProofing, MailAddressProofing, PhoneNumberProofing
 
 
-
 __author__ = 'lundberg'
 
 
@@ -25,7 +24,7 @@ class TestProofingLog(TestCase):
 
     def test_id_proofing_data(self):
 
-        proofing_element = ProofingLogElement(self.user, created_by='test')
+        proofing_element = ProofingLogElement(self.user, created_by='test', proofing_method='test')
         self.proofing_log_db.save(proofing_element)
 
         result = self.proofing_log_db._coll.find({})
@@ -34,6 +33,7 @@ class TestProofingLog(TestCase):
         self.assertEquals(hit['eduPersonPrincipalName'], self.user.eppn)
         self.assertEquals(hit['created_by'], 'test')
         self.assertIsNotNone(hit['created_ts'])
+        self.assertEquals(hit['proofing_method'], 'test')
 
     def test_teleadress_proofing(self):
         data = {
@@ -128,7 +128,7 @@ class TestProofingLog(TestCase):
         self.assertIsNotNone(hit['created_ts'])
         self.assertIsNotNone(hit['letter_sent_to'])
         self.assertIsNotNone(hit['transaction_id'])
-        self.assertEquals(hit['proofing_method'], 'eduid-idproofing-letter')
+        self.assertEquals(hit['proofing_method'], 'letter')
 
     def test_mail_address_proofing(self):
         data = {
@@ -145,6 +145,7 @@ class TestProofingLog(TestCase):
         self.assertEquals(hit['eduPersonPrincipalName'], self.user.eppn)
         self.assertEquals(hit['created_by'], 'test')
         self.assertIsNotNone(hit['created_ts'])
+        self.assertEquals(hit['proofing_method'], 'e-mail')
         self.assertEquals(hit['mail_address'], 'some_mail_address')
 
     def test_phone_number_proofing(self):
@@ -162,4 +163,16 @@ class TestProofingLog(TestCase):
         self.assertEquals(hit['eduPersonPrincipalName'], self.user.eppn)
         self.assertEquals(hit['created_by'], 'test')
         self.assertIsNotNone(hit['created_ts'])
+        self.assertEquals(hit['proofing_method'], 'sms')
         self.assertEquals(hit['phone_number'], 'some_phone_number')
+
+    def test_missing_proofing_data(self):
+        data = {
+            'created_by': 'test',
+            'phone_number': 'some_phone_number',
+        }
+        proofing_element = PhoneNumberProofing(self.user, **data)
+        del proofing_element._data['created_by']
+
+        self.assertFalse(self.proofing_log_db.save(proofing_element))
+

@@ -25,14 +25,14 @@ class LogElement(Element):
         # Check that all keys are accounted for and that none of them evaluates to false
         if not all(self._data.get(key) for key in self._required_keys):
             logger.error('Not enough data to log proofing event: {!r}. Required keys: {!r}'.format(
-                self._data, list(set(self._required_keys)-set(d.keys()))))
+                self._data, list(set(self._required_keys)-set(self._data.keys()))))
             return False
         return True
 
 
 class ProofingLogElement(LogElement):
 
-    def __init__(self, user, created_by):
+    def __init__(self, user, created_by, proofing_method):
         """
         :param user: User object
         :type user: eduid_userdb.user.User
@@ -40,8 +40,9 @@ class ProofingLogElement(LogElement):
         :type created_by: str
         """
         super(ProofingLogElement, self).__init__(created_by)
-        self._required_keys.extend(['eduPersonPrincipalName'])
+        self._required_keys.extend(['eduPersonPrincipalName', 'proofing_method'])
         self._data['eduPersonPrincipalName'] = user.eppn
+        self._data['proofing_method'] = proofing_method
 
 
 class MailAddressProofing(ProofingLogElement):
@@ -50,6 +51,7 @@ class MailAddressProofing(ProofingLogElement):
         'eduPersonPrincipalName': eppn,
         'created_ts': datetime.utcnow()
         'created_by': 'application',
+        'proofing_method': 'e-mail',
         'mail_address': 'mail_address'
     }
     """
@@ -62,7 +64,7 @@ class MailAddressProofing(ProofingLogElement):
         :param mail_address: e-mail address
         :type mail_address: str | unicode
         """
-        super(MailAddressProofing, self).__init__(user, created_by)
+        super(MailAddressProofing, self).__init__(user, created_by, proofing_method='e-mail')
         self._required_keys.extend(['mail_address'])
         self._data['mail_address'] = mail_address
 
@@ -73,6 +75,7 @@ class PhoneNumberProofing(ProofingLogElement):
         'eduPersonPrincipalName': eppn,
         'created_ts': datetime.utcnow()
         'created_by': 'application',
+        'proofing_method': 'sms',
         'phone_number': 'phone_number'
     }
     """
@@ -85,7 +88,7 @@ class PhoneNumberProofing(ProofingLogElement):
         :param phone_number: phone number
         :type phone_number: str | unicode
         """
-        super(PhoneNumberProofing, self).__init__(user, created_by)
+        super(PhoneNumberProofing, self).__init__(user, created_by, proofing_method='sms')
         self._required_keys.extend(['phone_number'])
         self._data['phone_number'] = phone_number
 
@@ -96,6 +99,7 @@ class TeleAdressProofing(ProofingLogElement):
         'eduPersonPrincipalName': eppn,
         'created_ts': datetime.utcnow()
         'created_by': 'application',
+        'proofing_method': 'TeleAdress',
         'reason': 'matched',
         'nin': national_identity_number,
         'mobile_number': mobile_number,
@@ -121,9 +125,8 @@ class TeleAdressProofing(ProofingLogElement):
         :return: TeleAdressProofing object
         :rtype: TeleAdressProofing
         """
-        super(TeleAdressProofing, self).__init__(user, created_by)
-        self._required_keys.extend(['proofing_method', 'reason', 'nin', 'mobile_number', 'user_postal_address'])
-        self._data['proofing_method'] = 'TeleAdress'
+        super(TeleAdressProofing, self).__init__(user, created_by, proofing_method='TeleAdress')
+        self._required_keys.extend(['reason', 'nin', 'mobile_number', 'user_postal_address'])
         self._data['reason'] = reason
         self._data['nin'] = nin
         self._data['mobile_number'] = mobile_number
@@ -136,6 +139,7 @@ class TeleAdressProofingRelation(TeleAdressProofing):
         'eduPersonPrincipalName': eppn,
         'created_ts': datetime.utcnow()
         'created_by': 'application',
+        'proofing_method': 'TeleAdress',
         'reason': 'match_by_navet',
         'nin': national_identity_number,
         'mobile_number': mobile_number,
@@ -208,10 +212,9 @@ class LetterProofing(ProofingLogElement):
         :return: LetterProofing object
         :rtype: LetterProofing
         """
-        super(LetterProofing, self).__init__(user, created_by)
+        super(LetterProofing, self).__init__(user, created_by, proofing_method='letter')
         self._required_keys.extend(['proofing_method', 'nin', 'letter_sent_to', 'transaction_id',
                                     'user_postal_address'])
-        self._data['proofing_method'] = 'eduid-idproofing-letter'
         self._data['nin'] = nin
         self._data['letter_sent_to'] = letter_sent_to
         self._data['transaction_id'] = transaction_id
