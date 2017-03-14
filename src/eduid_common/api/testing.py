@@ -32,8 +32,10 @@
 import os
 import unittest
 import time
+import shutil
 import atexit
 import random
+import tempfile
 import subprocess
 from contextlib import contextmanager
 from copy import deepcopy
@@ -47,25 +49,25 @@ from eduid_userdb.testing import MongoTemporaryInstance
 
 
 TEST_CONFIG = {
-    'DEBUG': 'True',
-    'TESTING': 'True',
+    'DEBUG': True,
+    'TESTING': True,
     'SECRET_KEY': 'mysecretkey',
     'SESSION_COOKIE_NAME': 'sessid',
     'SESSION_COOKIE_DOMAIN': 'test.localhost',
     'SESSION_COOKIE_PATH': '/',
-    'SESSION_COOKIE_HTTPONLY': 'False',
-    'SESSION_COOKIE_SECURE': 'False',
+    'SESSION_COOKIE_HTTPONLY': False,
+    'SESSION_COOKIE_SECURE': False,
     'PERMANENT_SESSION_LIFETIME': '60',
     'LOGGER_NAME': 'testing',
     'SERVER_NAME': 'test.localhost',
-    'PROPAGATE_EXCEPTIONS': 'True',
-    'PRESERVE_CONTEXT_ON_EXCEPTION': 'True',
-    'TRAP_HTTP_EXCEPTIONS': 'True',
-    'TRAP_BAD_REQUEST_ERRORS': 'True',
+    'PROPAGATE_EXCEPTIONS': True,
+    'PRESERVE_CONTEXT_ON_EXCEPTION': True,
+    'TRAP_HTTP_EXCEPTIONS': True,
+    'TRAP_BAD_REQUEST_ERRORS': True,
     'PREFERRED_URL_SCHEME': 'http',
-    'JSON_AS_ASCII': 'False',
-    'JSON_SORT_KEYS': 'True',
-    'JSONIFY_PRETTYPRINT_REGULAR': 'True',
+    'JSON_AS_ASCII': False,
+    'JSON_SORT_KEYS': True,
+    'JSONIFY_PRETTYPRINT_REGULAR': True,
     'MONGO_URI': 'mongodb://dummy',
     'REDIS_HOST': 'localhost',
     'REDIS_PORT': '6379',
@@ -83,7 +85,7 @@ class EduidAPITestCase(unittest.TestCase):
     See the `load_app` and `update_config` methods below before subclassing.
     """
 
-    def setUp(self):
+    def setUp(self, create_user = True):
         self.redis_instance = RedisTemporaryInstance.get_instance()
         self.mongo_instance = MongoTemporaryInstance.get_instance()
         self.etcd_instance = EtcdTemporaryInstance.get_instance()
@@ -94,7 +96,8 @@ class EduidAPITestCase(unittest.TestCase):
         os.environ.update({'ETCD_PORT': str(self.etcd_instance.port)})
         self.app = self.load_app(config)
         self.browser = self.app.test_client()
-        self.app.central_userdb.save(User(data=NEW_USER_EXAMPLE), check_sync=False)
+        if create_user:
+            self.app.central_userdb.save(User(data=NEW_USER_EXAMPLE), check_sync=False)
 
         # Helper constants
         self.content_type_json = 'application/json'
@@ -154,15 +157,16 @@ class RedisTemporaryInstance(object):
         return cls._instance
 
     def __init__(self):
-        self._port = random.randint(40000, 50000)
-        self._process = subprocess.Popen(['redis-server',
-                                          '--port', str(self._port),
-                                          '--daemonize', 'no',
-                                          '--bind', '0.0.0.0',
-                                          '--databases', '1',],
+        self._tmpdir = tempfile.mkdtemp()
+        self._port = random.randint(40000, 65535)
+        self._process = subprocess.Popen(['docker', 'run', '--rm',
+                                          '-p', '{!s}:6379'.format(self._port),
+                                          '-v', '{!s}:/data'.format(self._tmpdir),
+                                          '-e', 'extra_args=--daemonize no --bind 0.0.0.0',
+                                          'docker.sunet.se/eduid/redis:latest',
+                                          ],
                                          stdout=open('/tmp/redis-temp.log', 'wb'),
                                          stderr=subprocess.STDOUT)
-
         for i in range(10):
             time.sleep(0.2)
             try:
@@ -189,6 +193,7 @@ class RedisTemporaryInstance(object):
             self._process.terminate()
             self._process.wait()
             self._process = None
+        shutil.rmtree(self._tmpdir, ignore_errors=True)
 
     def get_uri(self):
         """
