@@ -2,11 +2,13 @@
 
 from uuid import uuid4
 import sys
-from flask import current_app
+from flask import current_app, session
 
 from eduid_userdb import User
 from eduid_userdb.dashboard import DashboardUser
 from eduid_userdb.exceptions import UserDBValueError
+from eduid_userdb.exceptions import UserDoesNotExist, MultipleUsersReturned
+from eduid_common.api.exceptions import ApiException
 
 PY3 = sys.version_info[0] == 3
 
@@ -26,7 +28,7 @@ def get_short_hash(entropy=10):
     return uuid4().hex[:entropy]
 
 
-def retrieve_modified_ts(user, dashboard_userdb):
+def retrieve_modified_ts(user, dashboard_userdb=None):
     """
     When loading a user from the central userdb, the modified_ts has to be
     loaded from the dashboard private userdb (since it is not propagated to
@@ -42,6 +44,8 @@ def retrieve_modified_ts(user, dashboard_userdb):
 
     :return: None
     """
+    if dashboard_userdb is None:
+        dashboard_userdb = current_app.dashboard_userdb
     try:
         userid = user.user_id
     except UserDBValueError:
@@ -65,6 +69,26 @@ def retrieve_modified_ts(user, dashboard_userdb):
     user.modified_ts = dashboard_user.modified_ts
     current_app.logger.debug("Updating {!s} with modified_ts from dashboard user {!s}: {!s}".format(
         user, dashboard_user, dashboard_user.modified_ts))
+
+
+def get_dashboard_user():
+    eppn = session.get('user_eppn', None)
+    if not eppn:
+        raise ApiException('Not authorized', status_code=401)
+    # Get user from central database
+    try:
+        user = current_app.central_userdb.get_user_by_eppn(eppn, raise_on_missing=True)
+        dashboard_user = DashboardUser(data = user.to_dict())
+        retrieve_modified_ts(dashboard_user, current_app.dashboard_userdb)
+        return dashboard_user
+    except UserDoesNotExist as e:
+        current_app.logger.error('Could not find user central database.')
+        current_app.logger.error(e)
+        raise ApiException('Not authorized', status_code=401)
+    except MultipleUsersReturned as e:
+        current_app.logger.error('Found multiple users in central database.')
+        current_app.logger.error(e)
+        raise ApiException('Not authorized', status_code=401)
 
 
 def save_dashboard_user(user):
