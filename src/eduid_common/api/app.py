@@ -101,12 +101,12 @@ def eduid_init_app_no_db(name, config, app_class=AuthnApp):
     app = init_sentry(app)
     app.session_interface = SessionFactory(app.config)
 
-    stats_hosts = app.config.get('STATS_HOST', False)
-    if not stats_hosts:
+    stats_host = app.config.get('STATS_HOST', False)
+    if not stats_host:
         app.statsd = NoOpStats()
     else:
         stats_port = app.config.get('STATS_PORT', 8125)
-        app.statsd = Statsd(host=stats_hosts, port=stats_port)
+        app.statsd = Statsd(host=stats_host, port=stats_port)
 
     return app
 
