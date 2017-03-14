@@ -36,6 +36,7 @@ from bson import ObjectId
 import vccs_client
 from eduid_userdb import Password
 from eduid_userdb.dashboard import DashboardLegacyUser, DashboardUser
+from eduid_common.authn import get_vccs_client
 
 
 class FakeVCCSClient(vccs_client.VCCSClient):
@@ -84,18 +85,24 @@ class TestVCCSClient(object):
         self.credentials = {}
 
     def authenticate(self, user_id, factors):
-        stored = self.credentials[user_id]
+        found = False
         for factor in factors:
             fdict = factor.to_dict('auth')
-            found = False
-            for sfactor in stored:
-                sdict = sfactor.to_dict('auth')
-                if fdict['H1'] == sdict['H1']:
+            for sfactor in self.credentials[user_id]:
+                if factor.credential_id != sfactor.credential_id:
+                    continue
+                try:
+                    sdict = sfactor.to_dict('auth')
+                except (AttributeError, ValueError):
+                    # OATH token
                     found = True
                     break
-            if not found:
-                return False
-        return True
+                else:
+                    # H1 hash comparision for password factors
+                    if fdict['H1'] == sdict['H1']:
+                        found = True
+                        break
+        return found
 
     def add_credentials(self, user_id, factors):
         self.credentials[user_id] = factors
@@ -111,22 +118,7 @@ class TestVCCSClient(object):
                     stored.remove(factor)
                     break
 
-test_vccs = TestVCCSClient()
 
-
-def get_vccs_client(vccs_url):
-    """
-    Instantiate a VCCS client.
-    :param vccs_url: VCCS authentication backend URL
-    :type vccs_url: string
-    :return: vccs client
-    :rtype: VCCSClient
-    """
-    if vccs_url == 'dummy':
-        return test_vccs
-    return vccs_client.VCCSClient(
-        base_url=vccs_url,
-    )
 
 
 def provision_credentials(vccs_url, new_password, user,

@@ -40,19 +40,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def get_vccs_client(vccs_url):
-    """
-    Instantiate a VCCS client.
-    :param vccs_url: VCCS authentication backend URL
-    :type vccs_url: string
-    :return: vccs client
-    :rtype: VCCSClient
-    """
-    return vccs_client.VCCSClient(
-        base_url=vccs_url,
-    )
-
-
 def check_password(vccs_url, password, user, vccs=None):
     """ Try to validate a user provided password.
 
