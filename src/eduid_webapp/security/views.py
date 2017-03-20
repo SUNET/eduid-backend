@@ -33,6 +33,63 @@
 
 from __future__ import absolute_import
 
-from flask import Blueprint, session, abort
+from flask import Blueprint, session, abort, current_app
+
+from eduid_common.api.decorators import require_dashboard_user, MarshalWith, UnmarshalWith
+from eduid_webapp.security.schemas import SecuriyResponseSchema, CsrfSchema, SecuriyPasswordSchema
 
 security_views = Blueprint('security', __name__, url_prefix='', template_folder='templates')
+
+
+@security_views.route('/all', methods=['GET'])
+@MarshalWith(SecuriyResponseSchema)
+@require_dashboard_user
+def get_credentials(user):
+    """
+    View to get credentials for the logged user.
+    """
+    csrf_token = session.get_csrf_token()
+
+    password = {'password': 'user.password',
+                'csrf_token': csrf_token}
+
+    current_app.logger.debug('Triying to get the credentials '
+                             'for user {!r}'.format(user))
+
+    return password
+
+
+@security_views.route('/delete', methods=['POST'])
+@UnmarshalWith(CsrfSchema)
+@require_dashboard_user
+def delete_account(user, csrf_token):
+    """
+    view to delete user account.
+    """
+    if session.get_csrf_token() != csrf_token:
+        abort(400)
+
+    current_app.logger.debug('Deleting account for user {!r}'.format(user))
+
+    current_app.logger.info('Deleted account for user {!r}'.format(user))
+    current_app.statsd.count(name='security_delete', value=1)
+
+    return 200
+
+
+@security_views.route('/new', methods=['POST'])
+@UnmarshalWith(SecuriyPasswordSchema)
+@require_dashboard_user
+def new_password(user, csrf_token, old_password, new_password):
+    """
+    view to change the password for user logged.
+    """
+    if session.get_csrf_token() != csrf_token:
+        abort(400)
+
+    current_app.logger.debug('Try to change password for user {!r}'.format(user))
+
+    current_app.logger.info('Changed password for user {!r}'.format(user))
+    current_app.statsd.count(name='security_new_password', value=1)
+
+    return 200

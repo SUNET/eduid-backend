@@ -30,3 +30,24 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+
+from marshmallow import fields
+from eduid_common.api.schemas.base import EduidSchema
+
+
+class SecuriyResponseSchema(EduidSchema):
+
+    password = fields.String(required=True)
+    csrf_token = fields.String(required=True)
+
+
+class CsrfSchema(EduidSchema):
+
+    csrf_token = fields.String(required=True)
+
+
+class SecuriyPasswordSchema(EduidSchema):
+
+    password = fields.String(required=True)
+    new_password = fields.String(required=True)
+    csrf_token = fields.String(required=True)
