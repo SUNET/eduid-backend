@@ -29,3 +29,29 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+
+import vccs_client
+
+
+TESTING = False
+_test_client = None
+
+
+def get_vccs_client(vccs_url):
+    """
+    Instantiate a VCCS client.
+    :param vccs_url: VCCS authentication backend URL
+    :type vccs_url: string
+    :return: vccs client
+    :rtype: VCCSClient
+    """
+    if TESTING and vccs_url == 'dummy':
+        global _test_client
+        if not _test_client:
+            # Avoid circular imports
+            from eduid_common.authn.testing import TestVCCSClient
+            _test_client = TestVCCSClient()
+        return _test_client
+    return vccs_client.VCCSClient(
+        base_url=vccs_url,
+    )
