@@ -24,7 +24,8 @@ class TestProofingLog(TestCase):
 
     def test_id_proofing_data(self):
 
-        proofing_element = ProofingLogElement(self.user, created_by='test', proofing_method='test')
+        proofing_element = ProofingLogElement(self.user, created_by='test', proofing_method='test',
+                                              proofing_method_version='1')
         self.proofing_log_db.save(proofing_element)
 
         result = self.proofing_log_db._coll.find({})
