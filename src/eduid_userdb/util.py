@@ -34,5 +34,19 @@
 
 __author__ = 'ft'
 import datetime
+import pytz
 from eduid_userdb.exceptions import UserDBValueError
 
+
+def convert_to_localtime(dt):
+    """
+    Convert UTC datetime to localtime timezone ('Europe/Stockholm')
+    @param dt: datetime utc object
+    @type dt: datetime
+    @return: datetime object converted to timezone Europe/Stockholm
+    @rtype: datetime
+    """
+    tz = pytz.timezone('Europe/Stockholm')
+    dt = dt.replace(tzinfo=pytz.utc)
+    dt = dt.astimezone(tz)
+    return dt
