@@ -36,27 +36,25 @@ from __future__ import absolute_import
 from flask import Blueprint, session, abort, current_app
 
 from eduid_common.api.decorators import require_dashboard_user, MarshalWith, UnmarshalWith
-from eduid_webapp.security.schemas import SecuriyResponseSchema, CsrfSchema, SecuriyPasswordSchema
+from eduid_webapp.security.schemas import SecurityResponseSchema, CredentialList, CsrfSchema, SecurityPasswordSchema
 
 security_views = Blueprint('security', __name__, url_prefix='', template_folder='templates')
 
 
-@security_views.route('/all', methods=['GET'])
-@MarshalWith(SecuriyResponseSchema)
+@security_views.route('/credentials', methods=['GET'])
+@MarshalWith(SecurityResponseSchema)
 @require_dashboard_user
 def get_credentials(user):
     """
     View to get credentials for the logged user.
     """
     csrf_token = session.get_csrf_token()
-
-    password = {'password': 'user.password',
-                'csrf_token': csrf_token}
-
     current_app.logger.debug('Triying to get the credentials '
                              'for user {!r}'.format(user))
+    credentials =  { 'csrf_token': csrf_token,
+        'credentials': current_app.authninfo_db.get_authn_info(user) }
 
-    return password
+    return CredentialList().dump(credentials).data
 
 
 @security_views.route('/delete', methods=['POST'])
@@ -78,7 +76,7 @@ def delete_account(user, csrf_token):
 
 
 @security_views.route('/new', methods=['POST'])
-@UnmarshalWith(SecuriyPasswordSchema)
+@UnmarshalWith(SecurityPasswordSchema)
 @require_dashboard_user
 def new_password(user, csrf_token, old_password, new_password):
     """

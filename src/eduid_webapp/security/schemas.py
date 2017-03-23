@@ -35,18 +35,26 @@ from marshmallow import fields
 from eduid_common.api.schemas.base import EduidSchema
 
 
-class SecuriyResponseSchema(EduidSchema):
+class CredentialSchema(EduidSchema):
+    credential_type = fields.String(required=True)
+    created_ts = fields.String(required=True)
+    success_ts = fields.String(required=True)
 
-    password = fields.String(required=True)
+
+class CredentialList(EduidSchema):
+    credentials = fields.Nested(CredentialSchema, many=True)
     csrf_token = fields.String(required=True)
+
+
+class SecurityResponseSchema(EduidSchema):
+    payload = fields.Nested(CredentialList, only=('credentials', 'csrf_token'))
 
 
 class CsrfSchema(EduidSchema):
-
     csrf_token = fields.String(required=True)
 
 
-class SecuriyPasswordSchema(EduidSchema):
+class SecurityPasswordSchema(EduidSchema):
 
     password = fields.String(required=True)
     new_password = fields.String(required=True)
