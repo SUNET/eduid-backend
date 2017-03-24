@@ -58,6 +58,7 @@ def get_all_emails(user):
     csrf_token = session.get_csrf_token()
     emails = {'emails': user.mail_addresses.to_list_of_dicts(),
               'csrf_token': csrf_token}
+
     return EmailListPayload().dump(emails).data
 
 
@@ -71,7 +72,7 @@ def post_email(user, email, verified, primary, csrf_token):
         abort(400)
 
     current_app.logger.debug('Trying to save unconfirmed email {!r} '
-                            'for user {!r}'.format(email, user))
+                             'for user {!r}'.format(email, user))
 
     new_mail = MailAddress(email=email, application='dashboard',
                            verified=False, primary=False)
@@ -95,8 +96,10 @@ def post_email(user, email, verified, primary, csrf_token):
         }
     current_app.logger.info('Saved unconfirmed email {!r} '
                             'for user {!r}'.format(email, user))
+    current_app.statsd.count(name='email_save_unconfirmed_email', value=1)
 
     send_verification_code(email, user)
+    current_app.statsd.count(name='email_send_verification_code', value=1)
 
     emails = {'emails': user.mail_addresses.to_list_of_dicts()}
     return EmailListPayload().dump(emails).data
@@ -124,7 +127,7 @@ def post_primary(user, email, csrf_token):
 
     if not mail.is_verified:
         current_app.logger.debug('Couldnt save email {!r} as primary for user'
-                                ' {!r}, email unconfirmed'.format(email, user))
+                                 ' {!r}, email unconfirmed'.format(email, user))
         return {
             '_status': 'error',
             'error': {'form': 'emails.unconfirmed_address_not_primary'}
@@ -142,6 +145,8 @@ def post_primary(user, email, csrf_token):
         }
     current_app.logger.info('Email address {!r} made primary '
                             'for user {!r}'.format(email, user))
+    current_app.statsd.count(name='email_set_primary', value=1)
+
     emails = {'emails': user.mail_addresses.to_list_of_dicts()}
     return EmailListPayload().dump(emails).data
 
@@ -226,6 +231,7 @@ def verify(user, code, email, csrf_token):
         }
     current_app.logger.info('Email address {!r} confirmed '
                             'for user {!r}'.format(email, user))
+    current_app.statsd.count(name='email_verify_success', value=1)
 
     emails = {'emails': user.mail_addresses.to_list_of_dicts()}
     return EmailListPayload().dump(emails).data
@@ -275,6 +281,7 @@ def post_remove(user, email, csrf_token):
 
     current_app.logger.info('Email address {!r} removed '
                             'for user {!r}'.format(email, user))
+    current_app.statsd.count(name='email_remove_success', value=1)
 
     emails = {'emails': user.mail_addresses.to_list_of_dicts()}
     return EmailListPayload().dump(emails).data
@@ -300,6 +307,9 @@ def resend_code(user, email, csrf_token):
         }
     
     send_verification_code(email, user)
+    current_app.logger.debug('New verification code sended to '
+                             'address {!r} for user {!r}'.format(email, user))
+    current_app.statsd.count(name='email_resend_code', value=1)
 
     emails = {'emails': user.mail_addresses.to_list_of_dicts()}
     return EmailListPayload().dump(emails).data

@@ -77,6 +77,9 @@ def post_phone(user, number, verified, primary, csrf_token):
     if session.get_csrf_token() != csrf_token:
         abort(400)
 
+    current_app.logger.debug('Trying to save unconfirmed mobile {!r} '
+                             'for user {!r}'.format(number, user))
+
     new_phone = PhoneNumber(number=number, application='dashboard',
                             verified=False, primary=False)
 
@@ -91,12 +94,19 @@ def post_phone(user, number, verified, primary, csrf_token):
     try:
         save_dashboard_user(user)
     except UserOutOfSync:
+        current_app.logger.debug('Couldnt save mobile {!r} for user {!r}, '
+                                 'data out of sync'.format(number, user))
         return {
             '_status': 'error',
             'error': {'form': 'out_of_sync'}
         }
 
+    current_app.logger.info('Saved unconfirmed mobile {!r} '
+                            'for user {!r}'.format(number, user))
+    current_app.statsd.count(name='mobile_save_unconfirmed_mobile', value=1)
+
     send_verification_code(user, number)
+    current_app.statsd.count(name='mobile_send_verification_code', value=1)
 
     phones = {'phones': user.phone_numbers.to_list_of_dicts()}
     return PhoneListPayload().dump(phones).data
@@ -115,16 +125,22 @@ def post_primary(user, number, csrf_token):
     '''
     if session.get_csrf_token() != csrf_token:
         abort(400)
+    current_app.logger.debug('Trying to save mobile {!r} as primary '
+                             'for user {!r}'.format(number, user))
 
     try:
         phone_element = user.phone_numbers.find(number)
     except IndexError:
+        current_app.logger.debug('Couldnt save mobile {!r} as primary for user'
+                                 ' {!r}, data out of sync'.format(number, user))
         return {
             '_status': 'error',
             'error': {'form': 'out_of_sync'}
         }
 
     if not phone_element.is_verified:
+        current_app.logger.debug('Couldnt save mobile {!r} as primary for user'
+                                 ' {!r}, mobile unconfirmed'.format(number, user))
         return {
             '_status': 'error',
             'error': {'form': 'phones.unconfirmed_number_not_primary'}
@@ -134,10 +150,16 @@ def post_primary(user, number, csrf_token):
     try:
         save_dashboard_user(user)
     except UserOutOfSync:
+        current_app.logger.debug('Couldnt save mobile {!r} as primary for user'
+                                 ' {!r}, data out of sync'.format(number, user))
         return {
             '_status': 'error',
             'error': {'form': 'out_of_sync'}
         }
+    current_app.logger.info('Mobile {!r} made primary '
+                            'for user {!r}'.format(number, user))
+    current_app.statsd.count(name='mobile_set_primary', value=1)
+
     phones = {'phones': user.phone_numbers.to_list_of_dicts()}
     return PhoneListPayload().dump(phones).data
 
@@ -169,9 +191,11 @@ def verify(user, code, number, csrf_token):
     '''
     if session.get_csrf_token() != csrf_token:
         abort(400)
+    current_app.logger.debug('Trying to save mobile {!r} as verified '
+                             'for user {!r}'.format(number, user))
 
     db = current_app.verifications_db
-    state = db.get_state_by_eppn_and_phone(user.eppn, number)
+    state = db.get_state_by_eppn_and_mobile(user.eppn, number)
 
     timeout = current_app.config.get('PHONE_VERIFICATION_TIMEOUT', 24)
     if state.is_expired(timeout):
@@ -209,10 +233,15 @@ def verify(user, code, number, csrf_token):
     try:
         save_dashboard_user(user)
     except UserOutOfSync:
+        current_app.logger.debug('Couldnt confirm mobile {!r} for user'
+                                 ' {!r}, data out of sync'.format(number, user))
         return {
             '_status': 'error',
             'error': {'form': 'out_of_sync'}
         }
+    current_app.logger.info('Mobile {!r} confirmed '
+                            'for user {!r}'.format(number, user))
+    current_app.statsd.count(name='mobile_verify_success', value=1)
 
     phones = {'phones': user.phone_numbers.to_list_of_dicts()}
     return PhoneListPayload().dump(phones).data
@@ -231,8 +260,13 @@ def post_remove(user, number, csrf_token):
     if session.get_csrf_token() != csrf_token:
         abort(400)
 
+    current_app.logger.debug('Trying to remove mobile {!r} '
+                             'from user {!r}'.format(number, user))
+
     phones = user.phone_numbers.to_list()
     if len(phones) == 1:
+        msg = "Cannot remove unique mobile: {!r}".format(number)
+        current_app.logger.debug(msg)
         return {
             '_status': 'error',
             'error': {'form': 'phones.cannot_remove_unique'}
@@ -248,10 +282,16 @@ def post_remove(user, number, csrf_token):
     try:
         save_dashboard_user(user)
     except UserOutOfSync:
+        current_app.logger.debug('Couldnt remove mobile {!r} for user'
+                                 ' {!r}, data out of sync'.format(number, user))
         return {
             '_status': 'error',
             'error': {'form': 'out_of_sync'}
         }
+
+    current_app.logger.info('Mobile {!r} removed '
+                            'for user {!r}'.format(number, user))
+    current_app.statsd.count(name='mobile_remove_success', value=1)
 
     phones = {'phones': user.phone_numbers.to_list_of_dicts()}
     return PhoneListPayload().dump(phones).data
@@ -271,6 +311,9 @@ def resend_code(user, number, csrf_token):
     if session.get_csrf_token() != csrf_token:
         abort(400)
 
+    current_app.logger.debug('Trying to send new verification code for mobile '
+                             ' {!r} for user {!r}'.format(number, user))
+
     if not user.phone_numbers.find(number):
         current_app.logger.warning('Unknown phone in resend_code_action, user {!s}'.format(user))
         return {
@@ -279,6 +322,9 @@ def resend_code(user, number, csrf_token):
         }
 
     send_verification_code(user, number)
+    current_app.logger.debug('New verification code sended to '
+                             'mobile {!r} for user {!r}'.format(number, user))
+    current_app.statsd.count(name='mobile_resend_code', value=1)
 
     phones = {'phones': user.phone_numbers.to_list_of_dicts()}
     return PhoneListPayload().dump(phones).data
