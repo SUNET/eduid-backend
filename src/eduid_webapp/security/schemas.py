@@ -32,7 +32,7 @@
 #
 
 from marshmallow import fields
-from eduid_common.api.schemas.base import EduidSchema
+from eduid_common.api.schemas.base import FluxStandardAction, EduidSchema
 
 
 class CredentialSchema(EduidSchema):
@@ -46,8 +46,9 @@ class CredentialList(EduidSchema):
     csrf_token = fields.String(required=True)
 
 
-class SecurityResponseSchema(EduidSchema):
+class SecurityResponseSchema(FluxStandardAction):
     payload = fields.Nested(CredentialList, only=('credentials', 'csrf_token'))
+    csrf_token = fields.String(attribute='csrf_token')
 
 
 class CsrfSchema(EduidSchema):
