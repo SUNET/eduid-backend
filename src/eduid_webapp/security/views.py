@@ -36,7 +36,9 @@ from __future__ import absolute_import
 from flask import Blueprint, session, abort, current_app
 
 from eduid_common.api.decorators import require_dashboard_user, MarshalWith, UnmarshalWith
+from eduid_common.authn.utils import generate_password
 from eduid_webapp.security.schemas import SecurityResponseSchema, CredentialList, CsrfSchema, SecurityPasswordSchema
+from eduid_webapp.security.schemas import SuggestedPassword, SuggestedPasswordResponseSchema
 
 security_views = Blueprint('security', __name__, url_prefix='', template_folder='templates')
 
@@ -55,6 +57,23 @@ def get_credentials(user):
         'credentials': current_app.authninfo_db.get_authn_info(user) }
 
     return CredentialList().dump(credentials).data
+
+
+@security_views.route('/get-suggested-password', methods=['GET'])
+@MarshalWith(SuggestedPasswordResponseSchema)
+@require_dashboard_user
+def get_suggested(user):
+    """
+    View to get a suggested  password for the logged user.
+    """
+    csrf_token = session.get_csrf_token()
+    current_app.logger.debug('Triying to get the credentials '
+                             'for user {!r}'.format(user))
+    suggested = {
+            'suggested_password': generate_suggested_password()
+            }
+
+    return SuggestedPassword().dump(suggested).data
 
 
 @security_views.route('/delete', methods=['POST'])
@@ -91,3 +110,17 @@ def new_password(user, csrf_token, old_password, new_password):
     current_app.statsd.count(name='security_new_password', value=1)
 
     return 200
+
+
+
+def generate_suggested_password():
+    """
+    The suggested password is saved in session to avoid form hijacking
+    """
+    password_length = current_app.config.get('PASSWORD_LENGTH', 12)
+
+    password = generate_password(length=password_length)
+    password = ' '.join([password[i*4: i*4+4] for i in range(0, len(password)/4)])
+
+    session['last_generated_password'] = password
+    return password
