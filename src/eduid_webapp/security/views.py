@@ -37,7 +37,7 @@ from flask import Blueprint, session, abort, current_app
 
 from eduid_common.api.decorators import require_dashboard_user, MarshalWith, UnmarshalWith
 from eduid_common.authn.utils import generate_password
-from eduid_webapp.security.schemas import SecurityResponseSchema, CredentialList, CsrfSchema, SecurityPasswordSchema
+from eduid_webapp.security.schemas import SecurityResponseSchema, CredentialList, CsrfSchema
 from eduid_webapp.security.schemas import SuggestedPassword, SuggestedPasswordResponseSchema
 
 security_views = Blueprint('security', __name__, url_prefix='', template_folder='templates')
@@ -92,25 +92,6 @@ def delete_account(user, csrf_token):
     current_app.statsd.count(name='security_delete', value=1)
 
     return 200
-
-
-@security_views.route('/new', methods=['POST'])
-@UnmarshalWith(SecurityPasswordSchema)
-@require_dashboard_user
-def new_password(user, csrf_token, old_password, new_password):
-    """
-    view to change the password for user logged.
-    """
-    if session.get_csrf_token() != csrf_token:
-        abort(400)
-
-    current_app.logger.debug('Try to change password for user {!r}'.format(user))
-
-    current_app.logger.info('Changed password for user {!r}'.format(user))
-    current_app.statsd.count(name='security_new_password', value=1)
-
-    return 200
-
 
 
 def generate_suggested_password():

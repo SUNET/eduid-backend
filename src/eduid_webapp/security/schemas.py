@@ -51,6 +51,10 @@ class SecurityResponseSchema(FluxStandardAction):
     csrf_token = fields.String(attribute='csrf_token')
 
 
+class CsrfSchema(FluxStandardAction):
+    csrf_token = fields.String(attribute='csrf_token')
+
+
 class SuggestedPassword(EduidSchema):
 
     suggested_password = fields.String(required=True)
