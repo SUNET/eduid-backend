@@ -59,7 +59,7 @@ def get_credentials(user):
     return CredentialList().dump(credentials).data
 
 
-@security_views.route('/get-suggested-password', methods=['GET'])
+@security_views.route('/suggested-password', methods=['GET'])
 @MarshalWith(SuggestedPasswordResponseSchema)
 @require_dashboard_user
 def get_suggested(user):
