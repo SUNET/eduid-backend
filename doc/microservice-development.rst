@@ -336,6 +336,11 @@ An example of an internationalized formatted message::
                     }}
             />
 
+
+Messages are defined in the ``i18n-messages.js`` module, and are then used in
+the components through the ``props.l10n('msg.id')`` fuction.
+
+
 css
 ...
 
