@@ -38,6 +38,9 @@ from eduid_userdb import Password
 from eduid_userdb.dashboard import DashboardLegacyUser, DashboardUser
 from eduid_common.authn import get_vccs_client
 
+import logging
+logger = logging.getLogger()
+
 
 class FakeVCCSClient(vccs_client.VCCSClient):
 
@@ -74,25 +77,34 @@ class FakeVCCSClient(vccs_client.VCCSClient):
 
 
 class TestVCCSClient(object):
-    '''
-    Mock VCCS client for testing. It stores credentials locally,
+    """
+    Mock VCCS client for testing. It stores factors locally,
     and it only checks for the credential_id to authenticate/revoke.
 
     It is used as a singleton, so we can manipulate it in the tests
     before the real functions (check_password, add_credentials) use it.
-    '''
+    """
     def __init__(self):
-        self.credentials = {}
+        self.factors = {}
 
     def authenticate(self, user_id, factors):
         found = False
+        if user_id not in self.factors:
+            logger.debug('User {!r} not found in TestVCCSClient credential store:\n{}'.format(
+                user_id, self.factors))
+            return False
         for factor in factors:
+            logger.debug('Trying to authenticate user {} with factor {} (id {})'.format(
+                user_id, factor, factor.credential_id))
             fdict = factor.to_dict('auth')
-            for sfactor in self.credentials[user_id]:
-                if factor.credential_id != sfactor.credential_id:
+            for stored_factor in self.factors[user_id]:
+                if factor.credential_id != stored_factor.credential_id:
+                    logger.debug('No match for id of stored factor {} (id {})'.format(
+                        stored_factor, stored_factor.credential_id))
                     continue
+                logger.debug('Found matching credential_id: {}'.format(stored_factor))
                 try:
-                    sdict = sfactor.to_dict('auth')
+                    sdict = stored_factor.to_dict('auth')
                 except (AttributeError, ValueError):
                     # OATH token
                     found = True
@@ -102,14 +114,16 @@ class TestVCCSClient(object):
                     if fdict['H1'] == sdict['H1']:
                         found = True
                         break
+                    logger.debug('Hash {} did not match the expected hash {}'.format(fdict['H1'], sdict['H1']))
+        logger.debug('TestVCCSClient authenticate result for user_id {}: {}'.format(user_id, found))
         return found
 
     def add_credentials(self, user_id, factors):
-        self.credentials[user_id] = factors
+        self.factors[str(user_id)] = factors
         return True
 
     def revoke_credentials(self, user_id, revoked):
-        stored = self.credentials[user_id]
+        stored = self.factors[user_id]
         for rfactor in revoked:
             rdict = rfactor.to_dict('revoke_creds')
             for factor in stored:
@@ -117,8 +131,6 @@ class TestVCCSClient(object):
                 if rdict['credential_id'] == fdict['credential_id']:
                     stored.remove(factor)
                     break
-
-
 
 
 def provision_credentials(vccs_url, new_password, user,
@@ -129,11 +141,9 @@ def provision_credentials(vccs_url, new_password, user,
     Returns True on success.
 
     :param vccs_url: URL to VCCS authentication backend
-    :param old_password: plaintext current password
     :param new_password: plaintext new password
     :param user: user object
     :type vccs_url: str
-    :type old_password: str
     :type user: User
     :rtype: bool
     """
