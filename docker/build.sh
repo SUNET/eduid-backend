@@ -8,7 +8,7 @@ set -x
 
 cd /opt/eduid/eduid-webapp/
 
-PYPI="https://pypi.nordu.net/simple/"
+PYPI="https://pypi.sunet.se/simple/"
 /opt/eduid/bin/pip install -i ${PYPI} -r requirements/prod.txt
 
 /opt/eduid/bin/pip freeze
