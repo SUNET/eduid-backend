@@ -57,3 +57,9 @@ LOG_LEVEL = 'INFO'
 
 # timeout for phone verification token, in hours
 PHONE_VERIFICATION_TIMEOUT = 24
+
+PASSWORD_LENGTH = 12
+PASSWORD_ENTROPY = 25
+CHPASS_TIMEOUT = 600
+
+VCCS_URL = ''

@@ -32,13 +32,17 @@
 #
 
 from __future__ import absolute_import
+from datetime import datetime
 
 from flask import Blueprint, session, abort, current_app
 
 from eduid_common.api.decorators import require_dashboard_user, MarshalWith, UnmarshalWith
+from eduid_common.api.utils import save_dashboard_user
 from eduid_common.authn.utils import generate_password
+from eduid_common.authn.vccs import add_credentials
 from eduid_webapp.security.schemas import SecurityResponseSchema, CredentialList, CsrfSchema
 from eduid_webapp.security.schemas import SuggestedPassword, SuggestedPasswordResponseSchema
+from eduid_webapp.security.schemas import ChangePasswordSchema
 
 security_views = Blueprint('security', __name__, url_prefix='', template_folder='templates')
 
@@ -53,8 +57,10 @@ def get_credentials(user):
     csrf_token = session.get_csrf_token()
     current_app.logger.debug('Triying to get the credentials '
                              'for user {!r}'.format(user))
-    credentials =  { 'csrf_token': csrf_token,
-        'credentials': current_app.authninfo_db.get_authn_info(user) }
+    credentials =  {
+        'csrf_token': csrf_token,
+        'credentials': current_app.authninfo_db.get_authn_info(user)
+        }
 
     return CredentialList().dump(credentials).data
 
@@ -76,6 +82,69 @@ def get_suggested(user):
     return SuggestedPassword().dump(suggested).data
 
 
+def generate_suggested_password():
+    """
+    The suggested password is saved in session to avoid form hijacking
+    """
+    password_length = current_app.config.get('PASSWORD_LENGTH', 12)
+
+    password = generate_password(length=password_length)
+    password = ' '.join([password[i*4: i*4+4] for i in range(0, len(password)/4)])
+
+    session['last_generated_password'] = password
+    return password
+
+
+@security_views.route('/change-password', methods=['POST'])
+@MarshalWith(SecurityResponseSchema)
+@UnmarshalWith(ChangePasswordSchema)
+@require_dashboard_user
+def change_password(user, csrf_token, old_password, new_password):
+    """
+    View to chhange the password
+    """
+    if session.get_csrf_token() != csrf_token:
+        abort(400)
+
+    def error(err):
+        return {
+            '_status': 'error',
+            'error': {'form': err}
+            }
+
+    authn_ts = session.get('reauthn-for-chpass', None)
+    if authn_ts is None:
+        return error('chpass.no_reauthn')
+
+    now = datetime.utcnow()
+    delta = now - datetime.fromtimestamp(authn_ts)
+    timeout = current_app.config.get('CHPASS_TIMEOUT', 600)
+    if int(delta.total_seconds()) > timeout:
+        return error('chpass.stale_reauthn')
+
+    del session['reauthn-for-chpass']
+
+    vccs_url = current_app.config.get('VCCS_URL')
+    added = add_credentials(vccs_url, old_password, new_password,
+                    user, source='security')
+
+    if added:
+        user.terminated = False
+        try:
+            save_dashboard_user(user)
+        except UserOutOfSync:
+            return error('out_of_sync')
+    else:
+        return error('chpass.unknown_error')
+
+    credentials =  {
+        'csrf_token': csrf_token,
+        'credentials': current_app.authninfo_db.get_authn_info(user)
+        }
+
+    return CredentialList().dump(credentials).data
+
+
 @security_views.route('/delete', methods=['POST'])
 @UnmarshalWith(CsrfSchema)
 @require_dashboard_user
@@ -92,16 +161,3 @@ def delete_account(user, csrf_token):
     current_app.statsd.count(name='security_delete', value=1)
 
     return 200
-
-
-def generate_suggested_password():
-    """
-    The suggested password is saved in session to avoid form hijacking
-    """
-    password_length = current_app.config.get('PASSWORD_LENGTH', 12)
-
-    password = generate_password(length=password_length)
-    password = ' '.join([password[i*4: i*4+4] for i in range(0, len(password)/4)])
-
-    session['last_generated_password'] = password
-    return password
