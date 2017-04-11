@@ -1,0 +1,20 @@
+sudo: true
+addons:
+  apt:
+    packages:
+      xmlsec1  # pysaml2 needs to find an xmlsec1 binary
+language: python
+python:
+  - "2.7"
+# Have Travis CI start mongodb and redis for us
+services:
+  - mongodb
+  - redis-server
+  - docker
+# command to install dependencies
+install:
+  - pip install -U setuptools
+  - pip install -r requirements/testing.txt
+# command to run tests
+script:
+  - nosetests
