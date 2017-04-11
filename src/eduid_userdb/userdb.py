@@ -217,14 +217,14 @@ class UserDB(BaseDB):
         :return: User instance
         :rtype: UserClass
         """
-        oldmatch = {'number': phone, 'verified': True}
+        oldmatch = {'mobile': phone, 'verified': True}
         if include_unconfirmed:
-            oldmatch = {'number': phone}
-        old_filter = {'number': {'$elemMatch': oldmatch}}
+            oldmatch = {'mobile': phone}
+        old_filter = {'mobile': {'$elemMatch': oldmatch}}
         newmatch = {'number': phone, 'verified': True}
         if include_unconfirmed:
             newmatch = {'number': phone}
-        new_filter = {'number': {'$elemMatch': newmatch}}
+        new_filter = {'phone': {'$elemMatch': newmatch}}
         filter = {'$or': [old_filter, new_filter]}
         return self._get_user_by_filter(filter,
                                         raise_on_missing=raise_on_missing,

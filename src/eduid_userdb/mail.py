@@ -33,7 +33,7 @@
 #
 
 import copy
-
+from six import string_types
 from eduid_userdb.element import PrimaryElement, PrimaryElementList
 from eduid_userdb.exceptions import UserDBValueError
 
@@ -97,7 +97,7 @@ class MailAddress(PrimaryElement):
         :param value: e-mail address.
         :type value: str | unicode
         """
-        if not isinstance(value, basestring):
+        if not isinstance(value, string_types):
             raise UserDBValueError("Invalid 'email': {!r}".format(value))
         self._data['email'] = str(value.lower())
 

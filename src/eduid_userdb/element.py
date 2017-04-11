@@ -36,7 +36,7 @@ __author__ = 'ft'
 
 import copy
 import datetime
-
+from six import string_types
 from eduid_userdb.exceptions import EduIDUserDBError, UserHasUnknownData, UserDBValueError
 
 
@@ -252,7 +252,7 @@ class VerifiedElement(Element):
         """
         if value is None:
             return
-        if not isinstance(value, basestring):
+        if not isinstance(value, string_types):
             raise UserDBValueError("Invalid 'verification_code': {!r}".format(value))
         self._data['verification_code'] = value
 
@@ -546,14 +546,12 @@ class PrimaryElementList(ElementList):
             if len([e for e in elements if e.is_primary]) > 0:
                 raise PrimaryElementViolation('There are unconfirmed primary elements')
             return None
-        res = [x for x in verified if x.is_primary is True]
 
-        if len(res) > 1:
+        res = [x for x in verified if x.is_primary is True]
+        if len(res) > 1 or len(res) == 0:
             raise PrimaryElementViolation("{!s} contains {!s}/{!s} primary elements".format(
                 self.__class__.__name__,
                 len(res), len(elements)))
-        if len(res) == 0:
-            return None
         return res[0]
 
     @property
@@ -580,7 +578,7 @@ def _update_something_by(data, key, value):
         raise UserDBValueError("Refusing to modify {!r} of element".format(key))
     if value is None:
         return
-    if not isinstance(value, basestring):
+    if not isinstance(value, string_types):
         raise UserDBValueError("Invalid {!r} value: {!r}".format(key, value))
     data[key] = str(value)
 

@@ -187,7 +187,6 @@ class TestUserDB_phone(MongoTestCase):
         res = self.amdb.get_user_by_phone(u'+33333333333', include_unconfirmed = True)
         self.assertEqual(self.user2.user_id, res.user_id)
 
-
     def test_get_user_by_phone_old_format(self):
         """ Test compatibility code locating old style users """
         # Re-save the test users in old userdb format
