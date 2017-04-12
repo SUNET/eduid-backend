@@ -25,7 +25,7 @@ class TestProofingLog(TestCase):
     def test_id_proofing_data(self):
 
         proofing_element = ProofingLogElement(self.user, created_by='test', proofing_method='test',
-                                              proofing_method_version='1')
+                                              proofing_version='test')
         self.proofing_log_db.save(proofing_element)
 
         result = self.proofing_log_db._coll.find({})
@@ -42,7 +42,8 @@ class TestProofingLog(TestCase):
             'reason': 'matched',
             'nin': 'some_nin',
             'mobile_number': 'some_mobile_number',
-            'user_postal_address': {'response_data': {'some': 'data'}}
+            'user_postal_address': {'response_data': {'some': 'data'}},
+            'proofing_version': 'test'
         }
         proofing_element = TeleAdressProofing(self.user, **data)
         self.assertDictContainsSubset(data, proofing_element.to_dict())
@@ -56,6 +57,7 @@ class TestProofingLog(TestCase):
         self.assertIsNotNone(hit['created_ts'])
         self.assertEquals(hit['reason'], 'matched')
         self.assertEquals(hit['proofing_method'], 'TeleAdress')
+        self.assertEquals(hit['proofing_version'], 'test')
 
     def test_teleadress_proofing_relation(self):
         data = {
@@ -67,6 +69,7 @@ class TestProofingLog(TestCase):
             'mobile_number_registered_to': 'registered_national_identity_number',
             'registered_relation': 'registered_relation_to_user',
             'registered_postal_address': {'response_data': {'some': 'data'}},
+            'proofing_version': 'test'
         }
         proofing_element = TeleAdressProofingRelation(self.user, **data)
         self.assertDictContainsSubset(data, proofing_element.to_dict())
@@ -80,6 +83,7 @@ class TestProofingLog(TestCase):
         self.assertIsNotNone(hit['created_ts'])
         self.assertEquals(hit['reason'], 'matched_by_navet')
         self.assertEquals(hit['proofing_method'], 'TeleAdress')
+        self.assertEquals(hit['proofing_version'], 'test')
 
     def test_teleadress_proofing_extend_bug(self):
         data_match = {
@@ -87,7 +91,8 @@ class TestProofingLog(TestCase):
             'reason': 'matched',
             'nin': 'some_nin',
             'mobile_number': 'some_mobile_number',
-            'user_postal_address': {'response_data': {'some': 'data'}}
+            'user_postal_address': {'response_data': {'some': 'data'}},
+            'proofing_version': 'test'
         }
 
         data_relation = {
@@ -99,6 +104,7 @@ class TestProofingLog(TestCase):
             'mobile_number_registered_to': 'registered_national_identity_number',
             'registered_relation': 'registered_relation_to_user',
             'registered_postal_address': {'response_data': {'some': 'data'}},
+            'proofing_version': 'test'
         }
 
         # Make a copy of the original required keys
@@ -116,6 +122,7 @@ class TestProofingLog(TestCase):
             'letter_sent_to': {'name': {'some': 'data'}, 'address': {'some': 'data'}},
             'transaction_id': 'some transaction id',
             'user_postal_address': {'response_data': {'some': 'data'}},
+            'proofing_version': 'test'
         }
         proofing_element = LetterProofing(self.user, **data)
         self.assertDictContainsSubset(data, proofing_element.to_dict())
@@ -130,11 +137,13 @@ class TestProofingLog(TestCase):
         self.assertIsNotNone(hit['letter_sent_to'])
         self.assertIsNotNone(hit['transaction_id'])
         self.assertEquals(hit['proofing_method'], 'letter')
+        self.assertEquals(hit['proofing_version'], 'test')
 
     def test_mail_address_proofing(self):
         data = {
             'created_by': 'test',
             'mail_address': 'some_mail_address',
+            'proofing_version': 'test'
         }
         proofing_element = MailAddressProofing(self.user, **data)
         self.assertDictContainsSubset(data, proofing_element.to_dict())
@@ -153,6 +162,7 @@ class TestProofingLog(TestCase):
         data = {
             'created_by': 'test',
             'phone_number': 'some_phone_number',
+            'proofing_version': 'test'
         }
         proofing_element = PhoneNumberProofing(self.user, **data)
         self.assertDictContainsSubset(data, proofing_element.to_dict())
@@ -166,11 +176,13 @@ class TestProofingLog(TestCase):
         self.assertIsNotNone(hit['created_ts'])
         self.assertEquals(hit['proofing_method'], 'sms')
         self.assertEquals(hit['phone_number'], 'some_phone_number')
+        self.assertEquals(hit['proofing_version'], 'test')
 
     def test_missing_proofing_data(self):
         data = {
             'created_by': 'test',
             'phone_number': 'some_phone_number',
+            'proofing_version': 'test'
         }
         proofing_element = PhoneNumberProofing(self.user, **data)
         del proofing_element._data['created_by']

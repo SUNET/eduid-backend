@@ -37,26 +37,26 @@ class LogElement(Element):
 
 class ProofingLogElement(LogElement):
 
-    def __init__(self, user, created_by, proofing_method, proofing_method_version):
+    def __init__(self, user, created_by, proofing_method, proofing_version):
         """
         :param user: User object
         :param created_by: Application creating the log element
-        :param proofing_method: Method proofing name
-        :param proofing_method_version: Method proofing version number
+        :param proofing_method: Proofing method name
+        :param proofing_version: Proofing method version number
 
         :type user: eduid_userdb.user.User
         :type created_by: six.string_types
         :type proofing_method: six.string_types
-        :type proofing_method_version: six.string_types
+        :type proofing_version: six.string_types
 
         :return: ProofingLogElement object
         :rtype: ProofingLogElement
         """
         super(ProofingLogElement, self).__init__(created_by)
-        self._required_keys.extend(['eduPersonPrincipalName', 'proofing_method', 'proofing_method_version'])
+        self._required_keys.extend(['eduPersonPrincipalName', 'proofing_method', 'proofing_version'])
         self._data['eduPersonPrincipalName'] = user.eppn
         self._data['proofing_method'] = proofing_method
-        self._data['proofing_method_version'] = proofing_method_version
+        self._data['proofing_version'] = proofing_version
 
 
 class MailAddressProofing(ProofingLogElement):
@@ -66,25 +66,27 @@ class MailAddressProofing(ProofingLogElement):
         'created_ts': datetime.utcnow()
         'created_by': 'application',
         'proofing_method': 'e-mail',
-        'proofing_method_version': '2013v1',
+        'proofing_version': '2013v1',
         'mail_address': 'mail_address'
     }
     """
-    def __init__(self, user, created_by, mail_address):
+    def __init__(self, user, created_by, mail_address, proofing_version):
         """
         :param user: User object
         :param created_by: Application creating the log element
         :param mail_address: e-mail address
+        :param proofing_version: Proofing method version number
 
         :type user: eduid_userdb.user.User
         :type created_by: six.string_types
         :type mail_address: six.string_types
+        :type proofing_version: six.string_types
 
         :return: MailAddressProofing object
         :rtype: MailAddressProofing
         """
         super(MailAddressProofing, self).__init__(user, created_by, proofing_method='e-mail',
-                                                  proofing_method_version='2013v1')
+                                                  proofing_version=proofing_version)
         self._required_keys.extend(['mail_address'])
         self._data['mail_address'] = mail_address
 
@@ -96,25 +98,27 @@ class PhoneNumberProofing(ProofingLogElement):
         'created_ts': datetime.utcnow()
         'created_by': 'application',
         'proofing_method': 'sms',
-        'proofing_method_version': '2013v1',
+        'proofing_version': '2013v1',
         'phone_number': 'phone_number'
     }
     """
-    def __init__(self, user, created_by, phone_number):
+    def __init__(self, user, created_by, phone_number, proofing_version):
         """
         :param user: User object
         :param created_by: Application creating the log element
         :param phone_number: phone number
+        :param proofing_version: Proofing method version number
 
         :type user: eduid_userdb.user.User
         :type created_by: six.string_types
         :type phone_number: six.string_types
+        :type proofing_version: six.string_types
 
         :return: PhoneNumberProofing object
         :rtype: PhoneNumberProofing
         """
         super(PhoneNumberProofing, self).__init__(user, created_by, proofing_method='sms',
-                                                  proofing_method_version='2013v1')
+                                                  proofing_version=proofing_version)
         self._required_keys.extend(['phone_number'])
         self._data['phone_number'] = phone_number
 
@@ -126,7 +130,7 @@ class TeleAdressProofing(ProofingLogElement):
         'created_ts': datetime.utcnow()
         'created_by': 'application',
         'proofing_method': 'TeleAdress',
-        'proofing_method_version': '2014v1',
+        'proofing_version': '2014v1',
         'reason': 'matched',
         'nin': national_identity_number,
         'mobile_number': mobile_number,
@@ -135,7 +139,7 @@ class TeleAdressProofing(ProofingLogElement):
     }
     """
 
-    def __init__(self, user, created_by, reason, nin, mobile_number, user_postal_address):
+    def __init__(self, user, created_by, reason, nin, mobile_number, user_postal_address, proofing_version):
         """
         :param user: user object
         :param created_by: Application creating the log element
@@ -143,6 +147,7 @@ class TeleAdressProofing(ProofingLogElement):
         :param nin: National identity number
         :param mobile_number: Mobile phone number
         :param user_postal_address: Navet response for users official address
+        :param proofing_version: Proofing method version number
 
         :type user: eduid_userdb.User
         :type created_by: six.string_types
@@ -150,12 +155,13 @@ class TeleAdressProofing(ProofingLogElement):
         :type nin: six.string_types
         :type mobile_number: six.string_types
         :type user_postal_address: dict
+        :type proofing_version: six.string_types
 
         :return: TeleAdressProofing object
         :rtype: TeleAdressProofing
         """
         super(TeleAdressProofing, self).__init__(user, created_by, proofing_method='TeleAdress',
-                                                 proofing_method_version='2014v1')
+                                                 proofing_version=proofing_version)
         self._required_keys.extend(['reason', 'nin', 'mobile_number', 'user_postal_address'])
         self._data['reason'] = reason
         self._data['nin'] = nin
@@ -170,6 +176,7 @@ class TeleAdressProofingRelation(TeleAdressProofing):
         'created_ts': datetime.utcnow()
         'created_by': 'application',
         'proofing_method': 'TeleAdress',
+        'proofing_version': '2014v1',
         'reason': 'match_by_navet',
         'nin': national_identity_number,
         'mobile_number': mobile_number,
@@ -181,7 +188,7 @@ class TeleAdressProofingRelation(TeleAdressProofing):
     }
     """
     def __init__(self, user, created_by, reason, nin, mobile_number, user_postal_address, mobile_number_registered_to,
-                 registered_relation, registered_postal_address):
+                 registered_relation, registered_postal_address, proofing_version):
         """
         :param user: user object
         :param created_by: Application creating the log element
@@ -192,6 +199,7 @@ class TeleAdressProofingRelation(TeleAdressProofing):
         :param mobile_number_registered_to: NIN of registered user of mobile phone subscription
         :param registered_relation: Relation of mobile phone subscriber to User
         :param registered_postal_address: Navet response for mobile phone subscriber
+        :param proofing_version: Proofing method version number
 
         :type user: User
         :type created_by: six.string_types
@@ -202,12 +210,13 @@ class TeleAdressProofingRelation(TeleAdressProofing):
         :type mobile_number_registered_to: six.string_types
         :type registered_relation: six.string_types
         :type registered_postal_address:  dict
+        :type proofing_version: six.string_types
 
         :return: TeleAdressProofingRelation object
         :rtype: TeleAdressProofingRelation
         """
         super(TeleAdressProofingRelation, self).__init__(user, created_by, reason, nin, mobile_number,
-                                                         user_postal_address)
+                                                         user_postal_address, proofing_version=proofing_version)
         self._required_keys.extend(['mobile_number_registered_to', 'registered_relation', 'registered_postal_address'])
         self._data['mobile_number_registered_to'] = mobile_number_registered_to
         self._data['registered_relation'] = registered_relation
@@ -221,7 +230,7 @@ class LetterProofing(ProofingLogElement):
         'created_ts': datetime.utcnow()
         'created_by': 'application',
         'proofing_method': 'letter',
-        'proofing_method_version': '2016v1',
+        'proofing_version': '2016v1',
         'nin': 'national_identity_number',
         'letter_sent_to': {address_letter_was_sent_to},
         'transaction_id': 'transaction_id',
@@ -229,7 +238,7 @@ class LetterProofing(ProofingLogElement):
     }
     """
 
-    def __init__(self, user, created_by, nin, letter_sent_to, transaction_id, user_postal_address):
+    def __init__(self, user, created_by, nin, letter_sent_to, transaction_id, user_postal_address, proofing_version):
         """
         :param user: user object
         :param created_by: Application creating the log element
@@ -237,6 +246,7 @@ class LetterProofing(ProofingLogElement):
         :param letter_sent_to: Name and address the letter was sent to
         :param transaction_id: Letter service transaction id
         :param user_postal_address: Navet response for users official address
+        :param proofing_version: Proofing method version number
 
         :type user: User
         :type created_by: six.string_types
@@ -244,12 +254,13 @@ class LetterProofing(ProofingLogElement):
         :type letter_sent_to: dict
         :type transaction_id: six.string_types
         :type user_postal_address: dict
+        :type proofing_version: six.string_types
 
         :return: LetterProofing object
         :rtype: LetterProofing
         """
         super(LetterProofing, self).__init__(user, created_by, proofing_method='letter',
-                                             proofing_method_version='2016v1')
+                                             proofing_version=proofing_version)
         self._required_keys.extend(['proofing_method', 'nin', 'letter_sent_to', 'transaction_id',
                                     'user_postal_address'])
         self._data['nin'] = nin
