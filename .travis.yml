@@ -1,4 +1,4 @@
-sudo: true
+sudo: required
 addons:
   apt:
     packages:
@@ -6,6 +6,9 @@ addons:
 language: python
 python:
   - "2.7"
+before_install:
+  - docker pull docker.sunet.se/eduid/redis:latest
+  - docker pull docker.sunet.se/library/etcd:v2.2.5
 # Have Travis CI start mongodb and redis for us
 services:
   - mongodb
