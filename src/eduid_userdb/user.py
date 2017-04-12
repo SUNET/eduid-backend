@@ -35,6 +35,7 @@
 import bson
 import copy
 import datetime
+from six import string_types
 
 from eduid_userdb.exceptions import UserHasUnknownData, UserIsRevoked, UserHasNotCompletedSignup
 from eduid_userdb.element import UserDBValueError
@@ -201,7 +202,7 @@ class User(object):
             # old-style list of verified nins
             old_nins = self._data_in.pop('norEduPersonNIN')
             for this in old_nins:
-                if isinstance(this, basestring):
+                if isinstance(this, string_types):
                     # XXX lookup NIN in eduid-dashboards verifications to make sure it is verified somehow?
                     _primary = not _nins
                     _nins.append({'number': this,
@@ -449,7 +450,7 @@ class User(object):
         if not isinstance(value, list):
             raise UserDBValueError("Unknown 'entitlements' value: {!r}".format(value))
         for this in value:
-            if not isinstance(this, basestring):
+            if not isinstance(this, string_types):
                 raise UserDBValueError("Unknown 'entitlements' element: {!r}".format(this))
         self._data['entitlements'] = value
 

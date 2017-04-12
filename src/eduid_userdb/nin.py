@@ -33,7 +33,7 @@
 #
 
 import copy
-
+from six import string_types
 from eduid_userdb.element import PrimaryElement, PrimaryElementList
 from eduid_userdb.exceptions import UserDBValueError
 
@@ -91,7 +91,7 @@ class Nin(PrimaryElement):
         :param value: nin number.
         :type value: str | unicode
         """
-        if not isinstance(value, basestring):
+        if not isinstance(value, string_types):
             raise UserDBValueError("Invalid 'number': {!r}".format(value))
         self._data['number'] = str(value.lower())
 
