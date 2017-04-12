@@ -548,7 +548,7 @@ class PrimaryElementList(ElementList):
             return None
 
         res = [x for x in verified if x.is_primary is True]
-        if len(res) > 1 or len(res) == 0:
+        if len(res) != 1:
             raise PrimaryElementViolation("{!s} contains {!s}/{!s} primary elements".format(
                 self.__class__.__name__,
                 len(res), len(elements)))
