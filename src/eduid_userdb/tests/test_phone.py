@@ -202,10 +202,15 @@ class TestPhoneNumber(TestCase):
         address = self.two.primary
         self.assertEqual(address.key, address.number)
 
-    def test_setting_invalid_mail(self):
+    def test_setting_invalid_number(self):
         this = self.one.primary
         with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
             this.number = None
+
+    def test_create_phone_number(self):
+        one = copy.deepcopy(_one_dict)
+        one = PhoneNumber(data=one)
+        self.assertEqual(_one_dict, one.to_dict())
 
     def test_parse_cycle(self):
         """
@@ -224,12 +229,12 @@ class TestPhoneNumber(TestCase):
         one = copy.deepcopy(_one_dict)
         one['foo'] = 'bar'
         with self.assertRaises(eduid_userdb.exceptions.UserHasUnknownData):
-            PhoneNumber(one)
+            PhoneNumber(data=one)
 
     def test_unknown_input_data_allowed(self):
         one = copy.deepcopy(_one_dict)
         one['foo'] = 'bar'
-        addr = PhoneNumber(one, raise_on_unknown = False)
+        addr = PhoneNumber(data=one, raise_on_unknown = False)
         out = addr.to_dict()
         self.assertIn('foo', out)
         self.assertEqual(out['foo'], one['foo'])

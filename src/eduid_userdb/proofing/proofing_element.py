@@ -32,6 +32,7 @@
 #
 
 import copy
+from six import string_types
 
 from eduid_userdb.element import VerifiedElement, Element
 from eduid_userdb.element import _update_something_by, _update_something_ts
@@ -125,7 +126,7 @@ class NinProofingElement(ProofingElement):
         :param value: nin number.
         :type value: str | unicode
         """
-        if not isinstance(value, basestring):
+        if not isinstance(value, string_types):
             raise UserDBValueError("Invalid 'number': {!r}".format(value))
         self._data['number'] = str(value.lower())
 
@@ -181,7 +182,7 @@ class EmailProofingElement(ProofingElement):
         :param value: email.
         :type value: str | unicode
         """
-        if not isinstance(value, basestring):
+        if not isinstance(value, string_types):
             raise UserDBValueError("Invalid 'email': {!r}".format(value))
         self._data['email'] = str(value.lower())
 
@@ -237,7 +238,7 @@ class PhoneProofingElement(ProofingElement):
         :param value: number.
         :type value: str | unicode
         """
-        if not isinstance(value, basestring):
+        if not isinstance(value, string_types):
             raise UserDBValueError("Invalid 'phone number': {!r}".format(value))
         self._data['number'] = str(value.lower())
 
