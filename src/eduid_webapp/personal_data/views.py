@@ -49,7 +49,7 @@ pd_views = Blueprint('personal_data', __name__, url_prefix='')
 def get_user(user):
     csrf_token = session.get_csrf_token()
 
-    data = {'given_name': user.given_name ,
+    data = {'given_name': user.given_name,
             'surname': user.surname,
             'display_name': user.display_name,
             'language': user.language,
