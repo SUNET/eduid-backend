@@ -12,7 +12,6 @@ before_install:
 # Have Travis CI start mongodb and redis for us
 services:
   - mongodb
-  - redis-server
   - docker
 # command to install dependencies
 install:
