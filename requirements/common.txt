@@ -7,3 +7,4 @@ eduid-userdb>=0.2.4b0
 eduid-common[webapp]>=0.2.1b24
 eduid-am>=0.6.2b2
 marshmallow>=2.10,<2.11
+flask-babel>=0.11.1
