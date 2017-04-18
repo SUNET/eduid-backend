@@ -1,11 +1,12 @@
-sudo: false
+sudo: required
 language: python
 python:
   - "2.7"
 #  - "3.5"
-# We need a mongo binary
 services:
-  - mongodb
+  - docker
+before_install:
+  - docker pull docker.sunet.se/eduid/mongodb:latest
 # command to install dependencies
 install:
   - pip install -U setuptools
