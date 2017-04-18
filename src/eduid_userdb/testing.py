@@ -196,7 +196,7 @@ class MongoTemporaryInstance(object):
         # XXX: wait for the instance to be ready
         #      Mongo is ready in a glance, we just wait to be able to open a
         #      Connection.
-        for i in range(10):
+        for i in range(100):
             time.sleep(0.2)
             try:
                 self._conn = pymongo.Connection('localhost', self._port)
