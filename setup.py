@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 
-version = '0.3.0b1'
+version = '0.3.0b2'
 
 requires = [
     'setuptools >= 2.2',
@@ -36,6 +36,9 @@ idp_requires = [
 ]
 idp_extras = idp_requires + []
 
+# No dependecies flavor, let the importing application handle dependencies
+nodeps_requires = requires
+
 test_requires = [
     'mock == 1.0.1',
 ]
@@ -55,7 +58,7 @@ setup(name='eduid-common',
           "Programming Language :: Python",
       ],
       keywords='',
-      author='NORDUnet A/S',
+      author='SUNET',
       author_email='',
       url='https://github.com/SUNET/',
       license='bsd',
@@ -70,6 +73,7 @@ setup(name='eduid-common',
           'testing': testing_extras,
           'webapp': webapp_extras,
           'idp': idp_extras,
+          'nodeps': []
       },
       entry_points="""
       """,
