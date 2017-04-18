@@ -40,6 +40,7 @@ import time
 import atexit
 import random
 import tempfile
+import shutil
 import unittest
 import subprocess
 import pymongo
@@ -185,16 +186,13 @@ class MongoTemporaryInstance(object):
     def __init__(self):
         self._tmpdir = tempfile.mkdtemp()
         self._port = random.randint(40000, 50000)
-        self._process = subprocess.Popen(['mongod', '--bind_ip', 'localhost',
-                                          '--port', str(self._port),
-                                          '--dbpath', self._tmpdir,
-                                          '--nojournal', '--nohttpinterface',
-                                          '--noauth', '--smallfiles',
-                                          '--syncdelay', '0',
-                                          '--nssize', '1', ],
-                                         stdout=open('/tmp/mongo-temp.log', 'wb'),
+        self._process = subprocess.Popen(['docker', 'run', '--rm',
+                                          '-p', '{!s}:27017'.format(self._port),
+                                          '-v', '{!s}:/data'.format(self._tmpdir),
+                                          'docker.sunet.se/eduid/mongodb:latest',
+                                          ],
+                                         stdout=open('/tmp/mongodb-temp.log', 'wb'),
                                          stderr=subprocess.STDOUT)
-
         # XXX: wait for the instance to be ready
         #      Mongo is ready in a glance, we just wait to be able to open a
         #      Connection.
@@ -223,7 +221,7 @@ class MongoTemporaryInstance(object):
             self._process.terminate()
             self._process.wait()
             self._process = None
-            #shutil.rmtree(self._tmpdir, ignore_errors=True)
+            shutil.rmtree(self._tmpdir, ignore_errors=True)
 
     def get_uri(self, dbname=None):
         """
