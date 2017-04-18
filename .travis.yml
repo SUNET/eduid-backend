@@ -9,6 +9,7 @@ python:
 before_install:
   - docker pull docker.sunet.se/eduid/redis:latest
   - docker pull docker.sunet.se/library/etcd:v2.2.5
+  - docker pull docker.sunet.se/eduid/mongodb:latest
 # Have Travis CI start mongodb and redis for us
 services:
   - mongodb
