@@ -33,7 +33,7 @@
 
 from __future__ import absolute_import
 
-from flask.ext.babel import Babel
+from flask_babel import Babel
 
 from eduid_common.api.app import eduid_init_app
 from eduid_common.api import mail_relay
