@@ -35,7 +35,7 @@
 import copy
 
 from bson import ObjectId
-
+from six import string_types
 from eduid_userdb.element import Element, ElementList, DuplicateElementViolation
 from eduid_userdb.exceptions import UserDBValueError, BadEvent, EventHasUnknownData
 
@@ -100,7 +100,7 @@ class Event(Element):
         """
         if value is None:
             return
-        if not isinstance(value, basestring):
+        if not isinstance(value, string_types):
             raise UserDBValueError("Invalid 'event_type': {!r}".format(value))
         self._data['event_type'] = str(value.lower())
 

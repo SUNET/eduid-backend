@@ -34,8 +34,9 @@
 #
 __author__ = 'lundberg'
 
-from bson.objectid import ObjectId
 import copy
+from bson.objectid import ObjectId
+from six import string_types
 from eduid_userdb.element import Element, ElementList, DuplicateElementViolation
 from eduid_userdb.exceptions import UserHasUnknownData, UserDBValueError
 
@@ -114,7 +115,7 @@ class Password(Element):
         :param value: Password salt.
         :type value: str
         """
-        if not isinstance(value, basestring):
+        if not isinstance(value, string_types):
             raise UserDBValueError("Invalid 'salt': {!r}".format(value))
         self._data['salt'] = value
 
