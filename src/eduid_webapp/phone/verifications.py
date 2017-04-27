@@ -61,7 +61,7 @@ def new_verification_code(phone, user):
                             'for user {!r} and mobile {!r}.'.format(user, phone))
     current_app.logger.debug('Verification Code:'
                              ' {!r}.'.format(verification_state.to_dict()))
-    return code, str(verification._data['_id'])
+    return code, str(verification_state.to_dict()['_id'])
 
 
 def send_verification_code(user, phone):

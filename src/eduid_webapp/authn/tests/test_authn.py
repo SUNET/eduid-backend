@@ -279,9 +279,8 @@ class UnAuthnAPITestCase(EduidAPITestCase):
                   'a47')
         self.redis_instance.conn.set(sessid, json.dumps({'v1': {'id': '0'}}))
 
-        with self.app.test_client() as c:
-            cookie_name = self.app.config.get('SESSION_COOKIE_NAME')
-            c.set_cookie('localhost', cookie_name, token)
+        eppn = self.test_user_data['eduPersonPrincipalName']
+        with self.session_cookie(self.browser, eppn) as c:
             self.assertRaises(NotFound, c.get, '/')
 
 
