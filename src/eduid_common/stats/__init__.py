@@ -16,16 +16,16 @@ __author__ = 'ft'
 
 class NoOpStats(object):
     """
-    No-op class used when stathats_user is not set.
+    No-op class used when statsd server is not set.
 
     Having this no-op class initialized in case there is no statsd_server
     configured allows us to not check if request.stats is set everywhere.
     """
     def __init__(self, logger = None, prefix=None):
         self.logger = logger
-        self.prefix = None
+        self.prefix = prefix
 
-    def count(self, name, value):
+    def count(self, name, value=1):
         if self.logger:
             if self.prefix:
                 name = '{!s}.{!s}'.format(self.prefix, name)
