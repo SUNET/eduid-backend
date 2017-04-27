@@ -32,7 +32,20 @@
 # Author : Fredrik Thulin <fredrik@thulin.net>
 #
 
-__author__ = 'ft'
 import datetime
 from eduid_userdb.exceptions import UserDBValueError
 
+__author__ = 'ft'
+
+
+class UTC(datetime.tzinfo):
+    """UTC"""
+
+    def utcoffset(self, dt):
+        return datetime.timedelta(0)
+
+    def tzname(self, dt):
+        return "UTC"
+
+    def dst(self, dt):
+        return datetime.timedelta(0)
