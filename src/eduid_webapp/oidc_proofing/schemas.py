@@ -21,6 +21,14 @@ class NonceResponseSchema(FluxStandardAction):
     payload = fields.Nested(NonceResponsePayload)
 
 
+class OpaqueResponseSchema(FluxStandardAction):
+
+    class OpaqueResponsePayload(EduidSchema):
+        opaque = fields.String(required=True)
+
+    payload = fields.Nested(OpaqueResponsePayload)
+
+
 # TODO: Remove after demo stage
 class ProofResponseSchema(EduidSchema):
 

@@ -9,16 +9,14 @@ import json
 from flask import request, make_response, url_for
 from flask import current_app, Blueprint
 from oic.oic.message import AuthorizationResponse, ClaimsRequest, Claims
-from operator import itemgetter
-from marshmallow.exceptions import ValidationError
 
 from eduid_userdb.proofing import ProofingUser
-from eduid_userdb.nin import Nin
-from eduid_common.api.utils import get_unique_hash, StringIO
-from eduid_common.api.decorators import require_user, require_eppn, MarshalWith, UnmarshalWith
-from eduid_userdb.proofing import OidcProofingState
+from eduid_userdb.logs import OidcProofing
+from eduid_userdb.exceptions import DocumentDoesNotExist
+from eduid_common.api.utils import StringIO
+from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
 from eduid_webapp.oidc_proofing import schemas
-from eduid_webapp.oidc_proofing.mock_proof import Proof, DocumentDoesNotExist
+from eduid_webapp.oidc_proofing import helpers
 
 __author__ = 'lundberg'
 
@@ -53,7 +51,7 @@ def authorization_response():
     current_app.logger.debug('Proofing state {!s} for user {!s} found'.format(proofing_state.state,
                                                                               proofing_state.eppn))
 
-    # Check if the token from the QR code matches the token we created when making the auth request
+    # Check if the token from the authn response matches the token we created when making the auth request
     authorization_header = request.headers.get('Authorization')
     if authorization_header != 'Bearer {}'.format(proofing_state.token):
         current_app.logger.error('The authorization token ({!s}) did not match the expected'.format(
@@ -67,7 +65,7 @@ def authorization_response():
         'redirect_uri': url_for('oidc_proofing.authorization_response', _external=True)
     }
     current_app.logger.debug('Trying to do token request: {!s}'.format(args))
-    # TODO: What and where should be save from the token response
+    # TODO: What should be save from the token response and where?
     token_resp = current_app.oidc_client.do_access_token_request(scope='openid', state=authn_resp['state'],
                                                                  request_args=args,
                                                                  authn_method='client_secret_basic')
@@ -88,107 +86,66 @@ def authorization_response():
             proofing_state.eppn))
         return make_response('OK', 200)
 
-    # Check proofed nin against self proclaimed OidcProofingState.nin.number
-    number = userinfo['identity']
-    if proofing_state.nin.number == number:
-        nin = Nin(data=proofing_state.nin.to_dict())
-        nin.is_verified = True
+    # TODO: Break out in parts to be able to continue the proofing process after a successful authorization response
+    # TODO: even if the token request, userinfo request or something internal fails
+    am_user = current_app.central_userdb.get_user_by_eppn(proofing_state.eppn)
+    user = ProofingUser(data=am_user.to_dict())
 
-        # TODO: Break out in parts to be able to continue the proofing process after a successful authorization response
-        # TODO: even if the token request, userinfo request or something internal fails
-        am_user = current_app.central_userdb.get_user_by_eppn(proofing_state.eppn)
-        user = ProofingUser(data=am_user.to_dict())
+    # A user can only have one NIN verified at this time
+    if user.nins.primary is None:
+        success = False
+        # Handle userinfo differently depending on data in userinfo
+        if userinfo.get('identity'):
+            current_app.logger.info('Handling userinfo as generic seleg vetting for user {}'.format(user))
+            user, success = helpers.handle_seleg_userinfo(user, proofing_state, userinfo)
+            vetting_by = 'seleg'
+        elif userinfo.get('freja_proofing'):
+            current_app.logger.info('Handling userinfo as freja vetting for user {}'.format(user))
+            user, success = helpers.handle_freja_userinfo(user, proofing_state, userinfo)
+            vetting_by = 'verisec'
 
-        # Check if the user has more than one verified nin
-        if user.nins.primary is None:
-            # No primary NIN found, make the only verified NIN primary
-            nin.is_primary = True
-        user.nins.add(nin)
+        # If user was updated successfully continue with logging the proof and saving the user to central db
+        if success:
+            # Send proofing data to the proofing log
+            current_app.logger.info('Getting address for user {!r}'.format(user))
+            # Lookup official address via Navet
+            address = current_app.msg_relay.get_postal_address(proofing_state.nin.number)
+            # Transaction id is the same data as used for the QR code or seed data for the freja app
+            transaction_id = '1' + json.dumps({'nonce': proofing_state.nonce, 'token': proofing_state.token})
+            oidc_proof = OidcProofing(user, created_by='oidc_proofing', nin=proofing_state.nin.number,
+                                      vetting_by=vetting_by, transaction_id=transaction_id, user_postal_address=address,
+                                      proofing_version='2017v1')
+            if current_app.proofing_log.save(oidc_proof):
+                # User from central db is as up to date as it can be no need to check for modified time
+                user.modified_ts = True
+                # Save user to private db
+                current_app.proofing_userdb.save(user, check_sync=False)
 
-        # XXX: Send proofing data to some kind of proofing log
-
-        # User from central db is as up to date as it can be no need to check for modified time
-        user.modified_ts = True
-        # Save user to private db
-        current_app.proofing_userdb.save(user, check_sync=False)
-
-        # TODO: Need to decide where to "steal" NIN if multiple users have the NIN verified
-        # Ask am to sync user to central db
-        try:
-            current_app.logger.info('Request sync for user {!s}'.format(user))
-            result = current_app.am_relay.request_user_sync(user)
-            current_app.logger.info('Sync result for user {!s}: {!s}'.format(user, result))
-        except Exception as e:
-            current_app.logger.error('Sync request failed for user {!s}'.format(user))
-            current_app.logger.error('Exception: {!s}'.format(e))
-            # TODO: Need to able to retry this
-            return make_response('OK', 200)
-
-        # TODO: Remove saving of proof
-        # Save proof for demo purposes
-        proof_data = {
-            'eduPersonPrincipalName': proofing_state.eppn,
-            'authn_resp': authn_resp.to_dict(),
-            'token_resp': token_resp.to_dict(),
-            'userinfo': userinfo.to_dict()
-        }
-        current_app.proofdb.save(Proof(data=proof_data))
+                # TODO: Need to decide where to "steal" NIN if multiple users have the NIN verified
+                # Ask am to sync user to central db
+                try:
+                    current_app.logger.info('Request sync for user {!s}'.format(user))
+                    result = current_app.am_relay.request_user_sync(user)
+                    current_app.logger.info('Sync result for user {!s}: {!s}'.format(user, result))
+                except Exception as e:
+                    current_app.logger.error('Sync request failed for user {!s}'.format(user))
+                    current_app.logger.error('Exception: {!s}'.format(e))
+                    # TODO: Need to able to retry
 
     # Remove users proofing state
     current_app.proofing_statedb.remove_state(proofing_state)
     return make_response('OK', 200)
 
 
-@oidc_proofing_views.route('/proofing', methods=['POST'])
-@UnmarshalWith(schemas.OidcProofingRequestSchema)
+@oidc_proofing_views.route('/proofing', methods=['GET'])
 @MarshalWith(schemas.NonceResponseSchema)
 @require_user
-def proofing(user, nin):
-
+def get_seleg_state(user):
     current_app.logger.debug('Getting state for user {!s}.'.format(user))
-
-    # TODO: Check if a user has a valid letter proofing
-    # For now a user can just have one verified NIN
-    if len(user.nins.to_list()) > 0:
-        return {'_status': 'error', 'error': 'User is already verified'}
-
-    proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn, raise_on_missing=False)
-    if not proofing_state:
-        current_app.logger.debug('No proofing state found for user {!s}. Initializing new proofing flow.'.format(user))
-        state = get_unique_hash()
-        nonce = get_unique_hash()
-        token = get_unique_hash()
-        nin = Nin(number=nin, application='eduid_oidc_proofing', verified=False, primary=False)
-        proofing_state = OidcProofingState({'eduPersonPrincipalName': user.eppn, 'nin': nin.to_dict(), 'state': state,
-                                            'nonce': nonce, 'token': token})
-        # Initiate proofing
-        oidc_args = {
-            'client_id': current_app.oidc_client.client_id,
-            'response_type': 'code',
-            'scope': ['openid'],
-            'redirect_uri': url_for('oidc_proofing.authorization_response', _external=True),
-            'state': state,
-            'nonce': nonce,
-            'claims': ClaimsRequest(userinfo=Claims(identity=None)).to_json()
-        }
-        current_app.logger.debug('AuthenticationRequest args:')
-        current_app.logger.debug(oidc_args)
-        try:
-            response = requests.post(current_app.oidc_client.authorization_endpoint, data=oidc_args)
-        except requests.exceptions.ConnectionError as e:
-            msg = 'No connection to authorization endpoint: {!s}'.format(e)
-            current_app.logger.error(msg)
-            return {'_status': 'error', 'error': msg}
-        # If authentication request went well save user state
-        if response.status_code == 200:
-            current_app.logger.debug('Authentication request delivered to provider {!s}'.format(
-                current_app.config['PROVIDER_CONFIGURATION_INFO']['issuer']))
-            current_app.proofing_statedb.save(proofing_state)
-            current_app.logger.debug('Proofing state {!s} for user {!s} saved'.format(proofing_state.state, user))
-        else:
-            current_app.logger.error('Bad response from OP: {!s} {!s} {!s}'.format(response.status_code,
-                                                                                   response.reason, response.content))
-            return {'_status': 'error', 'error': 'Temporary technical problems'}
+    try:
+        proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn)
+    except DocumentDoesNotExist:
+        return {}
     # Return nonce and nonce as qr code
     current_app.logger.debug('Returning nonce for user {!s}'.format(user))
     buf = StringIO()
@@ -202,21 +159,94 @@ def proofing(user, nin):
     }
 
 
-# TODO Remove after demo
-@oidc_proofing_views.route('/proofs', methods=['GET'])
-@MarshalWith(schemas.ProofResponseSchema)
-@require_eppn
-def proofs(eppn):
-    current_app.logger.debug('Getting proofs for user with eppn {!s}.'.format(eppn))
-    try:
-        proof_data = current_app.proofdb.get_proofs_by_eppn(eppn)
-    except DocumentDoesNotExist:
-        return {'proofs': []}
-    data = []
-    for proof in proof_data:
-        tmp = proof.to_dict()
-        del tmp['_id']
-        data.append(tmp)
-    data = sorted(data, key=itemgetter('modified_ts'), reverse=True)
-    return {'proofs': data}
+@oidc_proofing_views.route('/proofing', methods=['POST'])
+@UnmarshalWith(schemas.OidcProofingRequestSchema)
+@MarshalWith(schemas.NonceResponseSchema)
+@require_user
+def seleg_proofing(user, nin):
+    # For now a user can just have one verified NIN
+    if user.nins.primary.verified is not None:
+        return {'_status': 'error', 'error': 'User is already verified'}
+    # A user can not verify new nin if one already exists
+    if len(user.nins.to_list()) > 0 and any(item for item in user.nins.to_list() if item.number != nin):
+        return {'_status': 'error', 'error': 'Another nin is already registered for this user'}
 
+    proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn, raise_on_missing=False)
+    if not proofing_state:
+        current_app.logger.debug('No proofing state found for user {!s}. Initializing new proofing flow.'.format(user))
+        proofing_state = helpers.create_proofing_state(user, nin)
+        helpers.add_nin_to_user(user, proofing_state)
+
+        # Initiate authn request
+        try:
+            redirect_url = url_for('oidc_proofing.authorization_response', _external=True)
+            claims_request = ClaimsRequest(userinfo=Claims(identity=None))
+            success = helpers.do_authn_request(proofing_state, claims_request, redirect_url)
+            if not success:
+                return {'_status': 'error', 'error': 'Temporary technical problems'}
+        except requests.exceptions.ConnectionError as e:
+            msg = 'No connection to authorization endpoint: {!s}'.format(e)
+            current_app.logger.error(msg)
+            return {'_status': 'error', 'error': msg}
+
+        # If authentication request went well save user state
+        current_app.proofing_statedb.save(proofing_state)
+        current_app.logger.debug('Proofing state {!s} for user {!s} saved'.format(proofing_state.state, user))
+
+    return get_seleg_state(user)
+
+
+@oidc_proofing_views.route('/freja/proofing', methods=['GET'])
+@MarshalWith(schemas.OpaqueResponseSchema)
+@require_user
+def get_freja_state(user):
+    current_app.logger.debug('Getting state for user {!s}.'.format(user))
+    try:
+        proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn)
+    except DocumentDoesNotExist:
+        return {}
+    # Return nonce and token
+    current_app.logger.debug('Returning nonce and token for user {!s}'.format(user))
+    # The "1" below denotes the version of the data exchanged, right now only version 1 is supported.
+    opaque_data = '1' + json.dumps({'nonce': proofing_state.nonce, 'token': proofing_state.token})
+    return {
+        'opaque': opaque_data
+    }
+
+
+@oidc_proofing_views.route('/freja/proofing', methods=['POST'])
+@UnmarshalWith(schemas.OidcProofingRequestSchema)
+@MarshalWith(schemas.OpaqueResponseSchema)
+@require_user
+def freja_proofing(user, nin):
+
+    # For now a user can just have one verified NIN
+    if user.nins.primary.verified is not None:
+        return {'_status': 'error', 'error': 'User is already verified'}
+    # A user can not verify new nin if one already exists
+    if len(user.nins.to_list()) > 0 and any(item for item in user.nins.to_list() if item.number != nin):
+        return {'_status': 'error', 'error': 'Another nin is already registered for this user'}
+
+    proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn, raise_on_missing=False)
+    if not proofing_state:
+        current_app.logger.debug('No proofing state found for user {!s}. Initializing new proofing flow.'.format(user))
+        proofing_state = helpers.create_proofing_state(user, nin)
+        helpers.add_nin_to_user(user, proofing_state)
+
+        # Initiate authn request
+        try:
+            redirect_url = url_for('oidc_proofing.authorization_response', _external=True)
+            claims_request = ClaimsRequest(userinfo=Claims(freja_proofing=None))
+            success = helpers.do_authn_request(proofing_state, claims_request, redirect_url)
+            if not success:
+                return {'_status': 'error', 'error': 'Temporary technical problems'}
+        except requests.exceptions.ConnectionError as e:
+            msg = 'No connection to authorization endpoint: {!s}'.format(e)
+            current_app.logger.error(msg)
+            return {'_status': 'error', 'error': msg}
+
+        # If authentication request went well save user state
+        current_app.proofing_statedb.save(proofing_state)
+        current_app.logger.debug('Proofing state {!s} for user {!s} saved'.format(proofing_state.state, user))
+
+    return get_freja_state(user)
