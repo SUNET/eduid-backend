@@ -8,11 +8,10 @@ from oic.oic.message import RegistrationRequest
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 
 from eduid_common.api.app import eduid_init_app
-from eduid_common.api import am
+from eduid_common.api import am, msg
 from eduid_common.authn.utils import no_authn_views
 from eduid_userdb.proofing import OidcProofingStateDB, OidcProofingUserDB
-
-from eduid_webapp.oidc_proofing.mock_proof import ProofDB
+from eduid_userdb.logs import ProofingLog
 
 __author__ = 'lundberg'
 
@@ -61,6 +60,7 @@ def init_oidc_proofing_app(name, config):
     app = no_authn_views(app, ['/authorization-response'])
 
     # Init celery
+    app = msg.init_relay(app)
     app = am.init_relay(app, 'eduid_oidc_proofing')
 
     # Initialize the oidc_client after views to be able to set correct redirect_uris
@@ -69,7 +69,7 @@ def init_oidc_proofing_app(name, config):
     # Initialize db
     app.proofing_statedb = OidcProofingStateDB(app.config['MONGO_URI'])
     app.proofing_userdb = OidcProofingUserDB(app.config['MONGO_URI'])
-    app.proofdb = ProofDB(app.config['MONGO_URI'])  # Temporary demo db
+    app.proofing_log = ProofingLog(app.config['MONGO_URI'])
 
     return app
 
