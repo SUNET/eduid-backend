@@ -19,11 +19,10 @@ from eduid_webapp.oidc_proofing.app import init_oidc_proofing_app
 __author__ = 'lundberg'
 
 
-class AppTests(EduidAPITestCase):
+class OidcProofingTests(EduidAPITestCase):
     """Base TestCase for those tests that need a full environment setup"""
 
     def setUp(self):
-        super(AppTests, self).setUp()
 
         self.test_user_eppn = 'hubba-bubba'
         self.test_user_nin = '200001023456'
@@ -35,8 +34,6 @@ class AppTests(EduidAPITestCase):
                                               (u'PostalCode', u'12345'),
                                               (u'City', u'LANDET')]))
         ])
-
-        self.client = self.app.test_client()
 
         self.oidc_provider_config = {
             'authorization_endpoint': 'https://example.com/op/authentication',
@@ -80,6 +77,9 @@ class AppTests(EduidAPITestCase):
 
         self.oidc_provider_config_response = MockResponse(200, json.dumps(self.oidc_provider_config))
 
+        super(OidcProofingTests, self).setUp()
+        self.client = self.app.test_client()
+
         # Replace user with one without previous proofings
         userdata = deepcopy(NEW_USER_EXAMPLE)
         del userdata['nins']
@@ -92,7 +92,9 @@ class AppTests(EduidAPITestCase):
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        return init_oidc_proofing_app('testing', config)
+        with patch('oic.oic.Client.http_request') as mock_response:
+            mock_response.return_value = self.oidc_provider_config_response
+            return init_oidc_proofing_app('testing', config)
 
     def update_config(self, config):
         config.update({
@@ -103,7 +105,7 @@ class AppTests(EduidAPITestCase):
                 'CELERY_TASK_SERIALIZER': 'json'
             },
             'PROVIDER_CONFIGURATION_INFO': {
-                'issuer': 'https://example.com'
+                'issuer': 'https://example.com/op/'
             },
             'CLIENT_REGISTRATION_INFO': {
                 'client_id': 'test_client',
@@ -113,16 +115,24 @@ class AppTests(EduidAPITestCase):
         return config
 
     def tearDown(self):
-        super(AppTests, self).tearDown()
+        super(OidcProofingTests, self).tearDown()
         with self.app.app_context():
             self.app.proofing_statedb._drop_whole_collection()
             self.app.central_userdb._drop_whole_collection()
 
-    #@patch('eduid_webapp.oidc_proofing.app.Client.http_request')
-    #def test_authenticate(self, mock_response):
-    #    mock_response.return_value = self.oidc_provider_config_response
-    #    response = self.client.get('/proofing')
-    #    self.assertEqual(response.status_code, 302)  # Redirect to token service
-    #    with self.session_cookie(self.client, self.test_user_eppn) as client:
-    #        response = client.get('/proofing')
-    #    self.assertEqual(response.status_code, 200)  # Authenticated request
+    def test_authenticate(self):
+        response = self.client.get('/proofing')
+        self.assertEqual(response.status_code, 302)  # Redirect to token service
+        with self.session_cookie(self.client, self.test_user_eppn) as client:
+            response = client.get('/proofing')
+        self.assertEqual(response.status_code, 200)  # Authenticated request
+
+    def test_empty_state(self):
+        with self.session_cookie(self.client, self.test_user_eppn) as client:
+            response = json.loads(client.get('/proofing').data)
+        self.assertEqual(response['type'], 'GET_OIDC_PROOFING_PROOFING_SUCCESS')
+
+    def test_empty_freja_state(self):
+        with self.session_cookie(self.client, self.test_user_eppn) as client:
+            response = json.loads(client.get('/freja/proofing').data)
+        self.assertEqual(response['type'], 'GET_OIDC_PROOFING_FREJA_PROOFING_SUCCESS')
