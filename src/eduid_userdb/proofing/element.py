@@ -76,8 +76,29 @@ class ProofingElement(VerifiedElement):
                            verified_ts=verified_ts,
                            verification_code=verification_code,
                            )
-
+        verification_code = data_in.pop('verification_code', None)
         VerifiedElement.__init__(self, data_in)
+        self.verification_code = verification_code
+
+    @property
+    def verification_code(self):
+        """
+        :return: Confirmation code used to verify this element.
+        :rtype: str | unicode
+        """
+        return self._data['verification_code']
+
+    @verification_code.setter
+    def verification_code(self, value):
+        """
+        :param value: New verification_code
+        :type value: str | unicode | None
+        """
+        if value is None:
+            return
+        if not isinstance(value, string_types):
+            raise UserDBValueError("Invalid 'verification_code': {!r}".format(value))
+        self._data['verification_code'] = value
 
 
 class NinProofingElement(ProofingElement):
@@ -102,7 +123,7 @@ class NinProofingElement(ProofingElement):
                  verified=False, verification_code=None, data=None):
 
         data = copy.copy(data)
-        if number == None:
+        if number is None:
             number = data.pop('number')
 
         super(NinProofingElement, self).__init__(application=application,
@@ -158,7 +179,7 @@ class EmailProofingElement(ProofingElement):
                  verified=False, verification_code=None, data=None):
 
         data = copy.copy(data)
-        if email == None:
+        if email is None:
             email = data.pop('email')
 
         super(EmailProofingElement, self).__init__(application=application,

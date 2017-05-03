@@ -171,7 +171,6 @@ class VerifiedElement(Element):
         is_verified
         verified_by
         verified_ts
-        verification_code
     """
 
     def __init__(self, data):
@@ -179,7 +178,6 @@ class VerifiedElement(Element):
         self.is_verified = data.pop('verified', False)
         self.verified_by = data.pop('verified_by', None)
         self.verified_ts = data.pop('verified_ts', None)
-        self.verification_code = data.pop('verification_code', None)
 
     # -----------------------------------------------------------------
     @property
@@ -234,27 +232,6 @@ class VerifiedElement(Element):
         :type value: datetime.datetime | True | None
         """
         _update_something_ts(self._data, 'verified_ts', value)
-
-    # -----------------------------------------------------------------
-    @property
-    def verification_code(self):
-        """
-        :return: Confirmation code used to verify this element.
-        :rtype: str | unicode
-        """
-        return self._data['verification_code']
-
-    @verification_code.setter
-    def verification_code(self, value):
-        """
-        :param value: New verification_code
-        :type value: str | unicode | None
-        """
-        if value is None:
-            return
-        if not isinstance(value, string_types):
-            raise UserDBValueError("Invalid 'verification_code': {!r}".format(value))
-        self._data['verification_code'] = value
 
 
 class PrimaryElement(VerifiedElement):

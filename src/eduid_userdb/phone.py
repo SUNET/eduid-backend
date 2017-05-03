@@ -49,7 +49,7 @@ class PhoneNumber(PrimaryElement):
     :type raise_on_unknown: bool
     """
     def __init__(self, number=None, application=None, verified=False, created_ts=None,
-                 primary=False, verification_code=None, data=None, raise_on_unknown = True):
+                 primary=False, data=None, raise_on_unknown = True):
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
 
@@ -61,7 +61,6 @@ class PhoneNumber(PrimaryElement):
                         created_ts = created_ts,
                         verified = verified,
                         primary = primary,
-                        verification_code = verification_code,
                         )
         if 'added_timestamp' in data:
             # old userdb-style creation timestamp
