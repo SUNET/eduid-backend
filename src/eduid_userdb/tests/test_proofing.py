@@ -4,7 +4,7 @@ from unittest import TestCase
 
 from collections import OrderedDict
 from eduid_userdb.nin import Nin
-from eduid_userdb.proofing.proofing_state import LetterProofingState, OidcProofingState
+from eduid_userdb.proofing.state import LetterProofingState, OidcProofingState
 
 __author__ = 'lundberg'
 
