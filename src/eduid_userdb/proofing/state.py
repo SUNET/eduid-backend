@@ -31,12 +31,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
+from __future__ import absolute_import
+
 import bson
 import copy
 import datetime
 
-from .proofing_element import NinProofingElement, SentLetterElement
-from .proofing_element import EmailProofingElement, PhoneProofingElement
+from .element import NinProofingElement, SentLetterElement
+from .element import EmailProofingElement, PhoneProofingElement
 from eduid_userdb.exceptions import UserHasUnknownData
 
 __author__ = 'lundberg'
@@ -166,6 +168,42 @@ class LetterProofingState(NinProofingState):
         return res
 
 
+class OidcProofingState(NinProofingState):
+    def __init__(self, data, raise_on_unknown=True):
+        self._data_in = copy.deepcopy(data)  # to not modify callers data
+        # Remove from _data_in before init super class
+        state = self._data_in.pop('state')
+        nonce = self._data_in.pop('nonce')
+        token = self._data_in.pop('token')
+
+        super(OidcProofingState, self).__init__(self._data_in, raise_on_unknown)
+
+        self._data['state'] = state
+        self._data['nonce'] = nonce
+        self._data['token'] = token
+
+    @property
+    def state(self):
+        """
+        :rtype: str | unicode
+        """
+        return self._data['state']
+
+    @property
+    def nonce(self):
+        """
+        :rtype: str | unicode
+        """
+        return self._data['nonce']
+
+    @property
+    def token(self):
+        """
+        :rtype: str | unicode
+        """
+        return self._data['token']
+
+
 class EmailProofingState(ProofingState):
     def __init__(self, data, raise_on_unknown=True):
         self._data_in = copy.deepcopy(data)  # to not modify callers data
@@ -207,38 +245,3 @@ class PhoneProofingState(ProofingState):
         res['verification'] = self.verification.to_dict()
         return res
 
-
-class OidcProofingState(ProofingState):
-    def __init__(self, data, raise_on_unknown=True):
-        self._data_in = copy.deepcopy(data)  # to not modify callers data
-        # Remove from _data_in before init super class
-        state = self._data_in.pop('state')
-        nonce = self._data_in.pop('nonce')
-        token = self._data_in.pop('token')
-
-        super(OidcProofingState, self).__init__(self._data_in, raise_on_unknown)
-
-        self._data['state'] = state
-        self._data['nonce'] = nonce
-        self._data['token'] = token
-
-    @property
-    def state(self):
-        """
-        :rtype: str | unicode
-        """
-        return self._data['state']
-
-    @property
-    def nonce(self):
-        """
-        :rtype: str | unicode
-        """
-        return self._data['nonce']
-
-    @property
-    def token(self):
-        """
-        :rtype: str | unicode
-        """
-        return self._data['token']
