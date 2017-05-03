@@ -267,3 +267,49 @@ class LetterProofing(ProofingLogElement):
         self._data['letter_sent_to'] = letter_sent_to
         self._data['transaction_id'] = transaction_id
         self._data['user_postal_address'] = user_postal_address
+
+
+class OidcProofing(ProofingLogElement):
+    """
+    {
+        'eduPersonPrincipalName': eppn,
+        'created_ts': datetime.utcnow()
+        'created_by': 'application',
+        'proofing_method': 'oidc',
+        'proofing_version': '2017v1',
+        'nin': 'national_identity_number',
+        'vetting_by': 'provider who performed the vetting,
+        'transaction_id': 'transaction_id',
+        'user_postal_address': {postal_address_from_navet}
+    }
+    """
+
+    def __init__(self, user, created_by, nin, vetting_by, transaction_id, user_postal_address, proofing_version):
+        """
+        :param user: user object
+        :param created_by: Application creating the log element
+        :param nin: National identity number
+        :param vetting_by: Name of the provider who performed the vetting
+        :param transaction_id: Letter service transaction id
+        :param user_postal_address: Navet response for users official address
+        :param proofing_version: Proofing method version number
+
+        :type user: User
+        :type created_by: six.string_types
+        :type nin: six.string_types
+        :type vetting_by: six.string_types
+        :type transaction_id: six.string_types
+        :type user_postal_address: dict
+        :type proofing_version: six.string_types
+
+        :return: LetterProofing object
+        :rtype: LetterProofing
+        """
+        super(OidcProofing, self).__init__(user, created_by, proofing_method='letter',
+                                           proofing_version=proofing_version)
+        self._required_keys.extend(['proofing_method', 'nin', 'letter_sent_to', 'transaction_id',
+                                    'user_postal_address'])
+        self._data['nin'] = nin
+        self._data['vetting_by'] = vetting_by
+        self._data['transaction_id'] = transaction_id
+        self._data['user_postal_address'] = user_postal_address
