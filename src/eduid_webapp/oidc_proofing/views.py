@@ -5,13 +5,16 @@ import requests
 import qrcode
 import qrcode.image.svg
 import json
+import jose
 
 from flask import request, make_response, url_for
 from flask import current_app, Blueprint
 from oic.oic.message import AuthorizationResponse, ClaimsRequest, Claims
+from datetime import datetime, timedelta
 
 from eduid_userdb.proofing import ProofingUser
 from eduid_userdb.logs import OidcProofing
+from eduid_userdb.util import UTC
 from eduid_userdb.exceptions import DocumentDoesNotExist
 from eduid_common.api.utils import StringIO
 from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
@@ -197,26 +200,47 @@ def seleg_proofing(user, nin):
 
 
 @oidc_proofing_views.route('/freja/proofing', methods=['GET'])
-@MarshalWith(schemas.OpaqueResponseSchema)
+@MarshalWith(schemas.FrejaResponseSchema)
 @require_user
 def get_freja_state(user):
     current_app.logger.debug('Getting state for user {!s}.'.format(user))
     try:
         proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn)
+        # Check request expiration time
+        minutes_until_midnight = (24 - proofing_state.modified_ts.hour) * 60  # Give the user until midnight
+        expire_time = proofing_state.modified_ts + timedelta(hours=current_app.config['FREJA_EXPIRE_TIME_HOURS'],
+                                                             minutes=minutes_until_midnight)
+        # Use tz_info from timezone aware mongodb datetime
+        if datetime.now(expire_time.tzinfo) > expire_time:
+            current_app.proofing_statedb.remove_state(proofing_state)
+            raise DocumentDoesNotExist
     except DocumentDoesNotExist:
         return {}
-    # Return nonce and token
-    current_app.logger.debug('Returning nonce and token for user {!s}'.format(user))
+    # Return request data
+    current_app.logger.debug('Returning request data for user {!s}'.format(user))
     # The "1" below denotes the version of the data exchanged, right now only version 1 is supported.
     opaque_data = '1' + json.dumps({'nonce': proofing_state.nonce, 'token': proofing_state.token})
+    request_data = {
+        "iarp": current_app.config['FREJA_IARP'],
+        "exp": int(expire_time.astimezone(UTC()).strftime('%s')) * 1000,  # Milliseconds since 1970 in UTC
+        "proto": current_app.config['FREJA_RESPONSE_PROTOCOL'],
+        "opaque": opaque_data
+    }
+    # TODO: Use JOSE to sign request data
+    jwk = {'k': current_app.config['FREJA_JWK_SECRET'].decode('hex')}
+    jws_header = {
+        'alg': current_app.config['FREJA_JWS_ALGORITHM'],
+        'kid': current_app.config['FREJA_JWS_KEY_ID'],
+    }
+    jws = jose.sign(request_data, jwk, add_header=jws_header, alg=current_app.config['FREJA_JWS_ALGORITHM'])
     return {
-        'opaque': opaque_data
+        'iaRequestData': jose.serialize_compact(jws)
     }
 
 
 @oidc_proofing_views.route('/freja/proofing', methods=['POST'])
 @UnmarshalWith(schemas.OidcProofingRequestSchema)
-@MarshalWith(schemas.OpaqueResponseSchema)
+@MarshalWith(schemas.FrejaResponseSchema)
 @require_user
 def freja_proofing(user, nin):
 

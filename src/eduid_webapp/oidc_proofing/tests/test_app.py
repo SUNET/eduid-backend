@@ -5,6 +5,7 @@ from __future__ import absolute_import
 from os import devnull
 from copy import deepcopy
 import json
+import jose
 from datetime import datetime
 from collections import OrderedDict
 from mock import patch
@@ -15,6 +16,7 @@ from eduid_userdb.data_samples import NEW_USER_EXAMPLE
 from eduid_userdb.user import User
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_webapp.oidc_proofing.app import init_oidc_proofing_app
+from eduid_webapp.oidc_proofing.helpers import create_proofing_state
 
 __author__ = 'lundberg'
 
@@ -110,7 +112,13 @@ class OidcProofingTests(EduidAPITestCase):
             'CLIENT_REGISTRATION_INFO': {
                 'client_id': 'test_client',
                 'client_secret': 'secret'
-            }
+            },
+            'FREJA_JWS_ALGORITHM': 'HS256',
+            'FREJA_JWS_KEY_ID': '0',
+            'FREJA_JWK_SECRET': '499602d2',  # in hex
+            'FREJA_IARP': 'TESTRP',
+            'FREJA_EXPIRE_TIME_HOURS': 336,
+            'FREJA_RESPONSE_PROTOCOL': '1,0'
         })
         return config
 
@@ -136,3 +144,15 @@ class OidcProofingTests(EduidAPITestCase):
         with self.session_cookie(self.client, self.test_user_eppn) as client:
             response = json.loads(client.get('/freja/proofing').data)
         self.assertEqual(response['type'], 'GET_OIDC_PROOFING_FREJA_PROOFING_SUCCESS')
+
+    def test_freja_state(self):
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        proofing_state = create_proofing_state(user, self.test_user_nin)
+        self.app.proofing_statedb.save(proofing_state)
+        with self.session_cookie(self.client, self.test_user_eppn) as client:
+            response = json.loads(client.get('/freja/proofing').data)
+        self.assertEqual(response['type'], 'GET_OIDC_PROOFING_FREJA_PROOFING_SUCCESS')
+        jwk = {'k': self.app.config['FREJA_JWK_SECRET'].decode('hex')}
+        jwt = response['payload']['iaRequestData']
+        request_data = jose.verify(jose.deserialize_compact(jwt), jwk, alg=self.app.config['FREJA_JWS_ALGORITHM'])
+        self.assertDictEqual(json.loads(request_data), {})
