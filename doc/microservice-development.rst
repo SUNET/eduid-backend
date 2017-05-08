@@ -8,8 +8,8 @@ used by js front-end applications.
 Development of microservices
 ----------------------------
 
-EduID microservices are based on ``Flask <http://flask.pocoo.org/>``_, and reside
-in ``github <https://github.com/SUNET/eduid-webapp/>``_, as Python packages
+EduID microservices are based on `Flask <http://flask.pocoo.org/>`_, and reside
+in `github <https://github.com/SUNET/eduid-webapp/>`_, as Python packages
 below ``src/eduid_webapp/``.
 
 The main modules that comprise an eduID microservice are as follows.
@@ -214,53 +214,99 @@ Or just the new service::
 Development of front end applications
 -------------------------------------
 
-Javascript
-..........
+Basic development stack
+.......................
 
-Front end apps are developed with ``React <https://facebook.github.io/react/>``_,
-and reside in ``eduid-html/react``.
+Front end apps are developed with `React <https://facebook.github.io/react/>`_,
+and reside in `eduid-html/react`.
 
 The development environment has a few pieces:
 
- * npm. Node package manager, to manage dependencies and metadata. Configured
-   in ``react/package.json``. npm is also the main entry point to managing the
-   dev environment, and defines the following scripts:
+* `npm <https://www.npmjs.com/>`_.
+  Node package manager, to manage dependencies and metadata. Configured
+  in ``react/package.json``. npm is also the main entry point to managing the
+  dev environment, and defines the following scripts:
 
-   * ``npm start`` builds the bundle for development, starts a development
-     http server, and watches the files for changes to rebundle and re-serve
-     them.
-   * ``npm test`` runs the tests.
-   * ``npm run build`` makes a bundle for production use. This bundle is kept
-     under version control, at least until the build process is integrated
-     in puppet.
+  * ``npm start`` builds the bundle for development, starts a development
+    http server, and watches the files for changes to rebundle and re-serve
+    them.
+  * ``npm test`` runs the tests.
+  * ``npm run build`` makes a bundle for production use. This bundle is kept
+    under version control, at least until the build process is integrated
+    in puppet.
 
- * webpack is a module bundler, whose main purpose is to bundle JavaScript
-   files for usage in a browser. There are 2 config files for webpack, one
-   ``react/webpack.config.js`` for development and testing, and another
-   ``react/webpack.prod.config.js`` for production bundles.
+* `webpack <https://webpack.js.org/>`_.
+  Webpack is a module bundler, whose main purpose is to bundle JavaScript
+  files for usage in a browser. There are 2 config files for webpack, one
+  ``react/webpack.config.js`` for development and testing, and another
+  ``react/webpack.prod.config.js`` for production bundles.
 
- * babel is a transpiler, used by webpack to transpile react and es6 sources
-   into the es5 bundles that can be interpreted by any browser. Configuration
-   for babel is under the ``babel`` key in ``package.json``.
+* `babel <https://babeljs.io/>`_.
+  Babel is a transpiler, used by webpack to transpile react and es6 sources
+  into the es5 bundles that can be interpreted by any browser. Configuration
+  for babel is under the ``babel`` key in ``package.json``.
 
- * karma is a test runner, configured in ``react/karma.conf.js``. It is
-   configured to use webpack to prepare the sources for the tests, mocha as a
-   real browser driver (to run the tests in firefox, chrome, etc.), and
-   istambul/isparta for code coverage. The tests are written using enzyme, a
-   testing framework for react. The tests  are kept in ``react/src/tests``, and
-   must have a filename ending in ``-test.js``. There is a file
-   ``react/src/test.webpack.js`` that acts as entry point for all tests for the
-   runner.
+* `karma <https://karma-runner.github.io/1.0/index.html>`_.
+  Karma is a test runner, configured in ``react/karma.conf.js``. It is
+  configured to use webpack to prepare the sources for the tests, mocha as a
+  real browser driver (to run the tests in firefox, chrome, etc.), and
+  istambul/isparta for code coverage. The tests are written using enzyme, a
+  testing framework for react. The tests  are kept in ``react/src/tests``, and
+  must have a filename ending in ``-test.js``. There is a file
+  ``react/src/test.webpack.js`` that acts as entry point for all tests for the
+  runner.
 
- * We use redux to manage state centrally on the front app.
+React Components
+................
 
-Bootstrap. We can use Bootstrap components from react, see
-`here <https://react-bootstrap.github.io/components.html>`_.
+We use react to build components, and redux to manage state and provide it to
+said components. The state is kept in a central store managed by redux. The
+basic idea is that there is a single one way flux of information: Events and
+user interactions provoke changes in the central store, and from the store they
+are passed to the components, that, when needed, are re-rendered, modifying the
+UI. So, a particular state of the store determines a particular state of the
+UI, and any change in the UI must necessarily be known by the store.
 
-The react components are kept in ``react/components``, and are used (inserted
-in the DOM) by scripts kept in ``react/src/entry-points/``
-(e.g., ``personal-data.js``.) These are served by html.eduid.docker under
-`/static/build/`.
+Components have properties (`props`), as the data that determines their own state
+and behaviour. The value of those properties has 2 possible origins.  First,
+when they are used as subcomponents of other components, these properties can
+be provided as XML attributes in JSX. Second, the components are connected by
+redux to the central store, so that when the central state changes, this change
+can be transmitted to the components via their properties.
+
+We store the components in `react/components`, where we basically define their
+visual structure of subcomponents. The most basic components are bootstrap 3
+components, provided by `react-bootstrap
+<https://react-bootstrap.github.io/>`_.
+
+The components are extended in `react/containers` with methods and event
+handlers. It is in these container modules that redux connects the components
+with the central state. This connection happens in 2 ways. First, methods
+defned here have access to the central store, both to read from it, and to
+modify it (see dispatching actions in the next paragraph). And, second, here
+you define a map from the central state to the props of the component, so that
+when the central state changes, the properties are updated and the components
+rerendered.
+
+To modify the central store, we define actions and dispatch them. Actions are
+simple JSON objects that contain the information needed for atomic
+modifications of the state. We also call actions to the functions that produce
+those objects, kept in `react/actions`. These actions are provided to a
+`dispatch` function from redux, and end up reaching specially defined `reducer`
+functions, that reside in `react/reducers`. These reducers that examine the
+actions and return a modified state.
+
+For asynchronous actions, when some event requires sending requests over the
+network, or long computations, we use `redux-saga
+<https://www.npmjs.com/package/redux-saga>`_. Sagas are generator functions,
+whose execution can be suspended while waiting for a yield statement. They can
+also access the state in the central store, and dispatch actions. Each saga is
+configured with a corresponding action, and what redux-saga basically does is
+to watch the store for those actions, and, when they are dispatched to the
+store, trigger the corresponding saga. This saga can then do its things
+asynchronously without freezing the UI, and dispatch actions to notify of the
+results of its operations.
+
 
 Getting started
 ...............
