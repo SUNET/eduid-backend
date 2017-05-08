@@ -135,17 +135,17 @@ class OidcProofingTests(EduidAPITestCase):
             response = client.get('/proofing')
         self.assertEqual(response.status_code, 200)  # Authenticated request
 
-    def test_empty_state(self):
+    def test_get_empty_state(self):
         with self.session_cookie(self.client, self.test_user_eppn) as client:
             response = json.loads(client.get('/proofing').data)
         self.assertEqual(response['type'], 'GET_OIDC_PROOFING_PROOFING_SUCCESS')
 
-    def test_empty_freja_state(self):
+    def test_get_empty_freja_state(self):
         with self.session_cookie(self.client, self.test_user_eppn) as client:
             response = json.loads(client.get('/freja/proofing').data)
         self.assertEqual(response['type'], 'GET_OIDC_PROOFING_FREJA_PROOFING_SUCCESS')
 
-    def test_freja_state(self):
+    def test_get_freja_state(self):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         proofing_state = create_proofing_state(user, self.test_user_nin)
         self.app.proofing_statedb.save(proofing_state)
@@ -155,4 +155,12 @@ class OidcProofingTests(EduidAPITestCase):
         jwk = {'k': self.app.config['FREJA_JWK_SECRET'].decode('hex')}
         jwt = response['payload']['iaRequestData']
         request_data = jose.verify(jose.deserialize_compact(jwt), jwk, alg=self.app.config['FREJA_JWS_ALGORITHM'])
-        self.assertDictEqual(json.loads(request_data), {})
+        expected = {
+            'iarp': 'TESTRP',
+            'opaque': '1' + json.dumps({'nonce': proofing_state.nonce, 'token': proofing_state.token}),
+            'proto': u'1,0'
+        }
+        self.assertIn('exp', request_data.claims)
+        self.assertEqual(request_data.claims['iarp'], expected['iarp'])
+        self.assertEqual(request_data.claims['opaque'], expected['opaque'])
+        self.assertEqual(request_data.claims['proto'], expected['proto'])
