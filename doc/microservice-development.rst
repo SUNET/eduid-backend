@@ -227,6 +227,8 @@ The development environment has a few pieces:
   in ``react/package.json``. npm is also the main entry point to managing the
   dev environment, and defines the following scripts:
 
+  * ``npm install [--save-dev <some-js-package>]`` installs the required
+    package, or all dependencies if no package is specified.
   * ``npm start`` builds the bundle for development, starts a development
     http server, and watches the files for changes to rebundle and re-serve
     them.
@@ -265,7 +267,7 @@ basic idea is that there is a single one way flux of information: Events and
 user interactions provoke changes in the central store, and from the store they
 are passed to the components, that, when needed, are re-rendered, modifying the
 UI. So, a particular state of the store determines a particular state of the
-UI, and any change in the UI must necessarily be known by the store.
+UI, and any change in the UI should be known by the store.
 
 Components have properties (`props`), as the data that determines their own state
 and behaviour. The value of those properties has 2 possible origins.  First,
