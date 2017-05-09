@@ -90,7 +90,7 @@ schemas.py, validators.py
 .........................
 
 For input validation and deserialization of form submissions from users we
-use ``marsmallow <http://marshmallow.readthedocs.io/en/latest/index.html>``_.
+use `marsmallow <http://marshmallow.readthedocs.io/en/latest/index.html>`_.
 Schemas are kept in schemas.py and validators in validators.py (surprise).
 
 This is not to be  confused with input sanitation, that is performed
@@ -224,7 +224,9 @@ The development environment has a few pieces:
 
 * `npm <https://www.npmjs.com/>`_.
   Node package manager, to manage dependencies and metadata. Configured
-  in ``react/package.json``. npm is also the main entry point to managing the
+  in `react/package.json
+  <https://github.com/SUNET/eduid-html/blob/master/react/package.json>`_. npm
+  is also the main entry point to managing the
   dev environment, and defines the following scripts:
 
   * ``npm install [--save-dev <some-js-package>]`` installs the required
@@ -240,8 +242,10 @@ The development environment has a few pieces:
 * `webpack <https://webpack.js.org/>`_.
   Webpack is a module bundler, whose main purpose is to bundle JavaScript
   files for usage in a browser. There are 2 config files for webpack, one
-  ``react/webpack.config.js`` for development and testing, and another
-  ``react/webpack.prod.config.js`` for production bundles.
+  `react/webpack.config.js
+  <https://github.com/SUNET/eduid-html/blob/master/react/webpack.config.js>`_ for development and testing, and another
+  `react/webpack.prod.config.js
+  <https://github.com/SUNET/eduid-html/blob/master/react/webpack.prod.config.js>`_ for production bundles.
 
 * `babel <https://babeljs.io/>`_.
   Babel is a transpiler, used by webpack to transpile react and es6 sources
@@ -249,7 +253,8 @@ The development environment has a few pieces:
   for babel is under the ``babel`` key in ``package.json``.
 
 * `karma <https://karma-runner.github.io/1.0/index.html>`_.
-  Karma is a test runner, configured in ``react/karma.conf.js``. It is
+  Karma is a test runner, configured in `react/karma.conf.js
+  <https://github.com/SUNET/eduid-html/blob/master/react/karma.conf.js>`_. It is
   configured to use webpack to prepare the sources for the tests, mocha as a
   real browser driver (to run the tests in firefox, chrome, etc.), and
   istambul/isparta for code coverage. The tests are written using enzyme, a
@@ -309,6 +314,24 @@ store, trigger the corresponding saga. This saga can then do its things
 asynchronously without freezing the UI, and dispatch actions to notify of the
 results of its operations.
 
+Information flux
+................
+
+So, the normal flux of information, is a user triggers some event in the UI,
+would be:
+
+* The user triggers some event, e.g. by clicking some button;
+* The event has a handler, that we have defined in the container corresponding
+  to the component where the target of the event is, and assigned to the
+  particular element via a ``onClick`` property (props);
+* The handler can dispatch actions, and does dispatch one;
+* the action is examined by redux-saga and if there is a saga configured for
+  that action, it is executed - asynchronously.
+* The action is passed to the reducers, that check its keys and modifies the
+  state in the store;
+* The modified state is passed to the "connected" containers that execute their
+  ``mapStateToProps`` function, so transmitting the state to the props of the
+  components.
 
 Getting started
 ...............
@@ -337,8 +360,25 @@ foreground monitoring changes in the code and rebuilding::
 The available `npm` commands can be seen in the `scripts` section of the
 `package.json` file.
 
-Testing
--------
+App initialization
+..................
+
+All code necessary for running the app is served in a single bundle. The
+bundles that are built are specified in ``react/webpack.config.js``. For the
+moment, while migrating to react apps, the bundle that is loaded is configured
+in `the ini file for the dashboard
+<https://github.com/SUNET/eduid-developer/blob/master/eduid-dashboard/etc/eduid-dashboard.ini#L161>`_.
+
+The entry point that drives the bundle we are using (while migrating) comes for
+the old dashboard js, and it still does its old thing, except that it also
+loads the configured react components and renders them in the DOM. The function
+that does this is ``init_app``, defined in the `init-app module
+<https://github.com/SUNET/eduid-html/blob/master/react/src/init-app.js>`_, that
+uses the store defined in the `store module
+<https://github.com/SUNET/eduid-html/blob/master/react/src/store.js>`_.
+
+Testing and debugging
+.....................
 
 We can also run the tests. We can simply run them and see the test coverage,
 doing like this in the `react/` dir::
@@ -354,6 +394,11 @@ You will have then a browser's window open, with a DEBUG button on the upper
 right corner; click on it, and you will get a new tab in the browser. Open
 the  inspector/developer tools in this new tab, reload the page, and the tests
 will be run until it hits a `debugger` where it will stop execution.
+
+It helps debugging to install the `react developer tools
+<https://chrome.google.com/webstore/detail/react-developer-tools/fmkadmapgofadopljbjfkapdkoienihi>`_
+and the `redux developer tools
+<https://chrome.google.com/webstore/detail/redux-devtools/lmhkpmbekcpmknklioeibfkpmmfibljd>_.
 
 i18n
 ....
