@@ -35,7 +35,7 @@ import copy
 from six import string_types
 
 from eduid_userdb.element import VerifiedElement, Element
-from eduid_userdb.element import _update_something_by, _update_something_ts
+from eduid_userdb.element import _set_something_by, _set_something_ts
 from eduid_userdb.exceptions import UserDBValueError
 
 
@@ -321,7 +321,7 @@ class SentLetterElement(Element):
                       Value None is ignored, True is short for datetime.utcnow().
         :type value: datetime.datetime | True | None
         """
-        _update_something_ts(self._data, 'sent_ts', value)
+        _set_something_ts(self._data, 'sent_ts', value)
 
     @property
     def transaction_id(self):
@@ -337,7 +337,7 @@ class SentLetterElement(Element):
         :param value: Transaction information from letter service (None is no-op).
         :type value: str | unicode | None
         """
-        _update_something_by(self._data, 'transaction_id', value)
+        _set_something_by(self._data, 'transaction_id', value)
 
     @property
     def address(self):

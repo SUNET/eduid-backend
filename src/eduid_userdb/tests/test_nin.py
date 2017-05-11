@@ -223,9 +223,9 @@ class TestNin(TestCase):
         this = self.three.find('197803033456')
         this.verified_by = 'unit test'
         with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.verified_by = None
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.verified_by = 'test unit'
+            this.verified_by = False
+        this.verified_by = 'test unit'
+        self.assertEqual(this.verified_by, 'test unit')
 
     def test_verified_ts(self):
         this = self.three.find('197803033456')
@@ -236,11 +236,16 @@ class TestNin(TestCase):
 
     def test_modify_verified_ts(self):
         this = self.three.find('197803033456')
-        this.verified_ts = datetime.datetime.utcnow()
+        now = datetime.datetime.utcnow()
+        this.verified_ts = now
+        this.verified_ts = None
+        self.assertEqual(this.verified_ts, now)
         with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.verified_ts = None
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.verified_ts = True
+            this.verified_ts = 'not a datetime'
+        this.verified_ts = True
+        self.assertGreater(this.verified_ts, now)
+        this.verified_ts = now
+        self.assertEqual(this.verified_ts, now)
 
     def test_created_by(self):
         this = self.three.find('197803033456')
