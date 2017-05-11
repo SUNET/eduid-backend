@@ -34,17 +34,24 @@
 from __future__ import absolute_import
 from datetime import datetime
 
-from flask import Blueprint, session, abort, current_app
+from flask import Blueprint, session, abort, current_app, url_for, redirect
 
 from eduid_common.api.decorators import require_dashboard_user, MarshalWith, UnmarshalWith
 from eduid_common.api.utils import save_dashboard_user
 from eduid_common.authn.utils import generate_password
-from eduid_common.authn.vccs import add_credentials
+from eduid_common.authn.vccs import add_credentials, revoke_all_credentials
 from eduid_webapp.security.schemas import SecurityResponseSchema, CredentialList, CsrfSchema
 from eduid_webapp.security.schemas import SuggestedPassword, SuggestedPasswordResponseSchema
 from eduid_webapp.security.schemas import ChangePasswordSchema
 
 security_views = Blueprint('security', __name__, url_prefix='', template_folder='templates')
+
+
+def error(err):
+    return {
+        '_status': 'error',
+        'error': {'form': err}
+        }
 
 
 @security_views.route('/credentials', methods=['GET'])
@@ -106,12 +113,6 @@ def change_password(user, csrf_token, old_password, new_password):
     if session.get_csrf_token() != csrf_token:
         abort(400)
 
-    def error(err):
-        return {
-            '_status': 'error',
-            'error': {'form': err}
-            }
-
     authn_ts = session.get('reauthn-for-chpass', None)
     if authn_ts is None:
         return error('chpass.no_reauthn')
@@ -145,19 +146,101 @@ def change_password(user, csrf_token, old_password, new_password):
     return CredentialList().dump(credentials).data
 
 
-@security_views.route('/delete', methods=['POST'])
+@security_views.route('/terminate-account', methods=['POST'])
 @UnmarshalWith(CsrfSchema)
 @require_dashboard_user
 def delete_account(user, csrf_token):
     """
-    view to delete user account.
+    Terminate account view.
+    It receives a POST request, checks the csrf token,
+    schedules the account termination action,
+    and redirects to the IdP.
     """
+    # check csrf
     if session.get_csrf_token() != csrf_token:
         abort(400)
 
-    current_app.logger.debug('Deleting account for user {!r}'.format(user))
+    ts_url = current_app.config.get('TOKEN_SERVICE_URL')
+    terminate_url = urlappend(ts_url, 'terminate')
+    next_url = url_for('account-terminated')
 
-    current_app.logger.info('Deleted account for user {!r}'.format(user))
-    current_app.statsd.count(name='security_delete', value=1)
+    params = {'next': next_url}
 
-    return 200
+    url_parts = list(urlparse.urlparse(terminate_url))
+    query = urlparse.parse_qs(url_parts[4])
+    query.update(params)
+
+    url_parts[4] = urlencode(query)
+    location = urlparse.urlunparse(url_parts)
+    return redirect(location)
+
+
+@security_views.route('/account-terminated', methods=['POST'])
+@require_dashboard_user
+def account_terminated(user):
+    """
+    The account termination action,
+    removes all credentials for the terminated account
+    from the VCCS service,
+    flags the account as terminated,
+    sends an email to the address in the terminated account,
+    and logs out the session.
+
+    :type user: eduid_userdb.dashboard.DashboardLegacyUser
+    """
+    authn_ts = session.get('reauthn-for-termination', None)
+    if authn_ts is None:
+        abort(400)
+
+    now = datetime.utcnow()
+    delta = now - datetime.fromtimestamp(authn_ts)
+
+    if int(delta.total_seconds()) > 600:
+        return error('security.stale_authn_info')
+
+    del session['reauthn-for-termination']
+
+    # revoke all user credentials
+    revoke_all_credentials(current_app.config.get('VCCS_URL'), user)
+    for p in user.passwords.to_list():
+        user.passwords.remove(p.id)
+
+    # flag account as terminated
+    user.terminated = True
+    try:
+        save_dashboard_user(user)
+    except UserOutOfSync:
+        return error('out_of_sync')
+
+    # email the user
+    send_termination_mail(user)
+
+    return {}
+
+
+def send_termination_mail(user):
+    site_name = current_app.config.get("site.name", "eduID")
+    site_url = current_app.config.get("site.url", "http://eduid.se")
+
+    context = {
+        "user": user,
+        "site_url": site_url,
+        "site_name": site_name,
+    }
+
+    text = render_template(
+            "termination_email.txt.jinja2",
+            **context
+    )
+    html = render_template(
+            "termination_email.html.jinja2",
+            **context
+    )
+
+    sender = current_app.config.get('MAIL_DEFAULT_FROM')
+    # DEBUG
+    if current_app.config.get('DEBUG', False):
+        current_app.logger.debug(text)
+    else:
+        current_app.mail_relay.sendmail(sender, [email], text, html)
+    current_app.logger.info("Sent termination email to user {!r}".format(user))
