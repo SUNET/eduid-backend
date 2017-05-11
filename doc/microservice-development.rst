@@ -255,9 +255,11 @@ The development environment has a few pieces:
 * `karma <https://karma-runner.github.io/1.0/index.html>`_.
   Karma is a test runner, configured in `react/karma.conf.js
   <https://github.com/SUNET/eduid-html/blob/master/react/karma.conf.js>`_. It is
-  configured to use webpack to prepare the sources for the tests, mocha as a
+  configured to use webpack to prepare the sources for the tests, `mocha
+  <http://mochajs.org/>`_ as a
   real browser driver (to run the tests in firefox, chrome, etc.), and
-  istambul/isparta for code coverage. The tests are written using enzyme, a
+  istambul/isparta for code coverage. The tests are written using `enzyme
+  <https://medium.com/airbnb-engineering/enzyme-javascript-testing-utilities-for-react-a417e5e5090f>_, a
   testing framework for react. The tests  are kept in ``react/src/tests``, and
   must have a filename ending in ``-test.js``. There is a file
   ``react/src/test.webpack.js`` that acts as entry point for all tests for the
