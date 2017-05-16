@@ -10,7 +10,7 @@ README = 'eduID Attribute Manager'
 if os.path.exists(README_fn):
     README = open(README_fn).read()
 
-version = '0.6.2b2'
+version = '0.6.3b0'
 
 install_requires = [
     'eduid_userdb >= 0.0.4',

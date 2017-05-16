@@ -1,7 +1,11 @@
+from __future__ import absolute_import
+
+import eduid_userdb
 from eduid_userdb.testing import MongoTestCase, MOCKED_USER_STANDARD as M
 from eduid_userdb.exceptions import MultipleUsersReturned, UserDoesNotExist
 from bson import ObjectId
-import eduid_userdb
+from eduid_am.consistency_checks import unverify_duplicates
+
 
 from eduid_am.celery import celery, get_attribute_manager
 
@@ -33,3 +37,97 @@ class TestTasks(MongoTestCase):
         self.amdb.save(eduid_userdb.User(data=user2_doc))
         with self.assertRaises(MultipleUsersReturned):
             self.amdb.get_user_by_mail(M['mail'])
+
+    def test_unverify_duplicate_mail(self):
+        user_id = ObjectId('901234567890123456789012')  # johnsmith@example.org / babba-labba
+        attributes = {
+            '$set': {
+                'mailAliases': [{
+                    'email': 'johnsmith@example.com',  # hubba-bubba's primary mail address
+                    'verified': True,
+                    'primary': True,
+                    'created_ts': True
+                }]
+            }
+        }
+        stats = unverify_duplicates(self.amdb, user_id, attributes)
+        user = self.amdb.get_user_by_eppn('hubba-bubba')
+        self.assertNotEqual(user.mail_addresses.primary.email, 'johnsmith@example.com')
+        self.assertFalse(user.mail_addresses.find('johnsmith@example.com').is_verified)
+        self.assertTrue(user.mail_addresses.primary)
+        self.assertEqual(stats['mail_count'], 1)
+
+    def test_unverify_duplicate_phone(self):
+        user_id = ObjectId('901234567890123456789012')  # johnsmith@example.org / babba-labba
+        attributes = {
+            '$set': {
+                'phone': [{
+                    'verified': True,
+                    'number': '+34609609609',  # hubba-bubba's primary phone
+                    'primary': True
+                }]
+            }
+        }
+        stats = unverify_duplicates(self.amdb, user_id, attributes)
+        user = self.amdb.get_user_by_eppn('hubba-bubba')
+        self.assertNotEqual(user.phone_numbers.primary.number, '+34609609609')
+        self.assertFalse(user.phone_numbers.find('+34609609609').is_verified)
+        self.assertTrue(user.phone_numbers.primary)
+        self.assertEqual(stats['phone_count'], 1)
+
+    def test_unverify_duplicate_nins(self):
+        user_id = ObjectId('901234567890123456789012')  # johnsmith@example.org / babba-labba
+        attributes = {
+            '$set': {
+                'nins': [{
+                    'verified': True,
+                    'number': '197801011234',  # hubba-bubba's primary nin
+                    'primary': True
+                }]
+            }
+        }
+        stats = unverify_duplicates(self.amdb, user_id, attributes)
+        user = self.amdb.get_user_by_eppn('hubba-bubba')
+        self.assertIsNone(user.nins.primary)
+        self.assertFalse(user.nins.find('197801011234').is_verified)
+        self.assertEqual(stats['nin_count'], 1)
+
+    def test_unverify_duplicate_all(self):
+        user_id = ObjectId('901234567890123456789012')  # johnsmith@example.org / babba-labba
+        attributes = {
+            '$set': {
+                'mailAliases': [{
+                    'email': 'johnsmith@example.com',  # hubba-bubba's primary mail address
+                    'verified': True,
+                    'primary': True,
+                    'created_ts': True
+                }],
+                'phone': [{
+                    'verified': True,
+                    'number': '+34609609609',  # hubba-bubba's primary phone
+                    'primary': True
+                }],
+                'nins': [{
+                    'verified': True,
+                    'number': '197801011234',  # hubba-bubba's primary nin
+                    'primary': True
+                }],
+            }
+        }
+        stats = unverify_duplicates(self.amdb, user_id, attributes)
+        user = self.amdb.get_user_by_eppn('hubba-bubba')
+
+        self.assertNotEqual(user.mail_addresses.primary.email, 'johnsmith@example.com')
+        self.assertFalse(user.mail_addresses.find('johnsmith@example.com').is_verified)
+        self.assertTrue(user.mail_addresses.primary)
+
+        self.assertNotEqual(user.phone_numbers.primary.number, '+34609609609')
+        self.assertFalse(user.phone_numbers.find('+34609609609').is_verified)
+        self.assertTrue(user.phone_numbers.primary)
+
+        self.assertIsNone(user.nins.primary)
+        self.assertFalse(user.nins.find('197801011234').is_verified)
+
+        self.assertEqual(stats['mail_count'], 1)
+        self.assertEqual(stats['phone_count'], 1)
+        self.assertEqual(stats['nin_count'], 1)

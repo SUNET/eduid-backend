@@ -1,6 +1,6 @@
-__author__ = 'leifj'
+from __future__ import absolute_import
 
-from eduid_am.celery import celery, get_attribute_manager
+from ..celery import celery, get_attribute_manager
 
 from eduid_userdb.testing import MongoTestCase
 from bson import ObjectId
@@ -9,6 +9,7 @@ import eduid_userdb
 
 from eduid_userdb.exceptions import UserDoesNotExist
 
+__author__ = 'leifj'
 
 class AmTestUser(eduid_userdb.User):
     """
