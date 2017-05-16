@@ -307,7 +307,7 @@ class OidcProofing(ProofingLogElement):
         """
         super(OidcProofing, self).__init__(user, created_by, proofing_method='letter',
                                            proofing_version=proofing_version)
-        self._required_keys.extend(['proofing_method', 'nin', 'letter_sent_to', 'transaction_id',
+        self._required_keys.extend(['proofing_method', 'nin', 'vetting_by', 'transaction_id',
                                     'user_postal_address'])
         self._data['nin'] = nin
         self._data['vetting_by'] = vetting_by
