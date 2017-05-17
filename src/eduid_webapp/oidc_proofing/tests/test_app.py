@@ -2,21 +2,17 @@
 
 from __future__ import absolute_import
 
-from os import devnull
 from copy import deepcopy
 import json
 import jose
-from datetime import datetime
 from collections import OrderedDict
 from mock import patch
-from bson import ObjectId
-from requests import Response
 
 from eduid_userdb.data_samples import NEW_USER_EXAMPLE
 from eduid_userdb.user import User
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_webapp.oidc_proofing.app import init_oidc_proofing_app
-from eduid_webapp.oidc_proofing.helpers import create_proofing_state
+from eduid_webapp.oidc_proofing.helpers import create_proofing_state, handle_freja_eid_userinfo, handle_seleg_userinfo
 
 __author__ = 'lundberg'
 
@@ -126,6 +122,8 @@ class OidcProofingTests(EduidAPITestCase):
         super(OidcProofingTests, self).tearDown()
         with self.app.app_context():
             self.app.proofing_statedb._drop_whole_collection()
+            self.app.proofing_userdb._drop_whole_collection()
+            self.app.proofing_log._drop_whole_collection()
             self.app.central_userdb._drop_whole_collection()
 
     def test_authenticate(self):
@@ -164,3 +162,53 @@ class OidcProofingTests(EduidAPITestCase):
         self.assertEqual(request_data.claims['iarp'], expected['iarp'])
         self.assertEqual(request_data.claims['opaque'], expected['opaque'])
         self.assertEqual(request_data.claims['proto'], expected['proto'])
+
+    @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_seleg_flow(self, mock_get_postal_address, mock_request_user_sync):
+        mock_get_postal_address.return_value = self.mock_address
+        mock_request_user_sync.return_value = True
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        proofing_state = create_proofing_state(user, self.test_user_nin)
+        self.app.proofing_statedb.save(proofing_state)
+        with self.session_cookie(self.client, self.test_user_eppn) as client:
+            response = json.loads(client.get('/proofing').data)
+        self.assertEqual(response['type'], 'GET_OIDC_PROOFING_PROOFING_SUCCESS')
+
+        # No actual oidc flow tested here
+        userinfo = {
+            'identity': self.test_user_nin,
+        }
+        with self.app.app_context():
+            handle_seleg_userinfo(user, proofing_state, userinfo)
+        user = self.app.proofing_userdb.get_user_by_eppn(self.test_user_eppn)
+        self.assertEqual(user.nins.primary.number, self.test_user_nin)
+        self.assertEqual(self.app.proofing_log.db_count(), 1)
+
+    @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_freja_flow(self, mock_get_postal_address, mock_request_user_sync):
+        mock_get_postal_address.return_value = self.mock_address
+        mock_request_user_sync.return_value = True
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        proofing_state = create_proofing_state(user, self.test_user_nin)
+        self.app.proofing_statedb.save(proofing_state)
+        with self.session_cookie(self.client, self.test_user_eppn) as client:
+            response = json.loads(client.get('/freja/proofing').data)
+        self.assertEqual(response['type'], 'GET_OIDC_PROOFING_FREJA_PROOFING_SUCCESS')
+
+        # No actual oidc flow tested here
+        userinfo = {
+            'freja_proofing': {
+                'ref': '1234.5678.9012.3456',
+                'opaque': '1' + json.dumps({'nonce': proofing_state.nonce, 'token': proofing_state.token}),
+                'country': 'SE',
+                'ssn': self.test_user_nin,
+            }
+        }
+        with self.app.app_context():
+            handle_freja_eid_userinfo(user, proofing_state, userinfo)
+        user = self.app.proofing_userdb.get_user_by_eppn(self.test_user_eppn)
+        self.assertEqual(user.nins.primary.number, self.test_user_nin)
+        self.assertEqual(self.app.proofing_log.db_count(), 1)
+

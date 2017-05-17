@@ -1,22 +1,15 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
-import requests
-import qrcode
-import qrcode.image.svg
-import json
 
-from flask import request, make_response, url_for
-from flask import current_app, Blueprint
-from oic.oic.message import AuthorizationResponse, ClaimsRequest, Claims
-from operator import itemgetter
-from marshmallow.exceptions import ValidationError
+import requests
+import json
+from flask import current_app
 
 from eduid_userdb.proofing import ProofingUser
+from eduid_userdb.logs import OidcProofing
 from eduid_userdb.nin import Nin
-from eduid_common.api.utils import get_unique_hash, StringIO
-from eduid_common.api.decorators import require_user, require_eppn, MarshalWith, UnmarshalWith
+from eduid_common.api.utils import get_unique_hash
 from eduid_userdb.proofing import OidcProofingState
-from eduid_webapp.oidc_proofing import schemas
 
 __author__ = 'lundberg'
 
@@ -77,7 +70,7 @@ def add_nin_to_user(user, proofing_state):
     :param user: Central userdb user
     :type user: eduid_userdb.user.User
     :param proofing_state: Proofing state for user
-    :type proofing_state: eduid_userdb.proofing.OidcProofingState
+    :type proofing_state: eduid_userdb.proofing.NinProofingState
     :return: None
     :rtype: None
     """
@@ -100,6 +93,66 @@ def add_nin_to_user(user, proofing_state):
             current_app.logger.error('Exception: {!s}'.format(e))
 
 
+def verify_nin_for_user(user, proofing_state, number, vetting_by):
+    """
+    :param user: Central userdb user
+    :type user: eduid_userdb.user.User
+    :param proofing_state: Proofing state for user
+    :type proofing_state: eduid_userdb.proofing.NinProofingState
+    :param number: National Identitly Number
+    :type number: string_types
+    :param vetting_by: Name of the vetting entity
+    :type vetting_by: string_types
+    :return: None
+    """
+
+    # Check if the self professed NIN is the same as the NIN returned by the vetting provider
+    if proofing_state.nin.number != number:
+        current_app.logger.error('NIN does not match for user {}'.format(user))
+        current_app.logger.debug('Self professed NIN: {}. NIN from vetting provider {}'.format(
+            proofing_state.nin.number, number))
+        return
+    # Check if the NIN is already verified
+    elif any(nin for nin in user.nins.verified.to_list() if nin.number == number):
+        current_app.logger.info('NIN is already verified for user {}'.format(user))
+        current_app.logger.debug('NIN: {}'.format(number))
+        return
+    nin = Nin(data=proofing_state.nin.to_dict())
+    nin.is_verified = True
+    # Check if the user has more than one verified nin
+    if user.nins.primary is None:
+        # No primary NIN found, make the only verified NIN primary
+        nin.is_primary = True
+    user.nins.add(nin)
+
+    # If user was updated successfully continue with logging the proof and saving the user to central db
+    # Send proofing data to the proofing log
+    current_app.logger.info('Getting address for user {!r}'.format(user))
+    # Lookup official address via Navet
+    address = current_app.msg_relay.get_postal_address(proofing_state.nin.number)
+    # Transaction id is the same data as used for the QR code or seed data for the freja app
+    transaction_id = '1' + json.dumps({'nonce': proofing_state.nonce, 'token': proofing_state.token})
+    oidc_proof = OidcProofing(user, created_by='oidc_proofing', nin=proofing_state.nin.number,
+                              vetting_by=vetting_by, transaction_id=transaction_id, user_postal_address=address,
+                              proofing_version='2017v1')
+    if current_app.proofing_log.save(oidc_proof):
+        current_app.logger.info('Recorded verification in the proofing log'.format(user))
+        # User from central db is as up to date as it can be no need to check for modified time
+        user.modified_ts = True
+        # Save user to private db
+        current_app.proofing_userdb.save(user, check_sync=False)
+
+        # Ask am to sync user to central db
+        try:
+            current_app.logger.info('Request sync for user {!s}'.format(user))
+            result = current_app.am_relay.request_user_sync(user)
+            current_app.logger.info('Sync result for user {!s}: {!s}'.format(user, result))
+        except Exception as e:
+            current_app.logger.error('Sync request failed for user {!s}'.format(user))
+            current_app.logger.error('Exception: {!s}'.format(e))
+            # TODO: Need to able to retry
+
+
 def handle_seleg_userinfo(user, proofing_state, userinfo):
     """
     :param user: Central userdb user
@@ -108,33 +161,14 @@ def handle_seleg_userinfo(user, proofing_state, userinfo):
     :type proofing_state: eduid_userdb.proofing.OidcProofingState
     :param userinfo: userinfo from OP
     :type userinfo: dict
-    :return: user, success
-    :rtype: eduid_userdb.user.User, bool
+    :return: None
     """
-    # Check proofed nin against self proclaimed OidcProofingState.nin.number
+    current_app.logger.info('Verifying NIN from seleg for user {}'.format(user))
     number = userinfo['identity']
-    # Check if the self professed NIN is the same as the NIN returned by the vetting provider
-    if proofing_state.nin.number != number:
-        current_app.logger.error('NIN does not match for user {}'.format(user))
-        current_app.logger.debug('Self professed NIN: {}. NIN from vetting provider {}'.format(
-            proofing_state.nin.number, number))
-        return user, False
-    # Check if the NIN is already verified
-    elif any(nin for nin in user.nins.verified if nin.number == number):
-        current_app.logger.info('NIN is already verified for user {}'.format(user))
-        current_app.logger.debug('NIN: {}'.format(number))
-        return user, False
-    nin = Nin(data=proofing_state.nin.to_dict())
-    nin.is_verified = True
-    # Check if the user has more than one verified nin
-    if user.nins.primary is None:
-        # No primary NIN found, make the only verified NIN primary
-        nin.is_primary = True
-    user.nins.add(nin)
-    return user, True
+    verify_nin_for_user(user, proofing_state, number, vetting_by='seleg')
 
 
-def handle_freja_userinfo(user, proofing_state, userinfo):
+def handle_freja_eid_userinfo(user, proofing_state, userinfo):
     """
     :param user: Central userdb user
     :type user: eduid_userdb.user.User
@@ -142,8 +176,10 @@ def handle_freja_userinfo(user, proofing_state, userinfo):
     :type proofing_state: eduid_userdb.proofing.OidcProofingState
     :param userinfo: userinfo from OP
     :type userinfo: dict
-    :return: user, success
-    :rtype: eduid_userdb.user.User, bool
+    :return: None
     """
-    # TODO
-    return user, False
+    current_app.logger.info('Verifying NIN from Freja eID for user {}'.format(user))
+    number = userinfo['freja_proofing']['ssn']
+    verify_nin_for_user(user, proofing_state, number, vetting_by='freja eid')
+
+

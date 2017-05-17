@@ -13,7 +13,6 @@ from oic.oic.message import AuthorizationResponse, ClaimsRequest, Claims
 from datetime import datetime, timedelta
 
 from eduid_userdb.proofing import ProofingUser
-from eduid_userdb.logs import OidcProofing
 from eduid_userdb.util import UTC
 from eduid_userdb.exceptions import DocumentDoesNotExist
 from eduid_common.api.utils import StringIO
@@ -68,7 +67,7 @@ def authorization_response():
         'redirect_uri': url_for('oidc_proofing.authorization_response', _external=True)
     }
     current_app.logger.debug('Trying to do token request: {!s}'.format(args))
-    # TODO: What should be save from the token response and where?
+    # TODO: What should be saved from the token response and where?
     token_resp = current_app.oidc_client.do_access_token_request(scope='openid', state=authn_resp['state'],
                                                                  request_args=args,
                                                                  authn_method='client_secret_basic')
@@ -95,45 +94,15 @@ def authorization_response():
     user = ProofingUser(data=am_user.to_dict())
 
     # A user can only have one NIN verified at this time
+    # TODO: Check agains user.locked_identity
     if user.nins.primary is None:
-        success = False
         # Handle userinfo differently depending on data in userinfo
         if userinfo.get('identity'):
             current_app.logger.info('Handling userinfo as generic seleg vetting for user {}'.format(user))
-            user, success = helpers.handle_seleg_userinfo(user, proofing_state, userinfo)
-            vetting_by = 'seleg'
+            helpers.handle_seleg_userinfo(user, proofing_state, userinfo)
         elif userinfo.get('freja_proofing'):
             current_app.logger.info('Handling userinfo as freja vetting for user {}'.format(user))
-            user, success = helpers.handle_freja_userinfo(user, proofing_state, userinfo)
-            vetting_by = 'verisec'
-
-        # If user was updated successfully continue with logging the proof and saving the user to central db
-        if success:
-            # Send proofing data to the proofing log
-            current_app.logger.info('Getting address for user {!r}'.format(user))
-            # Lookup official address via Navet
-            address = current_app.msg_relay.get_postal_address(proofing_state.nin.number)
-            # Transaction id is the same data as used for the QR code or seed data for the freja app
-            transaction_id = '1' + json.dumps({'nonce': proofing_state.nonce, 'token': proofing_state.token})
-            oidc_proof = OidcProofing(user, created_by='oidc_proofing', nin=proofing_state.nin.number,
-                                      vetting_by=vetting_by, transaction_id=transaction_id, user_postal_address=address,
-                                      proofing_version='2017v1')
-            if current_app.proofing_log.save(oidc_proof):
-                # User from central db is as up to date as it can be no need to check for modified time
-                user.modified_ts = True
-                # Save user to private db
-                current_app.proofing_userdb.save(user, check_sync=False)
-
-                # TODO: Need to decide where to "steal" NIN if multiple users have the NIN verified
-                # Ask am to sync user to central db
-                try:
-                    current_app.logger.info('Request sync for user {!s}'.format(user))
-                    result = current_app.am_relay.request_user_sync(user)
-                    current_app.logger.info('Sync result for user {!s}: {!s}'.format(user, result))
-                except Exception as e:
-                    current_app.logger.error('Sync request failed for user {!s}'.format(user))
-                    current_app.logger.error('Exception: {!s}'.format(e))
-                    # TODO: Need to able to retry
+            helpers.handle_freja_eid_userinfo(user, proofing_state, userinfo)
 
     # Remove users proofing state
     current_app.proofing_statedb.remove_state(proofing_state)
@@ -168,6 +137,7 @@ def get_seleg_state(user):
 @require_user
 def seleg_proofing(user, nin):
     # For now a user can just have one verified NIN
+    # TODO: Check agains user.locked_identity
     if user.nins.primary.verified is not None:
         return {'_status': 'error', 'error': 'User is already verified'}
     # A user can not verify new nin if one already exists
@@ -245,6 +215,7 @@ def get_freja_state(user):
 def freja_proofing(user, nin):
 
     # For now a user can just have one verified NIN
+    # TODO: Check agains user.locked_identity
     if user.nins.primary.verified is not None:
         return {'_status': 'error', 'error': 'User is already verified'}
     # A user can not verify new nin if one already exists
