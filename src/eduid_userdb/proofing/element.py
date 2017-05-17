@@ -35,7 +35,7 @@ import copy
 from six import string_types
 
 from eduid_userdb.element import VerifiedElement, Element
-from eduid_userdb.element import _update_something_by, _update_something_ts
+from eduid_userdb.element import _set_something_by, _set_something_ts
 from eduid_userdb.exceptions import UserDBValueError
 
 
@@ -76,8 +76,29 @@ class ProofingElement(VerifiedElement):
                            verified_ts=verified_ts,
                            verification_code=verification_code,
                            )
-
+        verification_code = data_in.pop('verification_code', None)
         VerifiedElement.__init__(self, data_in)
+        self.verification_code = verification_code
+
+    @property
+    def verification_code(self):
+        """
+        :return: Confirmation code used to verify this element.
+        :rtype: str | unicode
+        """
+        return self._data['verification_code']
+
+    @verification_code.setter
+    def verification_code(self, value):
+        """
+        :param value: New verification_code
+        :type value: str | unicode | None
+        """
+        if value is None:
+            return
+        if not isinstance(value, string_types):
+            raise UserDBValueError("Invalid 'verification_code': {!r}".format(value))
+        self._data['verification_code'] = value
 
 
 class NinProofingElement(ProofingElement):
@@ -102,7 +123,7 @@ class NinProofingElement(ProofingElement):
                  verified=False, verification_code=None, data=None):
 
         data = copy.copy(data)
-        if number == None:
+        if number is None:
             number = data.pop('number')
 
         super(NinProofingElement, self).__init__(application=application,
@@ -158,7 +179,7 @@ class EmailProofingElement(ProofingElement):
                  verified=False, verification_code=None, data=None):
 
         data = copy.copy(data)
-        if email == None:
+        if email is None:
             email = data.pop('email')
 
         super(EmailProofingElement, self).__init__(application=application,
@@ -300,7 +321,7 @@ class SentLetterElement(Element):
                       Value None is ignored, True is short for datetime.utcnow().
         :type value: datetime.datetime | True | None
         """
-        _update_something_ts(self._data, 'sent_ts', value)
+        _set_something_ts(self._data, 'sent_ts', value)
 
     @property
     def transaction_id(self):
@@ -316,7 +337,7 @@ class SentLetterElement(Element):
         :param value: Transaction information from letter service (None is no-op).
         :type value: str | unicode | None
         """
-        _update_something_by(self._data, 'transaction_id', value)
+        _set_something_by(self._data, 'transaction_id', value)
 
     @property
     def address(self):

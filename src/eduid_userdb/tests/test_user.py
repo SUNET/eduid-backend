@@ -1,11 +1,13 @@
 from bson import ObjectId
+from six import string_types
 import datetime
 
 from unittest import TestCase
 
 from eduid_userdb.user import User
 from eduid_userdb.tou import ToUList
-from eduid_userdb.exceptions import UserHasUnknownData, UserHasNotCompletedSignup, UserIsRevoked
+from eduid_userdb.exceptions import UserHasUnknownData, UserHasNotCompletedSignup, UserIsRevoked, UserDBValueError
+from eduid_userdb.element import LockedNinIdentityElement
 
 __author__ = 'ft'
 
@@ -362,3 +364,68 @@ class TestUser(TestCase):
         user = User(data)
         self.assertTrue(user.tou.has_accepted('1'))
         self.assertFalse(user.tou.has_accepted('2'))
+
+    def test_locked_identity_load(self):
+        locked_identity = {
+            'created_by': 'test',
+            'created_ts': True,
+            'identity_type': 'nin',
+            'number': '197801012345'
+        }
+        data = self.data1
+        data['locked_identity'] = locked_identity
+        user = User(data)
+        self.assertTrue(user.locked_identity)
+        self.assertIsInstance(user.locked_identity.created_by, string_types)
+        self.assertIsInstance(user.locked_identity.created_ts, datetime.datetime)
+        self.assertIsInstance(user.locked_identity.identity_type, string_types)
+        self.assertIsInstance(user.locked_identity.number, string_types)
+
+        locked_identity_obj = LockedNinIdentityElement(locked_identity['number'], locked_identity['created_by'],
+                                                       locked_identity['created_ts'])
+        self.assertRaises(UserDBValueError, setattr, user, 'locked_identity', locked_identity_obj)
+
+    def test_locked_identity_set(self):
+        locked_identity = {
+            'created_by': 'test',
+            'created_ts': True,
+            'identity_type': 'nin',
+            'number': '197801012345'
+        }
+        user = User(self.data1)
+        locked_identity_obj = LockedNinIdentityElement(locked_identity['number'], locked_identity['created_by'],
+                                                       locked_identity['created_ts'])
+        user.locked_identity = locked_identity_obj
+        self.assertTrue(user.locked_identity)
+        self.assertIsInstance(user.locked_identity.created_by, string_types)
+        self.assertIsInstance(user.locked_identity.created_ts, datetime.datetime)
+        self.assertIsInstance(user.locked_identity.identity_type, string_types)
+        self.assertIsInstance(user.locked_identity.number, string_types)
+
+        self.assertRaises(UserDBValueError,  setattr, user, 'locked_identity', locked_identity_obj)
+
+    def test_locked_identity_to_dict(self):
+        locked_identity = {
+            'created_by': 'test',
+            'created_ts': True,
+            'identity_type': 'nin',
+            'number': '197801012345'
+        }
+        user = User(self.data1)
+        locked_identity_obj = LockedNinIdentityElement(locked_identity['number'], locked_identity['created_by'],
+                                                       locked_identity['created_ts'])
+        user.locked_identity = locked_identity_obj
+
+        old_user = User(user.to_dict(old_userdb_format=True))
+        self.assertTrue(old_user.locked_identity)
+        self.assertIsInstance(old_user.locked_identity.created_by, string_types)
+        self.assertIsInstance(old_user.locked_identity.created_ts, datetime.datetime)
+        self.assertIsInstance(old_user.locked_identity.identity_type, string_types)
+        self.assertIsInstance(old_user.locked_identity.number, string_types)
+
+        new_user = User(user.to_dict(old_userdb_format=False))
+        self.assertTrue(new_user.locked_identity)
+        self.assertIsInstance(new_user.locked_identity.created_by, string_types)
+        self.assertIsInstance(new_user.locked_identity.created_ts, datetime.datetime)
+        self.assertIsInstance(new_user.locked_identity.identity_type, string_types)
+        self.assertIsInstance(new_user.locked_identity.number, string_types)

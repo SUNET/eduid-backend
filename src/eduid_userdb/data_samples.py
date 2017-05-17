@@ -99,10 +99,8 @@ NEW_USER_EXAMPLE = {
         'created_by': 'signup',
         'created_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"), 
         'verified': True,
-        # XXX is verified_by an application, or a user_id?
         'verified_by': 'signup',
-        'verified_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"), 
-        'verification_code': '1234',
+        'verified_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"),
         'primary': True,
     }, {
         'email': 'johnsmith2@example.com',
@@ -110,8 +108,7 @@ NEW_USER_EXAMPLE = {
         'created_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"), 
         'verified': False,
         'verified_by': 'dashboard',
-        'verified_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"), 
-        'verification_code': '1234',
+        'verified_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"),
         'primary': False,
     }],
     'nins': [{
@@ -120,8 +117,7 @@ NEW_USER_EXAMPLE = {
         'created_by': 'dashboard',
         'verified': True,
         'verified_by': 'dashboard',
-        'verified_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"), 
-        'verification_code': '1234',
+        'verified_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"),
         'primary': True,
     }, {
         'number': '197801011235',
@@ -129,8 +125,7 @@ NEW_USER_EXAMPLE = {
         'created_by': 'dashboard',
         'verified': True,
         'verified_by': 'dashboard',
-        'verified_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"), 
-        'verification_code': '1234',
+        'verified_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"),
         'primary': False,
     }],
     'phone': [{
@@ -139,8 +134,7 @@ NEW_USER_EXAMPLE = {
         'created_by': 'dashboard',
         'verified': True,
         'verified_by': 'dashboard',
-        'verified_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"), 
-        'verification_code': '1234',
+        'verified_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"),
         'primary': True,
     }, {
         'number': '+34 6096096096',
@@ -148,8 +142,7 @@ NEW_USER_EXAMPLE = {
         'created_by': 'dashboard',
         'verified': False,
         'verified_by': 'dashboard',
-        'verified_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"), 
-        'verification_code': '12345',
+        'verified_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"),
         'primary': False,
     }],
     'passwords': [{
@@ -175,8 +168,7 @@ NEW_SIGNUP_USER_EXAMPLE.update({
         'created_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"), 
         'verified': False,
         'verified_by': None,
-        'verified_ts': None, 
-        'verification_code': '1234',
+        'verified_ts': None,
         'primary': False,
     }
 })
@@ -190,7 +182,6 @@ NEW_COMPLETED_SIGNUP_USER_EXAMPLE.update({
             'created_ts': datetime.strptime("2017-01-04T15:47:27", "%Y-%m-%dT%H:%M:%S"),
             'verified': True,
             'verified_by': 'signup',
-            'verification_code': '1234',
             'created_by': 'signup',
             'primary': True,
             'verified_ts': datetime.strptime("2017-01-04T16:47:27", "%Y-%m-%dT%H:%M:%S"),
