@@ -35,7 +35,8 @@ __author__ = 'ft'
 import copy
 import bson
 
-from eduid_userdb import User, MailAddress
+from eduid_userdb import User
+from eduid_userdb.proofing import EmailProofingElement
 from eduid_userdb.exceptions import UserIsRevoked
 
 
@@ -59,7 +60,7 @@ class SignupUser(User):
         _social_network_id = data.pop('social_network_id', None)
         _pending_mail_address = data.pop('pending_mail_address', None)
         if _pending_mail_address:
-            _pending_mail_address = MailAddress(data=_pending_mail_address)
+            _pending_mail_address = EmailProofingElement(data=_pending_mail_address)
         self._pending_mail_address = None
 
         User.__init__(self, data = data)
@@ -141,10 +142,10 @@ class SignupUser(User):
     def pending_mail_address(self, value):
         """
         :param value: Set the user's pending (unconfirmed) mail address.
-        :type value: eduid_userdb.mail.MailAddress | None
+        :type value: eduid_userdb.proofing.EmailProofingElement | None
         """
-        if value is not None and not isinstance(value, MailAddress):
-            raise ValueError('Must be eduid_userdb.mail.MailAddress')
+        if value is not None and not isinstance(value, EmailProofingElement):
+            raise ValueError('Must be eduid_userdb.proofing.EmailProofingElement')
         self._pending_mail_address = value
 
 
