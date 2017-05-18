@@ -232,15 +232,15 @@ class User(object):
 
     def _parse_locked_identity(self):
         self._locked_identity = None
-        supported_identity_types = ['nin']
         _locked_identity = self._data_in.pop('locked_identity', None)
         if _locked_identity:
-            if _locked_identity.get('identity_type') not in supported_identity_types:
-                raise UserDBValueError("Failed parsing 'locked_identity' value: {!r}".format(_locked_identity))
+            if _locked_identity['identity_type'] == 'nin':
+                self._locked_identity = LockedNinIdentityElement(number=_locked_identity['number'],
+                                                                 created_by=_locked_identity['created_by'],
+                                                                 created_ts=_locked_identity['created_ts'])
             # Handle different locked identity types here
-            self._locked_identity = LockedNinIdentityElement(number=_locked_identity['number'],
-                                                             created_by=_locked_identity['created_by'],
-                                                             created_ts=_locked_identity['created_ts'])
+            else:
+                raise UserDBValueError("Failed parsing 'locked_identity' value: {!r}".format(_locked_identity))
 
     # -----------------------------------------------------------------
     @property
