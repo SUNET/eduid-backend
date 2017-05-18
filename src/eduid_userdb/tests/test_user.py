@@ -101,8 +101,14 @@ class TestUser(TestCase):
         data['postalAddress'] = {'foo': 'bar'}
         data['date'] = 'anything'
         data['csrf'] = 'long and secret string'
+        data['mailAliases'][0]['verification_code'] = '123456789'
         user = User(data)
         self.assertEqual(self.user1._data, user._data)
+
+        data = self.data2
+        data['mobile'][0]['verification_code'] = '123456789'
+        user = User(data)
+        self.assertEqual(self.user2._data, user._data)
 
     def test_unknown_attributes(self):
         """

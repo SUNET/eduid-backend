@@ -176,6 +176,8 @@ class VerifiedElement(Element):
 
     def __init__(self, data):
         Element.__init__(self, data)
+        # Remove deprecated verification_code from VerifiedElement
+        data.pop('verification_code', None)
         self.is_verified = data.pop('verified', False)
         self.verified_by = data.pop('verified_by', None)
         self.verified_ts = data.pop('verified_ts', None)
