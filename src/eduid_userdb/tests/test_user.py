@@ -381,9 +381,11 @@ class TestUser(TestCase):
         self.assertIsInstance(user.locked_identity.identity_type, string_types)
         self.assertIsInstance(user.locked_identity.number, string_types)
 
-        locked_identity_obj = LockedNinIdentityElement(locked_identity['number'], locked_identity['created_by'],
-                                                       locked_identity['created_ts'])
-        self.assertRaises(UserDBValueError, setattr, user, 'locked_identity', locked_identity_obj)
+        locked_nin = LockedNinIdentityElement(locked_identity['number'], locked_identity['created_by'],
+                                              locked_identity['created_ts'])
+        
+        with self.assertRaises(UserDBValueError):
+            user.locked_identity = locked_nin
 
     def test_locked_identity_set(self):
         locked_identity = {
@@ -393,16 +395,17 @@ class TestUser(TestCase):
             'number': '197801012345'
         }
         user = User(self.data1)
-        locked_identity_obj = LockedNinIdentityElement(locked_identity['number'], locked_identity['created_by'],
-                                                       locked_identity['created_ts'])
-        user.locked_identity = locked_identity_obj
+        locked_nin = LockedNinIdentityElement(locked_identity['number'], locked_identity['created_by'],
+                                              locked_identity['created_ts'])
+        user.locked_identity = locked_nin
         self.assertTrue(user.locked_identity)
         self.assertIsInstance(user.locked_identity.created_by, string_types)
         self.assertIsInstance(user.locked_identity.created_ts, datetime.datetime)
         self.assertIsInstance(user.locked_identity.identity_type, string_types)
         self.assertIsInstance(user.locked_identity.number, string_types)
 
-        self.assertRaises(UserDBValueError,  setattr, user, 'locked_identity', locked_identity_obj)
+        with self.assertRaises(UserDBValueError):
+            user.locked_identity = locked_nin
 
     def test_locked_identity_to_dict(self):
         locked_identity = {
@@ -412,9 +415,9 @@ class TestUser(TestCase):
             'number': '197801012345'
         }
         user = User(self.data1)
-        locked_identity_obj = LockedNinIdentityElement(locked_identity['number'], locked_identity['created_by'],
+        locked_nin = LockedNinIdentityElement(locked_identity['number'], locked_identity['created_by'],
                                                        locked_identity['created_ts'])
-        user.locked_identity = locked_identity_obj
+        user.locked_identity = locked_nin
 
         old_user = User(user.to_dict(old_userdb_format=True))
         self.assertTrue(old_user.locked_identity)
