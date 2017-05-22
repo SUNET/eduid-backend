@@ -33,7 +33,10 @@
 
 from __future__ import absolute_import
 
+from flask.ext.babel import Babel
+
 from eduid_common.api.app import eduid_init_app
+from eduid_common.api import mail_relay
 from eduid_common.api import am
 from eduid_userdb.dashboard import DashboardUserDB
 from eduid_userdb.authninfo import AuthnInfoDB
@@ -67,10 +70,14 @@ def security_init_app(name, config):
     app.register_blueprint(security_views, url_prefix=app.config.get('APPLICATION_ROOT', None))
 
     app = am.init_relay(app, 'eduid_dashboard')
+    app = mail_relay.init_relay(app)
 
     app.dashboard_userdb = DashboardUserDB(app.config['MONGO_URI'])
     app.authninfo_db = AuthnInfoDB(app.config['MONGO_URI'])
 
     app.logger.info('Init {} app...'.format(name))
+
+    babel = Babel(app)
+    app.babel = babel
 
     return app

@@ -33,16 +33,21 @@
 
 from __future__ import absolute_import
 from datetime import datetime
+from urllib import urlencode
+import urlparse
 
-from flask import Blueprint, session, abort, current_app, url_for, redirect
+from flask import Blueprint, session, abort, url_for
+from flask import render_template, current_app
 
+from eduid_common.api.utils import urlappend
 from eduid_common.api.decorators import require_dashboard_user, MarshalWith, UnmarshalWith
 from eduid_common.api.utils import save_dashboard_user
 from eduid_common.authn.utils import generate_password
 from eduid_common.authn.vccs import add_credentials, revoke_all_credentials
 from eduid_webapp.security.schemas import SecurityResponseSchema, CredentialList, CsrfSchema
 from eduid_webapp.security.schemas import SuggestedPassword, SuggestedPasswordResponseSchema
-from eduid_webapp.security.schemas import ChangePasswordSchema
+from eduid_webapp.security.schemas import ChangePasswordSchema, RedirectResponseSchema
+from eduid_webapp.security.schemas import RedirectSchema
 
 security_views = Blueprint('security', __name__, url_prefix='', template_folder='templates')
 
@@ -79,7 +84,6 @@ def get_suggested(user):
     """
     View to get a suggested  password for the logged user.
     """
-    csrf_token = session.get_csrf_token()
     current_app.logger.debug('Triying to get the credentials '
                              'for user {!r}'.format(user))
     suggested = {
@@ -147,6 +151,7 @@ def change_password(user, csrf_token, old_password, new_password):
 
 
 @security_views.route('/terminate-account', methods=['POST'])
+@MarshalWith(RedirectResponseSchema)
 @UnmarshalWith(CsrfSchema)
 @require_dashboard_user
 def delete_account(user, csrf_token):
@@ -162,7 +167,7 @@ def delete_account(user, csrf_token):
 
     ts_url = current_app.config.get('TOKEN_SERVICE_URL')
     terminate_url = urlappend(ts_url, 'terminate')
-    next_url = url_for('account-terminated')
+    next_url = url_for('security.account_terminated')
 
     params = {'next': next_url}
 
@@ -172,10 +177,10 @@ def delete_account(user, csrf_token):
 
     url_parts[4] = urlencode(query)
     location = urlparse.urlunparse(url_parts)
-    return redirect(location)
+    return RedirectSchema().dump({'location': location}).data
 
 
-@security_views.route('/account-terminated', methods=['POST'])
+@security_views.route('/account-terminated', methods=['GET'])
 @require_dashboard_user
 def account_terminated(user):
     """

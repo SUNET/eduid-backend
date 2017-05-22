@@ -30,3 +30,74 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+import json
+
+from flask import current_app
+from mock import patch
+
+from eduid_common.api.testing import EduidAPITestCase
+from eduid_common.api.utils import retrieve_modified_ts
+from eduid_webapp.security.app import security_init_app
+
+
+class SecurityTests(EduidAPITestCase):
+
+    def load_app(self, config):
+        """
+        Called from the parent class, so we can provide the appropiate flask
+        app for this test case.
+        """
+        return security_init_app('testing', config)
+
+    def update_config(self, config):
+        config.update({
+            'AVAILABLE_LANGUAGES': {'en': 'English','sv': 'Svenska'},
+            'MSG_BROKER_URL': 'amqp://dummy',
+            'AM_BROKER_URL': 'amqp://dummy',
+            'CELERY_CONFIG': {
+                'CELERY_RESULT_BACKEND': 'amqp',
+                'CELERY_TASK_SERIALIZER': 'json'
+            },
+            'PASSWORD_LENGTH': 12,
+            'PASSWORD_ENTROPY': 25,
+            'CHPASS_TIMEOUT': 600,
+        })
+        return config
+
+    def init_data(self):
+        self.app.dashboard_userdb.save(self.test_user, check_sync=False)
+        retrieve_modified_ts(self.test_user)
+
+    def test_get_credentials(self):
+        response = self.browser.get('/credentials')
+        self.assertEqual(response.status_code, 302)  # Redirect to token service
+
+        eppn = self.test_user_data['eduPersonPrincipalName']
+        with self.session_cookie(self.browser, eppn) as client:
+            response2 = client.get('/credentials')
+
+            sec_data = json.loads(response2.data)
+            self.assertEqual(sec_data['type'],
+                    'GET_SECURITY_CREDENTIALS_SUCCESS')
+
+    def test_get_suggested(self):
+        response = self.browser.get('/suggested-password')
+        self.assertEqual(response.status_code, 302)  # Redirect to token service
+
+        eppn = self.test_user_data['eduPersonPrincipalName']
+        with self.session_cookie(self.browser, eppn) as client:
+            response2 = client.get('/suggested-password')
+
+            passwd = json.loads(response2.data)
+            self.assertEqual(passwd['type'],
+                    'GET_SECURITY_SUGGESTED_PASSWORD_SUCCESS')
+
+    def test_change_passwd(self):
+        response = self.browser.post('/change-password')
+        self.assertEqual(response.status_code, 302)  # Redirect to token service
+
+        eppn = self.test_user_data['eduPersonPrincipalName']
+        with self.session_cookie(self.browser, eppn) as client:
+            response2 = client.post('/change-password')
+            from nose.tools import set_trace;set_trace()
+            pass

@@ -51,8 +51,17 @@ class SecurityResponseSchema(FluxStandardAction):
     csrf_token = fields.String(attribute='csrf_token')
 
 
-class CsrfSchema(FluxStandardAction):
-    csrf_token = fields.String(attribute='csrf_token')
+class CsrfSchema(EduidSchema):
+    csrf_token = fields.String(required=True)
+
+
+class RedirectSchema(EduidSchema):
+    location = fields.String(required=True)
+
+
+class RedirectResponseSchema(FluxStandardAction):
+
+    payload = RedirectSchema()
 
 
 class SuggestedPassword(EduidSchema):
