@@ -31,8 +31,8 @@
 #
 # Author : Fredrik Thulin <fredrik@thulin.net>
 #
-
 __author__ = 'ft'
+
 import datetime
 import pytz
 from eduid_userdb.exceptions import UserDBValueError
@@ -50,3 +50,16 @@ def convert_to_localtime(dt):
     dt = dt.replace(tzinfo=pytz.utc)
     dt = dt.astimezone(tz)
     return dt
+
+
+class UTC(datetime.tzinfo):
+    """UTC"""
+
+    def utcoffset(self, dt):
+        return datetime.timedelta(0)
+
+    def tzname(self, dt):
+        return "UTC"
+
+    def dst(self, dt):
+        return datetime.timedelta(0)

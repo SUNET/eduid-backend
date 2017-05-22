@@ -45,6 +45,7 @@ import unittest
 import subprocess
 import pymongo
 from copy import deepcopy
+from datetime import date, timedelta
 
 from bson import ObjectId
 
@@ -252,7 +253,7 @@ class MongoTestCase(unittest.TestCase):
     user = User(data=MOCKED_USER_STANDARD)
     mock_users_patches = []
 
-    def setUp(self, celery, get_attribute_manager, userdb_use_old_format=False):
+    def setUp(self, celery, get_attribute_manager, userdb_use_old_format=False, am_settings=None):
         """
         Test case initialization.
 
@@ -289,7 +290,11 @@ class MongoTestCase(unittest.TestCase):
                 'CELERY_CACHE_BACKEND': 'memory',
                 # Be sure to tell AttributeManager about the temporary mongodb instance.
                 'MONGO_URI': self.tmp_db.get_uri(''),
+                # Set new user date to tomorrow by default
+                'NEW_USER_DATE': str(date.today() + timedelta(days=1))
             }
+            if am_settings:
+                self.am_settings.update(am_settings)
             celery.conf.update(self.am_settings)
             self.am = get_attribute_manager(celery)
             self.amdb = self.am.userdb

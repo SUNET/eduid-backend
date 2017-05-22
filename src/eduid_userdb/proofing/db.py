@@ -311,8 +311,7 @@ class ProofingUserDB(UserDB):
     def __init__(self, db_uri, db_name, collection='profiles'):
         super(ProofingUserDB, self).__init__(db_uri, db_name, collection=collection)
 
-    def save(self, user, check_sync=True, old_format=True):
-        # XXX old_format default is set to True here
+    def save(self, user, check_sync=True, old_format=False):
         super(ProofingUserDB, self).save(user, check_sync=check_sync, old_format=old_format)
 
 

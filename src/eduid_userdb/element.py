@@ -130,7 +130,7 @@ class Element(object):
         :param value: Information about who created a element.
         :type value: str | unicode
         """
-        _update_something_by(self._data, 'created_by', value)
+        _set_something_by(self._data, 'created_by', value)
 
     # -----------------------------------------------------------------
     @property
@@ -148,7 +148,7 @@ class Element(object):
                       Value None is ignored, True is short for datetime.utcnow().
         :type value: datetime.datetime | True | None
         """
-        _update_something_ts(self._data, 'created_ts', value)
+        _set_something_ts(self._data, 'created_ts', value)
 
     # -----------------------------------------------------------------
     def to_dict(self, old_userdb_format = False):
@@ -162,6 +162,7 @@ class Element(object):
         res = copy.copy(self._data)  # avoid caller messing with our _data
         return res
 
+
 class VerifiedElement(Element):
     """
     Elements that can be verified or not.
@@ -171,15 +172,15 @@ class VerifiedElement(Element):
         is_verified
         verified_by
         verified_ts
-        verification_code
     """
 
     def __init__(self, data):
         Element.__init__(self, data)
+        # Remove deprecated verification_code from VerifiedElement
+        data.pop('verification_code', None)
         self.is_verified = data.pop('verified', False)
         self.verified_by = data.pop('verified_by', None)
         self.verified_ts = data.pop('verified_ts', None)
-        self.verification_code = data.pop('verification_code', None)
 
     # -----------------------------------------------------------------
     @property
@@ -215,7 +216,7 @@ class VerifiedElement(Element):
         :param value: Information about who verified a element (None is no-op).
         :type value: str | unicode | None
         """
-        _update_something_by(self._data, 'verified_by', value)
+        _set_something_by(self._data, 'verified_by', value, allow_update=True)
 
     # -----------------------------------------------------------------
     @property
@@ -233,28 +234,7 @@ class VerifiedElement(Element):
                       Value None is ignored, True is short for datetime.utcnow().
         :type value: datetime.datetime | True | None
         """
-        _update_something_ts(self._data, 'verified_ts', value)
-
-    # -----------------------------------------------------------------
-    @property
-    def verification_code(self):
-        """
-        :return: Confirmation code used to verify this element.
-        :rtype: str | unicode
-        """
-        return self._data['verification_code']
-
-    @verification_code.setter
-    def verification_code(self, value):
-        """
-        :param value: New verification_code
-        :type value: str | unicode | None
-        """
-        if value is None:
-            return
-        if not isinstance(value, string_types):
-            raise UserDBValueError("Invalid 'verification_code': {!r}".format(value))
-        self._data['verification_code'] = value
+        _set_something_ts(self._data, 'verified_ts', value, allow_update=True)
 
 
 class PrimaryElement(VerifiedElement):
@@ -328,6 +308,79 @@ class PrimaryElement(VerifiedElement):
         if value is False and self.is_primary:
             raise PrimaryElementViolation("Can't remove verified status of primary element")
         VerifiedElement.is_verified.fset(self, value)
+
+
+class LockedIdentityElement(Element):
+
+    """
+    Element that is used to lock an identity to a user
+
+    Properties of LockedIdentityElement:
+
+        identity_type
+    """
+
+    def __init__(self, data):
+        Element.__init__(self, data)
+        self.identity_type = data.pop('identity_type')
+
+    # -----------------------------------------------------------------
+    @property
+    def identity_type(self):
+        """
+        :return: Type of identity
+        :rtype: string_types
+        """
+        return self._data['identity_type']
+
+    @identity_type.setter
+    def identity_type(self, value):
+        """
+        :param value: Type of identity
+        :type value: string_types
+        """
+        if not isinstance(value, string_types):
+            raise UserDBValueError("Invalid 'identity_type': {!r}".format(value))
+        self._data['identity_type'] = value
+
+
+class LockedNinIdentityElement(LockedIdentityElement):
+
+    """
+    Element that is used to lock a NIN to a user
+
+    Properties of LockedNinElement:
+
+        number
+    """
+
+    def __init__(self, number, created_by, created_ts):
+        data = {
+            'created_by': created_by,
+            'created_ts': created_ts,
+            'identity_type': 'nin'
+        }
+        LockedIdentityElement.__init__(self, data)
+        self.number = number
+
+    # -----------------------------------------------------------------
+    @property
+    def number(self):
+        """
+        :return: Type of identity
+        :rtype: string_types
+        """
+        return self._data['number']
+
+    @number.setter
+    def number(self, value):
+        """
+        :param value: Type of identity
+        :type value: string_types
+        """
+        if not isinstance(value, string_types):
+            raise UserDBValueError("Invalid 'nin': {!r}".format(value))
+        self._data['number'] = value
 
 
 class ElementList(object):
@@ -563,9 +616,9 @@ class PrimaryElementList(ElementList):
         return self.__class__(verified_elements)
 
 
-def _update_something_by(data, key, value):
+def _set_something_by(data, key, value, allow_update=False):
     """
-    Shared code to update 'verified_by', 'created_by' and similar properties.
+    Shared code to set or update 'verified_by', 'created_by' and similar properties.
 
     :param data: Where the data is stored
     :param key: Key name of the data
@@ -573,8 +626,8 @@ def _update_something_by(data, key, value):
 
     :type value: str | unicode | None
     """
-    if data.get(key) is not None:
-        # Once verified_by etc. is set, it should not be modified.
+    if data.get(key) is not None and not allow_update:
+        # Once created_by etc. is set, it should not be modified.
         raise UserDBValueError("Refusing to modify {!r} of element".format(key))
     if value is None:
         return
@@ -583,9 +636,9 @@ def _update_something_by(data, key, value):
     data[key] = str(value)
 
 
-def _update_something_ts(data, key, value):
+def _set_something_ts(data, key, value, allow_update=False):
     """
-    Shared code to update 'verified_ts', 'created_ts' and similar properties.
+    Shared code to set or update 'verified_ts', 'created_ts' and similar properties.
 
     :param data: Where the data is stored
     :param key: Key name of the data
@@ -593,11 +646,13 @@ def _update_something_ts(data, key, value):
                   Value None is ignored, True is short for datetime.utcnow().
     :type value: datetime.datetime | True | None
     """
-    if data.get(key) is not None:
-        # Once verified_ts etc. is set, it should not be modified.
+    if data.get(key) is not None and not allow_update:
+        # Once created_ts etc. is set, it should not be modified.
         raise UserDBValueError("Refusing to modify {!r} of element".format(key))
     if value is None:
         return
     if value is True:
         value = datetime.datetime.utcnow()
+    if not isinstance(value, datetime.datetime):
+        raise UserDBValueError("Invalid {!r} value: {!r}".format(key, value))
     data[key] = value
