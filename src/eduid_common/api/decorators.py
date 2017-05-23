@@ -101,8 +101,10 @@ class MarshalWith(object):
                         break
             # ret may be a response, if the unmarshalling fails
             except AttributeError:
-                ret = json.loads(ret.data)
-                response_status = ret.pop('_status', FluxResponseStatus.ok)
+                ret = json.loads(ret.data)['payload']
+                response_status = ret.get('error', FluxResponseStatus.ok)
+                if response_status == True:
+                    response_status = 'error'
 
             # Handle fail responses
             if response_status != FluxResponseStatus.ok:
