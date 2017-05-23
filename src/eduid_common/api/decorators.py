@@ -3,11 +3,11 @@
 from __future__ import absolute_import
 
 import json
-
 import warnings
 from functools import wraps
 from flask import session, abort, current_app, request, jsonify
 from marshmallow.exceptions import ValidationError
+
 from eduid_userdb.exceptions import UserDoesNotExist, MultipleUsersReturned
 from eduid_common.api.utils import retrieve_modified_ts, get_dashboard_user
 from eduid_common.api.schemas.base import FluxStandardAction
@@ -101,8 +101,10 @@ class MarshalWith(object):
                         break
             # ret may be a response, if the unmarshalling fails
             except AttributeError:
-                ret = json.loads(ret.data)
-                response_status = ret.pop('_status', FluxResponseStatus.ok)
+                ret = json.loads(ret.data)['payload']
+                response_status = ret.get('error', FluxResponseStatus.ok)
+                if response_status == True:
+                    response_status = 'error'
 
             # Handle fail responses
             if response_status != FluxResponseStatus.ok:
