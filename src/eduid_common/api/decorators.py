@@ -3,11 +3,11 @@
 from __future__ import absolute_import
 
 import json
-
 import warnings
 from functools import wraps
 from flask import session, abort, current_app, request, jsonify
 from marshmallow.exceptions import ValidationError
+
 from eduid_userdb.exceptions import UserDoesNotExist, MultipleUsersReturned
 from eduid_common.api.utils import retrieve_modified_ts, get_dashboard_user
 from eduid_common.api.schemas.base import FluxStandardAction
