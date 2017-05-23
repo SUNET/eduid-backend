@@ -31,6 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 import json
+import time
 
 from flask import current_app
 from mock import patch
@@ -92,12 +93,62 @@ class SecurityTests(EduidAPITestCase):
             self.assertEqual(passwd['type'],
                     'GET_SECURITY_SUGGESTED_PASSWORD_SUCCESS')
 
-    def test_change_passwd(self):
+    def test_change_passwd_no_data(self):
         response = self.browser.post('/change-password')
         self.assertEqual(response.status_code, 302)  # Redirect to token service
 
         eppn = self.test_user_data['eduPersonPrincipalName']
         with self.session_cookie(self.browser, eppn) as client:
             response2 = client.post('/change-password')
-            from nose.tools import set_trace;set_trace()
-            pass
+            self.assertEqual(response2.data['type'],
+                    "POST_SECURITY_CHANGE_PASSWORD_FAIL")
+
+    def test_change_passwd_no_reauthn(self):
+        eppn = self.test_user_data['eduPersonPrincipalName']
+        with self.session_cookie(self.browser, eppn) as client:
+            with client.session_transaction() as sess:
+                data = {
+                        'csrf_token': sess.get_csrf_token(),
+                        'new_password': '1234',
+                        'old_password': '5678'
+                        }
+                response2 = client.post('/change-password', data=json.dumps(data),
+                                           content_type=self.content_type_json)
+
+                self.assertEqual(response2.status_code, 200)
+                self.assertEqual(response2.data['type'],
+                        "POST_SECURITY_CHANGE_PASSWORD_FAIL")
+
+    def test_change_passwd_stale(self):
+        eppn = self.test_user_data['eduPersonPrincipalName']
+        with self.session_cookie(self.browser, eppn) as client:
+            with client.session_transaction() as sess:
+                sess['reauthn-for-chpass'] = True
+                data = {
+                        'csrf_token': sess.get_csrf_token(),
+                        'new_password': '1234',
+                        'old_password': '5678'
+                        }
+                response2 = client.post('/change-password', data=json.dumps(data),
+                                           content_type=self.content_type_json)
+
+                self.assertEqual(response2.status_code, 200)
+                self.assertEqual(response2.data['type'],
+                        "POST_SECURITY_CHANGE_PASSWORD_FAIL")
+
+    def test_change_passwd(self):
+        eppn = self.test_user_data['eduPersonPrincipalName']
+        with self.session_cookie(self.browser, eppn) as client:
+            with client.session_transaction() as sess:
+                sess['reauthn-for-chpass'] = int(time.time())
+                data = {
+                        'csrf_token': sess.get_csrf_token(),
+                        'new_password': '1234',
+                        'old_password': '5678'
+                        }
+                response2 = client.post('/change-password', data=json.dumps(data),
+                                           content_type=self.content_type_json)
+
+                self.assertEqual(response2.status_code, 200)
+                self.assertEqual(response2.data['type'],
+                        "POST_SECURITY_CHANGE_PASSWORD_SUCCESS")
