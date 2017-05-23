@@ -2,6 +2,8 @@
 
 from __future__ import absolute_import
 
+import json
+
 import warnings
 from functools import wraps
 from flask import session, abort, current_app, request, jsonify
@@ -97,6 +99,10 @@ class MarshalWith(object):
                     response_status = item.pop('_status', FluxResponseStatus.ok)
                     if response_status != FluxResponseStatus.ok:
                         break
+            # ret may be a response, if the unmarshalling fails
+            except AttributeError:
+                ret = json.loads(ret.data)
+                response_status = ret.pop('_status', FluxResponseStatus.ok)
 
             # Handle fail responses
             if response_status != FluxResponseStatus.ok:
