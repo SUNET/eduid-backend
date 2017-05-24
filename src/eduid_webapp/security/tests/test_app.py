@@ -100,7 +100,9 @@ class SecurityTests(EduidAPITestCase):
         eppn = self.test_user_data['eduPersonPrincipalName']
         with self.session_cookie(self.browser, eppn) as client:
             response2 = client.post('/change-password')
-            self.assertEqual(response2.data['type'],
+
+            sec_data = json.loads(response2.data)
+            self.assertEqual(sec_data['type'],
                     "POST_SECURITY_CHANGE_PASSWORD_FAIL")
 
     def test_change_passwd_no_reauthn(self):
@@ -116,7 +118,9 @@ class SecurityTests(EduidAPITestCase):
                                            content_type=self.content_type_json)
 
                 self.assertEqual(response2.status_code, 200)
-                self.assertEqual(response2.data['type'],
+
+                sec_data = json.loads(response2.data)
+                self.assertEqual(sec_data['type'],
                         "POST_SECURITY_CHANGE_PASSWORD_FAIL")
 
     def test_change_passwd_stale(self):
@@ -133,22 +137,158 @@ class SecurityTests(EduidAPITestCase):
                                            content_type=self.content_type_json)
 
                 self.assertEqual(response2.status_code, 200)
-                self.assertEqual(response2.data['type'],
+
+                sec_data = json.loads(response2.data)
+                self.assertEqual(sec_data['type'],
                         "POST_SECURITY_CHANGE_PASSWORD_FAIL")
 
-    def test_change_passwd(self):
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_change_passwd_no_csrf(self, mock_request_user_sync):
+        mock_request_user_sync.return_value = True
         eppn = self.test_user_data['eduPersonPrincipalName']
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction() as sess:
-                sess['reauthn-for-chpass'] = int(time.time())
+                with patch('eduid_webapp.security.views.add_credentials',
+                        return_value=True):
+                    sess['reauthn-for-chpass'] = int(time.time())
+                    data = {
+                            'new_password': '1234',
+                            'old_password': '5678'
+                            }
+                    response2 = client.post('/change-password', data=json.dumps(data),
+                                               content_type=self.content_type_json)
+
+                    self.assertEqual(response2.status_code, 200)
+
+                    sec_data = json.loads(response2.data)
+                    self.assertEqual(sec_data['type'],
+                            "POST_SECURITY_CHANGE_PASSWORD_FAIL")
+
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_change_passwd_wrong_csrf(self, mock_request_user_sync):
+        mock_request_user_sync.return_value = True
+        eppn = self.test_user_data['eduPersonPrincipalName']
+        with self.session_cookie(self.browser, eppn) as client:
+            with client.session_transaction() as sess:
+                with patch('eduid_webapp.security.views.add_credentials',
+                        return_value=True):
+                    sess['reauthn-for-chpass'] = int(time.time())
+                    data = {
+                            'csrf_token': '0000',
+                            'new_password': '1234',
+                            'old_password': '5678'
+                            }
+                    response2 = client.post('/change-password', data=json.dumps(data),
+                                               content_type=self.content_type_json)
+
+                    self.assertEqual(response2.status_code, 400)
+
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_change_passwd(self, mock_request_user_sync):
+        mock_request_user_sync.return_value = True
+        eppn = self.test_user_data['eduPersonPrincipalName']
+        with self.session_cookie(self.browser, eppn) as client:
+            with client.session_transaction() as sess:
+                with patch('eduid_webapp.security.views.add_credentials',
+                        return_value=True):
+                    sess['reauthn-for-chpass'] = int(time.time())
+                    data = {
+                            'csrf_token': sess.get_csrf_token(),
+                            'new_password': '1234',
+                            'old_password': '5678'
+                            }
+                    response2 = client.post('/change-password', data=json.dumps(data),
+                                               content_type=self.content_type_json)
+
+                    self.assertEqual(response2.status_code, 200)
+
+                    sec_data = json.loads(response2.data)
+                    self.assertEqual(sec_data['type'],
+                            "POST_SECURITY_CHANGE_PASSWORD_SUCCESS")
+
+
+    def test_delete_account_no_csrf(self):
+        response = self.browser.post('/terminate-account')
+        self.assertEqual(response.status_code, 302)  # Redirect to token service
+
+        eppn = self.test_user_data['eduPersonPrincipalName']
+        with self.session_cookie(self.browser, eppn) as client:
+            response2 = client.post('/terminate-account')
+
+            rdata = json.loads(response2.data)
+            self.assertEqual(rdata['type'],
+                    'POST_SECURITY_TERMINATE_ACCOUNT_FAIL')
+
+    def test_delete_account_wrong_csrf(self):
+        eppn = self.test_user_data['eduPersonPrincipalName']
+        with self.session_cookie(self.browser, eppn) as client:
+            data = {
+                    'csrf_token': '1234',
+                    }
+            response2 = client.post('/terminate-account', data=json.dumps(data),
+                                       content_type=self.content_type_json)
+
+            self.assertEqual(response2.status_code, 400)
+
+    def test_delete_account(self):
+        eppn = self.test_user_data['eduPersonPrincipalName']
+        with self.session_cookie(self.browser, eppn) as client:
+            with client.session_transaction() as sess:
                 data = {
                         'csrf_token': sess.get_csrf_token(),
-                        'new_password': '1234',
-                        'old_password': '5678'
                         }
-                response2 = client.post('/change-password', data=json.dumps(data),
+                response2 = client.post('/terminate-account', data=json.dumps(data),
                                            content_type=self.content_type_json)
 
                 self.assertEqual(response2.status_code, 200)
-                self.assertEqual(response2.data['type'],
-                        "POST_SECURITY_CHANGE_PASSWORD_SUCCESS")
+
+            rdata = json.loads(response2.data)
+
+            self.assertEqual(rdata['payload']['location'],
+                    'http://test.localhost/terminate?next=%2Faccount-terminated')
+            self.assertEqual(rdata['type'],
+                    'POST_SECURITY_TERMINATE_ACCOUNT_SUCCESS')
+
+    def test_account_terminated_no_authn(self):
+        response = self.browser.get('/account-terminated')
+        self.assertEqual(response.status_code, 302)  # Redirect to token service
+
+    def test_account_terminated_no_reauthn(self):
+        eppn = self.test_user_data['eduPersonPrincipalName']
+        with self.session_cookie(self.browser, eppn) as client:
+            response2 = client.get('/account-terminated')
+            
+            self.assertEqual(response2.status_code, 400)
+
+    def test_account_terminated_stale(self):
+        eppn = self.test_user_data['eduPersonPrincipalName']
+        with self.session_cookie(self.browser, eppn) as client:
+            with client.session_transaction() as sess:
+
+                sess['reauthn-for-termination'] = 0
+                response2 = client.get('/account-terminated')
+                
+                self.assertEqual(response2.status_code, 200)
+                self.assertEqual(response2.status_code, 200)
+                rdata = json.loads(response2.data)
+
+                self.assertEqual(rdata['type'],
+                        'POST_SECURITY_ACCOUNT_TERMINATED_FAIL')
+
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid_webapp.security.views.revoke_all_credentials')
+    def test_account_terminated(self, mock_revoke, mock_sync):
+        mock_revoke.return_value = True
+        mock_sync.return_value = True
+        eppn = self.test_user_data['eduPersonPrincipalName']
+        with self.session_cookie(self.browser, eppn) as client:
+            with client.session_transaction() as sess:
+
+                sess['reauthn-for-termination'] = int(time.time())
+                response2 = client.get('/account-terminated')
+                
+                self.assertEqual(response2.status_code, 200)
+                rdata = json.loads(response2.data)
+
+                self.assertEqual(rdata['type'],
+                        'POST_SECURITY_ACCOUNT_TERMINATED_SUCCESS')

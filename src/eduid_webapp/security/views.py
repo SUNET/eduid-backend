@@ -39,6 +39,7 @@ import urlparse
 from flask import Blueprint, session, abort, url_for
 from flask import render_template, current_app
 
+from eduid_userdb.exceptions import UserOutOfSync
 from eduid_common.api.utils import urlappend
 from eduid_common.api.decorators import require_dashboard_user, MarshalWith, UnmarshalWith
 from eduid_common.api.utils import save_dashboard_user
