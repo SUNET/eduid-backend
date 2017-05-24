@@ -80,3 +80,7 @@ class ChangePasswordSchema(EduidSchema):
     old_password = fields.String(required=True)
     new_password = fields.String(required=True)
     csrf_token = fields.String(required=True)
+
+
+class AccountTerminatedSchema(FluxStandardAction):
+    pass

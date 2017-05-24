@@ -48,7 +48,7 @@ from eduid_common.authn.vccs import add_credentials, revoke_all_credentials
 from eduid_webapp.security.schemas import SecurityResponseSchema, CredentialList, CsrfSchema
 from eduid_webapp.security.schemas import SuggestedPassword, SuggestedPasswordResponseSchema
 from eduid_webapp.security.schemas import ChangePasswordSchema, RedirectResponseSchema
-from eduid_webapp.security.schemas import RedirectSchema
+from eduid_webapp.security.schemas import RedirectSchema, AccountTerminatedSchema
 
 security_views = Blueprint('security', __name__, url_prefix='', template_folder='templates')
 
@@ -182,6 +182,7 @@ def delete_account(user, csrf_token):
 
 
 @security_views.route('/account-terminated', methods=['GET'])
+@MarshalWith(AccountTerminatedSchema)
 @require_dashboard_user
 def account_terminated(user):
     """

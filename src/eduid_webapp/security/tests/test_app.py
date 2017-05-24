@@ -269,11 +269,10 @@ class SecurityTests(EduidAPITestCase):
                 response2 = client.get('/account-terminated')
                 
                 self.assertEqual(response2.status_code, 200)
-                self.assertEqual(response2.status_code, 200)
                 rdata = json.loads(response2.data)
 
                 self.assertEqual(rdata['type'],
-                        'POST_SECURITY_ACCOUNT_TERMINATED_FAIL')
+                        'GET_SECURITY_ACCOUNT_TERMINATED_FAIL')
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('eduid_webapp.security.views.revoke_all_credentials')
@@ -286,9 +285,9 @@ class SecurityTests(EduidAPITestCase):
 
                 sess['reauthn-for-termination'] = int(time.time())
                 response2 = client.get('/account-terminated')
-                
+
                 self.assertEqual(response2.status_code, 200)
                 rdata = json.loads(response2.data)
 
                 self.assertEqual(rdata['type'],
-                        'POST_SECURITY_ACCOUNT_TERMINATED_SUCCESS')
+                        'GET_SECURITY_ACCOUNT_TERMINATED_SUCCESS')
