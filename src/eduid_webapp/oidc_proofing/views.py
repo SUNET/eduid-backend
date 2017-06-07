@@ -94,7 +94,7 @@ def authorization_response():
     user = ProofingUser(data=am_user.to_dict())
 
     # A user can only have one NIN verified at this time
-    # TODO: Check agains user.locked_identity
+    # TODO: Check against user.locked_identity
     if user.nins.primary is None:
         # Handle userinfo differently depending on data in userinfo
         if userinfo.get('identity'):
@@ -133,12 +133,11 @@ def get_seleg_state(user):
 
 @oidc_proofing_views.route('/proofing', methods=['POST'])
 @UnmarshalWith(schemas.OidcProofingRequestSchema)
-@MarshalWith(schemas.NonceResponseSchema)
 @require_user
 def seleg_proofing(user, nin):
     # For now a user can just have one verified NIN
     # TODO: Check agains user.locked_identity
-    if user.nins.primary.verified is not None:
+    if user.nins.primary is not None:
         return {'_status': 'error', 'error': 'User is already verified'}
     # A user can not verify new nin if one already exists
     if len(user.nins.to_list()) > 0 and any(item for item in user.nins.to_list() if item.number != nin):
@@ -166,7 +165,7 @@ def seleg_proofing(user, nin):
         current_app.proofing_statedb.save(proofing_state)
         current_app.logger.debug('Proofing state {!s} for user {!s} saved'.format(proofing_state.state, user))
 
-    return get_seleg_state(user)
+    return get_seleg_state()
 
 
 @oidc_proofing_views.route('/freja/proofing', methods=['GET'])
@@ -210,13 +209,12 @@ def get_freja_state(user):
 
 @oidc_proofing_views.route('/freja/proofing', methods=['POST'])
 @UnmarshalWith(schemas.OidcProofingRequestSchema)
-@MarshalWith(schemas.FrejaResponseSchema)
 @require_user
 def freja_proofing(user, nin):
 
     # For now a user can just have one verified NIN
     # TODO: Check agains user.locked_identity
-    if user.nins.primary.verified is not None:
+    if user.nins.primary is not None:
         return {'_status': 'error', 'error': 'User is already verified'}
     # A user can not verify new nin if one already exists
     if len(user.nins.to_list()) > 0 and any(item for item in user.nins.to_list() if item.number != nin):
@@ -244,4 +242,4 @@ def freja_proofing(user, nin):
         current_app.proofing_statedb.save(proofing_state)
         current_app.logger.debug('Proofing state {!s} for user {!s} saved'.format(proofing_state.state, user))
 
-    return get_freja_state(user)
+    return get_freja_state()
