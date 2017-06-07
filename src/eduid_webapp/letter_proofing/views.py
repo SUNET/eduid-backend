@@ -102,12 +102,12 @@ def verify_code(user, verification_code):
 
     # Update proofing state to use to create nin element
     proofing_state.nin.is_verified = True
-    proofing_state.nin.verified_by = 'eduid-idproofing-letter'
+    proofing_state.nin.verified_by = 'eduid-letter-proofing'
     proofing_state.nin.verified_ts = True
-    nin = Nin(number=proofing_state.nin.number, application=proofing_state.nin.application,
+    nin = Nin(number=proofing_state.nin.number, application=proofing_state.nin.created_by,
               verified=proofing_state.nin.is_verified, created_ts=proofing_state.nin.created_ts,
-              primary=proofing_state.nin.is_primary)
-
+              primary=False)
+    nin.verified_by = proofing_state.nin.verified_by
     # Save user to private db
     if user.nins.primary is None:  # No primary NIN found, make the only verified NIN primary
         nin.is_primary = True

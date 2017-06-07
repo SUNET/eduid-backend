@@ -6,6 +6,7 @@ import json
 from flask import current_app
 
 from eduid_userdb.proofing import ProofingUser
+from eduid_userdb.proofing.element import NinProofingElement
 from eduid_userdb.logs import OidcProofing
 from eduid_userdb.nin import Nin
 from eduid_common.api.utils import get_unique_hash
@@ -26,7 +27,7 @@ def create_proofing_state(user, nin):
     state = get_unique_hash()
     nonce = get_unique_hash()
     token = get_unique_hash()
-    nin_element = Nin(number=nin, application='eduid_oidc_proofing', verified=False, primary=False)
+    nin_element = NinProofingElement(number=nin, application='eduid_oidc_proofing', verified=False)
     proofing_state = OidcProofingState({'eduPersonPrincipalName': user.eppn, 'nin': nin_element.to_dict(),
                                         'state': state, 'nonce': nonce, 'token': token})
     return proofing_state
@@ -117,10 +118,14 @@ def verify_nin_for_user(user, proofing_state, number, vetting_by):
         current_app.logger.info('NIN is already verified for user {}'.format(user))
         current_app.logger.debug('NIN: {}'.format(number))
         return
-    nin = Nin(number=proofing_state.nin.number, application=proofing_state.nin.application,
+    proofing_state.nin.is_verified = True
+    proofing_state.nin.verified_by = 'eduid-oidc-proofing'
+    proofing_state.nin.verified_ts = True
+    nin = Nin(number=proofing_state.nin.number, application=proofing_state.nin.created_by,
               verified=proofing_state.nin.is_verified, created_ts=proofing_state.nin.created_ts,
-              primary=proofing_state.nin.is_primary)
-    nin.is_verified = True
+              primary=False)
+    nin.verified_by = proofing_state.nin.verified_by
+    nin.verified_by = nin.created_by
     # Check if the user has more than one verified nin
     if user.nins.primary is None:
         # No primary NIN found, make the only verified NIN primary
