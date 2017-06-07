@@ -117,7 +117,9 @@ def verify_nin_for_user(user, proofing_state, number, vetting_by):
         current_app.logger.info('NIN is already verified for user {}'.format(user))
         current_app.logger.debug('NIN: {}'.format(number))
         return
-    nin = Nin(data=proofing_state.nin.to_dict())
+    nin = Nin(number=proofing_state.nin.number, application=proofing_state.nin.application,
+              verified=proofing_state.nin.is_verified, created_ts=proofing_state.nin.created_ts,
+              primary=proofing_state.nin.is_primary)
     nin.is_verified = True
     # Check if the user has more than one verified nin
     if user.nins.primary is None:

@@ -104,7 +104,9 @@ def verify_code(user, verification_code):
     proofing_state.nin.is_verified = True
     proofing_state.nin.verified_by = 'eduid-idproofing-letter'
     proofing_state.nin.verified_ts = True
-    nin = Nin(data=proofing_state.nin.to_dict(), raise_on_unknown=False)
+    nin = Nin(number=proofing_state.nin.number, application=proofing_state.nin.application,
+              verified=proofing_state.nin.is_verified, created_ts=proofing_state.nin.created_ts,
+              primary=proofing_state.nin.is_primary)
 
     # Save user to private db
     if user.nins.primary is None:  # No primary NIN found, make the only verified NIN primary
