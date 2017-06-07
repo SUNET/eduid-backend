@@ -21,6 +21,14 @@ class NonceResponseSchema(FluxStandardAction):
     payload = fields.Nested(NonceResponsePayload)
 
 
+class FrejaResponseSchema(FluxStandardAction):
+
+    class FrejaResponsePayload(EduidSchema):
+        iaRequestData = fields.String(required=True)
+
+    payload = fields.Nested(FrejaResponsePayload)
+
+
 # TODO: Remove after demo stage
 class ProofResponseSchema(EduidSchema):
 
