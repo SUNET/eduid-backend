@@ -4,18 +4,25 @@ import os
 import sys
 import bson
 import time
-import pymongo
 import datetime
 
 import bson.json_util
 
 from pymongo import MongoClient, ReadPreference
-from copy import deepcopy
+from pymongo.errors import PyMongoError
 from six import string_types
+from copy import deepcopy
 
 
 class RawDb(object):
+    """
+    Kind-of raw access to mongodb documents, for use in database fix/migration scripts.
 
+    The main idea is to have an easy to initialise way to find documents, make changes
+    to them (in the calling code, not in this module) and write them back to the database
+    *with backups* of the data before and after modification, and an easily searchable
+    log detailing all the changes.
+    """
     def __init__(self, myname=None, backupbase='/root/raw_db_changes'):
         self._client = get_client()
         self._start_time = datetime.datetime.fromtimestamp(int(time.time())).isoformat(sep = '_')
@@ -42,7 +49,7 @@ class RawDb(object):
         try:
             for doc in self._client[db][collection].find(search_filter):
                 yield RawData(doc, db, collection)
-        except pymongo.errors.PyMongoError as exc:
+        except PyMongoError as exc:
             sys.stderr.write('{}\n\nFailed reading from mongodb ({}.{}) - '
                              'try sourcing the file /root/.mongo_credentials first?\n'.format(exc, db, collection))
             sys.exit(1)
@@ -51,11 +58,20 @@ class RawDb(object):
         """
         Save a mongodb document while trying to carefully make a backup of the document before, after and what changed.
         """
+        if not self._myname:
+            sys.stderr.write("Can't save with backup unless RawDb is initialized with myname\n")
+            sys.exit(1)
+
+        if not os.path.isdir(self._backupbase):
+            sys.stderr.write('\n\nBackup basedir {} not found, '
+                             'running in a container without the volume mounted?\n'.format(self._backupbase))
+            sys.exit(1)
+
         if 'eduPersonPrincipalName' in raw.doc:
             _id = raw.doc['eduPersonPrincipalName']
-            if raw.doc['eduPersonPrincipalName'] != raw.before['eduPersonPrincipalName']:
+            if raw.doc['eduPersonPrincipalName'] != raw.before.get('eduPersonPrincipalName'):
                 sys.stderr.write('REFUSING to update eduPersonPrincipalName ({} -> {})'.format(
-                    raw.before['eduPersonPrincipalName'], raw.doc['eduPersonPrincipalName']))
+                    raw.before.get('eduPersonPrincipalName'), raw.doc['eduPersonPrincipalName']))
                 sys.exit(1)
         else:
             _id = '{}'.format(raw.doc['_id'])
