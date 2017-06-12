@@ -14,6 +14,7 @@ version = '0.2.6'
 
 install_requires = [
     'pymongo >= 2.8.0, < 3.0',
+    'six',
 ]
 
 testing_extras = [
