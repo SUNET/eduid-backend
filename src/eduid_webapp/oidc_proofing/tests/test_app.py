@@ -2,28 +2,25 @@
 
 from __future__ import absolute_import
 
-from os import devnull
 from copy import deepcopy
 import json
-from datetime import datetime
+import jose
 from collections import OrderedDict
 from mock import patch
-from bson import ObjectId
-from requests import Response
 
 from eduid_userdb.data_samples import NEW_USER_EXAMPLE
 from eduid_userdb.user import User
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_webapp.oidc_proofing.app import init_oidc_proofing_app
+from eduid_webapp.oidc_proofing.helpers import create_proofing_state, handle_freja_eid_userinfo, handle_seleg_userinfo
 
 __author__ = 'lundberg'
 
 
-class AppTests(EduidAPITestCase):
+class OidcProofingTests(EduidAPITestCase):
     """Base TestCase for those tests that need a full environment setup"""
 
     def setUp(self):
-        super(AppTests, self).setUp()
 
         self.test_user_eppn = 'hubba-bubba'
         self.test_user_nin = '200001023456'
@@ -35,8 +32,6 @@ class AppTests(EduidAPITestCase):
                                               (u'PostalCode', u'12345'),
                                               (u'City', u'LANDET')]))
         ])
-
-        self.client = self.app.test_client()
 
         self.oidc_provider_config = {
             'authorization_endpoint': 'https://example.com/op/authentication',
@@ -80,6 +75,9 @@ class AppTests(EduidAPITestCase):
 
         self.oidc_provider_config_response = MockResponse(200, json.dumps(self.oidc_provider_config))
 
+        super(OidcProofingTests, self).setUp()
+        self.client = self.app.test_client()
+
         # Replace user with one without previous proofings
         userdata = deepcopy(NEW_USER_EXAMPLE)
         del userdata['nins']
@@ -92,7 +90,9 @@ class AppTests(EduidAPITestCase):
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        return init_oidc_proofing_app('testing', config)
+        with patch('oic.oic.Client.http_request') as mock_response:
+            mock_response.return_value = self.oidc_provider_config_response
+            return init_oidc_proofing_app('testing', config)
 
     def update_config(self, config):
         config.update({
@@ -103,26 +103,112 @@ class AppTests(EduidAPITestCase):
                 'CELERY_TASK_SERIALIZER': 'json'
             },
             'PROVIDER_CONFIGURATION_INFO': {
-                'issuer': 'https://example.com'
+                'issuer': 'https://example.com/op/'
             },
             'CLIENT_REGISTRATION_INFO': {
                 'client_id': 'test_client',
                 'client_secret': 'secret'
-            }
+            },
+            'FREJA_JWS_ALGORITHM': 'HS256',
+            'FREJA_JWS_KEY_ID': '0',
+            'FREJA_JWK_SECRET': '499602d2',  # in hex
+            'FREJA_IARP': 'TESTRP',
+            'FREJA_EXPIRE_TIME_HOURS': 336,
+            'FREJA_RESPONSE_PROTOCOL': '1,0'
         })
         return config
 
     def tearDown(self):
-        super(AppTests, self).tearDown()
+        super(OidcProofingTests, self).tearDown()
         with self.app.app_context():
             self.app.proofing_statedb._drop_whole_collection()
+            self.app.proofing_userdb._drop_whole_collection()
+            self.app.proofing_log._drop_whole_collection()
             self.app.central_userdb._drop_whole_collection()
 
-    #@patch('eduid_webapp.oidc_proofing.app.Client.http_request')
-    #def test_authenticate(self, mock_response):
-    #    mock_response.return_value = self.oidc_provider_config_response
-    #    response = self.client.get('/proofing')
-    #    self.assertEqual(response.status_code, 302)  # Redirect to token service
-    #    with self.session_cookie(self.client, self.test_user_eppn) as client:
-    #        response = client.get('/proofing')
-    #    self.assertEqual(response.status_code, 200)  # Authenticated request
+    def test_authenticate(self):
+        response = self.client.get('/proofing')
+        self.assertEqual(response.status_code, 302)  # Redirect to token service
+        with self.session_cookie(self.client, self.test_user_eppn) as client:
+            response = client.get('/proofing')
+        self.assertEqual(response.status_code, 200)  # Authenticated request
+
+    def test_get_empty_state(self):
+        with self.session_cookie(self.client, self.test_user_eppn) as client:
+            response = json.loads(client.get('/proofing').data)
+        self.assertEqual(response['type'], 'GET_OIDC_PROOFING_PROOFING_SUCCESS')
+
+    def test_get_empty_freja_state(self):
+        with self.session_cookie(self.client, self.test_user_eppn) as client:
+            response = json.loads(client.get('/freja/proofing').data)
+        self.assertEqual(response['type'], 'GET_OIDC_PROOFING_FREJA_PROOFING_SUCCESS')
+
+    def test_get_freja_state(self):
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        proofing_state = create_proofing_state(user, self.test_user_nin)
+        self.app.proofing_statedb.save(proofing_state)
+        with self.session_cookie(self.client, self.test_user_eppn) as client:
+            response = json.loads(client.get('/freja/proofing').data)
+        self.assertEqual(response['type'], 'GET_OIDC_PROOFING_FREJA_PROOFING_SUCCESS')
+        jwk = {'k': self.app.config['FREJA_JWK_SECRET'].decode('hex')}
+        jwt = response['payload']['iaRequestData']
+        request_data = jose.verify(jose.deserialize_compact(jwt), jwk, alg=self.app.config['FREJA_JWS_ALGORITHM'])
+        expected = {
+            'iarp': 'TESTRP',
+            'opaque': '1' + json.dumps({'nonce': proofing_state.nonce, 'token': proofing_state.token}),
+            'proto': u'1,0'
+        }
+        self.assertIn('exp', request_data.claims)
+        self.assertEqual(request_data.claims['iarp'], expected['iarp'])
+        self.assertEqual(request_data.claims['opaque'], expected['opaque'])
+        self.assertEqual(request_data.claims['proto'], expected['proto'])
+
+    @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_seleg_flow(self, mock_get_postal_address, mock_request_user_sync):
+        mock_get_postal_address.return_value = self.mock_address
+        mock_request_user_sync.return_value = True
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        proofing_state = create_proofing_state(user, self.test_user_nin)
+        self.app.proofing_statedb.save(proofing_state)
+        with self.session_cookie(self.client, self.test_user_eppn) as client:
+            response = json.loads(client.get('/proofing').data)
+        self.assertEqual(response['type'], 'GET_OIDC_PROOFING_PROOFING_SUCCESS')
+
+        # No actual oidc flow tested here
+        userinfo = {
+            'identity': self.test_user_nin,
+        }
+        with self.app.app_context():
+            handle_seleg_userinfo(user, proofing_state, userinfo)
+        user = self.app.proofing_userdb.get_user_by_eppn(self.test_user_eppn)
+        self.assertEqual(user.nins.primary.number, self.test_user_nin)
+        self.assertEqual(self.app.proofing_log.db_count(), 1)
+
+    @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_freja_flow(self, mock_get_postal_address, mock_request_user_sync):
+        mock_get_postal_address.return_value = self.mock_address
+        mock_request_user_sync.return_value = True
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        proofing_state = create_proofing_state(user, self.test_user_nin)
+        self.app.proofing_statedb.save(proofing_state)
+        with self.session_cookie(self.client, self.test_user_eppn) as client:
+            response = json.loads(client.get('/freja/proofing').data)
+        self.assertEqual(response['type'], 'GET_OIDC_PROOFING_FREJA_PROOFING_SUCCESS')
+
+        # No actual oidc flow tested here
+        userinfo = {
+            'freja_proofing': {
+                'ref': '1234.5678.9012.3456',
+                'opaque': '1' + json.dumps({'nonce': proofing_state.nonce, 'token': proofing_state.token}),
+                'country': 'SE',
+                'ssn': self.test_user_nin,
+            }
+        }
+        with self.app.app_context():
+            handle_freja_eid_userinfo(user, proofing_state, userinfo)
+        user = self.app.proofing_userdb.get_user_by_eppn(self.test_user_eppn)
+        self.assertEqual(user.nins.primary.number, self.test_user_nin)
+        self.assertEqual(self.app.proofing_log.db_count(), 1)
+

@@ -3,7 +3,7 @@
 from setuptools import setup, find_packages
 import sys
 
-version = '0.2.1b3'
+version = '0.2.1b4'
 
 requires = [
     'eduid-common[webapp]>=0.3.0b1',

@@ -18,11 +18,11 @@ from eduid_webapp.letter_proofing.app import init_letter_proofing_app
 __author__ = 'lundberg'
 
 
-class AppTests(EduidAPITestCase):
+class LetterProofingTests(EduidAPITestCase):
     """Base TestCase for those tests that need a full environment setup"""
 
     def setUp(self):
-        super(AppTests, self).setUp()
+        super(LetterProofingTests, self).setUp()
 
         self.test_user_eppn = 'hubba-bubba'
         self.test_user_nin = '200001023456'
@@ -65,7 +65,7 @@ class AppTests(EduidAPITestCase):
         return config
 
     def tearDown(self):
-        super(AppTests, self).tearDown()
+        super(LetterProofingTests, self).tearDown()
         with self.app.app_context():
             self.app.proofing_statedb._drop_whole_collection()
             self.app.central_userdb._drop_whole_collection()

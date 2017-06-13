@@ -48,3 +48,11 @@ PROVIDER_CONFIGURATION_INFO = {
 
 }
 USERINFO_ENDPOINT_METHOD = 'POST'
+
+# Freja config
+FREJA_JWS_ALGORITHM = 'HS256'
+FREJA_JWS_KEY_ID = ''
+FREJA_JWK_SECRET = ''  # secret in hex
+FREJA_IARP = ''  # Relying party identity
+FREJA_EXPIRE_TIME_HOURS = 336  # 2 weeks, needs minimum 5 minutes and maximum 60 days
+FREJA_RESPONSE_PROTOCOL = '1,0'  # Version
