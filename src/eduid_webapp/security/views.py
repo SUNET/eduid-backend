@@ -48,7 +48,7 @@ from eduid_common.authn.vccs import add_credentials, revoke_all_credentials
 from eduid_webapp.security.schemas import SecurityResponseSchema, CredentialList, CsrfSchema
 from eduid_webapp.security.schemas import SuggestedPassword, SuggestedPasswordResponseSchema
 from eduid_webapp.security.schemas import ChangePasswordSchema, RedirectResponseSchema
-from eduid_webapp.security.schemas import RedirectSchema, AccountTerminatedSchema
+from eduid_webapp.security.schemas import RedirectSchema, AccountTerminatedSchema, ChpassResponseSchema
 
 security_views = Blueprint('security', __name__, url_prefix='', template_folder='templates')
 
@@ -108,7 +108,7 @@ def generate_suggested_password():
 
 
 @security_views.route('/change-password', methods=['POST'])
-@MarshalWith(SecurityResponseSchema)
+@MarshalWith(ChpassResponseSchema)
 @UnmarshalWith(ChangePasswordSchema)
 @require_dashboard_user
 def change_password(user, csrf_token, old_password, new_password):
@@ -148,6 +148,7 @@ def change_password(user, csrf_token, old_password, new_password):
 
     credentials =  {
         'csrf_token': csrf_token,
+        'next_url': url_for('personal_data.user'),
         'credentials': current_app.authninfo_db.get_authn_info(user)
         }
 

@@ -51,6 +51,18 @@ class SecurityResponseSchema(FluxStandardAction):
     csrf_token = fields.String(attribute='csrf_token')
 
 
+class ChpassCredentialList(EduidSchema):
+    credentials = fields.Nested(CredentialSchema, many=True)
+    next_url = fields.String(required=True)
+    csrf_token = fields.String(required=True)
+
+
+class ChpassResponseSchema(FluxStandardAction):
+    payload = fields.Nested(ChpassCredentialList, only=('credentials',
+                    'next_url', 'csrf_token'))
+    csrf_token = fields.String(attribute='csrf_token')
+
+
 class CsrfSchema(EduidSchema):
     csrf_token = fields.String(required=True)
 
