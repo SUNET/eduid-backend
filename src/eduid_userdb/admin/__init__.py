@@ -4,6 +4,7 @@ import os
 import sys
 import bson
 import time
+import pprint
 import datetime
 
 import bson.json_util
@@ -106,14 +107,15 @@ class RawDb(object):
         filename = self._get_backup_filename(backup_dir, 'changes', 'txt')
         with open(filename, 'w') as fd:
             for k in sorted(set(raw.doc) - set(raw.before)):
-                fd.write('ADD: {}: {}\n'.format(k, raw.doc[k]))
+                fd.write('ADD: {}: {}\n'.format(k, raw.doc[k].encode('utf-8')))
             for k in sorted(set(raw.before) - set(raw.doc)):
-                fd.write('DEL: {}: {}\n'.format(k, raw.before[k]))
+                fd.write('DEL: {}: {}\n'.format(k, raw.before[k].encode('utf-8')))
             for k in sorted(raw.doc.keys()):
                 if k not in raw.before:
                     continue
                 if raw.doc[k] != raw.before[k]:
-                    fd.write('MOD: {}: {} -> {}\n'.format(k, raw.before[k], raw.doc[k]))
+                    fd.write('MOD: {}: {} -> {}\n'.format(
+                        k, raw.before[k].encode('utf-8'), raw.doc[k].encode('utf-8')))
 
             fd.write('UPDATE_RESULT: {}\n'.format(res))
 
@@ -221,7 +223,9 @@ class RawData(object):
             elif isinstance(value, datetime.datetime):
                 res.extend(['  {!s:>25}: {!s}'.format(key, value.isoformat())])
             else:
-                res.extend(['  {!s:>25}: {!r}'.format(key, value)])
+                # pprint.pformat unknown data, and increase the indentation
+                pretty = pprint.pformat(value).replace('\n  ', '\n' + (' ' * 29))
+                print("  {!s:>25}: {}".format(key, pretty))
         return res
 
 
