@@ -104,18 +104,26 @@ class RawDb(object):
         Write a file with one line per change between the before-doc and current doc.
         The format is intended to be easy to grep through.
         """
+        def safe_encode(k, v):
+            try:
+                return bson.json_util.dumps({k: v})
+            except:
+                sys.stderr.write('Failed encoding key {!r}: {!r}\n\n'.format(k, v))
+                raise
+
         filename = self._get_backup_filename(backup_dir, 'changes', 'txt')
         with open(filename, 'w') as fd:
             for k in sorted(set(raw.doc) - set(raw.before)):
-                fd.write('ADD: {}: {}\n'.format(k, raw.doc[k].encode('utf-8')))
+                fd.write('ADD: {}\n'.format(safe_encode(k, raw.doc[k])))
             for k in sorted(set(raw.before) - set(raw.doc)):
-                fd.write('DEL: {}: {}\n'.format(k, raw.before[k].encode('utf-8')))
+                fd.write('DEL: {}\n'.format(safe_encode(k, raw.before[k])))
             for k in sorted(raw.doc.keys()):
                 if k not in raw.before:
                     continue
                 if raw.doc[k] != raw.before[k]:
-                    fd.write('MOD: {}: {} -> {}\n'.format(
-                        k, raw.before[k].encode('utf-8'), raw.doc[k].encode('utf-8')))
+                    fd.write('MOD: BEFORE={} AFTER={}\n'.format(safe_encode(k, raw.before[k]),
+                                                                safe_encode(k, raw.doc[k]),
+                    ))
 
             fd.write('UPDATE_RESULT: {}\n'.format(res))
 
