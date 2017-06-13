@@ -441,8 +441,8 @@ class ElementList(object):
         Add an element to the list.
 
         :param element: Element
-        :type element: PrimaryElement
-        :return: PrimaryElementList
+        :type element: Element
+        :return: ElementList
         """
         if not isinstance(element, Element):
             raise UserDBValueError("Invalid element: {!r}".format(element))
