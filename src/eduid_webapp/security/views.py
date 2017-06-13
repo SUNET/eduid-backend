@@ -143,6 +143,9 @@ def change_password(user, csrf_token, old_password, new_password):
     else:
         return error('chpass.unknown_error')
 
+    current_app.stats.count(name='security_password_changed', value=1)
+    current_app.logger.info('Changed password for user {!r}'.format(user.eppn))
+
     credentials =  {
         'csrf_token': csrf_token,
         'credentials': current_app.authninfo_db.get_authn_info(user)
@@ -165,6 +168,8 @@ def delete_account(user, csrf_token):
     # check csrf
     if session.get_csrf_token() != csrf_token:
         abort(400)
+
+    current_app.logger.debug('Initiating account termination for user {!r}'.format(user))
 
     ts_url = current_app.config.get('TOKEN_SERVICE_URL')
     terminate_url = urlappend(ts_url, 'terminate')
@@ -218,6 +223,9 @@ def account_terminated(user):
         save_dashboard_user(user)
     except UserOutOfSync:
         return error('out_of_sync')
+
+    current_app.stats.count(name='security_account_terminated', value=1)
+    current_app.logger.info('Terminated account for user {!r}'.format(user))
 
     # email the user
     send_termination_mail(user)
