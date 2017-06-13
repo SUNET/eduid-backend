@@ -36,23 +36,23 @@ Code used in unit tests of various eduID applications.
 
 __author__ = 'leifj'
 
-import time
 import atexit
+import logging
 import random
-import tempfile
 import shutil
-import unittest
 import subprocess
-import pymongo
+import tempfile
+import time
+import unittest
 from copy import deepcopy
 from datetime import date, timedelta
 
+import pymongo
 from bson import ObjectId
 
 from eduid_userdb import UserDB, User
 from eduid_userdb.dashboard.user import DashboardUser
 
-import logging
 logger = logging.getLogger(__name__)
 
 
