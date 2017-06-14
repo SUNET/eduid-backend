@@ -52,7 +52,7 @@ class LockedIdentityElement(Element):
         self._data['identity_type'] = value
 
 
-class LockedNinIdentity(LockedIdentityElement):
+class LockedIdentityNin(LockedIdentityElement):
 
     """
     Element that is used to lock a NIN to a user
@@ -75,7 +75,7 @@ class LockedNinIdentity(LockedIdentityElement):
     @property
     def number(self):
         """
-        :return: Type of identity
+        :return: Nin number
         :rtype: string_types
         """
         return self._data['number']
@@ -83,11 +83,11 @@ class LockedNinIdentity(LockedIdentityElement):
     @number.setter
     def number(self, value):
         """
-        :param value: Type of identity
+        :param value: Nin number
         :type value: string_types
         """
         if not isinstance(value, string_types):
-            raise UserDBValueError("Invalid 'nin': {!r}".format(value))
+            raise UserDBValueError("Invalid 'number': {!r}".format(value))
         self._data['number'] = value
 
 
@@ -107,7 +107,7 @@ class LockedIdentityList(ElementList):
                 elements.append(item)
             else:
                 if item['identity_type'] == 'nin':
-                    elements.append(LockedNinIdentity(number=item['number'], created_by=item['created_by'],
+                    elements.append(LockedIdentityNin(number=item['number'], created_by=item['created_by'],
                                                       created_ts=item['created_ts']))
         ElementList.__init__(self, elements)
 

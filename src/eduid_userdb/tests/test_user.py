@@ -7,7 +7,7 @@ from unittest import TestCase
 from eduid_userdb.user import User
 from eduid_userdb.tou import ToUList
 from eduid_userdb.exceptions import UserHasUnknownData, UserHasNotCompletedSignup, UserIsRevoked, EduIDUserDBError
-from eduid_userdb import LockedNinIdentity
+from eduid_userdb import LockedIdentityNin
 
 __author__ = 'ft'
 
@@ -395,7 +395,7 @@ class TestUser(TestCase):
             'number': '197801012345'
         }
         user = User(self.data1)
-        locked_nin = LockedNinIdentity(locked_identity['number'], locked_identity['created_by'],
+        locked_nin = LockedIdentityNin(locked_identity['number'], locked_identity['created_by'],
                                        locked_identity['created_ts'])
         user.locked_identity.add(locked_nin)
         self.assertEqual(user.locked_identity.count, 1)
@@ -414,7 +414,7 @@ class TestUser(TestCase):
             'number': '197801012345'
         }
         user = User(self.data1)
-        locked_nin = LockedNinIdentity(locked_identity['number'], locked_identity['created_by'],
+        locked_nin = LockedIdentityNin(locked_identity['number'], locked_identity['created_by'],
                                        locked_identity['created_ts'])
         user.locked_identity.add(locked_nin)
 
@@ -440,7 +440,7 @@ class TestUser(TestCase):
             'number': '197801012345'
         }
         user = User(self.data1)
-        locked_nin = LockedNinIdentity(locked_identity['number'], locked_identity['created_by'],
+        locked_nin = LockedIdentityNin(locked_identity['number'], locked_identity['created_by'],
                                        locked_identity['created_ts'])
         user.locked_identity.add(locked_nin)
         with self.assertRaises(EduIDUserDBError):
