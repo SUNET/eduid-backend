@@ -19,11 +19,13 @@ def unverify_duplicates(userdb, user_id, attributes):
     Checks for verified mail addresses, phone numbers and nins.
 
     :param userdb: Central userdb
-    :type userdb: eduid_userdb.userdb.UserDB
     :param user_id: User document _id
-    :type user_id: bson.ObjectId
     :param attributes: attributes to update
+
+    :type userdb: eduid_userdb.userdb.UserDB
+    :type user_id: bson.ObjectId
     :type attributes: dict
+
     :return: How many elements where unverified (for stats)
     :rtype: dict
     """
@@ -43,11 +45,14 @@ def unverify_duplicates(userdb, user_id, attributes):
 def unverify_mail_aliases(userdb, user_id, mail_aliases):
     """
     :param userdb: Central userdb
-    :type userdb: eduid_userdb.userdb.UserDB
     :param user_id: User document _id
-    :type user_id: bson.ObjectId
     :param mail_aliases: sub dict of attributes
+
+
+    :type userdb: eduid_userdb.userdb.UserDB
+    :type user_id: bson.ObjectId
     :type mail_aliases: dict
+
     :return: How many mailAliases that where unverified
     :rtype: int
     """
@@ -57,8 +62,8 @@ def unverify_mail_aliases(userdb, user_id, mail_aliases):
         return None
     # Get the verified mail addresses from attributes
     verified_mail_aliases = [alias['email'] for alias in mail_aliases if alias.get('verified')]
-    try:
-        for email in verified_mail_aliases:
+    for email in verified_mail_aliases:
+        try:
             for user in userdb.get_user_by_mail(email, return_list=True):
                 if user.user_id != user_id:
                     logger.debug('Removing mail address {} from user {}'.format(email, user))
@@ -74,19 +79,21 @@ def unverify_mail_aliases(userdb, user_id, mail_aliases):
                     count += 1
                     logger.debug('Old user mail aliases AFTER: {}'.format(user.mail_addresses.to_list()))
                     userdb.save(user)
-    except DocumentDoesNotExist:
-        pass
+        except DocumentDoesNotExist:
+            pass
     return count
 
 
 def unverify_phones(userdb, user_id, phones):
     """
     :param userdb: Central userdb
-    :type userdb: eduid_userdb.userdb.UserDB
     :param user_id: User document _id
-    :type user_id: bson.ObjectId
     :param phones: sub dict of attributes
+
+    :type userdb: eduid_userdb.userdb.UserDB
+    :type user_id: bson.ObjectId
     :type phones: dict
+
     :return: How many phones that where unverified
     :rtype: int
     """
@@ -96,8 +103,8 @@ def unverify_phones(userdb, user_id, phones):
         return None
     # Get the verified phone numbers from attributes
     verified_phone_numbers = [phone['number'] for phone in phones if phone.get('verified')]
-    try:
-        for number in verified_phone_numbers:
+    for number in verified_phone_numbers:
+        try:
             for user in userdb.get_user_by_phone(number, return_list=True):
                 if user.user_id != user_id:
                     logger.debug('Removing phone number {} from user {}'.format(number, user))
@@ -113,19 +120,21 @@ def unverify_phones(userdb, user_id, phones):
                     count += 1
                     logger.debug('Old user phone numbers AFTER: {}.'.format(user.phone_numbers.to_list()))
                     userdb.save(user)
-    except DocumentDoesNotExist:
-        pass
+        except DocumentDoesNotExist:
+            pass
     return count
 
 
 def unverify_nins(userdb, user_id, nins):
     """
     :param userdb: Central userdb
-    :type userdb: eduid_userdb.userdb.UserDB
     :param user_id: User document _id
-    :type user_id: bson.ObjectId
     :param nins: sub dict of attributes
+
+    :type userdb: eduid_userdb.userdb.UserDB
+    :type user_id: bson.ObjectId
     :type nins: dict
+
     :return: How many nins that where unverified
     :rtype: int
     """
@@ -135,8 +144,8 @@ def unverify_nins(userdb, user_id, nins):
         return None
     # Get verified nins from attributes
     verified_nins = [nin['number'] for nin in nins if nin.get('verified')]
-    try:
-        for number in verified_nins:
+    for number in verified_nins:
+        try:
             for user in userdb.get_user_by_nin(number, return_list=True):
                 if user.user_id != user_id:
                     logger.debug('Removing nin {} from user {}'.format(number, user))
