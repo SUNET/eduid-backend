@@ -133,6 +133,30 @@ class TestTasks(MongoTestCase):
         self.assertEqual(stats['phone_count'], 1)
         self.assertEqual(stats['nin_count'], 1)
 
+    def test_unverify_duplicate_multiple_attribute_values(self):
+        user_id = ObjectId('901234567890123456789012')  # johnsmith@example.org / babba-labba
+        attributes = {
+            '$set': {
+                'mailAliases': [{
+                    'email': 'johnsmith@example.net',
+                    'verified': True,
+                    'primary': True,
+                    'created_ts': True
+                }, {
+                    'email': 'johnsmith@example.com',  # hubba-bubba's primary mail address
+                    'verified': True,
+                    'primary': True,
+                    'created_ts': True
+                }]
+            }
+        }
+        stats = unverify_duplicates(self.amdb, user_id, attributes)
+        user = self.amdb.get_user_by_eppn('hubba-bubba')
+        self.assertNotEqual(user.mail_addresses.primary.email, 'johnsmith@example.com')
+        self.assertFalse(user.mail_addresses.find('johnsmith@example.com').is_verified)
+        self.assertTrue(user.mail_addresses.primary)
+        self.assertEqual(stats['mail_count'], 1)
+
     def test_create_locked_identity(self):
         user_id = ObjectId('901234567890123456789012')  # johnsmith@example.org / babba-labba
         attributes = {
