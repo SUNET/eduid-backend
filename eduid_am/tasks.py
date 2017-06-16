@@ -9,8 +9,8 @@ import bson
 
 from eduid_am.celery import celery
 from eduid_userdb import UserDB
-from eduid_userdb.exceptions import UserDoesNotExist
-from .consistency_checks import unverify_duplicates
+from eduid_userdb.exceptions import UserDoesNotExist, EduIDUserDBError
+from .consistency_checks import unverify_duplicates, check_locked_identity
 
 logger = get_task_logger(__name__)
 
@@ -131,9 +131,18 @@ def _update_attributes_safe(app_name, user_id):
         logger.error('The user {!s} does not exist in the database for plugin {!s}: {!s}'.format(
             _id, app_name, error))
         return
+
+    try:
+        logger.debug('Checking locked identity during sync attempt from {}'.format(app_name))
+        attributes = check_locked_identity(self.userdb, _id, attributes, app_name)
+    except EduIDUserDBError as e:
+        logger.error(e)
+        return
+
     # TODO: Update mongodb to >3.2 (partial index support) so we can optimistically update a user and run this check
     # TODO: if the update fails
     logger.debug('Checking other users for already verified elements during sync attempt from {}'.format(app_name))
     unverify_duplicates(self.userdb, _id, attributes)
+
     logger.debug('Attributes fetched from app {!s} for user {!s}: {!s}'.format(app_name, user_id, attributes))
     self.userdb.update_user(_id, attributes)

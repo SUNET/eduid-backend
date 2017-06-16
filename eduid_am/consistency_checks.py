@@ -3,7 +3,8 @@ from __future__ import absolute_import
 
 from celery.utils.log import get_task_logger
 
-from eduid_userdb.exceptions import DocumentDoesNotExist
+from eduid_userdb.locked_identity import LockedIdentityNin, LockedIdentityList
+from eduid_userdb.exceptions import DocumentDoesNotExist, EduIDUserDBError
 
 __author__ = 'lundberg'
 
@@ -152,6 +153,62 @@ def unverify_nins(userdb, user_id, nins):
                     count += 1
                     logger.debug('Old user NINs AFTER: {}.'.format(user.nins.to_list()))
                     userdb.save(user)
-    except DocumentDoesNotExist:
-        pass
+        except DocumentDoesNotExist:
+            pass
     return count
+
+
+def check_locked_identity(userdb, user_id, attributes, app_name):
+    """
+    :param userdb: Central userdb
+    :param user_id: User document _id
+    :param attributes: attributes to update
+    :param app_name: calling application name, like 'eduid_signup'
+
+    :type userdb: eduid_userdb.userdb.UserDB
+    :type user_id: bson.ObjectId
+    :type attributes: dict
+    :type app_name: string
+
+    :return: attributes to update
+    :rtype: dict
+    """
+    # Check verified nins that will be set against the locked_identity attribute,
+    # if that does not exist it should be created
+    set_attributes = attributes.get('$set', {})
+    nins = set_attributes.get('nins', [])
+    verified_nins = [nin for nin in nins if nin.get('verified')]
+    if not verified_nins:
+        return attributes  # No verified nins will be set
+
+    # A user can not have more than one verified nin at this time
+    if len(verified_nins) != 1:
+        logger.error('Tried to set more than one verified nin for user with id {}'.format(user_id))
+        raise EduIDUserDBError('Tried to set more than one verified nin for user.')
+
+    # Get the users locked identities
+    try:
+        user = userdb.get_user_by_id(user_id)
+        locked_identities = user.locked_identity
+    except DocumentDoesNotExist:
+        locked_identities = LockedIdentityList({})
+
+    locked_nin = locked_identities.find('nin')
+    # Create a new locked nin if it does not already exist
+    if not locked_nin:
+        locked_nin = LockedIdentityNin(verified_nins[0]['number'], verified_nins[0].get('created_by', app_name),
+                                       verified_nins[0].get('created_ts', True))
+        locked_identities.add(locked_nin)
+
+    # Check nin to be set against locked nin
+    if verified_nins[0]['number'] != locked_nin.number:
+        logger.error('Verfied nin does not match locked identity for user with id {}'.format(user_id))
+        raise EduIDUserDBError('Verfied nin does not match locked identity for user with id {}'.format(user_id))
+
+    attributes['$set']['locked_identity'] = locked_identities.to_list_of_dicts()
+    return attributes
+
+
+
+
+
