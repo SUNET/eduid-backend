@@ -12,6 +12,7 @@ from bson import ObjectId
 
 from eduid_userdb.data_samples import NEW_USER_EXAMPLE
 from eduid_userdb.user import User
+from eduid_userdb.locked_identity import LockedIdentityNin
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_webapp.letter_proofing.app import init_letter_proofing_app
 
@@ -196,3 +197,51 @@ class LetterProofingTests(EduidAPITestCase):
                                                          'verified'])
         self.assertItemsEqual(state_dict['proofing_letter'].keys(), ['is_sent', 'sent_ts', 'transaction_id',
                                                                      'address'])
+
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
+    def test_locked_identity_no_locked_identity(self, mock_get_postal_address, mock_request_user_sync):
+        mock_get_postal_address.return_value = self.mock_address
+        mock_request_user_sync.return_value = True
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        self.assertEqual(user.locked_identity.count, 0)
+
+        # User with no locked_identity
+        with self.session_cookie(self.client, self.test_user_eppn) as client:
+            data = {'nin': self.test_user_nin}
+            response = client.post('/proofing', data=json.dumps(data), content_type=self.content_type_json)
+            response = json.loads(response.data)
+        self.assertEqual(response['type'], 'POST_LETTER_PROOFING_PROOFING_SUCCESS')
+
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
+    def test_locked_identity_correct_nin(self, mock_get_postal_address, mock_request_user_sync):
+        mock_get_postal_address.return_value = self.mock_address
+        mock_request_user_sync.return_value = True
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+
+        # User with locked_identity and correct nin
+        user.locked_identity.add(LockedIdentityNin(number=self.test_user_nin, created_by='test', created_ts=True))
+        self.app.central_userdb.save(user, check_sync=False)
+        with self.session_cookie(self.client, self.test_user_eppn) as client:
+            data = {'nin': self.test_user_nin}
+            response = client.post('/proofing', data=json.dumps(data), content_type=self.content_type_json)
+            response = json.loads(response.data)
+        self.assertEqual(response['type'], 'POST_LETTER_PROOFING_PROOFING_SUCCESS')
+
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
+    def test_locked_identity_incorrect_nin(self, mock_get_postal_address, mock_request_user_sync):
+        mock_get_postal_address.return_value = self.mock_address
+        mock_request_user_sync.return_value = True
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+
+        user.locked_identity.add(LockedIdentityNin(number=self.test_user_nin, created_by='test', created_ts=True))
+        self.app.central_userdb.save(user, check_sync=False)
+
+        # User with locked_identity and incorrect nin
+        with self.session_cookie(self.client, self.test_user_eppn) as client:
+            data = {'nin': '200102031234'}
+            response = client.post('/proofing', data=json.dumps(data), content_type=self.content_type_json)
+            response = json.loads(response.data)
+        self.assertEqual(response['type'], 'POST_LETTER_PROOFING_PROOFING_FAIL')
