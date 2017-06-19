@@ -93,16 +93,13 @@ def authorization_response():
     am_user = current_app.central_userdb.get_user_by_eppn(proofing_state.eppn)
     user = ProofingUser(data=am_user.to_dict())
 
-    # A user can only have one NIN verified at this time
-    # TODO: Check against user.locked_identity
-    if user.nins.primary is None:
-        # Handle userinfo differently depending on data in userinfo
-        if userinfo.get('identity'):
-            current_app.logger.info('Handling userinfo as generic seleg vetting for user {}'.format(user))
-            helpers.handle_seleg_userinfo(user, proofing_state, userinfo)
-        elif userinfo.get('freja_proofing'):
-            current_app.logger.info('Handling userinfo as freja vetting for user {}'.format(user))
-            helpers.handle_freja_eid_userinfo(user, proofing_state, userinfo)
+    # Handle userinfo differently depending on data in userinfo
+    if userinfo.get('identity'):
+        current_app.logger.info('Handling userinfo as generic seleg vetting for user {}'.format(user))
+        helpers.handle_seleg_userinfo(user, proofing_state, userinfo)
+    elif userinfo.get('freja_proofing'):
+        current_app.logger.info('Handling userinfo as freja vetting for user {}'.format(user))
+        helpers.handle_freja_eid_userinfo(user, proofing_state, userinfo)
 
     # Remove users proofing state
     current_app.proofing_statedb.remove_state(proofing_state)
@@ -195,7 +192,6 @@ def get_freja_state(user):
         "proto": current_app.config['FREJA_RESPONSE_PROTOCOL'],
         "opaque": opaque_data
     }
-    # TODO: Use JOSE to sign request data
     jwk = {'k': current_app.config['FREJA_JWK_SECRET'].decode('hex')}
     jws_header = {
         'alg': current_app.config['FREJA_JWS_ALGORITHM'],

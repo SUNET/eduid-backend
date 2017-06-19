@@ -87,8 +87,10 @@ class LetterProofingTests(EduidAPITestCase):
         return json.loads(response.data)
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
-    def verify_code(self, code, mock_request_user_sync):
+    @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
+    def verify_code(self, code, mock_request_user_sync, mock_get_postal_address):
         mock_request_user_sync.return_value = True
+        mock_get_postal_address.return_value = self.mock_address
         data = {'verification_code': code}
         with self.session_cookie(self.client, self.test_user_eppn) as client:
             response = client.post('/verify-code', data=json.dumps(data), content_type=self.content_type_json)

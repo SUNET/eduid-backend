@@ -143,7 +143,7 @@ def verify_nin_for_user(user, proofing_state, number, vetting_by):
                               vetting_by=vetting_by, transaction_id=transaction_id, user_postal_address=address,
                               proofing_version='2017v1')
     if current_app.proofing_log.save(oidc_proof):
-        current_app.logger.info('Recorded verification in the proofing log'.format(user))
+        current_app.logger.info('Recorded verification for {} in the proofing log'.format(user))
         # User from central db is as up to date as it can be no need to check for modified time
         user.modified_ts = True
         # Save user to private db
