@@ -26,7 +26,7 @@ class RawDb(object):
     """
     def __init__(self, myname=None, backupbase='/root/raw_db_changes'):
         self._client = get_client()
-        self._start_time = datetime.datetime.fromtimestamp(int(time.time())).isoformat(sep = '_')
+        self._start_time = datetime.datetime.fromtimestamp(int(time.time())).isoformat(sep = '_').replace(':', '')
         self._myname = myname
         self._backupbase = backupbase
         self._file_num = 0
