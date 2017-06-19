@@ -3,11 +3,12 @@
 from __future__ import absolute_import
 
 import warnings
+from werkzeug.wrappers import Response as WerkzeugResponse
 from functools import wraps
-from flask import session, abort, current_app, request, jsonify, Response
+from flask import session, abort, current_app, request, jsonify
 from marshmallow.exceptions import ValidationError
 from eduid_userdb.exceptions import UserDoesNotExist, MultipleUsersReturned
-from eduid_common.api.utils import retrieve_modified_ts, get_dashboard_user
+from eduid_common.api.utils import get_dashboard_user
 from eduid_common.api.schemas.base import FluxStandardAction
 from eduid_common.api.schemas.models import FluxResponseStatus, FluxSuccessResponse, FluxFailResponse
 
@@ -111,7 +112,7 @@ class MarshalWith(object):
         def decorated_function(*args, **kwargs):
             ret = f(*args, **kwargs)
 
-            if isinstance(ret, Response):  # No need to Marshal again, someone else already did that
+            if isinstance(ret, WerkzeugResponse):  # No need to Marshal again, someone else already did that
                 return ret
 
             try:
