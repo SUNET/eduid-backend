@@ -36,7 +36,7 @@ from datetime import datetime
 from urllib import urlencode
 import urlparse
 
-from flask import Blueprint, session, abort, url_for
+from flask import Blueprint, session, abort, url_for, redirect
 from flask import render_template, current_app
 
 from eduid_userdb.exceptions import UserOutOfSync
@@ -232,7 +232,9 @@ def account_terminated(user):
     # email the user
     send_termination_mail(user)
 
-    return {}
+    session.invalidate()
+
+    return redirect('https://eduid.se/')
 
 
 def send_termination_mail(user):
