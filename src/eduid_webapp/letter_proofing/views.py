@@ -6,7 +6,7 @@ from flask import Blueprint, current_app, request
 
 import json  # XXX: Until we no longer wants to dump proofing to log
 
-from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
+from eduid_common.api.decorators import require_user, can_verify_identity, MarshalWith, UnmarshalWith
 from eduid_userdb.proofing import ProofingUser
 from eduid_userdb.nin import Nin
 from eduid_webapp.letter_proofing import pdf
@@ -35,15 +35,11 @@ def get_state(user):
 @letter_proofing_views.route('/proofing', methods=['POST'])
 @UnmarshalWith(schemas.LetterProofingRequestSchema)
 @MarshalWith(schemas.LetterProofingResponseSchema)
+@can_verify_identity
 @require_user
 def proofing(user, nin):
     current_app.logger.info('Send letter for user {!r} initiated'.format(user))
     proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn, raise_on_missing=False)
-
-    # For now a user can just have one verified NIN
-    # TODO: Check if a user has a valid letter proofing
-    if user.nins.count > 0:
-        return {'_status': 'error', 'message': 'User is already verified'}
 
     # No existing proofing state was found, create a new one
     if not proofing_state:
