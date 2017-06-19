@@ -3,7 +3,8 @@ from __future__ import absolute_import
 
 from celery.utils.log import get_task_logger
 
-from eduid_userdb.exceptions import DocumentDoesNotExist
+from eduid_userdb.locked_identity import LockedIdentityNin, LockedIdentityList
+from eduid_userdb.exceptions import DocumentDoesNotExist, UserDBValueError, LockedIdentityViolation
 
 __author__ = 'lundberg'
 
@@ -18,11 +19,13 @@ def unverify_duplicates(userdb, user_id, attributes):
     Checks for verified mail addresses, phone numbers and nins.
 
     :param userdb: Central userdb
-    :type userdb: eduid_userdb.userdb.UserDB
     :param user_id: User document _id
-    :type user_id: bson.ObjectId
     :param attributes: attributes to update
+
+    :type userdb: eduid_userdb.userdb.UserDB
+    :type user_id: bson.ObjectId
     :type attributes: dict
+
     :return: How many elements where unverified (for stats)
     :rtype: dict
     """
@@ -42,11 +45,14 @@ def unverify_duplicates(userdb, user_id, attributes):
 def unverify_mail_aliases(userdb, user_id, mail_aliases):
     """
     :param userdb: Central userdb
-    :type userdb: eduid_userdb.userdb.UserDB
     :param user_id: User document _id
-    :type user_id: bson.ObjectId
     :param mail_aliases: sub dict of attributes
+
+
+    :type userdb: eduid_userdb.userdb.UserDB
+    :type user_id: bson.ObjectId
     :type mail_aliases: dict
+
     :return: How many mailAliases that where unverified
     :rtype: int
     """
@@ -55,9 +61,9 @@ def unverify_mail_aliases(userdb, user_id, mail_aliases):
         logger.debug('No mailAliases to check duplicates against for user {}.'.format(user_id))
         return None
     # Get the verified mail addresses from attributes
-    verified_mail_aliases = [alias['email'] for alias in mail_aliases if alias.get('verified')]
-    try:
-        for email in verified_mail_aliases:
+    verified_mail_aliases = [alias['email'] for alias in mail_aliases if alias.get('verified') is True]
+    for email in verified_mail_aliases:
+        try:
             for user in userdb.get_user_by_mail(email, return_list=True):
                 if user.user_id != user_id:
                     logger.debug('Removing mail address {} from user {}'.format(email, user))
@@ -73,19 +79,21 @@ def unverify_mail_aliases(userdb, user_id, mail_aliases):
                     count += 1
                     logger.debug('Old user mail aliases AFTER: {}'.format(user.mail_addresses.to_list()))
                     userdb.save(user)
-    except DocumentDoesNotExist:
-        pass
+        except DocumentDoesNotExist:
+            pass
     return count
 
 
 def unverify_phones(userdb, user_id, phones):
     """
     :param userdb: Central userdb
-    :type userdb: eduid_userdb.userdb.UserDB
     :param user_id: User document _id
-    :type user_id: bson.ObjectId
     :param phones: sub dict of attributes
+
+    :type userdb: eduid_userdb.userdb.UserDB
+    :type user_id: bson.ObjectId
     :type phones: dict
+
     :return: How many phones that where unverified
     :rtype: int
     """
@@ -94,9 +102,9 @@ def unverify_phones(userdb, user_id, phones):
         logger.debug('No phones to check duplicates against for user {}.'.format(user_id))
         return None
     # Get the verified phone numbers from attributes
-    verified_phone_numbers = [phone['number'] for phone in phones if phone.get('verified')]
-    try:
-        for number in verified_phone_numbers:
+    verified_phone_numbers = [phone['number'] for phone in phones if phone.get('verified') is True]
+    for number in verified_phone_numbers:
+        try:
             for user in userdb.get_user_by_phone(number, return_list=True):
                 if user.user_id != user_id:
                     logger.debug('Removing phone number {} from user {}'.format(number, user))
@@ -112,19 +120,21 @@ def unverify_phones(userdb, user_id, phones):
                     count += 1
                     logger.debug('Old user phone numbers AFTER: {}.'.format(user.phone_numbers.to_list()))
                     userdb.save(user)
-    except DocumentDoesNotExist:
-        pass
+        except DocumentDoesNotExist:
+            pass
     return count
 
 
 def unverify_nins(userdb, user_id, nins):
     """
     :param userdb: Central userdb
-    :type userdb: eduid_userdb.userdb.UserDB
     :param user_id: User document _id
-    :type user_id: bson.ObjectId
     :param nins: sub dict of attributes
+
+    :type userdb: eduid_userdb.userdb.UserDB
+    :type user_id: bson.ObjectId
     :type nins: dict
+
     :return: How many nins that where unverified
     :rtype: int
     """
@@ -133,9 +143,9 @@ def unverify_nins(userdb, user_id, nins):
         logger.debug('No nins to check duplicates against for user {!s}.'.format(user_id))
         return None
     # Get verified nins from attributes
-    verified_nins = [nin['number'] for nin in nins if nin.get('verified')]
-    try:
-        for number in verified_nins:
+    verified_nins = [nin['number'] for nin in nins if nin.get('verified') is True]
+    for number in verified_nins:
+        try:
             for user in userdb.get_user_by_nin(number, return_list=True):
                 if user.user_id != user_id:
                     logger.debug('Removing nin {} from user {}'.format(number, user))
@@ -152,6 +162,64 @@ def unverify_nins(userdb, user_id, nins):
                     count += 1
                     logger.debug('Old user NINs AFTER: {}.'.format(user.nins.to_list()))
                     userdb.save(user)
-    except DocumentDoesNotExist:
-        pass
+        except DocumentDoesNotExist:
+            pass
     return count
+
+
+def check_locked_identity(userdb, user_id, attributes, app_name):
+    """
+    :param userdb: Central userdb
+    :param user_id: User document _id
+    :param attributes: attributes to update
+    :param app_name: calling application name, like 'eduid_signup'
+
+    :type userdb: eduid_userdb.userdb.UserDB
+    :type user_id: bson.ObjectId
+    :type attributes: dict
+    :type app_name: string
+
+    :return: attributes to update
+    :rtype: dict
+    """
+    # Check verified nins that will be set against the locked_identity attribute,
+    # if that does not exist it should be created
+    set_attributes = attributes.get('$set', {})
+    nins = set_attributes.get('nins', [])
+    verified_nins = [nin for nin in nins if nin.get('verified') is True]
+    if not verified_nins:
+        return attributes  # No verified nins will be set
+
+    # A user can not have more than one verified nin at this time
+    if len(verified_nins) > 1:
+        logger.error('Tried to set more than one verified nin for user with id {}'.format(user_id))
+        raise UserDBValueError('Tried to set more than one verified nin for user.')
+
+    nin = verified_nins[0]
+
+    # Get the users locked identities
+    try:
+        user = userdb.get_user_by_id(user_id)
+        locked_identities = user.locked_identity
+    except DocumentDoesNotExist:
+        locked_identities = LockedIdentityList({})
+
+    locked_nin = locked_identities.find('nin')
+    # Create a new locked nin if it does not already exist
+    if not locked_nin:
+        locked_nin = LockedIdentityNin(nin['number'], nin.get('created_by', app_name),
+                                       nin.get('created_ts', True))
+        locked_identities.add(locked_nin)
+
+    # Check nin to be set against locked nin
+    if nin['number'] != locked_nin.number:
+        logger.error('Verfied nin does not match locked identity for user with id {}'.format(user_id))
+        raise LockedIdentityViolation('Verfied nin does not match locked identity for user with id {}'.format(user_id))
+
+    attributes['$set']['locked_identity'] = locked_identities.to_list_of_dicts()
+    return attributes
+
+
+
+
+
