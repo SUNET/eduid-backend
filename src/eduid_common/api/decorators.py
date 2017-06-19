@@ -4,7 +4,7 @@ from __future__ import absolute_import
 
 import warnings
 from functools import wraps
-from flask import session, abort, current_app, request, jsonify
+from flask import session, abort, current_app, request, jsonify, Response
 from marshmallow.exceptions import ValidationError
 from eduid_userdb.exceptions import UserDoesNotExist, MultipleUsersReturned
 from eduid_common.api.utils import retrieve_modified_ts, get_dashboard_user
@@ -80,6 +80,27 @@ def require_support_personnel(f):
     return decorated_function
 
 
+def can_verify_identity(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        user = _get_user()
+        # For now a user can just have one verified NIN
+        if user.nins.primary is not None:
+            ret = {'error': 'User is already verified'}
+            response_data = FluxFailResponse(request, payload=ret)
+            return jsonify(FluxStandardAction().dump(response_data.to_dict()).data)
+        # A user can not verify a nin if another previously was verified
+        locked_nin = user.locked_identity.find('nin')
+        if locked_nin and locked_nin.number != kwargs['nin']:
+            ret = {'error': 'Another nin is already registered for this user'}
+            response_data = FluxFailResponse(request, payload=ret)
+            return jsonify(FluxStandardAction().dump(response_data.to_dict()).data)
+
+        return f(*args, **kwargs)
+
+    return decorated_function
+
+
 class MarshalWith(object):
 
     def __init__(self, schema):
@@ -89,6 +110,10 @@ class MarshalWith(object):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             ret = f(*args, **kwargs)
+
+            if isinstance(ret, Response):  # No need to Marshal again, someone else already did that
+                return ret
+
             try:
                 response_status = ret.pop('_status', FluxResponseStatus.ok)
             # ret may be a list:
