@@ -154,11 +154,11 @@ class RawDb(object):
         """
         filename = self._get_backup_filename(backup_dir, 'before', 'json')
         with open(filename, 'w') as fd:
-            fd.write(bson.json_util.dumps(raw.before, indent=True, sort_keys=True))
+            fd.write(bson.json_util.dumps(raw.before, indent=True, sort_keys=True) + '\n')
 
         filename = self._get_backup_filename(backup_dir, 'after', 'json')
         with open(filename, 'w') as fd:
-            fd.write(bson.json_util.dumps(raw.doc, indent=True, sort_keys=True))
+            fd.write(bson.json_util.dumps(raw.doc, indent=True, sort_keys=True) + '\n')
 
     def _get_backup_filename(self, dirname, filename, ext):
         """
@@ -186,10 +186,19 @@ class RawDb(object):
                              'without the volume mounted?\n'.format(self._backupbase))
             sys.exit(1)
 
-        backup_dir = os.path.join(self._backupbase, self._myname, self._start_time, dbcoll, _id)
+        backup_dir = os.path.join(self.backupdir, dbcoll, _id)
         os.makedirs(backup_dir)
 
         return backup_dir
+
+    @property
+    def backupdir(self):
+        """
+        The top level path for data logs created by the current run of a db fix script.
+        :return: Directory
+        :rtype: string_types
+        """
+        return os.path.join(self._backupbase, self._myname, self._start_time)
 
 
 class RawData(object):
