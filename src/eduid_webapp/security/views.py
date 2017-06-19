@@ -146,9 +146,10 @@ def change_password(user, csrf_token, old_password, new_password):
     current_app.stats.count(name='security_password_changed', value=1)
     current_app.logger.info('Changed password for user {!r}'.format(user.eppn))
 
+    next_url = current_app.config.get('DASHBOARD_URL', '/profile')
     credentials =  {
         'csrf_token': csrf_token,
-        'next_url': url_for('personal_data.user'),
+        'next_url': next_url,
         'credentials': current_app.authninfo_db.get_authn_info(user)
         }
 
