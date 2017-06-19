@@ -68,6 +68,8 @@ class RawDb(object):
     def save_with_backup(self, raw, dry_run=True):
         """
         Save a mongodb document while trying to carefully make a backup of the document before, after and what changed.
+
+        If raw.doc has the key 'DELETE_DOCUMENT' set to True, it will be removed from the database.
         """
         if not self._myname:
             sys.stderr.write("Can't save with backup unless RawDb is initialized with myname\n")
@@ -78,18 +80,22 @@ class RawDb(object):
                              'running in a container without the volume mounted?\n'.format(self._backupbase))
             sys.exit(1)
 
-        if 'eduPersonPrincipalName' in raw.doc:
-            _id = raw.doc['eduPersonPrincipalName']
-            if raw.doc['eduPersonPrincipalName'] != raw.before.get('eduPersonPrincipalName'):
-                sys.stderr.write('REFUSING to update eduPersonPrincipalName ({} -> {})'.format(
-                    raw.before.get('eduPersonPrincipalName'), raw.doc['eduPersonPrincipalName']))
-                sys.exit(1)
-        else:
-            _id = '{}'.format(raw.doc['_id'])
-
         if raw.doc['_id'] != raw.before['_id']:
-            sys.stderr.write('REFUSING to update _id ({} -> {})'.format(raw.before['_id'], raw.doc['_id']))
+            sys.stderr.write('REFUSING to update _id ({} -> {})\n'.format(raw.before['_id'], raw.doc['_id']))
             sys.exit(1)
+
+        _id = '{}'.format(raw.doc['_id'])
+        if 'eduPersonPrincipalName' in raw.before:
+            _id = raw.before['eduPersonPrincipalName']
+
+        if raw.doc.get('DELETE_DOCUMENT') is True:
+            raw.doc = {}
+        else:
+            if 'eduPersonPrincipalName' in raw.doc or 'eduPersonPrincipalName' in raw.before:
+                if raw.doc.get('eduPersonPrincipalName') != raw.before.get('eduPersonPrincipalName'):
+                    sys.stderr.write('REFUSING to update eduPersonPrincipalName ({} -> {})'.format(
+                        raw.before.get('eduPersonPrincipalName'), raw.doc.get('eduPersonPrincipalName')))
+                    sys.exit(1)
 
         dbcoll = '{}.{}'.format(raw.db, raw.collection)
 
@@ -104,7 +110,12 @@ class RawDb(object):
         if dry_run:
             res = 'DRY_RUN'
         else:
-            res = self._client[raw.db][raw.collection].update({'_id': raw.doc['_id']}, raw.doc)
+            if len(raw.doc):
+                db_res = self._client[raw.db][raw.collection].update({'_id': raw.doc['_id']}, raw.doc)
+                res = 'UPDATE {}'.format(db_res)
+            else:
+                db_res = self._client[raw.db][raw.collection].remove({'_id': raw.before['_id']})
+                res = 'REMOVE {}'.format(db_res)
 
         # Write changes.txt after saving, so it will also indicate a successful save
         self._write_changes(raw, backup_dir, res)
@@ -133,9 +144,9 @@ class RawDb(object):
                 if raw.doc[k] != raw.before[k]:
                     fd.write('MOD: BEFORE={} AFTER={}\n'.format(safe_encode(k, raw.before[k]),
                                                                 safe_encode(k, raw.doc[k]),
-                    ))
+                                                                ))
 
-            fd.write('UPDATE_RESULT: {}\n'.format(res))
+            fd.write('DB_RESULT: {}\n'.format(res))
 
     def _write_before_and_after(self, raw, backup_dir):
         """
