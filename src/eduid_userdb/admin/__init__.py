@@ -15,6 +15,16 @@ from six import string_types
 from copy import deepcopy
 
 
+volunteers = {'ft:staging': 'vofaz-tajod',
+              'ft:prod': 'takaj-sosup',
+              'lundberg:staging': 'tovuk-zizih',
+              'lundberg:prod': 'rubom-lujov',
+              'john:staging': 'faraf-livok',
+              'john:prod': 'hofij-zanok',
+              }
+usual_suspects = volunteers.values()
+
+
 class RawDb(object):
     """
     Kind-of raw access to mongodb documents, for use in database fix/migration scripts.
