@@ -286,8 +286,7 @@ class SecurityTests(EduidAPITestCase):
                 sess['reauthn-for-termination'] = int(time.time())
                 response2 = client.get('/account-terminated')
 
-                self.assertEqual(response2.status_code, 200)
-                rdata = json.loads(response2.data)
+                self.assertEqual(response2.status_code, 302)
 
-                self.assertEqual(rdata['type'],
-                        'GET_SECURITY_ACCOUNT_TERMINATED_SUCCESS')
+                self.assertEqual(response2.location,
+                        'https://eduid.se/')
