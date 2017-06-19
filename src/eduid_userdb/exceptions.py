@@ -2,6 +2,7 @@
 Exceptions thrown by the eduid_userdb database lookup functions.
 """
 
+
 class EduIDDBError(Exception):
     """
     eduID userdb Exception class.
@@ -70,17 +71,27 @@ class UserDBValueError(EduIDUserDBError):
     """
     pass
 
+
 class UserMissingData(EduIDUserDBError):
     """
     There is missing data for a User
     """
     pass
 
+
 class DocumentOutOfSync(EduIDDBError):
     """
     The document has been modified since it was read from the db.
     """
     pass
+
+
+class LockedIdentityViolation(EduIDUserDBError):
+    """
+    The user is trying to verify an identity that differs from the current locked identity.
+    """
+    pass
+
 
 class UserOutOfSync(DocumentOutOfSync):
     """
