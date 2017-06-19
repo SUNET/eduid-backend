@@ -4,7 +4,7 @@ from __future__ import absolute_import
 from celery.utils.log import get_task_logger
 
 from eduid_userdb.locked_identity import LockedIdentityNin, LockedIdentityList
-from eduid_userdb.exceptions import DocumentDoesNotExist, EduIDUserDBError
+from eduid_userdb.exceptions import DocumentDoesNotExist, UserDBValueError, LockedIdentityViolation
 
 __author__ = 'lundberg'
 
@@ -61,7 +61,7 @@ def unverify_mail_aliases(userdb, user_id, mail_aliases):
         logger.debug('No mailAliases to check duplicates against for user {}.'.format(user_id))
         return None
     # Get the verified mail addresses from attributes
-    verified_mail_aliases = [alias['email'] for alias in mail_aliases if alias.get('verified')]
+    verified_mail_aliases = [alias['email'] for alias in mail_aliases if alias.get('verified') is True]
     for email in verified_mail_aliases:
         try:
             for user in userdb.get_user_by_mail(email, return_list=True):
@@ -102,7 +102,7 @@ def unverify_phones(userdb, user_id, phones):
         logger.debug('No phones to check duplicates against for user {}.'.format(user_id))
         return None
     # Get the verified phone numbers from attributes
-    verified_phone_numbers = [phone['number'] for phone in phones if phone.get('verified')]
+    verified_phone_numbers = [phone['number'] for phone in phones if phone.get('verified') is True]
     for number in verified_phone_numbers:
         try:
             for user in userdb.get_user_by_phone(number, return_list=True):
@@ -143,7 +143,7 @@ def unverify_nins(userdb, user_id, nins):
         logger.debug('No nins to check duplicates against for user {!s}.'.format(user_id))
         return None
     # Get verified nins from attributes
-    verified_nins = [nin['number'] for nin in nins if nin.get('verified')]
+    verified_nins = [nin['number'] for nin in nins if nin.get('verified') is True]
     for number in verified_nins:
         try:
             for user in userdb.get_user_by_nin(number, return_list=True):
@@ -186,14 +186,16 @@ def check_locked_identity(userdb, user_id, attributes, app_name):
     # if that does not exist it should be created
     set_attributes = attributes.get('$set', {})
     nins = set_attributes.get('nins', [])
-    verified_nins = [nin for nin in nins if nin.get('verified')]
+    verified_nins = [nin for nin in nins if nin.get('verified') is True]
     if not verified_nins:
         return attributes  # No verified nins will be set
 
     # A user can not have more than one verified nin at this time
-    if len(verified_nins) != 1:
+    if len(verified_nins) > 1:
         logger.error('Tried to set more than one verified nin for user with id {}'.format(user_id))
-        raise EduIDUserDBError('Tried to set more than one verified nin for user.')
+        raise UserDBValueError('Tried to set more than one verified nin for user.')
+
+    nin = verified_nins[0]
 
     # Get the users locked identities
     try:
@@ -205,14 +207,14 @@ def check_locked_identity(userdb, user_id, attributes, app_name):
     locked_nin = locked_identities.find('nin')
     # Create a new locked nin if it does not already exist
     if not locked_nin:
-        locked_nin = LockedIdentityNin(verified_nins[0]['number'], verified_nins[0].get('created_by', app_name),
-                                       verified_nins[0].get('created_ts', True))
+        locked_nin = LockedIdentityNin(nin['number'], nin.get('created_by', app_name),
+                                       nin.get('created_ts', True))
         locked_identities.add(locked_nin)
 
     # Check nin to be set against locked nin
-    if verified_nins[0]['number'] != locked_nin.number:
+    if nin['number'] != locked_nin.number:
         logger.error('Verfied nin does not match locked identity for user with id {}'.format(user_id))
-        raise EduIDUserDBError('Verfied nin does not match locked identity for user with id {}'.format(user_id))
+        raise LockedIdentityViolation('Verfied nin does not match locked identity for user with id {}'.format(user_id))
 
     attributes['$set']['locked_identity'] = locked_identities.to_list_of_dicts()
     return attributes

@@ -9,7 +9,7 @@ import bson
 
 from eduid_am.celery import celery
 from eduid_userdb import UserDB
-from eduid_userdb.exceptions import UserDoesNotExist, EduIDUserDBError
+from eduid_userdb.exceptions import UserDoesNotExist, LockedIdentityViolation
 from .consistency_checks import unverify_duplicates, check_locked_identity
 
 logger = get_task_logger(__name__)
@@ -135,7 +135,7 @@ def _update_attributes_safe(app_name, user_id):
     try:
         logger.debug('Checking locked identity during sync attempt from {}'.format(app_name))
         attributes = check_locked_identity(self.userdb, _id, attributes, app_name)
-    except EduIDUserDBError as e:
+    except LockedIdentityViolation as e:
         logger.error(e)
         return
 
