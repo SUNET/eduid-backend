@@ -38,13 +38,14 @@ import datetime
 from six import string_types
 
 from eduid_userdb.exceptions import UserHasUnknownData, UserIsRevoked, UserHasNotCompletedSignup
-from eduid_userdb.element import UserDBValueError, LockedNinIdentityElement
+from eduid_userdb.element import UserDBValueError
 
 from eduid_userdb.mail import MailAddressList
 from eduid_userdb.phone import PhoneNumberList
 from eduid_userdb.password import PasswordList
 from eduid_userdb.nin import NinList
 from eduid_userdb.tou import ToUList
+from eduid_userdb.locked_identity import LockedIdentityList
 
 VALID_SUBJECT_VALUES = ['physical person']
 
@@ -231,16 +232,13 @@ class User(object):
         self._tou = ToUList(_tou)
 
     def _parse_locked_identity(self):
-        self._locked_identity = None
-        _locked_identity = self._data_in.pop('locked_identity', None)
-        if _locked_identity:
-            if _locked_identity['identity_type'] == 'nin':
-                self._locked_identity = LockedNinIdentityElement(number=_locked_identity['number'],
-                                                                 created_by=_locked_identity['created_by'],
-                                                                 created_ts=_locked_identity['created_ts'])
-            # Handle different locked identity types here
-            else:
-                raise UserDBValueError("Failed parsing 'locked_identity' value: {!r}".format(_locked_identity))
+        """
+        art of __init__().
+
+        Parse the LockedIdentity elements.
+        """
+        _locked_identity = self._data_in.pop('locked_identity', [])
+        self._locked_identity = LockedIdentityList(_locked_identity)
 
     # -----------------------------------------------------------------
     @property
@@ -506,25 +504,10 @@ class User(object):
     @property
     def locked_identity(self):
         """
-        :return: Identity locked to this user or False
-        :rtype: LockedIdentityElement | None
+        :return: Identity locked to this user or empty list
+        :rtype: LockedIdentityList
         """
         return self._locked_identity
-
-    @locked_identity.setter
-    def locked_identity(self, value):
-        """
-        :param value: Identity that should be locked to this user
-        :type value: LockedIdentityElement
-        """
-        if value is None:
-            return
-        if self._locked_identity is not None:
-            # Once set, it should not be modified.
-            raise UserDBValueError("Refusing to modify locked_identity of element")
-        if not isinstance(value, LockedNinIdentityElement):
-            raise UserDBValueError("Unknown 'locked_identity' value: {!r}".format(value))
-        self._locked_identity = value
 
     # -----------------------------------------------------------------
     def to_dict(self, old_userdb_format=False):
@@ -543,8 +526,7 @@ class User(object):
         res['passwords'] = self.passwords.to_list_of_dicts(old_userdb_format=old_userdb_format)
         res['nins'] = self.nins.to_list_of_dicts(old_userdb_format=old_userdb_format)
         res['tou'] = self.tou.to_list_of_dicts(old_userdb_format=old_userdb_format)
-        if self.locked_identity:
-            res['locked_identity'] = self.locked_identity.to_dict()
+        res['locked_identity'] = self.locked_identity.to_list_of_dicts(old_userdb_format=old_userdb_format)
         if 'eduPersonEntitlement' not in res:
             res['eduPersonEntitlement'] = res.pop('entitlements', [])
         # Remove these values if they have a value that evaluates to False
