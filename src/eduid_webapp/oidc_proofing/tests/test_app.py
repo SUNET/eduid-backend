@@ -10,6 +10,7 @@ from mock import patch
 
 from eduid_userdb.data_samples import NEW_USER_EXAMPLE
 from eduid_userdb.user import User
+from eduid_userdb.locked_identity import LockedIdentityNin
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_webapp.oidc_proofing.app import init_oidc_proofing_app
 from eduid_webapp.oidc_proofing.helpers import create_proofing_state, handle_freja_eid_userinfo, handle_seleg_userinfo
@@ -114,7 +115,7 @@ class OidcProofingTests(EduidAPITestCase):
             'FREJA_JWK_SECRET': '499602d2',  # in hex
             'FREJA_IARP': 'TESTRP',
             'FREJA_EXPIRE_TIME_HOURS': 336,
-            'FREJA_RESPONSE_PROTOCOL': '1,0'
+            'FREJA_RESPONSE_PROTOCOL': '1.0'
         })
         return config
 
@@ -156,26 +157,34 @@ class OidcProofingTests(EduidAPITestCase):
         expected = {
             'iarp': 'TESTRP',
             'opaque': '1' + json.dumps({'nonce': proofing_state.nonce, 'token': proofing_state.token}),
-            'proto': u'1,0'
+            'proto': u'1.0'
         }
         self.assertIn('exp', request_data.claims)
         self.assertEqual(request_data.claims['iarp'], expected['iarp'])
         self.assertEqual(request_data.claims['opaque'], expected['opaque'])
         self.assertEqual(request_data.claims['proto'], expected['proto'])
 
+    @patch('eduid_webapp.oidc_proofing.helpers.do_authn_request')
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
-    def test_seleg_flow(self, mock_get_postal_address, mock_request_user_sync):
+    def test_seleg_flow(self, mock_oidc_call, mock_get_postal_address, mock_request_user_sync):
+        mock_oidc_call.return_value = True
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.return_value = True
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        proofing_state = create_proofing_state(user, self.test_user_nin)
-        self.app.proofing_statedb.save(proofing_state)
+
+        with self.session_cookie(self.client, self.test_user_eppn) as client:
+            data = {'nin': self.test_user_nin}
+            response = client.post('/proofing', data=json.dumps(data), content_type=self.content_type_json)
+            response = json.loads(response.data)
+        self.assertEqual(response['type'], 'POST_OIDC_PROOFING_PROOFING_SUCCESS')
+
         with self.session_cookie(self.client, self.test_user_eppn) as client:
             response = json.loads(client.get('/proofing').data)
         self.assertEqual(response['type'], 'GET_OIDC_PROOFING_PROOFING_SUCCESS')
 
         # No actual oidc flow tested here
+        proofing_state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
         userinfo = {
             'identity': self.test_user_nin,
         }
@@ -185,19 +194,27 @@ class OidcProofingTests(EduidAPITestCase):
         self.assertEqual(user.nins.primary.number, self.test_user_nin)
         self.assertEqual(self.app.proofing_log.db_count(), 1)
 
+    @patch('eduid_webapp.oidc_proofing.helpers.do_authn_request')
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
-    def test_freja_flow(self, mock_get_postal_address, mock_request_user_sync):
+    def test_freja_flow(self, mock_oidc_call, mock_get_postal_address, mock_request_user_sync):
+        mock_oidc_call.return_value = True
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.return_value = True
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        proofing_state = create_proofing_state(user, self.test_user_nin)
-        self.app.proofing_statedb.save(proofing_state)
+
+        with self.session_cookie(self.client, self.test_user_eppn) as client:
+            data = {'nin': self.test_user_nin}
+            response = client.post('/freja/proofing', data=json.dumps(data), content_type=self.content_type_json)
+            response = json.loads(response.data)
+        self.assertEqual(response['type'], 'POST_OIDC_PROOFING_FREJA_PROOFING_SUCCESS')
+
         with self.session_cookie(self.client, self.test_user_eppn) as client:
             response = json.loads(client.get('/freja/proofing').data)
         self.assertEqual(response['type'], 'GET_OIDC_PROOFING_FREJA_PROOFING_SUCCESS')
 
         # No actual oidc flow tested here
+        proofing_state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
         userinfo = {
             'freja_proofing': {
                 'ref': '1234.5678.9012.3456',
@@ -212,3 +229,61 @@ class OidcProofingTests(EduidAPITestCase):
         self.assertEqual(user.nins.primary.number, self.test_user_nin)
         self.assertEqual(self.app.proofing_log.db_count(), 1)
 
+    @patch('eduid_webapp.oidc_proofing.helpers.do_authn_request')
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_seleg_locked_identity(self, mock_oidc_call, mock_request_user_sync):
+        mock_oidc_call.return_value = True
+        mock_request_user_sync.return_value = True
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+
+        # User with no locked_identity
+        with self.session_cookie(self.client, self.test_user_eppn) as client:
+            data = {'nin': self.test_user_nin}
+            response = client.post('/proofing', data=json.dumps(data), content_type=self.content_type_json)
+            response = json.loads(response.data)
+        self.assertEqual(response['type'], 'POST_OIDC_PROOFING_PROOFING_SUCCESS')
+
+        # User with locked_identity and correct nin
+        user.locked_identity.add(LockedIdentityNin(number=self.test_user_nin, created_by='test', created_ts=True))
+        self.app.central_userdb.save(user, check_sync=False)
+
+        with self.session_cookie(self.client, self.test_user_eppn) as client:
+            data = {'nin': self.test_user_nin}
+            response = client.post('/proofing', data=json.dumps(data), content_type=self.content_type_json)
+            response = json.loads(response.data)
+        self.assertEqual(response['type'], 'POST_OIDC_PROOFING_PROOFING_SUCCESS')
+
+        # User with locked_identity and incorrect nin
+        with self.session_cookie(self.client, self.test_user_eppn) as client:
+            data = {'nin': '200102031234'}
+            response = client.post('/proofing', data=json.dumps(data), content_type=self.content_type_json)
+            response = json.loads(response.data)
+        self.assertEqual(response['type'], 'POST_OIDC_PROOFING_PROOFING_FAIL')
+
+    @patch('eduid_webapp.oidc_proofing.helpers.do_authn_request')
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_freja_locked_identity(self, mock_oidc_call, mock_request_user_sync):
+        mock_oidc_call.return_value = True
+        mock_request_user_sync.return_value = True
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+
+        with self.session_cookie(self.client, self.test_user_eppn) as client:
+            data = {'nin': self.test_user_nin}
+            response = client.post('/freja/proofing', data=json.dumps(data), content_type=self.content_type_json)
+            response = json.loads(response.data)
+        self.assertEqual(response['type'], 'POST_OIDC_PROOFING_FREJA_PROOFING_SUCCESS')
+
+        user.locked_identity.add(LockedIdentityNin(number=self.test_user_nin, created_by='test', created_ts=True))
+        self.app.central_userdb.save(user, check_sync=False)
+
+        with self.session_cookie(self.client, self.test_user_eppn) as client:
+            data = {'nin': self.test_user_nin}
+            response = client.post('/freja/proofing', data=json.dumps(data), content_type=self.content_type_json)
+            response = json.loads(response.data)
+        self.assertEqual(response['type'], 'POST_OIDC_PROOFING_FREJA_PROOFING_SUCCESS')
+
+        with self.session_cookie(self.client, self.test_user_eppn) as client:
+            data = {'nin': '200102031234'}
+            response = client.post('/freja/proofing', data=json.dumps(data), content_type=self.content_type_json)
+            response = json.loads(response.data)
+        self.assertEqual(response['type'], 'POST_OIDC_PROOFING_FREJA_PROOFING_FAIL')

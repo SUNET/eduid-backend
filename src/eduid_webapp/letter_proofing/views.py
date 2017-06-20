@@ -2,12 +2,11 @@
 
 from __future__ import absolute_import
 
-from flask import Blueprint, current_app, request
+from flask import Blueprint, current_app
 
-import json  # XXX: Until we no longer wants to dump proofing to log
-
-from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
+from eduid_common.api.decorators import require_user, can_verify_identity, MarshalWith, UnmarshalWith
 from eduid_userdb.proofing import ProofingUser
+from eduid_userdb.logs import LetterProofing
 from eduid_userdb.nin import Nin
 from eduid_webapp.letter_proofing import pdf
 from eduid_webapp.letter_proofing import schemas
@@ -35,15 +34,11 @@ def get_state(user):
 @letter_proofing_views.route('/proofing', methods=['POST'])
 @UnmarshalWith(schemas.LetterProofingRequestSchema)
 @MarshalWith(schemas.LetterProofingResponseSchema)
+@can_verify_identity
 @require_user
 def proofing(user, nin):
     current_app.logger.info('Send letter for user {!r} initiated'.format(user))
     proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn, raise_on_missing=False)
-
-    # For now a user can just have one verified NIN
-    # TODO: Check if a user has a valid letter proofing
-    if user.nins.count > 0:
-        return {'_status': 'error', 'message': 'User is already verified'}
 
     # No existing proofing state was found, create a new one
     if not proofing_state:
@@ -53,7 +48,7 @@ def proofing(user, nin):
 
     if proofing_state.proofing_letter.is_sent:
         current_app.logger.info('User {!r} has already sent a letter'.format(user))
-        return {'_status': 'error', 'message': 'Letter already sent'}
+        return check_state(proofing_state)
 
     address = get_address(user, proofing_state)
     if not address:
@@ -113,35 +108,30 @@ def verify_code(user, verification_code):
         nin.is_primary = True
     user.nins.add(nin)
 
-    # XXX: Do not add letter_proofing_data after we update to new db models in central user db
-    letter_proofing_data = proofing_state.nin.to_dict()
-    letter_proofing_data['official_address'] = proofing_state.proofing_letter.address
-    letter_proofing_data['transaction_id'] = proofing_state.proofing_letter.transaction_id
-    user.add_letter_proofing_data(letter_proofing_data)
+    official_address = get_address(user, proofing_state)
+    letter_proof = LetterProofing(user, created_by='eduid_letter_proofing', nin=nin.number,
+                                  letter_sent_to=proofing_state.proofing_letter.address,
+                                  transaction_id=proofing_state.proofing_letter.transaction_id,
+                                  user_postal_address=official_address, proofing_version='2016v1')
 
-    # User from central db is as up to date as it can be no need to check for modified time
-    user.modified_ts = True
-    current_app.proofing_userdb.save(user, check_sync=False)
+    if current_app.proofing_log.save(letter_proof):
+        current_app.logger.info('Recorded verification for {} in the proofing log'.format(user))
+        # User from central db is as up to date as it can be no need to check for modified time
+        user.modified_ts = True
+        current_app.proofing_userdb.save(user, check_sync=False)
 
-    # TODO: Need to decide where to "steal" NIN if multiple users have the NIN verified
-    # Ask am to sync user to central db
-    try:
-        # XXX: Send proofing data to some kind of proofing log
-        current_app.logger.info('Request sync for user {!s}'.format(user))
-        result = current_app.am_relay.request_user_sync(user)
-        current_app.logger.info('Sync result for user {!s}: {!s}'.format(user, result))
-    except Exception as e:
-        current_app.logger.error('Sync request failed for user {!s}'.format(user))
-        current_app.logger.error('Exception: {!s}'.format(e))
-        # XXX: Probably not str(e) as message?
-        return {'_status': 'error', 'message': 'Sync request failed for user'}
+        # Ask am to sync user to central db
+        try:
+            current_app.logger.info('Request sync for user {!s}'.format(user))
+            result = current_app.am_relay.request_user_sync(user)
+            current_app.logger.info('Sync result for user {!s}: {!s}'.format(user, result))
+        except Exception as e:
+            current_app.logger.error('Sync request failed for user {!s}'.format(user))
+            current_app.logger.error('Exception: {!s}'.format(e))
+            return {'_status': 'error', 'message': 'Sync request failed for user'}
 
-    # XXX: Remove dumping data to log
-    current_app.logger.info('Logging data for user: {!r}'.format(user))
-    current_app.logger.info(json.dumps(schemas.LetterProofingDataSchema().dump(letter_proofing_data)))
-    current_app.logger.info('End data')
-
-    current_app.logger.info('Verified code for user {!r}'.format(user))
-    # Remove proofing state
-    current_app.proofing_statedb.remove_document({'eduPersonPrincipalName': proofing_state.eppn})
-    return {'success': True}
+        current_app.logger.info('Verified code for user {!r}'.format(user))
+        # Remove proofing state
+        current_app.proofing_statedb.remove_document({'eduPersonPrincipalName': proofing_state.eppn})
+        return {'success': True}
+    return {'_status': 'error', 'message': 'Temporary technical problems. Please try again later.'}

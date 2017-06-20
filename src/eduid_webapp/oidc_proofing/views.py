@@ -16,7 +16,7 @@ from eduid_userdb.proofing import ProofingUser
 from eduid_userdb.util import UTC
 from eduid_userdb.exceptions import DocumentDoesNotExist
 from eduid_common.api.utils import StringIO
-from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
+from eduid_common.api.decorators import require_user, can_verify_identity, MarshalWith, UnmarshalWith
 from eduid_webapp.oidc_proofing import schemas
 from eduid_webapp.oidc_proofing import helpers
 
@@ -93,16 +93,13 @@ def authorization_response():
     am_user = current_app.central_userdb.get_user_by_eppn(proofing_state.eppn)
     user = ProofingUser(data=am_user.to_dict())
 
-    # A user can only have one NIN verified at this time
-    # TODO: Check against user.locked_identity
-    if user.nins.primary is None:
-        # Handle userinfo differently depending on data in userinfo
-        if userinfo.get('identity'):
-            current_app.logger.info('Handling userinfo as generic seleg vetting for user {}'.format(user))
-            helpers.handle_seleg_userinfo(user, proofing_state, userinfo)
-        elif userinfo.get('freja_proofing'):
-            current_app.logger.info('Handling userinfo as freja vetting for user {}'.format(user))
-            helpers.handle_freja_eid_userinfo(user, proofing_state, userinfo)
+    # Handle userinfo differently depending on data in userinfo
+    if userinfo.get('identity'):
+        current_app.logger.info('Handling userinfo as generic seleg vetting for user {}'.format(user))
+        helpers.handle_seleg_userinfo(user, proofing_state, userinfo)
+    elif userinfo.get('freja_proofing'):
+        current_app.logger.info('Handling userinfo as freja vetting for user {}'.format(user))
+        helpers.handle_freja_eid_userinfo(user, proofing_state, userinfo)
 
     # Remove users proofing state
     current_app.proofing_statedb.remove_state(proofing_state)
@@ -133,16 +130,9 @@ def get_seleg_state(user):
 
 @oidc_proofing_views.route('/proofing', methods=['POST'])
 @UnmarshalWith(schemas.OidcProofingRequestSchema)
+@can_verify_identity
 @require_user
 def seleg_proofing(user, nin):
-    # For now a user can just have one verified NIN
-    # TODO: Check agains user.locked_identity
-    if user.nins.primary is not None:
-        return {'_status': 'error', 'error': 'User is already verified'}
-    # A user can not verify new nin if one already exists
-    if len(user.nins.to_list()) > 0 and any(item for item in user.nins.to_list() if item.number != nin):
-        return {'_status': 'error', 'error': 'Another nin is already registered for this user'}
-
     proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn, raise_on_missing=False)
     if not proofing_state:
         current_app.logger.debug('No proofing state found for user {!s}. Initializing new proofing flow.'.format(user))
@@ -195,7 +185,6 @@ def get_freja_state(user):
         "proto": current_app.config['FREJA_RESPONSE_PROTOCOL'],
         "opaque": opaque_data
     }
-    # TODO: Use JOSE to sign request data
     jwk = {'k': current_app.config['FREJA_JWK_SECRET'].decode('hex')}
     jws_header = {
         'alg': current_app.config['FREJA_JWS_ALGORITHM'],
@@ -209,17 +198,9 @@ def get_freja_state(user):
 
 @oidc_proofing_views.route('/freja/proofing', methods=['POST'])
 @UnmarshalWith(schemas.OidcProofingRequestSchema)
+@can_verify_identity
 @require_user
 def freja_proofing(user, nin):
-
-    # For now a user can just have one verified NIN
-    # TODO: Check agains user.locked_identity
-    if user.nins.primary is not None:
-        return {'_status': 'error', 'error': 'User is already verified'}
-    # A user can not verify new nin if one already exists
-    if len(user.nins.to_list()) > 0 and any(item for item in user.nins.to_list() if item.number != nin):
-        return {'_status': 'error', 'error': 'Another nin is already registered for this user'}
-
     proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn, raise_on_missing=False)
     if not proofing_state:
         current_app.logger.debug('No proofing state found for user {!s}. Initializing new proofing flow.'.format(user))
