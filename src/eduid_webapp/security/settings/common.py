@@ -63,3 +63,5 @@ PASSWORD_ENTROPY = 25
 CHPASS_TIMEOUT = 600
 
 VCCS_URL = ''
+
+APPLICATION_ROOT = '/services/security'
