@@ -36,7 +36,7 @@ import re
 from marshmallow import ValidationError
 
 from flask import request
-from eduid_common.api.utils import get_dashboard_user
+from eduid_webapp.phone.helpers import get_user
 
 
 def normalize_to_e_164(request, mobile):
@@ -59,7 +59,7 @@ def validate_format_phone(number):
 
 
 def validate_unique_phone(number):
-    user = get_dashboard_user()
+    user = get_user()
     phone = normalize_to_e_164(request, number)
 
     if user.phone_numbers.find(phone):

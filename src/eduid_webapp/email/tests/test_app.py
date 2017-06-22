@@ -62,8 +62,9 @@ class EmailTests(EduidAPITestCase):
         return config
 
     def init_data(self):
-        self.app.dashboard_userdb.save(self.test_user, check_sync=False)
-        retrieve_modified_ts(self.test_user)
+        self.app.email_proofing_userdb.save(self.test_user, check_sync=False)
+        retrieve_modified_ts(self.test_user,
+                dashboard_userdb=self.app.email_proofing_userdb)
 
     def test_get_all_emails(self):
         response = self.browser.get('/all')
