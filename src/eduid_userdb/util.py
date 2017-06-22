@@ -31,11 +31,9 @@
 #
 # Author : Fredrik Thulin <fredrik@thulin.net>
 #
+__author__ = 'ft'
 
 import datetime
-from eduid_userdb.exceptions import UserDBValueError
-
-__author__ = 'ft'
 
 
 class UTC(datetime.tzinfo):
