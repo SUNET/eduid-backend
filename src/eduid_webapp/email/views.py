@@ -55,9 +55,9 @@ email_views = Blueprint('email', __name__, url_prefix='', template_folder='templ
 @MarshalWith(EmailResponseSchema)
 @require_dashboard_user
 def get_all_emails(user):
-    csrf_token = session.get_csrf_token()
-    emails = {'emails': user.mail_addresses.to_list_of_dicts(),
-              'csrf_token': csrf_token}
+    emails = {
+        'emails': user.mail_addresses.to_list_of_dicts(),
+    }
 
     return EmailListPayload().dump(emails).data
 
@@ -66,11 +66,7 @@ def get_all_emails(user):
 @UnmarshalWith(EmailSchema)
 @MarshalWith(EmailResponseSchema)
 @require_dashboard_user
-def post_email(user, email, verified, primary, csrf_token):
-
-    if session.get_csrf_token() != csrf_token:
-        abort(400)
-
+def post_email(user, email, verified, primary):
     current_app.logger.debug('Trying to save unconfirmed email {!r} '
                              'for user {!r}'.format(email, user))
 
@@ -89,7 +85,7 @@ def post_email(user, email, verified, primary, csrf_token):
         save_dashboard_user(user)
     except UserOutOfSync:
         current_app.logger.debug('Couldnt save email {!r} for user {!r}, '
-                            'data out of sync'.format(email, user))
+                                 'data out of sync'.format(email, user))
         return {
             '_status': 'error',
             'error': {'form': 'out_of_sync'}
@@ -109,9 +105,7 @@ def post_email(user, email, verified, primary, csrf_token):
 @UnmarshalWith(SimpleEmailSchema)
 @MarshalWith(EmailResponseSchema)
 @require_dashboard_user
-def post_primary(user, email, csrf_token):
-    if session.get_csrf_token() != csrf_token:
-        abort(400)
+def post_primary(user, email):
     current_app.logger.debug('Trying to save email address {!r} as primary '
                              'for user {!r}'.format(email, user))
 
@@ -153,7 +147,7 @@ def post_primary(user, email, csrf_token):
 
 def _steal_mail(email):
     other = current_app.dashboard_userdb.get_user_by_mail(email,
-                                                     include_unconfirmed=True)
+                                                          include_unconfirmed=True)
     if other and other.mail_addresses.primary and \
             other.mail_addresses.primary.email == email:
         # Promote some other verified e-mail address to primary
@@ -171,11 +165,9 @@ def _steal_mail(email):
 @UnmarshalWith(VerificationCodeSchema)
 @MarshalWith(EmailResponseSchema)
 @require_dashboard_user
-def verify(user, code, email, csrf_token):
+def verify(user, code, email):
     """
     """
-    if session.get_csrf_token() != csrf_token:
-        abort(400)
     current_app.logger.debug('Trying to save email address {!r} as verified '
                              'for user {!r}'.format(email, user))
 
@@ -241,9 +233,7 @@ def verify(user, code, email, csrf_token):
 @UnmarshalWith(SimpleEmailSchema)
 @MarshalWith(EmailResponseSchema)
 @require_dashboard_user
-def post_remove(user, email, csrf_token):
-    if session.get_csrf_token() != csrf_token:
-        abort(400)
+def post_remove(user, email):
     current_app.logger.debug('Trying to remove email address {!r} '
                              'from user {!r}'.format(email, user))
 
@@ -291,10 +281,7 @@ def post_remove(user, email, csrf_token):
 @UnmarshalWith(EmailSchema)
 @MarshalWith(EmailResponseSchema)
 @require_dashboard_user
-def resend_code(user, email, csrf_token):
-    if session.get_csrf_token() != csrf_token:
-        abort(400)
-
+def resend_code(user, email):
     current_app.logger.debug('Trying to send new verification code for email '
                              'address {!r} for user {!r}'.format(email, user))
 

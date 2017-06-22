@@ -47,13 +47,13 @@ pd_views = Blueprint('personal_data', __name__, url_prefix='')
 @MarshalWith(PersonalDataResponseSchema)
 @require_dashboard_user
 def get_user(user):
-    csrf_token = session.get_csrf_token()
 
-    data = {'given_name': user.given_name,
-            'surname': user.surname,
-            'display_name': user.display_name,
-            'language': user.language,
-            'csrf_token': csrf_token}
+    data = {
+        'given_name': user.given_name,
+        'surname': user.surname,
+        'display_name': user.display_name,
+        'language': user.language
+    }
 
     return PersonalDataSchema().dump(data).data
 
@@ -62,9 +62,7 @@ def get_user(user):
 @UnmarshalWith(PersonalDataSchema)
 @MarshalWith(PersonalDataResponseSchema)
 @require_dashboard_user
-def post_user(user, given_name, surname, display_name, language, csrf_token):
-    if session.get_csrf_token() != csrf_token:
-        abort(400)
+def post_user(user, given_name, surname, display_name, language):
 
     current_app.logger.debug('Trying to save new user {!r} {!r} '.format(given_name, surname))
 

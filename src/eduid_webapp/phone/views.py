@@ -67,16 +67,13 @@ def get_all_phones(user):
 @UnmarshalWith(PhoneSchema)
 @MarshalWith(PhoneResponseSchema)
 @require_dashboard_user
-def post_phone(user, number, verified, primary, csrf_token):
-    '''
+def post_phone(user, number, verified, primary):
+    """
     view to add a new phone to the user data of the currently
     logged in user.
 
     Returns a listing of  all phones for the logged in user.
-    '''
-    if session.get_csrf_token() != csrf_token:
-        abort(400)
-
+    """
     current_app.logger.debug('Trying to save unconfirmed mobile {!r} '
                              'for user {!r}'.format(number, user))
 
@@ -116,15 +113,13 @@ def post_phone(user, number, verified, primary, csrf_token):
 @UnmarshalWith(SimplePhoneSchema)
 @MarshalWith(PhoneResponseSchema)
 @require_dashboard_user
-def post_primary(user, number, csrf_token):
-    '''
+def post_primary(user, number):
+    """
     view to mark one of the (verified) phone numbers of the logged in user
     as the primary phone number.
 
     Returns a listing of  all phones for the logged in user.
-    '''
-    if session.get_csrf_token() != csrf_token:
-        abort(400)
+    """
     current_app.logger.debug('Trying to save mobile {!r} as primary '
                              'for user {!r}'.format(number, user))
 
@@ -166,7 +161,7 @@ def post_primary(user, number, csrf_token):
 
 def _steal_phone(number):
     previous_user = current_app.dashboard_userdb.get_user_by_phone(number,
-            raise_on_missing=False)
+                                                                   raise_on_missing=False)
     if previous_user and previous_user.phone_numbers.primary and \
             previous_user.phone_numbers.primary.number == number:
         # Promote some previous_user verified phone number to primary
@@ -182,15 +177,13 @@ def _steal_phone(number):
 @UnmarshalWith(VerificationCodeSchema)
 @MarshalWith(PhoneResponseSchema)
 @require_dashboard_user
-def verify(user, code, number, csrf_token):
-    '''
+def verify(user, code, number):
+    """
     view to mark one of the (unverified) phone numbers of the logged in user
     as verified.
 
     Returns a listing of  all phones for the logged in user.
-    '''
-    if session.get_csrf_token() != csrf_token:
-        abort(400)
+    """
     current_app.logger.debug('Trying to save mobile {!r} as verified '
                              'for user {!r}'.format(number, user))
 
@@ -251,15 +244,12 @@ def verify(user, code, number, csrf_token):
 @UnmarshalWith(SimplePhoneSchema)
 @MarshalWith(PhoneResponseSchema)
 @require_dashboard_user
-def post_remove(user, number, csrf_token):
-    '''
+def post_remove(user, number):
+    """
     view to remove one of the phone numbers of the logged in user.
 
     Returns a listing of  all phones for the logged in user.
-    '''
-    if session.get_csrf_token() != csrf_token:
-        abort(400)
-
+    """
     current_app.logger.debug('Trying to remove mobile {!r} '
                              'from user {!r}'.format(number, user))
 
@@ -301,16 +291,13 @@ def post_remove(user, number, csrf_token):
 @UnmarshalWith(SimplePhoneSchema)
 @MarshalWith(PhoneResponseSchema)
 @require_dashboard_user
-def resend_code(user, number, csrf_token):
-    '''
+def resend_code(user, number):
+    """
     view to resend a new verification code for one of the (unverified)
     phone numbers of the logged in user. 
 
     Returns a listing of  all phones for the logged in user.
-    '''
-    if session.get_csrf_token() != csrf_token:
-        abort(400)
-
+    """
     current_app.logger.debug('Trying to send new verification code for mobile '
                              ' {!r} for user {!r}'.format(number, user))
 
