@@ -17,7 +17,7 @@ __author__ = 'lundberg'
 
 def require_eppn(f):
     @wraps(f)
-    def decorated_function(*args, **kwargs):
+    def require_eppn_decorator(*args, **kwargs):
         eppn = session.get('user_eppn', None)
         # If the user is logged in and has a session
         # pass on the request to the decorated view
@@ -26,7 +26,7 @@ def require_eppn(f):
             kwargs['eppn'] = eppn
             return f(*args, **kwargs)
         abort(401)
-    return decorated_function
+    return require_eppn_decorator
 
 
 def _get_user():
@@ -48,25 +48,25 @@ def _get_user():
 
 def require_user(f):
     @wraps(f)
-    def decorated_function(*args, **kwargs):
+    def require_user_decorator(*args, **kwargs):
         user = _get_user()
         kwargs['user'] = user
         return f(*args, **kwargs)
-    return decorated_function
+    return require_user_decorator
 
 
 def require_dashboard_user(f):
     @wraps(f)
-    def decorated_function(*args, **kwargs):
+    def require_dashboard_user_decorator(*args, **kwargs):
         user = get_dashboard_user()
         kwargs['user'] = user
         return f(*args, **kwargs)
-    return decorated_function
+    return require_dashboard_user_decorator
 
 
 def require_support_personnel(f):
     @wraps(f)
-    def decorated_function(*args, **kwargs):
+    def require_support_decorator(*args, **kwargs):
         user = _get_user()
         # If the logged in user is whitelisted then we
         # pass on the request to the decorated view
@@ -78,12 +78,12 @@ def require_support_personnel(f):
             user, current_app.config['SUPPORT_PERSONNEL']))
         # Anything else is considered as an unauthorized request
         abort(403)
-    return decorated_function
+    return require_support_decorator
 
 
 def can_verify_identity(f):
     @wraps(f)
-    def decorated_function(*args, **kwargs):
+    def verify_identity_decorator(*args, **kwargs):
         user = _get_user()
         # For now a user can just have one verified NIN
         if user.nins.primary is not None:
@@ -99,7 +99,7 @@ def can_verify_identity(f):
 
         return f(*args, **kwargs)
 
-    return decorated_function
+    return verify_identity_decorator
 
 
 class MarshalWith(object):
@@ -109,7 +109,7 @@ class MarshalWith(object):
 
     def __call__(self, f):
         @wraps(f)
-        def decorated_function(*args, **kwargs):
+        def marshal_decorator(*args, **kwargs):
             ret = f(*args, **kwargs)
 
             if isinstance(ret, WerkzeugResponse):  # No need to Marshal again, someone else already did that
@@ -132,7 +132,7 @@ class MarshalWith(object):
             # Handle success responses
             response_data = FluxSuccessResponse(request, payload=ret)
             return jsonify(self.schema().dump(response_data.to_dict()).data)
-        return decorated_function
+        return marshal_decorator
 
 
 class UnmarshalWith(object):
@@ -142,7 +142,7 @@ class UnmarshalWith(object):
 
     def __call__(self, f):
         @wraps(f)
-        def decorated_function(*args, **kwargs):
+        def unmarshal_decorator(*args, **kwargs):
             try:
                 json_data = request.get_json()
                 if json_data is None:
@@ -153,7 +153,7 @@ class UnmarshalWith(object):
             except ValidationError as e:
                 response_data = FluxFailResponse(request, payload={'error': e.normalized_messages()})
                 return jsonify(response_data.to_dict())
-        return decorated_function
+        return unmarshal_decorator
 
 
 class Deprecated(object):
