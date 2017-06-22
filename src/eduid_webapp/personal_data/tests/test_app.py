@@ -100,3 +100,21 @@ class AppTests(EduidAPITestCase):
                 self.assertEqual(resp_data['payload']['given_name'], 'Peter')
                 self.assertEqual(resp_data['payload']['display_name'], 'Peter Johnson')
                 self.assertEqual(resp_data['payload']['language'], 'en')
+
+    def test_post_user_bad_csrf(self):
+        eppn = self.test_user_data['eduPersonPrincipalName']
+        with self.session_cookie(self.browser, eppn) as client:
+            with client.session_transaction() as sess:
+
+                data = {
+                    'given_name': 'Peter',
+                    'surname': 'Johnson',
+                    'display_name': 'Peter Johnson',
+                    'language': 'en',
+                    'csrf_token': 'bad_csrf'
+                    }
+                response = client.post('/user', data=json.dumps(data),
+                                       content_type=self.content_type_json)
+                resp_data = json.loads(response.data)
+                self.assertEqual(resp_data['type'], 'POST_PERSONAL_DATA_USER_FAIL')
+                self.assertEqual(resp_data['payload']['error']['csrf_token'], ['CSRF failed to validate'])
