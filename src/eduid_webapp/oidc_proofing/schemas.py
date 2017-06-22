@@ -2,17 +2,18 @@
 
 from marshmallow import fields
 from eduid_common.api.schemas.base import EduidSchema, FluxStandardAction
+from eduid_common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
 from eduid_common.api.schemas.validators import validate_nin
 
 __author__ = 'lundberg'
 
 
-class OidcProofingRequestSchema(EduidSchema):
+class OidcProofingRequestSchema(EduidSchema, CSRFRequestMixin):
 
     nin = fields.String(required=True, validate=validate_nin)
 
 
-class NonceResponseSchema(FluxStandardAction):
+class NonceResponseSchema(FluxStandardAction, CSRFResponseMixin):
 
     class NonceResponsePayload(EduidSchema):
         qr_code = fields.String(required=True)
@@ -21,15 +22,10 @@ class NonceResponseSchema(FluxStandardAction):
     payload = fields.Nested(NonceResponsePayload)
 
 
-class FrejaResponseSchema(FluxStandardAction):
+class FrejaResponseSchema(FluxStandardAction, CSRFResponseMixin):
 
     class FrejaResponsePayload(EduidSchema):
         iaRequestData = fields.String(required=True)
 
     payload = fields.Nested(FrejaResponsePayload)
 
-
-# TODO: Remove after demo stage
-class ProofResponseSchema(EduidSchema):
-
-    proofs = fields.List(fields.Dict)

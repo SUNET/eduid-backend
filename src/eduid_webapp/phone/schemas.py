@@ -33,39 +33,35 @@
 
 from marshmallow import fields
 from eduid_common.api.schemas.base import FluxStandardAction, EduidSchema
+from eduid_common.api.schemas.csrf import CSRFResponseMixin, CSRFRequestMixin
 from eduid_webapp.phone.validators import validate_phone, validate_format_phone
 
 __author__ = 'eperez'
 
 
-class VerificationCodeSchema(EduidSchema):
+class VerificationCodeSchema(EduidSchema, CSRFRequestMixin):
 
     code = fields.String(required=True)
     number = fields.String(required=True, validate=validate_format_phone)
-    csrf_token = fields.String(required=True)
 
 
-class PhoneSchema(EduidSchema):
+class PhoneSchema(EduidSchema, CSRFRequestMixin):
 
     number = fields.String(required=True, validate=validate_phone)
     verified = fields.Boolean(attribute='verified')
     primary = fields.Boolean(attribute='primary')
-    csrf_token = fields.String(required=True)
 
 
 class PhoneListPayload(EduidSchema):
 
     phones = fields.Nested(PhoneSchema, many=True)
-    csrf_token = fields.String(required=True)
 
 
-class PhoneResponseSchema(FluxStandardAction):
+class PhoneResponseSchema(FluxStandardAction, CSRFResponseMixin):
 
-    payload = fields.Nested(PhoneListPayload, only=('phones', 'csrf_token'))
-    csrf_token = fields.String(required=True)
+    payload = fields.Nested(PhoneListPayload, only=('phones',))
 
 
-class SimplePhoneSchema(EduidSchema):
+class SimplePhoneSchema(EduidSchema, CSRFRequestMixin):
 
     number = fields.String(required=True)
-    csrf_token = fields.String(required=True)
