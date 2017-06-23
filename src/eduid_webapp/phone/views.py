@@ -35,7 +35,7 @@ from __future__ import absolute_import
 
 import datetime
 from flask import Blueprint, session, abort
-from flask import render_template, current_app
+from flask import current_app
 
 from eduid_userdb.element import PrimaryElementViolation, DuplicateElementViolation
 from eduid_userdb.exceptions import UserOutOfSync

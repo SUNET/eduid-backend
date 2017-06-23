@@ -66,7 +66,7 @@ def post_user(user, given_name, surname, display_name, language, csrf_token):
     if session.get_csrf_token() != csrf_token:
         abort(400)
 
-    current_app.logger.debug('Trying to save new user {!r} {!r} '.format(given_name, surname))
+    current_app.logger.debug('Trying to save user {!r}'.format(user))
 
     user.given_name = given_name
     user.surname = surname
@@ -80,5 +80,6 @@ def post_user(user, given_name, surname, display_name, language, csrf_token):
             'message': 'user-out-of-sync'
         }
     current_app.stats.count(name='personal_data_saved', value=1)
+    current_app.logger.info('Saved personal data for user {!r}'.format(user))
 
     return PersonalDataSchema().dump(user).data
