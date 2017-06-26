@@ -47,16 +47,18 @@ class EmailTests(EduidAPITestCase):
         Called from the parent class, so we can provide the appropiate flask
         app for this test case.
         """
-        return email_init_app('testing', config)
+        return email_init_app('emails', config)
 
     def update_config(self, config):
         config.update({
             'AVAILABLE_LANGUAGES': {'en': 'English','sv': 'Svenska'},
             'MSG_BROKER_URL': 'amqp://dummy',
             'AM_BROKER_URL': 'amqp://dummy',
+            'MONGO_URI': 'mongodb://localhost:27017/eduid_msg',
             'CELERY_CONFIG': {
                 'CELERY_RESULT_BACKEND': 'amqp',
-                'CELERY_TASK_SERIALIZER': 'json'
+                'CELERY_TASK_SERIALIZER': 'json',
+                'MONGO_URI': 'mongodb://localhost:27017/eduid_msg',
             },
         })
         return config
