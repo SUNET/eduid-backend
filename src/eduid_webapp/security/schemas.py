@@ -33,6 +33,7 @@
 
 from marshmallow import fields
 from eduid_common.api.schemas.base import FluxStandardAction, EduidSchema
+from eduid_common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
 
 
 class CredentialSchema(EduidSchema):
@@ -46,28 +47,24 @@ class CredentialList(EduidSchema):
     csrf_token = fields.String(required=True)
 
 
-class SecurityResponseSchema(FluxStandardAction):
-    payload = fields.Nested(CredentialList, only=('credentials', 'csrf_token'))
-    csrf_token = fields.String(attribute='csrf_token')
+class SecurityResponseSchema(FluxStandardAction, CSRFResponseMixin):
+    payload = fields.Nested(CredentialList, only=('credentials',))
 
 
-class ChpassCredentialList(EduidSchema):
+class ChpassCredentialList(EduidSchema, CSRFResponseMixin):
     credentials = fields.Nested(CredentialSchema, many=True)
     next_url = fields.String(required=True)
-    csrf_token = fields.String(required=True)
 
 
 class ChpassResponseSchema(FluxStandardAction):
-    payload = fields.Nested(ChpassCredentialList, only=('credentials',
-                    'next_url', 'csrf_token'))
-    csrf_token = fields.String(attribute='csrf_token')
+    payload = fields.Nested(ChpassCredentialList, only=('credentials', 'next_url'))
 
 
-class CsrfSchema(EduidSchema):
-    csrf_token = fields.String(required=True)
+class CsrfSchema(EduidSchema, CSRFRequestMixin):
+    pass
 
 
-class RedirectSchema(EduidSchema):
+class RedirectSchema(EduidSchema, CSRFResponseMixin):
     location = fields.String(required=True)
 
 
@@ -76,10 +73,9 @@ class RedirectResponseSchema(FluxStandardAction):
     payload = RedirectSchema()
 
 
-class SuggestedPassword(EduidSchema):
+class SuggestedPassword(EduidSchema, CSRFResponseMixin):
 
     suggested_password = fields.String(required=True)
-    csrf_token = fields.String(required=True)
 
 
 class SuggestedPasswordResponseSchema(FluxStandardAction):
@@ -87,11 +83,10 @@ class SuggestedPasswordResponseSchema(FluxStandardAction):
     payload = SuggestedPassword()
 
 
-class ChangePasswordSchema(EduidSchema):
+class ChangePasswordSchema(EduidSchema, CSRFRequestMixin):
 
     old_password = fields.String(required=True)
     new_password = fields.String(required=True)
-    csrf_token = fields.String(required=True)
 
 
 class AccountTerminatedSchema(FluxStandardAction):
