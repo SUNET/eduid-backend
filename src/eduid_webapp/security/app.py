@@ -33,51 +33,51 @@
 
 from __future__ import absolute_import
 
-from flask import abort, Blueprint, current_app, session
+from flask.ext.babel import Babel
 
-from eduid_userdb.exceptions import UserOutOfSync
-from eduid_common.api.decorators import require_dashboard_user, MarshalWith, UnmarshalWith
-from eduid_common.api.utils import save_dashboard_user
-from eduid_webapp.personal_data.schemas import PersonalDataSchema, PersonalDataResponseSchema
-
-pd_views = Blueprint('personal_data', __name__, url_prefix='')
-
-
-@pd_views.route('/user', methods=['GET'])
-@MarshalWith(PersonalDataResponseSchema)
-@require_dashboard_user
-def get_user(user):
-
-    data = {
-        'given_name': user.given_name,
-        'surname': user.surname,
-        'display_name': user.display_name,
-        'language': user.language
-    }
-
-    return PersonalDataSchema().dump(data).data
+from eduid_common.api.app import eduid_init_app
+from eduid_common.api import mail_relay
+from eduid_common.api import am
+from eduid_userdb.dashboard import DashboardUserDB
+from eduid_userdb.authninfo import AuthnInfoDB
 
 
-@pd_views.route('/user', methods=['POST'])
-@UnmarshalWith(PersonalDataSchema)
-@MarshalWith(PersonalDataResponseSchema)
-@require_dashboard_user
-def post_user(user, given_name, surname, display_name, language):
+def security_init_app(name, config):
+    """
+    Create an instance of an eduid security (passwords) app.
 
-    current_app.logger.debug('Trying to save user {!r}'.format(user))
+    First, it will load the configuration from security.settings.common
+    then any settings given in the `config` param.
 
-    user.given_name = given_name
-    user.surname = surname
-    user.display_name = display_name
-    user.language = language
-    try:
-        save_dashboard_user(user)
-    except UserOutOfSync:
-        return {
-            '_status': 'error',
-            'message': 'user-out-of-sync'
-        }
-    current_app.stats.count(name='personal_data_saved', value=1)
-    current_app.logger.info('Saved personal data for user {!r}'.format(user))
+    Then, the app instance will be updated with common stuff by `eduid_init_app`,
+    all needed blueprints will be registered with it,
+    and finally the app is configured with the necessary db connections.
 
-    return PersonalDataSchema().dump(user).data
+    :param name: The name of the instance, it will affect the configuration loaded.
+    :type name: str
+    :param config: any additional configuration settings. Specially useful
+                   in test cases
+    :type config: dict
+
+    :return: the flask app
+    :rtype: flask.Flask
+    """
+
+    app = eduid_init_app(name, config)
+    app.config.update(config)
+
+    from eduid_webapp.security.views import security_views
+    app.register_blueprint(security_views, url_prefix=app.config.get('APPLICATION_ROOT', None))
+
+    app = am.init_relay(app, 'eduid_dashboard')
+    app = mail_relay.init_relay(app)
+
+    app.dashboard_userdb = DashboardUserDB(app.config['MONGO_URI'])
+    app.authninfo_db = AuthnInfoDB(app.config['MONGO_URI'])
+
+    app.logger.info('Init {} app...'.format(name))
+
+    babel = Babel(app)
+    app.babel = babel
+
+    return app

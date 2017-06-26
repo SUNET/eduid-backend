@@ -33,51 +33,11 @@
 
 from __future__ import absolute_import
 
-from flask import abort, Blueprint, current_app, session
+from eduid_webapp.security.app import security_init_app
 
-from eduid_userdb.exceptions import UserOutOfSync
-from eduid_common.api.decorators import require_dashboard_user, MarshalWith, UnmarshalWith
-from eduid_common.api.utils import save_dashboard_user
-from eduid_webapp.personal_data.schemas import PersonalDataSchema, PersonalDataResponseSchema
+name = 'security'
+app = security_init_app(name, {})
 
-pd_views = Blueprint('personal_data', __name__, url_prefix='')
-
-
-@pd_views.route('/user', methods=['GET'])
-@MarshalWith(PersonalDataResponseSchema)
-@require_dashboard_user
-def get_user(user):
-
-    data = {
-        'given_name': user.given_name,
-        'surname': user.surname,
-        'display_name': user.display_name,
-        'language': user.language
-    }
-
-    return PersonalDataSchema().dump(data).data
-
-
-@pd_views.route('/user', methods=['POST'])
-@UnmarshalWith(PersonalDataSchema)
-@MarshalWith(PersonalDataResponseSchema)
-@require_dashboard_user
-def post_user(user, given_name, surname, display_name, language):
-
-    current_app.logger.debug('Trying to save user {!r}'.format(user))
-
-    user.given_name = given_name
-    user.surname = surname
-    user.display_name = display_name
-    user.language = language
-    try:
-        save_dashboard_user(user)
-    except UserOutOfSync:
-        return {
-            '_status': 'error',
-            'message': 'user-out-of-sync'
-        }
-    current_app.stats.count(name='personal_data_saved', value=1)
-    current_app.logger.info('Saved personal data for user {!r}'.format(user))
-
-    return PersonalDataSchema().dump(user).data
+if __name__ == '__main__':
+    app.logger.info('Starting {} app...'.format(name))
+    app.run()

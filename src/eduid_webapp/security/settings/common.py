@@ -31,53 +31,37 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
+
 from __future__ import absolute_import
 
-from flask import abort, Blueprint, current_app, session
+"""
+For more built in configuration options see,
+http://flask.pocoo.org/docs/0.10/config/#builtin-configuration-values
+"""
 
-from eduid_userdb.exceptions import UserOutOfSync
-from eduid_common.api.decorators import require_dashboard_user, MarshalWith, UnmarshalWith
-from eduid_common.api.utils import save_dashboard_user
-from eduid_webapp.personal_data.schemas import PersonalDataSchema, PersonalDataResponseSchema
+DEBUG = False
 
-pd_views = Blueprint('personal_data', __name__, url_prefix='')
+# Database URIs
+MONGO_URI = ''
+REDIS_HOST = ''
+REDIS_PORT = 6379
+REDIS_DB = 0
+AM_BROKER_URL = ''
 
+# Secret key
+SECRET_KEY = ''
 
-@pd_views.route('/user', methods=['GET'])
-@MarshalWith(PersonalDataResponseSchema)
-@require_dashboard_user
-def get_user(user):
+# Logging
+LOG_FILE = None
+LOG_LEVEL = 'INFO'
 
-    data = {
-        'given_name': user.given_name,
-        'surname': user.surname,
-        'display_name': user.display_name,
-        'language': user.language
-    }
+# timeout for phone verification token, in hours
+PHONE_VERIFICATION_TIMEOUT = 24
 
-    return PersonalDataSchema().dump(data).data
+PASSWORD_LENGTH = 12
+PASSWORD_ENTROPY = 25
+CHPASS_TIMEOUT = 600
 
+VCCS_URL = ''
 
-@pd_views.route('/user', methods=['POST'])
-@UnmarshalWith(PersonalDataSchema)
-@MarshalWith(PersonalDataResponseSchema)
-@require_dashboard_user
-def post_user(user, given_name, surname, display_name, language):
-
-    current_app.logger.debug('Trying to save user {!r}'.format(user))
-
-    user.given_name = given_name
-    user.surname = surname
-    user.display_name = display_name
-    user.language = language
-    try:
-        save_dashboard_user(user)
-    except UserOutOfSync:
-        return {
-            '_status': 'error',
-            'message': 'user-out-of-sync'
-        }
-    current_app.stats.count(name='personal_data_saved', value=1)
-    current_app.logger.info('Saved personal data for user {!r}'.format(user))
-
-    return PersonalDataSchema().dump(user).data
+APPLICATION_ROOT = '/services/security'
