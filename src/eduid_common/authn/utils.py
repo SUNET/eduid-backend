@@ -31,8 +31,9 @@
 #
 
 
-from saml2.config import SPConfig
 import imp
+from saml2.config import SPConfig
+from pwgen import pwgen
 
 from eduid_common.api.utils import urlappend
 
@@ -109,3 +110,7 @@ def no_authn_views(app, paths):
         if no_auth_regex not in app.config['NO_AUTHN_URLS']:
             app.config['NO_AUTHN_URLS'].append(no_auth_regex)
     return app
+
+
+def generate_password(length=12):
+    return pwgen(int(length), no_capitalize=True, no_symbols=True)

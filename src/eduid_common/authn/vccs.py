@@ -164,6 +164,20 @@ def add_credentials(vccs_url, old_password, new_password,
     return user
 
 
+def get_vccs_client(vccs_url):
+    """
+    Instantiate a VCCS client.
+
+    :param vccs_url: VCCS authentication backend URL
+    :type vccs_url: string
+    :return: vccs client
+    :rtype: VCCSClient
+    """
+    return vccs_client.VCCSClient(
+        base_url=vccs_url,
+    )
+
+
 def revoke_all_credentials(vccs_url, user, source='dashboard', vccs=None):
     if vccs is None:
         vccs = get_vccs_client(vccs_url)
