@@ -79,7 +79,7 @@ class SecurityTests(EduidAPITestCase):
 
             sec_data = json.loads(response2.data)
             self.assertEqual(sec_data['type'],
-                    'GET_SECURITY_CREDENTIALS_SUCCESS')
+                             'GET_SECURITY_CREDENTIALS_SUCCESS')
 
     def test_get_suggested(self):
         response = self.browser.get('/suggested-password')
@@ -91,7 +91,7 @@ class SecurityTests(EduidAPITestCase):
 
             passwd = json.loads(response2.data)
             self.assertEqual(passwd['type'],
-                    'GET_SECURITY_SUGGESTED_PASSWORD_SUCCESS')
+                             'GET_SECURITY_SUGGESTED_PASSWORD_SUCCESS')
 
     def test_change_passwd_no_data(self):
         response = self.browser.post('/change-password')
@@ -103,7 +103,7 @@ class SecurityTests(EduidAPITestCase):
 
             sec_data = json.loads(response2.data)
             self.assertEqual(sec_data['type'],
-                    "POST_SECURITY_CHANGE_PASSWORD_FAIL")
+                             "POST_SECURITY_CHANGE_PASSWORD_FAIL")
 
     def test_change_passwd_no_reauthn(self):
         eppn = self.test_user_data['eduPersonPrincipalName']
@@ -115,13 +115,13 @@ class SecurityTests(EduidAPITestCase):
                         'old_password': '5678'
                         }
                 response2 = client.post('/change-password', data=json.dumps(data),
-                                           content_type=self.content_type_json)
+                                        content_type=self.content_type_json)
 
                 self.assertEqual(response2.status_code, 200)
 
                 sec_data = json.loads(response2.data)
                 self.assertEqual(sec_data['type'],
-                        "POST_SECURITY_CHANGE_PASSWORD_FAIL")
+                                 "POST_SECURITY_CHANGE_PASSWORD_FAIL")
 
     def test_change_passwd_stale(self):
         eppn = self.test_user_data['eduPersonPrincipalName']
@@ -134,13 +134,13 @@ class SecurityTests(EduidAPITestCase):
                         'old_password': '5678'
                         }
                 response2 = client.post('/change-password', data=json.dumps(data),
-                                           content_type=self.content_type_json)
+                                        content_type=self.content_type_json)
 
                 self.assertEqual(response2.status_code, 200)
 
                 sec_data = json.loads(response2.data)
                 self.assertEqual(sec_data['type'],
-                        "POST_SECURITY_CHANGE_PASSWORD_FAIL")
+                                 "POST_SECURITY_CHANGE_PASSWORD_FAIL")
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def test_change_passwd_no_csrf(self, mock_request_user_sync):
@@ -149,7 +149,7 @@ class SecurityTests(EduidAPITestCase):
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction() as sess:
                 with patch('eduid_webapp.security.views.add_credentials',
-                        return_value=True):
+                           return_value=True):
                     sess['reauthn-for-chpass'] = int(time.time())
                     data = {
                             'new_password': '1234',
@@ -198,7 +198,7 @@ class SecurityTests(EduidAPITestCase):
                             'old_password': '5678'
                             }
                     response2 = client.post('/change-password', data=json.dumps(data),
-                                               content_type=self.content_type_json)
+                                            content_type=self.content_type_json)
 
                     self.assertEqual(response2.status_code, 200)
 
@@ -246,9 +246,9 @@ class SecurityTests(EduidAPITestCase):
             rdata = json.loads(response2.data)
 
             self.assertEqual(rdata['payload']['location'],
-                    'http://test.localhost/terminate?next=%2Faccount-terminated')
+                             'http://test.localhost/terminate?next=%2Faccount-terminated')
             self.assertEqual(rdata['type'],
-                    'POST_SECURITY_TERMINATE_ACCOUNT_SUCCESS')
+                             'POST_SECURITY_TERMINATE_ACCOUNT_SUCCESS')
 
     def test_account_terminated_no_authn(self):
         response = self.browser.get('/account-terminated')
@@ -273,7 +273,7 @@ class SecurityTests(EduidAPITestCase):
                 rdata = json.loads(response2.data)
 
                 self.assertEqual(rdata['type'],
-                        'GET_SECURITY_ACCOUNT_TERMINATED_FAIL')
+                                 'GET_SECURITY_ACCOUNT_TERMINATED_FAIL')
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('eduid_webapp.security.views.revoke_all_credentials')
@@ -290,4 +290,4 @@ class SecurityTests(EduidAPITestCase):
                 self.assertEqual(response2.status_code, 302)
 
                 self.assertEqual(response2.location,
-                        'https://eduid.se/')
+                                 'https://eduid.se/')
