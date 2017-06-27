@@ -6,6 +6,7 @@ from flask import current_app, session
 
 from eduid_userdb import User
 from eduid_userdb.dashboard import DashboardUser
+from eduid_userdb.proofing import ProofingUser
 from eduid_userdb.exceptions import UserDBValueError
 from eduid_userdb.exceptions import UserDoesNotExist, MultipleUsersReturned
 from eduid_common.api.exceptions import ApiException
@@ -71,16 +72,16 @@ def retrieve_modified_ts(user, dashboard_userdb=None):
         user, dashboard_user, dashboard_user.modified_ts))
 
 
-def get_dashboard_user():
+def get_user(userdb, user_class=ProofingUser):
     eppn = session.get('user_eppn', None)
     if not eppn:
         raise ApiException('Not authorized', status_code=401)
     # Get user from central database
     try:
         user = current_app.central_userdb.get_user_by_eppn(eppn, raise_on_missing=True)
-        dashboard_user = DashboardUser(data = user.to_dict())
-        retrieve_modified_ts(dashboard_user, current_app.dashboard_userdb)
-        return dashboard_user
+        proofing_user = user_class(data = user.to_dict())
+        retrieve_modified_ts(proofing_user, userdb)
+        return proofing_user
     except UserDoesNotExist as e:
         current_app.logger.error('Could not find user central database.')
         current_app.logger.error(e)
@@ -89,6 +90,10 @@ def get_dashboard_user():
         current_app.logger.error('Found multiple users in central database.')
         current_app.logger.error(e)
         raise ApiException('Not authorized', status_code=401)
+
+
+def get_dashboard_user():
+    return get_user(current_app.dashboard_userdb, user_class=DashboardUser)
 
 
 def save_dashboard_user(user):
