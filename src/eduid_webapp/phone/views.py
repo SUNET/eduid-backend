@@ -40,8 +40,8 @@ from flask import current_app
 from eduid_userdb.element import PrimaryElementViolation, DuplicateElementViolation
 from eduid_userdb.exceptions import UserOutOfSync
 from eduid_userdb.phone import PhoneNumber
-from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
-from eduid_webapp.phone.helpers import save_user
+from eduid_common.api.decorators import MarshalWith, UnmarshalWith
+from eduid_webapp.phone.helpers import save_user, require_user
 from eduid_webapp.phone.schemas import PhoneListPayload, SimplePhoneSchema, PhoneSchema, PhoneResponseSchema
 from eduid_webapp.phone.schemas import VerificationCodeSchema
 from eduid_webapp.phone.verifications import send_verification_code

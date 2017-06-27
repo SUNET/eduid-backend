@@ -32,12 +32,12 @@
 #
 
 from marshmallow import ValidationError
-from flask import request
-from eduid_webapp.email.helpers import get_user
+from flask import request, current_app
+from eduid_common.api.utils import get_user
 
 
 def validate_email(email):
-    user = get_user()
+    user = get_user(current_app.email_proofing_userdb)
     user_emails = [e.email for e in user.mail_addresses.to_list()]
 
     if request.form.get('add', None) is not None:

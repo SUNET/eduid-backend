@@ -1,32 +1,23 @@
 # -*- coding: utf-8 -*-
 
+from functools import wraps
+
 from flask import current_app, session
 
 from eduid_userdb import User
 from eduid_userdb.proofing import ProofingUser
 from eduid_userdb.exceptions import UserDoesNotExist, MultipleUsersReturned
-from eduid_common.api.utils import retrieve_modified_ts
+from eduid_common.api.utils import retrieve_modified_ts, get_user
 from eduid_common.api.exceptions import ApiException
 
 
-def get_user():
-    eppn = session.get('user_eppn', None)
-    if not eppn:
-        raise ApiException('Not authorized', status_code=401)
-    # Get user from central database
-    try:
-        user = current_app.central_userdb.get_user_by_eppn(eppn, raise_on_missing=True)
-        proofing_user = ProofingUser(data = user.to_dict())
-        retrieve_modified_ts(proofing_user, current_app.phone_proofing_userdb)
-        return proofing_user
-    except UserDoesNotExist as e:
-        current_app.logger.error('Could not find user central database.')
-        current_app.logger.error(e)
-        raise ApiException('Not authorized', status_code=401)
-    except MultipleUsersReturned as e:
-        current_app.logger.error('Found multiple users in central database.')
-        current_app.logger.error(e)
-        raise ApiException('Not authorized', status_code=401)
+def require_user(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        user = get_user(current_app.phone_proofing_userdb)
+        kwargs['user'] = user
+        return f(*args, **kwargs)
+    return decorated_function
 
 
 def save_user(user):

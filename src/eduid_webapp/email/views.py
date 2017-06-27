@@ -40,11 +40,11 @@ from flask import render_template, current_app
 from eduid_userdb.element import PrimaryElementViolation, DuplicateElementViolation
 from eduid_userdb.exceptions import UserOutOfSync
 from eduid_userdb.mail import MailAddress
-from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
+from eduid_common.api.decorators import MarshalWith, UnmarshalWith
 from eduid_webapp.email.schemas import EmailListPayload, EmailSchema, SimpleEmailSchema, EmailResponseSchema
 from eduid_webapp.email.schemas import VerificationCodeSchema
 from eduid_webapp.email.verifications import send_verification_code
-from eduid_webapp.email.helpers import save_user
+from eduid_webapp.email.helpers import save_user, require_user
 
 email_views = Blueprint('email', __name__, url_prefix='', template_folder='templates')
 
