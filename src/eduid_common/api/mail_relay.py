@@ -34,7 +34,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 from flask import current_app
-from eduid_msg.celery import celery, get_message_relay
+from eduid_msg.celery import celery, get_mail_relay
 from eduid_msg.tasks import sendmail
 
 
@@ -47,12 +47,12 @@ class MailRelay(object):
 
         config = settings.get('default_celery_conf', {})
         config.update({
-            'BROKER_URL': settings.get('msg_broker_url'),
-            'MONGO_URI': settings.get('mongo_uri'),
+            'BROKER_URL': settings.get('BROKER_URL'),
+            'MONGO_URI': settings.get('MONGO_URI'),
         })
         celery.conf.update(config)
 
-        self._relay = get_message_relay(celery)
+        self._relay = get_mail_relay(celery)
         self.settings = settings
         self._sendmail = sendmail
 
@@ -100,5 +100,7 @@ def init_relay(app):
     :return: Flask app
     :rtype: flask.Flask
     """
-    app.mail_relay = MailRelay(app.config)
+    config = app.config['CELERY_CONFIG']
+    config['BROKER_URL'] = app.config['MSG_BROKER_URL']
+    app.mail_relay = MailRelay(config)
     return app
