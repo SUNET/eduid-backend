@@ -325,3 +325,15 @@ class OidcProofingUserDB(ProofingUserDB):
 
     def __init__(self, db_uri, db_name='eduid_oidc_proofing'):
         ProofingUserDB.__init__(self, db_uri, db_name)
+
+
+class PhoneProofingUserDB(ProofingUserDB):
+
+    def __init__(self, db_uri, db_name='eduid_phone_proofing'):
+        ProofingUserDB.__init__(self, db_uri, db_name)
+
+
+class EmailProofingUserDB(ProofingUserDB):
+
+    def __init__(self, db_uri, db_name='eduid_email_proofing'):
+        ProofingUserDB.__init__(self, db_uri, db_name)

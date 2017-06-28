@@ -5,4 +5,4 @@ from eduid_userdb.proofing.element import EmailProofingElement, PhoneProofingEle
 from eduid_userdb.proofing.state import LetterProofingState, OidcProofingState, EmailProofingState, PhoneProofingState
 from eduid_userdb.proofing.db import LetterProofingStateDB, OidcProofingStateDB, EmailProofingStateDB
 from eduid_userdb.proofing.db import PhoneProofingStateDB
-from eduid_userdb.proofing.db import OidcProofingUserDB, LetterProofingUserDB
+from eduid_userdb.proofing.db import OidcProofingUserDB, LetterProofingUserDB, PhoneProofingUserDB, EmailProofingUserDB
