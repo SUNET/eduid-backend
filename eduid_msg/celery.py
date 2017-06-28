@@ -29,3 +29,10 @@ def get_message_relay(celery_app):
     """
     return celery_app.tasks['eduid_msg.tasks.send_message']
 
+
+def get_mail_relay(celery_app):
+    """
+    Function that return a celery task list.
+    """
+    return celery_app.tasks['eduid_msg.tasks.sendmail']
+
