@@ -54,11 +54,10 @@ class EmailTests(EduidAPITestCase):
             'AVAILABLE_LANGUAGES': {'en': 'English','sv': 'Svenska'},
             'MSG_BROKER_URL': 'amqp://dummy',
             'AM_BROKER_URL': 'amqp://dummy',
-            'MONGO_URI': 'mongodb://localhost:27017/eduid_msg',
             'CELERY_CONFIG': {
                 'CELERY_RESULT_BACKEND': 'amqp',
                 'CELERY_TASK_SERIALIZER': 'json',
-                'MONGO_URI': 'mongodb://localhost:27017/eduid_msg',
+                'MONGO_URI': config['MONGO_URI'],
             },
         })
         return config
