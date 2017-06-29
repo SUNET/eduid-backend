@@ -1,0 +1,1 @@
+eduid_lookup_mobile>=0.0.6b3
