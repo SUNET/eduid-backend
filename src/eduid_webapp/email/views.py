@@ -40,18 +40,18 @@ from flask import render_template, current_app
 from eduid_userdb.element import PrimaryElementViolation, DuplicateElementViolation
 from eduid_userdb.exceptions import UserOutOfSync
 from eduid_userdb.mail import MailAddress
-from eduid_common.api.decorators import require_dashboard_user, MarshalWith, UnmarshalWith
-from eduid_common.api.utils import save_dashboard_user
+from eduid_common.api.decorators import MarshalWith, UnmarshalWith
 from eduid_webapp.email.schemas import EmailListPayload, EmailSchema, SimpleEmailSchema, EmailResponseSchema
 from eduid_webapp.email.schemas import VerificationCodeSchema
 from eduid_webapp.email.verifications import send_verification_code
+from eduid_webapp.email.helpers import save_user, require_user
 
 email_views = Blueprint('email', __name__, url_prefix='', template_folder='templates')
 
 
 @email_views.route('/all', methods=['GET'])
 @MarshalWith(EmailResponseSchema)
-@require_dashboard_user
+@require_user
 def get_all_emails(user):
     csrf_token = session.get_csrf_token()
     emails = {'emails': user.mail_addresses.to_list_of_dicts(),
@@ -63,7 +63,7 @@ def get_all_emails(user):
 @email_views.route('/new', methods=['POST'])
 @UnmarshalWith(EmailSchema)
 @MarshalWith(EmailResponseSchema)
-@require_dashboard_user
+@require_user
 def post_email(user, email, verified, primary, csrf_token):
 
     if session.get_csrf_token() != csrf_token:
@@ -84,7 +84,7 @@ def post_email(user, email, verified, primary, csrf_token):
         }
 
     try:
-        save_dashboard_user(user)
+        save_user(user)
     except UserOutOfSync:
         current_app.logger.debug('Couldnt save email {!r} for user {!r}, '
                             'data out of sync'.format(email, user))
@@ -106,7 +106,7 @@ def post_email(user, email, verified, primary, csrf_token):
 @email_views.route('/primary', methods=['POST'])
 @UnmarshalWith(SimpleEmailSchema)
 @MarshalWith(EmailResponseSchema)
-@require_dashboard_user
+@require_user
 def post_primary(user, email, csrf_token):
     if session.get_csrf_token() != csrf_token:
         abort(400)
@@ -133,7 +133,7 @@ def post_primary(user, email, csrf_token):
 
     user.mail_addresses.primary = mail.email
     try:
-        save_dashboard_user(user)
+        save_user(user)
     except UserOutOfSync:
         current_app.logger.debug('Couldnt save email {!r} as primary for user'
                                  ' {!r}, data out of sync'.format(email, user))
@@ -149,26 +149,10 @@ def post_primary(user, email, csrf_token):
     return EmailListPayload().dump(emails).data
 
 
-def _steal_mail(email):
-    other = current_app.dashboard_userdb.get_user_by_mail(email,
-                                                     include_unconfirmed=True)
-    if other and other.mail_addresses.primary and \
-            other.mail_addresses.primary.email == email:
-        # Promote some other verified e-mail address to primary
-        for address in other.mail_addresses.to_list():
-            if address.is_verified and address.email != email:
-                other.mail_addresses.primary = address.email
-                break
-        other.mail_addresses.remove(email)
-        save_dashboard_user(other)
-        msg = 'Stole email {!r} from user {!r}'.format(email, other)
-        current_app.logger.info(msg)
-
-
 @email_views.route('/verify', methods=['POST'])
 @UnmarshalWith(VerificationCodeSchema)
 @MarshalWith(EmailResponseSchema)
-@require_dashboard_user
+@require_user
 def verify(user, code, email, csrf_token):
     """
     """
@@ -204,8 +188,6 @@ def verify(user, code, email, csrf_token):
     msg = 'Removed verification code: {!r} '.format(state.verification)
     current_app.logger.debug(msg)
 
-    _steal_mail(email)
-
     new_email = MailAddress(email = email, application = 'dashboard',
                             verified = True, primary = False)
 
@@ -219,7 +201,7 @@ def verify(user, code, email, csrf_token):
             user.mail_addresses.find(email).is_primary = True
 
     try:
-        save_dashboard_user(user)
+        save_user(user)
     except UserOutOfSync:
         current_app.logger.debug('Couldnt confirm email {!r} for user'
                                  ' {!r}, data out of sync'.format(email, user))
@@ -238,7 +220,7 @@ def verify(user, code, email, csrf_token):
 @email_views.route('/remove', methods=['POST'])
 @UnmarshalWith(SimpleEmailSchema)
 @MarshalWith(EmailResponseSchema)
-@require_dashboard_user
+@require_user
 def post_remove(user, email, csrf_token):
     if session.get_csrf_token() != csrf_token:
         abort(400)
@@ -262,7 +244,7 @@ def post_remove(user, email, csrf_token):
         user.mail_addresses.remove(email)
 
     try:
-        save_dashboard_user(user)
+        save_user(user)
     except UserOutOfSync:
         current_app.logger.debug('Couldnt remove email {!r} for user'
                                  ' {!r}, data out of sync'.format(email, user))
@@ -288,7 +270,7 @@ def post_remove(user, email, csrf_token):
 @email_views.route('/resend-code', methods=['POST'])
 @UnmarshalWith(EmailSchema)
 @MarshalWith(EmailResponseSchema)
-@require_dashboard_user
+@require_user
 def resend_code(user, email, csrf_token):
     if session.get_csrf_token() != csrf_token:
         abort(400)
