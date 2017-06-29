@@ -40,5 +40,3 @@ app = init_letter_proofing_app(name, {})
 if __name__ == '__main__':
     app.logger.info('Starting {} app...'.format(name))
     app.run()
-
-
