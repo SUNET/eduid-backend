@@ -6,6 +6,7 @@ from flask import current_app
 import eduid_msg.celery
 from eduid_msg.tasks import send_message as _send_message
 from eduid_msg.tasks import get_postal_address as _get_postal_address
+from eduid_msg.tasks import get_relations_to as _get_relations_to
 
 
 __author__ = 'lundberg'
@@ -80,7 +81,6 @@ class MsgRelay(object):
             raise e
         return None
 
-
     def phone_validator(self, reference, targetphone, code, language, template_name='mobile-validator'):
         """
             The template keywords are:
@@ -102,6 +102,33 @@ class MsgRelay(object):
                                                            code, targetphone, reference))
         res = _send_message.delay('sms', reference, content, targetphone, template, lang)
 
-        current_app.logger.debug("Extra debug: Send message result: {!r},"
-                                  " parameters:\n{!r}".format(
+        current_app.logger.debug("Extra debug: Send message result: {!r}, parameters:\n{!r}".format(
             res, ['sms', reference, content, targetphone, template, lang]))
+
+    def get_relations_to(self, nin, relative_nin):
+        """
+        Get a list of the NAVET 'Relations' type codes between a NIN and a relatives NIN.
+
+        Known codes:
+            M = spouse (make/maka)
+            B = child (barn)
+            FA = father
+            MO = mother
+            VF = some kind of legal guardian status
+            F = Parent
+
+        :param nin: Swedish National Identity Number
+        :param relative_nin: Another Swedish National Identity Number
+        :type nin: six.string_types
+        :type relative_nin: six.string_types
+        :return: List of codes. Empty list if the NINs are not related.
+        :rtype: six.string_types
+        """
+        try:
+            rtask = _get_relations_to.apply_async(args=[nin, relative_nin])
+            rtask.wait()
+            if rtask.successful():
+                return rtask.get()
+        except Exception as e:
+            current_app.logger.error('Celery task failed: {!r}'.format(e))
+            raise e
