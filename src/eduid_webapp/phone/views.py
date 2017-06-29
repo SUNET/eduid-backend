@@ -164,20 +164,6 @@ def post_primary(user, number, csrf_token):
     return PhoneListPayload().dump(phones).data
 
 
-def _steal_phone(number):
-    previous_user = current_app.phone_proofing_userdb.get_user_by_phone(number,
-            raise_on_missing=False)
-    if previous_user and previous_user.phone_numbers.primary and \
-            previous_user.phone_numbers.primary.number == number:
-        # Promote some previous_user verified phone number to primary
-        for phone_number in previous_user.phone_numbers.to_list():
-            if phone_number.is_verified and phone_number.number != number:
-                previous_user.phone_numbers.primary = phone_number.number
-                break
-        previous_user.phone_numbers.remove(number)
-        save_user(previous_user)
-
-
 @phone_views.route('/verify', methods=['POST'])
 @UnmarshalWith(VerificationCodeSchema)
 @MarshalWith(PhoneResponseSchema)
@@ -215,8 +201,6 @@ def verify(user, code, number, csrf_token):
         }
 
     current_app.verifications_db.remove_state(state)
-
-    _steal_phone(number)
 
     new_phone = PhoneNumber(number = number, application = 'dashboard',
                             verified = True, primary = False)
