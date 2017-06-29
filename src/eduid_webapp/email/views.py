@@ -149,22 +149,6 @@ def post_primary(user, email, csrf_token):
     return EmailListPayload().dump(emails).data
 
 
-def _steal_mail(email):
-    other = current_app.email_proofing_userdb.get_user_by_mail(email,
-                                                     include_unconfirmed=True)
-    if other and other.mail_addresses.primary and \
-            other.mail_addresses.primary.email == email:
-        # Promote some other verified e-mail address to primary
-        for address in other.mail_addresses.to_list():
-            if address.is_verified and address.email != email:
-                other.mail_addresses.primary = address.email
-                break
-        other.mail_addresses.remove(email)
-        save_user(other)
-        msg = 'Stole email {!r} from user {!r}'.format(email, other)
-        current_app.logger.info(msg)
-
-
 @email_views.route('/verify', methods=['POST'])
 @UnmarshalWith(VerificationCodeSchema)
 @MarshalWith(EmailResponseSchema)
@@ -203,8 +187,6 @@ def verify(user, code, email, csrf_token):
     current_app.verifications_db.remove_state(state)
     msg = 'Removed verification code: {!r} '.format(state.verification)
     current_app.logger.debug(msg)
-
-    _steal_mail(email)
 
     new_email = MailAddress(email = email, application = 'dashboard',
                             verified = True, primary = False)
