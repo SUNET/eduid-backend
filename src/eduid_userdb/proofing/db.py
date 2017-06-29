@@ -337,3 +337,9 @@ class EmailProofingUserDB(ProofingUserDB):
 
     def __init__(self, db_uri, db_name='eduid_email_proofing'):
         ProofingUserDB.__init__(self, db_uri, db_name)
+
+
+class LookupMobileProofingUserDB(ProofingUserDB):
+
+    def __init__(self, db_uri, db_name='eduid_lookup_mobile_proofing'):
+        ProofingUserDB.__init__(self, db_uri, db_name)
