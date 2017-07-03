@@ -47,7 +47,7 @@ class EmailTests(EduidAPITestCase):
         Called from the parent class, so we can provide the appropiate flask
         app for this test case.
         """
-        return email_init_app('testing', config)
+        return email_init_app('emails', config)
 
     def update_config(self, config):
         config.update({
@@ -56,14 +56,16 @@ class EmailTests(EduidAPITestCase):
             'AM_BROKER_URL': 'amqp://dummy',
             'CELERY_CONFIG': {
                 'CELERY_RESULT_BACKEND': 'amqp',
-                'CELERY_TASK_SERIALIZER': 'json'
+                'CELERY_TASK_SERIALIZER': 'json',
+                'MONGO_URI': config['MONGO_URI'],
             },
         })
         return config
 
     def init_data(self):
-        self.app.dashboard_userdb.save(self.test_user, check_sync=False)
-        retrieve_modified_ts(self.test_user)
+        self.app.email_proofing_userdb.save(self.test_user, check_sync=False)
+        retrieve_modified_ts(self.test_user,
+                dashboard_userdb=self.app.email_proofing_userdb)
 
     def test_get_all_emails(self):
         response = self.browser.get('/all')
