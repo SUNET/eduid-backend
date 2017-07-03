@@ -8,7 +8,7 @@ from flask import current_app
 from eduid_userdb.proofing.element import NinProofingElement
 from eduid_userdb.logs import OidcProofing
 from eduid_common.api.utils import get_unique_hash
-from eduid_common.api.helpers import verify_nin_for_user
+from eduid_common.api.helpers import verify_nin_for_user, number_match_proofing
 from eduid_userdb.proofing import OidcProofingState
 
 __author__ = 'lundberg'
@@ -28,7 +28,7 @@ def create_proofing_state(user, nin):
     state = get_unique_hash()
     nonce = get_unique_hash()
     token = get_unique_hash()
-    nin_element = NinProofingElement(number=nin, application='eduid_oidc_proofing', verified=False)
+    nin_element = NinProofingElement(number=nin, application='oidc_proofing', verified=False)
     proofing_state = OidcProofingState({'eduPersonPrincipalName': user.eppn, 'nin': nin_element.to_dict(),
                                         'state': state, 'nonce': nonce, 'token': token})
     return proofing_state
@@ -87,7 +87,7 @@ def create_proofing_log_entry(user, proofing_state, vetting_by):
     address = current_app.msg_relay.get_postal_address(proofing_state.nin.number)
     # Transaction id is the same data as used for the QR code or seed data for the freja app
     transaction_id = '1' + json.dumps({'nonce': proofing_state.nonce, 'token': proofing_state.token})
-    oidc_proof = OidcProofing(user, created_by='oidc_proofing', nin=proofing_state.nin.number,
+    oidc_proof = OidcProofing(user, created_by=proofing_state.nin.created_by, nin=proofing_state.nin.number,
                               vetting_by=vetting_by, transaction_id=transaction_id, user_postal_address=address,
                               proofing_version='2017v1')
     return oidc_proof
@@ -107,8 +107,10 @@ def handle_seleg_userinfo(user, proofing_state, userinfo):
     """
     current_app.logger.info('Verifying NIN from seleg for user {}'.format(user))
     number = userinfo['identity']
-    proofing_log_entry = create_proofing_log_entry(user, proofing_state, vetting_by='seleg')
-    verify_nin_for_user(user, proofing_state, number, proofing_log_entry)
+    # Check if the self professed NIN is the same as the NIN returned by the vetting provider
+    if number_match_proofing(user, proofing_state, number):
+        proofing_log_entry = create_proofing_log_entry(user, proofing_state, vetting_by='seleg')
+        verify_nin_for_user(user, number, proofing_state, proofing_log_entry)
 
 
 def handle_freja_eid_userinfo(user, proofing_state, userinfo):
@@ -125,7 +127,8 @@ def handle_freja_eid_userinfo(user, proofing_state, userinfo):
     """
     current_app.logger.info('Verifying NIN from Freja eID for user {}'.format(user))
     number = userinfo['freja_proofing']['ssn']
-    proofing_log_entry = create_proofing_log_entry(user, proofing_state, vetting_by='freja eid')
-    verify_nin_for_user(user, proofing_state, number, proofing_log_entry)
+    if number_match_proofing(user, proofing_state, number):
+        proofing_log_entry = create_proofing_log_entry(user, proofing_state, vetting_by='freja eid')
+        verify_nin_for_user(user, number, proofing_state, proofing_log_entry)
 
 
