@@ -43,6 +43,8 @@ def add_nin_to_user(user, proofing_state):
     proofing_user = ProofingUser(data=user.to_dict())
     # Add nin to user if not already there
     if not proofing_user.nins.find(proofing_state.nin.number):
+        current_app.logger.info('Adding NIN for user {}'.format(user))
+        current_app.logger.debug('Self asserted NIN: {}'.format(proofing_state.nin.number))
         nin_element = Nin(number=proofing_state.nin.number, application=proofing_state.nin.created_by,
                           verified=proofing_state.nin.is_verified, created_ts=proofing_state.nin.created_ts,
                           primary=False)
