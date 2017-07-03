@@ -329,11 +329,11 @@ class OidcProofingUserDB(ProofingUserDB):
 
 class PhoneProofingUserDB(ProofingUserDB):
 
-    def __init__(self, db_uri, db_name='eduid_phone_proofing'):
+    def __init__(self, db_uri, db_name='eduid_phones'):
         ProofingUserDB.__init__(self, db_uri, db_name)
 
 
 class EmailProofingUserDB(ProofingUserDB):
 
-    def __init__(self, db_uri, db_name='eduid_email_proofing'):
+    def __init__(self, db_uri, db_name='eduid_emails'):
         ProofingUserDB.__init__(self, db_uri, db_name)
