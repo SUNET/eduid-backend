@@ -60,22 +60,20 @@ def add_nin_to_user(user, proofing_state):
             current_app.logger.error('Exception: {!s}'.format(e))
 
 
-def verify_nin_for_user(user, number, proofing_state, proofing_log_entry):
+def verify_nin_for_user(user, proofing_state, proofing_log_entry):
     """
     :param user: Central userdb user
-    :param number: National Identitly Number
     :param proofing_state: Proofing state for user
     :param proofing_log_entry: Proofing log entry element
 
     :type user: eduid_userdb.user.User
-    :type number: string_types
     :type proofing_state: eduid_userdb.proofing.NinProofingState
     :type proofing_log_entry: eduid_userdb.log.element.ProofingLogElement
 
     :return: None
     """
     proofing_user = ProofingUser(data=user.to_dict())
-    nin_element = proofing_user.nins.find(number)
+    nin_element = proofing_user.nins.find(proofing_state.nin.number)
     if not nin_element:
         nin_element = Nin(number=proofing_state.nin.number, application=proofing_state.nin.created_by,
                           created_ts=proofing_state.nin.created_ts, verified=False, primary=False)
@@ -84,7 +82,7 @@ def verify_nin_for_user(user, number, proofing_state, proofing_log_entry):
     # Check if the NIN is already verified
     if nin_element and nin_element.is_verified:
         current_app.logger.info('NIN is already verified for user {}'.format(proofing_user))
-        current_app.logger.debug('NIN: {}'.format(number))
+        current_app.logger.debug('NIN: {}'.format(proofing_state.nin.number))
         return
 
     # Update users nin element
@@ -112,4 +110,4 @@ def verify_nin_for_user(user, number, proofing_state, proofing_log_entry):
         except Exception as e:
             current_app.logger.error('Sync request failed for user {!s}'.format(proofing_user))
             current_app.logger.error('Exception: {!s}'.format(e))
-            # TODO: Need to able to retry
+            # TODO: Need to be able to retry

@@ -111,7 +111,7 @@ class NinHelpersTest(EduidAPITestCase):
         proofing_log_entry = ProofingLogElement(user, created_by=proofing_state.nin.created_by, proofing_method='test',
                                                 proofing_version='2017')
         with self.app.app_context():
-            verify_nin_for_user(user, self.test_user_nin, proofing_state, proofing_log_entry)
+            verify_nin_for_user(user, proofing_state, proofing_log_entry)
         user = self.app.proofing_userdb.get_user_by_eppn(eppn)
         self.assertEqual(user.nins.count, 1)
         self.assertIsNotNone(user.nins.find(self.test_user_nin))
@@ -131,7 +131,7 @@ class NinHelpersTest(EduidAPITestCase):
         proofing_log_entry = ProofingLogElement(user, created_by=proofing_state.nin.created_by, proofing_method='test',
                                                 proofing_version='2017')
         with self.app.app_context():
-            verify_nin_for_user(user, self.test_user_nin, proofing_state, proofing_log_entry)
+            verify_nin_for_user(user, proofing_state, proofing_log_entry)
         user = self.app.proofing_userdb.get_user_by_eppn(eppn)
         self.assertEqual(user.nins.count, 1)
         self.assertIsNotNone(user.nins.find(self.test_user_nin))
@@ -151,6 +151,6 @@ class NinHelpersTest(EduidAPITestCase):
         proofing_log_entry = ProofingLogElement(user, created_by=proofing_state.nin.created_by, proofing_method='test',
                                                 proofing_version='2017')
         with self.app.app_context():
-            verify_nin_for_user(user, self.test_user_nin, proofing_state, proofing_log_entry)
+            verify_nin_for_user(user, proofing_state, proofing_log_entry)
         with self.assertRaises(UserDoesNotExist):
             self.app.proofing_userdb.get_user_by_eppn(eppn)
