@@ -25,7 +25,8 @@ LANGUAGE_MAPPING = {
 
 def init_relay(app):
     config = app.config['CELERY_CONFIG']
-    config['BROKER_URL'] = app.config['MSG_BROKER_URL']
+    if not config.get('BROKER_URL', ''):
+        config['BROKER_URL'] = app.config.get('MSG_BROKER_URL', '')
     eduid_msg.celery.celery.conf.update(config)
     app.msg_relay = MsgRelay()
     return app
