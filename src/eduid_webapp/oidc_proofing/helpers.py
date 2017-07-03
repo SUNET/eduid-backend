@@ -110,7 +110,7 @@ def handle_seleg_userinfo(user, proofing_state, userinfo):
     # Check if the self professed NIN is the same as the NIN returned by the vetting provider
     if number_match_proofing(user, proofing_state, number):
         proofing_log_entry = create_proofing_log_entry(user, proofing_state, vetting_by='seleg')
-        verify_nin_for_user(user, number, proofing_state, proofing_log_entry)
+        verify_nin_for_user(user, proofing_state, proofing_log_entry)
 
 
 def handle_freja_eid_userinfo(user, proofing_state, userinfo):
@@ -129,6 +129,6 @@ def handle_freja_eid_userinfo(user, proofing_state, userinfo):
     number = userinfo['freja_proofing']['ssn']
     if number_match_proofing(user, proofing_state, number):
         proofing_log_entry = create_proofing_log_entry(user, proofing_state, vetting_by='freja eid')
-        verify_nin_for_user(user, number, proofing_state, proofing_log_entry)
+        verify_nin_for_user(user, proofing_state, proofing_log_entry)
 
 
