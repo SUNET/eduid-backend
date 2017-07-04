@@ -17,6 +17,7 @@ from eduid_userdb.util import UTC
 from eduid_userdb.exceptions import DocumentDoesNotExist
 from eduid_common.api.utils import StringIO
 from eduid_common.api.decorators import require_user, can_verify_identity, MarshalWith, UnmarshalWith
+from eduid_common.api.helpers import add_nin_to_user
 from eduid_webapp.oidc_proofing import schemas
 from eduid_webapp.oidc_proofing import helpers
 
@@ -137,7 +138,7 @@ def seleg_proofing(user, nin):
     if not proofing_state:
         current_app.logger.debug('No proofing state found for user {!s}. Initializing new proofing flow.'.format(user))
         proofing_state = helpers.create_proofing_state(user, nin)
-        helpers.add_nin_to_user(user, proofing_state)
+        add_nin_to_user(user, proofing_state)
 
         # Initiate authn request
         try:
@@ -205,7 +206,7 @@ def freja_proofing(user, nin):
     if not proofing_state:
         current_app.logger.debug('No proofing state found for user {!s}. Initializing new proofing flow.'.format(user))
         proofing_state = helpers.create_proofing_state(user, nin)
-        helpers.add_nin_to_user(user, proofing_state)
+        add_nin_to_user(user, proofing_state)
 
         # Initiate authn request
         try:
