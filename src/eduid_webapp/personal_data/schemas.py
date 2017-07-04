@@ -39,7 +39,7 @@ from eduid_webapp.personal_data.validators import validate_language
 __author__ = 'eperez'
 
 
-class PersonalDataSchema(EduidSchema, CSRFRequestMixin):
+class PersonalDataSchema(EduidSchema, CSRFRequestMixin, CSRFResponseMixin):
 
     given_name = fields.String(required=True)
     surname = fields.String(required=True)
@@ -48,6 +48,6 @@ class PersonalDataSchema(EduidSchema, CSRFRequestMixin):
                              validate=validate_language)
 
 
-class PersonalDataResponseSchema(FluxStandardAction, CSRFResponseMixin):
+class PersonalDataResponseSchema(FluxStandardAction):
 
     payload = PersonalDataSchema()

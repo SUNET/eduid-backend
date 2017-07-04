@@ -42,13 +42,12 @@ class CredentialSchema(EduidSchema):
     success_ts = fields.String(required=True)
 
 
-class CredentialList(EduidSchema):
+class CredentialList(EduidSchema, CSRFResponseMixin):
     credentials = fields.Nested(CredentialSchema, many=True)
-    csrf_token = fields.String(required=True)
 
 
-class SecurityResponseSchema(FluxStandardAction, CSRFResponseMixin):
-    payload = fields.Nested(CredentialList, only=('credentials',))
+class SecurityResponseSchema(FluxStandardAction):
+    payload = fields.Nested(CredentialList)
 
 
 class ChpassCredentialList(EduidSchema, CSRFResponseMixin):

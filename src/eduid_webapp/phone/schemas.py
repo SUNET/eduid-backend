@@ -52,14 +52,14 @@ class PhoneSchema(EduidSchema, CSRFRequestMixin):
     primary = fields.Boolean(attribute='primary')
 
 
-class PhoneListPayload(EduidSchema):
+class PhoneListPayload(EduidSchema, CSRFResponseMixin):
 
     phones = fields.Nested(PhoneSchema, many=True)
 
 
-class PhoneResponseSchema(FluxStandardAction, CSRFResponseMixin):
+class PhoneResponseSchema(FluxStandardAction):
 
-    payload = fields.Nested(PhoneListPayload, only=('phones',))
+    payload = fields.Nested(PhoneListPayload)
 
 
 class SimplePhoneSchema(EduidSchema, CSRFRequestMixin):

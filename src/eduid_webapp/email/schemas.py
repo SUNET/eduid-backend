@@ -52,14 +52,14 @@ class EmailSchema(EduidSchema, CSRFRequestMixin):
     primary = fields.Boolean(attribute='primary')
 
 
-class EmailListPayload(EduidSchema, CSRFRequestMixin):
+class EmailListPayload(EduidSchema, CSRFRequestMixin, CSRFResponseMixin):
 
     emails = fields.Nested(EmailSchema, many=True)
 
 
-class EmailResponseSchema(FluxStandardAction, CSRFResponseMixin):
+class EmailResponseSchema(FluxStandardAction):
 
-    payload = fields.Nested(EmailListPayload, only=('emails',))
+    payload = fields.Nested(EmailListPayload)
 
 
 class SimpleEmailSchema(EduidSchema, CSRFRequestMixin):

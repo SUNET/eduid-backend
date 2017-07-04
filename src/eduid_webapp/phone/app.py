@@ -75,7 +75,7 @@ def phone_init_app(name, config):
     from eduid_webapp.phone.views import phone_views
     app.register_blueprint(phone_views, url_prefix=app.config.get('APPLICATION_ROOT', None))
 
-    app = am.init_relay(app, 'phone_proofing')
+    app = am.init_relay(app, 'phones_proofing')
     app = msg.init_relay(app)
 
     app.phone_proofing_userdb = PhoneProofingUserDB(app.config['MONGO_URI'])
