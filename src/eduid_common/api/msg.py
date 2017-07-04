@@ -80,6 +80,34 @@ class MsgRelay(object):
             current_app.logger.error('Celery task failed: {!r}'.format(e))
             raise e
         return None
+    def get_relations_to(self, nin, relative_nin):
+        """
+        Get a list of the NAVET 'Relations' type codes between a NIN and a relatives NIN.
+
+        Known codes:
+            M = spouse (make/maka)
+            B = child (barn)
+            FA = father
+            MO = mother
+            VF = some kind of legal guardian status. Childs typically have ['B', 'VF'] it seems.
+
+        :param nin: Swedish National Identity Number
+        :param relative_nin: Another Swedish National Identity Number
+        :type nin: str | unicode
+        :type relative_nin: str | unicode
+        :return: List of codes. Empty list if the NINs are not related.
+        :rtype: [str | unicode]
+        """
+        rtask = _get_relations_to.apply_async(args=[nin, relative_nin])
+        try:
+            rtask.wait()
+        except Exception as e:
+            raise MsgTaskFailed('get_relations_to task failed: {!r}'.format(e))
+
+        if rtask.successful():
+            return rtask.get()
+        else:
+            raise MsgTaskFailed('get_relations_to task failed: {}'.format(rtask.get()))
 
     def phone_validator(self, reference, targetphone, code, language, template_name='mobile-validator'):
         """
