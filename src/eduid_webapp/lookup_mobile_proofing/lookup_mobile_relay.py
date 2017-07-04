@@ -12,10 +12,11 @@ def init_relay(app):
     return app
 
 
-class LookupMobileRelay(object):
+class LookupMobileTaskFailed(Exception):
+    pass
 
-    class TaskFailed(Exception):
-        pass
+
+class LookupMobileRelay(object):
 
     def __init__(self):
         self._find_mobiles_by_NIN = find_mobiles_by_NIN
@@ -27,8 +28,8 @@ class LookupMobileRelay(object):
             # TODO How long timeout?
             result = result.get(timeout=25)
             return result
-        except:
-            raise self.TaskFailed('Something went wrong')
+        except Exception as e:
+            raise LookupMobileTaskFailed('find_nin_by_mobile task failed: {}'.format(e))
 
     def find_mobiles_by_nin(self, nin):
         try:
@@ -36,5 +37,5 @@ class LookupMobileRelay(object):
             # TODO How long timeout?
             result = result.get(timeout=25)
             return result
-        except:
-            raise self.TaskFailed('Something went wrong')
+        except Exception as e:
+            raise LookupMobileTaskFailed('find_mobiles_by_nin task failed: {}'.format(e))
