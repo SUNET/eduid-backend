@@ -1,2 +1,2 @@
-xhtml2pdf==0.1b3
+xhtml2pdf>=0.2b1
 hammock>=0.2.4
