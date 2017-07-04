@@ -18,8 +18,7 @@ webapp_requires = [
     'PyNaCl >= 1.0.1',
     'python-etcd >= 0.4.3',
     'PyYAML >= 3.11',
-    'bleach==1.4.2',  # Pinned due to html5lib
-    'html5lib==0.9999999',  # Pinned because of bleach and xhtml2pdf
+    'bleach>=2.0.0',
     'marshmallow>=2.10,<2.11',
     'Flask-Mail == 0.9.1',
     'eduid_msg >= 0.10.2',
