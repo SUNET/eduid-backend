@@ -53,13 +53,9 @@ def add_nin_to_user(user, proofing_state):
         # Save user to private db
         current_app.proofing_userdb.save(proofing_user, check_sync=False)
         # Ask am to sync user to central db
-        try:
-            current_app.logger.info('Request sync for user {!s}'.format(proofing_user))
-            result = current_app.am_relay.request_user_sync(proofing_user)
-            current_app.logger.info('Sync result for user {!s}: {!s}'.format(proofing_user, result))
-        except Exception as e:
-            current_app.logger.error('Sync request failed for user {!s}'.format(proofing_user))
-            current_app.logger.error('Exception: {!s}'.format(e))
+        current_app.logger.info('Request sync for user {!s}'.format(proofing_user))
+        result = current_app.am_relay.request_user_sync(proofing_user)
+        current_app.logger.info('Sync result for user {!s}: {!s}'.format(proofing_user, result))
 
 
 def verify_nin_for_user(user, proofing_state, proofing_log_entry):
@@ -105,11 +101,6 @@ def verify_nin_for_user(user, proofing_state, proofing_log_entry):
         current_app.proofing_userdb.save(proofing_user, check_sync=False)
 
         # Ask am to sync user to central db
-        try:
-            current_app.logger.info('Request sync for user {!s}'.format(user))
-            result = current_app.am_relay.request_user_sync(proofing_user)
-            current_app.logger.info('Sync result for user {!s}: {!s}'.format(proofing_user, result))
-        except Exception as e:
-            current_app.logger.error('Sync request failed for user {!s}'.format(proofing_user))
-            current_app.logger.error('Exception: {!s}'.format(e))
-            # TODO: Need to be able to retry
+        current_app.logger.info('Request sync for user {!s}'.format(user))
+        result = current_app.am_relay.request_user_sync(proofing_user)
+        current_app.logger.info('Sync result for user {!s}: {!s}'.format(proofing_user, result))

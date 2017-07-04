@@ -32,6 +32,10 @@ def init_relay(app):
     return app
 
 
+class MsgTaskFailed(Exception):
+    pass
+
+
 class MsgRelay(object):
 
     def get_content(self):
@@ -71,15 +75,17 @@ class MsgRelay(object):
                     ]))
                 ])
         """
+        rtask = _get_postal_address.apply_async(args=[nin])
         try:
-            rtask = _get_postal_address.apply_async(args=[nin])
             rtask.wait()
-            if rtask.successful():
-                return rtask.get()
         except Exception as e:
-            current_app.logger.error('Celery task failed: {!r}'.format(e))
-            raise e
-        return None
+            raise MsgTaskFailed('get_postal_address task failed: {!r}'.format(e))
+
+        if rtask.successful():
+            return rtask.get()
+        else:
+            raise MsgTaskFailed('get_postal_address task failed: {}'.format(rtask.get()))
+
     def get_relations_to(self, nin, relative_nin):
         """
         Get a list of the NAVET 'Relations' type codes between a NIN and a relatives NIN.
@@ -125,38 +131,13 @@ class MsgRelay(object):
         lang = self.get_language(language)
         template = TEMPLATES_RELATION.get(template_name)
 
-        current_app.logger.debug("SENT mobile validator message code: {0}"
-                                 " phone number: {1} with reference {2}".format(
-                                                           code, targetphone, reference))
-        res = _send_message.delay('sms', reference, content, targetphone, template, lang)
+        current_app.logger.debug("SENT mobile validator message code: {0} phone number: {1} with reference {2}".format(
+            code, targetphone, reference))
+
+        try:
+            res = _send_message.delay('sms', reference, content, targetphone, template, lang)
+        except Exception as e:
+            raise MsgTaskFailed('phone_validator task failed: {!r}'.format(e))
 
         current_app.logger.debug("Extra debug: Send message result: {!r}, parameters:\n{!r}".format(
             res, ['sms', reference, content, targetphone, template, lang]))
-
-    def get_relations_to(self, nin, relative_nin):
-        """
-        Get a list of the NAVET 'Relations' type codes between a NIN and a relatives NIN.
-
-        Known codes:
-            M = spouse (make/maka)
-            B = child (barn)
-            FA = father
-            MO = mother
-            VF = some kind of legal guardian status
-            F = Parent
-
-        :param nin: Swedish National Identity Number
-        :param relative_nin: Another Swedish National Identity Number
-        :type nin: six.string_types
-        :type relative_nin: six.string_types
-        :return: List of codes. Empty list if the NINs are not related.
-        :rtype: six.string_types
-        """
-        try:
-            rtask = _get_relations_to.apply_async(args=[nin, relative_nin])
-            rtask.wait()
-            if rtask.successful():
-                return rtask.get()
-        except Exception as e:
-            current_app.logger.error('Celery task failed: {!r}'.format(e))
-            raise e

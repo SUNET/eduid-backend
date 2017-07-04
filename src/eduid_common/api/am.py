@@ -25,6 +25,10 @@ def init_relay(app, application_name):
     return app
 
 
+class AmTaskFailed(Exception):
+    pass
+
+
 class AmRelay(object):
 
     def __init__(self, relay_for):
@@ -68,4 +72,4 @@ class AmRelay(object):
                 return result
             except Exception as e:
                 current_app.logger.exception("Failed Attribute Manager sync request retry for user {!s}".format(user))
-                raise e
+                raise AmTaskFailed('request_user_sync task failed: {}'.format(e))
