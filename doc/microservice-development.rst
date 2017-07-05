@@ -33,6 +33,18 @@ The initial eduID app is obtained in this module by the use of the
 ``init_eduid_app`` function from ``eduid_common.api.app``. This function returns
 a Flask app with the following special properties:
 
+Skeleton generation
+...................
+
+A shortcut for creating the file structure and some boiler plate code is to use cookiecutter::
+
+  pip install cookiecutter
+  cd eduid-webapp/src/eduid_webapp
+  cookiecutter ../../cookiecutter-app
+  author [Your name]: lundberg
+  directory_name [Snake case package name/app name, ex mobile_proofing]: mobile_proofing
+  class_name [Camel case class name, ex MobileProofing]: MobileProofing
+
 **Authentication**
 
 For any request, the app checks that it carries an authn token as a cookie,

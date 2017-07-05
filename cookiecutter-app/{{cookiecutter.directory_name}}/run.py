@@ -31,10 +31,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 from __future__ import absolute_import
-from eduid_webapp.letter_proofing.app import init_letter_proofing_app
+from eduid_webapp.{{cookiecutter.directory_name}}.app import init_{{cookiecutter.directory_name}}_app
 
-name = 'letter_proofing'
-app = init_letter_proofing_app(name, {})
+name = '{{cookiecutter.directory_name}}'
+app = init_{{cookiecutter.directory_name}}_app(name, {})
 
 
 if __name__ == '__main__':
