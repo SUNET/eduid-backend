@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import absolute_import
+
 from marshmallow import Schema, fields, validates, pre_dump, post_load, ValidationError
 from flask import session
+from eduid_common.api.schemas.base import EduidSchema, FluxStandardAction
 
 __author__ = 'lundberg'
 
@@ -36,5 +39,27 @@ class CSRFResponseMixin(Schema):
     @pre_dump
     def get_csrf_token(self, out_data):
         out_data['csrf_token'] = session.get_csrf_token()
+        return out_data
+
+
+class CSRFRequest(EduidSchema):
+
+    class RequestPayload(EduidSchema, CSRFRequestMixin):
+        pass
+
+    payload = fields.Nested(RequestPayload)
+
+
+class CSRFResponse(FluxStandardAction):
+
+    class ResponsePayload(EduidSchema, CSRFResponseMixin):
+        pass
+
+    payload = fields.Nested(ResponsePayload)
+
+    @pre_dump
+    def add_payload_if_missing(self, out_data):
+        if not out_data.get('payload'):
+            out_data['payload'] = {'csrf_token': None}
         return out_data
 
