@@ -8,6 +8,7 @@ from eduid_common.api.decorators import require_user, can_verify_identity, Marsh
 from eduid_common.api.helpers import add_nin_to_user, verify_nin_for_user
 from eduid_common.api.msg import MsgTaskFailed
 from eduid_common.api.am import AmTaskFailed
+from eduid_common.api.schemas.csrf import CSRFResponse
 from eduid_webapp.lookup_mobile_proofing import schemas
 from eduid_webapp.lookup_mobile_proofing.helpers import create_proofing_state, match_mobile_to_user
 from eduid_webapp.lookup_mobile_proofing.lookup_mobile_relay import LookupMobileTaskFailed
@@ -18,10 +19,10 @@ mobile_proofing_views = Blueprint('lookup_mobile_proofing', __name__, url_prefix
 
 
 @mobile_proofing_views.route('/proofing', methods=['GET'])
-@MarshalWith(schemas.LookupMobileProofingResponseSchema)
+@MarshalWith(CSRFResponse)
 @require_user
 def get_state(user):
-    return {'message': 'No data'}
+    return {}
 
 
 @mobile_proofing_views.route('/proofing', methods=['POST'])
