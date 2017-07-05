@@ -4,6 +4,7 @@ from __future__ import absolute_import
 
 from flask import Flask
 from copy import deepcopy
+from mock import patch
 from eduid_common.api.testing import EduidAPITestCase, NEW_USER_EXAMPLE
 from eduid_userdb.userdb import UserDB
 from eduid_userdb.user import User
@@ -13,6 +14,7 @@ from eduid_userdb.proofing.state import NinProofingState
 from eduid_userdb.proofing import NinProofingElement
 from eduid_userdb.logs import ProofingLog
 from eduid_userdb.logs.element import ProofingLogElement
+from eduid_common.api.am import init_relay
 from eduid_common.api.helpers import add_nin_to_user, verify_nin_for_user
 
 __author__ = 'lundberg'
@@ -27,10 +29,22 @@ class NinHelpersTest(EduidAPITestCase):
 
     def load_app(self, config):
         app = Flask('test_app')
-        app.central_userdb = UserDB(self.mongo_instance.get_uri(), 'eduid_am')
-        app.proofing_userdb = UserDB(self.mongo_instance.get_uri(), 'test_proofing_userdb')
-        app.proofing_log = ProofingLog(self.mongo_instance.get_uri(), 'test_proofing_log')
+        app.config.update(config)
+        app = init_relay(app, 'testing')
+        app.central_userdb = UserDB(config['MONGO_URI'], 'eduid_am')
+        app.proofing_userdb = UserDB(config['MONGO_URI'], 'test_proofing_userdb')
+        app.proofing_log = ProofingLog(config['MONGO_URI'], 'test_proofing_log')
         return app
+
+    def update_config(self, config):
+        config.update({
+            'AM_BROKER_URL': 'amqp://dummy',
+            'CELERY_CONFIG': {
+                'CELERY_RESULT_BACKEND': 'amqp',
+                'CELERY_TASK_SERIALIZER': 'json'
+            },
+        })
+        return config
 
     def tearDown(self):
         self.app.central_userdb._drop_whole_collection()
@@ -68,7 +82,9 @@ class NinHelpersTest(EduidAPITestCase):
         self.app.central_userdb.save(user, check_sync=False)
         return user.eppn
 
-    def test_add_nin_to_user(self):
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_add_nin_to_user(self, mock_user_sync):
+        mock_user_sync.return_value = True
         eppn = self.insert_no_nins_user()
         user = self.app.central_userdb.get_user_by_eppn(eppn)
         nin_element = NinProofingElement(number=self.test_user_nin, application='NinHelpersTest', verified=False)
@@ -103,7 +119,9 @@ class NinHelpersTest(EduidAPITestCase):
         with self.assertRaises(UserDoesNotExist):
             self.app.proofing_userdb.get_user_by_eppn(eppn)
 
-    def test_verify_nin_for_user(self):
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_verify_nin_for_user(self, mock_user_sync):
+        mock_user_sync.return_value = True
         eppn = self.insert_no_nins_user()
         user = self.app.central_userdb.get_user_by_eppn(eppn)
         nin_element = NinProofingElement(number=self.test_user_nin, application='NinHelpersTest', verified=False)
@@ -123,7 +141,9 @@ class NinHelpersTest(EduidAPITestCase):
         self.assertEqual(user_nin.verified_by, 'NinHelpersTest')
         self.assertEqual(self.app.proofing_log.db_count(), 1)
 
-    def test_verify_nin_for_user_existing_not_verified(self):
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_verify_nin_for_user_existing_not_verified(self, mock_user_sync):
+        mock_user_sync.return_value = True
         eppn = self.insert_not_verified_user()
         user = self.app.central_userdb.get_user_by_eppn(eppn)
         nin_element = NinProofingElement(number=self.test_user_nin, application='NinHelpersTest', verified=False)
