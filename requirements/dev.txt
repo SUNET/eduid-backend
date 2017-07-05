@@ -1,5 +1,1 @@
--r common.txt
 -r testing.txt
--r authn.txt
--r oidc_proofing.txt
--r letter_proofing.txt
