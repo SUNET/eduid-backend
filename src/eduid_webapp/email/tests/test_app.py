@@ -111,12 +111,13 @@ class EmailTests(EduidAPITestCase):
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction() as sess:
 
-                data = {
-                    'email': 'john-smith@example.com',
-                    'verified': False,
-                    'primary': False,
-                    'csrf_token': sess.get_csrf_token()
-                }
+                with self.app.test_request_context():
+                    data = {
+                        'email': 'john-smith@example.com',
+                        'verified': False,
+                        'primary': False,
+                        'csrf_token': sess.get_csrf_token()
+                    }
 
                 response2 = client.post('/new', data=json.dumps(data),
                                        content_type=self.content_type_json)
@@ -171,10 +172,11 @@ class EmailTests(EduidAPITestCase):
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction() as sess:
 
-                data = {
-                    'email': 'johnsmith@example.com',
-                    'csrf_token': sess.get_csrf_token()
-                }
+                with self.app.test_request_context():
+                    data = {
+                        'email': 'johnsmith@example.com',
+                        'csrf_token': sess.get_csrf_token()
+                    }
 
                 response2 = client.post('/primary', data=json.dumps(data),
                                         content_type=self.content_type_json)
@@ -222,10 +224,11 @@ class EmailTests(EduidAPITestCase):
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction() as sess:
 
-                data = {
-                    'email': 'johnsmith2@example.com',
-                    'csrf_token': sess.get_csrf_token()
-                }
+                with self.app.test_request_context():
+                    data = {
+                        'email': 'johnsmith2@example.com',
+                        'csrf_token': sess.get_csrf_token()
+                    }
 
                 response2 = client.post('/remove', data=json.dumps(data),
                                         content_type=self.content_type_json)
@@ -249,10 +252,11 @@ class EmailTests(EduidAPITestCase):
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction() as sess:
 
-                data = {
-                    'email': 'johnsmith@example.com',
-                    'csrf_token': sess.get_csrf_token()
-                }
+                with self.app.test_request_context():
+                    data = {
+                        'email': 'johnsmith@example.com',
+                        'csrf_token': sess.get_csrf_token()
+                    }
 
                 response2 = client.post('/resend-code', data=json.dumps(data),
                                         content_type=self.content_type_json)
@@ -277,10 +281,11 @@ class EmailTests(EduidAPITestCase):
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction() as sess:
 
-                data = {
-                    'email': 'johnsmith3@example.com',
-                    'csrf_token': sess.get_csrf_token()
-                }
+                with self.app.test_request_context():
+                    data = {
+                        'email': 'johnsmith3@example.com',
+                        'csrf_token': sess.get_csrf_token()
+                    }
 
                 response2 = client.post('/resend-code', data=json.dumps(data),
                                         content_type=self.content_type_json)
@@ -306,12 +311,13 @@ class EmailTests(EduidAPITestCase):
 
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction() as sess:
-                data = {
-                    'email': u'john-smith3@example.com',
-                    'verified': False,
-                    'primary': False,
-                    'csrf_token': sess.get_csrf_token()
-                }
+                with self.app.test_request_context():
+                    data = {
+                        'email': u'john-smith3@example.com',
+                        'verified': False,
+                        'primary': False,
+                        'csrf_token': sess.get_csrf_token()
+                    }
 
                 client.post('/new', data=json.dumps(data),
                             content_type=self.content_type_json)

@@ -174,10 +174,11 @@ class PhoneTests(EduidAPITestCase):
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction() as sess:
 
-                data = {
-                    'number': '+34609609609',
-                    'csrf_token': sess.get_csrf_token()
-                }
+                with self.app.test_request_context():
+                    data = {
+                        'number': '+34609609609',
+                        'csrf_token': sess.get_csrf_token()
+                    }
 
                 response2 = client.post('/primary', data=json.dumps(data),
                                         content_type=self.content_type_json)
@@ -229,10 +230,11 @@ class PhoneTests(EduidAPITestCase):
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction() as sess:
 
-                data = {
-                    'number': '+34609609609',
-                    'csrf_token': sess.get_csrf_token()
-                }
+                with self.app.test_request_context():
+                    data = {
+                        'number': '+34609609609',
+                        'csrf_token': sess.get_csrf_token()
+                    }
 
                 response2 = client.post('/remove', data=json.dumps(data),
                                         content_type=self.content_type_json)
@@ -259,10 +261,11 @@ class PhoneTests(EduidAPITestCase):
             with client.session_transaction() as sess:
                 with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True) as send_verification_code_mock:
 
-                    data = {
-                        'number': '+34609609609',
-                        'csrf_token': sess.get_csrf_token()
-                    }
+                    with self.app.test_request_context():
+                        data = {
+                            'number': '+34609609609',
+                            'csrf_token': sess.get_csrf_token()
+                        }
 
                     response2 = client.post('/resend-code', data=json.dumps(data),
                                             content_type=self.content_type_json)
@@ -290,23 +293,25 @@ class PhoneTests(EduidAPITestCase):
             with client.session_transaction() as sess:
                 with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True) as send_verification_code_mock:
 
-                    data = {
-                        'number': u'+34609123321',
-                        'verified': False,
-                        'primary': False,
-                        'csrf_token': sess.get_csrf_token()
-                    }
+                    with self.app.test_request_context():
+                        data = {
+                            'number': u'+34609123321',
+                            'verified': False,
+                            'primary': False,
+                            'csrf_token': sess.get_csrf_token()
+                        }
 
                     client.post('/new', data=json.dumps(data),
                                 content_type=self.content_type_json)
 
             with client.session_transaction() as sess:
                 with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True) as send_verification_code_mock:
-                    data = {
-                        'number': u'+34609123321',
-                        'code': u'12345',
-                        'csrf_token': sess.get_csrf_token()
-                    }
+                    with self.app.test_request_context():
+                        data = {
+                            'number': u'+34609123321',
+                            'code': u'12345',
+                            'csrf_token': sess.get_csrf_token()
+                        }
 
                     response2 = client.post('/verify', data=json.dumps(data),
                                             content_type=self.content_type_json)

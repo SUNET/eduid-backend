@@ -52,7 +52,7 @@ class PhoneSchema(EduidSchema, CSRFRequestMixin):
     primary = fields.Boolean(attribute='primary')
 
 
-class PhoneListPayload(EduidSchema, CSRFResponseMixin):
+class PhoneListPayload(EduidSchema, CSRFRequestMixin, CSRFResponseMixin):
 
     phones = fields.Nested(PhoneSchema, many=True)
 

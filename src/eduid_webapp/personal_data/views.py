@@ -38,7 +38,8 @@ from flask import abort, Blueprint, current_app, session
 from eduid_userdb.exceptions import UserOutOfSync
 from eduid_common.api.decorators import require_dashboard_user, MarshalWith, UnmarshalWith
 from eduid_common.api.utils import save_dashboard_user
-from eduid_webapp.personal_data.schemas import PersonalDataSchema, PersonalDataResponseSchema
+from eduid_webapp.personal_data.schemas import PersonalDataResponseSchema
+from eduid_webapp.personal_data.schemas import PersonalDataRequestSchema
 
 pd_views = Blueprint('personal_data', __name__, url_prefix='')
 
@@ -55,11 +56,11 @@ def get_user(user):
         'language': user.language
     }
 
-    return PersonalDataSchema().dump(data).data
+    return PersonalDataRequestSchema().dump(data).data
 
 
 @pd_views.route('/user', methods=['POST'])
-@UnmarshalWith(PersonalDataSchema)
+@UnmarshalWith(PersonalDataRequestSchema)
 @MarshalWith(PersonalDataResponseSchema)
 @require_dashboard_user
 def post_user(user, given_name, surname, display_name, language):
@@ -80,4 +81,4 @@ def post_user(user, given_name, surname, display_name, language):
     current_app.stats.count(name='personal_data_saved', value=1)
     current_app.logger.info('Saved personal data for user {!r}'.format(user))
 
-    return PersonalDataSchema().dump(user).data
+    return PersonalDataRequestSchema().dump(user.to_dict()).data
