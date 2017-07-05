@@ -14,7 +14,7 @@ __author__ = 'lundberg'
 
 def nin_to_age(nin):
     """
-    :param nin: National Identity Number
+    :param nin: National Identity Number, YYYYMMDDXXXX
     :type nin: six.string_types
     :return: Age
     :rtype: int
@@ -52,21 +52,20 @@ def create_proofing_state(user, nin):
     return proofing_state
 
 
-def match_mobile_to_user(user, nin, verified_mobile_numbers):
+def match_mobile_to_user(user, self_asserted_nin, verified_mobile_numbers):
     """
     :param user: Central userdb user
-    :param nin: Self asserted national identity number
+    :param self_asserted_nin: Self asserted national identity number
     :param verified_mobile_numbers: Verified mobile numbers
 
     :type user: eduid_userdb.user.User
-    :type nin: six.string_types
+    :type self_asserted_nin: six.string_types
     :type verified_mobile_numbers: list
 
     :return: True|False, proofing_log_entry|None
     :rtype: tuple
     """
     proofing_user = ProofingUser(data=user.to_dict())
-    self_asserted_nin = format_NIN(nin)
     age = nin_to_age(self_asserted_nin)
 
     for mobile_number in verified_mobile_numbers:
@@ -94,17 +93,17 @@ def match_mobile_to_user(user, nin, verified_mobile_numbers):
             return True, proofing_log_entry
         # Check if registered nin is related to given nin if the user is under 18 years of age
         elif registered_to_nin and age < 18:
-            relation = current_app.msg_relay.get_relations_to(self_asserted_nin, registered_to_nin)
+            relations = current_app.msg_relay.get_relations_to(self_asserted_nin, registered_to_nin)
             # FA - Fader
             # MO - Moder
             # VF - Vårdnadshavare för
             # F - Förälder
             valid_relations = ['FA', 'MO', 'VF', 'F']
-            if any(r in relation for r in valid_relations):
+            if any(r in relations for r in valid_relations):
                 current_app.logger.info('Mobile number matched for user {} via navet.'.format(user))
                 current_app.logger.debug('Mobile {} registered to NIN: {}.'.format(mobile_number, registered_to_nin))
                 current_app.logger.debug('Person with NIN {} have relation {} to user: {}.'.format(
-                    registered_to_nin, relation, user))
+                    registered_to_nin, relations, user))
                 current_app.logger.info('Creating proofing log entry for user {}.'.format(proofing_user))
                 current_app.logger.info('Looking up official address for user {}.'.format(proofing_user))
                 user_postal_address = current_app.msg_relay.get_postal_address(self_asserted_nin)
@@ -116,7 +115,7 @@ def match_mobile_to_user(user, nin, verified_mobile_numbers):
                                                                 user_postal_address=user_postal_address,
                                                                 mobile_number_registered_to=registered_to_nin,
                                                                 registered_postal_address=registered_postal_address,
-                                                                registered_relation=relation,
+                                                                registered_relation=relations,
                                                                 proofing_version='2014v1')
                 current_app.stats.count('validate_nin_by_mobile_relative_match')
                 return True, proofing_log_entry
