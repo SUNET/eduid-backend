@@ -10,6 +10,7 @@ from mock import patch
 
 from eduid_userdb.data_samples import NEW_USER_EXAMPLE
 from eduid_userdb.user import User
+from eduid_userdb.nin import Nin
 from eduid_userdb.locked_identity import LockedIdentityNin
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_webapp.oidc_proofing.app import init_oidc_proofing_app
@@ -214,6 +215,9 @@ class OidcProofingTests(EduidAPITestCase):
             handle_seleg_userinfo(user, proofing_state, userinfo)
         user = self.app.proofing_userdb.get_user_by_eppn(self.test_user_eppn)
         self.assertEqual(user.nins.primary.number, self.test_user_nin)
+        self.assertEqual(user.nins.primary.created_by, proofing_state.nin.created_by)
+        self.assertEqual(user.nins.primary.verified_by, proofing_state.nin.created_by)
+        self.assertEqual(user.nins.primary.is_verified, True)
         self.assertEqual(self.app.proofing_log.db_count(), 1)
 
     @patch('eduid_webapp.oidc_proofing.helpers.do_authn_request')
@@ -255,6 +259,51 @@ class OidcProofingTests(EduidAPITestCase):
             handle_freja_eid_userinfo(user, proofing_state, userinfo)
         user = self.app.proofing_userdb.get_user_by_eppn(self.test_user_eppn)
         self.assertEqual(user.nins.primary.number, self.test_user_nin)
+        self.assertEqual(user.nins.primary.created_by, proofing_state.nin.created_by)
+        self.assertEqual(user.nins.primary.verified_by, proofing_state.nin.created_by)
+        self.assertEqual(user.nins.primary.is_verified, True)
+        self.assertEqual(self.app.proofing_log.db_count(), 1)
+
+    @patch('eduid_webapp.oidc_proofing.helpers.do_authn_request')
+    @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_freja_flow_previously_added_nin(self, mock_oidc_call, mock_get_postal_address, mock_request_user_sync):
+        mock_oidc_call.return_value = True
+        mock_get_postal_address.return_value = self.mock_address
+        mock_request_user_sync.return_value = True
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+
+        not_verified_nin = Nin(number=self.test_user_nin, application='test', verified=False, primary=False)
+        user.nins.add(not_verified_nin)
+        self.app.central_userdb.save(user)
+
+        with self.session_cookie(self.client, self.test_user_eppn) as client:
+            data = {'nin': self.test_user_nin}
+            response = client.post('/freja/proofing', data=json.dumps(data), content_type=self.content_type_json)
+            response = json.loads(response.data)
+        self.assertEqual(response['type'], 'POST_OIDC_PROOFING_FREJA_PROOFING_SUCCESS')
+
+        with self.session_cookie(self.client, self.test_user_eppn) as client:
+            response = json.loads(client.get('/freja/proofing').data)
+        self.assertEqual(response['type'], 'GET_OIDC_PROOFING_FREJA_PROOFING_SUCCESS')
+
+        # No actual oidc flow tested here
+        proofing_state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
+        userinfo = {
+            'freja_proofing': {
+                'ref': '1234.5678.9012.3456',
+                'opaque': '1' + json.dumps({'nonce': proofing_state.nonce, 'token': proofing_state.token}),
+                'country': 'SE',
+                'ssn': self.test_user_nin,
+            }
+        }
+        with self.app.app_context():
+            handle_freja_eid_userinfo(user, proofing_state, userinfo)
+        user = self.app.proofing_userdb.get_user_by_eppn(self.test_user_eppn)
+        self.assertEqual(user.nins.primary.number, self.test_user_nin)
+        self.assertEqual(user.nins.primary.created_by, not_verified_nin.created_by)
+        self.assertEqual(user.nins.primary.verified_by, proofing_state.nin.created_by)
+        self.assertEqual(user.nins.primary.is_verified, True)
         self.assertEqual(self.app.proofing_log.db_count(), 1)
 
     @patch('eduid_webapp.oidc_proofing.helpers.do_authn_request')
