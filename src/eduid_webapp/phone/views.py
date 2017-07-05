@@ -195,16 +195,17 @@ def verify(user, code, number):
 
     current_app.verifications_db.remove_state(state)
 
-    new_phone = PhoneNumber(number = number, application = 'dashboard',
+    new_phone = PhoneNumber(number = number, application = 'eduid_phone',
                             verified = True, primary = False)
 
-    if user.phone_numbers.primary is None:
+    has_primary = user.phone_numbers.primary
+    if has_primary is None:
         new_phone.is_primary = True
     try:
         user.phone_numbers.add(new_phone)
     except DuplicateElementViolation:
         user.phone_numbers.find(number).is_verified = True
-        if user.phone_numbers.primary is None:
+        if has_primary is None:
             user.phone_numbers.find(number).is_primary = True
 
     try:

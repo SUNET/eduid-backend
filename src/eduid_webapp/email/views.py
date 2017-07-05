@@ -184,13 +184,14 @@ def verify(user, code, email):
     new_email = MailAddress(email = email, application = 'dashboard',
                             verified = True, primary = False)
 
-    if user.mail_addresses.primary is None:
+    has_primary = user.mail_addresses.primary
+    if has_primary is None:
         new_email.is_primary = True
     try:
         user.mail_addresses.add(new_email)
     except DuplicateElementViolation:
         user.mail_addresses.find(email).is_verified = True
-        if user.mail_addresses.primary is None:
+        if has_primary is None:
             user.mail_addresses.find(email).is_primary = True
 
     try:
