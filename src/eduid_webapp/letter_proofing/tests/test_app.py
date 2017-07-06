@@ -36,8 +36,6 @@ class LetterProofingTests(EduidAPITestCase):
                                               (u'City', u'LANDET')]))
         ])
 
-        self.client = self.app.test_client()
-
         # Replace user with one without previous proofings
         userdata = deepcopy(NEW_USER_EXAMPLE)
         del userdata['nins']
@@ -73,36 +71,38 @@ class LetterProofingTests(EduidAPITestCase):
 
     # Helper methods
     def get_state(self):
-        with self.session_cookie(self.client, self.test_user_eppn) as client:
+        with self.session_cookie(self.browser, self.test_user_eppn) as client:
             response = client.get('/proofing')
         self.assertEqual(response.status_code, 200)
         return json.loads(response.data)
 
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
-    def send_letter(self, nin, mock_get_postal_address):
+    def send_letter(self, nin, mock_get_postal_address, mock_request_user_sync):
+        mock_request_user_sync.return_value = True
         mock_get_postal_address.return_value = self.mock_address
         data = {'nin': nin}
-        with self.session_cookie(self.client, self.test_user_eppn) as client:
+        with self.session_cookie(self.browser, self.test_user_eppn) as client:
             response = client.post('/proofing', data=json.dumps(data), content_type=self.content_type_json)
         self.assertEqual(response.status_code, 200)
         return json.loads(response.data)
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
-    def verify_code(self, code, mock_request_user_sync, mock_get_postal_address):
+    def verify_code(self, code, mock_get_postal_address, mock_request_user_sync):
         mock_request_user_sync.return_value = True
         mock_get_postal_address.return_value = self.mock_address
         data = {'verification_code': code}
-        with self.session_cookie(self.client, self.test_user_eppn) as client:
+        with self.session_cookie(self.browser, self.test_user_eppn) as client:
             response = client.post('/verify-code', data=json.dumps(data), content_type=self.content_type_json)
         self.assertEqual(response.status_code, 200)
         return json.loads(response.data)
     # End helper methods
 
     def test_authenticate(self):
-        response = self.client.get('/proofing')
+        response = self.browser.get('/proofing')
         self.assertEqual(response.status_code, 302)  # Redirect to token service
-        with self.session_cookie(self.client, self.test_user_eppn) as client:
+        with self.session_cookie(self.browser, self.test_user_eppn) as client:
             response = client.get('/proofing')
         self.assertEqual(response.status_code, 200)  # Authenticated request
 
@@ -164,7 +164,7 @@ class LetterProofingTests(EduidAPITestCase):
     def test_unmarshal_error(self, mock_get_postal_address):
         mock_get_postal_address.return_value = self.mock_address
         data = {'nin': 'not a nin'}
-        with self.session_cookie(self.client, self.test_user_eppn) as client:
+        with self.session_cookie(self.browser, self.test_user_eppn) as client:
             response = client.post('/proofing', data=json.dumps(data), content_type=self.content_type_json)
         self.assertEqual(response.status_code, 200)
         json_data = json.loads(response.data)
@@ -209,7 +209,7 @@ class LetterProofingTests(EduidAPITestCase):
         self.assertEqual(user.locked_identity.count, 0)
 
         # User with no locked_identity
-        with self.session_cookie(self.client, self.test_user_eppn) as client:
+        with self.session_cookie(self.browser, self.test_user_eppn) as client:
             data = {'nin': self.test_user_nin}
             response = client.post('/proofing', data=json.dumps(data), content_type=self.content_type_json)
             response = json.loads(response.data)
@@ -225,7 +225,7 @@ class LetterProofingTests(EduidAPITestCase):
         # User with locked_identity and correct nin
         user.locked_identity.add(LockedIdentityNin(number=self.test_user_nin, created_by='test', created_ts=True))
         self.app.central_userdb.save(user, check_sync=False)
-        with self.session_cookie(self.client, self.test_user_eppn) as client:
+        with self.session_cookie(self.browser, self.test_user_eppn) as client:
             data = {'nin': self.test_user_nin}
             response = client.post('/proofing', data=json.dumps(data), content_type=self.content_type_json)
             response = json.loads(response.data)
@@ -242,7 +242,7 @@ class LetterProofingTests(EduidAPITestCase):
         self.app.central_userdb.save(user, check_sync=False)
 
         # User with locked_identity and incorrect nin
-        with self.session_cookie(self.client, self.test_user_eppn) as client:
+        with self.session_cookie(self.browser, self.test_user_eppn) as client:
             data = {'nin': '200102031234'}
             response = client.post('/proofing', data=json.dumps(data), content_type=self.content_type_json)
             response = json.loads(response.data)
