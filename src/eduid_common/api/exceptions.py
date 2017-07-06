@@ -56,6 +56,14 @@ class BadConfiguration(Exception):
         return self.value
 
 
+class AmTaskFailed(Exception):
+    pass
+
+
+class MsgTaskFailed(Exception):
+    pass
+
+
 def init_exception_handlers(app):
 
     # Init error handler for raised exceptions
