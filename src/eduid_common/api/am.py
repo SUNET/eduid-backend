@@ -5,6 +5,7 @@ from __future__ import absolute_import
 from flask import current_app
 import eduid_am.celery
 from eduid_am.tasks import update_attributes_keep_result
+from eduid_common.api.exceptions import AmTaskFailed
 
 __author__ = 'lundberg'
 
@@ -23,10 +24,6 @@ def init_relay(app, application_name):
     eduid_am.celery.celery.conf.update(config)
     app.am_relay = AmRelay(relay_for=application_name)
     return app
-
-
-class AmTaskFailed(Exception):
-    pass
 
 
 class AmRelay(object):

@@ -7,7 +7,7 @@ import eduid_msg.celery
 from eduid_msg.tasks import send_message as _send_message
 from eduid_msg.tasks import get_postal_address as _get_postal_address
 from eduid_msg.tasks import get_relations_to as _get_relations_to
-
+from eduid_common.api.exceptions import MsgTaskFailed
 
 __author__ = 'lundberg'
 
@@ -30,10 +30,6 @@ def init_relay(app):
     eduid_msg.celery.celery.conf.update(config)
     app.msg_relay = MsgRelay()
     return app
-
-
-class MsgTaskFailed(Exception):
-    pass
 
 
 class MsgRelay(object):
