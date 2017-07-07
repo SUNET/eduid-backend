@@ -412,14 +412,15 @@ will be run until it hits a `debugger` where it will stop execution.
 It helps debugging to install the `react developer tools
 <https://chrome.google.com/webstore/detail/react-developer-tools/fmkadmapgofadopljbjfkapdkoienihi>`_
 and the `redux developer tools
-<https://chrome.google.com/webstore/detail/redux-devtools/lmhkpmbekcpmknklioeibfkpmmfibljd>_.
+<https://chrome.google.com/webstore/detail/redux-devtools/lmhkpmbekcpmknklioeibfkpmmfibljd>`_.
 
 i18n
 ....
 
 For the internalization of the react apps we use react-intl and
 babel-plugin-react-intl, that hooks message extraction with the webpack build
-process. The messages are stored in ``react/i18n``, and the translations
+process. The messages are added by the developer at
+``react/src/i18n-messages.js``, and are stored in ``react/i18n``, and the translations
 are stored in ``react/i18n/l10n/<lang>.js``. Unfortunately this framework does not
 follow the gettext standard, and thus cannot be used with transifex.
 
@@ -447,6 +448,17 @@ An example of an internationalized formatted message::
 Messages are defined in the ``i18n-messages.js`` module, and are then used in
 the components through the ``props.l10n('msg.id')`` fuction.
 
+There was a problem with react-intl, where strings to be used as attributes in
+JSX could not be translated, `this is an example
+<https://github.com/SUNET/eduid-html/blob/master/react/src/components/Emails.js#L51>`_.
+So I extended the `injector in react-intl
+<https://github.com/yahoo/react-intl/blob/master/src/inject.js#L19>`_
+with `this 
+<https://github.com/SUNET/eduid-html/blob/master/react/src/i18n-messages.js#L22>`_.
+
+Translatable strings to be used in JSX attributes, then, are registered in a
+special way, `here
+<https://github.com/SUNET/eduid-html/blob/master/react/src/i18n-messages.js#L524>`_.
 
 css
 ...
