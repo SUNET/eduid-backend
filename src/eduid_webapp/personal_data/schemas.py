@@ -52,9 +52,9 @@ class PersonalDataSchema(EduidSchema, CSRFResponseMixin):
 
     given_name = fields.String(required=True, load_from='givenName')
     surname = fields.String(required=True)
-    display_name = fields.String(required=True, attribute='displayName')
+    display_name = fields.String(required=True, load_from='displayName')
     language = fields.String(required=True,
-            attribute='preferredLanguage', validate=validate_language)
+            load_from='preferredLanguage', validate=validate_language)
 
 
 class PersonalDataResponseSchema(FluxStandardAction):
