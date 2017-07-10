@@ -31,10 +31,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 from __future__ import absolute_import
-from eduid_webapp.letter_proofing.app import init_letter_proofing_app
+from eduid_webapp.lookup_mobile_proofing.app import init_mobile_proofing_app
 
-name = 'letter_proofing'
-app = init_letter_proofing_app(name, {})
+name = 'lookup_mobile_proofing'
+app = init_mobile_proofing_app(name, {})
 
 
 if __name__ == '__main__':

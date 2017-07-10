@@ -2,6 +2,7 @@
 -r authn.txt
 -r oidc_proofing.txt
 -r letter_proofing.txt
+-r lookup_mobile_proofing.txt
 gunicorn
 blinker
 raven
