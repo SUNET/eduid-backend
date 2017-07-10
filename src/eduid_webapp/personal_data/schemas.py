@@ -50,13 +50,22 @@ class PersonalDataRequestSchema(EduidSchema, CSRFRequestMixin):
 
 class PersonalDataSchema(EduidSchema, CSRFResponseMixin):
 
-    given_name = fields.String(required=True, load_from='givenName')
+    given_name = fields.String(required=True, attribute='givenName')
     surname = fields.String(required=True)
-    display_name = fields.String(required=True, load_from='displayName')
+    display_name = fields.String(required=True, attribute='displayName')
     language = fields.String(required=True,
-            load_from='preferredLanguage', validate=validate_language)
+            attribute='preferredLanguage', validate=validate_language)
+
+
+class PersonalDataSubSchema(EduidSchema, CSRFResponseMixin):
+
+    given_name = fields.String(required=True)
+    surname = fields.String(required=True)
+    display_name = fields.String(required=True)
+    language = fields.String(required=True,
+            validate=validate_language)
 
 
 class PersonalDataResponseSchema(FluxStandardAction):
 
-    payload = fields.Nested(PersonalDataSchema)
+    payload = fields.Nested(PersonalDataSubSchema)

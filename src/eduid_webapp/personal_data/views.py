@@ -40,6 +40,7 @@ from eduid_common.api.decorators import require_dashboard_user, MarshalWith, Unm
 from eduid_common.api.utils import save_dashboard_user
 from eduid_webapp.personal_data.schemas import PersonalDataResponseSchema
 from eduid_webapp.personal_data.schemas import PersonalDataRequestSchema
+from eduid_webapp.personal_data.schemas import PersonalDataSchema
 
 pd_views = Blueprint('personal_data', __name__, url_prefix='')
 
@@ -81,4 +82,4 @@ def post_user(user, given_name, surname, display_name, language):
     current_app.stats.count(name='personal_data_saved', value=1)
     current_app.logger.info('Saved personal data for user {!r}'.format(user))
 
-    return PersonalDataRequestSchema().dump(user.to_dict()).data
+    return PersonalDataSchema().dump(user.to_dict()).data
