@@ -35,6 +35,7 @@ from time import time
 import os
 import binascii
 
+from flask import request
 from flask.sessions import SessionInterface
 
 from eduid_common.session.session import SessionManager
@@ -214,7 +215,11 @@ class Session(collections.MutableMapping):
         """
         Copied from pyramid_session.py
         """
-        token = binascii.hexlify(os.urandom(20))
+        # only produce one csrf token by request
+        token = getattr(request, '_csrft_', False)
+        if not token:
+            token = binascii.hexlify(os.urandom(20))
+            request._csrft_ = token
         self['_csrft_'] = token
         self.persist()
         return token
