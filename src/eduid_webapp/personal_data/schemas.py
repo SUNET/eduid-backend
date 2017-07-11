@@ -77,9 +77,9 @@ class NinSchema(EduidSchema):
     primary = fields.Boolean(required=True)
 
 
-class NinList(EduidSchema, CSRFResponseMixin):
+class NinListSchema(EduidSchema, CSRFResponseMixin):
     nins = fields.Nested(NinSchema, many=True)
 
 
 class NinsResponseSchema(FluxStandardAction):
-    payload = fields.Nested(NinList)
+    payload = fields.Nested(NinListSchema)

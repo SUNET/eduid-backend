@@ -41,7 +41,7 @@ from eduid_common.api.utils import save_dashboard_user
 from eduid_webapp.personal_data.schemas import PersonalDataResponseSchema
 from eduid_webapp.personal_data.schemas import PersonalDataRequestSchema
 from eduid_webapp.personal_data.schemas import PersonalDataSchema
-from eduid_webapp.personal_data.schemas import NinList, NinsResponseSchema
+from eduid_webapp.personal_data.schemas import NinListSchema, NinsResponseSchema
 
 pd_views = Blueprint('personal_data', __name__, url_prefix='')
 
@@ -91,4 +91,8 @@ def post_user(user, given_name, surname, display_name, language):
 @require_dashboard_user
 def get_nins(user):
 
-    return PersonalDataRequestSchema().dump(user.nins).data
+    data = {
+        'nins': user.nins.to_list_of_dicts()
+    }
+
+    return NinListSchema().dump(data).data
