@@ -67,16 +67,13 @@ def get_all_phones(user):
 @UnmarshalWith(PhoneSchema)
 @MarshalWith(PhoneResponseSchema)
 @require_user
-def post_phone(user, number, verified, primary, csrf_token):
+def post_phone(user, number, verified, primary):
     '''
     view to add a new phone to the user data of the currently
     logged in user.
 
     Returns a listing of  all phones for the logged in user.
     '''
-    if session.get_csrf_token() != csrf_token:
-        abort(400)
-
     current_app.logger.debug('Trying to save unconfirmed mobile {!r} '
                              'for user {!r}'.format(number, user))
 
@@ -116,15 +113,13 @@ def post_phone(user, number, verified, primary, csrf_token):
 @UnmarshalWith(SimplePhoneSchema)
 @MarshalWith(PhoneResponseSchema)
 @require_user
-def post_primary(user, number, csrf_token):
+def post_primary(user, number):
     '''
     view to mark one of the (verified) phone numbers of the logged in user
     as the primary phone number.
 
     Returns a listing of  all phones for the logged in user.
     '''
-    if session.get_csrf_token() != csrf_token:
-        abort(400)
     current_app.logger.debug('Trying to save mobile {!r} as primary '
                              'for user {!r}'.format(number, user))
 
@@ -168,15 +163,13 @@ def post_primary(user, number, csrf_token):
 @UnmarshalWith(VerificationCodeSchema)
 @MarshalWith(PhoneResponseSchema)
 @require_user
-def verify(user, code, number, csrf_token):
+def verify(user, code, number):
     '''
     view to mark one of the (unverified) phone numbers of the logged in user
     as verified.
 
     Returns a listing of  all phones for the logged in user.
     '''
-    if session.get_csrf_token() != csrf_token:
-        abort(400)
     current_app.logger.debug('Trying to save mobile {!r} as verified '
                              'for user {!r}'.format(number, user))
 
@@ -202,16 +195,17 @@ def verify(user, code, number, csrf_token):
 
     current_app.verifications_db.remove_state(state)
 
-    new_phone = PhoneNumber(number = number, application = 'dashboard',
+    new_phone = PhoneNumber(number = number, application = 'eduid_phone',
                             verified = True, primary = False)
 
-    if user.phone_numbers.primary is None:
+    has_primary = user.phone_numbers.primary
+    if has_primary is None:
         new_phone.is_primary = True
     try:
         user.phone_numbers.add(new_phone)
     except DuplicateElementViolation:
         user.phone_numbers.find(number).is_verified = True
-        if user.phone_numbers.primary is None:
+        if has_primary is None:
             user.phone_numbers.find(number).is_primary = True
 
     try:
@@ -235,15 +229,12 @@ def verify(user, code, number, csrf_token):
 @UnmarshalWith(SimplePhoneSchema)
 @MarshalWith(PhoneResponseSchema)
 @require_user
-def post_remove(user, number, csrf_token):
+def post_remove(user, number):
     '''
     view to remove one of the phone numbers of the logged in user.
 
     Returns a listing of  all phones for the logged in user.
     '''
-    if session.get_csrf_token() != csrf_token:
-        abort(400)
-
     current_app.logger.debug('Trying to remove mobile {!r} '
                              'from user {!r}'.format(number, user))
 
@@ -285,16 +276,13 @@ def post_remove(user, number, csrf_token):
 @UnmarshalWith(SimplePhoneSchema)
 @MarshalWith(PhoneResponseSchema)
 @require_user
-def resend_code(user, number, csrf_token):
+def resend_code(user, number):
     '''
     view to resend a new verification code for one of the (unverified)
     phone numbers of the logged in user. 
 
     Returns a listing of  all phones for the logged in user.
     '''
-    if session.get_csrf_token() != csrf_token:
-        abort(400)
-
     current_app.logger.debug('Trying to send new verification code for mobile '
                              ' {!r} for user {!r}'.format(number, user))
 

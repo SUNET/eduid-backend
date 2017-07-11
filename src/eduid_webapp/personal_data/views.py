@@ -38,7 +38,9 @@ from flask import abort, Blueprint, current_app, session
 from eduid_userdb.exceptions import UserOutOfSync
 from eduid_common.api.decorators import require_dashboard_user, MarshalWith, UnmarshalWith
 from eduid_common.api.utils import save_dashboard_user
-from eduid_webapp.personal_data.schemas import PersonalDataSchema, PersonalDataResponseSchema
+from eduid_webapp.personal_data.schemas import PersonalDataResponseSchema
+from eduid_webapp.personal_data.schemas import PersonalDataRequestSchema
+from eduid_webapp.personal_data.schemas import PersonalDataSchema
 
 pd_views = Blueprint('personal_data', __name__, url_prefix='')
 
@@ -47,24 +49,22 @@ pd_views = Blueprint('personal_data', __name__, url_prefix='')
 @MarshalWith(PersonalDataResponseSchema)
 @require_dashboard_user
 def get_user(user):
-    csrf_token = session.get_csrf_token()
 
-    data = {'given_name': user.given_name,
-            'surname': user.surname,
-            'display_name': user.display_name,
-            'language': user.language,
-            'csrf_token': csrf_token}
+    data = {
+        'given_name': user.given_name,
+        'surname': user.surname,
+        'display_name': user.display_name,
+        'language': user.language
+    }
 
-    return PersonalDataSchema().dump(data).data
+    return PersonalDataRequestSchema().dump(data).data
 
 
 @pd_views.route('/user', methods=['POST'])
-@UnmarshalWith(PersonalDataSchema)
+@UnmarshalWith(PersonalDataRequestSchema)
 @MarshalWith(PersonalDataResponseSchema)
 @require_dashboard_user
-def post_user(user, given_name, surname, display_name, language, csrf_token):
-    if session.get_csrf_token() != csrf_token:
-        abort(400)
+def post_user(user, given_name, surname, display_name, language):
 
     current_app.logger.debug('Trying to save user {!r}'.format(user))
 
@@ -82,4 +82,4 @@ def post_user(user, given_name, surname, display_name, language, csrf_token):
     current_app.stats.count(name='personal_data_saved', value=1)
     current_app.logger.info('Saved personal data for user {!r}'.format(user))
 
-    return PersonalDataSchema().dump(user).data
+    return PersonalDataSchema().dump(user.to_dict()).data

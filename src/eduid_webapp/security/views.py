@@ -67,11 +67,9 @@ def get_credentials(user):
     """
     View to get credentials for the logged user.
     """
-    csrf_token = session.get_csrf_token()
     current_app.logger.debug('Triying to get the credentials '
                              'for user {!r}'.format(user))
-    credentials =  {
-        'csrf_token': csrf_token,
+    credentials = {
         'credentials': current_app.authninfo_db.get_authn_info(user)
         }
 
@@ -111,13 +109,10 @@ def generate_suggested_password():
 @MarshalWith(ChpassResponseSchema)
 @UnmarshalWith(ChangePasswordSchema)
 @require_dashboard_user
-def change_password(user, csrf_token, old_password, new_password):
+def change_password(user, old_password, new_password):
     """
-    View to chhange the password
+    View to change the password
     """
-    if session.get_csrf_token() != csrf_token:
-        abort(400)
-
     authn_ts = session.get('reauthn-for-chpass', None)
     if authn_ts is None:
         return error('chpass.no_reauthn')
@@ -131,8 +126,7 @@ def change_password(user, csrf_token, old_password, new_password):
     del session['reauthn-for-chpass']
 
     vccs_url = current_app.config.get('VCCS_URL')
-    added = add_credentials(vccs_url, old_password, new_password,
-                    user, source='security')
+    added = add_credentials(vccs_url, old_password, new_password, user, source='security')
 
     if added:
         user.terminated = False
@@ -147,8 +141,7 @@ def change_password(user, csrf_token, old_password, new_password):
     current_app.logger.info('Changed password for user {!r}'.format(user.eppn))
 
     next_url = current_app.config.get('DASHBOARD_URL', '/profile')
-    credentials =  {
-        'csrf_token': csrf_token,
+    credentials = {
         'next_url': next_url,
         'credentials': current_app.authninfo_db.get_authn_info(user)
         }
@@ -160,17 +153,13 @@ def change_password(user, csrf_token, old_password, new_password):
 @MarshalWith(RedirectResponseSchema)
 @UnmarshalWith(CsrfSchema)
 @require_dashboard_user
-def delete_account(user, csrf_token):
+def delete_account(user):
     """
     Terminate account view.
     It receives a POST request, checks the csrf token,
     schedules the account termination action,
     and redirects to the IdP.
     """
-    # check csrf
-    if session.get_csrf_token() != csrf_token:
-        abort(400)
-
     current_app.logger.debug('Initiating account termination for user {!r}'.format(user))
 
     ts_url = current_app.config.get('TOKEN_SERVICE_URL')
@@ -261,5 +250,6 @@ def send_termination_mail(user):
     if current_app.config.get('DEBUG', False):
         current_app.logger.debug(text)
     else:
+        email = user.mail_aliases
         current_app.mail_relay.sendmail(sender, [email], text, html)
     current_app.logger.info("Sent termination email to user {!r}".format(user))

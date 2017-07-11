@@ -31,23 +31,41 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from marshmallow import Schema, fields
+from marshmallow import fields
 from eduid_common.api.schemas.base import FluxStandardAction, EduidSchema
+from eduid_common.api.schemas.csrf import CSRFResponseMixin, CSRFRequestMixin
 from eduid_webapp.personal_data.validators import validate_language
 
 __author__ = 'eperez'
 
 
-class PersonalDataSchema(EduidSchema):
+class PersonalDataRequestSchema(EduidSchema, CSRFRequestMixin):
 
     given_name = fields.String(required=True)
     surname = fields.String(required=True)
     display_name = fields.String(required=True)
     language = fields.String(required=True, default='en',
                              validate=validate_language)
-    csrf_token = fields.String(required=True)
+
+
+class PersonalDataSchema(EduidSchema, CSRFResponseMixin):
+
+    given_name = fields.String(required=True, attribute='givenName')
+    surname = fields.String(required=True)
+    display_name = fields.String(required=True, attribute='displayName')
+    language = fields.String(required=True,
+            attribute='preferredLanguage', validate=validate_language)
+
+
+class PersonalDataSubSchema(EduidSchema, CSRFResponseMixin):
+
+    given_name = fields.String(required=True)
+    surname = fields.String(required=True)
+    display_name = fields.String(required=True)
+    language = fields.String(required=True,
+            validate=validate_language)
 
 
 class PersonalDataResponseSchema(FluxStandardAction):
 
-    payload = PersonalDataSchema()
+    payload = fields.Nested(PersonalDataSubSchema)

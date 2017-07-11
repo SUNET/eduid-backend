@@ -33,39 +33,35 @@
 
 from marshmallow import fields
 from eduid_common.api.schemas.base import FluxStandardAction, EduidSchema
+from eduid_common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
 from eduid_webapp.email.validators import validate_email
 
 __author__ = 'eperez'
 
 
-class VerificationCodeSchema(EduidSchema):
+class VerificationCodeSchema(EduidSchema, CSRFRequestMixin):
 
     code = fields.String(required=True)
     email = fields.Email(required=True, validate=validate_email)
-    csrf_token = fields.String(attribute='csrf_token')
 
 
-class EmailSchema(EduidSchema):
+class EmailSchema(EduidSchema, CSRFRequestMixin):
 
     email = fields.Email(required=True, validate=validate_email)
     verified = fields.Boolean(attribute='verified')
     primary = fields.Boolean(attribute='primary')
-    csrf_token = fields.String(required=True)
 
 
-class EmailListPayload(EduidSchema):
+class EmailListPayload(EduidSchema, CSRFRequestMixin, CSRFResponseMixin):
 
     emails = fields.Nested(EmailSchema, many=True)
-    csrf_token = fields.String(required=True)
 
 
 class EmailResponseSchema(FluxStandardAction):
 
-    payload = fields.Nested(EmailListPayload, only=('emails', 'csrf_token'))
-    csrf_token = fields.String(attribute='csrf_token')
+    payload = fields.Nested(EmailListPayload)
 
 
-class SimpleEmailSchema(EduidSchema):
+class SimpleEmailSchema(EduidSchema, CSRFRequestMixin):
 
     email = fields.Email(required=True)
-    csrf_token = fields.String(required=True)
