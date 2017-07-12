@@ -4,7 +4,7 @@ pynacl==1.0.1
 python-etcd==0.4.3
 Pillow>=3.0.0
 eduid-userdb>=0.2.7b0
-eduid-common[webapp]>=0.3.0b5
+eduid-common[webapp]>=0.3.0b8
 eduid-am>=0.6.2b2
 eduid-msg>=0.10.3b0
 marshmallow>=2.10,<2.11
