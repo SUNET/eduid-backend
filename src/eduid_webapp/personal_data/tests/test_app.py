@@ -118,3 +118,16 @@ class AppTests(EduidAPITestCase):
                 resp_data = json.loads(response.data)
                 self.assertEqual(resp_data['type'], 'POST_PERSONAL_DATA_USER_FAIL')
                 self.assertEqual(resp_data['payload']['error']['csrf_token'], ['CSRF failed to validate'])
+
+    def test_get_user_nins(self):
+        response = self.browser.get('/nins')
+        self.assertEqual(response.status_code, 302)  # Redirect to token service
+
+        eppn = self.test_user_data['eduPersonPrincipalName']
+        with self.session_cookie(self.browser, eppn) as client:
+            response2 = client.get('/nins')
+
+            nin_data = json.loads(response2.data)
+            self.assertEqual(nin_data['type'], 'GET_PERSONAL_DATA_NINS_SUCCESS')
+            self.assertEqual(nin_data['payload']['nins'][1]['number'], '197801011235')
+            self.assertEqual(len(nin_data['payload']['nins']), 2)

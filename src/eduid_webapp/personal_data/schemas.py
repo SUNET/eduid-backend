@@ -69,3 +69,17 @@ class PersonalDataSubSchema(EduidSchema, CSRFResponseMixin):
 class PersonalDataResponseSchema(FluxStandardAction):
 
     payload = fields.Nested(PersonalDataSubSchema)
+
+
+class NinSchema(EduidSchema):
+    number = fields.String(required=True)
+    verified = fields.Boolean(required=True)
+    primary = fields.Boolean(required=True)
+
+
+class NinListSchema(EduidSchema, CSRFResponseMixin):
+    nins = fields.Nested(NinSchema, many=True)
+
+
+class NinsResponseSchema(FluxStandardAction):
+    payload = fields.Nested(NinListSchema)
