@@ -58,6 +58,30 @@ def add_nin_to_user(user, proofing_state):
         current_app.logger.info('Sync result for user {!s}: {!s}'.format(proofing_user, result))
 
 
+def rm_nin_from_user(user, nin):
+    """
+    :param user: Central userdb user
+    :param nin: NIN to remove
+
+    :type user: eduid_userdb.user.User
+    :type nin: str
+
+    :return: None
+    """
+    proofing_user = ProofingUser(data=user.to_dict())
+    # Add nin to user if not already there
+    if proofing_user.nins.find(nin):
+        current_app.logger.info('Removing NIN {} for user {}'.format(nin, user))
+        proofing_user.nins.remove(nin)
+        proofing_user.modified_ts = True
+        # Save user to private db
+        current_app.proofing_userdb.save(proofing_user, check_sync=False)
+        # Ask am to sync user to central db
+        current_app.logger.info('Request sync for user {!s}'.format(proofing_user))
+        result = current_app.am_relay.request_user_sync(proofing_user)
+        current_app.logger.info('Sync result for user {!s}: {!s}'.format(proofing_user, result))
+
+
 def verify_nin_for_user(user, proofing_state, proofing_log_entry):
     """
     :param user: Central userdb user
