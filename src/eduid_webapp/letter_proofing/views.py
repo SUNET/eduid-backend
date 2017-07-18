@@ -142,5 +142,9 @@ def remove_nin(user, nin):
                                 '{!r}'.format(proofing_state.to_dict()))
         current_app.proofing_statedb.remove_state(proofing_state)
 
+    nin_obj = user.nins.find(nin)
+    if nin_obj.is_verified:
+        return {'_status': 'error', 'error': 'nins.verified_no_rm'}
+
     rm_nin_from_user(user, nin)
     return {'success': True, 'message': 'nins.success_removal'}
