@@ -4,6 +4,7 @@ from marshmallow import fields
 from eduid_common.api.schemas.base import EduidSchema, FluxStandardAction
 from eduid_common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
 from eduid_common.api.schemas.validators import validate_nin
+from eduid_webapp.personal_data.schemas import NinSchema
 
 __author__ = 'lundberg'
 
@@ -36,5 +37,6 @@ class VerifyCodeResponseSchema(FluxStandardAction):
     class VerifyCodePayload(EduidSchema, CSRFResponseMixin):
         success = fields.Boolean(required=True)
         message = fields.String(required=False)
+        nins = fields.Nested(NinSchema, many=True)
 
     payload = fields.Nested(VerifyCodePayload)

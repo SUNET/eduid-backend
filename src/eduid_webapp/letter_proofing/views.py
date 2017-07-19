@@ -122,7 +122,8 @@ def verify_code(user, code):
         # Remove proofing state
         current_app.proofing_statedb.remove_state(proofing_state)
         return {'success': True,
-                'message': 'letter.verification_success'}
+                'message': 'letter.verification_success',
+                'nins': user.nins.to_list_of_dicts()}
     except AmTaskFailed as e:
         current_app.logger.error('Verifying nin for user {} failed'.format(user))
         current_app.logger.error('{}'.format(e))
@@ -135,16 +136,13 @@ def verify_code(user, code):
 @require_user
 def remove_nin(user, nin):
     current_app.logger.info('Removing NIN {} for user {}'.format(nin, user))
-    proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn, raise_on_missing=False)
-
-    if proofing_state:
-        current_app.logger.info('Removing proofing state: '
-                                '{!r}'.format(proofing_state.to_dict()))
-        current_app.proofing_statedb.remove_state(proofing_state)
 
     nin_obj = user.nins.find(nin)
     if nin_obj.is_verified:
         return {'_status': 'error', 'error': 'nins.verified_no_rm'}
 
-    rm_nin_from_user(user, nin)
-    return {'success': True, 'message': 'nins.success_removal'}
+    else:
+        rm_nin_from_user(user, nin)
+    return {'success': True,
+            'message': 'nins.success_removal',
+            'nins': user.nins.to_list_of_dicts()}
