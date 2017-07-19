@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from flask import session
 from eduid_common.api.utils import get_flux_type
 
 __author__ = 'lundberg'
@@ -53,4 +54,6 @@ class FluxSuccessResponse(FluxResponse):
 
 class FluxFailResponse(FluxResponse):
     def __init__(self, req, payload, meta=None):
+        if 'csrf_token' not in payload:
+            payload['csrf_token'] = session.get_csrf_token()
         FluxResponse.__init__(self, req, 'fail', payload, error=True, meta=meta)
