@@ -269,16 +269,16 @@ class LetterProofing(ProofingLogElement):
         self._data['user_postal_address'] = user_postal_address
 
 
-class OidcProofing(ProofingLogElement):
+class SeLegProofing(ProofingLogElement):
     """
     {
         'eduPersonPrincipalName': eppn,
         'created_ts': datetime.utcnow()
         'created_by': 'application',
-        'proofing_method': 'oidc',
+        'proofing_method': 'se-leg',
         'proofing_version': '2017v1',
         'nin': 'national_identity_number',
-        'vetting_by': 'provider who performed the vetting,
+        'vetting_by': 'provider who performed the vetting',
         'transaction_id': 'transaction_id',
         'user_postal_address': {postal_address_from_navet}
     }
@@ -302,14 +302,59 @@ class OidcProofing(ProofingLogElement):
         :type user_postal_address: dict
         :type proofing_version: six.string_types
 
-        :return: LetterProofing object
-        :rtype: LetterProofing
+        :return: SeLegProofing object
+        :rtype: SeLegProofing
         """
-        super(OidcProofing, self).__init__(user, created_by, proofing_method='letter',
-                                           proofing_version=proofing_version)
-        self._required_keys.extend(['proofing_method', 'nin', 'vetting_by', 'transaction_id',
-                                    'user_postal_address'])
+        super(SeLegProofing, self).__init__(user, created_by, proofing_method='se-leg',
+                                            proofing_version=proofing_version)
+        self._required_keys.extend(['proofing_method', 'nin', 'vetting_by', 'transaction_id', 'user_postal_address'])
         self._data['nin'] = nin
         self._data['vetting_by'] = vetting_by
         self._data['transaction_id'] = transaction_id
         self._data['user_postal_address'] = user_postal_address
+
+
+class SeLegProofingFrejaEid(SeLegProofing):
+    """
+    {
+        'eduPersonPrincipalName': eppn,
+        'created_ts': datetime.utcnow()
+        'created_by': 'application',
+        'proofing_method': 'se-leg',
+        'proofing_version': '2017v1',
+        'nin': 'national_identity_number',
+        'vetting_by': 'provider who performed the vetting',
+        'transaction_id': 'Freja eID transaction_id',
+        'opaque_data: 'Data used to initialize the vetting process',
+        'user_postal_address': {postal_address_from_navet}
+    }
+    """
+
+    def __init__(self, user, created_by, nin, transaction_id, opaque_data, user_postal_address,
+                 proofing_version):
+        """
+        :param user: user object
+        :param created_by: Application creating the log element
+        :param nin: National identity number
+        :param transaction_id: Letter service transaction id
+        :param opaque_data: Data used to initialize the vetting process
+        :param user_postal_address: Navet response for users official address
+        :param proofing_version: Proofing method version number
+
+        :type user: User
+        :type created_by: six.string_types
+        :type nin: six.string_types
+        :type transaction_id: six.string_types
+        :type opaque_data: six.string_types
+        :type user_postal_address: dict
+        :type proofing_version: six.string_types
+
+        :return: SeLegProofingFrejaEid object
+        :rtype: SeLegProofingFrejaEid
+        """
+        super(SeLegProofingFrejaEid, self).__init__(user, created_by, nin, vetting_by='Freja eID',
+                                                    transaction_id=transaction_id,
+                                                    user_postal_address=user_postal_address,
+                                                    proofing_version=proofing_version)
+        self._required_keys.extend(['opaque_data'])
+        self._data['opaque_data'] = opaque_data

@@ -6,7 +6,8 @@ from eduid_userdb.testing import MOCKED_USER_STANDARD, MongoTemporaryInstance
 from eduid_userdb.user import User
 from eduid_userdb.logs.db import ProofingLog
 from eduid_userdb.logs.element import ProofingLogElement, TeleAdressProofing, TeleAdressProofingRelation
-from eduid_userdb.logs.element import LetterProofing, MailAddressProofing, PhoneNumberProofing
+from eduid_userdb.logs.element import LetterProofing, MailAddressProofing, PhoneNumberProofing, SeLegProofing
+from eduid_userdb.logs.element import SeLegProofingFrejaEid
 
 
 __author__ = 'lundberg'
@@ -176,6 +177,59 @@ class TestProofingLog(TestCase):
         self.assertIsNotNone(hit['created_ts'])
         self.assertEquals(hit['proofing_method'], 'sms')
         self.assertEquals(hit['phone_number'], 'some_phone_number')
+        self.assertEquals(hit['proofing_version'], 'test')
+
+    def test_se_leg_proofing(self):
+        data = {
+            'created_by': 'test',
+            'proofing_version': 'test',
+            'nin': 'national_identity_number',
+            'vetting_by': 'provider',
+            'transaction_id': 'transaction_id',
+            'user_postal_address': {'response_data': {'some': 'data'}},
+        }
+        proofing_element = SeLegProofing(self.user, **data)
+        self.assertDictContainsSubset(data, proofing_element.to_dict())
+
+        self.proofing_log_db.save(proofing_element)
+        result = self.proofing_log_db._coll.find({})
+        self.assertEquals(result.count(), 1)
+        hit = result.next()
+        self.assertEquals(hit['eduPersonPrincipalName'], self.user.eppn)
+        self.assertEquals(hit['created_by'], 'test')
+        self.assertIsNotNone(hit['created_ts'])
+        self.assertIsNotNone(hit['nin'])
+        self.assertIsNotNone(hit['user_postal_address'])
+        self.assertEquals(hit['vetting_by'], 'provider')
+        self.assertEquals(hit['transaction_id'], 'transaction_id')
+        self.assertEquals(hit['proofing_method'], 'se-leg')
+        self.assertEquals(hit['proofing_version'], 'test')
+
+    def test_se_leg_proofing_freja(self):
+        data = {
+            'created_by': 'test',
+            'proofing_version': 'test',
+            'nin': 'national_identity_number',
+            'transaction_id': 'transaction_id',
+            'opaque_data': 'some data',
+            'user_postal_address': {'response_data': {'some': 'data'}},
+        }
+        proofing_element = SeLegProofingFrejaEid(self.user, **data)
+        self.assertDictContainsSubset(data, proofing_element.to_dict())
+
+        self.proofing_log_db.save(proofing_element)
+        result = self.proofing_log_db._coll.find({})
+        self.assertEquals(result.count(), 1)
+        hit = result.next()
+        self.assertEquals(hit['eduPersonPrincipalName'], self.user.eppn)
+        self.assertEquals(hit['created_by'], 'test')
+        self.assertIsNotNone(hit['created_ts'])
+        self.assertIsNotNone(hit['nin'])
+        self.assertIsNotNone(hit['user_postal_address'])
+        self.assertEquals(hit['vetting_by'], 'Freja eID')
+        self.assertEquals(hit['transaction_id'], 'transaction_id')
+        self.assertEquals(hit['opaque_data'], 'some data')
+        self.assertEquals(hit['proofing_method'], 'se-leg')
         self.assertEquals(hit['proofing_version'], 'test')
 
     def test_missing_proofing_data(self):
