@@ -126,7 +126,7 @@ def handle_freja_eid_userinfo(user, proofing_state, userinfo):
     :return: None
     """
     current_app.logger.info('Verifying NIN from Freja eID for user {}'.format(user))
-    number = userinfo['freja_proofing']['ssn']
+    number = userinfo['results']['freja_eid']['ssn']
     if number_match_proofing(user, proofing_state, number):
         proofing_log_entry = create_proofing_log_entry(user, proofing_state, vetting_by='freja eid')
         verify_nin_for_user(user, proofing_state, proofing_log_entry)

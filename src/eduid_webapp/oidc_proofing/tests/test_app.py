@@ -2,6 +2,7 @@
 
 from __future__ import absolute_import
 
+import time
 from copy import deepcopy
 import json
 import jose
@@ -247,11 +248,14 @@ class OidcProofingTests(EduidAPITestCase):
         # No actual oidc flow tested here
         proofing_state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
         userinfo = {
-            'freja_proofing': {
-                'ref': '1234.5678.9012.3456',
-                'opaque': '1' + json.dumps({'nonce': proofing_state.nonce, 'token': proofing_state.token}),
-                'country': 'SE',
-                'ssn': self.test_user_nin,
+            'results': {
+                'freja_eid': {
+                    'vetting_time': time.time(),
+                    'ref': '1234.5678.9012.3456',
+                    'opaque': '1' + json.dumps({'nonce': proofing_state.nonce, 'token': proofing_state.token}),
+                    'country': 'SE',
+                    'ssn': self.test_user_nin,
+                }
             }
         }
         with self.app.app_context():
@@ -291,11 +295,14 @@ class OidcProofingTests(EduidAPITestCase):
         # No actual oidc flow tested here
         proofing_state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
         userinfo = {
-            'freja_proofing': {
-                'ref': '1234.5678.9012.3456',
-                'opaque': '1' + json.dumps({'nonce': proofing_state.nonce, 'token': proofing_state.token}),
-                'country': 'SE',
-                'ssn': self.test_user_nin,
+            'results': {
+                'freja_eid': {
+                    'vetting_time': time.time(),
+                    'ref': '1234.5678.9012.3456',
+                    'opaque': '1' + json.dumps({'nonce': proofing_state.nonce, 'token': proofing_state.token}),
+                    'country': 'SE',
+                    'ssn': self.test_user_nin,
+                }
             }
         }
         with self.app.app_context():

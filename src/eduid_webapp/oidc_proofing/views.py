@@ -98,7 +98,7 @@ def authorization_response():
     if userinfo.get('identity'):
         current_app.logger.info('Handling userinfo as generic seleg vetting for user {}'.format(user))
         helpers.handle_seleg_userinfo(user, proofing_state, userinfo)
-    elif userinfo.get('freja_proofing'):
+    elif userinfo.get('results'):
         current_app.logger.info('Handling userinfo as freja vetting for user {}'.format(user))
         helpers.handle_freja_eid_userinfo(user, proofing_state, userinfo)
 
@@ -211,7 +211,7 @@ def freja_proofing(user, nin):
         # Initiate authn request
         try:
             redirect_url = url_for('oidc_proofing.authorization_response', _external=True)
-            claims_request = ClaimsRequest(userinfo=Claims(freja_proofing=None))
+            claims_request = ClaimsRequest(userinfo=Claims(results=None))
             success = helpers.do_authn_request(proofing_state, claims_request, redirect_url)
             if not success:
                 return {'_status': 'error', 'error': 'Temporary technical problems'}
