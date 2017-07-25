@@ -290,7 +290,7 @@ class SeLegProofing(ProofingLogElement):
         :param created_by: Application creating the log element
         :param nin: National identity number
         :param vetting_by: Name of the provider who performed the vetting
-        :param transaction_id: Letter service transaction id
+        :param transaction_id: Provider transaction id
         :param user_postal_address: Navet response for users official address
         :param proofing_version: Proofing method version number
 
@@ -336,7 +336,7 @@ class SeLegProofingFrejaEid(SeLegProofing):
         :param user: user object
         :param created_by: Application creating the log element
         :param nin: National identity number
-        :param transaction_id: Letter service transaction id
+        :param transaction_id: Provider transaction id
         :param opaque_data: Data used to initialize the vetting process
         :param user_postal_address: Navet response for users official address
         :param proofing_version: Proofing method version number
