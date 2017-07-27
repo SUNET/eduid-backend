@@ -297,7 +297,7 @@ class UserDB(BaseDB):
         if modified is None:
             # profile has never been modified through the dashboard.
             # possibly just created in signup.
-            result = self._coll.insert(user.to_dict(old_userdb_format=old_format))
+            result = self._coll.update(user.to_dict(old_userdb_format=old_format), upsert=True)
             logger.debug("{!s} Inserted new user {!r} into {!r} (old_format={!r}): {!r})".format(
                 self, user, self._coll_name, old_format, result))
             import pprint
