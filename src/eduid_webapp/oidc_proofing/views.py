@@ -94,16 +94,20 @@ def authorization_response():
     am_user = current_app.central_userdb.get_user_by_eppn(proofing_state.eppn)
     user = ProofingUser(data=am_user.to_dict())
 
-    # Handle userinfo differently depending on data in userinfo
-    if userinfo.get('identity'):
-        current_app.logger.info('Handling userinfo as generic seleg vetting for user {}'.format(user))
-        helpers.handle_seleg_userinfo(user, proofing_state, userinfo)
-    elif userinfo.get('results'):
-        current_app.logger.info('Handling userinfo as freja vetting for user {}'.format(user))
-        helpers.handle_freja_eid_userinfo(user, proofing_state, userinfo)
-
-    # Remove users proofing state
-    current_app.proofing_statedb.remove_state(proofing_state)
+    try:
+        # Handle userinfo differently depending on data in userinfo
+        if userinfo.get('identity'):
+            current_app.logger.info('Handling userinfo as generic seleg vetting for user {}'.format(user))
+            helpers.handle_seleg_userinfo(user, proofing_state, userinfo)
+        elif userinfo.get('results'):
+            current_app.logger.info('Handling userinfo as freja vetting for user {}'.format(user))
+            helpers.handle_freja_eid_userinfo(user, proofing_state, userinfo)
+    except Exception as e:
+        current_app.logger.error('Failed to handle userinfo for user {}'.format(user))
+        current_app.logger.error('Exception: {}'.format(e))
+    finally:
+        # Remove users proofing state
+        current_app.proofing_statedb.remove_state(proofing_state)
     return make_response('OK', 200)
 
 
