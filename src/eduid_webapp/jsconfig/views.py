@@ -33,11 +33,11 @@
 
 from __future__ import absolute_import
 
-from flask import Blueprint, session
+from flask import Blueprint
 
 from eduid_common.config.parsers.etcd import EtcdConfigParser
 from eduid_common.api.decorators import MarshalWith
-from eduid_common.api.schemas.base import FluxStandardAction
+from eduid_common.api.schemas.csrf import CSRFResponse
 from eduid_webapp.jsconfig.settings.front import jsconfig
 
 
@@ -45,13 +45,11 @@ jsconfig_views = Blueprint('jsconfig', __name__, url_prefix='')
 
 
 @jsconfig_views.route('/config', methods=['GET'])
-@MarshalWith(FluxStandardAction)
+@MarshalWith(CSRFResponse)
 def get_config():
 
     parser = EtcdConfigParser('/eduid/webapp/jsapps/')
     config = parser.read_configuration(silent=True)
     jsconfig.update(config)
-
-    jsconfig['csrf_token'] = session.new_csrf_token()
 
     return jsconfig
