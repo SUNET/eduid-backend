@@ -308,3 +308,81 @@ class LetterProofingTests(EduidAPITestCase):
         rdata = json.loads(response.data)
 
         self.assertTrue(rdata['payload']['success'])
+
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_remove_nin_no_csrf(self, mock_request_user_sync):
+        mock_request_user_sync.return_value = True
+
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        self.assertEqual(user.nins.count, 0)
+
+        json_data = self.get_state()
+        csrf_token = json_data['payload']['csrf_token']
+
+        user.nins.add(Nin(self.test_user_nin, application='testing',
+            primary=False))
+        self.app.central_userdb.save(user, check_sync=False)
+        json_data = self.send_letter(self.test_user_nin, csrf_token)
+
+        self.assertEqual(user.nins.count, 1)
+        data = {
+                'nin': self.test_user_nin,
+                }
+        with self.session_cookie(self.browser, self.test_user_eppn) as client:
+            response = client.post('/remove-nin', data=json.dumps(data), content_type=self.content_type_json)
+        rdata = json.loads(response.data)
+
+        self.assertTrue(rdata['payload']['error'])
+
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_remove_nin_no_verification(self, mock_request_user_sync):
+        mock_request_user_sync.return_value = True
+
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        self.assertEqual(user.nins.count, 0)
+
+        json_data = self.get_state()
+
+        user.nins.add(Nin(self.test_user_nin, application='testing',
+            primary=False))
+        self.app.central_userdb.save(user, check_sync=False)
+
+        self.assertEqual(user.nins.count, 1)
+        csrf_token = json_data['payload']['csrf_token']
+        data = {
+                'nin': self.test_user_nin,
+                'csrf_token': csrf_token
+                }
+        with self.session_cookie(self.browser, self.test_user_eppn) as client:
+            response = client.post('/remove-nin', data=json.dumps(data), content_type=self.content_type_json)
+        rdata = json.loads(response.data)
+
+        from nose.tools import set_trace;set_trace()
+        self.assertTrue(rdata['payload']['error'])
+
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_not_remove_verified_nin(self, mock_request_user_sync):
+        mock_request_user_sync.return_value = True
+
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        self.assertEqual(user.nins.count, 0)
+
+        json_data = self.get_state()
+        csrf_token = json_data['payload']['csrf_token']
+
+        user.nins.add(Nin(self.test_user_nin, application='testing',
+            verified=True, primary=True))
+        self.app.central_userdb.save(user, check_sync=False)
+        json_data = self.send_letter(self.test_user_nin, csrf_token)
+
+        self.assertEqual(user.nins.count, 1)
+        csrf_token = json_data['payload']['csrf_token']
+        data = {
+                'nin': self.test_user_nin,
+                'csrf_token': csrf_token
+                }
+        with self.session_cookie(self.browser, self.test_user_eppn) as client:
+            response = client.post('/remove-nin', data=json.dumps(data), content_type=self.content_type_json)
+        rdata = json.loads(response.data)
+
+        self.assertTrue(rdata['payload']['error'])
