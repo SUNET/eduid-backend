@@ -13,6 +13,7 @@ from bson import ObjectId
 from eduid_userdb.data_samples import NEW_USER_EXAMPLE
 from eduid_userdb.user import User
 from eduid_userdb.locked_identity import LockedIdentityNin
+from eduid_userdb.nin import Nin
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_webapp.letter_proofing.app import init_letter_proofing_app
 
@@ -58,7 +59,8 @@ class LetterProofingTests(EduidAPITestCase):
             'AM_BROKER_URL': 'amqp://dummy',
             'CELERY_CONFIG': {
                 'CELERY_RESULT_BACKEND': 'amqp',
-                'CELERY_TASK_SERIALIZER': 'json'
+                'CELERY_TASK_SERIALIZER': 'json',
+                'MONGO_URI': config['MONGO_URI']
             },
         })
         return config
@@ -178,7 +180,6 @@ class LetterProofingTests(EduidAPITestCase):
         with self.app.test_request_context():
             user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn, raise_on_missing=True)
             proofing_state = self.app.proofing_statedb.get_state_by_eppn(user.eppn, raise_on_missing=False)
-        from nose.tools import set_trace;set_trace()
         json_data = self.verify_code(proofing_state.nin.verification_code, csrf_token)
         self.assertTrue(json_data['payload']['success'])
 
@@ -280,3 +281,30 @@ class LetterProofingTests(EduidAPITestCase):
             csrf_token = json_data['payload']['csrf_token']
             response = self.send_letter('200102031234', csrf_token)
         self.assertEqual(response['type'], 'POST_LETTER_PROOFING_PROOFING_FAIL')
+
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_remove_nin(self, mock_request_user_sync):
+        mock_request_user_sync.return_value = True
+
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        self.assertEqual(user.nins.count, 0)
+
+        json_data = self.get_state()
+        csrf_token = json_data['payload']['csrf_token']
+
+        user.nins.add(Nin(self.test_user_nin, application='testing',
+            primary=False))
+        self.app.central_userdb.save(user, check_sync=False)
+        json_data = self.send_letter(self.test_user_nin, csrf_token)
+
+        self.assertEqual(user.nins.count, 1)
+        csrf_token = json_data['payload']['csrf_token']
+        data = {
+                'nin': self.test_user_nin,
+                'csrf_token': csrf_token
+                }
+        with self.session_cookie(self.browser, self.test_user_eppn) as client:
+            response = client.post('/remove-nin', data=json.dumps(data), content_type=self.content_type_json)
+        rdata = json.loads(response.data)
+
+        self.assertTrue(rdata['payload']['success'])
