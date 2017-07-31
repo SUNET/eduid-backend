@@ -106,7 +106,7 @@ def eduid_init_app_no_db(name, config, app_class=AuthnApp):
         app.stats = NoOpStats()
     else:
         stats_port = app.config.get('STATS_PORT', 8125)
-        app.stats = Statsd(host=stats_host, port=stats_port)
+        app.stats = Statsd(host=stats_host, port=stats_port, prefix=name)
 
     return app
 
