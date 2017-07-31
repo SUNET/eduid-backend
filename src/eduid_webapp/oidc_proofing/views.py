@@ -152,9 +152,8 @@ def seleg_proofing(user, nin):
             if not success:
                 return {'_status': 'error', 'error': 'Temporary technical problems'}
         except requests.exceptions.ConnectionError as e:
-            msg = 'No connection to authorization endpoint: {!s}'.format(e)
-            current_app.logger.error(msg)
-            return {'_status': 'error', 'error': msg}
+            current_app.logger.error('No connection to authorization endpoint: {!s}'.format(e))
+            return {'_status': 'error', 'error': 'No connection to authorization endpoint'}
 
         # If authentication request went well save user state
         current_app.proofing_statedb.save(proofing_state)
@@ -220,9 +219,8 @@ def freja_proofing(user, nin):
             if not success:
                 return {'_status': 'error', 'error': 'Temporary technical problems'}
         except requests.exceptions.ConnectionError as e:
-            msg = 'No connection to authorization endpoint: {!s}'.format(e)
-            current_app.logger.error(msg)
-            return {'_status': 'error', 'error': msg}
+            current_app.logger.error('No connection to authorization endpoint: {!s}'.format(e))
+            return {'_status': 'error', 'error': 'No connection to authorization endpoint'}
 
         # If authentication request went well save user state
         current_app.proofing_statedb.save(proofing_state)
