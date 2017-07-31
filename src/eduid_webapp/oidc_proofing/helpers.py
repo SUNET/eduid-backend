@@ -95,6 +95,7 @@ def handle_seleg_userinfo(user, proofing_state, userinfo):
                                            transaction_id=transaction_id, user_postal_address=address,
                                            proofing_version='2017v1')
         verify_nin_for_user(user, proofing_state, proofing_log_entry)
+        current_app.stats.count(name='seleg.authn_response_handled')
 
 
 def handle_freja_eid_userinfo(user, proofing_state, userinfo):
@@ -122,5 +123,6 @@ def handle_freja_eid_userinfo(user, proofing_state, userinfo):
                                                    opaque_data=opaque, user_postal_address=address,
                                                    proofing_version='2017v1')
         verify_nin_for_user(user, proofing_state, proofing_log_entry)
+        current_app.stats.count(name='freja.authn_response_handled')
 
 
