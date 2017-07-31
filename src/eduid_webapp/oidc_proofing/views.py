@@ -43,6 +43,7 @@ def authorization_response():
         current_app.logger.error('AuthorizationError {!s} - {!s} ({!s})'.format(request.host, authn_resp['error'],
                                                                                 authn_resp.get('error_message'),
                                                                                 authn_resp.get('error_uri')))
+        current_app.stats.count(name='authn_response_op_error')
         return make_response('OK', 200)
 
     user_oidc_state = authn_resp['state']
@@ -50,6 +51,7 @@ def authorization_response():
     if not proofing_state:
         msg = 'The \'state\' parameter ({!s}) does not match a user state.'.format(user_oidc_state)
         current_app.logger.error(msg)
+        current_app.stats.count(name='authn_response_proofing_state_missing')
         return make_response('OK', 200)
     current_app.logger.debug('Proofing state {!s} for user {!s} found'.format(proofing_state.state,
                                                                               proofing_state.eppn))
@@ -59,6 +61,7 @@ def authorization_response():
     if authorization_header != 'Bearer {}'.format(proofing_state.token):
         current_app.logger.error('The authorization token ({!s}) did not match the expected'.format(
             authorization_header))
+        current_app.stats.count(name='authn_response_authn_failure')
         return make_response('FORBIDDEN', 403)
 
     # TODO: We should save the auth response code to the proofing state to be able to continue a failed attempt
@@ -76,7 +79,9 @@ def authorization_response():
     id_token = token_resp['id_token']
     if id_token['nonce'] != proofing_state.nonce:
         current_app.logger.error('The \'nonce\' parameter does not match for user {!s}.'.format(proofing_state.eppn))
+        current_app.stats.count(name='authn_response_token_request_failure')
         return make_response('OK', 200)
+    current_app.stats.count(name='authn_response_token_request_success')
 
     # do userinfo request
     current_app.logger.debug('Trying to do userinfo request:')
@@ -87,7 +92,9 @@ def authorization_response():
     if userinfo['sub'] != id_token['sub']:
         current_app.logger.error('The \'sub\' of userinfo does not match \'sub\' of ID Token for user {!s}.'.format(
             proofing_state.eppn))
+        current_app.stats.count(name='authn_response_userinfo_request_failure')
         return make_response('OK', 200)
+    current_app.stats.count(name='authn_response_userinfo_request_success')
 
     # TODO: Break out in parts to be able to continue the proofing process after a successful authorization response
     # TODO: even if the token request, userinfo request or something internal fails
@@ -98,13 +105,16 @@ def authorization_response():
         # Handle userinfo differently depending on data in userinfo
         if userinfo.get('identity'):
             current_app.logger.info('Handling userinfo as generic seleg vetting for user {}'.format(user))
+            current_app.stats.count(name='seleg.authn_response_received')
             helpers.handle_seleg_userinfo(user, proofing_state, userinfo)
         elif userinfo.get('results'):
             current_app.logger.info('Handling userinfo as freja vetting for user {}'.format(user))
+            current_app.stats.count(name='freja.authn_response_received')
             helpers.handle_freja_eid_userinfo(user, proofing_state, userinfo)
     except Exception as e:
         current_app.logger.error('Failed to handle userinfo for user {}'.format(user))
         current_app.logger.error('Exception: {}'.format(e))
+        current_app.stats.count(name='authn_response_handling_failure')
     finally:
         # Remove users proofing state
         current_app.proofing_statedb.remove_state(proofing_state)
@@ -122,6 +132,7 @@ def get_seleg_state(user):
         return {}
     # Return nonce and nonce as qr code
     current_app.logger.debug('Returning nonce for user {!s}'.format(user))
+    current_app.stats.count(name='seleg.proofing_state_returned')
     buf = StringIO()
     # The "1" below denotes the version of the data exchanged, right now only version 1 is supported.
     qr_code = '1' + json.dumps({'nonce': proofing_state.nonce, 'token': proofing_state.token})
@@ -150,12 +161,14 @@ def seleg_proofing(user, nin):
             claims_request = ClaimsRequest(userinfo=Claims(identity=None))
             success = helpers.do_authn_request(proofing_state, claims_request, redirect_url)
             if not success:
+                current_app.stats.count(name='seleg.authn_request_op_error')
                 return {'_status': 'error', 'error': 'Temporary technical problems'}
         except requests.exceptions.ConnectionError as e:
             current_app.logger.error('No connection to authorization endpoint: {!s}'.format(e))
             return {'_status': 'error', 'error': 'No connection to authorization endpoint'}
 
         # If authentication request went well save user state
+        current_app.stats.count(name='seleg.authn_request_success')
         current_app.proofing_statedb.save(proofing_state)
         current_app.logger.debug('Proofing state {!s} for user {!s} saved'.format(proofing_state.state, user))
 
@@ -176,11 +189,13 @@ def get_freja_state(user):
         # Use tz_info from timezone aware mongodb datetime
         if datetime.now(expire_time.tzinfo) > expire_time:
             current_app.proofing_statedb.remove_state(proofing_state)
+            current_app.stats.count(name='freja.proofing_state_expired')
             raise DocumentDoesNotExist
     except DocumentDoesNotExist:
         return {}
     # Return request data
     current_app.logger.debug('Returning request data for user {!s}'.format(user))
+    current_app.stats.count(name='freja.proofing_state_returned')
     # The "1" below denotes the version of the data exchanged, right now only version 1 is supported.
     opaque_data = '1' + json.dumps({'nonce': proofing_state.nonce, 'token': proofing_state.token})
     request_data = {
@@ -217,12 +232,14 @@ def freja_proofing(user, nin):
             claims_request = ClaimsRequest(userinfo=Claims(results=None))
             success = helpers.do_authn_request(proofing_state, claims_request, redirect_url)
             if not success:
+                current_app.stats.count(name='freja.authn_request_op_error')
                 return {'_status': 'error', 'error': 'Temporary technical problems'}
         except requests.exceptions.ConnectionError as e:
             current_app.logger.error('No connection to authorization endpoint: {!s}'.format(e))
             return {'_status': 'error', 'error': 'No connection to authorization endpoint'}
 
         # If authentication request went well save user state
+        current_app.stats.count(name='freja.authn_request_success')
         current_app.proofing_statedb.save(proofing_state)
         current_app.logger.debug('Proofing state {!s} for user {!s} saved'.format(proofing_state.state, user))
 
