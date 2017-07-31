@@ -51,7 +51,6 @@ def get_config():
     parser = EtcdConfigParser('/eduid/webapp/jsapps/')
     config = parser.read_configuration(silent=True)
     jsconfig.update(config)
-
-    jsconfig['csrf_token'] = session.new_csrf_token()
+    jsconfig['csrf_token'] = session.get_csrf_token()
 
     return jsconfig

@@ -6,7 +6,7 @@ import json
 from flask import current_app
 
 from eduid_userdb.proofing.element import NinProofingElement
-from eduid_userdb.logs import OidcProofing
+from eduid_userdb.logs import SeLegProofing, SeLegProofingFrejaEid
 from eduid_common.api.utils import get_unique_hash
 from eduid_common.api.helpers import verify_nin_for_user, number_match_proofing
 from eduid_userdb.proofing import OidcProofingState
@@ -69,30 +69,6 @@ def do_authn_request(proofing_state, claims_request, redirect_url):
     return False
 
 
-def create_proofing_log_entry(user, proofing_state, vetting_by):
-    """
-    :param user: Central userdb user
-    :param proofing_state: Proofing state for user
-    :param vetting_by: OIDC proofing supplier
-
-    :type user: eduid_userdb.user.User
-    :type proofing_state: eduid_userdb.proofing.OidcProofingState
-    :type vetting_by: six.string_types
-
-    :return: Proofing log entry element
-    :rtype: eduid_userdb.log.OidcProofing
-    """
-    current_app.logger.info('Getting address for user {!r}'.format(user))
-    # Lookup official address via Navet
-    address = current_app.msg_relay.get_postal_address(proofing_state.nin.number)
-    # Transaction id is the same data as used for the QR code or seed data for the freja app
-    transaction_id = '1' + json.dumps({'nonce': proofing_state.nonce, 'token': proofing_state.token})
-    oidc_proof = OidcProofing(user, created_by=proofing_state.nin.created_by, nin=proofing_state.nin.number,
-                              vetting_by=vetting_by, transaction_id=transaction_id, user_postal_address=address,
-                              proofing_version='2017v1')
-    return oidc_proof
-
-
 def handle_seleg_userinfo(user, proofing_state, userinfo):
     """
     :param user: Central userdb user
@@ -109,7 +85,15 @@ def handle_seleg_userinfo(user, proofing_state, userinfo):
     number = userinfo['identity']
     # Check if the self professed NIN is the same as the NIN returned by the vetting provider
     if number_match_proofing(user, proofing_state, number):
-        proofing_log_entry = create_proofing_log_entry(user, proofing_state, vetting_by='seleg')
+        current_app.logger.info('Getting address for user {!r}'.format(user))
+        # Lookup official address via Navet
+        address = current_app.msg_relay.get_postal_address(proofing_state.nin.number)
+        # Transaction id is the same data as used for the QR code
+        transaction_id = '1' + json.dumps({'nonce': proofing_state.nonce, 'token': proofing_state.token})
+        proofing_log_entry = SeLegProofing(user, created_by=proofing_state.nin.created_by,
+                                           nin=proofing_state.nin.number, vetting_by='se-leg',
+                                           transaction_id=transaction_id, user_postal_address=address,
+                                           proofing_version='2017v1')
         verify_nin_for_user(user, proofing_state, proofing_log_entry)
 
 
@@ -126,9 +110,17 @@ def handle_freja_eid_userinfo(user, proofing_state, userinfo):
     :return: None
     """
     current_app.logger.info('Verifying NIN from Freja eID for user {}'.format(user))
-    number = userinfo['freja_proofing']['ssn']
+    number = userinfo['results']['freja_eid']['ssn']
+    opaque = userinfo['results']['freja_eid']['opaque']
+    transaction_id = userinfo['results']['freja_eid']['ref']
     if number_match_proofing(user, proofing_state, number):
-        proofing_log_entry = create_proofing_log_entry(user, proofing_state, vetting_by='freja eid')
+        current_app.logger.info('Getting address for user {!r}'.format(user))
+        # Lookup official address via Navet
+        address = current_app.msg_relay.get_postal_address(proofing_state.nin.number)
+        proofing_log_entry = SeLegProofingFrejaEid(user, created_by=proofing_state.nin.created_by,
+                                                   nin=proofing_state.nin.number, transaction_id=transaction_id,
+                                                   opaque_data=opaque, user_postal_address=address,
+                                                   proofing_version='2017v1')
         verify_nin_for_user(user, proofing_state, proofing_log_entry)
 
 
