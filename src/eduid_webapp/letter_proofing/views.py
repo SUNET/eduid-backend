@@ -29,7 +29,7 @@ def get_state(user):
     if proofing_state:
         current_app.logger.info('Found proofing state for user {}'.format(user))
         return check_state(proofing_state)
-    return {}
+    return {'_status': 'error', 'error': 'letter.no_state_found'}
 
 
 @letter_proofing_views.route('/proofing', methods=['POST'])

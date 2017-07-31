@@ -92,7 +92,7 @@ class LetterProofingTests(EduidAPITestCase):
     def verify_code(self, code, csrf_token, mock_get_postal_address, mock_request_user_sync):
         mock_request_user_sync.return_value = True
         mock_get_postal_address.return_value = self.mock_address
-        data = {'verification_code': code, 'csrf_token': csrf_token}
+        data = {'code': code, 'csrf_token': csrf_token}
         with self.session_cookie(self.browser, self.test_user_eppn) as client:
             response = client.post('/verify-code', data=json.dumps(data), content_type=self.content_type_json)
         self.assertEqual(response.status_code, 200)
@@ -112,7 +112,7 @@ class LetterProofingTests(EduidAPITestCase):
 
     def test_send_letter(self):
         json_data = self.get_state()
-        csrf_token = json_data['csrf_token']
+        csrf_token = json_data['payload']['csrf_token']
         json_data = self.send_letter(self.test_user_nin, csrf_token)
         expires = json_data['payload']['letter_expires']
         expires = datetime.utcfromtimestamp(int(expires))
@@ -127,7 +127,7 @@ class LetterProofingTests(EduidAPITestCase):
 
     def test_letter_sent_status(self):
         json_data = self.get_state()
-        csrf_token = json_data['csrf_token']
+        csrf_token = json_data['payload']['csrf_token']
         self.send_letter(self.test_user_nin, csrf_token)
         json_data = self.get_state()
         self.assertIn('letter_sent', json_data['payload'])
@@ -138,19 +138,19 @@ class LetterProofingTests(EduidAPITestCase):
 
     def test_verify_letter_code(self):
         json_data = self.get_state()
-        csrf_token = json_data['csrf_token']
+        csrf_token = json_data['payload']['csrf_token']
         json_data = self.send_letter(self.test_user_nin, csrf_token)
         with self.app.test_request_context():
             with self.app.app_context():
                 proofing_state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn,
                                                                              raise_on_missing=False)
-        csrf_token = json_data['csrf_token']
+        csrf_token = json_data['payload']['csrf_token']
         json_data = self.verify_code(proofing_state.nin.verification_code, csrf_token)
         self.assertTrue(json_data['payload']['success'])
 
     def test_verify_letter_code_bad_csrf(self):
         json_data = self.get_state()
-        csrf_token = json_data['csrf_token']
+        csrf_token = json_data['payload']['csrf_token']
         self.send_letter(self.test_user_nin, csrf_token)
         with self.app.test_request_context():
             with self.app.app_context():
@@ -162,28 +162,29 @@ class LetterProofingTests(EduidAPITestCase):
 
     def test_verify_letter_code_fail(self):
         json_data = self.get_state()
-        csrf_token = json_data['csrf_token']
+        csrf_token = json_data['payload']['csrf_token']
         json_data = self.send_letter(self.test_user_nin, csrf_token)
-        csrf_token = json_data['csrf_token']
+        csrf_token = json_data['payload']['csrf_token']
         json_data = self.verify_code('wrong code', csrf_token)
         self.assertEqual(json_data['payload']['message'], 'Wrong code')
 
     def test_proofing_flow(self):
         json_data = self.get_state()
-        csrf_token = json_data['csrf_token']
+        csrf_token = json_data['payload']['csrf_token']
         self.send_letter(self.test_user_nin, csrf_token)
         self.get_state()
         json_data = self.get_state()
-        csrf_token = json_data['csrf_token']
+        csrf_token = json_data['payload']['csrf_token']
         with self.app.test_request_context():
             user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn, raise_on_missing=True)
             proofing_state = self.app.proofing_statedb.get_state_by_eppn(user.eppn, raise_on_missing=False)
+        from nose.tools import set_trace;set_trace()
         json_data = self.verify_code(proofing_state.nin.verification_code, csrf_token)
         self.assertTrue(json_data['payload']['success'])
 
     def test_expire_proofing_state(self):
         json_data = self.get_state()
-        csrf_token = json_data['csrf_token']
+        csrf_token = json_data['payload']['csrf_token']
         self.send_letter(self.test_user_nin, csrf_token)
         json_data = self.get_state()
         self.assertIn('letter_sent', json_data['payload'])
@@ -243,7 +244,7 @@ class LetterProofingTests(EduidAPITestCase):
         # User with no locked_identity
         with self.session_cookie(self.browser, self.test_user_eppn):
             json_data = self.get_state()
-            csrf_token = json_data['csrf_token']
+            csrf_token = json_data['payload']['csrf_token']
             response = self.send_letter(self.test_user_nin, csrf_token)
         self.assertEqual(response['type'], 'POST_LETTER_PROOFING_PROOFING_SUCCESS')
 
@@ -259,7 +260,7 @@ class LetterProofingTests(EduidAPITestCase):
         self.app.central_userdb.save(user, check_sync=False)
         with self.session_cookie(self.browser, self.test_user_eppn):
             json_data = self.get_state()
-            csrf_token = json_data['csrf_token']
+            csrf_token = json_data['payload']['csrf_token']
             response = self.send_letter(self.test_user_nin, csrf_token)
         self.assertEqual(response['type'], 'POST_LETTER_PROOFING_PROOFING_SUCCESS')
 
@@ -276,6 +277,6 @@ class LetterProofingTests(EduidAPITestCase):
         # User with locked_identity and incorrect nin
         with self.session_cookie(self.browser, self.test_user_eppn):
             json_data = self.get_state()
-            csrf_token = json_data['csrf_token']
+            csrf_token = json_data['payload']['csrf_token']
             response = self.send_letter('200102031234', csrf_token)
         self.assertEqual(response['type'], 'POST_LETTER_PROOFING_PROOFING_FAIL')
