@@ -357,7 +357,6 @@ class LetterProofingTests(EduidAPITestCase):
             response = client.post('/remove-nin', data=json.dumps(data), content_type=self.content_type_json)
         rdata = json.loads(response.data)
 
-        from nose.tools import set_trace;set_trace()
         self.assertTrue(rdata['payload']['error'])
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
