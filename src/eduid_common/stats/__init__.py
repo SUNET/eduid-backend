@@ -39,7 +39,7 @@ class Statsd(object):
         self.client = statsd.StatsClient(host, port, prefix=prefix)
 
     def count(self, name, value=1):
-        self.client.incr(name, count=value)
+        self.client.incr('{}.average'.format(name), count=value)
         # You need to set up a storage aggregation that uses sum instead of the default average
         # for .count
         self.client.incr('{}.count'.format(name), count=value)
