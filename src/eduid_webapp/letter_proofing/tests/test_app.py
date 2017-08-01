@@ -357,7 +357,7 @@ class LetterProofingTests(EduidAPITestCase):
             response = client.post('/remove-nin', data=json.dumps(data), content_type=self.content_type_json)
         rdata = json.loads(response.data)
 
-        self.assertTrue(rdata['payload']['error'])
+        self.assertTrue(rdata['payload']['success'])
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def test_not_remove_verified_nin(self, mock_request_user_sync):
