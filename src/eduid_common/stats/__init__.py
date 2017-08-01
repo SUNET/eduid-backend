@@ -40,4 +40,7 @@ class Statsd(object):
 
     def count(self, name, value=1):
         self.client.incr(name, count=value)
+        # You need to set up a storage aggregation that uses sum instead of the default average
+        # for .count
+        self.client.incr('{}.count'.format(name), count=value)
 
