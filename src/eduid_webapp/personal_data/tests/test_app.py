@@ -78,6 +78,34 @@ class AppTests(EduidAPITestCase):
             self.assertEqual(user_data['payload']['display_name'], 'John Smith')
             self.assertEqual(user_data['payload']['language'], 'en')
 
+    def test_get_user_all_data(self):
+        response = self.browser.get('/all-user-data')
+        self.assertEqual(response.status_code, 302)  # Redirect to token service
+
+        eppn = self.test_user_data['eduPersonPrincipalName']
+        with self.session_cookie(self.browser, eppn) as client:
+            response2 = client.get('/all-user-data')
+
+            user_data = json.loads(response2.data)
+            self.assertEqual(user_data['type'],
+                    'GET_PERSONAL_DATA_ALL_USER_DATA_SUCCESS')
+            self.assertEqual(user_data['payload']['given_name'], 'John')
+            self.assertEqual(user_data['payload']['surname'], 'Smith')
+            self.assertEqual(user_data['payload']['display_name'], 'John Smith')
+            self.assertEqual(user_data['payload']['language'], 'en')
+            phones = user_data['payload']['phones']
+            self.assertEqual(len(phones), 2)
+            self.assertEqual(phones[0]['number'], u'+34609609609')
+            self.assertTrue(phones[0]['verified'])
+            nins = user_data['payload']['nins']
+            self.assertEqual(len(nins), 2)
+            self.assertEqual(nins[0]['number'], u'197801011234')
+            self.assertTrue(nins[0]['verified'])
+            emails = user_data['payload']['emails']
+            self.assertEqual(len(emails), 2)
+            self.assertEqual(emails[0]['email'], u'johnsmith@example.com')
+            self.assertTrue(emails[0]['verified'])
+
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def test_post_user(self, mock_request_user_sync):
         mock_request_user_sync.return_value = True
