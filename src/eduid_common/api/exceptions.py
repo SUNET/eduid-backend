@@ -84,7 +84,8 @@ def init_sentry(app):
     if app.config.get('SENTRY_DSN'):
         try:
             from raven.contrib.flask import Sentry
-            app = Sentry(app)
+            sentry = Sentry(dsn=app.config.get('SENTRY_DSN'))
+            sentry.init_app(app)
         except ImportError:
             app.logger.warning('SENTRY_DSN found but Raven not installed.')
             pass
