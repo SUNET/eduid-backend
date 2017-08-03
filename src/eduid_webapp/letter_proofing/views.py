@@ -141,8 +141,12 @@ def remove_nin(user, nin):
     if nin_obj.is_verified:
         return {'_status': 'error', 'error': 'nins.verified_no_rm'}
 
-    else:
+    try:
         rm_nin_from_user(user, nin)
-    return {'success': True,
-            'message': 'nins.success_removal',
-            'nins': user.nins.to_list_of_dicts()}
+        return {'success': True,
+                'message': 'nins.success_removal',
+                'nins': user.nins.to_list_of_dicts()}
+    except AmTaskFailed as e:
+        current_app.logger.error('Removing nin {} for user {} failed'.format(nin, user))
+        current_app.logger.error('{}'.format(e))
+        return {'_status': 'error', 'error': 'technical_problems'}
