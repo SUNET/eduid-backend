@@ -142,6 +142,28 @@ class SupportLetterProofingDB(BaseDB):
         return doc
 
 
+class SupportOidcProofingDB(BaseDB):
+
+    model = models.UserOidcProofing
+
+    def __init__(self, db_uri):
+        db_name = 'eduid_oidc_proofing'
+        collection = 'proofing_data'
+        super(SupportOidcProofingDB, self).__init__(db_uri, db_name, collection)
+
+    def get_proofing_state(self, eppn):
+        """
+        :param eppn: User objects eduPersonPrincipalName property
+        :type eppn: str | unicode
+        :return: A document dict
+        :rtype: dict
+        """
+        doc = self._get_document_by_attr('eduPersonPrincipalName', eppn, raise_on_missing=False)
+        if doc:
+            doc = self.model(doc)
+        return doc
+
+
 class SupportProofingLogDB(BaseDB):
 
     model = models.ProofingLogEntry
