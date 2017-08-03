@@ -144,3 +144,16 @@ class UserLetterProofing(GenericFilterDict):
         super(UserLetterProofing, self).__init__(_data)
         self['nin'] = self.Nin(self['nin'])
         self['proofing_letter'] = self.ProofingLetter(self['proofing_letter'])
+
+
+class UserOidcProofing(GenericFilterDict):
+
+    add_keys = ['nin', 'modified_ts', 'state']
+
+    class Nin(GenericFilterDict):
+        add_keys = ['created_ts', 'number']
+
+    def __init__(self, data):
+        _data = deepcopy(data)
+        super(UserOidcProofing, self).__init__(_data)
+        self['nin'] = self.Nin(self['nin'])
