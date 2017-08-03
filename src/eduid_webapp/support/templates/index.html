@@ -149,8 +149,11 @@
                         </div>
                         <div class="col-md-7">
                             <table class="table table-hover">
-                                <caption>Letter proofing</caption>
+                                <caption>Ongoing proofings</caption>
                                 {% if item.letter_proofing %}
+                                    <tr>
+                                        <th>Letter proofing</th>
+                                    </tr>
                                     <tr>
                                         <th>Letter sent</th><td>{{ item.letter_proofing.proofing_letter.is_sent|default("False") }}</td>
                                     </tr>
@@ -173,7 +176,22 @@
                                             {{ item.letter_proofing.proofing_letter.address.OfficialAddress.PostalCode }} {{ item.letter_proofing.proofing_letter.address.OfficialAddress.City }}
                                         </td>
                                     </tr>
-                                {% else %}
+                                {% endif %}
+                                {% if item.oidc_proofing %}
+                                    <tr>
+                                        <th>OIDC proofing</th>
+                                    </tr>
+                                    <tr>
+                                        <th>Created</th><td>{{ item.oidc_proofing.modified_ts|datetimeformat }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>State ID</th><td>{{ item.oidc_proofing.state }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>National identity number</th><td>{{ item.oidc_proofing.nin.number }}</td>
+                                    </tr>
+                                {% endif %}
+                                {% if not item.letter_proofing and not item.oidc_proofing %}
                                     <tr><td>No data</td></tr>
                                 {% endif %}
                             </table>
