@@ -69,7 +69,6 @@ def rm_nin_from_user(user, nin):
     :return: None
     """
     proofing_user = ProofingUser(data=user.to_dict())
-    # Add nin to user if not already there
     if proofing_user.nins.find(nin):
         current_app.logger.info('Removing NIN {} for user {}'.format(nin, user))
         proofing_user.nins.remove(nin)
@@ -84,7 +83,7 @@ def rm_nin_from_user(user, nin):
                                     '{!r}'.format(proofing_state.to_dict()))
             current_app.proofing_statedb.remove_state(proofing_state)
         # Ask am to sync user to central db
-        current_app.logger.info('Request sync for user {!s}'.format(proofing_user))
+        current_app.logger.debug('Request sync for user {!s}'.format(proofing_user))
         result = current_app.am_relay.request_user_sync(proofing_user)
         current_app.logger.info('Sync result for user {!s}: {!s}'.format(proofing_user, result))
 
