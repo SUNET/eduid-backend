@@ -42,8 +42,20 @@ from eduid_webapp.personal_data.schemas import PersonalDataResponseSchema
 from eduid_webapp.personal_data.schemas import PersonalDataRequestSchema
 from eduid_webapp.personal_data.schemas import PersonalDataSchema
 from eduid_webapp.personal_data.schemas import NinListSchema, NinsResponseSchema
+from eduid_webapp.personal_data.schemas import AllDataResponseSchema, AllDataSchema
+from eduid_webapp.security.schemas import CredentialList
 
 pd_views = Blueprint('personal_data', __name__, url_prefix='')
+
+
+@pd_views.route('/all-user-data', methods=['GET'])
+@MarshalWith(AllDataResponseSchema)
+@require_dashboard_user
+def get_all_data(user):
+
+    data = user.to_dict()
+
+    return AllDataSchema().dump(data).data
 
 
 @pd_views.route('/user', methods=['GET'])
