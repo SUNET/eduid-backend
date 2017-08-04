@@ -5,7 +5,7 @@ from __future__ import absolute_import
 from flask import Blueprint, current_app
 
 from eduid_common.api.decorators import require_user, can_verify_identity, MarshalWith, UnmarshalWith
-from eduid_common.api.helpers import add_nin_to_user, verify_nin_for_user
+from eduid_common.api.helpers import add_nin_to_user, verify_nin_for_user, rm_nin_from_user
 from eduid_common.api.exceptions import AmTaskFailed, MsgTaskFailed
 from eduid_userdb.proofing import ProofingUser
 from eduid_userdb.logs import LetterProofing
@@ -29,7 +29,7 @@ def get_state(user):
     if proofing_state:
         current_app.logger.info('Found proofing state for user {}'.format(user))
         return check_state(proofing_state)
-    return {}
+    return {'_status': 'error', 'error': 'letter.no_state_found'}
 
 
 @letter_proofing_views.route('/proofing', methods=['POST'])
@@ -49,6 +49,8 @@ def proofing(user, nin):
 
     if proofing_state.proofing_letter.is_sent:
         current_app.logger.info('User {!r} has already sent a letter'.format(user))
+        current_app.logger.info('This is the proofing state: '
+                                '{!r}'.format(proofing_state.to_dict()))
         return check_state(proofing_state)
 
     try:
@@ -88,7 +90,7 @@ def proofing(user, nin):
 @UnmarshalWith(schemas.VerifyCodeRequestSchema)
 @MarshalWith(schemas.VerifyCodeResponseSchema)
 @require_user
-def verify_code(user, verification_code):
+def verify_code(user, code):
     user = ProofingUser(data=user.to_dict())
     current_app.logger.info('Verifying code for user {}'.format(user))
     proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn, raise_on_missing=False)
@@ -97,7 +99,7 @@ def verify_code(user, verification_code):
         return {'_status': 'error', 'message': 'No proofing state found'}
 
     # Check if provided code matches the one in the letter
-    if not verification_code == proofing_state.nin.verification_code:
+    if not code == proofing_state.nin.verification_code:
         current_app.logger.error('Verification code for user {} does not match'.format(user))
         # TODO: Throttling to discourage an adversary to try brute force
         return {'_status': 'error', 'message': 'Wrong code'}
@@ -119,8 +121,32 @@ def verify_code(user, verification_code):
         current_app.logger.info('Verified code for user {}'.format(user))
         # Remove proofing state
         current_app.proofing_statedb.remove_state(proofing_state)
-        return {'success': True}
+        return {'success': True,
+                'message': 'letter.verification_success',
+                'nins': user.nins.to_list_of_dicts()}
     except AmTaskFailed as e:
         current_app.logger.error('Verifying nin for user {} failed'.format(user))
+        current_app.logger.error('{}'.format(e))
+        return {'_status': 'error', 'error': 'technical_problems'}
+
+
+@letter_proofing_views.route('/remove-nin', methods=['POST'])
+@UnmarshalWith(schemas.LetterProofingRequestSchema)
+@MarshalWith(schemas.VerifyCodeResponseSchema)
+@require_user
+def remove_nin(user, nin):
+    current_app.logger.info('Removing NIN {} for user {}'.format(nin, user))
+
+    nin_obj = user.nins.find(nin)
+    if nin_obj.is_verified:
+        return {'_status': 'error', 'error': 'nins.verified_no_rm'}
+
+    try:
+        rm_nin_from_user(user, nin)
+        return {'success': True,
+                'message': 'nins.success_removal',
+                'nins': user.nins.to_list_of_dicts()}
+    except AmTaskFailed as e:
+        current_app.logger.error('Removing nin {} for user {} failed'.format(nin, user))
         current_app.logger.error('{}'.format(e))
         return {'_status': 'error', 'error': 'technical_problems'}
