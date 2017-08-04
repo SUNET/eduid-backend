@@ -75,17 +75,12 @@ def rm_nin_from_user(user, nin):
         proofing_user.modified_ts = True
         # Save user to private db
         current_app.proofing_userdb.save(proofing_user, check_sync=False)
-
-        proofing_state = current_app.proofing_statedb.get_state_by_eppn(proofing_user.eppn, raise_on_missing=False)
-
-        if proofing_state and proofing_state.nin.number == nin:
-            current_app.logger.info('Removing proofing state: '
-                                    '{!r}'.format(proofing_state.to_dict()))
-            current_app.proofing_statedb.remove_state(proofing_state)
         # Ask am to sync user to central db
         current_app.logger.debug('Request sync for user {!s}'.format(proofing_user))
         result = current_app.am_relay.request_user_sync(proofing_user)
         current_app.logger.info('Sync result for user {!s}: {!s}'.format(proofing_user, result))
+    else:
+        current_app.logger.info("Can't remove NIN - user {} has no NIN {}".format(user, nin))
 
 
 def verify_nin_for_user(user, proofing_state, proofing_log_entry):
