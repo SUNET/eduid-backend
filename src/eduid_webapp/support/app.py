@@ -62,6 +62,7 @@ def support_init_app(name, config):
     app.support_signup_db = db.SupportSignupUserDB(app.config['MONGO_URI'])
     app.support_actions_db = db.SupportActionsDB(app.config['MONGO_URI'])
     app.support_letter_proofing_db = db.SupportLetterProofingDB(app.config['MONGO_URI'])
+    app.support_oidc_proofing_db = db.SupportOidcProofingDB(app.config['MONGO_URI'])
 
     register_template_funcs(app)
 
