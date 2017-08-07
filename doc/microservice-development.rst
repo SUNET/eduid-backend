@@ -421,7 +421,7 @@ For the internalization of the react apps we use react-intl and
 babel-plugin-react-intl, that hooks message extraction with the webpack build
 process. The messages are added by the developer at
 ``react/src/i18n-messages.js``, and are stored in ``react/i18n``, and the translations
-are stored in ``react/i18n/l10n/<lang>.js``. Unfortunately this framework does not
+are stored in ``react/i18n/l10n/<lang>.json``. Unfortunately this framework does not
 follow the gettext standard, and thus cannot be used with transifex.
 
 An example of an internationalized formatted message::
