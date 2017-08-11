@@ -88,6 +88,7 @@ class NinsResponseSchema(FluxStandardAction):
 
 
 class AllDataSchema(EduidSchema):
+    eppn = fields.String(required=True, attribute='eduPersonPrincipalName')
     given_name = fields.String(required=True, attribute='givenName')
     surname = fields.String(required=True)
     display_name = fields.String(required=True, attribute='displayName')
@@ -99,6 +100,7 @@ class AllDataSchema(EduidSchema):
 
 
 class AllDataResponseSubSchema(EduidSchema, CSRFResponseMixin):
+    eppn = fields.String(required=True)
     given_name = fields.String(required=True)
     surname = fields.String(required=True)
     display_name = fields.String(required=True)
