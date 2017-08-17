@@ -35,7 +35,7 @@ from time import time
 import os
 import binascii
 
-from flask import request
+from flask import request, current_app
 from flask.sessions import SessionInterface
 
 from eduid_common.session.session import SessionManager
@@ -259,17 +259,23 @@ class SessionFactory(SessionInterface):
         except KeyError:
             return None
         token = request.cookies.get(cookie_name, None)
+        current_app.logger.debug('Session cookie {} == {}'.format(cookie_name, token))
         if token is None:
             # New session
             base_session = self.manager.get_session(data={})
             session = Session(app, base_session, new=True)
+            current_app.logger.debug('Created new session {}'.format(session))
         else:
             # Existing session
             try:
                 base_session = self.manager.get_session(token=token)
                 session = Session(app, base_session, new=False)
+                current_app.logger.debug('Loaded existing session {}'.format(session))
             except KeyError:
-                raise NoSessionDataFoundException('No session data found')
+                base_session = self.manager.get_session(data = {})
+                session = Session(app, base_session, new = True)
+                current_app.logger.warning('Re-created missing session {}'.format(session))
+                #raise NoSessionDataFoundException('No session data found')
 
         return session
 

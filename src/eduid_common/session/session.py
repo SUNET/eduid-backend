@@ -236,7 +236,10 @@ class Session(collections.MutableMapping):
             # Fetch session from self.conn (Redis)
             _encrypted_data = self.conn.get(self.session_id)
             if not _encrypted_data:
+                logger.debug('Session not found: {!r}'.format(self.session_id))
                 raise KeyError('Session not found: {!r}'.format(self.session_id))
+        else:
+            logger.debug('Creating new session with session_id {} and token {}'.format(session_id, token))
 
         _nacl_key = derive_key(self.app_secret, _bin_session_id, b'nacl', nacl.secret.SecretBox.KEY_SIZE)
         self.nacl_box = nacl.secret.SecretBox(_nacl_key)
@@ -257,7 +260,7 @@ class Session(collections.MutableMapping):
                 continue
             self._data[k] = v
 
-        logger.info('Created session with session_id %s and token %s' % (self.session_id, self.token))
+        logger.info('Instantiated session with session_id {} and token {}'.format(self.session_id, self.token))
 
     def _init_token_and_session_id(self, token, session_id):
         """
