@@ -11,7 +11,7 @@ apt-get -y dist-upgrade
 apt-get -y install \
     libffi-dev \
     libtiff5-dev \
-    libjpeg8-dev \
+    libjpeg62-turbo-dev \
     zlib1g-dev \
     libfreetype6-dev \
     libssl-dev \
