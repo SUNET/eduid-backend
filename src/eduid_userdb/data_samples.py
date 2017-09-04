@@ -155,6 +155,12 @@ NEW_USER_EXAMPLE = {
         'urn:mace:eduid.se:role:admin',
         'urn:mace:eduid.se:role:student',
     ],
+    'locked_identity': [{
+        'identity_type': 'nin',
+        'number': '197801011234',
+        'created_by': 'dashboard',
+        'created_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"),
+    }]
 }
 
 
@@ -175,7 +181,7 @@ NEW_SIGNUP_USER_EXAMPLE.update({
 
 NEW_COMPLETED_SIGNUP_USER_EXAMPLE = deepcopy(NEW_USER_EXAMPLE)
 NEW_COMPLETED_SIGNUP_USER_EXAMPLE.update({
-    '_id': ObjectId('012345678901234567890123'),
+    '_id': ObjectId('000000000000000000000002'),
     'nins': [],
     'mailAliases': [
         {
@@ -207,7 +213,17 @@ NEW_COMPLETED_SIGNUP_USER_EXAMPLE.update({
     ],
     'eduPersonPrincipalName': 'hubba-fooo',
     'modified_ts': datetime.strptime("2017-01-04T16:47:30", "%Y-%m-%dT%H:%M:%S"),
-    'subject': 'physical person'
+    'subject': 'physical person',
+    'locked_identity': []
 })
 
 NEW_DASHBOARD_USER_EXAMPLE = deepcopy(NEW_USER_EXAMPLE)
+
+NEW_UNVERIFIED_USER_EXAMPLE = deepcopy(NEW_USER_EXAMPLE)
+NEW_UNVERIFIED_USER_EXAMPLE.update({
+    '_id': ObjectId('000000000000000000000003'),
+    'eduPersonPrincipalName': 'hubba-baar',
+    'nins': [],
+    'phone': [],
+    'locked_identity': []
+})
