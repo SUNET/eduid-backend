@@ -24,7 +24,7 @@ class OidcProofingTests(EduidAPITestCase):
 
     def setUp(self):
 
-        self.test_user_eppn = 'hubba-bubba'
+        self.test_user_eppn = 'hubba-baar'
         self.test_user_nin = '200001023456'
         self.mock_address = OrderedDict([
             (u'Name', OrderedDict([
@@ -152,7 +152,7 @@ class OidcProofingTests(EduidAPITestCase):
             response = json.loads(browser.get('/freja/proofing').data)
         self.assertEqual(response['type'], 'GET_OIDC_PROOFING_FREJA_PROOFING_SUCCESS')
         jwk = {'k': self.app.config['FREJA_JWK_SECRET'].decode('hex')}
-        jwt = response['payload']['iaRequestData']
+        jwt = str(response['payload']['iaRequestData'])
         request_data = jose.verify(jose.deserialize_compact(jwt), jwk, alg=self.app.config['FREJA_JWS_ALGORITHM'])
         expected = {
             'iarp': 'TESTRP',
