@@ -224,6 +224,5 @@ NEW_UNVERIFIED_USER_EXAMPLE.update({
     '_id': ObjectId('000000000000000000000003'),
     'eduPersonPrincipalName': 'hubba-baar',
     'nins': [],
-    'phone': [],
     'locked_identity': []
 })
