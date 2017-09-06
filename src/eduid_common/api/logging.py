@@ -3,19 +3,19 @@
 from __future__ import absolute_import
 
 import logging
+from logging import StreamHandler
 from logging.handlers import RotatingFileHandler
+# from flask.logging import default_handler  # Flask 0.13
 from eduid_common.api.exceptions import BadConfiguration
 
 __author__ = 'lundberg'
 
 
-def rotating(app, root_logger):
+def rotating(app):
     """
     :param app: Flask app
-    :param root_logger: Catch all logger object
 
     :type app: flask.app.Flask
-    :type root_logger: logging.Logger
 
     :return: Flask app with rotating log handler
     :rtype: flask.app.Flask
@@ -40,8 +40,32 @@ def rotating(app, root_logger):
             handler.setLevel(app.config['LOG_LEVEL'])
             formatter = logging.Formatter(app.config['LOG_FORMAT'])
             handler.setFormatter(formatter)
-            root_logger.addHandler(handler)
+            app.logger.addHandler(handler)
             app.logger.info('Rotating log handler initiated')
+        except AttributeError as e:
+            raise BadConfiguration(e.message)
+    return app
+
+
+def stream(app):
+    """
+    :param app: Flask app
+
+    :type app: flask.app.Flask
+
+    :return: Flask app with rotating log handler
+    :rtype: flask.app.Flask
+    """
+    app.config.setdefault('LOG_FORMAT', '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+    if app.config['LOG_FILE']:
+        try:
+            handler = StreamHandler()
+            handler.setLevel(app.config['LOG_LEVEL'])
+            formatter = logging.Formatter(app.config['LOG_FORMAT'])
+            handler.setFormatter(formatter)
+            app.logger.addHandler(handler)
+            app.logger.info('Stream log handler initiated')
         except AttributeError as e:
             raise BadConfiguration(e.message)
     return app
@@ -55,14 +79,14 @@ def init_logging(app):
     :rtype: flask.app.Flask
     """
     app.config.setdefault('LOG_LEVEL', 'INFO')
-    app.config.setdefault('LOG_TYPE', ['rotating'])
-    root_logger = logging.getLogger()
-    root_logger.setLevel(app.config['LOG_LEVEL'])
+    app.config.setdefault('LOG_TYPE', ['stream'])
+
+    app.logger.setLevel(app.config['LOG_LEVEL'])
+    # app.logger.removeHandler(default_handler)  # Flask 0.13
+    app.logger.handlers = []
 
     for log_type in app.config['LOG_TYPE']:
         init_handler = globals().get(log_type)
         if init_handler:
-            app = init_handler(app, root_logger)
+            app = init_handler(app)
     return app
-
-
