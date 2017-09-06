@@ -34,6 +34,7 @@ import os
 import time
 import json
 import base64
+from hashlib import sha256
 
 from werkzeug.exceptions import NotFound
 from werkzeug.http import dump_cookie
@@ -41,6 +42,8 @@ from flask import session
 from flask import Blueprint
 from saml2.s_utils import deflate_and_base64_encode
 
+from eduid_userdb.user import User
+from eduid_userdb.data_samples import NEW_COMPLETED_SIGNUP_USER_EXAMPLE
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.authn.cache import OutstandingQueriesCache
 from eduid_common.authn.utils import get_location, no_authn_views
@@ -70,6 +73,9 @@ class AuthnAPITestBase(EduidAPITestCase):
             'SAML2_LOGIN_REDIRECT_URL': '/',
             'SAML2_LOGOUT_REDIRECT_URL': '/logged-out',
             'SAML2_SETTINGS_MODULE': saml_config,
+            'TOKEN_LOGIN_SHARED_KEY': 'shared_secret',
+            'TOKEN_LOGIN_SUCCESS_REDIRECT_URL': 'http://test.localhost/success',
+            'TOKEN_LOGIN_FAILURE_REDIRECT_URL': 'http://test.localhost/failure'
             })
         return config
 
@@ -124,8 +130,8 @@ class AuthnAPITestBase(EduidAPITestCase):
         saml_response = auth_response(session_id, eppn)
 
         with self.app.test_request_context('/saml2-acs', method='POST',
-                                headers={'Cookie': cookie},
-                                    data={'SAMLResponse': base64.b64encode(saml_response),
+                                           headers={'Cookie': cookie},
+                                           data={'SAMLResponse': base64.b64encode(saml_response),
                                                  'RelayState': came_from}):
 
             response1 = self.app.dispatch_request()
@@ -204,6 +210,14 @@ class AuthnAPITestCase(AuthnAPITestBase):
     """
     Tests to check the different modes of authentication.
     """
+
+    def init_data(self):
+        """
+        Called from the parent class, so we can extend data initialized.
+        """
+        test_user = User(data=NEW_COMPLETED_SIGNUP_USER_EXAMPLE)  # eppn hubba-fooo
+        self.app.central_userdb.save(test_user, check_sync=False)
+
     def test_login_authn(self):
         self.authn('/login')
 
@@ -243,6 +257,44 @@ class AuthnAPITestCase(AuthnAPITestBase):
             self.assertTrue(now - then < 5)
 
         self.acs('/terminate', eppn, _check)
+
+    def test_token_login_new_user(self):
+        eppn = 'hubba-fooo'
+        shared_key = self.app.config['TOKEN_LOGIN_SHARED_KEY']
+        timestamp = '{:x}'.format(int(time.time()))
+        nonce = os.urandom(16).encode('hex')
+        token = sha256("{0}|{1}|{2}|{3}".format(shared_key, eppn, nonce, timestamp)).hexdigest()
+
+        data = {
+            'eppn': eppn,
+            'token': token,
+            'nonce': nonce,
+            'ts': timestamp
+        }
+
+        with self.app.test_client() as c:
+            resp = c.post('/token-login', data=data)
+            self.assertEqual(resp.status_code, 302)
+            self.assertTrue(resp.location.startswith(self.app.config['TOKEN_LOGIN_SUCCESS_REDIRECT_URL']))
+
+    def test_token_login_old_user(self):
+        eppn = 'hubba-bubba'
+        shared_key = self.app.config['TOKEN_LOGIN_SHARED_KEY']
+        timestamp = '{:x}'.format(int(time.time()))
+        nonce = os.urandom(16).encode('hex')
+        token = sha256("{0}|{1}|{2}|{3}".format(shared_key, eppn, nonce, timestamp)).hexdigest()
+
+        data = {
+            'eppn': eppn,
+            'token': token,
+            'nonce': nonce,
+            'ts': timestamp
+        }
+
+        with self.app.test_client() as c:
+            resp = c.post('/token-login', data=data)
+            self.assertEqual(resp.status_code, 302)
+            self.assertTrue(resp.location.startswith(self.app.config['TOKEN_LOGIN_FAILURE_REDIRECT_URL']))
 
 
 class UnAuthnAPITestCase(EduidAPITestCase):
