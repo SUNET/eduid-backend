@@ -162,10 +162,10 @@ def seleg_proofing(user, nin):
             success = helpers.do_authn_request(proofing_state, claims_request, redirect_url)
             if not success:
                 current_app.stats.count(name='seleg.authn_request_op_error')
-                return {'_status': 'error', 'error': 'Temporary technical problems'}
+                return {'_status': 'error', 'message': 'Temporary technical problems'}
         except requests.exceptions.ConnectionError as e:
             current_app.logger.error('No connection to authorization endpoint: {!s}'.format(e))
-            return {'_status': 'error', 'error': 'No connection to authorization endpoint'}
+            return {'_status': 'error', 'message': 'No connection to authorization endpoint'}
 
         # If authentication request went well save user state
         current_app.stats.count(name='seleg.authn_request_success')
@@ -233,10 +233,10 @@ def freja_proofing(user, nin):
             success = helpers.do_authn_request(proofing_state, claims_request, redirect_url)
             if not success:
                 current_app.stats.count(name='freja.authn_request_op_error')
-                return {'_status': 'error', 'error': 'Temporary technical problems'}
+                return {'_status': 'error', 'message': 'Temporary technical problems'}
         except requests.exceptions.ConnectionError as e:
             current_app.logger.error('No connection to authorization endpoint: {!s}'.format(e))
-            return {'_status': 'error', 'error': 'No connection to authorization endpoint'}
+            return {'_status': 'error', 'message': 'No connection to authorization endpoint'}
 
         # If authentication request went well save user state
         current_app.stats.count(name='freja.authn_request_success')

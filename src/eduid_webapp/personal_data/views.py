@@ -54,6 +54,7 @@ pd_views = Blueprint('personal_data', __name__, url_prefix='')
 def get_all_data(user):
 
     data = user.to_dict()
+    data['message'] = 'pd.all-data-success'
 
     return AllDataSchema().dump(data).data
 
@@ -67,7 +68,8 @@ def get_user(user):
         'given_name': user.given_name,
         'surname': user.surname,
         'display_name': user.display_name,
-        'language': user.language
+        'language': user.language,
+        'message': 'pd.pdata-success'
     }
 
     return PersonalDataRequestSchema().dump(data).data
@@ -95,7 +97,9 @@ def post_user(user, given_name, surname, display_name, language):
     current_app.stats.count(name='personal_data_saved', value=1)
     current_app.logger.info('Saved personal data for user {!r}'.format(user))
 
-    return PersonalDataSchema().dump(user.to_dict()).data
+    data = user.to_dict()
+    data['message'] = 'pd.save-success'
+    return PersonalDataSchema().dump(data).data
 
 
 @pd_views.route('/nins', methods=['GET'])
@@ -104,7 +108,8 @@ def post_user(user, given_name, surname, display_name, language):
 def get_nins(user):
 
     data = {
-        'nins': user.nins.to_list_of_dicts()
+        'nins': user.nins.to_list_of_dicts(),
+        'message': 'pd.get-nins-success'
     }
 
     return NinListSchema().dump(data).data

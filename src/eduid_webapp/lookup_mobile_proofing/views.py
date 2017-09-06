@@ -40,25 +40,25 @@ def proofing(user, nin):
     # Get list of verified mobile numbers
     verified_mobiles = [item.number for item in user.phone_numbers.to_list() if item.is_verified]
     if not verified_mobiles:
-        return {'_status': 'error', 'error': 'no_phone'}
+        return {'_status': 'error', 'message': 'no_phone'}
 
     try:
         success, proofing_log_entry = match_mobile_to_user(user, nin, verified_mobiles)
     except LookupMobileTaskFailed:
         current_app.stats.count('validate_nin_by_mobile_error')
-        return {'_status': 'error', 'error': 'error_lookup_mobile_task'}
+        return {'_status': 'error', 'message': 'error_lookup_mobile_task'}
     except MsgTaskFailed:
         current_app.stats.count('navet_error')
-        return {'_status': 'error', 'error': 'error_navet_task'}
+        return {'_status': 'error', 'message': 'error_navet_task'}
 
     if success:
         try:
             # Verify nin for user
             verify_nin_for_user(user, proofing_state, proofing_log_entry)
-            return {'success': True}
+            return {'success': True, 'message': 'letter.verification_success'}
         except AmTaskFailed as e:
             current_app.logger.error('Verifying nin for user {} failed'.format(user))
             current_app.logger.error('{}'.format(e))
-            return {'_status': 'error', 'error': 'technical_problems'}
+            return {'_status': 'error', 'message': 'Temporary technical problems'}
 
-    return {'success': False, 'message': 'no_match'}
+    return {'_status': 'error', 'message': 'nins.no-mobile-match'}

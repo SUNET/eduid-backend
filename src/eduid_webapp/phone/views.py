@@ -105,7 +105,10 @@ def post_phone(user, number, verified, primary):
     send_verification_code(user, number)
     current_app.stats.count(name='mobile_send_verification_code', value=1)
 
-    phones = {'phones': user.phone_numbers.to_list_of_dicts()}
+    phones = {
+            'phones': user.phone_numbers.to_list_of_dicts(),
+            'message': 'phones.save-success'
+            }
     return PhoneListPayload().dump(phones).data
 
 
@@ -130,7 +133,7 @@ def post_primary(user, number):
                                  ' {!r}, data out of sync'.format(number, user))
         return {
             '_status': 'error',
-            'error': {'form': 'out_of_sync'}
+            'message': 'user-out-of-sync'
         }
 
     if not phone_element.is_verified:
@@ -138,7 +141,7 @@ def post_primary(user, number):
                                  ' {!r}, mobile unconfirmed'.format(number, user))
         return {
             '_status': 'error',
-            'error': {'form': 'phones.unconfirmed_number_not_primary'}
+            'message': 'phones.unconfirmed_number_not_primary'
         }
 
     user.phone_numbers.primary = phone_element.number
@@ -149,13 +152,16 @@ def post_primary(user, number):
                                  ' {!r}, data out of sync'.format(number, user))
         return {
             '_status': 'error',
-            'error': {'form': 'out_of_sync'}
+            'message': 'user-out-of-sync'
         }
     current_app.logger.info('Mobile {!r} made primary '
                             'for user {!r}'.format(number, user))
     current_app.stats.count(name='mobile_set_primary', value=1)
 
-    phones = {'phones': user.phone_numbers.to_list_of_dicts()}
+    phones = {
+            'phones': user.phone_numbers.to_list_of_dicts(),
+            'message': 'phones.primary-success'
+            }
     return PhoneListPayload().dump(phones).data
 
 
@@ -182,7 +188,7 @@ def verify(user, code, number):
         current_app.logger.debug(msg)
         return {
             '_status': 'error',
-            'error': {'form': 'phones.code_expired'}
+            'message': 'phones.code_expired_send_new'
         }
 
     if code != state.verification.verification_code:
@@ -190,7 +196,7 @@ def verify(user, code, number):
         current_app.logger.debug(msg)
         return {
             '_status': 'error',
-            'error': {'form': 'phones.code_invalid'}
+            'message': 'phones.code_invalid'
         }
 
     current_app.verifications_db.remove_state(state)
@@ -215,13 +221,16 @@ def verify(user, code, number):
                                  ' {!r}, data out of sync'.format(number, user))
         return {
             '_status': 'error',
-            'error': {'form': 'out_of_sync'}
+            'message': 'user-out-of-sync'
         }
     current_app.logger.info('Mobile {!r} confirmed '
                             'for user {!r}'.format(number, user))
     current_app.stats.count(name='mobile_verify_success', value=1)
 
-    phones = {'phones': user.phone_numbers.to_list_of_dicts()}
+    phones = {
+            'phones': user.phone_numbers.to_list_of_dicts(),
+            'message': 'phones.verification-success'
+            }
     return PhoneListPayload().dump(phones).data
 
 
@@ -244,7 +253,7 @@ def post_remove(user, number):
         current_app.logger.debug(msg)
         return {
             '_status': 'error',
-            'error': {'form': 'phones.cannot_remove_unique'}
+            'message': 'phones.cannot_remove_unique'
         }
 
     try:
@@ -261,14 +270,17 @@ def post_remove(user, number):
                                  ' {!r}, data out of sync'.format(number, user))
         return {
             '_status': 'error',
-            'error': {'form': 'out_of_sync'}
+            'message': 'user-out-of-sync'
         }
 
     current_app.logger.info('Mobile {!r} removed '
                             'for user {!r}'.format(number, user))
     current_app.stats.count(name='mobile_remove_success', value=1)
 
-    phones = {'phones': user.phone_numbers.to_list_of_dicts()}
+    phones = {
+            'phones': user.phone_numbers.to_list_of_dicts(),
+            'message': 'phones.removal-success'
+            }
     return PhoneListPayload().dump(phones).data
 
 
@@ -290,7 +302,7 @@ def resend_code(user, number):
         current_app.logger.warning('Unknown phone in resend_code_action, user {!s}'.format(user))
         return {
             '_status': 'error',
-            'error': {'form': 'out_of_sync'}
+            'message': 'user-out-of-sync'
         }
 
     send_verification_code(user, number)
@@ -298,5 +310,8 @@ def resend_code(user, number):
                              'mobile {!r} for user {!r}'.format(number, user))
     current_app.stats.count(name='mobile_resend_code', value=1)
 
-    phones = {'phones': user.phone_numbers.to_list_of_dicts()}
+    phones = {
+            'phones': user.phone_numbers.to_list_of_dicts(),
+            'message': 'phones.code-sent'
+            }
     return PhoneListPayload().dump(phones).data
