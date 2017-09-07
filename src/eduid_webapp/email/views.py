@@ -78,7 +78,7 @@ def post_email(user, email, verified, primary):
     except DuplicateElementViolation:
         return {
             '_status': 'error',
-            'message':  'emails.duplicated'}
+            'message':  'emails.duplicated'
         }
 
     try:
