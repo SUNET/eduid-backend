@@ -56,7 +56,7 @@ security_views = Blueprint('security', __name__, url_prefix='', template_folder=
 def error(err):
     return {
         '_status': 'error',
-        'error': {'form': err}
+        'message': str(err)
         }
 
 
@@ -133,9 +133,9 @@ def change_password(user, old_password, new_password):
         try:
             save_dashboard_user(user)
         except UserOutOfSync:
-            return error('out_of_sync')
+            return error('user-out-of-sync')
     else:
-        return error('chpass.unknown_error')
+        return error('Temporary technical problems')
 
     current_app.stats.count(name='security_password_changed', value=1)
     current_app.logger.info('Changed password for user {!r}'.format(user.eppn))
@@ -143,7 +143,8 @@ def change_password(user, old_password, new_password):
     next_url = current_app.config.get('DASHBOARD_URL', '/profile')
     credentials = {
         'next_url': next_url,
-        'credentials': current_app.authninfo_db.get_authn_info(user)
+        'credentials': current_app.authninfo_db.get_authn_info(user),
+        'message': 'chpass.password-changed'
         }
 
     return CredentialList().dump(credentials).data
@@ -213,7 +214,7 @@ def account_terminated(user):
     try:
         save_dashboard_user(user)
     except UserOutOfSync:
-        return error('out_of_sync')
+        return error('user-out-of-sync')
 
     current_app.stats.count(name='security_account_terminated', value=1)
     current_app.logger.info('Terminated account for user {!r}'.format(user))
@@ -223,7 +224,8 @@ def account_terminated(user):
 
     session.invalidate()
 
-    return redirect('https://eduid.se/')
+    site_url = current_app.config.get("site.url", "http://eduid.se")
+    return redirect(site_url)
 
 
 def send_termination_mail(user):

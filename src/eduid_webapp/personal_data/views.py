@@ -52,11 +52,7 @@ pd_views = Blueprint('personal_data', __name__, url_prefix='')
 @MarshalWith(AllDataResponseSchema)
 @require_dashboard_user
 def get_all_data(user):
-
-    data = user.to_dict()
-    data['message'] = 'pd.all-data-success'
-
-    return AllDataSchema().dump(data).data
+    return AllDataSchema().dump(user.to_dict()).data
 
 
 @pd_views.route('/user', methods=['GET'])
@@ -68,8 +64,7 @@ def get_user(user):
         'given_name': user.given_name,
         'surname': user.surname,
         'display_name': user.display_name,
-        'language': user.language,
-        'message': 'pd.pdata-success'
+        'language': user.language
     }
 
     return PersonalDataRequestSchema().dump(data).data
@@ -108,8 +103,7 @@ def post_user(user, given_name, surname, display_name, language):
 def get_nins(user):
 
     data = {
-        'nins': user.nins.to_list_of_dicts(),
-        'message': 'pd.get-nins-success'
+        'nins': user.nins.to_list_of_dicts()
     }
 
     return NinListSchema().dump(data).data
