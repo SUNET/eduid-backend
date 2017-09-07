@@ -3,12 +3,28 @@
 from __future__ import absolute_import
 
 import logging
+import time
 from logging import StreamHandler
 from logging.handlers import RotatingFileHandler
 # from flask.logging import default_handler  # Flask 0.13
 from eduid_common.api.exceptions import BadConfiguration
 
 __author__ = 'lundberg'
+
+
+# Default to RFC3339/ISO 8601 with tz
+class EduidFormatter(logging.Formatter):
+    def formatTime(self, record, datefmt=None):
+        ct = self.converter(record.created)
+        if datefmt:
+            s = time.strftime(datefmt, ct)
+        else:
+            t = time.strftime('%Y-%m-%dT%H:%M:%S', ct)
+            tz = time.strftime('%z', ct)  # Can evaluate to empty string
+            if tz:
+                tz = '{0}:{1}'.format(tz[:3], tz[3:])  # Need colon to follow the rfc/iso
+            s = '{}.{:3.0f}{}'.format(t, record.msecs, tz)
+        return s
 
 
 def rotating(app):
@@ -38,7 +54,7 @@ def rotating(app):
             handler = RotatingFileHandler(app.config['LOG_FILE'], maxBytes=app.config['LOG_MAX_BYTES'],
                                           backupCount=app.config['LOG_BACKUP_COUNT'])
             handler.setLevel(app.config['LOG_LEVEL'])
-            formatter = logging.Formatter(app.config['LOG_FORMAT'])
+            formatter = EduidFormatter(app.config['LOG_FORMAT'])
             handler.setFormatter(formatter)
             app.logger.addHandler(handler)
             app.logger.info('Rotating log handler initiated')
@@ -62,7 +78,7 @@ def stream(app):
         try:
             handler = StreamHandler()
             handler.setLevel(app.config['LOG_LEVEL'])
-            formatter = logging.Formatter(app.config['LOG_FORMAT'])
+            formatter = EduidFormatter(app.config['LOG_FORMAT'])
             handler.setFormatter(formatter)
             app.logger.addHandler(handler)
             app.logger.info('Stream log handler initiated')
