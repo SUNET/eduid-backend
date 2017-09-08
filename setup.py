@@ -3,14 +3,10 @@
 from setuptools import setup, find_packages
 import sys
 
-version = '0.2.1b6'
+version = '0.2.1b7'
 
-requires = [
-    'eduid-common[webapp]>=0.3.0b10',
-    'eduid-am>=0.6.2b2',
-    'Flask>=0.10.1,<0.12',
-    'Flask-Babel>=0.11.1',
-]
+# Use requirements files
+requires = []
 
 test_requires = [
     'WebTest==2.0.18',
