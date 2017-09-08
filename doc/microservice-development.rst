@@ -481,6 +481,20 @@ To add a new configuration parameter for the react apps, it has to be added in
  * This default can be overriden with a setting for etcd, added in the file
    `eduid-developer/etcd/conf.yaml`, under the key `/eduid/webapp/jsapps`.
 
+Initial configuration
+.....................
+
+There are some configuration parameters that have to be injected into the js
+app before it is sent to the client. For example, the URL for the configuration
+service that will provide all the rest of the configuration,
+``EDUID_CONFIG_URL``, or the name of the authn cookie and the URL for the authn
+service, ``EDUID_COOKIE_NAME`` and ``EDUID_AUTHN_URL``. These are added to the
+webpack configuration, as a plugin created as a DefinePlugin object. The
+variables defined in this way are added by webpack as global variables, so it's
+convenient to prefix them with ``EDUID_``. Also, the string value provided to
+webpack is evaled, so to add an actual string value, it has to be twice quoted.
+
+
 Development of a component
 ..........................
 
