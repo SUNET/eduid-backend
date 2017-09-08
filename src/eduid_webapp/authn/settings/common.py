@@ -12,3 +12,7 @@ required_loa = {
     'helpdesk': 'http://www.swamid.se/policy/assurance/al2',
     'admin': 'http://www.swamid.se/policy/assurance/al3',
 }  # Should be changed to uppercase
+
+TOKEN_LOGIN_SHARED_KEY = None
+TOKEN_LOGIN_SUCCESS_REDIRECT_URL = "https://dashboard.eduid.se"
+TOKEN_LOGIN_FAILURE_REDIRECT_URL = "https://dashboard.eduid.se"

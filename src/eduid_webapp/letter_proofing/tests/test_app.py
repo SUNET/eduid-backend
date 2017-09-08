@@ -3,14 +3,13 @@
 from __future__ import absolute_import
 
 from os import devnull
-from copy import deepcopy
 import json
 from datetime import datetime
 from collections import OrderedDict
 from mock import patch
 from bson import ObjectId
 
-from eduid_userdb.data_samples import NEW_USER_EXAMPLE
+from eduid_userdb.data_samples import NEW_UNVERIFIED_USER_EXAMPLE
 from eduid_userdb.user import User
 from eduid_userdb.locked_identity import LockedIdentityNin
 from eduid_userdb.nin import Nin
@@ -26,7 +25,7 @@ class LetterProofingTests(EduidAPITestCase):
     def setUp(self):
         super(LetterProofingTests, self).setUp()
 
-        self.test_user_eppn = 'hubba-bubba'
+        self.test_user_eppn = 'hubba-baar'
         self.test_user_nin = '200001023456'
         self.mock_address = OrderedDict([
             (u'Name', OrderedDict([
@@ -37,19 +36,19 @@ class LetterProofingTests(EduidAPITestCase):
                                               (u'City', u'LANDET')]))
         ])
 
-        # Replace user with one without previous proofings
-        userdata = deepcopy(NEW_USER_EXAMPLE)
-        del userdata['nins']
-        user = User(data=userdata)
-        user.modified_ts = True
-        self.app.central_userdb.save(user, check_sync=False)
-
     def load_app(self, config):
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
         return init_letter_proofing_app('testing', config)
+
+    def init_data(self):
+        """
+        Called from the parent class, so we can extend data initialized.
+        """
+        test_user = User(data=NEW_UNVERIFIED_USER_EXAMPLE)  # eppn hubba-baar
+        self.app.central_userdb.save(test_user, check_sync=False)
 
     def update_config(self, config):
         config.update({

@@ -3,13 +3,12 @@
 from __future__ import absolute_import
 
 import time
-from copy import deepcopy
 import json
 import jose
 from collections import OrderedDict
 from mock import patch
 
-from eduid_userdb.data_samples import NEW_USER_EXAMPLE
+from eduid_userdb.data_samples import NEW_UNVERIFIED_USER_EXAMPLE
 from eduid_userdb.user import User
 from eduid_userdb.nin import Nin
 from eduid_userdb.locked_identity import LockedIdentityNin
@@ -25,7 +24,7 @@ class OidcProofingTests(EduidAPITestCase):
 
     def setUp(self):
 
-        self.test_user_eppn = 'hubba-bubba'
+        self.test_user_eppn = 'hubba-baar'
         self.test_user_nin = '200001023456'
         self.mock_address = OrderedDict([
             (u'Name', OrderedDict([
@@ -80,13 +79,6 @@ class OidcProofingTests(EduidAPITestCase):
 
         super(OidcProofingTests, self).setUp()
 
-        # Replace user with one without previous proofings
-        userdata = deepcopy(NEW_USER_EXAMPLE)
-        del userdata['nins']
-        user = User(data=userdata)
-        user.modified_ts = True
-        self.app.central_userdb.save(user, check_sync=False)
-
     def load_app(self, config):
         """
         Called from the parent class, so we can provide the appropriate flask
@@ -95,6 +87,13 @@ class OidcProofingTests(EduidAPITestCase):
         with patch('oic.oic.Client.http_request') as mock_response:
             mock_response.return_value = self.oidc_provider_config_response
             return init_oidc_proofing_app('testing', config)
+
+    def init_data(self):
+        """
+        Called from the parent class, so we can extend data initialized.
+        """
+        test_user = User(data=NEW_UNVERIFIED_USER_EXAMPLE)  # eppn hubba-baar
+        self.app.central_userdb.save(test_user, check_sync=False)
 
     def update_config(self, config):
         config.update({
@@ -153,7 +152,7 @@ class OidcProofingTests(EduidAPITestCase):
             response = json.loads(browser.get('/freja/proofing').data)
         self.assertEqual(response['type'], 'GET_OIDC_PROOFING_FREJA_PROOFING_SUCCESS')
         jwk = {'k': self.app.config['FREJA_JWK_SECRET'].decode('hex')}
-        jwt = response['payload']['iaRequestData']
+        jwt = str(response['payload']['iaRequestData'])
         request_data = jose.verify(jose.deserialize_compact(jwt), jwk, alg=self.app.config['FREJA_JWS_ALGORITHM'])
         expected = {
             'iarp': 'TESTRP',
