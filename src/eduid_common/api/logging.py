@@ -74,16 +74,15 @@ def stream(app):
     """
     app.config.setdefault('LOG_FORMAT', '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
-    if app.config['LOG_FILE']:
-        try:
-            handler = StreamHandler()
-            handler.setLevel(app.config['LOG_LEVEL'])
-            formatter = EduidFormatter(app.config['LOG_FORMAT'])
-            handler.setFormatter(formatter)
-            app.logger.addHandler(handler)
-            app.logger.info('Stream log handler initiated')
-        except AttributeError as e:
-            raise BadConfiguration(e.message)
+    try:
+        handler = StreamHandler()
+        handler.setLevel(app.config['LOG_LEVEL'])
+        formatter = EduidFormatter(app.config['LOG_FORMAT'])
+        handler.setFormatter(formatter)
+        app.logger.addHandler(handler)
+        app.logger.info('Stream log handler initiated')
+    except AttributeError as e:
+        raise BadConfiguration(e.message)
     return app
 
 
