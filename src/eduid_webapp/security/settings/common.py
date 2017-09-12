@@ -55,6 +55,10 @@ SECRET_KEY = ''
 LOG_FILE = None
 LOG_LEVEL = 'INFO'
 
+# Template data
+EDUID_SITE_NAME = 'eduID'
+EDUID_SITE_URL = 'https://www.eduid.se'
+
 # timeout for phone verification token, in hours
 PHONE_VERIFICATION_TIMEOUT = 24
 

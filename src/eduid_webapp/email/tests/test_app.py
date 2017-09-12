@@ -296,7 +296,7 @@ class EmailTests(EduidAPITestCase):
 
                 self.assertEqual(delete_email_data['type'], 'POST_EMAIL_RESEND_CODE_FAIL')
 
-                self.assertEqual(delete_email_data['payload']['error']['form'], u'out_of_sync')
+                self.assertEqual(delete_email_data['payload']['message'], u'user-out-of-sync')
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('eduid_webapp.email.verifications.get_unique_hash')

@@ -224,13 +224,13 @@ def account_terminated(user):
 
     session.invalidate()
 
-    site_url = current_app.config.get("site.url", "http://eduid.se")
+    site_url = current_app.config.get("EDUID_SITE_URL")
     return redirect(site_url)
 
 
 def send_termination_mail(user):
-    site_name = current_app.config.get("site.name", "eduID")
-    site_url = current_app.config.get("site.url", "http://eduid.se")
+    site_name = current_app.config.get("EDUID_SITE_NAME")
+    site_url = current_app.config.get("EDUID_SITE_URL")
 
     context = {
         "user": user,

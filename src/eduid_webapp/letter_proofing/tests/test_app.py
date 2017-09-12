@@ -167,7 +167,7 @@ class LetterProofingTests(EduidAPITestCase):
         json_data = self.send_letter(self.test_user_nin, csrf_token)
         csrf_token = json_data['payload']['csrf_token']
         json_data = self.verify_code('wrong code', csrf_token)
-        self.assertEqual(json_data['payload']['message'], 'Wrong code')
+        self.assertEqual(json_data['payload']['message'], 'letter.wrong-code')
 
     def test_proofing_flow(self):
         json_data = self.get_state()
