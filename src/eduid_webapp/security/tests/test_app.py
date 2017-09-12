@@ -62,6 +62,8 @@ class SecurityTests(EduidAPITestCase):
             'PASSWORD_LENGTH': 12,
             'PASSWORD_ENTROPY': 25,
             'CHPASS_TIMEOUT': 600,
+            'EDUID_SITE_NAME': 'eduID',
+            'EDUID_SITE_URL': 'https://www.eduid.se/',
         })
         return config
 
@@ -294,4 +296,4 @@ class SecurityTests(EduidAPITestCase):
                 self.assertEqual(response2.status_code, 302)
 
                 self.assertEqual(response2.location,
-                                 'https://eduid.se/')
+                                 'https://www.eduid.se/')

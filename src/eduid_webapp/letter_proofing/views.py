@@ -29,7 +29,7 @@ def get_state(user):
     if proofing_state:
         current_app.logger.info('Found proofing state for user {}'.format(user))
         return check_state(proofing_state)
-    return {'_status': 'error', 'error': 'letter.no_state_found'}
+    return {'_status': 'error', 'message': 'letter.no_state_found'}
 
 
 @letter_proofing_views.route('/proofing', methods=['POST'])
@@ -51,17 +51,18 @@ def proofing(user, nin):
         current_app.logger.info('User {!r} has already sent a letter'.format(user))
         current_app.logger.info('This is the proofing state: '
                                 '{!r}'.format(proofing_state.to_dict()))
-        return check_state(proofing_state)
+        result = check_state(proofing_state)
+        result['message'] = 'letter.already-sent'
 
     try:
         address = get_address(user, proofing_state)
         if not address:
             current_app.logger.error('No address found for user {}'.format(user))
-            return {'_status': 'error', 'message': 'No address found'}
+            return {'_status': 'error', 'message': 'letter.no-address-found'}
     except MsgTaskFailed as e:
         current_app.logger.error('Navet lookup failed for user {}: {}'.format(user, e))
         current_app.stats.count('navet_error')
-        return {'_status': 'error', 'error': 'error_navet_task'}
+        return {'_status': 'error', 'message': 'error_navet_task'}
 
     # Set and save official address
     proofing_state.proofing_letter.address = address
@@ -71,10 +72,10 @@ def proofing(user, nin):
         campaign_id = send_letter(user, proofing_state)
     except pdf.AddressFormatException as e:
         current_app.logger.error('{!r}'.format(e.message))
-        return {'_status': 'error', 'message': 'Bad postal address'}
+        return {'_status': 'error', 'message': 'letter.bad-postal-address'}
     except EkopostException as e:
         current_app.logger.error('{!r}'.format(e.message))
-        return {'_status': 'error', 'message': 'Temporary technical problem'}
+        return {'_status': 'error', 'message': 'Temporary technical problems'}
 
     # Save the users proofing state
     proofing_state.proofing_letter.transaction_id = campaign_id
@@ -83,7 +84,9 @@ def proofing(user, nin):
     current_app.proofing_statedb.save(proofing_state)
     # Add nin as not verified to user
     add_nin_to_user(user, proofing_state)
-    return check_state(proofing_state)
+    result = check_state(proofing_state)
+    result['message'] = 'letter.saved-unconfirmed'
+    return result
 
 
 @letter_proofing_views.route('/verify-code', methods=['POST'])
@@ -96,20 +99,20 @@ def verify_code(user, code):
     proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn, raise_on_missing=False)
 
     if not proofing_state:
-        return {'_status': 'error', 'message': 'No proofing state found'}
+        return {'_status': 'error', 'message': 'letter.no_state_found'}
 
     # Check if provided code matches the one in the letter
     if not code == proofing_state.nin.verification_code:
         current_app.logger.error('Verification code for user {} does not match'.format(user))
         # TODO: Throttling to discourage an adversary to try brute force
-        return {'_status': 'error', 'message': 'Wrong code'}
+        return {'_status': 'error', 'message': 'letter.wrong-code'}
 
     try:
         official_address = get_address(user, proofing_state)
     except MsgTaskFailed as e:
         current_app.logger.error('Navet lookup failed for user {}: {}'.format(user, e))
         current_app.stats.count('navet_error')
-        return {'_status': 'error', 'error': 'error_navet_task'}
+        return {'_status': 'error', 'message': 'error_navet_task'}
 
     proofing_log_entry = LetterProofing(user, created_by='eduid_letter_proofing', nin=proofing_state.nin.number,
                                         letter_sent_to=proofing_state.proofing_letter.address,
@@ -127,7 +130,7 @@ def verify_code(user, code):
     except AmTaskFailed as e:
         current_app.logger.error('Verifying nin for user {} failed'.format(user))
         current_app.logger.error('{}'.format(e))
-        return {'_status': 'error', 'error': 'technical_problems'}
+        return {'_status': 'error', 'message': 'Temporary technical problems'}
 
 
 @letter_proofing_views.route('/remove-nin', methods=['POST'])
@@ -149,4 +152,4 @@ def remove_nin(user, nin):
     except AmTaskFailed as e:
         current_app.logger.error('Removing nin {} for user {} failed'.format(nin, user))
         current_app.logger.error('{}'.format(e))
-        return {'_status': 'error', 'error': 'technical_problems'}
+        return {'_status': 'error', 'message': 'Temporary technical problems'}

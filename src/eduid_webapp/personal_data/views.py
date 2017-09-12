@@ -52,10 +52,7 @@ pd_views = Blueprint('personal_data', __name__, url_prefix='')
 @MarshalWith(AllDataResponseSchema)
 @require_dashboard_user
 def get_all_data(user):
-
-    data = user.to_dict()
-
-    return AllDataSchema().dump(data).data
+    return AllDataSchema().dump(user.to_dict()).data
 
 
 @pd_views.route('/user', methods=['GET'])
@@ -95,7 +92,9 @@ def post_user(user, given_name, surname, display_name, language):
     current_app.stats.count(name='personal_data_saved', value=1)
     current_app.logger.info('Saved personal data for user {!r}'.format(user))
 
-    return PersonalDataSchema().dump(user.to_dict()).data
+    data = user.to_dict()
+    data['message'] = 'pd.save-success'
+    return PersonalDataSchema().dump(data).data
 
 
 @pd_views.route('/nins', methods=['GET'])

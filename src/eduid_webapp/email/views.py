@@ -55,6 +55,7 @@ email_views = Blueprint('email', __name__, url_prefix='', template_folder='templ
 def get_all_emails(user):
     emails = {
         'emails': user.mail_addresses.to_list_of_dicts(),
+        'message': 'emails.get-success'
     }
 
     return EmailListPayload().dump(emails).data
@@ -77,7 +78,7 @@ def post_email(user, email, verified, primary):
     except DuplicateElementViolation:
         return {
             '_status': 'error',
-            'error': {'form': 'mail_duplicated'}
+            'message':  'emails.duplicated'
         }
 
     try:
@@ -87,7 +88,7 @@ def post_email(user, email, verified, primary):
                                  'data out of sync'.format(email, user))
         return {
             '_status': 'error',
-            'error': {'form': 'out_of_sync'}
+            'message': 'user-out-of-sync'
         }
     current_app.logger.info('Saved unconfirmed email {!r} '
                             'for user {!r}'.format(email, user))
@@ -96,7 +97,10 @@ def post_email(user, email, verified, primary):
     send_verification_code(email, user)
     current_app.stats.count(name='email_send_verification_code', value=1)
 
-    emails = {'emails': user.mail_addresses.to_list_of_dicts()}
+    emails = {
+            'emails': user.mail_addresses.to_list_of_dicts(),
+            'message': 'emails.save-success'
+            }
     return EmailListPayload().dump(emails).data
 
 
@@ -115,7 +119,7 @@ def post_primary(user, email):
                                  ' {!r}, data out of sync'.format(email, user))
         return {
             '_status': 'error',
-            'error': {'form': 'out_of_sync'}
+            'message': 'user-out-of-sync'
         }
 
     if not mail.is_verified:
@@ -123,7 +127,7 @@ def post_primary(user, email):
                                  ' {!r}, email unconfirmed'.format(email, user))
         return {
             '_status': 'error',
-            'error': {'form': 'emails.unconfirmed_address_not_primary'}
+            'message': 'emails.unconfirmed_address_not_primary'
         }
 
     user.mail_addresses.primary = mail.email
@@ -134,13 +138,16 @@ def post_primary(user, email):
                                  ' {!r}, data out of sync'.format(email, user))
         return {
             '_status': 'error',
-            'error': {'form': 'out_of_sync'}
+            'message': 'user-out-of-sync'
         }
     current_app.logger.info('Email address {!r} made primary '
                             'for user {!r}'.format(email, user))
     current_app.stats.count(name='email_set_primary', value=1)
 
-    emails = {'emails': user.mail_addresses.to_list_of_dicts()}
+    emails = {
+            'emails': user.mail_addresses.to_list_of_dicts(),
+            'message': 'emails.primary-success'
+            }
     return EmailListPayload().dump(emails).data
 
 
@@ -166,7 +173,7 @@ def verify(user, code, email):
         send_verification_code(email, user)
         return {
             '_status': 'error',
-            'error': {'form': 'emails.code_expired_send_new'}
+            'message': 'emails.code_expired_send_new'
         }
 
     if code != state.verification.verification_code:
@@ -174,7 +181,7 @@ def verify(user, code, email):
         current_app.logger.debug(msg)
         return {
             '_status': 'error',
-            'error': {'form': 'emails.code_invalid'}
+            'message': 'emails.code_invalid'
         }
 
     current_app.verifications_db.remove_state(state)
@@ -201,13 +208,16 @@ def verify(user, code, email):
                                  ' {!r}, data out of sync'.format(email, user))
         return {
             '_status': 'error',
-            'error': {'form': 'out_of_sync'}
+            'message': 'user-out-of-sync'
         }
     current_app.logger.info('Email address {!r} confirmed '
                             'for user {!r}'.format(email, user))
     current_app.stats.count(name='email_verify_success', value=1)
 
-    emails = {'emails': user.mail_addresses.to_list_of_dicts()}
+    emails = {
+            'emails': user.mail_addresses.to_list_of_dicts(),
+            'message': 'emails.verification-success'
+            }
     return EmailListPayload().dump(emails).data
 
 
@@ -225,7 +235,7 @@ def post_remove(user, email):
         current_app.logger.debug(msg)
         return {
             '_status': 'error',
-            'error': {'form': 'emails.cannot_remove_unique'}
+            'message': 'emails.cannot_remove_unique'
         }
 
     try:
@@ -242,20 +252,23 @@ def post_remove(user, email):
                                  ' {!r}, data out of sync'.format(email, user))
         return {
             '_status': 'error',
-            'error': {'form': 'out_of_sync'}
+            'message': 'user-out-of-sync'
         }
 
     except PrimaryElementViolation:
         return {
             '_status': 'error',
-            'error': {'form': 'emails.cannot_remove_primary'}
+            'message': 'emails.cannot_remove_primary'
         }
 
     current_app.logger.info('Email address {!r} removed '
                             'for user {!r}'.format(email, user))
     current_app.stats.count(name='email_remove_success', value=1)
 
-    emails = {'emails': user.mail_addresses.to_list_of_dicts()}
+    emails = {
+            'emails': user.mail_addresses.to_list_of_dicts(),
+            'message': 'emails.removal-success'
+            }
     return EmailListPayload().dump(emails).data
 
 
@@ -272,7 +285,7 @@ def resend_code(user, email):
                                  ' user {!s}'.format(email, user))
         return {
             '_status': 'error',
-            'error': {'form': 'out_of_sync'}
+            'message': 'user-out-of-sync'
         }
     
     send_verification_code(email, user)
@@ -280,5 +293,8 @@ def resend_code(user, email):
                              'address {!r} for user {!r}'.format(email, user))
     current_app.stats.count(name='email_resend_code', value=1)
 
-    emails = {'emails': user.mail_addresses.to_list_of_dicts()}
+    emails = {
+            'emails': user.mail_addresses.to_list_of_dicts(),
+            'message': 'emails.code-sent'
+            }
     return EmailListPayload().dump(emails).data

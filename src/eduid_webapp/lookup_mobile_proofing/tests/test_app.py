@@ -148,8 +148,7 @@ class LookupMobileProofingTests(EduidAPITestCase):
             data = {'nin': self.test_user_nin, 'csrf_token': csrf_token}
             response = browser.post('/proofing', data=json.dumps(data), content_type=self.content_type_json)
             response = json.loads(response.data)
-        self.assertEqual(response['type'], 'POST_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS')
-        self.assertEqual(response['payload']['success'], False)
+        self.assertEqual(response['type'], 'POST_LOOKUP_MOBILE_PROOFING_PROOFING_FAIL')
 
         user = self.app.proofing_userdb.get_user_by_eppn(self.test_user_eppn)
         self.assertEqual(user.nins.count, 1)
@@ -207,8 +206,7 @@ class LookupMobileProofingTests(EduidAPITestCase):
             data = {'nin': self.test_user_nin_underage, 'csrf_token': csrf_token}
             response = browser.post('/proofing', data=json.dumps(data), content_type=self.content_type_json)
             response = json.loads(response.data)
-        self.assertEqual(response['type'], 'POST_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS')
-        self.assertEqual(response['payload']['success'], False)
+        self.assertEqual(response['type'], 'POST_LOOKUP_MOBILE_PROOFING_PROOFING_FAIL')
 
         user = self.app.proofing_userdb.get_user_by_eppn(self.test_user_eppn)
         self.assertEqual(user.nins.count, 1)
