@@ -12,7 +12,7 @@ services:
 # command to install dependencies
 install:
   - pip install -U setuptools
-  - pip install --index-url https://pypi.sunet.se -r requirements-testing.txt
+  - pip install --index-url https://pypi.sunet.se -r test_requirements.txt
   - python setup.py install
 # command to run tests
 script:
