@@ -3,12 +3,11 @@
 from __future__ import absolute_import
 
 import json
-from copy import deepcopy
 from collections import OrderedDict
 from datetime import datetime, timedelta
 from mock import patch
 
-from eduid_userdb.data_samples import NEW_USER_EXAMPLE
+from eduid_userdb.data_samples import NEW_UNVERIFIED_USER_EXAMPLE
 from eduid_userdb.user import User
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_webapp.lookup_mobile_proofing.app import init_lookup_mobile_proofing_app
@@ -20,7 +19,7 @@ class LookupMobileProofingTests(EduidAPITestCase):
     """Base TestCase for those tests that need a full environment setup"""
 
     def setUp(self):
-        self.test_user_eppn = 'hubba-bubba'
+        self.test_user_eppn = 'hubba-baar'
         self.test_user_nin = '199001023456'
         fifteen_years_ago = datetime.now() - timedelta(days=15*365)
         self.test_user_nin_underage = '{}01023456'.format(fifteen_years_ago.year)
@@ -35,19 +34,19 @@ class LookupMobileProofingTests(EduidAPITestCase):
 
         super(LookupMobileProofingTests, self).setUp()
 
-        # Replace user with one without previous proofings
-        userdata = deepcopy(NEW_USER_EXAMPLE)
-        del userdata['nins']
-        user = User(data=userdata)
-        user.modified_ts = True
-        self.app.central_userdb.save(user, check_sync=False)
-
     def load_app(self, config):
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
         return init_lookup_mobile_proofing_app('testing', config)
+
+    def init_data(self):
+        """
+        Called from the parent class, so we can extend data initialized.
+        """
+        test_user = User(data=NEW_UNVERIFIED_USER_EXAMPLE)  # eppn hubba-baar
+        self.app.central_userdb.save(test_user, check_sync=False)
 
     def update_config(self, config):
         config.update({
