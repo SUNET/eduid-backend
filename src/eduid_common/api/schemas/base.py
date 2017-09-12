@@ -7,6 +7,8 @@ __author__ = 'lundberg'
 
 class EduidSchema(Schema):
 
+    message = fields.String(required=False)
+
     class Meta:
         strict = True
 
