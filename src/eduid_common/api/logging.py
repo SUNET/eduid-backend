@@ -23,7 +23,7 @@ class EduidFormatter(logging.Formatter):
             tz = time.strftime('%z', ct)  # Can evaluate to empty string
             if tz:
                 tz = '{0}:{1}'.format(tz[:3], tz[3:])  # Need colon to follow the rfc/iso
-            s = '{}.{:3.0f}{}'.format(t, record.msecs, tz)
+            s = '{}.{:03.0f}{}'.format(t, record.msecs, tz)
         return s
 
 
