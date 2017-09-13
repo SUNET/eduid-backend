@@ -36,15 +36,9 @@ def init_relay(app):
 class MsgRelay(object):
 
     def get_content(self):
-        # site_name = current_app.config.get("site.name", "eduID")
-        # site_url = current_app.config.get("site.url", "http://eduid.se")
-        # return {
-        #     'sitename': current_app.config['site.name'],
-        #     'sitelink': current_app.config['personal_dashboard_base_url'],
-        # }
         return {
-            'sitename': current_app.config.get("site.name", "eduID"),
-            'sitelink': current_app.config.get("site.url", "http://eduid.se"),
+            'sitename': current_app.config.get("EDUID_SITE_NAME"),
+            'sitelink': current_app.config.get("EDUID_SITE_URL"),
         }
 
     def get_language(self, lang):
