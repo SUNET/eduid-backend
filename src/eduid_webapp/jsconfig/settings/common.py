@@ -50,5 +50,4 @@ REDIS_DB = 0
 SECRET_KEY = ''
 
 # Logging
-LOG_FILE = None
 LOG_LEVEL = 'INFO'

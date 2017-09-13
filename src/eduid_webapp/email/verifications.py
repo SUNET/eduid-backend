@@ -42,7 +42,7 @@ def new_verification_code(email, user):
             user.eppn, email, raise_on_missing=False)
     if old_verification is not None:
         current_app.logger.debug('removing old verification code:'
-                ' {!r}.'.format(old_verification.to_dict()))
+                                 ' {!r}.'.format(old_verification.to_dict()))
         current_app.verifications_db.remove_state(old_verification)
     code = get_unique_hash()
     verification = EmailProofingElement(email=email,
@@ -58,7 +58,7 @@ def new_verification_code(email, user):
     current_app.verifications_db.save(verification_state)
 
     current_app.logger.info('Created new email verification code '
-                           'for user {!r} and email {!r}.'.format(user, email))
+                            'for user {!r} and email {!r}.'.format(user, email))
     current_app.logger.debug('Verification Code:'
                              ' {!r}.'.format(verification_state.to_dict()))
 
@@ -67,9 +67,9 @@ def new_verification_code(email, user):
 
 def send_verification_code(email, user):
     code = new_verification_code(email, user)
-    link = url_for('email.verify', user=user, code=code)
-    site_name = current_app.config.get("site.name", "eduID")
-    site_url = current_app.config.get("site.url", "http://eduid.se")
+    link = url_for('email.verify', code=code, _external=True)
+    site_name = current_app.config.get("EDUID_SITE_NAME")
+    site_url = current_app.config.get("EDUID_SITE_URL")
 
     context = {
         "email": email,

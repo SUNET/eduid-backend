@@ -30,7 +30,6 @@ CELERY_CONFIG = {
 SECRET_KEY = None
 
 # Logging
-LOG_FILE = None
 LOG_LEVEL = 'INFO'
 
 # letter_proofing

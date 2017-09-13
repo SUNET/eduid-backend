@@ -52,7 +52,6 @@ AM_BROKER_URL = ''
 SECRET_KEY = ''
 
 # Logging
-LOG_FILE = None
 LOG_LEVEL = 'INFO'
 
 # timeout for phone verification token, in hours

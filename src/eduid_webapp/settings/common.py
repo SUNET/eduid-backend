@@ -193,3 +193,9 @@ SAML2_STRIP_SAML_USER_SUFFIX = '@eduid.se'
 # ===============#
 
 TOKEN_SERVICE_URL = 'https://'
+
+# ===============#
+#  TEMPLATE DATA #
+# ===============#
+EDUID_SITE_NAME = 'eduID'
+EDUID_SITE_URL = 'https://www.eduid.se'
