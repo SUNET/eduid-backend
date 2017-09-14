@@ -112,21 +112,20 @@ class EmailTests(EduidAPITestCase):
 
                 with self.app.test_request_context():
                     data = {
-                        'email': 'john-smith@example.com',
+                        'email': 'johnsmith3@example.com',
                         'verified': False,
                         'primary': False,
                         'csrf_token': sess.get_csrf_token()
                     }
 
-                response2 = client.post('/new', data=json.dumps(data),
-                                       content_type=self.content_type_json)
+                response2 = client.post('/new', data=json.dumps(data),  content_type=self.content_type_json)
 
                 self.assertEqual(response2.status_code, 200)
 
                 new_email_data = json.loads(response2.data)
 
                 self.assertEqual(new_email_data['type'], 'POST_EMAIL_NEW_SUCCESS')
-                self.assertEqual(new_email_data['payload']['emails'][2].get('email'), 'john-smith@example.com')
+                self.assertEqual(new_email_data['payload']['emails'][2].get('email'), 'johnsmith3@example.com')
                 self.assertEqual(new_email_data['payload']['emails'][2].get('verified'), False)
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
@@ -336,3 +335,42 @@ class EmailTests(EduidAPITestCase):
                 self.assertEqual(verify_email_data['payload']['emails'][2]['email'], u'john-smith3@example.com')
                 self.assertEqual(verify_email_data['payload']['emails'][2]['verified'], True)
                 self.assertEqual(verify_email_data['payload']['emails'][2]['primary'], False)
+
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid_webapp.email.verifications.get_unique_hash')
+    def test_verify_email_link(self, mock_code_verification, mock_request_user_sync):
+        mock_request_user_sync.return_value = False
+        mock_code_verification.return_value = u'432123425'
+        email = 'johnsmith3@example.com'
+
+        response = self.browser.post('/verify')
+        self.assertEqual(response.status_code, 302)  # Redirect to token service
+
+        eppn = self.test_user_data['eduPersonPrincipalName']
+
+        with self.session_cookie(self.browser, eppn) as client:
+            with client.session_transaction() as sess:
+                with self.app.test_request_context():
+                    data = {
+                        'email': email,
+                        'verified': False,
+                        'primary': False,
+                        'csrf_token': sess.get_csrf_token()
+                    }
+
+                client.post('/new', data=json.dumps(data),
+                            content_type=self.content_type_json)
+
+            with client.session_transaction():
+                code = '432123425'
+                response2 = client.get('/verify?code={}&email={}'.format(code, email))
+
+                self.assertEqual(response2.status_code, 302)
+
+                user = self.app.proofing_userdb.get_user_by_eppn(eppn)
+                mail_address_element = user.mail_addresses.find(email)
+                self.assertTrue(mail_address_element)
+
+                self.assertEqual(mail_address_element.email, email)
+                self.assertEqual(mail_address_element.is_verified, True)
+                self.assertEqual(mail_address_element.is_primary, False)
