@@ -33,17 +33,20 @@
 
 from flask import current_app, url_for, render_template
 
+from eduid_userdb.mail import MailAddress
+from eduid_userdb.element import DuplicateElementViolation
 from eduid_common.api.utils import get_unique_hash
 from eduid_userdb.proofing import EmailProofingElement, EmailProofingState
+from eduid_webapp.email.helpers import save_user
 
 
 def new_verification_code(email, user):
-    old_verification = current_app.verifications_db.get_state_by_eppn_and_email(
+    old_verification = current_app.proofing_statedb.get_state_by_eppn_and_email(
             user.eppn, email, raise_on_missing=False)
     if old_verification is not None:
         current_app.logger.debug('removing old verification code:'
                                  ' {!r}.'.format(old_verification.to_dict()))
-        current_app.verifications_db.remove_state(old_verification)
+        current_app.proofing_statedb.remove_state(old_verification)
     code = get_unique_hash()
     verification = EmailProofingElement(email=email,
                                         verification_code=code,

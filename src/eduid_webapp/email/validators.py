@@ -37,13 +37,13 @@ from eduid_common.api.utils import get_user
 
 
 def validate_email(email):
-    user = get_user(current_app.email_proofing_userdb)
+    user = get_user(current_app.proofing_userdb)
     user_emails = [e.email for e in user.mail_addresses.to_list()]
 
     if request.form.get('add', None) is not None:
-        if value in user_emails:
+        if email in user_emails:
             raise ValidationError("You already have this email address")
 
     elif set(['verify', 'setprimary', 'remove']).intersection(set(request.form)):
-        if value not in user_emails:
+        if email not in user_emails:
             raise ValidationError("This email address is unavailable")
