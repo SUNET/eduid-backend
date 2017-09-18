@@ -32,18 +32,19 @@
 #
 
 from marshmallow import ValidationError
-from flask import request, current_app
+from flask import current_app
 from eduid_common.api.utils import get_user
 
 
-def validate_email(email):
+def email_exists(email):
     user = get_user(current_app.proofing_userdb)
     user_emails = [e.email for e in user.mail_addresses.to_list()]
+    if email not in user_emails:
+        raise ValidationError('emails.missing')
 
-    if request.form.get('add', None) is not None:
-        if email in user_emails:
-            raise ValidationError("You already have this email address")
 
-    elif set(['verify', 'setprimary', 'remove']).intersection(set(request.form)):
-        if email not in user_emails:
-            raise ValidationError("This email address is unavailable")
+def email_does_not_exist(email):
+    user = get_user(current_app.proofing_userdb)
+    user_emails = [e.email for e in user.mail_addresses.to_list()]
+    if email in user_emails:
+        raise ValidationError('emails.duplicated')

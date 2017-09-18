@@ -38,7 +38,8 @@ from eduid_userdb.element import PrimaryElementViolation, DuplicateElementViolat
 from eduid_userdb.exceptions import UserOutOfSync
 from eduid_userdb.mail import MailAddress
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith
-from eduid_webapp.email.schemas import EmailListPayload, EmailSchema, SimpleEmailSchema, EmailResponseSchema
+from eduid_webapp.email.schemas import EmailListPayload, AddEmailSchema
+from eduid_webapp.email.schemas import ChangeEmailSchema, EmailResponseSchema
 from eduid_webapp.email.schemas import VerificationCodeSchema
 from eduid_webapp.email.verifications import send_verification_code, verify_mail_address
 from eduid_webapp.email.helpers import save_user, require_user
@@ -59,7 +60,7 @@ def get_all_emails(user):
 
 
 @email_views.route('/new', methods=['POST'])
-@UnmarshalWith(EmailSchema)
+@UnmarshalWith(AddEmailSchema)
 @MarshalWith(EmailResponseSchema)
 @require_user
 def post_email(user, email, verified, primary):
@@ -102,7 +103,7 @@ def post_email(user, email, verified, primary):
 
 
 @email_views.route('/primary', methods=['POST'])
-@UnmarshalWith(SimpleEmailSchema)
+@UnmarshalWith(ChangeEmailSchema)
 @MarshalWith(EmailResponseSchema)
 @require_user
 def post_primary(user, email):
@@ -233,7 +234,7 @@ def verify_link(user):
 
 
 @email_views.route('/remove', methods=['POST'])
-@UnmarshalWith(SimpleEmailSchema)
+@UnmarshalWith(ChangeEmailSchema)
 @MarshalWith(EmailResponseSchema)
 @require_user
 def post_remove(user, email):
@@ -284,7 +285,7 @@ def post_remove(user, email):
 
 
 @email_views.route('/resend-code', methods=['POST'])
-@UnmarshalWith(EmailSchema)
+@UnmarshalWith(ChangeEmailSchema)
 @MarshalWith(EmailResponseSchema)
 @require_user
 def resend_code(user, email):

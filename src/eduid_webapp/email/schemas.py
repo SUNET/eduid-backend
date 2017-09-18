@@ -34,7 +34,8 @@
 from marshmallow import fields
 from eduid_common.api.schemas.base import FluxStandardAction, EduidSchema
 from eduid_common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
-from eduid_webapp.email.validators import validate_email
+from eduid_common.api.schemas.validators import validate_email
+from eduid_webapp.email.validators import email_exists, email_does_not_exist
 
 __author__ = 'eperez'
 
@@ -42,7 +43,7 @@ __author__ = 'eperez'
 class VerificationCodeSchema(EduidSchema, CSRFRequestMixin):
 
     code = fields.String(required=True)
-    email = fields.Email(required=True, validate=validate_email)
+    email = fields.Email(required=True, validate=[validate_email, email_exists])
 
 
 class EmailSchema(EduidSchema, CSRFRequestMixin):
@@ -50,6 +51,16 @@ class EmailSchema(EduidSchema, CSRFRequestMixin):
     email = fields.Email(required=True, validate=validate_email)
     verified = fields.Boolean(attribute='verified')
     primary = fields.Boolean(attribute='primary')
+
+
+class AddEmailSchema(EmailSchema):
+
+    email = fields.Email(required=True, validate=[validate_email, email_does_not_exist])
+
+
+class ChangeEmailSchema(EduidSchema, CSRFRequestMixin):
+
+    email = fields.Email(required=True, validate=[validate_email, email_exists])
 
 
 class EmailListPayload(EduidSchema, CSRFRequestMixin, CSRFResponseMixin):
@@ -60,8 +71,3 @@ class EmailListPayload(EduidSchema, CSRFRequestMixin, CSRFResponseMixin):
 class EmailResponseSchema(FluxStandardAction):
 
     payload = fields.Nested(EmailListPayload)
-
-
-class SimpleEmailSchema(EduidSchema, CSRFRequestMixin):
-
-    email = fields.Email(required=True)
