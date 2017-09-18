@@ -14,7 +14,7 @@ from eduid_common.api.exceptions import ApiException
 def require_user(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        user = get_user(current_app.email_proofing_userdb)
+        user = get_user(current_app.proofing_userdb)
         kwargs['user'] = user
         return f(*args, **kwargs)
     return decorated_function
@@ -33,5 +33,5 @@ def save_user(user):
     if isinstance(user, User) and not isinstance(user, ProofingUser):
         # turn it into a DashboardUser before saving it in the dashboard private db
         user = ProofingUser(data = user.to_dict())
-    current_app.email_proofing_userdb.save(user)
+    current_app.proofing_userdb.save(user)
     return current_app.am_relay.request_user_sync(user)

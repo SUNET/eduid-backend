@@ -33,17 +33,20 @@
 
 from flask import current_app, url_for, render_template
 
+from eduid_userdb.mail import MailAddress
+from eduid_userdb.element import DuplicateElementViolation
 from eduid_common.api.utils import get_unique_hash
 from eduid_userdb.proofing import EmailProofingElement, EmailProofingState
+from eduid_webapp.email.helpers import save_user
 
 
 def new_verification_code(email, user):
-    old_verification = current_app.verifications_db.get_state_by_eppn_and_email(
+    old_verification = current_app.proofing_statedb.get_state_by_eppn_and_email(
             user.eppn, email, raise_on_missing=False)
     if old_verification is not None:
         current_app.logger.debug('removing old verification code:'
                                  ' {!r}.'.format(old_verification.to_dict()))
-        current_app.verifications_db.remove_state(old_verification)
+        current_app.proofing_statedb.remove_state(old_verification)
     code = get_unique_hash()
     verification = EmailProofingElement(email=email,
                                         verification_code=code,
@@ -55,7 +58,7 @@ def new_verification_code(email, user):
     verification_state = EmailProofingState(verification_data)
     # XXX This should be an atomic transaction together with saving
     # the user and sending the letter.
-    current_app.verifications_db.save(verification_state)
+    current_app.proofing_statedb.save(verification_state)
 
     current_app.logger.info('Created new email verification code '
                             'for user {!r} and email {!r}.'.format(user, email))
@@ -67,7 +70,7 @@ def new_verification_code(email, user):
 
 def send_verification_code(email, user):
     code = new_verification_code(email, user)
-    link = url_for('email.verify', code=code, _external=True)
+    link = url_for('email.verify_link', code=code, email=email, _external=True)
     site_name = current_app.config.get("EDUID_SITE_NAME")
     site_url = current_app.config.get("EDUID_SITE_URL")
 
@@ -96,3 +99,35 @@ def send_verification_code(email, user):
         current_app.mail_relay.sendmail(sender, [email], text, html)
     current_app.logger.info("Sent email address verification mail to user {!r}"
                             " about address {!s}.".format(user, email))
+
+
+def verify_mail_address(state, user):
+    """
+    :param user: User
+    :param state: E-mail proofing state
+
+    :type user: eduid_userdb.user.User
+    :type state: EmailProofingState
+
+    :return: None
+
+    """
+    new_email = MailAddress(email=state.verification.email, application='email',
+                            verified=True, primary=False)
+
+    has_primary = user.mail_addresses.primary
+    if has_primary is None:
+        new_email.is_primary = True
+    try:
+        user.mail_addresses.add(new_email)
+    except DuplicateElementViolation:
+        user.mail_addresses.find(state.verification.email).is_verified = True
+        if has_primary is None:
+            user.mail_addresses.find(state.verification.email).is_primary = True
+
+    save_user(user)
+    current_app.logger.info('Email address {!r} confirmed '
+                            'for user {!r}'.format(state.verification.email, user))
+    current_app.stats.count(name='email_verify_success', value=1)
+    current_app.proofing_statedb.remove_state(state)
+    current_app.logger.debug('Removed proofing state: {} '.format(state))

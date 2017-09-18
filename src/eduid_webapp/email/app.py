@@ -42,12 +42,6 @@ from eduid_userdb.proofing import EmailProofingUserDB
 from eduid_userdb.proofing import EmailProofingStateDB
 
 
-try:
-    from urlparse import urljoin
-except ImportError:  # Python3
-    from urllib.parse import urljoin
-
-
 def email_init_app(name, config):
     """
     Create an instance of an eduid email app.
@@ -78,8 +72,8 @@ def email_init_app(name, config):
     app = am.init_relay(app, 'emails_proofing')
     app = mail_relay.init_relay(app)
 
-    app.email_proofing_userdb = EmailProofingUserDB(app.config['MONGO_URI'])
-    app.verifications_db = EmailProofingStateDB(app.config['MONGO_URI'])
+    app.proofing_userdb = EmailProofingUserDB(app.config['MONGO_URI'])
+    app.proofing_statedb = EmailProofingStateDB(app.config['MONGO_URI'])
 
     app.logger.info('Init {} app...'.format(name))
 
