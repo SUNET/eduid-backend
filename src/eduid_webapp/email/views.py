@@ -155,16 +155,16 @@ def post_primary(user, email):
 def verify(user, code, email):
     """
     """
-    current_app.logger.debug('Trying to save email address {!r} as verified '
-                             'for user {!r}'.format(email, user))
+    current_app.logger.debug('Trying to save email address {} as verified '
+                             'for user {}'.format(email, user))
 
     db = current_app.proofing_statedb
     state = db.get_state_by_eppn_and_email(user.eppn, email, raise_on_missing=False)
 
     timeout = current_app.config.get('EMAIL_VERIFICATION_TIMEOUT', 24)
     if state.is_expired(timeout):
-        msg = "Verification code is expired: {!r}. Sending new code".format(
-            state.verification)
+        msg = "Verification code is expired for: {}. Sending new code".format(
+            state.verification.email)
         current_app.logger.debug(msg)
 
         send_verification_code(email, user)
@@ -174,7 +174,7 @@ def verify(user, code, email):
         }
 
     if code != state.verification.verification_code:
-        msg = "Invalid verification code: {!r}".format(state.verification)
+        msg = "Invalid verification code for: {}".format(state.verification.email)
         current_app.logger.debug(msg)
         return {
             '_status': 'error',
@@ -184,8 +184,8 @@ def verify(user, code, email):
     try:
         verify_mail_address(state, user)
     except UserOutOfSync:
-        current_app.logger.debug('Couldnt confirm email {!r} for user'
-                                 ' {!r}, data out of sync'.format(email, user))
+        current_app.logger.debug('Couldnt confirm email {} for user'
+                                 ' {}, data out of sync'.format(email, user))
         return {
             '_status': 'error',
             'message': 'user-out-of-sync'
@@ -214,19 +214,21 @@ def verify_link(user):
 
         timeout = current_app.config.get('EMAIL_VERIFICATION_TIMEOUT', 24)
         if state.is_expired(timeout):
-            current_app.logger.debug("Verification code is expired: {}. Sending new code".format(state.verification))
+            current_app.logger.info("Verification code is expired for: {}. Sending new code".format(
+                state.verification.email))
             send_verification_code(email, user)
             return redirect(current_app.config['SAML2_LOGIN_REDIRECT_URL'])
 
         if code != state.verification.verification_code:
-            current_app.logger.debug("Invalid verification code: {!r}".format(state.verification))
+            current_app.logger.warning("Invalid verification code for: {}".format(state.verification.email))
             return redirect(current_app.config['SAML2_LOGIN_REDIRECT_URL'])
 
         try:
             verify_mail_address(state, user)
         except UserOutOfSync:
-            current_app.logger.debug('Couldnt confirm email {} for user {}, data out of sync'.format(email, user))
+            current_app.logger.error('Couldnt confirm email {} for user {}, data out of sync'.format(email, user))
 
+    current_app.logger.info('Missing code or email arguments.')
     return redirect(current_app.config['SAML2_LOGIN_REDIRECT_URL'])
 
 
