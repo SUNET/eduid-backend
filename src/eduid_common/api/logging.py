@@ -59,7 +59,7 @@ class UserFilter(logging.Filter):
     def filter(self, record):
         record.eppn = ''
         if session:
-            record.eppn = session.get('eduPersonPrincipalName', '')
+            record.eppn = session.get('user_eppn', '')
         return True
 
 
