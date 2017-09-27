@@ -360,7 +360,7 @@ Download the build environment::
 
 Then we go to the react dir, and install all dependencies::
 
-  $ cd eduid-html/react
+  $ cd eduid-html
   $ docker run --volume $PWD:/root/react -it docker.sunet.se/eduid/debian-react:latest
   $ npm install
 
@@ -397,9 +397,10 @@ Testing and debugging
 We can also run the tests. We can simply run them and see the test coverage,
 doing like this in the `react/` dir::
 
-  $ npm test
+  $ npm test # needs to be run outside the debian-react container
+  $ npm run-script test-headless # headless tests that can be run inside the debian-react container
 
-If you want to debug the tests, you can insert a breackpoint in the js code
+If you want to debug the tests, you can insert a breakpoint in the js code
 with `debugger;`. Then you have to run::
 
   $ npm run debug
