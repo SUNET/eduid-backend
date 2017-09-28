@@ -153,7 +153,7 @@ def _format_mongodb_uri(parsed_uri):
             if isinstance(value, bool):
                 value = str(value).lower()
             _opt_list.append('{!s}={!s}'.format(key, value))
-        options = '?' + '&'.join(_opt_list)
+        options = '?' + '&'.join(sorted(_opt_list))
 
     db_name = parsed_uri.get('database') or ''
 

@@ -147,7 +147,7 @@ class User(object):
         _mail_addresses = self._data_in.pop('mailAliases', [])
         if 'mail' in self._data_in:
             # old-style userdb primary e-mail address indicator
-            for idx in xrange(len(_mail_addresses)):
+            for idx in range(len(_mail_addresses)):
                 if _mail_addresses[idx]['email'] == self._data_in['mail']:
                     if 'passwords' in self._data_in:
                         # Work around a bug where one could signup, not follow the link in the e-mail

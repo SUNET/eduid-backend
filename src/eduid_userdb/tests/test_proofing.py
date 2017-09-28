@@ -65,11 +65,11 @@ class ProofingStateTest(TestCase):
         })
         state.proofing_letter.address = ADDRESS
         state_dict = state.to_dict()
-        self.assertItemsEqual(state_dict.keys(), ['_id', 'eduPersonPrincipalName', 'nin', 'proofing_letter'])
-        self.assertItemsEqual(state_dict['nin'].keys(), ['created_by', 'created_ts', 'number', 'verified',
-                                                         'verification_code'])
-        self.assertItemsEqual(state_dict['proofing_letter'].keys(), ['is_sent', 'sent_ts', 'transaction_id',
-                                                                     'address'])
+        self.assertEqual(sorted(state_dict.keys()), ['_id', 'eduPersonPrincipalName', 'nin', 'proofing_letter'])
+        self.assertEqual(sorted(state_dict['nin'].keys()), ['created_by', 'created_ts', 'number',
+                                                            'verification_code', 'verified'])
+        self.assertEqual(sorted(state_dict['proofing_letter'].keys()), ['address', 'is_sent', 'sent_ts',
+                                                                        'transaction_id'])
 
     def test_create_oidcproofingstate(self):
         """
@@ -90,4 +90,4 @@ class ProofingStateTest(TestCase):
             'nin': nin.to_dict()
         })
         state_dict = state.to_dict()
-        self.assertItemsEqual(state_dict.keys(), ['_id', 'eduPersonPrincipalName', 'state', 'nonce', 'token', 'nin'])
+        self.assertEqual(sorted(state_dict.keys()), ['_id', 'eduPersonPrincipalName', 'nin', 'nonce', 'state', 'token'])

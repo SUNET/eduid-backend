@@ -33,6 +33,7 @@
 #
 
 import copy
+from six import string_types
 
 from eduid_userdb.event import Event, EventList
 from eduid_userdb.exceptions import BadEvent
@@ -67,7 +68,7 @@ class ToUEvent(Event):
         This is the version of the ToU that was accepted.
 
         :return: ToU version.
-        :rtype: str | unicode
+        :rtype: string_types
         """
         return self._data['version']
 
@@ -75,9 +76,9 @@ class ToUEvent(Event):
     def version(self, value):
         """
         :param value: Unique ID of event.
-        :type value: bson.ObjectId
+        :type value: bson.ObjectId | string_types
         """
-        if not isinstance(value, str) and not isinstance(value, unicode):
+        if not isinstance(value, str) and not isinstance(value, string_types):
             raise BadEvent("Invalid tou_event 'version': {!r}".format(value))
         self._data['version'] = value
 
@@ -96,7 +97,7 @@ class ToUList(EventList):
         Check if the user has accepted a particular version of the ToU.
 
         :param version: Version of ToU
-        :type version: str | unicode
+        :type version: string_types
 
         :return: True or False
         :rtype: bool
