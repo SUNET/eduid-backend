@@ -40,6 +40,7 @@ class CredentialSchema(EduidSchema):
     credential_type = fields.String(required=True)
     created_ts = fields.String(required=True)
     success_ts = fields.String(required=True)
+    description = fields.String(required=False)
 
 
 class CredentialList(EduidSchema, CSRFResponseMixin):
@@ -90,3 +91,62 @@ class ChangePasswordSchema(EduidSchema, CSRFRequestMixin):
 
 class AccountTerminatedSchema(FluxStandardAction):
     pass
+
+
+# U2F schemas
+class U2FRegisteredKey(EduidSchema):
+
+    version = fields.String(required=True)
+    keyHandle = fields.String(required=True)
+    appId = fields.String(required=True)
+    transports = fields.String(required=True)
+
+
+class U2FRegisterRequest(EduidSchema):
+
+    version = fields.String(required=True)
+    challenge = fields.String(required=True)
+
+
+class U2FEnrollResponseSchema(FluxStandardAction, CSRFResponseMixin):
+
+    appId = fields.String(required=True)
+    registeredKeys = fields.Nested(U2FRegisteredKey, required=True, missing=list())
+    registerRequests = fields.Nested(U2FRegisterRequest, required=True)
+
+
+class U2FBindRequestSchema(EduidSchema, CSRFRequestMixin):
+
+    version = fields.String(required=True)
+    registration_data = fields.String(required=True)
+    client_data = fields.String(required=True)
+
+
+class U2FModifyRequestSchema(EduidSchema, CSRFRequestMixin):
+
+    id = fields.String(required=True)
+    description = fields.String(required=True)
+
+
+class U2FSignResponseSchema(EduidSchema, CSRFResponseMixin):
+
+    app_id = fields.String(required=True)
+    challenge = fields.String(required=True)
+
+
+class U2FVerifyRequestSchema(EduidSchema, CSRFRequestMixin):
+
+    key_handle = fields.String(required=True)
+    signature_data = fields.String(required=True)
+
+
+class U2FVerifyResponseSchema(EduidSchema, CSRFResponseMixin):
+
+    touch = fields.Integer(required=True)
+    counter = fields.Integer(required=True)
+
+
+class U2FRemoveRequestSchema(EduidSchema, CSRFRequestMixin):
+
+    id = fields.String(required=True)
+
