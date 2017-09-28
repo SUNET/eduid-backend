@@ -32,14 +32,15 @@
 #
 # Author : Johan Lundberg <lundberg@nordu.net>
 #
-__author__ = 'lundberg'
-
 import copy
+
 from bson.objectid import ObjectId
 from six import string_types
-from eduid_userdb.element import Element, ElementList, DuplicateElementViolation
+
+from eduid_userdb.element import Element
 from eduid_userdb.exceptions import UserHasUnknownData, UserDBValueError
-from eduid_userdb.u2f import U2F, u2f_from_dict
+
+__author__ = 'lundberg'
 
 
 class Password(Element):
@@ -129,40 +130,6 @@ class Password(Element):
         if source:
             old['source'] = source
         return old
-
-
-class PasswordList(ElementList):
-    """
-    Hold a list of Password instances.
-
-    Provide methods to add, update and remove elements from the list while
-    maintaining some governing principles, such as ensuring there no duplicates in the list.
-
-    :param passwords: List of passwords
-    :type passwords: [dict | Password]
-    """
-
-    def __init__(self, passwords, raise_on_unknown=True):
-        elements = []
-        for this in passwords:
-            if isinstance(this, Password):
-                credential = this
-            elif isinstance(this, U2F):
-                credential = this
-            elif 'salt' in this:
-                credential = password_from_dict(this, raise_on_unknown)
-            elif 'keyhandle' in this:
-                credential = u2f_from_dict(this, raise_on_unknown)
-            else:
-                raise UserHasUnknownData('Unknown credential data: {!r}'.format(this))
-            elements.append(credential)
-
-        ElementList.__init__(self, elements)
-
-    def add(self, element):
-        if self.find(element.key):
-            raise DuplicateElementViolation("password {!s} already in list".format(element.key))
-        super(PasswordList, self).add(element)
 
 
 def password_from_dict(data, raise_on_unknown=True):

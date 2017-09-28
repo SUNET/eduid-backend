@@ -6,8 +6,7 @@ from bson.objectid import ObjectId
 import eduid_userdb.exceptions
 import eduid_userdb.element
 from eduid_userdb.u2f import U2F
-from eduid_userdb.password import PasswordList
-
+from eduid_userdb.credentials import CredentialList
 
 __author__ = 'lundberg'
 
@@ -39,14 +38,14 @@ _three_dict = {
 class TestU2F(TestCase):
 
     def setUp(self):
-        self.empty = PasswordList([])
-        self.one = PasswordList([_one_dict])
-        self.two = PasswordList([_one_dict, _two_dict])
-        self.three = PasswordList([_one_dict, _two_dict, _three_dict])
+        self.empty = CredentialList([])
+        self.one = CredentialList([_one_dict])
+        self.two = CredentialList([_one_dict, _two_dict])
+        self.three = CredentialList([_one_dict, _two_dict, _three_dict])
 
     def test_key(self):
         """
-        Test that the 'key' property (used by PasswordList) works for the Password.
+        Test that the 'key' property (used by CredentialList) works for the Password.
         """
         this = self.one.find(ObjectId('111111111111111111111111'))
         self.assertEqual(this.key, this.id)
@@ -67,7 +66,7 @@ class TestU2F(TestCase):
         """
         for this in [self.one, self.two, self.three]:
             this_dict = this.to_list_of_dicts()
-            self.assertEqual(PasswordList(this_dict).to_list_of_dicts(), this.to_list_of_dicts())
+            self.assertEqual(CredentialList(this_dict).to_list_of_dicts(), this.to_list_of_dicts())
 
     def test_unknown_input_data(self):
         one = copy.deepcopy(_one_dict)

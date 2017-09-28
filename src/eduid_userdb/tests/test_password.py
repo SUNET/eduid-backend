@@ -5,7 +5,8 @@ import datetime
 from bson.objectid import ObjectId
 import eduid_userdb.exceptions
 import eduid_userdb.element
-from eduid_userdb.password import Password, PasswordList
+from eduid_userdb.password import Password
+from eduid_userdb.credentials import CredentialList
 from eduid_userdb.actions.chpass import ChpassUser, ChpassUserDB
 from eduid_userdb.exceptions import UserMissingData, UserHasUnknownData
 
@@ -37,13 +38,13 @@ _three_dict = {
 class TestPasswordList(TestCase):
 
     def setUp(self):
-        self.empty = PasswordList([])
+        self.empty = CredentialList([])
 
-        self.one = PasswordList([_one_dict])
+        self.one = CredentialList([_one_dict])
 
-        self.two = PasswordList([_one_dict, _two_dict])
+        self.two = CredentialList([_one_dict, _two_dict])
 
-        self.three = PasswordList([_one_dict, _two_dict, _three_dict])
+        self.three = CredentialList([_one_dict, _two_dict, _three_dict])
 
     def test_to_list(self):
         self.assertEqual([], self.empty.to_list(), list)
@@ -75,7 +76,7 @@ class TestPasswordList(TestCase):
 
     def test_add_password(self):
         third = self.three.find(ObjectId('55002741d00690878ae9b602'))
-        this = PasswordList([_one_dict, _two_dict] + [third])
+        this = CredentialList([_one_dict, _two_dict] + [third])
         self.assertEqual(this.to_list_of_dicts(), self.three.to_list_of_dicts())
 
     def test_remove(self):
@@ -90,14 +91,14 @@ class TestPasswordList(TestCase):
 class TestPassword(TestCase):
 
     def setUp(self):
-        self.empty = PasswordList([])
-        self.one = PasswordList([_one_dict])
-        self.two = PasswordList([_one_dict, _two_dict])
-        self.three = PasswordList([_one_dict, _two_dict, _three_dict])
+        self.empty = CredentialList([])
+        self.one = CredentialList([_one_dict])
+        self.two = CredentialList([_one_dict, _two_dict])
+        self.three = CredentialList([_one_dict, _two_dict, _three_dict])
 
     def test_key(self):
         """
-        Test that the 'key' property (used by PasswordList) works for the Password.
+        Test that the 'key' property (used by CredentialList) works for the Password.
         """
         password = self.one.find(ObjectId('55002741d00690878ae9b600'))
         self.assertEqual(password.key, password.id)
@@ -118,7 +119,7 @@ class TestPassword(TestCase):
         """
         for this in [self.one, self.two, self.three]:
             this_dict = this.to_list_of_dicts()
-            self.assertEqual(PasswordList(this_dict).to_list_of_dicts(), this.to_list_of_dicts())
+            self.assertEqual(CredentialList(this_dict).to_list_of_dicts(), this.to_list_of_dicts())
 
     def test_unknown_input_data(self):
         one = copy.deepcopy(_one_dict)
