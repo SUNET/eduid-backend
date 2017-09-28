@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2015 NORDUnet A/S
+# Copyright (c) 2017 NORDUnet A/S
 # All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or
@@ -30,21 +30,24 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-# Author : Johan Lundberg <lundberg@nordu.net>
+# Author : Fredrik Thulin <fredrik@thulin.net>
 #
-__author__ = 'lundberg'
-
 import copy
 from bson.objectid import ObjectId
 from six import string_types
-from eduid_userdb.element import Element, ElementList, DuplicateElementViolation
+from eduid_userdb.element import Element
 from eduid_userdb.exceptions import UserHasUnknownData, UserDBValueError
-from eduid_userdb.u2f import U2F, u2f_from_dict
+
+__author__ = 'ft'
 
 
-class Password(Element):
+class U2F(Element):
+    """
+    U2F token authentication credential
+    """
 
-    def __init__(self, credential_id=None, salt=None, application=None, created_ts=None, data=None,
+    def __init__(self, credential_id=None, keyhandle=None, app_id=None, attest_cert=None,
+                 application=None, created_ts=None, data=None,
                  raise_on_unknown=True):
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
@@ -53,21 +56,23 @@ class Password(Element):
             if created_ts is None:
                 created_ts = True
             data = dict(id = credential_id,
-                        salt = salt,
+                        keyhandle = keyhandle,
+                        app_id = app_id,
+                        attest_cert = attest_cert,
                         created_by = application,
                         created_ts = created_ts,
                         )
 
-        if 'source' in data:  # XXX We should rename source in db
-            data['created_by'] = data.pop('source')
         Element.__init__(self, data)
         self.id = data.pop('id')
-        self.salt = data.pop('salt')
+        self.keyhandle = data.pop('keyhandle')
+        self.app_id = data.pop('app_id')
+        self.attest_cert = data.pop('attest_cert', '')
 
         leftovers = data.keys()
         if leftovers:
             if raise_on_unknown:
-                raise UserHasUnknownData('Password {!r} unknown data: {!r}'.format(
+                raise UserHasUnknownData('U2F {!r} unknown data: {!r}'.format(
                     self.id, leftovers,
                 ))
             # Just keep everything that is left as-is
@@ -101,79 +106,84 @@ class Password(Element):
         self._data['id'] = value
 
     @property
-    def salt(self):
+    def keyhandle(self):
         """
-        This is a reference to the ObjectId in the authentication private database.
+        This is the server side reference to the U2F token used.
 
-        :return: Password salt.
+        :return: U2F keyhandle.
         :rtype: str
         """
-        return self._data['salt']
+        return self._data['keyhandle']
 
-    @salt.setter
-    def salt(self, value):
+    @keyhandle.setter
+    def keyhandle(self, value):
         """
-        :param value: Password salt.
+        :param value: U2F keyhandle.
         :type value: str
         """
         if not isinstance(value, string_types):
-            raise UserDBValueError("Invalid 'salt': {!r}".format(value))
-        self._data['salt'] = value
+            raise UserDBValueError("Invalid 'keyhandle': {!r}".format(value))
+        self._data['keyhandle'] = value
+
+    @property
+    def app_id(self):
+        """
+        The U2F app_id used when creating this credential.
+
+        :return: U2F app_id
+        :rtype: str
+        """
+        return self._data['app_id']
+
+    @app_id.setter
+    def app_id(self, value):
+        """
+        :param value: U2F app_id.
+        :type value: str
+        """
+        if not isinstance(value, string_types):
+            raise UserDBValueError("Invalid 'app_id': {!r}".format(value))
+        self._data['app_id'] = value
+
+    @property
+    def attest_cert(self):
+        """
+        The U2F attest_cert from the credential.
+
+        We should probably refine what we store here later on, but for now we just
+        store the whole certificate.
+
+        :return: U2F attest_cert
+        :rtype: str
+        """
+        return self._data['attest_cert']
+
+    @attest_cert.setter
+    def attest_cert(self, value):
+        """
+        :param value: U2F attest_cert.
+        :type value: str
+        """
+        if not isinstance(value, string_types):
+            raise UserDBValueError("Invalid 'attest_cert': {!r}".format(value))
+        self._data['attest_cert'] = value
 
     def to_dict(self, old_userdb_format=False):
         if not old_userdb_format:
             return self._data
         old = copy.copy(self._data)
-        # XXX created_by -> source
-        source = old.pop('created_by', None)
-        if source:
-            old['source'] = source
         return old
 
 
-class PasswordList(ElementList):
+def u2f_from_dict(data, raise_on_unknown=True):
     """
-    Hold a list of Password instances.
+    Create an U2F instance from a dict.
 
-    Provide methods to add, update and remove elements from the list while
-    maintaining some governing principles, such as ensuring there no duplicates in the list.
-
-    :param passwords: List of passwords
-    :type passwords: [dict | Password]
-    """
-
-    def __init__(self, passwords, raise_on_unknown=True):
-        elements = []
-        for this in passwords:
-            if isinstance(this, Password):
-                credential = this
-            elif isinstance(this, U2F):
-                credential = this
-            elif 'salt' in this:
-                credential = password_from_dict(this, raise_on_unknown)
-            elif 'keyhandle' in this:
-                credential = u2f_from_dict(this, raise_on_unknown)
-            else:
-                raise UserHasUnknownData('Unknown credential data: {!r}'.format(this))
-            elements.append(credential)
-
-        ElementList.__init__(self, elements)
-
-    def add(self, element):
-        if self.find(element.key):
-            raise DuplicateElementViolation("password {!s} already in list".format(element.key))
-        super(PasswordList, self).add(element)
-
-
-def password_from_dict(data, raise_on_unknown=True):
-    """
-    Create a Password instance from a dict.
-
-    :param data: Password parameters from database
+    :param data: Credential parameters from database
     :param raise_on_unknown: Raise UserHasUnknownData if unrecognized data is encountered
 
     :type data: dict
     :type raise_on_unknown: bool
-    :rtype: Password
+    :rtype: U2F
     """
-    return Password(data=data, raise_on_unknown=raise_on_unknown)
+    return U2F(data=data, raise_on_unknown=raise_on_unknown)

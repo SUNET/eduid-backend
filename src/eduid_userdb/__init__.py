@@ -1,7 +1,7 @@
 """
 The eduID User Database interface package.
 
-Copyright (c) 2013-2015 SUNET. All rights reserved.
+Copyright (c) 2013-2017 SUNET. All rights reserved.
 See the file LICENSE.txt for full license statement.
 """
 
