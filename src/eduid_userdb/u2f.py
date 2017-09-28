@@ -47,6 +47,7 @@ class U2F(Element):
     """
 
     def __init__(self, credential_id=None, keyhandle=None, app_id=None, attest_cert=None,
+                 description=None,
                  application=None, created_ts=None, data=None,
                  raise_on_unknown=True):
         data_in = data
@@ -59,6 +60,7 @@ class U2F(Element):
                         keyhandle = keyhandle,
                         app_id = app_id,
                         attest_cert = attest_cert,
+                        description = description,
                         created_by = application,
                         created_ts = created_ts,
                         )
@@ -68,6 +70,7 @@ class U2F(Element):
         self.keyhandle = data.pop('keyhandle')
         self.app_id = data.pop('app_id')
         self.attest_cert = data.pop('attest_cert', '')
+        self.description = data.pop('description', '')
 
         leftovers = data.keys()
         if leftovers:
@@ -167,6 +170,26 @@ class U2F(Element):
         if not isinstance(value, string_types):
             raise UserDBValueError("Invalid 'attest_cert': {!r}".format(value))
         self._data['attest_cert'] = value
+
+    @property
+    def description(self):
+        """
+        User description/name of this token.
+
+        :return: description
+        :rtype: str
+        """
+        return self._data['description']
+
+    @description.setter
+    def description(self, value):
+        """
+        :param value: U2F description.
+        :type value: str
+        """
+        if not isinstance(value, string_types):
+            raise UserDBValueError("Invalid 'description': {!r}".format(value))
+        self._data['description'] = value
 
     def to_dict(self, old_userdb_format=False):
         if not old_userdb_format:
