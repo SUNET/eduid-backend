@@ -6,6 +6,7 @@ from bson import ObjectId
 import logging
 
 from eduid_userdb.userdb import BaseDB
+from eduid_userdb.credentials import Password, U2F
 
 logger = logging.getLogger(__name__)
 
@@ -26,13 +27,18 @@ class AuthnInfoDB(BaseDB):
         :rtype: list of dicts
         """
         authninfo = []
-        for credential in user.passwords.to_list_of_dicts():
-            auth_entry = self._coll.find_one({'_id': ObjectId(credential['id'])})
-            logger.debug("get_authn_info {!s}: cred id: {!r} auth entry: {!r}".format(user, credential['id'], auth_entry))
+        for credential in user.credentials.to_list():
+            auth_entry = self._coll.find_one(credential.object_id)
+            logger.debug("get_authn_info {!s}: cred id: {!r} auth entry: {!r}".format(
+                user, credential.object_id, auth_entry))
             if auth_entry:
                 created_dt = credential['created_ts']
                 success_dt = auth_entry['success_ts']
-                data_type = 'security.password_credential_type'
+                data_type = 'security.unknown_credential_type'
+                if isinstance(credential, Password):
+                    data_type = 'security.password_credential_type'
+                elif isinstance(credential, U2F):
+                    data_type = 'security.u2f_credential_type'
                 data = {'credential_type': data_type,
                         'created_ts': created_dt.isoformat(),
                         'success_ts': success_dt.isoformat()}

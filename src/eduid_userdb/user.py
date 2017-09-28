@@ -42,7 +42,7 @@ from eduid_userdb.element import UserDBValueError
 
 from eduid_userdb.mail import MailAddressList
 from eduid_userdb.phone import PhoneNumberList
-from eduid_userdb.password import PasswordList
+from eduid_userdb.credentials import CredentialList
 from eduid_userdb.nin import NinList
 from eduid_userdb.tou import ToUList
 from eduid_userdb.locked_identity import LockedIdentityList
@@ -83,7 +83,7 @@ class User(object):
         self._parse_tous()
         self._parse_locked_identity()
 
-        self._passwords = PasswordList(self._data_in.pop('passwords', []))
+        self._credentials = CredentialList(self._data_in.pop('passwords', []))
         # generic (known) attributes
         self.eppn = self._data_in.pop('eduPersonPrincipalName')  # mandatory
         self.subject = self._data_in.pop('subject', None)
@@ -147,7 +147,7 @@ class User(object):
         _mail_addresses = self._data_in.pop('mailAliases', [])
         if 'mail' in self._data_in:
             # old-style userdb primary e-mail address indicator
-            for idx in xrange(len(_mail_addresses)):
+            for idx in range(len(_mail_addresses)):
                 if _mail_addresses[idx]['email'] == self._data_in['mail']:
                     if 'passwords' in self._data_in:
                         # Work around a bug where one could signup, not follow the link in the e-mail
@@ -398,14 +398,24 @@ class User(object):
 
     # -----------------------------------------------------------------
     @property
+    def credentials(self):
+        """
+        Get the user's credentials.
+        :return: CredentialList object
+        :rtype: eduid_userdb.credentials.CredentialList
+        """
+        # no setter for this one, as the CredentialList object provides modification functions
+        return self._credentials
+
+    @property
     def passwords(self):
         """
-        Get the user's phone numbers.
-        :return: PasswordList object
-        :rtype: eduid_userdb.password.PasswordList
+        DEPRECATED - see credentials.
+        :return: CredentialList object
+        :rtype: eduid_userdb.credentials.CredentialList
         """
-        # no setter for this one, as the PasswordList object provides modification functions
-        return self._passwords
+        # no setter for this one, as the CredentialList object provides modification functions
+        return self._credentials
 
     # -----------------------------------------------------------------
     @property
@@ -523,7 +533,7 @@ class User(object):
         res = copy.copy(self._data)  # avoid caller messing up our private _data
         res['mailAliases'] = self.mail_addresses.to_list_of_dicts(old_userdb_format=old_userdb_format)
         res['phone'] = self.phone_numbers.to_list_of_dicts(old_userdb_format=old_userdb_format)
-        res['passwords'] = self.passwords.to_list_of_dicts(old_userdb_format=old_userdb_format)
+        res['passwords'] = self.credentials.to_list_of_dicts(old_userdb_format=old_userdb_format)
         res['nins'] = self.nins.to_list_of_dicts(old_userdb_format=old_userdb_format)
         res['tou'] = self.tou.to_list_of_dicts(old_userdb_format=old_userdb_format)
         res['locked_identity'] = self.locked_identity.to_list_of_dicts(old_userdb_format=old_userdb_format)

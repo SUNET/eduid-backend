@@ -36,7 +36,8 @@ import bson
 from copy import deepcopy
 
 from eduid_userdb import User
-from eduid_userdb.password import PasswordList, Password
+from eduid_userdb.password import Password
+from eduid_userdb.credentials import CredentialList
 from eduid_userdb.exceptions import UserMissingData, UserHasUnknownData
 from eduid_userdb.element import DuplicateElementViolation
 
@@ -81,7 +82,7 @@ class ChpassUser(User):
             _id = bson.ObjectId(_id)
         self._data['_id'] = _id
 
-        self._passwords = PasswordList(self._data_in.pop('passwords', []))
+        self._credentials = CredentialList(self._data_in.pop('passwords', []))
 
         self.modified_ts = self._data_in.pop('modified_ts', None)
 
@@ -103,7 +104,7 @@ class ChpassUser(User):
         '''
         data = {
                 '_id': user.user_id,
-                'passwords': user.passwords.to_list_of_dicts(),
+                'passwords': user.credentials.to_list_of_dicts(),
                 'modified_ts': user.modified_ts
             }
         return cls(data=data)
@@ -120,7 +121,7 @@ class ChpassUser(User):
         :rtype: dict
         """
         res = deepcopy(self._data)  # avoid caller messing up our private _data
-        res['passwords'] = self.passwords.to_list_of_dicts(
+        res['passwords'] = self.credentials.to_list_of_dicts(
                 old_userdb_format=old_userdb_format)
         return res
 

@@ -15,7 +15,7 @@ _one_dict = \
      'event_type': 'tou_event',
      'version': '1',
      'created_by': 'test',
-     'created_ts': datetime.datetime(2015, 9, 24, 01, 01, 01, 111111),
+     'created_ts': datetime.datetime(2015, 9, 24, 1, 1, 1, 111111),
      }
 
 _two_dict = \
@@ -23,7 +23,7 @@ _two_dict = \
      'event_type': 'tou_event',
      'version': '2',
      'created_by': 'test',
-     'created_ts': datetime.datetime(2015, 9, 24, 02, 02, 02, 222222),
+     'created_ts': datetime.datetime(2015, 9, 24, 2, 2, 2, 222222),
      }
 
 _three_dict = \
@@ -31,7 +31,7 @@ _three_dict = \
      'event_type': 'tou_event',
      'version': '3',
      'created_by': 'test',
-     'created_ts': datetime.datetime(2015, 9, 24, 03, 03, 03, 333333),
+     'created_ts': datetime.datetime(2015, 9, 24, 3, 3, 3, 333333),
      }
 
 

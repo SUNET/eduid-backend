@@ -32,13 +32,15 @@
 #
 # Author : Johan Lundberg <lundberg@nordu.net>
 #
-__author__ = 'lundberg'
-
 import copy
+
 from bson.objectid import ObjectId
 from six import string_types
-from eduid_userdb.element import Element, ElementList, DuplicateElementViolation
+
+from eduid_userdb.element import Element
 from eduid_userdb.exceptions import UserHasUnknownData, UserDBValueError
+
+__author__ = 'lundberg'
 
 
 class Password(Element):
@@ -128,34 +130,6 @@ class Password(Element):
         if source:
             old['source'] = source
         return old
-
-
-class PasswordList(ElementList):
-    """
-    Hold a list of Password instances.
-
-    Provide methods to add, update and remove elements from the list while
-    maintaining some governing principles, such as ensuring there no duplicates in the list.
-
-    :param passwords: List of passwords
-    :type passwords: [dict | Password]
-    """
-
-    def __init__(self, passwords, raise_on_unknown=True):
-        elements = []
-        for this in passwords:
-            if isinstance(this, Password):
-                password = this
-            else:
-                password = password_from_dict(this, raise_on_unknown)
-            elements.append(password)
-
-        ElementList.__init__(self, elements)
-
-    def add(self, element):
-        if self.find(element.key):
-            raise DuplicateElementViolation("password {!s} already in list".format(element.key))
-        super(PasswordList, self).add(element)
 
 
 def password_from_dict(data, raise_on_unknown=True):
