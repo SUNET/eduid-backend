@@ -46,7 +46,8 @@ class U2F(Element):
     U2F token authentication credential
     """
 
-    def __init__(self, credential_id=None, keyhandle=None, app_id=None, attest_cert=None,
+    def __init__(self, credential_id=None,
+                 version=None, keyhandle=None, app_id=None, attest_cert=None,
                  description=None,
                  application=None, created_ts=None, data=None,
                  raise_on_unknown=True):
@@ -57,6 +58,7 @@ class U2F(Element):
             if created_ts is None:
                 created_ts = True
             data = dict(id = credential_id,
+                        version = version,
                         keyhandle = keyhandle,
                         app_id = app_id,
                         attest_cert = attest_cert,
@@ -67,6 +69,7 @@ class U2F(Element):
 
         Element.__init__(self, data)
         self.id = data.pop('id')
+        self.version = data.pop('version')
         self.keyhandle = data.pop('keyhandle')
         self.app_id = data.pop('app_id')
         self.attest_cert = data.pop('attest_cert', '')
@@ -107,6 +110,26 @@ class U2F(Element):
         if not isinstance(value, ObjectId):
             raise UserDBValueError("Invalid 'id': {!r}".format(value))
         self._data['id'] = value
+
+    @property
+    def version(self):
+        """
+        This is the U2F version used by this token.
+
+        :return: U2F version.
+        :rtype: str
+        """
+        return self._data['version']
+
+    @version.setter
+    def version(self, value):
+        """
+        :param value: U2F version. E.g. 'U2F_V2'.
+        :type value: str
+        """
+        if not isinstance(value, string_types):
+            raise UserDBValueError("Invalid 'version': {!r}".format(value))
+        self._data['version'] = value
 
     @property
     def keyhandle(self):
