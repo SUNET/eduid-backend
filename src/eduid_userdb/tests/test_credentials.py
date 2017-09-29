@@ -16,16 +16,16 @@ __author__ = 'lundberg'
 #}}
 
 _one_dict = {
-    'id': ObjectId('55002741d00690878ae9b600'),
+    'id': ObjectId('111111111111111111111111'),
     'salt': 'firstPasswordElement',
 }
 _two_dict = {
-    'id': ObjectId('55002741d00690878ae9b601'),
+    'id': ObjectId('222222222222222222222222'),
     'salt': 'secondPasswordElement',
     'source': 'test'
 }
 _three_dict = {
-    'id': ObjectId('55002741d00690878ae9b602'),
+    'id': ObjectId('333333333333333333333333'),
     'salt': 'thirdPasswordElement',
     'source': 'test'
 }
@@ -35,11 +35,8 @@ class TestCredentialList(TestCase):
 
     def setUp(self):
         self.empty = CredentialList([])
-
         self.one = CredentialList([_one_dict])
-
         self.two = CredentialList([_one_dict, _two_dict])
-
         self.three = CredentialList([_one_dict, _two_dict, _three_dict])
 
     def test_to_list(self):
@@ -54,29 +51,29 @@ class TestCredentialList(TestCase):
         self.assertEqual([_one_dict], self.one.to_list_of_dicts(old_userdb_format=True))
 
     def test_find(self):
-        match = self.two.find(ObjectId('55002741d00690878ae9b601'))
+        match = self.two.find(ObjectId('222222222222222222222222'))
         self.assertIsInstance(match, Password)
-        self.assertEqual(match.id, ObjectId('55002741d00690878ae9b601'))
+        self.assertEqual(match.id, ObjectId('222222222222222222222222'))
         self.assertEqual(match.salt, 'secondPasswordElement')
         self.assertEqual(match.created_by, 'test')
 
     def test_add(self):
-        second = self.two.find(ObjectId('55002741d00690878ae9b601'))
+        second = self.two.find(ObjectId('222222222222222222222222'))
         self.one.add(second)
         self.assertEqual(self.one.to_list_of_dicts(), self.two.to_list_of_dicts())
 
     def test_add_duplicate(self):
-        dup = self.two.find(ObjectId('55002741d00690878ae9b601'))
+        dup = self.two.find(ObjectId('222222222222222222222222'))
         with self.assertRaises(eduid_userdb.element.DuplicateElementViolation):
             self.two.add(dup)
 
     def test_add_password(self):
-        third = self.three.find(ObjectId('55002741d00690878ae9b602'))
+        third = self.three.find(ObjectId('333333333333333333333333'))
         this = CredentialList([_one_dict, _two_dict] + [third])
         self.assertEqual(this.to_list_of_dicts(), self.three.to_list_of_dicts())
 
     def test_remove(self):
-        now_two = self.three.remove(ObjectId('55002741d00690878ae9b602'))
+        now_two = self.three.remove(ObjectId('333333333333333333333333'))
         self.assertEqual(self.two.to_list_of_dicts(), now_two.to_list_of_dicts())
 
     def test_remove_unknown(self):
