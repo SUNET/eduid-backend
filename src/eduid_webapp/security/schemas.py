@@ -34,6 +34,8 @@
 from marshmallow import fields
 from eduid_common.api.schemas.base import FluxStandardAction, EduidSchema
 from eduid_common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
+from eduid_common.api.schemas.u2f import U2FEnrollResponseSchema, U2FBindRequestSchema, U2FSignResponseSchema
+from eduid_common.api.schemas.u2f import U2FVerifyRequestSchema, U2FVerifyResponseSchema
 
 
 class CredentialSchema(EduidSchema):
@@ -94,59 +96,32 @@ class AccountTerminatedSchema(FluxStandardAction):
 
 
 # U2F schemas
-class U2FRegisteredKey(EduidSchema):
-
-    version = fields.String(required=True)
-    keyHandle = fields.String(required=True)
-    appId = fields.String(required=True)
-    transports = fields.String(required=True)
+class EnrollU2FTokenResponseSchema(FluxStandardAction, U2FEnrollResponseSchema, CSRFResponseMixin):
+    pass
 
 
-class U2FRegisterRequest(EduidSchema):
-
-    version = fields.String(required=True)
-    challenge = fields.String(required=True)
+class BindU2FRequestSchema(U2FBindRequestSchema, CSRFRequestMixin):
+    pass
 
 
-class U2FEnrollResponseSchema(FluxStandardAction, CSRFResponseMixin):
-
-    appId = fields.String(required=True)
-    registeredKeys = fields.Nested(U2FRegisteredKey, required=True, missing=list())
-    registerRequests = fields.Nested(U2FRegisterRequest, required=True)
+class SignWithU2FTokenResponseSchema(FluxStandardAction, U2FSignResponseSchema, CSRFResponseMixin):
+    pass
 
 
-class U2FBindRequestSchema(EduidSchema, CSRFRequestMixin):
-
-    version = fields.String(required=True)
-    registration_data = fields.String(required=True)
-    client_data = fields.String(required=True)
+class VerifyWithU2FTokenRequestSchema(U2FVerifyRequestSchema):
+    pass
 
 
-class U2FModifyRequestSchema(EduidSchema, CSRFRequestMixin):
+class VerifyWithU2FTokenResponseSchema(FluxStandardAction, U2FVerifyResponseSchema, CSRFResponseMixin):
+    pass
 
-    id = fields.String(required=True)
+
+class ModifyU2FTokenRequestSchema(EduidSchema, CSRFRequestMixin):
+
+    key_handle = fields.String(required=True, load_from='keyHandle', dump_to='keyHandle')
     description = fields.String(required=True)
 
 
-class U2FSignResponseSchema(EduidSchema, CSRFResponseMixin):
+class RemoveU2FTokenRequestSchema(EduidSchema, CSRFRequestMixin):
 
-    app_id = fields.String(required=True)
-    challenge = fields.String(required=True)
-
-
-class U2FVerifyRequestSchema(EduidSchema, CSRFRequestMixin):
-
-    key_handle = fields.String(required=True)
-    signature_data = fields.String(required=True)
-
-
-class U2FVerifyResponseSchema(EduidSchema, CSRFResponseMixin):
-
-    touch = fields.Integer(required=True)
-    counter = fields.Integer(required=True)
-
-
-class U2FRemoveRequestSchema(EduidSchema, CSRFRequestMixin):
-
-    id = fields.String(required=True)
-
+    key_handle = fields.String(required=True, load_from='keyHandle', dump_to='keyHandle')
