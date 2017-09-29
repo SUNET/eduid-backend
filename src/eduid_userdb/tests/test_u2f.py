@@ -20,21 +20,23 @@ __author__ = 'lundberg'
 _one_dict = {
     'id': ObjectId('111111111111111111111111'),
     'version': 'U2F_V2',
-    'keyhandle': 'firstU2FElement',
     'app_id': 'unit test',
-
+    'keyhandle': 'firstU2FElement',
+    'public_key': 'foo',
 }
 _two_dict = {
     'id': ObjectId('222222222222222222222222'),
     'version': 'U2F_V2',
-    'keyhandle': 'secondU2FElement',
     'app_id': 'unit test',
+    'keyhandle': 'secondU2FElement',
+    'public_key': 'foo',
 }
 _three_dict = {
     'id': ObjectId('333333333333333333333333'),
     'version': 'U2F_V2',
-    'keyhandle': 'thirdU2FElement',
     'app_id': 'unit test',
+    'keyhandle': 'thirdU2FElement',
+    'public_key': 'foo',
 }
 
 
