@@ -30,7 +30,6 @@ _three_dict = {
     'source': 'test'
 }
 _four_dict = {
-    'id': ObjectId('444444444444444444444444'),
     'version': 'U2F_V2',
     'app_id': 'unit test',
     'keyhandle': 'firstU2FElement',
@@ -70,7 +69,7 @@ class TestCredentialList(TestCase):
         match = self.four.filter(U2F)
         self.assertEqual(match.count, 1)
         token = match.to_list()[0]
-        self.assertEqual(token.id, ObjectId('444444444444444444444444'))
+        self.assertEqual(token.key, 'firstU2FElement')
         self.assertEqual(token.public_key, 'foo')
 
     def test_add(self):

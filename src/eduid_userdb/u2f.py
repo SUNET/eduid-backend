@@ -33,7 +33,6 @@
 # Author : Fredrik Thulin <fredrik@thulin.net>
 #
 import copy
-from bson.objectid import ObjectId
 from six import string_types
 from eduid_userdb.element import Element
 from eduid_userdb.exceptions import UserHasUnknownData, UserDBValueError
@@ -46,7 +45,7 @@ class U2F(Element):
     U2F token authentication credential
     """
 
-    def __init__(self, credential_id=None,
+    def __init__(self,
                  version=None, keyhandle=None, public_key=None, app_id=None, attest_cert=None,
                  description=None,
                  application=None, created_ts=None, data=None,
@@ -57,8 +56,7 @@ class U2F(Element):
         if data is None:
             if created_ts is None:
                 created_ts = True
-            data = dict(id = credential_id,
-                        version = version,
+            data = dict(version = version,
                         keyhandle = keyhandle,
                         public_key = public_key,
                         app_id = app_id,
@@ -69,7 +67,6 @@ class U2F(Element):
                         )
 
         Element.__init__(self, data)
-        self.id = data.pop('id')
         self.version = data.pop('version')
         self.keyhandle = data.pop('keyhandle')
         self.public_key = data.pop('public_key')
@@ -81,7 +78,7 @@ class U2F(Element):
         if leftovers:
             if raise_on_unknown:
                 raise UserHasUnknownData('U2F {!r} unknown data: {!r}'.format(
-                    self.id, leftovers,
+                    self.key, leftovers,
                 ))
             # Just keep everything that is left as-is
             self._data.update(data)
@@ -91,27 +88,7 @@ class U2F(Element):
         """
         Return the element that is used as key.
         """
-        return self.id
-
-    @property
-    def id(self):
-        """
-        This is a reference to the ObjectId in the authentication private database.
-
-        :return: Unique ID of password.
-        :rtype: bson.ObjectId
-        """
-        return self._data['id']
-
-    @id.setter
-    def id(self, value):
-        """
-        :param value: Unique ID of password.
-        :type value: bson.ObjectId
-        """
-        if not isinstance(value, ObjectId):
-            raise UserDBValueError("Invalid 'id': {!r}".format(value))
-        self._data['id'] = value
+        return self.keyhandle
 
     @property
     def version(self):
