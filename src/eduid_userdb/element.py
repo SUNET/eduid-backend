@@ -391,6 +391,15 @@ class ElementList(object):
         self._elements = [this for this in self._elements if this != match]
         return self
 
+    def filter(self, cls):
+        """
+        Return a new ElementList with the elements that were instances of cls.
+
+        :param cls: Class of interest
+        :return: ElementList
+        """
+        return ElementList([x for x in self._elements if isinstance(x, cls)])
+
     @property
     def count(self):
         """

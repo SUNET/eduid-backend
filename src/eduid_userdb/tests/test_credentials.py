@@ -4,7 +4,7 @@ from bson.objectid import ObjectId
 import eduid_userdb.exceptions
 import eduid_userdb.element
 from eduid_userdb.password import Password
-from eduid_userdb.credentials import CredentialList
+from eduid_userdb.credentials import CredentialList, U2F, Password
 
 __author__ = 'lundberg'
 
@@ -29,6 +29,13 @@ _three_dict = {
     'salt': 'thirdPasswordElement',
     'source': 'test'
 }
+_four_dict = {
+    'id': ObjectId('444444444444444444444444'),
+    'version': 'U2F_V2',
+    'app_id': 'unit test',
+    'keyhandle': 'firstU2FElement',
+    'public_key': 'foo',
+}
 
 
 class TestCredentialList(TestCase):
@@ -38,12 +45,14 @@ class TestCredentialList(TestCase):
         self.one = CredentialList([_one_dict])
         self.two = CredentialList([_one_dict, _two_dict])
         self.three = CredentialList([_one_dict, _two_dict, _three_dict])
+        self.four = CredentialList([_one_dict, _two_dict, _three_dict, _four_dict])
 
     def test_to_list(self):
         self.assertEqual([], self.empty.to_list(), list)
         self.assertIsInstance(self.one.to_list(), list)
 
         self.assertEqual(1, len(self.one.to_list()))
+        self.assertEqual(4, len(self.four.to_list()))
 
     def test_to_list_of_dicts(self):
         self.assertEqual([], self.empty.to_list_of_dicts(), list)
@@ -56,6 +65,13 @@ class TestCredentialList(TestCase):
         self.assertEqual(match.id, ObjectId('222222222222222222222222'))
         self.assertEqual(match.salt, 'secondPasswordElement')
         self.assertEqual(match.created_by, 'test')
+
+    def test_filter(self):
+        match = self.four.filter(U2F)
+        self.assertEqual(match.count, 1)
+        token = match.to_list()[0]
+        self.assertEqual(token.id, ObjectId('444444444444444444444444'))
+        self.assertEqual(token.public_key, 'foo')
 
     def test_add(self):
         second = self.two.find(ObjectId('222222222222222222222222'))
