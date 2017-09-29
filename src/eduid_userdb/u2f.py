@@ -47,7 +47,7 @@ class U2F(Element):
     """
 
     def __init__(self, credential_id=None,
-                 version=None, keyhandle=None, app_id=None, attest_cert=None,
+                 version=None, keyhandle=None, public_key=None, app_id=None, attest_cert=None,
                  description=None,
                  application=None, created_ts=None, data=None,
                  raise_on_unknown=True):
@@ -60,6 +60,7 @@ class U2F(Element):
             data = dict(id = credential_id,
                         version = version,
                         keyhandle = keyhandle,
+                        public_key = public_key,
                         app_id = app_id,
                         attest_cert = attest_cert,
                         description = description,
@@ -71,6 +72,7 @@ class U2F(Element):
         self.id = data.pop('id')
         self.version = data.pop('version')
         self.keyhandle = data.pop('keyhandle')
+        self.public_key = data.pop('public_key')
         self.app_id = data.pop('app_id')
         self.attest_cert = data.pop('attest_cert', '')
         self.description = data.pop('description', '')
@@ -150,6 +152,26 @@ class U2F(Element):
         if not isinstance(value, string_types):
             raise UserDBValueError("Invalid 'keyhandle': {!r}".format(value))
         self._data['keyhandle'] = value
+
+    @property
+    def public_key(self):
+        """
+        This is the public key of the U2F token.
+
+        :return: U2F public_key.
+        :rtype: str
+        """
+        return self._data['public_key']
+
+    @public_key.setter
+    def public_key(self, value):
+        """
+        :param value: U2F public_key.
+        :type value: str
+        """
+        if not isinstance(value, string_types):
+            raise UserDBValueError("Invalid 'public_key': {!r}".format(value))
+        self._data['public_key'] = value
 
     @property
     def app_id(self):
