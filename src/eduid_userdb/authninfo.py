@@ -28,9 +28,9 @@ class AuthnInfoDB(BaseDB):
         """
         authninfo = []
         for credential in user.credentials.to_list():
-            auth_entry = self._coll.find_one(credential.object_id)
+            auth_entry = self._coll.find_one(credential.key)
             logger.debug("get_authn_info {!s}: cred id: {!r} auth entry: {!r}".format(
-                user, credential.object_id, auth_entry))
+                user, credential.key, auth_entry))
             if auth_entry:
                 created_dt = credential['created_ts']
                 success_dt = auth_entry['success_ts']
