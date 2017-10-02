@@ -34,7 +34,7 @@ import json
 
 from bson import ObjectId
 import vccs_client
-from eduid_userdb import Password
+from eduid_userdb.credentials import Password
 from eduid_userdb.dashboard import DashboardLegacyUser, DashboardUser
 from eduid_common.authn import get_vccs_client
 

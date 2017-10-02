@@ -14,7 +14,7 @@ class EduidSchema(Schema):
 
     @validates_schema(pass_original=True)
     def check_unknown_fields(self, data, original_data):
-        for key in original_data:
+        for key in data:
             if key not in self.fields:
                 raise ValidationError('Unknown field name: {!s}'.format(key))
 
