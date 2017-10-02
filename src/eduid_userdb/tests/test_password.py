@@ -42,15 +42,16 @@ class TestPassword(TestCase):
         Test that the 'key' property (used by CredentialList) works for the Password.
         """
         password = self.one.find(ObjectId('55002741d00690878ae9b600'))
-        self.assertEqual(password.key, password.id)
+        self.assertEqual(password.key, password.credential_id)
 
     def test_setting_invalid_password(self):
         this = self.one.find(ObjectId('55002741d00690878ae9b600'))
         with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.id = None
+            this.credential_id = None
 
     def test_setting_invalid_salt(self):
         this = self.one.find(ObjectId('55002741d00690878ae9b600'))
+        self.assertNotEqual(this, False)
         with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
             this.salt = None
 

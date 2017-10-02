@@ -16,16 +16,16 @@ __author__ = 'lundberg'
 #}}
 
 _one_dict = {
-    'id': ObjectId('111111111111111111111111'),
+    'credential_id': '111111111111111111111111',
     'salt': 'firstPasswordElement',
 }
 _two_dict = {
-    'id': ObjectId('222222222222222222222222'),
+    'credential_id': '222222222222222222222222',
     'salt': 'secondPasswordElement',
     'source': 'test'
 }
 _three_dict = {
-    'id': ObjectId('333333333333333333333333'),
+    'credential_id': '333333333333333333333333',
     'salt': 'thirdPasswordElement',
     'source': 'test'
 }
@@ -59,11 +59,17 @@ class TestCredentialList(TestCase):
         self.assertEqual([_one_dict], self.one.to_list_of_dicts(old_userdb_format=True))
 
     def test_find(self):
-        match = self.two.find(ObjectId('222222222222222222222222'))
+        match = self.two.find('222222222222222222222222')
         self.assertIsInstance(match, Password)
-        self.assertEqual(match.id, ObjectId('222222222222222222222222'))
+        self.assertEqual(match.credential_id, '222222222222222222222222')
         self.assertEqual(match.salt, 'secondPasswordElement')
         self.assertEqual(match.created_by, 'test')
+
+    def test_find_with_objectid(self):
+        """ Test that backwards compatibility in find() works """
+        first = self.two.find('222222222222222222222222')
+        second = self.two.find(ObjectId('222222222222222222222222'))
+        self.assertEqual(first, second)
 
     def test_filter(self):
         match = self.four.filter(U2F)

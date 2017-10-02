@@ -22,9 +22,9 @@ class TestUser(TestCase):
                                         u'email': u'user@example.net',
                                         u'verified': True}],
                       u'passwords': [{u'created_ts': datetime.datetime(2014, 11, 24, 16, 22, 49, 188000),
-                                      u'id': ObjectId('54735b588a7d2a2c4ec3e7d0'),
+                                      u'credential_id': '54735b588a7d2a2c4ec3e7d0',
                                       u'salt': u'$NDNv1H1$315d7$32$32$',
-                                      u'source': u'dashboard'}],
+                                      u'created_by': u'dashboard'}],
                       u'norEduPersonNIN': [u'197801012345'],
                       u'subject': u'physical person',
                       u'eduPersonEntitlement': [u'http://foo.example.org'],
@@ -139,7 +139,7 @@ class TestUser(TestCase):
         data[u'mailAliases'][0]['verified'] = True
         data['surname'] = 'not signup-incomplete anymore'
         data['passwords'] = [{u'created_ts': datetime.datetime(2014, 9, 4, 8, 57, 7, 362000),
-                              u'id': ObjectId(),
+                              u'credential_id': str(ObjectId()),
                               u'salt': u'salt',
                               u'created_by': u'dashboard'}]
         user = User(data)
@@ -163,7 +163,7 @@ class TestUser(TestCase):
                 u'eduPersonPrincipalName': u'lutol-bafim',
                 u'mailAliases': [{u'email': mail, u'verified': True}],
                 u'passwords': [{u'created_ts': datetime.datetime(2014, 9, 4, 8, 57, 7, 362000),
-                                u'id': ObjectId(),
+                                u'credential_id': str(ObjectId()),
                                 u'salt': u'salt',
                                 u'source': u'dashboard'}],
                 }
@@ -180,7 +180,7 @@ class TestUser(TestCase):
                 u'mail': mail,
                 u'mailAliases': [{u'email': mail, u'verified': False}],
                 u'passwords': [{u'created_ts': datetime.datetime(2014, 9, 4, 8, 57, 7, 362000),
-                                u'id': ObjectId(),
+                                u'credential_id': str(ObjectId()),
                                 u'salt': u'salt',
                                 u'source': u'dashboard'}],
                 }
@@ -198,7 +198,7 @@ class TestUser(TestCase):
                 u'verified': True,
                 u'csrf': u'6ae1d4e95305b72318a683883e70e3b8e302cd75'}],
                 u'passwords': [{u'created_ts': datetime.datetime(2014, 9, 4, 8, 57, 7, 362000),
-                                u'id': ObjectId(),
+                                u'credential_id': str(ObjectId()),
                                 u'salt': u'salt',
                                 u'source': u'dashboard'}],
                }
@@ -265,7 +265,7 @@ class TestUser(TestCase):
                              u'primary': False,
                              u'verified': False}],
                 u'passwords': [{u'created_ts': datetime.datetime(2014, 6, 29, 17, 52, 37, 830000),
-                                u'id': ObjectId(),
+                                u'credential_id': str(ObjectId()),
                                 u'salt': u'$NDNv1H1$foo$32$32$',
                                 u'source': u'dashboard'}],
                 u'preferredLanguage': u'en',
@@ -295,7 +295,7 @@ class TestUser(TestCase):
                              u'primary': False,
                              u'verified': True}],
                 u'passwords': [{u'created_ts': datetime.datetime(2014, 6, 29, 17, 52, 37, 830000),
-                                u'id': ObjectId(),
+                                u'credential_id': str(ObjectId()),
                                 u'salt': u'$NDNv1H1$foo$32$32$',
                                 u'source': u'dashboard'}],
                 u'preferredLanguage': u'en',
@@ -319,7 +319,7 @@ class TestUser(TestCase):
                                 u'primary': True,
                                 u'verified': False}],
                     u'passwords': [{u'created_ts': datetime.datetime(2014, 6, 29, 17, 52, 37, 830000),
-                                    u'id': ObjectId(),
+                                    u'credential_id': str(ObjectId()),
                                     u'salt': u'$NDNv1H1$foo$32$32$',
                                     u'source': u'dashboard'}],
                     u'preferredLanguage': u'en',
