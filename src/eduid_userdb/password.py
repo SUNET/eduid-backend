@@ -59,18 +59,18 @@ class Password(Element):
                         created_ts = created_ts,
                         )
 
-        if 'source' in data:  # XXX We should rename source in db
+        if 'source' in data:  # TODO: Load and save all users in the database to replace source with created_by
             data['created_by'] = data.pop('source')
         Element.__init__(self, data)
-        self.id = data.pop('id')
+        if 'id' in data:  # TODO: Load and save all users in the database to replace id with credential_id
+            data['credential_id'] = data.pop('id')
+        self.credential_id = data.pop('credential_id')
         self.salt = data.pop('salt')
 
         leftovers = data.keys()
         if leftovers:
             if raise_on_unknown:
-                raise UserHasUnknownData('Password {!r} unknown data: {!r}'.format(
-                    self.id, leftovers,
-                ))
+                raise UserHasUnknownData('Password {!r} unknown data: {!r}'.format(self.key, leftovers))
             # Just keep everything that is left as-is
             self._data.update(data)
 
@@ -79,27 +79,30 @@ class Password(Element):
         """
         Return the element that is used as key.
         """
-        return self.id
+        return self.credential_id
 
     @property
-    def id(self):
+    def credential_id(self):
         """
         This is a reference to the ObjectId in the authentication private database.
 
         :return: Unique ID of password.
-        :rtype: bson.ObjectId
+        :rtype: string_types
         """
-        return self._data['id']
+        return self._data['credential_id']
 
-    @id.setter
-    def id(self, value):
+    @credential_id.setter
+    def credential_id(self, value):
         """
-        :param value: Unique ID of password.
-        :type value: bson.ObjectId
+        :param value: Reference to the password credential in the authn backend db.
+        :type value: string_types
         """
-        if not isinstance(value, ObjectId):
-            raise UserDBValueError("Invalid 'id': {!r}".format(value))
-        self._data['id'] = value
+        if isinstance(value, ObjectId):
+            # backwards compatibility
+            value = str(value)
+        if not isinstance(value, string_types):
+            raise UserDBValueError("Invalid 'credential_id': {!r}".format(value))
+        self._data['credential_id'] = value
 
     @property
     def salt(self):
@@ -125,10 +128,6 @@ class Password(Element):
         if not old_userdb_format:
             return self._data
         old = copy.copy(self._data)
-        # XXX created_by -> source
-        source = old.pop('created_by', None)
-        if source:
-            old['source'] = source
         return old
 
 

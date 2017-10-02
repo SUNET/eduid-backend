@@ -39,6 +39,8 @@ from eduid_userdb.exceptions import UserHasUnknownData
 from eduid_userdb.password import Password, password_from_dict
 from eduid_userdb.u2f import U2F, u2f_from_dict
 
+from bson import ObjectId
+
 
 class CredentialList(ElementList):
     """
@@ -72,3 +74,9 @@ class CredentialList(ElementList):
         if self.find(element.key):
             raise DuplicateElementViolation("credential {!s} already in list".format(element.key))
         super(CredentialList, self).add(element)
+
+    def find(self, key):
+        if isinstance(key, ObjectId):
+            # backwards compatible - Password.key (credential_id) changed from ObjectId to str
+            key = str(key)
+        return super(CredentialList, self).find(key)

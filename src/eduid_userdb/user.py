@@ -482,7 +482,7 @@ class User(object):
         Get the user's Terms of Use info.
 
         :return: ToUList object
-        :rtype: eduid_userdb.nin.ToUList
+        :rtype: eduid_userdb.tou.ToUList
         """
         # no setter for this one, as the ToUList object provides modification functions
         return self._tou

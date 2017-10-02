@@ -61,14 +61,16 @@ class Event(Element):
                         )
         Element.__init__(self, data)
         self.event_type = data.pop('event_type', None)
-        self.id = data.pop('id')
+        if 'id' in data:  # TODO: Load and save all users in the database to replace id with credential_id
+            data['event_id'] = data.pop('id')
+        self.event_id = data.pop('event_id')
 
         ignore_data = ignore_data or []
         leftovers = [x for x in data.keys() if x not in ignore_data]
         if leftovers:
             if raise_on_unknown:
                 raise EventHasUnknownData('Event {!r} unknown data: {!r}'.format(
-                    self.id, leftovers,
+                    self.event_id, leftovers,
                 ))
             # Just keep everything that is left as-is
             self._data.update(data)
@@ -79,7 +81,7 @@ class Event(Element):
         """
         Return the element that is used as key for events in an ElementList.
         """
-        return self.id
+        return self.event_id
 
     # -----------------------------------------------------------------
     @property
@@ -105,24 +107,24 @@ class Event(Element):
         self._data['event_type'] = str(value.lower())
 
     @property
-    def id(self):
+    def event_id(self):
         """
         This is a unique id for this event.
 
         :return: Unique ID of event.
         :rtype: bson.ObjectId
         """
-        return self._data['id']
+        return self._data['event_id']
 
-    @id.setter
-    def id(self, value):
+    @event_id.setter
+    def event_id(self, value):
         """
         :param value: Unique ID of event.
         :type value: bson.ObjectId
         """
         if not isinstance(value, ObjectId):
             raise UserDBValueError("Invalid 'id': {!r}".format(value))
-        self._data['id'] = value
+        self._data['event_id'] = value
 
     # -----------------------------------------------------------------
     def to_dict(self, old_userdb_format=False, mixed_format=False):

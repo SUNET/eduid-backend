@@ -36,7 +36,7 @@ import copy
 from six import string_types
 
 from eduid_userdb.event import Event, EventList
-from eduid_userdb.exceptions import BadEvent
+from eduid_userdb.exceptions import BadEvent, UserDBValueError
 
 
 class ToUEvent(Event):
@@ -53,7 +53,7 @@ class ToUEvent(Event):
                         created_by = application,
                         created_ts = created_ts,
                         event_type = 'tou_event',
-                        id = event_id,
+                        event_id = event_id,
                         )
         for required in ['created_by', 'created_ts']:
             if required not in data or not data.get(required):

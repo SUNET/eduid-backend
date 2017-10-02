@@ -95,16 +95,6 @@ class Element(object):
 
     def __repr__(self):
         return '<eduID {!s}: {!r}>'.format(self.__class__.__name__, self._data)
-    
-    # -----------------------------------------------------------------
-    @property
-    def object_id(self):
-        """
-        Get the element's oid in MongoDB.
-
-        :rtype: bson.ObjectId
-        """
-        return self._data['_id']
 
     # -----------------------------------------------------------------
     @property

@@ -50,7 +50,7 @@ class TestToUEvent(TestCase):
         Test that the 'key' property (used by ElementList) works for the ToUEvent.
         """
         event = self.two.to_list()[0]
-        self.assertEqual(event.key, event.id)
+        self.assertEqual(event.key, event.event_id)
 
     def test_setting_invalid_version(self):
         this = self.one.to_list()[0]
