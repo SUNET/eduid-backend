@@ -32,7 +32,7 @@ class NinHelpersTest(EduidAPITestCase):
         app.config.update(config)
         app = init_relay(app, 'testing')
         app.central_userdb = UserDB(config['MONGO_URI'], 'eduid_am')
-        app.proofing_userdb = UserDB(config['MONGO_URI'], 'test_proofing_userdb')
+        app.private_userdb = UserDB(config['MONGO_URI'], 'test_proofing_userdb')
         app.proofing_log = ProofingLog(config['MONGO_URI'], 'test_proofing_log')
         return app
 
@@ -48,7 +48,7 @@ class NinHelpersTest(EduidAPITestCase):
 
     def tearDown(self):
         self.app.central_userdb._drop_whole_collection()
-        self.app.proofing_userdb._drop_whole_collection()
+        self.app.private_userdb._drop_whole_collection()
         self.app.proofing_log._drop_whole_collection()
 
     def insert_verified_user(self):
@@ -91,7 +91,7 @@ class NinHelpersTest(EduidAPITestCase):
         proofing_state = NinProofingState({'eduPersonPrincipalName': eppn, 'nin': nin_element.to_dict()})
         with self.app.app_context():
             add_nin_to_user(user, proofing_state)
-        user = self.app.proofing_userdb.get_user_by_eppn(eppn)
+        user = self.app.private_userdb.get_user_by_eppn(eppn)
         self.assertEqual(user.nins.count, 1)
         self.assertIsNotNone(user.nins.find(self.test_user_nin))
         user_nin = user.nins.find(self.test_user_nin)
@@ -107,7 +107,7 @@ class NinHelpersTest(EduidAPITestCase):
         with self.app.app_context():
             add_nin_to_user(user, proofing_state)
         with self.assertRaises(UserDoesNotExist):
-            self.app.proofing_userdb.get_user_by_eppn(eppn)
+            self.app.private_userdb.get_user_by_eppn(eppn)
 
     def test_add_nin_to_user_existing_verified(self):
         eppn = self.insert_verified_user()
@@ -117,7 +117,7 @@ class NinHelpersTest(EduidAPITestCase):
         with self.app.app_context():
             add_nin_to_user(user, proofing_state)
         with self.assertRaises(UserDoesNotExist):
-            self.app.proofing_userdb.get_user_by_eppn(eppn)
+            self.app.private_userdb.get_user_by_eppn(eppn)
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def test_verify_nin_for_user(self, mock_user_sync):
@@ -130,7 +130,7 @@ class NinHelpersTest(EduidAPITestCase):
                                                 proofing_version='2017')
         with self.app.app_context():
             verify_nin_for_user(user, proofing_state, proofing_log_entry)
-        user = self.app.proofing_userdb.get_user_by_eppn(eppn)
+        user = self.app.private_userdb.get_user_by_eppn(eppn)
         self.assertEqual(user.nins.count, 1)
         self.assertIsNotNone(user.nins.find(self.test_user_nin))
         user_nin = user.nins.find(self.test_user_nin)
@@ -152,7 +152,7 @@ class NinHelpersTest(EduidAPITestCase):
                                                 proofing_version='2017')
         with self.app.app_context():
             verify_nin_for_user(user, proofing_state, proofing_log_entry)
-        user = self.app.proofing_userdb.get_user_by_eppn(eppn)
+        user = self.app.private_userdb.get_user_by_eppn(eppn)
         self.assertEqual(user.nins.count, 1)
         self.assertIsNotNone(user.nins.find(self.test_user_nin))
         user_nin = user.nins.find(self.test_user_nin)
@@ -173,4 +173,4 @@ class NinHelpersTest(EduidAPITestCase):
         with self.app.app_context():
             verify_nin_for_user(user, proofing_state, proofing_log_entry)
         with self.assertRaises(UserDoesNotExist):
-            self.app.proofing_userdb.get_user_by_eppn(eppn)
+            self.app.private_userdb.get_user_by_eppn(eppn)

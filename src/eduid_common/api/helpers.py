@@ -51,7 +51,7 @@ def add_nin_to_user(user, proofing_state):
         proofing_user.nins.add(nin_element)
         proofing_user.modified_ts = True
         # Save user to private db
-        current_app.proofing_userdb.save(proofing_user, check_sync=False)
+        current_app.private_userdb.save(proofing_user, check_sync=False)
         # Ask am to sync user to central db
         current_app.logger.info('Request sync for user {!s}'.format(proofing_user))
         result = current_app.am_relay.request_user_sync(proofing_user)
@@ -74,7 +74,7 @@ def rm_nin_from_user(user, nin):
         proofing_user.nins.remove(nin)
         proofing_user.modified_ts = True
         # Save user to private db
-        current_app.proofing_userdb.save(proofing_user, check_sync=False)
+        current_app.private_userdb.save(proofing_user, check_sync=False)
         # Ask am to sync user to central db
         current_app.logger.debug('Request sync for user {!s}'.format(proofing_user))
         result = current_app.am_relay.request_user_sync(proofing_user)
@@ -123,7 +123,7 @@ def verify_nin_for_user(user, proofing_state, proofing_log_entry):
         # User from central db is as up to date as it can be no need to check for modified time
         proofing_user.modified_ts = True
         # Save user to private db
-        current_app.proofing_userdb.save(proofing_user, check_sync=False)
+        current_app.private_userdb.save(proofing_user, check_sync=False)
 
         # Ask am to sync user to central db
         current_app.logger.info('Request sync for user {!s}'.format(user))
