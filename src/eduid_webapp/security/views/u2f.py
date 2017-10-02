@@ -1,21 +1,14 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import absolute_import
-from datetime import datetime
-from urllib import urlencode
-import urlparse
 
-from flask import Blueprint, session, abort, url_for, redirect
-from flask import render_template, current_app
+from flask import Blueprint, session
+from flask import current_app
 from u2flib_server.u2f import begin_registration, begin_authentication, complete_registration, complete_authentication
 
-from eduid_userdb.u2f import U2F, u2f_from_dict
-from eduid_userdb.exceptions import UserOutOfSync
-from eduid_common.api.utils import urlappend
-from eduid_common.api.decorators import require_dashboard_user, MarshalWith, UnmarshalWith
-from eduid_common.api.utils import save_dashboard_user
-from eduid_common.authn.utils import generate_password
-from eduid_common.authn.vccs import add_credentials, revoke_all_credentials
+from eduid_userdb.u2f import U2F
+from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
+from eduid_common.api.utils import save_and_sync_user
 from eduid_webapp.security.schemas import EnrollU2FTokenResponseSchema, BindU2FRequestSchema
 from eduid_webapp.security.schemas import SignWithU2FTokenResponseSchema, VerifyWithU2FTokenRequestSchema
 from eduid_webapp.security.schemas import VerifyWithU2FTokenResponseSchema, ModifyU2FTokenRequestSchema
@@ -30,14 +23,14 @@ u2f_views = Blueprint('u2f', __name__, url_prefix='/u2f', template_folder='templ
 
 @u2f_views.route('/enroll', methods=['GET'])
 @MarshalWith(EnrollU2FTokenResponseSchema)
-@require_dashboard_user
+@require_user
 def enroll(user):
-    existing_u2f_tokens = user.credentials.filter(U2F).to_list()
-    if len(existing_u2f_tokens) >= current_app.config['U2F_MAX_ALLOWED_TOKENS']:
+    user_u2f_tokens = user.credentials.filter(U2F).to_list()
+    if len(user_u2f_tokens) >= current_app.config['U2F_MAX_ALLOWED_TOKENS']:
         current_app.logger.error('User tried to register more than {} tokens.'.format(
             current_app.config['U2F_MAX_ALLOWED_TOKENS']))
         return {'_error': True, 'message': 'security.u2f.max_allowed_tokens'}
-    enrollment = begin_registration(current_app.config['UF2_APP_ID'], existing_u2f_tokens)
+    enrollment = begin_registration(current_app.config['UF2_APP_ID'], user_u2f_tokens)
     session['_u2f_enroll_'] = enrollment.json
 
     return enrollment.data_for_client
@@ -46,7 +39,7 @@ def enroll(user):
 @u2f_views.route('/bind', methods=['POST'])
 @UnmarshalWith(BindU2FRequestSchema)
 @MarshalWith(SecurityResponseSchema)
-@require_dashboard_user
+@require_user
 def bind(user, version, registration_data, client_data):
     enrollment_data = session.pop('_u2f_enroll_', None)
     if not enrollment_data:
@@ -69,7 +62,7 @@ def bind(user, version, registration_data, client_data):
     }
     u2f_token = U2F(data=u2f_token_data)
     user.credentials.add(u2f_token)
-    save_dashboard_user(user)
+    save_and_sync_user(user)
     return {
         'credentials': current_app.authninfo_db.get_authn_info(user)
     }

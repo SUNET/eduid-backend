@@ -37,12 +37,12 @@ from flask import Blueprint, request, current_app, redirect
 from eduid_userdb.element import PrimaryElementViolation, DuplicateElementViolation
 from eduid_userdb.exceptions import UserOutOfSync
 from eduid_userdb.mail import MailAddress
-from eduid_common.api.decorators import MarshalWith, UnmarshalWith
+from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
+from eduid_common.api.utils import save_and_sync_user
 from eduid_webapp.email.schemas import EmailListPayload, AddEmailSchema
 from eduid_webapp.email.schemas import ChangeEmailSchema, EmailResponseSchema
 from eduid_webapp.email.schemas import VerificationCodeSchema
 from eduid_webapp.email.verifications import send_verification_code, verify_mail_address
-from eduid_webapp.email.helpers import save_user, require_user
 
 email_views = Blueprint('email', __name__, url_prefix='', template_folder='templates')
 
@@ -80,7 +80,7 @@ def post_email(user, email, verified, primary):
         }
 
     try:
-        save_user(user)
+        save_and_sync_user(user)
     except UserOutOfSync:
         current_app.logger.debug('Couldnt save email {!r} for user {!r}, '
                                  'data out of sync'.format(email, user))
@@ -130,7 +130,7 @@ def post_primary(user, email):
 
     user.mail_addresses.primary = mail.email
     try:
-        save_user(user)
+        save_and_sync_user(user)
     except UserOutOfSync:
         current_app.logger.debug('Couldnt save email {!r} as primary for user'
                                  ' {!r}, data out of sync'.format(email, user))
@@ -258,7 +258,7 @@ def post_remove(user, email):
         user.mail_addresses.remove(email)
 
     try:
-        save_user(user)
+        save_and_sync_user(user)
     except UserOutOfSync:
         current_app.logger.debug('Couldnt remove email {!r} for user'
                                  ' {!r}, data out of sync'.format(email, user))

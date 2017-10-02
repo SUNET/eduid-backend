@@ -33,15 +33,14 @@
 
 from __future__ import absolute_import
 
-import datetime
-from flask import Blueprint, session, abort
+from flask import Blueprint, session
 from flask import current_app
 
 from eduid_userdb.element import PrimaryElementViolation, DuplicateElementViolation
 from eduid_userdb.exceptions import UserOutOfSync
 from eduid_userdb.phone import PhoneNumber
-from eduid_common.api.decorators import MarshalWith, UnmarshalWith
-from eduid_webapp.phone.helpers import save_user, require_user
+from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
+from eduid_common.api.utils import save_and_sync_user
 from eduid_webapp.phone.schemas import PhoneListPayload, SimplePhoneSchema, PhoneSchema, PhoneResponseSchema
 from eduid_webapp.phone.schemas import VerificationCodeSchema
 from eduid_webapp.phone.verifications import send_verification_code
@@ -89,7 +88,7 @@ def post_phone(user, number, verified, primary):
         }
 
     try:
-        save_user(user)
+        save_and_sync_user(user)
     except UserOutOfSync:
         current_app.logger.debug('Couldnt save mobile {!r} for user {!r}, '
                                  'data out of sync'.format(number, user))
@@ -146,7 +145,7 @@ def post_primary(user, number):
 
     user.phone_numbers.primary = phone_element.number
     try:
-        save_user(user)
+        save_and_sync_user(user)
     except UserOutOfSync:
         current_app.logger.debug('Couldnt save mobile {!r} as primary for user'
                                  ' {!r}, data out of sync'.format(number, user))
@@ -179,7 +178,7 @@ def verify(user, code, number):
     current_app.logger.debug('Trying to save mobile {!r} as verified '
                              'for user {!r}'.format(number, user))
 
-    db = current_app.verifications_db
+    db = current_app.proofing_statedb
     state = db.get_state_by_eppn_and_mobile(user.eppn, number)
 
     timeout = current_app.config.get('PHONE_VERIFICATION_TIMEOUT', 24)
@@ -199,7 +198,7 @@ def verify(user, code, number):
             'message': 'phones.code_invalid'
         }
 
-    current_app.verifications_db.remove_state(state)
+    current_app.proofing_statedb.remove_state(state)
 
     new_phone = PhoneNumber(number = number, application = 'eduid_phone',
                             verified = True, primary = False)
@@ -215,7 +214,7 @@ def verify(user, code, number):
             user.phone_numbers.find(number).is_primary = True
 
     try:
-        save_user(user)
+        save_and_sync_user(user)
     except UserOutOfSync:
         current_app.logger.debug('Couldnt confirm mobile {!r} for user'
                                  ' {!r}, data out of sync'.format(number, user))
@@ -264,7 +263,7 @@ def post_remove(user, number):
         user.phone_numbers.remove(number)
 
     try:
-        save_user(user)
+        save_and_sync_user(user)
     except UserOutOfSync:
         current_app.logger.debug('Couldnt remove mobile {!r} for user'
                                  ' {!r}, data out of sync'.format(number, user))

@@ -33,31 +33,30 @@
 
 from __future__ import absolute_import
 
-from flask import abort, Blueprint, current_app, session
+from flask import Blueprint, current_app
 
 from eduid_userdb.exceptions import UserOutOfSync
-from eduid_common.api.decorators import require_dashboard_user, MarshalWith, UnmarshalWith
-from eduid_common.api.utils import save_dashboard_user
+from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
+from eduid_common.api.utils import save_and_sync_user
 from eduid_webapp.personal_data.schemas import PersonalDataResponseSchema
 from eduid_webapp.personal_data.schemas import PersonalDataRequestSchema
 from eduid_webapp.personal_data.schemas import PersonalDataSchema
 from eduid_webapp.personal_data.schemas import NinListSchema, NinsResponseSchema
 from eduid_webapp.personal_data.schemas import AllDataResponseSchema, AllDataSchema
-from eduid_webapp.security.schemas import CredentialList
 
 pd_views = Blueprint('personal_data', __name__, url_prefix='')
 
 
 @pd_views.route('/all-user-data', methods=['GET'])
 @MarshalWith(AllDataResponseSchema)
-@require_dashboard_user
+@require_user
 def get_all_data(user):
     return AllDataSchema().dump(user.to_dict()).data
 
 
 @pd_views.route('/user', methods=['GET'])
 @MarshalWith(PersonalDataResponseSchema)
-@require_dashboard_user
+@require_user
 def get_user(user):
 
     data = {
@@ -73,7 +72,7 @@ def get_user(user):
 @pd_views.route('/user', methods=['POST'])
 @UnmarshalWith(PersonalDataRequestSchema)
 @MarshalWith(PersonalDataResponseSchema)
-@require_dashboard_user
+@require_user
 def post_user(user, given_name, surname, display_name, language):
 
     current_app.logger.debug('Trying to save user {!r}'.format(user))
@@ -83,7 +82,7 @@ def post_user(user, given_name, surname, display_name, language):
     user.display_name = display_name
     user.language = language
     try:
-        save_dashboard_user(user)
+        save_and_sync_user(user)
     except UserOutOfSync:
         return {
             '_status': 'error',
@@ -99,7 +98,7 @@ def post_user(user, given_name, surname, display_name, language):
 
 @pd_views.route('/nins', methods=['GET'])
 @MarshalWith(NinsResponseSchema)
-@require_dashboard_user
+@require_user
 def get_nins(user):
 
     data = {
