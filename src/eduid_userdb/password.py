@@ -59,7 +59,7 @@ class Password(Element):
                         created_ts = created_ts,
                         )
 
-        if 'source' in data:  # XXX We should rename source in db
+        if 'source' in data:  # XXX Load and save all users in the database to replace source with created_by
             data['created_by'] = data.pop('source')
         Element.__init__(self, data)
         self.id = data.pop('id')
@@ -125,10 +125,6 @@ class Password(Element):
         if not old_userdb_format:
             return self._data
         old = copy.copy(self._data)
-        # XXX created_by -> source
-        source = old.pop('created_by', None)
-        if source:
-            old['source'] = source
         return old
 
 
