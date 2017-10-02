@@ -185,11 +185,9 @@ class MongoTemporaryInstance(object):
         return cls._instance
 
     def __init__(self):
-        self._tmpdir = tempfile.mkdtemp()
         self._port = random.randint(40000, 50000)
         self._process = subprocess.Popen(['docker', 'run', '--rm',
                                           '-p', '{!s}:27017'.format(self._port),
-                                          '-v', '{!s}:/data'.format(self._tmpdir),
                                           'docker.sunet.se/eduid/mongodb:latest',
                                           ],
                                          stdout=open('/tmp/mongodb-temp.log', 'wb'),
@@ -222,7 +220,6 @@ class MongoTemporaryInstance(object):
             self._process.terminate()
             self._process.wait()
             self._process = None
-            shutil.rmtree(self._tmpdir, ignore_errors=True)
 
     def get_uri(self, dbname=None):
         """
