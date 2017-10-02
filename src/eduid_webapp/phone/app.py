@@ -78,8 +78,8 @@ def phone_init_app(name, config):
     app = am.init_relay(app, 'phones_proofing')
     app = msg.init_relay(app)
 
-    app.phone_proofing_userdb = PhoneProofingUserDB(app.config['MONGO_URI'])
-    app.verifications_db = PhoneProofingStateDB(app.config['MONGO_URI'])
+    app.private_userdb = PhoneProofingUserDB(app.config['MONGO_URI'])
+    app.proofing_statedb = PhoneProofingStateDB(app.config['MONGO_URI'])
 
     app.logger.info('Init {} app...'.format(name))
 

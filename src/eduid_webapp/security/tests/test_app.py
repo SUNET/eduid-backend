@@ -68,7 +68,7 @@ class SecurityTests(EduidAPITestCase):
         return config
 
     def init_data(self):
-        self.app.dashboard_userdb.save(self.test_user, check_sync=False)
+        self.app.private_userdb.save(self.test_user, check_sync=False)
         retrieve_modified_ts(self.test_user)
 
     def test_get_credentials(self):

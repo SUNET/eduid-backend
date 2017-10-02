@@ -35,7 +35,7 @@ from __future__ import absolute_import
 
 from eduid_common.api.app import eduid_init_app
 from eduid_common.api import am
-from eduid_userdb.dashboard import DashboardUserDB
+from eduid_userdb.personal_data import PersonalDataUserDB
 
 
 try:
@@ -71,11 +71,9 @@ def pd_init_app(name, config):
     from eduid_webapp.personal_data.views import pd_views
     app.register_blueprint(pd_views, url_prefix=app.config.get('APPLICATION_ROOT', None))
 
-    # XXX: Maybe we should extend eduid-dashboard or write a new amp to be able to narrow the
-    # XXX: attributes that can be changed by a sync call
-    app = am.init_relay(app, 'eduid_dashboard')
+    app = am.init_relay(app, 'eduid_personal_data')
 
-    app.dashboard_userdb = DashboardUserDB(app.config['MONGO_URI'])
+    app.private_userdb = PersonalDataUserDB(app.config['MONGO_URI'])
 
     app.logger.info('Init {} app...'.format(name))
 

@@ -72,7 +72,7 @@ def email_init_app(name, config):
     app = am.init_relay(app, 'emails_proofing')
     app = mail_relay.init_relay(app)
 
-    app.proofing_userdb = EmailProofingUserDB(app.config['MONGO_URI'])
+    app.private_userdb = EmailProofingUserDB(app.config['MONGO_URI'])
     app.proofing_statedb = EmailProofingStateDB(app.config['MONGO_URI'])
 
     app.logger.info('Init {} app...'.format(name))
