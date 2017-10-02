@@ -11,7 +11,7 @@ from eduid_userdb.tou import ToUEvent
 __author__ = 'ft'
 
 _one_dict = \
-    {'id': bson.ObjectId(),
+    {'event_id': bson.ObjectId(),
      'event_type': 'tou_event',
      'version': '1',
      'created_by': 'test',
@@ -19,7 +19,7 @@ _one_dict = \
      }
 
 _two_dict = \
-    {'id': bson.ObjectId(),
+    {'event_id': bson.ObjectId(),
      'event_type': 'tou_event',
      'version': '2',
      'created_by': 'test',
@@ -27,7 +27,7 @@ _two_dict = \
      }
 
 _three_dict = \
-    {'id': bson.ObjectId(),
+    {'event_id': bson.ObjectId(),
      'event_type': 'tou_event',
      'version': '3',
      'created_by': 'test',
