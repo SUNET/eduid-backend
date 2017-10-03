@@ -72,7 +72,7 @@ def bind(user, version, registration_data, client_data):
 
 @u2f_views.route('/sign', methods=['GET'])
 @MarshalWith(SignWithU2FTokenResponseSchema)
-@require_dashboard_user
+@require_user
 def sign(user):
     pass
 
@@ -80,7 +80,7 @@ def sign(user):
 @u2f_views.route('/verify', methods=['POST'])
 @UnmarshalWith(VerifyWithU2FTokenRequestSchema)
 @MarshalWith(VerifyWithU2FTokenResponseSchema)
-@require_dashboard_user
+@require_user
 def verify(user):
     pass
 
@@ -88,7 +88,7 @@ def verify(user):
 @u2f_views.route('/modify', methods=['POST'])
 @UnmarshalWith(ModifyU2FTokenRequestSchema)
 @MarshalWith(SecurityResponseSchema)
-@require_dashboard_user
+@require_user
 def modify(user):
     pass
 
@@ -96,6 +96,6 @@ def modify(user):
 @u2f_views.route('/remove', methods=['POST'])
 @UnmarshalWith(RemoveU2FTokenRequestSchema)
 @MarshalWith(SecurityResponseSchema)
-@require_dashboard_user
+@require_user
 def remove(user):
     pass
