@@ -8,7 +8,7 @@ from functools import wraps
 from flask import session, abort, current_app, request, jsonify
 from marshmallow.exceptions import ValidationError
 from eduid_userdb.exceptions import UserDoesNotExist, MultipleUsersReturned
-from eduid_common.api.utils import get_dashboard_user
+from eduid_common.api.utils import get_user
 from eduid_common.api.schemas.base import FluxStandardAction
 from eduid_common.api.schemas.models import FluxResponseStatus, FluxSuccessResponse, FluxFailResponse
 
@@ -29,45 +29,19 @@ def require_eppn(f):
     return require_eppn_decorator
 
 
-def _get_user():
-    eppn = session.get('user_eppn', None)
-    if not eppn:
-        abort(401)
-    # Get user from central database
-    try:
-        return current_app.central_userdb.get_user_by_eppn(eppn, raise_on_missing=True)
-    except UserDoesNotExist as e:
-        current_app.logger.error('Could not find user central database.')
-        current_app.logger.error(e)
-        abort(401)
-    except MultipleUsersReturned as e:
-        current_app.logger.error('Found multiple users in central database.')
-        current_app.logger.error(e)
-        abort(401)
-
-
 def require_user(f):
     @wraps(f)
     def require_user_decorator(*args, **kwargs):
-        user = _get_user()
+        user = get_user()
         kwargs['user'] = user
         return f(*args, **kwargs)
     return require_user_decorator
 
 
-def require_dashboard_user(f):
-    @wraps(f)
-    def require_dashboard_user_decorator(*args, **kwargs):
-        user = get_dashboard_user()
-        kwargs['user'] = user
-        return f(*args, **kwargs)
-    return require_dashboard_user_decorator
-
-
 def require_support_personnel(f):
     @wraps(f)
     def require_support_decorator(*args, **kwargs):
-        user = _get_user()
+        user = get_user(sync_modified_ts=False)
         # If the logged in user is whitelisted then we
         # pass on the request to the decorated view
         # together with the eppn of the logged in user.
@@ -84,7 +58,7 @@ def require_support_personnel(f):
 def can_verify_identity(f):
     @wraps(f)
     def verify_identity_decorator(*args, **kwargs):
-        user = _get_user()
+        user = get_user()
         # For now a user can just have one verified NIN
         if user.nins.primary is not None:
             ret = {'error': 'User is already verified'}

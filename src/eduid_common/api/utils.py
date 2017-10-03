@@ -7,7 +7,7 @@ from flask import current_app, session
 from eduid_userdb import User
 from eduid_userdb.dashboard import DashboardUser
 from eduid_userdb.proofing import ProofingUser
-from eduid_userdb.exceptions import UserDBValueError
+from eduid_userdb.exceptions import UserDBValueError, EduIDUserDBError
 from eduid_userdb.exceptions import UserDoesNotExist, MultipleUsersReturned
 from eduid_common.api.exceptions import ApiException
 
@@ -29,59 +29,59 @@ def get_short_hash(entropy=10):
     return uuid4().hex[:entropy]
 
 
-def retrieve_modified_ts(user, dashboard_userdb=None):
+def update_modified_ts(user):
     """
     When loading a user from the central userdb, the modified_ts has to be
-    loaded from the dashboard private userdb (since it is not propagated to
-    'attributes' by the eduid-am worker).
+    loaded from the private userdb (since it is not propagated to 'attributes'
+    by the eduid-am worker).
 
     This need should go away once there is a global version number on the user document.
 
     :param user: User object from the central userdb
-    :param dashboard_userdb: Dashboard private userdb
-
     :type user: eduid_userdb.User
-    :type dashboard_userdb: eduid_userdb.dashboard.DashboardUserDB
 
     :return: None
     """
-    if dashboard_userdb is None:
-        dashboard_userdb = current_app.dashboard_userdb
     try:
         userid = user.user_id
     except UserDBValueError:
         current_app.logger.debug("User {!s} has no id, setting modified_ts to None".format(user))
         user.modified_ts = None
         return
-
-    dashboard_user = dashboard_userdb.get_user_by_id(userid, raise_on_missing=False)
-    if dashboard_user is None:
+    
+    private_user = current_app.private_userdb.get_user_by_id(userid, raise_on_missing=False)
+    if private_user is None:
         current_app.logger.debug("User {!s} not found in {!s}, "
-                                 "setting modified_ts to None".format(user, dashboard_userdb))
+                                 "setting modified_ts to None".format(user, current_app.private_userdb))
         user.modified_ts = None
         return
 
-    if dashboard_user.modified_ts is None:
-        dashboard_user.modified_ts = True  # use current time
+    if private_user.modified_ts is None:
+        private_user.modified_ts = True  # use current time
         current_app.logger.debug("Updating user {!s} with new modified_ts: {!s}".format(
-            dashboard_user, dashboard_user.modified_ts))
-        dashboard_userdb.save(dashboard_user, check_sync = False)
+            private_user, private_user.modified_ts))
+        current_app.private_userdb.save(private_user, check_sync = False)
 
-    user.modified_ts = dashboard_user.modified_ts
-    current_app.logger.debug("Updating {!s} with modified_ts from dashboard user {!s}: {!s}".format(
-        user, dashboard_user, dashboard_user.modified_ts))
+    user.modified_ts = private_user.modified_ts
+    current_app.logger.debug("Updating {!s} with modified_ts from central userdb user {!s}: {!s}".format(
+        user, private_user, private_user.modified_ts))
 
 
-def get_user(userdb, user_class=ProofingUser):
+def get_user(sync_modified_ts=True):
+    """
+    :return: Central userdb user
+    :rtype: eduid_userdb.user.User
+    """
     eppn = session.get('user_eppn', None)
     if not eppn:
         raise ApiException('Not authorized', status_code=401)
-    # Get user from central database
     try:
+        # Get user from central database
         user = current_app.central_userdb.get_user_by_eppn(eppn, raise_on_missing=True)
-        proofing_user = user_class(data = user.to_dict())
-        retrieve_modified_ts(proofing_user, userdb)
-        return proofing_user
+        if sync_modified_ts:
+            # Update private database with the modified_ts from central userdb if needed
+            update_modified_ts(user)
+        return user
     except UserDoesNotExist as e:
         current_app.logger.error('Could not find user central database.')
         current_app.logger.error(e)
@@ -92,24 +92,18 @@ def get_user(userdb, user_class=ProofingUser):
         raise ApiException('Not authorized', status_code=401)
 
 
-def get_dashboard_user():
-    return get_user(current_app.dashboard_userdb, user_class=DashboardUser)
-
-
-def save_dashboard_user(user):
+def save_and_sync_user(user):
     """
-    Save (new) user objects to the dashboard db in the new format,
-    and propagate the changes to the central user db.
+    Save (new) user object to the private userdb and propagate the changes to the central user db.
 
     May raise UserOutOfSync exception
 
     :param user: the modified user
-    :type user: eduid_userdb.dashboard.user.DashboardUser
+    :type user: current_app.private_userdb.UserClass
     """
-    if isinstance(user, User) and not isinstance(user, DashboardUser):
-        # turn it into a DashboardUser before saving it in the dashboard private db
-        user = DashboardUser(data = user.to_dict())
-    current_app.dashboard_userdb.save(user)
+    if not isinstance(user, current_app.private_userdb.UserClass):
+        raise EduIDUserDBError('user is not of type {}'.format(current_app.private_userdb.UserClass))
+    current_app.private_userdb.save(user)
     return current_app.am_relay.request_user_sync(user)
 
 
