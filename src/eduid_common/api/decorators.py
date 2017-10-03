@@ -41,7 +41,7 @@ def require_user(f):
 def require_support_personnel(f):
     @wraps(f)
     def require_support_decorator(*args, **kwargs):
-        user = get_user(private_userdb=False)
+        user = get_user(sync_modified_ts=False)
         # If the logged in user is whitelisted then we
         # pass on the request to the decorated view
         # together with the eppn of the logged in user.

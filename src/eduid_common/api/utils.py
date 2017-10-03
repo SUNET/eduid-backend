@@ -29,7 +29,7 @@ def get_short_hash(entropy=10):
     return uuid4().hex[:entropy]
 
 
-def retrieve_modified_ts(user):
+def update_modified_ts(user):
     """
     When loading a user from the central userdb, the modified_ts has to be
     loaded from the private userdb (since it is not propagated to 'attributes'
@@ -67,7 +67,7 @@ def retrieve_modified_ts(user):
         user, private_user, private_user.modified_ts))
 
 
-def get_user(private_userdb=True):
+def get_user(sync_modified_ts=True):
     """
     :return: Central userdb user
     :rtype: eduid_userdb.user.User
@@ -78,9 +78,9 @@ def get_user(private_userdb=True):
     try:
         # Get user from central database
         user = current_app.central_userdb.get_user_by_eppn(eppn, raise_on_missing=True)
-        if private_userdb:
+        if sync_modified_ts:
             # Update private database with the modified_ts from central userdb if needed
-            retrieve_modified_ts(user)
+            update_modified_ts(user)
         return user
     except UserDoesNotExist as e:
         current_app.logger.error('Could not find user central database.')
