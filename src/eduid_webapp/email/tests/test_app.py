@@ -34,7 +34,6 @@ import json
 from mock import patch
 
 from eduid_common.api.testing import EduidAPITestCase
-from eduid_common.api.utils import retrieve_modified_ts
 from eduid_webapp.email.app import email_init_app
 from eduid_userdb.mail import MailAddress
 
@@ -62,8 +61,7 @@ class EmailTests(EduidAPITestCase):
         return config
 
     def init_data(self):
-        self.app.private_userdb.save(self.test_user, check_sync=False)
-        retrieve_modified_ts(self.test_user)
+        self.app.private_userdb.save(self.app.private_userdb.UserClass(data=self.test_user.to_dict()), check_sync=False)
 
     def test_get_all_emails(self):
         response = self.browser.get('/all')

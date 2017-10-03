@@ -7,6 +7,7 @@ from flask import current_app
 from u2flib_server.u2f import begin_registration, begin_authentication, complete_registration, complete_authentication
 
 from eduid_userdb.u2f import U2F
+from eduid_userdb.security import SecurityUser
 from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
 from eduid_common.api.utils import save_and_sync_user
 from eduid_webapp.security.schemas import EnrollU2FTokenResponseSchema, BindU2FRequestSchema
@@ -41,6 +42,7 @@ def enroll(user):
 @MarshalWith(SecurityResponseSchema)
 @require_user
 def bind(user, version, registration_data, client_data):
+    security_user = SecurityUser(data=user.to_dict())
     enrollment_data = session.pop('_u2f_enroll_', None)
     if not enrollment_data:
         current_app.logger.error('Found no U2F enrollment data in session.')
@@ -61,10 +63,10 @@ def bind(user, version, registration_data, client_data):
         'created_ts': True,
     }
     u2f_token = U2F(data=u2f_token_data)
-    user.credentials.add(u2f_token)
-    save_and_sync_user(user)
+    security_user.credentials.add(u2f_token)
+    save_and_sync_user(security_user)
     return {
-        'credentials': current_app.authninfo_db.get_authn_info(user)
+        'credentials': current_app.authninfo_db.get_authn_info(security_user)
     }
 
 

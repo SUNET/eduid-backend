@@ -2,14 +2,11 @@
 from __future__ import absolute_import
 
 import json
-import time
 
-from flask import session
 from mock import patch
 from u2flib_server.model import DeviceRegistration
 
 from eduid_common.api.testing import EduidAPITestCase
-from eduid_common.api.utils import retrieve_modified_ts
 from eduid_webapp.security.app import security_init_app
 
 __author__ = 'lundberg'
@@ -37,10 +34,6 @@ class SecurityTests(EduidAPITestCase):
             'U2F_MAX_ALLOWED_TOKENS': 2
         })
         return config
-
-    def init_data(self):
-        self.app.private_userdb.save(self.test_user, check_sync=False)
-        retrieve_modified_ts(self.test_user)
 
     def test_enroll_first_key(self):
         response = self.browser.get('/u2f/enroll')

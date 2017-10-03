@@ -37,6 +37,7 @@ from flask import Blueprint, request, current_app, redirect
 from eduid_userdb.element import PrimaryElementViolation, DuplicateElementViolation
 from eduid_userdb.exceptions import UserOutOfSync
 from eduid_userdb.mail import MailAddress
+from eduid_userdb.proofing import ProofingUser
 from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
 from eduid_common.api.utils import save_and_sync_user
 from eduid_webapp.email.schemas import EmailListPayload, AddEmailSchema
@@ -64,7 +65,7 @@ def get_all_emails(user):
 @MarshalWith(EmailResponseSchema)
 @require_user
 def post_email(user, email, verified, primary):
-
+    user = ProofingUser(data=user.to_dict())
     current_app.logger.debug('Trying to save unconfirmed email {!r} '
                              'for user {!r}'.format(email, user))
 
@@ -107,6 +108,7 @@ def post_email(user, email, verified, primary):
 @MarshalWith(EmailResponseSchema)
 @require_user
 def post_primary(user, email):
+    user = ProofingUser(data=user.to_dict())
     current_app.logger.debug('Trying to save email address {!r} as primary '
                              'for user {!r}'.format(email, user))
 
@@ -156,6 +158,7 @@ def post_primary(user, email):
 def verify(user, code, email):
     """
     """
+    user = ProofingUser(data=user.to_dict())
     current_app.logger.debug('Trying to save email address {} as verified '
                              'for user {}'.format(email, user))
 
@@ -205,6 +208,7 @@ def verify_link(user):
     """
     Used for verifying an e-mail address when the user clicks the link in the verification mail.
     """
+    user = ProofingUser(data=user.to_dict())
     code = request.args.get('code')
     email = request.args.get('email')
     if code and email:
@@ -238,6 +242,7 @@ def verify_link(user):
 @MarshalWith(EmailResponseSchema)
 @require_user
 def post_remove(user, email):
+    user = ProofingUser(data=user.to_dict())
     current_app.logger.debug('Trying to remove email address {!r} '
                              'from user {!r}'.format(email, user))
 
