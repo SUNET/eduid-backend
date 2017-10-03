@@ -69,7 +69,7 @@ def email_init_app(name, config):
     from eduid_webapp.email.views import email_views
     app.register_blueprint(email_views, url_prefix=app.config.get('APPLICATION_ROOT', None))
 
-    app = am.init_relay(app, 'emails_proofing')
+    app = am.init_relay(app, 'eduid_email')
     app = mail_relay.init_relay(app)
 
     app.private_userdb = EmailProofingUserDB(app.config['MONGO_URI'])
