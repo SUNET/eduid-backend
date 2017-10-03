@@ -45,7 +45,7 @@ class SecurityTests(EduidAPITestCase):
 
     def load_app(self, config):
         """
-        Called from the parent class, so we can provide the appropiate flask
+        Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
         return security_init_app('testing', config)
@@ -152,7 +152,7 @@ class SecurityTests(EduidAPITestCase):
         eppn = self.test_user_data['eduPersonPrincipalName']
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction() as sess:
-                with patch('eduid_webapp.security.views.add_credentials',
+                with patch('eduid_webapp.security.views.security.add_credentials',
                            return_value=True):
                     sess['reauthn-for-chpass'] = int(time.time())
                     data = {
@@ -174,7 +174,7 @@ class SecurityTests(EduidAPITestCase):
         eppn = self.test_user_data['eduPersonPrincipalName']
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction() as sess:
-                with patch('eduid_webapp.security.views.add_credentials', return_value=True):
+                with patch('eduid_webapp.security.views.security.add_credentials', return_value=True):
                     sess['reauthn-for-chpass'] = int(time.time())
                     data = {
                             'csrf_token': '0000',
@@ -194,7 +194,7 @@ class SecurityTests(EduidAPITestCase):
         eppn = self.test_user_data['eduPersonPrincipalName']
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction() as sess:
-                with patch('eduid_webapp.security.views.add_credentials', return_value=True):
+                with patch('eduid_webapp.security.views.security.add_credentials', return_value=True):
                     sess['reauthn-for-chpass'] = int(time.time())
                     with self.app.test_request_context():
                         data = {
@@ -282,7 +282,7 @@ class SecurityTests(EduidAPITestCase):
                                  'GET_SECURITY_ACCOUNT_TERMINATED_FAIL')
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
-    @patch('eduid_webapp.security.views.revoke_all_credentials')
+    @patch('eduid_webapp.security.views.security.revoke_all_credentials')
     def test_account_terminated(self, mock_revoke, mock_sync):
         mock_revoke.return_value = True
         mock_sync.return_value = True

@@ -66,8 +66,10 @@ def security_init_app(name, config):
     app = eduid_init_app(name, config)
     app.config.update(config)
 
-    from eduid_webapp.security.views import security_views
+    from eduid_webapp.security.views.security import security_views
+    from eduid_webapp.security.views.u2f import u2f_views
     app.register_blueprint(security_views, url_prefix=app.config.get('APPLICATION_ROOT', None))
+    app.register_blueprint(u2f_views, url_prefix=app.config.get('APPLICATION_ROOT', None))
 
     app = am.init_relay(app, 'eduid_dashboard')
     app = msg.init_relay(app)

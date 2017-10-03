@@ -34,12 +34,15 @@
 from marshmallow import fields
 from eduid_common.api.schemas.base import FluxStandardAction, EduidSchema
 from eduid_common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
+from eduid_common.api.schemas.u2f import U2FEnrollResponseSchema, U2FBindRequestSchema, U2FSignResponseSchema
+from eduid_common.api.schemas.u2f import U2FVerifyRequestSchema, U2FVerifyResponseSchema
 
 
 class CredentialSchema(EduidSchema):
     credential_type = fields.String(required=True)
     created_ts = fields.String(required=True)
     success_ts = fields.String(required=True)
+    description = fields.String(required=False)
 
 
 class CredentialList(EduidSchema, CSRFResponseMixin):
@@ -90,3 +93,35 @@ class ChangePasswordSchema(EduidSchema, CSRFRequestMixin):
 
 class AccountTerminatedSchema(FluxStandardAction):
     pass
+
+
+# U2F schemas
+class EnrollU2FTokenResponseSchema(FluxStandardAction, U2FEnrollResponseSchema, CSRFResponseMixin):
+    pass
+
+
+class BindU2FRequestSchema(U2FBindRequestSchema, CSRFRequestMixin):
+    pass
+
+
+class SignWithU2FTokenResponseSchema(FluxStandardAction, U2FSignResponseSchema, CSRFResponseMixin):
+    pass
+
+
+class VerifyWithU2FTokenRequestSchema(U2FVerifyRequestSchema):
+    pass
+
+
+class VerifyWithU2FTokenResponseSchema(FluxStandardAction, U2FVerifyResponseSchema, CSRFResponseMixin):
+    pass
+
+
+class ModifyU2FTokenRequestSchema(EduidSchema, CSRFRequestMixin):
+
+    key_handle = fields.String(required=True, load_from='keyHandle', dump_to='keyHandle')
+    description = fields.String(required=True)
+
+
+class RemoveU2FTokenRequestSchema(EduidSchema, CSRFRequestMixin):
+
+    key_handle = fields.String(required=True, load_from='keyHandle', dump_to='keyHandle')

@@ -4,8 +4,8 @@ pynacl==1.0.1
 urllib3==1.21.1  # We pin this version since requests has not released their fix yet
 python-etcd==0.4.3
 Pillow>=3.0.0
-eduid-userdb>=0.2.7
-eduid-common[webapp]>=0.3.1b5
+eduid-userdb>=0.3.0
+eduid-common[webapp]>=0.3.1b6
 eduid-am>=0.6.2b2
 eduid-msg>=0.10.3b0
 marshmallow>=2.10,<2.11
