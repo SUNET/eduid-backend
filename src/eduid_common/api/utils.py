@@ -32,8 +32,8 @@ def get_short_hash(entropy=10):
 def retrieve_modified_ts(user):
     """
     When loading a user from the central userdb, the modified_ts has to be
-    loaded from the dashboard private userdb (since it is not propagated to
-    'attributes' by the eduid-am worker).
+    loaded from the private userdb (since it is not propagated to 'attributes'
+    by the eduid-am worker).
 
     This need should go away once there is a global version number on the user document.
 
@@ -48,29 +48,29 @@ def retrieve_modified_ts(user):
         current_app.logger.debug("User {!s} has no id, setting modified_ts to None".format(user))
         user.modified_ts = None
         return
-
-    app_user = current_app.private_userdb.get_user_by_id(userid, raise_on_missing=False)
-    if app_user is None:
+    
+    private_user = current_app.private_userdb.get_user_by_id(userid, raise_on_missing=False)
+    if private_user is None:
         current_app.logger.debug("User {!s} not found in {!s}, "
                                  "setting modified_ts to None".format(user, current_app.private_userdb))
         user.modified_ts = None
         return
 
-    if app_user.modified_ts is None:
-        app_user.modified_ts = True  # use current time
+    if private_user.modified_ts is None:
+        private_user.modified_ts = True  # use current time
         current_app.logger.debug("Updating user {!s} with new modified_ts: {!s}".format(
-            app_user, app_user.modified_ts))
-        current_app.private_userdb.save(app_user, check_sync = False)
+            private_user, private_user.modified_ts))
+        current_app.private_userdb.save(private_user, check_sync = False)
 
-    user.modified_ts = app_user.modified_ts
-    current_app.logger.debug("Updating {!s} with modified_ts from dashboard user {!s}: {!s}".format(
-        user, app_user, app_user.modified_ts))
+    user.modified_ts = private_user.modified_ts
+    current_app.logger.debug("Updating {!s} with modified_ts from central userdb user {!s}: {!s}".format(
+        user, private_user, private_user.modified_ts))
 
 
 def get_user(private_userdb=True):
     """
-    :return: Central userdb data casted to private db user class
-    :rtype: current_app.private_userdb.UserClass
+    :return: Central userdb user
+    :rtype: eduid_userdb.user.User
     """
     eppn = session.get('user_eppn', None)
     if not eppn:
@@ -78,12 +78,10 @@ def get_user(private_userdb=True):
     try:
         # Get user from central database
         user = current_app.central_userdb.get_user_by_eppn(eppn, raise_on_missing=True)
-        if not private_userdb:
-            return user
-        private_user = current_app.private_userdb.UserClass(data=user.to_dict())
-        # Update private database user with the modified_ts from central userdb
-        retrieve_modified_ts(private_user)
-        return private_user
+        if private_userdb:
+            # Update private database with the modified_ts from central userdb if needed
+            retrieve_modified_ts(user)
+        return user
     except UserDoesNotExist as e:
         current_app.logger.error('Could not find user central database.')
         current_app.logger.error(e)
