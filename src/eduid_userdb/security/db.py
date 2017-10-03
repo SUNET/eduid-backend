@@ -49,6 +49,4 @@ class SecurityUserDB(UserDB):
         super(SecurityUserDB, self).__init__(db_uri, db_name, collection=collection)
 
     def save(self, user, check_sync=True, old_format=False):
-        if not isinstance(user, SecurityUser):
-            user = SecurityUser(data=user.to_dict())
         super(SecurityUserDB, self).save(user, check_sync=check_sync, old_format=old_format)
