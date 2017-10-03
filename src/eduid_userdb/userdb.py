@@ -36,7 +36,7 @@ from bson.errors import InvalidId
 from eduid_userdb.user import User
 from eduid_userdb.db import BaseDB
 import eduid_userdb.exceptions
-from eduid_userdb.exceptions import DocumentDoesNotExist, UserDoesNotExist, MultipleUsersReturned
+from eduid_userdb.exceptions import DocumentDoesNotExist, UserDoesNotExist, MultipleUsersReturned, EduIDUserDBError
 
 import logging
 logger = logging.getLogger(__name__)
@@ -289,7 +289,12 @@ class UserDB(BaseDB):
         :type old_format: bool
         :return:
         """
-        assert isinstance(user.user_id, ObjectId)
+        if not isinstance(user, self.UserClass):
+            raise EduIDUserDBError('user is not of type {}'.format(self.UserClass))
+
+        if not isinstance(user.user_id, ObjectId):
+            raise AssertionError('user.user_id is not of type {}'.format(ObjectId))
+
         # XXX add modified_by info. modified_ts alone is not unique when propagated to eduid_am.
 
         modified = user.modified_ts
