@@ -7,7 +7,7 @@ from flask import current_app, session
 from eduid_userdb import User
 from eduid_userdb.dashboard import DashboardUser
 from eduid_userdb.proofing import ProofingUser
-from eduid_userdb.exceptions import UserDBValueError
+from eduid_userdb.exceptions import UserDBValueError, EduIDUserDBError
 from eduid_userdb.exceptions import UserDoesNotExist, MultipleUsersReturned
 from eduid_common.api.exceptions import ApiException
 
@@ -67,7 +67,7 @@ def retrieve_modified_ts(user):
         user, app_user, app_user.modified_ts))
 
 
-def get_user(no_private_userdb=False):
+def get_user(private_userdb=True):
     """
     :return: Central userdb data casted to private db user class
     :rtype: current_app.private_userdb.UserClass
@@ -75,12 +75,13 @@ def get_user(no_private_userdb=False):
     eppn = session.get('user_eppn', None)
     if not eppn:
         raise ApiException('Not authorized', status_code=401)
-    # Get user from central database
     try:
+        # Get user from central database
         user = current_app.central_userdb.get_user_by_eppn(eppn, raise_on_missing=True)
-        if no_private_userdb:
+        if not private_userdb:
             return user
         private_user = current_app.private_userdb.UserClass(data=user.to_dict())
+        # Update private database user with the modified_ts from central userdb
         retrieve_modified_ts(private_user)
         return private_user
     except UserDoesNotExist as e:
@@ -103,8 +104,7 @@ def save_and_sync_user(user):
     :type user: current_app.private_userdb.UserClass
     """
     if not isinstance(user, current_app.private_userdb.UserClass):
-        # turn it into a private userdb user class before saving it in the private db
-        user = current_app.private_userdb.UserClass(data=user.to_dict())
+        raise EduIDUserDBError('user is not of type {}'.format(current_app.private_userdb.UserClass))
     current_app.private_userdb.save(user)
     return current_app.am_relay.request_user_sync(user)
 
