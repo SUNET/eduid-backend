@@ -140,6 +140,9 @@ class Event(Element):
         res = copy.copy(self._data)  # avoid caller messing with our _data
         if not mixed_format and 'event_type' in res:
             del res['event_type']
+        # continue calling the event id 'id' in the database until we've released
+        # a version that can load both 'id' and 'event_id' throghout
+        res['id'] = res.pop('event_id')
         return res
 
 
