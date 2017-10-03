@@ -164,6 +164,6 @@ def provision_credentials(vccs_url, new_password, user,
                             salt = new_factor.salt,
                             application = source,
                             )
-    user.passwords.add(new_password)
+    user.credentials.add(new_password)
 
     return user
