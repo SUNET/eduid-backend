@@ -94,11 +94,11 @@ def add_credentials(vccs_url, old_password, new_password,
     :type user: User | DashboardLegacyUser
     :rtype: bool
     """
-    password_id = ObjectId()
+    credential_id = ObjectId()
     if vccs is None:
         vccs = get_vccs_client(vccs_url)
     new_factor = vccs_client.VCCSPasswordFactor(new_password,
-                                                credential_id=str(password_id))
+                                                credential_id=str(credential_id))
 
     if isinstance(user, DashboardLegacyUser):
         user = DashboardUser(data=user._mongo_doc)
@@ -155,7 +155,7 @@ def add_credentials(vccs_url, old_password, new_password,
                 logger.warning("VCCS failed to revoke all passwords for "
                                "user {!s}".format(user))
 
-    new_password = Password(credential_id = password_id,
+    new_password = Password(credential_id = credential_id,
                             salt = new_factor.salt,
                             application = source,
                             )
