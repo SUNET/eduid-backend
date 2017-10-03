@@ -63,15 +63,15 @@ def check_password(vccs_url, password, user, vccs=None):
     if isinstance(user, DashboardLegacyUser):
         user = DashboardUser(data=user._mongo_doc)
 
-    for cred in user.credentials.filter(Password).to_list():
+    for user_password in user.credentials.filter(Password).to_list():
         factor = vccs_client.VCCSPasswordFactor(
             password,
-            credential_id=str(cred.key),
-            salt=cred.salt,
+            credential_id=str(user_password.credential_id),
+            salt=user_password.salt,
             )
         try:
             if vccs.authenticate(str(user.user_id), [factor]):
-                return cred
+                return user_password
         except Exception as exc:
             logger.warning("VCCS authentication threw exception: {!s}".format(exc))
     return False
@@ -115,7 +115,7 @@ def add_credentials(vccs_url, old_password, new_password,
         if not checked_password:
             return False
         old_factor = vccs_client.VCCSRevokeFactor(
-            str(checked_password.key),
+            str(checked_password.credential_id),
             'changing password',
             reference=source,
         )
@@ -130,7 +130,7 @@ def add_credentials(vccs_url, old_password, new_password,
 
     if old_factor:
         vccs.revoke_credentials(str(user.user_id), [old_factor])
-        user.credentials.remove(checked_password.key)
+        user.credentials.remove(checked_password.credential_id)
         logger.debug("Revoked old credential {!s} (user {!s})".format(
             old_factor.credential_id, user))
 
@@ -138,13 +138,13 @@ def add_credentials(vccs_url, old_password, new_password,
         # TODO: Revoke all current credentials on password reset for now
         revoked = []
         for password in user.credentials.filter(Password).to_list():
-            revoked.append(vccs_client.VCCSRevokeFactor(str(password.key),
+            revoked.append(vccs_client.VCCSRevokeFactor(str(password.credential_id),
                                                         'reset password',
                                                         reference=source))
             logger.debug("Revoking old credential (password reset) "
                          "{!s} (user {!s})".format(
-                          password.key, user))
-            user.credentials.remove(password.key)
+                          password.credential_id, user))
+            user.credentials.remove(password.credential_id)
         if revoked:
             try:
                 vccs.revoke_credentials(str(user.user_id), revoked)
@@ -184,8 +184,8 @@ def revoke_all_credentials(vccs_url, user, source='dashboard', vccs=None):
     if isinstance(user, DashboardLegacyUser):
         user = DashboardUser(data=user._mongo_doc)
     to_revoke = []
-    for passwd in user.credentials.filter(Password).to_list():
-        credential_id = str(passwd.key)
+    for password in user.credentials.filter(Password).to_list():
+        credential_id = str(password.credential_id)
         factor = vccs_client.VCCSRevokeFactor(
             credential_id,
             'subscriber requested termination',
