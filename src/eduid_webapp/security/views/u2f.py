@@ -53,16 +53,8 @@ def bind(user, version, registration_data, client_data):
         'clientData': client_data
     }
     device, cert = complete_registration(enrollment_data, data, [current_app.config['SERVER_NAME']])
-    u2f_token_data = {
-        'version': device['version'],
-        'keyhandle': device['keyHandle'],
-        'app_id': device['appId'],
-        'public_key': device['publicKey'],
-        'attest_cert': cert,
-        'created_by': 'eduid_security',
-        'created_ts': True,
-    }
-    u2f_token = U2F(data=u2f_token_data)
+    u2f_token = U2F(version=device['version'], keyhandle=device['keyHandle'], app_id=device['appId'],
+                    public_key=device['publicKey'], attest_cert=cert, application='eduid_security', created_ts=True)
     security_user.credentials.add(u2f_token)
     save_and_sync_user(security_user)
     return {
