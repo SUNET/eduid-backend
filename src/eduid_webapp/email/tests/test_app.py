@@ -34,7 +34,6 @@ import json
 from mock import patch
 
 from eduid_common.api.testing import EduidAPITestCase
-from eduid_common.api.utils import retrieve_modified_ts
 from eduid_webapp.email.app import email_init_app
 from eduid_userdb.mail import MailAddress
 
@@ -62,8 +61,7 @@ class EmailTests(EduidAPITestCase):
         return config
 
     def init_data(self):
-        self.app.proofing_userdb.save(self.test_user, check_sync=False)
-        retrieve_modified_ts(self.test_user, dashboard_userdb=self.app.proofing_userdb)
+        self.app.private_userdb.save(self.app.private_userdb.UserClass(data=self.test_user.to_dict()), check_sync=False)
 
     def test_get_all_emails(self):
         response = self.browser.get('/all')
@@ -492,7 +490,7 @@ class EmailTests(EduidAPITestCase):
 
                 self.assertEqual(response2.status_code, 302)
 
-                user = self.app.proofing_userdb.get_user_by_eppn(eppn)
+                user = self.app.private_userdb.get_user_by_eppn(eppn)
                 mail_address_element = user.mail_addresses.find(email)
                 self.assertTrue(mail_address_element)
 
@@ -531,7 +529,7 @@ class EmailTests(EduidAPITestCase):
 
                 self.assertEqual(response2.status_code, 302)
 
-                user = self.app.proofing_userdb.get_user_by_eppn(eppn)
+                user = self.app.private_userdb.get_user_by_eppn(eppn)
                 mail_address_element = user.mail_addresses.find(email)
                 self.assertTrue(mail_address_element)
 

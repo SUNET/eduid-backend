@@ -31,8 +31,8 @@ def init_letter_proofing_app(name, config=None):
     app.register_blueprint(letter_proofing_views, url_prefix=app.config.get('APPLICATION_ROOT', None))
 
     # Init dbs
+    app.private_userdb = LetterProofingUserDB(app.config['MONGO_URI'])
     app.proofing_statedb = LetterProofingStateDB(app.config['MONGO_URI'])
-    app.proofing_userdb = LetterProofingUserDB(app.config['MONGO_URI'])
     app.proofing_log = ProofingLog(app.config['MONGO_URI'])
 
     # Init celery

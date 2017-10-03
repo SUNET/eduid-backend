@@ -39,10 +39,11 @@ import urlparse
 from flask import Blueprint, session, abort, url_for, redirect
 from flask import render_template, current_app
 
+from eduid_userdb.security import SecurityUser
 from eduid_userdb.exceptions import UserOutOfSync
 from eduid_common.api.utils import urlappend
-from eduid_common.api.decorators import require_dashboard_user, MarshalWith, UnmarshalWith
-from eduid_common.api.utils import save_dashboard_user
+from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
+from eduid_common.api.utils import save_and_sync_user
 from eduid_common.authn.utils import generate_password
 from eduid_common.authn.vccs import add_credentials, revoke_all_credentials
 from eduid_webapp.security.schemas import SecurityResponseSchema, CredentialList, CsrfSchema
@@ -62,7 +63,7 @@ def error(err):
 
 @security_views.route('/credentials', methods=['GET'])
 @MarshalWith(SecurityResponseSchema)
-@require_dashboard_user
+@require_user
 def get_credentials(user):
     """
     View to get credentials for the logged user.
@@ -78,7 +79,7 @@ def get_credentials(user):
 
 @security_views.route('/suggested-password', methods=['GET'])
 @MarshalWith(SuggestedPasswordResponseSchema)
-@require_dashboard_user
+@require_user
 def get_suggested(user):
     """
     View to get a suggested  password for the logged user.
@@ -108,11 +109,12 @@ def generate_suggested_password():
 @security_views.route('/change-password', methods=['POST'])
 @MarshalWith(ChpassResponseSchema)
 @UnmarshalWith(ChangePasswordSchema)
-@require_dashboard_user
+@require_user
 def change_password(user, old_password, new_password):
     """
     View to change the password
     """
+    user = SecurityUser(data=user.to_dict())
     authn_ts = session.get('reauthn-for-chpass', None)
     if authn_ts is None:
         return error('chpass.no_reauthn')
@@ -131,7 +133,7 @@ def change_password(user, old_password, new_password):
     if added:
         user.terminated = False
         try:
-            save_dashboard_user(user)
+            save_and_sync_user(user)
         except UserOutOfSync:
             return error('user-out-of-sync')
     else:
@@ -153,7 +155,7 @@ def change_password(user, old_password, new_password):
 @security_views.route('/terminate-account', methods=['POST'])
 @MarshalWith(RedirectResponseSchema)
 @UnmarshalWith(CsrfSchema)
-@require_dashboard_user
+@require_user
 def delete_account(user):
     """
     Terminate account view.
@@ -180,7 +182,7 @@ def delete_account(user):
 
 @security_views.route('/account-terminated', methods=['GET'])
 @MarshalWith(AccountTerminatedSchema)
-@require_dashboard_user
+@require_user
 def account_terminated(user):
     """
     The account termination action,
@@ -190,8 +192,9 @@ def account_terminated(user):
     sends an email to the address in the terminated account,
     and logs out the session.
 
-    :type user: eduid_userdb.dashboard.DashboardLegacyUser
+    :type user: eduid_userdb.user.User
     """
+    security_user = SecurityUser(data=user.to_dict())
     authn_ts = session.get('reauthn-for-termination', None)
     if authn_ts is None:
         abort(400)
@@ -205,22 +208,22 @@ def account_terminated(user):
     del session['reauthn-for-termination']
 
     # revoke all user credentials
-    revoke_all_credentials(current_app.config.get('VCCS_URL'), user)
-    for p in user.passwords.to_list():
-        user.passwords.remove(p.id)
+    revoke_all_credentials(current_app.config.get('VCCS_URL'), security_user)
+    for p in security_user.passwords.to_list():
+        security_user.passwords.remove(p.key)
 
     # flag account as terminated
-    user.terminated = True
+    security_user.terminated = True
     try:
-        save_dashboard_user(user)
+        save_and_sync_user(security_user)
     except UserOutOfSync:
         return error('user-out-of-sync')
 
     current_app.stats.count(name='security_account_terminated', value=1)
-    current_app.logger.info('Terminated account for user {!r}'.format(user))
+    current_app.logger.info('Terminated account for user {!r}'.format(security_user))
 
     # email the user
-    send_termination_mail(user)
+    send_termination_mail(security_user)
 
     session.invalidate()
 

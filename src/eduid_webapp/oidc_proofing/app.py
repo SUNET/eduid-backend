@@ -77,8 +77,8 @@ def init_oidc_proofing_app(name, config):
     app = am.init_relay(app, 'eduid_oidc_proofing')
 
     # Initialize db
+    app.private_userdb = OidcProofingUserDB(app.config['MONGO_URI'])
     app.proofing_statedb = OidcProofingStateDB(app.config['MONGO_URI'])
-    app.proofing_userdb = OidcProofingUserDB(app.config['MONGO_URI'])
     app.proofing_log = ProofingLog(app.config['MONGO_URI'])
 
     return app

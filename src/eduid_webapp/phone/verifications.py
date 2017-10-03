@@ -38,7 +38,7 @@ from eduid_userdb.proofing import PhoneProofingElement, PhoneProofingState
 
 
 def new_verification_code(phone, user):
-    old_verification = current_app.verifications_db.get_state_by_eppn_and_mobile(
+    old_verification = current_app.proofing_statedb.get_state_by_eppn_and_mobile(
                        user.eppn, phone, raise_on_missing=False)
     if old_verification is not None:
         current_app.logger.debug('removing old verification code:'
@@ -56,7 +56,7 @@ def new_verification_code(phone, user):
     verification_state = PhoneProofingState(verification_data)
     # XXX This should be an atomic transaction together with saving
     # the user and sending the letter.
-    current_app.verifications_db.save(verification_state)
+    current_app.proofing_statedb.save(verification_state)
     current_app.logger.info('Created new mobile verification code '
                             'for user {!r} and mobile {!r}.'.format(user, phone))
     current_app.logger.debug('Verification Code:'

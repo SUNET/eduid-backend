@@ -31,7 +31,7 @@ def init_lookup_mobile_proofing_app(name, config=None):
     app.register_blueprint(mobile_proofing_views, url_prefix=app.config.get('APPLICATION_ROOT', None))
 
     # Init dbs
-    app.proofing_userdb = LookupMobileProofingUserDB(app.config['MONGO_URI'])
+    app.private_userdb = LookupMobileProofingUserDB(app.config['MONGO_URI'])
     app.proofing_log = ProofingLog(app.config['MONGO_URI'])
 
     # Init celery

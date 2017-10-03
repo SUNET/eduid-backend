@@ -35,9 +35,8 @@ from flask import current_app, url_for, render_template
 
 from eduid_userdb.mail import MailAddress
 from eduid_userdb.element import DuplicateElementViolation
-from eduid_common.api.utils import get_unique_hash
+from eduid_common.api.utils import get_unique_hash, save_and_sync_user
 from eduid_userdb.proofing import EmailProofingElement, EmailProofingState
-from eduid_webapp.email.helpers import save_user
 
 
 def new_verification_code(email, user):
@@ -125,7 +124,7 @@ def verify_mail_address(state, user):
         if has_primary is None:
             user.mail_addresses.find(state.verification.email).is_primary = True
 
-    save_user(user)
+    save_and_sync_user(user)
     current_app.logger.info('Email address {!r} confirmed '
                             'for user {!r}'.format(state.verification.email, user))
     current_app.stats.count(name='email_verify_success', value=1)

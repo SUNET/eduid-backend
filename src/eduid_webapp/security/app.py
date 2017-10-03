@@ -38,7 +38,7 @@ from flask_babel import Babel
 from eduid_common.api.app import eduid_init_app
 from eduid_common.api import msg
 from eduid_common.api import am
-from eduid_userdb.dashboard import DashboardUserDB
+from eduid_userdb.security import SecurityUserDB
 from eduid_userdb.authninfo import AuthnInfoDB
 
 
@@ -71,10 +71,10 @@ def security_init_app(name, config):
     app.register_blueprint(security_views, url_prefix=app.config.get('APPLICATION_ROOT', None))
     app.register_blueprint(u2f_views, url_prefix=app.config.get('APPLICATION_ROOT', None))
 
-    app = am.init_relay(app, 'eduid_dashboard')
+    app = am.init_relay(app, 'eduid_security')
     app = msg.init_relay(app)
 
-    app.dashboard_userdb = DashboardUserDB(app.config['MONGO_URI'])
+    app.private_userdb = SecurityUserDB(app.config['MONGO_URI'])
     app.authninfo_db = AuthnInfoDB(app.config['MONGO_URI'])
 
     app.logger.info('Init {} app...'.format(name))
