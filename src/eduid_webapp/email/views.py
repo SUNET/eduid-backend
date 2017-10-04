@@ -158,12 +158,12 @@ def post_primary(user, email):
 def verify(user, code, email):
     """
     """
-    user = ProofingUser(data=user.to_dict())
+    proofing_user = ProofingUser(data=user.to_dict())
     current_app.logger.debug('Trying to save email address {} as verified '
-                             'for user {}'.format(email, user))
+                             'for user {}'.format(email, proofing_user))
 
     db = current_app.proofing_statedb
-    state = db.get_state_by_eppn_and_email(user.eppn, email, raise_on_missing=False)
+    state = db.get_state_by_eppn_and_email(proofing_user.eppn, email, raise_on_missing=False)
 
     timeout = current_app.config.get('EMAIL_VERIFICATION_TIMEOUT', 24)
     if state.is_expired(timeout):
@@ -171,7 +171,7 @@ def verify(user, code, email):
             state.verification.email)
         current_app.logger.debug(msg)
 
-        send_verification_code(email, user)
+        send_verification_code(email, proofing_user)
         return {
             '_status': 'error',
             'message': 'emails.code_expired_send_new'
@@ -186,17 +186,17 @@ def verify(user, code, email):
         }
 
     try:
-        verify_mail_address(state, user)
+        verify_mail_address(state, proofing_user)
     except UserOutOfSync:
         current_app.logger.debug('Couldnt confirm email {} for user'
-                                 ' {}, data out of sync'.format(email, user))
+                                 ' {}, data out of sync'.format(email, proofing_user))
         return {
             '_status': 'error',
             'message': 'user-out-of-sync'
         }
 
     emails = {
-            'emails': user.mail_addresses.to_list_of_dicts(),
+            'emails': proofing_user.mail_addresses.to_list_of_dicts(),
             'message': 'emails.verification-success'
             }
     return EmailListPayload().dump(emails).data
@@ -208,20 +208,20 @@ def verify_link(user):
     """
     Used for verifying an e-mail address when the user clicks the link in the verification mail.
     """
-    user = ProofingUser(data=user.to_dict())
+    proofing_user = ProofingUser(data=user.to_dict())
     code = request.args.get('code')
     email = request.args.get('email')
     if code and email:
-        current_app.logger.debug('Trying to save email address {} as verified for user {}'.format(email, user))
+        current_app.logger.debug('Trying to save email address {} as verified for user {}'.format(email, proofing_user))
 
         db = current_app.proofing_statedb
-        state = db.get_state_by_eppn_and_email(user.eppn, email)
+        state = db.get_state_by_eppn_and_email(proofing_user.eppn, email)
 
         timeout = current_app.config.get('EMAIL_VERIFICATION_TIMEOUT', 24)
         if state.is_expired(timeout):
             current_app.logger.info("Verification code is expired for: {}. Sending new code".format(
                 state.verification.email))
-            send_verification_code(email, user)
+            send_verification_code(email, proofing_user)
             return redirect(current_app.config['SAML2_LOGIN_REDIRECT_URL'])
 
         if code != state.verification.verification_code:
@@ -229,9 +229,10 @@ def verify_link(user):
             return redirect(current_app.config['SAML2_LOGIN_REDIRECT_URL'])
 
         try:
-            verify_mail_address(state, user)
+            verify_mail_address(state, proofing_user)
         except UserOutOfSync:
-            current_app.logger.error('Couldnt confirm email {} for user {}, data out of sync'.format(email, user))
+            current_app.logger.error('Couldnt confirm email {} for user {}, data out of sync'.format(email,
+                                                                                                     proofing_user))
 
     current_app.logger.info('Missing code or email arguments.')
     return redirect(current_app.config['SAML2_LOGIN_REDIRECT_URL'])

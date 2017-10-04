@@ -114,7 +114,7 @@ def change_password(user, old_password, new_password):
     """
     View to change the password
     """
-    user = SecurityUser(data=user.to_dict())
+    security_user = SecurityUser(data=user.to_dict())
     authn_ts = session.get('reauthn-for-chpass', None)
     if authn_ts is None:
         return error('chpass.no_reauthn')
@@ -128,24 +128,24 @@ def change_password(user, old_password, new_password):
     del session['reauthn-for-chpass']
 
     vccs_url = current_app.config.get('VCCS_URL')
-    added = add_credentials(vccs_url, old_password, new_password, user, source='security')
+    added = add_credentials(vccs_url, old_password, new_password, security_user, source='security')
 
     if added:
-        user.terminated = False
+        security_user.terminated = False
         try:
-            save_and_sync_user(user)
+            save_and_sync_user(security_user)
         except UserOutOfSync:
             return error('user-out-of-sync')
     else:
         return error('Temporary technical problems')
 
     current_app.stats.count(name='security_password_changed', value=1)
-    current_app.logger.info('Changed password for user {!r}'.format(user.eppn))
+    current_app.logger.info('Changed password for user {!r}'.format(security_user.eppn))
 
     next_url = current_app.config.get('DASHBOARD_URL', '/profile')
     credentials = {
         'next_url': next_url,
-        'credentials': current_app.authninfo_db.get_authn_info(user),
+        'credentials': current_app.authninfo_db.get_authn_info(security_user),
         'message': 'chpass.password-changed'
         }
 
