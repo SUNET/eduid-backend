@@ -33,7 +33,7 @@ def enroll(user):
         return {'_error': True, 'message': 'security.u2f.max_allowed_tokens'}
     enrollment = begin_registration(current_app.config['UF2_APP_ID'], user_u2f_tokens)
     session['_u2f_enroll_'] = enrollment.json
-
+    current_app.stats.count(name='u2f_token_enroll')
     return enrollment.data_for_client
 
 
@@ -57,6 +57,7 @@ def bind(user, version, registration_data, client_data):
                     public_key=device['publicKey'], attest_cert=cert, application='eduid_security', created_ts=True)
     security_user.credentials.add(u2f_token)
     save_and_sync_user(security_user)
+    current_app.stats.count(name='u2f_token_bind')
     return {
         'credentials': current_app.authninfo_db.get_authn_info(security_user)
     }
@@ -72,6 +73,7 @@ def sign(user):
         return {'_error': True, 'message': 'security.u2f.no_token_found'}
     challenge = begin_authentication(current_app.config['UF2_APP_ID'], user_u2f_tokens)
     session['_u2f_challenge_'] = challenge.json
+    current_app.stats.count(name='u2f_sign')
     return challenge.data_for_client
 
 
@@ -90,6 +92,7 @@ def verify(user, key_handle, signature_data, client_data):
         'clientData': client_data
     }
     device, c, t = complete_authentication(challenge, data, [current_app.config['SERVER_NAME']])
+    current_app.stats.count(name='u2f_verify')
     return {'keyHandle': device['keyHandle'], 'touch': t, 'counter': c}
 
 
@@ -108,6 +111,7 @@ def modify(user, key_handle, description):
         return {'_error': True, 'message': 'security.u2f.missing_u2f_token'}
     token_to_modify.description = description
     save_and_sync_user(user)
+    current_app.stats.count(name='u2f_token_modify')
 
 
 @u2f_views.route('/remove', methods=['POST'])
@@ -115,4 +119,4 @@ def modify(user, key_handle, description):
 @MarshalWith(SecurityResponseSchema)
 @require_user
 def remove(user):
-    pass
+    current_app.stats.count(name='u2f_token_remove')
