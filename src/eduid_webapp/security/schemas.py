@@ -101,7 +101,8 @@ class EnrollU2FTokenResponseSchema(FluxStandardAction, U2FEnrollResponseSchema, 
 
 
 class BindU2FRequestSchema(U2FBindRequestSchema, CSRFRequestMixin):
-    pass
+
+    description = fields.String(required=False)
 
 
 class SignWithU2FTokenResponseSchema(FluxStandardAction, U2FSignResponseSchema, CSRFResponseMixin):

@@ -41,7 +41,7 @@ def enroll(user):
 @UnmarshalWith(BindU2FRequestSchema)
 @MarshalWith(SecurityResponseSchema)
 @require_user
-def bind(user, version, registration_data, client_data):
+def bind(user, version, registration_data, client_data, description=''):
     security_user = SecurityUser(data=user.to_dict())
     enrollment_data = session.pop('_u2f_enroll_', None)
     if not enrollment_data:
@@ -54,7 +54,8 @@ def bind(user, version, registration_data, client_data):
     }
     device, cert = complete_registration(enrollment_data, data, [current_app.config['SERVER_NAME']])
     u2f_token = U2F(version=device['version'], keyhandle=device['keyHandle'], app_id=device['appId'],
-                    public_key=device['publicKey'], attest_cert=cert, application='eduid_security', created_ts=True)
+                    public_key=device['publicKey'], attest_cert=cert, description=description,
+                    application='eduid_security', created_ts=True)
     security_user.credentials.add(u2f_token)
     save_and_sync_user(security_user)
     return {
