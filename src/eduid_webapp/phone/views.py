@@ -33,15 +33,15 @@
 
 from __future__ import absolute_import
 
-import datetime
-from flask import Blueprint, session, abort
+from flask import Blueprint, session
 from flask import current_app
 
 from eduid_userdb.element import PrimaryElementViolation, DuplicateElementViolation
 from eduid_userdb.exceptions import UserOutOfSync
 from eduid_userdb.phone import PhoneNumber
-from eduid_common.api.decorators import MarshalWith, UnmarshalWith
-from eduid_webapp.phone.helpers import save_user, require_user
+from eduid_userdb.proofing import ProofingUser
+from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
+from eduid_common.api.utils import save_and_sync_user
 from eduid_webapp.phone.schemas import PhoneListPayload, SimplePhoneSchema, PhoneSchema, PhoneResponseSchema
 from eduid_webapp.phone.schemas import VerificationCodeSchema
 from eduid_webapp.phone.verifications import send_verification_code
@@ -74,14 +74,15 @@ def post_phone(user, number, verified, primary):
 
     Returns a listing of  all phones for the logged in user.
     '''
+    proofing_user = ProofingUser(data=user.to_dict())
     current_app.logger.debug('Trying to save unconfirmed mobile {!r} '
-                             'for user {!r}'.format(number, user))
+                             'for user {!r}'.format(number, proofing_user))
 
     new_phone = PhoneNumber(number=number, application='dashboard',
                             verified=False, primary=False)
 
     try:
-        user.phone_numbers.add(new_phone)
+        proofing_user.phone_numbers.add(new_phone)
     except DuplicateElementViolation:
         return {
             '_status': 'error',
@@ -89,24 +90,24 @@ def post_phone(user, number, verified, primary):
         }
 
     try:
-        save_user(user)
+        save_and_sync_user(proofing_user)
     except UserOutOfSync:
         current_app.logger.debug('Couldnt save mobile {!r} for user {!r}, '
-                                 'data out of sync'.format(number, user))
+                                 'data out of sync'.format(number, proofing_user))
         return {
             '_status': 'error',
             'error': {'form': 'out_of_sync'}
         }
 
     current_app.logger.info('Saved unconfirmed mobile {!r} '
-                            'for user {!r}'.format(number, user))
+                            'for user {!r}'.format(number, proofing_user))
     current_app.stats.count(name='mobile_save_unconfirmed_mobile', value=1)
 
-    send_verification_code(user, number)
+    send_verification_code(proofing_user, number)
     current_app.stats.count(name='mobile_send_verification_code', value=1)
 
     phones = {
-            'phones': user.phone_numbers.to_list_of_dicts(),
+            'phones': proofing_user.phone_numbers.to_list_of_dicts(),
             'message': 'phones.save-success'
             }
     return PhoneListPayload().dump(phones).data
@@ -117,20 +118,21 @@ def post_phone(user, number, verified, primary):
 @MarshalWith(PhoneResponseSchema)
 @require_user
 def post_primary(user, number):
-    '''
+    """
     view to mark one of the (verified) phone numbers of the logged in user
     as the primary phone number.
 
     Returns a listing of  all phones for the logged in user.
-    '''
+    """
+    proofing_user = ProofingUser(data=user.to_dict())
     current_app.logger.debug('Trying to save mobile {!r} as primary '
-                             'for user {!r}'.format(number, user))
+                             'for user {!r}'.format(number, proofing_user))
 
     try:
-        phone_element = user.phone_numbers.find(number)
+        phone_element = proofing_user.phone_numbers.find(number)
     except IndexError:
         current_app.logger.debug('Couldnt save mobile {!r} as primary for user'
-                                 ' {!r}, data out of sync'.format(number, user))
+                                 ' {!r}, data out of sync'.format(number, proofing_user))
         return {
             '_status': 'error',
             'message': 'user-out-of-sync'
@@ -138,28 +140,28 @@ def post_primary(user, number):
 
     if not phone_element.is_verified:
         current_app.logger.debug('Couldnt save mobile {!r} as primary for user'
-                                 ' {!r}, mobile unconfirmed'.format(number, user))
+                                 ' {!r}, mobile unconfirmed'.format(number, proofing_user))
         return {
             '_status': 'error',
             'message': 'phones.unconfirmed_number_not_primary'
         }
 
-    user.phone_numbers.primary = phone_element.number
+    proofing_user.phone_numbers.primary = phone_element.number
     try:
-        save_user(user)
+        save_and_sync_user(proofing_user)
     except UserOutOfSync:
         current_app.logger.debug('Couldnt save mobile {!r} as primary for user'
-                                 ' {!r}, data out of sync'.format(number, user))
+                                 ' {!r}, data out of sync'.format(number, proofing_user))
         return {
             '_status': 'error',
             'message': 'user-out-of-sync'
         }
     current_app.logger.info('Mobile {!r} made primary '
-                            'for user {!r}'.format(number, user))
+                            'for user {!r}'.format(number, proofing_user))
     current_app.stats.count(name='mobile_set_primary', value=1)
 
     phones = {
-            'phones': user.phone_numbers.to_list_of_dicts(),
+            'phones': proofing_user.phone_numbers.to_list_of_dicts(),
             'message': 'phones.primary-success'
             }
     return PhoneListPayload().dump(phones).data
@@ -170,17 +172,18 @@ def post_primary(user, number):
 @MarshalWith(PhoneResponseSchema)
 @require_user
 def verify(user, code, number):
-    '''
+    """
     view to mark one of the (unverified) phone numbers of the logged in user
     as verified.
 
     Returns a listing of  all phones for the logged in user.
-    '''
+    """
+    proofing_user = ProofingUser(data=user.to_dict())
     current_app.logger.debug('Trying to save mobile {!r} as verified '
-                             'for user {!r}'.format(number, user))
+                             'for user {!r}'.format(number, proofing_user))
 
-    db = current_app.verifications_db
-    state = db.get_state_by_eppn_and_mobile(user.eppn, number)
+    db = current_app.proofing_statedb
+    state = db.get_state_by_eppn_and_mobile(proofing_user.eppn, number)
 
     timeout = current_app.config.get('PHONE_VERIFICATION_TIMEOUT', 24)
     if state.is_expired(timeout):
@@ -199,36 +202,36 @@ def verify(user, code, number):
             'message': 'phones.code_invalid'
         }
 
-    current_app.verifications_db.remove_state(state)
+    current_app.proofing_statedb.remove_state(state)
 
     new_phone = PhoneNumber(number = number, application = 'eduid_phone',
                             verified = True, primary = False)
 
-    has_primary = user.phone_numbers.primary
+    has_primary = proofing_user.phone_numbers.primary
     if has_primary is None:
         new_phone.is_primary = True
     try:
-        user.phone_numbers.add(new_phone)
+        proofing_user.phone_numbers.add(new_phone)
     except DuplicateElementViolation:
-        user.phone_numbers.find(number).is_verified = True
+        proofing_user.phone_numbers.find(number).is_verified = True
         if has_primary is None:
-            user.phone_numbers.find(number).is_primary = True
+            proofing_user.phone_numbers.find(number).is_primary = True
 
     try:
-        save_user(user)
+        save_and_sync_user(proofing_user)
     except UserOutOfSync:
         current_app.logger.debug('Couldnt confirm mobile {!r} for user'
-                                 ' {!r}, data out of sync'.format(number, user))
+                                 ' {!r}, data out of sync'.format(number, proofing_user))
         return {
             '_status': 'error',
             'message': 'user-out-of-sync'
         }
     current_app.logger.info('Mobile {!r} confirmed '
-                            'for user {!r}'.format(number, user))
+                            'for user {!r}'.format(number, proofing_user))
     current_app.stats.count(name='mobile_verify_success', value=1)
 
     phones = {
-            'phones': user.phone_numbers.to_list_of_dicts(),
+            'phones': proofing_user.phone_numbers.to_list_of_dicts(),
             'message': 'phones.verification-success'
             }
     return PhoneListPayload().dump(phones).data
@@ -239,15 +242,16 @@ def verify(user, code, number):
 @MarshalWith(PhoneResponseSchema)
 @require_user
 def post_remove(user, number):
-    '''
+    """
     view to remove one of the phone numbers of the logged in user.
 
     Returns a listing of  all phones for the logged in user.
-    '''
+    """
+    proofing_user = ProofingUser(data=user.to_dict())
     current_app.logger.debug('Trying to remove mobile {!r} '
-                             'from user {!r}'.format(number, user))
+                             'from user {!r}'.format(number, proofing_user))
 
-    phones = user.phone_numbers.to_list()
+    phones = proofing_user.phone_numbers.to_list()
     if len(phones) == 1:
         msg = "Cannot remove unique mobile: {!r}".format(number)
         current_app.logger.debug(msg)
@@ -257,28 +261,28 @@ def post_remove(user, number):
         }
 
     try:
-        user.phone_numbers.remove(number)
+        proofing_user.phone_numbers.remove(number)
     except PrimaryElementViolation:
         new_index = 1 if phones[0].number == number else 0
-        user.phone_numbers.primary = phones[new_index].number
-        user.phone_numbers.remove(number)
+        proofing_user.phone_numbers.primary = phones[new_index].number
+        proofing_user.phone_numbers.remove(number)
 
     try:
-        save_user(user)
+        save_and_sync_user(proofing_user)
     except UserOutOfSync:
         current_app.logger.debug('Couldnt remove mobile {!r} for user'
-                                 ' {!r}, data out of sync'.format(number, user))
+                                 ' {!r}, data out of sync'.format(number, proofing_user))
         return {
             '_status': 'error',
             'message': 'user-out-of-sync'
         }
 
     current_app.logger.info('Mobile {!r} removed '
-                            'for user {!r}'.format(number, user))
+                            'for user {!r}'.format(number, proofing_user))
     current_app.stats.count(name='mobile_remove_success', value=1)
 
     phones = {
-            'phones': user.phone_numbers.to_list_of_dicts(),
+            'phones': proofing_user.phone_numbers.to_list_of_dicts(),
             'message': 'phones.removal-success'
             }
     return PhoneListPayload().dump(phones).data
@@ -289,12 +293,12 @@ def post_remove(user, number):
 @MarshalWith(PhoneResponseSchema)
 @require_user
 def resend_code(user, number):
-    '''
+    """
     view to resend a new verification code for one of the (unverified)
     phone numbers of the logged in user. 
 
     Returns a listing of  all phones for the logged in user.
-    '''
+    """
     current_app.logger.debug('Trying to send new verification code for mobile '
                              ' {!r} for user {!r}'.format(number, user))
 

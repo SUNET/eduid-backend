@@ -33,31 +33,31 @@
 
 from __future__ import absolute_import
 
-from flask import abort, Blueprint, current_app, session
+from flask import Blueprint, current_app
 
 from eduid_userdb.exceptions import UserOutOfSync
-from eduid_common.api.decorators import require_dashboard_user, MarshalWith, UnmarshalWith
-from eduid_common.api.utils import save_dashboard_user
+from eduid_userdb.personal_data import PersonalDataUser
+from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
+from eduid_common.api.utils import save_and_sync_user
 from eduid_webapp.personal_data.schemas import PersonalDataResponseSchema
 from eduid_webapp.personal_data.schemas import PersonalDataRequestSchema
 from eduid_webapp.personal_data.schemas import PersonalDataSchema
 from eduid_webapp.personal_data.schemas import NinListSchema, NinsResponseSchema
 from eduid_webapp.personal_data.schemas import AllDataResponseSchema, AllDataSchema
-from eduid_webapp.security.schemas import CredentialList
 
 pd_views = Blueprint('personal_data', __name__, url_prefix='')
 
 
 @pd_views.route('/all-user-data', methods=['GET'])
 @MarshalWith(AllDataResponseSchema)
-@require_dashboard_user
+@require_user
 def get_all_data(user):
     return AllDataSchema().dump(user.to_dict()).data
 
 
 @pd_views.route('/user', methods=['GET'])
 @MarshalWith(PersonalDataResponseSchema)
-@require_dashboard_user
+@require_user
 def get_user(user):
 
     data = {
@@ -73,33 +73,33 @@ def get_user(user):
 @pd_views.route('/user', methods=['POST'])
 @UnmarshalWith(PersonalDataRequestSchema)
 @MarshalWith(PersonalDataResponseSchema)
-@require_dashboard_user
+@require_user
 def post_user(user, given_name, surname, display_name, language):
-
+    personal_data_user = PersonalDataUser(data=user.to_dict())
     current_app.logger.debug('Trying to save user {!r}'.format(user))
 
-    user.given_name = given_name
-    user.surname = surname
-    user.display_name = display_name
-    user.language = language
+    personal_data_user.given_name = given_name
+    personal_data_user.surname = surname
+    personal_data_user.display_name = display_name
+    personal_data_user.language = language
     try:
-        save_dashboard_user(user)
+        save_and_sync_user(personal_data_user)
     except UserOutOfSync:
         return {
             '_status': 'error',
             'message': 'user-out-of-sync'
         }
     current_app.stats.count(name='personal_data_saved', value=1)
-    current_app.logger.info('Saved personal data for user {!r}'.format(user))
+    current_app.logger.info('Saved personal data for user {!r}'.format(personal_data_user))
 
-    data = user.to_dict()
-    data['message'] = 'pd.save-success'
-    return PersonalDataSchema().dump(data).data
+    personal_data = personal_data_user.to_dict()
+    personal_data['message'] = 'pd.save-success'
+    return PersonalDataSchema().dump(personal_data).data
 
 
 @pd_views.route('/nins', methods=['GET'])
 @MarshalWith(NinsResponseSchema)
-@require_dashboard_user
+@require_user
 def get_nins(user):
 
     data = {

@@ -63,7 +63,7 @@ class LookupMobileProofingTests(EduidAPITestCase):
     def tearDown(self):
         super(LookupMobileProofingTests, self).tearDown()
         with self.app.app_context():
-            self.app.proofing_userdb._drop_whole_collection()
+            self.app.private_userdb._drop_whole_collection()
             self.app.proofing_log._drop_whole_collection()
             self.app.central_userdb._drop_whole_collection()
 
@@ -95,7 +95,7 @@ class LookupMobileProofingTests(EduidAPITestCase):
         self.assertEqual(response['type'], 'POST_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS')
         self.assertEqual(response['payload']['success'], True)
 
-        user = self.app.proofing_userdb.get_user_by_eppn(self.test_user_eppn)
+        user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         self.assertEqual(user.nins.primary.number, self.test_user_nin)
         self.assertEqual(user.nins.primary.created_by, 'lookup_mobile_proofing')
         self.assertEqual(user.nins.primary.verified_by, 'lookup_mobile_proofing')
@@ -123,7 +123,7 @@ class LookupMobileProofingTests(EduidAPITestCase):
         self.assertEqual(response['type'], 'POST_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS')
         self.assertEqual(response['payload']['success'], True)
 
-        user = self.app.proofing_userdb.get_user_by_eppn(self.test_user_eppn)
+        user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         self.assertEqual(user.nins.primary.number, self.test_user_nin_underage)
         self.assertEqual(user.nins.primary.created_by, 'lookup_mobile_proofing')
         self.assertEqual(user.nins.primary.verified_by, 'lookup_mobile_proofing')
@@ -150,7 +150,7 @@ class LookupMobileProofingTests(EduidAPITestCase):
             response = json.loads(response.data)
         self.assertEqual(response['type'], 'POST_LOOKUP_MOBILE_PROOFING_PROOFING_FAIL')
 
-        user = self.app.proofing_userdb.get_user_by_eppn(self.test_user_eppn)
+        user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         self.assertEqual(user.nins.count, 1)
         self.assertEqual(user.nins.find(self.test_user_nin).created_by, 'lookup_mobile_proofing')
         self.assertEqual(user.nins.find(self.test_user_nin).is_verified, False)
@@ -179,7 +179,7 @@ class LookupMobileProofingTests(EduidAPITestCase):
         self.assertEqual(response['type'], 'POST_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS')
         self.assertEqual(response['payload']['success'], True)
 
-        user = self.app.proofing_userdb.get_user_by_eppn(self.test_user_eppn)
+        user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         self.assertEqual(user.nins.primary.number, self.test_user_nin_underage)
         self.assertEqual(user.nins.primary.created_by, 'lookup_mobile_proofing')
         self.assertEqual(user.nins.primary.verified_by, 'lookup_mobile_proofing')
@@ -208,7 +208,7 @@ class LookupMobileProofingTests(EduidAPITestCase):
             response = json.loads(response.data)
         self.assertEqual(response['type'], 'POST_LOOKUP_MOBILE_PROOFING_PROOFING_FAIL')
 
-        user = self.app.proofing_userdb.get_user_by_eppn(self.test_user_eppn)
+        user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         self.assertEqual(user.nins.count, 1)
         self.assertEqual(user.nins.find(self.test_user_nin_underage).created_by, 'lookup_mobile_proofing')
         self.assertEqual(user.nins.find(self.test_user_nin_underage).is_verified, False)

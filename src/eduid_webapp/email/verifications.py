@@ -35,9 +35,8 @@ from flask import current_app, url_for, render_template
 
 from eduid_userdb.mail import MailAddress
 from eduid_userdb.element import DuplicateElementViolation
-from eduid_common.api.utils import get_unique_hash
+from eduid_common.api.utils import get_unique_hash, save_and_sync_user
 from eduid_userdb.proofing import EmailProofingElement, EmailProofingState
-from eduid_webapp.email.helpers import save_user
 
 
 def new_verification_code(email, user):
@@ -101,12 +100,12 @@ def send_verification_code(email, user):
                             " about address {!s}.".format(user, email))
 
 
-def verify_mail_address(state, user):
+def verify_mail_address(state, proofing_user):
     """
-    :param user: User
+    :param proofing_user: ProofingUser
     :param state: E-mail proofing state
 
-    :type user: eduid_userdb.user.User
+    :type proofing_user: eduid_userdb.proofing.ProofingUser
     :type state: EmailProofingState
 
     :return: None
@@ -115,19 +114,19 @@ def verify_mail_address(state, user):
     new_email = MailAddress(email=state.verification.email, application='email',
                             verified=True, primary=False)
 
-    has_primary = user.mail_addresses.primary
+    has_primary = proofing_user.mail_addresses.primary
     if has_primary is None:
         new_email.is_primary = True
     try:
-        user.mail_addresses.add(new_email)
+        proofing_user.mail_addresses.add(new_email)
     except DuplicateElementViolation:
-        user.mail_addresses.find(state.verification.email).is_verified = True
+        proofing_user.mail_addresses.find(state.verification.email).is_verified = True
         if has_primary is None:
-            user.mail_addresses.find(state.verification.email).is_primary = True
+            proofing_user.mail_addresses.find(state.verification.email).is_primary = True
 
-    save_user(user)
+    save_and_sync_user(proofing_user)
     current_app.logger.info('Email address {!r} confirmed '
-                            'for user {!r}'.format(state.verification.email, user))
+                            'for user {!r}'.format(state.verification.email, proofing_user))
     current_app.stats.count(name='email_verify_success', value=1)
     current_app.proofing_statedb.remove_state(state)
     current_app.logger.debug('Removed proofing state: {} '.format(state))

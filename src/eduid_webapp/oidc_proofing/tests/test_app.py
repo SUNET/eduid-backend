@@ -122,8 +122,8 @@ class OidcProofingTests(EduidAPITestCase):
     def tearDown(self):
         super(OidcProofingTests, self).tearDown()
         with self.app.app_context():
+            self.app.private_userdb._drop_whole_collection()
             self.app.proofing_statedb._drop_whole_collection()
-            self.app.proofing_userdb._drop_whole_collection()
             self.app.proofing_log._drop_whole_collection()
             self.app.central_userdb._drop_whole_collection()
 
@@ -212,7 +212,7 @@ class OidcProofingTests(EduidAPITestCase):
         }
         with self.app.app_context():
             handle_seleg_userinfo(user, proofing_state, userinfo)
-        user = self.app.proofing_userdb.get_user_by_eppn(self.test_user_eppn)
+        user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         self.assertEqual(user.nins.primary.number, self.test_user_nin)
         self.assertEqual(user.nins.primary.created_by, proofing_state.nin.created_by)
         self.assertEqual(user.nins.primary.verified_by, proofing_state.nin.created_by)
@@ -259,7 +259,7 @@ class OidcProofingTests(EduidAPITestCase):
         }
         with self.app.app_context():
             handle_freja_eid_userinfo(user, proofing_state, userinfo)
-        user = self.app.proofing_userdb.get_user_by_eppn(self.test_user_eppn)
+        user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         self.assertEqual(user.nins.primary.number, self.test_user_nin)
         self.assertEqual(user.nins.primary.created_by, proofing_state.nin.created_by)
         self.assertEqual(user.nins.primary.verified_by, proofing_state.nin.created_by)
@@ -306,7 +306,7 @@ class OidcProofingTests(EduidAPITestCase):
         }
         with self.app.app_context():
             handle_freja_eid_userinfo(user, proofing_state, userinfo)
-        user = self.app.proofing_userdb.get_user_by_eppn(self.test_user_eppn)
+        user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         self.assertEqual(user.nins.primary.number, self.test_user_nin)
         self.assertEqual(user.nins.primary.created_by, not_verified_nin.created_by)
         self.assertEqual(user.nins.primary.verified_by, proofing_state.nin.created_by)
