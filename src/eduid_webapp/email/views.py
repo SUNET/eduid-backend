@@ -65,15 +65,15 @@ def get_all_emails(user):
 @MarshalWith(EmailResponseSchema)
 @require_user
 def post_email(user, email, verified, primary):
-    user = ProofingUser(data=user.to_dict())
+    proofing_user = ProofingUser(data=user.to_dict())
     current_app.logger.debug('Trying to save unconfirmed email {!r} '
-                             'for user {!r}'.format(email, user))
+                             'for user {!r}'.format(email, proofing_user))
 
     new_mail = MailAddress(email=email, application='dashboard',
                            verified=False, primary=False)
 
     try:
-        user.mail_addresses.add(new_mail)
+        proofing_user.mail_addresses.add(new_mail)
     except DuplicateElementViolation:
         return {
             '_status': 'error',
@@ -81,23 +81,23 @@ def post_email(user, email, verified, primary):
         }
 
     try:
-        save_and_sync_user(user)
+        save_and_sync_user(proofing_user)
     except UserOutOfSync:
         current_app.logger.debug('Couldnt save email {!r} for user {!r}, '
-                                 'data out of sync'.format(email, user))
+                                 'data out of sync'.format(email, proofing_user))
         return {
             '_status': 'error',
             'message': 'user-out-of-sync'
         }
     current_app.logger.info('Saved unconfirmed email {!r} '
-                            'for user {!r}'.format(email, user))
+                            'for user {!r}'.format(email, proofing_user))
     current_app.stats.count(name='email_save_unconfirmed_email', value=1)
 
-    send_verification_code(email, user)
+    send_verification_code(email, proofing_user)
     current_app.stats.count(name='email_send_verification_code', value=1)
 
     emails = {
-            'emails': user.mail_addresses.to_list_of_dicts(),
+            'emails': proofing_user.mail_addresses.to_list_of_dicts(),
             'message': 'emails.save-success'
             }
     return EmailListPayload().dump(emails).data
@@ -108,15 +108,15 @@ def post_email(user, email, verified, primary):
 @MarshalWith(EmailResponseSchema)
 @require_user
 def post_primary(user, email):
-    user = ProofingUser(data=user.to_dict())
+    proofing_user = ProofingUser(data=user.to_dict())
     current_app.logger.debug('Trying to save email address {!r} as primary '
-                             'for user {!r}'.format(email, user))
+                             'for user {!r}'.format(email, proofing_user))
 
     try:
-        mail = user.mail_addresses.find(email)
+        mail = proofing_user.mail_addresses.find(email)
     except IndexError:
         current_app.logger.debug('Couldnt save email {!r} as primary for user'
-                                 ' {!r}, data out of sync'.format(email, user))
+                                 ' {!r}, data out of sync'.format(email, proofing_user))
         return {
             '_status': 'error',
             'message': 'user-out-of-sync'
@@ -124,28 +124,28 @@ def post_primary(user, email):
 
     if not mail.is_verified:
         current_app.logger.debug('Couldnt save email {!r} as primary for user'
-                                 ' {!r}, email unconfirmed'.format(email, user))
+                                 ' {!r}, email unconfirmed'.format(email, proofing_user))
         return {
             '_status': 'error',
             'message': 'emails.unconfirmed_address_not_primary'
         }
 
-    user.mail_addresses.primary = mail.email
+    proofing_user.mail_addresses.primary = mail.email
     try:
-        save_and_sync_user(user)
+        save_and_sync_user(proofing_user)
     except UserOutOfSync:
         current_app.logger.debug('Couldnt save email {!r} as primary for user'
-                                 ' {!r}, data out of sync'.format(email, user))
+                                 ' {!r}, data out of sync'.format(email, proofing_user))
         return {
             '_status': 'error',
             'message': 'user-out-of-sync'
         }
     current_app.logger.info('Email address {!r} made primary '
-                            'for user {!r}'.format(email, user))
+                            'for user {!r}'.format(email, proofing_user))
     current_app.stats.count(name='email_set_primary', value=1)
 
     emails = {
-            'emails': user.mail_addresses.to_list_of_dicts(),
+            'emails': proofing_user.mail_addresses.to_list_of_dicts(),
             'message': 'emails.primary-success'
             }
     return EmailListPayload().dump(emails).data
@@ -242,11 +242,11 @@ def verify_link(user):
 @MarshalWith(EmailResponseSchema)
 @require_user
 def post_remove(user, email):
-    user = ProofingUser(data=user.to_dict())
+    proofing_user = ProofingUser(data=user.to_dict())
     current_app.logger.debug('Trying to remove email address {!r} '
-                             'from user {!r}'.format(email, user))
+                             'from user {!r}'.format(email, proofing_user))
 
-    emails = user.mail_addresses.to_list()
+    emails = proofing_user.mail_addresses.to_list()
     if len(emails) == 1:
         msg = "Cannot remove unique address: {!r}".format(email)
         current_app.logger.debug(msg)
@@ -256,17 +256,17 @@ def post_remove(user, email):
         }
 
     try:
-        user.mail_addresses.remove(email)
+        proofing_user.mail_addresses.remove(email)
     except PrimaryElementViolation:
         new_index = 1 if emails[0].email == email else 0
-        user.mail_addresses.primary = emails[new_index].email
-        user.mail_addresses.remove(email)
+        proofing_user.mail_addresses.primary = emails[new_index].email
+        proofing_user.mail_addresses.remove(email)
 
     try:
-        save_and_sync_user(user)
+        save_and_sync_user(proofing_user)
     except UserOutOfSync:
         current_app.logger.debug('Couldnt remove email {!r} for user'
-                                 ' {!r}, data out of sync'.format(email, user))
+                                 ' {!r}, data out of sync'.format(email, proofing_user))
         return {
             '_status': 'error',
             'message': 'user-out-of-sync'
@@ -279,11 +279,11 @@ def post_remove(user, email):
         }
 
     current_app.logger.info('Email address {!r} removed '
-                            'for user {!r}'.format(email, user))
+                            'for user {!r}'.format(email, proofing_user))
     current_app.stats.count(name='email_remove_success', value=1)
 
     emails = {
-            'emails': user.mail_addresses.to_list_of_dicts(),
+            'emails': proofing_user.mail_addresses.to_list_of_dicts(),
             'message': 'emails.removal-success'
             }
     return EmailListPayload().dump(emails).data
