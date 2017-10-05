@@ -92,9 +92,9 @@ def post_user(user, given_name, surname, display_name, language):
     current_app.stats.count(name='personal_data_saved', value=1)
     current_app.logger.info('Saved personal data for user {!r}'.format(personal_data_user))
 
-    data = personal_data_user.to_dict()
-    data['message'] = 'pd.save-success'
-    return PersonalDataSchema().dump(data).data
+    personal_data = personal_data_user.to_dict()
+    personal_data['message'] = 'pd.save-success'
+    return PersonalDataSchema().dump(personal_data).data
 
 
 @pd_views.route('/nins', methods=['GET'])
