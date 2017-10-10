@@ -6,7 +6,7 @@ import json
 from mock import patch
 from u2flib_server.model import DeviceRegistration, U2fSignRequest
 
-from eduid_userdb.u2f import U2F
+from eduid_userdb.credentials import U2F
 from eduid_userdb.security import SecurityUser
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_webapp.security.app import security_init_app

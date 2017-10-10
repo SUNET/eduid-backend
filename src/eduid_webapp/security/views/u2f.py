@@ -6,7 +6,7 @@ from flask import Blueprint, session
 from flask import current_app
 from u2flib_server.u2f import begin_registration, begin_authentication, complete_registration, complete_authentication
 
-from eduid_userdb.u2f import U2F
+from eduid_userdb.credentials import U2F
 from eduid_userdb.security import SecurityUser
 from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
 from eduid_common.api.utils import save_and_sync_user
