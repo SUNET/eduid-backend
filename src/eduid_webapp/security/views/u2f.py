@@ -33,7 +33,7 @@ def enroll(user):
             current_app.config['U2F_MAX_ALLOWED_TOKENS']))
         return {'_error': True, 'message': 'security.u2f.max_allowed_tokens'}
     registered_keys = credentials_to_registered_keys(user_u2f_tokens)
-    enrollment = begin_registration(current_app.config['UF2_APP_ID'], registered_keys)
+    enrollment = begin_registration(current_app.config['U2F_APP_ID'], registered_keys)
     session['_u2f_enroll_'] = enrollment.json
     current_app.stats.count(name='u2f_token_enroll')
     return enrollment.data_for_client
@@ -75,7 +75,7 @@ def sign(user):
         current_app.logger.error('Found no U2F token for user.')
         return {'_error': True, 'message': 'security.u2f.no_token_found'}
     registered_keys = credentials_to_registered_keys(user_u2f_tokens)
-    challenge = begin_authentication(current_app.config['UF2_APP_ID'], registered_keys)
+    challenge = begin_authentication(current_app.config['U2F_APP_ID'], registered_keys)
     session['_u2f_challenge_'] = challenge.json
     current_app.stats.count(name='u2f_sign')
     return challenge.data_for_client

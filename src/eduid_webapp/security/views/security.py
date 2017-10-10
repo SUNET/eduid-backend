@@ -68,7 +68,7 @@ def get_credentials(user):
     """
     View to get credentials for the logged user.
     """
-    current_app.logger.debug('Triying to get the credentials '
+    current_app.logger.debug('Trying to get the credentials '
                              'for user {!r}'.format(user))
     credentials = {
         'credentials': current_app.authninfo_db.get_authn_info(user)

@@ -32,7 +32,7 @@ class SecurityTests(EduidAPITestCase):
                 'CELERY_RESULT_BACKEND': 'amqp',
                 'CELERY_TASK_SERIALIZER': 'json'
             },
-            'UF2_APP_ID': 'https://eduid.se/u2f-app-id.json',
+            'U2F_APP_ID': 'https://eduid.se/u2f-app-id.json',
             'U2F_MAX_ALLOWED_TOKENS': 2
         })
         return config

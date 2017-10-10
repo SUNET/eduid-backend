@@ -66,6 +66,6 @@ VCCS_URL = ''
 APPLICATION_ROOT = '/services/security'
 
 # uf2 settings
-UF2_APP_ID = 'https://eduid.se/u2f-app-id.json'
+U2F_APP_ID = 'https://eduid.se/u2f-app-id.json'
 U2F_MAX_ALLOWED_TOKENS = 50  # Do not let a user register more than this amount of tokens
 U2F_MAX_DESCRIPTION_LENGTH = 64  # Do not allow longer descriptions than this number
