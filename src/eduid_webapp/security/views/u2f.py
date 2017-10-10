@@ -54,7 +54,7 @@ def bind(user, version, registration_data, client_data, description=''):
         'registrationData': registration_data,
         'clientData': client_data
     }
-    device, cert = complete_registration(enrollment_data, data, [current_app.config['SERVER_NAME']])
+    device, cert = complete_registration(enrollment_data, data, current_app.config['U2F_FACETS'])
     u2f_token = U2F(version=device['version'], keyhandle=device['keyHandle'], app_id=device['appId'],
                     public_key=device['publicKey'], attest_cert=cert, description=description,
                     application='eduid_security', created_ts=True)
