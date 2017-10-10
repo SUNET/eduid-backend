@@ -41,11 +41,7 @@ and are called with two positional parameters:
  * The user object
 """
 
-from flask import session
-
-import logging
-logger = logging.getLogger(__name__)
-
+from flask import session, current_app
 
 _actions = {}
 
@@ -58,7 +54,6 @@ def acs_action(action_key):
     :type action_key: str
     """
     def outer(func):
-        logger.info('Registering acs action ' + action_key)
         _actions[action_key] = func
 
         def inner(*args, **kwargs):
@@ -75,7 +70,7 @@ def schedule_action(action_key):
     :param action_key: the key for the given action
     :type action_key: str
     """
-    logger.debug('Scheduling acs action ' + action_key)
+    current_app.logger.debug('Scheduling acs action ' + action_key)
     session['post-authn-action'] = action_key
     session.persist()
 
@@ -94,5 +89,5 @@ def get_action():
         action_key = 'login-action'
     else:
         del session['post-authn-action']
-    logger.debug('Consuming acs action ' + action_key)
+    current_app.logger.debug('Consuming acs action ' + action_key)
     return _actions[action_key]
