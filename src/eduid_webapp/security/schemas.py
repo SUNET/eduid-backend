@@ -35,7 +35,7 @@ from marshmallow import fields
 from eduid_common.api.schemas.base import FluxStandardAction, EduidSchema
 from eduid_common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
 from eduid_common.api.schemas.u2f import U2FEnrollResponseSchema, U2FBindRequestSchema, U2FSignResponseSchema
-from eduid_common.api.schemas.u2f import U2FVerifyRequestSchema, U2FVerifyResponseSchema
+from eduid_common.api.schemas.u2f import U2FVerifyRequestSchema, U2FVerifyResponseSchema, U2FRegisteredKey
 
 
 class CredentialSchema(EduidSchema):
@@ -96,6 +96,18 @@ class AccountTerminatedSchema(FluxStandardAction):
 
 
 # U2F schemas
+
+class ConvertRegisteredKeys(EduidSchema):
+     
+    class U2FRegisteredKey(EduidSchema):
+        version = fields.String(required=True)
+        keyhandle = fields.String(required=True, dump_to='keyHandle')
+        app_id = fields.String(required=True, dump_to='appId')
+        transports = fields.String()
+
+    registered_keys = fields.Nested(U2FRegisteredKey, required=True, missing=list(), many=True)
+
+
 class EnrollU2FTokenResponseSchema(FluxStandardAction, U2FEnrollResponseSchema, CSRFResponseMixin):
     pass
 

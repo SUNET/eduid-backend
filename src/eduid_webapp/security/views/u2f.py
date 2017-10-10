@@ -14,6 +14,7 @@ from eduid_webapp.security.schemas import EnrollU2FTokenResponseSchema, BindU2FR
 from eduid_webapp.security.schemas import SignWithU2FTokenResponseSchema, VerifyWithU2FTokenRequestSchema
 from eduid_webapp.security.schemas import VerifyWithU2FTokenResponseSchema, ModifyU2FTokenRequestSchema
 from eduid_webapp.security.schemas import RemoveU2FTokenRequestSchema, SecurityResponseSchema
+from eduid_webapp.security.helpers import credentials_to_registered_keys
 
 
 __author__ = 'lundberg'
@@ -26,12 +27,13 @@ u2f_views = Blueprint('u2f', __name__, url_prefix='/u2f', template_folder='templ
 @MarshalWith(EnrollU2FTokenResponseSchema)
 @require_user
 def enroll(user):
-    user_u2f_tokens = user.credentials.filter(U2F).to_list()
-    if len(user_u2f_tokens) >= current_app.config['U2F_MAX_ALLOWED_TOKENS']:
+    user_u2f_tokens = user.credentials.filter(U2F)
+    if user_u2f_tokens.count >= current_app.config['U2F_MAX_ALLOWED_TOKENS']:
         current_app.logger.error('User tried to register more than {} tokens.'.format(
             current_app.config['U2F_MAX_ALLOWED_TOKENS']))
         return {'_error': True, 'message': 'security.u2f.max_allowed_tokens'}
-    enrollment = begin_registration(current_app.config['UF2_APP_ID'], user_u2f_tokens)
+    registered_keys = credentials_to_registered_keys(user_u2f_tokens)
+    enrollment = begin_registration(current_app.config['UF2_APP_ID'], registered_keys)
     session['_u2f_enroll_'] = enrollment.json
     current_app.stats.count(name='u2f_token_enroll')
     return enrollment.data_for_client
@@ -68,11 +70,12 @@ def bind(user, version, registration_data, client_data, description=''):
 @MarshalWith(SignWithU2FTokenResponseSchema)
 @require_user
 def sign(user):
-    user_u2f_tokens = user.credentials.filter(U2F).to_list()
-    if not user_u2f_tokens:
+    user_u2f_tokens = user.credentials.filter(U2F)
+    if not user_u2f_tokens.count:
         current_app.logger.error('Found no U2F token for user.')
         return {'_error': True, 'message': 'security.u2f.no_token_found'}
-    challenge = begin_authentication(current_app.config['UF2_APP_ID'], user_u2f_tokens)
+    registered_keys = credentials_to_registered_keys(user_u2f_tokens)
+    challenge = begin_authentication(current_app.config['UF2_APP_ID'], registered_keys)
     session['_u2f_challenge_'] = challenge.json
     current_app.stats.count(name='u2f_sign')
     return challenge.data_for_client
@@ -102,7 +105,8 @@ def verify(user, key_handle, signature_data, client_data):
 @MarshalWith(SecurityResponseSchema)
 @require_user
 def modify(user, key_handle, description):
-    token_to_modify = user.credentials.filter(U2F).find(key_handle)
+    security_user = SecurityUser(data=user.to_dict())
+    token_to_modify = security_user.credentials.filter(U2F).find(key_handle)
     if not token_to_modify:
         current_app.logger.error('Did not find requested U2F token for user.')
         return {'_error': True, 'message': 'security.u2f.missing_u2f_token'}
@@ -111,7 +115,7 @@ def modify(user, key_handle, description):
             current_app.config['U2F_MAX_DESCRIPTION_LENGTH']))
         return {'_error': True, 'message': 'security.u2f.missing_u2f_token'}
     token_to_modify.description = description
-    save_and_sync_user(user)
+    save_and_sync_user(security_user)
     current_app.stats.count(name='u2f_token_modify')
 
 
