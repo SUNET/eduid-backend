@@ -6,6 +6,10 @@ from flask import Blueprint, session
 from flask import current_app
 from u2flib_server.u2f import begin_registration, begin_authentication, complete_registration, complete_authentication
 
+from cryptography import x509
+from cryptography.hazmat.backends import default_backend
+from OpenSSL import crypto
+
 from eduid_userdb.credentials import U2F
 from eduid_userdb.security import SecurityUser
 from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
@@ -21,7 +25,6 @@ __author__ = 'lundberg'
 
 
 u2f_views = Blueprint('u2f', __name__, url_prefix='/u2f', template_folder='templates')
-
 
 @u2f_views.route('/enroll', methods=['GET'])
 @MarshalWith(EnrollU2FTokenResponseSchema)
@@ -54,9 +57,13 @@ def bind(user, version, registration_data, client_data, description=''):
         'registrationData': registration_data,
         'clientData': client_data
     }
-    device, cert = complete_registration(enrollment_data, data, current_app.config['U2F_FACETS'])
+    device, der_cert = complete_registration(enrollment_data, data, current_app.config['U2F_FACETS'])
+
+    cert = x509.load_der_x509_certificate(der_cert, default_backend())
+    pem_cert = crypto.dump_certificate(crypto.FILETYPE_PEM, cert)
+
     u2f_token = U2F(version=device['version'], keyhandle=device['keyHandle'], app_id=device['appId'],
-                    public_key=device['publicKey'], attest_cert=cert, description=description,
+                    public_key=device['publicKey'], attest_cert=pem_cert, description=description,
                     application='eduid_security', created_ts=True)
     security_user.credentials.add(u2f_token)
     save_and_sync_user(security_user)
