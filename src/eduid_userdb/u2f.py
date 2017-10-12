@@ -83,6 +83,10 @@ class U2F(Element):
             # Just keep everything that is left as-is
             self._data.update(data)
 
+    def __repr__(self):  # XXX was __repr__ what we settled on for Python3? Don't think so
+        kh = self._data['keyhandle'][:8]
+        return '<eduID {!s}: key_handle=\'{!s}...\'>'.format(self.__class__.__name__, kh)
+
     @property
     def key(self):
         """
