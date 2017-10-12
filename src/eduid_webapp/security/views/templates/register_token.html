@@ -21,13 +21,13 @@
         <div id="no-data" class="collapse">
             <div class="center-block">
                 <p>Error: Got no data from the backend</p>
-                <a href="javascript:history.back()">Back</a>
+                <a href="/">Back</a>
             </div>
         </div>
             <div id="u2f-error" class="collapse">
             <div class="center-block">
                 <p id="u2f-error-message"></p>
-                <a href="javascript:history.back()">Back</a>
+                <a href="/">Back</a>
             </div>
         </div>
 
@@ -42,18 +42,15 @@
                   <p>Please push the button on your Security Key to register</p>
               </div>
               <div class="modal-footer">
-                <a class="btn btn-default" href="javascript:history.back()">Abort</a>
+                <a class="btn btn-default" href="/">Abort</a>
               </div>
             </div><!-- /.modal-content -->
           </div><!-- /.modal-dialog -->
         </div><!-- /.modal -->
 
         <form method="POST" action="register-token" id="u2f-register-form">
-            <!-- <input type="hidden" name="csrf_token" id="csrf_token"/>
-            <input type="hidden" name="token_response" id="token_response"/> -->
-            <input title="csrf_token" type="text" name="csrf_token" id="csrf_token"/>
-            <input title="token_response" type="text" name="token_response" id="token_response"/>
-            <button type="submit">test</button>
+            <input type="hidden" name="csrf_token" id="csrf_token"/>
+            <input type="hidden" name="token_response" id="token_response"/>
         </form>
 
         <span class="dataholder" id="u2f-data" data-u2fdata='{{ data_for_client }}'></span>
