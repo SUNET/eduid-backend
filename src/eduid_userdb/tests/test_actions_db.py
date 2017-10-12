@@ -36,13 +36,17 @@ from eduid_userdb.actions.db import ActionDB
 from eduid_userdb.testing import MongoTestCase
 
 
-USERID = '123467890123456789014567'
-USERID2 = '123467890123456789014568'
+import logging
+logger = logging.getLogger(__name__)
+
+
+USERID3 = '333333333333333333333333'
+USERID4 = '444444444444444444444444'
 
 
 DUMMY_ACTION = {
-        '_id': ObjectId('234567890123456789012301'),
-        'user_oid': ObjectId(USERID),
+        '_id': ObjectId('111111111111111111111111'),
+        'user_oid': ObjectId(USERID3),
         'action': 'dummy',
         'preference': 200, 
         'params': {
@@ -50,14 +54,15 @@ DUMMY_ACTION = {
         }
 
 TOU_ACTION = {
-        '_id': ObjectId('234567890123456789012302'),
-        'user_oid': ObjectId(USERID),  # same user_oid as DUMMY_ACTION
+        '_id': ObjectId('222222222222222222222222'),
+        'user_oid': ObjectId(USERID3),  # same user_oid as DUMMY_ACTION
         'action': 'tou',
         'preference': 100,
         'params': {
             'version': 'test-version'
             }
         }
+
 
 class TestActionsDB(MongoTestCase):
 
@@ -67,119 +72,31 @@ class TestActionsDB(MongoTestCase):
         self.actionsdb.add_action(data=TOU_ACTION)
         self.actionsdb.add_action(data=DUMMY_ACTION)
 
-    def test_next_action(self):
-        next_action = self.actionsdb.get_next_action(USERID)
-        self.assertEquals(next_action.action_type, 'dummy')
-        next_action = self.actionsdb.get_next_action(USERID)
-        self.assertEquals(next_action.action_type, 'tou')
-        next_action = self.actionsdb.get_next_action(USERID)
-        self.assertEquals(next_action, None)
-
-    def test_next_action_2_users(self):
-        dummy_other_user = deepcopy(DUMMY_ACTION)
-        dummy_other_user['user_oid'] = ObjectId(USERID2)
-        del dummy_other_user['_id']
-        self.actionsdb.add_action(data=dummy_other_user)
-        next_action = self.actionsdb.get_next_action(USERID)
-        self.assertEquals(next_action.action_type, 'dummy')
-        next_action = self.actionsdb.get_next_action(USERID)
-        self.assertEquals(next_action.action_type, 'tou')
-        next_action = self.actionsdb.get_next_action(USERID)
-        self.assertEquals(next_action, None)
-
-    def test_next_action_2_users_add_by_keys(self):
-        self.actionsdb.add_action(userid=USERID2,
-                                  action_type='dummy',
-                                  preference=300,
-                                  session='zzz',
-                                  params={})
-        next_action = self.actionsdb.get_next_action(USERID)
-        self.assertEquals(next_action.action_type, 'dummy')
-        next_action = self.actionsdb.get_next_action(USERID)
-        self.assertEquals(next_action.action_type, 'tou')
-        next_action = self.actionsdb.get_next_action(USERID)
-        self.assertEquals(next_action, None)
+    def tearDown(self):
+        self.actionsdb._drop_whole_collection()
 
     def test_remove_action(self):
         self.actionsdb.remove_action_by_id(DUMMY_ACTION['_id'])
-        next_action = self.actionsdb.get_next_action(USERID)
+        next_action = self.actionsdb.get_next_action(USERID3)
         self.assertEquals(next_action.action_type, 'tou')
-        next_action = self.actionsdb.get_next_action(USERID)
+        self.actionsdb.remove_action_by_id(next_action.action_id)
+        next_action = self.actionsdb.get_next_action(USERID3)
         self.assertEquals(next_action, None)
-
-    def test_next_action_with_no_session(self):
-        dummy2 = deepcopy(DUMMY_ACTION)
-        dummy2['session'] = 'xzf'
-        del dummy2['_id']
-        self.actionsdb.add_action(data=dummy2)
-        next_action = self.actionsdb.get_next_action(USERID)
-        self.assertEquals(next_action.action_type, 'dummy')
-        next_action = self.actionsdb.get_next_action(USERID)
-        self.assertEquals(next_action.action_type, 'tou')
-        next_action = self.actionsdb.get_next_action(USERID)
-        self.assertEquals(next_action, None)
-
-    def test_next_action_with_session(self):
-        dummy2 = deepcopy(DUMMY_ACTION)
-        dummy2['session'] = 'xzf'
-        del dummy2['_id']
-        self.actionsdb.add_action(data=dummy2)
-        next_action = self.actionsdb.get_next_action(USERID, session='xzf')
-        self.assertEquals(next_action.action_type, 'dummy')
-        next_action = self.actionsdb.get_next_action(USERID)
-        self.assertEquals(next_action.action_type, 'dummy')
-        next_action = self.actionsdb.get_next_action(USERID)
-        self.assertEquals(next_action.action_type, 'tou')
-        next_action = self.actionsdb.get_next_action(USERID)
-        self.assertEquals(next_action, None)
-
-    def test_next_action_with_more_sessions(self):
-        dummy2 = deepcopy(DUMMY_ACTION)
-        dummy2['session'] = 'xzf'
-        del dummy2['_id']
-        self.actionsdb.add_action(data=dummy2)
-        dummy3 = deepcopy(DUMMY_ACTION)
-        dummy3['session'] = 'abc'
-        del dummy3['_id']
-        self.actionsdb.add_action(data=dummy3)
-        next_action = self.actionsdb.get_next_action(USERID, session='xzf')
-        self.assertEquals(next_action.action_type, 'dummy')
-        next_action = self.actionsdb.get_next_action(USERID)
-        self.assertEquals(next_action.action_type, 'dummy')
-        next_action = self.actionsdb.get_next_action(USERID)
-        self.assertEquals(next_action.action_type, 'tou')
-        next_action = self.actionsdb.get_next_action(USERID)
-        self.assertEquals(next_action, None)
-
-    def test_has_pending_actions(self):
-        has = self.actionsdb.has_pending_actions(USERID)
-        self.assertEquals(has, True)
-        has = self.actionsdb.has_pending_actions(USERID2)
-        self.assertEquals(has, False)
-
-    def test_has_pending_actions_semi_consumed(self):
-        first = self.actionsdb.get_next_action(USERID)
-        has = self.actionsdb.has_pending_actions(USERID)
-        self.assertEquals(has, True)
-
-    def test_has_pending_actions_consumed(self):
-        self.actionsdb.get_next_action(USERID)
-        self.actionsdb.get_next_action(USERID)
-        has = self.actionsdb.has_pending_actions(USERID)
-        self.assertEquals(has, False)
 
     def test_has_actions(self):
-        self.assertTrue(self.actionsdb.has_actions(userid=USERID))
-        self.assertFalse(self.actionsdb.has_actions(userid=USERID2))
-        self.assertTrue(self.actionsdb.has_actions(userid=USERID))
-        self.assertFalse(self.actionsdb.has_actions(session='xzf'))
-        dummy2 = deepcopy(DUMMY_ACTION)
-        dummy2['session'] = 'xzf'
-        del dummy2['_id']
-        self.actionsdb.add_action(data=dummy2)
-        self.assertTrue(self.actionsdb.has_actions(session='xzf'))
-        self.assertTrue(self.actionsdb.has_actions(action_type='tou'))
-        self.assertTrue(self.actionsdb.has_actions(params={'version': 'test-version'}))
-        self.assertTrue(self.actionsdb.has_actions(userid=USERID,
+        self.assertTrue(self.actionsdb.has_actions(userid=USERID3))
+        self.assertFalse(self.actionsdb.has_actions(userid=USERID4))
+        self.assertTrue(self.actionsdb.has_actions(userid=USERID3, session='xzf'))
+        self.assertTrue(self.actionsdb.has_actions(userid=USERID3, params={'version': 'test-version'}))
+        self.assertFalse(self.actionsdb.has_actions(userid=USERID3, params={'version': 'WRONG'}))
+        self.assertTrue(self.actionsdb.has_actions(userid=USERID3,
                                                    action_type='tou',
                                                    params={'version': 'test-version'}))
+
+    def test_update_action_with_result(self):
+        action = self.actionsdb.get_next_action(USERID3)
+        action.result = {'test': True}
+        self.actionsdb.update_action(action)
+        # Saving a result on the action should make get_next_action advance to the next one
+        next_action = self.actionsdb.get_next_action(USERID3)
+

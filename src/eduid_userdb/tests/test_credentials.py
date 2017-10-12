@@ -3,7 +3,6 @@ from unittest import TestCase
 from bson.objectid import ObjectId
 import eduid_userdb.exceptions
 import eduid_userdb.element
-from eduid_userdb.password import Password
 from eduid_userdb.credentials import CredentialList, U2F, Password
 
 __author__ = 'lundberg'
