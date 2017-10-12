@@ -14,6 +14,7 @@ from eduid_userdb.credentials import U2F
 from eduid_userdb.security import SecurityUser
 from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
 from eduid_common.api.utils import save_and_sync_user
+from eduid_common.api.schemas.u2f import U2FEnrollResponseSchema, U2FSignResponseSchema, U2FBindRequestSchema
 from eduid_webapp.security.schemas import EnrollU2FTokenResponseSchema, BindU2FRequestSchema
 from eduid_webapp.security.schemas import SignWithU2FTokenResponseSchema, VerifyWithU2FTokenRequestSchema
 from eduid_webapp.security.schemas import VerifyWithU2FTokenResponseSchema, ModifyU2FTokenRequestSchema
@@ -39,7 +40,7 @@ def enroll(user):
     enrollment = begin_registration(current_app.config['U2F_APP_ID'], registered_keys)
     session['_u2f_enroll_'] = enrollment.json
     current_app.stats.count(name='u2f_token_enroll')
-    return enrollment.data_for_client
+    return U2FEnrollResponseSchema().load(enrollment.data_for_client).data
 
 
 @u2f_views.route('/bind', methods=['POST'])
@@ -85,7 +86,7 @@ def sign(user):
     challenge = begin_authentication(current_app.config['U2F_APP_ID'], registered_keys)
     session['_u2f_challenge_'] = challenge.json
     current_app.stats.count(name='u2f_sign')
-    return challenge.data_for_client
+    return U2FSignResponseSchema().load(challenge.data_for_client).data
 
 
 @u2f_views.route('/verify', methods=['POST'])
