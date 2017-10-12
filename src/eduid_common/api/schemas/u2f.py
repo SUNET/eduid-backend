@@ -12,7 +12,7 @@ class U2FRegisteredKey(EduidSchema):
     version = fields.String(required=True)
     key_handle = fields.String(required=True, load_from='keyHandle', dump_to='keyHandle')
     app_id = fields.String(required=True, load_from='appId', dump_to='appId')
-    transports = fields.String(required=True)
+    transports = fields.String(required=False)
 
 
 class U2FRegisterRequest(EduidSchema):
@@ -32,9 +32,9 @@ class U2FEnrollResponseSchema(EduidSchema):
 
     app_id = fields.String(required=True, load_from='appId', dump_to='appId')
     registered_keys = fields.Nested(U2FRegisteredKey, required=True, missing=list(), load_from='registeredKeys',
-                                    dump_to='registeredKeys')
+                                    dump_to='registeredKeys', many=True)
     register_requests = fields.Nested(U2FRegisterRequest, required=True, load_from='registerRequests',
-                                      dump_to='registerRequests')
+                                      dump_to='registerRequests', many=True)
 
 
 class U2FBindRequestSchema(EduidSchema):
@@ -50,7 +50,7 @@ class U2FSignResponseSchema(EduidSchema):
 
     app_id = fields.String(required=True, load_from='appId', dump_to='appId')
     registered_keys = fields.Nested(U2FRegisteredKey, required=True, missing=list(), load_from='registeredKeys',
-                                    dump_to='registeredKeys')
+                                    dump_to='registeredKeys', many=True)
     challenge = fields.String(required=True)
 
 

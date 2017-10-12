@@ -42,6 +42,7 @@ from eduid_common.authn.middleware import AuthnApp
 from eduid_common.api.request import Request
 from eduid_common.api.session import SessionFactory
 from eduid_common.api.logging import init_logging
+from eduid_common.api.utils import init_template_functions
 from eduid_common.api.exceptions import init_exception_handlers, init_sentry
 from eduid_common.config.parsers.etcd import EtcdConfigParser
 from eduid_common.stats import NoOpStats, Statsd
@@ -99,6 +100,7 @@ def eduid_init_app_no_db(name, config, app_class=AuthnApp):
     app = init_logging(app)
     app = init_exception_handlers(app)
     app = init_sentry(app)
+    app = init_template_functions(app)
     app.session_interface = SessionFactory(app.config)
 
     stats_host = app.config.get('STATS_HOST', False)
