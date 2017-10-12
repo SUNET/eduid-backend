@@ -52,6 +52,7 @@ class Action(object):
     :param preference: Used to sort actions
     :param session: IdP session identifier
     :param params: Parameters for action
+    :param result: Result of action (return value to IdP typically)
     :param raise_on_unknown: Raise exception on unknown data or not
 
     :type data: dict | None
@@ -60,10 +61,11 @@ class Action(object):
     :type preference: int | None
     :type session: str | None
     :type params: dict | None
+    :type result: object
     :type raise_on_unknown: bool
     """
     def __init__(self, action_id = None, user_oid = None, action_type = None, preference = None, session = None,
-                 params = None, data = None, raise_on_unknown = True):
+                 params = None, result = None, data = None, raise_on_unknown = True):
         self._data_in = copy.deepcopy(data)  # to not modify callers data
         self._data = dict()
 
@@ -73,7 +75,8 @@ class Action(object):
                                  action = action_type,
                                  preference = preference,
                                  session = session or '',
-                                 params = params or {})
+                                 params = params or {},
+                                 result = result)
 
         self._parse_check_invalid_actions()
 
@@ -84,6 +87,7 @@ class Action(object):
         elif not isinstance(_id, bson.ObjectId):
             _id = bson.ObjectId(_id)
 
+        self.result = self._data_in.pop('result', None)
         # things without setters
         self._data['_id'] = _id
         user_oid = self._data_in.pop('user_oid')
@@ -105,9 +109,6 @@ class Action(object):
 
         del self._data_in
 
-    def __repr__(self):
-        return '<eduID {!s}: {!r}>'.format(self.__class__.__name__, self._data)
-
     def _parse_check_invalid_actions(self):
         """"
         Part of __init__().
@@ -122,10 +123,19 @@ class Action(object):
                 self._data_in.get('_id')))
 
     def __repr__(self):
-        return '<eduID {!s}: {!s} for {!s}>'.format(self.__class__.__name__,
-                                                    self.action_type,
-                                                    self.user_id,
-                                                    )
+        sess_str = ''
+        if self.session:
+            sess_str = ', session={}'.format(self.session)
+        res_str = ''
+        if self.result:
+            res_str = ', result={}'.format(self.result)
+        return '<eduID {!s}: {}: {} for user {}{}{}>'.format(self.__class__.__name__,
+                                                             self.action_id,
+                                                             self.action_type,
+                                                             self.user_id,
+                                                             sess_str,
+                                                             res_str
+                                                             )
 
     __str__ = __repr__
 
@@ -193,6 +203,24 @@ class Action(object):
         :rtype: str
         """
         return self._data.get('params')
+
+    # -----------------------------------------------------------------
+    @property
+    def result(self):
+        """
+        Get the action result (return value from actions to IdP typically).
+
+        :rtype: str
+        """
+        return self._data.get('result')
+
+    @result.setter
+    def result(self, value):
+        """
+        :param value: result of performing action (must be serializable by database)
+        :type value: object
+        """
+        self._data['result'] = value
 
     # -----------------------------------------------------------------
     def to_dict(self):
