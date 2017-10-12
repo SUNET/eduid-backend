@@ -36,6 +36,8 @@ from eduid_userdb.actions import Action
 from eduid_userdb.db import BaseDB
 from eduid_userdb.exceptions import ActionDBError
 
+from six import string_types
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -58,41 +60,14 @@ class ActionDB(BaseDB):
                                                                  self._coll_name,
                                                                  self.ActionClass.__name__)
 
-    def _read_actions_from_db(self, userid, session, filter_=None):
+    def _read_actions_from_db(self, userid, session, filter_=None, match_no_session=True):
         query = {'user_oid': ObjectId(userid)}
-        if session is None:
-            query['session'] = {'$exists': False}
-        else:
-            query['$or'] = [ {'session': {'$exists': False}},
-                             {'session': session} ]
+        query['$or'] = [{'session': {'$exists': False}},
+                        {'session': session}
+                        ]
         if filter_ is not None:
             query.update(filter_)
         return self._coll.find(query).sort('preference')
-
-    def has_pending_actions(self, userid, session=None, clean_cache=False):
-        """
-        Find out whether the user has pending actions.
-        If session is None, search actions with no session,
-        otherwise search actions with either no session
-        or with the specified session.
-
-        :param userid: The id of the user with possible pending actions
-        :param session: The actions session for the user
-        :param clean_cache: Whether to clean the cache of pending actions
-                            When the IdP finds pending actions, it
-                            redirects to the actions app that takes care of
-                            them, and does not want to keep them in its own
-                            cache.
-
-        :type userid: str
-        :type session: str
-        :type clean_cache: bool
-
-        :rtype: bool
-        """
-        filter_ = {'result': None}
-        actions = self._read_actions_from_db(userid, session, filter_)
-        return actions.count() > 0
 
     def get_actions(self, userid, session, action_type=None):
         """
@@ -103,11 +78,11 @@ class ActionDB(BaseDB):
 
         :param userid: The id of the user with possible pending actions
         :param session: The actions session for the user
-        :param action_type: The type of action to be performed
+        :param action_type: The type of action to be performed ('mfa', 'tou', ...)
 
         :type userid: str
-        :type session: str
-        :type action_type: str
+        :type session: string_types | None
+        :type action_type: string_types | None
 
         :rtype: list of eduid_userdb.actions.Action
         """
@@ -122,7 +97,7 @@ class ActionDB(BaseDB):
                 res.append(Action(data=this))
         return res
 
-    def has_actions(self, userid=None, session=None, action_type=None, params=None):
+    def has_actions(self, userid, session=None, action_type=None, params=None):
         """
         Check in the db (not in the cache) whether there are actions
         with whatever attributes you feed to the method.
