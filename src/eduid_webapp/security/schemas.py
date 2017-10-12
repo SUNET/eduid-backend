@@ -96,7 +96,6 @@ class AccountTerminatedSchema(FluxStandardAction):
 
 
 # U2F schemas
-
 class ConvertRegisteredKeys(EduidSchema):
      
     class U2FRegisteredKey(EduidSchema):
@@ -108,8 +107,12 @@ class ConvertRegisteredKeys(EduidSchema):
     registered_keys = fields.Nested(U2FRegisteredKey, required=True, missing=list(), many=True)
 
 
-class EnrollU2FTokenResponseSchema(FluxStandardAction, U2FEnrollResponseSchema, CSRFResponseMixin):
-    pass
+class EnrollU2FTokenResponseSchema(FluxStandardAction):
+
+    class EnrollU2FTokenResponsePayload(U2FEnrollResponseSchema, CSRFResponseMixin):
+        pass
+
+    payload = fields.Nested(EnrollU2FTokenResponsePayload)
 
 
 class BindU2FRequestSchema(U2FBindRequestSchema, CSRFRequestMixin):
@@ -117,16 +120,24 @@ class BindU2FRequestSchema(U2FBindRequestSchema, CSRFRequestMixin):
     description = fields.String(required=False)
 
 
-class SignWithU2FTokenResponseSchema(FluxStandardAction, U2FSignResponseSchema, CSRFResponseMixin):
-    pass
+class SignWithU2FTokenResponseSchema(FluxStandardAction):
+
+    class Payload(U2FSignResponseSchema, CSRFResponseMixin):
+        pass
+
+    payload = fields.Nested(Payload)
 
 
 class VerifyWithU2FTokenRequestSchema(U2FVerifyRequestSchema):
     pass
 
 
-class VerifyWithU2FTokenResponseSchema(FluxStandardAction, U2FVerifyResponseSchema, CSRFResponseMixin):
-    pass
+class VerifyWithU2FTokenResponseSchema(FluxStandardAction):
+
+    class Payload(U2FVerifyResponseSchema, CSRFResponseMixin):
+        pass
+
+    payload = fields.Nested(Payload)
 
 
 class ModifyU2FTokenRequestSchema(EduidSchema, CSRFRequestMixin):

@@ -25,7 +25,7 @@ class SecurityTests(EduidAPITestCase):
 
     def update_config(self, config):
         config.update({
-            'AVAILABLE_LANGUAGES': {'en': 'English','sv': 'Svenska'},
+            'AVAILABLE_LANGUAGES': {'en': 'English', 'sv': 'Svenska'},
             'MSG_BROKER_URL': 'amqp://dummy',
             'AM_BROKER_URL': 'amqp://dummy',
             'CELERY_CONFIG': {
@@ -33,7 +33,8 @@ class SecurityTests(EduidAPITestCase):
                 'CELERY_TASK_SERIALIZER': 'json'
             },
             'U2F_APP_ID': 'https://eduid.se/u2f-app-id.json',
-            'U2F_MAX_ALLOWED_TOKENS': 2
+            'U2F_MAX_ALLOWED_TOKENS': 2,
+            'U2F_FACETS': 'https://dashboard.eduid.se/'
         })
         return config
 
@@ -95,9 +96,13 @@ class SecurityTests(EduidAPITestCase):
             self.assertIn('challenge', enroll_data['payload']['registerRequests'][0])
             self.assertIn('version', enroll_data['payload']['registerRequests'][0])
 
+    @patch('cryptography.x509.load_der_x509_certificate')
+    @patch('OpenSSL.crypto.dump_certificate')
     @patch('u2flib_server.model.U2fRegisterRequest.complete')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
-    def test_bind_key(self, mock_request_user_sync, mock_u2f_register_complete):
+    def test_bind_key(self, mock_request_user_sync, mock_u2f_register_complete, mock_dump_cert, mock_load_cert):
+        mock_dump_cert.return_value = 'der_cert'
+        mock_load_cert.return_value = 'pem_cert'
         mock_request_user_sync.side_effect = self.request_user_sync
         mock_u2f_register_complete.return_value = DeviceRegistration(
             version='mock version',
@@ -114,7 +119,7 @@ class SecurityTests(EduidAPITestCase):
 
         with self.session_cookie(self.browser, eppn) as client:
             enroll_response = client.get('/u2f/enroll')
-            csrf_token = json.loads(enroll_response.data)['csrf_token']
+            csrf_token = json.loads(enroll_response.data)['payload']['csrf_token']
 
             data = {
                 'csrf_token': csrf_token,
