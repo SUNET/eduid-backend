@@ -2,6 +2,7 @@
 
 from __future__ import absolute_import
 
+import json
 from flask import Blueprint, session
 from flask import current_app
 from u2flib_server.u2f import begin_registration, begin_authentication, complete_registration, complete_authentication
@@ -27,6 +28,7 @@ __author__ = 'lundberg'
 
 u2f_views = Blueprint('u2f', __name__, url_prefix='/u2f', template_folder='templates')
 
+
 @u2f_views.route('/enroll', methods=['GET'])
 @MarshalWith(EnrollU2FTokenResponseSchema)
 @require_user
@@ -47,6 +49,10 @@ def enroll(user):
 @UnmarshalWith(BindU2FRequestSchema)
 @MarshalWith(SecurityResponseSchema)
 @require_user
+def bind_view(user, version, registration_data, client_data, description=''):
+    return bind(user, version, registration_data, client_data, description)  # TODO: Unsplit bind and bind_view after demo
+
+
 def bind(user, version, registration_data, client_data, description=''):
     security_user = SecurityUser(data=user.to_dict())
     enrollment_data = session.pop('_u2f_enroll_', None)
@@ -125,6 +131,9 @@ def modify(user, key_handle, description):
     token_to_modify.description = description
     save_and_sync_user(security_user)
     current_app.stats.count(name='u2f_token_modify')
+    return {
+        'credentials': current_app.authninfo_db.get_authn_info(security_user)
+    }
 
 
 @u2f_views.route('/remove', methods=['POST'])
@@ -132,4 +141,43 @@ def modify(user, key_handle, description):
 @MarshalWith(SecurityResponseSchema)
 @require_user
 def remove(user):
+    raise NotImplementedError()
     current_app.stats.count(name='u2f_token_remove')
+
+
+# XXX: Remove before production
+from flask import render_template, request
+
+
+@u2f_views.route('/register-token', methods=['GET', 'POST'])
+@require_user
+def register_token(user):
+    current_app.logger.debug('Starting register token')
+    if request.method == 'POST':
+        current_app.logger.debug('Method: POST')
+        current_app.logger.debug(request)
+        csrf_token = request.form['csrf_token']
+        current_app.logger.debug('csrf_token')
+        current_app.logger.debug(csrf_token)
+        if session.get_csrf_token() == csrf_token:
+            current_app.logger.debug('csrf_token check success')
+            session.new_csrf_token()
+            bind_data = request.form['token_response']
+            current_app.logger.debug('token_response')
+            current_app.logger.debug(bind_data)
+            register_request = U2FBindRequestSchema().load(json.loads(bind_data)).data
+            current_app.logger.debug('verified token_response')
+            current_app.logger.debug(register_request)
+
+            credentials = bind(user=user, client_data=register_request['client_data'],
+                               registration_data=register_request['registration_data'], version='U2F_V2')
+            current_app.logger.debug('bind response')
+            current_app.logger.debug(credentials)
+            return render_template('register_token.html', data_for_client=None, success=True)
+
+    current_app.logger.debug('Method: GET')
+    data_for_client = enroll().data
+    current_app.logger.debug('data_for_client')
+    current_app.logger.debug(data_for_client)
+    return render_template('register_token.html', data_for_client=data_for_client, success=False)
+# XXX: Remove before production
