@@ -155,3 +155,12 @@ def get_flux_type(req, suffix):
     url_rule = url_rule.replace('/', ' ').replace('-', ' ')
     flux_type = '_'.join('{!s} {!s} {!s} {!s}'.format(method, blueprint, url_rule, suffix).split()).upper()
     return flux_type
+
+
+def init_template_functions(app):
+
+    @app.template_global()
+    def static_url_for(f):
+        return urlappend(current_app.config['EDUID_STATIC_URL'], f)
+
+    return app
