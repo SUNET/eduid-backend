@@ -2,7 +2,7 @@ import copy
 import pymongo
 import logging
 from .exceptions import (DocumentDoesNotExist, MultipleDocumentsReturned,
-                        MongoConnectionError)
+                         MongoConnectionError)
 
 
 class MongoDB(object):
