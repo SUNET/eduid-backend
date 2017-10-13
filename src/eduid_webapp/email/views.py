@@ -166,6 +166,14 @@ def verify(user, code, email):
     state = db.get_state_by_eppn_and_email(proofing_user.eppn, email, raise_on_missing=False)
 
     timeout = current_app.config.get('EMAIL_VERIFICATION_TIMEOUT', 24)
+
+    if state is None or code != state.verification.verification_code:
+        msg = "Invalid verification code for: {}".format(state.verification.email)
+        current_app.logger.debug(msg)
+        return {
+            '_status': 'error',
+            'message': 'emails.code_invalid'
+        }
     if state.is_expired(timeout):
         msg = "Verification code is expired for: {}. Sending new code".format(
             state.verification.email)
@@ -175,14 +183,6 @@ def verify(user, code, email):
         return {
             '_status': 'error',
             'message': 'emails.code_expired_send_new'
-        }
-
-    if code != state.verification.verification_code:
-        msg = "Invalid verification code for: {}".format(state.verification.email)
-        current_app.logger.debug(msg)
-        return {
-            '_status': 'error',
-            'message': 'emails.code_invalid'
         }
 
     try:

@@ -43,7 +43,7 @@ def new_verification_code(phone, user):
     if old_verification is not None:
         current_app.logger.debug('removing old verification code:'
                                  ' {!r}.'.format(old_verification.to_dict()))
-        current_app.verifications_db.remove_state(old_verification)
+        current_app.proofing_statedb.remove_state(old_verification)
 
     code = get_unique_hash()
     verification = PhoneProofingElement(phone=phone,
