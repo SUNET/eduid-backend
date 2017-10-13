@@ -44,7 +44,7 @@ from bson import ObjectId
 
 class CredentialList(ElementList):
     """
-    Hold a list of authentication credentiual instances.
+    Hold a list of authentication credential instances.
 
     Provide methods to add, update and remove elements from the list while
     maintaining some governing principles, such as ensuring there no duplicates in the list.
