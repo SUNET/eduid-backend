@@ -22,10 +22,10 @@ class AuthnInfoDB(BaseDB):
         """
         :param user: User object
         :type user: eduid_userdb.user.User
-        :return: (type, created_ts, success_ts) for each user credential
-        :rtype: list of dicts
+        :return: {credential.key: {type, created_ts, success_ts}} for each user credential
+        :rtype: dict
         """
-        authninfo = []
+        authninfo = {}
         for credential in user.credentials.to_list():
             created_ts = credential.created_ts.isoformat()
             success_ts = None
@@ -41,5 +41,9 @@ class AuthnInfoDB(BaseDB):
             if auth_entry:
                 success_ts = auth_entry['success_ts'].isoformat()
 
-            authninfo.append({'credential_type': data_type, 'created_ts': created_ts, 'success_ts': success_ts})
+            authninfo[credential.key] = {
+                'credential_type': data_type,
+                'created_ts': created_ts,
+                'success_ts': success_ts
+            }
         return authninfo
