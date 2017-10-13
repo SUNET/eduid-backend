@@ -16,16 +16,6 @@ def register_template_funcs(app):
             return ''
         return value.strftime(format)
 
-    @app.template_global()
-    def static_url(filename):
-        url = app.config.get('STATIC_URL')
-
-        if url:
-            return urlappend(url, filename)
-        # If STATIC_URL is not set use Flask default
-        return url_for('static', filename=filename)
-
-
 def support_init_app(name, config):
     """
     Create an instance of an eduid support app.
