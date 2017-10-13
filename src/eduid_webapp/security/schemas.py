@@ -39,6 +39,7 @@ from eduid_common.api.schemas.u2f import U2FVerifyRequestSchema, U2FVerifyRespon
 
 
 class CredentialSchema(EduidSchema):
+    key = fields.String(required=True)
     credential_type = fields.String(required=True)
     created_ts = fields.String(required=True)
     success_ts = fields.String(required=True)

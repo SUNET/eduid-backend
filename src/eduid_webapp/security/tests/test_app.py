@@ -51,7 +51,7 @@ class SecurityTests(EduidAPITestCase):
 
     def update_config(self, config):
         config.update({
-            'AVAILABLE_LANGUAGES': {'en': 'English','sv': 'Svenska'},
+            'AVAILABLE_LANGUAGES': {'en': 'English', 'sv': 'Svenska'},
             'MSG_BROKER_URL': 'amqp://dummy',
             'AM_BROKER_URL': 'amqp://dummy',
             'CELERY_CONFIG': {
@@ -80,6 +80,12 @@ class SecurityTests(EduidAPITestCase):
             sec_data = json.loads(response2.data)
             self.assertEqual(sec_data['type'],
                              'GET_SECURITY_CREDENTIALS_SUCCESS')
+            self.assertNotEqual(sec_data['payload']['credentials'], [])
+            for credential in sec_data['payload']['credentials']:
+                self.assertIn('key', credential.keys())
+                self.assertIn('credential_type', credential.keys())
+                self.assertIn('created_ts', credential.keys())
+                self.assertIn('success_ts', credential.keys())
 
     def test_get_suggested(self):
         response = self.browser.get('/suggested-password')
