@@ -60,9 +60,9 @@
         </td>
     </tr>
     <tr>
-        <th>Passwords:</th>
+        <th>Credentials:</th>
         <td>
-            {% for password in user_dict.passwords %}
+            {% for credential in user_dict.credentials %}
                 <dl>
                     <dt>Added using</dt><dd>{{ password.get('created_by') }}</dd>
                     <dt>Added timestamp</dt><dd>{{ password.get('created_ts')|datetimeformat }}</dd>
