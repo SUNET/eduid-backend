@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <title>eduID support</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="{{ static_url('css/bootstrap-3.2.0.min.css') }}">
+    <link rel="stylesheet" href="{{ static_url_for('css/bootstrap-3.2.0.min.css') }}">
 </head>
 <body>
     <div class="container">
@@ -223,7 +223,7 @@
                 {% endfor %}
         {% endif %}
     </div>
-    <script src="{{ static_url('js/libs/jquery-2.0.3.min.js') }}"></script>
-    <script src="{{ static_url('js/libs/bootstrap-3.2.0.min.js') }}"></script>
+    <script src="{{ static_url_for('js/libs/jquery-2.0.3.min.js') }}"></script>
+    <script src="{{ static_url_for('js/libs/bootstrap-3.2.0.min.js') }}"></script>
 </body>
 </html>

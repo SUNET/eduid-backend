@@ -4,7 +4,7 @@ from __future__ import absolute_import
 import json
 
 from mock import patch
-from u2flib_server.model import DeviceRegistration, U2fSignRequest
+from u2flib_server.model import DeviceRegistration, RegisteredKey
 
 from eduid_userdb.credentials import U2F
 from eduid_userdb.security import SecurityUser
@@ -34,7 +34,8 @@ class SecurityTests(EduidAPITestCase):
             },
             'U2F_APP_ID': 'https://eduid.se/u2f-app-id.json',
             'U2F_MAX_ALLOWED_TOKENS': 2,
-            'U2F_FACETS': 'https://dashboard.eduid.se/'
+            'U2F_FACETS': 'https://dashboard.eduid.se',
+            'U2F_MAX_DESCRIPTION_LENGTH': 50
         })
         return config
 
@@ -130,20 +131,11 @@ class SecurityTests(EduidAPITestCase):
             response2 = client.post('/u2f/bind', data=json.dumps(data), content_type=self.content_type_json)
             bind_data = json.loads(response2.data)
             self.assertEqual(bind_data['type'], 'POST_U2F_U2F_BIND_SUCCESS')
-            self.assertIsNotNone(bind_data['payload']['credentials'])
+            self.assertNotEqual(bind_data['payload']['credentials'], [])
 
     def test_sign(self):
         eppn = self.test_user_data['eduPersonPrincipalName']
         security_user = self.add_token_to_user(eppn)
-
-
-        #mock_u2f_sign_response.return_value = U2fSignRequest(
-        #    version='mock version',
-        #    keyHandle='mock keyhandle',
-        #    appId='mock app id',
-        #    publicKey='mock public key',
-        #    transports='mock transport',
-        #), 'mock certificate'
 
         response = self.browser.get('/u2f/sign')
         self.assertEqual(response.status_code, 302)  # Redirect to token service
@@ -165,33 +157,79 @@ class SecurityTests(EduidAPITestCase):
                              [{u'keyHandle': u'keyHandle', u'version': u'version', u'appId': u'appId'}])
             self.assertIn('challenge', enroll_data['payload'])
 
-#    @patch('u2flib_server.model.U2fRegisterRequest.complete')
-#    def test_verify(self, mock_u2f_register_complete):
-#
-#        response = self.browser.post('/u2f/bind', data={})
-#        self.assertEqual(response.status_code, 302)  # Redirect to token service
-#
-#        mock_u2f_register_complete.return_value = DeviceRegistration(
-#            version='mock version',
-#            keyHandle='mock keyhandle',
-#            appId='mock app id',
-#            publicKey='mock public key',
-#            transports='mock transport',
-#        ), 'mock certificate'
-#
-#        eppn = self.test_user_data['eduPersonPrincipalName']
-#
-#        with self.session_cookie(self.browser, eppn) as client:
-#            enroll_response = client.get('/u2f/verify')
-#            csrf_token = json.loads(enroll_response.data)['csrf_token']
-#
-#            data = {
-#                'csrf_token': csrf_token,
-#                'registrationData': 'mock registration data',
-#                'clientData': 'mock client data',
-#                'version': 'U2F_V2'
-#            }
-#            response2 = client.post('/u2f/verify', data=json.dumps(data), content_type=self.content_type_json)
-#            bind_data = json.loads(response2.data)
-#            self.assertEqual(bind_data['type'], 'POST_U2F_U2F_BIND_SUCCESS')
-#            self.assertIsNotNone(bind_data['payload']['credentials'])
+    @patch('u2flib_server.model.U2fSignRequest.complete')
+    def test_verify(self, mock_u2f_sign_complete):
+        eppn = self.test_user_data['eduPersonPrincipalName']
+        security_user = self.add_token_to_user(eppn)
+        device = RegisteredKey({u'keyHandle': u'keyHandle', u'version': u'version', u'appId': u'appId'})
+        mock_u2f_sign_complete.return_value = device, 1, 0  # device, signature counter, user presence (touch)
+
+        response = self.browser.post('/u2f/bind', data={})
+        self.assertEqual(response.status_code, 302)  # Redirect to token service
+
+        with self.session_cookie(self.browser, eppn) as client:
+            sign_response = client.get('/u2f/sign')
+            csrf_token = json.loads(sign_response.data)['payload']['csrf_token']
+            data = {
+                'csrf_token': csrf_token,
+                'signatureData': 'mock registration data',
+                'clientData': 'mock client data',
+                'keyHandle': 'keyHandle'
+            }
+            response2 = client.post('/u2f/verify', data=json.dumps(data), content_type=self.content_type_json)
+            verify_data = json.loads(response2.data)
+            self.assertEqual(verify_data['type'], 'POST_U2F_U2F_VERIFY_SUCCESS')
+            self.assertIsNotNone(verify_data['payload']['keyHandle'])
+            self.assertIsNotNone(verify_data['payload']['counter'])
+            self.assertIsNotNone(verify_data['payload']['touch'])
+
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_modify(self, mock_request_user_sync):
+        mock_request_user_sync.side_effect = self.request_user_sync
+        eppn = self.test_user_data['eduPersonPrincipalName']
+        security_user = self.add_token_to_user(eppn)
+
+        response = self.browser.post('/u2f/modify', data={})
+        self.assertEqual(response.status_code, 302)  # Redirect to token service
+
+        with self.session_cookie(self.browser, eppn) as client:
+            credentials_response = client.get('/credentials')
+            csrf_token = json.loads(credentials_response.data)['payload']['csrf_token']
+            data = {
+                'csrf_token': csrf_token,
+                'key_handle': 'keyHandle',
+                'description': 'test description',
+            }
+            response2 = client.post('/u2f/modify', data=json.dumps(data), content_type=self.content_type_json)
+            modify_data = json.loads(response2.data)
+            self.assertEqual(modify_data['type'], 'POST_U2F_U2F_MODIFY_SUCCESS')
+            self.assertIsNotNone(modify_data['payload']['credentials'])
+            for credential in modify_data['payload']['credentials']:
+                self.assertIsNotNone(credential)
+                if credential['key'] == 'keyHandle':
+                    self.assertEqual(credential['description'], 'test description')
+
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_remove(self, mock_request_user_sync):
+        mock_request_user_sync.side_effect = self.request_user_sync
+        eppn = self.test_user_data['eduPersonPrincipalName']
+        security_user = self.add_token_to_user(eppn)
+
+        response = self.browser.post('/u2f/remove', data={})
+        self.assertEqual(response.status_code, 302)  # Redirect to token service
+
+        with self.session_cookie(self.browser, eppn) as client:
+            credentials_response = client.get('/credentials')
+            csrf_token = json.loads(credentials_response.data)['payload']['csrf_token']
+            data = {
+                'csrf_token': csrf_token,
+                'key_handle': 'keyHandle',
+            }
+            response2 = client.post('/u2f/remove', data=json.dumps(data), content_type=self.content_type_json)
+            modify_data = json.loads(response2.data)
+            self.assertEqual(modify_data['type'], 'POST_U2F_U2F_REMOVE_SUCCESS')
+            self.assertIsNotNone(modify_data['payload']['credentials'])
+            for credential in modify_data['payload']['credentials']:
+                self.assertIsNotNone(credential)
+                if credential['key'] == 'keyHandle':
+                    raise AssertionError('credential with keyhandle keyHandle should be missing')

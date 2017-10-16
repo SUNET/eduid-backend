@@ -32,9 +32,13 @@
 #
 
 from __future__ import absolute_import
+
 from datetime import datetime
 from urllib import urlencode
-import urlparse
+try:
+    import urlparse  # Python2
+except ImportError:
+    from urllib.parse import urlparse  # Python3
 
 from flask import Blueprint, session, abort, url_for, redirect
 from flask import render_template, current_app
@@ -50,6 +54,7 @@ from eduid_webapp.security.schemas import SecurityResponseSchema, CredentialList
 from eduid_webapp.security.schemas import SuggestedPassword, SuggestedPasswordResponseSchema
 from eduid_webapp.security.schemas import ChangePasswordSchema, RedirectResponseSchema
 from eduid_webapp.security.schemas import RedirectSchema, AccountTerminatedSchema, ChpassResponseSchema
+from eduid_webapp.security.helpers import compile_credential_list
 
 security_views = Blueprint('security', __name__, url_prefix='', template_folder='templates')
 
@@ -70,8 +75,9 @@ def get_credentials(user):
     """
     current_app.logger.debug('Trying to get the credentials '
                              'for user {!r}'.format(user))
+
     credentials = {
-        'credentials': current_app.authninfo_db.get_authn_info(user)
+        'credentials': compile_credential_list(user)
         }
 
     return CredentialList().dump(credentials).data
@@ -145,7 +151,7 @@ def change_password(user, old_password, new_password):
     next_url = current_app.config.get('DASHBOARD_URL', '/profile')
     credentials = {
         'next_url': next_url,
-        'credentials': current_app.authninfo_db.get_authn_info(security_user),
+        'credentials': compile_credential_list(security_user),
         'message': 'chpass.password-changed'
         }
 

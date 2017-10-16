@@ -20,7 +20,7 @@ from eduid_webapp.security.schemas import EnrollU2FTokenResponseSchema, BindU2FR
 from eduid_webapp.security.schemas import SignWithU2FTokenResponseSchema, VerifyWithU2FTokenRequestSchema
 from eduid_webapp.security.schemas import VerifyWithU2FTokenResponseSchema, ModifyU2FTokenRequestSchema
 from eduid_webapp.security.schemas import RemoveU2FTokenRequestSchema, SecurityResponseSchema
-from eduid_webapp.security.helpers import credentials_to_registered_keys
+from eduid_webapp.security.helpers import credentials_to_registered_keys, compile_credential_list
 
 
 __author__ = 'lundberg'
@@ -76,7 +76,7 @@ def bind(user, version, registration_data, client_data, description=''):
     save_and_sync_user(security_user)
     current_app.stats.count(name='u2f_token_bind')
     return {
-        'credentials': current_app.authninfo_db.get_authn_info(security_user)
+        'credentials': compile_credential_list(security_user)
     }
 
 
@@ -109,9 +109,9 @@ def verify(user, key_handle, signature_data, client_data):
         'signatureData': signature_data,
         'clientData': client_data
     }
-    device, c, t = complete_authentication(challenge, data, [current_app.config['SERVER_NAME']])
+    device, c, t = complete_authentication(challenge, data, current_app.config['U2F_FACETS'])
     current_app.stats.count(name='u2f_verify')
-    return {'keyHandle': device['keyHandle'], 'touch': t, 'counter': c}
+    return {'key_handle': device['keyHandle'], 'counter': c, 'touch': t}
 
 
 @u2f_views.route('/modify', methods=['POST'])
@@ -123,16 +123,16 @@ def modify(user, key_handle, description):
     token_to_modify = security_user.credentials.filter(U2F).find(key_handle)
     if not token_to_modify:
         current_app.logger.error('Did not find requested U2F token for user.')
-        return {'_error': True, 'message': 'security.u2f.missing_u2f_token'}
+        return {'_error': True, 'message': 'security.u2f.missing_token'}
     if len(description) > current_app.config['U2F_MAX_DESCRIPTION_LENGTH']:
         current_app.logger.error('User tried to set a U2F token description longer than {}.'.format(
             current_app.config['U2F_MAX_DESCRIPTION_LENGTH']))
-        return {'_error': True, 'message': 'security.u2f.missing_u2f_token'}
+        return {'_error': True, 'message': 'security.u2f.description_to_long'}
     token_to_modify.description = description
     save_and_sync_user(security_user)
     current_app.stats.count(name='u2f_token_modify')
     return {
-        'credentials': current_app.authninfo_db.get_authn_info(security_user)
+        'credentials': compile_credential_list(security_user)
     }
 
 
@@ -140,9 +140,16 @@ def modify(user, key_handle, description):
 @UnmarshalWith(RemoveU2FTokenRequestSchema)
 @MarshalWith(SecurityResponseSchema)
 @require_user
-def remove(user):
-    raise NotImplementedError()
-    current_app.stats.count(name='u2f_token_remove')
+def remove(user, key_handle):
+    security_user = SecurityUser(data=user.to_dict())
+    token_to_remove = security_user.credentials.filter(U2F).find(key_handle)
+    if token_to_remove:
+        security_user.credentials.remove(key_handle)
+        save_and_sync_user(security_user)
+        current_app.stats.count(name='u2f_token_remove')
+    return {
+        'credentials': compile_credential_list(security_user)
+    }
 
 
 # XXX: Remove before production

@@ -199,3 +199,4 @@ TOKEN_SERVICE_URL = 'https://'
 # ===============#
 EDUID_SITE_NAME = 'eduID'
 EDUID_SITE_URL = 'https://www.eduid.se'
+EDUID_STATIC_URL = 'https://www.eduid.se/static/'
