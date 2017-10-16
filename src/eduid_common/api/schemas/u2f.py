@@ -64,5 +64,6 @@ class U2FVerifyRequestSchema(EduidSchema):
 
 class U2FVerifyResponseSchema(EduidSchema):
 
+    key_handle = fields.String(required=True, load_from='keyHandle', dump_to='keyHandle')
     touch = fields.Integer(required=True)
     counter = fields.Integer(required=True)
