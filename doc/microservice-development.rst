@@ -361,7 +361,7 @@ Download the build environment::
 Then we go to the react dir, and install all dependencies::
 
   $ cd eduid-html
-  $ docker run --volume $PWD:/root/react -it docker.sunet.se/eduid/debian-react:latest
+  $ docker run --volume $PWD:/root -it docker.sunet.se/eduid/debian-react:latest
   $ npm install
 
 We can now build the development bundle, or the production bundle. The
