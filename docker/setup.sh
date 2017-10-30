@@ -4,7 +4,6 @@ set -e
 
 # APT dependencys for eduid_msg
 apt-get update
-apt-get -y dist-upgrade
 apt-get -y install \
     libxml2-dev \
     libxslt-dev \
