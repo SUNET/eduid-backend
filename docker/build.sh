@@ -13,7 +13,7 @@ echo "#############################################################"
 echo "$0: Using PyPi URL ${PYPI}"
 echo "#############################################################"
 
-/opt/eduid/bin/pip install --pre -i ${PYPI} 'eduid-am'
+/opt/eduid/bin/pip install --pre -i ${PYPI} /src/eduid-am
 # eduid-api currently doesn't do attribute updating
 #/opt/eduid/bin/pip install --pre -i ${PYPI} eduid-api-amp
 /opt/eduid/bin/pip install --pre -i ${PYPI} eduid-signup-amp
