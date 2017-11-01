@@ -39,3 +39,8 @@ def validate_language(lang):
     available_langs = current_app.config.get('AVAILABLE_LANGUAGES')
     if lang not in available_langs:
         raise ValidationError('Language {!r} is not available'.format(lang))
+
+
+def validate_nonempty(value):
+    if not value:
+        raise ValidationError('pdata.field_required')

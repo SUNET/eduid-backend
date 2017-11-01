@@ -60,7 +60,7 @@ class ChpassCredentialList(EduidSchema, CSRFResponseMixin):
 
 
 class ChpassResponseSchema(FluxStandardAction):
-    payload = fields.Nested(ChpassCredentialList, only=('credentials', 'next_url'))
+    payload = fields.Nested(ChpassCredentialList)
 
 
 class CsrfSchema(EduidSchema, CSRFRequestMixin):
