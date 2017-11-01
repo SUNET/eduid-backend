@@ -35,7 +35,7 @@ from marshmallow import fields
 from eduid_common.api.schemas.base import FluxStandardAction, EduidSchema
 from eduid_common.api.schemas.csrf import CSRFResponseMixin, CSRFRequestMixin
 from eduid_webapp.personal_data.validators import validate_language
-from eduid_webapp.personal_data.validators import validate_required
+from eduid_webapp.personal_data.validators import validate_nonempty
 from eduid_webapp.email.schemas import EmailSchema
 from eduid_webapp.phone.schemas import PhoneSchema
 
@@ -44,9 +44,9 @@ __author__ = 'eperez'
 
 class PersonalDataRequestSchema(EduidSchema, CSRFRequestMixin):
 
-    given_name = fields.String(required=True, validate=validate_required)
-    surname = fields.String(required=True, validate=validate_required)
-    display_name = fields.String(required=True, validate=validate_required)
+    given_name = fields.String(required=True, validate=validate_nonempty)
+    surname = fields.String(required=True, validate=validate_nonempty)
+    display_name = fields.String(required=True, validate=validate_nonempty)
     language = fields.String(required=True, default='en',
                              validate=validate_language)
 

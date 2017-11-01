@@ -41,6 +41,6 @@ def validate_language(lang):
         raise ValidationError('Language {!r} is not available'.format(lang))
 
 
-def validate_required(value):
+def validate_nonempty(value):
     if not value:
         raise ValidationError('pdata.field_required')
