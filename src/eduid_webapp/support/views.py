@@ -3,7 +3,7 @@ from __future__ import absolute_import
 
 from flask import Blueprint, current_app, request, render_template
 from eduid_common.api.decorators import require_support_personnel
-from eduid_userdb.exceptions import UserHasUnknownData
+from eduid_userdb.exceptions import UserHasUnknownData, UserHasNotCompletedSignup
 
 support_views = Blueprint('support', __name__, url_prefix='', template_folder='templates')
 
@@ -34,10 +34,18 @@ def index(support_user):
         for user in lookup_users:
             user_data = dict()
             # Users
-            user_data['user'] = current_app.support_user_db.get_user_by_id(user_id=user['user_id'],
-                                                                           raise_on_missing=False)
-            user_data['dashboard_user'] = current_app.support_dashboard_db.get_user_by_id(user_id=user['user_id'],
-                                                                                          raise_on_missing=False)
+            try:
+                user_data['user'] = current_app.support_user_db.get_user_by_id(user_id=user['user_id'],
+                                                                               raise_on_missing=False)
+            except UserHasNotCompletedSignup:
+                # This should not happen as uncompleted users should not be propagated but seems we had a bug in 2015
+                user_data['user'] = None
+            try:
+                user_data['dashboard_user'] = current_app.support_dashboard_db.get_user_by_id(user_id=user['user_id'],
+                                                                                              raise_on_missing=False)
+            except UserHasNotCompletedSignup:
+                # This should not happen as uncompleted users should not be propagated but seems we had a bug in 2015
+                user_data['dashboard_user'] = None
             try:
                 user_data['signup_user'] = current_app.support_signup_db.get_user_by_id(user_id=user['user_id'],
                                                                                         raise_on_missing=False)
