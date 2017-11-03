@@ -46,6 +46,7 @@ from eduid_common.authn.eduid_saml2 import authenticate
 from eduid_common.authn.cache import IdentityCache, StateCache
 from eduid_webapp.authn.acs_registry import get_action, schedule_action
 from eduid_webapp.authn.helpers import verify_auth_token
+from eduid_webapp.authn.schemas import LogoutPayload, LogoutResponseSchema
 
 
 
@@ -127,6 +128,7 @@ def _get_name_id(session):
         return None
 
 
+@MarshalWith(AccountTerminatedSchema)
 @authn_views.route('/logout', methods=['POST'])
 def logout():
     """
@@ -139,12 +141,7 @@ def logout():
     if eppn is None:
         current_app.logger.info('Session cookie has expired, no logout action needed')
         location = current_app.config.get('SAML2_LOGOUT_REDIRECT_URL')
-        return redirect(location)
-
-    # check csrf
-    csrf = request.form['csrf']
-    if csrf != session.get('_csrft_', None):
-        abort(400)
+        return LogoutPayload().dump({'location': location}).data
 
     user = current_app.central_userdb.get_user_by_eppn(eppn)
 
@@ -173,7 +170,7 @@ def logout():
                 session.clear()
                 location = current_app.config.get('SAML2_LOGOUT_REDIRECT_URL')
                 location = request.form.get('RelayState', location)
-                return redirect(location)
+                return LogoutPayload().dump({'location': location}).data
             else:
                 abort(500)
         headers_tuple = loresponse[1]['headers']
@@ -182,7 +179,7 @@ def logout():
                                 'for user {!r}'.format(location, user))
 
     state.sync()
-    return redirect(location)
+    return LogoutPayload().dump({'location': location}).data
 
 
 @authn_views.route('/saml2-ls', methods=['POST'])
