@@ -39,6 +39,7 @@ from werkzeug.exceptions import Forbidden
 from flask import request, session, redirect, abort, make_response
 from flask import current_app, Blueprint
 
+from eduid_common.api.decorators import MarshalWith
 from eduid_common.authn.utils import get_location
 from eduid_common.authn.loa import get_loa
 from eduid_common.authn.eduid_saml2 import get_authn_request, get_authn_response
@@ -128,8 +129,8 @@ def _get_name_id(session):
         return None
 
 
-@MarshalWith(AccountTerminatedSchema)
 @authn_views.route('/logout', methods=['POST'])
+@MarshalWith(LogoutResponseSchema)
 def logout():
     """
     SAML Logout Request initiator.
