@@ -410,8 +410,9 @@ class LogoutRequestTests(AuthnAPITestBase):
             session['user_eppn'] = eppn
             session['eduPersonPrincipalName'] = eppn
             response = self.app.dispatch_request()
-            self.assertEqual(response.status, '302 FOUND')
-            self.assertIn(self.app.config['SAML2_LOGOUT_REDIRECT_URL'], response.location)
+            self.assertEqual(response.status, '200 OK')
+            self.assertIn(self.app.config['SAML2_LOGOUT_REDIRECT_URL'],
+                          json.loads(response.data)['payload']['location'])
 
     def test_logout_loggedin(self):
         eppn = 'hubba-bubba'
@@ -424,9 +425,10 @@ class LogoutRequestTests(AuthnAPITestBase):
                                            data={'csrf': csrft}):
             session['_csrft_'] = csrft
             response2 = self.app.dispatch_request()
-            self.assertEqual(response2.status, '302 FOUND')
+            self.assertEqual(response2.status, '200 OK')
             self.assertIn('https://idp.example.com/simplesaml/saml2/idp/'
-                          'SingleLogoutService.php', response2.location)
+                          'SingleLogoutService.php',
+                          json.loads(response2.data)['payload']['location'])
 
     def test_logout_service_startingSP(self):
 
