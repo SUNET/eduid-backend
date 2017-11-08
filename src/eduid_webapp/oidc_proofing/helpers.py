@@ -84,18 +84,19 @@ def handle_seleg_userinfo(user, proofing_state, userinfo):
     current_app.logger.info('Verifying NIN from seleg for user {}'.format(user))
     number = userinfo['identity']
     # Check if the self professed NIN is the same as the NIN returned by the vetting provider
-    if number_match_proofing(user, proofing_state, number):
-        current_app.logger.info('Getting address for user {!r}'.format(user))
-        # Lookup official address via Navet
-        address = current_app.msg_relay.get_postal_address(proofing_state.nin.number)
-        # Transaction id is the same data as used for the QR code
-        transaction_id = '1' + json.dumps({'nonce': proofing_state.nonce, 'token': proofing_state.token})
-        proofing_log_entry = SeLegProofing(user, created_by=proofing_state.nin.created_by,
-                                           nin=proofing_state.nin.number, vetting_by='se-leg',
-                                           transaction_id=transaction_id, user_postal_address=address,
-                                           proofing_version='2017v1')
-        verify_nin_for_user(user, proofing_state, proofing_log_entry)
-        current_app.stats.count(name='seleg.authn_response_handled')
+    if not number_match_proofing(user, proofing_state, number):
+        app.logger.warning('Proofing state number did not match number in userinfo. Using number from userinfo.')
+    current_app.logger.info('Getting address for user {!r}'.format(user))
+    # Lookup official address via Navet
+    address = current_app.msg_relay.get_postal_address(proofing_state.nin.number)
+    # Transaction id is the same data as used for the QR code
+    transaction_id = '1' + json.dumps({'nonce': proofing_state.nonce, 'token': proofing_state.token})
+    proofing_log_entry = SeLegProofing(user, created_by=proofing_state.nin.created_by,
+                                       nin=proofing_state.nin.number, vetting_by='se-leg',
+                                       transaction_id=transaction_id, user_postal_address=address,
+                                       proofing_version='2017v1')
+    verify_nin_for_user(user, proofing_state, proofing_log_entry)
+    current_app.stats.count(name='seleg.authn_response_handled')
 
 
 def handle_freja_eid_userinfo(user, proofing_state, userinfo):
@@ -114,15 +115,16 @@ def handle_freja_eid_userinfo(user, proofing_state, userinfo):
     number = userinfo['results']['freja_eid']['ssn']
     opaque = userinfo['results']['freja_eid']['opaque']
     transaction_id = userinfo['results']['freja_eid']['ref']
-    if number_match_proofing(user, proofing_state, number):
-        current_app.logger.info('Getting address for user {!r}'.format(user))
-        # Lookup official address via Navet
-        address = current_app.msg_relay.get_postal_address(proofing_state.nin.number)
-        proofing_log_entry = SeLegProofingFrejaEid(user, created_by=proofing_state.nin.created_by,
-                                                   nin=proofing_state.nin.number, transaction_id=transaction_id,
-                                                   opaque_data=opaque, user_postal_address=address,
-                                                   proofing_version='2017v1')
-        verify_nin_for_user(user, proofing_state, proofing_log_entry)
-        current_app.stats.count(name='freja.authn_response_handled')
+    if not number_match_proofing(user, proofing_state, number):
+        app.logger.warning('Proofing state number did not match number in userinfo. Using number from userinfo.')
+    current_app.logger.info('Getting address for user {!r}'.format(user))
+    # Lookup official address via Navet
+    address = current_app.msg_relay.get_postal_address(proofing_state.nin.number)
+    proofing_log_entry = SeLegProofingFrejaEid(user, created_by=proofing_state.nin.created_by,
+                                               nin=proofing_state.nin.number, transaction_id=transaction_id,
+                                               opaque_data=opaque, user_postal_address=address,
+                                               proofing_version='2017v1')
+    verify_nin_for_user(user, proofing_state, proofing_log_entry)
+    current_app.stats.count(name='freja.authn_response_handled')
 
 
