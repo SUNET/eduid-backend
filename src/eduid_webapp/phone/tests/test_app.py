@@ -57,6 +57,8 @@ class PhoneTests(EduidAPITestCase):
                 'CELERY_RESULT_BACKEND': 'amqp',
                 'CELERY_TASK_SERIALIZER': 'json'
             },
+            'PHONE_VERIFICATION_TIMEOUT': 24,
+            'DEFAULT_COUNTRY_CODE': '+46',
         })
         return config
 
