@@ -35,7 +35,7 @@ from __future__ import absolute_import
 
 from eduid_webapp.phone.app import phone_init_app
 
-name = 'phones'
+name = 'phone'
 app = phone_init_app(name, {})
 
 if __name__ == '__main__':
