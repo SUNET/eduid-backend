@@ -34,13 +34,13 @@
 import re
 
 from marshmallow import ValidationError
-from flask import request
+from flask import current_app
 from eduid_common.api.utils import get_user
 
 
-def normalize_to_e_164(request, mobile):
+def normalize_to_e_164(mobile):
     if mobile.startswith(u'0'):
-        country_code = request.registry.settings.get('default_country_code')
+        country_code = current_app.config.get('DEFAULT_COUNTRY_CODE')
         return country_code + mobile.lstrip(u'0')
     return mobile
 
@@ -59,7 +59,7 @@ def validate_format_phone(number):
 
 def validate_unique_phone(number):
     user = get_user()
-    phone = normalize_to_e_164(request, number)
+    phone = normalize_to_e_164(number)
 
     if user.phone_numbers.find(phone):
         raise ValidationError("phone.phone_duplicated")
