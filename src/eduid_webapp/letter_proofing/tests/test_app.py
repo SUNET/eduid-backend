@@ -191,7 +191,8 @@ class LetterProofingTests(EduidAPITestCase):
         self.app.config.update({'LETTER_WAIT_TIME_HOURS': -24})
         json_data = self.get_state()
         self.assertTrue(json_data['payload']['letter_expired'])
-        self.assertNotIn('letter_sent', json_data['payload'])
+        self.assertIn('letter_sent', json_data['payload'])
+        self.assertIsNotNone(json_data['payload']['letter_sent'])
 
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
     def test_unmarshal_error(self, mock_get_postal_address):
