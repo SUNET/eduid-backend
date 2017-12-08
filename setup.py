@@ -16,7 +16,7 @@ webapp_requires = [
     'pwgen == 0.4',
     'vccs_client >= 0.4.1',
     'PyNaCl >= 1.0.1',
-    'python-etcd >= 0.4.3',
+    'python-etcd >= 0.4.5',
     'PyYAML >= 3.11',
     'bleach>=2.0.0',
     'marshmallow>=2.10,<2.11',
