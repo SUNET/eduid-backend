@@ -174,7 +174,7 @@ class EmailProofingStateDB(ProofingStateDB):
 
     ProofingStateClass = EmailProofingState
 
-    def __init__(self, db_uri, db_name='eduid_emails'):
+    def __init__(self, db_uri, db_name='eduid_email'):
         ProofingStateDB.__init__(self, db_uri, db_name)
 
     def get_state_by_eppn_and_email(self, eppn, email, raise_on_missing=True):
@@ -227,7 +227,7 @@ class PhoneProofingStateDB(ProofingStateDB):
 
     ProofingStateClass = PhoneProofingState
 
-    def __init__(self, db_uri, db_name='eduid_phones'):
+    def __init__(self, db_uri, db_name='eduid_phone'):
         ProofingStateDB.__init__(self, db_uri, db_name)
 
     def get_state_by_eppn_and_mobile(self, eppn, number, raise_on_missing=True):
