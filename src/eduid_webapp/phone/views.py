@@ -68,26 +68,19 @@ def get_all_phones(user):
 @MarshalWith(PhoneResponseSchema)
 @require_user
 def post_phone(user, number, verified, primary):
-    '''
+    """
     view to add a new phone to the user data of the currently
     logged in user.
 
     Returns a listing of  all phones for the logged in user.
-    '''
+    """
     proofing_user = ProofingUser(data=user.to_dict())
     current_app.logger.debug('Trying to save unconfirmed mobile {!r} '
                              'for user {!r}'.format(number, proofing_user))
 
     new_phone = PhoneNumber(number=number, application='dashboard',
                             verified=False, primary=False)
-
-    try:
-        proofing_user.phone_numbers.add(new_phone)
-    except DuplicateElementViolation:
-        return {
-            '_status': 'error',
-            'error': {'form': 'phone_duplicated'}
-        }
+    proofing_user.phone_numbers.add(new_phone)
 
     try:
         save_and_sync_user(proofing_user)
