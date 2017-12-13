@@ -33,7 +33,7 @@
 
 from flask import current_app
 
-from eduid_common.api.utils import get_unique_hash
+from eduid_common.api.utils import get_short_hash
 from eduid_userdb.proofing import PhoneProofingElement, PhoneProofingState
 
 
@@ -45,7 +45,7 @@ def new_verification_code(phone, user):
                                  ' {!r}.'.format(old_verification.to_dict()))
         current_app.proofing_statedb.remove_state(old_verification)
 
-    code = get_unique_hash()
+    code = get_short_hash()
     verification = PhoneProofingElement(phone=phone,
                                         verification_code=code,
                                         application='dashboard')

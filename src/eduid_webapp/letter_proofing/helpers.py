@@ -36,6 +36,8 @@ def check_state(state):
             return {
                 'letter_sent': sent_dt,
                 'letter_expires': sent_dt + max_wait,
+                'letter_expired': False,
+                'message': 'letter.already-sent',
             }
         else:
             # If the letter haven't reached the user within the allotted time
@@ -44,10 +46,13 @@ def check_state(state):
             current_app.proofing_statedb.remove_document({'eduPersonPrincipalName': state.eppn})
             current_app.logger.info('Removed {!s}'.format(state))
             return {
+                'letter_sent': sent_dt,
+                'letter_expires': sent_dt + max_wait,
                 'letter_expired': True,
+                'message': 'letter.expired',
             }
     current_app.logger.info('Unfinished state for user with eppn {!s}'.format(state.eppn))
-    return {}
+    return {'message': 'letter.not-sent'}
 
 
 def create_proofing_state(eppn, nin):

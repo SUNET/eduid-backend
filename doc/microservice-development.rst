@@ -551,3 +551,125 @@ eduid-developer repo::
   docker-compose -f eduid/compose.yml pull
 
 The docker environment is started by a script in ``eduid-developer/start.sh``.
+
+
+Docker environment exposed to the local network
+-----------------------------------------------
+
+This is to be able to access a development environment started from
+eduid-developer from outside the development machine, e.g. to test it on
+tablets and phones.
+
+There are a number of changes in configuration files within eduid-developer.
+Those can be seen `here
+<https://github.com/SUNET/eduid-developer/compare/eperez-public-compare...eperez-public?expand=1>`_.
+The `eperez-public-compare` is just a branch that is a snapshot of the present
+state of the repo, so that comparing it with `eperez-public` (the branch that
+contains the settings to access the site from outside)  only shows relevant
+changes.
+
+Also, in the DNS of the local network where we want to expose the site, there
+must be 2 records that direct 2 names to the IP of the development machine
+with the environment; in this case, we have chosen arbitrarily and perhaps
+somewhat verbosily::
+
+  ipd.eduid.local.emergya.info
+  dashboard.eduid.local.emergya.info
+
+Finally, the development machine has an nginx listening in its IP for the local
+network (in this case 10.35.1.123)::
+
+    worker_processes  1;
+
+    events {
+        worker_connections  1024;
+    }
+
+    http {
+        include       mime.types;
+        default_type  application/octet-stream;
+        sendfile        on;
+        keepalive_timeout  65;
+        server {
+            listen       dashboard.eduid.local.emergya.info:8080;
+            server_name  dashboard.eduid.local.emergya.info ;
+
+            location ~ (/static|/profile) {
+             proxy_pass http://html.eduid.docker;
+             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+             proxy_set_header X-Real-IP $remote_addr;
+             proxy_set_header Host $host;
+             proxy_redirect default;
+             proxy_buffering off;
+            }
+
+            location /services/authn/ {
+             proxy_pass http://authn.eduid.docker:8080;
+             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+             proxy_set_header X-Real-IP $remote_addr;
+             proxy_set_header Host $host;
+             proxy_redirect default;
+             proxy_buffering off;
+            }
+
+            location /services/jsconfig/ {
+             proxy_pass http://jsconfig.eduid.docker:8080;
+             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+             proxy_set_header X-Real-IP $remote_addr;
+             proxy_set_header Host $host;
+             proxy_redirect default;
+             proxy_buffering off;
+            }
+
+            location /services/personal-data/ {
+             proxy_pass http://personal-data.eduid.docker:8080;
+             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+             proxy_set_header X-Real-IP $remote_addr;
+             proxy_set_header Host $host;
+             proxy_redirect default;
+             proxy_buffering off;
+            }
+
+            location /services/security/ {
+             proxy_pass http://security.eduid.docker:8080;
+             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+             proxy_set_header X-Real-IP $remote_addr;
+             proxy_set_header Host $host;
+             proxy_redirect default;
+             proxy_buffering off;
+            }
+
+            location /services/emails/ {
+             proxy_pass http://emails.eduid.docker:8080;
+             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+             proxy_set_header X-Real-IP $remote_addr;
+             proxy_set_header Host $host;
+             proxy_redirect default;
+             proxy_buffering off;
+            }
+
+            location /services/phones/ {
+             proxy_pass http://phones.eduid.docker:8080;
+             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+             proxy_set_header X-Real-IP $remote_addr;
+             proxy_set_header Host $host;
+             proxy_redirect default;
+             proxy_buffering off;
+            }
+        }
+
+        server {
+            listen       idp.eduid.local.emergya.info:8080;
+            server_name  idp.eduid.local.emergya.info ;
+
+            location / {
+             proxy_pass http://172.16.10.200:8080;
+             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+             proxy_set_header X-Real-IP $remote_addr;
+             proxy_set_header Host $host;
+             proxy_redirect default;
+             proxy_buffering off;
+            }
+        }
+    }
+
