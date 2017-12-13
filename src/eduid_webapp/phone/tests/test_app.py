@@ -77,11 +77,11 @@ class PhoneTests(EduidAPITestCase):
 
             phone_data = json.loads(response2.data)
 
-            self.assertEqual(phone_data['type'], 'GET_PHONE_ALL_SUCCESS')
-            self.assertEqual(phone_data['payload']['phones'][0].get('number'), '+34609609609')
-            self.assertEqual(phone_data['payload']['phones'][0].get('primary'), True)
-            self.assertEqual(phone_data['payload']['phones'][1].get('number'), '+34 6096096096')
-            self.assertEqual(phone_data['payload']['phones'][1].get('primary'), False)
+            self.assertEqual('GET_PHONE_ALL_SUCCESS', phone_data['type'])
+            self.assertEqual('+34609609609', phone_data['payload']['phones'][0].get('number'))
+            self.assertEqual(True, phone_data['payload']['phones'][0].get('primary'))
+            self.assertEqual('+34 6096096096', phone_data['payload']['phones'][1].get('number'))
+            self.assertEqual(False, phone_data['payload']['phones'][1].get('primary'))
 
     def test_post_phone_error_no_data(self):
         response = self.browser.post('/new')
@@ -94,15 +94,15 @@ class PhoneTests(EduidAPITestCase):
             self.assertEqual(response.status_code, 302)
 
             new_phone_data = json.loads(response2.data)
-            self.assertEqual(new_phone_data['type'], 'POST_PHONE_NEW_FAIL')
+            self.assertEqual('POST_PHONE_NEW_FAIL', new_phone_data['type'])
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
-    @patch('eduid_webapp.phone.verifications.get_unique_hash')
+    @patch('eduid_webapp.phone.verifications.get_short_hash')
     def test_post_phone_country_code(self, mock_code_verification, mock_request_user_sync):
         response = self.browser.post('/new')
         self.assertEqual(response.status_code, 302)  # Redirect to token service
 
-        mock_code_verification.return_value = u'5250f9a4-72d7-4930-b2a0-853497f0aea39'
+        mock_code_verification.return_value = u'5250f9a4'
         mock_request_user_sync.return_value = True
 
         eppn = self.test_user_data['eduPersonPrincipalName']
@@ -125,17 +125,17 @@ class PhoneTests(EduidAPITestCase):
 
                         new_phone_data = json.loads(response2.data)
 
-                        self.assertEqual(new_phone_data['type'], 'POST_PHONE_NEW_SUCCESS')
-                        self.assertEqual(new_phone_data['payload']['phones'][2].get('number'), u'+34670123456')
-                        self.assertEqual(new_phone_data['payload']['phones'][2].get('verified'), False)
+                        self.assertEqual('POST_PHONE_NEW_SUCCESS', new_phone_data['type'])
+                        self.assertEqual(u'+34670123456', new_phone_data['payload']['phones'][2].get('number'))
+                        self.assertEqual(False, new_phone_data['payload']['phones'][2].get('verified'))
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
-    @patch('eduid_webapp.phone.verifications.get_unique_hash')
+    @patch('eduid_webapp.phone.verifications.get_short_hash')
     def test_post_phone_no_country_code(self, mock_code_verification, mock_request_user_sync):
         response = self.browser.post('/new')
         self.assertEqual(response.status_code, 302)  # Redirect to token service
 
-        mock_code_verification.return_value = u'5250f9a4-72d7-4930-b2a0-853497f0aea39'
+        mock_code_verification.return_value = u'5250f9a4'
         mock_request_user_sync.return_value = True
 
         eppn = self.test_user_data['eduPersonPrincipalName']
@@ -158,17 +158,17 @@ class PhoneTests(EduidAPITestCase):
 
                         new_phone_data = json.loads(response2.data)
 
-                        self.assertEqual(new_phone_data['type'], 'POST_PHONE_NEW_SUCCESS')
-                        self.assertEqual(new_phone_data['payload']['phones'][2].get('number'), u'0701234565')
-                        self.assertEqual(new_phone_data['payload']['phones'][2].get('verified'), False)
+                        self.assertEqual('POST_PHONE_NEW_SUCCESS', new_phone_data['type'])
+                        self.assertEqual(u'+46701234565', new_phone_data['payload']['phones'][2].get('number'))
+                        self.assertEqual(False, new_phone_data['payload']['phones'][2].get('verified'))
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
-    @patch('eduid_webapp.phone.verifications.get_unique_hash')
+    @patch('eduid_webapp.phone.verifications.get_short_hash')
     def test_post_phone_bad_csrf(self, mock_code_verification, mock_request_user_sync):
         response = self.browser.post('/new')
         self.assertEqual(response.status_code, 302)  # Redirect to token service
 
-        mock_code_verification.return_value = u'5250f9a4-72d7-4930-b2a0-853497f0aea39'
+        mock_code_verification.return_value = u'5250f9a4'
         mock_request_user_sync.return_value = True
 
         eppn = self.test_user_data['eduPersonPrincipalName']
@@ -191,8 +191,8 @@ class PhoneTests(EduidAPITestCase):
 
                     new_phone_data = json.loads(response2.data)
 
-                    self.assertEqual(new_phone_data['type'], 'POST_PHONE_NEW_FAIL')
-                    self.assertEqual(new_phone_data['payload']['error']['csrf_token'], ['CSRF failed to validate'])
+                    self.assertEqual('POST_PHONE_NEW_FAIL', new_phone_data['type'])
+                    self.assertEqual(['CSRF failed to validate'], new_phone_data['payload']['error']['csrf_token'])
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def test_post_primary(self, mock_request_user_sync):
@@ -219,13 +219,13 @@ class PhoneTests(EduidAPITestCase):
 
                 new_phone_data = json.loads(response2.data)
 
-                self.assertEqual(new_phone_data['type'], 'POST_PHONE_PRIMARY_SUCCESS')
-                self.assertEqual(new_phone_data['payload']['phones'][0]['verified'], True)
-                self.assertEqual(new_phone_data['payload']['phones'][0]['primary'], True)
-                self.assertEqual(new_phone_data['payload']['phones'][0]['number'], u'+34609609609')
-                self.assertEqual(new_phone_data['payload']['phones'][1]['verified'], False)
-                self.assertEqual(new_phone_data['payload']['phones'][1]['primary'], False)
-                self.assertEqual(new_phone_data['payload']['phones'][1]['number'], u'+34 6096096096')
+                self.assertEqual('POST_PHONE_PRIMARY_SUCCESS', new_phone_data['type'])
+                self.assertEqual(True, new_phone_data['payload']['phones'][0]['verified'])
+                self.assertEqual(True, new_phone_data['payload']['phones'][0]['primary'])
+                self.assertEqual(u'+34609609609', new_phone_data['payload']['phones'][0]['number'])
+                self.assertEqual(False, new_phone_data['payload']['phones'][1]['verified'])
+                self.assertEqual(False, new_phone_data['payload']['phones'][1]['primary'])
+                self.assertEqual(u'+34 6096096096', new_phone_data['payload']['phones'][1]['number'])
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def test_post_primary_fail(self, mock_request_user_sync):
@@ -248,7 +248,7 @@ class PhoneTests(EduidAPITestCase):
 
             new_phone_data = json.loads(response2.data)
 
-            self.assertEqual(new_phone_data['type'], 'POST_PHONE_PRIMARY_FAIL')
+            self.assertEqual('POST_PHONE_PRIMARY_FAIL', new_phone_data['type'])
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def test_remove(self, mock_request_user_sync):
@@ -275,14 +275,14 @@ class PhoneTests(EduidAPITestCase):
 
                 delete_phone_data = json.loads(response2.data)
 
-                self.assertEqual(delete_phone_data['type'], 'POST_PHONE_REMOVE_SUCCESS')
-                self.assertEqual(delete_phone_data['payload']['phones'][0].get('number'), u'+34 6096096096')
+                self.assertEqual('POST_PHONE_REMOVE_SUCCESS', delete_phone_data['type'])
+                self.assertEqual(u'+34 6096096096', delete_phone_data['payload']['phones'][0].get('number'))
 
-    @patch('eduid_webapp.phone.verifications.get_unique_hash')
+    @patch('eduid_webapp.phone.verifications.get_short_hash')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def test_resend_code(self, mock_request_user_sync, mock_code_verification):
         mock_request_user_sync.return_value = True
-        mock_code_verification.return_value = u'5250f9a4-72d7-4930-b2a0-853497f0aea9'
+        mock_code_verification.return_value = u'5250f9a4'
 
         response = self.browser.post('/resend-code')
         self.assertEqual(response.status_code, 302)  # Redirect to token service
@@ -306,12 +306,12 @@ class PhoneTests(EduidAPITestCase):
 
                     phone_data = json.loads(response2.data)
 
-                    self.assertEqual(phone_data['type'], 'POST_PHONE_RESEND_CODE_SUCCESS')
-                    self.assertEqual(phone_data['payload']['phones'][0].get('number'), u'+34609609609')
-                    self.assertEqual(phone_data['payload']['phones'][1].get('number'), u'+34 6096096096')
+                    self.assertEqual('POST_PHONE_RESEND_CODE_SUCCESS', phone_data['type'])
+                    self.assertEqual(u'+34609609609', phone_data['payload']['phones'][0].get('number'))
+                    self.assertEqual(u'+34 6096096096', phone_data['payload']['phones'][1].get('number'))
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
-    @patch('eduid_webapp.phone.verifications.get_unique_hash')
+    @patch('eduid_webapp.phone.verifications.get_short_hash')
     def test_verify(self, mock_code_verification, mock_request_user_sync):
         mock_request_user_sync.return_value = False
         mock_code_verification.return_value = u'12345'
@@ -349,7 +349,175 @@ class PhoneTests(EduidAPITestCase):
                                             content_type=self.content_type_json)
 
                     verify_phone_data = json.loads(response2.data)
-                    self.assertEqual(verify_phone_data['type'], 'POST_PHONE_VERIFY_SUCCESS')
-                    self.assertEqual(verify_phone_data['payload']['phones'][2]['number'], u'+34609123321')
-                    self.assertEqual(verify_phone_data['payload']['phones'][2]['verified'], True)
-                    self.assertEqual(verify_phone_data['payload']['phones'][2]['primary'], False)
+                    self.assertEqual('POST_PHONE_VERIFY_SUCCESS', verify_phone_data['type'])
+                    self.assertEqual(u'+34609123321', verify_phone_data['payload']['phones'][2]['number'])
+                    self.assertEqual(True, verify_phone_data['payload']['phones'][2]['verified'])
+                    self.assertEqual(False, verify_phone_data['payload']['phones'][2]['primary'])
+
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid_webapp.phone.verifications.get_short_hash')
+    def test_post_phone_duplicated_number(self, mock_code_verification, mock_request_user_sync):
+        response = self.browser.post('/new')
+        self.assertEqual(response.status_code, 302)  # Redirect to token service
+
+        mock_code_verification.return_value = u'5250f9a4'
+        mock_request_user_sync.return_value = True
+
+        eppn = self.test_user_data['eduPersonPrincipalName']
+
+        with self.session_cookie(self.browser, eppn) as client:
+            with client.session_transaction() as sess:
+                with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True) as send_verification_code_mock:
+                    with self.app.test_request_context():
+                        data = {
+                            'number': '0701234565',
+                            'verified': False,
+                            'primary': False,
+                            'csrf_token': sess.get_csrf_token()
+                        }
+
+                        response2 = client.post('/new', data=json.dumps(data),
+                                                content_type=self.content_type_json)
+
+                        self.assertEqual(response2.status_code, 200)
+
+                        new_phone_data = json.loads(response2.data)
+
+                        self.assertEqual('POST_PHONE_NEW_SUCCESS', new_phone_data['type'])
+                        self.assertEqual(u'+46701234565', new_phone_data['payload']['phones'][2].get('number'))
+                        self.assertEqual(False, new_phone_data['payload']['phones'][2].get('verified'))
+
+                # Save above phone number for user in central db
+                user = self.app.private_userdb.get_user_by_eppn(eppn)
+                self.request_user_sync(user)
+
+                with client.session_transaction() as sess2:
+                    with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True) as send_verification_code_mock:
+                        data2 = {
+                            'number': '0701234565',
+                            'verified': False,
+                            'primary': False,
+                            'csrf_token': sess2.get_csrf_token()
+                        }
+
+                        response3 = client.post('/new', data=json.dumps(data2),
+                                                content_type=self.content_type_json)
+
+                        self.assertEqual(response3.status_code, 200)
+
+                        new_phone_data2 = json.loads(response3.data)
+
+                        self.assertEqual('POST_PHONE_NEW_FAIL', new_phone_data2['type'])
+                        self.assertEqual(['phone.phone_duplicated'], new_phone_data2['payload']['error'].get('number'))
+
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid_webapp.phone.verifications.get_short_hash')
+    def test_post_phone_duplicated_number_e_164(self, mock_code_verification, mock_request_user_sync):
+        response = self.browser.post('/new')
+        self.assertEqual(response.status_code, 302)  # Redirect to token service
+
+        mock_code_verification.return_value = u'5250f9a4'
+        mock_request_user_sync.return_value = True
+
+        eppn = self.test_user_data['eduPersonPrincipalName']
+
+        with self.session_cookie(self.browser, eppn) as client:
+            with client.session_transaction() as sess:
+                with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True) as send_verification_code_mock:
+                    with self.app.test_request_context():
+                        data = {
+                            'number': '+46701234565',  # e164 format
+                            'verified': False,
+                            'primary': False,
+                            'csrf_token': sess.get_csrf_token()
+                        }
+
+                        response2 = client.post('/new', data=json.dumps(data),
+                                                content_type=self.content_type_json)
+
+                        self.assertEqual(response2.status_code, 200)
+
+                        new_phone_data = json.loads(response2.data)
+
+                        self.assertEqual('POST_PHONE_NEW_SUCCESS', new_phone_data['type'])
+                        self.assertEqual(u'+46701234565', new_phone_data['payload']['phones'][2].get('number'))
+                        self.assertEqual(False, new_phone_data['payload']['phones'][2].get('verified'))
+
+                # Save above phone number for user in central db
+                user = self.app.private_userdb.get_user_by_eppn(eppn)
+                self.request_user_sync(user)
+
+                with client.session_transaction() as sess2:
+                    with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True) as send_verification_code_mock:
+                        data2 = {
+                            'number': '0701234565',  # National format
+                            'verified': False,
+                            'primary': False,
+                            'csrf_token': sess2.get_csrf_token()
+                        }
+
+                        response3 = client.post('/new', data=json.dumps(data2),
+                                                content_type=self.content_type_json)
+
+                        self.assertEqual(response3.status_code, 200)
+
+                        new_phone_data2 = json.loads(response3.data)
+
+                        self.assertEqual('POST_PHONE_NEW_FAIL', new_phone_data2['type'])
+                        self.assertEqual(['phone.phone_duplicated'], new_phone_data2['payload']['error'].get('number'))
+
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid_webapp.phone.verifications.get_short_hash')
+    def test_post_phone_duplicated_number_e_164_2(self, mock_code_verification, mock_request_user_sync):
+        response = self.browser.post('/new')
+        self.assertEqual(response.status_code, 302)  # Redirect to token service
+
+        mock_code_verification.return_value = u'5250f9a4'
+        mock_request_user_sync.return_value = True
+
+        eppn = self.test_user_data['eduPersonPrincipalName']
+
+        with self.session_cookie(self.browser, eppn) as client:
+            with client.session_transaction() as sess:
+                with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True) as send_verification_code_mock:
+                    with self.app.test_request_context():
+                        data = {
+                            'number': '0701234565',  # National format
+                            'verified': False,
+                            'primary': False,
+                            'csrf_token': sess.get_csrf_token()
+                        }
+
+                        response2 = client.post('/new', data=json.dumps(data),
+                                                content_type=self.content_type_json)
+
+                        self.assertEqual(response2.status_code, 200)
+
+                        new_phone_data = json.loads(response2.data)
+
+                        self.assertEqual('POST_PHONE_NEW_SUCCESS', new_phone_data['type'])
+                        self.assertEqual(u'+46701234565', new_phone_data['payload']['phones'][2].get('number'))
+                        self.assertEqual(False, new_phone_data['payload']['phones'][2].get('verified'))
+
+                # Save above phone number for user in central db
+                user = self.app.private_userdb.get_user_by_eppn(eppn)
+                self.request_user_sync(user)
+
+                with client.session_transaction() as sess2:
+                    with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True) as send_verification_code_mock:
+                        data2 = {
+                            'number': '+46701234565',  # e164 format
+                            'verified': False,
+                            'primary': False,
+                            'csrf_token': sess2.get_csrf_token()
+                        }
+
+                        response3 = client.post('/new', data=json.dumps(data2),
+                                                content_type=self.content_type_json)
+
+                        self.assertEqual(response3.status_code, 200)
+
+                        new_phone_data2 = json.loads(response3.data)
+
+                        self.assertEqual('POST_PHONE_NEW_FAIL', new_phone_data2['type'])
+                        self.assertEqual(['phone.phone_duplicated'], new_phone_data2['payload']['error'].get('number'))

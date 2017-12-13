@@ -31,10 +31,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from marshmallow import fields
+from marshmallow import fields, pre_load
 from eduid_common.api.schemas.base import FluxStandardAction, EduidSchema
 from eduid_common.api.schemas.csrf import CSRFResponseMixin, CSRFRequestMixin
-from eduid_webapp.phone.validators import validate_phone, validate_format_phone
+from eduid_webapp.phone.validators import validate_phone, validate_format_phone, normalize_to_e_164
 
 __author__ = 'eperez'
 
@@ -50,6 +50,12 @@ class PhoneSchema(EduidSchema, CSRFRequestMixin):
     number = fields.String(required=True, validate=validate_phone)
     verified = fields.Boolean(attribute='verified')
     primary = fields.Boolean(attribute='primary')
+
+    @pre_load
+    def normalize_phone_number(self, in_data):
+        if in_data.get('number'):
+            in_data['number'] = normalize_to_e_164(in_data['number'])
+        return in_data
 
 
 class PhoneListPayload(EduidSchema, CSRFRequestMixin, CSRFResponseMixin):

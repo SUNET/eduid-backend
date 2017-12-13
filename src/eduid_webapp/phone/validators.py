@@ -39,6 +39,7 @@ from eduid_common.api.utils import get_user
 
 
 def normalize_to_e_164(mobile):
+    mobile = ''.join(mobile.split())  # Remove white space
     if mobile.startswith(u'0'):
         country_code = current_app.config.get('DEFAULT_COUNTRY_CODE')
         return country_code + mobile.lstrip(u'0')
@@ -53,13 +54,11 @@ def validate_phone(number):
 
 def validate_format_phone(number):
 
-    if not re.match(r"^\+\d{10,20}$|^07[0236]\d{7}$|\+\d{2}\s\d{8,18}$", number):
+    if not re.match(r"^\+?[1-9]\d{4,14}$", number):
         raise ValidationError("phone.phone_format")
 
 
 def validate_unique_phone(number):
     user = get_user()
-    phone = normalize_to_e_164(number)
-
-    if user.phone_numbers.find(phone):
+    if user.phone_numbers.find(number):
         raise ValidationError("phone.phone_duplicated")
