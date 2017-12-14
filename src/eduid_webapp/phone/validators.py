@@ -40,9 +40,11 @@ from eduid_common.api.utils import get_user
 
 def normalize_to_e_164(number):
     number = ''.join(number.split())  # Remove white space
+    if number.startswith(u'00'):
+        raise ValidationError("phone.e164_format")
     if number.startswith(u'0'):
         country_code = current_app.config.get('DEFAULT_COUNTRY_CODE')
-        return country_code + number.lstrip(u'0')
+        number = '+{}{}'.format(country_code, number[1:])
     return number
 
 
@@ -60,7 +62,7 @@ def validate_format_phone(number):
 def validate_swedish_mobile(number):
     if number.startswith(u'+467'):
         if not re.match(r"^\+467[02369]\d{7}$", number):
-            raise ValidationError("phone.phone_swedish_mobile_format")
+            raise ValidationError("phone.swedish_mobile_format")
 
 
 def validate_unique_phone(number):

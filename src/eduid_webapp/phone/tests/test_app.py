@@ -58,7 +58,7 @@ class PhoneTests(EduidAPITestCase):
                 'CELERY_TASK_SERIALIZER': 'json'
             },
             'PHONE_VERIFICATION_TIMEOUT': 24,
-            'DEFAULT_COUNTRY_CODE': '+46',
+            'DEFAULT_COUNTRY_CODE': '46',
         })
         return config
 
@@ -552,5 +552,38 @@ class PhoneTests(EduidAPITestCase):
                         new_phone_data = json.loads(response2.data)
 
                         self.assertEqual('POST_PHONE_NEW_FAIL', new_phone_data['type'])
-                        self.assertEqual(['phone.phone_swedish_mobile_format'],
+                        self.assertEqual(['phone.swedish_mobile_format'],
                                          new_phone_data['payload']['error'].get('number'))
+
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid_webapp.phone.verifications.get_short_hash')
+    def test_post_phone_bad_country_code(self, mock_code_verification, mock_request_user_sync):
+        response = self.browser.post('/new')
+        self.assertEqual(response.status_code, 302)  # Redirect to token service
+
+        mock_code_verification.return_value = u'5250f9a4'
+        mock_request_user_sync.return_value = True
+
+        eppn = self.test_user_data['eduPersonPrincipalName']
+
+        with self.session_cookie(self.browser, eppn) as client:
+            with client.session_transaction() as sess:
+                with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True) as send_verification_code_mock:
+                    with self.app.test_request_context():
+                        data = {
+                            'number': '00711234565',  # National format
+                            'verified': False,
+                            'primary': False,
+                            'csrf_token': sess.get_csrf_token()
+                        }
+
+                        response2 = client.post('/new', data=json.dumps(data),
+                                                content_type=self.content_type_json)
+
+                        self.assertEqual(response2.status_code, 200)
+
+                        new_phone_data = json.loads(response2.data)
+
+                        self.assertEqual('POST_PHONE_NEW_FAIL', new_phone_data['type'])
+                        self.assertEqual(['phone.e164_format'],
+                                         new_phone_data['payload']['error'].get('_schema'))
