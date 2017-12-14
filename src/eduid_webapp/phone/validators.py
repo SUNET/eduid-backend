@@ -54,7 +54,7 @@ def validate_phone(number):
 
 def validate_format_phone(number):
 
-    if not re.match(r"^\+[1-9]\d{8,15}$", number):
+    if not re.match(r"^\+[1-9]\d{8,20}$", number):
         raise ValidationError("phone.phone_format")
 
 
