@@ -28,7 +28,7 @@ def init_lookup_mobile_proofing_app(name, config=None):
 
     # Register views
     from eduid_webapp.lookup_mobile_proofing.views import mobile_proofing_views
-    app.register_blueprint(mobile_proofing_views, url_prefix=app.config.get('APPLICATION_ROOT', None))
+    app.register_blueprint(mobile_proofing_views)
 
     # Init dbs
     app.private_userdb = LookupMobileProofingUserDB(app.config['MONGO_URI'])
