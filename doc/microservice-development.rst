@@ -576,6 +576,10 @@ somewhat verbosily::
   ipd.eduid.local.emergya.info
   dashboard.eduid.local.emergya.info
 
+Also chnge the `output.publicPath` key in `react/webpack-config.js`, in this
+case to `'http://dashboard.eduid.local.emergya.info:8080/static/build/'`.
+
+
 Finally, the development machine has an nginx listening in its IP for the local
 network (in this case 10.35.1.123)::
 
