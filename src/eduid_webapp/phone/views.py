@@ -54,12 +54,13 @@ phone_views = Blueprint('phone', __name__, url_prefix='', template_folder='templ
 @MarshalWith(PhoneResponseSchema)
 @require_user
 def get_all_phones(user):
-    '''
+    """
     view to get a listing of all phones for the logged in user.
-    '''
-    csrf_token = session.get_csrf_token()
-    phones = {'phones': user.phone_numbers.to_list_of_dicts(),
-              'csrf_token': csrf_token}
+    """
+
+    phones = {
+        'phones': user.phone_numbers.to_list_of_dicts()
+    }
     return PhoneListPayload().dump(phones).data
 
 

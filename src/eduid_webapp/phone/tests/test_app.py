@@ -78,6 +78,7 @@ class PhoneTests(EduidAPITestCase):
             phone_data = json.loads(response2.data)
 
             self.assertEqual('GET_PHONE_ALL_SUCCESS', phone_data['type'])
+            self.assertIsNotNone(phone_data['payload']['csrf_token'])
             self.assertEqual('+34609609609', phone_data['payload']['phones'][0].get('number'))
             self.assertEqual(True, phone_data['payload']['phones'][0].get('primary'))
             self.assertEqual('+34 6096096096', phone_data['payload']['phones'][1].get('number'))
