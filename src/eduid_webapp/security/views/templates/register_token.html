@@ -2,32 +2,32 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Register U2F Token</title>
+    <title>{% trans %}Register U2F Token{% endtrans %}</title>
     <link rel="stylesheet" type="text/css" href="{{ static_url_for('css/bootstrap-3.2.0.min.css') }}">
     <link rel="stylesheet" type="text/css" href="{{ static_url_for('css/screen.css') }}">
 </head>
 <body>
 
 <div class="container">
-    <h3>Register U2F Token</h3>
+    <h3>{% trans %}Register U2F Token{% endtrans %}</h3>
     {% if success %}
         <div id="success">
             <div class="center-block">
-                <p>Token successfully registered</p>
-                <a href="/">Go to dashboard</a>
+                <p>{% trans %}Token successfully registered{% endtrans %}</p>
+                <a href="/">{% trans %}Go to dashboard{% endtrans %}</a>
             </div>
         </div>
     {% else %}
         <div id="no-data" class="collapse">
             <div class="center-block">
-                <p>Error: Got no data from the backend</p>
-                <a href="/">Back</a>
+                <p>{% trans %}Error: Got no data from the backend{% endtrans %}</p>
+                <a href="/">{% trans %}Back</a>
             </div>
         </div>
             <div id="u2f-error" class="collapse">
             <div class="center-block">
                 <p id="u2f-error-message"></p>
-                <a href="/">Back</a>
+                <a href="/">{% trans %}Back{% endtrans %}</a>
             </div>
         </div>
 
@@ -36,13 +36,13 @@
             <div class="modal-content">
               <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                <h4 class="modal-title">U2F action required</h4>
+                <h4 class="modal-title">{% trans %}U2F action required{% endtrans %}</h4>
               </div>
               <div class="modal-body">
-                  <p>Please push the button on your Security Key to register</p>
+                  <p>{% trans %}Please push the button on your Security Key to register{% endtrans %}</p>
               </div>
               <div class="modal-footer">
-                <a class="btn btn-default" href="/">Abort</a>
+                <a class="btn btn-default" href="/">{% trans %}Abort{% endtrans %}</a>
               </div>
             </div><!-- /.modal-content -->
           </div><!-- /.modal-dialog -->
