@@ -576,7 +576,7 @@ somewhat verbosily::
   ipd.eduid.local.emergya.info
   dashboard.eduid.local.emergya.info
 
-Also chnge the `output.publicPath` key in `react/webpack-config.js`, in this
+Also change the `output.publicPath` key in `react/webpack-config.js`, in this
 case to `'http://dashboard.eduid.local.emergya.info:8080/static/build/'`.
 
 
