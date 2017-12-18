@@ -74,6 +74,7 @@ def eduid_init_app_no_db(name, config, app_class=AuthnApp):
     app = app_class(name)
     app.wsgi_app = ProxyFix(app.wsgi_app)
     app.request_class = Request
+    app.url_map.strict_slashes = False
 
     # Init etcd config parsers
     common_parser = EtcdConfigParser('/eduid/webapp/common/')
