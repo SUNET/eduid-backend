@@ -222,6 +222,38 @@ Or just the new service::
 
   $ docker-compose -f eduid/compose.yml start jsconfig
 
+Translation
+...................
+Flask-babel is used for translations.
+
+Use init_babel from eduid-common to set up translation support in the microservice::
+
+  from eduid_common.api import translation
+  ...
+  app = translation.init_babel(app)
+
+
+Add a babel.cfg to the root dir of your microservice::
+
+  [python: **.py]
+  [jinja2: **/templates/**.jinja2]
+  [jinja2: **/templates/**.html]
+  extensions=jinja2.ext.autoescape,jinja2.ext.with_
+
+Initialize translation files::
+
+  pybabel extract -F babel.cfg -k lazy_gettext -o messages.pot .
+  pybabel init -i messages.pot -d translations -l sv
+
+Edit translations/sv/LC_MESSAGES/messages.po manually or use Transifex.
+
+Compile translations::
+
+  pybabel compile -d translations
+
+Update translation strings::
+
+  pybabel update -i messages.pot -d translations
 
 Development of front end applications
 -------------------------------------
