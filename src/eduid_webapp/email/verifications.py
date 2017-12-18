@@ -49,7 +49,7 @@ def new_verification_code(email, user):
     code = get_unique_hash()
     verification = EmailProofingElement(email=email,
                                         verification_code=code,
-                                        application='dashboard')
+                                        application='email')
     verification_data = {
         'eduPersonPrincipalName': user.eppn,
         'verification': verification.to_dict()

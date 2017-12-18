@@ -78,7 +78,7 @@ def post_phone(user, number, verified, primary):
     current_app.logger.debug('Trying to save unconfirmed mobile {!r} '
                              'for user {!r}'.format(number, proofing_user))
 
-    new_phone = PhoneNumber(number=number, application='dashboard',
+    new_phone = PhoneNumber(number=number, application='phone',
                             verified=False, primary=False)
     proofing_user.phone_numbers.add(new_phone)
 
