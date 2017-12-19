@@ -27,7 +27,7 @@ from flask import render_template, request
 __author__ = 'lundberg'
 
 
-reset_password_views = Blueprint('reset_password', __name__, url_prefix='reset-password', template_folder='templates')
+reset_password_views = Blueprint('reset_password', __name__, url_prefix='/reset-password', template_folder='templates')
 
 
 @reset_password_views.route('/test', methods=['GET', 'POST'])
