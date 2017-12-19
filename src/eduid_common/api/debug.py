@@ -42,11 +42,16 @@ def log_endpoints(app):
 
 
 def dump_config(app):
-    pprint.pprint(('CONFIGURATION', app.config), stream=sys.stderr)
+    pprint.pprint(('CONFIGURATION', 'app.config'), stream=sys.stderr)
+    for key, value in sorted(app.config.items()):
+        pprint.pprint((key, value), stream=sys.stderr)
 
 
 def init_app_debug(app):
     app.wsgi_app = LoggingMiddleware(app.wsgi_app)
-    log_endpoints(app)
     dump_config(app)
+    log_endpoints(app)
+    pprint.pprint(('view_functions', app.view_functions), stream=sys.stderr)
+    pprint.pprint(('url_map', app.url_map), stream=sys.stderr)
+
     return app

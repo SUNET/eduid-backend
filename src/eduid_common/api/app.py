@@ -44,6 +44,7 @@ from eduid_common.api.session import SessionFactory
 from eduid_common.api.logging import init_logging
 from eduid_common.api.utils import init_template_functions
 from eduid_common.api.exceptions import init_exception_handlers, init_sentry
+from eduid_common.api.middleware import PrefixMiddleware
 from eduid_common.config.parsers.etcd import EtcdConfigParser
 from eduid_common.stats import NoOpStats, Statsd
 
@@ -74,6 +75,7 @@ def eduid_init_app_no_db(name, config, app_class=AuthnApp):
     app = app_class(name)
     app.wsgi_app = ProxyFix(app.wsgi_app)
     app.request_class = Request
+    app.url_map.strict_slashes = False
 
     # Init etcd config parsers
     common_parser = EtcdConfigParser('/eduid/webapp/common/')
@@ -93,8 +95,14 @@ def eduid_init_app_no_db(name, config, app_class=AuthnApp):
     # Load optional app specific settings
     app.config.update(app_parser.read_configuration(silent=True))
 
+    # Load optional app specific secrets
+    app.config.from_envvar('SECRETS_FILE', silent=True)
+
     # Load optional init time settings
     app.config.update(config)
+
+    # Set app url prefix to APPLICATION_ROOT
+    app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix=app.config['APPLICATION_ROOT'])
 
     # Initialize shared features
     app = init_logging(app)
