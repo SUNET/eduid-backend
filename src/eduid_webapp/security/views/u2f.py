@@ -152,7 +152,7 @@ def remove(user, key_handle):
     }
 
 
-# XXX: Remove before production
+# XXX: Beta test
 from flask import render_template, request
 
 
@@ -187,4 +187,4 @@ def register_token(user):
     current_app.logger.debug('data_for_client')
     current_app.logger.debug(data_for_client)
     return render_template('register_token.html', data_for_client=data_for_client, success=False)
-# XXX: Remove before production
+# XXX: Beta test

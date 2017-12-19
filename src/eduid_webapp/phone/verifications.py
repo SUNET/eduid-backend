@@ -48,7 +48,7 @@ def new_verification_code(phone, user):
     code = get_short_hash()
     verification = PhoneProofingElement(phone=phone,
                                         verification_code=code,
-                                        application='dashboard')
+                                        application='phone')
     verification_data = {
         'eduPersonPrincipalName': user.eppn,
         'verification': verification.to_dict()

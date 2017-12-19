@@ -93,18 +93,6 @@ SERVER_NAME = None
 # configured to live. This is for session cookie as path value. If domains are used, this should be None.
 APPLICATION_ROOT = None
 
-# the name and port number of the server. Required for subdomain support
-# (e.g.: 'myapp.dev:5000') Note that localhost does not support subdomains
-# so setting this to “localhost” does not help. Setting a SERVER_NAME also
-# by default enables URL generation without a request context but with an
-# application context.
-# SERVER_NAME = ''
-
-# If the application does not occupy a whole domain or subdomain this can be
-# set to the path where the application is configured to live. This is for
-# session cookie as path value. If domains are used, this should be None.
-# APPLICATION_ROOT = ''
-
 # If set to a value in bytes, Flask will reject incoming requests with a
 # content length greater than this by returning a 413 status code.
 # MAX_CONTENT_LENGTH
@@ -153,11 +141,10 @@ JSON_AS_ASCII = False
 # JSONIFY_PRETTYPRINT_REGULAR
 
 # Whitelist of URLs that do not need authentication. Unauthenticated requests
-# for # these URLs will be served, rather than redirected to the authn service.
+# for these URLs will be served, rather than redirected to the authn service.
 # The list is a list of regex that are matched against the path of the
-# requested URL.
-NO_AUTHN_URLS = ['^/test$']
-
+# requested URL ex. ^/test$.
+NO_AUTHN_URLS = []
 
 
 # ================#
@@ -200,3 +187,10 @@ TOKEN_SERVICE_URL = 'https://'
 EDUID_SITE_NAME = 'eduID'
 EDUID_SITE_URL = 'https://www.eduid.se'
 EDUID_STATIC_URL = 'https://www.eduid.se/static/'
+
+# ===============#
+#  BABEL         #
+# ===============#
+
+# Try to guess the language from the user accept header the browser transmits. The best match wins.
+SUPPORTED_LANGUAGES = ['sv', 'en']

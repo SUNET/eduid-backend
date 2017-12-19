@@ -54,12 +54,13 @@ phone_views = Blueprint('phone', __name__, url_prefix='', template_folder='templ
 @MarshalWith(PhoneResponseSchema)
 @require_user
 def get_all_phones(user):
-    '''
+    """
     view to get a listing of all phones for the logged in user.
-    '''
-    csrf_token = session.get_csrf_token()
-    phones = {'phones': user.phone_numbers.to_list_of_dicts(),
-              'csrf_token': csrf_token}
+    """
+
+    phones = {
+        'phones': user.phone_numbers.to_list_of_dicts()
+    }
     return PhoneListPayload().dump(phones).data
 
 
@@ -78,7 +79,7 @@ def post_phone(user, number, verified, primary):
     current_app.logger.debug('Trying to save unconfirmed mobile {!r} '
                              'for user {!r}'.format(number, proofing_user))
 
-    new_phone = PhoneNumber(number=number, application='dashboard',
+    new_phone = PhoneNumber(number=number, application='phone',
                             verified=False, primary=False)
     proofing_user.phone_numbers.add(new_phone)
 

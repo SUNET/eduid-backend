@@ -33,11 +33,11 @@
 
 from __future__ import absolute_import
 
-from flask_babel import Babel
-
 from eduid_common.api.app import eduid_init_app
 from eduid_common.api import msg
 from eduid_common.api import am
+from eduid_common.api import translation
+from eduid_common.authn.utils import no_authn_views
 from eduid_userdb.security import SecurityUserDB
 from eduid_userdb.authninfo import AuthnInfoDB
 
@@ -68,18 +68,21 @@ def security_init_app(name, config):
 
     from eduid_webapp.security.views.security import security_views
     from eduid_webapp.security.views.u2f import u2f_views
-    app.register_blueprint(security_views, url_prefix=app.config.get('APPLICATION_ROOT', None))
-    app.register_blueprint(u2f_views, url_prefix=app.config.get('APPLICATION_ROOT', None))
+    from eduid_webapp.security.views.reset_password import reset_password_views
+    app.register_blueprint(security_views)
+    app.register_blueprint(u2f_views)
+    app.register_blueprint(reset_password_views)
+
+    # Register view path that should not be authorized
+    app = no_authn_views(app, ['/reset-password.*'])
 
     app = am.init_relay(app, 'eduid_security')
     app = msg.init_relay(app)
+    app = translation.init_babel(app)
 
     app.private_userdb = SecurityUserDB(app.config['MONGO_URI'])
     app.authninfo_db = AuthnInfoDB(app.config['MONGO_URI'])
 
     app.logger.info('Init {} app...'.format(name))
-
-    babel = Babel(app)
-    app.babel = babel
 
     return app

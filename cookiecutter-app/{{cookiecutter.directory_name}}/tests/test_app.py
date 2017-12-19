@@ -19,7 +19,7 @@ class {{cookiecutter.class_name}}Tests(EduidAPITestCase):
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        return {{cookiecutter.directory_name}}_app('testing', config)
+        return init_{{cookiecutter.directory_name}}_app('testing', config)
 
     def update_config(self, config):
         return config

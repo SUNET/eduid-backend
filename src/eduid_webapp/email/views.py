@@ -69,7 +69,7 @@ def post_email(user, email, verified, primary):
     current_app.logger.debug('Trying to save unconfirmed email {!r} '
                              'for user {!r}'.format(email, proofing_user))
 
-    new_mail = MailAddress(email=email, application='dashboard',
+    new_mail = MailAddress(email=email, application='email',
                            verified=False, primary=False)
 
     try:
