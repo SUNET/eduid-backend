@@ -96,7 +96,7 @@ def eduid_init_app_no_db(name, config, app_class=AuthnApp):
     app.config.update(app_parser.read_configuration(silent=True))
 
     # Load optional app specific secrets
-    app.config.from_envvar('SECRETS_FILE', silent=True)
+    app.config.from_envvar('LOCAL_CFG_FILE', silent=True)
 
     # Load optional init time settings
     app.config.update(config)
