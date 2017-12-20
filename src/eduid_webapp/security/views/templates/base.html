@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}{% endblock %}</title>
+    <link rel="stylesheet" type="text/css" href="{{ static_url_for('css/bootstrap-3.2.0.min.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ static_url_for('css/screen.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+{% block content %}{% endblock %}
+
+<script type="text/javascript" src="{{ static_url_for('/js/libs/jquery-2.0.3.min.js') }}"></script>
+<script type="text/javascript" src="{{ static_url_for('/js/libs/bootstrap-3.2.0.min.js') }}"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>
