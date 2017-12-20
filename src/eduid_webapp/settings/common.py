@@ -180,6 +180,7 @@ SAML2_STRIP_SAML_USER_SUFFIX = '@eduid.se'
 # ===============#
 
 TOKEN_SERVICE_URL = 'https://'
+SAFE_RELAY_DOMAIN = 'eduid.se'
 
 # ===============#
 #  TEMPLATE DATA #

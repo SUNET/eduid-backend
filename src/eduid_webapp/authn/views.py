@@ -46,9 +46,8 @@ from eduid_common.authn.eduid_saml2 import get_authn_request, get_authn_response
 from eduid_common.authn.eduid_saml2 import authenticate
 from eduid_common.authn.cache import IdentityCache, StateCache
 from eduid_webapp.authn.acs_registry import get_action, schedule_action
-from eduid_webapp.authn.helpers import verify_auth_token
+from eduid_webapp.authn.helpers import verify_auth_token, verify_relay_state
 from eduid_webapp.authn.schemas import LogoutPayload, LogoutResponseSchema
-
 
 
 authn_views = Blueprint('authn', __name__)
@@ -80,7 +79,7 @@ def terminate():
 
 def _authn(action, force_authn=False):
     redirect_url = current_app.config.get('SAML2_LOGIN_REDIRECT_URL', '/')
-    relay_state = request.args.get('next', redirect_url)
+    relay_state = verify_relay_state(request.args.get('next', redirect_url), redirect_url)
     idps = current_app.saml2_config.getattr('idp')
     assert len(idps) == 1
     idp = idps.keys()[0]
@@ -170,7 +169,7 @@ def logout():
                 current_app.logger.debug('Performing local logout for {!r}'.format(user))
                 session.clear()
                 location = current_app.config.get('SAML2_LOGOUT_REDIRECT_URL')
-                location = request.form.get('RelayState', location)
+                location = verify_relay_state(request.form.get('RelayState', location), location)
                 return LogoutPayload().dump({'location': location}).data
             else:
                 abort(500)
@@ -205,6 +204,7 @@ def logout_service():
     next_page = session.get('next', logout_redirect_url)
     next_page = request.args.get('next', next_page)
     next_page = request.form.get('RelayState', next_page)
+    next_page = verify_relay_state(next_page, logout_redirect_url)
 
     if 'SAMLResponse' in request.form: # we started the logout
         current_app.logger.debug('Receiving a logout response from the IdP')
