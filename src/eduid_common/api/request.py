@@ -56,7 +56,7 @@ from werkzeug.datastructures import ImmutableTypeConversionDict
 from werkzeug.datastructures import EnvironHeaders
 
 from flask import Request as BaseRequest
-from flask import abort, current_app
+from flask import abort, current_app, request
 
 
 class SanitationMixin(object):
@@ -81,19 +81,75 @@ class SanitationMixin(object):
         :rtype: str | unicode
         """
         try:
-            return self._sanitize_input(untrusted_text,
+            text = self._sanitize_input(untrusted_text,
                                         strip_characters=strip_characters)
+            etext = self._sanitize_input(untrusted_text,
+                                        strip_characters=strip_characters,
+                                        percent_encoded=True)
+            if text == unquote(etext):
+                return text
         except UnicodeDecodeError:
             current_app.logger.warn('A malicious user tried to crash the application '
                                     'by sending non-unicode input in a GET request')
             abort(400)
 
-    def _sanitize_input(self, untrusted_text, strip_characters=False):
+    def _sanitize_input(self, untrusted_text, strip_characters=False,
+                        content_type=None, percent_encoded=False):
 
         current_app.logger.debug('Sanitizing untrusted text: ' + untrusted_text)
         if untrusted_text is None:
             # If we are given None then there's nothing to clean
             return None
+
+        # Decide on whether or not to use percent encoding:
+        # 1. Check if the content type has been explicitly set
+        # 2. If set, use percent encoding if requested by the client
+        # 3. If the content type has not been explicitly set,
+        # 3.1 use percent encoding according to the calling
+        #    functions preference or,
+        # 3.2 use the default value as set in the function definition.
+        if content_type is None and hasattr(request, 'mimetype'):
+            content_type = request.mimetype
+
+        if isinstance(content_type, basestring) and content_type:
+
+            if content_type == "application/x-www-form-urlencoded":
+                use_percent_encoding = True
+            else:
+                use_percent_encoding = False
+
+        else:
+            use_percent_encoding = percent_encoded
+
+        if use_percent_encoding:
+            # If the untrusted_text is percent encoded we have to:
+            # 1. Decode it so we can process it.
+            # 2. Encode it to UTF-8 since bleach assumes this encoding
+            # 3. Clean it to remove dangerous characters.
+            # 4. Percent encode it before returning it back.
+
+            decoded_text = unquote(untrusted_text)
+
+            if not isinstance(decoded_text, unicode):
+                decoded_text_in_utf8 = decoded_text.encode("UTF-8")
+            else:
+                decoded_text_in_utf8 = decoded_text
+
+            cleaned_text = self._safe_clean(decoded_text_in_utf8, strip_characters)
+            final_text = cleaned_text
+
+            if decoded_text != untrusted_text:
+                final_text = quote(cleaned_text)
+
+            if decoded_text_in_utf8 != cleaned_text:
+                current_app.logger.warn('Some potential harmful characters were '
+                            'removed from untrusted user input.')
+
+            return final_text
+
+        # If the untrusted_text is not percent encoded we only have to:
+        # 1. Encode it to UTF-8 since bleach assumes this encoding
+        # 2. Clean it to remove dangerous characters.
 
         if not isinstance(untrusted_text, unicode):
             text_in_utf8 = untrusted_text.encode("UTF-8")
