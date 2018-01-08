@@ -190,7 +190,7 @@ def get_freja_state(user):
         if datetime.now(expire_time.tzinfo) > expire_time:
             current_app.proofing_statedb.remove_state(proofing_state)
             current_app.stats.count(name='freja.proofing_state_expired')
-            raise DocumentDoesNotExist
+            raise DocumentDoesNotExist(reason='freja proofing state expired')
     except DocumentDoesNotExist:
         return {}
     # Return request data
