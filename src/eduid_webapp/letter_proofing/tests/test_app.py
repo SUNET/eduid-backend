@@ -384,4 +384,4 @@ class LetterProofingTests(EduidAPITestCase):
             response = client.post('/remove-nin', data=json.dumps(data), content_type=self.content_type_json)
         rdata = json.loads(response.data)
 
-        self.assertTrue(rdata['payload']['error'])
+        self.assertTrue(rdata['payload']['message'])
