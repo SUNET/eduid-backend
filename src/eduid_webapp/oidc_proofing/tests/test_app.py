@@ -12,6 +12,7 @@ from eduid_userdb.data_samples import NEW_UNVERIFIED_USER_EXAMPLE
 from eduid_userdb.user import User
 from eduid_userdb.nin import Nin
 from eduid_userdb.locked_identity import LockedIdentityNin
+from eduid_userdb.exceptions import DocumentDoesNotExist
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_webapp.oidc_proofing.app import init_oidc_proofing_app
 from eduid_webapp.oidc_proofing.helpers import create_proofing_state, handle_freja_eid_userinfo, handle_seleg_userinfo
@@ -312,6 +313,37 @@ class OidcProofingTests(EduidAPITestCase):
         self.assertEqual(user.nins.primary.verified_by, proofing_state.nin.created_by)
         self.assertEqual(user.nins.primary.is_verified, True)
         self.assertEqual(self.app.proofing_log.db_count(), 1)
+
+    @patch('eduid_webapp.oidc_proofing.helpers.do_authn_request')
+    @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_freja_flow_expired_state(self, mock_oidc_call, mock_get_postal_address, mock_request_user_sync):
+        mock_oidc_call.return_value = True
+        mock_get_postal_address.return_value = self.mock_address
+        mock_request_user_sync.return_value = True
+
+        with self.session_cookie(self.browser, self.test_user_eppn) as browser:
+            response = json.loads(browser.get('/freja/proofing').data)
+        self.assertEqual(response['type'], 'GET_OIDC_PROOFING_FREJA_PROOFING_SUCCESS')
+
+        csrf_token = response['csrf_token']
+
+        with self.session_cookie(self.browser, self.test_user_eppn) as browser:
+            data = {'nin': self.test_user_nin, 'csrf_token': csrf_token}
+            response = browser.post('/freja/proofing', data=json.dumps(data), content_type=self.content_type_json)
+            response = json.loads(response.data)
+        self.assertEqual(response['type'], 'POST_OIDC_PROOFING_FREJA_PROOFING_SUCCESS')
+
+        # Set expire time to yesterday
+        self.app.config.update({'FREJA_EXPIRE_TIME_HOURS': -24})
+
+        with self.session_cookie(self.browser, self.test_user_eppn) as browser:
+            response = json.loads(browser.get('/freja/proofing').data)
+        self.assertEqual(response['type'], 'GET_OIDC_PROOFING_FREJA_PROOFING_SUCCESS')
+
+        # Check that the expired proofing state was removed
+        with self.assertRaises(DocumentDoesNotExist):
+            self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
 
     @patch('eduid_webapp.oidc_proofing.helpers.do_authn_request')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
