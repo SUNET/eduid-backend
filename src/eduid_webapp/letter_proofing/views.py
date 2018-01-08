@@ -144,7 +144,7 @@ def remove_nin(user, nin):
 
     nin_obj = user.nins.find(nin)
     if nin_obj.is_verified:
-        return {'_status': 'error', 'error': 'nins.verified_no_rm'}
+        return {'_status': 'error', 'message': 'nins.verified_no_rm'}
 
     try:
         rm_nin_from_user(user, nin)
