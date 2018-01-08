@@ -80,6 +80,8 @@ class SanitationMixin(object):
         :type untrusted_text: str | unicode
         :rtype: str | unicode
         """
+        if isinstance(untrusted_text, str):
+            untrusted_text = untrusted_text.decode('utf8')
         try:
             text = self._sanitize_input(untrusted_text,
                                         strip_characters=strip_characters)
@@ -370,7 +372,7 @@ class SanitizedEnvironHeaders(EnvironHeaders, SanitationMixin):
             yield self.sanitize_input(val)
 
 
-class Request(BaseRequest):
+class Request(BaseRequest, SanitationMixin):
     """
     Request objects with sanitized inputs
     """
@@ -385,3 +387,11 @@ class Request(BaseRequest):
         :class:`~eduid_common.api.request.SanitizedEnvironHeaders`.
         """
         return SanitizedEnvironHeaders(self.environ)
+
+    def get_data(self, *args, **kwargs):
+        text = super(Request, self).get_data(*args, **kwargs)
+        if text:
+            text = self.sanitize_input(text)
+        if text is None:
+            text = ''
+        return text
