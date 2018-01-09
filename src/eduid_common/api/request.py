@@ -80,8 +80,6 @@ class SanitationMixin(object):
         :type untrusted_text: str | unicode
         :rtype: str | unicode
         """
-        if isinstance(untrusted_text, str):
-            untrusted_text = untrusted_text.decode('utf8')
         try:
             text = self._sanitize_input(untrusted_text,
                                         strip_characters=strip_characters)
@@ -132,7 +130,7 @@ class SanitationMixin(object):
 
             decoded_text = unquote(untrusted_text)
 
-            if not isinstance(decoded_text, unicode):
+            if isinstance(decoded_text, unicode):
                 decoded_text_in_utf8 = decoded_text.encode("UTF-8")
             else:
                 decoded_text_in_utf8 = decoded_text
@@ -153,7 +151,7 @@ class SanitationMixin(object):
         # 1. Encode it to UTF-8 since bleach assumes this encoding
         # 2. Clean it to remove dangerous characters.
 
-        if not isinstance(untrusted_text, unicode):
+        if isinstance(untrusted_text, unicode):
             text_in_utf8 = untrusted_text.encode("UTF-8")
         else:
             text_in_utf8 = untrusted_text
