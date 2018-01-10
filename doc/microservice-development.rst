@@ -493,6 +493,14 @@ Translatable strings to be used in JSX attributes, then, are registered in a
 special way, `here
 <https://github.com/SUNET/eduid-html/blob/master/react/src/i18n-messages.js#L524>`_.
 
+After adding new tanslatable messages in ``react/src/i18n-messages.js``,
+webpack (executed through ``npm start``, ``npm run build``, or
+``npm run build-pro``) will add those messages to
+``react/i18n/src/i18n-messages.json``. Then, the developer must execute
+``npm run manage:translations``, and this will add the tranlatable strings to
+``react/i18n/l10n/<lang>.json``. Finally, the translators should add the
+translated strings to these last files in ``react/i18n/l10n/``.
+
 css
 ...
 
