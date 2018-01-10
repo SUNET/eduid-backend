@@ -29,12 +29,14 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+from __future__ import absolute_import
 
 from time import time
 from saml2.ident import code
 from flask import session, request, redirect, current_app
 from eduid_common.authn.loa import get_loa
 from eduid_webapp.authn.acs_registry import acs_action
+from eduid_webapp.authn.helpers import verify_relay_state
 
 
 @acs_action('login-action')
@@ -58,7 +60,7 @@ def login_action(session_info, user):
     session.persist()
 
     # redirect the user to the view where he came from
-    relay_state = request.form.get('RelayState', '/')
+    relay_state = verify_relay_state(request.form.get('RelayState', '/'))
     current_app.logger.debug('Redirecting to the RelayState: ' + relay_state)
     response = redirect(location=relay_state)
     session.set_cookie(response)
@@ -106,6 +108,6 @@ def _reauthn(reason, session_info, user):
     session.persist()
 
     # redirect the user to the view where he came from
-    relay_state = request.form.get('RelayState', '/')
+    relay_state = verify_relay_state(request.form.get('RelayState', '/'))
     current_app.logger.debug('Redirecting to the RelayState: ' + relay_state)
     return redirect(location=relay_state)

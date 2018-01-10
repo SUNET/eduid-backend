@@ -54,6 +54,10 @@ from eduid_common.authn.tests.responses import (auth_response,
 from eduid_webapp.authn.app import authn_init_app
 from eduid_common.api.app import eduid_init_app
 
+try:
+    from urllib import quote_plus
+except ImportError:  # Python3
+    from urllib.parse import quote_plus
 
 import logging
 logger = logging.getLogger(__name__)
@@ -75,7 +79,8 @@ class AuthnAPITestBase(EduidAPITestCase):
             'SAML2_SETTINGS_MODULE': saml_config,
             'TOKEN_LOGIN_SHARED_KEY': 'shared_secret',
             'TOKEN_LOGIN_SUCCESS_REDIRECT_URL': 'http://test.localhost/success',
-            'TOKEN_LOGIN_FAILURE_REDIRECT_URL': 'http://test.localhost/failure'
+            'TOKEN_LOGIN_FAILURE_REDIRECT_URL': 'http://test.localhost/failure',
+            'SAFE_RELAY_DOMAIN': 'test.localhost'
             })
         return config
 
@@ -138,7 +143,7 @@ class AuthnAPITestBase(EduidAPITestCase):
             cookie = response1.headers['Set-Cookie']
             return cookie
 
-    def authn(self, url, force_authn=False):
+    def authn(self, url, force_authn=False, next_url='/'):
         """
         Common code for the tests that need to send an authentication request.
         This checks that the client is redirected to the idp.
@@ -148,17 +153,22 @@ class AuthnAPITestBase(EduidAPITestCase):
         :param force_authn: whether to force reauthentication for an already
                             authenticated client
         :type force_authn: bool
+        :param next_url: Next url
+        :type next_url: six.string_types
         """
         with self.app.test_client() as c:
-            resp = c.get(url)
+            resp = c.get('{}?next={}'.format(url, next_url))
             authn_req = get_location(get_authn_request(self.app.config,
-                                                       session, '/', None,
+                                                       session, next_url, None,
                                                        force_authn=force_authn))
             idp_url = authn_req.split('?')[0]
             self.assertEqual(resp.status_code, 302)
             self.assertTrue(resp.location.startswith(idp_url))
+            relay_state = resp.location.split('&')[-1]
+            quoted_next = 'RelayState={}'.format(quote_plus(next_url))
+            self.assertEqual(quoted_next, relay_state)
 
-    def acs(self, url, eppn, check_fn):
+    def acs(self, url, eppn, check_fn, came_from='/camefrom/'):
         """
         common code for the tests that need to access the assertion consumer service
         and then check the side effects of this access.
@@ -169,8 +179,9 @@ class AuthnAPITestBase(EduidAPITestCase):
         :type eppn: str
         :param check_fn: the function that checks the side effects after accessing the acs
         :type check_fn: callable
+        :param came_from: Relay state
+        :type came_from: six.string_types
         """
-        came_from = '/camefrom/'
         with self.app.test_client() as c:
             resp = c.get(url)
             cookie = resp.headers['Set-Cookie']
@@ -221,6 +232,13 @@ class AuthnAPITestCase(AuthnAPITestBase):
     def test_login_authn(self):
         self.authn('/login')
 
+    def test_login_authn_good_relay_state(self):
+        self.authn('/login', next_url='http://test.localhost/profile/')
+
+    def test_login_authn_bad_relay_state(self):
+        with self.assertRaises(AssertionError):
+            self.authn('/login', next_url='http://bad.localhost/evil/')
+
     def test_chpass_authn(self):
         self.authn('/chpass', force_authn=True)
 
@@ -235,6 +253,25 @@ class AuthnAPITestCase(AuthnAPITestBase):
             self.assertEquals(session['eduPersonPrincipalName'], eppn)
 
         self.acs('/login', eppn, _check)
+
+    def test_login_assertion_consumer_service_good_relay_state(self):
+        eppn = 'hubba-bubba'
+
+        def _check():
+            eppn = 'hubba-bubba'
+            self.assertEquals(session['eduPersonPrincipalName'], eppn)
+
+        self.acs('/login', eppn, _check, came_from='http://test.localhost/profile/')
+
+    def test_login_assertion_consumer_service_bad_relay_state(self):
+        eppn = 'hubba-bubba'
+
+        def _check():
+            eppn = 'hubba-bubba'
+            self.assertEquals(session['eduPersonPrincipalName'], eppn)
+
+        with self.assertRaises(AssertionError):
+            self.acs('/login', eppn, _check, came_from='http://bad.localhost/evil/')
 
     def test_chpass_assertion_consumer_service(self):
         eppn = 'hubba-bubba'
@@ -441,7 +478,7 @@ class LogoutRequestTests(AuthnAPITestBase):
                                            data={'SAMLResponse': deflate_and_base64_encode(
                                             logout_response(session_id)
                                            ),
-                                               'RelayState': 'testing-relay-state',
+                                               'RelayState': '/testing-relay-state',
                                            }):
             response = self.app.dispatch_request()
 
@@ -457,7 +494,7 @@ class LogoutRequestTests(AuthnAPITestBase):
                                            data={'SAMLResponse': deflate_and_base64_encode(
                                                logout_response(session_id)
                                            ),
-                                               'RelayState': 'testing-relay-state',
+                                               'RelayState': '/testing-relay-state',
                                            }):
             response = self.app.dispatch_request()
 
@@ -477,7 +514,7 @@ class LogoutRequestTests(AuthnAPITestBase):
         with self.app.test_request_context('/saml2-acs', method='POST',
                                            headers={'Cookie': cookie},
                                            data={'SAMLResponse': base64.b64encode(saml_response),
-                                                 'RelayState': 'testing-relay-state',
+                                                 'RelayState': '/testing-relay-state',
                                                  }):
             response = self.app.dispatch_request()
 
@@ -486,7 +523,7 @@ class LogoutRequestTests(AuthnAPITestBase):
                                            data={'SAMLRequest': deflate_and_base64_encode(
                                                logout_request(session_id)
                                            ),
-                                               'RelayState': 'testing-relay-state',
+                                               'RelayState': '/testing-relay-state',
                                            }):
             response = self.app.dispatch_request()
 
@@ -507,7 +544,7 @@ class LogoutRequestTests(AuthnAPITestBase):
         with self.app.test_request_context('/saml2-acs', method='POST',
                                            headers={'Cookie': cookie},
                                            data={'SAMLResponse': base64.b64encode(saml_response),
-                                                 'RelayState': 'testing-relay-state',
+                                                 'RelayState': '/testing-relay-state',
                                                  }):
             response = self.app.dispatch_request()
 
@@ -516,7 +553,7 @@ class LogoutRequestTests(AuthnAPITestBase):
                                            data={'SAMLRequest': deflate_and_base64_encode(
                                                logout_request(session_id)
                                            ),
-                                               'RelayState': 'testing-relay-state',
+                                               'RelayState': '/testing-relay-state',
                                            }):
             del session['_saml2_session_name_id']
             session.persist()

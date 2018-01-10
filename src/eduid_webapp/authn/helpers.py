@@ -2,6 +2,7 @@
 from __future__ import absolute_import
 
 import time
+import re
 from flask import current_app
 from hashlib import sha256
 
@@ -53,3 +54,26 @@ def verify_auth_token(eppn, token, nonce, timestamp, generator=sha256):
         result |= ord(x) ^ ord(y)
     current_app.logger.debug('Auth token match result: {}'.format(result == 0))
     return result == 0
+
+
+def verify_relay_state(relay_state, safe_default='/'):
+    """
+    :param relay_state: Next url
+    :param safe_default: The default if relay state is found unsafe
+
+    :type safe_default: six.string_types
+    :type relay_state: six.string_types
+
+    :return: Safe relay state
+    :rtype: six.string_types
+    """
+    if relay_state is not None:
+        current_app.logger.debug('Checking if relay state {} is safe'.format(relay_state))
+        url_scheme = current_app.config['PREFERRED_URL_SCHEME']
+        safe_domain = current_app.config['SAFE_RELAY_DOMAIN']
+        safe_relay_regex = '^{}\:\/\/.*{}|^\/\w*'.format(url_scheme, safe_domain)
+        if re.match(safe_relay_regex, relay_state):
+            return relay_state
+        current_app.logger.warning('Caught unsafe relay state: {}. '
+                'Using safe relay state: {}.'.format(relay_state, safe_default))
+    return safe_default
