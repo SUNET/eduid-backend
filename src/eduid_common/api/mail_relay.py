@@ -56,6 +56,14 @@ class MailRelay(object):
 
     def sendmail(self, subject, recipients, text=None, html=None):
         """
+        :param subject: Message subject
+        :type subject: six.string_types
+        :param recipients: List of recipients
+        :type recipients: list
+        :param text: Message in text format
+        :type text: six.string_types
+        :param html: Message in html format
+        :type html: six.string_types
         """
         sender = current_app.conf.get("MAIL_DEFAULT_SENDER")
         msg = MIMEMultipart('alternative')
@@ -69,26 +77,14 @@ class MailRelay(object):
 
         current_app.logger.debug('About to send email:\n\n {}'.format(msg.as_string()))
 
-        def wait_for_sendmail():
+        try:
             rtask = self._sendmail.apply_async(sender, recipients, msg)
-            try:
-                rtask.wait()
-            except Exception as e:
-                err = 'Error sending mail: {!r}'.format(e)
-                current_app.logger.error(err)
-                raise self.TaskFailed(err)
+        except Exception as e:
+            err = 'Error sending mail: {!r}'.format(e)
+            current_app.logger.error(err)
+            raise MailTaskFailed(err)
 
-            if rtask.successful():
-                result = rtask.get()
-                current_app.logger.info('Success sending mail, {!r}'.format(result))
-            else:
-                err = 'Something went wrong'
-                current_app.logger.error(err)
-                raise self.TaskFailed(err)
-
-        t = threading.Thread(target=wait_for_sendmail)
-        t.daemon = True
-        t.start()
+        current_app.logger.info('Sent email {} to {} with subject {}'.format(rtask, recipients, subject))
 
 
 def init_relay(app):
