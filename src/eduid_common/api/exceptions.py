@@ -64,6 +64,10 @@ class MsgTaskFailed(Exception):
     pass
 
 
+class MailTaskFailed(Exception):
+    pass
+
+
 def init_exception_handlers(app):
 
     # Init error handler for raised exceptions

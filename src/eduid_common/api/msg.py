@@ -4,6 +4,7 @@ from __future__ import absolute_import
 
 from flask import current_app
 import eduid_msg.celery
+from celery.exceptions import TimeoutError
 from eduid_msg.tasks import send_message as _send_message
 from eduid_msg.tasks import get_postal_address as _get_postal_address
 from eduid_msg.tasks import get_relations_to as _get_relations_to
@@ -44,10 +45,12 @@ class MsgRelay(object):
     def get_language(self, lang):
         return LANGUAGE_MAPPING.get(lang, 'en_US')
 
-    def get_postal_address(self, nin):
+    def get_postal_address(self, nin, timeout=4):
         """
         :param nin: Swedish national identity number
+        :param timeout: Max wait time for task to finish
         :type nin: string
+        :type timeout: int
         :return: Official name and postal address
         :rtype: OrderedDict|None
 
@@ -68,16 +71,17 @@ class MsgRelay(object):
         """
         rtask = _get_postal_address.apply_async(args=[nin])
         try:
-            rtask.wait()
-        except Exception as e:
-            raise MsgTaskFailed('get_postal_address task failed: {!r}'.format(e))
+            rtask.wait(timeout=timeout)
+        except TimeoutError:
+            rtask.forget()
+            raise MsgTaskFailed('get_postal_address task timed out')
 
         if rtask.successful():
             return rtask.get()
         else:
-            raise MsgTaskFailed('get_postal_address task failed: {}'.format(rtask.get()))
+            raise MsgTaskFailed('get_postal_address task failed: {}'.format(rtask.get(propagate=False)))
 
-    def get_relations_to(self, nin, relative_nin):
+    def get_relations_to(self, nin, relative_nin, timeout=4):
         """
         Get a list of the NAVET 'Relations' type codes between a NIN and a relatives NIN.
 
@@ -90,21 +94,24 @@ class MsgRelay(object):
 
         :param nin: Swedish National Identity Number
         :param relative_nin: Another Swedish National Identity Number
+        :param timeout: Max wait time for task to finish
         :type nin: str | unicode
         :type relative_nin: str | unicode
+        :type timeout: int
         :return: List of codes. Empty list if the NINs are not related.
         :rtype: [str | unicode]
         """
         rtask = _get_relations_to.apply_async(args=[nin, relative_nin])
         try:
-            rtask.wait()
-        except Exception as e:
-            raise MsgTaskFailed('get_relations_to task failed: {!r}'.format(e))
+            rtask.wait(timeout=timeout)
+        except TimeoutError:
+            rtask.forget()
+            raise MsgTaskFailed('get_relations_to task timed out')
 
         if rtask.successful():
             return rtask.get()
         else:
-            raise MsgTaskFailed('get_relations_to task failed: {}'.format(rtask.get()))
+            raise MsgTaskFailed('get_relations_to task failed: {}'.format(rtask.get(propagate=False)))
 
     def phone_validator(self, reference, targetphone, code, language, template_name='mobile-validator'):
         """
