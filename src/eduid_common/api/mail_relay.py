@@ -36,12 +36,10 @@ from email.mime.text import MIMEText
 from flask import current_app
 from eduid_msg.celery import celery, get_mail_relay
 from eduid_msg.tasks import sendmail
+from eduid_common.api.exceptions import MailTaskFailed
 
 
 class MailRelay(object):
-
-    class TaskFailed(Exception):
-        pass
 
     def __init__(self, settings):
 
