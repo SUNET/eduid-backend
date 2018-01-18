@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2016 NORDUnet A/S
+# Copyright (c) 2018 NORDUnet A/S
 # All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or
@@ -80,13 +80,17 @@ class SanitationMixin(object):
         :rtype: str | unicode
         """
         try:
-            text = self._sanitize_input(untrusted_text,
-                                        strip_characters=strip_characters)
-            etext = self._sanitize_input(untrusted_text,
+            # Test if the untrusted text is percent encoded
+            # before running bleech.
+            if unquote(untrusted_text) != untrusted_text:
+                use_percent_encoding = True
+            else:
+                use_percent_encoding = False
+
+            return self._sanitize_input(untrusted_text,
                                         strip_characters=strip_characters,
-                                        percent_encoded=True)
-            if text == unquote(etext):
-                return text
+                                        percent_encoded=use_percent_encoding)
+
         except UnicodeDecodeError:
             current_app.logger.warn('A malicious user tried to crash the application '
                                     'by sending non-unicode input in a GET request')
@@ -94,8 +98,24 @@ class SanitationMixin(object):
 
     def _sanitize_input(self, untrusted_text, strip_characters=False,
                         content_type=None, percent_encoded=False):
+        """
 
         :param untrusted_text: User input to sanitize
+        :param strip_characters: Set to True to remove instead of escaping
+                                 potentially harmful input.
+
+        :param content_type: Set to decide on the use of percent encoding
+                             according to the content type.
+
+        :param percent_encoded: Set to True if the input should be treated
+                                as percent encoded if no content type is
+                                already defined.
+
+        :return: Sanitized user input
+
+        :type untrusted_text: str | unicode
+        :rtype str | unicode
+        """
         if untrusted_text is None:
             # If we are given None then there's nothing to clean
             return None
@@ -123,35 +143,34 @@ class SanitationMixin(object):
         if use_percent_encoding:
             # If the untrusted_text is percent encoded we have to:
             # 1. Decode it so we can process it.
-            # 2. Encode it to UTF-8 since bleach assumes this encoding
+            # 2. Convert it to UTF-8 since bleach assumes this encoding
             # 3. Clean it to remove dangerous characters.
             # 4. Percent encode it before returning it back.
 
             decoded_text = unquote(untrusted_text)
 
-            if isinstance(decoded_text, unicode):
-                decoded_text_in_utf8 = decoded_text.encode("UTF-8")
+            if not isinstance(decoded_text, unicode):
+                decoded_text_in_utf8 = decoded_text.decode("UTF-8")
             else:
-                decoded_text_in_utf8 = decoded_text
+                decoded_text_in_utf8 = decoded_text.encode('UTF-8')
 
             cleaned_text = self._safe_clean(decoded_text_in_utf8, strip_characters)
-            final_text = cleaned_text
 
-            if decoded_text != untrusted_text:
-                final_text = quote(cleaned_text)
+            # Note that at least '&' and '=' needs to be unencoded when using PySAML2
+            percent_encoded_text = quote(cleaned_text, safe='?&=')
 
             if decoded_text_in_utf8 != cleaned_text:
                 current_app.logger.warn('Some potential harmful characters were '
-                            'removed from untrusted user input.')
+                                        'removed from untrusted user input.')
 
-            return final_text
+            return percent_encoded_text
 
         # If the untrusted_text is not percent encoded we only have to:
         # 1. Encode it to UTF-8 since bleach assumes this encoding
         # 2. Clean it to remove dangerous characters.
 
-        if isinstance(untrusted_text, unicode):
-            text_in_utf8 = untrusted_text.encode("UTF-8")
+        if not isinstance(untrusted_text, unicode):
+            text_in_utf8 = untrusted_text.decode("UTF-8")
         else:
             text_in_utf8 = untrusted_text
 
