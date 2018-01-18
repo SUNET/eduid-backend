@@ -47,7 +47,6 @@ of the Flask application::
 
 from bleach import clean
 from urllib import unquote, quote
-from functools import partial
 
 from werkzeug._compat import iteritems, itervalues
 from werkzeug.utils import cached_property
