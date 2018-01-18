@@ -99,7 +99,6 @@ class SanitationMixin(object):
     def _sanitize_input(self, untrusted_text, strip_characters=False,
                         content_type=None, percent_encoded=False):
         """
-
         :param untrusted_text: User input to sanitize
         :param strip_characters: Set to True to remove instead of escaping
                                  potentially harmful input.
