@@ -95,7 +95,7 @@ class SanitationMixin(object):
     def _sanitize_input(self, untrusted_text, strip_characters=False,
                         content_type=None, percent_encoded=False):
 
-        current_app.logger.debug('Sanitizing untrusted text: ' + untrusted_text)
+        :param untrusted_text: User input to sanitize
         if untrusted_text is None:
             # If we are given None then there's nothing to clean
             return None
@@ -161,7 +161,6 @@ class SanitationMixin(object):
             current_app.logger.warn('Some potential harmful characters were '
                                     'removed from untrusted user input.')
 
-        current_app.logger.debug('    Final text: ' + cleaned_text)
         return cleaned_text
 
     def _safe_clean(self, untrusted_text, strip_characters=False):
