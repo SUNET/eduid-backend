@@ -40,8 +40,7 @@ try:
 except ImportError:
     from urllib.parse import urlparse  # Python3
 
-from flask import Blueprint, session, abort, url_for, redirect
-from flask import render_template, current_app
+from flask import Blueprint, current_app, session, abort, url_for, redirect
 
 from eduid_userdb.security import SecurityUser
 from eduid_userdb.exceptions import UserOutOfSync
@@ -54,7 +53,7 @@ from eduid_webapp.security.schemas import SecurityResponseSchema, CredentialList
 from eduid_webapp.security.schemas import SuggestedPassword, SuggestedPasswordResponseSchema
 from eduid_webapp.security.schemas import ChangePasswordSchema, RedirectResponseSchema
 from eduid_webapp.security.schemas import RedirectSchema, AccountTerminatedSchema, ChpassResponseSchema
-from eduid_webapp.security.helpers import compile_credential_list
+from eduid_webapp.security.helpers import compile_credential_list, send_termination_mail
 
 security_views = Blueprint('security', __name__, url_prefix='', template_folder='templates')
 
@@ -236,31 +235,3 @@ def account_terminated(user):
     site_url = current_app.config.get("EDUID_SITE_URL")
     return redirect(site_url)
 
-
-def send_termination_mail(user):
-    site_name = current_app.config.get("EDUID_SITE_NAME")
-    site_url = current_app.config.get("EDUID_SITE_URL")
-
-    context = {
-        "user": user,
-        "site_url": site_url,
-        "site_name": site_name,
-    }
-
-    text = render_template(
-            "termination_email.txt.jinja2",
-            **context
-    )
-    html = render_template(
-            "termination_email.html.jinja2",
-            **context
-    )
-
-    sender = current_app.config.get('MAIL_DEFAULT_FROM')
-    # DEBUG
-    if current_app.config.get('DEBUG', False):
-        current_app.logger.debug(text)
-    else:
-        email = user.mail_aliases
-        current_app.mail_relay.sendmail(sender, [email], text, html)
-    current_app.logger.info("Sent termination email to user {!r}".format(user))
