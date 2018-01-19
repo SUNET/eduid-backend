@@ -31,11 +31,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from marshmallow import fields
+from marshmallow import fields, Schema, validates, ValidationError
 from eduid_common.api.schemas.base import FluxStandardAction, EduidSchema
 from eduid_common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
 from eduid_common.api.schemas.u2f import U2FEnrollResponseSchema, U2FBindRequestSchema, U2FSignResponseSchema
 from eduid_common.api.schemas.u2f import U2FVerifyRequestSchema, U2FVerifyResponseSchema, U2FRegisteredKey
+from eduid_common.api.schemas.validators import validate_email
 
 
 class CredentialSchema(EduidSchema):
@@ -150,3 +151,18 @@ class ModifyU2FTokenRequestSchema(EduidSchema, CSRFRequestMixin):
 class RemoveU2FTokenRequestSchema(EduidSchema, CSRFRequestMixin):
 
     key_handle = fields.String(required=True, load_from='keyHandle', dump_to='keyHandle')
+
+
+# Reset password schemas
+class ResetPasswordEmailSchema(Schema):
+
+    csrf = fields.String(required=True)
+    email = fields.String(required=True)
+
+    @validates('email')
+    def validate_email_field(self, value):
+        # Set a new error message
+        try:
+            validate_email(value)
+        except ValidationError:
+            raise ValidationError('You need to input an email address')
