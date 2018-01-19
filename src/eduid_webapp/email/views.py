@@ -165,7 +165,7 @@ def verify(user, code, email):
     db = current_app.proofing_statedb
     state = db.get_state_by_eppn_and_email(proofing_user.eppn, email, raise_on_missing=False)
 
-    timeout = current_app.config.get('EMAIL_VERIFICATION_TIMEOUT', 24)
+    timeout = current_app.config.get('EMAIL_VERIFICATION_TIMEOUT')
 
     if state is None or code != state.verification.verification_code:
         msg = "Invalid verification code for: {}".format(state.verification.email)

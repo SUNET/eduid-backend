@@ -52,3 +52,5 @@ SECRET_KEY = ''
 
 # Logging
 LOG_LEVEL = 'INFO'
+
+EMAIL_VERIFICATION_TIMEOUT = 24  # hours
