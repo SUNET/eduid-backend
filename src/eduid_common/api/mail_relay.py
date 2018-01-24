@@ -44,14 +44,7 @@ from eduid_common.api.exceptions import MailTaskFailed
 class MailRelay(object):
 
     def __init__(self, settings):
-
-        config = deepcopy(settings.get('default_celery_conf', {}))
-        config.update({
-            'BROKER_URL': settings.get('BROKER_URL'),
-            'MONGO_URI': settings.get('MONGO_URI'),
-        })
-        celery.conf.update(config)
-
+        celery.conf.update(settings)
         self._relay = get_mail_relay(celery)
         self.settings = settings
         self._sendmail = sendmail
@@ -96,8 +89,7 @@ def init_relay(app):
     :return: Flask app
     :rtype: flask.Flask
     """
-    config = app.config['CELERY_CONFIG']
-    if not config.get('BROKER_URL', ''):
-        config['BROKER_URL'] = app.config.get('MSG_BROKER_URL', '')
+    config = deepcopy(app.config['CELERY_CONFIG'])
+    config['BROKER_URL'] = app.config.get('MSG_BROKER_URL', '')
     app.mail_relay = MailRelay(config)
     return app
