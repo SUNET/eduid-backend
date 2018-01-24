@@ -245,20 +245,12 @@ def post_remove(user, number):
     current_app.logger.debug('Trying to remove mobile {!r} '
                              'from user {!r}'.format(number, proofing_user))
 
-    phones = proofing_user.phone_numbers.to_list()
-    if len(phones) == 1:
-        msg = "Cannot remove unique mobile: {!r}".format(number)
-        current_app.logger.debug(msg)
-        return {
-            '_status': 'error',
-            'message': 'phones.cannot_remove_unique'
-        }
-
     try:
         proofing_user.phone_numbers.remove(number)
     except PrimaryElementViolation:
-        new_index = 1 if phones[0].number == number else 0
-        proofing_user.phone_numbers.primary = phones[new_index].number
+        verified = proofing_user.phone_numbers.verified.to_list()
+        new_index = 1 if verified[0].number == number else 0
+        proofing_user.phone_numbers.primary = verified[new_index].number
         proofing_user.phone_numbers.remove(number)
 
     try:
