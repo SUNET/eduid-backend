@@ -2,6 +2,7 @@
 
 from __future__ import absolute_import
 
+from copy import deepcopy
 from flask import current_app
 import eduid_msg.celery
 from celery.exceptions import TimeoutError
@@ -26,9 +27,8 @@ LANGUAGE_MAPPING = {
 
 
 def init_relay(app):
-    config = app.config['CELERY_CONFIG']
-    if not config.get('BROKER_URL', ''):
-        config['BROKER_URL'] = app.config.get('MSG_BROKER_URL', '')
+    config = deepcopy(app.config['CELERY_CONFIG'])
+    config['BROKER_URL'] = app.config['MSG_BROKER_URL']
     eduid_msg.celery.celery.conf.update(config)
     app.msg_relay = MsgRelay()
     return app

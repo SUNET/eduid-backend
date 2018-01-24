@@ -2,6 +2,7 @@
 
 from __future__ import absolute_import
 
+from copy import deepcopy
 from flask import current_app
 import eduid_am.celery
 from eduid_am.tasks import update_attributes_keep_result
@@ -19,7 +20,7 @@ def init_relay(app, application_name):
     :return: Flask app
     :rtype:
     """
-    config = app.config['CELERY_CONFIG']
+    config = deepcopy(app.config['CELERY_CONFIG'])
     config['BROKER_URL'] = app.config['AM_BROKER_URL']
     eduid_am.celery.celery.conf.update(config)
     app.am_relay = AmRelay(relay_for=application_name)
