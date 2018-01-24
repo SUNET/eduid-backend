@@ -85,8 +85,7 @@ def send_password_reset_mail(email_address):
     """
     user = current_app.central_userdb.get_user_by_mail(email_address, raise_on_missing=False)
     if user:
-        state = PasswordResetEmailState(application='security', eppn=user.eppn, email_address=email_address,
-                                        email_code=get_unique_hash())
+        state = PasswordResetEmailState(eppn=user.eppn, email_address=email_address, email_code=get_unique_hash())
         current_app.password_reset_state_db.save(state)
         text_template = "reset_password_email.txt.jinja2"
         html_template = "reset_password_email.html.jinja2"
@@ -94,9 +93,11 @@ def send_password_reset_mail(email_address):
 
         password_reset_timeout = int(current_app.config.get("EMAIL_CODE_TIMEOUT_MINUTES")) / 60
         context = {
-            'reset_password_link': 'some_link',
+            'reset_password_link': url_for('reset_password.email_reset_code', email_code=state.email_code.code,
+                                           _external=True),
             'password_reset_timeout': password_reset_timeout
         }
         send_mail(to_addresses, text_template, html_template, context)
-        current_app.logger.info("Sent password reset email to user.")
+        current_app.logger.info("Sent password reset email to user with the following addresses: {}.".format(
+            to_addresses))
 
