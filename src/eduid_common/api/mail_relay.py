@@ -65,7 +65,7 @@ class MailRelay(object):
         :param html: Message in html format
         :type html: six.string_types
         """
-        sender = current_app.conf.get("MAIL_DEFAULT_SENDER")
+        sender = current_app.config.get("MAIL_DEFAULT_SENDER")
         msg = MIMEMultipart('alternative')
         msg['Subject'] = subject
         msg['From'] = sender
