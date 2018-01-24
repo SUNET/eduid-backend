@@ -85,7 +85,9 @@ def handle_seleg_userinfo(user, proofing_state, userinfo):
     number = userinfo['identity']
     # Check if the self professed NIN is the same as the NIN returned by the vetting provider
     if not number_match_proofing(user, proofing_state, number):
-        app.logger.warning('Proofing state number did not match number in userinfo. Using number from userinfo.')
+        current_app.logger.warning('Proofing state number did not match number in userinfo.'
+                                   'Using number from userinfo.')
+        proofing_state.nin.number = number
     current_app.logger.info('Getting address for user {!r}'.format(user))
     # Lookup official address via Navet
     address = current_app.msg_relay.get_postal_address(proofing_state.nin.number)
@@ -116,7 +118,10 @@ def handle_freja_eid_userinfo(user, proofing_state, userinfo):
     opaque = userinfo['results']['freja_eid']['opaque']
     transaction_id = userinfo['results']['freja_eid']['ref']
     if not number_match_proofing(user, proofing_state, number):
-        app.logger.warning('Proofing state number did not match number in userinfo. Using number from userinfo.')
+        current_app.logger.warning('Proofing state number did not match number in userinfo.'
+                                   'Using number from userinfo.')
+        proofing_state.nin.number = number
+
     current_app.logger.info('Getting address for user {!r}'.format(user))
     # Lookup official address via Navet
     address = current_app.msg_relay.get_postal_address(proofing_state.nin.number)
