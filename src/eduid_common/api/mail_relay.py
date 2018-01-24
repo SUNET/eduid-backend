@@ -30,6 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
+from copy import deepcopy
+
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
@@ -43,7 +45,7 @@ class MailRelay(object):
 
     def __init__(self, settings):
 
-        config = settings.get('default_celery_conf', {})
+        config = deepcopy(settings.get('default_celery_conf', {}))
         config.update({
             'BROKER_URL': settings.get('BROKER_URL'),
             'MONGO_URI': settings.get('MONGO_URI'),
