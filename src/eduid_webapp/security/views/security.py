@@ -137,7 +137,8 @@ def change_password(user, old_password, new_password):
     added = add_credentials(vccs_url, old_password, new_password, security_user, source='security')
 
     if not added:
-        return error('Temporary technical problems')
+        current_app.logger.debug('Problem verifying the old credentials for {!r}'.format(user))
+        return error('chpass.unable-to-verify-old-password')
 
     security_user.terminated = False
     try:
