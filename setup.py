@@ -14,7 +14,7 @@ webapp_requires = [
     'pysaml2 >= 4.0.3rc1',  # version sync with dashboard to avoid pip catastrophes
     'redis >= 2.10.5',
     'pwgen == 0.4',
-    'vccs_client >= 0.4.1',
+    'vccs_client >= 0.4.5',
     'PyNaCl >= 1.0.1',
     'python-etcd >= 0.4.5',
     'PyYAML >= 3.11',
