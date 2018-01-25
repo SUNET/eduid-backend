@@ -2,19 +2,20 @@
 from __future__ import absolute_import
 
 import smtplib
+import json
 
 from celery import Task
 from celery.utils.log import get_task_logger
 from celery.task import periodic_task, task
+from time import time
+from datetime import datetime, timedelta
+from hammock import Hammock
+
 from eduid_msg.celery import celery, config_parser
 from eduid_msg.cache import CacheMDB
 from eduid_msg.utils import load_template, navet_get_name_and_official_address, navet_get_relations
 from eduid_msg.decorators import TransactionAudit
 from eduid_msg.exceptions import NavetException, NavetAPIException
-from time import time
-from datetime import datetime, timedelta
-from hammock import Hammock
-import json
 
 
 DEFAULT_MONGODB_HOST = 'localhost'
@@ -299,7 +300,8 @@ class MessageRelay(Task):
         # Filter relations from the Navet lookup results
         return navet_get_relations(data)
 
-    def get_devel_relations(self):
+    @staticmethod
+    def get_devel_relations():
         """
         Return a OrderedDict just as we would get from navet.
         """
@@ -357,17 +359,24 @@ class MessageRelay(Task):
 
     @TransactionAudit(MONGODB_URI)
     def sendmail(self, sender, recipients, message):
-        '''
+        """
         Send mail
 
         :param sender: the From of the email
         :type sender: str
         :param recipients: the recipients of the email
         :type recipients: list of str
-        :param message: the email message
-        :type message: email.mime.multipart.MIMEMultipart
-        '''
-        self.smtp.sendmail(sender, recipients, message.as_string())
+        :param message: email.mime.multipart.MIMEMultipart message as a string
+        :type message: six.string_types
+        """
+
+        # Just log the mail if in development mode
+        conf = self.app.conf
+        if conf.get("DEVEL_MODE") == 'true':
+            LOG.debug(message)
+            return 'devel_mode'
+
+        self.smtp.sendmail(sender, recipients, message)
 
 
 @task(base=MessageRelay)
@@ -417,8 +426,8 @@ def sendmail(sender, recipients, message):
     :type sender: str
     :param recipients: the recipients of the email
     :type recipients: list of str
-    :param message: the email message
-    :type message: email.mime.multipart.MIMEMultipart
+    :param message: email.mime.multipart.MIMEMultipart message as a string
+    :type message: six.string_types
     """
     self = sendmail
     try:
