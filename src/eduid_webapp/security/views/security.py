@@ -136,14 +136,14 @@ def change_password(user, old_password, new_password):
     vccs_url = current_app.config.get('VCCS_URL')
     added = add_credentials(vccs_url, old_password, new_password, security_user, source='security')
 
-    if added:
-        security_user.terminated = False
-        try:
-            save_and_sync_user(security_user)
-        except UserOutOfSync:
-            return error('user-out-of-sync')
-    else:
+    if not added:
         return error('Temporary technical problems')
+
+    security_user.terminated = False
+    try:
+        save_and_sync_user(security_user)
+    except UserOutOfSync:
+        return error('user-out-of-sync')
 
     current_app.stats.count(name='security_password_changed', value=1)
     current_app.logger.info('Changed password for user {!r}'.format(security_user.eppn))
