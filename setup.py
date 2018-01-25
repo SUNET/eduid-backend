@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 
-version = '0.3.2b5'
+version = '0.3.2b7'
 
 requires = [
     'setuptools >= 2.2',
@@ -21,7 +21,7 @@ webapp_requires = [
     'bleach>=2.0.0',
     'marshmallow>=2.10,<2.11',
     'Flask-Mail == 0.9.1',
-    'eduid_msg >= 0.10.2',
+    'eduid_msg >= 0.10.3b1',
     'eduid-am >= 0.6.2b2',
     'statsd==3.2.1',
 ]

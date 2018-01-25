@@ -36,12 +36,6 @@ def init_relay(app):
 
 class MsgRelay(object):
 
-    def get_content(self):
-        return {
-            'sitename': current_app.config.get("EDUID_SITE_NAME"),
-            'sitelink': current_app.config.get("EDUID_SITE_URL"),
-        }
-
     def get_language(self, lang):
         return LANGUAGE_MAPPING.get(lang, 'en_US')
 
@@ -73,7 +67,6 @@ class MsgRelay(object):
         try:
             rtask.wait(timeout=timeout)
         except TimeoutError:
-            rtask.forget()
             raise MsgTaskFailed('get_postal_address task timed out')
 
         if rtask.successful():
@@ -105,7 +98,6 @@ class MsgRelay(object):
         try:
             rtask.wait(timeout=timeout)
         except TimeoutError:
-            rtask.forget()
             raise MsgTaskFailed('get_relations_to task timed out')
 
         if rtask.successful():
@@ -121,11 +113,12 @@ class MsgRelay(object):
                 * code: the verification code
                 * phonenumber: the phone number to verificate
         """
-        content = self.get_content()
-        content.update({
+        content = {
+            'sitename': current_app.config.get('EDUID_SITE_NAME'),
+            'sitelink': current_app.config.get('VALIDATION_URL'),
             'code': code,
             'phonenumber': targetphone,
-        })
+        }
         lang = self.get_language(language)
         template = TEMPLATES_RELATION.get(template_name)
 
