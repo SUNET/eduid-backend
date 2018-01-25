@@ -67,7 +67,6 @@ class MsgRelay(object):
         try:
             rtask.wait(timeout=timeout)
         except TimeoutError:
-            rtask.forget()
             raise MsgTaskFailed('get_postal_address task timed out')
 
         if rtask.successful():
@@ -99,7 +98,6 @@ class MsgRelay(object):
         try:
             rtask.wait(timeout=timeout)
         except TimeoutError:
-            rtask.forget()
             raise MsgTaskFailed('get_relations_to task timed out')
 
         if rtask.successful():
