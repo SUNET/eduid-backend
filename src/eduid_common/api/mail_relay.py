@@ -73,7 +73,7 @@ class MailRelay(object):
         current_app.logger.debug('About to send email:\n\n {}'.format(msg.as_string()))
 
         try:
-            rtask = self._sendmail.apply_async(sender, recipients, msg)
+            rtask = self._sendmail.delay(sender, recipients, msg)
         except Exception as e:
             err = 'Error sending mail: {!r}'.format(e)
             current_app.logger.error(err)
