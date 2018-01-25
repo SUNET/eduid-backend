@@ -91,11 +91,8 @@ def send_verification_code(email, user):
     )
 
     sender = current_app.config.get('MAIL_DEFAULT_FROM')
-    # DEBUG
-    if current_app.config.get('DEBUG', False):
-        current_app.logger.debug(text)
-    else:
-        current_app.mail_relay.sendmail(sender, [email], text, html)
+
+    current_app.mail_relay.sendmail(sender, [email], text, html)
     current_app.logger.info("Sent email address verification mail to user {!r}"
                             " about address {!s}.".format(user, email))
 
