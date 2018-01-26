@@ -94,14 +94,16 @@ class EmailTests(EduidAPITestCase):
             new_email_data = json.loads(response2.data)
             self.assertEqual(new_email_data['type'], 'POST_EMAIL_NEW_FAIL')
 
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('eduid_webapp.email.verifications.get_unique_hash')
-    def test_post_email(self, mock_code_verification, mock_request_user_sync):
+    def test_post_email(self, mock_code_verification, mock_request_user_sync, mock_sendmail):
         response = self.browser.post('/new')
         self.assertEqual(response.status_code, 302)  # Redirect to token service
 
         mock_request_user_sync.return_value = True
         mock_code_verification.return_value = u'123456'
+        mock_sendmail.return_value = True
         eppn = self.test_user_data['eduPersonPrincipalName']
 
         with self.session_cookie(self.browser, eppn) as client:
@@ -323,9 +325,11 @@ class EmailTests(EduidAPITestCase):
                 self.assertEqual(delete_email_data['type'], 'POST_EMAIL_REMOVE_FAIL')
                 self.assertEqual(delete_email_data['payload']['error']['email'][0], 'emails.missing')
 
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
-    def test_resend_code(self, mock_request_user_sync):
+    def test_resend_code(self, mock_request_user_sync, mock_sendmail):
         mock_request_user_sync.return_value = True
+        mock_sendmail.return_value = True
 
         response = self.browser.post('/resend-code')
         self.assertEqual(response.status_code, 302)  # Redirect to token service
@@ -381,11 +385,13 @@ class EmailTests(EduidAPITestCase):
 
                 self.assertEqual(resend_code_email_data['payload']['error']['email'][0], 'emails.missing')
 
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('eduid_webapp.email.verifications.get_unique_hash')
-    def test_verify(self, mock_code_verification, mock_request_user_sync):
+    def test_verify(self, mock_code_verification, mock_request_user_sync, mock_sendmail):
         mock_request_user_sync.side_effect = self.request_user_sync
         mock_code_verification.return_value = u'432123425'
+        mock_sendmail.return_value = True
 
         response = self.browser.post('/verify')
         self.assertEqual(response.status_code, 302)  # Redirect to token service
@@ -421,11 +427,13 @@ class EmailTests(EduidAPITestCase):
                 self.assertEqual(verify_email_data['payload']['emails'][2]['verified'], True)
                 self.assertEqual(verify_email_data['payload']['emails'][2]['primary'], False)
 
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('eduid_webapp.email.verifications.get_unique_hash')
-    def test_verify_fail(self, mock_code_verification, mock_request_user_sync):
+    def test_verify_fail(self, mock_code_verification, mock_request_user_sync, mock_sendmail):
         mock_request_user_sync.side_effect = self.request_user_sync
         mock_code_verification.return_value = u'432123425'
+        mock_sendmail.return_value = True
 
         response = self.browser.post('/verify')
         self.assertEqual(response.status_code, 302)  # Redirect to token service
@@ -459,11 +467,13 @@ class EmailTests(EduidAPITestCase):
                 self.assertEqual(verify_email_data['type'], 'POST_EMAIL_VERIFY_FAIL')
                 self.assertEqual(verify_email_data['payload']['message'], 'emails.code_invalid')
 
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('eduid_webapp.email.verifications.get_unique_hash')
-    def test_verify_email_link(self, mock_code_verification, mock_request_user_sync):
+    def test_verify_email_link(self, mock_code_verification, mock_request_user_sync, mock_sendmail):
         mock_request_user_sync.return_value = False
         mock_code_verification.return_value = u'432123425'
+        mock_sendmail.return_value = True
         email = 'johnsmith3@example.com'
 
         response = self.browser.post('/verify')
@@ -498,11 +508,13 @@ class EmailTests(EduidAPITestCase):
                 self.assertEqual(mail_address_element.is_verified, True)
                 self.assertEqual(mail_address_element.is_primary, False)
 
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('eduid_webapp.email.verifications.get_unique_hash')
-    def test_verify_email_link_fail(self, mock_code_verification, mock_request_user_sync):
+    def test_verify_email_link_fail(self, mock_code_verification, mock_request_user_sync, mock_sendmail):
         mock_request_user_sync.side_effect = self.request_user_sync
         mock_code_verification.return_value = u'432123425'
+        mock_sendmail.return_value = True
         email = 'johnsmith3@example.com'
 
         response = self.browser.post('/verify')
