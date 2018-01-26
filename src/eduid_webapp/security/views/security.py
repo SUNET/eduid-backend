@@ -131,8 +131,6 @@ def change_password(user, old_password, new_password):
     if int(delta.total_seconds()) > timeout:
         return error('chpass.stale_reauthn')
 
-    del session['reauthn-for-chpass']
-
     vccs_url = current_app.config.get('VCCS_URL')
     added = add_credentials(vccs_url, old_password, new_password, security_user, source='security')
 
@@ -145,6 +143,8 @@ def change_password(user, old_password, new_password):
         save_and_sync_user(security_user)
     except UserOutOfSync:
         return error('user-out-of-sync')
+
+    del session['reauthn-for-chpass']
 
     current_app.stats.count(name='security_password_changed', value=1)
     current_app.logger.info('Changed password for user {!r}'.format(security_user.eppn))
