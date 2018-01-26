@@ -20,8 +20,6 @@ class CSRFRequestMixin(Schema):
 
     @post_load
     def post_processing(self, in_data):
-        # Generate a new csrf token after use
-        session.new_csrf_token()
         # Remove token from data forwarded to views
         in_data = self.remove_csrf_token(in_data)
         return in_data
@@ -38,7 +36,8 @@ class CSRFResponseMixin(Schema):
 
     @pre_dump
     def get_csrf_token(self, out_data):
-        out_data['csrf_token'] = session.get_csrf_token()
+        # Generate a new csrf token for every response
+        out_data['csrf_token'] = session.new_csrf_token()
         return out_data
 
 
