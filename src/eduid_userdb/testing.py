@@ -39,9 +39,7 @@ __author__ = 'leifj'
 import atexit
 import logging
 import random
-import shutil
 import subprocess
-import tempfile
 import time
 import unittest
 from copy import deepcopy
@@ -198,7 +196,7 @@ class MongoTemporaryInstance(object):
         for i in range(100):
             time.sleep(0.2)
             try:
-                self._conn = pymongo.Connection('localhost', self._port)
+                self._conn = pymongo.MongoClient('localhost', self._port)
             except pymongo.errors.ConnectionFailure:
                 continue
             else:
@@ -335,7 +333,7 @@ class MongoTestCase(unittest.TestCase):
             del db
             self.conn.drop_database(db_name)
         self.amdb._drop_whole_collection()
-        self.conn.disconnect()
+        self.conn.close()
 
     def mongodb_uri(self, dbname):
         self.assertIsNotNone(dbname)
