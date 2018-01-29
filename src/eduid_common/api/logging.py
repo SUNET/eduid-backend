@@ -7,7 +7,10 @@ import time
 from os import environ
 from logging import StreamHandler
 from logging.handlers import RotatingFileHandler
-# from flask.logging import default_handler  # Flask 0.13
+try:
+    from flask.logging import default_handler  # Flask 0.13
+except ImportError:
+    default_handler = None
 from flask import session, current_app
 from eduid_common.api.exceptions import BadConfiguration
 
@@ -63,6 +66,14 @@ class UserFilter(logging.Filter):
         return True
 
 
+# Root log config
+root_handler = logging.StreamHandler()
+root_formatter = EduidFormatter('%(asctime)s | %(levelname)s | %(module)s | %(message)s')
+root_handler.setFormatter(root_formatter)
+root = logging.getLogger()
+root.addHandler(root_handler)
+
+
 def rotating(app):
     """
     :param app: Flask app
@@ -83,7 +94,8 @@ def rotating(app):
     app.config.setdefault('LOG_FILE', None)
     app.config.setdefault('LOG_MAX_BYTES', 1000000)  # 1 MB
     app.config.setdefault('LOG_BACKUP_COUNT', 10)  # 10 x 1 MB
-    app.config.setdefault('LOG_FORMAT', '%(asctime)s | %(levelname)s | %(name)s | %(module)s | %(eppn)s | %(message)s')
+    app.config.setdefault('LOG_FORMAT',
+                          '%(asctime)s | %(levelname)s | %(hostname)s | %(name)s | %(module)s | %(eppn)s | %(message)s')
 
     if app.config['LOG_FILE']:
         try:
@@ -133,8 +145,11 @@ def init_logging(app):
     app.config.setdefault('LOG_TYPE', ['stream'])
 
     app.logger.setLevel(app.config['LOG_LEVEL'])
-    # app.logger.removeHandler(default_handler)  # Flask 0.13
-    app.logger.handlers = []
+    root.setLevel(app.config['LOG_LEVEL'])
+    if default_handler:
+        app.logger.removeHandler(default_handler)  # Flask 0.13
+    else:
+        app.logger.handlers = []
 
     # Add extra context
     app.logger.addFilter(AppFilter(app))
