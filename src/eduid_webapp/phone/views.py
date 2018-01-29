@@ -90,7 +90,7 @@ def post_phone(user, number, verified, primary):
                                  'data out of sync'.format(number, proofing_user))
         return {
             '_status': 'error',
-            'error': {'form': 'out_of_sync'}
+            'message': 'user-out-of-sync'
         }
 
     current_app.logger.info('Saved unconfirmed mobile {!r} '
