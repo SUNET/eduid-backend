@@ -566,7 +566,7 @@ class User(object):
 
     # -----------------------------------------------------------------
     @classmethod
-    def from_user(cls, user, private_userdb, raise_on_unknown=True):
+    def from_user(cls, user, private_userdb):
         """
         This function is only expected to be used by subclasses of User.
 
@@ -580,7 +580,7 @@ class User(object):
         :rtype: User
         """
         user_dict = user.to_dict()
-        private_user = private_userdb.get_user_by_eppn(user.eppn, raise_on_missing=False)
+        private_user = private_userdb.get_user_by_eppn(user.eppn)
         if private_user is not None:
             user_dict['modified_ts'] = private_user.modified_ts
-        return cls(data = user_dict, raise_on_unknown=raise_on_unknown)
+        return cls(data = user_dict)
