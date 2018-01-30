@@ -40,7 +40,7 @@ def add_nin_to_user(user, proofing_state):
 
     :return: None
     """
-    proofing_user = ProofingUser(data=user.to_dict())
+    proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     # Add nin to user if not already there
     if not proofing_user.nins.find(proofing_state.nin.number):
         current_app.logger.info('Adding NIN for user {}'.format(user))
@@ -68,7 +68,7 @@ def rm_nin_from_user(user, nin):
 
     :return: None
     """
-    proofing_user = ProofingUser(data=user.to_dict())
+    proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     if proofing_user.nins.find(nin):
         current_app.logger.info('Removing NIN {} for user {}'.format(nin, user))
         proofing_user.nins.remove(nin)
@@ -95,7 +95,7 @@ def verify_nin_for_user(user, proofing_state, proofing_log_entry):
 
     :return: None
     """
-    proofing_user = ProofingUser(data=user.to_dict())
+    proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     nin_element = proofing_user.nins.find(proofing_state.nin.number)
     if not nin_element:
         nin_element = Nin(number=proofing_state.nin.number, application=proofing_state.nin.created_by,
