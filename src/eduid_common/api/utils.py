@@ -67,7 +67,7 @@ def update_modified_ts(user):
         user, private_user, private_user.modified_ts))
 
 
-def get_user(sync_modified_ts=True):
+def get_user():
     """
     :return: Central userdb user
     :rtype: eduid_userdb.user.User
@@ -77,13 +77,9 @@ def get_user(sync_modified_ts=True):
         raise ApiException('Not authorized', status_code=401)
     try:
         # Get user from central database
-        user = current_app.central_userdb.get_user_by_eppn(eppn, raise_on_missing=True)
-        if sync_modified_ts:
-            # Update private database with the modified_ts from central userdb if needed
-            update_modified_ts(user)
-        return user
+        return current_app.central_userdb.get_user_by_eppn(eppn, raise_on_missing=True)
     except UserDoesNotExist as e:
-        current_app.logger.error('Could not find user central database.')
+        current_app.logger.error('Could not find user in central database.')
         current_app.logger.error(e)
         raise ApiException('Not authorized', status_code=401)
     except MultipleUsersReturned as e:
