@@ -577,7 +577,7 @@ class User(object):
         :type private_userdb: eduid_userdb.UserDB
 
         :return: User proper
-        :rtype: User
+        :rtype: cls
         """
         user_dict = user.to_dict()
         private_user = private_userdb.get_user_by_eppn(user.eppn)
