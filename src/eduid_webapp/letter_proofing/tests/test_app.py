@@ -339,7 +339,7 @@ class LetterProofingTests(EduidAPITestCase):
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
     def test_locked_identity_incorrect_nin(self, mock_get_postal_address, mock_request_user_sync):
         mock_get_postal_address.return_value = self.mock_address
-        mock_request_user_sync.return_value = True
+        mock_request_user_sync.side_effect = self.request_user_sync
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
 
         user.locked_identity.add(LockedIdentityNin(number=self.test_user_nin, created_by='test', created_ts=True))

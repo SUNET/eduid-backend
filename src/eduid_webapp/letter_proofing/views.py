@@ -96,7 +96,6 @@ def proofing(user, nin):
 @MarshalWith(schemas.VerifyCodeResponseSchema)
 @require_user
 def verify_code(user, code):
-    user = ProofingUser(data=user.to_dict())
     current_app.logger.info('Verifying code for user {}'.format(user))
     proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn, raise_on_missing=False)
 
