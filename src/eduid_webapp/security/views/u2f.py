@@ -54,7 +54,7 @@ def bind_view(user, version, registration_data, client_data, description=''):
 
 
 def bind(user, version, registration_data, client_data, description=''):
-    security_user = SecurityUser(data=user.to_dict())
+    security_user = SecurityUser.from_user(user, current_app.private_userdb)
     enrollment_data = session.pop('_u2f_enroll_', None)
     if not enrollment_data:
         current_app.logger.error('Found no U2F enrollment data in session.')
@@ -119,7 +119,7 @@ def verify(user, key_handle, signature_data, client_data):
 @MarshalWith(SecurityResponseSchema)
 @require_user
 def modify(user, key_handle, description):
-    security_user = SecurityUser(data=user.to_dict())
+    security_user = SecurityUser.from_user(user, current_app.private_userdb)
     token_to_modify = security_user.credentials.filter(U2F).find(key_handle)
     if not token_to_modify:
         current_app.logger.error('Did not find requested U2F token for user.')
@@ -141,7 +141,7 @@ def modify(user, key_handle, description):
 @MarshalWith(SecurityResponseSchema)
 @require_user
 def remove(user, key_handle):
-    security_user = SecurityUser(data=user.to_dict())
+    security_user = SecurityUser.from_user(user, current_app.private_userdb)
     token_to_remove = security_user.credentials.filter(U2F).find(key_handle)
     if token_to_remove:
         security_user.credentials.remove(key_handle)

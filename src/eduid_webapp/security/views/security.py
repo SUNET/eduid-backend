@@ -120,7 +120,7 @@ def change_password(user, old_password, new_password):
     """
     View to change the password
     """
-    security_user = SecurityUser(data=user.to_dict())
+    security_user = SecurityUser.from_user(user, current_app.private_userdb)
     authn_ts = session.get('reauthn-for-chpass', None)
     if authn_ts is None:
         return error('chpass.no_reauthn')
@@ -201,7 +201,7 @@ def account_terminated(user):
 
     :type user: eduid_userdb.user.User
     """
-    security_user = SecurityUser(data=user.to_dict())
+    security_user = SecurityUser.from_user(user, current_app.private_userdb)
     authn_ts = session.get('reauthn-for-termination', None)
     if authn_ts is None:
         abort(400)

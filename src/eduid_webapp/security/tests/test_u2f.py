@@ -46,7 +46,7 @@ class SecurityTests(EduidAPITestCase):
                         application='eduid_security', created_ts=True)
         user.credentials.add(u2f_token)
         self.app.central_userdb.save(user)
-        return SecurityUser(data=user.to_dict())
+        return SecurityUser.from_user(user, self.app.private_userdb)
 
     def test_enroll_first_key(self):
         response = self.browser.get('/u2f/enroll')

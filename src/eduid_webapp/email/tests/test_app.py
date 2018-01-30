@@ -101,8 +101,8 @@ class EmailTests(EduidAPITestCase):
         response = self.browser.post('/new')
         self.assertEqual(response.status_code, 302)  # Redirect to token service
 
-        mock_request_user_sync.return_value = True
         mock_code_verification.return_value = u'123456'
+        mock_request_user_sync.side_effect = self.request_user_sync
         mock_sendmail.return_value = True
         eppn = self.test_user_data['eduPersonPrincipalName']
 
@@ -133,8 +133,8 @@ class EmailTests(EduidAPITestCase):
         response = self.browser.post('/new')
         self.assertEqual(response.status_code, 302)  # Redirect to token service
 
-        mock_request_user_sync.return_value = True
         mock_code_verification.return_value = u'123456'
+        mock_request_user_sync.side_effect = self.request_user_sync
         eppn = self.test_user_data['eduPersonPrincipalName']
         email = 'johnsmith3@example.com'
 
@@ -168,8 +168,8 @@ class EmailTests(EduidAPITestCase):
         response = self.browser.post('/new')
         self.assertEqual(response.status_code, 302)  # Redirect to token service
 
-        mock_request_user_sync.return_value = True
         mock_code_verification.return_value = u'123456'
+        mock_request_user_sync.side_effect = self.request_user_sync
         eppn = self.test_user_data['eduPersonPrincipalName']
 
         with self.session_cookie(self.browser, eppn) as client:
@@ -194,7 +194,7 @@ class EmailTests(EduidAPITestCase):
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def test_post_primary(self, mock_request_user_sync):
-        mock_request_user_sync.return_value = True
+        mock_request_user_sync.side_effect = self.request_user_sync
 
         response = self.browser.post('/primary')
         self.assertEqual(response.status_code, 302)  # Redirect to token service
@@ -271,7 +271,7 @@ class EmailTests(EduidAPITestCase):
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def test_remove(self, mock_request_user_sync):
-        mock_request_user_sync.return_value = True
+        mock_request_user_sync.side_effect = self.request_user_sync
 
         response = self.browser.post('/remove')
         self.assertEqual(response.status_code, 302)  # Redirect to token service
@@ -299,7 +299,7 @@ class EmailTests(EduidAPITestCase):
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def test_remove_fail(self, mock_request_user_sync):
-        mock_request_user_sync.return_value = True
+        mock_request_user_sync.side_effect = self.request_user_sync
 
         response = self.browser.post('/remove')
         self.assertEqual(response.status_code, 302)  # Redirect to token service
@@ -328,7 +328,7 @@ class EmailTests(EduidAPITestCase):
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def test_resend_code(self, mock_request_user_sync, mock_sendmail):
-        mock_request_user_sync.return_value = True
+        mock_request_user_sync.side_effect = self.request_user_sync
         mock_sendmail.return_value = True
 
         response = self.browser.post('/resend-code')
@@ -471,8 +471,8 @@ class EmailTests(EduidAPITestCase):
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('eduid_webapp.email.verifications.get_unique_hash')
     def test_verify_email_link(self, mock_code_verification, mock_request_user_sync, mock_sendmail):
-        mock_request_user_sync.return_value = False
         mock_code_verification.return_value = u'432123425'
+        mock_request_user_sync.side_effect = self.request_user_sync
         mock_sendmail.return_value = True
         email = 'johnsmith3@example.com'
 

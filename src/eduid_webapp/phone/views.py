@@ -75,7 +75,7 @@ def post_phone(user, number, verified, primary):
 
     Returns a listing of  all phones for the logged in user.
     """
-    proofing_user = ProofingUser(data=user.to_dict())
+    proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     current_app.logger.debug('Trying to save unconfirmed mobile {!r} '
                              'for user {!r}'.format(number, proofing_user))
 
@@ -118,7 +118,7 @@ def post_primary(user, number):
 
     Returns a listing of  all phones for the logged in user.
     """
-    proofing_user = ProofingUser(data=user.to_dict())
+    proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     current_app.logger.debug('Trying to save mobile {!r} as primary '
                              'for user {!r}'.format(number, proofing_user))
 
@@ -172,7 +172,7 @@ def verify(user, code, number):
 
     Returns a listing of  all phones for the logged in user.
     """
-    proofing_user = ProofingUser(data=user.to_dict())
+    proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     current_app.logger.debug('Trying to save mobile {!r} as verified '
                              'for user {!r}'.format(number, proofing_user))
 
@@ -241,7 +241,7 @@ def post_remove(user, number):
 
     Returns a listing of  all phones for the logged in user.
     """
-    proofing_user = ProofingUser(data=user.to_dict())
+    proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     current_app.logger.debug('Trying to remove mobile {!r} '
                              'from user {!r}'.format(number, proofing_user))
 
