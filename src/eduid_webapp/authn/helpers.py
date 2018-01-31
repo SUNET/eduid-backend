@@ -77,12 +77,16 @@ def verify_relay_state(relay_state, safe_default='/'):
         safe_domain = current_app.config['SAFE_RELAY_DOMAIN']
         parsed_relay_state = urlparse(relay_state)
 
+        # If relay state is only a path
         if (not parsed_relay_state.scheme and not parsed_relay_state.netloc) and parsed_relay_state.path:
-            # Relay state is only a path
             return relay_state
-        elif parsed_relay_state.scheme == url_scheme and parsed_relay_state.netloc.endswith(safe_domain):
-            # schema matches PREFERRED_URL_SCHEME and domain name ends with SAFE_RELAY_DOMAIN
-            return relay_state
+
+        # If schema matches PREFERRED_URL_SCHEME and fqdn ends with dot SAFE_RELAY_DOMAIN or equals SAFE_RELAY_DOMAIN
+        if parsed_relay_state.scheme == url_scheme:
+            if parsed_relay_state.netloc.endswith('.' + safe_domain) or parsed_relay_state.netloc == safe_domain:
+                return relay_state
+
+        # Unsafe relay state found
         current_app.logger.warning('Caught unsafe relay state: {}. '
                                    'Using safe relay state: {}.'.format(relay_state, safe_default))
     return safe_default
