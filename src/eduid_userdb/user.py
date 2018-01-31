@@ -582,7 +582,7 @@ class User(object):
         user_dict = user.to_dict()
         private_user = private_userdb.get_user_by_eppn(user.eppn, raise_on_missing=False)
         if private_user is None:
-            del user_dict['modified_ts']
+            user_dict.pop('modified_ts', None)
         else:
             user_dict['modified_ts'] = private_user.modified_ts
         return cls(data = user_dict)
