@@ -195,3 +195,8 @@ EDUID_STATIC_URL = 'https://www.eduid.se/static/'
 
 # Try to guess the language from the user accept header the browser transmits. The best match wins.
 SUPPORTED_LANGUAGES = ['sv', 'en']
+
+# ===============#
+#  MAIL         #
+# ===============#
+MAIL_DEFAULT_FROM = 'noreply@eduid.se'
