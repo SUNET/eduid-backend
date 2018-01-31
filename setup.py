@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 
-version = '0.3.2b11'
+version = '0.3.2b12'
 
 requires = [
     'setuptools >= 2.2',
