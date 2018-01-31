@@ -50,7 +50,6 @@ class MessageRelay(Task):
     """
     abstract = True
     _sms = None
-    _smtp = None
     _mm_api = None
     _navet_api = None
     _config = config_parser.read_configuration()
@@ -71,24 +70,22 @@ class MessageRelay(Task):
 
     @property
     def smtp(self):
-        if self._smtp is None:
-            host = self.app.conf.get("MAIL_HOST")
-            port = self.app.conf.get("MAIL_PORT")
-            smtp = smtplib.SMTP(host, port)
-            starttls = self.app.conf.get("MAIL_STARTTLS")
-            if starttls:
-                keyfile = self.app.conf.get("MAIL_KEYFILE")
-                certfile = self.app.conf.get("MAIL_CERTFILE")
-                if keyfile and certfile:
-                    smtp.starttls(keyfile, cerfile)
-                else:
-                    smtp.starttls()
-            username = self.app.conf.get("MAIL_USERNAME")
-            password = self.app.conf.get("MAIL_PASSWORD")
-            if username and password:
-                smtp.login(username, password)
-            self._smtp = smtp
-        return self._smtp
+        host = self.app.conf.get("MAIL_HOST")
+        port = self.app.conf.get("MAIL_PORT")
+        _smtp = smtplib.SMTP(host, port)
+        starttls = self.app.conf.get("MAIL_STARTTLS")
+        if starttls:
+            keyfile = self.app.conf.get("MAIL_KEYFILE")
+            certfile = self.app.conf.get("MAIL_CERTFILE")
+            if keyfile and certfile:
+                _smtp.starttls(keyfile, cerfile)
+            else:
+                _smtp.starttls()
+        username = self.app.conf.get("MAIL_USERNAME")
+        password = self.app.conf.get("MAIL_PASSWORD")
+        if username and password:
+            _smtp.login(username, password)
+        return _smtp
 
     @property
     def mm_api(self):
