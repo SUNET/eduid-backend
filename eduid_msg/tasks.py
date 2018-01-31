@@ -75,14 +75,14 @@ class MessageRelay(Task):
             host = self.app.conf.get("MAIL_HOST")
             port = self.app.conf.get("MAIL_PORT")
             smtp = smtplib.SMTP(host, port)
-            stattls = self.app.conf.get("MAIL_STARTTLS")
+            starttls = self.app.conf.get("MAIL_STARTTLS")
             if starttls:
                 keyfile = self.app.conf.get("MAIL_KEYFILE")
                 certfile = self.app.conf.get("MAIL_CERTFILE")
                 if keyfile and certfile:
-                    smtp.stattls(keyfile, cerfile)
+                    smtp.starttls(keyfile, cerfile)
                 else:
-                    smtp.stattls()
+                    smtp.starttls()
             username = self.app.conf.get("MAIL_USERNAME")
             password = self.app.conf.get("MAIL_PASSWORD")
             if username and password:
