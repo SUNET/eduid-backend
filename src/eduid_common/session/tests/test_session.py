@@ -44,6 +44,14 @@ class TestSession(TestCase):
         session2 = self._get_session(token=session1.token)
         self.assertEqual(session2['foo'], session1['foo'])
 
+    def test_get_empty_session(self):
+        """Test getting an empty session"""
+
+        # The ValueError is caught in the SessionFactory and triggers
+        # the creation of a new, empty session.
+        with self.assertRaises(ValueError):
+            session1 = self._get_session(token=None, data=None)
+
     def test_clear_session(self):
         """ Test creating a session, clearing it and verifying it is gone """
         session1 = self._get_session(data={'foo': 'bar'})
