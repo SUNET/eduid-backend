@@ -42,6 +42,7 @@ except ImportError:
 
 from flask import Blueprint, session, abort, url_for, redirect
 from flask import render_template, current_app
+from flask_babel import gettext as _
 
 from eduid_userdb.security import SecurityUser
 from eduid_userdb.exceptions import UserOutOfSync
@@ -257,11 +258,7 @@ def send_termination_mail(user):
             **context
     )
 
-    sender = current_app.config.get('MAIL_DEFAULT_FROM')
-    # DEBUG
-    if current_app.config.get('DEBUG', False):
-        current_app.logger.debug(text)
-    else:
-        email = user.mail_aliases
-        current_app.mail_relay.sendmail(sender, [email], text, html)
+    subject = _("eduID account termination")
+    emails = [item.email for item in user.mail_addresses.to_list() if item.is_verified]
+    current_app.mail_relay.sendmail(subject, emails, text, html)
     current_app.logger.info("Sent termination email to user {!r}".format(user))

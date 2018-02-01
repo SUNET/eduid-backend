@@ -285,11 +285,13 @@ class SecurityTests(EduidAPITestCase):
                 self.assertEqual(rdata['type'],
                                  'GET_SECURITY_ACCOUNT_TERMINATED_FAIL')
 
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('eduid_webapp.security.views.security.revoke_all_credentials')
-    def test_account_terminated(self, mock_revoke, mock_sync):
+    def test_account_terminated(self, mock_revoke, mock_sync, mock_sendmail):
         mock_revoke.return_value = True
         mock_sync.return_value = True
+        mock_sendmail.return_value = True
         eppn = self.test_user_data['eduPersonPrincipalName']
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction() as sess:
