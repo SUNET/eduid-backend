@@ -72,6 +72,10 @@ def cookie_view():
     cookie = request.cookies.get('test-cookie')
     return _make_response(cookie)
 
+@test_views.route('/test-empty-session')
+def empty_session_view():
+    cookie = request.cookies.get('sessid')
+    return _make_response(cookie)
 
 @test_views.route('/test-header')
 def header_view():
@@ -170,3 +174,17 @@ class InputsTests(EduidAPITestCase):
 
             response = self.app.dispatch_request()
             self.assertNotIn('<script>', response.data)
+
+    def test_get_using_empy_session(self):
+        """Test sending an empty sessid cookie"""
+        url = '/test-empty-session'
+        cookie = dump_cookie('sessid', '')
+        with self.app.test_request_context(url, method='GET',
+                                           headers={'Cookie': cookie}):
+
+            # This is a regression test for the bug that would crash the
+            # application before when someone sent an empty sessid cookie.
+            # This state should be treated in the same way as no session
+            # instead of crashing.
+            response = self.app.dispatch_request()
+            self.assertEqual(response.data, '<html><body></body></html>')
