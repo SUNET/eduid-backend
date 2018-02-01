@@ -75,7 +75,7 @@ def get_user(user):
 @MarshalWith(PersonalDataResponseSchema)
 @require_user
 def post_user(user, given_name, surname, display_name, language):
-    personal_data_user = PersonalDataUser(data=user.to_dict())
+    personal_data_user = PersonalDataUser.from_user(user, current_app.private_userdb)
     current_app.logger.debug('Trying to save user {!r}'.format(user))
 
     personal_data_user.given_name = given_name

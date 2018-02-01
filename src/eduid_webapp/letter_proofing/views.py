@@ -29,7 +29,7 @@ def get_state(user):
     if proofing_state:
         current_app.logger.info('Found proofing state for user {}'.format(user))
         return check_state(proofing_state)
-    return {'_status': 'error', 'message': 'letter.no_state_found'}
+    return {'message': 'letter.no_state_found'}
 
 
 @letter_proofing_views.route('/proofing', methods=['POST'])
@@ -96,7 +96,6 @@ def proofing(user, nin):
 @MarshalWith(schemas.VerifyCodeResponseSchema)
 @require_user
 def verify_code(user, code):
-    user = ProofingUser(data=user.to_dict())
     current_app.logger.info('Verifying code for user {}'.format(user))
     proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn, raise_on_missing=False)
 

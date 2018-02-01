@@ -46,7 +46,7 @@ def create_proofing_state(user, nin):
     :return: NinProofingState
     :rtype: eduid_userdb.proofing.NinProofingState
     """
-    proofing_user = ProofingUser(data=user.to_dict())
+    proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     nin_element = NinProofingElement(number=nin, application='lookup_mobile_proofing', verified=False)
     proofing_state = NinProofingState({'eduPersonPrincipalName': proofing_user.eppn, 'nin': nin_element.to_dict()})
     return proofing_state
@@ -65,7 +65,7 @@ def match_mobile_to_user(user, self_asserted_nin, verified_mobile_numbers):
     :return: True|False, proofing_log_entry|None
     :rtype: tuple
     """
-    proofing_user = ProofingUser(data=user.to_dict())
+    proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     age = nin_to_age(self_asserted_nin)
 
     for mobile_number in verified_mobile_numbers:

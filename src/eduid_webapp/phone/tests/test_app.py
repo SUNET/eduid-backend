@@ -104,7 +104,7 @@ class PhoneTests(EduidAPITestCase):
         self.assertEqual(response.status_code, 302)  # Redirect to token service
 
         mock_code_verification.return_value = u'5250f9a4'
-        mock_request_user_sync.return_value = True
+        mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_user_data['eduPersonPrincipalName']
 
@@ -137,7 +137,7 @@ class PhoneTests(EduidAPITestCase):
         self.assertEqual(response.status_code, 302)  # Redirect to token service
 
         mock_code_verification.return_value = u'5250f9a4'
-        mock_request_user_sync.return_value = True
+        mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_user_data['eduPersonPrincipalName']
 
@@ -170,7 +170,7 @@ class PhoneTests(EduidAPITestCase):
         self.assertEqual(response.status_code, 302)  # Redirect to token service
 
         mock_code_verification.return_value = u'5250f9a4'
-        mock_request_user_sync.return_value = True
+        mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_user_data['eduPersonPrincipalName']
 
@@ -197,7 +197,7 @@ class PhoneTests(EduidAPITestCase):
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def test_post_primary(self, mock_request_user_sync):
-        mock_request_user_sync.return_value = True
+        mock_request_user_sync.side_effect = self.request_user_sync
 
         response = self.browser.post('/primary')
         self.assertEqual(response.status_code, 302)  # Redirect to token service
@@ -230,7 +230,7 @@ class PhoneTests(EduidAPITestCase):
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def test_post_primary_fail(self, mock_request_user_sync):
-        mock_request_user_sync.return_value = True
+        mock_request_user_sync.side_effect = self.request_user_sync
 
         response = self.browser.post('/primary')
         self.assertEqual(response.status_code, 302)  # Redirect to token service
@@ -253,7 +253,7 @@ class PhoneTests(EduidAPITestCase):
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def test_remove(self, mock_request_user_sync):
-        mock_request_user_sync.return_value = True
+        mock_request_user_sync.side_effect = self.request_user_sync
 
         response = self.browser.post('/remove')
         self.assertEqual(response.status_code, 302)  # Redirect to token service
@@ -279,10 +279,95 @@ class PhoneTests(EduidAPITestCase):
                 self.assertEqual('POST_PHONE_REMOVE_SUCCESS', delete_phone_data['type'])
                 self.assertEqual(u'+34 6096096096', delete_phone_data['payload']['phones'][0].get('number'))
 
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_remove_primary_other_unverified(self, mock_request_user_sync):
+        mock_request_user_sync.side_effect = self.request_user_sync
+
+        response = self.browser.post('/remove')
+        self.assertEqual(response.status_code, 302)  # Redirect to token service
+
+        eppn = self.test_user_data['eduPersonPrincipalName']
+
+        with self.session_cookie(self.browser, eppn) as client:
+            with client.session_transaction() as sess:
+
+                with self.app.test_request_context():
+                    data = {
+                        'number': '+34 6096096096',
+                        'csrf_token': sess.get_csrf_token()
+                    }
+
+                response2 = client.post('/remove', data=json.dumps(data),
+                                        content_type=self.content_type_json)
+
+                self.assertEqual(response2.status_code, 200)
+
+                delete_phone_data = json.loads(response2.data)
+
+                self.assertEqual('POST_PHONE_REMOVE_SUCCESS', delete_phone_data['type'])
+                self.assertEqual(u'+34609609609', delete_phone_data['payload']['phones'][0].get('number'))
+
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid_webapp.phone.verifications.get_short_hash')
+    def test_remove_primary_other_verified(self, mock_code_verification, mock_request_user_sync):
+        mock_request_user_sync.side_effect = self.request_user_sync
+        mock_code_verification.return_value = u'12345'
+
+        response = self.browser.post('/remove')
+        self.assertEqual(response.status_code, 302)  # Redirect to token service
+
+        eppn = self.test_user_data['eduPersonPrincipalName']
+
+        with self.session_cookie(self.browser, eppn) as client:
+            with client.session_transaction() as sess:
+                with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True) as send_verification_code_mock:
+
+                    with self.app.test_request_context():
+                        data = {
+                            'number': u'+34609123321',
+                            'verified': False,
+                            'primary': False,
+                            'csrf_token': sess.get_csrf_token()
+                        }
+
+                    client.post('/new', data=json.dumps(data),
+                                content_type=self.content_type_json)
+            with client.session_transaction() as sess:
+                with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True) as send_verification_code_mock:
+                    with self.app.test_request_context():
+                        data = {
+                            'number': u'+34609123321',
+                            'code': u'12345',
+                            'csrf_token': sess.get_csrf_token()
+                        }
+
+                    response2 = client.post('/verify', data=json.dumps(data),
+                                            content_type=self.content_type_json)
+                    verify_phone_data = json.loads(response2.data)
+                    self.assertEqual('POST_PHONE_VERIFY_SUCCESS', verify_phone_data['type'])
+
+            with client.session_transaction() as sess:
+
+                with self.app.test_request_context():
+                    data = {
+                        'number': '+34609609609',
+                        'csrf_token': sess.get_csrf_token()
+                    }
+
+                response2 = client.post('/remove', data=json.dumps(data),
+                                        content_type=self.content_type_json)
+
+                self.assertEqual(response2.status_code, 200)
+
+                delete_phone_data = json.loads(response2.data)
+
+                self.assertEqual('POST_PHONE_REMOVE_SUCCESS', delete_phone_data['type'])
+                self.assertEqual(u'+34 6096096096', delete_phone_data['payload']['phones'][0].get('number'))
+
     @patch('eduid_webapp.phone.verifications.get_short_hash')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def test_resend_code(self, mock_request_user_sync, mock_code_verification):
-        mock_request_user_sync.return_value = True
+        mock_request_user_sync.side_effect = self.request_user_sync
         mock_code_verification.return_value = u'5250f9a4'
 
         response = self.browser.post('/resend-code')
@@ -314,7 +399,7 @@ class PhoneTests(EduidAPITestCase):
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('eduid_webapp.phone.verifications.get_short_hash')
     def test_verify(self, mock_code_verification, mock_request_user_sync):
-        mock_request_user_sync.return_value = False
+        mock_request_user_sync.side_effect = self.request_user_sync
         mock_code_verification.return_value = u'12345'
 
         response = self.browser.post('/verify')
@@ -362,7 +447,7 @@ class PhoneTests(EduidAPITestCase):
         self.assertEqual(response.status_code, 302)  # Redirect to token service
 
         mock_code_verification.return_value = u'5250f9a4'
-        mock_request_user_sync.return_value = True
+        mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_user_data['eduPersonPrincipalName']
 
@@ -418,7 +503,7 @@ class PhoneTests(EduidAPITestCase):
         self.assertEqual(response.status_code, 302)  # Redirect to token service
 
         mock_code_verification.return_value = u'5250f9a4'
-        mock_request_user_sync.return_value = True
+        mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_user_data['eduPersonPrincipalName']
 
@@ -474,7 +559,7 @@ class PhoneTests(EduidAPITestCase):
         self.assertEqual(response.status_code, 302)  # Redirect to token service
 
         mock_code_verification.return_value = u'5250f9a4'
-        mock_request_user_sync.return_value = True
+        mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_user_data['eduPersonPrincipalName']
 
@@ -530,7 +615,7 @@ class PhoneTests(EduidAPITestCase):
         self.assertEqual(response.status_code, 302)  # Redirect to token service
 
         mock_code_verification.return_value = u'5250f9a4'
-        mock_request_user_sync.return_value = True
+        mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_user_data['eduPersonPrincipalName']
 
@@ -563,7 +648,7 @@ class PhoneTests(EduidAPITestCase):
         self.assertEqual(response.status_code, 302)  # Redirect to token service
 
         mock_code_verification.return_value = u'5250f9a4'
-        mock_request_user_sync.return_value = True
+        mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_user_data['eduPersonPrincipalName']
 

@@ -27,6 +27,7 @@ class LetterProofingTests(EduidAPITestCase):
 
         self.test_user_eppn = 'hubba-baar'
         self.test_user_nin = '200001023456'
+        self.test_user_wrong_nin = '190001021234'
         self.mock_address = OrderedDict([
             (u'Name', OrderedDict([
                 (u'GivenNameMarking', u'20'), (u'GivenName', u'Testaren Test'),
@@ -67,8 +68,10 @@ class LetterProofingTests(EduidAPITestCase):
     def tearDown(self):
         super(LetterProofingTests, self).tearDown()
         with self.app.app_context():
-            self.app.proofing_statedb._drop_whole_collection()
             self.app.central_userdb._drop_whole_collection()
+            self.app.private_userdb._drop_whole_collection()
+            self.app.proofing_statedb._drop_whole_collection()
+            self.app.proofing_log._drop_whole_collection()
 
     # Helper methods
     def get_state(self):
@@ -80,7 +83,7 @@ class LetterProofingTests(EduidAPITestCase):
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
     def send_letter(self, nin, csrf_token, mock_get_postal_address, mock_request_user_sync):
-        mock_request_user_sync.return_value = True
+        mock_request_user_sync.side_effect = self.request_user_sync
         mock_get_postal_address.return_value = self.mock_address
         data = {'nin': nin, 'csrf_token': csrf_token}
         with self.session_cookie(self.browser, self.test_user_eppn) as client:
@@ -91,7 +94,7 @@ class LetterProofingTests(EduidAPITestCase):
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
     def verify_code(self, code, csrf_token, mock_get_postal_address, mock_request_user_sync):
-        mock_request_user_sync.return_value = True
+        mock_request_user_sync.side_effect = self.request_user_sync
         mock_get_postal_address.return_value = self.mock_address
         data = {'code': code, 'csrf_token': csrf_token}
         with self.session_cookie(self.browser, self.test_user_eppn) as client:
@@ -149,6 +152,13 @@ class LetterProofingTests(EduidAPITestCase):
         json_data = self.verify_code(proofing_state.nin.verification_code, csrf_token)
         self.assertTrue(json_data['payload']['success'])
 
+        user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
+        self.assertEqual(user.nins.primary.number, self.test_user_nin)
+        self.assertEqual(user.nins.primary.created_by, proofing_state.nin.created_by)
+        self.assertEqual(user.nins.primary.verified_by, proofing_state.nin.created_by)
+        self.assertEqual(user.nins.primary.is_verified, True)
+        self.assertEqual(self.app.proofing_log.db_count(), 1)
+
     def test_verify_letter_code_bad_csrf(self):
         json_data = self.get_state()
         csrf_token = json_data['payload']['csrf_token']
@@ -181,6 +191,66 @@ class LetterProofingTests(EduidAPITestCase):
             proofing_state = self.app.proofing_statedb.get_state_by_eppn(user.eppn, raise_on_missing=False)
         json_data = self.verify_code(proofing_state.nin.verification_code, csrf_token)
         self.assertTrue(json_data['payload']['success'])
+
+        user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
+        self.assertEqual(user.nins.primary.number, self.test_user_nin)
+        self.assertEqual(user.nins.primary.created_by, proofing_state.nin.created_by)
+        self.assertEqual(user.nins.primary.verified_by, proofing_state.nin.created_by)
+        self.assertEqual(user.nins.primary.is_verified, True)
+        self.assertEqual(self.app.proofing_log.db_count(), 1)
+
+    def test_proofing_flow_previously_added_nin(self):
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        not_verified_nin = Nin(number=self.test_user_nin, application='test', verified=False, primary=False)
+        user.nins.add(not_verified_nin)
+        self.app.central_userdb.save(user)
+
+        json_data = self.get_state()
+        csrf_token = json_data['payload']['csrf_token']
+        self.send_letter(self.test_user_nin, csrf_token)
+        self.get_state()
+        json_data = self.get_state()
+        csrf_token = json_data['payload']['csrf_token']
+        with self.app.test_request_context():
+            user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn, raise_on_missing=True)
+            proofing_state = self.app.proofing_statedb.get_state_by_eppn(user.eppn, raise_on_missing=False)
+        json_data = self.verify_code(proofing_state.nin.verification_code, csrf_token)
+        self.assertTrue(json_data['payload']['success'])
+
+        user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
+        self.assertEqual(user.nins.primary.number, self.test_user_nin)
+        self.assertEqual(user.nins.primary.created_by, not_verified_nin.created_by)
+        self.assertEqual(user.nins.primary.verified_by, proofing_state.nin.created_by)
+        self.assertEqual(user.nins.primary.is_verified, True)
+        self.assertEqual(self.app.proofing_log.db_count(), 1)
+
+    def test_proofing_flow_previously_added_wrong_nin(self):
+        json_data = self.get_state()
+        csrf_token = json_data['payload']['csrf_token']
+        # Send letter to correct nin
+        self.send_letter(self.test_user_nin, csrf_token)
+
+        # Remove correct unverified nin and add wrong nin
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        user.nins.remove(self.test_user_nin)
+        not_verified_nin = Nin(number=self.test_user_wrong_nin, application='test', verified=False, primary=False)
+        user.nins.add(not_verified_nin)
+        self.app.central_userdb.save(user)
+
+        json_data = self.get_state()
+        csrf_token = json_data['payload']['csrf_token']
+        with self.app.test_request_context():
+            user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn, raise_on_missing=True)
+            proofing_state = self.app.proofing_statedb.get_state_by_eppn(user.eppn, raise_on_missing=False)
+        json_data = self.verify_code(proofing_state.nin.verification_code, csrf_token)
+        self.assertTrue(json_data['payload']['success'])
+
+        user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
+        self.assertEqual(user.nins.primary.number, self.test_user_nin)
+        self.assertEqual(user.nins.primary.created_by, proofing_state.nin.created_by)
+        self.assertEqual(user.nins.primary.verified_by, proofing_state.nin.created_by)
+        self.assertEqual(user.nins.primary.is_verified, True)
+        self.assertEqual(self.app.proofing_log.db_count(), 1)
 
     def test_expire_proofing_state(self):
         json_data = self.get_state()
@@ -238,7 +308,7 @@ class LetterProofingTests(EduidAPITestCase):
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
     def test_locked_identity_no_locked_identity(self, mock_get_postal_address, mock_request_user_sync):
         mock_get_postal_address.return_value = self.mock_address
-        mock_request_user_sync.return_value = True
+        mock_request_user_sync.side_effect = self.request_user_sync
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         self.assertEqual(user.locked_identity.count, 0)
 
@@ -253,7 +323,7 @@ class LetterProofingTests(EduidAPITestCase):
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
     def test_locked_identity_correct_nin(self, mock_get_postal_address, mock_request_user_sync):
         mock_get_postal_address.return_value = self.mock_address
-        mock_request_user_sync.return_value = True
+        mock_request_user_sync.side_effect = self.request_user_sync
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
 
         # User with locked_identity and correct nin
@@ -269,7 +339,7 @@ class LetterProofingTests(EduidAPITestCase):
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
     def test_locked_identity_incorrect_nin(self, mock_get_postal_address, mock_request_user_sync):
         mock_get_postal_address.return_value = self.mock_address
-        mock_request_user_sync.return_value = True
+        mock_request_user_sync.side_effect = self.request_user_sync
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
 
         user.locked_identity.add(LockedIdentityNin(number=self.test_user_nin, created_by='test', created_ts=True))
@@ -284,7 +354,7 @@ class LetterProofingTests(EduidAPITestCase):
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def test_remove_nin(self, mock_request_user_sync):
-        mock_request_user_sync.return_value = True
+        mock_request_user_sync.side_effect = self.request_user_sync
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         self.assertEqual(user.nins.count, 0)
@@ -311,7 +381,7 @@ class LetterProofingTests(EduidAPITestCase):
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def test_remove_nin_no_csrf(self, mock_request_user_sync):
-        mock_request_user_sync.return_value = True
+        mock_request_user_sync.side_effect = self.request_user_sync
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         self.assertEqual(user.nins.count, 0)
@@ -336,7 +406,7 @@ class LetterProofingTests(EduidAPITestCase):
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def test_remove_nin_no_verification(self, mock_request_user_sync):
-        mock_request_user_sync.return_value = True
+        mock_request_user_sync.side_effect = self.request_user_sync
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         self.assertEqual(user.nins.count, 0)
@@ -361,7 +431,7 @@ class LetterProofingTests(EduidAPITestCase):
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def test_not_remove_verified_nin(self, mock_request_user_sync):
-        mock_request_user_sync.return_value = True
+        mock_request_user_sync.side_effect = self.request_user_sync
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         self.assertEqual(user.nins.count, 0)

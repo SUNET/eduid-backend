@@ -65,7 +65,7 @@ def get_all_emails(user):
 @MarshalWith(EmailResponseSchema)
 @require_user
 def post_email(user, email, verified, primary):
-    proofing_user = ProofingUser(data=user.to_dict())
+    proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     current_app.logger.debug('Trying to save unconfirmed email {!r} '
                              'for user {!r}'.format(email, proofing_user))
 
@@ -108,7 +108,7 @@ def post_email(user, email, verified, primary):
 @MarshalWith(EmailResponseSchema)
 @require_user
 def post_primary(user, email):
-    proofing_user = ProofingUser(data=user.to_dict())
+    proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     current_app.logger.debug('Trying to save email address {!r} as primary '
                              'for user {!r}'.format(email, proofing_user))
 
@@ -158,7 +158,7 @@ def post_primary(user, email):
 def verify(user, code, email):
     """
     """
-    proofing_user = ProofingUser(data=user.to_dict())
+    proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     current_app.logger.debug('Trying to save email address {} as verified '
                              'for user {}'.format(email, proofing_user))
 
@@ -208,7 +208,7 @@ def verify_link(user):
     """
     Used for verifying an e-mail address when the user clicks the link in the verification mail.
     """
-    proofing_user = ProofingUser(data=user.to_dict())
+    proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     code = request.args.get('code')
     email = request.args.get('email')
     if code and email:
@@ -243,7 +243,7 @@ def verify_link(user):
 @MarshalWith(EmailResponseSchema)
 @require_user
 def post_remove(user, email):
-    proofing_user = ProofingUser(data=user.to_dict())
+    proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     current_app.logger.debug('Trying to remove email address {!r} '
                              'from user {!r}'.format(email, proofing_user))
 
