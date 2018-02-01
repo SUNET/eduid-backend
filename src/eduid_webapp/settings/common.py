@@ -199,4 +199,4 @@ SUPPORTED_LANGUAGES = ['sv', 'en']
 # ===============#
 #  MAIL         #
 # ===============#
-MAIL_DEFAULT_FROM = 'noreply@eduid.se'
+MAIL_DEFAULT_FROM = 'no-reply@eduid.se'
