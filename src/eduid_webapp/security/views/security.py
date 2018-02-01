@@ -45,6 +45,7 @@ from flask import render_template, current_app
 from flask_babel import gettext as _
 
 from eduid_userdb.security import SecurityUser
+from eduid_userdb.credentials import Password
 from eduid_userdb.exceptions import UserOutOfSync
 from eduid_common.api.utils import urlappend
 from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
@@ -215,10 +216,14 @@ def account_terminated(user):
 
     del session['reauthn-for-termination']
 
-    # revoke all user credentials
+    # revoke all user passwords
     revoke_all_credentials(current_app.config.get('VCCS_URL'), security_user)
-    for p in security_user.passwords.to_list():
-        security_user.passwords.remove(p.key)
+    # Skip removing old passwords from the user at this point as a password reset will do that anyway.
+    # This fixes the problem with loading users for a password reset as users without passwords triggers
+    # the UserHasNotCompletedSignup check in eduid-userdb.
+    # TODO: Needs a decision on how to handle unusable user passwords
+    #for p in security_user.credentials.filter(Password).to_list():
+    #    security_user.passwords.remove(p.key)
 
     # flag account as terminated
     security_user.terminated = True
