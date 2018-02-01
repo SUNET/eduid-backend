@@ -272,8 +272,6 @@ class SessionFactory(SessionInterface):
                 session = Session(app, base_session, new=False)
                 current_app.logger.debug('Loaded existing session {}'.format(session))
             except (KeyError, ValueError):
-                # I (@john) approve of commit 974836137eb83fd163abe4d83b12a9c6033c127e
-                # made to master by @ft
                 base_session = self.manager.get_session(data = {})
                 session = Session(app, base_session, new = True)
                 current_app.logger.warning('Re-created missing session {}'.format(session))

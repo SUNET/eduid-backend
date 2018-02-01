@@ -175,7 +175,7 @@ class InputsTests(EduidAPITestCase):
             response = self.app.dispatch_request()
             self.assertNotIn('<script>', response.data)
 
-    def test_get_using_empy_session(self):
+    def test_get_using_empty_session(self):
         """Test sending an empty sessid cookie"""
         url = '/test-empty-session'
         cookie = dump_cookie('sessid', '')
