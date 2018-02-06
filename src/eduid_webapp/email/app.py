@@ -39,6 +39,10 @@ from eduid_common.api import am
 from eduid_common.api import translation
 from eduid_userdb.proofing import EmailProofingUserDB
 from eduid_userdb.proofing import EmailProofingStateDB
+# XXX remove when dumping old dashboard
+from eduid_userdb import MongoDB
+from eduid_userdb.dashboard import UserDBWrapper, DashboardUserDB
+# XXX end remove
 
 
 def email_init_app(name, config):
@@ -74,6 +78,11 @@ def email_init_app(name, config):
 
     app.private_userdb = EmailProofingUserDB(app.config['MONGO_URI'])
     app.proofing_statedb = EmailProofingStateDB(app.config['MONGO_URI'])
+
+    # XXX remove when dumping old dashboard
+    app.old_dashboard_db = MongoDB(db_uri=app.config['MONGO_URI'])
+    app.old_dashboard_userdb = DashboardUserDB(app.config['MONGO_URI'])
+    # XXX end remove
 
     app.logger.info('Init {} app...'.format(name))
 

@@ -36,19 +36,71 @@ from bson.tz_util import utc
 
 from flask import current_app, session
 
-from pyramid.i18n import get_localizer
-
+from eduid_common.api.utils import get_user, get_unique_hash
+from eduid_userdb.dashboard import DashboardUser
+from eduid_userdb import User
 from eduid_userdb.nin import Nin
 from eduid_userdb.mail import MailAddress
 from eduid_userdb.phone import PhoneNumber
 from eduid_userdb.element import DuplicateElementViolation
 from eduid_userdb.exceptions import UserOutOfSync, UserDBValueError
-from eduiddashboard.i18n import TranslationString as _
-from eduiddashboard.utils import get_unique_hash
-from eduiddashboard.utils import retrieve_modified_ts
-from eduiddashboard.session import get_session_user
-from eduiddashboard import log
 
+
+def retrieve_modified_ts(user, dashboard_userdb):
+    """
+    When loading a user from the central userdb, the modified_ts has to be
+    loaded from the dashboard private userdb (since it is not propagated to
+    'attributes' by the eduid-am worker).
+
+    This need should go away once there is a global version number on the user document.
+
+    :param user: User object from the central userdb
+    :param dashboard_userdb: Dashboard private userdb
+
+    :type user: eduid_userdb.User
+    :type dashboard_userdb: eduid_userdb.dashboard.DashboardUserDB
+
+    :return: None
+    """
+    try:
+        userid = user.user_id
+    except UserDBValueError:
+        current_app.logger.debug("User {!s} has no id, setting modified_ts to None".format(user))
+        user.modified_ts = None
+        return
+
+    dashboard_user = dashboard_userdb.get_user_by_id(userid, raise_on_missing=False)
+    if dashboard_user is None:
+        current_app.logger.debug("User {!s} not found in {!s}, setting modified_ts to None".format(user, dashboard_userdb))
+        user.modified_ts = None
+        return
+
+    if dashboard_user.modified_ts is None:
+        dashboard_user.modified_ts = True  # use current time
+        current_app.logger.debug("Updating user {!s} with new modified_ts: {!s}".format(
+            dashboard_user, dashboard_user.modified_ts))
+        dashboard_userdb.save(dashboard_user, check_sync = False)
+
+    user.modified_ts = dashboard_user.modified_ts
+    current_app.logger.debug("Updating {!s} with modified_ts from dashboard user {!s}: {!s}".format(
+        user, dashboard_user, dashboard_user.modified_ts))
+
+def save_dashboard_user(user):
+    """
+    Save (new) user objects to the dashboard db in the new format,
+    and propagate the changes to the central user db.
+
+    May raise UserOutOfSync exception
+
+    :param user: the modified user
+    :type user: eduid_userdb.dashboard.user.DashboardUser
+    """
+    if isinstance(user, User):
+        # turn it into a DashboardUser before saving it in the dashboard private db
+        user = DashboardUser(data = user.to_dict())
+    current_app.old_dashboard_userdb.save(user, old_format=False)
+    current_app.logger.debug('Root factory propagate_user_changes')
+    return current_app.am_relay.request_sync(user)
 
 def dummy_message(message):
     """
@@ -95,7 +147,7 @@ def get_verification_code(model_name, obj_id=None, code=None, user=None):
     if userid is not None:
         filters['user_oid'] = userid
     current_app.logger.debug("Verification code lookup filters : {!r}".format(filters))
-    result = request.db.verifications.find_one(filters)
+    result = current_app.old_dashboard_db.verifications.find_one(filters)
     if result:
         expiration_timeout = current_app.config.get('verification_code_timeout')
         expire_limit = datetime.now(utc) - timedelta(minutes=int(expiration_timeout))
@@ -169,12 +221,13 @@ def set_phone_verified(user, new_number):
     current_app.logger.info('Trying to verify phone number for user {!r}.'.format(user))
     current_app.logger.debug('Phone number: {!s}.'.format(new_number))
     # Start by removing mobile number from any other user
-    old_user = current_app.userdb_new.get_user_by_phone(new_number, raise_on_missing=False)
+    old_user = current_app.central_userdb.get_user_by_phone(new_number,
+            raise_on_missing=False)
     steal_count = 0
     if old_user and old_user.user_id != user.user_id:
-        retrieve_modified_ts(old_user, current_app.dashboard_userdb)
+        retrieve_modified_ts(old_user, current_app.old_dashboard_userdb)
         _remove_phone_from_user(new_number, old_user)
-        request.context.save_dashboard_user(old_user)
+        save_dashboard_user(old_user)  # XXX think about attr fetcher in am relay
         current_app.logger.info('Removed phone number from user {!r}.'.format(old_user))
         steal_count = 1
     # Add the verified mobile number to the requesting user
@@ -182,7 +235,6 @@ def set_phone_verified(user, new_number):
     current_app.logger.info('Phone number verified for user {!r}.'.format(user))
     current_app.stats.count('verify_mobile_stolen', steal_count)
     current_app.stats.count('verify_mobile_completed')
-    return _('Phone {obj} verified')
 
 
 def _remove_phone_from_user(number, user):
@@ -221,7 +273,7 @@ def _add_phone_to_user(new_number, user):
         user.phone_numbers.find(new_number).is_verified = True
 
 
-def set_email_verified(request, user, new_mail):
+def set_email_verified(user, new_mail):
     """
     Mark an e-mail address as verified on a user.
 
@@ -242,19 +294,18 @@ def set_email_verified(request, user, new_mail):
     current_app.logger.info('Trying to verify mail address for user {!r}.'.format(user))
     current_app.logger.debug('Mail address: {!s}.'.format(new_mail))
     # Start by removing the email address from any other user that currently has it (verified)
-    old_user = request.userdb_new.get_user_by_mail(new_mail, raise_on_missing=False)
+    old_user = current_app.central_userdb.get_user_by_mail(new_mail, raise_on_missing=False)
     steal_count = 0
     if old_user and old_user.user_id != user.user_id:
-        retrieve_modified_ts(old_user, request.dashboard_userdb)
+        retrieve_modified_ts(old_user, current_app.old_dashboard_userdb)
         old_user = _remove_mail_from_user(new_mail, old_user)
-        request.context.save_dashboard_user(old_user)
+        save_dashboard_user(old_user)
         steal_count = 1
     # Add the verified mail address to the requesting user
     _add_mail_to_user(new_mail, user)
     current_app.logger.info('Mail address verified for user {!r}.'.format(user))
     current_app.stats.count('verify_mail_stolen', steal_count)
     current_app.stats.count('verify_mail_completed')
-    return _('Email {obj} verified')
 
 
 def _remove_mail_from_user(email, user):
@@ -298,7 +349,7 @@ def _add_mail_to_user(email, user):
         user.mail_addresses.find(email).is_verified = True
 
 
-def verify_code(request, model_name, code):
+def verify_code(model_name, code):
     """
     Verify a code and act accordingly to the model_name ('norEduPersonNIN', 'phone', or 'mailAliases').
 
@@ -312,7 +363,7 @@ def verify_code(request, model_name, code):
     """
     assert model_name in ['norEduPersonNIN', 'phone', 'mailAliases']
 
-    this_verification = request.db.verifications.find_one(
+    this_verification = current_app.old_dashboard_db.verifications.find_one(
         {
             "model_name": model_name,
             "code": code,
@@ -328,42 +379,38 @@ def verify_code(request, model_name, code):
     if not obj_id:
         return None
 
-    user = get_session_user(request, legacy_user=False)
-    retrieve_modified_ts(user, request.dashboard_userdb)
+    user = get_user()
+    retrieve_modified_ts(user, current_app.old_dashboard_userdb)
 
     assert_error_msg = 'Requesting users ID does not match verifications user ID'
     assert user.user_id == this_verification['user_oid'], assert_error_msg
 
-    if model_name == 'norEduPersonNIN':
-        msg = set_nin_verified(request, user, obj_id, reference)
     elif model_name == 'phone':
-        msg = set_phone_verified(request, user, obj_id)
+        set_phone_verified(user, obj_id)
     elif model_name == 'mailAliases':
-        msg = set_email_verified(request, user, obj_id)
+        set_email_verified(user, obj_id)
     else:
         raise NotImplementedError('Unknown validation model_name: {!r}'.format(model_name))
 
     try:
-        request.context.save_dashboard_user(user)
+        save_dashboard_user(user)
         current_app.logger.info("Verified {!s} saved for user {!r}.".format(model_name, user))
         verified = {
             'verified': True,
             'verified_timestamp': datetime.utcnow()
         }
         this_verification.update(verified)
-        request.db.verifications.update({'_id': this_verification['_id']}, this_verification)
+        current_app.old_dashboard_db.verifications.update({'_id': this_verification['_id']}, this_verification)
         current_app.logger.info("Code {!r} ({!s}) marked as verified".format(code, obj_id))
     except UserOutOfSync:
         current_app.logger.info("Verified {!s} NOT saved for user {!r}. User out of sync.".format(model_name, user))
         raise
     else:
-        msg = get_localizer(request).translate(msg)
-        session.flash(msg.format(obj=obj_id), queue='forms')
         current_app.stats.count('verify_code_completed')
     return obj_id
 
 
-def save_as_verified(request, model_name, user, obj_id):
+def save_as_verified(model_name, user, obj_id):
     """
     Update a verification code entry in the database, indicating it has been
     (successfully) used.
@@ -385,7 +432,7 @@ def save_as_verified(request, model_name, user, obj_id):
 
     assert model_name in ['norEduPersonNIN', 'phone', 'mailAliases']
 
-    old_verified = request.db.verifications.find(
+    old_verified = current_app.old_dashboard_db.verifications.find(
         {
             "model_name": model_name,
             "verified": True,
@@ -396,7 +443,7 @@ def save_as_verified(request, model_name, user, obj_id):
         if old['user_oid'] == userid:
             return obj_id
     # User was not verified before, create a verification document
-    result = request.db.verifications.find_and_modify(
+    result = current_app.old_dashboard_db.verifications.find_and_modify(
         {
             "model_name": model_name,
             "user_oid": userid,
@@ -413,6 +460,6 @@ def save_as_verified(request, model_name, user, obj_id):
     return result['obj_id']
 
 
-def generate_verification_link(request, code, model):
-    link = request.context.safe_route_url("verifications", model=model, code=code)
+def generate_verification_link(code, model):  # XXX XXX
+    link = current_app.safe_route_url("verifications", model=model, code=code)
     return link
