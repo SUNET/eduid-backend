@@ -45,6 +45,7 @@ from eduid_webapp.email.schemas import ChangeEmailSchema, EmailResponseSchema
 from eduid_webapp.email.schemas import VerificationCodeSchema
 from eduid_webapp.email.verifications import send_verification_code, verify_mail_address
 from eduid_webapp.old_verifications import get_old_verification_code
+from eduid_webapp.email.verifications import steal_verified_email
 
 email_views = Blueprint('email', __name__, url_prefix='', template_folder='templates')
 
@@ -204,6 +205,7 @@ def verify(user, code, email):
                 'message': 'emails.code_expired_send_new'
             }
 
+    steal_verified_email(user, email)
     try:
         verify_mail_address(state, proofing_user)
     except UserOutOfSync:
@@ -265,6 +267,7 @@ def verify_link(user):
                 current_app.logger.warning("Invalid verification code for: {}".format(state.verification.email))
                 return redirect(current_app.config['SAML2_LOGIN_REDIRECT_URL'])
 
+        steal_verified_email(user, email)
         try:
             verify_mail_address(state, proofing_user)
         except UserOutOfSync:

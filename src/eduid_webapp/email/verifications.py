@@ -127,3 +127,25 @@ def verify_mail_address(state, proofing_user):
     current_app.stats.count(name='email_verify_success', value=1)
     current_app.proofing_statedb.remove_state(state)
     current_app.logger.debug('Removed proofing state: {} '.format(state))
+
+
+def steal_verified_email(user, email):
+    old_user = current_app.central_userdb.get_user_by_mail(email,
+            raise_on_missing=False)
+    if old_user and old_user.user_id != user.user_id:
+        current_app.logger.debug('Found old user {!r} with email ({!s})'
+                                 ' already verified.'.format(old_user, email))
+        current_app.logger.debug('Old user emails BEFORE: '
+                                 '{!r}.'.format(old_user.mail_addresses.to_list()))
+        if old_user.mail_addresses.primary.email == email:
+            # Promote some other verified phone number to primary
+            for other_address in old_user.mail_addresses.verified.to_list():
+                if other_address.email != email:
+                    user.mail_addresses.primary = other_address.email
+                    break
+        old_user.mail_addresses.remove(email)
+        current_app.logger.debug('Old user emails AFTER: '
+                                 '{!r}.'.format(old_user.mail_addresses.to_list()))
+        save_and_sync_user(old_user)
+        current_app.logger.info('Removed email {!r} from user {!r}.'.format(email, old_user))
+        current_app.stats.count('verify_mail_stolen', 1)

@@ -46,6 +46,7 @@ from eduid_webapp.phone.schemas import PhoneListPayload, SimplePhoneSchema, Phon
 from eduid_webapp.phone.schemas import VerificationCodeSchema
 from eduid_webapp.phone.verifications import send_verification_code
 from eduid_webapp.old_verifications import get_old_verification_code
+from eduid_webapp.phone.verifications import steal_verified_phone
 
 
 phone_views = Blueprint('phone', __name__, url_prefix='', template_folder='templates')
@@ -219,6 +220,7 @@ def verify(user, code, number):
 
         current_app.proofing_statedb.remove_state(state)
 
+    steal_verified_phone(user, number)
     new_phone = PhoneNumber(number = number, application = 'eduid_phone',
                             verified = True, primary = False)
 

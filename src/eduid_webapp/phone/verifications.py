@@ -34,6 +34,7 @@
 from flask import current_app
 
 from eduid_common.api.utils import get_short_hash
+from eduid_common.api.utils import save_and_sync_user
 from eduid_userdb.proofing import PhoneProofingElement, PhoneProofingState
 
 
@@ -71,3 +72,26 @@ def send_verification_code(user, phone):
     current_app.msg_relay.phone_validator(reference, phone, code, user.language)
     current_app.logger.info("Sent verification sms to user {!r}"
                             " with phone number {!s}.".format(user, phone))
+
+
+def steal_verified_phone(user, number):
+    old_user = current_app.central_userdb.get_user_by_phone(number,
+            raise_on_missing=False)
+    if old_user and old_user.user_id != user.user_id:
+        current_app.logger.debug('Found old user {!r} with phone number ({!s})'
+                                 ' already verified.'.format(old_user, number))
+        current_app.logger.debug('Old user phone numbers BEFORE: '
+                                 '{!r}.'.format(old_user.phone_numbers.to_list()))
+        if old_user.phone_numbers.primary.number == number:
+            # Promote some other verified phone number to primary
+            for other_phone in old_user.phone_numbers.verified.to_list():
+                if other_phone.number != number:
+                    user.phone_numbers.primary = other_phone.number
+                    break
+        old_user.phone_numbers.remove(number)
+        current_app.logger.debug('Old user phone numbers AFTER: '
+                                 '{!r}.'.format(old_user.phone_numbers.to_list()))
+        save_and_sync_user(old_user)
+        current_app.logger.info('Removed phone number {!r} from user {!r}.'.format(number, old_user))
+        current_app.stats.count('verify_mobile_stolen', 1)
+
