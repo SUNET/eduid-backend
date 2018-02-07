@@ -45,6 +45,7 @@ from eduid_common.api.utils import save_and_sync_user
 from eduid_webapp.phone.schemas import PhoneListPayload, SimplePhoneSchema, PhoneSchema, PhoneResponseSchema
 from eduid_webapp.phone.schemas import VerificationCodeSchema
 from eduid_webapp.phone.verifications import send_verification_code
+from eduid_webapp.old_verifications import get_old_verification_code
 
 
 phone_views = Blueprint('phone', __name__, url_prefix='', template_folder='templates')
@@ -177,26 +178,46 @@ def verify(user, code, number):
                              'for user {!r}'.format(number, proofing_user))
 
     db = current_app.proofing_statedb
-    state = db.get_state_by_eppn_and_mobile(proofing_user.eppn, number)
+    state = db.get_state_by_eppn_and_mobile(proofing_user.eppn, number,
+            raise_on_missing=False)  # XXX when dumping old dashboard, deal with state==None
 
-    timeout = current_app.config.get('PHONE_VERIFICATION_TIMEOUT')
-    if state.is_expired(timeout):
-        msg = "Verification code is expired: {!r}".format(state.verification)
-        current_app.logger.debug(msg)
-        return {
-            '_status': 'error',
-            'message': 'phones.code_expired_send_new'
-        }
+    # XXX remove when dumping old dashboard
+    if state is None:
+        verification = get_old_verification_code('phone', obj_id=number, code=code,
+                                             user=user)
+        if verification is None:
+            return {
+                '_status': 'error',
+                'message': 'phones.code_invalid'
+            }
+        else:
+            verified = {
+                'verified': True,
+                'verified_timestamp': datetime.utcnow()
+            }
+            verification.update(verified)
+            current_app.old_dashboard_db.verifications.update({'_id': verification['_id']}, verification)
 
-    if code != state.verification.verification_code:
-        msg = "Invalid verification code: {!r}".format(state.verification)
-        current_app.logger.debug(msg)
-        return {
-            '_status': 'error',
-            'message': 'phones.code_invalid'
-        }
+    else:
+    # XXX end remove (unindent else block)
+        timeout = current_app.config.get('PHONE_VERIFICATION_TIMEOUT')
+        if state is None or state.is_expired(timeout):
+            msg = "Verification code is expired: {!r}".format(state.verification)
+            current_app.logger.debug(msg)
+            return {
+                '_status': 'error',
+                'message': 'phones.code_expired_send_new'
+            }
 
-    current_app.proofing_statedb.remove_state(state)
+        if code != state.verification.verification_code:
+            msg = "Invalid verification code: {!r}".format(state.verification)
+            current_app.logger.debug(msg)
+            return {
+                '_status': 'error',
+                'message': 'phones.code_invalid'
+            }
+
+        current_app.proofing_statedb.remove_state(state)
 
     new_phone = PhoneNumber(number = number, application = 'eduid_phone',
                             verified = True, primary = False)
