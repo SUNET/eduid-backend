@@ -211,7 +211,7 @@ def verify(user, code, number):
     else:
     # XXX end remove (unindent else block)
         timeout = current_app.config.get('PHONE_VERIFICATION_TIMEOUT')
-        if state is None or state.is_expired(timeout):
+        if state.is_expired(timeout):
             msg = "Verification code is expired: {!r}".format(state.verification)
             current_app.logger.debug(msg)
             return {
@@ -219,7 +219,7 @@ def verify(user, code, number):
                 'message': 'phones.code_expired_send_new'
             }
 
-        if code != state.verification.verification_code:
+        if state is None or code != state.verification.verification_code:
             msg = "Invalid verification code: {!r}".format(state.verification)
             current_app.logger.debug(msg)
             return {
