@@ -76,8 +76,11 @@ def get_old_verification_code(model_name, obj_id=None, code=None, user=None):
     current_app.logger.debug("Verification code lookup filters : {!r}".format(filters))
     result = current_app.old_dashboard_db.verifications.find_one(filters)
     if result:
-        expiration_timeout = current_app.config.get('verification_code_timeout')
-        expire_limit = datetime.now(utc) - timedelta(minutes=int(expiration_timeout))
+        conf_var = 'EMAIL_VERIFICATION_TIMEOUT'
+        if model_name == 'phone':
+            conf_var = 'PHONE_VERIFICATION_TIMEOUT'
+        expiration_timeout = current_app.config.get(conf_var)
+        expire_limit = datetime.now(utc) - timedelta(hours=int(expiration_timeout))
         result['expired'] = result['timestamp'] < expire_limit
         current_app.logger.debug("Verification lookup result : {!r}".format(result))
     return result
