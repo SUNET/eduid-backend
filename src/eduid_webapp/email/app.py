@@ -80,8 +80,7 @@ def email_init_app(name, config):
     app.proofing_statedb = EmailProofingStateDB(app.config['MONGO_URI'])
 
     # XXX remove when dumping old dashboard
-    app.old_dashboard_db = MongoDB(db_uri=app.config['MONGO_URI'])
-    app.old_dashboard_userdb = DashboardUserDB(app.config['MONGO_URI'])
+    app.old_dashboard_db = MongoDB(db_uri=app.config['MONGO_URI_OLD_DASHBOARD']).get_database('eduid_dashboard')
     # XXX end remove
 
     app.logger.info('Init {} app...'.format(name))
