@@ -33,6 +33,8 @@
 
 from __future__ import absolute_import
 
+from datetime import datetime
+
 from flask import Blueprint, session
 from flask import current_app
 
@@ -44,8 +46,11 @@ from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
 from eduid_common.api.utils import save_and_sync_user
 from eduid_webapp.phone.schemas import PhoneListPayload, SimplePhoneSchema, PhoneSchema, PhoneResponseSchema
 from eduid_webapp.phone.schemas import VerificationCodeSchema
-from eduid_webapp.phone.verifications import send_verification_code
+from eduid_webapp.phone.verifications import send_verification_code, verify_phone_number
+# XXX remove when dumping old dashboard
+from eduid_webapp.phone.verifications import old_verify_phone_number
 from eduid_webapp.old_verifications import get_old_verification_code
+# XXX end remove when dumping old dashboard
 from eduid_webapp.phone.verifications import steal_verified_phone
 
 
@@ -191,13 +196,17 @@ def verify(user, code, number):
                 '_status': 'error',
                 'message': 'phones.code_invalid'
             }
-        else:
-            verified = {
-                'verified': True,
-                'verified_timestamp': datetime.utcnow()
+        
+        steal_verified_phone(user, number)
+        try:
+            old_verify_phone_number(number, verification, proofing_user)
+        except UserOutOfSync:
+            current_app.logger.debug('Couldnt confirm phone {} for user'
+                                     ' {}, data out of sync'.format(number, proofing_user))
+            return {
+                '_status': 'error',
+                'message': 'user-out-of-sync'
             }
-            verification.update(verified)
-            current_app.old_dashboard_db.verifications.update({'_id': verification['_id']}, verification)
 
     else:
     # XXX end remove (unindent else block)
@@ -218,34 +227,17 @@ def verify(user, code, number):
                 'message': 'phones.code_invalid'
             }
 
-        current_app.proofing_statedb.remove_state(state)
 
-    steal_verified_phone(user, number)
-    new_phone = PhoneNumber(number = number, application = 'eduid_phone',
-                            verified = True, primary = False)
-
-    has_primary = proofing_user.phone_numbers.primary
-    if has_primary is None:
-        new_phone.is_primary = True
-    try:
-        proofing_user.phone_numbers.add(new_phone)
-    except DuplicateElementViolation:
-        proofing_user.phone_numbers.find(number).is_verified = True
-        if has_primary is None:
-            proofing_user.phone_numbers.find(number).is_primary = True
-
-    try:
-        save_and_sync_user(proofing_user)
-    except UserOutOfSync:
-        current_app.logger.debug('Couldnt confirm mobile {!r} for user'
-                                 ' {!r}, data out of sync'.format(number, proofing_user))
-        return {
-            '_status': 'error',
-            'message': 'user-out-of-sync'
-        }
-    current_app.logger.info('Mobile {!r} confirmed '
-                            'for user {!r}'.format(number, proofing_user))
-    current_app.stats.count(name='mobile_verify_success', value=1)
+        steal_verified_phone(user, number)
+        try:
+            verify_phone_number(state, proofing_user)
+        except UserOutOfSync:
+            current_app.logger.debug('Couldnt confirm mobile {!r} for user'
+                                     ' {!r}, data out of sync'.format(number, proofing_user))
+            return {
+                '_status': 'error',
+                'message': 'user-out-of-sync'
+            }
 
     phones = {
             'phones': proofing_user.phone_numbers.to_list_of_dicts(),

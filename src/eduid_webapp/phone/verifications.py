@@ -73,6 +73,78 @@ def send_verification_code(user, phone):
     current_app.logger.info("Sent verification sms to user {!r}"
                             " with phone number {!s}.".format(user, phone))
 
+    
+def verify_phone_number(state, proofing_user):
+    """
+    :param proofing_user: ProofingUser
+    :param state: Phone proofing state
+
+    :type proofing_user: eduid_userdb.proofing.ProofingUser
+    :type state: PhoneProofingState
+
+    :return: None
+
+    """
+    number = state.verification.number
+    new_phone = PhoneNumber(number = number, application = 'eduid_phone',
+                            verified = True, primary = False)
+
+    has_primary = proofing_user.phone_numbers.primary
+    if has_primary is None:
+        new_phone.is_primary = True
+    try:
+        proofing_user.phone_numbers.add(new_phone)
+    except DuplicateElementViolation:
+        proofing_user.phone_numbers.find(number).is_verified = True
+        if has_primary is None:
+            proofing_user.phone_numbers.find(number).is_primary = True
+
+    save_and_sync_user(proofing_user)
+    current_app.logger.info('Mobile {!r} confirmed '
+                            'for user {!r}'.format(number, proofing_user))
+    current_app.stats.count(name='mobile_verify_success', value=1)
+    current_app.proofing_statedb.remove_state(state)
+    current_app.logger.debug('Removed proofing state: {} '.format(state))
+
+
+# XXX remove when dumping old dashboard
+def old_verify_phone_number(number, verification, proofing_user):
+    """
+    :param proofing_user: ProofingUser
+    :param state: E-mail proofing state
+
+    :type proofing_user: eduid_userdb.proofing.ProofingUser
+    :type state: EmailProofingState
+
+    :return: None
+
+    """
+    new_phone = PhoneNumber(number = number, application = 'eduid_phone',
+                            verified = True, primary = False)
+
+    has_primary = proofing_user.phone_numbers.primary
+    if has_primary is None:
+        new_phone.is_primary = True
+    try:
+        proofing_user.phone_numbers.add(new_phone)
+    except DuplicateElementViolation:
+        proofing_user.phone_numbers.find(number).is_verified = True
+        if has_primary is None:
+            proofing_user.phone_numbers.find(number).is_primary = True
+
+    save_and_sync_user(proofing_user)
+    current_app.logger.info('Mobile {!r} confirmed '
+                            'for user {!r}'.format(number, proofing_user))
+    current_app.stats.count(name='mobile_verify_success', value=1)
+    verified = {
+        'verified': True,
+        'verified_timestamp': datetime.utcnow()
+    }
+    verification.update(verified)
+    current_app.old_dashboard_db.verifications.update({'_id': verification['_id']}, verification)
+    current_app.logger.debug('Updated verification: {!r} '.format(verification))
+# XXX end remove when dumping old dashboard
+
 
 def steal_verified_phone(user, number):
     old_user = current_app.central_userdb.get_user_by_phone(number,
