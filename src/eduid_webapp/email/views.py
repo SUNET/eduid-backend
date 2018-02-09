@@ -170,18 +170,10 @@ def verify(user, code, email):
                              'for user {}'.format(email, proofing_user))
 
     db = current_app.proofing_statedb
-    state = db.get_state_by_eppn_and_email(proofing_user.eppn,
-            email, raise_on_missing=False)
-
+    state = db.get_state_by_eppn_and_email(proofing_user.eppn, email, raise_on_missing=False)
     # XXX remove when dumping old dashboard
-    if state is None:
-        verification = get_old_verification_code('mailAliases', obj_id=email,
-                code=code, user=user)
-        if verification is None:
-            return {
-                '_status': 'error',
-                'message': 'emails.code_invalid'
-            }
+    verification = get_old_verification_code('mailAliases', obj_id=email, code=code, user=user)
+    if verification is not None:
 
         steal_verified_email(user, email)
         try:
@@ -194,8 +186,8 @@ def verify(user, code, email):
                 'message': 'user-out-of-sync'
             }
 
-    else:
-    # XXX end remove (unindent else block)
+    elif state is not None:
+        # XXX end remove (unindent elif block)
         timeout = current_app.config.get('EMAIL_VERIFICATION_TIMEOUT', 24)
         if state.is_expired(timeout):
             msg = "Verification code is expired for: {}. Sending new code".format(
@@ -207,7 +199,7 @@ def verify(user, code, email):
                 '_status': 'error',
                 'message': 'emails.code_expired_send_new'
             }
-        if state is None or code != state.verification.verification_code:
+        if code != state.verification.verification_code:
             msg = "Invalid verification code for: {}".format(state.verification.email)
             current_app.logger.debug(msg)
             return {
@@ -225,7 +217,15 @@ def verify(user, code, email):
                 '_status': 'error',
                 'message': 'user-out-of-sync'
             }
-
+    else:
+        current_app.logger.debug('Invalid verification code {} for email {} and user'
+                                 ' {}'.format(code, email, proofing_user))
+        return {
+            '_status': 'error',
+            'message': 'emails.code_invalid'
+        }
+    current_app.logger.info('Email {} successfully verified for user'
+                             ' {!r}'.format(email, proofing_user))
     emails = {
             'emails': proofing_user.mail_addresses.to_list_of_dicts(),
             'message': 'emails.verification-success'
@@ -247,15 +247,9 @@ def verify_link(user):
 
         db = current_app.proofing_statedb
         state = db.get_state_by_eppn_and_email(proofing_user.eppn, email, raise_on_missing=False)
-
         # XXX remove when dumping old dashboard
-        if state is None:
-            verification = get_old_verification_code('mailAliases', obj_id=email, code=code,
-                                                 user=user)
-            if verification is None:
-                current_app.logger.info("Verification code unknown: {}. Sending new code".format(code))
-                send_verification_code(email, proofing_user)
-                return redirect(current_app.config['SAML2_LOGIN_REDIRECT_URL'])
+        verification = get_old_verification_code('mailAliases', obj_id=email, code=code, user=user)
+        if verification is not None:
 
             steal_verified_email(user, email)
             try:
@@ -265,8 +259,8 @@ def verify_link(user):
                                 'data out of sync'.format(email, proofing_user))
                 return redirect(current_app.config['SAML2_LOGIN_REDIRECT_URL'])
 
-        else:
-        # XXX end remove (unindent else block)
+        elif state is not None:
+            # XXX end remove (unindent elif block)
             timeout = current_app.config.get('EMAIL_VERIFICATION_TIMEOUT', 24)
             if state.is_expired(timeout):
                 current_app.logger.info("Verification code is expired for: {}. Sending new code".format(
@@ -274,7 +268,7 @@ def verify_link(user):
                 send_verification_code(email, proofing_user)
                 return redirect(current_app.config['SAML2_LOGIN_REDIRECT_URL'])
 
-            if state is None or code != state.verification.verification_code:
+            if code != state.verification.verification_code:
                 current_app.logger.warning("Invalid verification code for: {}".format(state.verification.email))
                 return redirect(current_app.config['SAML2_LOGIN_REDIRECT_URL'])
 
@@ -284,7 +278,11 @@ def verify_link(user):
             except UserOutOfSync:
                 current_app.logger.error('Couldnt confirm email {} for user {}, data out of sync'.format(email,
                                                                                                          proofing_user))
-                current_app.logger.info('Missing code or email arguments.')
+                return redirect(current_app.config['SAML2_LOGIN_REDIRECT_URL'])
+        else:
+            current_app.logger.info("Verification code unknown: {}. Sending new code".format(code))
+            send_verification_code(email, proofing_user)
+            return redirect(current_app.config['SAML2_LOGIN_REDIRECT_URL'])
 
         current_app.logger.info('Verified email {} for user {!r}'.format(email, user))
         return redirect(current_app.config['SAML2_LOGIN_REDIRECT_URL'])

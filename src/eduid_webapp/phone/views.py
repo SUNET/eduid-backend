@@ -185,17 +185,11 @@ def verify(user, code, number):
 
     db = current_app.proofing_statedb
     state = db.get_state_by_eppn_and_mobile(proofing_user.eppn, number,
-            raise_on_missing=False)  # XXX when dumping old dashboard, deal with state==None
-
+            raise_on_missing=False)
     # XXX remove when dumping old dashboard
-    if state is None:
-        verification = get_old_verification_code('phone', obj_id=number, code=code,
-                                             user=user)
-        if verification is None:
-            return {
-                '_status': 'error',
-                'message': 'phones.code_invalid'
-            }
+    verification = get_old_verification_code('phone', obj_id=number, code=code,
+                                         user=user)
+    if verification is not None:
         
         steal_verified_phone(user, number)
         try:
@@ -208,8 +202,8 @@ def verify(user, code, number):
                 'message': 'user-out-of-sync'
             }
 
-    else:
-    # XXX end remove (unindent else block)
+    elif state is not None:
+        # XXX end remove (unindent elif block)
         timeout = current_app.config.get('PHONE_VERIFICATION_TIMEOUT')
         if state.is_expired(timeout):
             msg = "Verification code is expired: {!r}".format(state.verification)
@@ -219,7 +213,7 @@ def verify(user, code, number):
                 'message': 'phones.code_expired_send_new'
             }
 
-        if state is None or code != state.verification.verification_code:
+        if code != state.verification.verification_code:
             msg = "Invalid verification code: {!r}".format(state.verification)
             current_app.logger.debug(msg)
             return {
@@ -238,7 +232,15 @@ def verify(user, code, number):
                 '_status': 'error',
                 'message': 'user-out-of-sync'
             }
-
+    else:
+        current_app.logger.debug('Invalid verification code for phone {!r}'
+                                 ' for user {!r}'.format(number, proofing_user))
+        return {
+            '_status': 'error',
+            'message': 'phones.code_invalid'
+        }
+    current_app.logger.info('phone number {!r} successfully verified'
+                             ' for user {!r}'.format(number, proofing_user))
     phones = {
             'phones': proofing_user.phone_numbers.to_list_of_dicts(),
             'message': 'phones.verification-success'
