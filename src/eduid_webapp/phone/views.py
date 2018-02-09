@@ -51,7 +51,6 @@ from eduid_webapp.phone.verifications import send_verification_code, verify_phon
 from eduid_webapp.phone.verifications import old_verify_phone_number
 from eduid_webapp.old_verifications import get_old_verification_code
 # XXX end remove when dumping old dashboard
-from eduid_webapp.phone.verifications import steal_verified_phone
 
 
 phone_views = Blueprint('phone', __name__, url_prefix='', template_folder='templates')
@@ -191,7 +190,6 @@ def verify(user, code, number):
                                          user=user)
     if verification is not None:
         
-        steal_verified_phone(user, number)
         try:
             old_verify_phone_number(number, verification, proofing_user)
         except UserOutOfSync:
@@ -201,7 +199,6 @@ def verify(user, code, number):
                 '_status': 'error',
                 'message': 'user-out-of-sync'
             }
-
     elif state is not None:
         # XXX end remove (unindent elif block)
         timeout = current_app.config.get('PHONE_VERIFICATION_TIMEOUT')
@@ -212,7 +209,6 @@ def verify(user, code, number):
                 '_status': 'error',
                 'message': 'phones.code_expired_send_new'
             }
-
         if code != state.verification.verification_code:
             msg = "Invalid verification code: {!r}".format(state.verification)
             current_app.logger.debug(msg)
@@ -220,9 +216,6 @@ def verify(user, code, number):
                 '_status': 'error',
                 'message': 'phones.code_invalid'
             }
-
-
-        steal_verified_phone(user, number)
         try:
             verify_phone_number(state, proofing_user)
         except UserOutOfSync:
@@ -279,7 +272,6 @@ def post_remove(user, number):
             '_status': 'error',
             'message': 'user-out-of-sync'
         }
-
     current_app.logger.info('Mobile {!r} removed '
                             'for user {!r}'.format(number, proofing_user))
     current_app.stats.count(name='mobile_remove_success', value=1)

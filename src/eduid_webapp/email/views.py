@@ -50,7 +50,6 @@ from eduid_webapp.email.verifications import send_verification_code, verify_mail
 from eduid_webapp.email.verifications import old_verify_mail_address
 from eduid_webapp.old_verifications import get_old_verification_code
 # XXX end remove when dumping old dashboard
-from eduid_webapp.email.verifications import steal_verified_email
 
 email_views = Blueprint('email', __name__, url_prefix='', template_folder='templates')
 
@@ -174,8 +173,6 @@ def verify(user, code, email):
     # XXX remove when dumping old dashboard
     verification = get_old_verification_code('mailAliases', obj_id=email, code=code, user=user)
     if verification is not None:
-
-        steal_verified_email(user, email)
         try:
             old_verify_mail_address(email, verification, proofing_user)
         except UserOutOfSync:
@@ -206,8 +203,6 @@ def verify(user, code, email):
                 '_status': 'error',
                 'message': 'emails.code_invalid'
             }
-
-        steal_verified_email(user, email)
         try:
             verify_mail_address(state, proofing_user)
         except UserOutOfSync:
@@ -244,14 +239,11 @@ def verify_link(user):
     email = request.args.get('email')
     if code and email:
         current_app.logger.debug('Trying to save email address {} as verified for user {}'.format(email, proofing_user))
-
         db = current_app.proofing_statedb
         state = db.get_state_by_eppn_and_email(proofing_user.eppn, email, raise_on_missing=False)
         # XXX remove when dumping old dashboard
         verification = get_old_verification_code('mailAliases', obj_id=email, code=code, user=user)
         if verification is not None:
-
-            steal_verified_email(user, email)
             try:
                 old_verify_mail_address(email, verification, proofing_user)
             except UserOutOfSync:
@@ -271,8 +263,6 @@ def verify_link(user):
             if code != state.verification.verification_code:
                 current_app.logger.warning("Invalid verification code for: {}".format(state.verification.email))
                 return redirect(current_app.config['SAML2_LOGIN_REDIRECT_URL'])
-
-            steal_verified_email(user, email)
             try:
                 verify_mail_address(state, proofing_user)
             except UserOutOfSync:
