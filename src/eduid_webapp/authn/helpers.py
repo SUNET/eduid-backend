@@ -2,9 +2,13 @@
 from __future__ import absolute_import
 
 import time
-import re
 from flask import current_app
 from hashlib import sha256
+try:
+    from urlparse import urlparse  # Python 2
+except ImportError:
+    from urllib.parse import urlparse  # Python 3
+
 
 __author__ = 'lundberg'
 
@@ -71,9 +75,18 @@ def verify_relay_state(relay_state, safe_default='/'):
         current_app.logger.debug('Checking if relay state {} is safe'.format(relay_state))
         url_scheme = current_app.config['PREFERRED_URL_SCHEME']
         safe_domain = current_app.config['SAFE_RELAY_DOMAIN']
-        safe_relay_regex = '^{}\:\/\/.*{}|^\/\w*'.format(url_scheme, safe_domain)
-        if re.match(safe_relay_regex, relay_state):
+        parsed_relay_state = urlparse(relay_state)
+
+        # If relay state is only a path
+        if (not parsed_relay_state.scheme and not parsed_relay_state.netloc) and parsed_relay_state.path:
             return relay_state
+
+        # If schema matches PREFERRED_URL_SCHEME and fqdn ends with dot SAFE_RELAY_DOMAIN or equals SAFE_RELAY_DOMAIN
+        if parsed_relay_state.scheme == url_scheme:
+            if parsed_relay_state.netloc.endswith('.' + safe_domain) or parsed_relay_state.netloc == safe_domain:
+                return relay_state
+
+        # Unsafe relay state found
         current_app.logger.warning('Caught unsafe relay state: {}. '
-                'Using safe relay state: {}.'.format(relay_state, safe_default))
+                                   'Using safe relay state: {}.'.format(relay_state, safe_default))
     return safe_default

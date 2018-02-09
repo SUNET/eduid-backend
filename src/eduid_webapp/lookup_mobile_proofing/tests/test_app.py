@@ -80,7 +80,7 @@ class LookupMobileProofingTests(EduidAPITestCase):
     def test_proofing_flow(self, mock_request_user_sync, mock_get_postal_address, mock_find_nin_by_mobile):
         mock_find_nin_by_mobile.return_value = self.test_user_nin
         mock_get_postal_address.return_value = self.mock_address
-        mock_request_user_sync.return_value = True
+        mock_request_user_sync.side_effect = self.request_user_sync
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             response = json.loads(browser.get('/proofing').data)
@@ -108,7 +108,7 @@ class LookupMobileProofingTests(EduidAPITestCase):
     def test_proofing_flow_underage(self, mock_request_user_sync, mock_get_postal_address, mock_find_nin_by_mobile):
         mock_find_nin_by_mobile.return_value = self.test_user_nin_underage
         mock_get_postal_address.return_value = self.mock_address
-        mock_request_user_sync.return_value = True
+        mock_request_user_sync.side_effect = self.request_user_sync
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             response = json.loads(browser.get('/proofing').data)
@@ -136,7 +136,7 @@ class LookupMobileProofingTests(EduidAPITestCase):
     def test_proofing_flow_no_match(self, mock_request_user_sync, mock_get_postal_address, mock_find_nin_by_mobile):
         mock_find_nin_by_mobile.return_value = None
         mock_get_postal_address.return_value = self.mock_address
-        mock_request_user_sync.return_value = True
+        mock_request_user_sync.side_effect = self.request_user_sync
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             response = json.loads(browser.get('/proofing').data)
@@ -164,7 +164,7 @@ class LookupMobileProofingTests(EduidAPITestCase):
         mock_get_relations_to.return_value = ['MO']
         mock_find_nin_by_mobile.return_value = '197001021234'
         mock_get_postal_address.return_value = self.mock_address
-        mock_request_user_sync.return_value = True
+        mock_request_user_sync.side_effect = self.request_user_sync
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             response = json.loads(browser.get('/proofing').data)
@@ -194,7 +194,7 @@ class LookupMobileProofingTests(EduidAPITestCase):
         mock_get_relations_to.return_value = []
         mock_find_nin_by_mobile.return_value = '197001021234'
         mock_get_postal_address.return_value = self.mock_address
-        mock_request_user_sync.return_value = True
+        mock_request_user_sync.side_effect = self.request_user_sync
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             response = json.loads(browser.get('/proofing').data)

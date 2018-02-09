@@ -33,6 +33,7 @@
 
 from datetime import datetime
 from flask import current_app, url_for, render_template
+from flask_babel import gettext as _
 
 from eduid_userdb.mail import MailAddress
 from eduid_userdb.element import DuplicateElementViolation
@@ -69,6 +70,7 @@ def new_verification_code(email, user):
 
 
 def send_verification_code(email, user):
+    subject = _('eduID confirmation email')
     code = new_verification_code(email, user)
     link = url_for('email.verify_link', code=code, email=email, _external=True)
     site_name = current_app.config.get("EDUID_SITE_NAME")
@@ -91,9 +93,7 @@ def send_verification_code(email, user):
             **context
     )
 
-    sender = current_app.config.get('MAIL_DEFAULT_FROM')
-
-    current_app.mail_relay.sendmail(sender, [email], text, html)
+    current_app.mail_relay.sendmail(subject, [email], text, html)
     current_app.logger.info("Sent email address verification mail to user {!r}"
                             " about address {!s}.".format(user, email))
 
