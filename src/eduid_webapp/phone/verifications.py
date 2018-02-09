@@ -31,11 +31,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
+from datetime import datetime
 from flask import current_app
 
 from eduid_common.api.utils import get_short_hash
 from eduid_common.api.utils import save_and_sync_user
+from eduid_userdb.element import DuplicateElementViolation
 from eduid_userdb.proofing import PhoneProofingElement, PhoneProofingState
+from eduid_userdb.phone import PhoneNumber
 
 
 def new_verification_code(phone, user):
