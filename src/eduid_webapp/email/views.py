@@ -32,7 +32,9 @@
 #
 from __future__ import absolute_import
 
+# XXX remove when dumping old dashboard
 from datetime import datetime
+# XXX end remove when dumping old dashboard
 
 from flask import Blueprint, request, current_app, redirect
 

@@ -29,6 +29,9 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+"""
+# XXX remove when dumping old dashboard
+"""
 
 from datetime import datetime, timedelta
 from bson.tz_util import utc

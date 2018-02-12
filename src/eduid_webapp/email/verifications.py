@@ -31,7 +31,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
+# XXX remove when dumping old dashboard
 from datetime import datetime
+# XXX end remove when dumping old dashboard
 from flask import current_app, url_for, render_template
 from flask_babel import gettext as _
 
