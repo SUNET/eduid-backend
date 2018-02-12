@@ -243,18 +243,8 @@ def verify_link(user):
         current_app.logger.debug('Trying to save email address {} as verified for user {}'.format(email, proofing_user))
         db = current_app.proofing_statedb
         state = db.get_state_by_eppn_and_email(proofing_user.eppn, email, raise_on_missing=False)
-        # XXX remove when dumping old dashboard
-        verification = get_old_verification_code('mailAliases', obj_id=email, code=code, user=user)
-        if verification is not None:
-            try:
-                old_verify_mail_address(email, verification, proofing_user)
-            except UserOutOfSync:
-                current_app.logger.debug('Couldnt confirm email {} for user {}, '
-                                'data out of sync'.format(email, proofing_user))
-                return redirect(current_app.config['SAML2_LOGIN_REDIRECT_URL'])
 
-        elif state is not None:
-            # XXX end remove (unindent elif block)
+        if state is not None:
             timeout = current_app.config.get('EMAIL_VERIFICATION_TIMEOUT', 24)
             if state.is_expired(timeout):
                 current_app.logger.info("Verification code is expired for: {}. Sending new code".format(
@@ -267,6 +257,8 @@ def verify_link(user):
                 return redirect(current_app.config['SAML2_LOGIN_REDIRECT_URL'])
             try:
                 verify_mail_address(state, proofing_user)
+                current_app.logger.info('Verified email {} for user {!r}'.format(email, user))
+                return redirect(current_app.config['SAML2_LOGIN_REDIRECT_URL'])
             except UserOutOfSync:
                 current_app.logger.error('Couldnt confirm email {} for user {}, data out of sync'.format(email,
                                                                                                          proofing_user))
@@ -276,8 +268,6 @@ def verify_link(user):
             send_verification_code(email, proofing_user)
             return redirect(current_app.config['SAML2_LOGIN_REDIRECT_URL'])
 
-        current_app.logger.info('Verified email {} for user {!r}'.format(email, user))
-        return redirect(current_app.config['SAML2_LOGIN_REDIRECT_URL'])
 
 
 @email_views.route('/remove', methods=['POST'])
