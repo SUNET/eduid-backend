@@ -465,7 +465,8 @@ class EmailTests(EduidAPITestCase):
 
                 verify_email_data = json.loads(response2.data)
                 self.assertEqual(verify_email_data['type'], 'POST_EMAIL_VERIFY_FAIL')
-                self.assertEqual(verify_email_data['payload']['message'], 'emails.code_invalid')
+                self.assertEqual(verify_email_data['payload']['message'],
+                        'emails.code_invalid_or_expired')
 
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
