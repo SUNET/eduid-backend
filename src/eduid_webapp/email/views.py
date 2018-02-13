@@ -164,7 +164,7 @@ def verify(user, code, email):
 
     db = current_app.proofing_statedb
     state = db.get_state_by_eppn_and_email(proofing_user.eppn, email, raise_on_missing=False)
-    if state is not None:
+    if state is None:
         current_app.logger.debug('Invalid verification code {} for email {} and user'
                                  ' {}'.format(code, email, proofing_user))
         return {
@@ -221,7 +221,7 @@ def verify_link(user):
         db = current_app.proofing_statedb
         state = db.get_state_by_eppn_and_email(proofing_user.eppn, email, raise_on_missing=False)
 
-        if state is not None:
+        if state is None:
             current_app.logger.info("Verification code unknown: {}. Sending new code".format(code))
             send_verification_code(email, proofing_user)
             return redirect(current_app.config['SAML2_LOGIN_REDIRECT_URL'])

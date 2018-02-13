@@ -179,7 +179,7 @@ def verify(user, code, number):
     db = current_app.proofing_statedb
     state = db.get_state_by_eppn_and_mobile(proofing_user.eppn, number,
             raise_on_missing=False)
-    if state is not None:
+    if state is None:
         current_app.logger.debug('Invalid verification code for phone {!r}'
                                  ' for user {!r}'.format(number, proofing_user))
         return {
