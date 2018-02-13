@@ -180,43 +180,43 @@ def verify(user, code, number):
     state = db.get_state_by_eppn_and_mobile(proofing_user.eppn, number,
             raise_on_missing=False)
     if state is not None:
-        timeout = current_app.config.get('PHONE_VERIFICATION_TIMEOUT')
-        if state.is_expired(timeout):
-            msg = "Verification code is expired: {!r}".format(state.verification)
-            current_app.logger.debug(msg)
-            return {
-                '_status': 'error',
-                'message': 'phones.code_expired_send_new'
-            }
-        if code != state.verification.verification_code:
-            msg = "Invalid verification code: {!r}".format(state.verification)
-            current_app.logger.debug(msg)
-            return {
-                '_status': 'error',
-                'message': 'phones.code_invalid'
-            }
-        try:
-            verify_phone_number(state, proofing_user)
-            current_app.logger.info('phone number {!r} successfully verified'
-                                     ' for user {!r}'.format(number, proofing_user))
-            phones = {
-                    'phones': proofing_user.phone_numbers.to_list_of_dicts(),
-                    'message': 'phones.verification-success'
-                    }
-            return PhoneListPayload().dump(phones).data
-        except UserOutOfSync:
-            current_app.logger.debug('Couldnt confirm mobile {!r} for user'
-                                     ' {!r}, data out of sync'.format(number, proofing_user))
-            return {
-                '_status': 'error',
-                'message': 'user-out-of-sync'
-            }
-    else:
         current_app.logger.debug('Invalid verification code for phone {!r}'
                                  ' for user {!r}'.format(number, proofing_user))
         return {
             '_status': 'error',
             'message': 'phones.code_invalid'
+        }
+
+    timeout = current_app.config.get('PHONE_VERIFICATION_TIMEOUT')
+    if state.is_expired(timeout):
+        msg = "Verification code is expired: {!r}".format(state.verification)
+        current_app.logger.debug(msg)
+        return {
+            '_status': 'error',
+            'message': 'phones.code_expired_send_new'
+        }
+    if code != state.verification.verification_code:
+        msg = "Invalid verification code: {!r}".format(state.verification)
+        current_app.logger.debug(msg)
+        return {
+            '_status': 'error',
+            'message': 'phones.code_invalid'
+        }
+    try:
+        verify_phone_number(state, proofing_user)
+        current_app.logger.info('phone number {!r} successfully verified'
+                                 ' for user {!r}'.format(number, proofing_user))
+        phones = {
+                'phones': proofing_user.phone_numbers.to_list_of_dicts(),
+                'message': 'phones.verification-success'
+                }
+        return PhoneListPayload().dump(phones).data
+    except UserOutOfSync:
+        current_app.logger.debug('Couldnt confirm mobile {!r} for user'
+                                 ' {!r}, data out of sync'.format(number, proofing_user))
+        return {
+            '_status': 'error',
+            'message': 'user-out-of-sync'
         }
 
 
