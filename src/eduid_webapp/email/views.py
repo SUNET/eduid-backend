@@ -222,23 +222,17 @@ def verify_link(user):
         if state is None:
             current_app.logger.info("Missing state for verification code received for email {} "
                                     "and user {}.  Sending new code.".format(email, user))
-            session['pending_message'] = ':ERROR:emails.email_invalid'
-            session.persist()
             return redirect(current_app.config['SAML2_LOGIN_REDIRECT_URL'])
 
         timeout = current_app.config.get('EMAIL_VERIFICATION_TIMEOUT', 24)
         if state.is_expired(timeout):
             current_app.logger.info("Verification code is expired for: {}. Sending new code".format(
                 state.verification.email))
-            session['pending_message'] = ':ERROR:emails.code_invalid_or_expired'
-            session.persist()
             current_app.proofing_statedb.remove_state(state)
             return redirect(current_app.config['SAML2_LOGIN_REDIRECT_URL'])
 
         if code != state.verification.verification_code:
             current_app.logger.warning("Invalid verification code for: {}".format(state.verification.email))
-            session['pending_message'] = ':ERROR:emails.code_invalid_or_expired'
-            session.persist()
             return redirect(current_app.config['SAML2_LOGIN_REDIRECT_URL'])
         try:
             verify_mail_address(state, proofing_user)
