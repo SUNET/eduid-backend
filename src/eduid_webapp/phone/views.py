@@ -183,23 +183,22 @@ def verify(user, code, number):
         current_app.logger.debug("Couldn't find proofing state for user {} and number {}".format(proofing_user, number))
         return {
             '_status': 'error',
-            'message': 'phones.code_invalid'
+            'message': 'phones.code_invalid_or_expired'
         }
 
     timeout = current_app.config.get('PHONE_VERIFICATION_TIMEOUT')
     if state.is_expired(timeout):
-        msg = "Verification code is expired: {!r}".format(state.verification)
-        current_app.logger.debug(msg)
+        current_app.logger.debug("Verification code is expired: {!r}".format(state.verification))
+        current_app.proofing_statedb.remove_state(state)
         return {
             '_status': 'error',
-            'message': 'phones.code_expired_send_new'
+            'message': 'phones.code_invalid_or_expired'
         }
     if code != state.verification.verification_code:
-        msg = "Invalid verification code: {!r}".format(state.verification)
-        current_app.logger.debug(msg)
+        current_app.logger.debug("Invalid verification code: {!r}".format(state.verification))
         return {
             '_status': 'error',
-            'message': 'phones.code_invalid'
+            'message': 'phones.code_invalid_or_expired'
         }
     try:
         verify_phone_number(state, proofing_user)
