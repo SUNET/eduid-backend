@@ -61,7 +61,7 @@ def new_verification_code(phone, user):
     # the user and sending the letter.
     current_app.proofing_statedb.save(verification_state)
     current_app.logger.info('Created new mobile verification code '
-                            'for user {!r} and mobile {!r}.'.format(user, phone))
+                            'for user {} and mobile {!r}.'.format(user, phone))
     current_app.logger.debug('Verification Code:'
                              ' {!r}.'.format(verification_state.to_dict()))
     return code, str(verification_state.to_dict()['_id'])
@@ -72,7 +72,7 @@ def send_verification_code(user, phone):
     code, reference = new_verification_code(phone, user)
 
     current_app.msg_relay.phone_validator(reference, phone, code, user.language)
-    current_app.logger.info("Sent verification sms to user {!r}"
+    current_app.logger.info("Sent verification sms to user {}"
                             " with phone number {!s}.".format(user, phone))
 
     
@@ -102,8 +102,8 @@ def verify_phone_number(state, proofing_user):
             proofing_user.phone_numbers.find(number).is_primary = True
 
     save_and_sync_user(proofing_user)
-    current_app.logger.info('Mobile {!r} confirmed '
-                            'for user {!r}'.format(number, proofing_user))
+    current_app.logger.info('Mobile {} confirmed '
+                            'for user {}'.format(number, proofing_user))
     current_app.stats.count(name='mobile_verify_success', value=1)
     current_app.proofing_statedb.remove_state(state)
     current_app.logger.debug('Removed proofing state: {} '.format(state))

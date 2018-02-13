@@ -77,7 +77,7 @@ def post_phone(user, number, verified, primary):
     """
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     current_app.logger.debug('Trying to save unconfirmed mobile {!r} '
-                             'for user {!r}'.format(number, proofing_user))
+                             'for user {}'.format(number, proofing_user))
 
     new_phone = PhoneNumber(number=number, application='phone',
                             verified=False, primary=False)
@@ -86,7 +86,7 @@ def post_phone(user, number, verified, primary):
     try:
         save_and_sync_user(proofing_user)
     except UserOutOfSync:
-        current_app.logger.debug('Couldnt save mobile {!r} for user {!r}, '
+        current_app.logger.debug('Couldnt save mobile {!r} for user {}, '
                                  'data out of sync'.format(number, proofing_user))
         return {
             '_status': 'error',
@@ -94,7 +94,7 @@ def post_phone(user, number, verified, primary):
         }
 
     current_app.logger.info('Saved unconfirmed mobile {!r} '
-                            'for user {!r}'.format(number, proofing_user))
+                            'for user {}'.format(number, proofing_user))
     current_app.stats.count(name='mobile_save_unconfirmed_mobile', value=1)
 
     send_verification_code(proofing_user, number)
@@ -120,13 +120,13 @@ def post_primary(user, number):
     """
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     current_app.logger.debug('Trying to save mobile {!r} as primary '
-                             'for user {!r}'.format(number, proofing_user))
+                             'for user {}'.format(number, proofing_user))
 
     try:
         phone_element = proofing_user.phone_numbers.find(number)
     except IndexError:
         current_app.logger.debug('Couldnt save mobile {!r} as primary for user'
-                                 ' {!r}, data out of sync'.format(number, proofing_user))
+                                 ' {}, data out of sync'.format(number, proofing_user))
         return {
             '_status': 'error',
             'message': 'user-out-of-sync'
@@ -134,7 +134,7 @@ def post_primary(user, number):
 
     if not phone_element.is_verified:
         current_app.logger.debug('Couldnt save mobile {!r} as primary for user'
-                                 ' {!r}, mobile unconfirmed'.format(number, proofing_user))
+                                 ' {}, mobile unconfirmed'.format(number, proofing_user))
         return {
             '_status': 'error',
             'message': 'phones.unconfirmed_number_not_primary'
@@ -145,13 +145,13 @@ def post_primary(user, number):
         save_and_sync_user(proofing_user)
     except UserOutOfSync:
         current_app.logger.debug('Couldnt save mobile {!r} as primary for user'
-                                 ' {!r}, data out of sync'.format(number, proofing_user))
+                                 ' {}, data out of sync'.format(number, proofing_user))
         return {
             '_status': 'error',
             'message': 'user-out-of-sync'
         }
     current_app.logger.info('Mobile {!r} made primary '
-                            'for user {!r}'.format(number, proofing_user))
+                            'for user {}'.format(number, proofing_user))
     current_app.stats.count(name='mobile_set_primary', value=1)
 
     phones = {
@@ -174,14 +174,13 @@ def verify(user, code, number):
     """
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     current_app.logger.debug('Trying to save mobile {!r} as verified '
-                             'for user {!r}'.format(number, proofing_user))
+                             'for user {}'.format(number, proofing_user))
 
     db = current_app.proofing_statedb
     state = db.get_state_by_eppn_and_mobile(proofing_user.eppn, number,
             raise_on_missing=False)
     if state is None:
-        current_app.logger.debug('Invalid verification code for phone {!r}'
-                                 ' for user {!r}'.format(number, proofing_user))
+        current_app.logger.debug("Couldn't find proofing state for user {} and number {}".format(proofing_user, number))
         return {
             '_status': 'error',
             'message': 'phones.code_invalid'
@@ -204,8 +203,8 @@ def verify(user, code, number):
         }
     try:
         verify_phone_number(state, proofing_user)
-        current_app.logger.info('phone number {!r} successfully verified'
-                                 ' for user {!r}'.format(number, proofing_user))
+        current_app.logger.info('Phone number {!r} successfully verified'
+                                 ' for user {}'.format(number, proofing_user))
         phones = {
                 'phones': proofing_user.phone_numbers.to_list_of_dicts(),
                 'message': 'phones.verification-success'
@@ -213,7 +212,7 @@ def verify(user, code, number):
         return PhoneListPayload().dump(phones).data
     except UserOutOfSync:
         current_app.logger.debug('Couldnt confirm mobile {!r} for user'
-                                 ' {!r}, data out of sync'.format(number, proofing_user))
+                                 ' {}, data out of sync'.format(number, proofing_user))
         return {
             '_status': 'error',
             'message': 'user-out-of-sync'
@@ -232,7 +231,7 @@ def post_remove(user, number):
     """
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     current_app.logger.debug('Trying to remove mobile {!r} '
-                             'from user {!r}'.format(number, proofing_user))
+                             'from user {}'.format(number, proofing_user))
 
     try:
         proofing_user.phone_numbers.remove(number)
@@ -246,13 +245,13 @@ def post_remove(user, number):
         save_and_sync_user(proofing_user)
     except UserOutOfSync:
         current_app.logger.debug('Couldnt remove mobile {!r} for user'
-                                 ' {!r}, data out of sync'.format(number, proofing_user))
+                                 ' {}, data out of sync'.format(number, proofing_user))
         return {
             '_status': 'error',
             'message': 'user-out-of-sync'
         }
     current_app.logger.info('Mobile {!r} removed '
-                            'for user {!r}'.format(number, proofing_user))
+                            'for user {}'.format(number, proofing_user))
     current_app.stats.count(name='mobile_remove_success', value=1)
 
     phones = {
@@ -274,10 +273,10 @@ def resend_code(user, number):
     Returns a listing of  all phones for the logged in user.
     """
     current_app.logger.debug('Trying to send new verification code for mobile '
-                             ' {!r} for user {!r}'.format(number, user))
+                             ' {!r} for user {}'.format(number, user))
 
     if not user.phone_numbers.find(number):
-        current_app.logger.warning('Unknown phone in resend_code_action, user {!s}'.format(user))
+        current_app.logger.warning('Unknown phone in resend_code_action, user {}'.format(user))
         return {
             '_status': 'error',
             'message': 'user-out-of-sync'
@@ -285,7 +284,7 @@ def resend_code(user, number):
 
     send_verification_code(user, number)
     current_app.logger.debug('New verification code sended to '
-                             'mobile {!r} for user {!r}'.format(number, user))
+                             'mobile {!r} for user {}'.format(number, user))
     current_app.stats.count(name='mobile_resend_code', value=1)
 
     phones = {
