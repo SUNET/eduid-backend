@@ -52,7 +52,6 @@ class EmailTests(EduidAPITestCase):
             'AVAILABLE_LANGUAGES': {'en': 'English','sv': 'Svenska'},
             'MSG_BROKER_URL': 'amqp://dummy',
             'AM_BROKER_URL': 'amqp://dummy',
-            'MONGO_URI_OLD_DASHBOARD': config['MONGO_URI'],  # XXX remove this setting when the old dashboard is removed
             'CELERY_CONFIG': {
                 'CELERY_RESULT_BACKEND': 'amqp',
                 'CELERY_TASK_SERIALIZER': 'json',

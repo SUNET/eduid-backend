@@ -38,10 +38,6 @@ from eduid_common.api import am
 from eduid_common.api import msg
 from eduid_userdb.proofing import PhoneProofingUserDB
 from eduid_userdb.proofing import PhoneProofingStateDB
-# XXX remove when dumping old dashboard
-from eduid_userdb import MongoDB
-from eduid_userdb.dashboard import UserDBWrapper, DashboardUserDB
-# XXX end remove
 
 
 def phone_init_app(name, config):
@@ -76,10 +72,6 @@ def phone_init_app(name, config):
 
     app.private_userdb = PhoneProofingUserDB(app.config['MONGO_URI'])
     app.proofing_statedb = PhoneProofingStateDB(app.config['MONGO_URI'])
-
-    # XXX remove when dumping old dashboard
-    app.old_dashboard_db = MongoDB(db_uri=app.config['MONGO_URI_OLD_DASHBOARD']).get_database('eduid_dashboard')
-    # XXX end remove
 
     app.logger.info('Init {} app...'.format(name))
 

@@ -33,8 +33,6 @@
 
 from __future__ import absolute_import
 
-from datetime import datetime
-
 from flask import Blueprint, session
 from flask import current_app
 
@@ -47,10 +45,6 @@ from eduid_common.api.utils import save_and_sync_user
 from eduid_webapp.phone.schemas import PhoneListPayload, SimplePhoneSchema, PhoneSchema, PhoneResponseSchema
 from eduid_webapp.phone.schemas import VerificationCodeSchema
 from eduid_webapp.phone.verifications import send_verification_code, verify_phone_number
-# XXX remove when dumping old dashboard
-from eduid_webapp.phone.verifications import old_verify_phone_number
-from eduid_webapp.old_verifications import get_old_verification_code
-# XXX end remove when dumping old dashboard
 
 
 phone_views = Blueprint('phone', __name__, url_prefix='', template_folder='templates')
@@ -185,22 +179,7 @@ def verify(user, code, number):
     db = current_app.proofing_statedb
     state = db.get_state_by_eppn_and_mobile(proofing_user.eppn, number,
             raise_on_missing=False)
-    # XXX remove when dumping old dashboard
-    verification = get_old_verification_code('phone', obj_id=number, code=code,
-                                         user=user)
-    if verification is not None:
-        
-        try:
-            old_verify_phone_number(number, verification, proofing_user)
-        except UserOutOfSync:
-            current_app.logger.debug('Couldnt confirm phone {} for user'
-                                     ' {}, data out of sync'.format(number, proofing_user))
-            return {
-                '_status': 'error',
-                'message': 'user-out-of-sync'
-            }
-    elif state is not None:
-        # XXX end remove (unindent elif block)
+    if state is not None:
         timeout = current_app.config.get('PHONE_VERIFICATION_TIMEOUT')
         if state.is_expired(timeout):
             msg = "Verification code is expired: {!r}".format(state.verification)
@@ -218,6 +197,13 @@ def verify(user, code, number):
             }
         try:
             verify_phone_number(state, proofing_user)
+            current_app.logger.info('phone number {!r} successfully verified'
+                                     ' for user {!r}'.format(number, proofing_user))
+            phones = {
+                    'phones': proofing_user.phone_numbers.to_list_of_dicts(),
+                    'message': 'phones.verification-success'
+                    }
+            return PhoneListPayload().dump(phones).data
         except UserOutOfSync:
             current_app.logger.debug('Couldnt confirm mobile {!r} for user'
                                      ' {!r}, data out of sync'.format(number, proofing_user))
@@ -232,13 +218,6 @@ def verify(user, code, number):
             '_status': 'error',
             'message': 'phones.code_invalid'
         }
-    current_app.logger.info('phone number {!r} successfully verified'
-                             ' for user {!r}'.format(number, proofing_user))
-    phones = {
-            'phones': proofing_user.phone_numbers.to_list_of_dicts(),
-            'message': 'phones.verification-success'
-            }
-    return PhoneListPayload().dump(phones).data
 
 
 @phone_views.route('/remove', methods=['POST'])

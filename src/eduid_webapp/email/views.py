@@ -32,10 +32,6 @@
 #
 from __future__ import absolute_import
 
-# XXX remove when dumping old dashboard
-from datetime import datetime
-# XXX end remove when dumping old dashboard
-
 from flask import Blueprint, request, current_app, redirect
 
 from eduid_userdb.element import PrimaryElementViolation, DuplicateElementViolation
@@ -48,10 +44,6 @@ from eduid_webapp.email.schemas import EmailListPayload, AddEmailSchema
 from eduid_webapp.email.schemas import ChangeEmailSchema, EmailResponseSchema
 from eduid_webapp.email.schemas import VerificationCodeSchema
 from eduid_webapp.email.verifications import send_verification_code, verify_mail_address
-# XXX remove when dumping old dashboard
-from eduid_webapp.email.verifications import old_verify_mail_address
-from eduid_webapp.old_verifications import get_old_verification_code
-# XXX end remove when dumping old dashboard
 
 email_views = Blueprint('email', __name__, url_prefix='', template_folder='templates')
 
@@ -172,21 +164,7 @@ def verify(user, code, email):
 
     db = current_app.proofing_statedb
     state = db.get_state_by_eppn_and_email(proofing_user.eppn, email, raise_on_missing=False)
-    # XXX remove when dumping old dashboard
-    verification = get_old_verification_code('mailAliases', obj_id=email, code=code, user=user)
-    if verification is not None:
-        try:
-            old_verify_mail_address(email, verification, proofing_user)
-        except UserOutOfSync:
-            current_app.logger.debug('Couldnt confirm email {} for user {}, '
-                            'data out of sync'.format(email, proofing_user))
-            return {
-                '_status': 'error',
-                'message': 'user-out-of-sync'
-            }
-
-    elif state is not None:
-        # XXX end remove (unindent elif block)
+    if state is not None:
         timeout = current_app.config.get('EMAIL_VERIFICATION_TIMEOUT', 24)
         if state.is_expired(timeout):
             msg = "Verification code is expired for: {}. Sending new code".format(
@@ -207,6 +185,13 @@ def verify(user, code, email):
             }
         try:
             verify_mail_address(state, proofing_user)
+            current_app.logger.info('Email {} successfully verified for user'
+                                    ' {!r}'.format(email, proofing_user))
+            emails = {
+                    'emails': proofing_user.mail_addresses.to_list_of_dicts(),
+                    'message': 'emails.verification-success'
+                    }
+            return EmailListPayload().dump(emails).data
         except UserOutOfSync:
             current_app.logger.debug('Couldnt confirm email {} for user'
                                      ' {}, data out of sync'.format(email, proofing_user))
@@ -221,13 +206,6 @@ def verify(user, code, email):
             '_status': 'error',
             'message': 'emails.code_invalid'
         }
-    current_app.logger.info('Email {} successfully verified for user'
-                             ' {!r}'.format(email, proofing_user))
-    emails = {
-            'emails': proofing_user.mail_addresses.to_list_of_dicts(),
-            'message': 'emails.verification-success'
-            }
-    return EmailListPayload().dump(emails).data
 
 
 @email_views.route('/verify', methods=['GET'])

@@ -31,9 +31,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-# XXX remove when dumping old dashboard
-from datetime import datetime
-# XXX end remove when dumping old dashboard
 from flask import current_app, url_for, render_template
 from flask_babel import gettext as _
 
@@ -130,42 +127,3 @@ def verify_mail_address(state, proofing_user):
     current_app.stats.count(name='email_verify_success', value=1)
     current_app.proofing_statedb.remove_state(state)
     current_app.logger.debug('Removed proofing state: {} '.format(state))
-
-
-# XXX remove when dumping old dashboard
-def old_verify_mail_address(email, verification, proofing_user):
-    """
-    :param proofing_user: ProofingUser
-    :param state: E-mail proofing state
-
-    :type proofing_user: eduid_userdb.proofing.ProofingUser
-    :type state: EmailProofingState
-
-    :return: None
-
-    """
-    new_email = MailAddress(email=email, application='email',
-                            verified=True, primary=False)
-
-    has_primary = proofing_user.mail_addresses.primary
-    if has_primary is None:
-        new_email.is_primary = True
-    try:
-        proofing_user.mail_addresses.add(new_email)
-    except DuplicateElementViolation:
-        proofing_user.mail_addresses.find(email).is_verified = True
-        if has_primary is None:
-            proofing_user.mail_addresses.find(email).is_primary = True
-
-    save_and_sync_user(proofing_user)
-    current_app.logger.info('Email address {!r} confirmed '
-                            'for user {!r}'.format(email, proofing_user))
-    current_app.stats.count(name='email_verify_success', value=1)
-    verified = {
-        'verified': True,
-        'verified_timestamp': datetime.utcnow()
-    }
-    verification.update(verified)
-    current_app.old_dashboard_db.verifications.update({'_id': verification['_id']}, verification)
-    current_app.logger.debug('Updated verification: {!r} '.format(verification))
-# XXX end remove when dumping old dashboard
