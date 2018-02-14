@@ -61,7 +61,7 @@ def new_verification_code(email, user):
     current_app.proofing_statedb.save(verification_state)
 
     current_app.logger.info('Created new email verification code '
-                            'for user {!r} and email {!r}.'.format(user, email))
+                            'for user {} and email {!r}.'.format(user, email))
     current_app.logger.debug('Verification Code:'
                              ' {!r}.'.format(verification_state.to_dict()))
 
@@ -93,7 +93,7 @@ def send_verification_code(email, user):
     )
 
     current_app.mail_relay.sendmail(subject, [email], text, html)
-    current_app.logger.info("Sent email address verification mail to user {!r}"
+    current_app.logger.info("Sent email address verification mail to user {}"
                             " about address {!s}.".format(user, email))
 
 
@@ -123,7 +123,7 @@ def verify_mail_address(state, proofing_user):
 
     save_and_sync_user(proofing_user)
     current_app.logger.info('Email address {!r} confirmed '
-                            'for user {!r}'.format(state.verification.email, proofing_user))
+                            'for user {}'.format(state.verification.email, proofing_user))
     current_app.stats.count(name='email_verify_success', value=1)
     current_app.proofing_statedb.remove_state(state)
     current_app.logger.debug('Removed proofing state: {} '.format(state))
