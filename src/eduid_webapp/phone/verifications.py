@@ -60,8 +60,8 @@ def new_verification_code(phone, user):
     # XXX This should be an atomic transaction together with saving
     # the user and sending the letter.
     current_app.proofing_statedb.save(verification_state)
-    current_app.logger.info('Created new mobile verification code '
-                            'for user {} and mobile {!r}.'.format(user, phone))
+    current_app.logger.info('Created new phone number verification code '
+                            'for user {} and phone number {!r}.'.format(user, phone))
     current_app.logger.debug('Verification Code:'
                              ' {!r}.'.format(verification_state.to_dict()))
     return code, str(verification_state.to_dict()['_id'])
