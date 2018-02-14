@@ -173,7 +173,7 @@ def verify(user, code, email):
         }
     timeout = current_app.config.get('EMAIL_VERIFICATION_TIMEOUT', 24)
     if state.is_expired(timeout):
-        msg = "Verification code is expired for: {}. Sending new code".format(
+        msg = "Verification code is expired for: {}.".format(
             state.verification.email)
         current_app.logger.debug(msg)
         current_app.proofing_statedb.remove_state(state)
@@ -221,12 +221,12 @@ def verify_link(user):
 
         if state is None:
             current_app.logger.info("Missing state for verification code received for email {} "
-                                    "and user {}.  Sending new code.".format(email, user))
+                                    "and user {}.".format(email, user))
             return redirect(current_app.config['SAML2_LOGIN_REDIRECT_URL'])
 
         timeout = current_app.config.get('EMAIL_VERIFICATION_TIMEOUT', 24)
         if state.is_expired(timeout):
-            current_app.logger.info("Verification code is expired for: {}. Sending new code".format(
+            current_app.logger.info("Verification code is expired for: {}.".format(
                 state.verification.email))
             current_app.proofing_statedb.remove_state(state)
             return redirect(current_app.config['SAML2_LOGIN_REDIRECT_URL'])
