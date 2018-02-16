@@ -30,7 +30,7 @@ def get_state(user):
 @can_verify_identity
 @require_user
 def proofing(user, nin):
-    current_app.logger.info('Trying to verify nin via mobile number for user {!r}.'.format(user))
+    current_app.logger.info('Trying to verify nin via mobile number for user {}.'.format(user))
     current_app.logger.debug('NIN: {!s}.'.format(nin))
 
     # Add nin as not verified to the user

@@ -76,7 +76,7 @@ def get_credentials(user):
     View to get credentials for the logged user.
     """
     current_app.logger.debug('Trying to get the credentials '
-                             'for user {!r}'.format(user))
+                             'for user {}'.format(user))
 
     credentials = {
         'credentials': compile_credential_list(user)
@@ -93,7 +93,7 @@ def get_suggested(user):
     View to get a suggested  password for the logged user.
     """
     current_app.logger.debug('Triying to get the credentials '
-                             'for user {!r}'.format(user))
+                             'for user {}'.format(user))
     suggested = {
             'suggested_password': generate_suggested_password()
             }
@@ -137,7 +137,7 @@ def change_password(user, old_password, new_password):
     added = add_credentials(vccs_url, old_password, new_password, security_user, source='security')
 
     if not added:
-        current_app.logger.debug('Problem verifying the old credentials for {!r}'.format(user))
+        current_app.logger.debug('Problem verifying the old credentials for {}'.format(user))
         return error_message('chpass.unable-to-verify-old-password')
 
     security_user.terminated = False
@@ -149,7 +149,7 @@ def change_password(user, old_password, new_password):
     del session['reauthn-for-chpass']
 
     current_app.stats.count(name='security_password_changed', value=1)
-    current_app.logger.info('Changed password for user {!r}'.format(security_user.eppn))
+    current_app.logger.info('Changed password for user {}'.format(security_user.eppn))
 
     next_url = current_app.config.get('DASHBOARD_URL', '/profile')
     credentials = {
@@ -172,7 +172,7 @@ def delete_account(user):
     schedules the account termination action,
     and redirects to the IdP.
     """
-    current_app.logger.debug('Initiating account termination for user {!r}'.format(user))
+    current_app.logger.debug('Initiating account termination for user {}'.format(user))
 
     ts_url = current_app.config.get('TOKEN_SERVICE_URL')
     terminate_url = urlappend(ts_url, 'terminate')
@@ -269,4 +269,4 @@ def send_termination_mail(user):
     subject = _("eduID account termination")
     emails = [item.email for item in user.mail_addresses.to_list() if item.is_verified]
     current_app.mail_relay.sendmail(subject, emails, text, html)
-    current_app.logger.info("Sent termination email to user {!r}".format(user))
+    current_app.logger.info("Sent termination email to user {}".format(user))
