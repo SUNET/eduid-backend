@@ -169,7 +169,7 @@ def verify(user, code, email):
                                  ' {}'.format(code, email, proofing_user))
         return {
             '_status': 'error',
-            'message': 'emails.code_invalid_or_expired'
+            'message': 'emails.unknown_email'
         }
     timeout = current_app.config.get('EMAIL_VERIFICATION_TIMEOUT', 24)
     if state.is_expired(timeout):
