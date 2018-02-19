@@ -142,40 +142,28 @@ class SanitationMixin(object):
         if use_percent_encoding:
             # If the untrusted_text is percent encoded we have to:
             # 1. Decode it so we can process it.
-            # 2. Convert it to UTF-8 since bleach assumes this encoding
-            # 3. Clean it to remove dangerous characters.
-            # 4. Percent encode it before returning it back.
+            # 2. Clean it to remove dangerous characters.
+            # 3. Percent encode, if needed, and returning it back.
 
             decoded_text = unquote(untrusted_text)
+            cleaned_text = self._safe_clean(decoded_text, strip_characters)
 
-            if not isinstance(decoded_text, unicode):
-                decoded_text_in_utf8 = decoded_text.decode("UTF-8")
-            else:
-                decoded_text_in_utf8 = decoded_text.encode('UTF-8')
-
-            cleaned_text = self._safe_clean(decoded_text_in_utf8, strip_characters)
-
-            # Note that at least '&' and '=' needs to be unencoded when using PySAML2
-            percent_encoded_text = quote(cleaned_text, safe='?&=')
-
-            if decoded_text_in_utf8 != cleaned_text:
+            if decoded_text != cleaned_text:
                 current_app.logger.warn('Some potential harmful characters were '
                                         'removed from untrusted user input.')
 
-            return percent_encoded_text
+            if decoded_text != untrusted_text:
+                # Note that at least '&' and '=' needs to be unencoded when using PySAML2
+                return quote(cleaned_text, safe='?&=')
+
+            return cleaned_text
 
         # If the untrusted_text is not percent encoded we only have to:
-        # 1. Encode it to UTF-8 since bleach assumes this encoding
-        # 2. Clean it to remove dangerous characters.
+        # 1. Clean it to remove dangerous characters.
 
-        if not isinstance(untrusted_text, unicode):
-            text_in_utf8 = untrusted_text.decode("UTF-8")
-        else:
-            text_in_utf8 = untrusted_text
+        cleaned_text = self._safe_clean(untrusted_text, strip_characters)
 
-        cleaned_text = self._safe_clean(text_in_utf8, strip_characters)
-
-        if text_in_utf8 != cleaned_text:
+        if untrusted_text != cleaned_text:
             current_app.logger.warn('Some potential harmful characters were '
                                     'removed from untrusted user input.')
 

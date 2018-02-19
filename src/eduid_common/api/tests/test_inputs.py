@@ -52,12 +52,7 @@ test_views = Blueprint('test', __name__)
 
 
 def _make_response(data):
-    if not isinstance(data, unicode):
-        data_in_utf8 = data.decode("UTF-8")
-    else:
-        data_in_utf8 = data.encode('UTF-8')
-
-    html = '<html><body>{}</body></html>'.format(data_in_utf8)
+    html = u'<html><body>{}</body></html>'.format(data)
     response = make_response(html, 200)
     response.headers['Content-Type'] = "text/html; charset=utf8"
     return response
@@ -149,18 +144,18 @@ class InputsTests(EduidAPITestCase):
             self.assertNotIn('<script>', unquoted_response)
 
     def test_get_param_unicode(self):
-        url = u'/test-get-param?test-param=åäö'
+        url = '/test-get-param?test-param=åäöхэжこんにちわ'
         with self.app.test_request_context(url, method='GET'):
 
             response = self.app.dispatch_request()
-            self.assertIn('åäö', response.data)
+            self.assertIn('åäöхэжこんにちわ', response.data)
 
     def test_get_param_unicode_percent_encoded(self):
-        url = u'/test-get-param?test-param=%C3%A5%C3%A4%C3%B6'
+        url = '/test-get-param?test-param=%C3%A5%C3%A4%C3%B6%D1%85%D1%8D%D0%B6%E3%81%93%E3%82%93%E3%81%AB%E3%81%A1%E3%82%8F'
         with self.app.test_request_context(url, method='GET'):
 
             response = self.app.dispatch_request()
-            self.assertIn('åäö', response.data)
+            self.assertIn('åäöхэжこんにちわ', response.data)
 
     def test_post_param_script(self):
         """"""
