@@ -88,7 +88,7 @@ def handle_seleg_userinfo(user, proofing_state, userinfo):
         current_app.logger.warning('Proofing state number did not match number in userinfo.'
                                    'Using number from userinfo.')
         proofing_state.nin.number = number
-    current_app.logger.info('Getting address for user {!r}'.format(user))
+    current_app.logger.info('Getting address for user {}'.format(user))
     # Lookup official address via Navet
     address = current_app.msg_relay.get_postal_address(proofing_state.nin.number)
     # Transaction id is the same data as used for the QR code
@@ -122,7 +122,7 @@ def handle_freja_eid_userinfo(user, proofing_state, userinfo):
                                    'Using number from userinfo.')
         proofing_state.nin.number = number
 
-    current_app.logger.info('Getting address for user {!r}'.format(user))
+    current_app.logger.info('Getting address for user {}'.format(user))
     # Lookup official address via Navet
     address = current_app.msg_relay.get_postal_address(proofing_state.nin.number)
     proofing_log_entry = SeLegProofingFrejaEid(user, created_by=proofing_state.nin.created_by,

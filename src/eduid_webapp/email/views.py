@@ -169,7 +169,7 @@ def verify(user, code, email):
                                  ' {}'.format(code, email, proofing_user))
         return {
             '_status': 'error',
-            'message': 'emails.code_invalid_or_expired'
+            'message': 'emails.unknown_email'
         }
     timeout = current_app.config.get('EMAIL_VERIFICATION_TIMEOUT', 24)
     if state.is_expired(timeout):
@@ -250,7 +250,7 @@ def verify_link(user):
 def post_remove(user, email):
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     current_app.logger.debug('Trying to remove email address {!r} '
-                             'from user {!r}'.format(email, proofing_user))
+                             'from user {}'.format(email, proofing_user))
 
     emails = proofing_user.mail_addresses.to_list()
     if len(emails) == 1:
@@ -272,7 +272,7 @@ def post_remove(user, email):
         save_and_sync_user(proofing_user)
     except UserOutOfSync:
         current_app.logger.debug('Couldnt remove email {!r} for user'
-                                 ' {!r}, data out of sync'.format(email, proofing_user))
+                                 ' {}, data out of sync'.format(email, proofing_user))
         return {
             '_status': 'error',
             'message': 'user-out-of-sync'
@@ -285,7 +285,7 @@ def post_remove(user, email):
         }
 
     current_app.logger.info('Email address {!r} removed '
-                            'for user {!r}'.format(email, proofing_user))
+                            'for user {}'.format(email, proofing_user))
     current_app.stats.count(name='email_remove_success', value=1)
 
     emails = {
@@ -301,11 +301,11 @@ def post_remove(user, email):
 @require_user
 def resend_code(user, email):
     current_app.logger.debug('Trying to send new verification code for email '
-                             'address {!r} for user {!r}'.format(email, user))
+                             'address {!r} for user {}'.format(email, user))
 
     if not user.mail_addresses.find(email):
         current_app.logger.debug('Unknown email {!r} in resend_code_action,'
-                                 ' user {!s}'.format(email, user))
+                                 ' user {}'.format(email, user))
         return {
             '_status': 'error',
             'message': 'user-out-of-sync'
@@ -313,7 +313,7 @@ def resend_code(user, email):
     
     send_verification_code(email, user)
     current_app.logger.debug('New verification code sended to '
-                             'address {!r} for user {!r}'.format(email, user))
+                             'address {!r} for user {}'.format(email, user))
     current_app.stats.count(name='email_resend_code', value=1)
 
     emails = {

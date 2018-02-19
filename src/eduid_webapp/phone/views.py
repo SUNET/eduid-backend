@@ -183,7 +183,7 @@ def verify(user, code, number):
         current_app.logger.debug("Couldn't find proofing state for user {} and number {}".format(proofing_user, number))
         return {
             '_status': 'error',
-            'message': 'phones.code_invalid_or_expired'
+            'message': 'phones.unknown_phone'
         }
 
     timeout = current_app.config.get('PHONE_VERIFICATION_TIMEOUT')
