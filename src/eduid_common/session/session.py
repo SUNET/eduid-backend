@@ -231,7 +231,7 @@ class Session(collections.MutableMapping):
             if not (token or session_id):
                 raise ValueError('Data must be provided when token/session_id is not provided')
 
-            logger.debug('Looking for session using token {!r} or session_id {!r}'.format(token, session_id))
+            logger.debug('Looking for session using session_id {!r}'.format(session_id))
 
             # Fetch session from self.conn (Redis)
             _encrypted_data = self.conn.get(self.session_id)
@@ -320,6 +320,8 @@ class Session(collections.MutableMapping):
         Persist the currently held data into the redis db.
         """
         data = self.sign_data(self._data)
+        logger.debug('Committing session {} to the cache with ttl {} ({} bytes)'.format(
+            self.session_id, self.ttl, len(data)))
         self.conn.setex(self.session_id, self.ttl, data)
 
     def encode_token(self, session_id):
@@ -372,7 +374,7 @@ class Session(collections.MutableMapping):
         :rtype: str | unicode
         """
         # XXX remove this extra debug logging after burn-in period
-        logger.debug('Storing v2 data in cache: {!r}'.format(data_dict))
+        logger.debug('Storing data in cache[{}]:\n{!r}'.format(self.session_id, data_dict))
         nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
         # Version data to make it easier to know how to decode it on reading
         data_json = json.dumps(data_dict, cls=NameIDEncoder)
@@ -394,10 +396,10 @@ class Session(collections.MutableMapping):
             _data = self.nacl_box.decrypt(versioned['v2'],
                                           encoder = nacl.encoding.Base64Encoder)
             decrypted = json.loads(_data)
-            logger.debug('Loaded v2 data from cache: {!r}'.format(decrypted))
+            logger.debug('Loaded data from cache[{}]:\n{!r}'.format(self.session_id, decrypted))
             return decrypted
 
-        logger.error('Unknown data retrieved from cache: {!r}'.format(data_str))
+        logger.error('Unknown data retrieved from cache[{}]: {!r}'.format(self.session_id, data_str))
         raise ValueError('Unknown data retrieved from cache')
 
     def clear(self):
