@@ -31,6 +31,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
+from urllib import unquote
+
 from werkzeug.http import dump_cookie
 from flask import Flask, Blueprint
 from flask import request
@@ -50,7 +52,7 @@ test_views = Blueprint('test', __name__)
 
 
 def _make_response(data):
-    html = '<html><body>{}</body></html>'.format(data)
+    html = u'<html><body>{}</body></html>'.format(data)
     response = make_response(html, 200)
     response.headers['Content-Type'] = "text/html; charset=utf8"
     return response
@@ -125,6 +127,36 @@ class InputsTests(EduidAPITestCase):
             response = self.app.dispatch_request()
             self.assertNotIn('<script>', response.data)
 
+    def test_get_param_script_percent_encoded(self):
+        url = '/test-get-param?test-param=%3Cscript%3Ealert%28%22ho%22%29%3C%2Fscript%3E'
+        with self.app.test_request_context(url, method='GET'):
+
+            response = self.app.dispatch_request()
+            self.assertNotIn('<script>', response.data)
+
+    def test_get_param_script_percent_encoded_twice(self):
+        url = '/test-get-param?test-param=%253Cscript%253Ealert%2528%2522ho%2522%2529%253C%252Fscript%253E'
+        with self.app.test_request_context(url, method='GET'):
+
+            response = self.app.dispatch_request()
+            unquoted_response = unquote(response.data)
+            self.assertNotIn('<script>', response.data)
+            self.assertNotIn('<script>', unquoted_response)
+
+    def test_get_param_unicode(self):
+        url = '/test-get-param?test-param=åäöхэжこんにちわ'
+        with self.app.test_request_context(url, method='GET'):
+
+            response = self.app.dispatch_request()
+            self.assertIn('åäöхэжこんにちわ', response.data)
+
+    def test_get_param_unicode_percent_encoded(self):
+        url = '/test-get-param?test-param=%C3%A5%C3%A4%C3%B6%D1%85%D1%8D%D0%B6%E3%81%93%E3%82%93%E3%81%AB%E3%81%A1%E3%82%8F'
+        with self.app.test_request_context(url, method='GET'):
+
+            response = self.app.dispatch_request()
+            self.assertIn('åäöхэжこんにちわ', response.data)
+
     def test_post_param_script(self):
         """"""
         url = '/test-post-param'
@@ -133,6 +165,24 @@ class InputsTests(EduidAPITestCase):
 
             response = self.app.dispatch_request()
             self.assertNotIn('<script>', response.data)
+
+    def test_post_param_script_percent_encoded(self):
+        url = '/test-post-param'
+        with self.app.test_request_context(url, method='POST',
+                data={'test-param': '%3Cscript%3Ealert%28%22ho%22%29%3C%2Fscript%3E'}):
+
+            response = self.app.dispatch_request()
+            self.assertNotIn('<script>', response.data)
+
+    def test_post_param_script_percent_encoded_twice(self):
+        url = '/test-post-param'
+        with self.app.test_request_context(url, method='POST',
+                data={'test-param': '%253Cscript%253Ealert%2528%2522ho%2522%2529%253C%252Fscript%253E'}):
+
+            response = self.app.dispatch_request()
+            unquoted_response = unquote(response.data)
+            self.assertNotIn('<script>', response.data)
+            self.assertNotIn('<script>', unquoted_response)
 
     def test_cookie_script(self):
         """"""
