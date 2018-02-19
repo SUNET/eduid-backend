@@ -52,6 +52,7 @@ class EmailTests(EduidAPITestCase):
             'AVAILABLE_LANGUAGES': {'en': 'English','sv': 'Svenska'},
             'MSG_BROKER_URL': 'amqp://dummy',
             'AM_BROKER_URL': 'amqp://dummy',
+            'DASHBOARD_URL': '/profile/',
             'CELERY_CONFIG': {
                 'CELERY_RESULT_BACKEND': 'amqp',
                 'CELERY_TASK_SERIALIZER': 'json',
@@ -500,6 +501,7 @@ class EmailTests(EduidAPITestCase):
                 response2 = client.get('/verify?code={}&email={}'.format(code, email))
 
                 self.assertEqual(response2.status_code, 302)
+                self.assertEqual(response2.location, 'http://test.localhost/profile/emails?msg=emails.verification-success')
 
                 user = self.app.private_userdb.get_user_by_eppn(eppn)
                 mail_address_element = user.mail_addresses.find(email)
@@ -541,6 +543,8 @@ class EmailTests(EduidAPITestCase):
                 response2 = client.get('/verify?code={}&email={}'.format(code, email))
 
                 self.assertEqual(response2.status_code, 302)
+                self.assertEqual(response2.location,
+                        'http://test.localhost/profile/emails?msg=%3AERROR%3Aemails.code_invalid_or_expired')
 
                 user = self.app.private_userdb.get_user_by_eppn(eppn)
                 mail_address_element = user.mail_addresses.find(email)
