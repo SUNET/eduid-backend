@@ -390,10 +390,6 @@ class Session(collections.MutableMapping):
         :rtype: dict
         """
         versioned = json.loads(data_str)
-        if 'v1' in versioned:
-            # XXX remove this extra debug logging after burn-in period
-            logger.debug('Loaded v1 data from cache: {!r}'.format(versioned['v1']))
-            return versioned['v1']
         if 'v2' in versioned:
             _data = self.nacl_box.decrypt(versioned['v2'],
                                           encoder = nacl.encoding.Base64Encoder)
