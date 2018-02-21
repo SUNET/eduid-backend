@@ -42,6 +42,7 @@ from eduid_userdb.mail import MailAddress
 from eduid_userdb.proofing import ProofingUser
 from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
 from eduid_common.api.utils import save_and_sync_user
+from eduid_common.api.utils import urlappend
 from eduid_webapp.email.schemas import EmailListPayload, AddEmailSchema
 from eduid_webapp.email.schemas import ChangeEmailSchema, EmailResponseSchema
 from eduid_webapp.email.schemas import VerificationCodeSchema
@@ -221,7 +222,7 @@ def verify_link(user):
         db = current_app.proofing_statedb
         state = db.get_state_by_eppn_and_email(proofing_user.eppn, email, raise_on_missing=False)
 
-        url = urlparse.urljoin(current_app.config['DASHBOARD_URL'], 'emails')
+        url = urlappend(current_app.config['DASHBOARD_URL'], 'emails')
         scheme, netloc, path, query_string, fragment = urlparse.urlsplit(url)
 
         if state is None:
