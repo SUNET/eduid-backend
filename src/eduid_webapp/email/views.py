@@ -31,6 +31,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 from __future__ import absolute_import
+import urlparse
+from urllib import urlencode
 
 from flask import Blueprint, request, current_app, redirect
 
@@ -40,6 +42,7 @@ from eduid_userdb.mail import MailAddress
 from eduid_userdb.proofing import ProofingUser
 from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
 from eduid_common.api.utils import save_and_sync_user
+from eduid_common.api.utils import urlappend
 from eduid_webapp.email.schemas import EmailListPayload, AddEmailSchema
 from eduid_webapp.email.schemas import ChangeEmailSchema, EmailResponseSchema
 from eduid_webapp.email.schemas import VerificationCodeSchema
@@ -219,28 +222,41 @@ def verify_link(user):
         db = current_app.proofing_statedb
         state = db.get_state_by_eppn_and_email(proofing_user.eppn, email, raise_on_missing=False)
 
+        url = urlappend(current_app.config['DASHBOARD_URL'], 'emails')
+        scheme, netloc, path, query_string, fragment = urlparse.urlsplit(url)
+
         if state is None:
             current_app.logger.info("Missing state for verification code received for email {} "
                                     "and user {}.".format(email, user))
-            return redirect(current_app.config['SAML2_LOGIN_REDIRECT_URL'])
+            new_query_string = urlencode({'msg': ':ERROR:emails.unknown_email'})
+            url = urlparse.urlunsplit((scheme, netloc, path, new_query_string, fragment))
+            return redirect(url)
 
         timeout = current_app.config.get('EMAIL_VERIFICATION_TIMEOUT', 24)
         if state.is_expired(timeout):
             current_app.logger.info("Verification code is expired for: {}.".format(
                 state.verification.email))
             current_app.proofing_statedb.remove_state(state)
-            return redirect(current_app.config['SAML2_LOGIN_REDIRECT_URL'])
+            new_query_string = urlencode({'msg': ':ERROR:emails.code_invalid_or_expired'})
+            url = urlparse.urlunsplit((scheme, netloc, path, new_query_string, fragment))
+            return redirect(url)
 
         if code != state.verification.verification_code:
             current_app.logger.warning("Invalid verification code for: {}".format(state.verification.email))
-            return redirect(current_app.config['SAML2_LOGIN_REDIRECT_URL'])
+            new_query_string = urlencode({'msg': ':ERROR:emails.code_invalid_or_expired'})
+            url = urlparse.urlunsplit((scheme, netloc, path, new_query_string, fragment))
+            return redirect(url)
         try:
             verify_mail_address(state, proofing_user)
             current_app.logger.info('Verified email {} for user {}'.format(email, user))
+            new_query_string = urlencode({'msg': 'emails.verification-success'})
         except UserOutOfSync:
             current_app.logger.error('Couldnt confirm email {} for user {}, data out of sync'.format(email,
                                                                                                      proofing_user))
-        return redirect(current_app.config['SAML2_LOGIN_REDIRECT_URL'])
+            new_query_string = urlencode({'msg': ':ERROR:user-out-of-sync'})
+
+        url = urlparse.urlunsplit((scheme, netloc, path, new_query_string, fragment))
+        return redirect(url)
 
 
 @email_views.route('/remove', methods=['POST'])

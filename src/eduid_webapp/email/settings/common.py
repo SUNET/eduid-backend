@@ -52,3 +52,5 @@ SECRET_KEY = ''
 
 # Logging
 LOG_LEVEL = 'INFO'
+
+DASHBOARD_URL = '/profile/'
