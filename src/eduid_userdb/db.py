@@ -48,8 +48,8 @@ class MongoDB(object):
                 host=self._db_uri,
                 tz_aware=True,
                 **kwargs)
-        except pymongo.errors.ConnectionFailure as e:
-            raise MongoConnectionError('Error connecting to mongo: ' + str(e))
+        except pymongo.errors.PyMongoError as e:
+            raise MongoConnectionError('Error connecting to mongodb {!r}: {}'.format(self, e))
 
     def __repr__(self):
         return '<eduID {!s}: {!s} {!s}>'.format(self.__class__.__name__,
