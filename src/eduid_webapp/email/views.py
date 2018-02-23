@@ -31,6 +31,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 from __future__ import absolute_import
+import urlparse
+from urllib import urlencode
 
 from flask import Blueprint, request, current_app, redirect
 
@@ -40,6 +42,7 @@ from eduid_userdb.mail import MailAddress
 from eduid_userdb.proofing import ProofingUser
 from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
 from eduid_common.api.utils import save_and_sync_user
+from eduid_common.api.utils import urlappend
 from eduid_webapp.email.schemas import EmailListPayload, AddEmailSchema
 from eduid_webapp.email.schemas import ChangeEmailSchema, EmailResponseSchema
 from eduid_webapp.email.schemas import VerificationCodeSchema
@@ -67,7 +70,7 @@ def get_all_emails(user):
 def post_email(user, email, verified, primary):
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     current_app.logger.debug('Trying to save unconfirmed email {!r} '
-                             'for user {!r}'.format(email, proofing_user))
+                             'for user {}'.format(email, proofing_user))
 
     new_mail = MailAddress(email=email, application='email',
                            verified=False, primary=False)
@@ -83,14 +86,14 @@ def post_email(user, email, verified, primary):
     try:
         save_and_sync_user(proofing_user)
     except UserOutOfSync:
-        current_app.logger.debug('Couldnt save email {!r} for user {!r}, '
+        current_app.logger.debug('Couldnt save email {} for user {}, '
                                  'data out of sync'.format(email, proofing_user))
         return {
             '_status': 'error',
             'message': 'user-out-of-sync'
         }
     current_app.logger.info('Saved unconfirmed email {!r} '
-                            'for user {!r}'.format(email, proofing_user))
+                            'for user {}'.format(email, proofing_user))
     current_app.stats.count(name='email_save_unconfirmed_email', value=1)
 
     send_verification_code(email, proofing_user)
@@ -110,13 +113,13 @@ def post_email(user, email, verified, primary):
 def post_primary(user, email):
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     current_app.logger.debug('Trying to save email address {!r} as primary '
-                             'for user {!r}'.format(email, proofing_user))
+                             'for user {}'.format(email, proofing_user))
 
     try:
         mail = proofing_user.mail_addresses.find(email)
     except IndexError:
         current_app.logger.debug('Couldnt save email {!r} as primary for user'
-                                 ' {!r}, data out of sync'.format(email, proofing_user))
+                                 ' {}, data out of sync'.format(email, proofing_user))
         return {
             '_status': 'error',
             'message': 'user-out-of-sync'
@@ -124,7 +127,7 @@ def post_primary(user, email):
 
     if not mail.is_verified:
         current_app.logger.debug('Couldnt save email {!r} as primary for user'
-                                 ' {!r}, email unconfirmed'.format(email, proofing_user))
+                                 ' {}, email unconfirmed'.format(email, proofing_user))
         return {
             '_status': 'error',
             'message': 'emails.unconfirmed_address_not_primary'
@@ -135,13 +138,13 @@ def post_primary(user, email):
         save_and_sync_user(proofing_user)
     except UserOutOfSync:
         current_app.logger.debug('Couldnt save email {!r} as primary for user'
-                                 ' {!r}, data out of sync'.format(email, proofing_user))
+                                 ' {}, data out of sync'.format(email, proofing_user))
         return {
             '_status': 'error',
             'message': 'user-out-of-sync'
         }
     current_app.logger.info('Email address {!r} made primary '
-                            'for user {!r}'.format(email, proofing_user))
+                            'for user {}'.format(email, proofing_user))
     current_app.stats.count(name='email_set_primary', value=1)
 
     emails = {
@@ -164,29 +167,38 @@ def verify(user, code, email):
 
     db = current_app.proofing_statedb
     state = db.get_state_by_eppn_and_email(proofing_user.eppn, email, raise_on_missing=False)
-
-    timeout = current_app.config.get('EMAIL_VERIFICATION_TIMEOUT')
-
-    if state is None or code != state.verification.verification_code:
-        msg = "Invalid verification code for: {}".format(state.verification.email)
-        current_app.logger.debug(msg)
+    if state is None:
+        current_app.logger.debug('Invalid verification code {} for email {} and user'
+                                 ' {}'.format(code, email, proofing_user))
         return {
             '_status': 'error',
-            'message': 'emails.code_invalid'
+            'message': 'emails.unknown_email'
         }
+    timeout = current_app.config.get('EMAIL_VERIFICATION_TIMEOUT', 24)
     if state.is_expired(timeout):
-        msg = "Verification code is expired for: {}. Sending new code".format(
+        msg = "Verification code is expired for: {}.".format(
             state.verification.email)
         current_app.logger.debug(msg)
-
-        send_verification_code(email, proofing_user)
+        current_app.proofing_statedb.remove_state(state)
         return {
             '_status': 'error',
-            'message': 'emails.code_expired_send_new'
+            'message': 'emails.code_invalid_or_expired'
         }
-
+    if code != state.verification.verification_code:
+        current_app.logger.debug("Invalid verification code for: {}".format(state.verification.email))
+        return {
+            '_status': 'error',
+            'message': 'emails.code_invalid_or_expired'
+        }
     try:
         verify_mail_address(state, proofing_user)
+        current_app.logger.info('Email {} successfully verified for user'
+                                ' {}'.format(email, proofing_user))
+        emails = {
+                'emails': proofing_user.mail_addresses.to_list_of_dicts(),
+                'message': 'emails.verification-success'
+                }
+        return EmailListPayload().dump(emails).data
     except UserOutOfSync:
         current_app.logger.debug('Couldnt confirm email {} for user'
                                  ' {}, data out of sync'.format(email, proofing_user))
@@ -194,12 +206,6 @@ def verify(user, code, email):
             '_status': 'error',
             'message': 'user-out-of-sync'
         }
-
-    emails = {
-            'emails': proofing_user.mail_addresses.to_list_of_dicts(),
-            'message': 'emails.verification-success'
-            }
-    return EmailListPayload().dump(emails).data
 
 
 @email_views.route('/verify', methods=['GET'])
@@ -213,29 +219,44 @@ def verify_link(user):
     email = request.args.get('email')
     if code and email:
         current_app.logger.debug('Trying to save email address {} as verified for user {}'.format(email, proofing_user))
-
         db = current_app.proofing_statedb
-        state = db.get_state_by_eppn_and_email(proofing_user.eppn, email)
+        state = db.get_state_by_eppn_and_email(proofing_user.eppn, email, raise_on_missing=False)
+
+        url = urlappend(current_app.config['DASHBOARD_URL'], 'emails')
+        scheme, netloc, path, query_string, fragment = urlparse.urlsplit(url)
+
+        if state is None:
+            current_app.logger.info("Missing state for verification code received for email {} "
+                                    "and user {}.".format(email, user))
+            new_query_string = urlencode({'msg': ':ERROR:emails.unknown_email'})
+            url = urlparse.urlunsplit((scheme, netloc, path, new_query_string, fragment))
+            return redirect(url)
 
         timeout = current_app.config.get('EMAIL_VERIFICATION_TIMEOUT', 24)
         if state.is_expired(timeout):
-            current_app.logger.info("Verification code is expired for: {}. Sending new code".format(
+            current_app.logger.info("Verification code is expired for: {}.".format(
                 state.verification.email))
-            send_verification_code(email, proofing_user)
-            return redirect(current_app.config['SAML2_LOGIN_REDIRECT_URL'])
+            current_app.proofing_statedb.remove_state(state)
+            new_query_string = urlencode({'msg': ':ERROR:emails.code_invalid_or_expired'})
+            url = urlparse.urlunsplit((scheme, netloc, path, new_query_string, fragment))
+            return redirect(url)
 
         if code != state.verification.verification_code:
             current_app.logger.warning("Invalid verification code for: {}".format(state.verification.email))
-            return redirect(current_app.config['SAML2_LOGIN_REDIRECT_URL'])
-
+            new_query_string = urlencode({'msg': ':ERROR:emails.code_invalid_or_expired'})
+            url = urlparse.urlunsplit((scheme, netloc, path, new_query_string, fragment))
+            return redirect(url)
         try:
             verify_mail_address(state, proofing_user)
+            current_app.logger.info('Verified email {} for user {}'.format(email, user))
+            new_query_string = urlencode({'msg': 'emails.verification-success'})
         except UserOutOfSync:
             current_app.logger.error('Couldnt confirm email {} for user {}, data out of sync'.format(email,
                                                                                                      proofing_user))
+            new_query_string = urlencode({'msg': ':ERROR:user-out-of-sync'})
 
-    current_app.logger.info('Missing code or email arguments.')
-    return redirect(current_app.config['SAML2_LOGIN_REDIRECT_URL'])
+        url = urlparse.urlunsplit((scheme, netloc, path, new_query_string, fragment))
+        return redirect(url)
 
 
 @email_views.route('/remove', methods=['POST'])
@@ -245,7 +266,7 @@ def verify_link(user):
 def post_remove(user, email):
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     current_app.logger.debug('Trying to remove email address {!r} '
-                             'from user {!r}'.format(email, proofing_user))
+                             'from user {}'.format(email, proofing_user))
 
     emails = proofing_user.mail_addresses.to_list()
     if len(emails) == 1:
@@ -267,7 +288,7 @@ def post_remove(user, email):
         save_and_sync_user(proofing_user)
     except UserOutOfSync:
         current_app.logger.debug('Couldnt remove email {!r} for user'
-                                 ' {!r}, data out of sync'.format(email, proofing_user))
+                                 ' {}, data out of sync'.format(email, proofing_user))
         return {
             '_status': 'error',
             'message': 'user-out-of-sync'
@@ -280,7 +301,7 @@ def post_remove(user, email):
         }
 
     current_app.logger.info('Email address {!r} removed '
-                            'for user {!r}'.format(email, proofing_user))
+                            'for user {}'.format(email, proofing_user))
     current_app.stats.count(name='email_remove_success', value=1)
 
     emails = {
@@ -296,11 +317,11 @@ def post_remove(user, email):
 @require_user
 def resend_code(user, email):
     current_app.logger.debug('Trying to send new verification code for email '
-                             'address {!r} for user {!r}'.format(email, user))
+                             'address {} for user {}'.format(email, user))
 
     if not user.mail_addresses.find(email):
         current_app.logger.debug('Unknown email {!r} in resend_code_action,'
-                                 ' user {!s}'.format(email, user))
+                                 ' user {}'.format(email, user))
         return {
             '_status': 'error',
             'message': 'user-out-of-sync'
@@ -308,7 +329,7 @@ def resend_code(user, email):
     
     send_verification_code(email, user)
     current_app.logger.debug('New verification code sended to '
-                             'address {!r} for user {!r}'.format(email, user))
+                             'address {} for user {}'.format(email, user))
     current_app.stats.count(name='email_resend_code', value=1)
 
     emails = {

@@ -80,7 +80,7 @@ def get_address(user, proofing_state):
     :return: Users offcial postal address
     :rtype: OrderedDict|None
     """
-    current_app.logger.info('Getting address for user {!r}'.format(user))
+    current_app.logger.info('Getting address for user {}'.format(user))
     current_app.logger.debug('NIN: {!s}'.format(proofing_state.nin.number))
     # Lookup official address via Navet
     address = current_app.msg_relay.get_postal_address(proofing_state.nin.number)

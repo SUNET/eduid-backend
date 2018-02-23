@@ -76,7 +76,7 @@ def get_user(user):
 @require_user
 def post_user(user, given_name, surname, display_name, language):
     personal_data_user = PersonalDataUser.from_user(user, current_app.private_userdb)
-    current_app.logger.debug('Trying to save user {!r}'.format(user))
+    current_app.logger.debug('Trying to save user {}'.format(user))
 
     personal_data_user.given_name = given_name
     personal_data_user.surname = surname
@@ -90,7 +90,7 @@ def post_user(user, given_name, surname, display_name, language):
             'message': 'user-out-of-sync'
         }
     current_app.stats.count(name='personal_data_saved', value=1)
-    current_app.logger.info('Saved personal data for user {!r}'.format(personal_data_user))
+    current_app.logger.info('Saved personal data for user {}'.format(personal_data_user))
 
     personal_data = personal_data_user.to_dict()
     personal_data['message'] = 'pd.save-success'

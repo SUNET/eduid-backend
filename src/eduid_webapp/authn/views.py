@@ -145,7 +145,7 @@ def logout():
 
     user = current_app.central_userdb.get_user_by_eppn(eppn)
 
-    current_app.logger.debug('Logout process started for user {!r}'.format(user))
+    current_app.logger.debug('Logout process started for user {}'.format(user))
     state = StateCache(session)
     identity = IdentityCache(session)
 
@@ -157,7 +157,7 @@ def logout():
     if subject_id is None:
         current_app.logger.warning(
             'The session does not contain '
-            'the subject id for user {!r}'.format(user))
+            'the subject id for user {}'.format(user))
         location = current_app.config.get('SAML2_LOGOUT_REDIRECT_URL')
 
     else:
@@ -166,7 +166,7 @@ def logout():
         # loresponse is a dict for REDIRECT binding, and LogoutResponse for SOAP binding
         if isinstance(loresponse, LogoutResponse):
             if loresponse.status_ok():
-                current_app.logger.debug('Performing local logout for {!r}'.format(user))
+                current_app.logger.debug('Performing local logout for {}'.format(user))
                 session.clear()
                 location = current_app.config.get('SAML2_LOGOUT_REDIRECT_URL')
                 location = verify_relay_state(request.form.get('RelayState', location), location)
@@ -176,7 +176,7 @@ def logout():
         headers_tuple = loresponse[1]['headers']
         location = headers_tuple[0][1]
         current_app.logger.info('Redirecting to {!r} to continue the logout process '
-                                'for user {!r}'.format(location, user))
+                                'for user {}'.format(location, user))
 
     state.sync()
     return LogoutPayload().dump({'location': location}).data

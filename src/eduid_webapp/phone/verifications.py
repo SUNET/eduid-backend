@@ -34,7 +34,10 @@
 from flask import current_app
 
 from eduid_common.api.utils import get_short_hash
+from eduid_common.api.utils import save_and_sync_user
+from eduid_userdb.element import DuplicateElementViolation
 from eduid_userdb.proofing import PhoneProofingElement, PhoneProofingState
+from eduid_userdb.phone import PhoneNumber
 
 
 def new_verification_code(phone, user):
@@ -57,8 +60,8 @@ def new_verification_code(phone, user):
     # XXX This should be an atomic transaction together with saving
     # the user and sending the letter.
     current_app.proofing_statedb.save(verification_state)
-    current_app.logger.info('Created new mobile verification code '
-                            'for user {!r} and mobile {!r}.'.format(user, phone))
+    current_app.logger.info('Created new phone number verification code '
+                            'for user {} and phone number {!r}.'.format(user, phone))
     current_app.logger.debug('Verification Code:'
                              ' {!r}.'.format(verification_state.to_dict()))
     return code, str(verification_state.to_dict()['_id'])
@@ -69,5 +72,38 @@ def send_verification_code(user, phone):
     code, reference = new_verification_code(phone, user)
 
     current_app.msg_relay.phone_validator(reference, phone, code, user.language)
-    current_app.logger.info("Sent verification sms to user {!r}"
+    current_app.logger.info("Sent verification sms to user {}"
                             " with phone number {!s}.".format(user, phone))
+
+    
+def verify_phone_number(state, proofing_user):
+    """
+    :param proofing_user: ProofingUser
+    :param state: Phone proofing state
+
+    :type proofing_user: eduid_userdb.proofing.ProofingUser
+    :type state: PhoneProofingState
+
+    :return: None
+
+    """
+    number = state.verification.number
+    new_phone = PhoneNumber(number = number, application = 'eduid_phone',
+                            verified = True, primary = False)
+
+    has_primary = proofing_user.phone_numbers.primary
+    if has_primary is None:
+        new_phone.is_primary = True
+    try:
+        proofing_user.phone_numbers.add(new_phone)
+    except DuplicateElementViolation:
+        proofing_user.phone_numbers.find(number).is_verified = True
+        if has_primary is None:
+            proofing_user.phone_numbers.find(number).is_primary = True
+
+    save_and_sync_user(proofing_user)
+    current_app.logger.info('Mobile {} confirmed '
+                            'for user {}'.format(number, proofing_user))
+    current_app.stats.count(name='mobile_verify_success', value=1)
+    current_app.proofing_statedb.remove_state(state)
+    current_app.logger.debug('Removed proofing state: {} '.format(state))
