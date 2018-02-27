@@ -12,10 +12,11 @@ class LogDB(BaseDB):
 
     def __init__(self, db_uri, collection):
         db_name = 'eduid_logs'
-        BaseDB.__init__(self, db_uri, db_name, collection)
+        # Make sure writes reach a majority of replicas
+        BaseDB.__init__(self, db_uri, db_name, collection, safe_writes=True)
 
     def _insert(self, doc):
-        self._coll.insert(doc, safe=True)  # Make sure the write succeeded
+        self._coll.insert_one(doc)
 
     def save(self, log_element):
         """
