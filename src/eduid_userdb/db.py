@@ -48,8 +48,8 @@ class MongoDB(object):
                 host=self._db_uri,
                 tz_aware=True,
                 **kwargs)
-        except pymongo.errors.ConnectionFailure as e:
-            raise MongoConnectionError('Error connecting to mongo: ' + str(e))
+        except pymongo.errors.PyMongoError as e:
+            raise MongoConnectionError('Error connecting to mongodb {!r}: {}'.format(self, e))
 
     def __repr__(self):
         return '<eduID {!s}: {!s} {!s}>'.format(self.__class__.__name__,
@@ -169,12 +169,15 @@ def _format_mongodb_uri(parsed_uri):
 class BaseDB(object):
     """ Base class for common db operations """
 
-    def __init__(self, db_uri, db_name, collection):
+    def __init__(self, db_uri, db_name, collection, safe_writes=False):
 
         self._db_uri = db_uri
         self._coll_name = collection
         self._db = MongoDB(db_uri, db_name=db_name)
         self._coll = self._db.get_collection(collection)
+        if safe_writes:
+            self._coll = self._coll.with_options(write_concern = pymongo.WriteConcern(w = 'majority'))
+
 
     def __repr__(self):
         return '<eduID {!s}: {!s} {!r}>'.format(self.__class__.__name__,
