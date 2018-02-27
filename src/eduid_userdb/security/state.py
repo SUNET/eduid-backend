@@ -36,6 +36,8 @@ class PasswordResetState(object):
         method = self._data_in.pop('method')
         self._data['method'] = method
 
+        # meta
+        self.created_ts = self._data_in.pop('created_ts', None)
         self.modified_ts = self._data_in.pop('modified_ts', None)
 
         if len(self._data_in) > 0:
@@ -110,15 +112,14 @@ class PasswordResetState(object):
 
 
 class PasswordResetEmailState(PasswordResetState):
-    def __init__(self, application=None, eppn=None, email_address=None, email_code=None, created_ts=None, data=None,
+    def __init__(self, eppn=None, email_address=None, email_code=None, created_ts=None, data=None,
                  raise_on_unknown=True):
         if data is None:
             if created_ts is None:
                 created_ts = True
-            data = dict(eppn=eppn,
+            data = dict(eduPersonPrincipalName=eppn,
                         email_address=email_address,
                         email_code=email_code,
-                        created_by=application,
                         created_ts=created_ts,
                         )
 
@@ -126,7 +127,8 @@ class PasswordResetEmailState(PasswordResetState):
         self._data = dict()
 
         # method
-        self._data['method'] = 'email'
+        self._data_in['method'] = 'email'
+
         # email_address
         email_address = self._data_in.pop('email_address')
         # email_code
@@ -136,7 +138,7 @@ class PasswordResetEmailState(PasswordResetState):
 
         # things with setters
         self.email_address = email_address
-        self.email_code = CodeElement(application=application, code=email_code)
+        self.email_code = CodeElement.parse(application='security', code_or_element=email_code)
 
     @property
     def email_address(self):
@@ -146,7 +148,7 @@ class PasswordResetEmailState(PasswordResetState):
         :return: E-mail address.
         :rtype: str
         """
-        return self._data['email']
+        return self._data['email_address']
 
     @email_address.setter
     def email_address(self, value):
@@ -166,7 +168,7 @@ class PasswordResetEmailState(PasswordResetState):
         :return: Code element
         :rtype: CodeElement
         """
-        return self._data['email']
+        return self._data['email_code']
 
     @email_code.setter
     def email_code(self, value):
@@ -181,20 +183,20 @@ class PasswordResetEmailState(PasswordResetState):
     def to_dict(self):
         res = super(PasswordResetEmailState, self).to_dict()
         res['email_code'] = self.email_code.to_dict()
+        return res
 
 
 class PasswordResetEmailAndPhoneState(PasswordResetEmailState):
-    def __init__(self, application=None, eppn=None, email_address=None, email_code=None, phone_number=None,
+    def __init__(self, eppn=None, email_address=None, email_code=None, phone_number=None,
                  phone_code=None, created_ts=None, data=None, raise_on_unknown=True):
         if data is None:
             if created_ts is None:
                 created_ts = True
-            data = dict(eppn=eppn,
+            data = dict(eduPersonPrincipalName=eppn,
                         email_address=email_address,
                         email_code=email_code,
                         phone_number=phone_number,
                         phone_code=phone_code,
-                        created_by=application,
                         created_ts=created_ts,
                         )
 
@@ -202,17 +204,18 @@ class PasswordResetEmailAndPhoneState(PasswordResetEmailState):
         self._data = dict()
 
         # method
-        self._data['method'] = 'email_and_phone'
+        self._data_in['method'] = 'email_and_phone'
+
         # phone_number
         phone_number = self._data_in.pop('phone_number', None)
         # phone_code
         phone_code = self._data_in.pop('phone_code', None)
 
-        PasswordResetEmailState.__init__(self, self._data_in, raise_on_unknown)
+        PasswordResetEmailState.__init__(self, data=self._data_in, raise_on_unknown=raise_on_unknown)
 
         # things with setters
         self.phone_number = phone_number
-        self.phone_code = CodeElement(application=application, code=phone_code)
+        self.phone_code = CodeElement.parse(application='security', code_or_element=phone_code)
 
     @property
     def phone_number(self):
@@ -258,4 +261,6 @@ class PasswordResetEmailAndPhoneState(PasswordResetEmailState):
     def to_dict(self):
         res = super(PasswordResetEmailAndPhoneState, self).to_dict()
         if self._data.get('phone_code'):
-            res['phone_code'] = self.email_code.to_dict()
+            res['phone_code'] = self.phone_code.to_dict()
+        return res
+

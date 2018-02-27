@@ -1,15 +1,17 @@
 # -*- coding: utf-8 -*-
 
 import copy
+from six import string_types
 from datetime import datetime, timedelta
 from eduid_userdb.element import Element
+from eduid_userdb.exceptions import UserDBValueError
 
 __author__ = 'lundberg'
 
 
 class CodeElement(Element):
 
-    def __init__(self, application=None, code=None, created_ts=None, data=None):
+    def __init__(self, application=None, code=None, is_used=False, created_ts=None, data=None):
 
         data_in = copy.copy(data)  # to not modify callers data
 
@@ -19,10 +21,13 @@ class CodeElement(Element):
             data_in = dict(created_by=application,
                            created_ts=created_ts,
                            code=code,
+                           used=is_used,
                            )
-            code = data_in.pop('code', None)
+        code = data_in.pop('code', None)
+        is_used = data_in.pop('is_used', False)
         Element.__init__(self, data_in)
         self.code = code
+        self.is_used = is_used
 
     @property
     def key(self):
@@ -53,7 +58,26 @@ class CodeElement(Element):
         self._data['code'] = value
     # -----------------------------------------------------------------
 
-    def is_code_expired(self, timeout):
+    @property
+    def is_used(self):
+        """
+        :return: True if the code has been used.
+        :rtype: bool
+        """
+        return self._data['is_used']
+
+    @is_used.setter
+    def is_used(self, value):
+        """
+        :param value: True if code is used
+        :type value: bool
+        """
+        if not isinstance(value, bool):
+            raise UserDBValueError("Invalid 'is_used': {!r}".format(value))
+        self._data['is_used'] = value
+    # -----------------------------------------------------------------
+
+    def is_expired(self, timeout):
         """
         Check whether the code is expired.
 
@@ -68,3 +92,10 @@ class CodeElement(Element):
         expiry_date = expiry_date.replace(tzinfo=None)
         now = datetime.now()
         return expiry_date < now
+
+    @classmethod
+    def parse(cls, code_or_element, application):
+        if isinstance(code_or_element, string_types):
+            return cls(application=application, code=code_or_element)
+        if isinstance(code_or_element, dict):
+            return cls(data=code_or_element)

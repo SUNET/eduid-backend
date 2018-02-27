@@ -35,7 +35,7 @@ from __future__ import absolute_import
 from pymongo.errors import DuplicateKeyError
 from eduid_userdb.db import BaseDB
 from eduid_userdb.userdb import UserDB
-from eduid_userdb.exceptions import DocumentOutOfSync
+from eduid_userdb.exceptions import DocumentOutOfSync, MultipleDocumentsReturned
 from eduid_userdb.security import SecurityUser
 from eduid_userdb.security import PasswordResetEmailState, PasswordResetEmailAndPhoneState
 
@@ -77,10 +77,16 @@ class PasswordResetStateDB(BaseDB):
         :raise self.DocumentDoesNotExist: No document match the search criteria
         :raise self.MultipleDocumentsReturned: More than one document matches the search criteria
         """
-        spec = {'email_code.code'}
-        state = self._get_documents_by_filter(spec, raise_on_missing)
-        if state:
-            return self.init_state(state)
+        spec = {'email_code.code': email_code}
+        states = list(self._get_documents_by_filter(spec, raise_on_missing=raise_on_missing))
+
+        if len(states) == 0:
+            return None
+
+        if len(states) > 1:
+            raise MultipleDocumentsReturned("Multiple matching users for filter {!r}".format(filter))
+
+        return self.init_state(states[0])
 
     def get_state_by_eppn(self, eppn, raise_on_missing=True):
         """
@@ -104,10 +110,10 @@ class PasswordResetStateDB(BaseDB):
 
     @staticmethod
     def init_state(state):
-        if state['method'] == 'email':
-            return PasswordResetEmailState(state)
-        if state['method'] == 'email_and_phone':
-            return PasswordResetEmailAndPhoneState(state)
+        if state.get('method') == 'email':
+            return PasswordResetEmailState(data=state)
+        if state.get('method') == 'email_and_phone':
+            return PasswordResetEmailAndPhoneState(data=state)
 
     def save(self, state, check_sync=True):
         """
@@ -135,7 +141,7 @@ class PasswordResetStateDB(BaseDB):
                 self, state, self._coll_name, result))
 
         else:
-            test_doc = {'eppn': state.eppn}
+            test_doc = {'eduPersonPrincipalName': state.eppn}
             if check_sync:
                 test_doc['modified_ts'] = modified
             result = self._coll.update(test_doc, state.to_dict(), upsert=(not check_sync))
