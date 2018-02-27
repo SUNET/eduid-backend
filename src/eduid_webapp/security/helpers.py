@@ -5,6 +5,7 @@ from __future__ import absolute_import
 from flask import current_app, render_template, url_for
 from eduid_common.api.utils import get_unique_hash
 from eduid_userdb.security import PasswordResetEmailState
+from eduid_userdb.exceptions import UserDoesNotExist
 from eduid_webapp.security.schemas import ConvertRegisteredKeys
 
 __author__ = 'lundberg'
@@ -54,12 +55,7 @@ def send_mail(to_addresses, text_template, html_template, context=None):
 
     text = render_template(text_template, **context)
     html = render_template(html_template, **context)
-
-    # DEBUG
-    if current_app.config.get('DEBUG', False):
-        current_app.logger.debug(text)
-    else:
-        current_app.mail_relay.sendmail(sender, to_addresses, text, html)
+    current_app.mail_relay.sendmail(sender, to_addresses, text, html)
 
 
 def send_termination_mail(user):
@@ -100,4 +96,27 @@ def send_password_reset_mail(email_address):
         send_mail(to_addresses, text_template, html_template, context)
         current_app.logger.info("Sent password reset email to user with the following addresses: {}.".format(
             to_addresses))
+    current_app.logger.info("Found no user with the following address: {}.".format(email_address))
+
+
+def get_extra_security_alternatives(eppn):
+    """
+    :param eppn: Users unique eppn
+    :type eppn: six.string_types
+    :return: Dict of alternatives
+    :rtype: dict
+    """
+    alternatives = {}
+    try:
+        user = current_app.central_userdb.get_user_by_eppn(eppn)
+    except UserDoesNotExist as e:
+        raise e
+    if user:
+        if user.phone_numbers.count:
+            verified_phone_numbers = [item.number for item in user.phone_numbers.to_list() if item.is_verified]
+            alternatives['phone_numbers'] = verified_phone_numbers
+    return alternatives
+
+
+
 

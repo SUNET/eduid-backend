@@ -166,3 +166,10 @@ class ResetPasswordEmailSchema(Schema):
             validate_email(value)
         except ValidationError:
             raise ValidationError('You need to input an email address')
+
+
+class ResetPasswordExtraSecuritySchema(Schema):
+
+    csrf = fields.String(required=True)
+    phone_number = fields.String(required=False)
+    no_extra_security = fields.String(required=False)

@@ -1,0 +1,14 @@
+{% extends "base.jinja2" %}
+
+{% block title %}{% trans %}Error{% endtrans %}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <h2>{{ view_context.heading }}</h2>
+        {% if view_context.text %}
+            <p><span class="glyphicon glyphicon-info-sign"></span> {{ view_context.text }}</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
