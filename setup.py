@@ -11,7 +11,7 @@ README = 'eduID Lookup Mobile'
 if os.path.exists(README_fn):
     README = open(README_fn).read()
 
-version = '0.0.6b3'
+version = '0.0.6b4'
 
 install_requires = [
     'eduid-userdb >= 0.0.2',
@@ -20,6 +20,13 @@ install_requires = [
     'suds-jurko >= 0.6',
     'phonenumbers >= 7.0.2'
 ]
+
+test_requires = [
+    'nose',
+    'coverage',
+    'nosexcover',
+]
+
 
 setup(
     name='eduid_lookup_mobile',
@@ -32,7 +39,6 @@ setup(
     keywords='nin mobile lookup',
     author='Mathias Hedström',
     author_email='mathias.hedstrom@umu.se',
-    #url='http://blogs.mnt.se',
     license='BSD',
     packages=find_packages(),
     include_package_data=True,
@@ -40,8 +46,9 @@ setup(
         },
     zip_safe=False,
     install_requires=install_requires,
-    #extras_require={
-    #    'testing': testing_extras,
-    #},
-    #test_suite='eduid_msg',
+    tests_require=test_requires,
+    test_suite='eduid_lookup_mobile',
+    extras_require={
+        'testing': test_requires,
+    },
 )
