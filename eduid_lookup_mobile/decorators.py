@@ -35,9 +35,8 @@ class TransactionAudit(object):
                 if self.collection is None:
                     self.db_uri = args[0].mongo_uri
                     # Do not initialize the db connection before we know the decorator is actually enabled
-                    conn = MongoDB(self.db_uri)
-                    db = conn.get_database(self.db_name)
-                    self.collection = db[self.collection_name]
+                    db = MongoDB(db_uri=self.db_uri, db_name=self.db_name)
+                    self.collection = db.get_collection(self.collection_name)
                 if not isclass(ret):  # we can't save class objects in mongodb
                     date = datetime.utcnow()
                     doc = {'function': f.__name__,
