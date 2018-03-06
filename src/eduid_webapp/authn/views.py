@@ -127,7 +127,7 @@ def _get_name_id(session):
         return None
 
 
-@authn_views.route('/logout', methods=['POST'])
+@authn_views.route('/logout', methods=['GET'])
 def logout():
     """
     SAML Logout Request initiator.
