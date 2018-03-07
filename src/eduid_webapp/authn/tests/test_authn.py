@@ -441,15 +441,13 @@ class LogoutRequestTests(AuthnAPITestBase):
     def test_logout_nologgedin(self):
         eppn = 'hubba-bubba'
         csrft = 'csrf token'
-        with self.app.test_request_context('/logout', method='POST',
-                                           data={'csrf': csrft}):
-            session['_csrft_'] = csrft
+        with self.app.test_request_context('/logout', method='GET'):
             session['user_eppn'] = eppn
             session['eduPersonPrincipalName'] = eppn
             response = self.app.dispatch_request()
-            self.assertEqual(response.status, '200 OK')
+            self.assertEqual(response.status, '302 FOUND')
             self.assertIn(self.app.config['SAML2_LOGOUT_REDIRECT_URL'],
-                          json.loads(response.data)['payload']['location'])
+                          response.headers['Location'])
 
     def test_logout_loggedin(self):
         eppn = 'hubba-bubba'
@@ -457,15 +455,13 @@ class LogoutRequestTests(AuthnAPITestBase):
         cookie = self.login(eppn, came_from)
 
         csrft = 'csrf token'
-        with self.app.test_request_context('/logout', method='POST',
-                                           headers={'Cookie': cookie},
-                                           data={'csrf': csrft}):
-            session['_csrft_'] = csrft
+        with self.app.test_request_context('/logout', method='GET',
+                                           headers={'Cookie': cookie}):
             response2 = self.app.dispatch_request()
-            self.assertEqual(response2.status, '200 OK')
+            self.assertEqual(response2.status, '302 FOUND')
             self.assertIn('https://idp.example.com/simplesaml/saml2/idp/'
                           'SingleLogoutService.php',
-                          json.loads(response2.data)['payload']['location'])
+                          response2.headers['location'])
 
     def test_logout_service_startingSP(self):
 
