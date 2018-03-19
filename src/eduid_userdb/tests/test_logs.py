@@ -232,6 +232,17 @@ class TestProofingLog(TestCase):
         self.assertEquals(hit['proofing_method'], 'se-leg')
         self.assertEquals(hit['proofing_version'], 'test')
 
+    def test_blank_string_proofing_data(self):
+        data = {
+            'created_by': 'test',
+            'phone_number': 'some_phone_number',
+            'proofing_version': 'test'
+        }
+        proofing_element = PhoneNumberProofing(self.user, **data)
+        proofing_element._data['phone_number'] = ''
+
+        self.assertFalse(self.proofing_log_db.save(proofing_element))
+
     def test_missing_proofing_data(self):
         data = {
             'created_by': 'test',
@@ -243,3 +254,18 @@ class TestProofingLog(TestCase):
 
         self.assertFalse(self.proofing_log_db.save(proofing_element))
 
+    def test_boolean_false_proofing_data(self):
+        data = {
+            'created_by': 'test',
+            'phone_number': 'some_phone_number',
+            'proofing_version': 'test'
+        }
+        proofing_element = PhoneNumberProofing(self.user, **data)
+        proofing_element._data['phone_number'] = 0
+
+        self.assertTrue(self.proofing_log_db.save(proofing_element))
+
+        proofing_element = PhoneNumberProofing(self.user, **data)
+        proofing_element._data['phone_number'] = False
+
+        self.assertTrue(self.proofing_log_db.save(proofing_element))
