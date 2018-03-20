@@ -3,6 +3,9 @@
 # Helper functions to log proofing events.
 #
 
+from __future__ import absolute_import
+
+import six
 import logging
 from eduid_userdb.element import Element
 
@@ -27,11 +30,17 @@ class LogElement(Element):
         super(LogElement, self).__init__(data={'created_by': created_by, 'created_ts': True})
 
     def validate(self):
-        # Check that all keys are accounted for and that none of them evaluates to false
-        if not all(self._data.get(key) for key in self._required_keys):
-            logger.error('Not enough data to log proofing event: {!r}. Required keys: {!r}'.format(
-                self._data, list(set(self._required_keys)-set(self._data.keys()))))
-            return False
+        # Check that all keys are accounted for and that no string values are blank
+        for key in self._required_keys:
+            data = self._data.get(key)
+            if data is None:
+                logger.error('Not enough data to log proofing event: {!r}. Required keys: {!r}'.format(
+                    self._data, list(set(self._required_keys) - set(self._data.keys()))))
+                return False
+            if isinstance(data, six.string_types):
+                if not data:
+                    logger.error('Not enough data to log proofing event: "{}" can not be blank.'.format(key))
+                    return False
         return True
 
 
