@@ -1,0 +1,111 @@
+# Translations template for PROJECT.
+# Copyright (C) 2018 ORGANIZATION
+# This file is distributed under the same license as the PROJECT project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2018.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2018-03-27 16:46+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.5.1\n"
+
+#: email/verifications.py:72
+msgid "eduID confirmation email"
+msgstr ""
+
+#: email/templates/verification_email.html.jinja2:5
+#, python-format
+msgid ""
+"\n"
+"<p>Thank you for registering with <a "
+"href=\"%(site_url)s\">%(site_name)s</a>.</p>\n"
+"\n"
+"<p>To confirm that you own this email address, simply click on the "
+"following link:\n"
+"\n"
+"<a href=\"%(verification_link)s\">%(verification_link)s</a></p>\n"
+"\n"
+"<p>If clicking on the link above does not work, go to your profile and "
+"emails section. Click on the\n"
+"confirmation icon and enter the following code:</p>\n"
+"\n"
+"<p><strong>%(code)s</strong></p>\n"
+"\n"
+msgstr ""
+
+#: email/templates/verification_email.txt.jinja2:1
+#, python-format
+msgid ""
+"\n"
+"Thank you for registering with %(site_name)s.\n"
+"\n"
+"To confirm that you own this email address, simply click on the following"
+" link:\n"
+"\n"
+"%(verification_link)s\n"
+"\n"
+"If clicking on the link above does not work, go to your profile and "
+"emails section. Click on the\n"
+"verification icon and enter the following code:\n"
+"\n"
+"%(code)s\n"
+"\n"
+msgstr ""
+
+#: oidc_proofing/helpers.py:76
+#, python-format
+msgid "%(site_name)s account verification"
+msgstr ""
+
+#: oidc_proofing/templates/redo_verification.html.jinja2:5
+#, python-format
+msgid ""
+"\n"
+"    <p>You have tried to verify your account at <a "
+"href=\"%(site_url)s\">%(site_name)s</a>.</p>\n"
+"    <p>We encountered a problem and kindly ask you to verify you account "
+"again using a different verification method.</p>\n"
+"    <p>We apologize for any inconvenience.</p>\n"
+msgstr ""
+
+#: oidc_proofing/templates/redo_verification.txt.jinja2:2
+#, python-format
+msgid ""
+"\n"
+"    You have tried to verify your account at %(site_name)s\n"
+"\n"
+"    We encountered a problem and kindly ask you to verify you account "
+"again using a different verification method.\n"
+"\n"
+"    We apologize for any inconvenience.\n"
+msgstr ""
+
+#: security/views/security.py:269
+msgid "eduID account termination"
+msgstr ""
+
+#: security/views/templates/termination_email.html.jinja2:5
+#, python-format
+msgid ""
+"\n"
+"<p>You have chosen to terminate your account at <a "
+"href=\"%(site_url)s\">%(site_name)s</a>.</p>\n"
+"\n"
+msgstr ""
+
+#: security/views/templates/termination_email.txt.jinja2:2
+#, python-format
+msgid ""
+"\n"
+"You have chosen to terminate your account at %(site_name)s.\n"
+"\n"
+msgstr ""
+

@@ -232,8 +232,7 @@ Use init_babel from eduid-common to set up translation support in the microservi
   ...
   app = translation.init_babel(app)
 
-
-Add a babel.cfg to the root dir of your microservice::
+There is a babel.cfg in the root dir (src/eduid_webapp)::
 
   [python: **.py]
   [jinja2: **/templates/**.jinja2]
