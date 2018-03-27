@@ -10,7 +10,7 @@ from oic.oic.message import RegistrationRequest
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 
 from eduid_common.api.app import eduid_init_app
-from eduid_common.api import am, msg
+from eduid_common.api import am, msg, mail_relay, translation
 from eduid_common.authn.utils import no_authn_views
 from eduid_userdb.proofing import OidcProofingStateDB, OidcProofingUserDB
 from eduid_userdb.logs import ProofingLog
@@ -75,6 +75,10 @@ def init_oidc_proofing_app(name, config):
     # Init celery
     app = msg.init_relay(app)
     app = am.init_relay(app, 'eduid_oidc_proofing')
+    app = mail_relay.init_relay(app)
+
+    # Init babel
+    app = translation.init_babel(app)
 
     # Initialize db
     app.private_userdb = OidcProofingUserDB(app.config['MONGO_URI'])
