@@ -35,6 +35,21 @@ def create_proofing_state(user, nin):
     return proofing_state
 
 
+def create_opaque_data(nonce, token):
+    """
+    :param nonce: Nonce
+    :param token: Token
+
+    :type nonce: six.string_types
+    :type token: six.string_types
+
+    :return: Opaque data for the user
+    :rtype: six.string_types
+    """
+    # The "1" below denotes the version of the data exchanged, right now only version 1 is supported.
+    return '1' + json.dumps({'nonce': nonce, 'token': token})
+
+
 def do_authn_request(proofing_state, claims_request, redirect_url):
     """
     :param proofing_state: Proofing state for user

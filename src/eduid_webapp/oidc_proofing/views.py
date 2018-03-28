@@ -112,7 +112,7 @@ def authorization_response():
             current_app.logger.info('Handling userinfo as freja vetting for user {}'.format(user))
             current_app.stats.count(name='freja.authn_response_received')
             helpers.handle_freja_eid_userinfo(user, proofing_state, userinfo)
-    except (MsgTaskFailed, MailTaskFailed) as e:
+    except (MsgTaskFailed, MailTaskFailed, KeyError) as e:
         current_app.logger.error('Failed to handle userinfo for user {}'.format(user))
         current_app.logger.error('Exception: {}'.format(e))
         current_app.stats.count(name='authn_response_handling_failure')
@@ -135,8 +135,7 @@ def get_seleg_state(user):
     current_app.logger.debug('Returning nonce for user {!s}'.format(user))
     current_app.stats.count(name='seleg.proofing_state_returned')
     buf = StringIO()
-    # The "1" below denotes the version of the data exchanged, right now only version 1 is supported.
-    qr_code = '1' + json.dumps({'nonce': proofing_state.nonce, 'token': proofing_state.token})
+    qr_code = helpers.create_opaque_data(proofing_state.nonce, proofing_state.token)
     qrcode.make(qr_code).save(buf)
     qr_b64 = buf.getvalue().encode('base64')
     return {
@@ -197,8 +196,7 @@ def get_freja_state(user):
     # Return request data
     current_app.logger.debug('Returning request data for user {!s}'.format(user))
     current_app.stats.count(name='freja.proofing_state_returned')
-    # The "1" below denotes the version of the data exchanged, right now only version 1 is supported.
-    opaque_data = '1' + json.dumps({'nonce': proofing_state.nonce, 'token': proofing_state.token})
+    opaque_data = helpers.create_opaque_data(proofing_state.nonce, proofing_state.token)
     request_data = {
         "iarp": current_app.config['FREJA_IARP'],
         "exp": int(expire_time.astimezone(UTC()).strftime('%s')) * 1000,  # Milliseconds since 1970 in UTC
