@@ -119,7 +119,7 @@ def handle_seleg_userinfo(user, proofing_state, userinfo):
         # Lookup official address via Navet
         address = current_app.msg_relay.get_postal_address(proofing_state.nin.number)
         # Transaction id is the same data as used for the QR code
-        transaction_id = '1' + json.dumps({'nonce': proofing_state.nonce, 'token': proofing_state.token})
+        transaction_id = metadata['opaque']
         proofing_log_entry = SeLegProofing(user, created_by=proofing_state.nin.created_by,
                                            nin=proofing_state.nin.number, vetting_by='se-leg',
                                            transaction_id=transaction_id, user_postal_address=address,

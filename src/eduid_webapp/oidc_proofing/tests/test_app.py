@@ -236,7 +236,9 @@ class OidcProofingTests(EduidAPITestCase):
         userinfo = {
             'identity': self.test_user_nin,
             'metadata': {
-                'score': 100
+                'score': 100,
+                'opaque': '1' + json.dumps({'nonce': proofing_state.nonce, 'token': proofing_state.token}),
+                'ra_app': 'App id for vetting app'
             }
         }
         self.mock_authorization_response(qrdata, proofing_state, userinfo)
@@ -279,7 +281,9 @@ class OidcProofingTests(EduidAPITestCase):
         userinfo = {
             'identity': self.test_user_nin,
             'metadata': {
-                'score': 0
+                'score': 0,
+                'opaque': '1' + json.dumps({'nonce': proofing_state.nonce, 'token': proofing_state.token}),
+                'ra_app': 'App id for vetting app'
             }
         }
         self.mock_authorization_response(qrdata, proofing_state, userinfo)
@@ -324,7 +328,9 @@ class OidcProofingTests(EduidAPITestCase):
         userinfo = {
             'identity': self.test_user_nin,
             'metadata': {
-                'score': 100
+                'score': 100,
+                'opaque': '1' + json.dumps({'nonce': proofing_state.nonce, 'token': proofing_state.token}),
+                'ra_app': 'App id for vetting app'
             }
         }
         self.mock_authorization_response(qrdata, proofing_state, userinfo)
@@ -372,7 +378,9 @@ class OidcProofingTests(EduidAPITestCase):
         userinfo = {
             'identity': self.test_user_nin,
             'metadata': {
-                'score': 100
+                'score': 100,
+                'opaque': '1' + json.dumps({'nonce': proofing_state.nonce, 'token': proofing_state.token}),
+                'ra_app': 'App id for vetting app'
             }
         }
         self.mock_authorization_response(qrdata, proofing_state, userinfo)
