@@ -149,6 +149,7 @@ def remove(user, key_handle):
         save_and_sync_user(security_user)
         current_app.stats.count(name='u2f_token_remove')
     return {
+        'message': 'security.u2f-token-removed',
         'credentials': compile_credential_list(security_user)
     }
 
