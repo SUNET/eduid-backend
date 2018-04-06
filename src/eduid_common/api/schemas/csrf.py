@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import absolute_import
+try:
+    import urlparse  # Python2
+except ImportError:
+    from urllib.parse import urlparse  # Python3
 
 from marshmallow import Schema, fields, validates, pre_dump, post_load, ValidationError
-from flask import session
+from flask import session, request
 from eduid_common.api.schemas.base import EduidSchema, FluxStandardAction
 
 __author__ = 'lundberg'
@@ -15,6 +19,24 @@ class CSRFRequestMixin(Schema):
 
     @validates('csrf_token')
     def validate_csrf_token(self, value):
+        custom_header = request.headers.get('X-Requested-With', '')
+        if custom_header != 'XMLHttpRequest':
+            raise ValidationError('CSRF missing custom X-Requested-With header')
+        origin = request.headers.get('Origin', None)
+        if origin is not None:
+            origin = origin.split()[0]
+        else:
+            origin = request.headers.get('Referer', None)
+        if origin is None:
+            raise ValidationError('CSRF cannot check origin')
+        _, origin, _, _, _ = urlparse.urlsplit(origin)
+        target = request.headers.get('X-Forwarded-Host', None)
+        if target is None:
+            raise ValidationError('CSRF cannot check target')
+        target = target.split(':')[0]
+        if origin != target:
+            raise ValidationError('CSRF cross origin request, origin: {}, '
+                                  'target: {}'.format(origin, target))
         if session.get_csrf_token() != value:
             raise ValidationError('CSRF failed to validate')
 
