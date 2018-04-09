@@ -30,3 +30,17 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+
+from marshmallow import fields
+from eduid_common.api.schemas.base import EduidSchema
+from eduid_common.api.schemas.csrf import CSRFRequestMixin
+from eduid_common.api.schemas.validators import validate_email
+from eduid_webapp.email.validators import email_does_not_exist
+
+__author__ = 'eperez'
+
+
+class RegisterEmailSchema(EduidSchema, CSRFRequestMixin):
+
+    email = fields.Email(required=True, validate=[validate_email, email_does_not_exist])
+    recaptcha_response = fields.String(required=True)
