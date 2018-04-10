@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import absolute_import
+from six.moves.urllib.parse import urlsplit
 
 from marshmallow import Schema, fields, validates, pre_dump, post_load, ValidationError
-from flask import session
+from flask import session, request, current_app
 from eduid_common.api.schemas.base import EduidSchema, FluxStandardAction
 
 __author__ = 'lundberg'
@@ -15,6 +16,26 @@ class CSRFRequestMixin(Schema):
 
     @validates('csrf_token')
     def validate_csrf_token(self, value):
+        custom_header = request.headers.get('X-Requested-With', '')
+        if custom_header != 'XMLHttpRequest':
+            raise ValidationError('CSRF missing custom X-Requested-With header')
+        origin = request.headers.get('Origin', None)
+        if origin is None:
+            origin = request.headers.get('Referer', None)
+        if origin is not None:
+            # In case we have a list of URLs
+            origin = origin.split()[0]
+        else:
+            raise ValidationError('CSRF cannot check origin')
+        origin = urlsplit(origin).hostname
+        target = request.headers.get('X-Forwarded-Host', None)
+        if target is None:
+            current_app.logger.error('The X-Forwarded-Host header is missing!!')
+            raise ValidationError('CSRF cannot check target')
+        target = target.split(':')[0]
+        if origin != target:
+            raise ValidationError('CSRF cross origin request, origin: {}, '
+                                  'target: {}'.format(origin, target))
         if session.get_csrf_token() != value:
             raise ValidationError('CSRF failed to validate')
 
