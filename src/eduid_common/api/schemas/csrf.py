@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import absolute_import
-try:
-    import urlparse  # Python2
-except ImportError:
-    from urllib.parse import urlparse  # Python3
+import urlparse
 
 from marshmallow import Schema, fields, validates, pre_dump, post_load, ValidationError
 from flask import session, request, current_app
@@ -29,7 +26,7 @@ class CSRFRequestMixin(Schema):
             origin = request.headers.get('Referer', None)
         if origin is None:
             raise ValidationError('CSRF cannot check origin')
-        _, origin, _, _, _ = urlparse.urlsplit(origin)
+        origin = urlparse.urlsplit(origin).hostname
         target = request.headers.get('X-Forwarded-Host', None)
         if target is None:
             current_app.logger.error('The X-Forwarded-Host header is missing!!')
