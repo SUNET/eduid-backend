@@ -20,11 +20,12 @@ class CSRFRequestMixin(Schema):
         if custom_header != 'XMLHttpRequest':
             raise ValidationError('CSRF missing custom X-Requested-With header')
         origin = request.headers.get('Origin', None)
+        if origin is None:
+            origin = request.headers.get('Referer', None)
         if origin is not None:
+            # In case we have a list of URLs
             origin = origin.split()[0]
         else:
-            origin = request.headers.get('Referer', None)
-        if origin is None:
             raise ValidationError('CSRF cannot check origin')
         origin = urlsplit(origin).hostname
         target = request.headers.get('X-Forwarded-Host', None)
