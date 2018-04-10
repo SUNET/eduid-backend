@@ -22,11 +22,9 @@ class CSRFRequestMixin(Schema):
         origin = request.headers.get('Origin', None)
         if origin is None:
             origin = request.headers.get('Referer', None)
-        if origin is not None:
-            # In case we have a list of URLs
-            origin = origin.split()[0]
-        else:
+        if origin is None:
             raise ValidationError('CSRF cannot check origin')
+        origin = origin.split()[0]
         origin = urlsplit(origin).hostname
         target = request.headers.get('X-Forwarded-Host', None)
         if target is None:
