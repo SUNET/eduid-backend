@@ -392,7 +392,6 @@ class LetterProofingTests(EduidAPITestCase):
         user.nins.add(Nin(self.test_user_nin, application='testing',
             primary=False))
         self.app.central_userdb.save(user, check_sync=False)
-        json_data = self.send_letter(self.test_user_nin, csrf_token)
 
         self.assertEqual(user.nins.count, 1)
         data = {
@@ -436,16 +435,15 @@ class LetterProofingTests(EduidAPITestCase):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         self.assertEqual(user.nins.count, 0)
 
+        user.nins.add(Nin(self.test_user_nin, application='testing',
+                          verified=True, primary=True))
+        self.app.central_userdb.save(user, check_sync=False)
+
+        self.assertEqual(user.nins.count, 1)
+
         json_data = self.get_state()
         csrf_token = json_data['payload']['csrf_token']
 
-        user.nins.add(Nin(self.test_user_nin, application='testing',
-            verified=True, primary=True))
-        self.app.central_userdb.save(user, check_sync=False)
-        json_data = self.send_letter(self.test_user_nin, csrf_token)
-
-        self.assertEqual(user.nins.count, 1)
-        csrf_token = json_data['payload']['csrf_token']
         data = {
                 'nin': self.test_user_nin,
                 'csrf_token': csrf_token
@@ -454,4 +452,6 @@ class LetterProofingTests(EduidAPITestCase):
             response = client.post('/remove-nin', data=json.dumps(data), content_type=self.content_type_json)
         rdata = json.loads(response.data)
 
-        self.assertTrue(rdata['payload']['message'])
+        self.assertFalse(rdata['payload']['success'])
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        self.assertEqual(user.nins.count, 1)
