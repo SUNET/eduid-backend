@@ -61,15 +61,11 @@ def can_verify_identity(f):
         user = get_user()
         # For now a user can just have one verified NIN
         if user.nins.primary is not None:
-            ret = {'error': 'User is already verified'}
-            response_data = FluxFailResponse(request, payload=ret)
-            return jsonify(FluxStandardAction().dump(response_data.to_dict()).data)
+            return {'_status': FluxResponseStatus.error, 'error': 'User is already verified'}
         # A user can not verify a nin if another previously was verified
         locked_nin = user.locked_identity.find('nin')
         if locked_nin and locked_nin.number != kwargs['nin']:
-            ret = {'error': 'Another nin is already registered for this user'}
-            response_data = FluxFailResponse(request, payload=ret)
-            return jsonify(FluxStandardAction().dump(response_data.to_dict()).data)
+            return {'_status': FluxResponseStatus.error, 'error': 'Another nin is already registered for this user'}
 
         return f(*args, **kwargs)
 
@@ -101,7 +97,7 @@ class MarshalWith(object):
             # Handle fail responses
             if response_status != FluxResponseStatus.ok:
                 response_data = FluxFailResponse(request, payload=ret)
-                return jsonify(FluxStandardAction().dump(response_data.to_dict()).data)
+                return jsonify(self.schema().dump(response_data.to_dict()).data)
 
             # Handle success responses
             response_data = FluxSuccessResponse(request, payload=ret)

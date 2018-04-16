@@ -19,7 +19,7 @@ class FluxResponseStatus(object):
 
 class FluxResponse(object):
 
-    def __init__(self, req, suffix, payload, error=None, meta=None):
+    def __init__(self, req, suffix, payload=None, error=None, meta=None):
         self.flux_type = get_flux_type(req, suffix)
         self.payload = payload
         self.meta = meta
@@ -37,11 +37,11 @@ class FluxResponse(object):
     def to_dict(self):
         rv = dict()
         rv['type'] = self.flux_type
-        if self.payload:
+        if self.payload is not None:
             rv['payload'] = self.payload
-        if self.error:
+        if self.payload is not None:
             rv['error'] = self.error
-        if self.meta:
+        if self.payload is not None:
             rv['meta'] = self.meta
         return rv
 
@@ -54,6 +54,4 @@ class FluxSuccessResponse(FluxResponse):
 
 class FluxFailResponse(FluxResponse):
     def __init__(self, req, payload, meta=None):
-        if 'csrf_token' not in payload:
-            payload['csrf_token'] = session.new_csrf_token()
         FluxResponse.__init__(self, req, 'fail', payload, error=True, meta=meta)
