@@ -18,4 +18,5 @@ install:
   - pip install --index-url https://pypi.sunet.se -r requirements/testing.txt
 # command to run tests
 script:
+  - pip freeze
   - nosetests
