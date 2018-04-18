@@ -4,13 +4,11 @@ from __future__ import absolute_import
 import requests
 import qrcode
 import qrcode.image.svg
-import json
 import jose
 
 from flask import request, make_response, url_for
 from flask import current_app, Blueprint
 from oic.oic.message import AuthorizationResponse, ClaimsRequest, Claims
-from datetime import datetime, timedelta
 
 from eduid_userdb.proofing import ProofingUser
 from eduid_userdb.util import UTC
@@ -129,6 +127,11 @@ def get_seleg_state(user):
     current_app.logger.debug('Getting state for user {!s}.'.format(user))
     try:
         proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn)
+        expire_time = current_app.config['SELEG_EXPIRE_TIME_HOURS']
+        if helpers.is_proofing_state_expired(proofing_state, expire_time):
+            current_app.proofing_statedb.remove_state(proofing_state)
+            current_app.stats.count(name='seleg.proofing_state_expired')
+            raise DocumentDoesNotExist(reason='seleg proofing state expired')
     except DocumentDoesNotExist:
         return {}
     # Return nonce and nonce as qr code
@@ -183,12 +186,8 @@ def get_freja_state(user):
     current_app.logger.debug('Getting state for user {!s}.'.format(user))
     try:
         proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn)
-        # Check request expiration time
-        minutes_until_midnight = (24 - proofing_state.modified_ts.hour) * 60  # Give the user until midnight
-        expire_time = proofing_state.modified_ts + timedelta(hours=current_app.config['FREJA_EXPIRE_TIME_HOURS'],
-                                                             minutes=minutes_until_midnight)
-        # Use tz_info from timezone aware mongodb datetime
-        if datetime.now(expire_time.tzinfo) > expire_time:
+        expire_time = current_app.config['FREJA_EXPIRE_TIME_HOURS']
+        if helpers.is_proofing_state_expired(proofing_state, expire_time):
             current_app.proofing_statedb.remove_state(proofing_state)
             current_app.stats.count(name='freja.proofing_state_expired')
             raise DocumentDoesNotExist(reason='freja proofing state expired')
@@ -198,9 +197,10 @@ def get_freja_state(user):
     current_app.logger.debug('Returning request data for user {!s}'.format(user))
     current_app.stats.count(name='freja.proofing_state_returned')
     opaque_data = helpers.create_opaque_data(proofing_state.nonce, proofing_state.token)
+    valid_until = helpers.get_proofing_state_valid_until(proofing_state, expire_time)
     request_data = {
         "iarp": current_app.config['FREJA_IARP'],
-        "exp": int(expire_time.astimezone(UTC()).strftime('%s')) * 1000,  # Milliseconds since 1970 in UTC
+        "exp": int(valid_until.astimezone(UTC()).strftime('%s')) * 1000,  # Milliseconds since 1970 in UTC
         "proto": current_app.config['FREJA_RESPONSE_PROTOCOL'],
         "opaque": opaque_data
     }
