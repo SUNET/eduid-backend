@@ -154,7 +154,6 @@ def seleg_proofing(user, nin):
     if not proofing_state:
         current_app.logger.debug('No proofing state found for user {!s}. Initializing new proofing flow.'.format(user))
         proofing_state = helpers.create_proofing_state(user, nin)
-        add_nin_to_user(user, proofing_state)
 
         # Initiate authn request
         try:
@@ -172,6 +171,9 @@ def seleg_proofing(user, nin):
         current_app.stats.count(name='seleg.authn_request_success')
         current_app.proofing_statedb.save(proofing_state)
         current_app.logger.debug('Proofing state {!s} for user {!s} saved'.format(proofing_state.state, user))
+    # Add the nin used to initiate the proofing state to the user
+    # NOOP if the user already have the nin
+    add_nin_to_user(user, proofing_state)
 
     return get_seleg_state()
 
@@ -225,7 +227,6 @@ def freja_proofing(user, nin):
     if not proofing_state:
         current_app.logger.debug('No proofing state found for user {!s}. Initializing new proofing flow.'.format(user))
         proofing_state = helpers.create_proofing_state(user, nin)
-        add_nin_to_user(user, proofing_state)
 
         # Initiate authn request
         try:
@@ -243,5 +244,8 @@ def freja_proofing(user, nin):
         current_app.stats.count(name='freja.authn_request_success')
         current_app.proofing_statedb.save(proofing_state)
         current_app.logger.debug('Proofing state {!s} for user {!s} saved'.format(proofing_state.state, user))
+    # Add the nin used to initiate the proofing state to the user
+    # NOOP if the user already have the nin
+    add_nin_to_user(user, proofing_state)
 
     return get_freja_state()
