@@ -146,6 +146,7 @@ def get_seleg_state(user):
 
 @oidc_proofing_views.route('/proofing', methods=['POST'])
 @UnmarshalWith(schemas.OidcProofingRequestSchema)
+@MarshalWith(schemas.NonceResponseSchema)
 @can_verify_identity
 @require_user
 def seleg_proofing(user, nin):
@@ -216,6 +217,7 @@ def get_freja_state(user):
 
 @oidc_proofing_views.route('/freja/proofing', methods=['POST'])
 @UnmarshalWith(schemas.OidcProofingRequestSchema)
+@MarshalWith(schemas.FrejaResponseSchema)
 @can_verify_identity
 @require_user
 def freja_proofing(user, nin):
