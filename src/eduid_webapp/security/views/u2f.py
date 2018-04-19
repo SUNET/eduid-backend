@@ -76,6 +76,7 @@ def bind(user, version, registration_data, client_data, description=''):
     save_and_sync_user(security_user)
     current_app.stats.count(name='u2f_token_bind')
     return {
+        'message': 'security.u2f_register_success',
         'credentials': compile_credential_list(security_user)
     }
 
@@ -148,6 +149,7 @@ def remove(user, key_handle):
         save_and_sync_user(security_user)
         current_app.stats.count(name='u2f_token_remove')
     return {
+        'message': 'security.u2f-token-removed',
         'credentials': compile_credential_list(security_user)
     }
 
@@ -183,7 +185,7 @@ def register_token(user):
             return render_template('register_token.html', data_for_client=None, success=True)
 
     current_app.logger.debug('Method: GET')
-    data_for_client = enroll().data
+    data_for_client = enroll(user).data
     current_app.logger.debug('data_for_client')
     current_app.logger.debug(data_for_client)
     return render_template('register_token.html', data_for_client=data_for_client, success=False)

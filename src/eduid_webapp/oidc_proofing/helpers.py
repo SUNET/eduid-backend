@@ -3,7 +3,8 @@ from __future__ import absolute_import
 
 import requests
 import json
-from flask import current_app
+from flask import current_app, render_template
+from flask_babel import gettext as _
 
 from eduid_userdb.proofing.element import NinProofingElement
 from eduid_userdb.logs import SeLegProofing, SeLegProofingFrejaEid
@@ -32,6 +33,21 @@ def create_proofing_state(user, nin):
     proofing_state = OidcProofingState({'eduPersonPrincipalName': user.eppn, 'nin': nin_element.to_dict(),
                                         'state': state, 'nonce': nonce, 'token': token})
     return proofing_state
+
+
+def create_opaque_data(nonce, token):
+    """
+    :param nonce: Nonce
+    :param token: Token
+
+    :type nonce: six.string_types
+    :type token: six.string_types
+
+    :return: Opaque data for the user
+    :rtype: six.string_types
+    """
+    # The "1" below denotes the version of the data exchanged, right now only version 1 is supported.
+    return '1' + json.dumps({'nonce': nonce, 'token': token})
 
 
 def do_authn_request(proofing_state, claims_request, redirect_url):
@@ -69,6 +85,31 @@ def do_authn_request(proofing_state, claims_request, redirect_url):
     return False
 
 
+def send_new_verification_method_mail(user):
+    site_name = current_app.config.get("EDUID_SITE_NAME")
+    site_url = current_app.config.get("EDUID_SITE_URL")
+    subject = _('%(site_name)s account verification', site_name=site_name)
+
+    email_address = user.mail_addresses.primary.email
+
+    context = {
+        "site_url": site_url,
+        "site_name": site_name,
+    }
+
+    text = render_template(
+            'redo_verification.txt.jinja2',
+            **context
+    )
+    html = render_template(
+            'redo_verification.html.jinja2',
+            **context
+    )
+
+    current_app.mail_relay.sendmail(subject, [email_address], text, html)
+    current_app.logger.info('Sent email to user {} requesting another vetting method'.format(user))
+
+
 def handle_seleg_userinfo(user, proofing_state, userinfo):
     """
     :param user: Central userdb user
@@ -83,22 +124,27 @@ def handle_seleg_userinfo(user, proofing_state, userinfo):
     """
     current_app.logger.info('Verifying NIN from seleg for user {}'.format(user))
     number = userinfo['identity']
-    # Check if the self professed NIN is the same as the NIN returned by the vetting provider
-    if not number_match_proofing(user, proofing_state, number):
-        current_app.logger.warning('Proofing state number did not match number in userinfo.'
-                                   'Using number from userinfo.')
-        proofing_state.nin.number = number
-    current_app.logger.info('Getting address for user {}'.format(user))
-    # Lookup official address via Navet
-    address = current_app.msg_relay.get_postal_address(proofing_state.nin.number)
-    # Transaction id is the same data as used for the QR code
-    transaction_id = '1' + json.dumps({'nonce': proofing_state.nonce, 'token': proofing_state.token})
-    proofing_log_entry = SeLegProofing(user, created_by=proofing_state.nin.created_by,
-                                       nin=proofing_state.nin.number, vetting_by='se-leg',
-                                       transaction_id=transaction_id, user_postal_address=address,
-                                       proofing_version='2017v1')
-    verify_nin_for_user(user, proofing_state, proofing_log_entry)
-    current_app.stats.count(name='seleg.authn_response_handled')
+    metadata = userinfo.get('metadata', {})
+    if metadata.get('score', 0) == 100:
+        if not number_match_proofing(user, proofing_state, number):
+            current_app.logger.warning('Proofing state number did not match number in userinfo.'
+                                       'Using number from userinfo.')
+            proofing_state.nin.number = number
+        current_app.logger.info('Getting address for user {}'.format(user))
+        # Lookup official address via Navet
+        address = current_app.msg_relay.get_postal_address(proofing_state.nin.number)
+        # Transaction id is the same data as used for the QR code
+        transaction_id = metadata['opaque']
+        proofing_log_entry = SeLegProofing(user, created_by=proofing_state.nin.created_by,
+                                           nin=proofing_state.nin.number, vetting_by='se-leg',
+                                           transaction_id=transaction_id, user_postal_address=address,
+                                           proofing_version='2017v1')
+        verify_nin_for_user(user, proofing_state, proofing_log_entry)
+        current_app.stats.count(name='seleg.authn_response_handled')
+    else:
+        current_app.logger.info('se-leg proofing did not result in a verified account due to low score')
+        current_app.stats.count(name='seleg.authn_response_with_low_score')
+        send_new_verification_method_mail(user)
 
 
 def handle_freja_eid_userinfo(user, proofing_state, userinfo):

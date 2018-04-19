@@ -47,7 +47,6 @@ from eduid_common.authn.eduid_saml2 import authenticate
 from eduid_common.authn.cache import IdentityCache, StateCache
 from eduid_webapp.authn.acs_registry import get_action, schedule_action
 from eduid_webapp.authn.helpers import verify_auth_token, verify_relay_state
-from eduid_webapp.authn.schemas import LogoutPayload, LogoutResponseSchema
 
 
 authn_views = Blueprint('authn', __name__)
@@ -128,8 +127,7 @@ def _get_name_id(session):
         return None
 
 
-@authn_views.route('/logout', methods=['POST'])
-@MarshalWith(LogoutResponseSchema)
+@authn_views.route('/logout', methods=['GET'])
 def logout():
     """
     SAML Logout Request initiator.
@@ -141,7 +139,7 @@ def logout():
     if eppn is None:
         current_app.logger.info('Session cookie has expired, no logout action needed')
         location = current_app.config.get('SAML2_LOGOUT_REDIRECT_URL')
-        return LogoutPayload().dump({'location': location}).data
+        return redirect(location)
 
     user = current_app.central_userdb.get_user_by_eppn(eppn)
 
@@ -153,11 +151,14 @@ def logout():
                          state_cache=state,
                          identity_cache=identity)
 
+    # The user doesn't have a SAML2 NameID in the session
+    # after a token login from Signup into Dashboard.
     subject_id = _get_name_id(session)
     if subject_id is None:
         current_app.logger.warning(
             'The session does not contain '
             'the subject id for user {}'.format(user))
+        session.clear()
         location = current_app.config.get('SAML2_LOGOUT_REDIRECT_URL')
 
     else:
@@ -170,7 +171,7 @@ def logout():
                 session.clear()
                 location = current_app.config.get('SAML2_LOGOUT_REDIRECT_URL')
                 location = verify_relay_state(request.form.get('RelayState', location), location)
-                return LogoutPayload().dump({'location': location}).data
+                return redirect(location)
             else:
                 abort(500)
         headers_tuple = loresponse[1]['headers']
@@ -179,7 +180,7 @@ def logout():
                                 'for user {}'.format(location, user))
 
     state.sync()
-    return LogoutPayload().dump({'location': location}).data
+    return redirect(location)
 
 
 @authn_views.route('/saml2-ls', methods=['POST'])

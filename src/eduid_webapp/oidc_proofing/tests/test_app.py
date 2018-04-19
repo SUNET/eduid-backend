@@ -112,6 +112,7 @@ class OidcProofingTests(EduidAPITestCase):
                 'client_id': 'test_client',
                 'client_secret': 'secret'
             },
+            'USERINFO_ENDPOINT_METHOD': 'POST',
             'FREJA_JWS_ALGORITHM': 'HS256',
             'FREJA_JWS_KEY_ID': '0',
             'FREJA_JWK_SECRET': '499602d2',  # in hex
@@ -128,6 +129,28 @@ class OidcProofingTests(EduidAPITestCase):
             self.app.proofing_statedb._drop_whole_collection()
             self.app.proofing_log._drop_whole_collection()
             self.app.central_userdb._drop_whole_collection()
+
+    @patch('oic.oic.Client.parse_response')
+    @patch('oic.oic.Client.do_user_info_request')
+    @patch('oic.oic.Client.do_access_token_request')
+    def mock_authorization_response(self, qrdata, proofing_state, userinfo, mock_token_request, mock_userinfo_request,
+                                    mock_auth_response):
+        mock_auth_response.return_value = {
+            'id_token': 'id_token',
+            'code': 'code',
+            'state': proofing_state.state,
+        }
+        mock_token_request.return_value = {
+            'id_token': {
+                'nonce': qrdata['nonce'],
+                'sub': 'sub'
+            }
+        }
+        userinfo['sub'] = 'sub'
+        mock_userinfo_request.return_value = userinfo
+        headers = {'Authorization': 'Bearer {}'.format(qrdata['token'])}
+        return self.browser.get('/authorization-response?id_token=id_token&state={}'.format(proofing_state.state),
+                                headers=headers)
 
     def test_authenticate(self):
         response = self.browser.get('/proofing')
@@ -195,7 +218,7 @@ class OidcProofingTests(EduidAPITestCase):
             response = json.loads(browser.get('/proofing').data)
         self.assertEqual(response['type'], 'GET_OIDC_PROOFING_PROOFING_SUCCESS')
 
-        csrf_token = response['csrf_token']
+        csrf_token = response['payload']['csrf_token']
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             data = {'nin': self.test_user_nin, 'csrf_token': csrf_token}
@@ -207,19 +230,68 @@ class OidcProofingTests(EduidAPITestCase):
             response = json.loads(browser.get('/proofing').data)
         self.assertEqual(response['type'], 'GET_OIDC_PROOFING_PROOFING_SUCCESS')
 
-        # No actual oidc flow tested here
+        # Fake callback from OP
+        qrdata = json.loads(response['payload']['qr_code'][1:])
         proofing_state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
         userinfo = {
             'identity': self.test_user_nin,
+            'metadata': {
+                'score': 100,
+                'opaque': '1' + json.dumps({'nonce': proofing_state.nonce, 'token': proofing_state.token}),
+                'ra_app': 'App id for vetting app'
+            }
         }
-        with self.app.app_context():
-            handle_seleg_userinfo(user, proofing_state, userinfo)
+        self.mock_authorization_response(qrdata, proofing_state, userinfo)
+
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         self.assertEqual(user.nins.primary.number, self.test_user_nin)
         self.assertEqual(user.nins.primary.created_by, proofing_state.nin.created_by)
         self.assertEqual(user.nins.primary.verified_by, proofing_state.nin.created_by)
         self.assertEqual(user.nins.primary.is_verified, True)
         self.assertEqual(self.app.proofing_log.db_count(), 1)
+
+    @patch('eduid_webapp.oidc_proofing.helpers.do_authn_request')
+    @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_seleg_flow_low_score(self, mock_request_user_sync, mock_get_postal_address, mock_oidc_call):
+        mock_oidc_call.return_value = True
+        mock_get_postal_address.return_value = self.mock_address
+        mock_request_user_sync.side_effect = self.request_user_sync
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+
+        with self.session_cookie(self.browser, self.test_user_eppn) as browser:
+            response = json.loads(browser.get('/proofing').data)
+        self.assertEqual(response['type'], 'GET_OIDC_PROOFING_PROOFING_SUCCESS')
+
+        csrf_token = response['payload']['csrf_token']
+
+        with self.session_cookie(self.browser, self.test_user_eppn) as browser:
+            data = {'nin': self.test_user_nin, 'csrf_token': csrf_token}
+            response = browser.post('/proofing', data=json.dumps(data), content_type=self.content_type_json)
+            response = json.loads(response.data)
+        self.assertEqual(response['type'], 'POST_OIDC_PROOFING_PROOFING_SUCCESS')
+
+        with self.session_cookie(self.browser, self.test_user_eppn) as browser:
+            response = json.loads(browser.get('/proofing').data)
+        self.assertEqual(response['type'], 'GET_OIDC_PROOFING_PROOFING_SUCCESS')
+
+        # Fake callback from OP
+        qrdata = json.loads(response['payload']['qr_code'][1:])
+        proofing_state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
+        userinfo = {
+            'identity': self.test_user_nin,
+            'metadata': {
+                'score': 0,
+                'opaque': '1' + json.dumps({'nonce': proofing_state.nonce, 'token': proofing_state.token}),
+                'ra_app': 'App id for vetting app'
+            }
+        }
+        self.mock_authorization_response(qrdata, proofing_state, userinfo)
+
+        user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
+        self.assertEqual(user.nins.count, 1)
+        self.assertEqual(user.nins.verified.count, 0)
+        self.assertEqual(self.app.proofing_log.db_count(), 0)
 
     @patch('eduid_webapp.oidc_proofing.helpers.do_authn_request')
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
@@ -238,7 +310,7 @@ class OidcProofingTests(EduidAPITestCase):
             response = json.loads(browser.get('/proofing').data)
         self.assertEqual(response['type'], 'GET_OIDC_PROOFING_PROOFING_SUCCESS')
 
-        csrf_token = response['csrf_token']
+        csrf_token = response['payload']['csrf_token']
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             data = {'nin': self.test_user_nin, 'csrf_token': csrf_token}
@@ -250,13 +322,19 @@ class OidcProofingTests(EduidAPITestCase):
             response = json.loads(browser.get('/proofing').data)
         self.assertEqual(response['type'], 'GET_OIDC_PROOFING_PROOFING_SUCCESS')
 
-        # No actual oidc flow tested here
+        # Fake callback from OP
+        qrdata = json.loads(response['payload']['qr_code'][1:])
         proofing_state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
         userinfo = {
             'identity': self.test_user_nin,
+            'metadata': {
+                'score': 100,
+                'opaque': '1' + json.dumps({'nonce': proofing_state.nonce, 'token': proofing_state.token}),
+                'ra_app': 'App id for vetting app'
+            }
         }
-        with self.app.app_context():
-            handle_seleg_userinfo(user, proofing_state, userinfo)
+        self.mock_authorization_response(qrdata, proofing_state, userinfo)
+
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         self.assertEqual(user.nins.primary.number, self.test_user_nin)
         self.assertEqual(user.nins.primary.created_by, not_verified_nin.created_by)
@@ -282,7 +360,7 @@ class OidcProofingTests(EduidAPITestCase):
             response = json.loads(browser.get('/proofing').data)
         self.assertEqual(response['type'], 'GET_OIDC_PROOFING_PROOFING_SUCCESS')
 
-        csrf_token = response['csrf_token']
+        csrf_token = response['payload']['csrf_token']
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             data = {'nin': self.test_user_wrong_nin, 'csrf_token': csrf_token}
@@ -294,13 +372,19 @@ class OidcProofingTests(EduidAPITestCase):
             response = json.loads(browser.get('/proofing').data)
         self.assertEqual(response['type'], 'GET_OIDC_PROOFING_PROOFING_SUCCESS')
 
-        # No actual oidc flow tested here
+        # Fake callback from OP
+        qrdata = json.loads(response['payload']['qr_code'][1:])
         proofing_state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
         userinfo = {
             'identity': self.test_user_nin,
+            'metadata': {
+                'score': 100,
+                'opaque': '1' + json.dumps({'nonce': proofing_state.nonce, 'token': proofing_state.token}),
+                'ra_app': 'App id for vetting app'
+            }
         }
-        with self.app.app_context():
-            handle_seleg_userinfo(user, proofing_state, userinfo)
+        self.mock_authorization_response(qrdata, proofing_state, userinfo)
+
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         self.assertEqual(user.nins.primary.number, self.test_user_nin)
         self.assertEqual(user.nins.primary.created_by, proofing_state.nin.created_by)
@@ -321,7 +405,7 @@ class OidcProofingTests(EduidAPITestCase):
             response = json.loads(browser.get('/freja/proofing').data)
         self.assertEqual(response['type'], 'GET_OIDC_PROOFING_FREJA_PROOFING_SUCCESS')
 
-        csrf_token = response['csrf_token']
+        csrf_token = response['payload']['csrf_token']
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             data = {'nin': self.test_user_nin, 'csrf_token': csrf_token}
@@ -372,7 +456,7 @@ class OidcProofingTests(EduidAPITestCase):
             response = json.loads(browser.get('/proofing').data)
         self.assertEqual(response['type'], 'GET_OIDC_PROOFING_PROOFING_SUCCESS')
 
-        csrf_token = response['csrf_token']
+        csrf_token = response['payload']['csrf_token']
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             data = {'nin': self.test_user_nin, 'csrf_token': csrf_token}
@@ -420,7 +504,7 @@ class OidcProofingTests(EduidAPITestCase):
             response = json.loads(browser.get('/proofing').data)
         self.assertEqual(response['type'], 'GET_OIDC_PROOFING_PROOFING_SUCCESS')
 
-        csrf_token = response['csrf_token']
+        csrf_token = response['payload']['csrf_token']
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             data = {'nin': self.test_user_wrong_nin, 'csrf_token': csrf_token}
@@ -462,7 +546,7 @@ class OidcProofingTests(EduidAPITestCase):
             response = json.loads(browser.get('/freja/proofing').data)
         self.assertEqual(response['type'], 'GET_OIDC_PROOFING_FREJA_PROOFING_SUCCESS')
 
-        csrf_token = response['csrf_token']
+        csrf_token = response['payload']['csrf_token']
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             data = {'nin': self.test_user_nin, 'csrf_token': csrf_token}
@@ -492,7 +576,7 @@ class OidcProofingTests(EduidAPITestCase):
             response = json.loads(browser.get('/proofing').data)
         self.assertEqual(response['type'], 'GET_OIDC_PROOFING_PROOFING_SUCCESS')
 
-        csrf_token = response['csrf_token']
+        csrf_token = response['payload']['csrf_token']
 
         # User with no locked_identity
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
@@ -501,7 +585,7 @@ class OidcProofingTests(EduidAPITestCase):
             response = json.loads(response.data)
         self.assertEqual(response['type'], 'POST_OIDC_PROOFING_PROOFING_SUCCESS')
 
-        csrf_token = response['csrf_token']
+        csrf_token = response['payload']['csrf_token']
 
         # User with locked_identity and correct nin
         user.locked_identity.add(LockedIdentityNin(number=self.test_user_nin, created_by='test', created_ts=True))
@@ -513,7 +597,7 @@ class OidcProofingTests(EduidAPITestCase):
             response = json.loads(response.data)
         self.assertEqual(response['type'], 'POST_OIDC_PROOFING_PROOFING_SUCCESS')
 
-        csrf_token = response['csrf_token']
+        csrf_token = response['payload']['csrf_token']
 
         # User with locked_identity and incorrect nin
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
@@ -533,7 +617,7 @@ class OidcProofingTests(EduidAPITestCase):
             response = json.loads(browser.get('/freja/proofing').data)
         self.assertEqual(response['type'], 'GET_OIDC_PROOFING_FREJA_PROOFING_SUCCESS')
 
-        csrf_token = response['csrf_token']
+        csrf_token = response['payload']['csrf_token']
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             data = {'nin': self.test_user_nin, 'csrf_token': csrf_token}
@@ -541,7 +625,7 @@ class OidcProofingTests(EduidAPITestCase):
             response = json.loads(response.data)
         self.assertEqual(response['type'], 'POST_OIDC_PROOFING_FREJA_PROOFING_SUCCESS')
 
-        csrf_token = response['csrf_token']
+        csrf_token = response['payload']['csrf_token']
 
         user.locked_identity.add(LockedIdentityNin(number=self.test_user_nin, created_by='test', created_ts=True))
         self.app.central_userdb.save(user, check_sync=False)
@@ -552,7 +636,7 @@ class OidcProofingTests(EduidAPITestCase):
             response = json.loads(response.data)
         self.assertEqual(response['type'], 'POST_OIDC_PROOFING_FREJA_PROOFING_SUCCESS')
 
-        csrf_token = response['csrf_token']
+        csrf_token = response['payload']['csrf_token']
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             data = {'nin': '200102031234', 'csrf_token': csrf_token}
