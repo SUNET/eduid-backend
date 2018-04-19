@@ -42,6 +42,7 @@ from copy import deepcopy
 
 import redis
 import etcd
+from flask.testing import FlaskClient
 
 from eduid_userdb import User
 from eduid_userdb.data_samples import NEW_USER_EXAMPLE
@@ -95,6 +96,7 @@ class EduidAPITestCase(unittest.TestCase):
         config = self.update_config(config)
         os.environ.update({'ETCD_PORT': str(self.etcd_instance.port)})
         self.app = self.load_app(config)
+        self.app.test_client_class = CSRFTestClient
         self.browser = self.app.test_client()
         if create_user:
             self.test_user_data = deepcopy(NEW_USER_EXAMPLE)
@@ -291,3 +293,29 @@ class EtcdTemporaryInstance(object):
             self._process.terminate()
             self._process.wait()
             self._process = None
+
+
+class CSRFTestClient(FlaskClient):
+
+    # Add the custom csrf headers to every call to post
+    def post(self, *args, **kw):
+        """
+        Adds the custom csrf headers as long as not initiated with custom_csrf_headers=False.
+
+        This could also be done with updating FlaskClient.environ_base with the below header keys but
+        that makes it harder to override per call to post.
+        """
+        test_host = '{}://{}'.format(self.application.config['PREFERRED_URL_SCHEME'],
+                                     self.application.config['SERVER_NAME'])
+        csrf_headers = {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Referer': test_host,
+            'X-Forwarded-Host': self.application.config['SERVER_NAME']
+        }
+        if kw.pop('custom_csrf_headers', True):
+            if 'headers' in kw:
+                kw['headers'].update(csrf_headers)
+            else:
+                kw['headers'] = csrf_headers
+
+        return super(CSRFTestClient, self).post(*args, **kw)
