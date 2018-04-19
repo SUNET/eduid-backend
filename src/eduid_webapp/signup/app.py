@@ -70,6 +70,8 @@ def signup_init_app(name, config):
     app = am.init_relay(app, 'eduid_signup')
     app = mail_relay.init_relay(app)
 
+    app.private_userdb = SignupUserDB(app.config['MONGO_URI'], 'eduid_signup')
+
     app.logger.info('Init {} app...'.format(name))
 
     return app

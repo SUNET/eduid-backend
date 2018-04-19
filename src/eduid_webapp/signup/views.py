@@ -36,8 +36,11 @@ from flask import Blueprint, request, session, current_app
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith
 from eduid_common.api.schemas.base import FluxStandardAction
+from eduid_webapp.email.schemas import VerificationCodeSchema
 from eduid_webapp.signup.schemas import RegisterEmailSchema
-from eduid_webapp.signup.helpers import verify_recaptcha
+from eduid_webapp.signup.verifications import verify_recaptcha
+from eduid_webapp.signup.helpers import get_url_from_email_status
+from eduid_webapp.signup.helpers import locale_negotiator
 
 signup_views = Blueprint('signup', __name__, url_prefix='')
 
@@ -74,7 +77,6 @@ def trycaptcha(email, recaptcha_response):
 
     if recaptcha_verified:
         current_app.logger.info('Valid CAPTCHA response from {!r}'.format(remote_ip))
-        email = session['email']
         return get_url_from_email_status(request, email)
     return {
         'error': True,
@@ -82,73 +84,7 @@ def trycaptcha(email, recaptcha_response):
         'lang': locale_negotiator(request)
     }
 
-def get_url_from_email_status(request, email):
-    """
-    Return a view depending on the verification status of the provided email.
-
-    If a user with this (verified) e-mail address exist in the central eduid userdb,
-    return view 'email_already_registered'.
-
-    Otherwise, send a verification e-mail.
-
-    :param request: the request
-    :type request: WebOb Request
-    :param email: the email
-    :type email: string
-
-    :return: redirect response
-    """
-    status = check_email_status(request.userdb, request.signup_db, email)
-    logger.debug("e-mail {!s} status: {!s}".format(email, status))
-    if status == 'new':
-        send_verification_mail(request, email)
-        namedview = 'success'
-    elif status == 'not_verified':
-        request.session['email'] = email
-        namedview = 'resend_email_verification'
-    elif status == 'verified':
-        request.session['email'] = email
-        namedview = 'email_already_registered'
-    else:
-        raise NotImplementedError('Unknown e-mail status: {!r}'.format(status))
-    url = request.route_url(namedview)
-
-    return HTTPFound(location=url)
-
-def check_email_status(userdb, signup_db, email):
-    """
-    Check the email registration status.
-
-    If the email doesn't exist in database, then return 'new'.
-
-    If exists and it hasn't been verified, then return 'not_verified'.
-
-    If exists and it has been verified before, then return 'verified'.
-
-    :param userdb: eduID central userdb
-    :param signup_db: Signup userdb
-    :param email: Address to look for
-
-    :type userdb: eduid_userdb.UserDb
-    :type signup_db: eduid_userdb.signup.SignupUserDB
-    :type email: str | unicode
-    """
-    try:
-        am_user = userdb.get_user_by_mail(email, raise_on_missing=True, include_unconfirmed=False)
-        logger.debug("Found user {!s} with email {!s}".format(am_user, email))
-        return 'verified'
-    except userdb.exceptions.UserDoesNotExist:
-        logger.debug("No user found with email {!s} in eduid userdb".format(email))
-
-    try:
-        signup_user = signup_db.get_user_by_pending_mail_address(email)
-        if signup_user:
-            logger.debug("Found user {!s} with pending email {!s} in signup db".format(signup_user, email))
-            return 'not_verified'
-    except userdb.exceptions.UserDoesNotExist:
-        logger.debug("No user found with email {!s} in signup db either".format(email))
-
-    # Workaround for failed earlier sync of user to userdb: Remove any signup_user with this e-mail address.
-    remove_users_with_mail_address(signup_db, email)
-
-    return 'new'
+@signup_views.route('/verify-link', methods=['GET'])
+@UnmarshalWith(VerificationCodeSchema)
+def verify_link(code, email):
+    pass

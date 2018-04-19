@@ -32,70 +32,28 @@
 #
 
 import os
-from uuid import uuid4
 import struct
 import proquint
-import time
-import requests
 
-from flask import current_app, abort
-
-from eduid_userdb.signup import SignupUser
-from eduid_userdb.proofing import EmailProofingElement
+from flask import current_app, request, abort
 
 
-def verify_recaptcha(secret_key, captcha_response, user_ip, retries=3):
-    """
-    :param secret_key: Recaptcha secret key
-    :param captcha_response: User recaptcha response
-    :param user_ip: User ip address
-    :param retries: Number of times to retry sending recaptcha response
+def locale_negotiator():
+    available_languages = current_app.config['AVAILABLE_LANGUAGES'].keys()
+    cookie_name = current_app.config['LANG_COOKIE_NAME']
 
-    :type secret_key: str
-    :type captcha_response: str
-    :type user_ip: str
-    :type retries: int
+    cookie_lang = request.cookies.get(cookie_name, None)
+    if cookie_lang and cookie_lang in available_languages:
+        return cookie_lang
 
-    :return: True|False
-    :rtype: bool
-    """
-    url = 'https://www.google.com/recaptcha/api/siteverify'
-    params = {
-        'secret': secret_key,
-        'response': captcha_response,
-        'remoteip': user_ip
-    }
-    while retries:
-        retries -= 1
-        try:
-            current_app.logger.debug('Sending the CAPTCHA response')
-            verify_rs = requests.get(url, params=params, verify=True)
-            current_app.logger.debug("CAPTCHA response: {}".format(verify_rs))
-            verify_rs = verify_rs.json()
-            if verify_rs.get('success', False) is True:
-                return True
-        except requests.exceptions.RequestException as e:
-            if not retries:
-                current_app.logger.error('Caught RequestException while '
-                                         'sending CAPTCHA, giving up.')
-                raise e
-            current_app.logger.warning('Caught RequestException while '
-                                       'sending CAPTCHA, trying again.')
-            current_app.logger.warning(e)
-            time.sleep(0.5)
+    locale_name = request.accept_language.best_match(available_languages)
 
-    current_app.logger.info("Invalid CAPTCHA response from {}: {}".format(
-        user_ip, verify_rs.get('error-codes', 'Unspecified error')))
-    return False
+    if locale_name not in available_languages:
+        locale_name = current_app.config.get('DEFAULT_LOCALE_NAME', 'sv')
+    return locale_name
 
 
-def generate_verification_link():
-    code = text_type(uuid4())
-    # XXX link = request.route_url("email_verification_link", code=code)
-    return (link, code)
-
-
-def generate_eppn(request):
+def generate_eppn():
     """
     Generate a unique eduPersonPrincipalName.
 
@@ -115,53 +73,106 @@ def generate_eppn(request):
     abort(500)
 
 
-def send_verification_mail(request, email):
-    mailer = get_mailer(request)
-    (verification_link, code) = generate_verification_link(request)
+def get_url_from_email_status(request, email):
+    """
+    Return a view depending on the verification status of the provided email.
 
-    context = {
-        "email": email,
-        "verification_link": verification_link,
-        "site_url": request.route_url("home"),
-        "site_name": request.registry.settings.get("site.name", "eduid_signup"),
-        # We stopped sending the code to avoid confusing our users
-        #"code": code,
-        "verification_code_form_link": request.route_url("verification_code_form"),
-    }
+    If a user with this (verified) e-mail address exist in the central eduid userdb,
+    return view 'email_already_registered'.
 
-    message = Message(
-        subject=_("eduid-signup verification email"),
-        sender=request.registry.settings.get("mail.default_sender"),
-        recipients=[email],
-        body=render(
-            "templates/verification_email.txt.jinja2",
-            context,
-            request,
-        ),
-        html=render(
-            "templates/verification_email.html.jinja2",
-            context,
-            request,
-        ),
-    )
+    Otherwise, send a verification e-mail.
 
-    signup_user = request.signup_db.get_user_by_pending_mail_address(email)
-    if not signup_user:
-        mailaddress = EmailProofingElement(email = email, application = 'signup', verified = False,
-                                           verification_code = code)
-        signup_user = SignupUser(eppn = generate_eppn(request))
-        signup_user.pending_mail_address = mailaddress
-        request.signup_db.save(signup_user)
-        logger.info("New user {!s}/{!s} created. e-mail is pending confirmation.".format(signup_user, email))
+    :param request: the request
+    :type request: WebOb Request
+    :param email: the email
+    :type email: string
+
+    :return: redirect response
+    """
+    status = check_email_status(email)
+    logger.debug("e-mail {!s} status: {!s}".format(email, status))
+    if status == 'new':
+        send_verification_mail(request, email)
+        namedview = 'success'
+    elif status == 'not_verified':
+        request.session['email'] = email
+        namedview = 'resend_email_verification'
+    elif status == 'verified':
+        request.session['email'] = email
+        namedview = 'email_already_registered'
     else:
-        # update mailaddress on existing user with new code
-        signup_user.pending_mail_address.verification_code = code
-        request.signup_db.save(signup_user)
-        logger.info("User {!s}/{!s} updated with new e-mail confirmation code".format(signup_user, email))
+        raise NotImplementedError('Unknown e-mail status: {!r}'.format(status))
+    url = request.route_url(namedview)
 
-    if request.registry.settings.get("development", '') != 'true':
-        mailer.send(message)
-    else:
-        # Development
-        logger.debug("Confirmation e-mail:\nFrom: {!s}\nTo: {!s}\nSubject: {!s}\n\n{!s}".format(
-            message.sender, message.recipients, message.subject, message.body))
+    return HTTPFound(location=url)
+
+def check_email_status(email):
+    """
+    Check the email registration status.
+
+    If the email doesn't exist in database, then return 'new'.
+
+    If exists and it hasn't been verified, then return 'not_verified'.
+
+    If exists and it has been verified before, then return 'verified'.
+
+    :param userdb: eduID central userdb
+    :param signup_db: Signup userdb
+    :param email: Address to look for
+
+    :type userdb: eduid_userdb.UserDb
+    :type signup_db: eduid_userdb.signup.SignupUserDB
+    :type email: str | unicode
+    """
+    userdb = current_app.central_userdb
+    signup_db = current_app.private_userdb
+    try:
+        am_user = userdb.get_user_by_mail(email, raise_on_missing=True, include_unconfirmed=False)
+        current_app.logger.debug("Found user {!s} with email {!s}".format(am_user, email))
+        return 'verified'
+    except userdb.exceptions.UserDoesNotExist:
+        current_app.logger.debug("No user found with email {!s} in eduid userdb".format(email))
+
+    try:
+        signup_user = signup_db.get_user_by_pending_mail_address(email)
+        if signup_user:
+            current_app.logger.debug("Found user {!s} with pending email {!s} in signup db".format(signup_user, email))
+            return 'not_verified'
+    except userdb.exceptions.UserDoesNotExist:
+        current_app.logger.debug("No user found with email {!s} in signup db either".format(email))
+
+    # Workaround for failed earlier sync of user to userdb: Remove any signup_user with this e-mail address.
+    remove_users_with_mail_address(email)
+
+    return 'new'
+
+
+def remove_users_with_mail_address(email):
+    """
+    Remove all users with a certain (confirmed) e-mail address from signup_db.
+
+    When syncing of signed up users fail, they remain in the signup_db in a completed state
+    (no pending mail address). This prevents the user from signing up again, and they can't
+    use their new eduid account either since it is not synced to the central userdb.
+
+    An option would have been to sync the user again, now, but that was deemed more
+    surprising to the user so instead we remove all the unsynced users from signup_db
+    so the user can do a new signup.
+
+    :param signup_db: SignupUserDB
+    :param email: E-mail address
+
+    :param signup_db: eduid_userdb.signup.SignupUserDB
+    :param email: str | unicode
+
+    :return:
+    """
+    signup_db = current_app.private_userdb
+    # The e-mail address does not exist in userdb (checked by caller), so if there exists a user
+    # in signup_db with this (non-pending) e-mail address, it is probably left-overs from a
+    # previous signup where the sync to userdb failed. Clean away all such users in signup_db
+    # and continue like this was a completely new signup.
+    completed_users = signup_db.get_user_by_mail(email, raise_on_missing = False, return_list = True)
+    for user in completed_users:
+        current_app.logger.warning('Removing old user {!s} with e-mail {!s} from signup_db'.format(user, email))
+        signup_db.remove_user_by_id(user.user_id)
