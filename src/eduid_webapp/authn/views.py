@@ -151,11 +151,14 @@ def logout():
                          state_cache=state,
                          identity_cache=identity)
 
+    # The user doesn't have a SAML2 NameID in the session
+    # after a token login from Signup into Dashboard.
     subject_id = _get_name_id(session)
     if subject_id is None:
         current_app.logger.warning(
             'The session does not contain '
             'the subject id for user {}'.format(user))
+        session.clear()
         location = current_app.config.get('SAML2_LOGOUT_REDIRECT_URL')
 
     else:
