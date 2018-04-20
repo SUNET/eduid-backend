@@ -62,8 +62,9 @@ def get_proofing_state_valid_until(proofing_state, expire_time_hours):
     :return: Proofing state valid until
     :rtype datetime
     """
-    minutes_until_midnight = (24 - proofing_state.modified_ts.hour) * 60  # Give the user until midnight
-    return proofing_state.modified_ts + timedelta(hours=expire_time_hours, minutes=minutes_until_midnight)
+
+    grace_hours = 24 - proofing_state.modified_ts.hour  # Give the user the full day to complete
+    return proofing_state.modified_ts + timedelta(hours=expire_time_hours + grace_hours)
 
 
 def is_proofing_state_expired(proofing_state, expire_time_hours):
