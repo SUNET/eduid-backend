@@ -5,6 +5,7 @@ import requests
 import json
 from flask import current_app, render_template
 from flask_babel import gettext as _
+from datetime import datetime, timedelta
 
 from eduid_userdb.proofing.element import NinProofingElement
 from eduid_userdb.logs import SeLegProofing, SeLegProofingFrejaEid
@@ -48,6 +49,40 @@ def create_opaque_data(nonce, token):
     """
     # The "1" below denotes the version of the data exchanged, right now only version 1 is supported.
     return '1' + json.dumps({'nonce': nonce, 'token': token})
+
+
+def get_proofing_state_valid_until(proofing_state, expire_time_hours):
+    """
+    :param proofing_state: Proofing state for user
+    :param expire_time_hours: Expire time in hours
+
+    :type proofing_state: eduid_userdb.proofing.OidcProofingState
+    :type expire_time_hours: int
+
+    :return: Proofing state valid until
+    :rtype datetime
+    """
+
+    grace_hours = 24 - proofing_state.modified_ts.hour  # Give the user the full day to complete
+    return proofing_state.modified_ts + timedelta(hours=expire_time_hours + grace_hours)
+
+
+def is_proofing_state_expired(proofing_state, expire_time_hours):
+    """
+    :param proofing_state: Proofing state for user
+    :param expire_time_hours: Expire time in hours
+
+    :type proofing_state: eduid_userdb.proofing.OidcProofingState
+    :type expire_time_hours: int
+
+    :return: True/False
+    :rtype bool
+    """
+    valid_until = get_proofing_state_valid_until(proofing_state, expire_time_hours)
+    # Use tzinfo from timezone aware mongodb datetime
+    if datetime.now(valid_until.tzinfo) > valid_until:
+        return True
+    return False
 
 
 def do_authn_request(proofing_state, claims_request, redirect_url):
