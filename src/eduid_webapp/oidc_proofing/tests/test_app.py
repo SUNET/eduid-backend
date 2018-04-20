@@ -118,7 +118,8 @@ class OidcProofingTests(EduidAPITestCase):
             'FREJA_JWK_SECRET': '499602d2',  # in hex
             'FREJA_IARP': 'TESTRP',
             'FREJA_EXPIRE_TIME_HOURS': 336,
-            'FREJA_RESPONSE_PROTOCOL': '1.0'
+            'FREJA_RESPONSE_PROTOCOL': '1.0',
+            'SELEG_EXPIRE_TIME_HOURS': 336,
         })
         return config
 
