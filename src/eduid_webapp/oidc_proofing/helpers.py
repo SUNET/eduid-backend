@@ -79,7 +79,7 @@ def is_proofing_state_expired(proofing_state, expire_time_hours):
     :rtype bool
     """
     valid_until = get_proofing_state_valid_until(proofing_state, expire_time_hours)
-    # Use tz_info from timezone aware mongodb datetime
+    # Use tzinfo from timezone aware mongodb datetime
     if datetime.now(valid_until.tzinfo) > valid_until:
         return True
     return False
