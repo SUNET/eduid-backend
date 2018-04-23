@@ -50,6 +50,7 @@ class MessageRelay(Task):
     """
     abstract = True
     _sms = None
+    _sms_sender = None
     _mm_api = None
     _navet_api = None
     _config = config_parser.read_configuration()
@@ -65,7 +66,7 @@ class MessageRelay(Task):
             from smscom import SMSClient
 
             self._sms = SMSClient(self.app.conf.get("SMS_ACC"), self.app.conf.get("SMS_KEY"))
-            self._sender = self.app.conf.get("SMS_SENDER")
+            self._sms_sender = self.app.conf.get("SMS_SENDER")
         return self._sms
 
     @property
@@ -215,7 +216,7 @@ class MessageRelay(Task):
 
         if message_type == 'sms':
             LOG.debug("Sending SMS to '%s' using template '%s' and language '%s" % (recipient, template, language))
-            status = self.sms.send(msg, self._sender, recipient, prio=2)
+            status = self.sms.send(msg, self._sms_sender, recipient, prio=2)
         elif message_type == 'mm':
             LOG.debug("Sending MM to '%s' using language '%s'" % (recipient, language))
             reachable = self.is_reachable(recipient)
@@ -360,20 +361,53 @@ class MessageRelay(Task):
         Send mail
 
         :param sender: the From of the email
-        :type sender: str
         :param recipients: the recipients of the email
-        :type recipients: list of str
         :param message: email.mime.multipart.MIMEMultipart message as a string
+
+        :type sender: str
+        :type recipients: list of str
         :type message: six.string_types
+
+        :return Dict of errors
+        :rtype dict
         """
 
         # Just log the mail if in development mode
         conf = self.app.conf
         if conf.get("DEVEL_MODE") == 'true':
-            LOG.debug(message)
+            LOG.debug('sendmail task:')
+            LOG.debug("\nType: {}\nSender: {}\nRecipients: {}\nMessage:\n{}".format(
+                'email', sender, recipients, message))
             return 'devel_mode'
 
-        self.smtp.sendmail(sender, recipients, message)
+        return self.smtp.sendmail(sender, recipients, message)
+
+    @TransactionAudit(MONGODB_URI)
+    def sendsms(self, recipient, message, reference):
+        """
+        Send sms
+
+        :param recipient: the recipient of the sms
+        :param message: message as a string (160 chars per sms)
+        :param reference: Audit reference to help cross reference audit log and events
+
+        :type recipient: six.string_types
+        :type message: six.string_types
+        :type reference: six.string_types
+
+        :return Transaction ID
+        :rtype six.string_types
+        """
+
+        # Just log the sms if in development mode
+        conf = self.app.conf
+        if conf.get("DEVEL_MODE") == 'true':
+            LOG.debug('sendsms task:')
+            LOG.debug("\nType: {}\nReference: {}\nRecipient: {}\nMessage:\n{}".format(
+                'sms', reference, recipient, message))
+            return 'devel_mode'
+
+        return self.sms.send(message, self._sms_sender, recipient, prio=2)
 
 
 @task(base=MessageRelay)
@@ -436,6 +470,29 @@ def sendmail(sender, recipients, message):
         LOG.error('sendmail task error', exc_info=True)
         LOG.debug("sendmail task retrying in %d seconds, error %s" % (retry_countdown, e.message))
         sendmail.retry(exc=e, countdown=retry_countdown)
+
+
+@task(base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT, max_retries=10)
+def sendsms(recipient, message, reference):
+    """
+    :param recipient: the recipient of the sms
+    :param message: message as a string (160 chars per sms)
+    :param reference: Audit reference to help cross reference audit log and events
+
+    :type recipient: six.string_types
+    :type message: six.string_types
+    :type reference: six.string_types
+    """
+    self = sendsms
+    try:
+        return self.sendsms(recipient, message, reference)
+    except Exception as e:
+        # Increase countdown every time it fails (to a maximum of 1 day)
+        countdown = 600 * sendsms.request.retries ** 2
+        retry_countdown = min(countdown, 86400)
+        LOG.error('sendsms task error', exc_info=True)
+        LOG.debug("sendsms task retrying in %d seconds, error %s" % (retry_countdown, e.message))
+        sendsms.retry(exc=e, countdown=retry_countdown)
 
 
 @task(base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT, max_retries=10)
