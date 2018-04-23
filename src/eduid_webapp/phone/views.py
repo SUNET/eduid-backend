@@ -36,7 +36,7 @@ from __future__ import absolute_import
 from flask import Blueprint, session
 from flask import current_app
 
-from eduid_userdb.element import PrimaryElementViolation, DuplicateElementViolation
+from eduid_userdb.element import PrimaryElementViolation, UserDBValueError
 from eduid_userdb.exceptions import UserOutOfSync
 from eduid_userdb.phone import PhoneNumber
 from eduid_userdb.proofing import ProofingUser
@@ -235,10 +235,19 @@ def post_remove(user, number):
     try:
         proofing_user.phone_numbers.remove(number)
     except PrimaryElementViolation:
+        current_app.logger.info('Removing primary phone number')
+        current_app.logger.debug('Phone number: {}.'.format(number))
         verified = proofing_user.phone_numbers.verified.to_list()
         new_index = 1 if verified[0].number == number else 0
         proofing_user.phone_numbers.primary = verified[new_index].number
         proofing_user.phone_numbers.remove(number)
+    except UserDBValueError:
+        current_app.logger.info('Tried to remove a non existing phone number')
+        current_app.logger.debug('Phone number: {}.'.format(number))
+        return {
+            '_status': 'error',
+            'message': 'phones.unknown_phone'
+        }
 
     try:
         save_and_sync_user(proofing_user)
