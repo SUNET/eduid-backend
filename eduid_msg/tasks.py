@@ -451,14 +451,17 @@ def send_message(message_type, reference, message_dict, recipient, template, lan
 
 
 @task(base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT, max_retries=10)
-def sendmail(sender, recipients, message):
+def sendmail(sender, recipients, message, max_retry_seconds=86400):
     """
     :param sender: the From of the email
-    :type sender: str
     :param recipients: the recipients of the email
-    :type recipients: list of str
     :param message: email.mime.multipart.MIMEMultipart message as a string
+    :param max_retry_seconds: Do not retry this task if seconds trying exceeds this number
+
+    :type sender: str
+    :type recipients: list of str
     :type message: six.string_types
+    :type max_retry_seconds: int
     """
     self = sendmail
     try:
@@ -466,22 +469,24 @@ def sendmail(sender, recipients, message):
     except Exception as e:
         # Increase countdown every time it fails (to a maximum of 1 day)
         countdown = 600 * sendmail.request.retries ** 2
-        retry_countdown = min(countdown, 86400)
+        retry_countdown = min(countdown, max_retry_seconds)
         LOG.error('sendmail task error', exc_info=True)
         LOG.debug("sendmail task retrying in %d seconds, error %s" % (retry_countdown, e.message))
         sendmail.retry(exc=e, countdown=retry_countdown)
 
 
 @task(base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT, max_retries=10)
-def sendsms(recipient, message, reference):
+def sendsms(recipient, message, reference, max_retry_seconds=86400):
     """
     :param recipient: the recipient of the sms
     :param message: message as a string (160 chars per sms)
     :param reference: Audit reference to help cross reference audit log and events
+    :param max_retry_seconds: Do not retry this task if seconds trying exceeds this number
 
     :type recipient: six.string_types
     :type message: six.string_types
     :type reference: six.string_types
+    :type max_retry_seconds: int
     """
     self = sendsms
     try:
@@ -489,7 +494,7 @@ def sendsms(recipient, message, reference):
     except Exception as e:
         # Increase countdown every time it fails (to a maximum of 1 day)
         countdown = 600 * sendsms.request.retries ** 2
-        retry_countdown = min(countdown, 86400)
+        retry_countdown = min(countdown, max_retry_seconds)
         LOG.error('sendsms task error', exc_info=True)
         LOG.debug("sendsms task retrying in %d seconds, error %s" % (retry_countdown, e.message))
         sendsms.retry(exc=e, countdown=retry_countdown)
