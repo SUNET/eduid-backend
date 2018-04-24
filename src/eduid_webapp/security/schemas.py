@@ -171,5 +171,11 @@ class ResetPasswordEmailSchema(Schema):
 class ResetPasswordExtraSecuritySchema(Schema):
 
     csrf = fields.String(required=True)
-    phone_number = fields.String(required=False)
+    phone_number_index = fields.String(required=False)
     no_extra_security = fields.String(required=False)
+
+
+class ResetPasswordVerifyPhoneNumberSchema(Schema):
+
+    csrf = fields.String(required=True)
+    phone_code = fields.String(required=True)
