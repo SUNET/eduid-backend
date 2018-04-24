@@ -105,7 +105,7 @@ class TestTasks(MongoTestCase):
     def test_send_message_invalid_phone_number(self):
         try:
             send_message.delay('sms', 'reference', self.msg_dict, '+466666a', 'test.tmpl', 'sv_SE').get()
-        except ValueError, e:
+        except ValueError as e:
             self.assertEqual(e.message, "'to' is not a valid phone number")
 
     @patch('eduid_msg.tasks.MessageRelay.mm_api')
