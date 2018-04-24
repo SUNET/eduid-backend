@@ -9,6 +9,7 @@ from celery.exceptions import TimeoutError
 from eduid_msg.tasks import send_message as _send_message
 from eduid_msg.tasks import get_postal_address as _get_postal_address
 from eduid_msg.tasks import get_relations_to as _get_relations_to
+from eduid_msg.tasks import sendsms as _sendsms
 from eduid_common.api.exceptions import MsgTaskFailed
 
 __author__ = 'lundberg'
@@ -132,3 +133,23 @@ class MsgRelay(object):
 
         current_app.logger.debug("Extra debug: Send message result: {!r}, parameters:\n{!r}".format(
             res, ['sms', reference, content, targetphone, template, lang]))
+
+    def sendsms(self, recipient, message, reference, max_retry_seconds=86400):
+        """
+        :param recipient: the recipient of the sms
+        :param message: message as a string (160 chars per sms)
+        :param reference: Audit reference to help cross reference audit log and events
+        :param max_retry_seconds: Do not retry this task if seconds trying exceeds this number
+
+        :type recipient: six.string_types
+        :type message: six.string_types
+        :type reference: six.string_types
+        :type max_retry_seconds: int
+        """
+        try:
+            current_app.logger.info('Trying to send SMS with reference: {}'.format(reference))
+            current_app.logger.debug('Recipient: {}. Message: {}'.format(recipient, message))
+            res = _sendsms.delay(recipient, message, reference, max_retry_seconds)
+        except Exception as e:
+            raise MsgTaskFailed('sendsms task failed: {!r}'.format(e))
+        current_app.logger.info('SMS with reference {} sent. Task result: {}'.format(reference, res))
