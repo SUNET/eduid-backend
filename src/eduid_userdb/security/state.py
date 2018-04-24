@@ -29,12 +29,13 @@ class PasswordResetState(object):
             _id = bson.ObjectId(_id)
         self._data['_id'] = _id
         # eppn
-        eppn = self._data_in.pop('eduPersonPrincipalName')
-        self._data['eduPersonPrincipalName'] = eppn
+        self._data['eduPersonPrincipalName'] = self._data_in.pop('eduPersonPrincipalName')
 
-        # method
-        method = self._data_in.pop('method')
-        self._data['method'] = method
+        #method
+        self._data['method'] = self._data_in.pop('method', None)
+
+        # extra security alternatives
+        self._data['extra_security'] = self._data_in.pop('extra_security', None)
 
         # meta
         self.created_ts = self._data_in.pop('created_ts', None)
@@ -60,6 +61,7 @@ class PasswordResetState(object):
         """
         return self._data['eduPersonPrincipalName']
 
+    # -----------------------------------------------------------------
     @property
     def method(self):
         """
@@ -68,6 +70,16 @@ class PasswordResetState(object):
         :rtype: six.string_types
         """
         return self._data['method']
+
+    @method.setter
+    def method(self, value):
+        """
+        Set the password reset method
+
+        :rtype: six.string_types
+        """
+        if value is None or isinstance(value, string_types):
+            self._data['method'] = value
 
     # -----------------------------------------------------------------
     @property
@@ -106,6 +118,24 @@ class PasswordResetState(object):
         """
         _set_something_ts(self._data, 'modified_ts', value, allow_update=True)
 
+    @property
+    def extra_security(self):
+        """
+        Get the extra security alternatives
+
+        :rtype: dict
+        """
+        return self._data['extra_security']
+
+    @extra_security.setter
+    def extra_security(self, value):
+        """
+        :param value: dict of extra security alternatives
+        :type value: dict
+        """
+        if value is None or isinstance(value, dict):
+            self._data['extra_security'] = value
+
     def to_dict(self):
         res = copy.copy(self._data)  # avoid caller messing with our _data
         return res
@@ -126,9 +156,6 @@ class PasswordResetEmailState(PasswordResetState):
         self._data_in = copy.deepcopy(data)  # to not modify callers data
         self._data = dict()
 
-        # method
-        self._data_in['method'] = 'email'
-
         # email_address
         email_address = self._data_in.pop('email_address')
         # email_code
@@ -137,6 +164,7 @@ class PasswordResetEmailState(PasswordResetState):
         PasswordResetState.__init__(self, self._data_in, raise_on_unknown)
 
         # things with setters
+        self.method = 'email'
         self.email_address = email_address
         self.email_code = CodeElement.parse(application='security', code_or_element=email_code)
 
@@ -203,9 +231,6 @@ class PasswordResetEmailAndPhoneState(PasswordResetEmailState):
         self._data_in = copy.deepcopy(data)  # to not modify callers data
         self._data = dict()
 
-        # method
-        self._data_in['method'] = 'email_and_phone'
-
         # phone_number
         phone_number = self._data_in.pop('phone_number', None)
         # phone_code
@@ -214,8 +239,16 @@ class PasswordResetEmailAndPhoneState(PasswordResetEmailState):
         PasswordResetEmailState.__init__(self, data=self._data_in, raise_on_unknown=raise_on_unknown)
 
         # things with setters
+        self.method = 'email_and_phone'
         self.phone_number = phone_number
         self.phone_code = CodeElement.parse(application='security', code_or_element=phone_code)
+
+    @classmethod
+    def from_email_state(cls, email_state, phone_number, phone_code):
+        data = email_state.to_dict()
+        data['phone_number'] = phone_number
+        data['phone_code'] = phone_code
+        return cls(data=data)
 
     @property
     def phone_number(self):

@@ -86,11 +86,9 @@ class CodeElement(Element):
 
         :rtype: bool
         """
-        created = self.created_ts
         delta = timedelta(hours=timeout)
-        expiry_date = created + delta
-        expiry_date = expiry_date.replace(tzinfo=None)
-        now = datetime.now()
+        expiry_date = self.created_ts + delta
+        now = datetime.now(tz=self.created_ts.tzinfo)
         return expiry_date < now
 
     @classmethod
