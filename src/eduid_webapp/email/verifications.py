@@ -38,9 +38,10 @@ from eduid_userdb.mail import MailAddress
 from eduid_userdb.element import DuplicateElementViolation
 from eduid_common.api.utils import get_unique_hash, save_and_sync_user
 from eduid_userdb.proofing import EmailProofingElement, EmailProofingState
+from eduid_userdb.logs import MailAddressProofing
 
 
-def new_verification_code(email, user):
+def new_verification_state(email, user):
     old_verification = current_app.proofing_statedb.get_state_by_eppn_and_email(
             user.eppn, email, raise_on_missing=False)
     if old_verification is not None:
@@ -65,13 +66,13 @@ def new_verification_code(email, user):
     current_app.logger.debug('Verification Code:'
                              ' {!r}.'.format(verification_state.to_dict()))
 
-    return code
+    return verification_state
 
 
 def send_verification_code(email, user):
     subject = _('eduID confirmation email')
-    code = new_verification_code(email, user)
-    link = url_for('email.verify_link', code=code, email=email, _external=True)
+    state = new_verification_state(email, user)
+    link = url_for('email.verify_link', code=state.verification.verification_code, email=email, _external=True)
     site_name = current_app.config.get("EDUID_SITE_NAME")
     site_url = current_app.config.get("EDUID_SITE_URL")
 
@@ -80,7 +81,7 @@ def send_verification_code(email, user):
         "verification_link": link,
         "site_url": site_url,
         "site_name": site_name,
-        "code": code,
+        "code": state.verification.verification_code,
     }
 
     text = render_template(
@@ -92,7 +93,7 @@ def send_verification_code(email, user):
             **context
     )
 
-    current_app.mail_relay.sendmail(subject, [email], text, html)
+    current_app.mail_relay.sendmail(subject, [email], text, html, reference=state.id)
     current_app.logger.info("Sent email address verification mail to user {}"
                             " about address {!s}.".format(user, email))
 
@@ -121,9 +122,16 @@ def verify_mail_address(state, proofing_user):
         if has_primary is None:
             proofing_user.mail_addresses.find(state.verification.email).is_primary = True
 
-    save_and_sync_user(proofing_user)
-    current_app.logger.info('Email address {!r} confirmed '
-                            'for user {}'.format(state.verification.email, proofing_user))
-    current_app.stats.count(name='email_verify_success', value=1)
-    current_app.proofing_statedb.remove_state(state)
-    current_app.logger.debug('Removed proofing state: {} '.format(state))
+    mail_address_proofing = MailAddressProofing(proofing_user, created_by='email', mail_address=new_email.email,
+                                                reference=state.id, proofing_version='2013v1')
+    if current_app.proofing_log.save(mail_address_proofing):
+        save_and_sync_user(proofing_user)
+        current_app.logger.info('Email address {!r} confirmed '
+                                'for user {}'.format(state.verification.email, proofing_user))
+        current_app.stats.count(name='email_verify_success', value=1)
+        current_app.proofing_statedb.remove_state(state)
+        current_app.logger.debug('Removed proofing state: {} '.format(state))
+        return True
+    else:
+        current_app.logger.error('Could not save email proofing to proofing log')
+        return False

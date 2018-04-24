@@ -191,14 +191,18 @@ def verify(user, code, email):
             'message': 'emails.code_invalid_or_expired'
         }
     try:
-        verify_mail_address(state, proofing_user)
-        current_app.logger.info('Email {} successfully verified for user'
-                                ' {}'.format(email, proofing_user))
-        emails = {
-                'emails': proofing_user.mail_addresses.to_list_of_dicts(),
-                'message': 'emails.verification-success'
-                }
-        return EmailListPayload().dump(emails).data
+        if verify_mail_address(state, proofing_user):
+            current_app.logger.info('Email {} successfully verified for user'
+                                    ' {}'.format(email, proofing_user))
+            emails = {
+                    'emails': proofing_user.mail_addresses.to_list_of_dicts(),
+                    'message': 'emails.verification-success'
+                    }
+            return EmailListPayload().dump(emails).data
+        return {
+            '_status': 'error',
+            'message': 'emails.verification-failure'
+        }
     except UserOutOfSync:
         current_app.logger.debug('Couldnt confirm email {} for user'
                                  ' {}, data out of sync'.format(email, proofing_user))
@@ -247,9 +251,11 @@ def verify_link(user):
             url = urlparse.urlunsplit((scheme, netloc, path, new_query_string, fragment))
             return redirect(url)
         try:
-            verify_mail_address(state, proofing_user)
-            current_app.logger.info('Verified email {} for user {}'.format(email, user))
-            new_query_string = urlencode({'msg': 'emails.verification-success'})
+            if verify_mail_address(state, proofing_user):
+                current_app.logger.info('Verified email {} for user {}'.format(email, user))
+                new_query_string = urlencode({'msg': 'emails.verification-success'})
+            else:
+                new_query_string = urlencode({'msg': 'emails.verification-failure'})
         except UserOutOfSync:
             current_app.logger.error('Couldnt confirm email {} for user {}, data out of sync'.format(email,
                                                                                                      proofing_user))
