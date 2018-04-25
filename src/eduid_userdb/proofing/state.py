@@ -90,7 +90,7 @@ class ProofingState(object):
 
         :rtype: six.string_types
         """
-        return '{}'.format(self._data['_id'])
+        return '{}'.format(self.id)
 
     @property
     def eppn(self):
