@@ -40,6 +40,7 @@ from eduid_userdb.element import PrimaryElementViolation, UserDBValueError
 from eduid_userdb.exceptions import UserOutOfSync
 from eduid_userdb.phone import PhoneNumber
 from eduid_userdb.proofing import ProofingUser
+from eduid_userdb.exceptions import DocumentDoesNotExist
 from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
 from eduid_common.api.utils import save_and_sync_user
 from eduid_webapp.phone.schemas import PhoneListPayload, SimplePhoneSchema, PhoneSchema, PhoneResponseSchema
@@ -177,10 +178,11 @@ def verify(user, code, number):
                              'for user {}'.format(number, proofing_user))
 
     db = current_app.proofing_statedb
-    state = db.get_state_by_eppn_and_mobile(proofing_user.eppn, number,
-            raise_on_missing=False)
-    if state is None:
-        current_app.logger.debug("Couldn't find proofing state for user {} and number {}".format(proofing_user, number))
+    try:
+        state = db.get_state_by_eppn_and_mobile(proofing_user.eppn, number)
+    except DocumentDoesNotExist:
+        current_app.logger.debug("Could not find proofing state for user {} and number {}".format(
+            proofing_user, number))
         return {
             '_status': 'error',
             'message': 'phones.unknown_phone'
@@ -201,17 +203,20 @@ def verify(user, code, number):
             'message': 'phones.code_invalid_or_expired'
         }
     try:
-        verify_phone_number(state, proofing_user)
-        current_app.logger.info('Phone number {!r} successfully verified'
-                                 ' for user {}'.format(number, proofing_user))
-        phones = {
-                'phones': proofing_user.phone_numbers.to_list_of_dicts(),
-                'message': 'phones.verification-success'
-                }
-        return PhoneListPayload().dump(phones).data
+        if verify_phone_number(state, proofing_user):
+            current_app.logger.info('Phone number {} successfully verified for user {}'.format(number, proofing_user))
+            phones = {
+                    'phones': proofing_user.phone_numbers.to_list_of_dicts(),
+                    'message': 'phones.verification-success'
+                    }
+            return PhoneListPayload().dump(phones).data
+        return {
+            '_status': 'error',
+            'message': 'phones.verification-failure'
+        }
     except UserOutOfSync:
-        current_app.logger.debug('Couldnt confirm phone number {!r} for user'
-                                 ' {}, data out of sync'.format(number, proofing_user))
+        current_app.logger.debug('Could not confirm phone number {} for user {}, data out of sync'.format(
+            number, proofing_user))
         return {
             '_status': 'error',
             'message': 'user-out-of-sync'

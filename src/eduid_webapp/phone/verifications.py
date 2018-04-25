@@ -38,42 +38,37 @@ from eduid_common.api.utils import save_and_sync_user
 from eduid_userdb.element import DuplicateElementViolation
 from eduid_userdb.proofing import PhoneProofingElement, PhoneProofingState
 from eduid_userdb.phone import PhoneNumber
+from eduid_userdb.logs import PhoneNumberProofing
 
 
-def new_verification_code(phone, user):
-    old_verification = current_app.proofing_statedb.get_state_by_eppn_and_mobile(
+def new_verification_state(phone, user):
+    old_state = current_app.proofing_statedb.get_state_by_eppn_and_mobile(
                        user.eppn, phone, raise_on_missing=False)
-    if old_verification is not None:
-        current_app.logger.debug('removing old verification code:'
-                                 ' {!r}.'.format(old_verification.to_dict()))
-        current_app.proofing_statedb.remove_state(old_verification)
+    if old_state is not None:
+        current_app.logger.debug('removing old proofing state: {!r}.'.format(old_state.to_dict()))
+        current_app.proofing_statedb.remove_state(old_state)
 
-    code = get_short_hash()
-    verification = PhoneProofingElement(phone=phone,
-                                        verification_code=code,
-                                        application='phone')
+    verification = PhoneProofingElement(phone=phone, verification_code=get_short_hash(),  application='phone')
     verification_data = {
         'eduPersonPrincipalName': user.eppn,
         'verification': verification.to_dict()
         }
-    verification_state = PhoneProofingState(verification_data)
+    proofing_state = PhoneProofingState(verification_data)
     # XXX This should be an atomic transaction together with saving
     # the user and sending the letter.
-    current_app.proofing_statedb.save(verification_state)
-    current_app.logger.info('Created new phone number verification code '
-                            'for user {} and phone number {!r}.'.format(user, phone))
-    current_app.logger.debug('Verification Code:'
-                             ' {!r}.'.format(verification_state.to_dict()))
-    return code, str(verification_state.to_dict()['_id'])
+    current_app.proofing_statedb.save(proofing_state)
+    current_app.logger.info('Created new phone number verification code for user {} and phone number {}.'.format(
+        user, phone))
+    current_app.logger.debug('Proofing state: {!r}.'.format(proofing_state.to_dict()))
+    return proofing_state
 
 
 def send_verification_code(user, phone):
 
-    code, reference = new_verification_code(phone, user)
+    state = new_verification_state(phone, user)
 
-    current_app.msg_relay.phone_validator(reference, phone, code, user.language)
-    current_app.logger.info("Sent verification sms to user {}"
-                            " with phone number {!s}.".format(user, phone))
+    current_app.msg_relay.phone_validator(state.reference, phone, state.verification.verification_code, user.language)
+    current_app.logger.info('Sent verification sms to user {} with phone number {}.'.format(user, phone))
 
     
 def verify_phone_number(state, proofing_user):
@@ -88,8 +83,7 @@ def verify_phone_number(state, proofing_user):
 
     """
     number = state.verification.number
-    new_phone = PhoneNumber(number = number, application = 'eduid_phone',
-                            verified = True, primary = False)
+    new_phone = PhoneNumber(number=number, application='eduid_phone', verified=True, primary=False)
 
     has_primary = proofing_user.phone_numbers.primary
     if has_primary is None:
@@ -101,9 +95,17 @@ def verify_phone_number(state, proofing_user):
         if has_primary is None:
             proofing_user.phone_numbers.find(number).is_primary = True
 
-    save_and_sync_user(proofing_user)
-    current_app.logger.info('Mobile {} confirmed '
-                            'for user {}'.format(number, proofing_user))
-    current_app.stats.count(name='mobile_verify_success', value=1)
-    current_app.proofing_statedb.remove_state(state)
-    current_app.logger.debug('Removed proofing state: {} '.format(state))
+    phone_number_proofing = PhoneNumberProofing(proofing_user, created_by='phone',
+                                                phone_number=state.verification.number, reference=state.reference,
+                                                proofing_version='2013v1')
+    if current_app.proofing_log.save(phone_number_proofing):
+        save_and_sync_user(proofing_user)
+        current_app.logger.info('Mobile {} confirmed '
+                                'for user {}'.format(number, proofing_user))
+        current_app.stats.count(name='mobile_verify_success', value=1)
+        current_app.proofing_statedb.remove_state(state)
+        current_app.logger.debug('Removed proofing state: {} '.format(state))
+        return True
+
+    current_app.logger.error('Could not save phone number proofing to proofing log')
+    return False

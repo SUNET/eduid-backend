@@ -93,7 +93,7 @@ def send_verification_code(email, user):
             **context
     )
 
-    current_app.mail_relay.sendmail(subject, [email], text, html, reference=state.id)
+    current_app.mail_relay.sendmail(subject, [email], text, html, reference=state.reference)
     current_app.logger.info("Sent email address verification mail to user {}"
                             " about address {!s}.".format(user, email))
 
@@ -123,7 +123,7 @@ def verify_mail_address(state, proofing_user):
             proofing_user.mail_addresses.find(state.verification.email).is_primary = True
 
     mail_address_proofing = MailAddressProofing(proofing_user, created_by='email', mail_address=new_email.email,
-                                                reference=state.id, proofing_version='2013v1')
+                                                reference=state.reference, proofing_version='2013v1')
     if current_app.proofing_log.save(mail_address_proofing):
         save_and_sync_user(proofing_user)
         current_app.logger.info('Email address {!r} confirmed '
@@ -132,6 +132,6 @@ def verify_mail_address(state, proofing_user):
         current_app.proofing_statedb.remove_state(state)
         current_app.logger.debug('Removed proofing state: {} '.format(state))
         return True
-    else:
-        current_app.logger.error('Could not save email proofing to proofing log')
-        return False
+
+    current_app.logger.error('Could not save email proofing to proofing log')
+    return False
