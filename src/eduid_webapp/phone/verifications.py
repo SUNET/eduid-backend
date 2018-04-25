@@ -105,7 +105,3 @@ def verify_phone_number(state, proofing_user):
         current_app.stats.count(name='mobile_verify_success', value=1)
         current_app.proofing_statedb.remove_state(state)
         current_app.logger.debug('Removed proofing state: {} '.format(state))
-        return True
-
-    current_app.logger.error('Could not save phone number proofing to proofing log')
-    return False

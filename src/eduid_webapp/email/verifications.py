@@ -41,37 +41,32 @@ from eduid_userdb.proofing import EmailProofingElement, EmailProofingState
 from eduid_userdb.logs import MailAddressProofing
 
 
-def new_verification_state(email, user):
-    old_verification = current_app.proofing_statedb.get_state_by_eppn_and_email(
+def new_proofing_state(email, user):
+    old_state = current_app.proofing_statedb.get_state_by_eppn_and_email(
             user.eppn, email, raise_on_missing=False)
-    if old_verification is not None:
-        current_app.logger.debug('removing old verification code:'
-                                 ' {!r}.'.format(old_verification.to_dict()))
-        current_app.proofing_statedb.remove_state(old_verification)
-    code = get_unique_hash()
-    verification = EmailProofingElement(email=email,
-                                        verification_code=code,
-                                        application='email')
+    if old_state is not None:
+        current_app.logger.debug('removing old proofing state: {!r}.'.format(old_state.to_dict()))
+        current_app.proofing_statedb.remove_state(old_state)
+
+    verification = EmailProofingElement(email=email, verification_code=get_unique_hash(), application='email')
     verification_data = {
         'eduPersonPrincipalName': user.eppn,
         'verification': verification.to_dict()
         }
-    verification_state = EmailProofingState(verification_data)
+    proofing_state = EmailProofingState(verification_data)
     # XXX This should be an atomic transaction together with saving
     # the user and sending the letter.
-    current_app.proofing_statedb.save(verification_state)
+    current_app.proofing_statedb.save(proofing_state)
 
-    current_app.logger.info('Created new email verification code '
-                            'for user {} and email {!r}.'.format(user, email))
-    current_app.logger.debug('Verification Code:'
-                             ' {!r}.'.format(verification_state.to_dict()))
+    current_app.logger.info('Created new email verification code for user {} and email {}.'.format(user, email))
+    current_app.logger.debug('Verification Code: {!r}.'.format(proofing_state.to_dict()))
 
-    return verification_state
+    return proofing_state
 
 
 def send_verification_code(email, user):
     subject = _('eduID confirmation email')
-    state = new_verification_state(email, user)
+    state = new_proofing_state(email, user)
     link = url_for('email.verify_link', code=state.verification.verification_code, email=email, _external=True)
     site_name = current_app.config.get("EDUID_SITE_NAME")
     site_url = current_app.config.get("EDUID_SITE_URL")
@@ -131,7 +126,3 @@ def verify_mail_address(state, proofing_user):
         current_app.stats.count(name='email_verify_success', value=1)
         current_app.proofing_statedb.remove_state(state)
         current_app.logger.debug('Removed proofing state: {} '.format(state))
-        return True
-
-    current_app.logger.error('Could not save email proofing to proofing log')
-    return False
