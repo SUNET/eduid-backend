@@ -41,7 +41,7 @@ from eduid_userdb.phone import PhoneNumber
 from eduid_userdb.logs import PhoneNumberProofing
 
 
-def new_verification_state(phone, user):
+def new_proofing_state(phone, user):
     old_state = current_app.proofing_statedb.get_state_by_eppn_and_mobile(
                        user.eppn, phone, raise_on_missing=False)
     if old_state is not None:
@@ -65,7 +65,7 @@ def new_verification_state(phone, user):
 
 def send_verification_code(user, phone):
 
-    state = new_verification_state(phone, user)
+    state = new_proofing_state(phone, user)
 
     current_app.msg_relay.phone_validator(state.reference, phone, state.verification.verification_code, user.language)
     current_app.logger.info('Sent verification sms to user {} with phone number {}.'.format(user, phone))
