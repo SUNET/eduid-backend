@@ -356,17 +356,19 @@ class MessageRelay(Task):
         return False
 
     @TransactionAudit(MONGODB_URI)
-    def sendmail(self, sender, recipients, message):
+    def sendmail(self, sender, recipients, message, reference):
         """
         Send mail
 
         :param sender: the From of the email
         :param recipients: the recipients of the email
         :param message: email.mime.multipart.MIMEMultipart message as a string
+        :param reference: Audit reference to help cross reference audit log and events
 
         :type sender: str
         :type recipients: list of str
         :type message: six.string_types
+        :type reference: six.string_types
 
         :return Dict of errors
         :rtype dict
@@ -377,7 +379,7 @@ class MessageRelay(Task):
         if conf.get("DEVEL_MODE") == 'true':
             LOG.debug('sendmail task:')
             LOG.debug("\nType: {}\nSender: {}\nRecipients: {}\nMessage:\n{}".format(
-                'email', sender, recipients, message))
+                'email', reference, sender, recipients, message))
             return 'devel_mode'
 
         return self.smtp.sendmail(sender, recipients, message)
@@ -451,21 +453,23 @@ def send_message(message_type, reference, message_dict, recipient, template, lan
 
 
 @task(base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT, max_retries=10)
-def sendmail(sender, recipients, message, max_retry_seconds=86400):
+def sendmail(sender, recipients, message, reference, max_retry_seconds=86400):
     """
     :param sender: the From of the email
     :param recipients: the recipients of the email
     :param message: email.mime.multipart.MIMEMultipart message as a string
+    :param reference: Audit reference to help cross reference audit log and events
     :param max_retry_seconds: Do not retry this task if seconds trying exceeds this number
 
     :type sender: str
     :type recipients: list of str
     :type message: six.string_types
+    :type reference: six.string_types
     :type max_retry_seconds: int
     """
     self = sendmail
     try:
-        return self.sendmail(sender, recipients, message)
+        return self.sendmail(sender, recipients, message, reference)
     except Exception as e:
         # Increase countdown every time it fails (to a maximum of 1 day)
         countdown = 600 * sendmail.request.retries ** 2
