@@ -3,8 +3,9 @@
 from unittest import TestCase
 
 from collections import OrderedDict
+from datetime import datetime
 from eduid_userdb.nin import Nin
-from eduid_userdb.proofing.state import LetterProofingState, OidcProofingState
+from eduid_userdb.proofing.state import ProofingState, LetterProofingState, OidcProofingState
 
 __author__ = 'lundberg'
 
@@ -91,3 +92,12 @@ class ProofingStateTest(TestCase):
         })
         state_dict = state.to_dict()
         self.assertEqual(sorted(state_dict.keys()), ['_id', 'eduPersonPrincipalName', 'nin', 'nonce', 'state', 'token'])
+
+    def test_proofing_state_expiration(self):
+        state = ProofingState({'eduPersonPrincipalName': EPPN, 'modified_ts': datetime.now(tz=None)})
+        self.assertFalse(state.is_expired(1))
+
+        expired_state = ProofingState({
+            'eduPersonPrincipalName': EPPN, 'modified_ts': datetime.now(tz=None)
+        })
+        self.assertTrue(expired_state.is_expired(-1))
