@@ -64,6 +64,14 @@ class EmailTests(EduidAPITestCase):
     def init_data(self):
         self.app.private_userdb.save(self.app.private_userdb.UserClass(data=self.test_user.to_dict()), check_sync=False)
 
+    def tearDown(self):
+        super(EmailTests, self).tearDown()
+        with self.app.app_context():
+            self.app.private_userdb._drop_whole_collection()
+            self.app.proofing_statedb._drop_whole_collection()
+            self.app.proofing_log._drop_whole_collection()
+            self.app.central_userdb._drop_whole_collection()
+
     def test_get_all_emails(self):
         response = self.browser.get('/all')
         self.assertEqual(response.status_code, 302)  # Redirect to token service
@@ -427,6 +435,7 @@ class EmailTests(EduidAPITestCase):
                 self.assertEqual(verify_email_data['payload']['emails'][2]['email'], u'john-smith3@example.com')
                 self.assertEqual(verify_email_data['payload']['emails'][2]['verified'], True)
                 self.assertEqual(verify_email_data['payload']['emails'][2]['primary'], False)
+                self.assertEqual(self.app.proofing_log.db_count(), 1)
 
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
@@ -466,8 +475,8 @@ class EmailTests(EduidAPITestCase):
 
                 verify_email_data = json.loads(response2.data)
                 self.assertEqual(verify_email_data['type'], 'POST_EMAIL_VERIFY_FAIL')
-                self.assertEqual(verify_email_data['payload']['message'],
-                        'emails.code_invalid_or_expired')
+                self.assertEqual(verify_email_data['payload']['message'], 'emails.code_invalid_or_expired')
+                self.assertEqual(self.app.proofing_log.db_count(), 0)
 
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
@@ -501,7 +510,8 @@ class EmailTests(EduidAPITestCase):
                 response2 = client.get('/verify?code={}&email={}'.format(code, email))
 
                 self.assertEqual(response2.status_code, 302)
-                self.assertEqual(response2.location, 'http://test.localhost/profile/emails?msg=emails.verification-success')
+                self.assertEqual(response2.location,
+                                 'http://test.localhost/profile/emails?msg=emails.verification-success')
 
                 user = self.app.private_userdb.get_user_by_eppn(eppn)
                 mail_address_element = user.mail_addresses.find(email)
@@ -510,6 +520,7 @@ class EmailTests(EduidAPITestCase):
                 self.assertEqual(mail_address_element.email, email)
                 self.assertEqual(mail_address_element.is_verified, True)
                 self.assertEqual(mail_address_element.is_primary, False)
+                self.assertEqual(self.app.proofing_log.db_count(), 1)
 
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
@@ -544,7 +555,7 @@ class EmailTests(EduidAPITestCase):
 
                 self.assertEqual(response2.status_code, 302)
                 self.assertEqual(response2.location,
-                        'http://test.localhost/profile/emails?msg=%3AERROR%3Aemails.code_invalid_or_expired')
+                                 'http://test.localhost/profile/emails?msg=%3AERROR%3Aemails.code_invalid_or_expired')
 
                 user = self.app.private_userdb.get_user_by_eppn(eppn)
                 mail_address_element = user.mail_addresses.find(email)
@@ -553,3 +564,4 @@ class EmailTests(EduidAPITestCase):
                 self.assertEqual(mail_address_element.email, email)
                 self.assertEqual(mail_address_element.is_verified, False)
                 self.assertEqual(mail_address_element.is_primary, False)
+                self.assertEqual(self.app.proofing_log.db_count(), 0)

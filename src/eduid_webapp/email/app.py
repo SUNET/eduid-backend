@@ -39,6 +39,7 @@ from eduid_common.api import am
 from eduid_common.api import translation
 from eduid_userdb.proofing import EmailProofingUserDB
 from eduid_userdb.proofing import EmailProofingStateDB
+from eduid_userdb.logs import ProofingLog
 
 
 def email_init_app(name, config):
@@ -74,6 +75,7 @@ def email_init_app(name, config):
 
     app.private_userdb = EmailProofingUserDB(app.config['MONGO_URI'])
     app.proofing_statedb = EmailProofingStateDB(app.config['MONGO_URI'])
+    app.proofing_log = ProofingLog(app.config['MONGO_URI'])
 
     app.logger.info('Init {} app...'.format(name))
 
