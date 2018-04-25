@@ -45,8 +45,9 @@ def new_proofing_state(email, user):
     old_state = current_app.proofing_statedb.get_state_by_eppn_and_email(
             user.eppn, email, raise_on_missing=False)
     if old_state is not None:
-        current_app.logger.debug('removing old proofing state: {!r}.'.format(old_state.to_dict()))
         current_app.proofing_statedb.remove_state(old_state)
+        current_app.logger.info('Removed old proofing state')
+        current_app.logger.debug('Old proofing state: {}'.format(old_state.to_dict()))
 
     verification = EmailProofingElement(email=email, verification_code=get_unique_hash(), application='email')
     verification_data = {
@@ -58,8 +59,8 @@ def new_proofing_state(email, user):
     # the user and sending the letter.
     current_app.proofing_statedb.save(proofing_state)
 
-    current_app.logger.info('Created new email verification code for user {} and email {}.'.format(user, email))
-    current_app.logger.debug('Verification Code: {!r}.'.format(proofing_state.to_dict()))
+    current_app.logger.info('Created new email proofing state')
+    current_app.logger.debug('Proofing state: {!r}.'.format(proofing_state.to_dict()))
 
     return proofing_state
 
