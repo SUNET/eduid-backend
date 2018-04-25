@@ -36,10 +36,11 @@ from __future__ import absolute_import
 from flask import Blueprint, session
 from flask import current_app
 
-from eduid_userdb.element import PrimaryElementViolation, DuplicateElementViolation
+from eduid_userdb.element import PrimaryElementViolation, UserDBValueError
 from eduid_userdb.exceptions import UserOutOfSync
 from eduid_userdb.phone import PhoneNumber
 from eduid_userdb.proofing import ProofingUser
+from eduid_userdb.exceptions import DocumentDoesNotExist
 from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
 from eduid_common.api.utils import save_and_sync_user
 from eduid_webapp.phone.schemas import PhoneListPayload, SimplePhoneSchema, PhoneSchema, PhoneResponseSchema
@@ -173,49 +174,50 @@ def verify(user, code, number):
     Returns a listing of  all phones for the logged in user.
     """
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
-    current_app.logger.debug('Trying to save phone number {!r} as verified '
-                             'for user {}'.format(number, proofing_user))
+    current_app.logger.debug('Trying to save phone number {} as verified'.format(number, proofing_user))
 
     db = current_app.proofing_statedb
-    state = db.get_state_by_eppn_and_mobile(proofing_user.eppn, number,
-            raise_on_missing=False)
-    if state is None:
-        current_app.logger.debug("Couldn't find proofing state for user {} and number {}".format(proofing_user, number))
+    try:
+        state = db.get_state_by_eppn_and_mobile(proofing_user.eppn, number)
+        timeout = current_app.config.get('PHONE_VERIFICATION_TIMEOUT')
+        if state.is_expired(timeout):
+            current_app.logger.info("Proofing state is expired. Removing the state.")
+            current_app.logger.debug("Proofing state: {!r}".format(state))
+            current_app.proofing_statedb.remove_state(state)
+            return {
+                '_status': 'error',
+                'message': 'phones.code_invalid_or_expired'
+            }
+    except DocumentDoesNotExist:
+        current_app.logger.info("Could not find proofing state for number {}".format(number))
         return {
             '_status': 'error',
             'message': 'phones.unknown_phone'
         }
 
-    timeout = current_app.config.get('PHONE_VERIFICATION_TIMEOUT')
-    if state.is_expired(timeout):
-        current_app.logger.debug("Verification code is expired: {!r}".format(state.verification))
-        current_app.proofing_statedb.remove_state(state)
-        return {
-            '_status': 'error',
-            'message': 'phones.code_invalid_or_expired'
-        }
-    if code != state.verification.verification_code:
-        current_app.logger.debug("Invalid verification code: {!r}".format(state.verification))
-        return {
-            '_status': 'error',
-            'message': 'phones.code_invalid_or_expired'
-        }
-    try:
-        verify_phone_number(state, proofing_user)
-        current_app.logger.info('Phone number {!r} successfully verified'
-                                 ' for user {}'.format(number, proofing_user))
-        phones = {
-                'phones': proofing_user.phone_numbers.to_list_of_dicts(),
-                'message': 'phones.verification-success'
-                }
-        return PhoneListPayload().dump(phones).data
-    except UserOutOfSync:
-        current_app.logger.debug('Couldnt confirm phone number {!r} for user'
-                                 ' {}, data out of sync'.format(number, proofing_user))
-        return {
-            '_status': 'error',
-            'message': 'user-out-of-sync'
-        }
+    if code == state.verification.verification_code:
+        try:
+            verify_phone_number(state, proofing_user)
+            current_app.logger.info('Phone number successfully verified')
+            current_app.logger.debug('Phone number: {}'.format(number))
+            phones = {
+                    'phones': proofing_user.phone_numbers.to_list_of_dicts(),
+                    'message': 'phones.verification-success'
+                    }
+            return PhoneListPayload().dump(phones).data
+        except UserOutOfSync:
+            current_app.logger.info('Could not confirm phone number, data out of sync')
+            current_app.logger.debug('Phone number: {}'.format(number))
+            return {
+                '_status': 'error',
+                'message': 'user-out-of-sync'
+            }
+    current_app.logger.info("Invalid verification code")
+    current_app.logger.debug("Proofing state: {!r}".format(state))
+    return {
+        '_status': 'error',
+        'message': 'phones.code_invalid_or_expired'
+    }
 
 
 @phone_views.route('/remove', methods=['POST'])
@@ -235,10 +237,19 @@ def post_remove(user, number):
     try:
         proofing_user.phone_numbers.remove(number)
     except PrimaryElementViolation:
+        current_app.logger.info('Removing primary phone number')
+        current_app.logger.debug('Phone number: {}.'.format(number))
         verified = proofing_user.phone_numbers.verified.to_list()
         new_index = 1 if verified[0].number == number else 0
         proofing_user.phone_numbers.primary = verified[new_index].number
         proofing_user.phone_numbers.remove(number)
+    except UserDBValueError:
+        current_app.logger.info('Tried to remove a non existing phone number')
+        current_app.logger.debug('Phone number: {}.'.format(number))
+        return {
+            '_status': 'error',
+            'message': 'phones.unknown_phone'
+        }
 
     try:
         save_and_sync_user(proofing_user)

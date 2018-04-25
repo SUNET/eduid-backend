@@ -34,10 +34,10 @@ from __future__ import absolute_import
 import urlparse
 from urllib import urlencode
 
-from flask import Blueprint, request, current_app, redirect
+from flask import Blueprint, request, current_app, redirect, abort
 
 from eduid_userdb.element import PrimaryElementViolation, DuplicateElementViolation
-from eduid_userdb.exceptions import UserOutOfSync
+from eduid_userdb.exceptions import UserOutOfSync, DocumentDoesNotExist
 from eduid_userdb.mail import MailAddress
 from eduid_userdb.proofing import ProofingUser
 from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
@@ -162,50 +162,50 @@ def verify(user, code, email):
     """
     """
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
-    current_app.logger.debug('Trying to save email address {} as verified '
-                             'for user {}'.format(email, proofing_user))
+    current_app.logger.debug('Trying to save email address {} as verified'.format(email))
 
     db = current_app.proofing_statedb
-    state = db.get_state_by_eppn_and_email(proofing_user.eppn, email, raise_on_missing=False)
-    if state is None:
-        current_app.logger.debug('Invalid verification code {} for email {} and user'
-                                 ' {}'.format(code, email, proofing_user))
+    try:
+        state = db.get_state_by_eppn_and_email(proofing_user.eppn, email)
+        timeout = current_app.config.get('EMAIL_VERIFICATION_TIMEOUT', 24)
+        if state.is_expired(timeout):
+            current_app.logger.info("Verification code is expired. Removing the state")
+            current_app.logger.debug("Proofing state: {}".format(state))
+            current_app.proofing_statedb.remove_state(state)
+            return {
+                '_status': 'error',
+                'message': 'emails.code_invalid_or_expired'
+            }
+    except DocumentDoesNotExist:
+        current_app.logger.info('Could not find proofing state for email {}'.format(email))
         return {
             '_status': 'error',
             'message': 'emails.unknown_email'
         }
-    timeout = current_app.config.get('EMAIL_VERIFICATION_TIMEOUT', 24)
-    if state.is_expired(timeout):
-        msg = "Verification code is expired for: {}.".format(
-            state.verification.email)
-        current_app.logger.debug(msg)
-        current_app.proofing_statedb.remove_state(state)
-        return {
-            '_status': 'error',
-            'message': 'emails.code_invalid_or_expired'
-        }
-    if code != state.verification.verification_code:
-        current_app.logger.debug("Invalid verification code for: {}".format(state.verification.email))
-        return {
-            '_status': 'error',
-            'message': 'emails.code_invalid_or_expired'
-        }
-    try:
-        verify_mail_address(state, proofing_user)
-        current_app.logger.info('Email {} successfully verified for user'
-                                ' {}'.format(email, proofing_user))
-        emails = {
+
+    if code == state.verification.verification_code:
+        try:
+            verify_mail_address(state, proofing_user)
+            current_app.logger.info('Email successfully verified')
+            current_app.logger.debug('Email address: {}'.format(email))
+            emails = {
                 'emails': proofing_user.mail_addresses.to_list_of_dicts(),
                 'message': 'emails.verification-success'
-                }
-        return EmailListPayload().dump(emails).data
-    except UserOutOfSync:
-        current_app.logger.debug('Couldnt confirm email {} for user'
-                                 ' {}, data out of sync'.format(email, proofing_user))
-        return {
-            '_status': 'error',
-            'message': 'user-out-of-sync'
-        }
+            }
+            return EmailListPayload().dump(emails).data
+        except UserOutOfSync:
+            current_app.logger.info('Could not confirm email, data out of sync')
+            current_app.logger.debug('Mail address: {}'.format(email))
+            return {
+                '_status': 'error',
+                'message': 'user-out-of-sync'
+            }
+    current_app.logger.info("Invalid verification code")
+    current_app.logger.debug("Email address: {}".format(state.verification.email))
+    return {
+        '_status': 'error',
+        'message': 'emails.code_invalid_or_expired'
+    }
 
 
 @email_views.route('/verify', methods=['GET'])
@@ -219,44 +219,45 @@ def verify_link(user):
     email = request.args.get('email')
     if code and email:
         current_app.logger.debug('Trying to save email address {} as verified for user {}'.format(email, proofing_user))
-        db = current_app.proofing_statedb
-        state = db.get_state_by_eppn_and_email(proofing_user.eppn, email, raise_on_missing=False)
-
         url = urlappend(current_app.config['DASHBOARD_URL'], 'emails')
         scheme, netloc, path, query_string, fragment = urlparse.urlsplit(url)
 
-        if state is None:
-            current_app.logger.info("Missing state for verification code received for email {} "
-                                    "and user {}.".format(email, user))
+        try:
+            state = current_app.proofing_statedb.get_state_by_eppn_and_email(proofing_user.eppn, email)
+            timeout = current_app.config.get('EMAIL_VERIFICATION_TIMEOUT', 24)
+            if state.is_expired(timeout):
+                current_app.logger.info("Verification code is expired. Removing the state")
+                current_app.logger.debug("Proofing state: {}".format(state))
+                current_app.proofing_statedb.remove_state(state)
+                new_query_string = urlencode({'msg': ':ERROR:emails.code_invalid_or_expired'})
+                url = urlparse.urlunsplit((scheme, netloc, path, new_query_string, fragment))
+                return redirect(url)
+        except DocumentDoesNotExist:
+            current_app.logger.info('Could not find proofing state for email {}'.format(email))
             new_query_string = urlencode({'msg': ':ERROR:emails.unknown_email'})
             url = urlparse.urlunsplit((scheme, netloc, path, new_query_string, fragment))
             return redirect(url)
 
-        timeout = current_app.config.get('EMAIL_VERIFICATION_TIMEOUT', 24)
-        if state.is_expired(timeout):
-            current_app.logger.info("Verification code is expired for: {}.".format(
-                state.verification.email))
-            current_app.proofing_statedb.remove_state(state)
-            new_query_string = urlencode({'msg': ':ERROR:emails.code_invalid_or_expired'})
-            url = urlparse.urlunsplit((scheme, netloc, path, new_query_string, fragment))
-            return redirect(url)
-
-        if code != state.verification.verification_code:
-            current_app.logger.warning("Invalid verification code for: {}".format(state.verification.email))
-            new_query_string = urlencode({'msg': ':ERROR:emails.code_invalid_or_expired'})
-            url = urlparse.urlunsplit((scheme, netloc, path, new_query_string, fragment))
-            return redirect(url)
-        try:
-            verify_mail_address(state, proofing_user)
-            current_app.logger.info('Verified email {} for user {}'.format(email, user))
-            new_query_string = urlencode({'msg': 'emails.verification-success'})
-        except UserOutOfSync:
-            current_app.logger.error('Couldnt confirm email {} for user {}, data out of sync'.format(email,
-                                                                                                     proofing_user))
-            new_query_string = urlencode({'msg': ':ERROR:user-out-of-sync'})
-
+        if code == state.verification.verification_code:
+            try:
+                verify_mail_address(state, proofing_user)
+                current_app.logger.info('Email successfully verified')
+                current_app.logger.debug('Email address: {}'.format(email))
+                new_query_string = urlencode({'msg': 'emails.verification-success'})
+                url = urlparse.urlunsplit((scheme, netloc, path, new_query_string, fragment))
+                return redirect(url)
+            except UserOutOfSync:
+                current_app.logger.info('Could not confirm email, data out of sync')
+                current_app.logger.debug('Mail address: {}'.format(email))
+                new_query_string = urlencode({'msg': ':ERROR:user-out-of-sync'})
+                url = urlparse.urlunsplit((scheme, netloc, path, new_query_string, fragment))
+                return redirect(url)
+        current_app.logger.info("Invalid verification code")
+        current_app.logger.debug("Email address: {}".format(state.verification.email))
+        new_query_string = urlencode({'msg': ':ERROR:emails.code_invalid_or_expired'})
         url = urlparse.urlunsplit((scheme, netloc, path, new_query_string, fragment))
         return redirect(url)
+    abort(400)
 
 
 @email_views.route('/remove', methods=['POST'])

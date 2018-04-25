@@ -65,6 +65,14 @@ class PhoneTests(EduidAPITestCase):
     def init_data(self):
         self.app.private_userdb.save(self.app.private_userdb.UserClass(data=self.test_user.to_dict()), check_sync=False)
 
+    def tearDown(self):
+        super(PhoneTests, self).tearDown()
+        with self.app.app_context():
+            self.app.private_userdb._drop_whole_collection()
+            self.app.proofing_statedb._drop_whole_collection()
+            self.app.proofing_log._drop_whole_collection()
+            self.app.central_userdb._drop_whole_collection()
+
     def test_get_all_phone(self):
         response = self.browser.get('/all')
         self.assertEqual(response.status_code, 302)  # Redirect to token service
@@ -439,6 +447,51 @@ class PhoneTests(EduidAPITestCase):
                     self.assertEqual(u'+34609123321', verify_phone_data['payload']['phones'][2]['number'])
                     self.assertEqual(True, verify_phone_data['payload']['phones'][2]['verified'])
                     self.assertEqual(False, verify_phone_data['payload']['phones'][2]['primary'])
+                    self.assertEqual(self.app.proofing_log.db_count(), 1)
+
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid_webapp.phone.verifications.get_short_hash')
+    def test_verify_fail(self, mock_code_verification, mock_request_user_sync):
+        mock_request_user_sync.side_effect = self.request_user_sync
+        mock_code_verification.return_value = u'12345'
+
+        response = self.browser.post('/verify')
+        self.assertEqual(response.status_code, 302)  # Redirect to token service
+
+        eppn = self.test_user_data['eduPersonPrincipalName']
+
+        with self.session_cookie(self.browser, eppn) as client:
+            with client.session_transaction() as sess:
+                with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator',
+                           return_value=True) as send_verification_code_mock:
+                    with self.app.test_request_context():
+                        data = {
+                            'number': u'+34609123321',
+                            'verified': False,
+                            'primary': False,
+                            'csrf_token': sess.get_csrf_token()
+                        }
+
+                    client.post('/new', data=json.dumps(data),
+                                content_type=self.content_type_json)
+
+            with client.session_transaction() as sess:
+                with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator',
+                           return_value=True) as send_verification_code_mock:
+                    with self.app.test_request_context():
+                        data = {
+                            'number': u'+34609123321',
+                            'code': u'wrong_code',
+                            'csrf_token': sess.get_csrf_token()
+                        }
+
+                    response2 = client.post('/verify', data=json.dumps(data),
+                                            content_type=self.content_type_json)
+
+                    verify_phone_data = json.loads(response2.data)
+                    self.assertEqual(verify_phone_data['type'], 'POST_PHONE_VERIFY_FAIL')
+                    self.assertEqual(verify_phone_data['payload']['message'], 'phones.code_invalid_or_expired')
+                    self.assertEqual(self.app.proofing_log.db_count(), 0)
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('eduid_webapp.phone.verifications.get_short_hash')
