@@ -77,18 +77,21 @@ class MailAddressProofing(ProofingLogElement):
         'proofing_method': 'e-mail',
         'proofing_version': '2013v1',
         'mail_address': 'mail_address'
+        'reference': 'reference id'
     }
     """
-    def __init__(self, user, created_by, mail_address, proofing_version):
+    def __init__(self, user, created_by, mail_address, reference, proofing_version):
         """
         :param user: User object
         :param created_by: Application creating the log element
         :param mail_address: e-mail address
+        :param reference: Audit reference to help cross reference audit log and events
         :param proofing_version: Proofing method version number
 
         :type user: eduid_userdb.user.User
         :type created_by: six.string_types
         :type mail_address: six.string_types
+        :type reference: six.string_types
         :type proofing_version: six.string_types
 
         :return: MailAddressProofing object
@@ -96,8 +99,9 @@ class MailAddressProofing(ProofingLogElement):
         """
         super(MailAddressProofing, self).__init__(user, created_by, proofing_method='e-mail',
                                                   proofing_version=proofing_version)
-        self._required_keys.extend(['mail_address'])
+        self._required_keys.extend(['mail_address', 'reference'])
         self._data['mail_address'] = mail_address
+        self._data['reference'] = reference
 
 
 class PhoneNumberProofing(ProofingLogElement):
@@ -109,18 +113,21 @@ class PhoneNumberProofing(ProofingLogElement):
         'proofing_method': 'sms',
         'proofing_version': '2013v1',
         'phone_number': 'phone_number'
+        'reference': 'reference id'
     }
     """
-    def __init__(self, user, created_by, phone_number, proofing_version):
+    def __init__(self, user, created_by, phone_number, reference, proofing_version):
         """
         :param user: User object
         :param created_by: Application creating the log element
         :param phone_number: phone number
+        :param reference: Audit reference to help cross reference audit log and events
         :param proofing_version: Proofing method version number
 
         :type user: eduid_userdb.user.User
         :type created_by: six.string_types
         :type phone_number: six.string_types
+        :type reference: six.string_types
         :type proofing_version: six.string_types
 
         :return: PhoneNumberProofing object
@@ -128,8 +135,9 @@ class PhoneNumberProofing(ProofingLogElement):
         """
         super(PhoneNumberProofing, self).__init__(user, created_by, proofing_method='sms',
                                                   proofing_version=proofing_version)
-        self._required_keys.extend(['phone_number'])
+        self._required_keys.extend(['phone_number', 'reference'])
         self._data['phone_number'] = phone_number
+        self._data['reference'] = reference
 
 
 class TeleAdressProofing(ProofingLogElement):
