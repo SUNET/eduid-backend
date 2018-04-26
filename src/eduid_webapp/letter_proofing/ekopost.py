@@ -121,8 +121,7 @@ class Ekopost(object):
 
         raise EkopostException('Ekopost exception: {!s} {!s}'.format(response.status_code, response.text))
 
-    def _create_content(self, campaign_id, envelope_id, data, length,
-                       mime='application/pdf', type='document'):
+    def _create_content(self, campaign_id, envelope_id, data, length, mime='application/pdf', type='document'):
         """
         Create the content that should be linked to an envelope
 
