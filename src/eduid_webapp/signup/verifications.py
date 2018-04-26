@@ -37,6 +37,7 @@ import requests
 
 from flask import current_app, request, abort, url_for
 
+from eduid_userdb import MailAddress
 from eduid_userdb.signup import SignupUser
 from eduid_userdb.proofing import EmailProofingElement
 from eduid_webapp.signup.helpers import generate_eppn
@@ -134,3 +135,52 @@ def send_verification_mail(email):
         current_app.mail_relay.sendmail(subject, [email], text, html)
         current_app.logger.info("Sent email address verification mail to user "
                                 "{} about address {!s}.".format(user, email))
+
+
+class AlreadyVerifiedException(Exception):
+    pass
+
+
+class CodeDoesNotExists(Exception):
+    pass
+
+
+def verify_email_code(code):
+    """
+    Look up a user in the signup userdb using an e-mail verification code.
+
+    Mark the e-mail address as confirmed, save the user and return the user object.
+
+    :param code: Code as received from user
+    :type code: str | unicode
+
+    :return: Signup user object
+    :rtype: SignupUser
+    """
+    signup_db = current_app.private_userdb
+    signup_user = signup_db.get_user_by_mail_verification_code(code)
+
+    if not signup_user:
+        current_app.logger.debug("Code {!r} not found in database".format(code))
+        raise CodeDoesNotExists()
+
+    mail_dict = signup_user.pending_mail_address.to_dict()
+    mail_address = MailAddress(data=mail_dict, raise_on_unknown=False)
+    if mail_address.is_verified:
+        # There really should be no way to get here, is_verified is set to False when
+        # the EmailProofingElement is created.
+        current_app.logger.debug("Code {!r} already verified "
+                                 "({!s})".format(code, mail_address))
+        raise AlreadyVerifiedException()
+
+    mail_address.is_verified = True
+    mail_address.verified_ts = True
+    mail_address.verified_by = 'signup'
+    mail_address.is_primary = True
+    signup_user.pending_mail_address = None
+    signup_user.mail_addresses.add(mail_address)
+    result = signup_db.save(signup_user)
+
+    current_app.logger.debug("Code {!r} verified and user {!s} "
+                             "saved: {!r}".format(code, signup_user, result))
+    return signup_user
