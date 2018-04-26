@@ -73,36 +73,6 @@ def generate_eppn():
     abort(500)
 
 
-def get_url_from_email_status(email, status):
-    """
-    Return a view depending on the verification status of the provided email.
-
-    If a user with this (verified) e-mail address exist in the central eduid userdb,
-    return view 'email_already_registered'.
-
-    Otherwise, send a verification e-mail.
-
-    :param request: the request
-    :type request: WebOb Request
-    :param email: the email
-    :type email: string
-
-    :return: redirect response
-    """
-    logger.debug("e-mail {!s} status: {!s}".format(email, status))
-    if status == 'new':
-        namedview = 'success'
-    elif status == 'not_verified':
-        request.session['email'] = email
-        namedview = 'resend_email_verification'
-    elif status == 'verified':
-        request.session['email'] = email
-        namedview = 'email_already_registered'
-    else:
-        raise NotImplementedError('Unknown e-mail status: {!r}'.format(status))
-    return request.route_url(namedview)
-
-
 def check_email_status(email):
     """
     Check the email registration status.

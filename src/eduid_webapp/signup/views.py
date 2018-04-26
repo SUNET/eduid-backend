@@ -41,7 +41,6 @@ from eduid_webapp.email.schemas import VerificationCodeSchema
 from eduid_webapp.signup.schemas import RegisterEmailSchema
 from eduid_webapp.signup.verifications import verify_recaptcha
 from eduid_webapp.signup.verifications import send_verification_mail
-from eduid_webapp.signup.helpers import get_url_from_email_status
 from eduid_webapp.signup.helpers import check_email_status
 from eduid_webapp.signup.helpers import locale_negotiator
 
@@ -84,7 +83,7 @@ def trycaptcha(email, recaptcha_response):
         status = check_email_status(email)
         if status == 'new':
             send_verification_mail(email)
-        msg = get_msg_from_email_status(email, status)
+        msg = 'signup.registering-{}'.format(status)
         return {'message': msg}
     return {
             '_status': 'error',
