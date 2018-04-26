@@ -75,11 +75,29 @@ class ProofingState(object):
         return '<eduID {!s}: {!s}>'.format(self.__class__.__name__, self.eppn)
 
     @property
+    def id(self):
+        """
+        Get state id
+
+        :rtype: six.string_types
+        """
+        return self._data['_id']
+
+    @property
+    def reference(self):
+        """
+        Audit reference to help cross reference audit log and events
+
+        :rtype: six.string_types
+        """
+        return '{}'.format(self.id)
+
+    @property
     def eppn(self):
         """
         Get the user's eppn
 
-        :rtype: str | unicode
+        :rtype: six.string_types
         """
         return self._data['eduPersonPrincipalName']
 
@@ -118,12 +136,10 @@ class ProofingState(object):
 
         :rtype: bool
         """
-        modified = self.modified_ts
         delta = datetime.timedelta(hours=timeout)
-        expiry_date = modified + delta
-        expiry_date = expiry_date.replace(tzinfo=None)
-        now = datetime.datetime.now()
-        return expiry_date < now
+        expiry_date = self.modified_ts + delta
+        now = datetime.datetime.now(tz=self.modified_ts.tzinfo)
+        return now > expiry_date
 
 
 class NinProofingState(ProofingState):

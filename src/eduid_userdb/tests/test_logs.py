@@ -144,7 +144,8 @@ class TestProofingLog(TestCase):
         data = {
             'created_by': 'test',
             'mail_address': 'some_mail_address',
-            'proofing_version': 'test'
+            'proofing_version': 'test',
+            'reference': 'reference id'
         }
         proofing_element = MailAddressProofing(self.user, **data)
         self.assertDictContainsSubset(data, proofing_element.to_dict())
@@ -163,7 +164,8 @@ class TestProofingLog(TestCase):
         data = {
             'created_by': 'test',
             'phone_number': 'some_phone_number',
-            'proofing_version': 'test'
+            'proofing_version': 'test',
+            'reference': 'reference id'
         }
         proofing_element = PhoneNumberProofing(self.user, **data)
         self.assertDictContainsSubset(data, proofing_element.to_dict())
@@ -236,7 +238,8 @@ class TestProofingLog(TestCase):
         data = {
             'created_by': 'test',
             'phone_number': 'some_phone_number',
-            'proofing_version': 'test'
+            'proofing_version': 'test',
+            'reference': 'reference id'
         }
         proofing_element = PhoneNumberProofing(self.user, **data)
         proofing_element._data['phone_number'] = ''
@@ -247,7 +250,8 @@ class TestProofingLog(TestCase):
         data = {
             'created_by': 'test',
             'phone_number': 'some_phone_number',
-            'proofing_version': 'test'
+            'proofing_version': 'test',
+            'reference': 'reference id'
         }
         proofing_element = PhoneNumberProofing(self.user, **data)
         del proofing_element._data['created_by']
@@ -258,7 +262,8 @@ class TestProofingLog(TestCase):
         data = {
             'created_by': 'test',
             'phone_number': 'some_phone_number',
-            'proofing_version': 'test'
+            'proofing_version': 'test',
+            'reference': 'reference id'
         }
         proofing_element = PhoneNumberProofing(self.user, **data)
         proofing_element._data['phone_number'] = 0
