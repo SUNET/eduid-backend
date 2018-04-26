@@ -91,6 +91,19 @@ def trycaptcha(email, recaptcha_response):
     }
 
 
+@signup_views.route('/resend-verification', methods=['POST'])
+@UnmarshalWith(EmailSchema)
+@MarshalWith(FluxStandardAction)
+def resend_email_verification(email):
+    """
+    The user has no yet verified the email address.
+    Send a verification message to the address so it can be verified.
+    """
+    logger.debug("Resend email confirmation to {!s}".format(email))
+    send_verification_mail(email)
+
+    return {'message': 'signup.verification-resent'}
+
 @signup_views.route('/verify-link', methods=['GET'])
 @UnmarshalWith(VerificationCodeSchema)
 def verify_link(code, email):
