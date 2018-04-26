@@ -50,17 +50,6 @@ from eduid_webapp.signup.helpers import AlreadyVerifiedException
 signup_views = Blueprint('signup', __name__, url_prefix='')
 
 
-@signup_views.route('/register', methods=['POST'])
-@UnmarshalWith(RegisterEmailSchema)
-@MarshalWith(FluxStandardAction)
-def register_email(email):
-    current_app.logger.info('Start registration of email {!r}'.format(email))
-    session['registering_email'] = email
-    current_app.stats.count(name='email_start_registration', value=1)
-    return {
-            'message': 'register.start-success'
-            }
-
 @signup_views.route('/trycaptcha', methods=['POST'])
 @UnmarshalWith(RegisterEmailSchema)
 @MarshalWith(FluxStandardAction)
