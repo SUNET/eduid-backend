@@ -119,7 +119,7 @@ class Ekopost(object):
         if response.status_code == 200:
             return response.json()
 
-        raise ApiException('Ekopost exception: {!s}'.format(response.text), status_code=response.status_code)
+        raise EkopostException('Ekopost exception: {!s} {!s}'.format(response.status_code, response.text))
 
     def _create_content(self, campaign_id, envelope_id, data, length,
                        mime='application/pdf', type='document'):
@@ -152,8 +152,7 @@ class Ekopost(object):
         if response.status_code == 200:
             return response.json()
 
-        raise ApiException('Ekopost exception: {!s}'.format(response.text), status_code=response.status_code)
-
+        raise EkopostException('Ekopost exception: {!s} {!s}'.format(response.status_code, response.text))
 
     def _close_evenlope(self, campaign_id, envelope_id):
         """
@@ -169,8 +168,7 @@ class Ekopost(object):
         if response.status_code == 200:
             return response.json()
 
-        raise ApiException('Ekopost exception: {!s}'.format(response.text), status_code=response.status_code)
-
+        raise EkopostException('Ekopost exception: {!s} {!s}'.format(response.status_code, response.text))
 
     def _close_campaign(self, campaign_id):
         """
@@ -186,4 +184,4 @@ class Ekopost(object):
         if response.status_code == 200:
             return response.json()
 
-        raise ApiException('Ekopost exception: {!s}'.format(response.text), status_code=response.status_code)
+        raise EkopostException('Ekopost exception: {!s} {!s}'.format(response.status_code, response.text))
