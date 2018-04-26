@@ -38,6 +38,7 @@ from eduid_common.api import am
 from eduid_common.api import msg
 from eduid_userdb.proofing import PhoneProofingUserDB
 from eduid_userdb.proofing import PhoneProofingStateDB
+from eduid_userdb.logs import ProofingLog
 
 
 def phone_init_app(name, config):
@@ -72,6 +73,7 @@ def phone_init_app(name, config):
 
     app.private_userdb = PhoneProofingUserDB(app.config['MONGO_URI'])
     app.proofing_statedb = PhoneProofingStateDB(app.config['MONGO_URI'])
+    app.proofing_log = ProofingLog(app.config['MONGO_URI'])
 
     app.logger.info('Init {} app...'.format(name))
 

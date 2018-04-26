@@ -47,6 +47,10 @@ def proofing(user, nin):
         proofing_state = create_proofing_state(user.eppn, nin)
         current_app.logger.info('Created proofing state for user {}'.format(user))
 
+    # Add the nin used to initiate the proofing state to the user
+    # NOOP if the user already have the nin
+    add_nin_to_user(user, proofing_state)
+
     if proofing_state.proofing_letter.is_sent:
         current_app.logger.info('A letter has already been sent to the user. ')
         current_app.logger.debug('Proofing state: {}'.format(proofing_state.to_dict()))
@@ -84,8 +88,6 @@ def proofing(user, nin):
     proofing_state.proofing_letter.is_sent = True
     proofing_state.proofing_letter.sent_ts = True
     current_app.proofing_statedb.save(proofing_state)
-    # Add nin as not verified to user
-    add_nin_to_user(user, proofing_state)
     result = check_state(proofing_state)
     result['message'] = 'letter.saved-unconfirmed'
     return result
@@ -143,7 +145,7 @@ def remove_nin(user, nin):
 
     nin_obj = user.nins.find(nin)
     if nin_obj.is_verified:
-        return {'_status': 'error', 'message': 'nins.verified_no_rm'}
+        return {'_status': 'error', 'success': False, 'message': 'nins.verified_no_rm'}
 
     try:
         rm_nin_from_user(user, nin)
