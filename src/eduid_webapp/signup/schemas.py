@@ -40,7 +40,10 @@ from eduid_webapp.email.validators import email_does_not_exist
 __author__ = 'eperez'
 
 
-class RegisterEmailSchema(EduidSchema, CSRFRequestMixin):
+class EmailSchema(EduidSchema, CSRFRequestMixin):
 
     email = fields.Email(required=True, validate=[validate_email, email_does_not_exist])
+
+class RegisterEmailSchema(EmailSchema):
+
     recaptcha_response = fields.String(required=True)
