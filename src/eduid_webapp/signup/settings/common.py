@@ -54,3 +54,13 @@ SECRET_KEY = ''
 LOG_LEVEL = 'INFO'
 
 DASHBOARD_URL = '/profile/'
+
+PASSWORD_LENGTH = 10
+
+VCCS_URL = 'http://localhost:8550/'
+
+TOU_VERSION = '2018-v1'
+
+AUTH_SHARED_SECRET = 'supersecret'
+
+DEFAULT_FINISH_URL = 'https://www.eduid.se/'

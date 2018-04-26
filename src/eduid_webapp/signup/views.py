@@ -42,7 +42,10 @@ from eduid_webapp.signup.schemas import RegisterEmailSchema
 from eduid_webapp.signup.verifications import verify_recaptcha
 from eduid_webapp.signup.verifications import send_verification_mail
 from eduid_webapp.signup.helpers import check_email_status
+from eduid_webapp.signup.helpers import remove_users_with_mail_address
 from eduid_webapp.signup.helpers import locale_negotiator
+from eduid_webapp.signup.helpers import CodeDoesNotExist
+from eduid_webapp.signup.helpers import AlreadyVerifiedException
 
 signup_views = Blueprint('signup', __name__, url_prefix='')
 
@@ -82,6 +85,8 @@ def trycaptcha(email, recaptcha_response):
         current_app.logger.info('Valid CAPTCHA response from {!r}'.format(remote_ip))
         status = check_email_status(email)
         if status == 'new':
+            # Workaround for failed earlier sync of user to userdb: Remove any signup_user with this e-mail address.
+            remove_users_with_mail_address(email)
             send_verification_mail(email)
         msg = 'signup.registering-{}'.format(status)
         return {'message': msg}
@@ -106,5 +111,18 @@ def resend_email_verification(email):
 
 @signup_views.route('/verify-link', methods=['GET'])
 @UnmarshalWith(VerificationCodeSchema)
-def verify_link(code, email):
-    pass
+@MarshalWith(FluxStandardAction)
+def verify_code(code, email):
+    try:
+        user = verify_email_code(code)    
+    except CodeDoesNotExist:
+        return {
+                '_status': 'error',
+                'message': 'signup.unknown-code'
+                }
+    except AlreadyVerifiedException:
+        return {
+                '_status': 'error',
+                'message': 'signup.already-verified'
+                }
+    return complete_registration(user)

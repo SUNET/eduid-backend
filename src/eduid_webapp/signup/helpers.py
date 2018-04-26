@@ -32,10 +32,19 @@
 #
 
 import os
+import time
 import struct
+from hashlib import sha256
+from bson import ObjectId
 import proquint
 
 from flask import current_app, request, abort
+
+from eduid_common.api.utils import save_and_sync_user
+from eduid_userdb.exceptions import UserOutOfSync
+from eduid_userdb.password import Password
+from eduid_userdb.tou import ToUEvent
+from eduid_webapp.signup.vccs import generate_password
 
 
 def locale_negotiator():
@@ -108,9 +117,6 @@ def check_email_status(email):
     except userdb.exceptions.UserDoesNotExist:
         current_app.logger.debug("No user found with email {!s} in signup db either".format(email))
 
-    # Workaround for failed earlier sync of user to userdb: Remove any signup_user with this e-mail address.
-    remove_users_with_mail_address(email)
-
     return 'new'
 
 
@@ -126,10 +132,8 @@ def remove_users_with_mail_address(email):
     surprising to the user so instead we remove all the unsynced users from signup_db
     so the user can do a new signup.
 
-    :param signup_db: SignupUserDB
     :param email: E-mail address
 
-    :param signup_db: eduid_userdb.signup.SignupUserDB
     :param email: str | unicode
 
     :return:
@@ -143,3 +147,90 @@ def remove_users_with_mail_address(email):
     for user in completed_users:
         current_app.logger.warning('Removing old user {!s} with e-mail {!s} from signup_db'.format(user, email))
         signup_db.remove_user_by_id(user.user_id)
+
+
+def complete_registration(signup_user, context=None):
+    """
+    After a successful registration
+    generate a password,
+    add it to the registration record in the registrations db,
+    update the attribute manager db with the new account,
+    and send the pertinent information to the user.
+
+    :param signup_user: SignupUser instance
+    :type signup_user: SignupUser
+    """
+    current_app.logger.info("Completing registration for user "
+                    "{}".format(signup_user))
+
+    if context is None:
+        context = {}
+    password_id = ObjectId()
+    (password, salt) = generate_password(str(password_id), signup_user)
+
+    credential = Password(credential_id=password_id, salt=salt, application='signup')
+    signup_user.passwords.add(credential)
+    # Record the acceptance of the terms of use
+    record_tou(signup_user, 'signup')
+    try:
+        save_and_sync_user(signup_user)
+    except UserOutOfSync:
+        current_app.logger.debug('Couldnt save user {}, '
+                                 'data out of sync'.format(signup_user))
+        return {
+            '_status': 'error',
+            'message': 'user-out-of-sync'
+        }
+
+    secret = current_app.config.get('AUTH_SHARED_SECRET')
+    timestamp = '{:x}'.format(int(time.time()))
+    nonce = os.urandom(16).encode('hex')
+    auth_token = generate_auth_token(secret, signup_user.eppn, nonce, timestamp)
+
+    context.update({
+        "password": password,
+        "email": signup_user.mail_addresses.primary.email,
+        "eppn": signup_user.eppn,
+        "nonce": nonce,
+        "timestamp": timestamp,
+        "auth_token": auth_token,
+    })
+
+    current_app.logger.info("Signup process for new user {} complete".format(signup_user))
+    return context
+
+
+def record_tou(user, source):
+    """
+    Record user acceptance of terms of use.
+
+    :param user: the user that has accepted the ToU
+    :type user: eduid_userdb.signup.User
+    :param source: An identificator for the proccess during which
+                   the user has accepted the ToU (e.g., "signup")
+    :type source: str
+    """
+    event_id = bson.ObjectId()
+    created_ts = datetime.datetime.utcnow()
+    tou_version = current_app.config['TOU_VERSION']
+    current_app.logger.debug('Recording ToU acceptance {!r} (version {!s})'
+                 ' for user {!r} (source: {!s})'.format(
+                     event_id, tou_version,
+                     user.user_id, source))
+    user.tou.add(ToUEvent(
+        version = tou_version,
+        application = source,
+        created_ts = created_ts,
+        event_id = event_id
+        ))
+
+
+def generate_auth_token(shared_key, email, nonce, timestamp, generator=sha256):
+    """
+        The shared_key is a secret between the two systems
+        The public word must must go through form POST or GET
+    """
+    current_app.logger.debug("Generating auth-token for user {!r}, "
+                        "nonce {!r}, ts {!r}".format(email, nonce, timestamp))
+    return generator("{0}|{1}|{2}|{3}".format(
+        shared_key, email, nonce, timestamp)).hexdigest()
