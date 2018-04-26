@@ -73,7 +73,7 @@ def generate_eppn():
     abort(500)
 
 
-def get_url_from_email_status(request, email):
+def get_url_from_email_status(email, status):
     """
     Return a view depending on the verification status of the provided email.
 
@@ -89,10 +89,8 @@ def get_url_from_email_status(request, email):
 
     :return: redirect response
     """
-    status = check_email_status(email)
     logger.debug("e-mail {!s} status: {!s}".format(email, status))
     if status == 'new':
-        send_verification_mail(request, email)
         namedview = 'success'
     elif status == 'not_verified':
         request.session['email'] = email
@@ -102,9 +100,8 @@ def get_url_from_email_status(request, email):
         namedview = 'email_already_registered'
     else:
         raise NotImplementedError('Unknown e-mail status: {!r}'.format(status))
-    url = request.route_url(namedview)
+    return request.route_url(namedview)
 
-    return HTTPFound(location=url)
 
 def check_email_status(email):
     """

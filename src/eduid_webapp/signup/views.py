@@ -33,13 +33,16 @@
 from __future__ import absolute_import
 
 from flask import Blueprint, request, session, current_app
+from flask import redirect
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith
 from eduid_common.api.schemas.base import FluxStandardAction
 from eduid_webapp.email.schemas import VerificationCodeSchema
 from eduid_webapp.signup.schemas import RegisterEmailSchema
 from eduid_webapp.signup.verifications import verify_recaptcha
+from eduid_webapp.signup.verifications import send_verification_mail
 from eduid_webapp.signup.helpers import get_url_from_email_status
+from eduid_webapp.signup.helpers import check_email_status
 from eduid_webapp.signup.helpers import locale_negotiator
 
 signup_views = Blueprint('signup', __name__, url_prefix='')
@@ -77,11 +80,15 @@ def trycaptcha(email, recaptcha_response):
 
     if recaptcha_verified:
         current_app.logger.info('Valid CAPTCHA response from {!r}'.format(remote_ip))
-        return get_url_from_email_status(request, email)
+        status = check_email_status(email)
+        if status == 'new':
+            send_verification_mail(email)
+        url = get_url_from_email_status(email, status)
+        return redirect(url)
     return {
         'error': True,
         'recaptcha_public_key': recaptcha_public_key,
-        'lang': locale_negotiator(request)
+        'lang': locale_negotiator()
     }
 
 @signup_views.route('/verify-link', methods=['GET'])
