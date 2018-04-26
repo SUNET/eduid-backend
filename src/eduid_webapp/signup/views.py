@@ -61,6 +61,7 @@ def register_email(email):
 
 @signup_views.route('/trycaptcha', methods=['POST'])
 @UnmarshalWith(RegisterEmailSchema)
+@MarshalWith(FluxStandardAction)
 def trycaptcha(email, recaptcha_response):
     """
     Kantara requires a check for humanness even at level AL1.
@@ -83,13 +84,13 @@ def trycaptcha(email, recaptcha_response):
         status = check_email_status(email)
         if status == 'new':
             send_verification_mail(email)
-        url = get_url_from_email_status(email, status)
-        return redirect(url)
+        msg = get_msg_from_email_status(email, status)
+        return {'message': msg}
     return {
-        'error': True,
-        'recaptcha_public_key': recaptcha_public_key,
-        'lang': locale_negotiator()
+            '_status': 'error',
+            'message': 'signup.recaptcha-not-verified'
     }
+
 
 @signup_views.route('/verify-link', methods=['GET'])
 @UnmarshalWith(VerificationCodeSchema)
