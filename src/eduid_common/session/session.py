@@ -231,7 +231,7 @@ class Session(collections.MutableMapping):
             if not (token or session_id):
                 raise ValueError('Data must be provided when token/session_id is not provided')
 
-            logger.debug('Looking for session using session_id {!r}'.format(session_id))
+            logger.debug('Looking for session using session_id {!r}'.format(self.session_id))
 
             # Fetch session from self.conn (Redis)
             _encrypted_data = self.conn.get(self.session_id)
@@ -239,7 +239,7 @@ class Session(collections.MutableMapping):
                 logger.debug('Session not found: {!r}'.format(self.session_id))
                 raise KeyError('Session not found: {!r}'.format(self.session_id))
         else:
-            logger.debug('Creating new session with session_id {} and token {}'.format(session_id, token))
+            logger.debug('Creating new session with session_id {} and token {}'.format(self.session_id, token))
 
         _nacl_key = derive_key(self.app_secret, _bin_session_id, b'nacl', nacl.secret.SecretBox.KEY_SIZE)
         self.nacl_box = nacl.secret.SecretBox(_nacl_key)
