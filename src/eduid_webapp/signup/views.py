@@ -39,15 +39,29 @@ from eduid_common.api.decorators import MarshalWith, UnmarshalWith
 from eduid_common.api.schemas.base import FluxStandardAction
 from eduid_webapp.email.schemas import VerificationCodeSchema
 from eduid_webapp.signup.schemas import RegisterEmailSchema
+from eduid_webapp.signup.schemas import EmailSchema
 from eduid_webapp.signup.verifications import verify_recaptcha
 from eduid_webapp.signup.verifications import send_verification_mail
 from eduid_webapp.signup.helpers import check_email_status
 from eduid_webapp.signup.helpers import remove_users_with_mail_address
 from eduid_webapp.signup.helpers import locale_negotiator
-from eduid_webapp.signup.helpers import CodeDoesNotExist
-from eduid_webapp.signup.helpers import AlreadyVerifiedException
+from eduid_webapp.signup.verifications import CodeDoesNotExist
+from eduid_webapp.signup.verifications import AlreadyVerifiedException
 
 signup_views = Blueprint('signup', __name__, url_prefix='')
+
+
+@signup_views.route('/config', methods=['GET'])
+@MarshalWith(FluxStandardAction)
+def get_config():
+
+    parser = EtcdConfigParser('/eduid/webapp/signup/')
+    config = parser.read_configuration(silent=True)
+    jsconfig = {
+            'csrf_token': session.get_csrf_token(),
+            'recaptcha_public_key': config.get('RECAPTCHA_PUBLIC_KEY')
+            }
+    return jsconfig
 
 
 @signup_views.route('/trycaptcha', methods=['POST'])
@@ -98,7 +112,8 @@ def resend_email_verification(email):
 
     return {'message': 'signup.verification-resent'}
 
-@signup_views.route('/verify-link', methods=['GET'])
+
+@signup_views.route('/verify-code', methods=['POST'])
 @UnmarshalWith(VerificationCodeSchema)
 @MarshalWith(FluxStandardAction)
 def verify_code(code, email):
@@ -115,3 +130,15 @@ def verify_code(code, email):
                 'message': 'signup.already-verified'
                 }
     return complete_registration(user)
+
+
+@signup_views.route('/verify-link/<code>', methods=['GET'])
+@MarshalWith(FluxStandardAction)
+def verify_link(code):
+    try:
+        user = verify_email_code(code)    
+    except CodeDoesNotExist:
+        redirect()
+    except AlreadyVerifiedException:
+        redirect()
+    context = complete_registration(user)

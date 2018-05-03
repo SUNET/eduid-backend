@@ -38,6 +38,7 @@ from flask import Flask
 from eduid_common.api.app import eduid_init_app
 from eduid_common.api import mail_relay
 from eduid_common.api import am
+from eduid_userdb.signup import SignupUserDB
 
 
 def signup_init_app(name, config):

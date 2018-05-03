@@ -141,7 +141,7 @@ class AlreadyVerifiedException(Exception):
     pass
 
 
-class CodeDoesNotExists(Exception):
+class CodeDoesNotExist(Exception):
     pass
 
 
@@ -162,7 +162,7 @@ def verify_email_code(code):
 
     if not signup_user:
         current_app.logger.debug("Code {!r} not found in database".format(code))
-        raise CodeDoesNotExists()
+        raise CodeDoesNotExist()
 
     mail_dict = signup_user.pending_mail_address.to_dict()
     mail_address = MailAddress(data=mail_dict, raise_on_unknown=False)
