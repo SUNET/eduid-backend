@@ -37,6 +37,9 @@ class PasswordResetState(object):
         # extra security alternatives
         self._data['extra_security'] = self._data_in.pop('extra_security', None)
 
+        # generated password
+        self._data['generated_password'] = self._data_in.pop('generated_password', None)
+
         # meta
         self.created_ts = self._data_in.pop('created_ts', None)
         self.modified_ts = self._data_in.pop('modified_ts', None)
@@ -51,6 +54,24 @@ class PasswordResetState(object):
 
     def __repr__(self):
         return '<eduID {!s}: {!s}>'.format(self.__class__.__name__, self.eppn)
+
+    @property
+    def id(self):
+        """
+        Get state id
+
+        :rtype: bson.ObjectId
+        """
+        return self._data['_id']
+
+    @property
+    def reference(self):
+        """
+        Audit reference to help cross reference audit log and events
+
+        :rtype: six.string_types
+        """
+        return '{}'.format(self.id)
 
     @property
     def eppn(self):
@@ -135,6 +156,24 @@ class PasswordResetState(object):
         """
         if value is None or isinstance(value, dict):
             self._data['extra_security'] = value
+
+    @property
+    def generated_password(self):
+        """
+        Get the generated password
+
+        :rtype: string | None
+        """
+        return self._data['generated_password']
+
+    @generated_password.setter
+    def generated_password(self, value):
+        """
+        :param value: generated password
+        :type value: string
+        """
+        if value is None or isinstance(value, string_types):
+            self._data['generated_password'] = value
 
     def to_dict(self):
         res = copy.copy(self._data)  # avoid caller messing with our _data

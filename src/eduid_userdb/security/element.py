@@ -11,7 +11,7 @@ __author__ = 'lundberg'
 
 class CodeElement(Element):
 
-    def __init__(self, application=None, code=None, is_used=False, created_ts=None, data=None):
+    def __init__(self, application=None, code=None, verified=False, created_ts=None, data=None):
 
         data_in = copy.copy(data)  # to not modify callers data
 
@@ -21,13 +21,13 @@ class CodeElement(Element):
             data_in = dict(created_by=application,
                            created_ts=created_ts,
                            code=code,
-                           used=is_used,
+                           used=verified,
                            )
         code = data_in.pop('code', None)
-        is_used = data_in.pop('is_used', False)
+        verified = data_in.pop('verified', False)
         Element.__init__(self, data_in)
         self.code = code
-        self.is_used = is_used
+        self.verified = verified
 
     @property
     def key(self):
@@ -59,22 +59,22 @@ class CodeElement(Element):
     # -----------------------------------------------------------------
 
     @property
-    def is_used(self):
+    def verified(self):
         """
         :return: True if the code has been used.
         :rtype: bool
         """
-        return self._data['is_used']
+        return self._data['verified']
 
-    @is_used.setter
-    def is_used(self, value):
+    @verified.setter
+    def verified(self, value):
         """
         :param value: True if code is used
         :type value: bool
         """
         if not isinstance(value, bool):
-            raise UserDBValueError("Invalid 'is_used': {!r}".format(value))
-        self._data['is_used'] = value
+            raise UserDBValueError("Invalid 'verified': {!r}".format(value))
+        self._data['verified'] = value
     # -----------------------------------------------------------------
 
     def is_expired(self, timeout):

@@ -79,7 +79,7 @@ class ProofingState(object):
         """
         Get state id
 
-        :rtype: six.string_types
+        :rtype: bson.ObjectId
         """
         return self._data['_id']
 
