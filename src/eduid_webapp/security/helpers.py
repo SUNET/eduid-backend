@@ -3,9 +3,12 @@
 from __future__ import absolute_import
 
 from flask import current_app, render_template, url_for
-from eduid_common.api.utils import get_unique_hash, get_short_hash
-from eduid_userdb.security import PasswordResetEmailState, PasswordResetEmailAndPhoneState
-from eduid_userdb.exceptions import UserDoesNotExist
+from eduid_common.api.utils import get_unique_hash, get_short_hash, save_and_sync_user
+from eduid_common.authn.vccs import reset_password
+from eduid_common.authn.utils import generate_password
+from eduid_userdb.security import SecurityUser, PasswordResetEmailState, PasswordResetEmailAndPhoneState
+from eduid_userdb.logs import MailAddressProofing, PhoneNumberProofing
+from eduid_userdb.exceptions import UserDoesNotExist, UserOutOfSync
 from eduid_webapp.security.schemas import ConvertRegisteredKeys
 
 __author__ = 'lundberg'
@@ -40,7 +43,19 @@ def compile_credential_list(security_user):
     return credentials
 
 
-def send_mail(to_addresses, text_template, html_template, context=None, max_retry_timeout=86400):
+def generate_suggested_password():
+    """
+    The suggested password is saved in session to avoid form hijacking
+    """
+    password_length = current_app.config.get('PASSWORD_LENGTH', 12)
+
+    password = generate_password(length=password_length)
+    password = ' '.join([password[i*4: i*4+4] for i in range(0, len(password)/4)])
+
+    return password
+
+
+def send_mail(to_addresses, text_template, html_template, context=None, reference=None, max_retry_timeout=86400):
     site_name = current_app.config.get("EDUID_SITE_NAME")
     site_url = current_app.config.get("EDUID_SITE_URL")
     sender = current_app.config.get('MAIL_DEFAULT_FROM')
@@ -55,7 +70,7 @@ def send_mail(to_addresses, text_template, html_template, context=None, max_retr
 
     text = render_template(text_template, **context)
     html = render_template(html_template, **context)
-    current_app.mail_relay.sendmail(sender, to_addresses, text, html, max_retry_timeout)
+    current_app.mail_relay.sendmail(sender, to_addresses, text, html, reference, max_retry_timeout)
 
 
 def send_sms(phone_number, text_template, context=None, reference=None, max_retry_timeout=86400):
@@ -124,10 +139,35 @@ def send_password_reset_mail(email_address):
                                        _external=True),
         'password_reset_timeout': password_reset_timeout
     }
-    max_retry_timeout = password_reset_timeout*60*60  # password reset timeout in seconds
-    send_mail(to_addresses, text_template, html_template, context, max_retry_timeout)
-    current_app.logger.info("Sent password reset email to user with the following addresses: {}.".format(
-        to_addresses))
+    # password reset timeout in seconds
+    max_retry_timeout = int(current_app.config.get('EMAIL_CODE_TIMEOUT_MINUTES')) * 60
+    send_mail(to_addresses, text_template, html_template, context, state.reference, max_retry_timeout)
+    current_app.logger.info('Sent password reset email to user {}'.format(state.eppn))
+    current_app.logger.debug('Mail address: {}'.format(to_addresses))
+
+
+def verify_email_address(state):
+    """
+    :param state: Password reset state
+    :type state: PasswordResetEmailState
+    :return: True|False
+    :rtype: bool
+    """
+
+    user = current_app.central_userdb.get_user_by_eppn(state.eppn, raise_on_missing=False)
+    if not user:
+        current_app.logger.error('Could not find user {}'.format(state.eppn))
+        return False
+
+    proofing_element = MailAddressProofing(user, created_by='security', mail_address=state.email_address,
+                                           reference=state.reference, proofing_version='2013v1')
+    if current_app.proofing_log.save(proofing_element):
+        state.email_code.verified = True
+        current_app.password_reset_state_db.save(state)
+        current_app.logger.info('Email code marked as used for {}'.format(state.eppn))
+        return True
+
+    return False
 
 
 def send_verify_phone_code(state, phone_number):
@@ -135,11 +175,61 @@ def send_verify_phone_code(state, phone_number):
                                                              phone_code=get_short_hash())
     current_app.password_reset_state_db.save(state)
     template = 'reset_password_sms.txt.jinja2'
-    password_reset_timeout = int(current_app.config.get('PHONE_CODE_TIMEOUT_MINUTES')) / 60
+    # password reset timeout in seconds
+    password_reset_timeout = int(current_app.config.get('PHONE_CODE_TIMEOUT_MINUTES')) * 60
     context = {
         'verification_code': state.phone_code.code
     }
-    send_sms(state.phone_number, template, context, state.id)
+    send_sms(state.phone_number, template, context, state.reference, password_reset_timeout)
+    current_app.logger.info('Sent password reset sms to user {}'.format(state.eppn))
+    current_app.logger.debug('Phone number: {}'.format(state.phone_number))
+
+
+def verify_phone_number(state):
+    """
+    :param state: Password reset state
+    :type state: PasswordResetEmailAndPhoneState
+    :return: True|False
+    :rtype: bool
+    """
+
+    user = current_app.central_userdb.get_user_by_eppn(state.eppn, raise_on_missing=False)
+    if not user:
+        current_app.logger.error('Could not find user {}'.format(state.eppn))
+        return False
+
+    proofing_element = PhoneNumberProofing(user, created_by='security', phone_number=state.phone_number,
+                                           reference=state.reference, proofing_version='2013v1')
+    if current_app.proofing_log.save(proofing_element):
+        state.phone_code.verified = True
+        current_app.password_reset_state_db.save(state)
+        current_app.logger.info('Phone code marked as used for {}'.format(state.eppn))
+        return True
+
+    return False
+
+
+def reset_user_password(state, password):
+    """
+    :param state: Password reset state
+    :type state: PasswordResetState
+    :param password: Plain text password
+    :type password: six.string_types
+    :return: None
+    :rtype: None
+    """
+    vccs_url = current_app.config.get('VCCS_URL')
+
+    user = current_app.central_userdb.get_user_by_eppn(state.eppn, raise_on_missing=False)
+    security_user = SecurityUser.from_user(user, private_userdb=current_app.private_userdb)
+
+    # TODO: Check extra security and make user AL1 if not used
+
+    security_user = reset_password(security_user, new_password=password, application='security', vccs_url=vccs_url)
+    security_user.terminated = False
+    save_and_sync_user(security_user)
+    current_app.stats.count(name='security_password_reset', value=1)
+    current_app.logger.info('Reset password for user {}'.format(security_user.eppn))
 
 
 def get_extra_security_alternatives(eppn):
@@ -150,14 +240,11 @@ def get_extra_security_alternatives(eppn):
     :rtype: dict
     """
     alternatives = {}
-    try:
-        user = current_app.central_userdb.get_user_by_eppn(eppn)
-    except UserDoesNotExist as e:
-        raise e
-    if user:
-        if user.phone_numbers.count:
-            verified_phone_numbers = [item.number for item in user.phone_numbers.to_list() if item.is_verified]
-            alternatives['phone_numbers'] = verified_phone_numbers
+    user = current_app.central_userdb.get_user_by_eppn(eppn, raise_on_missing=True)
+
+    if user.phone_numbers.count:
+        verified_phone_numbers = [item.number for item in user.phone_numbers.to_list() if item.is_verified]
+        alternatives['phone_numbers'] = verified_phone_numbers
     return alternatives
 
 
@@ -171,3 +258,31 @@ def mask_alternatives(alternatives):
     alternatives['phone_numbers'] = masked_phone_numbers
     return alternatives
 
+
+def get_zxcvbn_terms(eppn):
+    """
+    :param eppn: User eppn
+    :type eppn: six.string_types
+    :return: List of user info
+    :rtype: list
+
+    Combine known data that is bad for a password to a list for zxcvbn.
+    """
+    user = current_app.central_userdb.get_user_by_eppn(eppn, raise_on_missing=True)
+    user_input = list()
+
+    # Personal info
+    if user.display_name:
+        for part in user.display_name.split():
+            user_input.append(''.join(part.split()))
+    if user.given_name:
+        user_input.append(user.given_name)
+    if user.surname:
+        user_input.append(user.surname)
+
+    # Mail addresses
+    if user.mail_addresses.count:
+        for item in user.mail_addresses.to_list():
+            user_input.append(item.email.split('@')[0])
+
+    return user_input

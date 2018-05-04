@@ -31,11 +31,13 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from marshmallow import fields, Schema, validates, ValidationError
+from marshmallow import fields, Schema, validates, validates_schema, validate, ValidationError
+from flask_babel import gettext as _
 from eduid_common.api.schemas.base import FluxStandardAction, EduidSchema
 from eduid_common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
 from eduid_common.api.schemas.u2f import U2FEnrollResponseSchema, U2FBindRequestSchema, U2FSignResponseSchema
 from eduid_common.api.schemas.u2f import U2FVerifyRequestSchema, U2FVerifyResponseSchema, U2FRegisteredKey
+from eduid_common.api.schemas.password import PasswordSchema
 from eduid_common.api.schemas.validators import validate_email
 
 
@@ -165,7 +167,7 @@ class ResetPasswordEmailSchema(Schema):
         try:
             validate_email(value)
         except ValidationError:
-            raise ValidationError('You need to input an email address')
+            raise ValidationError(_('You need to input an email address'))
 
 
 class ResetPasswordExtraSecuritySchema(Schema):
@@ -178,4 +180,34 @@ class ResetPasswordExtraSecuritySchema(Schema):
 class ResetPasswordVerifyPhoneNumberSchema(Schema):
 
     csrf = fields.String(required=True)
-    phone_code = fields.String(required=True)
+    phone_code = fields.String(required=True, validate=validate.Length(min=1, error=_('Please enter a code')))
+
+
+class ResetPasswordNewPasswordSchema(PasswordSchema):
+
+    csrf = fields.String(required=True)
+    use_generated_password = fields.Boolean(required=False, default=False)
+    custom_password = fields.String(required=False)
+    repeat_password = fields.String(required=False)
+
+    @validates_schema
+    def new_password_validation(self, data):
+        if not data.get('use_generated_password', False):
+            custom_password = data.get('custom_password', None)
+            repeat_password = data.get('repeat_password', None)
+            if not custom_password:
+                raise ValidationError(_('Please enter a password'), ['custom_password'])
+            if not repeat_password:
+                raise ValidationError(_('Please repeat the password'), ['repeat_password'])
+            if custom_password != repeat_password:
+                raise ValidationError(_('Passwords does not match'), ['repeat_password'])
+
+    @validates('custom_password')
+    def validate_custom_password(self, value):
+        # Set a new error message
+        try:
+            self.validate_password(value)
+        except ValidationError:
+            raise ValidationError(_('Please use a stronger password'))
+
+

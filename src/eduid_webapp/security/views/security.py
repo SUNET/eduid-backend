@@ -49,13 +49,12 @@ from eduid_userdb.exceptions import UserOutOfSync
 from eduid_common.api.utils import urlappend
 from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
 from eduid_common.api.utils import save_and_sync_user
-from eduid_common.authn.utils import generate_password
 from eduid_common.authn.vccs import add_credentials, revoke_all_credentials
 from eduid_webapp.security.schemas import SecurityResponseSchema, CredentialList, CsrfSchema
 from eduid_webapp.security.schemas import SuggestedPassword, SuggestedPasswordResponseSchema
 from eduid_webapp.security.schemas import ChangePasswordSchema, RedirectResponseSchema
 from eduid_webapp.security.schemas import RedirectSchema, AccountTerminatedSchema, ChpassResponseSchema
-from eduid_webapp.security.helpers import compile_credential_list, send_termination_mail
+from eduid_webapp.security.helpers import compile_credential_list, send_termination_mail, generate_suggested_password
 
 security_views = Blueprint('security', __name__, url_prefix='', template_folder='templates')
 
@@ -98,19 +97,6 @@ def get_suggested(user):
             }
 
     return SuggestedPassword().dump(suggested).data
-
-
-def generate_suggested_password():
-    """
-    The suggested password is saved in session to avoid form hijacking
-    """
-    password_length = current_app.config.get('PASSWORD_LENGTH', 12)
-
-    password = generate_password(length=password_length)
-    password = ' '.join([password[i*4: i*4+4] for i in range(0, len(password)/4)])
-
-    session['last_generated_password'] = password
-    return password
 
 
 @security_views.route('/change-password', methods=['POST'])

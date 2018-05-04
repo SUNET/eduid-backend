@@ -18,6 +18,7 @@
             </div>
             {% block content %}{% endblock %}
         </div>
+        {% block extra_jsdata %}{% endblock %}
         <script type="text/javascript" src="{{ static_url_for('/js/libs/jquery-2.0.3.min.js') }}"></script>
         <script type="text/javascript" src="{{ static_url_for('/js/libs/bootstrap-3.2.0.min.js') }}"></script>
         {% block extra_js %}{% endblock %}

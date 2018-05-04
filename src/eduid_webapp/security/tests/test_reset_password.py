@@ -41,6 +41,7 @@ class SecurityResetPasswordTests(EduidAPITestCase):
             self.app.private_userdb._drop_whole_collection()
             self.app.authninfo_db._drop_whole_collection()
             self.app.password_reset_state_db._drop_whole_collection()
+            self.app.proofing_log._drop_whole_collection()
             self.app.central_userdb._drop_whole_collection()
 
     def post_email_address(self, email_address):
@@ -112,7 +113,8 @@ class SecurityResetPasswordTests(EduidAPITestCase):
 
         state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
         self.assertIsNotNone(state)
-        self.assertEqual(state.email_code.is_used, True)
+        self.assertEqual(state.email_code.verified, True)
+        self.assertEqual(self.app.proofing_log.db_count(), 1)
 
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     def test_password_reset_extra_security_no_verified_email(self, mock_sendmail):
@@ -130,11 +132,14 @@ class SecurityResetPasswordTests(EduidAPITestCase):
 
         state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
         self.assertIsNotNone(state)
-        self.assertEqual(state.email_code.is_used, False)
+        self.assertEqual(state.email_code.verified, False)
+        self.assertEqual(self.app.proofing_log.db_count(), 0)
 
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
-    def test_password_reset_extra_security_phone(self, mock_sendmail):
+    @patch('eduid_common.api.msg.MsgRelay.sendsms')
+    def test_password_reset_extra_security_phone(self, mock_sendmail, mock_sendsms):
         mock_sendmail.return_value = True
+        mock_sendsms.return_value = True
         self.post_email_address('johnsmith@example.com')
 
         state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
@@ -153,4 +158,12 @@ class SecurityResetPasswordTests(EduidAPITestCase):
             response2 = c.post('/reset-password/extra-security/{}'.format(email_code), data=data)
             self.assertEqual(response2.status_code, 302)
 
-            c.get('/reset-password/extra-security/phone/{}'.format(email_code))
+            response3 = c.get('/reset-password/extra-security/phone/{}'.format(email_code))
+            self.assertEqual(response3.status_code, 200)
+
+            with c.session_transaction() as sess:
+                data = {
+                    'csrf': sess.get_csrf_token(),
+                    'phone_number_index': '0'
+                }
+            response2 = c.post('/reset-password/extra-security/{}'.format(email_code), data=data)
