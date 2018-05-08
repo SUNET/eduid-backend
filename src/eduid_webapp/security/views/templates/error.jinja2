@@ -8,7 +8,7 @@
         {% if view_context.text %}
             <p><span class="glyphicon glyphicon-info-sign"></span> {{ view_context.text }}</p>
         {% endif %}
-        {% if view_context.retry_url and retry_url_txt %}
+        {% if view_context.retry_url and view_context.retry_url_txt %}
             <div >
                 <a href="{{ view_context.retry_url }}">{{ view_context.retry_url_txt }}</a>
             </div>
