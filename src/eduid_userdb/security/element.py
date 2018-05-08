@@ -82,7 +82,7 @@ class CodeElement(Element):
         Check whether the code is expired.
 
         :param timeout: the number of hours a code is valid
-        :type timeout: int
+        :type timeout: float
 
         :rtype: bool
         """
