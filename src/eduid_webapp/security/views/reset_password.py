@@ -6,6 +6,7 @@ import json
 from functools import wraps
 from flask import Blueprint, session, request, render_template, current_app, url_for, redirect
 from flask_babel import gettext as _
+from eduid_userdb.security.state import PasswordResetEmailAndPhoneState
 from eduid_userdb.exceptions import DocumentDoesNotExist
 from eduid_webapp.security.schemas import ResetPasswordEmailSchema, ResetPasswordExtraSecuritySchema
 from eduid_webapp.security.schemas import ResetPasswordVerifyPhoneNumberSchema, ResetPasswordNewPasswordSchema
@@ -24,7 +25,8 @@ def require_state(f):
     @wraps(f)
     def require_state_decorator(*args, **kwargs):
         email_code = kwargs.pop('email_code')
-        expiration_time = current_app.config['EMAIL_CODE_TIMEOUT_MINUTES'] / 60  # expiration_time in hours
+        mail_expiration_time = float(current_app.config['EMAIL_CODE_TIMEOUT_MINUTES']) / 60  # expiration_time in hours
+        sms_expiration_time = float(current_app.config['PHONE_CODE_TIMEOUT_MINUTES']) / 60  # expiration_time in hours
         try:
             state = current_app.password_reset_state_db.get_state_by_email_code(email_code)
         except DocumentDoesNotExist:
@@ -37,13 +39,23 @@ def require_state(f):
             }
             return render_template('error.jinja2', view_context=view_context)
 
-        if state.email_code.is_expired(expiration_time):
+        if state.email_code.is_expired(mail_expiration_time):
             current_app.logger.info('State expired: {}'.format(email_code))
             view_context = {
                 'heading': _('Link expired'),
                 'text': _('The password reset link has expired.'),
                 'retry_url': url_for('reset_password.reset_password'),
                 'retry_url_txt': _('Reset your password'),
+            }
+            return render_template('error.jinja2', view_context=view_context)
+
+        if isinstance(state, PasswordResetEmailAndPhoneState) and state.phone_code.is_expired(sms_expiration_time):
+            current_app.logger.info('Phone code expired for state: {}'.format(email_code))
+            view_context = {
+                'heading': _('SMS code expired'),
+                'text': _('The phone verification has expired.'),
+                'retry_url': url_for('reset_password.choose_extra_security', email_code=state.email_code.code),
+                'retry_url_txt': _('Resend code or try another way'),
             }
             return render_template('error.jinja2', view_context=view_context)
 
