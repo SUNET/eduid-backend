@@ -211,9 +211,17 @@ def new_password(state):
         if not form.errors and session.get_csrf_token() == form.data['csrf']:
             if form.data.get('use_generated_password'):
                 password = state.generated_password
+                current_app.logger.info('Generated password used')
             else:
                 password = form.data.get('custom_password')
+                current_app.logger.info('Custom password used')
+            current_app.logger.info('Resetting password for user {}'.format(state.eppn))
             reset_user_password(state, password)
+            current_app.logger.info('Password reset done removing state for user {}'.format(state.eppn))
+            current_app.password_reset_state_db.remove_state(state)
+            view_context['form_post_success'] = True
+            view_context['login_url'] = current_app.config['EDUID_SITE_URL']
+            return render_template('reset_password_new_password.jinja2', view_context=view_context)
 
         view_context['errors'] = form.errors
         view_context['active_pane'] = 'custom'

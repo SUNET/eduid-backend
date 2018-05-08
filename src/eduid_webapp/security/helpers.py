@@ -209,6 +209,21 @@ def verify_phone_number(state):
     return False
 
 
+def extra_security_used(state):
+    """
+    Check if any extra security method was used
+
+    :param state: Password reset state
+    :type state: PasswordResetState
+    :return: True|False
+    :rtype: bool
+    """
+    if isinstance(state, PasswordResetEmailAndPhoneState):
+        return state.email_code.verified and state.phone_code.verified
+
+    return False
+
+
 def reset_user_password(state, password):
     """
     :param state: Password reset state
@@ -223,13 +238,29 @@ def reset_user_password(state, password):
     user = current_app.central_userdb.get_user_by_eppn(state.eppn, raise_on_missing=False)
     security_user = SecurityUser.from_user(user, private_userdb=current_app.private_userdb)
 
-    # TODO: Check extra security and make user AL1 if not used
+    # If no extra security is all verified information (except email addresses) is set to not verified
+    if not extra_security_used(state):
+        current_app.logger.info('No extra security used by user {}'.format(state.eppn))
+        # Phone numbers
+        verified_phone_numbers = security_user.phone_numbers.verified.to_list()
+        if verified_phone_numbers:
+            security_user.phone_numbers.primary.is_primary = False
+            for phone_number in verified_phone_numbers:
+                phone_number.is_verified = False
+                current_app.logger.debug('Phone number {} unverified'.format(phone_number.number))
+        # NINs
+        verified_nins = security_user.nins.verified.to_list()
+        if verified_nins:
+            security_user.nins.primary.is_primary = False
+            for nin in verified_nins:
+                nin.is_verified = False
+                current_app.logger.debug('NIN {} unverified'.format(nin.number))
 
     security_user = reset_password(security_user, new_password=password, application='security', vccs_url=vccs_url)
     security_user.terminated = False
     save_and_sync_user(security_user)
     current_app.stats.count(name='security_password_reset', value=1)
-    current_app.logger.info('Reset password for user {}'.format(security_user.eppn))
+    current_app.logger.info('Reset password successful for user {}'.format(security_user.eppn))
 
 
 def get_extra_security_alternatives(eppn):

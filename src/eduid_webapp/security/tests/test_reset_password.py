@@ -148,6 +148,7 @@ class SecurityResetPasswordTests(EduidAPITestCase):
 
         self.verify_email_address(email_code)
 
+        # Choose extra security phone and send sms
         with self.app.test_client() as c:
             c.get('/reset-password/extra-security/{}'.format(email_code))
             with c.session_transaction() as sess:
@@ -166,4 +167,23 @@ class SecurityResetPasswordTests(EduidAPITestCase):
                     'csrf': sess.get_csrf_token(),
                     'phone_number_index': '0'
                 }
-            response2 = c.post('/reset-password/extra-security/{}'.format(email_code), data=data)
+            response4 = c.post('/reset-password/extra-security/{}'.format(email_code), data=data)
+            self.assertEqual(response4.status_code, 302)
+
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+        self.assertIsNotNone(state.phone_code)
+        self.assertEqual(state.phone_code.verified, False)
+
+        # Verify phone
+        with self.app.test_client() as c:
+            c.get('/reset-password/extra-security/phone/{}'.format(email_code))
+            with c.session_transaction() as sess:
+                data = {
+                    'csrf': sess.get_csrf_token(),
+                    'phone_code': state.phone_code.code
+                }
+            response2 = c.post('/reset-password/extra-security/phone/{}'.format(email_code), data=data)
+            self.assertEqual(response2.status_code, 302)
+
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+        self.assertEqual(state.phone_code.verified, True)
