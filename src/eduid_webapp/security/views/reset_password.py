@@ -108,7 +108,7 @@ def choose_extra_security(state):
     }
 
     # Check that the email code has been validated
-    if not state.email_code.verified:
+    if not state.email_code.is_verified:
         current_app.logger.info('User {} has not verified their email address'.format(state.eppn))
         view_context = {
             'heading': _('Email address not validated'),

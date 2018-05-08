@@ -162,7 +162,7 @@ def verify_email_address(state):
     proofing_element = MailAddressProofing(user, created_by='security', mail_address=state.email_address,
                                            reference=state.reference, proofing_version='2013v1')
     if current_app.proofing_log.save(proofing_element):
-        state.email_code.verified = True
+        state.email_code.is_verified = True
         current_app.password_reset_state_db.save(state)
         current_app.logger.info('Email code marked as used for {}'.format(state.eppn))
         return True
@@ -201,7 +201,7 @@ def verify_phone_number(state):
     proofing_element = PhoneNumberProofing(user, created_by='security', phone_number=state.phone_number,
                                            reference=state.reference, proofing_version='2013v1')
     if current_app.proofing_log.save(proofing_element):
-        state.phone_code.verified = True
+        state.phone_code.is_verified = True
         current_app.password_reset_state_db.save(state)
         current_app.logger.info('Phone code marked as used for {}'.format(state.eppn))
         return True
@@ -219,7 +219,7 @@ def extra_security_used(state):
     :rtype: bool
     """
     if isinstance(state, PasswordResetEmailAndPhoneState):
-        return state.email_code.verified and state.phone_code.verified
+        return state.email_code.is_verified and state.phone_code.is_verified
 
     return False
 
