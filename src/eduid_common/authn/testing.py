@@ -119,18 +119,21 @@ class TestVCCSClient(object):
         return found
 
     def add_credentials(self, user_id, factors):
-        self.factors[str(user_id)] = factors
+        user_factors = self.factors.get(str(user_id), [])
+        user_factors.extend(factors)
+        self.factors[str(user_id)] = user_factors
         return True
 
     def revoke_credentials(self, user_id, revoked):
-        stored = self.factors[user_id]
-        for rfactor in revoked:
-            rdict = rfactor.to_dict('revoke_creds')
-            for factor in stored:
-                fdict = factor.to_dict('revoke_creds')
-                if rdict['credential_id'] == fdict['credential_id']:
-                    stored.remove(factor)
-                    break
+        stored = self.factors.get(user_id, None)
+        if stored:  # Nothing stored in test client yet
+            for rfactor in revoked:
+                rdict = rfactor.to_dict('revoke_creds')
+                for factor in stored:
+                    fdict = factor.to_dict('revoke_creds')
+                    if rdict['credential_id'] == fdict['credential_id']:
+                        stored.remove(factor)
+                        break
 
 
 def provision_credentials(vccs_url, new_password, user,
