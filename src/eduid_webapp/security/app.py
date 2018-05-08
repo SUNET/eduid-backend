@@ -76,7 +76,7 @@ def security_init_app(name, config):
     app.register_blueprint(reset_password_views)
 
     # Register view path that should not be authorized
-    app = no_authn_views(app, ['/reset-password/?.*'])
+    app = no_authn_views(app, ['/reset-password.*'])
 
     app = am.init_relay(app, 'eduid_security')
     app = msg.init_relay(app)
