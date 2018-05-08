@@ -27,7 +27,7 @@ class CodeElement(Element):
         verified = data_in.pop('verified', False)
         Element.__init__(self, data_in)
         self.code = code
-        self.verified = verified
+        self.is_verified = verified
 
     @property
     def key(self):
@@ -59,15 +59,15 @@ class CodeElement(Element):
     # -----------------------------------------------------------------
 
     @property
-    def verified(self):
+    def is_verified(self):
         """
         :return: True if the code has been used.
         :rtype: bool
         """
         return self._data['verified']
 
-    @verified.setter
-    def verified(self, value):
+    @is_verified.setter
+    def is_verified(self, value):
         """
         :param value: True if code is used
         :type value: bool
