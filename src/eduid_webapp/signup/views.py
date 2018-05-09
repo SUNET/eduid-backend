@@ -57,11 +57,11 @@ signup_views = Blueprint('signup', __name__, url_prefix='', template_folder='tem
 @MarshalWith(FluxStandardAction)
 def get_config():
 
-    parser = EtcdConfigParser('/eduid/webapp/signup/')
-    config = parser.read_configuration(silent=True)
     jsconfig = {
             'csrf_token': session.get_csrf_token(),
-            'recaptcha_public_key': config.get('RECAPTCHA_PUBLIC_KEY')
+            'recaptcha_public_key': current_app.config.get('RECAPTCHA_PUBLIC_KEY'),
+            'available_languages': current_app.config.get('AVAILABLE_LANGUAGES'),
+            'debug': current_app.config.get('DEBUG'),
             }
     return jsconfig
 
