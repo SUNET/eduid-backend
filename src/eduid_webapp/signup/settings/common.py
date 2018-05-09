@@ -40,12 +40,15 @@ http://flask.pocoo.org/docs/0.10/config/#builtin-configuration-values
 """
 
 DEBUG = False
+DEVELOPMENT = DEBUG
 
 # Database URIs
 MONGO_URI = ''
 REDIS_HOST = ''
 REDIS_PORT = 6379
 REDIS_DB = 0
+
+APPLICATION_ROOT = None
 
 # Secret key
 SECRET_KEY = ''

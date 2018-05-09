@@ -35,14 +35,13 @@ from marshmallow import fields
 from eduid_common.api.schemas.base import EduidSchema
 from eduid_common.api.schemas.csrf import CSRFRequestMixin
 from eduid_common.api.schemas.validators import validate_email
-from eduid_webapp.email.validators import email_does_not_exist
 
 __author__ = 'eperez'
 
 
 class EmailSchema(EduidSchema, CSRFRequestMixin):
 
-    email = fields.Email(required=True, validate=[validate_email, email_does_not_exist])
+    email = fields.Email(required=True, validate=[validate_email])
 
 class RegisterEmailSchema(EmailSchema):
 

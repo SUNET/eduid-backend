@@ -35,8 +35,10 @@ from __future__ import absolute_import
 from flask import Blueprint, request, session, current_app
 from flask import redirect
 
+from eduid_common.config.parsers.etcd import EtcdConfigParser
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith
 from eduid_common.api.schemas.base import FluxStandardAction
+from eduid_common.api.schemas.csrf import CSRFResponse
 from eduid_webapp.email.schemas import VerificationCodeSchema
 from eduid_webapp.signup.schemas import RegisterEmailSchema
 from eduid_webapp.signup.schemas import EmailSchema
@@ -48,7 +50,7 @@ from eduid_webapp.signup.helpers import locale_negotiator
 from eduid_webapp.signup.verifications import CodeDoesNotExist
 from eduid_webapp.signup.verifications import AlreadyVerifiedException
 
-signup_views = Blueprint('signup', __name__, url_prefix='')
+signup_views = Blueprint('signup', __name__, url_prefix='', template_folder='templates')
 
 
 @signup_views.route('/config', methods=['GET'])
@@ -66,7 +68,7 @@ def get_config():
 
 @signup_views.route('/trycaptcha', methods=['POST'])
 @UnmarshalWith(RegisterEmailSchema)
-@MarshalWith(FluxStandardAction)
+@MarshalWith(CSRFResponse)
 def trycaptcha(email, recaptcha_response):
     """
     Kantara requires a check for humanness even at level AL1.

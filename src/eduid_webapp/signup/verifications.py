@@ -35,7 +35,7 @@ from uuid import uuid4
 import time
 import requests
 
-from flask import current_app, request, abort, url_for
+from flask import current_app, request, abort, url_for, render_template
 
 from eduid_userdb import MailAddress
 from eduid_userdb.signup import SignupUser
@@ -89,7 +89,7 @@ def verify_recaptcha(secret_key, captcha_response, user_ip, retries=3):
 
 
 def generate_verification_link():
-    code = text_type(uuid4())
+    code = str(uuid4())
     link = url_for('signup.verify_link', code=code)
     return (link, code)
 
