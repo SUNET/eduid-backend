@@ -129,8 +129,7 @@ def send_verification_mail(email):
 
     if current_app.config.get("DEVELOPMENT", False):
         # Development
-        current_app.logger.debug("Confirmation e-mail:\nFrom: {!s}\nTo: {!s}\nSubject: {!s}\n\n{!s}".format(
-            message.sender, message.recipients, message.subject, message.body))
+        current_app.logger.debug("Confirmation e-mail:\nTo: {!s}\nSubject: {!s}\n\n{!s}".format(email, subject, text))
     else:
         current_app.mail_relay.sendmail(subject, [email], text, html)
         current_app.logger.info("Sent email address verification mail to user "
