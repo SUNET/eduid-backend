@@ -35,7 +35,7 @@ from urllib import urlencode
 
 from werkzeug import get_current_url
 from werkzeug.http import parse_cookie, dump_cookie
-from flask import Flask, session, current_app
+from flask import Flask, session, current_app, request
 from eduid_common.api.session import NoSessionDataFoundException
 from eduid_common.api.utils import urlappend
 
@@ -89,3 +89,29 @@ class AuthnApp(Flask):
 
             start_response('302 Found', headers)
             return []
+
+
+class UnAuthnApp(Flask):
+    """
+    WSGI middleware that checks whether the request is authenticated,
+    and in case it isn't, redirects to the authn service.
+    """
+    def __call__(self, environ, start_response):
+        next_url = get_current_url(environ)
+
+        with self.request_context(environ):
+            cookie_name = self.config.get('SESSION_COOKIE_NAME', 'signup-sessid')
+            if cookie_name not in request.cookies:
+                cookie = dump_cookie(cookie_name, session._session.token,
+                                     max_age=int(self.config.get('PERMANENT_SESSION_LIFETIME')),
+                                     path=self.config.get('SESSION_COOKIE_PATH'),
+                                     domain=self.config.get('SESSION_COOKIE_DOMAIN'),
+                                     secure=self.config.get('SESSION_COOKIE_SECURE'),
+                                     httponly=self.config.get('SESSION_COOKIE_HTTPONLY'))
+                session.persist()
+                headers = [ ('Location', next_url) ]
+                headers.append(('Set-Cookie', cookie))
+                start_response('302 Found', headers)
+                return []
+        
+        return super(UnAuthnApp, self).__call__(environ, start_response)
