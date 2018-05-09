@@ -33,14 +33,20 @@
 import json
 import time
 
-from flask import current_app
 from mock import patch
 
 from eduid_common.api.testing import EduidAPITestCase
+from eduid_userdb.nin import Nin
 from eduid_webapp.security.app import security_init_app
 
 
 class SecurityTests(EduidAPITestCase):
+
+    def setUp(self):
+        super(SecurityTests, self).setUp()
+
+        self.test_user_eppn = 'hubba-bubba'
+        self.test_user_nin = '197801011235'
 
     def load_app(self, config):
         """
@@ -303,3 +309,90 @@ class SecurityTests(EduidAPITestCase):
 
                 self.assertEqual(response2.location,
                                  'https://www.eduid.se/')
+
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_remove_nin(self, mock_request_user_sync):
+        mock_request_user_sync.side_effect = self.request_user_sync
+
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        self.assertEqual(user.nins.count, 2)
+        self.assertEqual(user.nins.verified.count, 2)
+
+        user.nins.find(self.test_user_nin).is_primary = False
+        user.nins.find(self.test_user_nin).is_verified = False
+        self.app.central_userdb.save(user, check_sync=False)
+
+        self.assertEqual(user.nins.verified.count, 1)
+
+        with self.session_cookie(self.browser, self.test_user_eppn) as client:
+            with client.session_transaction() as sess:
+                with self.app.test_request_context():
+                    data = {
+                        'nin': self.test_user_nin,
+                        'csrf_token': sess.get_csrf_token()
+                        }
+                    response = client.post('/remove-nin', data=json.dumps(data), content_type=self.content_type_json)
+
+                    rdata = json.loads(response.data)
+
+        self.assertTrue(rdata['payload']['success'])
+
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        self.assertEqual(user.nins.count, 1)
+        self.assertEqual(user.nins.verified.count, 1)
+
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_remove_nin_no_csrf(self, mock_request_user_sync):
+        mock_request_user_sync.side_effect = self.request_user_sync
+
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        self.assertEqual(user.nins.count, 2)
+        self.assertEqual(user.nins.verified.count, 2)
+
+        user.nins.find(self.test_user_nin).is_primary = False
+        user.nins.find(self.test_user_nin).is_verified = False
+        self.app.central_userdb.save(user, check_sync=False)
+
+        self.assertEqual(user.nins.verified.count, 1)
+
+        with self.session_cookie(self.browser, self.test_user_eppn) as client:
+            with client.session_transaction() as sess:
+                with self.app.test_request_context():
+                    data = {
+                        'nin': self.test_user_nin,
+                        'csrf_token': 'bad_csrf'
+                        }
+                    response = client.post('/remove-nin', data=json.dumps(data), content_type=self.content_type_json)
+
+                    rdata = json.loads(response.data)
+
+        self.assertTrue(rdata['payload']['error'])
+
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        self.assertEqual(user.nins.count, 2)
+        self.assertEqual(user.nins.verified.count, 1)
+
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_not_remove_verified_nin(self, mock_request_user_sync):
+        mock_request_user_sync.side_effect = self.request_user_sync
+
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        self.assertEqual(user.nins.count, 2)
+        self.assertEqual(user.nins.verified.count, 2)
+
+        with self.session_cookie(self.browser, self.test_user_eppn) as client:
+            with client.session_transaction() as sess:
+                with self.app.test_request_context():
+                    data = {
+                        'nin': self.test_user_nin,
+                        'csrf_token': sess.get_csrf_token()
+                    }
+                    response = client.post('/remove-nin', data=json.dumps(data), content_type=self.content_type_json)
+
+                    rdata = json.loads(response.data)
+
+        self.assertFalse(rdata['payload']['success'])
+
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        self.assertEqual(user.nins.count, 2)
+        self.assertEqual(user.nins.verified.count, 2)

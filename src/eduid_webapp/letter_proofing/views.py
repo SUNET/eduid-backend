@@ -5,9 +5,8 @@ from __future__ import absolute_import
 from flask import Blueprint, current_app
 
 from eduid_common.api.decorators import require_user, can_verify_identity, MarshalWith, UnmarshalWith
-from eduid_common.api.helpers import add_nin_to_user, verify_nin_for_user, rm_nin_from_user
+from eduid_common.api.helpers import add_nin_to_user, verify_nin_for_user
 from eduid_common.api.exceptions import AmTaskFailed, MsgTaskFailed
-from eduid_userdb.proofing import ProofingUser
 from eduid_userdb.logs import LetterProofing
 from eduid_webapp.letter_proofing import pdf
 from eduid_webapp.letter_proofing import schemas
@@ -132,27 +131,5 @@ def verify_code(user, code):
                 'nins': user.nins.to_list_of_dicts()}
     except AmTaskFailed as e:
         current_app.logger.error('Verifying nin for user {} failed'.format(user))
-        current_app.logger.error('{}'.format(e))
-        return {'_status': 'error', 'message': 'Temporary technical problems'}
-
-
-@letter_proofing_views.route('/remove-nin', methods=['POST'])
-@UnmarshalWith(schemas.LetterProofingRequestSchema)
-@MarshalWith(schemas.VerifyCodeResponseSchema)
-@require_user
-def remove_nin(user, nin):
-    current_app.logger.info('Removing NIN {} for user {}'.format(nin, user))
-
-    nin_obj = user.nins.find(nin)
-    if nin_obj.is_verified:
-        return {'_status': 'error', 'success': False, 'message': 'nins.verified_no_rm'}
-
-    try:
-        rm_nin_from_user(user, nin)
-        return {'success': True,
-                'message': 'nins.success_removal',
-                'nins': user.nins.to_list_of_dicts()}
-    except AmTaskFailed as e:
-        current_app.logger.error('Removing nin {} for user {} failed'.format(nin, user))
         current_app.logger.error('{}'.format(e))
         return {'_status': 'error', 'message': 'Temporary technical problems'}
