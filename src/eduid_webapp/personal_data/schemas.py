@@ -33,6 +33,7 @@
 
 from marshmallow import fields
 from eduid_common.api.schemas.base import FluxStandardAction, EduidSchema
+from eduid_common.api.schemas.nin import NinSchema
 from eduid_common.api.schemas.csrf import CSRFResponseMixin, CSRFRequestMixin
 from eduid_webapp.personal_data.validators import validate_language
 from eduid_webapp.personal_data.validators import validate_nonempty
@@ -56,8 +57,7 @@ class PersonalDataSchema(EduidSchema, CSRFResponseMixin):
     given_name = fields.String(required=True, attribute='givenName')
     surname = fields.String(required=True)
     display_name = fields.String(required=True, attribute='displayName')
-    language = fields.String(required=True,
-            attribute='preferredLanguage', validate=validate_language)
+    language = fields.String(required=True, attribute='preferredLanguage', validate=validate_language)
 
 
 class PersonalDataSubSchema(EduidSchema, CSRFResponseMixin):
@@ -74,18 +74,12 @@ class PersonalDataResponseSchema(FluxStandardAction):
     payload = fields.Nested(PersonalDataSubSchema)
 
 
-class NinSchema(EduidSchema):
-    number = fields.String(required=True)
-    verified = fields.Boolean(required=True)
-    primary = fields.Boolean(required=True)
-
-
-class NinListSchema(EduidSchema, CSRFResponseMixin):
-    nins = fields.Nested(NinSchema, many=True)
-
-
 class NinsResponseSchema(FluxStandardAction):
-    payload = fields.Nested(NinListSchema)
+
+    class NinResponsePayload(EmailSchema, CSRFResponseMixin):
+        nins = fields.Nested(NinSchema, many=True)
+
+    payload = fields.Nested(NinResponsePayload)
 
 
 class AllDataSchema(EduidSchema):
@@ -93,8 +87,7 @@ class AllDataSchema(EduidSchema):
     given_name = fields.String(required=True, attribute='givenName')
     surname = fields.String(required=True)
     display_name = fields.String(required=True, attribute='displayName')
-    language = fields.String(required=True,
-            attribute='preferredLanguage', validate=validate_language)
+    language = fields.String(required=True, attribute='preferredLanguage', validate=validate_language)
     nins = fields.Nested(NinSchema, many=True)
     emails = fields.Nested(EmailSchema, many=True, attribute='mailAliases')
     phones = fields.Nested(PhoneSchema, many=True, attribute='phone')
