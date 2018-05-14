@@ -38,9 +38,9 @@ from flask import redirect
 from eduid_common.config.parsers.etcd import EtcdConfigParser
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith
 from eduid_common.api.schemas.base import FluxStandardAction
-from eduid_common.api.schemas.csrf import CSRFResponse
 from eduid_webapp.email.schemas import VerificationCodeSchema
 from eduid_webapp.signup.schemas import RegisterEmailSchema
+from eduid_webapp.signup.schemas import AccountCreatedResponse
 from eduid_webapp.signup.schemas import EmailSchema
 from eduid_webapp.signup.verifications import verify_recaptcha
 from eduid_webapp.signup.verifications import send_verification_mail
@@ -68,7 +68,7 @@ def get_config():
 
 @signup_views.route('/trycaptcha', methods=['POST'])
 @UnmarshalWith(RegisterEmailSchema)
-@MarshalWith(CSRFResponse)
+@MarshalWith(AccountCreatedResponse)
 def trycaptcha(email, recaptcha_response):
     """
     Kantara requires a check for humanness even at level AL1.
@@ -94,7 +94,10 @@ def trycaptcha(email, recaptcha_response):
             remove_users_with_mail_address(email)
             send_verification_mail(email)
         msg = 'signup.registering-{}'.format(status)
-        return {'message': msg}
+        return {
+            'message': msg,
+            'status': status
+        }
     return {
             '_status': 'error',
             'message': 'signup.recaptcha-not-verified'

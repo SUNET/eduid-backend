@@ -36,6 +36,7 @@ import time
 import requests
 
 from flask import current_app, request, abort, url_for, render_template
+from flask_babel import gettext as _
 
 from eduid_userdb import MailAddress
 from eduid_userdb.signup import SignupUser
@@ -127,6 +128,7 @@ def send_verification_mail(email):
         current_app.private_userdb.save(signup_user)
         current_app.logger.info("User {!s}/{!s} updated with new e-mail confirmation code".format(signup_user, email))
 
+    subject = _("eduid-signup verification email"),
     if current_app.config.get("DEVELOPMENT", False):
         # Development
         current_app.logger.debug("Confirmation e-mail:\nTo: {!s}\nSubject: {!s}\n\n{!s}".format(email, subject, text))
