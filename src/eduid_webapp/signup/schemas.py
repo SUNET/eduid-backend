@@ -52,7 +52,7 @@ class RegisterEmailSchema(EmailSchema):
 
 class AccountCreatedSchema(EduidSchema, CSRFResponseMixin):
 
-    status = fields.String(required=True)
+    next = fields.String(required=True)
 
 
 class AccountCreatedResponse(FluxStandardAction):

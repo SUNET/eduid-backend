@@ -34,6 +34,7 @@
 import os
 import time
 import struct
+import datetime
 from hashlib import sha256
 from bson import ObjectId
 import proquint
@@ -105,7 +106,7 @@ def check_email_status(email):
     try:
         am_user = userdb.get_user_by_mail(email, raise_on_missing=True, include_unconfirmed=False)
         current_app.logger.debug("Found user {!s} with email {!s}".format(am_user, email))
-        return 'verified'
+        return 'code-verified'
     except userdb.exceptions.UserDoesNotExist:
         current_app.logger.debug("No user found with email {!s} in eduid userdb".format(email))
 
@@ -113,7 +114,7 @@ def check_email_status(email):
         signup_user = signup_db.get_user_by_pending_mail_address(email)
         if signup_user:
             current_app.logger.debug("Found user {!s} with pending email {!s} in signup db".format(signup_user, email))
-            return 'not_verified'
+            return 'resend-code'
     except userdb.exceptions.UserDoesNotExist:
         current_app.logger.debug("No user found with email {!s} in signup db either".format(email))
 
@@ -188,6 +189,7 @@ def complete_registration(signup_user, context=None):
     auth_token = generate_auth_token(secret, signup_user.eppn, nonce, timestamp)
 
     context.update({
+        "status": 'verified',
         "password": password,
         "email": signup_user.mail_addresses.primary.email,
         "eppn": signup_user.eppn,
@@ -210,7 +212,7 @@ def record_tou(user, source):
                    the user has accepted the ToU (e.g., "signup")
     :type source: str
     """
-    event_id = bson.ObjectId()
+    event_id = ObjectId()
     created_ts = datetime.datetime.utcnow()
     tou_version = current_app.config['TOU_VERSION']
     current_app.logger.debug('Recording ToU acceptance {!r} (version {!s})'

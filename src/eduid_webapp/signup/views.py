@@ -33,20 +33,18 @@
 from __future__ import absolute_import
 
 from flask import Blueprint, request, session, current_app
-from flask import redirect
 
-from eduid_common.config.parsers.etcd import EtcdConfigParser
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith
 from eduid_common.api.schemas.base import FluxStandardAction
-from eduid_webapp.email.schemas import VerificationCodeSchema
 from eduid_webapp.signup.schemas import RegisterEmailSchema
 from eduid_webapp.signup.schemas import AccountCreatedResponse
 from eduid_webapp.signup.schemas import EmailSchema
 from eduid_webapp.signup.verifications import verify_recaptcha
 from eduid_webapp.signup.verifications import send_verification_mail
+from eduid_webapp.signup.verifications import verify_email_code
 from eduid_webapp.signup.helpers import check_email_status
 from eduid_webapp.signup.helpers import remove_users_with_mail_address
-from eduid_webapp.signup.helpers import locale_negotiator
+from eduid_webapp.signup.helpers import complete_registration
 from eduid_webapp.signup.verifications import CodeDoesNotExist
 from eduid_webapp.signup.verifications import AlreadyVerifiedException
 
@@ -88,15 +86,15 @@ def trycaptcha(email, recaptcha_response):
 
     if recaptcha_verified:
         current_app.logger.info('Valid CAPTCHA response from {!r}'.format(remote_ip))
-        status = check_email_status(email)
-        if status == 'new':
+        next = check_email_status(email)
+        if next == 'new':
             # Workaround for failed earlier sync of user to userdb: Remove any signup_user with this e-mail address.
             remove_users_with_mail_address(email)
             send_verification_mail(email)
-        msg = 'signup.registering-{}'.format(status)
+        msg = 'signup.registering-{}'.format(next)
         return {
             'message': msg,
-            'status': status
+            'next': next
         }
     return {
             '_status': 'error',
@@ -118,32 +116,19 @@ def resend_email_verification(email):
     return {'message': 'signup.verification-resent'}
 
 
-@signup_views.route('/verify-code', methods=['POST'])
-@UnmarshalWith(VerificationCodeSchema)
-@MarshalWith(FluxStandardAction)
-def verify_code(code, email):
-    try:
-        user = verify_email_code(code)    
-    except CodeDoesNotExist:
-        return {
-                '_status': 'error',
-                'message': 'signup.unknown-code'
-                }
-    except AlreadyVerifiedException:
-        return {
-                '_status': 'error',
-                'message': 'signup.already-verified'
-                }
-    return complete_registration(user)
-
-
 @signup_views.route('/verify-link/<code>', methods=['GET'])
 @MarshalWith(FluxStandardAction)
 def verify_link(code):
     try:
         user = verify_email_code(code)    
     except CodeDoesNotExist:
-        redirect()
+        return {
+                'status': 'unknown-code',
+                'message': 'signup.unknown-code'
+                }
     except AlreadyVerifiedException:
-        redirect()
-    context = complete_registration(user)
+        return {
+                'status': 'already-verified',
+                'message': 'signup.already-verified'
+                }
+    return complete_registration(user)
