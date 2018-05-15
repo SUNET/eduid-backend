@@ -48,6 +48,7 @@ class EmailSchema(EduidSchema, CSRFRequestMixin):
 class RegisterEmailSchema(EmailSchema):
 
     recaptcha_response = fields.String(required=True)
+    tou_accepted = fields.Boolean(required=True)
 
 
 class AccountCreatedSchema(EduidSchema, CSRFResponseMixin):

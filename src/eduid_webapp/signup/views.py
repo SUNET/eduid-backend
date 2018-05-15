@@ -33,6 +33,7 @@
 from __future__ import absolute_import
 
 from flask import Blueprint, request, session, current_app
+from flask_babel import gettext as _
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith
 from eduid_common.api.schemas.base import FluxStandardAction
@@ -60,6 +61,7 @@ def get_config():
             'recaptcha_public_key': current_app.config.get('RECAPTCHA_PUBLIC_KEY'),
             'available_languages': current_app.config.get('AVAILABLE_LANGUAGES'),
             'debug': current_app.config.get('DEBUG'),
+            'tou': _('tou')
             }
     return jsconfig
 
@@ -67,10 +69,15 @@ def get_config():
 @signup_views.route('/trycaptcha', methods=['POST'])
 @UnmarshalWith(RegisterEmailSchema)
 @MarshalWith(AccountCreatedResponse)
-def trycaptcha(email, recaptcha_response):
+def trycaptcha(email, recaptcha_response, tou_accepted):
     """
     Kantara requires a check for humanness even at level AL1.
     """
+    if not tou_accepted:
+        return {
+                '_status': 'error',
+                'message': 'signup.tou-not-accepted'
+        }
     config = current_app.config
     remote_ip = request.remote_addr
     recaptcha_public_key = config.get('RECAPTCHA_PUBLIC_KEY', '')
