@@ -77,16 +77,16 @@ class CodeElement(Element):
         self._data['verified'] = value
     # -----------------------------------------------------------------
 
-    def is_expired(self, timeout):
+    def is_expired(self, timeout_seconds):
         """
         Check whether the code is expired.
 
-        :param timeout: the number of hours a code is valid
-        :type timeout: float
+        :param timeout_seconds: the number of seconds a code is valid
+        :type timeout_seconds: int
 
         :rtype: bool
         """
-        delta = timedelta(hours=timeout)
+        delta = timedelta(seconds=timeout_seconds)
         expiry_date = self.created_ts + delta
         now = datetime.now(tz=self.created_ts.tzinfo)
         return expiry_date < now
