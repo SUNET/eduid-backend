@@ -157,14 +157,14 @@ def send_password_reset_mail(email_address):
     html_template = 'reset_password_email.html.jinja2'
     to_addresses = [address.email for address in user.mail_addresses.to_list() if address.is_verified]
 
-    password_reset_timeout = int(current_app.config.get('EMAIL_CODE_TIMEOUT_MINUTES')) / 60
+    password_reset_timeout = current_app.config['EMAIL_CODE_TIMEOUT'] * 60 * 60  # seconds to hours
     context = {
         'reset_password_link': url_for('reset_password.email_reset_code', email_code=state.email_code.code,
                                        _external=True),
         'password_reset_timeout': password_reset_timeout
     }
     # password reset timeout in seconds
-    max_retry_timeout = int(current_app.config.get('EMAIL_CODE_TIMEOUT_MINUTES')) * 60
+    max_retry_timeout = current_app.config['EMAIL_CODE_TIMEOUT']
     send_mail(to_addresses, text_template, html_template, context, state.reference, max_retry_timeout)
     current_app.logger.info('Sent password reset email to user {}'.format(state.eppn))
     current_app.logger.debug('Mail address: {}'.format(to_addresses))
@@ -200,7 +200,7 @@ def send_verify_phone_code(state, phone_number):
     current_app.password_reset_state_db.save(state)
     template = 'reset_password_sms.txt.jinja2'
     # password reset timeout in seconds
-    password_reset_timeout = int(current_app.config.get('PHONE_CODE_TIMEOUT_MINUTES')) * 60
+    password_reset_timeout = current_app.config['PHONE_CODE_TIMEOUT']
     context = {
         'verification_code': state.phone_code.code
     }

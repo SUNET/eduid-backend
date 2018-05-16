@@ -58,6 +58,7 @@ class EmailTests(EduidAPITestCase):
                 'CELERY_TASK_SERIALIZER': 'json',
                 'MONGO_URI': config['MONGO_URI'],
             },
+            'EMAIL_VERIFICATION_TIMEOUT': 86400,
         })
         return config
 

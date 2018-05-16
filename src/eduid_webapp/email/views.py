@@ -167,7 +167,7 @@ def verify(user, code, email):
     db = current_app.proofing_statedb
     try:
         state = db.get_state_by_eppn_and_email(proofing_user.eppn, email)
-        timeout = current_app.config.get('EMAIL_VERIFICATION_TIMEOUT', 24)
+        timeout = current_app.config['EMAIL_VERIFICATION_TIMEOUT']
         if state.is_expired(timeout):
             current_app.logger.info("Verification code is expired. Removing the state")
             current_app.logger.debug("Proofing state: {}".format(state))

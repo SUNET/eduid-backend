@@ -34,8 +34,8 @@ class SecurityResetPasswordTests(EduidAPITestCase):
                 'CELERY_TASK_SERIALIZER': 'json'
             },
             'VCCS_URL': 'http://vccs',
-            'EMAIL_CODE_TIMEOUT_MINUTES': 120,
-            'PHONE_CODE_TIMEOUT_MINUTES': 10,
+            'EMAIL_CODE_TIMEOUT': 7200,
+            'PHONE_CODE_TIMEOUT': 600,
             'PASSWORD_ENTROPY': 25
         })
         return config

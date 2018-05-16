@@ -25,8 +25,8 @@ def require_state(f):
     @wraps(f)
     def require_state_decorator(*args, **kwargs):
         email_code = kwargs.pop('email_code')
-        mail_expiration_time = float(current_app.config['EMAIL_CODE_TIMEOUT_MINUTES']) / 60  # expiration_time in hours
-        sms_expiration_time = float(current_app.config['PHONE_CODE_TIMEOUT_MINUTES']) / 60  # expiration_time in hours
+        mail_expiration_time = current_app.config['EMAIL_CODE_TIMEOUT']
+        sms_expiration_time = current_app.config['PHONE_CODE_TIMEOUT']
         try:
             state = current_app.password_reset_state_db.get_state_by_email_code(email_code)
         except DocumentDoesNotExist:

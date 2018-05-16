@@ -70,5 +70,5 @@ U2F_MAX_DESCRIPTION_LENGTH = 64  # Do not allow longer descriptions than this nu
 U2F_FACETS = []
 
 # password reset settings
-EMAIL_CODE_TIMEOUT_MINUTES = 120
-PHONE_CODE_TIMEOUT_MINUTES = 10
+EMAIL_CODE_TIMEOUT = 7200  # seconds
+PHONE_CODE_TIMEOUT = 600  # seconds
