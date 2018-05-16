@@ -179,7 +179,7 @@ def verify(user, code, number):
     db = current_app.proofing_statedb
     try:
         state = db.get_state_by_eppn_and_mobile(proofing_user.eppn, number)
-        timeout = current_app.config.get('PHONE_VERIFICATION_TIMEOUT')
+        timeout = current_app.config['PHONE_VERIFICATION_TIMEOUT']
         if state.is_expired(timeout):
             current_app.logger.info("Proofing state is expired. Removing the state.")
             current_app.logger.debug("Proofing state: {!r}".format(state))
