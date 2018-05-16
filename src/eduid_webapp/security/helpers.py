@@ -8,7 +8,6 @@ from eduid_common.authn.vccs import reset_password
 from eduid_common.authn.utils import generate_password
 from eduid_userdb.security import SecurityUser, PasswordResetEmailState, PasswordResetEmailAndPhoneState
 from eduid_userdb.logs import MailAddressProofing, PhoneNumberProofing
-from eduid_userdb.exceptions import UserDoesNotExist, UserOutOfSync
 from eduid_webapp.security.schemas import ConvertRegisteredKeys
 
 __author__ = 'lundberg'
@@ -268,6 +267,7 @@ def reset_user_password(state, password):
         # Phone numbers
         verified_phone_numbers = security_user.phone_numbers.verified.to_list()
         if verified_phone_numbers:
+            current_app.logger.info('Unverifying phone numbers for user {}'.format(state.eppn))
             security_user.phone_numbers.primary.is_primary = False
             for phone_number in verified_phone_numbers:
                 phone_number.is_verified = False
@@ -275,6 +275,7 @@ def reset_user_password(state, password):
         # NINs
         verified_nins = security_user.nins.verified.to_list()
         if verified_nins:
+            current_app.logger.info('Unverifying nins for user {}'.format(state.eppn))
             security_user.nins.primary.is_primary = False
             for nin in verified_nins:
                 nin.is_verified = False
@@ -298,7 +299,7 @@ def get_extra_security_alternatives(eppn):
     user = current_app.central_userdb.get_user_by_eppn(eppn, raise_on_missing=True)
 
     if user.phone_numbers.count:
-        verified_phone_numbers = [item.number for item in user.phone_numbers.to_list() if item.is_verified]
+        verified_phone_numbers = [item.number for item in user.phone_numbers.verified.to_list()]
         alternatives['phone_numbers'] = verified_phone_numbers
     return alternatives
 

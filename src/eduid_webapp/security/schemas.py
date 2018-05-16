@@ -168,7 +168,7 @@ class ResetPasswordEmailSchema(Schema):
         try:
             validate_email(value)
         except ValidationError:
-            raise ValidationError(_('You need to input an email address'))
+            raise ValidationError(_('Invalid email address'))
 
 
 class ResetPasswordExtraSecuritySchema(Schema):

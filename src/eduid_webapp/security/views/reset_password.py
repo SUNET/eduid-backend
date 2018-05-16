@@ -192,7 +192,7 @@ def extra_security_phone_number(state):
                     return render_template('error.jinja2', view_context=view_context)
                 current_app.logger.info('Phone code verified redirecting user to set password view')
                 return redirect(url_for('reset_password.new_password', email_code=state.email_code.code))
-            view_context['form_post_fail_msg'] = _('That was not the code we sent you. Please try again.')
+            view_context['form_post_fail_msg'] = _('Invalid code. Please try again.')
         view_context['errors'] = form.errors
     view_context['csrf_token'] = session.new_csrf_token()
     return render_template('reset_password_verify_phone.jinja2', view_context=view_context)
