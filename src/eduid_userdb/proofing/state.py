@@ -127,19 +127,19 @@ class ProofingState(object):
         res = copy.copy(self._data)  # avoid caller messing with our _data
         return res
 
-    def is_expired(self, timeout):
+    def is_expired(self, timeout_seconds):
         """
-        Check whether the verification code is expired.
+        Check whether the code is expired.
 
-        :param timeout: the number of hours a verification code is valid
-        :type timeout: int
+        :param timeout_seconds: the number of seconds a code is valid
+        :type timeout_seconds: int
 
         :rtype: bool
         """
-        delta = datetime.timedelta(hours=timeout)
+        delta = datetime.timedelta(seconds=timeout_seconds)
         expiry_date = self.modified_ts + delta
         now = datetime.datetime.now(tz=self.modified_ts.tzinfo)
-        return now > expiry_date
+        return expiry_date < now
 
 
 class NinProofingState(ProofingState):
