@@ -43,6 +43,30 @@ def compile_credential_list(security_user):
     return credentials
 
 
+def remove_nin_from_user(security_user, nin):
+    """
+    :param security_user: Private userdb user
+    :param nin: NIN to remove
+
+    :type security_user: eduid_userdb.security.SecurityUser
+    :type nin: str
+
+    :return: None
+    """
+    if security_user.nins.find(nin):
+        security_user.nins.remove(nin)
+        security_user.modified_ts = True
+        # Save user to private db
+        current_app.private_userdb.save(security_user, check_sync=False)
+        # Ask am to sync user to central db
+        current_app.logger.debug('Request sync for user {!s}'.format(security_user))
+        result = current_app.am_relay.request_user_sync(security_user)
+        current_app.logger.info('Sync result for user {!s}: {!s}'.format(security_user, result))
+    else:
+        current_app.logger.info("Can't remove NIN - NIN not found")
+        current_app.logger.info("NIN: {}".format(nin))
+
+
 def generate_suggested_password():
     """
     The suggested password is saved in session to avoid form hijacking

@@ -37,8 +37,9 @@ from eduid_common.api.schemas.base import FluxStandardAction, EduidSchema
 from eduid_common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
 from eduid_common.api.schemas.u2f import U2FEnrollResponseSchema, U2FBindRequestSchema, U2FSignResponseSchema
 from eduid_common.api.schemas.u2f import U2FVerifyRequestSchema, U2FVerifyResponseSchema, U2FRegisteredKey
+from eduid_common.api.schemas.nin import NinSchema
 from eduid_common.api.schemas.password import PasswordSchema
-from eduid_common.api.schemas.validators import validate_email
+from eduid_common.api.schemas.validators import validate_email, validate_nin
 
 
 class CredentialSchema(EduidSchema):
@@ -211,3 +212,17 @@ class ResetPasswordNewPasswordSchema(PasswordSchema):
             raise ValidationError(_('Please use a stronger password'))
 
 
+# Remove NIN schemas
+class RemoveNINRequestSchema(EduidSchema, CSRFRequestMixin):
+
+    nin = fields.String(required=True, validate=validate_nin)
+
+
+class RemoveNINResponseSchema(FluxStandardAction):
+
+    class RemoveNINPayload(EduidSchema, CSRFResponseMixin):
+        success = fields.Boolean(required=True)
+        message = fields.String(required=False)
+        nins = fields.Nested(NinSchema, many=True)
+
+    payload = fields.Nested(RemoveNINPayload)

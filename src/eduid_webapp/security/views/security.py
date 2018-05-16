@@ -49,12 +49,15 @@ from eduid_userdb.exceptions import UserOutOfSync
 from eduid_common.api.utils import urlappend
 from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
 from eduid_common.api.utils import save_and_sync_user
+from eduid_common.api.exceptions import AmTaskFailed
 from eduid_common.authn.vccs import add_credentials, revoke_all_credentials
 from eduid_webapp.security.schemas import SecurityResponseSchema, CredentialList, CsrfSchema
 from eduid_webapp.security.schemas import SuggestedPassword, SuggestedPasswordResponseSchema
 from eduid_webapp.security.schemas import ChangePasswordSchema, RedirectResponseSchema
 from eduid_webapp.security.schemas import RedirectSchema, AccountTerminatedSchema, ChpassResponseSchema
+from eduid_webapp.security.schemas import RemoveNINRequestSchema, RemoveNINResponseSchema
 from eduid_webapp.security.helpers import compile_credential_list, send_termination_mail, generate_suggested_password
+from eduid_webapp.security.helpers import compile_credential_list, remove_nin_from_user
 
 security_views = Blueprint('security', __name__, url_prefix='', template_folder='templates')
 
@@ -231,3 +234,27 @@ def account_terminated(user):
     # TODO: Add a account termination completed view to redirect to
     return redirect(site_url)
 
+
+@security_views.route('/remove-nin', methods=['POST'])
+@UnmarshalWith(RemoveNINRequestSchema)
+@MarshalWith(RemoveNINResponseSchema)
+@require_user
+def remove_nin(user, nin):
+    security_user = SecurityUser.from_user(user, current_app.private_userdb)
+    current_app.logger.info('Removing NIN from user')
+    current_app.logger.debug('NIN: {}'.format(nin))
+
+    nin_obj = security_user.nins.find(nin)
+    if nin_obj.is_verified:
+        current_app.logger.info('NIN verified. Will not remove it.')
+        return {'_status': 'error', 'success': False, 'message': 'nins.verified_no_rm'}
+
+    try:
+        remove_nin_from_user(security_user, nin)
+        return {'success': True,
+                'message': 'nins.success_removal',
+                'nins': security_user.nins.to_list_of_dicts()}
+    except AmTaskFailed as e:
+        current_app.logger.error('Removing nin from user failed'.format(nin, security_user))
+        current_app.logger.error('{}'.format(e))
+        return {'_status': 'error', 'message': 'Temporary technical problems'}
