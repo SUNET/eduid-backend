@@ -37,9 +37,8 @@ from bson.errors import InvalidId
 from eduid_userdb.db import BaseDB
 from eduid_userdb.userdb import UserDB
 from eduid_userdb.exceptions import DocumentOutOfSync
-from eduid_userdb.proofing import LetterProofingState, OidcProofingState
-from eduid_userdb.proofing import EmailProofingState, ProofingUser
-from eduid_userdb.proofing import PhoneProofingState
+from eduid_userdb.proofing import ProofingUser, LetterProofingState, OidcProofingState, EmailProofingState
+from eduid_userdb.proofing import PhoneProofingState, OrcidProofingState
 from eduid_userdb.exceptions import MultipleDocumentsReturned
 
 import logging
@@ -275,12 +274,9 @@ class PhoneProofingStateDB(ProofingStateDB):
                               'verification.number': state.verification.number})
 
 
-class OidcProofingStateDB(ProofingStateDB):
+class OidcStateDB(ProofingStateDB):
 
-    ProofingStateClass = OidcProofingState
-
-    def __init__(self, db_uri, db_name='eduid_oidc_proofing'):
-        ProofingStateDB.__init__(self, db_uri, db_name)
+    ProofingStateClass = None
 
     def get_state_by_oidc_state(self, oidc_state, raise_on_missing=True):
         """
@@ -302,6 +298,22 @@ class OidcProofingStateDB(ProofingStateDB):
         state = self._get_document_by_attr('state', oidc_state, raise_on_missing)
         if state:
             return self.ProofingStateClass(state)
+
+
+class OidcProofingStateDB(OidcStateDB):
+
+    ProofingStateClass = OidcProofingState
+
+    def __init__(self, db_uri, db_name='eduid_oidc_proofing'):
+        OidcStateDB.__init__(self, db_uri, db_name)
+
+
+class OrcidProofingStateDB(OidcStateDB):
+
+    ProofingStateClass = OrcidProofingState
+
+    def __init__(self, db_uri, db_name='eduid_orcid'):
+        OidcStateDB.__init__(self, db_uri, db_name)
 
 
 class ProofingUserDB(UserDB):
@@ -342,4 +354,10 @@ class EmailProofingUserDB(ProofingUserDB):
 class LookupMobileProofingUserDB(ProofingUserDB):
 
     def __init__(self, db_uri, db_name='eduid_lookup_mobile_proofing'):
+        ProofingUserDB.__init__(self, db_uri, db_name)
+
+
+class OrcidProofingUserDB(ProofingUserDB):
+
+    def __init__(self, db_uri, db_name='eduid_orcid'):
         ProofingUserDB.__init__(self, db_uri, db_name)

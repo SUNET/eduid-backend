@@ -46,6 +46,7 @@ from eduid_userdb.credentials import CredentialList
 from eduid_userdb.nin import NinList
 from eduid_userdb.tou import ToUList
 from eduid_userdb.locked_identity import LockedIdentityList
+from eduid_userdb.orcid import Orcid
 
 VALID_SUBJECT_VALUES = ['physical person']
 
@@ -82,6 +83,8 @@ class User(object):
         self._parse_nins()
         self._parse_tous()
         self._parse_locked_identity()
+        self._orcid = None
+        self._parse_orcid()
 
         self._credentials = CredentialList(self._data_in.pop('passwords', []))
         # generic (known) attributes
@@ -233,12 +236,22 @@ class User(object):
 
     def _parse_locked_identity(self):
         """
-        art of __init__().
+        Part of __init__().
 
         Parse the LockedIdentity elements.
         """
         _locked_identity = self._data_in.pop('locked_identity', [])
         self._locked_identity = LockedIdentityList(_locked_identity)
+
+    def _parse_orcid(self):
+        """
+        Part of __init__().
+
+        Parse the Orcid element.
+        """
+        _orcid = self._data_in.pop('orcid', None)
+        if _orcid is not None:
+            self._orcid = Orcid(data=_orcid)
 
     # -----------------------------------------------------------------
     @property
@@ -520,6 +533,29 @@ class User(object):
         return self._locked_identity
 
     # -----------------------------------------------------------------
+    @property
+    def orcid(self):
+        """
+        :return: Users ORCID
+        :rtype: Orcid | None
+        """
+        return self._orcid
+
+    @orcid.setter
+    def orcid(self, value):
+        """
+        :param value: Users ORCID
+        :type value: Orcid
+
+        :return: Users ORCID
+        :rtype: Orcid | None
+        """
+        if value is not None:
+            if not isinstance(value, Orcid):
+                raise UserDBValueError("Unknown 'orcid' value: {!r}".format(value))
+            self._orcid = value
+
+    # -----------------------------------------------------------------
     def to_dict(self, old_userdb_format=False):
         """
         Return user data serialized into a dict that can be stored in MongoDB.
@@ -537,6 +573,8 @@ class User(object):
         res['nins'] = self.nins.to_list_of_dicts(old_userdb_format=old_userdb_format)
         res['tou'] = self.tou.to_list_of_dicts(old_userdb_format=old_userdb_format)
         res['locked_identity'] = self.locked_identity.to_list_of_dicts(old_userdb_format=old_userdb_format)
+        if self.orcid is not None:
+            res['orcid'] = self.orcid.to_dict()
         if 'eduPersonEntitlement' not in res:
             res['eduPersonEntitlement'] = res.pop('entitlements', [])
         # Remove these values if they have a value that evaluates to False
@@ -560,7 +598,7 @@ class User(object):
                     res['norEduPersonNIN'] = verified_nins
                 elif 'norEduPersonNIN' in res:
                     del res['norEduPersonNIN']
-            if res.get('mailAliases') == []:
+            if res.get('mailAliases') is list():
                 del res['mailAliases']
         return res
 

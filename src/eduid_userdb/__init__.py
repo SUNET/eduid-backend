@@ -25,3 +25,4 @@ from eduid_userdb.nin import Nin
 from eduid_userdb.event import EventList
 from eduid_userdb.tou import ToUEvent
 from eduid_userdb.locked_identity import LockedIdentityNin
+from eduid_userdb.orcid import OidcIdToken, OidcAuthorization, Orcid

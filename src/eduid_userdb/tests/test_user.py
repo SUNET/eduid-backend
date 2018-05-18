@@ -7,7 +7,7 @@ from unittest import TestCase
 from eduid_userdb.user import User
 from eduid_userdb.tou import ToUList
 from eduid_userdb.exceptions import UserHasUnknownData, UserHasNotCompletedSignup, UserIsRevoked, EduIDUserDBError
-from eduid_userdb import LockedIdentityNin
+from eduid_userdb import LockedIdentityNin, OidcAuthorization, OidcIdToken, Orcid
 
 __author__ = 'ft'
 
@@ -445,3 +445,45 @@ class TestUser(TestCase):
         user.locked_identity.add(locked_nin)
         with self.assertRaises(EduIDUserDBError):
             user.locked_identity.remove('nin')
+
+    def test_orcid(self):
+        id_token = {
+            "aud": [
+                "APP_ID"
+            ],
+            "auth_time": 1526389879,
+            "exp": 1526392540,
+            "iat": 1526391940,
+            "iss": "https://op.example.org",
+            "sub": "subject_identifier",
+            "nonce": "a_nonce_token"
+        }
+        oidc_data = {
+            "access_token": "b8b8ca5d-b233-4d49-830a-ede934c626d3",
+            "expires_in": 631138518,
+            "refresh_token": "a110e7d2-4968-42d4-a91d-f379b55a0e60",
+            "token_type": "bearer"
+        }
+        orcid = "user_orcid"
+        oidc_id_token = OidcIdToken(application='test', **id_token)
+        oidc_authz = OidcAuthorization(id_token=oidc_id_token, application='test', **oidc_data)
+        orcid_element = Orcid(id=orcid, oidc_authz=oidc_authz, application='test')
+
+        user = User(self.data1)
+        user.orcid = orcid_element
+
+        old_user = User(user.to_dict(old_userdb_format=True))
+        self.assertIsNotNone(old_user.orcid)
+        self.assertIsInstance(old_user.orcid.created_by, string_types)
+        self.assertIsInstance(old_user.orcid.created_ts, datetime.datetime)
+        self.assertIsInstance(old_user.orcid.id, string_types)
+        self.assertIsInstance(old_user.orcid.oidc_authz, OidcAuthorization)
+        self.assertIsInstance(old_user.orcid.oidc_authz.id_token, OidcIdToken)
+
+        new_user = User(user.to_dict(old_userdb_format=False))
+        self.assertIsNotNone(new_user.orcid)
+        self.assertIsInstance(new_user.orcid.created_by, string_types)
+        self.assertIsInstance(new_user.orcid.created_ts, datetime.datetime)
+        self.assertIsInstance(new_user.orcid.id, string_types)
+        self.assertIsInstance(new_user.orcid.oidc_authz, OidcAuthorization)
+        self.assertIsInstance(new_user.orcid.oidc_authz.id_token, OidcIdToken)

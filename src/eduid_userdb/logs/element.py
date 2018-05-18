@@ -375,3 +375,49 @@ class SeLegProofingFrejaEid(SeLegProofing):
                                                     proofing_version=proofing_version)
         self._required_keys.extend(['opaque_data'])
         self._data['opaque_data'] = opaque_data
+
+
+class OrcidProofing(ProofingLogElement):
+    """
+    {
+        'eduPersonPrincipalName': eppn,
+        'created_ts': datetime.utcnow()
+        'created_by': 'application',
+        'orcid': 'Users orcid',
+        'issuer': 'Issuer url',
+        'audience': 'Receiving application(s)'
+        'proofing_method': 'oidc',
+        'proofing_version': '2018v1'
+    }
+    """
+
+    def __init__(self, user, created_by, orcid, issuer, audience, proofing_method, proofing_version):
+        """
+        :param user: User object
+        :param created_by: Application creating the log element
+        :param orcid: Application creating the log element
+        :param issuer: Application creating the log element
+        :param audience: Application creating the log element
+        :param proofing_method: Proofing method name
+        :param proofing_version: Proofing method version number
+
+        :type user: eduid_userdb.user.User
+        :type created_by: six.string_types
+        :type orcid: six.string_types
+        :type issuer: six.string_types
+        :type audience: list
+        :type proofing_method: six.string_types
+        :type proofing_version: six.string_types
+
+        :return: ProofingLogElement object
+        :rtype: ProofingLogElement
+        """
+        super(ProofingLogElement, self).__init__(created_by)
+        self._required_keys.extend(['eduPersonPrincipalName', 'orcid', 'issuer', 'audience', 'proofing_method',
+                                    'proofing_version'])
+        self._data['eduPersonPrincipalName'] = user.eppn
+        self._data['orcid'] = orcid
+        self._data['issuer'] = issuer
+        self._data['audience'] = audience
+        self._data['proofing_method'] = proofing_method
+        self._data['proofing_version'] = proofing_version
