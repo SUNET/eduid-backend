@@ -159,6 +159,9 @@ def choose_extra_security(state):
             'retry_url_txt': _('Reset your password'),
         }
         return render_template('error.jinja2', view_context=view_context)
+    if not alternatives:
+        # The user has no options for extra security, redirect to setting a new password
+        return redirect(url_for('reset_password.new_password', email_code=state.email_code.code))
     return render_template('reset_password_extra_security.jinja2', view_context=view_context)
 
 

@@ -297,20 +297,27 @@ def get_extra_security_alternatives(eppn):
     alternatives = {}
     user = current_app.central_userdb.get_user_by_eppn(eppn, raise_on_missing=True)
 
-    if user.phone_numbers.count:
+    if user.phone_numbers.verified.count:
         verified_phone_numbers = [item.number for item in user.phone_numbers.verified.to_list()]
         alternatives['phone_numbers'] = verified_phone_numbers
     return alternatives
 
 
 def mask_alternatives(alternatives):
-    # Phone numbers
-    masked_phone_numbers = []
-    for phone_number in alternatives.get('phone_numbers', []):
-        masked_number = '{}{}'.format('X'*(len(phone_number)-2), phone_number[len(phone_number)-2:])
-        masked_phone_numbers.append(masked_number)
+    """
+    :param alternatives: Extra security alternatives collected from user
+    :type alternatives: dict
+    :return: Masked extra security alternatives
+    :rtype: dict
+    """
+    if alternatives:
+        # Phone numbers
+        masked_phone_numbers = []
+        for phone_number in alternatives.get('phone_numbers', []):
+            masked_number = '{}{}'.format('X'*(len(phone_number)-2), phone_number[len(phone_number)-2:])
+            masked_phone_numbers.append(masked_number)
 
-    alternatives['phone_numbers'] = masked_phone_numbers
+        alternatives['phone_numbers'] = masked_phone_numbers
     return alternatives
 
 
