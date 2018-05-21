@@ -18,7 +18,7 @@ class OidcIdToken(Element):
     def __init__(self, iss=None, sub=None, aud=None, exp=None, iat=None, nonce=None, auth_time=None, acr=None, amr=None,
                  azp=None, application=None, created_ts=None, data=None, raise_on_unknown=True):
         data_in = data
-        data = copy.copy(data_in)  # to not modify callers data
+        data = copy.deepcopy(data_in)  # to not modify callers data
 
         if data is None:
             if created_ts is None:
@@ -282,7 +282,7 @@ class OidcAuthorization(Element):
     def __init__(self, access_token=None, token_type=None, id_token=None, expires_in=None, refresh_token=None,
                  application=None, created_ts=None, data=None, raise_on_unknown=True):
         data_in = data
-        data = copy.copy(data_in)  # to not modify callers data
+        data = copy.deepcopy(data_in)  # to not modify callers data
 
         if data is None:
             if created_ts is None:
@@ -437,7 +437,7 @@ class OidcAuthorization(Element):
         :return data dict
         :rtype dict
         """
-        data = copy.copy(self._data)
+        data = copy.deepcopy(self._data)
         data['id_token'] = self.id_token.to_dict()
         return data
 
@@ -453,7 +453,7 @@ class Orcid(VerifiedElement):
     def __init__(self, id=None, oidc_authz=None, application=None, verified=False, created_ts=None, data=None,
                  raise_on_unknown=True):
         data_in = data
-        data = copy.copy(data_in)  # to not modify callers data
+        data = copy.deepcopy(data_in)  # to not modify callers data
 
         if data is None:
             if created_ts is None:
@@ -537,6 +537,6 @@ class Orcid(VerifiedElement):
         :param old_userdb_format: Set to True to get data back in legacy format.
         :type old_userdb_format: bool
         """
-        data = copy.copy(self._data)
+        data = copy.deepcopy(self._data)
         data['oidc_authz'] = self.oidc_authz.to_dict()
         return data
