@@ -550,10 +550,10 @@ class User(object):
         :return: Users ORCID
         :rtype: Orcid | None
         """
-        if value is not None:
-            if not isinstance(value, Orcid):
-                raise UserDBValueError("Unknown 'orcid' value: {!r}".format(value))
+        if value is None or isinstance(value, Orcid):
             self._orcid = value
+        else:
+            raise UserDBValueError("Unknown 'orcid' value: {!r}".format(value))
 
     # -----------------------------------------------------------------
     def to_dict(self, old_userdb_format=False):
