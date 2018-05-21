@@ -184,19 +184,17 @@ class LetterProofingState(NinProofingState):
         return res
 
 
-class OidcProofingState(NinProofingState):
+class OidcState(ProofingState):
     def __init__(self, data, raise_on_unknown=True):
         self._data_in = copy.deepcopy(data)  # to not modify callers data
         # Remove from _data_in before init super class
-        state = self._data_in.pop('state')
-        nonce = self._data_in.pop('nonce')
-        token = self._data_in.pop('token')
+        _state = self._data_in.pop('state')
+        _nonce = self._data_in.pop('nonce')
 
-        super(OidcProofingState, self).__init__(self._data_in, raise_on_unknown)
+        super(OidcState, self).__init__(self._data_in, raise_on_unknown)
 
-        self._data['state'] = state
-        self._data['nonce'] = nonce
-        self._data['token'] = token
+        self._data['state'] = _state
+        self._data['nonce'] = _nonce
 
     @property
     def state(self):
@@ -212,12 +210,28 @@ class OidcProofingState(NinProofingState):
         """
         return self._data['nonce']
 
+
+class OidcProofingState(OidcState, NinProofingState):
+
+    def __init__(self, data, raise_on_unknown=True):
+        self._data_in = copy.deepcopy(data)  # to not modify callers data
+        # Remove from _data_in before init super class
+        _token = self._data_in.pop('token')
+
+        super(OidcProofingState, self).__init__(self._data_in, raise_on_unknown)
+
+        self._data['token'] = _token
+
     @property
     def token(self):
         """
         :rtype: str | unicode
         """
         return self._data['token']
+
+
+class OrcidProofingState(OidcState):
+    pass
 
 
 class EmailProofingState(ProofingState):
