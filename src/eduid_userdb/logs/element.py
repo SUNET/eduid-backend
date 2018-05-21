@@ -395,9 +395,9 @@ class OrcidProofing(ProofingLogElement):
         """
         :param user: User object
         :param created_by: Application creating the log element
-        :param orcid: Application creating the log element
-        :param issuer: Application creating the log element
-        :param audience: Application creating the log element
+        :param orcid: Users unique id
+        :param issuer: OIDC issuer
+        :param audience: OIDC audience
         :param proofing_method: Proofing method name
         :param proofing_version: Proofing method version number
 
