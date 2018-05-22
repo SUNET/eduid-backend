@@ -156,14 +156,13 @@ def send_password_reset_mail(email_address):
     html_template = 'reset_password_email.html.jinja2'
     to_addresses = [address.email for address in user.mail_addresses.to_list() if address.is_verified]
 
-    password_reset_timeout = current_app.config['EMAIL_CODE_TIMEOUT'] * 60 * 60  # seconds to hours
+    password_reset_timeout = current_app.config['EMAIL_CODE_TIMEOUT'] / 60 / 60  # seconds to hours
     context = {
         'reset_password_link': url_for('reset_password.email_reset_code', email_code=state.email_code.code,
                                        _external=True),
         'password_reset_timeout': password_reset_timeout
     }
-    # password reset timeout in seconds
-    max_retry_timeout = current_app.config['EMAIL_CODE_TIMEOUT']
+    max_retry_timeout = current_app.config['EMAIL_CODE_TIMEOUT']  # password reset timeout in seconds
     send_mail(to_addresses, text_template, html_template, context, state.reference, max_retry_timeout)
     current_app.logger.info('Sent password reset email to user {}'.format(state.eppn))
     current_app.logger.debug('Mail address: {}'.format(to_addresses))
@@ -298,20 +297,27 @@ def get_extra_security_alternatives(eppn):
     alternatives = {}
     user = current_app.central_userdb.get_user_by_eppn(eppn, raise_on_missing=True)
 
-    if user.phone_numbers.count:
+    if user.phone_numbers.verified.count:
         verified_phone_numbers = [item.number for item in user.phone_numbers.verified.to_list()]
         alternatives['phone_numbers'] = verified_phone_numbers
     return alternatives
 
 
 def mask_alternatives(alternatives):
-    # Phone numbers
-    masked_phone_numbers = []
-    for phone_number in alternatives.get('phone_numbers', []):
-        masked_number = '{}{}'.format('X'*(len(phone_number)-2), phone_number[len(phone_number)-2:])
-        masked_phone_numbers.append(masked_number)
+    """
+    :param alternatives: Extra security alternatives collected from user
+    :type alternatives: dict
+    :return: Masked extra security alternatives
+    :rtype: dict
+    """
+    if alternatives:
+        # Phone numbers
+        masked_phone_numbers = []
+        for phone_number in alternatives.get('phone_numbers', []):
+            masked_number = '{}{}'.format('X'*(len(phone_number)-2), phone_number[len(phone_number)-2:])
+            masked_phone_numbers.append(masked_number)
 
-    alternatives['phone_numbers'] = masked_phone_numbers
+        alternatives['phone_numbers'] = masked_phone_numbers
     return alternatives
 
 
