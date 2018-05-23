@@ -62,13 +62,12 @@ def _check_redis():
     client = redis.StrictRedis(connection_pool=pool)
     try:
         pong = client.ping()
+        if pong:
+            return True
+        current_app.logger.warning('Redis health check failed: response == {!r}'.format(pong))
     except Exception as exc:
         current_app.logger.warning('Redis health check failed: {}'.format(exc))
         return False
-    else:
-        if pong == 'PONG':
-            return True
-        current_app.logger.warning('Redis health check failed: response == {!r}'.format(pong))
     return False
 
 
