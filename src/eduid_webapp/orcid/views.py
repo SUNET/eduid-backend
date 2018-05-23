@@ -121,51 +121,14 @@ def authorize(user):
 @orcid_views.route('/refresh', methods=['GET'])
 @require_user
 def refresh(user):
+    if user.orcid:
+        args = {
+            'refresh_token': user.orcid.refresh_token,
+        }
 
-    args = {
-        'refresh_token': user.orcid.refresh_token,
-    }
-
-    response = current_app.oidc_client.do_access_token_refresh(
-        method=current_app.config['REFRESH_TOKEN_ENDPOINT_METHOD'],
-        token=None,
-        request_args=args,
-        authn_method='client_secret_basic')
-    return jsonify(response.to_dict())
-
-# {
-#   "authn_resp": {
-#     "code": "83Xwnt",
-#     "state": "a_state_token"
-#   },
-#   "token_resp": {
-#     "access_token": "b8b8ca5d-b233-4d49-830a-ede934c626d3",
-#     "expires_in": 631138518,
-#     "id_token": {
-#       "at_hash": "hVBHwPjPNgJH5f87ez8h0w",
-#       "aud": [
-#         "APP-YIAD0N1L4B3Z3W9Q"
-#       ],
-#       "auth_time": 1526389879,
-#       "exp": 1526392540,
-#       "family_name": "Lundberg",
-#       "given_name": "Johan",
-#       "iat": 1526391940,
-#       "iss": "https://sandbox.orcid.org",
-#       "jti": "4a721a4b-301a-492b-950a-1b4a83d30149",
-#       "sub": "0000-0002-8544-3534"
-#     },
-#     "name": "Johan Lundberg",
-#     "orcid": "0000-0002-8544-3534",
-#     "refresh_token": "a110e7d2-4968-42d4-a91d-f379b55a0e60",
-#     "scope": "openid",
-#     "token_type": "bearer"
-#   },
-#   "userinfo": {
-#     "family_name": "Lundberg",
-#     "given_name": "Johan",
-#     "id": "https://sandbox.orcid.org/0000-0002-8544-3534",
-#     "name": null,
-#     "sub": "0000-0002-8544-3534"
-#   }
-# }
+        response = current_app.oidc_client.do_access_token_refresh(
+            method=current_app.config['REFRESH_TOKEN_ENDPOINT_METHOD'],
+            token=None,
+            request_args=args,
+            authn_method='client_secret_basic')
+        return jsonify(response.to_dict())
