@@ -33,11 +33,10 @@
 
 from __future__ import absolute_import
 
-from flask import json
+from flask import jsonify
 from flask import Blueprint, current_app, request, abort
 import redis
 
-from eduid_userd.db import BaseDB
 from eduid_common.session.session import get_redis_pool
 
 
@@ -45,35 +44,46 @@ status_views = Blueprint('status', __name__, url_prefix='')
 
 
 def _check_mongo():
-    uri = current_app.config['MONGO_URI']
-    db = BaseDB(uri, 'eduid_userdb', 'userdb')
+    db = current_app.central_userdb
     try:
-        assert(db.db_count() > 0)
-    except:
-        return 1
+        c = db.db_count()
+        if c > 0:
+            return True
+        current_app.logger.warning('Mongodb health check failed: db count == {!r}'.format(c))
+    except Exception as exc:
+        current_app.logger.warning('Mongodb health check failed: {}'.format(exc))
+        return False
     else:
         db.close()
-        return 0
+        return False
 
 def _check_redis():
     pool = get_redis_pool(current_app.config)
     client = redis.StrictRedis(connection_pool=pool)
     try:
         pong = client.ping()
-    except:
-        return 1
-    else:
-        if ping == 'PONG':
-            return 0
-        return 2
+        if pong:
+            return True
+        current_app.logger.warning('Redis health check failed: response == {!r}'.format(pong))
+    except Exception as exc:
+        current_app.logger.warning('Redis health check failed: {}'.format(exc))
+        return False
+    return False
 
 
-@status_views.route('/smoke-test', methods=['GET'])
+@status_views.route('/healthy', methods=['GET'])
 def smoke_test():
-    return _check_mongo() or _check_redis()
+    res = {'status': 'STATUS_FAIL'}
+    if not _check_mongo():
+        res['reason'] = 'mongodb check failed'
+    elif not _check_redis():
+        res['reason'] = 'redis check failed'
+    else:
+        res['status'] = 'STATUS_OK'
+        res['reason'] = 'Databases tested OK'
+    return jsonify(res)
 
 
 @status_views.route('/sanity-check', methods=['GET'])
 def sanity_check():
     pass
-
