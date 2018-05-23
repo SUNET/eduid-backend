@@ -49,9 +49,9 @@ def _check_mongo():
         c = db.db_count()
         if c > 0:
             return True
-        current_app.logger.debug('Mongodb health check failed: db count == {!r}'.format(c))
+        current_app.logger.warning('Mongodb health check failed: db count == {!r}'.format(c))
     except Exception as exc:
-        current_app.logger.debug('Mongodb health check failed: {}'.format(exc))
+        current_app.logger.warning('Mongodb health check failed: {}'.format(exc))
         return False
     else:
         db.close()
@@ -63,12 +63,12 @@ def _check_redis():
     try:
         pong = client.ping()
     except Exception as exc:
-        current_app.logger.debug('Redis health check failed: {}'.format(exc))
+        current_app.logger.warning('Redis health check failed: {}'.format(exc))
         return False
     else:
         if pong == 'PONG':
             return True
-        current_app.logger.debug('Redis health check failed: response == {!r}'.format(pong))
+        current_app.logger.warning('Redis health check failed: response == {!r}'.format(pong))
     return False
 
 
