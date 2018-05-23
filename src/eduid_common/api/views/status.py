@@ -33,11 +33,10 @@
 
 from __future__ import absolute_import
 
-from flask import json
+from flask import jsonify
 from flask import Blueprint, current_app, request, abort
 import redis
 
-from eduid_userd.db import BaseDB
 from eduid_common.session.session import get_redis_pool
 
 
@@ -45,15 +44,15 @@ status_views = Blueprint('status', __name__, url_prefix='')
 
 
 def _check_mongo():
-    uri = current_app.config['MONGO_URI']
-    db = BaseDB(uri, 'eduid_userdb', 'userdb')
+    db = current_app.central_userdb
     try:
-        assert(db.db_count() > 0)
+        if db.db_count() > 0:
+            return True
     except:
-        return 1
+        return False
     else:
         db.close()
-        return 0
+        return False
 
 def _check_redis():
     pool = get_redis_pool(current_app.config)
@@ -61,19 +60,26 @@ def _check_redis():
     try:
         pong = client.ping()
     except:
-        return 1
+        return False
     else:
-        if ping == 'PONG':
-            return 0
-        return 2
+        if pong == 'PONG':
+            return True
+        return False
 
 
-@status_views.route('/smoke-test', methods=['GET'])
+@status_views.route('/healthy', methods=['GET'])
 def smoke_test():
-    return _check_mongo() or _check_redis()
+    res = {'status': 'STATUS_FAIL'}
+    if not _check_mongo():
+        res['reason'] = 'mongodb check failed'
+    elif not _check_redis():
+        res['reason'] = 'redis check failed'
+    else:
+        res['status'] = 'STATUS_OK'
+        res['reason'] = 'Databases tested OK'
+    return jsonify(res)
 
 
 @status_views.route('/sanity-check', methods=['GET'])
 def sanity_check():
     pass
-
