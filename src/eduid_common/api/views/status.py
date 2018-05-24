@@ -46,7 +46,7 @@ status_views = Blueprint('status', __name__, url_prefix='/status')
 def _check_mongo():
     db = current_app.central_userdb
     try:
-        db.is_master()
+        db.is_healthy()
         return True
     except Exception as exc:
         current_app.logger.warning('Mongodb health check failed: {}'.format(exc))
