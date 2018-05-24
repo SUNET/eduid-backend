@@ -33,29 +33,25 @@
 
 from __future__ import absolute_import
 
-from flask import jsonify
-from flask import Blueprint, current_app, request, abort
 import redis
+from flask import jsonify
+from flask import Blueprint, current_app
 
 from eduid_common.session.session import get_redis_pool
 
 
-status_views = Blueprint('status', __name__, url_prefix='')
+status_views = Blueprint('status', __name__, url_prefix='/status')
 
 
 def _check_mongo():
     db = current_app.central_userdb
     try:
-        c = db.db_count()
-        if c > 0:
-            return True
-        current_app.logger.warning('Mongodb health check failed: db count == {!r}'.format(c))
+        db.is_healthy()
+        return True
     except Exception as exc:
         current_app.logger.warning('Mongodb health check failed: {}'.format(exc))
         return False
-    else:
-        db.close()
-        return False
+
 
 def _check_redis():
     pool = get_redis_pool(current_app.config)
@@ -72,7 +68,7 @@ def _check_redis():
 
 
 @status_views.route('/healthy', methods=['GET'])
-def smoke_test():
+def health_check():
     res = {'status': 'STATUS_FAIL'}
     if not _check_mongo():
         res['reason'] = 'mongodb check failed'
