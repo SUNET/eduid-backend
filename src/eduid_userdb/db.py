@@ -288,6 +288,29 @@ class BaseDB(object):
         """
         return self._coll.remove(spec_or_id=spec_or_id)
 
+    def is_healthy(self):
+        """
+        From mongo_client.py:
+        Starting with version 3.0 the :class:`MongoClient`
+        constructor no longer blocks while connecting to the server or
+        servers, and it no longer raises
+        :class:`~pymongo.errors.ConnectionFailure` if they are
+        unavailable, nor :class:`~pymongo.errors.ConfigurationError`
+        if the user's credentials are wrong. Instead, the constructor
+        returns immediately and launches the connection process on
+        background threads. You can check if the server is available
+        like this::
+
+        from pymongo.errors import ConnectionFailure
+        client = MongoClient()
+        try:
+            # The ismaster command is cheap and does not require auth.
+            client.admin.command('ismaster')
+        except ConnectionFailure:
+            print("Server not available")
+        """
+        return self._db.get_connection().admin.command('ismaster')
+
     def setup_indexes(self, indexes):
         """
         To update an index add a new item in indexes and remove the previous version.
