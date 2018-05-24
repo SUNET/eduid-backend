@@ -288,7 +288,7 @@ class BaseDB(object):
         """
         return self._coll.remove(spec_or_id=spec_or_id)
 
-    def is_master(self):
+    def is_healthy(self):
         """
         From mongo_client.py:
         Starting with version 3.0 the :class:`MongoClient`
