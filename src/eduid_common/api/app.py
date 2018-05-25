@@ -129,5 +129,5 @@ def eduid_init_app(name, config, app_class=AuthnApp):
     from eduid_common.api.views.status import status_views
     app.register_blueprint(status_views)
     # Register view path that should not be authorized
-    app = no_authn_views(app, ['/healthy', '/sanity-check'])
+    app = no_authn_views(app, ['/status/healthy', '/status/sanity-check'])
     return app
