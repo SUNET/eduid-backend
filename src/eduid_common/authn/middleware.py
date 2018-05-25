@@ -61,10 +61,9 @@ class AuthnApp(Flask):
         no_context_logger.debug('No auth whitelist: {}'.format(whitelist))
         for regex in whitelist:
             m = re.match(regex, next_path)
-            no_context_logger.debug('{} matched whitelist'.format(next_path))
             if m is not None:
+                no_context_logger.debug('{} matched whitelist'.format(next_path))
                 return super(AuthnApp, self).__call__(environ, start_response)
-            no_context_logger.debug('{} did NOT match whitelist'.format(next_path))
 
         with self.request_context(environ):
             try:
