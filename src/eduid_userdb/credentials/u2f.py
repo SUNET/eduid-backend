@@ -34,13 +34,13 @@
 #
 import copy
 from six import string_types
-from eduid_userdb.element import Element
+from eduid_userdb.credentials import Credential
 from eduid_userdb.exceptions import UserHasUnknownData, UserDBValueError
 
 __author__ = 'ft'
 
 
-class U2F(Element):
+class U2F(Credential):
     """
     U2F token authentication credential
     """
@@ -66,7 +66,7 @@ class U2F(Element):
                         created_ts = created_ts,
                         )
 
-        Element.__init__(self, data)
+        Credential.__init__(self, data)
         self.version = data.pop('version')
         self.keyhandle = data.pop('keyhandle')
         self.public_key = data.pop('public_key')

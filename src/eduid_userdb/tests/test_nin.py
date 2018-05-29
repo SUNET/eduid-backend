@@ -7,6 +7,8 @@ import datetime
 import eduid_userdb.exceptions
 import eduid_userdb.element
 from eduid_userdb.nin import Nin, NinList
+from eduid_userdb.credentials import Password
+
 
 __author__ = 'ft'
 
@@ -86,7 +88,7 @@ class TestNinList(TestCase):
         pwdict = {'id': bson.ObjectId(),
                   'salt': 'foo',
                   }
-        new = eduid_userdb.password.Password(data=pwdict)
+        new = Password(data=pwdict)
         with self.assertRaises(eduid_userdb.element.UserDBValueError):
             self.one.add(new)
 

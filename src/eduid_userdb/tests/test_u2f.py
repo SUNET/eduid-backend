@@ -2,10 +2,9 @@ from unittest import TestCase
 
 import copy
 import datetime
-from bson.objectid import ObjectId
 import eduid_userdb.exceptions
 import eduid_userdb.element
-from eduid_userdb.u2f import U2F
+from credentials.u2f import U2F
 from eduid_userdb.credentials import CredentialList
 
 __author__ = 'lundberg'
