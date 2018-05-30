@@ -91,7 +91,7 @@ def verify_recaptcha(secret_key, captcha_response, user_ip, retries=3):
 
 def generate_verification_link():
     code = str(uuid4())
-    link = url_for('signup.verify_link', code=code)
+    link = '{}code/{}'.format(current_app.config['SIGNUP_URL'], code)
     return (link, code)
 
 
