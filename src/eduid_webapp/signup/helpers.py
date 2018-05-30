@@ -89,16 +89,12 @@ def check_email_status(email):
 
     If the email doesn't exist in database, then return 'new'.
 
-    If exists and it hasn't been verified, then return 'not_verified'.
+    If exists and it hasn't been verified, then return 'resend-code'.
 
-    If exists and it has been verified before, then return 'verified'.
+    If exists and it has been verified before, then return 'address-used'.
 
-    :param userdb: eduID central userdb
-    :param signup_db: Signup userdb
     :param email: Address to look for
 
-    :type userdb: eduid_userdb.UserDb
-    :type signup_db: eduid_userdb.signup.SignupUserDB
     :type email: str | unicode
     """
     userdb = current_app.central_userdb
@@ -106,7 +102,7 @@ def check_email_status(email):
     try:
         am_user = userdb.get_user_by_mail(email, raise_on_missing=True, include_unconfirmed=False)
         current_app.logger.debug("Found user {!s} with email {!s}".format(am_user, email))
-        return 'code-verified'
+        return 'address-used'
     except userdb.exceptions.UserDoesNotExist:
         current_app.logger.debug("No user found with email {!s} in eduid userdb".format(email))
 
@@ -196,6 +192,7 @@ def complete_registration(signup_user, context=None):
         "nonce": nonce,
         "timestamp": timestamp,
         "auth_token": auth_token,
+        "dashboard_url": current_app.config.get('AUTH_TOKEN_URL')
     })
 
     current_app.logger.info("Signup process for new user {} complete".format(signup_user))

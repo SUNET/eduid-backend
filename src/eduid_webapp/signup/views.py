@@ -61,7 +61,12 @@ def get_config():
             'recaptcha_public_key': current_app.config.get('RECAPTCHA_PUBLIC_KEY'),
             'available_languages': current_app.config.get('AVAILABLE_LANGUAGES'),
             'debug': current_app.config.get('DEBUG'),
-            'tou': _('tou')
+            'tou': _('tou'),  # XXX get real TOU
+            'dashboard_url': current_app.config.get('DASHBOARD_URL'),
+            'students_link': current_app.config.get('STUDENTS_LINK'),
+            'technicians_link': current_app.config.get('TECHNICIANS_LINK'),
+            'staff_link': current_app.config.get('STAFF_LINK'),
+            'faq_link': current_app.config.get('FAQ_LINK'),
             }
     return jsconfig
 
@@ -117,7 +122,7 @@ def resend_email_verification(email):
     The user has no yet verified the email address.
     Send a verification message to the address so it can be verified.
     """
-    logger.debug("Resend email confirmation to {!s}".format(email))
+    current_app.logger.debug("Resend email confirmation to {!s}".format(email))
     send_verification_mail(email)
 
     return {'message': 'signup.verification-resent'}
