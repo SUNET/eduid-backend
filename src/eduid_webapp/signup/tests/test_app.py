@@ -69,7 +69,7 @@ class SignupTests(EduidAPITestCase):
             'TOU_VERSION': '2018-v1',
             'AUTH_SHARED_SECRET': 'shared_secret_Eifool0ua0eiph7ooch0',
             'DEFAULT_FINISH_URL': 'https://www.eduid.se/',
-            'RECAPTCHA_PUBLIC_KEY': 'XXXX',
+            'RECAPTCHA_PUBLIC_KEY': '',  # disable recaptcha verification
             'RECAPTCHA_PRIVATE_KEY': 'XXXX',
             'STUDENTS_LINK': 'https://www.eduid.se/index.html',
             'TECHNICIANS_LINK': 'https://www.eduid.se/tekniker.html',
@@ -123,4 +123,31 @@ class SignupTests(EduidAPITestCase):
                     config_data['payload']['technicians_link'])
             self.assertEqual('https://www.eduid.se/personal.html',
                     config_data['payload']['staff_link'])
-            self.assertEqual('XXXX', config_data['payload']['recaptcha_public_key'])
+
+    def test_captcha_no_data_fail(self, email='dummy@example.com',
+            check_captcha_post_result=True,
+            userdb_count=2, signup_userdb_count=0):
+        with self.session_cookie(self.browser) as client:
+            response = client.post('/trycaptcha')
+            self.assertEqual(response.status_code, 200)
+            data = json.loads(response.data)
+            self.assertEqual(data['error'], True)
+            self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_FAIL')
+
+    def test_captcha(self, email='dummy@example.com',
+            check_captcha_post_result=True,
+            userdb_count=2, signup_userdb_count=0):
+        with self.session_cookie(self.browser) as client:
+            with client.session_transaction() as sess:
+                with self.app.test_request_context():
+                    data = {
+                        'email': email,
+                        'recaptcha_response': 'dummy',
+                        'tou_accepted': True,
+                        'csrf_token': sess.get_csrf_token()
+                        }
+                response = client.post('/trycaptcha', data=json.dumps(data),
+                                       content_type=self.content_type_json)
+
+                data = json.loads(response.data)
+                self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_SUCCESS')
