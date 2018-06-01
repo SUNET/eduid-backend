@@ -31,6 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 import json
+from contextlib import contextmanager
 from mock import patch
 from flask import Flask
 
@@ -87,15 +88,39 @@ class SignupTests(EduidAPITestCase):
         self.app.private_userdb.save(test_user_dict, check_sync=False)
 
     def tearDown(self):
-        super(PhoneTests, self).tearDown()
+        super(SignupTests, self).tearDown()
         with self.app.app_context():
             self.app.private_userdb._drop_whole_collection()
             self.app.central_userdb._drop_whole_collection()
 
-    def test_get_all_phone(self):
+    @contextmanager
+    def session_cookie(self, client, server_name='localhost'):
+        with client.session_transaction() as sess:
+            sess.persist()
+        client.set_cookie(server_name, key=self.app.config.get('SESSION_COOKIE_NAME'), value=sess._session.token)
+        yield client
+
+    def test_get_config(self):
         response = self.browser.get('/config')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 302)
 
-        config_data = json.loads(response.data)
+        with self.session_cookie(self.browser) as client:
+            response2 = client.get('/config')
 
-        self.assertEqual('XXXX', config_data['recaptcha_public_key'])
+            self.assertEqual(response2.status_code, 200)
+
+            config_data = json.loads(response2.data)
+
+            self.assertEqual('GET_SIGNUP_CONFIG_SUCCESS', config_data['type'])
+            self.assertEqual(None, config_data['error'])
+            self.assertEqual('/profile/',
+                    config_data['payload']['dashboard_url'])
+            self.assertEqual('tou', config_data['payload']['tou'])
+            self.assertEqual(True, config_data['payload']['debug'])
+            self.assertEqual({u'en': u'English', u'sv': u'Svenska'},
+                    config_data['payload']['available_languages'])
+            self.assertEqual('https://www.eduid.se/tekniker.html',
+                    config_data['payload']['technicians_link'])
+            self.assertEqual('https://www.eduid.se/personal.html',
+                    config_data['payload']['staff_link'])
+            self.assertEqual('XXXX', config_data['payload']['recaptcha_public_key'])
