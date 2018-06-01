@@ -3,6 +3,7 @@
 from __future__ import absolute_import
 
 from flask import current_app, render_template, url_for
+from flask_babel import gettext as _
 from eduid_common.api.utils import get_unique_hash, get_short_hash, save_and_sync_user
 from eduid_common.authn.vccs import reset_password
 from eduid_common.authn.utils import generate_password
@@ -78,10 +79,10 @@ def generate_suggested_password():
     return password
 
 
-def send_mail(to_addresses, text_template, html_template, context=None, reference=None, max_retry_timeout=86400):
+def send_mail(subject, to_addresses, text_template, html_template, context=None, reference=None,
+              max_retry_timeout=86400):
     site_name = current_app.config.get("EDUID_SITE_NAME")
     site_url = current_app.config.get("EDUID_SITE_URL")
-    sender = current_app.config.get('MAIL_DEFAULT_FROM')
 
     default_context = {
         "site_url": site_url,
@@ -93,7 +94,7 @@ def send_mail(to_addresses, text_template, html_template, context=None, referenc
 
     text = render_template(text_template, **context)
     html = render_template(html_template, **context)
-    current_app.mail_relay.sendmail(sender, to_addresses, text, html, reference, max_retry_timeout)
+    current_app.mail_relay.sendmail(subject, to_addresses, text, html, reference, max_retry_timeout)
 
 
 def send_sms(phone_number, text_template, context=None, reference=None, max_retry_timeout=86400):
@@ -132,10 +133,11 @@ def send_termination_mail(user):
 
     Sends a termination mail to all verified mail addresses for the user.
     """
+    subject = _('Terminate account')
     text_template = "termination_email.txt.jinja2"
     html_template = "termination_email.html.jinja2"
-    to_addresses = [address.email for address in user.mail_addresses.to_list() if address.is_verified]
-    send_mail(to_addresses, text_template, html_template)
+    to_addresses = [address.email for address in user.mail_addresses.verified.to_list()]
+    send_mail(subject, to_addresses, text_template, html_template)
     current_app.logger.info("Sent termination email to user.")
 
 
@@ -154,7 +156,7 @@ def send_password_reset_mail(email_address):
     current_app.password_reset_state_db.save(state)
     text_template = 'reset_password_email.txt.jinja2'
     html_template = 'reset_password_email.html.jinja2'
-    to_addresses = [address.email for address in user.mail_addresses.to_list() if address.is_verified]
+    to_addresses = [address.email for address in user.mail_addresses.verified.to_list()]
 
     password_reset_timeout = current_app.config['EMAIL_CODE_TIMEOUT'] / 60 / 60  # seconds to hours
     context = {
@@ -163,7 +165,8 @@ def send_password_reset_mail(email_address):
         'password_reset_timeout': password_reset_timeout
     }
     max_retry_timeout = current_app.config['EMAIL_CODE_TIMEOUT']  # password reset timeout in seconds
-    send_mail(to_addresses, text_template, html_template, context, state.reference, max_retry_timeout)
+    subject = _('Reset password')
+    send_mail(subject, to_addresses, text_template, html_template, context, state.reference, max_retry_timeout)
     current_app.logger.info('Sent password reset email to user {}'.format(state.eppn))
     current_app.logger.debug('Mail address: {}'.format(to_addresses))
 
