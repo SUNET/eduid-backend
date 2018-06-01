@@ -56,15 +56,19 @@ class BadConfiguration(Exception):
         return self.value
 
 
-class AmTaskFailed(Exception):
+class TaskFailed(Exception):
     pass
 
 
-class MsgTaskFailed(Exception):
+class AmTaskFailed(TaskFailed):
     pass
 
 
-class MailTaskFailed(Exception):
+class MsgTaskFailed(TaskFailed):
+    pass
+
+
+class MailTaskFailed(TaskFailed):
     pass
 
 

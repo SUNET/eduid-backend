@@ -29,8 +29,15 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+from __future__ import absolute_import
+
+try:
+    import urlparse
+except ImportError:
+    from urllib import parse as urlparse
+
 import re
-import urlparse
+import logging
 from urllib import urlencode
 
 from werkzeug import get_current_url
@@ -38,6 +45,8 @@ from werkzeug.http import parse_cookie, dump_cookie
 from flask import Flask, session, current_app, request
 from eduid_common.api.session import NoSessionDataFoundException
 from eduid_common.api.utils import urlappend
+
+no_context_logger = logging.getLogger(__name__)
 
 
 class AuthnApp(Flask):
@@ -49,9 +58,11 @@ class AuthnApp(Flask):
         next_url = get_current_url(environ)
         next_path = list(urlparse.urlparse(next_url))[2]
         whitelist = self.config.get('NO_AUTHN_URLS', [])
+        no_context_logger.debug('No auth whitelist: {}'.format(whitelist))
         for regex in whitelist:
             m = re.match(regex, next_path)
             if m is not None:
+                no_context_logger.debug('{} matched whitelist'.format(next_path))
                 return super(AuthnApp, self).__call__(environ, start_response)
 
         with self.request_context(environ):

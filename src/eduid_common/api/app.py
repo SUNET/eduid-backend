@@ -34,11 +34,11 @@ Define a `eduid_init_app` function to create a Flask app and update
 it with all attributes common to all eduID services.
 """
 
-
 from werkzeug.contrib.fixers import ProxyFix
 
 from eduid_userdb import UserDB
 from eduid_common.authn.middleware import AuthnApp
+from eduid_common.authn.utils import no_authn_views
 from eduid_common.api.request import Request
 from eduid_common.api.session import SessionFactory
 from eduid_common.api.logging import init_logging
@@ -102,7 +102,8 @@ def eduid_init_app_no_db(name, config, app_class=AuthnApp):
     app.config.update(config)
 
     # Set app url prefix to APPLICATION_ROOT
-    app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix=app.config['APPLICATION_ROOT'])
+    app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix=app.config['APPLICATION_ROOT'],
+                                    server_name=app.config['SERVER_NAME'])
 
     # Initialize shared features
     app = init_logging(app)
@@ -124,4 +125,7 @@ def eduid_init_app_no_db(name, config, app_class=AuthnApp):
 def eduid_init_app(name, config, app_class=AuthnApp):
     app = eduid_init_app_no_db(name, config, app_class=app_class)
     app.central_userdb = UserDB(app.config['MONGO_URI'], 'eduid_am')  # XXX: Needs updating when we change db
+    # Set up generic health check views
+    from eduid_common.api.views.status import status_views
+    app.register_blueprint(status_views)
     return app
