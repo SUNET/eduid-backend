@@ -16,7 +16,7 @@ from eduid_userdb.exceptions import DocumentDoesNotExist
 from eduid_common.api.utils import StringIO
 from eduid_common.api.decorators import require_user, can_verify_identity, MarshalWith, UnmarshalWith
 from eduid_common.api.helpers import add_nin_to_user
-from eduid_common.api.exceptions import MsgTaskFailed, MailTaskFailed
+from eduid_common.api.exceptions import TaskFailed
 from eduid_webapp.oidc_proofing import schemas
 from eduid_webapp.oidc_proofing import helpers
 
@@ -110,7 +110,7 @@ def authorization_response():
             current_app.logger.info('Handling userinfo as freja vetting for user {}'.format(user))
             current_app.stats.count(name='freja.authn_response_received')
             helpers.handle_freja_eid_userinfo(user, proofing_state, userinfo)
-    except (MsgTaskFailed, MailTaskFailed, KeyError) as e:
+    except (TaskFailed, KeyError) as e:
         current_app.logger.error('Failed to handle userinfo for user {}'.format(user))
         current_app.logger.error('Exception: {}'.format(e))
         current_app.stats.count(name='authn_response_handling_failure')

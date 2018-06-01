@@ -53,4 +53,6 @@ SECRET_KEY = ''
 # Logging
 LOG_LEVEL = 'INFO'
 
+EMAIL_VERIFICATION_TIMEOUT = 86400  # seconds
+
 DASHBOARD_URL = '/profile/'

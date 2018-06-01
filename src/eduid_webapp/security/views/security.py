@@ -40,8 +40,7 @@ try:
 except ImportError:
     from urllib.parse import urlparse  # Python3
 
-from flask import Blueprint, session, abort, url_for, redirect
-from flask import render_template, current_app
+from flask import Blueprint, current_app, session, abort, url_for, redirect, render_template
 from flask_babel import gettext as _
 
 from eduid_userdb.security import SecurityUser
@@ -50,13 +49,15 @@ from eduid_userdb.exceptions import UserOutOfSync
 from eduid_common.api.utils import urlappend
 from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
 from eduid_common.api.utils import save_and_sync_user
-from eduid_common.authn.utils import generate_password
+from eduid_common.api.exceptions import AmTaskFailed
 from eduid_common.authn.vccs import add_credentials, revoke_all_credentials
 from eduid_webapp.security.schemas import SecurityResponseSchema, CredentialList, CsrfSchema
 from eduid_webapp.security.schemas import SuggestedPassword, SuggestedPasswordResponseSchema
 from eduid_webapp.security.schemas import ChangePasswordSchema, RedirectResponseSchema
 from eduid_webapp.security.schemas import RedirectSchema, AccountTerminatedSchema, ChpassResponseSchema
-from eduid_webapp.security.helpers import compile_credential_list
+from eduid_webapp.security.schemas import RemoveNINRequestSchema, RemoveNINResponseSchema
+from eduid_webapp.security.helpers import compile_credential_list, send_termination_mail, generate_suggested_password
+from eduid_webapp.security.helpers import compile_credential_list, remove_nin_from_user
 
 security_views = Blueprint('security', __name__, url_prefix='', template_folder='templates')
 
@@ -99,19 +100,6 @@ def get_suggested(user):
             }
 
     return SuggestedPassword().dump(suggested).data
-
-
-def generate_suggested_password():
-    """
-    The suggested password is saved in session to avoid form hijacking
-    """
-    password_length = current_app.config.get('PASSWORD_LENGTH', 12)
-
-    password = generate_password(length=password_length)
-    password = ' '.join([password[i*4: i*4+4] for i in range(0, len(password)/4)])
-
-    session['last_generated_password'] = password
-    return password
 
 
 @security_views.route('/change-password', methods=['POST'])
@@ -247,26 +235,26 @@ def account_terminated(user):
     return redirect(site_url)
 
 
-def send_termination_mail(user):
-    site_name = current_app.config.get("EDUID_SITE_NAME")
-    site_url = current_app.config.get("EDUID_SITE_URL")
+@security_views.route('/remove-nin', methods=['POST'])
+@UnmarshalWith(RemoveNINRequestSchema)
+@MarshalWith(RemoveNINResponseSchema)
+@require_user
+def remove_nin(user, nin):
+    security_user = SecurityUser.from_user(user, current_app.private_userdb)
+    current_app.logger.info('Removing NIN from user')
+    current_app.logger.debug('NIN: {}'.format(nin))
 
-    context = {
-        "user": user,
-        "site_url": site_url,
-        "site_name": site_name,
-    }
+    nin_obj = security_user.nins.find(nin)
+    if nin_obj.is_verified:
+        current_app.logger.info('NIN verified. Will not remove it.')
+        return {'_status': 'error', 'success': False, 'message': 'nins.verified_no_rm'}
 
-    text = render_template(
-            "termination_email.txt.jinja2",
-            **context
-    )
-    html = render_template(
-            "termination_email.html.jinja2",
-            **context
-    )
-
-    subject = _("eduID account termination")
-    emails = [item.email for item in user.mail_addresses.to_list() if item.is_verified]
-    current_app.mail_relay.sendmail(subject, emails, text, html)
-    current_app.logger.info("Sent termination email to user {}".format(user))
+    try:
+        remove_nin_from_user(security_user, nin)
+        return {'success': True,
+                'message': 'nins.success_removal',
+                'nins': security_user.nins.to_list_of_dicts()}
+    except AmTaskFailed as e:
+        current_app.logger.error('Removing nin from user failed'.format(nin, security_user))
+        current_app.logger.error('{}'.format(e))
+        return {'_status': 'error', 'message': 'Temporary technical problems'}

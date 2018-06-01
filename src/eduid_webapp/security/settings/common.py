@@ -68,3 +68,7 @@ U2F_APP_ID = 'https://eduid.se/u2f-app-id.json'
 U2F_MAX_ALLOWED_TOKENS = 50  # Do not let a user register more than this amount of tokens
 U2F_MAX_DESCRIPTION_LENGTH = 64  # Do not allow longer descriptions than this number
 U2F_FACETS = []
+
+# password reset settings
+EMAIL_CODE_TIMEOUT = 7200  # seconds
+PHONE_CODE_TIMEOUT = 600  # seconds

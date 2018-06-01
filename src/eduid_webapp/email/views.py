@@ -86,7 +86,7 @@ def post_email(user, email, verified, primary):
     try:
         save_and_sync_user(proofing_user)
     except UserOutOfSync:
-        current_app.logger.debug('Couldnt save email {!r} for user {}, '
+        current_app.logger.debug('Couldnt save email {} for user {}, '
                                  'data out of sync'.format(email, proofing_user))
         return {
             '_status': 'error',
@@ -167,7 +167,7 @@ def verify(user, code, email):
     db = current_app.proofing_statedb
     try:
         state = db.get_state_by_eppn_and_email(proofing_user.eppn, email)
-        timeout = current_app.config.get('EMAIL_VERIFICATION_TIMEOUT', 24)
+        timeout = current_app.config['EMAIL_VERIFICATION_TIMEOUT']
         if state.is_expired(timeout):
             current_app.logger.info("Verification code is expired. Removing the state")
             current_app.logger.debug("Proofing state: {}".format(state))
@@ -318,7 +318,7 @@ def post_remove(user, email):
 @require_user
 def resend_code(user, email):
     current_app.logger.debug('Trying to send new verification code for email '
-                             'address {!r} for user {}'.format(email, user))
+                             'address {} for user {}'.format(email, user))
 
     if not user.mail_addresses.find(email):
         current_app.logger.debug('Unknown email {!r} in resend_code_action,'
@@ -330,7 +330,7 @@ def resend_code(user, email):
     
     send_verification_code(email, user)
     current_app.logger.debug('New verification code sended to '
-                             'address {!r} for user {}'.format(email, user))
+                             'address {} for user {}'.format(email, user))
     current_app.stats.count(name='email_resend_code', value=1)
 
     emails = {

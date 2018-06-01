@@ -1,3 +1,4 @@
 python-u2flib-server>=5.0.0
 cryptography>=2.0.3
 pyOpenSSL>=17.3.0
+zxcvbn==1.0

@@ -14,7 +14,7 @@ from eduid_webapp.security.app import security_init_app
 __author__ = 'lundberg'
 
 
-class SecurityTests(EduidAPITestCase):
+class SecurityU2FTests(EduidAPITestCase):
 
     def load_app(self, config):
         """

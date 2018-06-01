@@ -42,7 +42,7 @@ from eduid_common.api.utils import save_and_sync_user
 from eduid_webapp.personal_data.schemas import PersonalDataResponseSchema
 from eduid_webapp.personal_data.schemas import PersonalDataRequestSchema
 from eduid_webapp.personal_data.schemas import PersonalDataSchema
-from eduid_webapp.personal_data.schemas import NinListSchema, NinsResponseSchema
+from eduid_webapp.personal_data.schemas import NinsResponseSchema
 from eduid_webapp.personal_data.schemas import AllDataResponseSchema, AllDataSchema
 
 pd_views = Blueprint('personal_data', __name__, url_prefix='')
@@ -106,4 +106,4 @@ def get_nins(user):
         'nins': user.nins.to_list_of_dicts()
     }
 
-    return NinListSchema().dump(data).data
+    return data
