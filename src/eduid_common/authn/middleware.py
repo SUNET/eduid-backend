@@ -93,8 +93,9 @@ class AuthnApp(Flask):
 
 class UnAuthnApp(Flask):
     """
-    WSGI middleware that checks whether the request is authenticated,
-    and in case it isn't, redirects to the authn service.
+    WSGI middleware for unauthenticated apps - e.g., signup.
+    It checks whether the request has a session cookie,
+    and in case it hasn't, adds one and replays the request.
     """
     def __call__(self, environ, start_response):
         next_url = get_current_url(environ)
