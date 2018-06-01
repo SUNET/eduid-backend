@@ -45,7 +45,7 @@ class SignupTests(EduidAPITestCase):
         Called from the parent class, so we can provide the appropiate flask
         app for this test case.
         """
-        return signup_init_app('emails', config)
+        return signup_init_app('signup', config)
 
     def update_config(self, config):
         config.update({
@@ -53,6 +53,27 @@ class SignupTests(EduidAPITestCase):
             'MSG_BROKER_URL': 'amqp://dummy',
             'AM_BROKER_URL': 'amqp://dummy',
             'DASHBOARD_URL': '/profile/',
+            'SIGNUP_URL': 'https://signup.eduid.local.emergya.info/',
+            'DEVELOPMENT': 'DEBUG',
+            'APPLICATION_ROOT': '/',
+            'SERVER_NAME': 'signup.eduid.local.emergya.info',
+            'SECRET_KEY': 'supersecretkey',
+            'MONGO_URI': 'mongodb://eduid_signup:eduid_signup_pw@mongodb.eduid_dev',
+            'LOG_LEVEL': 'DEBUG',
+            'LOGGER_NAME': 'signup',
+            'AM_BROKER_URL': 'amqp://eduid:eduid_pw@rabbitmq/am',
+            'MSG_BROKER_URL': 'amqp://eduid:eduid_pw@rabbitmq/msg',
+            'PASSWORD_LENGTH': '10',
+            'VCCS_URL': 'http://turq:13085/',
+            'TOU_VERSION': '2018-v1',
+            'AUTH_SHARED_SECRET': 'shared_secret_Eifool0ua0eiph7ooch0',
+            'DEFAULT_FINISH_URL': 'https://www.eduid.se/',
+            'RECAPTCHA_PUBLIC_KEY': 'XXXX',
+            'RECAPTCHA_PRIVATE_KEY': 'XXXX',
+            'STUDENTS_LINK': 'https://www.eduid.se/index.html',
+            'TECHNICIANS_LINK': 'https://www.eduid.se/tekniker.html',
+            'STAFF_LINK': 'https://www.eduid.se/personal.html',
+            'FAQ_LINK': 'https://www.eduid.se/faq.html',
             'CELERY_CONFIG': {
                 'CELERY_RESULT_BACKEND': 'amqp',
                 'CELERY_TASK_SERIALIZER': 'json',
@@ -62,4 +83,19 @@ class SignupTests(EduidAPITestCase):
         return config
 
     def init_data(self):
-        self.app.private_userdb.save(self.app.private_userdb.UserClass(data=self.test_user.to_dict()), check_sync=False)
+        test_user_dict = self.app.private_userdb.UserClass(data=self.test_user.to_dict())
+        self.app.private_userdb.save(test_user_dict, check_sync=False)
+
+    def tearDown(self):
+        super(PhoneTests, self).tearDown()
+        with self.app.app_context():
+            self.app.private_userdb._drop_whole_collection()
+            self.app.central_userdb._drop_whole_collection()
+
+    def test_get_all_phone(self):
+        response = self.browser.get('/config')
+        self.assertEqual(response.status_code, 200)
+
+        config_data = json.loads(response.data)
+
+        self.assertEqual('XXXX', config_data['recaptcha_public_key'])
