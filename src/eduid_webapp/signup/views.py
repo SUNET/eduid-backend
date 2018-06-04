@@ -118,7 +118,7 @@ def trycaptcha(email, recaptcha_response, tou_accepted):
 @MarshalWith(FluxStandardAction)
 def resend_email_verification(email):
     """
-    The user has no yet verified the email address.
+    The user has not yet verified the email address.
     Send a verification message to the address so it can be verified.
     """
     current_app.logger.debug("Resend email confirmation to {!s}".format(email))

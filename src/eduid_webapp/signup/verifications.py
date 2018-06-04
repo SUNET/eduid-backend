@@ -46,6 +46,9 @@ from eduid_webapp.signup.helpers import generate_eppn
 
 def verify_recaptcha(secret_key, captcha_response, user_ip, retries=3):
     """
+    Verify the recaptcha response received from the client 
+    against the recaptcha API.
+
     :param secret_key: Recaptcha secret key
     :param captcha_response: User recaptcha response
     :param user_ip: User ip address
@@ -92,12 +95,28 @@ def verify_recaptcha(secret_key, captcha_response, user_ip, retries=3):
 
 
 def generate_verification_link():
+    """
+    Generate a verification code and build a verification link with it.
+
+    :return: code and link
+    :rtype: pair of str
+    """
     code = str(uuid4())
     link = '{}code/{}'.format(current_app.config['SIGNUP_URL'], code)
     return (link, code)
 
 
 def send_verification_mail(email):
+    """
+    Render and send an email with a verification code/link
+    for the provided email.
+
+    :param email: Email address to verify
+    :type email: str | unicode
+
+    :return: Generated code
+    :rtype: str
+    """
     (verification_link, code) = generate_verification_link()
 
     context = {

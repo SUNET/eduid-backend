@@ -54,9 +54,8 @@ def generate_eppn():
 
     Unique is defined as 'at least it doesn't exist right now'.
 
-    :param request:
     :return: eppn
-    :rtype: string
+    :rtype: string or None
     """
     for _ in range(10):
         eppn_int = struct.unpack('I', os.urandom(4))[0]
@@ -73,14 +72,14 @@ def check_email_status(email):
     Check the email registration status.
 
     If the email doesn't exist in database, then return 'new'.
-
     If exists and it hasn't been verified, then return 'resend-code'.
-
     If exists and it has been verified before, then return 'address-used'.
 
     :param email: Address to look for
-
     :type email: str | unicode
+
+    :return: status
+    :rtype: string or None
     """
     userdb = current_app.central_userdb
     signup_db = current_app.private_userdb
@@ -93,9 +92,8 @@ def check_email_status(email):
 
     try:
         signup_user = signup_db.get_user_by_pending_mail_address(email)
-        if signup_user:
-            current_app.logger.debug("Found user {} with pending email {} in signup db".format(signup_user, email))
-            return 'resend-code'
+        current_app.logger.debug("Found user {} with pending email {} in signup db".format(signup_user, email))
+        return 'resend-code'
     except userdb.exceptions.UserDoesNotExist:
         current_app.logger.debug("No user found with email {} in signup db either".format(email))
 
@@ -115,10 +113,9 @@ def remove_users_with_mail_address(email):
     so the user can do a new signup.
 
     :param email: E-mail address
-
     :param email: str | unicode
 
-    :return:
+    :return: None
     """
     signup_db = current_app.private_userdb
     # The e-mail address does not exist in userdb (checked by caller), so if there exists a user
@@ -131,22 +128,26 @@ def remove_users_with_mail_address(email):
         signup_db.remove_user_by_id(user.user_id)
 
 
-def complete_registration(signup_user, context=None):
+def complete_registration(signup_user):
     """
-    After a successful registration
-    generate a password,
-    add it to the registration record in the registrations db,
-    update the attribute manager db with the new account,
-    and send the pertinent information to the user.
+    After a successful registration:
+    * record acceptance of TOU
+    * generate a password,
+    * add it to the user record,
+    * update the attribute manager db with the new account,
+    * create authn token and nonce for the dashboard,
+    * return information to be sent to the user.
 
     :param signup_user: SignupUser instance
     :type signup_user: SignupUser
+
+    :return: registration status info
+    :rtype: dict
     """
     current_app.logger.info("Completing registration for user "
                     "{}".format(signup_user))
 
-    if context is None:
-        context = {}
+    context = {}
     password_id = ObjectId()
     (password, salt) = generate_password(str(password_id), signup_user)
 
@@ -189,10 +190,12 @@ def record_tou(user, source):
     Record user acceptance of terms of use.
 
     :param user: the user that has accepted the ToU
-    :type user: eduid_userdb.signup.User
+    :type user: eduid_userdb.signup.SignupUser
     :param source: An identificator for the proccess during which
                    the user has accepted the ToU (e.g., "signup")
     :type source: str
+
+    :return: None
     """
     event_id = ObjectId()
     created_ts = datetime.datetime.utcnow()
@@ -210,8 +213,22 @@ def record_tou(user, source):
 
 def generate_auth_token(shared_key, email, nonce, timestamp, generator=sha256):
     """
-        The shared_key is a secret between the two systems
-        The public word must must go through form POST or GET
+    Generate authn token for the dashboard.
+    The shared_key is a secret shared with the dashboard app.
+
+    :param shared_key: the secret
+    :type shared_key: str
+    :param email: the email of the user to be authn
+    :type email: str
+    :param nonce: the nonce
+    :type nonce: str
+    :param timestamp: a timestamp
+    :type timestamp: str
+    :param generator: the hash function
+    :type generator: function
+
+    :return: the authn token
+    :rtype: str
     """
     current_app.logger.debug("Generating auth-token for user {}, "
                         "nonce {}, ts {!r}".format(email, nonce, timestamp))
