@@ -5,7 +5,7 @@ from __future__ import absolute_import
 from eduid_common.api.app import eduid_init_app
 from eduid_common.api.utils import urlappend
 from eduid_userdb.support import db
-from flask import url_for
+from eduid_common.api.debug import init_app_debug
 
 
 def register_template_funcs(app):
@@ -15,6 +15,8 @@ def register_template_funcs(app):
         if not value:
             return ''
         return value.strftime(format)
+
+    return app
 
 
 def support_init_app(name, config):
@@ -38,9 +40,10 @@ def support_init_app(name, config):
     """
 
     app = eduid_init_app(name, config)
+    app.config.update(config)
+
     if app.config.get('TOKEN_SERVICE_URL_LOGOUT') is None:
         app.config['TOKEN_SERVICE_URL_LOGOUT'] = urlappend(app.config['TOKEN_SERVICE_URL'], 'logout')
-    app.config.update(config)
 
     from eduid_webapp.support.views import support_views
     app.register_blueprint(support_views)
@@ -55,7 +58,7 @@ def support_init_app(name, config):
     app.support_letter_proofing_db = db.SupportLetterProofingDB(app.config['MONGO_URI'])
     app.support_oidc_proofing_db = db.SupportOidcProofingDB(app.config['MONGO_URI'])
 
-    register_template_funcs(app)
+    app = register_template_funcs(app)
 
     app.logger.info('Init {} app...'.format(name))
 
