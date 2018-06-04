@@ -5,7 +5,7 @@ from __future__ import absolute_import
 from copy import deepcopy
 from flask import current_app
 import eduid_am.celery
-from eduid_am.tasks import update_attributes_keep_result
+from eduid_am.tasks import update_attributes_keep_result, pong
 from eduid_common.api.exceptions import AmTaskFailed
 
 __author__ = 'lundberg'
@@ -71,3 +71,8 @@ class AmRelay(object):
             except Exception as e:
                 current_app.logger.exception("Failed Attribute Manager sync request retry for user {!s}".format(user))
                 raise AmTaskFailed('request_user_sync task failed: {}'.format(e))
+
+    def ping(self):
+        rtask = pong.delay(self.relay_for)
+        result = rtask.get(timeout=1)
+        return result

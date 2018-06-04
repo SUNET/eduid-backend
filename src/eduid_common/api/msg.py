@@ -10,6 +10,7 @@ from eduid_msg.tasks import send_message as _send_message
 from eduid_msg.tasks import get_postal_address as _get_postal_address
 from eduid_msg.tasks import get_relations_to as _get_relations_to
 from eduid_msg.tasks import sendsms as _sendsms
+from eduid_msg.tasks import pong as _pong
 from eduid_common.api.exceptions import MsgTaskFailed
 
 __author__ = 'lundberg'
@@ -153,3 +154,8 @@ class MsgRelay(object):
         except Exception as e:
             raise MsgTaskFailed('sendsms task failed: {!r}'.format(e))
         current_app.logger.info('SMS with reference {} sent. Task result: {}'.format(reference, res))
+
+    def ping(self):
+        rtask = _pong.delay()
+        result = rtask.get(timeout=1)
+        return result
