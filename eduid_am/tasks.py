@@ -146,3 +146,8 @@ def _update_attributes_safe(app_name, user_id):
 
     logger.debug('Attributes fetched from app {!s} for user {!s}: {!s}'.format(app_name, user_id, attributes))
     self.userdb.update_user(_id, attributes)
+
+
+@celery.task(base=AttributeManager)
+def pong(app_name):
+    return 'pong for {}'.format(app_name)
