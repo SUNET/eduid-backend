@@ -73,6 +73,8 @@ def verify_recaptcha(secret_key, captcha_response, user_ip, retries=3):
             current_app.logger.debug("CAPTCHA response: {}".format(verify_rs))
             verify_rs = verify_rs.json()
             if verify_rs.get('success', False) is True:
+                current_app.logger.info("Valid CAPTCHA response from "
+                                             "{}".format(user_ip))
                 return True
         except requests.exceptions.RequestException as e:
             if not retries:
@@ -121,12 +123,12 @@ def send_verification_mail(email):
         signup_user = SignupUser(eppn = generate_eppn())
         signup_user.pending_mail_address = mailaddress
         current_app.private_userdb.save(signup_user)
-        current_app.logger.info("New user {!s}/{!s} created. e-mail is pending confirmation.".format(signup_user, email))
+        current_app.logger.info("New user {}/{} created. e-mail is pending confirmation.".format(signup_user, email))
     else:
         # update mailaddress on existing user with new code
         signup_user.pending_mail_address.verification_code = code
         current_app.private_userdb.save(signup_user)
-        current_app.logger.info("User {!s}/{!s} updated with new e-mail confirmation code".format(signup_user, email))
+        current_app.logger.info("User {}/{} updated with new e-mail confirmation code".format(signup_user, email))
 
     subject = _("eduid-signup verification email"),
     if current_app.config.get("DEVELOPMENT", False):
@@ -135,7 +137,7 @@ def send_verification_mail(email):
     else:
         current_app.mail_relay.sendmail(subject, [email], text, html)
         current_app.logger.info("Sent email address verification mail to user "
-                                "{} about address {!s}.".format(user, email))
+                                "{} about address {}.".format(user, email))
     return code
 
 
@@ -159,20 +161,29 @@ def verify_email_code(code):
     :return: Signup user object
     :rtype: SignupUser
     """
+    current_app.logger.info("Trying to verify code {}".format(code))
+
     signup_db = current_app.private_userdb
     signup_user = signup_db.get_user_by_mail_verification_code(code)
 
     if not signup_user:
-        current_app.logger.debug("Code {!r} not found in database".format(code))
+        current_app.logger.debug("Code {} not found in database".format(code))
         raise CodeDoesNotExist()
+
+    email = signup_user.pending_mail_address.email
+    user = current_app.central_userdb.get_user_by_mail(email, raise_on_missing=False)
+
+    if user:
+        current_app.logger.debug("Email {} already present in central db".format(email))
+        raise AlreadyVerifiedException()
 
     mail_dict = signup_user.pending_mail_address.to_dict()
     mail_address = MailAddress(data=mail_dict, raise_on_unknown=False)
     if mail_address.is_verified:
         # There really should be no way to get here, is_verified is set to False when
         # the EmailProofingElement is created.
-        current_app.logger.debug("Code {!r} already verified "
-                                 "({!s})".format(code, mail_address))
+        current_app.logger.debug("Code {} already verified "
+                                 "({})".format(code, mail_address))
         raise AlreadyVerifiedException()
 
     mail_address.is_verified = True
@@ -183,6 +194,6 @@ def verify_email_code(code):
     signup_user.mail_addresses.add(mail_address)
     result = signup_db.save(signup_user)
 
-    current_app.logger.debug("Code {!r} verified and user {!s} "
+    current_app.logger.info("Code {} verified and user {} "
                              "saved: {!r}".format(code, signup_user, result))
     return signup_user

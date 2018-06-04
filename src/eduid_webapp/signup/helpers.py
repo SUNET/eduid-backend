@@ -48,21 +48,6 @@ from eduid_userdb.tou import ToUEvent
 from eduid_webapp.signup.vccs import generate_password
 
 
-def locale_negotiator():
-    available_languages = current_app.config['AVAILABLE_LANGUAGES'].keys()
-    cookie_name = current_app.config['LANG_COOKIE_NAME']
-
-    cookie_lang = request.cookies.get(cookie_name, None)
-    if cookie_lang and cookie_lang in available_languages:
-        return cookie_lang
-
-    locale_name = request.accept_language.best_match(available_languages)
-
-    if locale_name not in available_languages:
-        locale_name = current_app.config.get('DEFAULT_LOCALE_NAME', 'sv')
-    return locale_name
-
-
 def generate_eppn():
     """
     Generate a unique eduPersonPrincipalName.
@@ -101,18 +86,18 @@ def check_email_status(email):
     signup_db = current_app.private_userdb
     try:
         am_user = userdb.get_user_by_mail(email, raise_on_missing=True, include_unconfirmed=False)
-        current_app.logger.debug("Found user {!s} with email {!s}".format(am_user, email))
+        current_app.logger.debug("Found user {} with email {}".format(am_user, email))
         return 'address-used'
     except userdb.exceptions.UserDoesNotExist:
-        current_app.logger.debug("No user found with email {!s} in eduid userdb".format(email))
+        current_app.logger.debug("No user found with email {} in eduid userdb".format(email))
 
     try:
         signup_user = signup_db.get_user_by_pending_mail_address(email)
         if signup_user:
-            current_app.logger.debug("Found user {!s} with pending email {!s} in signup db".format(signup_user, email))
+            current_app.logger.debug("Found user {} with pending email {} in signup db".format(signup_user, email))
             return 'resend-code'
     except userdb.exceptions.UserDoesNotExist:
-        current_app.logger.debug("No user found with email {!s} in signup db either".format(email))
+        current_app.logger.debug("No user found with email {} in signup db either".format(email))
 
     return 'new'
 
@@ -142,7 +127,7 @@ def remove_users_with_mail_address(email):
     # and continue like this was a completely new signup.
     completed_users = signup_db.get_user_by_mail(email, raise_on_missing = False, return_list = True)
     for user in completed_users:
-        current_app.logger.warning('Removing old user {!s} with e-mail {!s} from signup_db'.format(user, email))
+        current_app.logger.warning('Removing old user {} with e-mail {} from signup_db'.format(user, email))
         signup_db.remove_user_by_id(user.user_id)
 
 
@@ -172,7 +157,7 @@ def complete_registration(signup_user, context=None):
     try:
         save_and_sync_user(signup_user)
     except UserOutOfSync:
-        current_app.logger.debug('Couldnt save user {}, '
+        current_app.logger.error('Couldnt save user {}, '
                                  'data out of sync'.format(signup_user))
         return {
             '_status': 'error',
@@ -212,10 +197,9 @@ def record_tou(user, source):
     event_id = ObjectId()
     created_ts = datetime.datetime.utcnow()
     tou_version = current_app.config['TOU_VERSION']
-    current_app.logger.debug('Recording ToU acceptance {!r} (version {!s})'
-                 ' for user {!r} (source: {!s})'.format(
-                     event_id, tou_version,
-                     user.user_id, source))
+    current_app.logger.info('Recording ToU acceptance {!r} (version {})'
+                 ' for user {} (source: {})'.format(
+                     event_id, tou_version, user, source))
     user.tou.add(ToUEvent(
         version = tou_version,
         application = source,
@@ -229,7 +213,7 @@ def generate_auth_token(shared_key, email, nonce, timestamp, generator=sha256):
         The shared_key is a secret between the two systems
         The public word must must go through form POST or GET
     """
-    current_app.logger.debug("Generating auth-token for user {!r}, "
-                        "nonce {!r}, ts {!r}".format(email, nonce, timestamp))
+    current_app.logger.debug("Generating auth-token for user {}, "
+                        "nonce {}, ts {!r}".format(email, nonce, timestamp))
     return generator("{0}|{1}|{2}|{3}".format(
         shared_key, email, nonce, timestamp)).hexdigest()

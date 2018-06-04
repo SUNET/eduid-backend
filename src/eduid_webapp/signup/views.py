@@ -97,7 +97,6 @@ def trycaptcha(email, recaptcha_response, tou_accepted):
         current_app.logger.info('CAPTCHA disabled')
 
     if recaptcha_verified:
-        current_app.logger.info('Valid CAPTCHA response from {!r}'.format(remote_ip))
         next = check_email_status(email)
         if next == 'new':
             # Workaround for failed earlier sync of user to userdb: Remove any signup_user with this e-mail address.

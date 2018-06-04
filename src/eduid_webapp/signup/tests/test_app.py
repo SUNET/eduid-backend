@@ -250,7 +250,6 @@ class SignupTests(EduidAPITestCase):
                 self.assertEqual(data['type'],
                         'POST_SIGNUP_RESEND_VERIFICATION_SUCCESS')
 
-
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('vccs_client.VCCSClient.add_credentials')
     def test_verify_code(self, mock_add_credentials, mock_request_user_sync):
@@ -261,10 +260,70 @@ class SignupTests(EduidAPITestCase):
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
                     code = send_verification_mail(email)
+                    response = client.get('/verify-link/' + code)
+
+                    data = json.loads(response.data)
+                    self.assertEqual(data['type'],
+                            'GET_SIGNUP_VERIFY_LINK_SUCCESS')
+                    self.assertEqual(data['payload']['status'],
+                            'verified')
+
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('vccs_client.VCCSClient.add_credentials')
+    def test_verify_non_existing_code(self, mock_add_credentials, mock_request_user_sync):
+        mock_add_credentials.return_value = True
+        mock_request_user_sync.return_value = True
+        email = 'dummy@example.com'
+        with self.session_cookie(self.browser) as client:
+            with client.session_transaction() as sess:
+                with self.app.test_request_context():
+                    send_verification_mail(email)
+                    response = client.get('/verify-link/' + 'dummy')
+
+                    data = json.loads(response.data)
+                    self.assertEqual(data['type'],
+                            'GET_SIGNUP_VERIFY_LINK_SUCCESS')
+                    self.assertEqual(data['payload']['status'],
+                            'unknown-code')
+
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('vccs_client.VCCSClient.add_credentials')
+    def test_verify_existing_email(self, mock_add_credentials, mock_request_user_sync):
+        mock_add_credentials.return_value = True
+        mock_request_user_sync.return_value = True
+        email = 'johnsmith@example.com'
+        with self.session_cookie(self.browser) as client:
+            with client.session_transaction() as sess:
+                with self.app.test_request_context():
+                    code = send_verification_mail(email)
+                    response = client.get('/verify-link/' + code)
+
+                    data = json.loads(response.data)
+                    self.assertEqual(data['type'],
+                            'GET_SIGNUP_VERIFY_LINK_SUCCESS')
+                    self.assertEqual(data['payload']['status'],
+                            'already-verified')
+
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('vccs_client.VCCSClient.add_credentials')
+    def test_verify_code_remove_previous(self, mock_add_credentials, mock_request_user_sync):
+        mock_add_credentials.return_value = True
+        mock_request_user_sync.return_value = True
+        email = 'dummy@example.com'
+
+        with self.session_cookie(self.browser) as client:
+            with client.session_transaction() as sess:
+                with self.app.test_request_context():
                     data = {
                         'email': email,
+                        'recaptcha_response': 'dummy',
+                        'tou_accepted': True,
                         'csrf_token': sess.get_csrf_token()
                         }
+                    client.post('/trycaptcha', data=json.dumps(data),
+                                       content_type=self.content_type_json)
+
+                    code = send_verification_mail(email)
                     response = client.get('/verify-link/' + code)
 
                     data = json.loads(response.data)
