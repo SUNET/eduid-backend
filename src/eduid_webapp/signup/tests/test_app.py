@@ -37,6 +37,7 @@ from flask import Flask
 
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_webapp.signup.app import signup_init_app
+from eduid_webapp.signup.verifications import send_verification_mail
 
 
 class SignupTests(EduidAPITestCase):
@@ -124,7 +125,8 @@ class SignupTests(EduidAPITestCase):
             self.assertEqual('https://www.eduid.se/personal.html',
                     config_data['payload']['staff_link'])
 
-    def test_captcha_no_data_fail(self, email='dummy@example.com'):
+    def test_captcha_no_data_fail(self):
+        email = 'dummy@example.com'
         with self.session_cookie(self.browser) as client:
             response = client.post('/trycaptcha')
             self.assertEqual(response.status_code, 200)
@@ -132,7 +134,8 @@ class SignupTests(EduidAPITestCase):
             self.assertEqual(data['error'], True)
             self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_FAIL')
 
-    def test_captcha(self, email='dummy@example.com'):
+    def test_captcha_new(self):
+        email = 'dummy@example.com'
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
@@ -147,8 +150,58 @@ class SignupTests(EduidAPITestCase):
 
                 data = json.loads(response.data)
                 self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_SUCCESS')
+                self.assertEqual(data['payload']['next'], 'new')
 
-    def test_captcha_no_email(self, email='dummy@example.com'):
+    def test_captcha_resend(self):
+        email = 'dummy@example.com'
+        with self.session_cookie(self.browser) as client:
+            with client.session_transaction() as sess:
+                with self.app.test_request_context():
+                    data = {
+                        'email': email,
+                        'recaptcha_response': 'dummy',
+                        'tou_accepted': True,
+                        'csrf_token': sess.get_csrf_token()
+                        }
+                response = client.post('/trycaptcha', data=json.dumps(data),
+                                       content_type=self.content_type_json)
+
+        with self.session_cookie(self.browser) as client:
+            with client.session_transaction() as sess:
+                with self.app.test_request_context():
+                    data = {
+                        'email': email,
+                        'recaptcha_response': 'dummy',
+                        'tou_accepted': True,
+                        'csrf_token': sess.get_csrf_token()
+                        }
+                response = client.post('/trycaptcha', data=json.dumps(data),
+                                       content_type=self.content_type_json)
+
+                data = json.loads(response.data)
+                self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_SUCCESS')
+                self.assertEqual(data['payload']['next'], 'resend-code')
+
+    def test_captcha_used(self):
+        email = 'johnsmith@example.com'
+        with self.session_cookie(self.browser) as client:
+            with client.session_transaction() as sess:
+                with self.app.test_request_context():
+                    data = {
+                        'email': email,
+                        'recaptcha_response': 'dummy',
+                        'tou_accepted': True,
+                        'csrf_token': sess.get_csrf_token()
+                        }
+                response = client.post('/trycaptcha', data=json.dumps(data),
+                                       content_type=self.content_type_json)
+
+                data = json.loads(response.data)
+                self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_SUCCESS')
+                self.assertEqual(data['payload']['next'], 'address-used')
+
+    def test_captcha_no_email(self):
+        email = 'dummy@example.com'
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
@@ -164,7 +217,8 @@ class SignupTests(EduidAPITestCase):
                 data = json.loads(response.data)
                 self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_FAIL')
 
-    def test_captcha_no_tou(self, email='dummy@example.com'):
+    def test_captcha_no_tou(self):
+        email = 'dummy@example.com'
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
@@ -180,7 +234,8 @@ class SignupTests(EduidAPITestCase):
                 data = json.loads(response.data)
                 self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_FAIL')
 
-    def test_resend_email(self, email='dummy@example.com'):
+    def test_resend_email(self):
+        email = 'dummy@example.com'
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
@@ -194,3 +249,24 @@ class SignupTests(EduidAPITestCase):
                 data = json.loads(response.data)
                 self.assertEqual(data['type'],
                         'POST_SIGNUP_RESEND_VERIFICATION_SUCCESS')
+
+
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('vccs_client.VCCSClient.add_credentials')
+    def test_verify_code(self, mock_add_credentials, mock_request_user_sync):
+        mock_add_credentials.return_value = True
+        mock_request_user_sync.return_value = True
+        email = 'dummy@example.com'
+        with self.session_cookie(self.browser) as client:
+            with client.session_transaction() as sess:
+                with self.app.test_request_context():
+                    code = send_verification_mail(email)
+                    data = {
+                        'email': email,
+                        'csrf_token': sess.get_csrf_token()
+                        }
+                    response = client.get('/verify-link/' + code)
+
+                    data = json.loads(response.data)
+                    self.assertEqual(data['type'],
+                            'GET_SIGNUP_VERIFY_LINK_SUCCESS')

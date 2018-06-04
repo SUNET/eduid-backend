@@ -136,6 +136,7 @@ def send_verification_mail(email):
         current_app.mail_relay.sendmail(subject, [email], text, html)
         current_app.logger.info("Sent email address verification mail to user "
                                 "{} about address {!s}.".format(user, email))
+    return code
 
 
 class AlreadyVerifiedException(Exception):

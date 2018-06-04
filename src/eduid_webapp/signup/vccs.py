@@ -19,7 +19,7 @@ def generate_password(credential_id, user):
     """
     user_id = str(user.user_id)
     config = current_app.config
-    password = pwgen(config.get('PASSWORD_LENGTH'),
+    password = pwgen(int(config.get('PASSWORD_LENGTH')),
                      no_capitalize = True, no_symbols = True)
     factor = vccs_client.VCCSPasswordFactor(password, credential_id)
     current_app.logger.debug("Adding VCCS password factor for user {!r}, "
