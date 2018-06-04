@@ -39,7 +39,7 @@ from hashlib import sha256
 from bson import ObjectId
 import proquint
 
-from flask import current_app, request, abort
+from flask import current_app, abort
 
 from eduid_common.api.utils import save_and_sync_user
 from eduid_userdb.exceptions import UserOutOfSync

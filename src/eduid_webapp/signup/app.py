@@ -33,8 +33,6 @@
 
 from __future__ import absolute_import
 
-from flask import Flask
-
 from eduid_common.authn.middleware import UnAuthnApp
 from eduid_common.api.app import eduid_init_app
 from eduid_common.api import mail_relay

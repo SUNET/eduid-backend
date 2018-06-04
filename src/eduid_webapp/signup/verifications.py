@@ -35,7 +35,7 @@ from uuid import uuid4
 import time
 import requests
 
-from flask import current_app, request, abort, url_for, render_template
+from flask import current_app, render_template
 from flask_babel import gettext as _
 
 from eduid_userdb import MailAddress
