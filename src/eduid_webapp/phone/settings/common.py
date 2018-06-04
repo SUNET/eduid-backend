@@ -55,7 +55,7 @@ SECRET_KEY = ''
 LOG_LEVEL = 'INFO'
 
 # timeout for phone verification token, in seconds
-PHONE_VERIFICATION_TIMEOUT = 600
+PHONE_VERIFICATION_TIMEOUT = 7200
 
 # default country code
 DEFAULT_COUNTRY_CODE = '46'
