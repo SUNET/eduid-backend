@@ -54,6 +54,9 @@ def signup_init_app(name, config):
     all needed blueprints will be registered with it,
     and finally the app is configured with the necessary db connections.
 
+    Note that we use UnAuthnApp as the class for the Flask app,
+    since obviously the signup app is used unauthenticated.
+
     :param name: The name of the instance, it will affect the configuration loaded.
     :type name: str
     :param config: any additional configuration settings. Specially useful
