@@ -90,13 +90,12 @@ def check_email_status(email):
     except userdb.exceptions.UserDoesNotExist:
         current_app.logger.debug("No user found with email {} in eduid userdb".format(email))
 
-    try:
-        signup_user = signup_db.get_user_by_pending_mail_address(email)
+    signup_user = signup_db.get_user_by_pending_mail_address(email)
+    if signup_user is not None:
         current_app.logger.debug("Found user {} with pending email {} in signup db".format(signup_user, email))
         return 'resend-code'
-    except userdb.exceptions.UserDoesNotExist:
-        current_app.logger.debug("No user found with email {} in signup db either".format(email))
-
+        
+    current_app.logger.debug("No user found with email {} in signup db either".format(email))
     return 'new'
 
 
