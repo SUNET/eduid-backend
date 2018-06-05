@@ -32,6 +32,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
+from __future__ import absolute_import
+from os import path, sep
+
 # ==============#
 # Flask config #
 # ==============#
@@ -196,7 +199,11 @@ EDUID_STATIC_URL = 'https://www.eduid.se/static/'
 # Try to guess the language from the user accept header the browser transmits. The best match wins.
 SUPPORTED_LANGUAGES = ['sv', 'en']
 
+# The translations directory resides on the same level as the settings directory
+BABEL_TRANSLATION_DIRECTORIES = path.join(sep.join(path.dirname(path.abspath(__file__)).split(sep)[:-1]),
+                                          'translations')
+
 # ===============#
-#  MAIL         #
+#  MAIL          #
 # ===============#
 MAIL_DEFAULT_FROM = 'no-reply@eduid.se'
