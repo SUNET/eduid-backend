@@ -1,0 +1,2 @@
+proquint==0.1.0
+zxcvbn==1.0

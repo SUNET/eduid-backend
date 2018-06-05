@@ -33,7 +33,7 @@
 
 from __future__ import absolute_import
 
-from flask import Blueprint, session
+from flask import Blueprint
 from flask import current_app
 
 from eduid_userdb.element import PrimaryElementViolation, UserDBValueError
