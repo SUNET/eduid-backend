@@ -411,6 +411,10 @@ class MessageRelay(Task):
 
         return self.sms.send(message, self._sms_sender, recipient, prio=2)
 
+    @staticmethod
+    def pong():
+        return 'pong'
+
 
 @task(base=MessageRelay)
 def is_reachable(identity_number):
@@ -618,3 +622,9 @@ def cache_expire():
     for cache in _CACHE.iterkeys():
         LOG.debug("Invoking expire_cache at %s for %s" % (datetime.fromtimestamp(time(), None), cache))
         _CACHE[cache].expire_cache_items()
+
+
+@task(base=MessageRelay)
+def pong():
+    self = pong
+    return self.pong()
