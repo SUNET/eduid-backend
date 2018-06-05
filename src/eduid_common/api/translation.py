@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import absolute_import
+
 from flask import request
 from flask_babel import Babel
 
@@ -7,10 +9,11 @@ __author__ = 'lundberg'
 
 
 def init_babel(app):
-    babel = Babel(app)
-    app.babel = babel
+    app.babel = Babel(app)
+    app.logger.info('Translation directories: {}'.format([path for path in app.babel.translation_directories]))
+    app.logger.info('Available translations: {}'.format(app.babel.list_translations()))
 
-    @babel.localeselector
+    @app.babel.localeselector
     def get_locale():
         # if a user is logged in, use the locale from the user settings
         # XXX: TODO
