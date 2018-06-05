@@ -37,7 +37,7 @@ from email.mime.text import MIMEText
 
 from flask import current_app
 from eduid_msg.celery import celery, get_mail_relay
-from eduid_msg.tasks import sendmail
+from eduid_msg.tasks import sendmail, pong
 from eduid_common.api.exceptions import MailTaskFailed
 
 
@@ -48,6 +48,7 @@ class MailRelay(object):
         self._relay = get_mail_relay(celery)
         self.settings = settings
         self._sendmail = sendmail
+        self._pong = pong
 
     def sendmail(self, subject, recipients, text=None, html=None, reference=None, max_retry_seconds=86400):
         """
@@ -85,6 +86,11 @@ class MailRelay(object):
             raise MailTaskFailed(err)
 
         current_app.logger.info('Sent email {} to {} with subject {}'.format(rtask, recipients, subject))
+
+    def ping(self):
+        rtask = self._pong.delay()
+        result = rtask.get(timeout=1)
+        return result
 
 
 def init_relay(app):
