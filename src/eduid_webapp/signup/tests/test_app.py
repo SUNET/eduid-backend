@@ -52,13 +52,11 @@ class SignupTests(EduidAPITestCase):
     def update_config(self, config):
         config.update({
             'AVAILABLE_LANGUAGES': {'en': 'English','sv': 'Svenska'},
-            'MSG_BROKER_URL': 'amqp://dummy',
-            'AM_BROKER_URL': 'amqp://dummy',
             'DASHBOARD_URL': '/profile/',
-            'SIGNUP_URL': 'https://signup.eduid.local.emergya.info/',
+            'SIGNUP_URL': 'https://localhost/',
             'DEVELOPMENT': 'DEBUG',
             'APPLICATION_ROOT': '/',
-            'SERVER_NAME': 'signup.eduid.local.emergya.info',
+            'SERVER_NAME': 'localhost',
             'SECRET_KEY': 'supersecretkey',
             'MONGO_URI': 'mongodb://eduid_signup:eduid_signup_pw@mongodb.eduid_dev',
             'LOG_LEVEL': 'DEBUG',
