@@ -67,16 +67,60 @@ def _check_redis():
     return False
 
 
+def _check_am():
+    try:
+        res = current_app.am_relay.ping()
+        if res == 'pong for {}'.format(current_app.am_relay.relay_for):
+            return True
+    except Exception as exc:
+        current_app.logger.warning('am health check failed: {}'.format(exc))
+        return False
+    return False
+
+
+def _check_msg():
+    try:
+        res = current_app.msg_relay.ping()
+        if res == 'pong':
+            return True
+    except Exception as exc:
+        current_app.logger.warning('msg health check failed: {}'.format(exc))
+        return False
+    return False
+
+
+def _check_mail():
+    try:
+        res = current_app.mail_relay.ping()
+        if res == 'pong':
+            return True
+    except Exception as exc:
+        current_app.logger.warning('mail health check failed: {}'.format(exc))
+        return False
+    return False
+
+
 @status_views.route('/healthy', methods=['GET'])
 def health_check():
     res = {'status': 'STATUS_FAIL'}
     if not _check_mongo():
         res['reason'] = 'mongodb check failed'
+        current_app.logger.warning('mongodb check failed')
     elif not _check_redis():
         res['reason'] = 'redis check failed'
+        current_app.logger.warning('redis check failed')
+    elif getattr(current_app, 'am_relay', False) and not _check_am():
+        res['reason'] = 'am check failed'
+        current_app.logger.warning('am check failed')
+    elif getattr(current_app, 'msg_relay', False) and not _check_msg():
+        res['reason'] = 'msg check failed'
+        current_app.logger.warning('msg check failed')
+    elif getattr(current_app, 'mail_relay', False) and not _check_mail():
+        res['reason'] = 'mail check failed'
+        current_app.logger.warning('mail check failed')
     else:
         res['status'] = 'STATUS_OK'
-        res['reason'] = 'Databases tested OK'
+        res['reason'] = 'Databases and task queues tested OK'
     return jsonify(res)
 
 
