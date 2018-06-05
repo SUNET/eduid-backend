@@ -81,8 +81,11 @@ def eduid_init_app_no_db(name, config, app_class=AuthnApp):
     common_parser = EtcdConfigParser('/eduid/webapp/common/')
     app_parser = EtcdConfigParser('/eduid/webapp/{!s}/'.format(name))
 
-    # Load project wide default settings
-    app.config.from_object('eduid_webapp.settings.common')
+    try:
+        # Load project wide default settings
+        app.config.from_object('eduid_webapp.settings.common')
+    except ImportError:  # No config found
+        pass
 
     try:
         # Load optional app specific default settings
