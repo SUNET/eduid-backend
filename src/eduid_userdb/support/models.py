@@ -55,7 +55,7 @@ class SupportUser(GenericFilterDict):
 
         self['user_id'] = _user_id
         self['mailAliases'] = [MailAlias(alias) for alias in self['mailAliases']]
-        self['passwords'] = [Password(password) for password in self['passwords']]
+        self['passwords'] = [Credential(password) for password in self['passwords']]
         self['tou'] = [ToU(tou) for tou in self['tou']]
 
 
@@ -70,7 +70,7 @@ class SupportDashboardUser(GenericFilterDict):
 
         self['user_id'] = _user_id
         self['mailAliases'] = [MailAlias(alias) for alias in self['mailAliases']]
-        self['passwords'] = [Password(password) for password in self['passwords']]
+        self['passwords'] = [Credential(password) for password in self['passwords']]
         self['tou'] = [ToU(tou) for tou in self['tou']]
 
 
@@ -85,7 +85,7 @@ class SupportSignupUser(GenericFilterDict):
 
         self['user_id'] = _user_id
         self['mailAliases'] = [MailAlias(alias) for alias in self['mailAliases']]
-        self['passwords'] = [Password(password) for password in self['passwords']]
+        self['passwords'] = [Credential(password) for password in self['passwords']]
         self['tou'] = [ToU(tou) for tou in self['tou']]
         self['pending_mail_address'] = PendingMailAddress(self.get('pending_mail_address'))
 
@@ -99,9 +99,18 @@ class PendingMailAddress(MailAlias):
     pass
 
 
-class Password(GenericFilterDict):
+class Credential(GenericFilterDict):
 
-    add_keys = ['created_by', 'created_ts']
+    add_keys = ['created_by', 'created_ts', 'type']
+
+    def __init__(self, data):
+        _data = deepcopy(data)
+        # Figure out type of credential
+        if 'salt' in _data:
+            _data['type'] = 'Password'
+        elif 'keyhandle' in _data:
+            _data['type'] = 'U2F'
+        super(Credential, self).__init__(_data)
 
 
 class ToU(GenericFilterDict):
@@ -112,6 +121,14 @@ class ToU(GenericFilterDict):
 class UserAuthnInfo(GenericFilterDict):
 
     add_keys = ['success_ts', 'fail_count', 'success_count']
+
+    def __init__(self, data):
+        super(UserAuthnInfo, self).__init__(data)
+        # Remove months with 0 failures or successes
+        for attrib in ['fail_count', 'success_count']:
+            for key, value in self.get(attrib, {}).items():
+                if value == 0:
+                    del self[attrib][key]
 
 
 class UserVerifications(GenericFilterDict):
@@ -126,7 +143,16 @@ class UserActions(GenericFilterDict):
 
 class ProofingLogEntry(GenericFilterDict):
 
-    add_keys = ['nin', 'created', 'proofing_method']
+    add_keys = ['verified_data', 'created_ts', 'proofing_method']
+
+    def __init__(self, data):
+        _data = deepcopy(data)
+        # Rename the verified data key to verified_data
+        verified_data_names = ['nin', 'mail_address', 'phone_number', 'orcid']
+        for name in verified_data_names:
+            if name in _data:
+                _data['verified_data'] = _data[name]
+        super(ProofingLogEntry, self).__init__(_data)
 
 
 class UserLetterProofing(GenericFilterDict):
@@ -157,3 +183,29 @@ class UserOidcProofing(GenericFilterDict):
         _data = deepcopy(data)
         super(UserOidcProofing, self).__init__(_data)
         self['nin'] = self.Nin(self['nin'])
+
+
+class UserEmailProofing(GenericFilterDict):
+
+    add_keys = ['verification', 'modified_ts']
+
+    class Verification(GenericFilterDict):
+        add_keys = ['created_ts', 'email']
+
+    def __init__(self, data):
+        _data = deepcopy(data)
+        super(UserEmailProofing, self).__init__(_data)
+        self['verification'] = self.Verification(self['verification'])
+
+
+class UserPhoneProofing(GenericFilterDict):
+
+    add_keys = ['verification', 'modified_ts']
+
+    class Verification(GenericFilterDict):
+        add_keys = ['created_ts', 'number']
+
+    def __init__(self, data):
+        _data = deepcopy(data)
+        super(UserPhoneProofing, self).__init__(_data)
+        self['verification'] = self.Verification(self['verification'])
