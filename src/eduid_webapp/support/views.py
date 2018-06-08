@@ -41,12 +41,6 @@ def index(support_user):
                 # This should not happen as uncompleted users should not be propagated but seems we had a bug in 2015
                 user_data['user'] = None
             try:
-                user_data['dashboard_user'] = current_app.support_dashboard_db.get_user_by_id(user_id=user['user_id'],
-                                                                                              raise_on_missing=False)
-            except UserHasNotCompletedSignup:
-                # This should not happen as uncompleted users should not be propagated but seems we had a bug in 2015
-                user_data['dashboard_user'] = None
-            try:
                 user_data['signup_user'] = current_app.support_signup_db.get_user_by_id(user_id=user['user_id'],
                                                                                         raise_on_missing=False)
             except UserHasUnknownData:
@@ -55,13 +49,16 @@ def index(support_user):
 
             # Aux data
             user_data['authn'] = current_app.support_authn_db.get_authn_info(user_id=user['user_id'])
-            user_data['verifications'] = current_app.support_verification_db.get_verifications(user_id=user['user_id'])
             user_data['proofing_log'] = current_app.support_proofing_log_db.get_entries(
                 eppn=user['eduPersonPrincipalName'])
             user_data['actions'] = current_app.support_actions_db.get_actions(user_id=user['user_id'])
             user_data['letter_proofing'] = current_app.support_letter_proofing_db.get_proofing_state(
                 eppn=user['eduPersonPrincipalName'])
             user_data['oidc_proofing'] = current_app.support_oidc_proofing_db.get_proofing_state(
+                eppn=user['eduPersonPrincipalName'])
+            user_data['email_proofing'] = current_app.support_email_proofing_db.get_proofing_state(
+                eppn=user['eduPersonPrincipalName'])
+            user_data['phone_proofing'] = current_app.support_phone_proofing_db.get_proofing_state(
                 eppn=user['eduPersonPrincipalName'])
             users.append(user_data)
 

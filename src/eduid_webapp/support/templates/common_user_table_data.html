@@ -64,6 +64,7 @@
         <td>
             {% for credential in user_dict.passwords %}
                 <dl>
+                    <dt>Type</dt><dd>{{ credential.get('type') }}</dd>
                     <dt>Added using</dt><dd>{{ credential.get('created_by') }}</dd>
                     <dt>Added timestamp</dt><dd>{{ credential.get('created_ts')|datetimeformat }}</dd>
                 </dl>
