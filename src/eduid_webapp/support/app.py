@@ -5,7 +5,6 @@ from __future__ import absolute_import
 from eduid_common.api.app import eduid_init_app
 from eduid_common.api.utils import urlappend
 from eduid_userdb.support import db
-from eduid_common.api.debug import init_app_debug
 
 
 def register_template_funcs(app):
