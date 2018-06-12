@@ -4,15 +4,10 @@ from __future__ import absolute_import
 
 from copy import deepcopy
 
-from eduid_userdb.user import User
-from eduid_userdb.dashboard.user import DashboardUser
-from eduid_userdb.signup.user import SignupUser
-
 __author__ = 'lundberg'
 
+
 # Models for filtering out unneeded or unwanted data from eduID database objects
-
-
 class GenericFilterDict(dict):
 
     add_keys = None
@@ -44,46 +39,27 @@ class GenericFilterDict(dict):
             self.update(_data)
 
 
-class SupportUser(GenericFilterDict):
+class SupportUserFilter(GenericFilterDict):
 
     remove_keys = ['_id', 'letter_proofing_data']
 
     def __init__(self, data):
-        _data_in = User(data).to_dict()
-        _user_id = _data_in['_id']
-        super(SupportUser, self).__init__(_data_in)
+        _data = deepcopy(data)
+        super(SupportUserFilter, self).__init__(_data)
 
-        self['user_id'] = _user_id
         self['mailAliases'] = [MailAlias(alias) for alias in self['mailAliases']]
         self['passwords'] = [Credential(password) for password in self['passwords']]
         self['tou'] = [ToU(tou) for tou in self['tou']]
 
 
-class SupportDashboardUser(GenericFilterDict):
+class SupportSignupUserFilter(GenericFilterDict):
 
     remove_keys = ['_id', 'letter_proofing_data']
 
     def __init__(self, data):
-        _data_in = DashboardUser(data=data).to_dict()
-        _user_id = _data_in['_id']
-        super(SupportDashboardUser, self).__init__(_data_in)
+        _data = deepcopy(data)
+        super(SupportSignupUserFilter, self).__init__(_data)
 
-        self['user_id'] = _user_id
-        self['mailAliases'] = [MailAlias(alias) for alias in self['mailAliases']]
-        self['passwords'] = [Credential(password) for password in self['passwords']]
-        self['tou'] = [ToU(tou) for tou in self['tou']]
-
-
-class SupportSignupUser(GenericFilterDict):
-
-    remove_keys = ['_id', 'letter_proofing_data']
-
-    def __init__(self, data):
-        _data_in = SignupUser(data=data).to_dict()
-        _user_id = _data_in['_id']
-        super(SupportSignupUser, self).__init__(_data_in)
-
-        self['user_id'] = _user_id
         self['mailAliases'] = [MailAlias(alias) for alias in self['mailAliases']]
         self['passwords'] = [Credential(password) for password in self['passwords']]
         self['tou'] = [ToU(tou) for tou in self['tou']]
@@ -101,7 +77,7 @@ class PendingMailAddress(MailAlias):
 
 class Credential(GenericFilterDict):
 
-    add_keys = ['created_by', 'created_ts', 'type']
+    add_keys = ['_id', 'created_by', 'created_ts', 'type', 'success_ts']
 
     def __init__(self, data):
         _data = deepcopy(data)
@@ -123,12 +99,13 @@ class UserAuthnInfo(GenericFilterDict):
     add_keys = ['success_ts', 'fail_count', 'success_count']
 
     def __init__(self, data):
-        super(UserAuthnInfo, self).__init__(data)
+        _data = deepcopy(data)
         # Remove months with 0 failures or successes
         for attrib in ['fail_count', 'success_count']:
-            for key, value in self.get(attrib, {}).items():
+            for key, value in _data.get(attrib, {}).items():
                 if value == 0:
-                    del self[attrib][key]
+                    del _data[attrib][key]
+        super(UserAuthnInfo, self).__init__(_data)
 
 
 class UserVerifications(GenericFilterDict):

@@ -5,9 +5,8 @@ from __future__ import absolute_import
 from bson import ObjectId
 
 from eduid_userdb.userdb import BaseDB, UserDB
-from eduid_userdb.dashboard.userdb import DashboardUserDB
-from eduid_userdb.signup.userdb import SignupUserDB
-from eduid_userdb.support import models
+from eduid_userdb.signup import SignupUserDB
+from eduid_userdb.support import SupportUser, SupportSignupUser, models
 
 __author__ = 'lundberg'
 
@@ -19,7 +18,7 @@ way we can minimize the risk of accidentally sharing any secret user data.
 
 class SupportUserDB(UserDB):
 
-    UserClass = models.SupportUser
+    UserClass = SupportUser
 
     def __init__(self, db_uri, db_name='eduid_am', collection='attributes', user_class=None):
         super(SupportUserDB, self).__init__(db_uri, db_name, collection, user_class)
@@ -28,7 +27,7 @@ class SupportUserDB(UserDB):
         """
         :param query: search query, can be a user eppn, nin, mail address or phone number
         :type query: str | unicode
-        :return: A list of SupportUser objects
+        :return: A list of user docs
         :rtype: list
         """
         results = list()
@@ -44,7 +43,7 @@ class SupportUserDB(UserDB):
 
 class SupportSignupUserDB(SignupUserDB):
 
-    UserClass = models.SupportSignupUser
+    UserClass = SupportSignupUser
 
 
 class SupportAuthnInfoDB(BaseDB):
@@ -66,6 +65,20 @@ class SupportAuthnInfoDB(BaseDB):
         if not isinstance(user_id, ObjectId):
             user_id = ObjectId(user_id)
         doc = self._get_document_by_attr('_id', user_id, raise_on_missing=False)
+        if doc:
+            doc = self.model(doc)
+        return doc
+
+    def get_credential_info(self, credential_id):
+        """
+        :param credential_id: Credential id
+        :type credential_id: ObjectId | str | unicode
+        :return:  A document dict
+        :rtype: dict
+        """
+        if not isinstance(credential_id, ObjectId):
+            user_id = ObjectId(credential_id)
+        doc = self._get_document_by_attr('_id', credential_id, raise_on_missing=False)
         if doc:
             doc = self.model(doc)
         return doc
