@@ -35,9 +35,7 @@ class SupportAppTests(EduidAPITestCase):
         with self.app.app_context():
             self.app.support_user_db._drop_whole_collection()
             self.app.support_authn_db._drop_whole_collection()
-            self.app.support_verification_db._drop_whole_collection()
             self.app.support_proofing_log_db._drop_whole_collection()
-            self.app.support_dashboard_db._drop_whole_collection()
             self.app.support_signup_db._drop_whole_collection()
             self.app.support_actions_db._drop_whole_collection()
             self.app.support_letter_proofing_db._drop_whole_collection()
