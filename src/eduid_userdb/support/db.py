@@ -77,7 +77,7 @@ class SupportAuthnInfoDB(BaseDB):
         :rtype: dict
         """
         if not isinstance(credential_id, ObjectId):
-            user_id = ObjectId(credential_id)
+            credential_id = ObjectId(credential_id)
         doc = self._get_document_by_attr('_id', credential_id, raise_on_missing=False)
         if doc:
             doc = self.model(doc)
