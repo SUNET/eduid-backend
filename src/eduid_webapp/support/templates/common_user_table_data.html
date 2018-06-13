@@ -73,11 +73,23 @@
         </td>
     </tr>
     <tr>
+        <th>Accepted terms of use:</th>
+        <td>
+            {% for tou in user_dict.tou %}
+                <dl>
+                    <dt>Version</dt><dd>{{ tou.get('version') }}</dd>
+                    <dt>Added using</dt><dd>{{ tou.get('created_by') }}</dd>
+                    <dt>Added timestamp</dt><dd>{{ tou.get('created_ts')|datetimeformat }}</dd>
+                </dl>
+            {% endfor %}
+        </td>
+    </tr>
+    <tr>
         <th>Terminated status:</th>
         <td>{{ user_dict.terminated|default("False") }}</td>
     </tr>
     <tr>
-        <th>Language preferences:</th>
+        <th>Language preference:</th>
         <td>{{ user_dict.preferredLanguage }}</td>
     </tr>
 {%- endmacro %}
