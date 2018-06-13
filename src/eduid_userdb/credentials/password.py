@@ -126,12 +126,6 @@ class Password(Credential):
             raise UserDBValueError("Invalid 'salt': {!r}".format(value))
         self._data['salt'] = value
 
-    def to_dict(self, old_userdb_format=False):
-        if not old_userdb_format:
-            return self._data
-        old = copy.copy(self._data)
-        return old
-
 
 def password_from_dict(data, raise_on_unknown=True):
     """
