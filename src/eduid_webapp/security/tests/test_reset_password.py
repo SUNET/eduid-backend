@@ -4,7 +4,7 @@ from __future__ import absolute_import
 from mock import patch
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.authn.testing import TestVCCSClient
-from eduid_userdb.password import Password
+from eduid_userdb.credentials import Password
 from eduid_userdb.exceptions import DocumentDoesNotExist
 from eduid_webapp.security.app import security_init_app
 
