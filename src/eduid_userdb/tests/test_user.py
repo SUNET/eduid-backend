@@ -8,6 +8,7 @@ from eduid_userdb.user import User
 from eduid_userdb.tou import ToUList
 from eduid_userdb.exceptions import UserHasUnknownData, UserHasNotCompletedSignup, UserIsRevoked, EduIDUserDBError
 from eduid_userdb import LockedIdentityNin, OidcAuthorization, OidcIdToken, Orcid
+from eduid_userdb.credentials import U2F, Password, u2f_from_dict, METHOD_SWAMID_AL2_MFA
 
 __author__ = 'ft'
 
@@ -50,7 +51,16 @@ class TestUser(TestCase):
                       u'passwords': [{u'created_ts': datetime.datetime(2015, 2, 11, 13, 58, 42, 327000),
                                       u'id': ObjectId('54db60128a7d2a26e8690cda'),
                                       u'salt': u'$NDNv1H1$db011fc$32$32$',
-                                      u'source': u'dashboard'}],
+                                      u'source': u'dashboard'},
+                                     {'version': 'U2F_V2',
+                                      'app_id': 'unit test',
+                                      'keyhandle': 'U2F SWAMID AL2',
+                                      'public_key': 'foo',
+                                      'verified': True,
+                                      'proofing_method': METHOD_SWAMID_AL2_MFA,
+                                      'proofing_version': 'testing',
+                                      }
+                                     ],
                       u'preferredLanguage': u'sv',
                       u'surname': u'\xf6ne',
                       u'subject': u'physical person'}
@@ -307,29 +317,29 @@ class TestUser(TestCase):
         self.assertEqual(user.phone_numbers.primary.number, number2)
 
     def test_primary_non_verified_phone(self):
-            """
-            Test that if a non verified phone number is primary, due to earlier error, then that primary flag is removed.
-            """
-            data = {u'_id': ObjectId(),
-                    u'displayName': u'xxx yyy',
-                    u'eduPersonPrincipalName': u'pohig-test',
-                    u'givenName': u'xxx',
-                    u'mail': u'test@gmail.com',
-                    u'mailAliases': [{u'email': u'test@gmail.com', u'verified': True}],
-                    u'phone': [{u'csrf': u'47d42078719b8377db622c3ff85b94840b483c92',
-                                u'number': u'+9112345678',
-                                u'primary': True,
-                                u'verified': False}],
-                    u'passwords': [{u'created_ts': datetime.datetime(2014, 6, 29, 17, 52, 37, 830000),
-                                    u'credential_id': str(ObjectId()),
-                                    u'salt': u'$NDNv1H1$foo$32$32$',
-                                    u'source': u'dashboard'}],
-                    u'preferredLanguage': u'en',
-                    u'surname': u'yyy',
-                    }
-            user = User(data)
-            for number in user.phone_numbers.to_list():
-                self.assertEqual(number.is_primary, False)
+        """
+        Test that if a non verified phone number is primary, due to earlier error, then that primary flag is removed.
+        """
+        data = {u'_id': ObjectId(),
+                u'displayName': u'xxx yyy',
+                u'eduPersonPrincipalName': u'pohig-test',
+                u'givenName': u'xxx',
+                u'mail': u'test@gmail.com',
+                u'mailAliases': [{u'email': u'test@gmail.com', u'verified': True}],
+                u'phone': [{u'csrf': u'47d42078719b8377db622c3ff85b94840b483c92',
+                            u'number': u'+9112345678',
+                            u'primary': True,
+                            u'verified': False}],
+                u'passwords': [{u'created_ts': datetime.datetime(2014, 6, 29, 17, 52, 37, 830000),
+                                u'credential_id': str(ObjectId()),
+                                u'salt': u'$NDNv1H1$foo$32$32$',
+                                u'source': u'dashboard'}],
+                u'preferredLanguage': u'en',
+                u'surname': u'yyy',
+                }
+        user = User(data)
+        for number in user.phone_numbers.to_list():
+            self.assertEqual(number.is_primary, False)
 
     def test_primary_non_verified_phone2(self):
         """
@@ -489,3 +499,21 @@ class TestUser(TestCase):
         self.assertIsInstance(new_user.orcid.id, string_types)
         self.assertIsInstance(new_user.orcid.oidc_authz, OidcAuthorization)
         self.assertIsInstance(new_user.orcid.oidc_authz.id_token, OidcIdToken)
+
+    def test_user_verified_credentials(self):
+        ver = [x for x in self.user2.credentials.to_list() if x.is_verified]
+        keys = [x.key for x in ver]
+        self.assertEqual(keys, ['U2F SWAMID AL2'])
+
+    def test_user_unverified_credential(self):
+        cred = [x for x in self.user2.credentials.to_list() if x.is_verified][0]
+        self.assertEqual(cred.proofing_method, METHOD_SWAMID_AL2_MFA)
+        _dict1 = cred.to_dict()
+        self.assertEqual(_dict1['verified'], True)
+        self.assertEqual(_dict1['proofing_method'], METHOD_SWAMID_AL2_MFA)
+        self.assertEqual(_dict1['proofing_version'], 'testing')
+        cred.is_verified = False
+        _dict2 = cred.to_dict()
+        self.assertFalse('verified' in _dict2)
+        self.assertFalse('proofing_method' in _dict2)
+        self.assertFalse('proofing_version' in _dict2)
