@@ -229,12 +229,6 @@ class U2F(Credential):
             raise UserDBValueError("Invalid 'description': {!r}".format(value))
         self._data['description'] = value
 
-    def to_dict(self, old_userdb_format=False):
-        if not old_userdb_format:
-            return self._data
-        old = copy.copy(self._data)
-        return old
-
 
 def u2f_from_dict(data, raise_on_unknown=True):
     """
