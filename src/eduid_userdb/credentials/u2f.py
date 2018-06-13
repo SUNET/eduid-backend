@@ -87,7 +87,17 @@ class U2F(Credential):
 
     def __repr__(self):  # XXX was __repr__ what we settled on for Python3? Don't think so
         kh = self._data['keyhandle'][:8]
-        return '<eduID {!s}: key_handle=\'{!s}...\'>'.format(self.__class__.__name__, kh)
+        if self.is_verified:
+            return '<eduID {!s}: key_handle=\'{!s}...\', verified=True, proofing=({!r} v {!r})>'.format(
+                self.__class__.__name__,
+                kh,
+                self.proofing_method,
+                self.proofing_version
+            )
+        else:
+            return '<eduID {!s}: key_handle=\'{!s}...\', verified=False>'.format(
+                self.__class__.__name__, kh)
+
 
     @property
     def key(self):
