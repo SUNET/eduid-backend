@@ -53,7 +53,7 @@ class Credential(VerifiedElement):
     elements too.
     """
     def __init__(self, data):
-        VerifiedElement.__init__(self, data)
+        super(Credential, self).__init__(data)
 
         self.proofing_method = data.pop('proofing_method', None)
         self.proofing_version = data.pop('proofing_version', None)
@@ -95,3 +95,20 @@ class Credential(VerifiedElement):
         if not isinstance(value, string_types) and value is not None:
             raise UserDBValueError("Invalid 'proofing_version': {!r}".format(value))
         self._data['proofing_version'] = value
+
+    def to_dict(self, old_userdb_format=False):
+        res = super(Credential, self).to_dict(old_userdb_format=old_userdb_format)
+        if res.get('verified') is True:
+            # suppress method/version None to avoid messing up test cases unnecessarily
+            if 'proofing_method' in res and res['proofing_method'] is None:
+                del res['proofing_method']
+            if 'proofing_version' in res and res['proofing_version'] is None:
+                del res['proofing_version']
+        elif res.get('verified') is False:
+            del res['verified']
+            # Make sure we never store proofing info for un-verified credentials
+            if 'proofing_method' in res:
+                del res['proofing_method']
+            if 'proofing_version' in res:
+                del res['proofing_version']
+        return res
