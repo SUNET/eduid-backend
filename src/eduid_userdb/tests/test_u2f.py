@@ -4,8 +4,7 @@ import copy
 import datetime
 import eduid_userdb.exceptions
 import eduid_userdb.element
-from credentials.u2f import U2F
-from eduid_userdb.credentials import CredentialList
+from eduid_userdb.credentials import CredentialList, U2F
 
 __author__ = 'lundberg'
 
