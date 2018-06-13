@@ -91,6 +91,11 @@ class SecurityResetPasswordTests(EduidAPITestCase):
             response2 = c.post('/reset-password/extra-security/{}'.format(state.email_code.code), data=data)
             self.assertEqual(response2.status_code, 302)
 
+    def no_extra_security_alternatives(self, state):
+        with self.app.test_client() as c:
+            response = c.get('/reset-password/extra-security/{}'.format(state.email_code.code))
+            self.assertEqual(response.status_code, 302)
+
     def verify_phone_number(self, state):
         with self.app.test_client() as c:
             c.get('/reset-password/extra-security/phone/{}'.format(state.email_code.code))
@@ -274,6 +279,40 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
         self.verify_email_address(state)
         self.choose_no_extra_security(state)
+        self.choose_generated_password(state)
+
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        self.assertEqual(user.credentials.filter(Password).count, 1)
+        self.assertNotEqual(user.credentials.filter(Password).to_list(), old_passwords)
+        for nin in user.nins.to_list():
+            self.assertEqual(nin.is_verified, False)
+        for phone_number in user.phone_numbers.to_list():
+            self.assertEqual(phone_number.is_verified, False)
+
+    @patch('eduid_common.authn.vccs.get_vccs_client')
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
+    @patch('eduid_common.api.msg.MsgRelay.sendsms')
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_reset_password_with_no_extra_security_available(self, mock_request_user_sync, mock_sendsms, mock_sendmail,
+                                                             mock_get_vccs_client):
+        mock_request_user_sync.side_effect = self.request_user_sync
+        mock_sendsms.return_value = True
+        mock_sendmail.return_value = True
+        mock_get_vccs_client.return_value = TestVCCSClient()
+
+        # Remove extra security alternatives
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        for phone in user.phone_numbers.verified.to_list():
+            user.phone_numbers.remove(phone.number)
+        self.request_user_sync(user)
+
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        old_passwords = user.credentials.filter(Password).to_list()
+
+        self.post_email_address('johnsmith@example.com')
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+        self.verify_email_address(state)
+        self.no_extra_security_alternatives(state)
         self.choose_generated_password(state)
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)

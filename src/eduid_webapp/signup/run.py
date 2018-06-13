@@ -31,31 +31,13 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-
 from __future__ import absolute_import
 
-"""
-For more built in configuration options see,
-http://flask.pocoo.org/docs/0.10/config/#builtin-configuration-values
-"""
+from eduid_webapp.signup.app import signup_init_app
 
-DEBUG = False
+name = 'signup'
+app = signup_init_app(name, {})
 
-# Database URIs
-MONGO_URI = ''
-REDIS_HOST = ''
-REDIS_PORT = 6379
-REDIS_DB = 0
-AM_BROKER_URL = ''
-
-# Secret key
-SECRET_KEY = ''
-
-# Logging
-LOG_LEVEL = 'INFO'
-
-# timeout for phone verification token, in seconds
-PHONE_VERIFICATION_TIMEOUT = 7200
-
-# default country code
-DEFAULT_COUNTRY_CODE = '46'
+if __name__ == '__main__':
+    app.logger.info('Starting {} app...'.format(name))
+    app.run()

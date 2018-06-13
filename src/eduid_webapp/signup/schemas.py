@@ -31,31 +31,31 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
+from marshmallow import fields
+from eduid_common.api.schemas.base import EduidSchema
+from eduid_common.api.schemas.base import FluxStandardAction
+from eduid_common.api.schemas.csrf import CSRFRequestMixin
+from eduid_common.api.schemas.csrf import CSRFResponseMixin
+from eduid_common.api.schemas.validators import validate_email
 
-from __future__ import absolute_import
+__author__ = 'eperez'
 
-"""
-For more built in configuration options see,
-http://flask.pocoo.org/docs/0.10/config/#builtin-configuration-values
-"""
 
-DEBUG = False
+class EmailSchema(EduidSchema, CSRFRequestMixin):
 
-# Database URIs
-MONGO_URI = ''
-REDIS_HOST = ''
-REDIS_PORT = 6379
-REDIS_DB = 0
-AM_BROKER_URL = ''
+    email = fields.Email(required=True, validate=[validate_email])
 
-# Secret key
-SECRET_KEY = ''
+class RegisterEmailSchema(EmailSchema):
 
-# Logging
-LOG_LEVEL = 'INFO'
+    recaptcha_response = fields.String(required=True)
+    tou_accepted = fields.Boolean(required=True)
 
-# timeout for phone verification token, in seconds
-PHONE_VERIFICATION_TIMEOUT = 7200
 
-# default country code
-DEFAULT_COUNTRY_CODE = '46'
+class AccountCreatedSchema(EduidSchema, CSRFResponseMixin):
+
+    next = fields.String(required=True)
+
+
+class AccountCreatedResponse(FluxStandardAction):
+
+    payload = fields.Nested(AccountCreatedSchema)

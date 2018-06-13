@@ -40,13 +40,15 @@ http://flask.pocoo.org/docs/0.10/config/#builtin-configuration-values
 """
 
 DEBUG = False
+DEVELOPMENT = DEBUG
 
 # Database URIs
 MONGO_URI = ''
 REDIS_HOST = ''
 REDIS_PORT = 6379
 REDIS_DB = 0
-AM_BROKER_URL = ''
+
+APPLICATION_ROOT = None
 
 # Secret key
 SECRET_KEY = ''
@@ -54,8 +56,14 @@ SECRET_KEY = ''
 # Logging
 LOG_LEVEL = 'INFO'
 
-# timeout for phone verification token, in seconds
-PHONE_VERIFICATION_TIMEOUT = 7200
+DASHBOARD_URL = '/profile/'
 
-# default country code
-DEFAULT_COUNTRY_CODE = '46'
+PASSWORD_LENGTH = 10
+
+VCCS_URL = 'http://localhost:8550/'
+
+TOU_VERSION = '2018-v1'
+
+AUTH_SHARED_SECRET = 'supersecret'
+
+DEFAULT_FINISH_URL = 'https://www.eduid.se/'

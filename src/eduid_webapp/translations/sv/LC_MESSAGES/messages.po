@@ -7,18 +7,18 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2018-03-27 16:46+0200\n"
+"POT-Creation-Date: 2018-05-28 16:53+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: Johan Lundberg <lundberg.johan@gmail.com>, 2018\n"
 "Language-Team: Swedish (https://www.transifex.com/sunet/teams/84844/sv/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.5.1\n"
+"Generated-By: Babel 2.5.3\n"
 "Language: sv\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: email/verifications.py:72
+#: email/verifications.py:69
 msgid "eduID confirmation email"
 msgstr "eduID bekräftelsemejl"
 
@@ -78,7 +78,7 @@ msgstr ""
 "%(code)s\n"
 "\n"
 
-#: oidc_proofing/helpers.py:76
+#: oidc_proofing/helpers.py:126
 #, python-format
 msgid "%(site_name)s account verification"
 msgstr "%(site_name)skontobekräftning"
@@ -110,28 +110,366 @@ msgstr ""
 "\n"
 "Tyvärr uppstod ett problem så vi måste be dig att bekräfta ditt konto igen med något av de andra sätten att verifiera din identitet.\n"
 
-#: security/views/security.py:269
-msgid "eduID account termination"
-msgstr "Borttagande av eduID-konto"
+#: security/schemas.py:171
+msgid "Invalid email address"
+msgstr "Ogiltig e-postadress"
+
+#: security/schemas.py:184
+msgid "Please enter a code"
+msgstr "Ange en kod"
+
+#: security/schemas.py:200
+msgid "Please enter a password"
+msgstr "Ange ett lösenord"
+
+#: security/schemas.py:202
+msgid "Please repeat the password"
+msgstr "Repetera lösenordet"
+
+#: security/schemas.py:204
+msgid "Passwords does not match"
+msgstr "Lösenorden är olika"
+
+#: security/schemas.py:212
+msgid "Please use a stronger password"
+msgstr "Lösenordet är inte tillräckligt starkt"
+
+#: security/views/reset_password.py:35
+msgid "404 Not found"
+msgstr "404 Hittades inte"
+
+#: security/views/reset_password.py:36
+msgid "The requested state can not be found."
+msgstr "Kunde inte ladda sparad status"
+
+#: security/views/reset_password.py:38 security/views/reset_password.py:48
+#: security/views/reset_password.py:104 security/views/reset_password.py:159
+msgid "Reset your password"
+msgstr "Återställ ditt lösenord"
+
+#: security/views/reset_password.py:45
+msgid "Link expired"
+msgstr "Länken har gått ut"
+
+#: security/views/reset_password.py:46
+msgid "The password reset link has expired."
+msgstr "Länken för lösenordsåterställning har gått ut."
+
+#: security/views/reset_password.py:55
+msgid "SMS code expired"
+msgstr "SMS-koden har gått ut"
+
+#: security/views/reset_password.py:56
+msgid "The phone verification has expired."
+msgstr "Telefonbekräftelsen har gått ut."
+
+#: security/views/reset_password.py:58 security/views/reset_password.py:178
+msgid "Resend code or try another way"
+msgstr "Skicka en ny kod eller byt säkerhetsmetod"
+
+#: security/views/reset_password.py:71
+#: security/views/templates/reset_password.jinja2:28
+msgid "Reset password"
+msgstr "Återställ lösenord"
+
+#: security/views/reset_password.py:72
+msgid "Enter an email address registered to your account below"
+msgstr "Ange en e-postadress som är registrerad på ditt konto"
+
+#: security/views/reset_password.py:76
+msgid "Reset password message sent. Check your email to continue."
+msgstr ""
+"Ett meddelande om lösenordsåterställning har skickats. Kolla din e-post för "
+"att fortsätta."
+
+#: security/views/reset_password.py:101 security/views/reset_password.py:190
+msgid "Temporary technical problem"
+msgstr "Temporärt tekniskt fel"
+
+#: security/views/reset_password.py:102 security/views/reset_password.py:191
+msgid "Please try again."
+msgstr "Vänligen försök igen."
+
+#: security/views/reset_password.py:114
+msgid "Extra security"
+msgstr "Extra säkerhet"
+
+#: security/views/reset_password.py:115
+msgid "Choose an option to enhance the security"
+msgstr "Välj en metod för att öka säkerheten"
+
+#: security/views/reset_password.py:126
+msgid "Email address not validated"
+msgstr "E-postadressen kunde inte valideras"
+
+#: security/views/reset_password.py:127
+msgid "Please use the password reset link that you have in your email."
+msgstr ""
+"Var vänlig och använd återställningslänken som skickats till din "
+"e-postsadress."
+
+#: security/views/reset_password.py:156
+msgid "Something went wrong"
+msgstr "Något gick fel"
+
+#: security/views/reset_password.py:157
+msgid "Please restart the password reset procedure."
+msgstr "Var vänlig och börja om lösenordsåterställningen."
+
+#: security/views/reset_password.py:173
+#: security/views/templates/reset_password_verify_phone.jinja2:30
+msgid "Verify phone number"
+msgstr "Bekräfta telefonnummer"
+
+#: security/views/reset_password.py:174
+msgid "Enter the code you received via SMS"
+msgstr "Ange bekräftelsekoden som har skickats med SMS"
+
+#: security/views/reset_password.py:193
+msgid "Try again"
+msgstr "Försök igen"
+
+#: security/views/reset_password.py:198
+msgid "Invalid code. Please try again."
+msgstr "Felaktig bekräftelsekod. Vänligen försök igen."
+
+#: security/views/reset_password.py:209
+msgid "New password"
+msgstr "Nytt lösenord"
+
+#: security/views/reset_password.py:210
+msgid ""
+"\n"
+"            Please choose a new password for your eduID account. A strong password has been generated for you.\n"
+"            You can accept the generated password by clicking \"Change password\" or you can opt to choose your\n"
+"            own password by clicking \"Custom Password\".\n"
+"        "
+msgstr ""
+"\n"
+"Ändra lösenord för ditt eduID-konto. Ett säkert lösenord\n"
+"har genererats åt dig.\n"
+"Du kan acceptera det med knappen \"Acceptera lösenord\" eller så kan du välja att använda ett eget lösenord om du klickar på fliken \"Eget lösenord\"."
+
+#: security/views/templates/base.jinja2:2
+msgid "en"
+msgstr "one"
+
+#: security/views/templates/error.jinja2:3
+msgid "Error"
+msgstr "Fel"
+
+#: security/views/templates/reset_password.jinja2:3
+msgid "Reset password - Email"
+msgstr "Återställ lösenord - E-post"
+
+#: security/views/templates/reset_password.jinja2:18
+msgid "Email address"
+msgstr "E-postadress"
+
+#: security/views/templates/reset_password_email.html.jinja2:1
+#, python-format
+msgid ""
+"\n"
+"<p>Hi,</p>\n"
+"<p>You recently asked to reset your password for your %(site_name)s account.</p>\n"
+"<p>To change your password, click the link below:</p>\n"
+"<p><a href=\"%(reset_password_link)s\">%(reset_password_link)s</a></p>\n"
+"<p>If clicking the link does not work you can copy and paste it into your browser.</p>\n"
+"<p>The password reset link is valid for %(password_reset_timeout)s hours.</p>\n"
+"<p>(This is an automated email. Please do not reply.)</p>\n"
+msgstr ""
+"\n"
+"<p>Hej,</p>\n"
+"<p>Du har bett om att byta lösenord för ditt %(site_name)s-konto.</p>\n"
+"<p>För att byta lösenord, klicka på länken nedan:</p>\n"
+"<p><a href=\"%(reset_password_link)s\">%(reset_password_link)s</a></p>\n"
+"<p>Om det inte går att klicka på länken kan du kopiera och klistra in den i din webbläsare.</p>\n"
+"<p>Länken för återställning av ditt lösenord är giltig i %(password_reset_timeout)s timmar.</p>\n"
+"<p>(Detta är ett automatiserat meddelande och går ej att svara på.)</p>\n"
+
+#: security/views/templates/reset_password_email.txt.jinja2:1
+#, python-format
+msgid ""
+"\n"
+"Hi,\n"
+"\n"
+"You recently asked to reset your password for your %(site_name)s account.\n"
+"\n"
+"To change your password, click the link below:\n"
+"\n"
+"%(reset_password_link)s\n"
+"\n"
+"If clicking the link does not work you can copy and paste it into your browser.\n"
+"\n"
+"The password reset link is valid for %(password_reset_timeout)s hours.\n"
+"\n"
+"(This is an automated email. Please do not reply.)\n"
+msgstr ""
+"\n"
+"Hej,\n"
+"\n"
+"Du har bett om att byta lösenord för ditt %(site_name)s-konto.\n"
+"\n"
+"För att byta lösenord, klicka på länken nedan:\n"
+"\n"
+"%(reset_password_link)s\n"
+"\n"
+"Om det inte går att klicka på länken kan du kopiera och klistra in den i din webbläsare.\n"
+"\n"
+"Länken för återställning av ditt lösenord är giltig i%(password_reset_timeout)s timmar.\n"
+"\n"
+"(Detta är ett automatiserat meddelande och går ej att svara på.)\n"
+
+#: security/views/templates/reset_password_extra_security.jinja2:3
+msgid "Reset password - Extra security"
+msgstr "Återställ lösenord - Extra säkerhet"
+
+#: security/views/templates/reset_password_extra_security.jinja2:26
+msgid "Send SMS to number"
+msgstr "Skicka SMS till nummer"
+
+#: security/views/templates/reset_password_extra_security.jinja2:40
+msgid ""
+"Continue with no extra security. I understand that I will have to verify my "
+"account again."
+msgstr ""
+"Fortsätt utan extra säkerhet. Jag förstår att det betyder att jag måste "
+"bekräfta mitt konto igen."
+
+#: security/views/templates/reset_password_new_password.jinja2:28
+msgid "Your generated password is"
+msgstr "Ditt genererade lösenord är"
+
+#: security/views/templates/reset_password_new_password.jinja2:32
+msgid ""
+"Copy and save the above password somewhere safe and click \"Accept "
+"password\"."
+msgstr ""
+"Kopiera och spara det ovanstående lösenordet på en säker plats och klicka "
+"\"Acceptera lösenord\"."
+
+#: security/views/templates/reset_password_new_password.jinja2:37
+msgid ""
+"Accept\n"
+"                                        password"
+msgstr "Acceptera lösenord"
+
+#: security/views/templates/reset_password_new_password.jinja2:46
+msgid ""
+"\n"
+"                            <p><strong>Choose a strong password</strong></p>\n"
+"                            <p>Some tips:</p>\n"
+"                            <ul>\n"
+"                                <li>Use upper- and lowercase characters (preferably not in the beginning or end)</li>\n"
+"                                <li>Add digits somewhere else than at the end of the password</li>\n"
+"                                <li>Add special characters, such as &#64; &#36; &#92; &#43; &#95; &#37;</li>\n"
+"                                <li>Spaces are ignored</li>\n"
+"                            </ul>\n"
+"                        "
+msgstr ""
+"\n"
+"<p><strong>Välj ett säkert lösenord.</strong></p>\n"
+"<p>Några tips:</p>\n"
+"<ul>\n"
+"<li>Använd stora och små bokstäver (inte bara första bokstaven)</li>\n"
+"<li>Lägg till en eller flera siffror någonstans i mitten av lösenordet</li>\n"
+"<li>Använd specialtecken som &#64; &#36; &#92; &#43; &#95; &#37;</li>\n"
+"<li>Blanksteg (mellanslag) ignoreras</li>\n"
+"</ul>\n"
+"                 "
+
+#: security/views/templates/reset_password_new_password.jinja2:60
+#: security/views/templates/reset_password_new_password.jinja2:61
+msgid "Password"
+msgstr "Lösenord"
+
+#: security/views/templates/reset_password_new_password.jinja2:66
+#: security/views/templates/reset_password_new_password.jinja2:67
+msgid "Repeat password"
+msgstr "Repetera lösenord"
+
+#: security/views/templates/reset_password_new_password.jinja2:80
+msgid ""
+"Change\n"
+"                                        password"
+msgstr "Ändra lösenord"
+
+#: security/views/templates/reset_password_new_password.jinja2:91
+#, python-format
+msgid ""
+"\n"
+"                <p>Password has been updated successfully.</p>\n"
+"                <p><a href=\"%(login_url)s\">Return to login page</a></p>\n"
+"            "
+msgstr ""
+"\n"
+"                <p>Lösenordet har ändrats.</p>\n"
+"                <p><a href=\"%(login_url)s\">Tillbaka till inloggningssidan</a></p>\n"
+"            "
+
+#: security/views/templates/reset_password_new_password.jinja2:103
+msgid "A stronger password is required."
+msgstr "Ett starkare lösenord krävs."
+
+#: security/views/templates/reset_password_new_password.jinja2:104
+msgid "Type the same password again"
+msgstr "Skriv samma lösenord igen."
+
+#: security/views/templates/reset_password_sms.txt.jinja2:1
+#, python-format
+msgid ""
+"\n"
+"Your %(site_name)s verification code: %(verification_code)s\n"
+msgstr ""
+"\n"
+"Din %(site_name)s bekräftelsekod: %(verification_code)s\n"
+
+#: security/views/templates/reset_password_verify_phone.jinja2:3
+msgid "Reset password - Verify phone number"
+msgstr "Återställ lösenord - Bekräfta telefonnummer"
+
+#: security/views/templates/reset_password_verify_phone.jinja2:17
+msgid "SMS code"
+msgstr "SMS-bekräftelsekod"
 
 #: security/views/templates/termination_email.html.jinja2:5
 #, python-format
 msgid ""
 "\n"
-"<p>You have chosen to terminate your account at <a href=\"%(site_url)s\">%(site_name)s</a>.</p>\n"
+"    <p>You have chosen to terminate your account at <a href=\"%(site_url)s\">%(site_name)s</a>.</p>\n"
 "\n"
+"    <p><strong>If you did not initiate this action please reset your password immediately.</strong></p>\n"
+"\n"
+"    <p>Thank you for using %(site_name)s.</p>\n"
+"\n"
+"    <p>(This is an automated email. Please do not reply.)</p>\n"
 msgstr ""
 "\n"
-"<p>Du har valt att avsluta ditt konto hos <a href=\"%(site_url)s\">%(site_name)s</a>.</p>\n"
+"    <p>Du har valt att ta bort ditt <a href=\"%(site_url)s\">%(site_name)s</a>-konto.</p>\n"
 "\n"
+"    <p><strong>Om det inte var du som tog bort kontot så återställ ditt lösenord omedebart.</strong></p>\n"
+"\n"
+"    <p>Tack för att du använde %(site_name)s.</p>\n"
+"\n"
+"    <p>(Detta är ett automatiserat meddelande och går ej att svara på.)</p>\n"
 
 #: security/views/templates/termination_email.txt.jinja2:2
 #, python-format
 msgid ""
 "\n"
-"You have chosen to terminate your account at %(site_name)s.\n"
+"    You have chosen to terminate your account at %(site_name)s.\n"
 "\n"
+"    If you did not initiate this action please reset your password immediately.\n"
+"\n"
+"    Thank you for using %(site_name)s.\n"
+"\n"
+"    (This is an automated email. Please do not reply.)\n"
 msgstr ""
 "\n"
-"Du har valt att avsluta ditt konto hos%(site_name)s.\n"
+"    Du har valt att ta bort ditt %(site_name)s-konto.\n"
 "\n"
+"    Om det inte var du som tog bort kontot så återställ ditt lösenord omedelbart.\n"
+"\n"
+"    Tack för att du använde %(site_name)s.\n"
+"\n"
+"    (Detta är ett automatiserat meddelande och går ej att svara på.)\n"

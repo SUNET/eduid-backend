@@ -245,7 +245,7 @@ def remove_nin(user, nin):
     current_app.logger.debug('NIN: {}'.format(nin))
 
     nin_obj = security_user.nins.find(nin)
-    if nin_obj.is_verified:
+    if nin_obj and nin_obj.is_verified:
         current_app.logger.info('NIN verified. Will not remove it.')
         return {'_status': 'error', 'success': False, 'message': 'nins.verified_no_rm'}
 

@@ -31,31 +31,52 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-
 from __future__ import absolute_import
 
-"""
-For more built in configuration options see,
-http://flask.pocoo.org/docs/0.10/config/#builtin-configuration-values
-"""
+from eduid_common.authn.middleware import UnAuthnApp
+from eduid_common.api.app import eduid_init_app
+from eduid_common.api import mail_relay
+from eduid_common.api import am
+from eduid_common.api import translation
+from eduid_userdb.signup import SignupUserDB
 
-DEBUG = False
 
-# Database URIs
-MONGO_URI = ''
-REDIS_HOST = ''
-REDIS_PORT = 6379
-REDIS_DB = 0
-AM_BROKER_URL = ''
+def signup_init_app(name, config):
+    """
+    Create an instance of an eduid signup app.
 
-# Secret key
-SECRET_KEY = ''
+    First, it will load the configuration from signup.settings.common
+    then any settings given in the `config` param.
 
-# Logging
-LOG_LEVEL = 'INFO'
+    Then, the app instance will be updated with common stuff by `eduid_init_app`,
+    all needed blueprints will be registered with it,
+    and finally the app is configured with the necessary db connections.
 
-# timeout for phone verification token, in seconds
-PHONE_VERIFICATION_TIMEOUT = 7200
+    Note that we use UnAuthnApp as the class for the Flask app,
+    since obviously the signup app is used unauthenticated.
 
-# default country code
-DEFAULT_COUNTRY_CODE = '46'
+    :param name: The name of the instance, it will affect the configuration loaded.
+    :type name: str
+    :param config: any additional configuration settings. Specially useful
+                   in test cases
+    :type config: dict
+
+    :return: the flask app
+    :rtype: flask.Flask
+    """
+
+    app = eduid_init_app(name, config, app_class=UnAuthnApp)
+    app.config.update(config)
+
+    from eduid_webapp.signup.views import signup_views
+    app.register_blueprint(signup_views)
+
+    app = am.init_relay(app, 'eduid_signup')
+    app = mail_relay.init_relay(app)
+    app = translation.init_babel(app)
+
+    app.private_userdb = SignupUserDB(app.config['MONGO_URI'], 'eduid_signup')
+
+    app.logger.info('Init {} app...'.format(name))
+
+    return app
