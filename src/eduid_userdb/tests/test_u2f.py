@@ -109,3 +109,15 @@ class TestU2F(TestCase):
             this.created_ts = None
         with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
             this.created_ts = True
+
+
+    def test_proofing_process(self):
+        this = self.three.find('thirdU2FElement')
+        this.proofing_process = 'TEST'
+        self.assertEqual(this.proofing_process, 'TEST')
+        this.proofing_process = 'TEST2'
+        self.assertEqual(this.proofing_process, 'TEST2')
+        this.proofing_process = None
+        self.assertEqual(this.proofing_process, None)
+        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
+            this.proofing_process = False

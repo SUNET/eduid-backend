@@ -34,12 +34,41 @@
 #
 __author__ = 'lundberg'
 
-from eduid_userdb.element import Element
+from six import string_types
+
+from eduid_userdb.element import VerifiedElement
+from eduid_userdb.exceptions import UserDBValueError
 
 
-class Credential(Element):
+class Credential(VerifiedElement):
     """
-    Base class for credentials
-    """
-    pass
+    Base class for credentials.
 
+    Adds 'proofing_process' to VerifiedElement. Maybe that could benefit the
+    main VerifiedElement, but after a short discussion we chose to add it
+    only for credentials until we know we want it for other types of verifed
+    elements too.
+    """
+    def __init__(self, data):
+        VerifiedElement.__init__(self, data)
+
+        self.proofing_process = data.pop('proofing_process', None)
+
+    # -----------------------------------------------------------------
+    @property
+    def proofing_process(self):
+        """
+        :return: Name of proofing process used to verify this credential.
+        :rtype: string_types | None
+        """
+        return self._data['proofing_process']
+
+    @proofing_process.setter
+    def proofing_process(self, value):
+        """
+        :param value: Name of proofing process used
+        :type value: string_types | None
+        """
+        if not isinstance(value, string_types) and value is not None:
+            raise UserDBValueError("Invalid 'proofing_process': {!r}".format(value))
+        self._data['proofing_process'] = value
