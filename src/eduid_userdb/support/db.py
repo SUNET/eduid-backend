@@ -72,12 +72,10 @@ class SupportAuthnInfoDB(BaseDB):
     def get_credential_info(self, credential_id):
         """
         :param credential_id: Credential id
-        :type credential_id: ObjectId | str | unicode
+        :type credential_id: str | unicode
         :return:  A document dict
         :rtype: dict
         """
-        if not isinstance(credential_id, ObjectId):
-            credential_id = ObjectId(credential_id)
         doc = self._get_document_by_attr('_id', credential_id, raise_on_missing=False)
         if doc:
             doc = self.model(doc)
