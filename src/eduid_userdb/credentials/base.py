@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2015 NORDUnet A/S
+# Copyright (c) 2018 SUNET
 # All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or
@@ -30,9 +30,10 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-# Author : Johan Lundberg <lundberg@nordu.net>
+# Author : Fredrik Thulin <fredrik@thulin.net>
 #
-__author__ = 'lundberg'
+
+__author__ = 'ft'
 
 from six import string_types
 
@@ -44,7 +45,7 @@ class Credential(VerifiedElement):
     """
     Base class for credentials.
 
-    Adds 'proofing_process' to VerifiedElement. Maybe that could benefit the
+    Adds 'proofing_method' to VerifiedElement. Maybe that could benefit the
     main VerifiedElement, but after a short discussion we chose to add it
     only for credentials until we know we want it for other types of verifed
     elements too.
@@ -52,23 +53,43 @@ class Credential(VerifiedElement):
     def __init__(self, data):
         VerifiedElement.__init__(self, data)
 
-        self.proofing_process = data.pop('proofing_process', None)
+        self.proofing_method = data.pop('proofing_method', None)
+        self.proofing_version = data.pop('proofing_version', None)
 
     # -----------------------------------------------------------------
     @property
-    def proofing_process(self):
+    def proofing_method(self):
         """
         :return: Name of proofing process used to verify this credential.
         :rtype: string_types | None
         """
-        return self._data['proofing_process']
+        return self._data['proofing_method']
 
-    @proofing_process.setter
-    def proofing_process(self, value):
+    @proofing_method.setter
+    def proofing_method(self, value):
         """
         :param value: Name of proofing process used
         :type value: string_types | None
         """
         if not isinstance(value, string_types) and value is not None:
-            raise UserDBValueError("Invalid 'proofing_process': {!r}".format(value))
-        self._data['proofing_process'] = value
+            raise UserDBValueError("Invalid 'proofing_method': {!r}".format(value))
+        self._data['proofing_method'] = value
+
+    # -----------------------------------------------------------------
+    @property
+    def proofing_version(self):
+        """
+        :return: Name of proofing process used to verify this credential.
+        :rtype: string_types | None
+        """
+        return self._data['proofing_version']
+
+    @proofing_version.setter
+    def proofing_version(self, value):
+        """
+        :param value: Name of proofing process used
+        :type value: string_types | None
+        """
+        if not isinstance(value, string_types) and value is not None:
+            raise UserDBValueError("Invalid 'proofing_version': {!r}".format(value))
+        self._data['proofing_version'] = value
