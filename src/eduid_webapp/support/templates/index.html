@@ -36,7 +36,7 @@
             <div class="panel panel-default">
                 <div class="panel-body">
                     <div class="row">
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <table class="table table-hover table-bordered">
                                 <caption>Central DB</caption>
                                 <tbody>
@@ -48,35 +48,7 @@
                                 </tbody>
                             </table>
                         </div>
-                        <div class="col-md-4">
-                            <table class="table table-hover table-bordered">
-                                <caption>Dashboard DB</caption>
-                                <tbody>
-                                    {% if item.dashboard_user %}
-                                        {{ common_user_table.input(item.dashboard_user) }}
-                                        <tr>
-                                            <th>Verifications</th>
-                                            <td>
-                                                {% for verification in item.verifications %}
-                                                    <dl>
-                                                        <dt>Type</dt><dd>{{ verification.model_name }}<dd>
-                                                        <dt>Data</dt><dd>{{ verification.obj_id }}<dd>
-                                                        <dt>Added timestamp</dt><dd>{{ verification.timestamp|datetimeformat }}<dd>
-                                                        <dt>Verified</dt><dd>{{ verification.verified }}<dd>
-                                                        {% if verification.verified_timestamp %}
-                                                            <dt>Verified timestamp</dt><dd>{{ verification.verified_timestamp|datetimeformat }}<dd>
-                                                        {% endif %}
-                                                    </dl>
-                                                {% endfor %}
-                                            </td>
-                                        </tr>
-                                    {% else %}
-                                        <tr><td>No data</td></tr>
-                                    {% endif %}
-                                </tbody>
-                            </table>
-                        </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <table class="table table-hover table-bordered">
                                 <caption>Signup DB</caption>
                                 <tbody>
@@ -114,46 +86,15 @@
                         </div>
                     </div>
                     <div class="row">
-                        <div class="col-md-5">
-                            <table class="table table-hover">
-                                <caption>Authentication information</caption>
-                                {% if item.authn %}
-                                    <tr>
-                                        <th>Last successful login</th>
-                                        <td>{{ item.authn.success_ts|datetimeformat }}</td>
-                                    </tr>
-                                    <tr>
-                                        <th>Failed login attempts</th>
-                                        <td>
-                                            <dl>
-                                            {% for month,count in item.authn.fail_count|dictsort %}
-                                                <dt>{{ month }}</dt><dd>{{ count }}</dd>
-                                            {% endfor %}
-                                            </dl>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <th>Successful login attempts:</th>
-                                        <td>
-                                            <dl>
-                                            {% for month,count in item.authn.success_count|dictsort %}
-                                                <dt>{{ month }}</dt><dd>{{ count }}</dd>
-                                            {% endfor %}
-                                            </dl>
-                                        </td>
-                                    </tr>
-                                {% else %}
-                                    <tr><td>No data</td></tr>
-                                {% endif %}
-                            </table>
+                        <div class="col-md-12">
+                            <h4 class="block-center">Ongoing proofings</h4>
                         </div>
-                        <div class="col-md-7">
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
                             <table class="table table-hover">
-                                <caption>Ongoing proofings</caption>
+                                <caption>Letter proofing</caption>
                                 {% if item.letter_proofing %}
-                                    <tr>
-                                        <th>Letter proofing</th>
-                                    </tr>
                                     <tr>
                                         <th>Letter sent</th><td>{{ item.letter_proofing.proofing_letter.is_sent|default("False") }}</td>
                                     </tr>
@@ -176,11 +117,15 @@
                                             {{ item.letter_proofing.proofing_letter.address.OfficialAddress.PostalCode }} {{ item.letter_proofing.proofing_letter.address.OfficialAddress.City }}
                                         </td>
                                     </tr>
+                                {% else %}
+                                    <tr><td>No data</td></tr>
                                 {% endif %}
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-hover">
+                                <caption>OIDC proofing</caption>
                                 {% if item.oidc_proofing %}
-                                    <tr>
-                                        <th>OIDC proofing</th>
-                                    </tr>
                                     <tr>
                                         <th>Created</th><td>{{ item.oidc_proofing.modified_ts|datetimeformat }}</td>
                                     </tr>
@@ -190,8 +135,37 @@
                                     <tr>
                                         <th>National identity number</th><td>{{ item.oidc_proofing.nin.number }}</td>
                                     </tr>
+                                {% else %}
+                                    <tr><td>No data</td></tr>
                                 {% endif %}
-                                {% if not item.letter_proofing and not item.oidc_proofing %}
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-hover">
+                                <caption>Email proofing</caption>
+                                {% if item.email_proofing %}
+                                    <tr>
+                                        <th>Created</th><td>{{ item.email_proofing.modified_ts|datetimeformat }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Email address</th><td>{{ item.email_proofing.verification.email }}</td>
+                                    </tr>
+                                {% else %}
+                                    <tr><td>No data</td></tr>
+                                {% endif %}
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-hover">
+                                <caption>Phone proofing</caption>
+                                {% if item.phone_proofing %}
+                                    <tr>
+                                        <th>Created</th><td>{{ item.phone_proofing.modified_ts|datetimeformat }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Phone number</th><td>{{ item.phone_proofing.verification.number }}</td>
+                                    </tr>
+                                {% else %}
                                     <tr><td>No data</td></tr>
                                 {% endif %}
                             </table>
@@ -199,16 +173,21 @@
                     </div>
                     <div class="row">
                         <div class="col-md-12">
+                            <h4 class="block-center">Completed proofings</h4>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
                             <table class="table table-hover">
-                                <caption>Id proofing log</caption>
+                                <caption>Proofing log</caption>
                                 {% if item.proofing_log %}
                                 <tr>
-                                    <th>Timestamp</th><th>National identity number</th><th>Proofing method</th>
+                                    <th>Timestamp</th><th>Data verified</th><th>Proofing method</th>
                                 </tr>
                                 {% for entry in item.proofing_log %}
                                     <tr>
-                                        <td>{{ entry.created|datetimeformat }}</td>
-                                        <td>{{ entry.nin }}</td>
+                                        <td>{{ entry.created_ts|datetimeformat }}</td>
+                                        <td>{{ entry.verified_data }}</td>
                                         <td>{{ entry.proofing_method }}</td>
                                     </tr>
                                 {% endfor %}
@@ -218,6 +197,69 @@
                             </table>
 
                         </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h4 class="block-center">Other user data</h4>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-hover">
+                                <caption>Authentication information</caption>
+                                {% if item.authn %}
+                                    <tr>
+                                        <th>Last successful login</th>
+                                        <td>{{ item.authn.success_ts|datetimeformat }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Failed login attempts:<br />(Last three months)</th>
+                                        <td>
+                                            <dl>
+                                            {% if not item.authn.fail_count %}
+                                                <dd>No data</dd>
+                                            {% endif %}
+                                            {% for month,count in item.authn.fail_count|dictsort(reverse=true) %}
+                                                {% if loop.index < 4 %}  {# show the last 3 months #}
+                                                    <dt>{{ month }}</dt><dd>{{ count }}</dd>
+                                                {% endif %}
+                                            {% endfor %}
+                                            </dl>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th>Successful login attempts:<br />(Last three months)</th>
+                                        <td>
+                                            <dl>
+                                            {% if not item.authn.success_count %}
+                                                <dd>No data</dd>
+                                            {% endif %}
+                                            {% for month,count in item.authn.success_count|dictsort(reverse=true) %}
+                                                {% if loop.index < 4 %}  {# show the last 3 months #}
+                                                    <dt>{{ month }}</dt><dd>{{ count }}</dd>
+                                                {% endif %}
+                                            {% endfor %}
+                                            </dl>
+                                        </td>
+                                    </tr>
+                                {% else %}
+                                    <tr><td>No data</td></tr>
+                                {% endif %}
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-hover">
+                                <caption>Uncompleted user actions</caption>
+                                {% if item.actions %}
+                                    {% for action in item.actions %}
+                                        <tr>
+                                            <td>{{ action.action }}</td><td>{{ action.params }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr><td>No data</td></tr>
+                                {% endif %}
+                            </table>
                     </div>
                 </div>
                 {% endfor %}
