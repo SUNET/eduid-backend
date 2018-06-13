@@ -16,10 +16,10 @@ def get_credentials_aux_data(user):
     """
     credentials = []
     for credential in user.credentials.to_list():
+        credential_dict = credential.to_dict()
         credential_info = current_app.support_authn_db.get_credential_info(credential.credential_id)
         if credential_info:
-            credential_dict = credential.to_dict()
             # Add success_ts
             credential_dict['success_ts'] = credential_info['success_ts']
-            credentials.append(credential_dict)
+        credentials.append(credential_dict)
     return credentials
