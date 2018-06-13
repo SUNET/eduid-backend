@@ -1,9 +1,10 @@
+from __future__ import absolute_import
+
 from bson import ObjectId
 
 from eduid_userdb.element import ElementList, DuplicateElementViolation
 from eduid_userdb.exceptions import UserHasUnknownData
-from eduid_userdb.credentials.password import password_from_dict
-from eduid_userdb.credentials.u2f import u2f_from_dict
+from eduid_userdb.credentials import Credential, password_from_dict, u2f_from_dict
 
 
 class CredentialList(ElementList):
@@ -18,15 +19,9 @@ class CredentialList(ElementList):
     """
 
     def __init__(self, creds, raise_on_unknown=True):
-        # import here to avoid circular dependency, and import without package name
-        # to match what Python confusingly determines the class to be in the if-clause below
-        from eduid_userdb.credentials.password import Password
-        from eduid_userdb.credentials.u2f import U2F
         elements = []
         for this in creds:
-            if isinstance(this, Password):
-                credential = this
-            elif isinstance(this, U2F):
+            if isinstance(this, Credential):
                 credential = this
             elif isinstance(this, dict) and 'salt' in this:
                 credential = password_from_dict(this, raise_on_unknown)

@@ -17,22 +17,34 @@ __author__ = 'lundberg'
 _one_dict = {
     'credential_id': '111111111111111111111111',
     'salt': 'firstPasswordElement',
+    'proofing_method': None,
+    'proofing_version': None,
+    'verified': False,
 }
 _two_dict = {
     'credential_id': '222222222222222222222222',
     'salt': 'secondPasswordElement',
-    'source': 'test'
+    'source': 'test',
+    'proofing_method': None,
+    'proofing_version': None,
+    'verified': False,
 }
 _three_dict = {
     'credential_id': '333333333333333333333333',
     'salt': 'thirdPasswordElement',
-    'source': 'test'
+    'source': 'test',
+    'proofing_method': None,
+    'proofing_version': None,
+    'verified': False,
 }
 _four_dict = {
     'version': 'U2F_V2',
     'app_id': 'unit test',
     'keyhandle': 'firstU2FElement',
     'public_key': 'foo',
+    'proofing_method': None,
+    'proofing_version': None,
+    'verified': False,
 }
 
 

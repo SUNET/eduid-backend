@@ -32,6 +32,8 @@
 #
 # Author : Fredrik Thulin <fredrik@thulin.net>
 #
+from __future__ import absolute_import
+
 import copy
 from six import string_types
 from eduid_userdb.credentials import Credential

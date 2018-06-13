@@ -33,12 +33,14 @@
 # Author : Fredrik Thulin <fredrik@thulin.net>
 #
 
-__author__ = 'ft'
+from __future__ import absolute_import
 
 from six import string_types
 
 from eduid_userdb.element import VerifiedElement
 from eduid_userdb.exceptions import UserDBValueError
+
+__author__ = 'ft'
 
 
 class Credential(VerifiedElement):

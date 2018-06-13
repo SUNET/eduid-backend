@@ -32,6 +32,8 @@
 #
 # Author : Johan Lundberg <lundberg@nordu.net>
 #
+from __future__ import absolute_import
+
 import copy
 
 from bson.objectid import ObjectId
