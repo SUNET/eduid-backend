@@ -5,9 +5,8 @@ from __future__ import absolute_import
 from bson import ObjectId
 
 from eduid_userdb.userdb import BaseDB, UserDB
-from eduid_userdb.dashboard.userdb import DashboardUserDB
-from eduid_userdb.signup.userdb import SignupUserDB
-from eduid_userdb.support import models
+from eduid_userdb.signup import SignupUserDB
+from eduid_userdb.support import SupportUser, SupportSignupUser, models
 
 __author__ = 'lundberg'
 
@@ -19,7 +18,7 @@ way we can minimize the risk of accidentally sharing any secret user data.
 
 class SupportUserDB(UserDB):
 
-    UserClass = models.SupportUser
+    UserClass = SupportUser
 
     def __init__(self, db_uri, db_name='eduid_am', collection='attributes', user_class=None):
         super(SupportUserDB, self).__init__(db_uri, db_name, collection, user_class)
@@ -28,7 +27,7 @@ class SupportUserDB(UserDB):
         """
         :param query: search query, can be a user eppn, nin, mail address or phone number
         :type query: str | unicode
-        :return: A list of SupportUser objects
+        :return: A list of user docs
         :rtype: list
         """
         results = list()
@@ -42,14 +41,9 @@ class SupportUserDB(UserDB):
         return users
 
 
-class SupportDashboardUserDB(DashboardUserDB):
-
-    UserClass = models.SupportDashboardUser
-
-
 class SupportSignupUserDB(SignupUserDB):
 
-    UserClass = models.SupportSignupUser
+    UserClass = SupportSignupUser
 
 
 class SupportAuthnInfoDB(BaseDB):
@@ -75,27 +69,17 @@ class SupportAuthnInfoDB(BaseDB):
             doc = self.model(doc)
         return doc
 
-
-class SupportVerificationsDB(BaseDB):
-
-    model = models.UserVerifications
-
-    def __init__(self, db_uri):
-        db_name = 'eduid_dashboard'
-        collection = 'verifications'
-        super(SupportVerificationsDB, self).__init__(db_uri, db_name, collection)
-
-    def get_verifications(self, user_id):
+    def get_credential_info(self, credential_id):
         """
-        :param user_id: User objects user_id property
-        :type user_id: ObjectId | str | unicode
-        :return: A list of dict
-        :rtype: list
+        :param credential_id: Credential id
+        :type credential_id: str | unicode
+        :return:  A document dict
+        :rtype: dict
         """
-        if not isinstance(user_id, ObjectId):
-            user_id = ObjectId(user_id)
-        docs = self._get_documents_by_attr('user_oid', user_id, raise_on_missing=False)
-        return [self.model(doc) for doc in docs]
+        doc = self._get_document_by_attr('_id', credential_id, raise_on_missing=False)
+        if doc:
+            doc = self.model(doc)
+        return doc
 
 
 class SupportActionsDB(BaseDB):
@@ -120,7 +104,27 @@ class SupportActionsDB(BaseDB):
         return [self.model(doc) for doc in docs]
 
 
-class SupportLetterProofingDB(BaseDB):
+class SupportProofingDB(BaseDB):
+
+    model = None
+
+    def __init__(self, db_uri, db_name, collection):
+        super(SupportProofingDB, self).__init__(db_uri, db_name, collection)
+
+    def get_proofing_state(self, eppn):
+        """
+        :param eppn: User objects eduPersonPrincipalName property
+        :type eppn: str | unicode
+        :return: A document dict
+        :rtype: dict
+        """
+        doc = self._get_document_by_attr('eduPersonPrincipalName', eppn, raise_on_missing=False)
+        if doc:
+            doc = self.model(doc)
+        return doc
+
+
+class SupportLetterProofingDB(SupportProofingDB):
 
     model = models.UserLetterProofing
 
@@ -129,20 +133,8 @@ class SupportLetterProofingDB(BaseDB):
         collection = 'proofing_data'
         super(SupportLetterProofingDB, self).__init__(db_uri, db_name, collection)
 
-    def get_proofing_state(self, eppn):
-        """
-        :param eppn: User objects eduPersonPrincipalName property
-        :type eppn: str | unicode
-        :return: A document dict
-        :rtype: dict
-        """
-        doc = self._get_document_by_attr('eduPersonPrincipalName', eppn, raise_on_missing=False)
-        if doc:
-            doc = self.model(doc)
-        return doc
 
-
-class SupportOidcProofingDB(BaseDB):
+class SupportOidcProofingDB(SupportProofingDB):
 
     model = models.UserOidcProofing
 
@@ -151,17 +143,25 @@ class SupportOidcProofingDB(BaseDB):
         collection = 'proofing_data'
         super(SupportOidcProofingDB, self).__init__(db_uri, db_name, collection)
 
-    def get_proofing_state(self, eppn):
-        """
-        :param eppn: User objects eduPersonPrincipalName property
-        :type eppn: str | unicode
-        :return: A document dict
-        :rtype: dict
-        """
-        doc = self._get_document_by_attr('eduPersonPrincipalName', eppn, raise_on_missing=False)
-        if doc:
-            doc = self.model(doc)
-        return doc
+
+class SupportEmailProofingDB(SupportProofingDB):
+
+    model = models.UserEmailProofing
+
+    def __init__(self, db_uri):
+        db_name = 'eduid_email'
+        collection = 'proofing_data'
+        super(SupportEmailProofingDB, self).__init__(db_uri, db_name, collection)
+
+
+class SupportPhoneProofingDB(SupportProofingDB):
+
+    model = models.UserPhoneProofing
+
+    def __init__(self, db_uri):
+        db_name = 'eduid_phone'
+        collection = 'proofing_data'
+        super(SupportPhoneProofingDB, self).__init__(db_uri, db_name, collection)
 
 
 class SupportProofingLogDB(BaseDB):
@@ -169,8 +169,8 @@ class SupportProofingLogDB(BaseDB):
     model = models.ProofingLogEntry
 
     def __init__(self, db_uri):
-        db_name = 'eduid_dashboard'
-        collection = 'id_proofing_log'
+        db_name = 'eduid_logs'
+        collection = 'proofing_log'
         super(SupportProofingLogDB, self).__init__(db_uri, db_name, collection)
 
     def get_entries(self, eppn):
@@ -180,5 +180,5 @@ class SupportProofingLogDB(BaseDB):
         :return: A list of dicts
         :rtype: list
         """
-        docs = self._get_documents_by_attr('eppn', eppn, raise_on_missing=False)
+        docs = self._get_documents_by_attr('eduPersonPrincipalName', eppn, raise_on_missing=False)
         return [self.model(doc) for doc in docs]
