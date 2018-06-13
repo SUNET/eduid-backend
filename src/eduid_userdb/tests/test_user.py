@@ -24,7 +24,10 @@ class TestUser(TestCase):
                       u'passwords': [{u'created_ts': datetime.datetime(2014, 11, 24, 16, 22, 49, 188000),
                                       u'credential_id': '54735b588a7d2a2c4ec3e7d0',
                                       u'salt': u'$NDNv1H1$315d7$32$32$',
-                                      u'created_by': u'dashboard'}],
+                                      u'created_by': u'dashboard',
+                                      u'verified': False,
+                                      u'proofing_version': None,
+                                      u'proofing_method': None,}],
                       u'norEduPersonNIN': [u'197801012345'],
                       u'subject': u'physical person',
                       u'eduPersonEntitlement': [u'http://foo.example.org'],
@@ -141,7 +144,11 @@ class TestUser(TestCase):
         data['passwords'] = [{u'created_ts': datetime.datetime(2014, 9, 4, 8, 57, 7, 362000),
                               u'credential_id': str(ObjectId()),
                               u'salt': u'salt',
-                              u'created_by': u'dashboard'}]
+                              u'created_by': u'dashboard',
+                              u'verified': False,
+                              u'proofing_version': None,
+                              u'proofing_method': None,
+                              }]
         user = User(data)
         self.assertEqual(user.surname, data['surname'])
         self.assertEqual(user.passwords.to_list_of_dicts(), data['passwords'])

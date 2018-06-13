@@ -32,18 +32,20 @@
 #
 # Author : Johan Lundberg <lundberg@nordu.net>
 #
+from __future__ import absolute_import
+
 import copy
 
 from bson.objectid import ObjectId
 from six import string_types
 
-from eduid_userdb.element import Element
+from eduid_userdb.credentials import Credential
 from eduid_userdb.exceptions import UserHasUnknownData, UserDBValueError
 
 __author__ = 'lundberg'
 
 
-class Password(Element):
+class Password(Credential):
 
     def __init__(self, credential_id=None, salt=None, application=None, created_ts=None, data=None,
                  raise_on_unknown=True):
@@ -61,7 +63,7 @@ class Password(Element):
 
         if 'source' in data:  # TODO: Load and save all users in the database to replace source with created_by
             data['created_by'] = data.pop('source')
-        Element.__init__(self, data)
+        Credential.__init__(self, data)
         if 'id' in data:  # TODO: Load and save all users in the database to replace id with credential_id
             data['credential_id'] = data.pop('id')
         self.credential_id = data.pop('credential_id')

@@ -32,15 +32,17 @@
 #
 # Author : Fredrik Thulin <fredrik@thulin.net>
 #
+from __future__ import absolute_import
+
 import copy
 from six import string_types
-from eduid_userdb.element import Element
+from eduid_userdb.credentials import Credential
 from eduid_userdb.exceptions import UserHasUnknownData, UserDBValueError
 
 __author__ = 'ft'
 
 
-class U2F(Element):
+class U2F(Credential):
     """
     U2F token authentication credential
     """
@@ -66,7 +68,7 @@ class U2F(Element):
                         created_ts = created_ts,
                         )
 
-        Element.__init__(self, data)
+        Credential.__init__(self, data)
         self.version = data.pop('version')
         self.keyhandle = data.pop('keyhandle')
         self.public_key = data.pop('public_key')
@@ -85,7 +87,17 @@ class U2F(Element):
 
     def __repr__(self):  # XXX was __repr__ what we settled on for Python3? Don't think so
         kh = self._data['keyhandle'][:8]
-        return '<eduID {!s}: key_handle=\'{!s}...\'>'.format(self.__class__.__name__, kh)
+        if self.is_verified:
+            return '<eduID {!s}: key_handle=\'{!s}...\', verified=True, proofing=({!r} v {!r})>'.format(
+                self.__class__.__name__,
+                kh,
+                self.proofing_method,
+                self.proofing_version
+            )
+        else:
+            return '<eduID {!s}: key_handle=\'{!s}...\', verified=False>'.format(
+                self.__class__.__name__, kh)
+
 
     @property
     def key(self):

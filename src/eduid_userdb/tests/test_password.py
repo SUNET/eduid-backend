@@ -5,8 +5,7 @@ import datetime
 from bson.objectid import ObjectId
 import eduid_userdb.exceptions
 import eduid_userdb.element
-from eduid_userdb.password import Password
-from eduid_userdb.credentials import CredentialList
+from eduid_userdb.credentials import CredentialList, Password
 from eduid_userdb.actions.chpass import ChpassUser
 from eduid_userdb.exceptions import UserMissingData, UserHasUnknownData
 

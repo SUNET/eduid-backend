@@ -7,6 +7,7 @@ import eduid_userdb.exceptions
 import eduid_userdb.element
 from eduid_userdb.event import EventList
 from eduid_userdb.tou import ToUEvent
+from eduid_userdb.credentials import Password
 
 __author__ = 'ft'
 
@@ -82,7 +83,7 @@ class TestEventList(TestCase):
         pwdict = {'id': bson.ObjectId(),
                   'salt': 'foo',
                   }
-        new = eduid_userdb.password.Password(data=pwdict)
+        new = Password(data=pwdict)
         with self.assertRaises(eduid_userdb.element.UserDBValueError):
             self.one.add(new)
 

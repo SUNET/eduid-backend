@@ -36,10 +36,8 @@ import bson
 from copy import deepcopy
 
 from eduid_userdb import User
-from eduid_userdb.password import Password
 from eduid_userdb.credentials import CredentialList
 from eduid_userdb.exceptions import UserMissingData, UserHasUnknownData
-from eduid_userdb.element import DuplicateElementViolation
 
 
 class ChpassUser(User):

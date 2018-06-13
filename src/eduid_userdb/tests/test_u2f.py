@@ -2,11 +2,9 @@ from unittest import TestCase
 
 import copy
 import datetime
-from bson.objectid import ObjectId
 import eduid_userdb.exceptions
 import eduid_userdb.element
-from eduid_userdb.u2f import U2F
-from eduid_userdb.credentials import CredentialList
+from eduid_userdb.credentials import CredentialList, U2F
 
 __author__ = 'lundberg'
 
@@ -110,3 +108,26 @@ class TestU2F(TestCase):
             this.created_ts = None
         with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
             this.created_ts = True
+
+    def test_proofing_method(self):
+        this = self.three.find('thirdU2FElement')
+        this.proofing_method = 'TEST'
+        self.assertEqual(this.proofing_method, 'TEST')
+        this.proofing_method = 'TEST2'
+        self.assertEqual(this.proofing_method, 'TEST2')
+        this.proofing_method = None
+        self.assertEqual(this.proofing_method, None)
+        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
+            this.proofing_method = False
+
+
+    def test_proofing_version(self):
+        this = self.three.find('thirdU2FElement')
+        this.proofing_version = 'TEST'
+        self.assertEqual(this.proofing_version, 'TEST')
+        this.proofing_version = 'TEST2'
+        self.assertEqual(this.proofing_version, 'TEST2')
+        this.proofing_version = None
+        self.assertEqual(this.proofing_version, None)
+        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
+            this.proofing_version = False
