@@ -184,7 +184,7 @@
                                 <tr>
                                     <th>Timestamp</th><th>Data verified</th><th>Proofing method</th>
                                 </tr>
-                                {% for entry in item.proofing_log %}
+                                {% for entry in item.proofing_log|sort(attribute='created_ts', reverse=True) %}
                                     <tr>
                                         <td>{{ entry.created_ts|datetimeformat }}</td>
                                         <td>{{ entry.verified_data }}</td>
