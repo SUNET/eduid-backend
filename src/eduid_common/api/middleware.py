@@ -16,13 +16,13 @@ class PrefixMiddleware(object):
         self.server_name = server_name
 
     def __call__(self, environ, start_response):
-        if environ['PATH_INFO'].startswith(self.prefix):
-            environ['PATH_INFO'] = environ['PATH_INFO'][len(self.prefix):]
+        # Handle localhost requests for health checks
+        if environ.get('REMOTE_ADDR') == '127.0.0.1':
+            environ['HTTP_HOST'] = self.server_name
             environ['SCRIPT_NAME'] = self.prefix
             return self.app(environ, start_response)
-        # Handle localhost requests for health checks
-        elif environ['REMOTE_ADDR'] == '127.0.0.1':
-            environ['HTTP_HOST'] = self.server_name
+        elif environ.get('PATH_INFO', '').startswith(self.prefix):
+            environ['PATH_INFO'] = environ['PATH_INFO'][len(self.prefix):]
             environ['SCRIPT_NAME'] = self.prefix
             return self.app(environ, start_response)
         else:
