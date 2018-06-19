@@ -36,7 +36,7 @@ from __future__ import absolute_import
 from eduid_common.authn.middleware import UnAuthnApp
 from eduid_common.api.app import eduid_init_app
 from eduid_common.api import am
-from eduid_userdb.actions import ActionsDB
+from eduid_userdb.actions import ActionDB
 
 
 def actions_init_app(name, config):
@@ -71,7 +71,7 @@ def actions_init_app(name, config):
 
     app = am.init_relay(app, 'eduid_actions')
 
-    app.private_userdb = ActionsDB(app.config['MONGO_URI'])
+    app.actions_db = ActionDB(app.config['MONGO_URI'])
 
     app.logger.info('Init {} app...'.format(name))
 

@@ -33,12 +33,11 @@
 
 from marshmallow import fields
 from eduid_common.api.schemas.base import EduidSchema
-from eduid_common.api.schemas.csrf import CSRFRequestMixin
 
 __author__ = 'eperez'
 
 
-class AuthnSchema(EduidSchema, CSRFRequestMixin):
+class AuthnSchema(EduidSchema):
 
     userid = fields.String(required=True)
     token = fields.String(required=True)
