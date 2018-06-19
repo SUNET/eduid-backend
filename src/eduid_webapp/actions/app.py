@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2016 NORDUnet A/S
+# Copyright (c) 2018 NORDUnet A/S
 # All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or
@@ -33,10 +33,23 @@
 
 from __future__ import absolute_import
 
+from pkg_resources import iter_entry_points
+
 from eduid_common.authn.middleware import UnAuthnApp
 from eduid_common.api.app import eduid_init_app
 from eduid_common.api import am
 from eduid_userdb.actions import ActionDB
+
+
+class PluginsRegistry(dict):
+
+    def __init__(self, logger):
+        for entry_point in iter_entry_points('eduid_actions.action'):
+            if entry_point.name in self:
+                logger.warn("Duplicate entry point: %s" % entry_point.name)
+            else:
+                logger.debug("Registering entry point: %s" % entry_point.name)
+                self[entry_point.name] = entry_point.load()
 
 
 def actions_init_app(name, config):
@@ -72,6 +85,10 @@ def actions_init_app(name, config):
     app = am.init_relay(app, 'eduid_actions')
 
     app.actions_db = ActionDB(app.config['MONGO_URI'])
+
+    app.plugins = PluginsRegistry(app.logger)
+    for plugin in app.plugins.values():
+        plugin.includeme(app)
 
     app.logger.info('Init {} app...'.format(name))
 
