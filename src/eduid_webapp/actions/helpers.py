@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2016 NORDUnet A/S
+# Copyright (c) 2018 NORDUnet A/S
 # All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or
@@ -30,31 +30,32 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-
-
 from __future__ import absolute_import
 
-"""
-For more built in configuration options see,
-http://flask.pocoo.org/docs/0.10/config/#builtin-configuration-values
-"""
+from flask import session, current_app, abort
 
-DEBUG = False
-DEVELOPMENT = DEBUG
 
-# Database URIs
-MONGO_URI = ''
-REDIS_HOST = ''
-REDIS_PORT = 6379
-REDIS_DB = 0
+def get_next_action():
+    userid = session['userid']
+    idp_session = session.get('idp_session', None)
+    action = current_app.actions_db.get_next_action(userid, idp_session)
+    if action is None:
+        current_app.logger.info("Finished pre-login actions "
+                                "for userid: {}".format(userid))
+        idp_url = '{}?key={}'.format(current_app.config.get('IDP_URL'),
+                                     idp_session)
+        return {'idp_url': idp_url}
 
-# Secret key
-SECRET_KEY = ''
+    if action.action_type not in current_app.plugins:
+        current_app.logger.info("Missing plugin for action "
+                                "{}".format(action.action_type))
+        abort(500)
 
-# Logging
-LOG_LEVEL = 'INFO'
-
-DASHBOARD_URL = '/profile/'
-IDP_URL = 'http://idp.eduid.docker:8080/'
-
-TOKEN_LOGIN_SHARED_KEY = 'supersecret'
+    action_dict = action.to_dict()
+    action_dict['_id'] = str(action_dict['_id'])
+    action_dict['user_oid'] = str(action_dict['user_oid'])
+    session['current_action'] = action_dict
+    session['current_step'] = 1
+    session['current_plugin'] = action.action_type
+    plugin_obj = current_app.plugins[action.action_type]()
+    session['total_steps'] = plugin_obj.get_number_of_steps()

@@ -38,6 +38,7 @@ from eduid_common.api.decorators import MarshalWith, UnmarshalWith
 from eduid_common.api.schemas.base import FluxStandardAction
 from eduid_webapp.authn.helpers import verify_auth_token
 from eduid_webapp.actions.schemas import AuthnSchema
+from eduid_webapp.actions.helpers import get_next_action
 
 actions_views = Blueprint('actions', __name__, url_prefix='')
 
@@ -74,3 +75,36 @@ def actions(userid, token, nonce, timestamp, idp_session):
                 '_status': 'error',
                 'message': 'actions.authn-error'
         }
+
+def get():
+    get_next_action()
+    action_type = session['current_plugin']
+    plugin_obj = current_app.plugins[action_type]()
+    action = Action(data=session['current_action'])
+    current_app.logger.info('Starting pre-login action {} '
+                            'for userid {}'.format(action.action_type,
+                                                    session['userid']))
+    try:
+        template, data = plugin_obj.get_action_body_for_step(1, action)
+        if template is not None:
+            return render_to_response(template, data)
+        html = data
+    except plugin_obj.ActionError as exc:
+        self._aborted(action, exc)
+        html = u'<div class="jumbotron"><p>{}</p></div>'
+        html = html.format(exc.args[0])
+    return render_to_response('main.jinja2',
+                              {'plugin_html': html},
+                              request=self.request)
+
+
+def _aborted(action, exc):
+    current_app.logger.info(u'Aborted pre-login action {} for userid {}, '
+                            u'reason: {}'.format(action.action_type,
+                                                 session['userid'],
+                                                 exc.args[0]))
+    if exc.remove_action:
+        aid = action.action_id
+        msg = 'Removing faulty action with id '
+        current_app.logger.info(msg + str(aid))
+        current_app.actions_db.remove_action_by_id(aid)
