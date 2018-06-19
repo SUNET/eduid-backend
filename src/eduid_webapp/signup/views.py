@@ -63,6 +63,7 @@ def get_config():
             'debug': current_app.config.get('DEBUG'),
             'tou': _('tou'),  # XXX get real TOU
             'dashboard_url': current_app.config.get('DASHBOARD_URL'),
+            'reset_passwd_url': current_app.config.get('RESET_PASSWD_URL'),
             'students_link': current_app.config.get('STUDENTS_LINK'),
             'technicians_link': current_app.config.get('TECHNICIANS_LINK'),
             'staff_link': current_app.config.get('STAFF_LINK'),
