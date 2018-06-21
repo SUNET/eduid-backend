@@ -33,6 +33,7 @@
 from __future__ import absolute_import
 
 from flask import Blueprint, request, session, current_app
+from flask import abort, url_for, render_to_response
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith
 from eduid_common.api.schemas.base import FluxStandardAction
@@ -40,23 +41,19 @@ from eduid_webapp.authn.helpers import verify_auth_token
 from eduid_webapp.actions.schemas import AuthnSchema
 from eduid_webapp.actions.helpers import get_next_action
 
-actions_views = Blueprint('actions', __name__, url_prefix='')
+actions_views = Blueprint('actions', __name__, url_prefix='', template_folder='templates')
 
 
 @actions_views.route('/', methods=['GET'])
 @UnmarshalWith(AuthnSchema)
-@MarshalWith(FluxStandardAction)
-def actions(userid, token, nonce, timestamp, idp_session):
+def authn(userid, token, nonce, timestamp, idp_session):
     '''
     '''
     if not (userid and token and nonce and timestamp):
         msg = ('Insufficient authentication params: '
                'userid: {}, token: {}, nonce: {}, ts: {}')
         current_app.logger.debug(msg.format(userid, token, nonce, timestamp))
-        return {
-                '_status': 'error',
-                'message': 'actions.authn-missing'
-        }
+        abort(400)
 
     if verify_auth_token(eppn=userid, token=token,
                          nonce=nonce, timestamp=timestamp):
@@ -65,19 +62,18 @@ def actions(userid, token, nonce, timestamp, idp_session):
         session['userid'] = userid
         session['idp_session'] = idp_session
         session.persist()
-        return {
-            'message': 'actions.authn-success'
-        }
+        url = url_for('actions.get_actions')
+        return render_to_response('index.html', {'url': url})
     else:
         current_app.logger.debug("Token authentication failed "
                                  "(userid: {})".format(userid))
-        return {
-                '_status': 'error',
-                'message': 'actions.authn-error'
-        }
+        abort(403)
 
-def get():
-    get_next_action()
+@actions_views.route('/get-actions', methods=['GET'])
+def get_actions():
+    actions = get_next_action()
+    if not actions['action']:
+        return json.dumps({'action': False, 'url': actions['idp_url']})
     action_type = session['current_plugin']
     plugin_obj = current_app.plugins[action_type]()
     action = Action(data=session['current_action'])
@@ -85,17 +81,11 @@ def get():
                             'for userid {}'.format(action.action_type,
                                                     session['userid']))
     try:
-        template, data = plugin_obj.get_action_body_for_step(1, action)
-        if template is not None:
-            return render_to_response(template, data)
-        html = data
+        url = plugin_obj.get_url_for_bundle(action)
+        return json.dumps({'action': True, 'url': url})
     except plugin_obj.ActionError as exc:
         self._aborted(action, exc)
-        html = u'<div class="jumbotron"><p>{}</p></div>'
-        html = html.format(exc.args[0])
-    return render_to_response('main.jinja2',
-                              {'plugin_html': html},
-                              request=self.request)
+        abort(500)
 
 
 def _aborted(action, exc):

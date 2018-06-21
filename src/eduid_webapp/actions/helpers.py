@@ -44,7 +44,7 @@ def get_next_action():
                                 "for userid: {}".format(userid))
         idp_url = '{}?key={}'.format(current_app.config.get('IDP_URL'),
                                      idp_session)
-        return {'idp_url': idp_url}
+        return {'action': False, 'idp_url': idp_url}
 
     if action.action_type not in current_app.plugins:
         current_app.logger.info("Missing plugin for action "
@@ -59,3 +59,4 @@ def get_next_action():
     session['current_plugin'] = action.action_type
     plugin_obj = current_app.plugins[action.action_type]()
     session['total_steps'] = plugin_obj.get_number_of_steps()
+    return {'action': True}
