@@ -33,7 +33,7 @@
 from __future__ import absolute_import
 
 from flask import Blueprint, request, session, current_app
-from flask import abort, url_for, render_to_response
+from flask import abort, url_for, render_template
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith
 from eduid_common.api.schemas.base import FluxStandardAction
@@ -63,7 +63,7 @@ def authn(userid, token, nonce, timestamp, idp_session):
         session['idp_session'] = idp_session
         session.persist()
         url = url_for('actions.get_actions')
-        return render_to_response('index.html', {'url': url})
+        return render_template('index.html', {'url': url})
     else:
         current_app.logger.debug("Token authentication failed "
                                  "(userid: {})".format(userid))
