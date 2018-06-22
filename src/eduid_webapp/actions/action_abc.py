@@ -137,21 +137,17 @@ class ActionPlugin:
         '''
 
     @abstractmethod
-    def get_action_body_for_step(self, step_number, action, errors=None):
+    def get_url_for_bundle(self, action):
         '''
-        Return the html form that corresponds to step number
-        `step_number`. If there is some error in the process,
-        raise ActionError.
+        Return the url for the bundle that contains the front-end javascript
+        side of the plugin. To be injected into an index.html file.  If there
+        is some error in the process, raise ActionError.
 
-        :param step_number: the step number
         :param action: the action as retrieved from the eduid_actions db
-        :param errors: validation errors
         :returns: the html to be presented to the user for the next step
         :raise: ActionPlugin.ActionError
 
-        :type step_number: int
         :type action: dict
-        :type errors: dict
         :rtype: unicode
 
 
