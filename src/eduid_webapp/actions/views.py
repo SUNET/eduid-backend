@@ -38,17 +38,20 @@ from flask import abort, url_for, render_template
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith
 from eduid_common.api.schemas.base import FluxStandardAction
 from eduid_webapp.authn.helpers import verify_auth_token
-from eduid_webapp.actions.schemas import AuthnSchema
 from eduid_webapp.actions.helpers import get_next_action
 
 actions_views = Blueprint('actions', __name__, url_prefix='', template_folder='templates')
 
 
 @actions_views.route('/', methods=['GET'])
-@UnmarshalWith(AuthnSchema)
-def authn(userid, token, nonce, timestamp, idp_session):
+def authn():
     '''
     '''
+    userid = request.args.get('userid', None)
+    token = request.args.get('token', None)
+    nonce = request.args.get('nonce', None)
+    timestamp = request.args.get('ts', None)
+    idp_session = request.args.get('session', None)
     if not (userid and token and nonce and timestamp):
         msg = ('Insufficient authentication params: '
                'userid: {}, token: {}, nonce: {}, ts: {}')
@@ -63,7 +66,9 @@ def authn(userid, token, nonce, timestamp, idp_session):
         session['idp_session'] = idp_session
         session.persist()
         url = url_for('actions.get_actions')
-        return render_template('index.html', {'url': url})
+        current_app.logger.info("Starting pre-login actions for userid: "
+                                "{}, with bundle {})".format(userid, url))
+        return render_template('index.html', url=url)
     else:
         current_app.logger.debug("Token authentication failed "
                                  "(userid: {})".format(userid))
