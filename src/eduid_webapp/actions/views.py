@@ -31,10 +31,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 from __future__ import absolute_import
+import json
 
 from flask import Blueprint, request, session, current_app
 from flask import abort, url_for, render_template
 
+from eduid_userdb.actions import Action
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith
 from eduid_common.api.schemas.base import FluxStandardAction
 from eduid_webapp.authn.helpers import verify_auth_token
