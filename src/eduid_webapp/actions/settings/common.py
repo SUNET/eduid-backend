@@ -57,3 +57,4 @@ LOG_LEVEL = 'INFO'
 DASHBOARD_URL = '/profile/'
 
 TOKEN_LOGIN_SHARED_KEY = 'supersecret'
+CURRENT_TOU_VERSION = 'test-version'

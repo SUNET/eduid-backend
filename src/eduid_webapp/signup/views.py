@@ -33,6 +33,7 @@
 from __future__ import absolute_import
 
 from flask import Blueprint, request, session, current_app
+from flask import render_template
 from flask_babel import gettext as _
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith
@@ -52,6 +53,17 @@ from eduid_webapp.signup.verifications import AlreadyVerifiedException
 signup_views = Blueprint('signup', __name__, url_prefix='', template_folder='templates')
 
 
+def _get_tous(version=None):
+    if version is None:
+        version = current_app.config.get('CURRENT_TOU_VERSION')
+    langs = current_app.config.get('AVAILABLE_LANGUAGES').keys()
+    tous = {}
+    for lang in langs:
+        name = 'tous/tou-{}-{}.txt'.format(version, lang)
+        tous[name] = render_template(name)
+    return tous
+
+
 @signup_views.route('/config', methods=['GET'])
 @MarshalWith(FluxStandardAction)
 def get_config():
@@ -61,7 +73,7 @@ def get_config():
             'recaptcha_public_key': current_app.config.get('RECAPTCHA_PUBLIC_KEY'),
             'available_languages': current_app.config.get('AVAILABLE_LANGUAGES'),
             'debug': current_app.config.get('DEBUG'),
-            'tou': _('tou'),  # XXX get real TOU
+            'tous': _get_tous(),
             'dashboard_url': current_app.config.get('DASHBOARD_URL'),
             'reset_passwd_url': current_app.config.get('RESET_PASSWD_URL'),
             'students_link': current_app.config.get('STUDENTS_LINK'),
@@ -70,6 +82,16 @@ def get_config():
             'faq_link': current_app.config.get('FAQ_LINK'),
             }
     return jsconfig
+
+
+@signup_views.route('/get-tous', methods=['GET'])
+@MarshalWith(FluxStandardAction)
+def get_tous():
+    """
+    View to GET the current TOU in all available languages
+    """
+    version = request.args.get('version', None)
+    return _get_tous(version=version)
 
 
 @signup_views.route('/trycaptcha', methods=['POST'])
