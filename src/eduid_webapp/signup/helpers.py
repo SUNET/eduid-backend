@@ -177,7 +177,7 @@ def complete_registration(signup_user):
         "nonce": nonce,
         "timestamp": timestamp,
         "auth_token": auth_token,
-        "dashboard_url": current_app.config.get('DASHBOARD_URL')
+        "dashboard_url": current_app.config.get('AUTH_TOKEN_URL')
     })
 
     current_app.logger.info("Signup process for new user {} complete".format(signup_user))
