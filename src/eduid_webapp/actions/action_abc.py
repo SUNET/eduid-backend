@@ -116,14 +116,12 @@ class ActionPlugin:
 
     @classmethod
     @abstractmethod
-    def includeme(self, app, config):
+    def includeme(self, app):
         '''
         Plugin specific configuration for the actions app.
 
         :param app: the flask app.
-        :param config: the configuratin parameters for the flask app.
         :type app: flask.App
-        :type config: dict
         '''
 
     @abstractmethod
