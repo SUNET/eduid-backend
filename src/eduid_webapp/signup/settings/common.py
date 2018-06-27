@@ -67,3 +67,5 @@ TOU_VERSION = '2018-v1'
 AUTH_SHARED_SECRET = 'supersecret'
 
 DEFAULT_FINISH_URL = 'https://www.eduid.se/'
+
+CURRENT_TOU_VERSION = 'test-version'
