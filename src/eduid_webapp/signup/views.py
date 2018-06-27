@@ -60,7 +60,7 @@ def _get_tous(version=None):
     tous = {}
     for lang in langs:
         name = 'tous/tou-{}-{}.txt'.format(version, lang)
-        tous[name] = render_template(name)
+        tous[lang] = render_template(name)
     return tous
 
 
