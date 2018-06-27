@@ -28,16 +28,15 @@
                     var resp = JSON.parse(req.response);
                     if (resp.action) {
                         var script = document.createElement('script');
-                        script.setAttribute('type', 'text/javscript');
+                        script.setAttribute('async', true);
+                        script.setAttribute('type', 'text/javascript');
                         script.setAttribute('src', resp.url);
-                        script.innerHTML = null;
                         document.getElementById('bundle-holder').appendChild(script);
                     } else {
                         document.location = resp.url;
                     }
                 });
                 req.open('GET', url);
-                req.responseType = 'application/json';
                 req.send();
             }
         }
