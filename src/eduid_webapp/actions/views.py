@@ -95,6 +95,22 @@ def get_actions():
         abort(500)
 
 
+@actions_views.route('/config', methods=['GET'])
+@MarshalWith(FluxStandardAction)
+def get_config():
+    action_type = session['current_plugin']
+    plugin_obj = current_app.plugins[action_type]()
+    action = Action(data=session['current_action'])
+    try:
+        config = plugin_obj.get_config_for_bundle(action)
+        return config
+    except plugin_obj.ActionError as exc:
+        return {
+            '_status': 'error',
+            'message':  exc.args[0]
+            }
+
+
 def _aborted(action, exc):
     current_app.logger.info(u'Aborted pre-login action {} for userid {}, '
                             u'reason: {}'.format(action.action_type,

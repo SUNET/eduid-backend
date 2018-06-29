@@ -144,11 +144,26 @@ class ActionPlugin:
         is some error in the process, raise ActionError.
 
         :param action: the action as retrieved from the eduid_actions db
-        :returns: the html to be presented to the user for the next step
+        :returns: the url
         :raise: ActionPlugin.ActionError
 
         :type action: dict
         :rtype: unicode
+        '''
+
+    @abstractmethod
+    def get_config_for_bundle(self, action):
+        '''
+        Return any configuration parameters needed by the js bundle that
+        contains the front-end javascript side of the plugin. If there
+        is some error in the process, raise ActionError.
+
+        :param action: the action as retrieved from the eduid_actions db
+        :returns: the config parameters
+        :raise: ActionPlugin.ActionError
+
+        :type action: dict
+        :rtype: dict
         '''
 
     @abstractmethod
