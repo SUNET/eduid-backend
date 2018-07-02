@@ -3,6 +3,7 @@
 from __future__ import absolute_import
 
 import operator
+from jinja2.exceptions import UndefinedError
 
 from eduid_common.api.app import eduid_init_app
 from eduid_common.api.utils import urlappend
@@ -28,7 +29,10 @@ def register_template_funcs(app):
                     keys.remove(key)
                     break
         reverse = kwargs.pop('reverse', False)
-        l.sort(key=operator.itemgetter(*keys), reverse=reverse)
+        try:
+            l.sort(key=operator.itemgetter(*keys), reverse=reverse)
+        except UndefinedError:  # attribute did not exist
+            l = list()
         return l
 
     return app
