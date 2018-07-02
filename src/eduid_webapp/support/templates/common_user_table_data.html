@@ -18,7 +18,7 @@
     <tr>
         <th>National identity numbers:</th>
         <td>
-            {% for nin in user_dict.nins|sort(attribute='created_ts', reverse=True)|sort(attribute='verified', reverse=True) %}
+            {% for nin in user_dict.nins|multisort('verified', 'created_ts', reverse=True) %}
                 <dl>
                     <dt>Number</dt><dd>{{ nin.get('number') }}</dd>
                     <dt>Primary</dt><dd>{{ nin.get('primary') }}</dd>
@@ -37,7 +37,7 @@
     <tr>
         <th>Mail addresses:</th>
         <td>
-            {% for mail in user_dict.mailAliases|sort(attribute='created_ts', reverse=True)|sort(attribute='verified', reverse=True) %}
+            {% for mail in user_dict.mailAliases|multisort('verified', 'created_ts', reverse=True) %}
                 <dl>
                     <dt>Address</dt><dd>{{ mail.get('email') }}</dd>
                     <dt>Primary</dt><dd>{{ mail.get('primary') }}</dd>
@@ -56,7 +56,7 @@
     <tr>
         <th>Phone numbers:</th>
         <td>
-            {% for phone in user_dict.phone|sort(attribute='created_ts', reverse=True)|sort(attribute='verified', reverse=True) %}
+            {% for phone in user_dict.phone|multisort('verified', 'created_ts', reverse=True) %}
                 <dl>
                     <dt>Number</dt><dd>{{ phone.get('number') }}</dd>
                     <dt>Primary</dt><dd>{{ phone.get('primary') }}</dd>
@@ -72,7 +72,7 @@
     <tr>
         <th>Credentials:</th>
         <td>
-            {% for credential in user_dict.passwords|sort(attribute='created_ts', reverse=True) %}
+            {% for credential in user_dict.passwords|multisort('type', 'created_ts', reverse=True) %}
                 <dl>
                     <dt>Type</dt><dd>{{ credential.get('type') }}</dd>
                     <dt>Last used successfully</dt><dd>{{ credential.get('success_ts')|datetimeformat }}</dd>
@@ -85,7 +85,7 @@
     <tr>
         <th>Accepted terms of use:</th>
         <td>
-            {% for tou in user_dict.tou|sort(attribute='created_ts', reverse=True) %}
+            {% for tou in user_dict.tou|multisort('version', 'created_ts', reverse=True) %}
                 <dl>
                     <dt>Version</dt><dd>{{ tou.get('version') }}</dd>
                     <dt>Added using</dt><dd>{{ tou.get('created_by') }}</dd>
