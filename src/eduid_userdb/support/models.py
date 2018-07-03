@@ -120,7 +120,7 @@ class UserActions(GenericFilterDict):
 
 class ProofingLogEntry(GenericFilterDict):
 
-    add_keys = ['verified_data', 'created_ts', 'proofing_method']
+    add_keys = ['verified_data', 'created_ts', 'proofing_method', 'proofing_version', 'created_by', 'vetting_by']
 
     def __init__(self, data):
         _data = deepcopy(data)
