@@ -182,13 +182,15 @@
                                 <caption>Proofing log</caption>
                                 {% if item.proofing_log %}
                                 <tr>
-                                    <th>Timestamp</th><th>Data verified</th><th>Proofing method</th>
+                                    <th>Created</th><th>Application</th><th>Data verified</th><th>Proofing method</th><th>Vetting by</th>
                                 </tr>
                                 {% for entry in item.proofing_log|sort(attribute='created_ts', reverse=True) %}
                                     <tr>
                                         <td>{{ entry.created_ts|datetimeformat }}</td>
+                                        <td>{{ entry.created_by }}</td>
                                         <td>{{ entry.verified_data }}</td>
-                                        <td>{{ entry.proofing_method }}</td>
+                                        <td>{{ entry.proofing_method }}-{{ entry.proofing_version }}</td>
+                                        <td>{{ entry.vetting_by }}</td>
                                     </tr>
                                 {% endfor %}
                                 {% else %}
