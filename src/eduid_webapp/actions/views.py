@@ -76,24 +76,6 @@ def authn():
                                  "(userid: {})".format(userid))
         abort(403)
 
-@actions_views.route('/get-actions', methods=['GET'])
-def get_actions():
-    actions = get_next_action()
-    if not actions['action']:
-        return json.dumps({'action': False, 'url': actions['idp_url']})
-    action_type = session['current_plugin']
-    plugin_obj = current_app.plugins[action_type]()
-    action = Action(data=session['current_action'])
-    current_app.logger.info('Starting pre-login action {} '
-                            'for userid {}'.format(action.action_type,
-                                                    session['userid']))
-    try:
-        url = plugin_obj.get_url_for_bundle(action)
-        return json.dumps({'action': True, 'url': url})
-    except plugin_obj.ActionError as exc:
-        self._aborted(action, exc)
-        abort(500)
-
 
 @actions_views.route('/config', methods=['GET'])
 @MarshalWith(FluxStandardAction)
@@ -111,6 +93,67 @@ def get_config():
             }
 
 
+@actions_views.route('/get-actions', methods=['GET'])
+def get_actions():
+    actions = get_next_action()
+    if not actions['action']:
+        return json.dumps({'action': False, 'url': actions['idp_url']})
+    action_type = session['current_plugin']
+    plugin_obj = current_app.plugins[action_type]()
+    action = Action(data=session['current_action'])
+    current_app.logger.info('Starting pre-login action {} '
+                            'for userid {}'.format(action.action_type,
+                                                    session['userid']))
+    try:
+        url = plugin_obj.get_url_for_bundle(action)
+        return json.dumps({'action': True, 'url': url})
+    except plugin_obj.ActionError as exc:
+        _aborted(action, exc)
+        abort(500)
+
+
+@actions_views.route('/post-action', methods=['POST'])
+@MarshalWith(FluxStandardAction)
+def post_action():
+    action_type = session['current_plugin']
+    plugin_obj = current_app.plugins[action_type]()
+    action = Action(data=session['current_action'])
+    errors = {}
+    try:
+        data = plugin_obj.perform_step(action)
+    except plugin_obj.ActionError as exc:
+        return _aborted(action, exc)
+
+    except plugin_obj.ValidationError as exc:
+        errors = exc.args[0]
+        current_app.logger.info('Validation error {0} '
+                    'for step {1} of action {2}'.format(
+                        str(errors),
+                        str(session['current_step']),
+                        str(action)))
+        session['current_step'] -= 1
+        return {
+                '_status': 'error',
+                'errors': errors,
+                }
+
+    if session['total_steps'] == session['current_step']:
+        logger.info('Finished pre-login action {0} '
+                    'for userid {1}'.format(action.action_type,
+                                            session['userid']))
+        return {
+                'message': 'actions.action-completed',
+                'data': data
+                }
+
+    next_step = session['current_step'] + 1
+    session['current_step'] = next_step
+
+    return {
+            'data': data
+            }
+
+
 def _aborted(action, exc):
     current_app.logger.info(u'Aborted pre-login action {} for userid {}, '
                             u'reason: {}'.format(action.action_type,
@@ -121,3 +164,7 @@ def _aborted(action, exc):
         msg = 'Removing faulty action with id '
         current_app.logger.info(msg + str(aid))
         current_app.actions_db.remove_action_by_id(aid)
+    return {
+            '_status': 'error',
+            'message': exc.args[0]
+            }
