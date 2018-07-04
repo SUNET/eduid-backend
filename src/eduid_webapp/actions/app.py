@@ -78,6 +78,7 @@ def actions_init_app(name, config):
 
     app = eduid_init_app(name, config, app_class=UnAuthnApp)
     app.config.update(config)
+    app.config['CELERY_CONFIG']['MONGO_URI'] = app.config['MONGO_URI']
 
     from eduid_webapp.actions.views import actions_views
     app.register_blueprint(actions_views)
