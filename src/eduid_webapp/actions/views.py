@@ -138,9 +138,9 @@ def post_action():
                 }
 
     if session['total_steps'] == session['current_step']:
-        logger.info('Finished pre-login action {0} '
-                    'for userid {1}'.format(action.action_type,
-                                            session['userid']))
+        current_app.logger.info('Finished pre-login action {0} '
+                                'for userid {1}'.format(action.action_type,
+                                                        session['userid']))
         return {
                 'message': 'actions.action-completed',
                 'data': data
