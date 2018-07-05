@@ -66,7 +66,6 @@ def authn():
                                 "for userid: {})".format(userid))
         session['userid'] = userid
         session['idp_session'] = idp_session
-        session.persist()
         url = url_for('actions.get_actions')
         current_app.logger.info("Starting pre-login actions for userid: "
                                 "{}, with bundle {})".format(userid, url))
