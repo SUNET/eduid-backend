@@ -49,13 +49,13 @@ REDIS_PORT = 6379
 REDIS_DB = 0
 
 # Secret key
-SECRET_KEY = ''
+SECRET_KEY = 'supersecretkey'
 
 # Logging
 LOG_LEVEL = 'INFO'
 
 DASHBOARD_URL = '/profile/'
 BUNDLES_URL = 'http://html.eduid.docker/static/front-build/'
-IDP_URL = 'http://idp.eduid.docker:8080/'
+IDP_URL = 'http://idp.eduid.docker:8080/sso/redirect'
 
 TOKEN_LOGIN_SHARED_KEY = 'supersecret'
