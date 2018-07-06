@@ -169,3 +169,21 @@ class ActionsTests(EduidAPITestCase):
                     data = json.loads(response.data)
                     self.assertEquals(data['type'], 'GET_ACTIONS_CONFIG_FAIL')
                     self.assertEquals(data['payload']['message'], 'test error')
+
+    def test_get_actions(self):
+        with self.session_cookie(self.browser) as client:
+            with client.session_transaction() as sess:
+                with self.app.test_request_context():
+                    self.app.actions_db.add_action(data=DUMMY_ACTION)
+                    self.app.plugins['dummy'] = TestingActionPlugin
+                    sess['current_plugin'] = 'dummy'
+                    action_dict = deepcopy(DUMMY_ACTION)
+                    action_dict['_id'] = str(action_dict['_id'])
+                    action_dict['user_oid'] = str(action_dict['user_oid'])
+                    sess['userid'] = str(action_dict['user_oid'])
+                    sess['current_action'] = action_dict
+                    response = client.get('/get-actions')
+                    self.assertEqual(response.status_code, 200)
+                    data = json.loads(response.data)
+                    self.assertTrue(data['action'])
+                    self.assertEquals(data['url'], "http://example.com/plugin.js")
