@@ -95,6 +95,7 @@ class ActionsTests(EduidAPITestCase):
                 'CELERY_TASK_SERIALIZER': 'json',
                 'MONGO_URI': config['MONGO_URI'],
             },
+            'IDP_URL': 'https://example.com/idp'
         })
         return config
 
@@ -187,3 +188,22 @@ class ActionsTests(EduidAPITestCase):
                     data = json.loads(response.data)
                     self.assertTrue(data['action'])
                     self.assertEquals(data['url'], "http://example.com/plugin.js")
+
+    def test_get_actions_no_action(self):
+        with self.session_cookie(self.browser) as client:
+            with client.session_transaction() as sess:
+                with self.app.test_request_context():
+                    self.app.plugins['dummy'] = TestingActionPlugin
+                    sess['idp_session'] = 'dummy-session'
+                    sess['current_plugin'] = 'dummy'
+                    action_dict = deepcopy(DUMMY_ACTION)
+                    action_dict['_id'] = str(action_dict['_id'])
+                    action_dict['user_oid'] = str(action_dict['user_oid'])
+                    sess['userid'] = str(action_dict['user_oid'])
+                    sess['current_action'] = action_dict
+                    response = client.get('/get-actions')
+                    self.assertEqual(response.status_code, 200)
+                    data = json.loads(response.data)
+                    self.assertFalse(data['action'])
+                    self.assertEquals(data['url'],
+                            "https://example.com/idp?key=dummy-session")
