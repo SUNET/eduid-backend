@@ -32,13 +32,41 @@
 
 import json
 import time
+from copy import deepcopy
 from contextlib import contextmanager
 from hashlib import sha256
+from bson import ObjectId
 from mock import patch
 from flask import Flask
 
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_webapp.actions.app import actions_init_app
+from eduid_webapp.actions.action_abc import ActionPlugin
+
+
+class TestingActionPlugin(ActionPlugin):
+
+    def get_number_of_steps(self):
+        return 1
+
+    def get_url_for_bundle(self, action):
+        return "http://example.com/plugin.js"
+
+    def get_config_for_bundle(self, action):
+        return {'setting1': 'dummy'}
+
+    def perform_step(action):
+        return {'completed': 'done'}
+
+
+DUMMY_ACTION = {
+    '_id': ObjectId('234567890123456789012301'),
+    'user_oid': ObjectId('123467890123456789014567'),
+    'action': 'dummy',
+    'preference': 100, 
+    'params': {
+    }
+}
 
 
 class ActionsTests(EduidAPITestCase):
@@ -85,20 +113,7 @@ class ActionsTests(EduidAPITestCase):
         response = self.browser.get('/')
         self.assertEqual(response.status_code, 302)
         response = self.browser.get('/')
-        self.assertEqual(response.status_code, 200)
-        data = json.loads(response.data)
-        self.assertTrue(data['error'])
-        self.assertEquals(data['type'], 'GET_ACTIONS_FAIL')
-        self.assertEquals(data['payload']['error']['idp_session'],
-                                    [u'Missing data for required field.'])
-        self.assertEquals(data['payload']['error']['nonce'],
-                                    [u'Missing data for required field.'])
-        self.assertEquals(data['payload']['error']['timestamp'],
-                                    [u'Missing data for required field.'])
-        self.assertEquals(data['payload']['error']['token'],
-                                    [u'Missing data for required field.'])
-        self.assertEquals(data['payload']['error']['userid'],
-                                    [u'Missing data for required field.'])
+        self.assertEqual(response.status_code, 400)
 
     def test_authn(self):
         with self.session_cookie(self.browser) as client:
@@ -110,16 +125,27 @@ class ActionsTests(EduidAPITestCase):
                     shared_key = self.app.config.get('TOKEN_LOGIN_SHARED_KEY')
                     token = sha256('{0}|{1}|{2}|{3}'.format(
                                    shared_key, eppn, nonce, timestamp)).hexdigest()
-                    data = {
-                        'idp_session': 'dummy-session',
-                        'userid': eppn,
-                        'nonce': nonce,
-                        'timestamp': timestamp,
-                        'token': token,
-                        'csrf_token': sess.get_csrf_token()
-                    }
-                response = client.get('/', data=json.dumps(data),
-                                       content_type=self.content_type_json)
+                url = '/?userid={}&token={}&nonce={}&ts={}'.format(eppn,
+                                                                   token,
+                                                                   nonce,
+                                                                   timestamp)
+                response = client.get(url)
                 self.assertEqual(response.status_code, 200)
-                data = json.loads(response.data)
-                self.assertEquals(data['type'], 'GET_ACTIONS_SUCCESS')
+                self.assertTrue('bundle-holder' in response.data)
+
+    def test_get_config(self):
+        with self.session_cookie(self.browser) as client:
+            with client.session_transaction() as sess:
+                with self.app.test_request_context():
+                    self.app.actions_db.add_action(data=DUMMY_ACTION)
+                    self.app.plugins['dummy'] = TestingActionPlugin
+                    sess['current_plugin'] = 'dummy'
+                    action_dict = deepcopy(DUMMY_ACTION)
+                    action_dict['_id'] = str(action_dict['_id'])
+                    action_dict['user_oid'] = str(action_dict['user_oid'])
+                    sess['current_action'] = action_dict
+                    response = client.get('/config')
+                    self.assertEqual(response.status_code, 200)
+                    data = json.loads(response.data)
+                    self.assertEquals(data['type'], 'GET_ACTIONS_CONFIG_SUCCESS')
+                    self.assertEquals(data['payload']['setting1'], 'dummy')
