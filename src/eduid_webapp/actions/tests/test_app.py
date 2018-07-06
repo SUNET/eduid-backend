@@ -37,6 +37,7 @@ from contextlib import contextmanager
 from hashlib import sha256
 from bson import ObjectId
 from mock import patch
+from werkzeug.exceptions import InternalServerError
 from flask import Flask
 
 from eduid_common.api.testing import EduidAPITestCase
@@ -95,7 +96,8 @@ class ActionsTests(EduidAPITestCase):
                 'CELERY_TASK_SERIALIZER': 'json',
                 'MONGO_URI': config['MONGO_URI'],
             },
-            'IDP_URL': 'https://example.com/idp'
+            'IDP_URL': 'https://example.com/idp',
+            'PRESERVE_CONTEXT_ON_EXCEPTION': False
         })
         return config
 
@@ -207,3 +209,19 @@ class ActionsTests(EduidAPITestCase):
                     self.assertFalse(data['action'])
                     self.assertEquals(data['url'],
                             "https://example.com/idp?key=dummy-session")
+
+    def test_get_actions_no_plugin(self):
+        with self.session_cookie(self.browser) as client:
+            with client.session_transaction() as sess:
+                self.app.actions_db.add_action(data=DUMMY_ACTION)
+                sess['current_plugin'] = 'dummy'
+                action_dict = deepcopy(DUMMY_ACTION)
+                action_dict['_id'] = str(action_dict['_id'])
+                action_dict['user_oid'] = str(action_dict['user_oid'])
+                sess['userid'] = str(action_dict['user_oid'])
+                sess['current_action'] = action_dict
+                with self.app.test_request_context('/get-actions'):
+                    try:
+                        response = client.get('/get-actions')
+                    except InternalServerError:
+                        pass
