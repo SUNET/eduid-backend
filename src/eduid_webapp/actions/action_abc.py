@@ -171,9 +171,10 @@ class ActionPlugin:
     def perform_step(self, action):
         '''
         The user has provided some data and needs feedback. The provided data
-        should be in the request. This may be the last step for this action,
-        or an intermediate one. It may be needed to update or remove the
-        action from the db.
+        should be in the request, and the action type and current step should
+        be in the session. This may be the last step for this action,
+        or an intermediate one. This method has the responsibility of updating
+        or removing the action from the db.
 
         If there are no errors, we return any data we may need to send to the
         user, and raise ActionError otherwise.
