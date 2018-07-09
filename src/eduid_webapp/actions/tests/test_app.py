@@ -37,7 +37,7 @@ from contextlib import contextmanager
 from hashlib import sha256
 from bson import ObjectId
 from mock import patch
-from werkzeug.exceptions import InternalServerError
+from werkzeug.exceptions import InternalServerError, Forbidden
 from flask import Flask
 
 from eduid_common.api.testing import EduidAPITestCase
@@ -167,6 +167,26 @@ class ActionsTests(EduidAPITestCase):
                 response = client.get(url)
                 self.assertEqual(response.status_code, 200)
                 self.assertTrue('bundle-holder' in response.data)
+
+    def test_authn_wrong_secret(self):
+        with self.session_cookie(self.browser) as client:
+            with client.session_transaction() as sess:
+                with self.app.test_request_context():
+                    eppn = 'dummy-eppn'
+                    nonce = 'dummy-nonce-xxxx'
+                    timestamp = str(hex(int(time.time())))
+                    shared_key = 'wrong-shared-key'
+                    token = sha256('{0}|{1}|{2}|{3}'.format(
+                                   shared_key, eppn, nonce, timestamp)).hexdigest()
+                url = '/?userid={}&token={}&nonce={}&ts={}'.format(eppn,
+                                                                   token,
+                                                                   nonce,
+                                                                   timestamp)
+                with self.app.test_request_context(url):
+                    try:
+                        response = client.get(url)
+                    except Forbidden:
+                        pass
 
     def test_get_config(self):
         with self.session_cookie(self.browser) as client:
