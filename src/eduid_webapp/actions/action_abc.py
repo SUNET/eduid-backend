@@ -35,8 +35,7 @@ import gettext
 
 class ActionError(Exception):
     '''
-    exception to be raised if the action to be performed fails,
-    either in `get_action_body_for_step`, or in `perform_action`.
+    exception to be raised if the action to be performed fails.
     Instantiated with a message that informs about the reason for
     the failure.
     The message will be sent to the front end and should be
@@ -60,7 +59,7 @@ class ActionError(Exception):
     eduid_userdb.actions.db.ActionsDB)::
 
       try:
-          obj.perform_action()
+          obj.perform_step(action)
       except obj.ActionError as exc:
           if exc.remove_action:
               actions_db.remove_action_by_id(action.action_id)
@@ -107,8 +106,7 @@ class ActionPlugin:
 
     class ValidationError(Exception):
         '''
-        exception to be raised if some form doesn't validate,
-        either in `perform_step`, or in `perform_action`.
+        exception to be raised if some form doesn't validate.
         Instantiated with a dict of field names to error messages.
 
         :param arg: error messages for each field
