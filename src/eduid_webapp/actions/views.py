@@ -67,8 +67,6 @@ def authn():
         session['userid'] = userid
         session['idp_session'] = idp_session
         url = url_for('actions.get_actions')
-        current_app.logger.info("Starting pre-login actions for userid: "
-                                "{}, with bundle {})".format(userid, url))
         return render_template('index.html', url=url)
     else:
         current_app.logger.debug("Token authentication failed "
@@ -154,6 +152,10 @@ def post_action():
                 'csrf_token': session.new_csrf_token()
                 }
 
+    current_app.logger.info('Performed step {} for action {} '
+                            'for userid {}'.format(action.action_type,
+                                                    session['current_step'],
+                                                    session['userid']))
     session['current_step'] += 1
 
     return {
