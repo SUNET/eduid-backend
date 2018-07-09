@@ -59,6 +59,8 @@ class TestingActionPlugin(ActionPlugin):
         return {'setting1': 'dummy'}
 
     def perform_step(self, action):
+        if 'raise' in action.to_dict()['params']:
+            raise self.ActionError('test error')
         return {'completed': 'done'}
 
 
@@ -138,17 +140,29 @@ class ActionsTests(EduidAPITestCase):
                 self.assertEqual(response.status_code, 200)
                 self.assertTrue('bundle-holder' in response.data)
 
+    def _prepare_session(self, sess, raises=False, action=True, plugin=True,
+                         total_steps=1, current_step=1):
+        action_dict = deepcopy(DUMMY_ACTION)
+        if raises:
+            action_dict['params']['raise'] = True
+        if action:
+            self.app.actions_db.add_action(data=deepcopy(action_dict))
+        action_dict['_id'] = str(action_dict['_id'])
+        action_dict['user_oid'] = str(action_dict['user_oid'])
+        sess['userid'] = str(action_dict['user_oid'])
+        sess['current_action'] = action_dict
+        sess['current_plugin'] = 'dummy'
+        sess['idp_session'] = 'dummy-session'
+        sess['current_step'] = current_step
+        sess['total_steps'] = total_steps
+        if plugin:
+            self.app.plugins['dummy'] = TestingActionPlugin
+
     def test_get_config(self):
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
-                    self.app.actions_db.add_action(data=DUMMY_ACTION)
-                    self.app.plugins['dummy'] = TestingActionPlugin
-                    sess['current_plugin'] = 'dummy'
-                    action_dict = deepcopy(DUMMY_ACTION)
-                    action_dict['_id'] = str(action_dict['_id'])
-                    action_dict['user_oid'] = str(action_dict['user_oid'])
-                    sess['current_action'] = action_dict
+                    self._prepare_session(sess)
                     response = client.get('/config')
                     self.assertEqual(response.status_code, 200)
                     data = json.loads(response.data)
@@ -159,14 +173,7 @@ class ActionsTests(EduidAPITestCase):
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
-                    self.app.plugins['dummy'] = TestingActionPlugin
-                    sess['current_plugin'] = 'dummy'
-                    action_dict = deepcopy(DUMMY_ACTION)
-                    action_dict['params']['raise'] = True
-                    self.app.actions_db.add_action(data=deepcopy(action_dict))
-                    action_dict['_id'] = str(action_dict['_id'])
-                    action_dict['user_oid'] = str(action_dict['user_oid'])
-                    sess['current_action'] = action_dict
+                    self._prepare_session(sess, raises=True)
                     response = client.get('/config')
                     self.assertEqual(response.status_code, 200)
                     data = json.loads(response.data)
@@ -177,14 +184,7 @@ class ActionsTests(EduidAPITestCase):
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
-                    self.app.actions_db.add_action(data=DUMMY_ACTION)
-                    self.app.plugins['dummy'] = TestingActionPlugin
-                    sess['current_plugin'] = 'dummy'
-                    action_dict = deepcopy(DUMMY_ACTION)
-                    action_dict['_id'] = str(action_dict['_id'])
-                    action_dict['user_oid'] = str(action_dict['user_oid'])
-                    sess['userid'] = str(action_dict['user_oid'])
-                    sess['current_action'] = action_dict
+                    self._prepare_session(sess)
                     response = client.get('/get-actions')
                     self.assertEqual(response.status_code, 200)
                     data = json.loads(response.data)
@@ -195,14 +195,7 @@ class ActionsTests(EduidAPITestCase):
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
-                    self.app.plugins['dummy'] = TestingActionPlugin
-                    sess['idp_session'] = 'dummy-session'
-                    sess['current_plugin'] = 'dummy'
-                    action_dict = deepcopy(DUMMY_ACTION)
-                    action_dict['_id'] = str(action_dict['_id'])
-                    action_dict['user_oid'] = str(action_dict['user_oid'])
-                    sess['userid'] = str(action_dict['user_oid'])
-                    sess['current_action'] = action_dict
+                    self._prepare_session(sess, action=False)
                     response = client.get('/get-actions')
                     self.assertEqual(response.status_code, 200)
                     data = json.loads(response.data)
@@ -213,13 +206,7 @@ class ActionsTests(EduidAPITestCase):
     def test_get_actions_no_plugin(self):
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
-                self.app.actions_db.add_action(data=DUMMY_ACTION)
-                sess['current_plugin'] = 'dummy'
-                action_dict = deepcopy(DUMMY_ACTION)
-                action_dict['_id'] = str(action_dict['_id'])
-                action_dict['user_oid'] = str(action_dict['user_oid'])
-                sess['userid'] = str(action_dict['user_oid'])
-                sess['current_action'] = action_dict
+                self._prepare_session(sess, plugin=False)
                 with self.app.test_request_context('/get-actions'):
                     try:
                         response = client.get('/get-actions')
@@ -229,16 +216,7 @@ class ActionsTests(EduidAPITestCase):
     def test_post_action(self):
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
-                self.app.actions_db.add_action(data=DUMMY_ACTION)
-                self.app.plugins['dummy'] = TestingActionPlugin
-                sess['current_plugin'] = 'dummy'
-                action_dict = deepcopy(DUMMY_ACTION)
-                action_dict['_id'] = str(action_dict['_id'])
-                action_dict['user_oid'] = str(action_dict['user_oid'])
-                sess['userid'] = str(action_dict['user_oid'])
-                sess['current_action'] = action_dict
-                sess['current_step'] = 1
-                sess['total_steps'] = 1
+                self._prepare_session(sess)
                 with self.app.test_request_context():
                     response = client.post('/post-action')
                     data = json.loads(response.data)
