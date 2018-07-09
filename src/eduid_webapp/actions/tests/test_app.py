@@ -249,3 +249,19 @@ class ActionsTests(EduidAPITestCase):
                     self.assertEquals(data['type'],
                             'POST_ACTIONS_POST_ACTION_FAIL')
                     self.assertEquals(data['payload']['errors']['field1'], 'field test error')
+
+    def test_post_action_multi_step(self):
+        with self.session_cookie(self.browser) as client:
+            with client.session_transaction() as sess:
+                self._prepare_session(sess, total_steps=2)
+                with self.app.test_request_context():
+                    response = client.post('/post-action')
+                    data = json.loads(response.data)
+                    self.assertEquals(data['payload']['data']['completed'], 'done')
+                    self.assertEquals(data['type'],
+                            'POST_ACTIONS_POST_ACTION_SUCCESS')
+                    response = client.post('/post-action')
+                    data = json.loads(response.data)
+                    self.assertEquals(data['payload']['data']['completed'], 'done')
+                    self.assertEquals(data['type'],
+                            'POST_ACTIONS_POST_ACTION_SUCCESS')
