@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>eduID</title>
+  </head>
+  <body>
+    <noscript>
+      You need to enable JavaScript to run this app.
+    </noscript>
+    <div id="root"></div>
+    <div id="bundle-holder"></div>
+    <div id="data-holder" data-actions-url="{{url}}"></div>
+    <script type="text/javascript">
+        document.onreadystatechange = function () {
+            function tryAgain () {
+                var msg = 'There were problems loading the page, please try again';
+                document.getElementById('bundle-holder').innerHTML = msg;
+            }
+            if (document.readyState === "interactive") {
+                var url = document.getElementById('data-holder').dataset.actionsUrl;
+                var req = new XMLHttpRequest();
+                req.addEventListener('error', tryAgain);
+                req.addEventListener('abort', tryAgain);
+                req.addEventListener('load', function () {
+                    var resp = JSON.parse(req.response);
+                    if (resp.action) {
+                        var script = document.createElement('script');
+                        script.setAttribute('async', true);
+                        script.setAttribute('type', 'text/javascript');
+                        script.setAttribute('src', resp.url);
+                        document.getElementById('bundle-holder').appendChild(script);
+                    } else {
+                        document.location = resp.url;
+                    }
+                });
+                req.open('GET', url);
+                req.send();
+            }
+        }
+    </script>
+  </body>
+</html>

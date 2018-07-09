@@ -35,11 +35,11 @@ import gettext
 
 class ActionError(Exception):
     '''
-    exception to be raised if the action to be performed fails,
-    either in `get_action_body_for_step`, or in `perform_action`.
+    exception to be raised if the action to be performed fails.
     Instantiated with a message that informs about the reason for
     the failure.
-    The message should be translatable by the front end.
+    The message will be sent to the front end and should be
+    translatable by it.
     
     The rm kwarg indicates to the actions app whether it should
     remove the action record from the db when encountering
@@ -50,7 +50,7 @@ class ActionError(Exception):
       if test_some_condition(*args, **kwargs):
           follow_success_code_path(*args2, **kwargs2)
       else:
-          msg = _('Failure condition')
+          msg = 'actionX.errorY'
           raise self.ActionError(msg, rm=boolean_value)
     
     Example code, in the actions app (obj is an action object,
@@ -59,12 +59,12 @@ class ActionError(Exception):
     eduid_userdb.actions.db.ActionsDB)::
 
       try:
-          obj.perform_action(request)
+          obj.perform_step(action)
       except obj.ActionError as exc:
           if exc.remove_action:
               actions_db.remove_action_by_id(action.action_id)
           failure_msg = exc.args[0]
-          # return a 200 Ok with the failure_msg
+          # return a 200 Ok with the failure_msg as the key 'message' in a dict
 
     :param msg: the reason for the failure
     :type msg: unicode
@@ -106,8 +106,7 @@ class ActionPlugin:
 
     class ValidationError(Exception):
         '''
-        exception to be raised if some form doesn't validate,
-        either in `get_action_body_for_step`, or in `perform_action`.
+        exception to be raised if some form doesn't validate.
         Instantiated with a dict of field names to error messages.
 
         :param arg: error messages for each field
@@ -137,38 +136,50 @@ class ActionPlugin:
         '''
 
     @abstractmethod
-    def get_action_body_for_step(self, step_number, action, errors=None):
+    def get_url_for_bundle(self, action):
         '''
-        Return the html form that corresponds to step number
-        `step_number`. If there is some error in the process,
-        raise ActionError.
+        Return the url for the bundle that contains the front-end javascript
+        side of the plugin. To be injected into an index.html file.  If there
+        is some error in the process, raise ActionError.
 
-        :param step_number: the step number
         :param action: the action as retrieved from the eduid_actions db
-        :param errors: validation errors
-        :returns: the html to be presented to the user for the next step
+        :returns: the url
         :raise: ActionPlugin.ActionError
 
-        :type step_number: int
         :type action: dict
-        :type errors: dict
         :rtype: unicode
-
-
         '''
 
     @abstractmethod
-    def perform_action(self, action):
+    def get_config_for_bundle(self, action):
         '''
-        Once the user has completed all steps required to
-        perform this action, we should have all neccesary
-        information in the request that the user sent back
-        in response to the last form.
-        So, here we try to perform the action.
-        If we succeed we return None, and raise ActionError otherwise.
+        Return any configuration parameters needed by the js bundle that
+        contains the front-end javascript side of the plugin. If there
+        is some error in the process, raise ActionError.
 
         :param action: the action as retrieved from the eduid_actions db
+        :returns: the config parameters
+        :raise: ActionPlugin.ActionError
 
         :type action: dict
+        :rtype: dict
+        '''
+
+    @abstractmethod
+    def perform_step(self, action):
+        '''
+        The user has provided some data and needs feedback. The provided data
+        should be in the request, and the action type and current step should
+        be in the session. This may be the last step for this action,
+        or an intermediate one. This method has the responsibility of updating
+        or removing the action from the db.
+
+        If there are no errors, we return any data we may need to send to the
+        user, and raise ActionError otherwise.
+
+        :param action: the action as retrieved from the eduid_actions db
+        :type action: dict
+
         :raise: ActionPlugin.ActionError
+        :return: dict
         '''
