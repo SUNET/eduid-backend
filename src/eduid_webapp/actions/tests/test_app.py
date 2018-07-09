@@ -54,13 +54,15 @@ class TestingActionPlugin(ActionPlugin):
         return "http://example.com/plugin.js"
 
     def get_config_for_bundle(self, action):
-        if 'raise' in action.to_dict()['params']:
+        if 'action_error' in action.to_dict()['params']:
             raise self.ActionError('test error')
         return {'setting1': 'dummy'}
 
     def perform_step(self, action):
-        if 'raise' in action.to_dict()['params']:
+        if 'action_error' in action.to_dict()['params']:
             raise self.ActionError('test error')
+        if 'validation_error' in action.to_dict()['params']:
+            raise self.ValidationError({'field1': 'field test error'})
         return {'completed': 'done'}
 
 
@@ -116,6 +118,26 @@ class ActionsTests(EduidAPITestCase):
         client.set_cookie(server_name, key=self.app.config.get('SESSION_COOKIE_NAME'), value=sess._session.token)
         yield client
 
+    def _prepare_session(self, sess, action_error=False, validation_error=False,
+                         total_steps=1, current_step=1, action=True, plugin=True):
+        action_dict = deepcopy(DUMMY_ACTION)
+        if action_error:
+            action_dict['params']['action_error'] = True
+        if validation_error:
+            action_dict['params']['validation_error'] = True
+        if action:
+            self.app.actions_db.add_action(data=deepcopy(action_dict))
+        action_dict['_id'] = str(action_dict['_id'])
+        action_dict['user_oid'] = str(action_dict['user_oid'])
+        sess['userid'] = str(action_dict['user_oid'])
+        sess['current_action'] = action_dict
+        sess['current_plugin'] = 'dummy'
+        sess['idp_session'] = 'dummy-session'
+        sess['current_step'] = current_step
+        sess['total_steps'] = total_steps
+        if plugin:
+            self.app.plugins['dummy'] = TestingActionPlugin
+
     def test_authn_no_data(self):
         response = self.browser.get('/')
         self.assertEqual(response.status_code, 302)
@@ -140,24 +162,6 @@ class ActionsTests(EduidAPITestCase):
                 self.assertEqual(response.status_code, 200)
                 self.assertTrue('bundle-holder' in response.data)
 
-    def _prepare_session(self, sess, raises=False, action=True, plugin=True,
-                         total_steps=1, current_step=1):
-        action_dict = deepcopy(DUMMY_ACTION)
-        if raises:
-            action_dict['params']['raise'] = True
-        if action:
-            self.app.actions_db.add_action(data=deepcopy(action_dict))
-        action_dict['_id'] = str(action_dict['_id'])
-        action_dict['user_oid'] = str(action_dict['user_oid'])
-        sess['userid'] = str(action_dict['user_oid'])
-        sess['current_action'] = action_dict
-        sess['current_plugin'] = 'dummy'
-        sess['idp_session'] = 'dummy-session'
-        sess['current_step'] = current_step
-        sess['total_steps'] = total_steps
-        if plugin:
-            self.app.plugins['dummy'] = TestingActionPlugin
-
     def test_get_config(self):
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
@@ -173,7 +177,7 @@ class ActionsTests(EduidAPITestCase):
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
-                    self._prepare_session(sess, raises=True)
+                    self._prepare_session(sess, action_error=True)
                     response = client.get('/config')
                     self.assertEqual(response.status_code, 200)
                     data = json.loads(response.data)
@@ -224,13 +228,24 @@ class ActionsTests(EduidAPITestCase):
                     self.assertEquals(data['type'],
                             'POST_ACTIONS_POST_ACTION_SUCCESS')
 
-    def test_post_action_raises(self):
+    def test_post_action_action_error(self):
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
-                self._prepare_session(sess, raises=True)
+                self._prepare_session(sess, action_error=True)
                 with self.app.test_request_context():
                     response = client.post('/post-action')
                     data = json.loads(response.data)
                     self.assertEquals(data['type'],
                             'POST_ACTIONS_POST_ACTION_FAIL')
                     self.assertEquals(data['payload']['message'], 'test error')
+
+    def test_post_action_validation_error(self):
+        with self.session_cookie(self.browser) as client:
+            with client.session_transaction() as sess:
+                self._prepare_session(sess, validation_error=True)
+                with self.app.test_request_context():
+                    response = client.post('/post-action')
+                    data = json.loads(response.data)
+                    self.assertEquals(data['type'],
+                            'POST_ACTIONS_POST_ACTION_FAIL')
+                    self.assertEquals(data['payload']['errors']['field1'], 'field test error')
