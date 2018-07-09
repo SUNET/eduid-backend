@@ -145,8 +145,7 @@ def post_action():
                 'data': data
                 }
 
-    next_step = session['current_step'] + 1
-    session['current_step'] = next_step
+    session['current_step'] += 1
 
     return {
             'data': data
