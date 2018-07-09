@@ -58,7 +58,7 @@ class TestingActionPlugin(ActionPlugin):
             raise self.ActionError('test error')
         return {'setting1': 'dummy'}
 
-    def perform_step(action):
+    def perform_step(self, action):
         return {'completed': 'done'}
 
 
@@ -225,3 +225,22 @@ class ActionsTests(EduidAPITestCase):
                         response = client.get('/get-actions')
                     except InternalServerError:
                         pass
+
+    def test_post_action(self):
+        with self.session_cookie(self.browser) as client:
+            with client.session_transaction() as sess:
+                self.app.actions_db.add_action(data=DUMMY_ACTION)
+                self.app.plugins['dummy'] = TestingActionPlugin
+                sess['current_plugin'] = 'dummy'
+                action_dict = deepcopy(DUMMY_ACTION)
+                action_dict['_id'] = str(action_dict['_id'])
+                action_dict['user_oid'] = str(action_dict['user_oid'])
+                sess['userid'] = str(action_dict['user_oid'])
+                sess['current_action'] = action_dict
+                sess['current_step'] = 1
+                sess['total_steps'] = 1
+                with self.app.test_request_context():
+                    response = client.post('/post-action')
+                    data = json.loads(response.data)
+                    self.assertEquals(data['payload']['data']['completed'], 'done')
+                    self.assertEquals(data['type'], 'POST_ACTIONS_POST_ACTION_SUCCESS')
