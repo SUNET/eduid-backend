@@ -258,18 +258,47 @@ class ActionsTests(EduidAPITestCase):
             with client.session_transaction() as sess:
                 self._prepare_session(sess)
                 with self.app.test_request_context():
-                    response = client.post('/post-action')
+                    token = {'csrf_token': sess.get_csrf_token()}
+                    response = client.post('/post-action',
+                            data=json.dumps(token),
+                            content_type=self.content_type_json)
                     data = json.loads(response.data)
                     self.assertEquals(data['payload']['data']['completed'], 'done')
                     self.assertEquals(data['type'],
                             'POST_ACTIONS_POST_ACTION_SUCCESS')
+
+    def test_post_action_no_csrf(self):
+        with self.session_cookie(self.browser) as client:
+            with client.session_transaction() as sess:
+                self._prepare_session(sess)
+                with self.app.test_request_context():
+                    response = client.post('/post-action')
+                    data = json.loads(response.data)
+                    self.assertEquals(response.status_code, 400)
+                    self.assertEquals(data['message'], 'Bad Request')
+
+    def test_post_action_wrong_csrf(self):
+        with self.session_cookie(self.browser) as client:
+            with client.session_transaction() as sess:
+                self._prepare_session(sess)
+                with self.app.test_request_context():
+                    token = {'csrf_token': 'wrong code'}
+                    response = client.post('/post-action',
+                            data=json.dumps(token),
+                            content_type=self.content_type_json)
+                    data = json.loads(response.data)
+                    self.assertEquals(response.status_code, 400)
+                    self.assertEquals(data['message'], 'Bad Request')
 
     def test_post_action_action_error(self):
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
                 self._prepare_session(sess, action_error=True)
                 with self.app.test_request_context():
-                    response = client.post('/post-action')
+                    token = {'csrf_token': sess.get_csrf_token()}
+                    response = client.post('/post-action',
+                            data=json.dumps(token),
+                            content_type=self.content_type_json)
                     data = json.loads(response.data)
                     self.assertEquals(data['type'],
                             'POST_ACTIONS_POST_ACTION_FAIL')
@@ -280,7 +309,10 @@ class ActionsTests(EduidAPITestCase):
             with client.session_transaction() as sess:
                 self._prepare_session(sess, validation_error=True)
                 with self.app.test_request_context():
-                    response = client.post('/post-action')
+                    token = {'csrf_token': sess.get_csrf_token()}
+                    response = client.post('/post-action',
+                            data=json.dumps(token),
+                            content_type=self.content_type_json)
                     data = json.loads(response.data)
                     self.assertEquals(data['type'],
                             'POST_ACTIONS_POST_ACTION_FAIL')
@@ -291,12 +323,18 @@ class ActionsTests(EduidAPITestCase):
             with client.session_transaction() as sess:
                 self._prepare_session(sess, total_steps=2)
                 with self.app.test_request_context():
-                    response = client.post('/post-action')
+                    token = {'csrf_token': sess.get_csrf_token()}
+                    response = client.post('/post-action',
+                            data=json.dumps(token),
+                            content_type=self.content_type_json)
                     data = json.loads(response.data)
                     self.assertEquals(data['payload']['data']['completed'], 'done')
                     self.assertEquals(data['type'],
                             'POST_ACTIONS_POST_ACTION_SUCCESS')
-                    response = client.post('/post-action')
+                    token = {'csrf_token': data['payload']['csrf_token']}
+                    response = client.post('/post-action',
+                            data=json.dumps(token),
+                            content_type=self.content_type_json)
                     data = json.loads(response.data)
                     self.assertEquals(data['payload']['data']['completed'], 'done')
                     self.assertEquals(data['type'],
@@ -307,7 +345,10 @@ class ActionsTests(EduidAPITestCase):
             with client.session_transaction() as sess:
                 self._prepare_session(sess, rm_action=True)
                 with self.app.test_request_context():
-                    response = client.post('/post-action')
+                    token = {'csrf_token': sess.get_csrf_token()}
+                    response = client.post('/post-action',
+                            data=json.dumps(token),
+                            content_type=self.content_type_json)
                     data = json.loads(response.data)
                     self.assertEquals(data['type'],
                             'POST_ACTIONS_POST_ACTION_FAIL')

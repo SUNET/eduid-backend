@@ -105,7 +105,11 @@ def get_actions():
                                                     session['userid']))
     try:
         url = plugin_obj.get_url_for_bundle(action)
-        return json.dumps({'action': True, 'url': url})
+        return json.dumps({'action': True,
+                           'url': url,
+                           'payload': {
+                               'csrf_token': session.new_csrf_token()
+                               }})
     except plugin_obj.ActionError as exc:
         _aborted(action, exc)
         abort(500)
@@ -114,6 +118,9 @@ def get_actions():
 @actions_views.route('/post-action', methods=['POST'])
 @MarshalWith(FluxStandardAction)
 def post_action():
+    if not request.data or \
+            session.get_csrf_token() != json.loads(request.data)['csrf_token']:
+        abort(400)
     action_type = session['current_plugin']
     plugin_obj = current_app.plugins[action_type]()
     action = Action(data=session['current_action'])
@@ -134,6 +141,7 @@ def post_action():
         return {
                 '_status': 'error',
                 'errors': errors,
+                'csrf_token': session.new_csrf_token()
                 }
 
     if session['total_steps'] == session['current_step']:
@@ -142,13 +150,15 @@ def post_action():
                                                         session['userid']))
         return {
                 'message': 'actions.action-completed',
-                'data': data
+                'data': data,
+                'csrf_token': session.new_csrf_token()
                 }
 
     session['current_step'] += 1
 
     return {
-            'data': data
+            'data': data,
+            'csrf_token': session.new_csrf_token()
             }
 
 
