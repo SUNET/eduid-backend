@@ -2,6 +2,9 @@
 
 from __future__ import absolute_import
 
+import operator
+from jinja2.exceptions import UndefinedError
+
 from eduid_common.api.app import eduid_init_app
 from eduid_common.api.utils import urlappend
 from eduid_userdb.support import db
@@ -14,6 +17,23 @@ def register_template_funcs(app):
         if not value:
             return ''
         return value.strftime(format)
+
+    @app.template_filter('multisort')
+    def sort_multi(l, *operators, **kwargs):
+        # Don't try to sort on missing keys
+        keys = list(operators)  # operators is immutable
+        for key in operators:
+            for item in l:
+                if key not in item:
+                    app.logger.debug('Removed key {} before sorting.'.format(key))
+                    keys.remove(key)
+                    break
+        reverse = kwargs.pop('reverse', False)
+        try:
+            l.sort(key=operator.itemgetter(*keys), reverse=reverse)
+        except UndefinedError:  # attribute did not exist
+            l = list()
+        return l
 
     return app
 
