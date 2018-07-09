@@ -61,6 +61,8 @@ class TestingActionPlugin(ActionPlugin):
     def perform_step(self, action):
         if 'action_error' in action.to_dict()['params']:
             raise self.ActionError('test error')
+        if 'rm_action' in action.to_dict()['params']:
+            raise self.ActionError('test error', rm=True)
         if 'validation_error' in action.to_dict()['params']:
             raise self.ValidationError({'field1': 'field test error'})
         return {'completed': 'done'}
@@ -118,11 +120,13 @@ class ActionsTests(EduidAPITestCase):
         client.set_cookie(server_name, key=self.app.config.get('SESSION_COOKIE_NAME'), value=sess._session.token)
         yield client
 
-    def _prepare_session(self, sess, action_error=False, validation_error=False,
+    def _prepare_session(self, sess, action_error=False, rm_action=False, validation_error=False,
                          total_steps=1, current_step=1, action=True, plugin=True):
         action_dict = deepcopy(DUMMY_ACTION)
         if action_error:
             action_dict['params']['action_error'] = True
+        if rm_action:
+            action_dict['params']['rm_action'] = True
         if validation_error:
             action_dict['params']['validation_error'] = True
         if action:
@@ -265,3 +269,15 @@ class ActionsTests(EduidAPITestCase):
                     self.assertEquals(data['payload']['data']['completed'], 'done')
                     self.assertEquals(data['type'],
                             'POST_ACTIONS_POST_ACTION_SUCCESS')
+
+    def test_post_action_rm_action(self):
+        with self.session_cookie(self.browser) as client:
+            with client.session_transaction() as sess:
+                self._prepare_session(sess, rm_action=True)
+                with self.app.test_request_context():
+                    response = client.post('/post-action')
+                    data = json.loads(response.data)
+                    self.assertEquals(data['type'],
+                            'POST_ACTIONS_POST_ACTION_FAIL')
+                    self.assertEquals(data['payload']['message'], 'test error')
+                    self.assertFalse(self.app.actions_db.has_actions(sess['userid']))
