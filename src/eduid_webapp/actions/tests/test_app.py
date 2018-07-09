@@ -51,6 +51,8 @@ class TestingActionPlugin(ActionPlugin):
         return 1
 
     def get_url_for_bundle(self, action):
+        if 'action_error' in action.to_dict()['params']:
+            raise self.ActionError('test error')
         return "http://example.com/plugin.js"
 
     def get_config_for_bundle(self, action):
@@ -198,6 +200,16 @@ class ActionsTests(EduidAPITestCase):
                     data = json.loads(response.data)
                     self.assertTrue(data['action'])
                     self.assertEquals(data['url'], "http://example.com/plugin.js")
+
+    def test_get_actions_action_error(self):
+        with self.session_cookie(self.browser) as client:
+            with client.session_transaction() as sess:
+                self._prepare_session(sess, action_error=True)
+                with self.app.test_request_context('/get-actions'):
+                    try:
+                        response = client.get('/get-actions')
+                    except InternalServerError:
+                        pass
 
     def test_get_actions_no_action(self):
         with self.session_cookie(self.browser) as client:
