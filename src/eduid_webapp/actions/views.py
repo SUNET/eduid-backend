@@ -82,6 +82,7 @@ def get_config():
     action = Action(data=session['current_action'])
     try:
         config = plugin_obj.get_config_for_bundle(action)
+        config['csrf_token'] = session.new_csrf_token()
         return config
     except plugin_obj.ActionError as exc:
         return {
@@ -94,7 +95,12 @@ def get_config():
 def get_actions():
     actions = get_next_action()
     if not actions['action']:
-        return json.dumps({'action': False, 'url': actions['idp_url']})
+        return json.dumps({'action': False,
+                           'url': actions['idp_url'],
+                           'payload': {
+                               'csrf_token': session.new_csrf_token()
+                               }
+                           })
     action_type = session['current_plugin']
     plugin_obj = current_app.plugins[action_type]()
     action = Action(data=session['current_action'])
