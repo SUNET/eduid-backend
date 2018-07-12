@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2016 NORDUnet A/S
+# Copyright (c) 2018 NORDUnet A/S
 # All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or
@@ -32,117 +32,13 @@
 
 import json
 import time
-from copy import deepcopy
-from contextlib import contextmanager
 from hashlib import sha256
-from bson import ObjectId
-from mock import patch
 from werkzeug.exceptions import InternalServerError, Forbidden
-from flask import Flask
 
-from eduid_common.api.testing import EduidAPITestCase
-from eduid_webapp.actions.app import actions_init_app
-from eduid_webapp.actions.action_abc import ActionPlugin
+from eduid_webapp.actions.testing import ActionsTestCase
 
 
-class TestingActionPlugin(ActionPlugin):
-
-    def get_number_of_steps(self):
-        return 1
-
-    def get_url_for_bundle(self, action):
-        if 'action_error' in action.to_dict()['params']:
-            raise self.ActionError('test error')
-        return "http://example.com/plugin.js"
-
-    def get_config_for_bundle(self, action):
-        if 'action_error' in action.to_dict()['params']:
-            raise self.ActionError('test error')
-        return {'setting1': 'dummy'}
-
-    def perform_step(self, action):
-        if 'action_error' in action.to_dict()['params']:
-            raise self.ActionError('test error')
-        if 'rm_action' in action.to_dict()['params']:
-            raise self.ActionError('test error', rm=True)
-        if 'validation_error' in action.to_dict()['params']:
-            raise self.ValidationError({'field1': 'field test error'})
-        return {'completed': 'done'}
-
-
-DUMMY_ACTION = {
-    '_id': ObjectId('234567890123456789012301'),
-    'user_oid': ObjectId('123467890123456789014567'),
-    'action': 'dummy',
-    'preference': 100, 
-    'params': {
-    }
-}
-
-
-class ActionsTests(EduidAPITestCase):
-
-    def load_app(self, config):
-        """
-        Called from the parent class, so we can provide the appropiate flask
-        app for this test case.
-        """
-        return actions_init_app('actions', config)
-
-    def update_config(self, config):
-        config.update({
-            'AVAILABLE_LANGUAGES': {'en': 'English','sv': 'Svenska'},
-            'DASHBOARD_URL': '/profile/',
-            'DEVELOPMENT': 'DEBUG',
-            'APPLICATION_ROOT': '/',
-            'LOG_LEVEL': 'DEBUG',
-            'AM_BROKER_URL': 'amqp://eduid:eduid_pw@rabbitmq/am',
-            'MSG_BROKER_URL': 'amqp://eduid:eduid_pw@rabbitmq/msg',
-            'TOKEN_LOGIN_SHARED_KEY': 'shared_secret_Eifool0ua0eiph7ooch0',
-            'CELERY_CONFIG': {
-                'CELERY_RESULT_BACKEND': 'amqp',
-                'CELERY_TASK_SERIALIZER': 'json',
-                'MONGO_URI': config['MONGO_URI'],
-            },
-            'IDP_URL': 'https://example.com/idp',
-            'PRESERVE_CONTEXT_ON_EXCEPTION': False
-        })
-        return config
-
-    def tearDown(self):
-        super(ActionsTests, self).tearDown()
-        with self.app.app_context():
-            self.app.central_userdb._drop_whole_collection()
-            self.app.actions_db._drop_whole_collection()
-
-    @contextmanager
-    def session_cookie(self, client, server_name='localhost'):
-        with client.session_transaction() as sess:
-            sess.persist()
-        client.set_cookie(server_name, key=self.app.config.get('SESSION_COOKIE_NAME'), value=sess._session.token)
-        yield client
-
-    def _prepare_session(self, sess, action_error=False, rm_action=False, validation_error=False,
-                         total_steps=1, current_step=1, action=True, plugin=True):
-        action_dict = deepcopy(DUMMY_ACTION)
-        if action_error:
-            action_dict['params']['action_error'] = True
-        if rm_action:
-            action_dict['params']['rm_action'] = True
-        if validation_error:
-            action_dict['params']['validation_error'] = True
-        if action:
-            self.app.actions_db.add_action(data=deepcopy(action_dict))
-        action_dict['_id'] = str(action_dict['_id'])
-        action_dict['user_oid'] = str(action_dict['user_oid'])
-        sess['userid'] = str(action_dict['user_oid'])
-        sess['current_action'] = action_dict
-        sess['current_plugin'] = 'dummy'
-        sess['idp_session'] = 'dummy-session'
-        sess['current_step'] = current_step
-        sess['total_steps'] = total_steps
-        if plugin:
-            self.app.plugins['dummy'] = TestingActionPlugin
+class ActionsTests(ActionsTestCase):
 
     def test_authn_no_data(self):
         response = self.browser.get('/')
@@ -235,7 +131,7 @@ class ActionsTests(EduidAPITestCase):
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
-                    self._prepare_session(sess, action=False)
+                    self._prepare_session(sess, add_action=False)
                     response = client.get('/get-actions')
                     self.assertEqual(response.status_code, 200)
                     data = json.loads(response.data)
