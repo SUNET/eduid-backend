@@ -77,7 +77,10 @@ def authn():
 @actions_views.route('/config', methods=['GET'])
 @MarshalWith(FluxStandardAction)
 def get_config():
-    action_type = session['current_plugin']
+    try:
+        action_type = session['current_plugin']
+    except KeyError:
+        abort(403)
     plugin_obj = current_app.plugins[action_type]()
     action = Action(data=session['current_action'])
     try:

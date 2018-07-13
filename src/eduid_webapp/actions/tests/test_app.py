@@ -50,19 +50,9 @@ class ActionsTests(ActionsTestCase):
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
-                    eppn = 'dummy-eppn'
-                    nonce = 'dummy-nonce-xxxx'
-                    timestamp = str(hex(int(time.time())))
-                    shared_key = self.app.config.get('TOKEN_LOGIN_SHARED_KEY')
-                    token = sha256('{0}|{1}|{2}|{3}'.format(
-                                   shared_key, eppn, nonce, timestamp)).hexdigest()
-                url = '/?userid={}&token={}&nonce={}&ts={}'.format(eppn,
-                                                                   token,
-                                                                   nonce,
-                                                                   timestamp)
-                response = client.get(url)
-                self.assertEqual(response.status_code, 200)
-                self.assertTrue('bundle-holder' in response.data)
+                    response = self.authenticate(client, sess)
+                    self.assertEqual(response.status_code, 200)
+                    self.assertTrue('bundle-holder' in response.data)
 
     def test_authn_wrong_secret(self):
         with self.session_cookie(self.browser) as client:
@@ -88,7 +78,7 @@ class ActionsTests(ActionsTestCase):
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
-                    self._prepare_session(sess)
+                    self.prepare_session(sess)
                     response = client.get('/config')
                     self.assertEqual(response.status_code, 200)
                     data = json.loads(response.data)
@@ -99,7 +89,7 @@ class ActionsTests(ActionsTestCase):
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
-                    self._prepare_session(sess, action_error=True)
+                    self.prepare_session(sess, action_error=True)
                     response = client.get('/config')
                     self.assertEqual(response.status_code, 200)
                     data = json.loads(response.data)
@@ -110,7 +100,7 @@ class ActionsTests(ActionsTestCase):
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
-                    self._prepare_session(sess)
+                    self.prepare_session(sess)
                     response = client.get('/get-actions')
                     self.assertEqual(response.status_code, 200)
                     data = json.loads(response.data)
@@ -120,7 +110,7 @@ class ActionsTests(ActionsTestCase):
     def test_get_actions_action_error(self):
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
-                self._prepare_session(sess, action_error=True)
+                self.prepare_session(sess, action_error=True)
                 with self.app.test_request_context('/get-actions'):
                     try:
                         response = client.get('/get-actions')
@@ -131,7 +121,7 @@ class ActionsTests(ActionsTestCase):
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
-                    self._prepare_session(sess, add_action=False)
+                    self.prepare_session(sess, add_action=False)
                     response = client.get('/get-actions')
                     self.assertEqual(response.status_code, 200)
                     data = json.loads(response.data)
@@ -142,7 +132,7 @@ class ActionsTests(ActionsTestCase):
     def test_get_actions_no_plugin(self):
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
-                self._prepare_session(sess, plugin=False)
+                self.prepare_session(sess, set_plugin=False)
                 with self.app.test_request_context('/get-actions'):
                     try:
                         response = client.get('/get-actions')
@@ -152,7 +142,7 @@ class ActionsTests(ActionsTestCase):
     def test_post_action(self):
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
-                self._prepare_session(sess)
+                self.prepare_session(sess)
                 with self.app.test_request_context():
                     token = {'csrf_token': sess.get_csrf_token()}
                     response = client.post('/post-action',
@@ -166,7 +156,7 @@ class ActionsTests(ActionsTestCase):
     def test_post_action_no_csrf(self):
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
-                self._prepare_session(sess)
+                self.prepare_session(sess)
                 with self.app.test_request_context():
                     response = client.post('/post-action')
                     data = json.loads(response.data)
@@ -176,7 +166,7 @@ class ActionsTests(ActionsTestCase):
     def test_post_action_wrong_csrf(self):
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
-                self._prepare_session(sess)
+                self.prepare_session(sess)
                 with self.app.test_request_context():
                     token = {'csrf_token': 'wrong code'}
                     response = client.post('/post-action',
@@ -189,7 +179,7 @@ class ActionsTests(ActionsTestCase):
     def test_post_action_action_error(self):
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
-                self._prepare_session(sess, action_error=True)
+                self.prepare_session(sess, action_error=True)
                 with self.app.test_request_context():
                     token = {'csrf_token': sess.get_csrf_token()}
                     response = client.post('/post-action',
@@ -203,7 +193,7 @@ class ActionsTests(ActionsTestCase):
     def test_post_action_validation_error(self):
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
-                self._prepare_session(sess, validation_error=True)
+                self.prepare_session(sess, validation_error=True)
                 with self.app.test_request_context():
                     token = {'csrf_token': sess.get_csrf_token()}
                     response = client.post('/post-action',
@@ -217,7 +207,7 @@ class ActionsTests(ActionsTestCase):
     def test_post_action_multi_step(self):
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
-                self._prepare_session(sess, total_steps=2)
+                self.prepare_session(sess, total_steps=2)
                 with self.app.test_request_context():
                     token = {'csrf_token': sess.get_csrf_token()}
                     response = client.post('/post-action',
@@ -239,7 +229,7 @@ class ActionsTests(ActionsTestCase):
     def test_post_action_rm_action(self):
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
-                self._prepare_session(sess, rm_action=True)
+                self.prepare_session(sess, rm_action=True)
                 with self.app.test_request_context():
                     token = {'csrf_token': sess.get_csrf_token()}
                     response = client.post('/post-action',

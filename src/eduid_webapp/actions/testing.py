@@ -31,10 +31,15 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 import json
+import time
+from hashlib import sha256
 from copy import deepcopy
 from contextlib import contextmanager
 from bson import ObjectId
+from datetime import datetime
 
+from eduid_userdb.userdb import User
+from eduid_userdb.testing import MOCKED_USER_STANDARD
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_webapp.actions.app import actions_init_app
 from eduid_webapp.actions.action_abc import ActionPlugin
@@ -88,11 +93,26 @@ TEST_CONFIG = {
         'CELERY_TASK_SERIALIZER': 'json',
     },
     'IDP_URL': 'https://example.com/idp',
-    'PRESERVE_CONTEXT_ON_EXCEPTION': False
+    'PRESERVE_CONTEXT_ON_EXCEPTION': False,
+    'BUNDLES_URL': 'http://example.com/bundles/',
+    'DEBUG': True,
 }
 
 
 class ActionsTestCase(EduidAPITestCase):
+
+    def setUp(self):
+        super(ActionsTestCase, self).setUp()
+        user_data = deepcopy(MOCKED_USER_STANDARD)
+        user_data['modified_ts'] = datetime.utcnow()
+        self.user = User(data=user_data)
+        self.app.central_userdb.save(self.user, check_sync=False)
+        self.test_user_id = '012345678901234567890123'
+
+    def tearDown(self):
+        self.app.central_userdb._drop_whole_collection()
+        self.app.actions_db._drop_whole_collection()
+        super(ActionsTestCase, self).tearDown()
 
     def load_app(self, config):
         """
@@ -127,8 +147,9 @@ class ActionsTestCase(EduidAPITestCase):
         client.set_cookie(server_name, key=self.app.config.get('SESSION_COOKIE_NAME'), value=sess._session.token)
         yield client
 
-    def _prepare_session(self, sess, action_dict=None, rm_action=False, validation_error=False,
-                         action_error=False, total_steps=1, current_step=1, add_action=True, plugin=True):
+    def prepare_session(self, sess, action_dict=None, rm_action=False, validation_error=False,
+                         action_error=False, total_steps=1, current_step=1, add_action=True,
+                         set_plugin=True, plugin_name='dummy', plugin_class=TestingActionPlugin):
         if action_dict is None:
             action_dict = deepcopy(DUMMY_ACTION)
         if action_error:
@@ -143,9 +164,24 @@ class ActionsTestCase(EduidAPITestCase):
         action_dict['user_oid'] = str(action_dict['user_oid'])
         sess['userid'] = str(action_dict['user_oid'])
         sess['current_action'] = action_dict
-        sess['current_plugin'] = 'dummy'
+        sess['current_plugin'] = plugin_name
         sess['idp_session'] = 'dummy-session'
         sess['current_step'] = current_step
         sess['total_steps'] = total_steps
-        if plugin:
-            self.app.plugins['dummy'] = TestingActionPlugin
+        if set_plugin:
+            self.app.plugins[plugin_name] = plugin_class
+
+    def authenticate(self, client, sess, shared_key=None):
+        userid = self.test_user_id
+        nonce = 'dummy-nonce-xxxx'
+        timestamp = str(hex(int(time.time())))
+        if shared_key is None:
+            shared_key = self.app.config.get('TOKEN_LOGIN_SHARED_KEY')
+        token = sha256('{0}|{1}|{2}|{3}'.format(
+                       shared_key, userid, nonce, timestamp)).hexdigest()
+        url = '/?userid={}&token={}&nonce={}&ts={}'.format(userid,
+                                                           token,
+                                                           nonce,
+                                                           timestamp)
+        response = client.get(url)
+        return response
