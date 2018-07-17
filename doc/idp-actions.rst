@@ -168,11 +168,12 @@ To achieve this, each action plugin will need the following pieces:
 4. A plugin for the attribute manager that will be able to gather all the data
    that the manager needs to store in the central db.
 
-Each action will be defined in a plugin, a package that contains Python code
-that is accessed through setuptools entry points, and Javascript code that is
-provided to webpack to be bundled and served.
+Each action will be defined in a plugin, which consists of 2 parts: a Python
+package with name `eduid_action.<xxx>` that resides in the `eduid-action` repo,
+whose code is accessed through setuptools entry points, and Javascript code
+that resides in the `eduid-front` repo.
 
-These plugins can define 4 different setuptools entry points:
+These plugins can define 4 different Python setuptools entry points:
 one for adding new actions, another for acting upon a pending action, and
 2 others for updating the central user db with any new data that may have
 been collected when performing the action.
@@ -215,13 +216,8 @@ Javascript code
 ---------------
 
 The Javascript code that governs the specific workflow for each particular
-action is located on a `js/` sub-directory of the repository that holds the
-plugin code. This directory has to be copied to the eduid-front deployment that
-is used to build and serve all the client side react apps, under the `plugins/`
-directory, with the same name as the plugin package. For example, with the
-`eduid_action.tou` plugin::
-
-    $ cp /<path>/<to>/eduid_action.tou/js /<path>/<to>/eduid-front/plugins/eduid_action.tou
+action is located on the eduid-front repo, under a directory
+`plugins/<plugin-name>/`.
 
 The bundle for each plugin will have a name like the package that contains it
 (e.g., `eduid_action.tou.js`), and all will be served from the same base URL.
@@ -242,10 +238,8 @@ The Python tests may use a test case defined in
 facility may be run in a virtualenv where eduid_webapp and its dependencies
 have been installed.
 
-The Javascript tests may be developed as usual, and they may be executed in the
-same place where they are bundled, i.e., within the `eduid-front/plugins/`
-directory, with the same command that will execute the tests proper for
-eduid-front::
+The Javascript tests may be developed as usual, and they may be executed
+together with all the rest of tests in eduid-front::
 
   $ npm run test-headless
 
