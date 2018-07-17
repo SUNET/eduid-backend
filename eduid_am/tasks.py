@@ -25,20 +25,20 @@ class PluginsRegistry(object):
         self.context = dict()
         self.attribute_fetcher = dict()
 
-        for entry_point in iter_entry_points('eduid_am.plugin_init'):
-            if entry_point.name in self.context:
-                logger.warn('Duplicate plugin_init entry point: {!r}'.format(entry_point.name))
-            else:
-                logger.debug('Calling plugin_init entry point for {!r}'.format(entry_point.name))
-                plugin_init = entry_point.load()
-                self.context[entry_point.name] = plugin_init(am_conf)
 
-        for entry_point in iter_entry_points('eduid_am.attribute_fetcher'):
-            if entry_point.name in self.attribute_fetcher:
-                logger.warn('Duplicate attribute_fetcher entry point: {!r}'.format(entry_point.name))
-            else:
-                logger.debug('Registering attribute_fetcher entry point for {!r}'.format(entry_point.name))
-                self.attribute_fetcher[entry_point.name] = entry_point.load()
+        for plugin_name in am_conf.get('ACTION_PLUGINS', []):
+            try:
+                plugin_module = import_module('eduid_action.{}.am'.format(plugin_name))
+            except ImportError:
+                logger.warn('Configured plugin {} missing from sys.path'.format(plugin_name))
+                continue
+            logger.debug("Registering action plugin: %s" % plugin_name)
+
+            plugin_init = getattr(plugin_module, 'plugin_init')
+            self.context[plugin_name] = plugin_init(am_conf)
+
+            attr_fetcher = getattr(plugin_module, 'attribute_fetcher')
+            self.attribute_fetcher[plugin_name] = attr_fetcher
 
 
 class AttributeManager(Task):
