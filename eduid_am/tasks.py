@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from importlib import import_module
+
 from celery import Task
 from celery.utils.log import get_task_logger
 
