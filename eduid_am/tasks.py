@@ -42,6 +42,21 @@ class PluginsRegistry(object):
             attr_fetcher = getattr(plugin_module, 'attribute_fetcher')
             self.attribute_fetcher[plugin_name] = attr_fetcher
 
+        for entry_point in iter_entry_points('eduid_am.plugin_init'):
+            if entry_point.name in self.context:
+                logger.warn('Duplicate plugin_init entry point: {!r}'.format(entry_point.name))
+            else:
+                logger.debug('Calling plugin_init entry point for {!r}'.format(entry_point.name))
+                plugin_init = entry_point.load()
+                self.context[entry_point.name] = plugin_init(am_conf)
+
+        for entry_point in iter_entry_points('eduid_am.attribute_fetcher'):
+            if entry_point.name in self.attribute_fetcher:
+                logger.warn('Duplicate attribute_fetcher entry point: {!r}'.format(entry_point.name))
+            else:
+                logger.debug('Registering attribute_fetcher entry point for {!r}'.format(entry_point.name))
+                self.attribute_fetcher[entry_point.name] = entry_point.load()
+
 
 class AttributeManager(Task):
     """Singleton that stores reusable objects like the entry points registry
