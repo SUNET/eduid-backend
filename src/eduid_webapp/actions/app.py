@@ -32,8 +32,7 @@
 #
 
 from __future__ import absolute_import
-
-from pkg_resources import iter_entry_points
+from importlib import import_module
 
 from eduid_common.authn.middleware import UnAuthnApp
 from eduid_common.api.app import eduid_init_app
@@ -43,13 +42,14 @@ from eduid_userdb.actions import ActionDB
 
 class PluginsRegistry(dict):
 
-    def __init__(self, logger):
-        for entry_point in iter_entry_points('eduid_actions.action'):
-            if entry_point.name in self:
-                logger.warn("Duplicate entry point: %s" % entry_point.name)
+    def __init__(self, app):
+        for plugin_name in app.config.get('ACTION_PLUGINS', []):
+            if plugin_name in self:
+                app.logger.warn("Duplicate entry point: %s" % plugin_name)
             else:
-                logger.debug("Registering entry point: %s" % entry_point.name)
-                self[entry_point.name] = entry_point.load()
+                app.logger.debug("Registering entry point: %s" % plugin_name)
+                module = import_module('eduid_action.{}.action'.format(plugin_name))
+                self[plugin_name] = getattr(module, 'Plugin')
 
 
 def actions_init_app(name, config):
@@ -87,7 +87,7 @@ def actions_init_app(name, config):
 
     app.actions_db = ActionDB(app.config['MONGO_URI'])
 
-    app.plugins = PluginsRegistry(app.logger)
+    app.plugins = PluginsRegistry(app)
     for plugin in app.plugins.values():
         plugin.includeme(app)
 
