@@ -35,7 +35,7 @@ import time
 from hashlib import sha256
 from werkzeug.exceptions import InternalServerError, Forbidden
 
-from eduid_webapp.actions.testing import ActionsTestCase
+from eduid_action.common.testing import ActionsTestCase
 
 
 class ActionsTests(ActionsTestCase):
