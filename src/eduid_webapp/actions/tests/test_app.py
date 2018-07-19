@@ -41,7 +41,7 @@ NEW_ACTIONS = True
 try:
     from eduid_action.common.testing import ActionsTestCase
 except ImportError:
-    ActionsTestCase = None
+    class ActionsTestCase: pass
     NEW_ACTIONS = False
 
 
