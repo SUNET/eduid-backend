@@ -38,12 +38,6 @@ from eduid_common.api import am
 from eduid_userdb.personal_data import PersonalDataUserDB
 
 
-try:
-    from urlparse import urljoin
-except ImportError:  # Python3
-    from urllib.parse import urljoin
-
-
 def pd_init_app(name, config):
     """
     Create an instance of an eduid personal data app.
