@@ -25,4 +25,4 @@ extra_jobs:
       cron: null
     upstream:
       - eduid-docker-pythonenv
-      - eduid-msg
+      - eduid_msg
