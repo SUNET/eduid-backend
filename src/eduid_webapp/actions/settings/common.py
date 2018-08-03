@@ -57,5 +57,6 @@ LOG_LEVEL = 'INFO'
 DASHBOARD_URL = '/profile/'
 BUNDLES_URL = 'http://html.eduid.docker/static/front-build/'
 IDP_URL = 'http://idp.eduid.docker:8080/sso/redirect'
+ACTIONS_SERVICE_PREFIX = "/services/actions"
 
 TOKEN_LOGIN_SHARED_KEY = 'supersecret'
