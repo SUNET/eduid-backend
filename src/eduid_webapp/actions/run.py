@@ -35,7 +35,7 @@ from __future__ import absolute_import
 
 from eduid_webapp.actions.app import actions_init_app
 
-name = 'actions'
+name = 'actions2'
 app = actions_init_app(name, {})
 
 if __name__ == '__main__':

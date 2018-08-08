@@ -35,7 +35,7 @@ from __future__ import absolute_import
 
 from eduid_webapp.signup.app import signup_init_app
 
-name = 'signup'
+name = 'signup2'
 app = signup_init_app(name, {})
 
 if __name__ == '__main__':
