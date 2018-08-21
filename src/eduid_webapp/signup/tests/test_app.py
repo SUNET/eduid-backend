@@ -110,7 +110,8 @@ class SignupTests(EduidAPITestCase):
             self.assertEqual(None, config_data['error'])
             self.assertEqual('/profile/',
                     config_data['payload']['dashboard_url'])
-            self.assertEqual('tou', config_data['payload']['tou'])
+            self.assertEqual('test tou english', config_data['payload']['tous']['en'])
+            self.assertEqual('test tou svenska', config_data['payload']['tous']['sv'])
             self.assertEqual(True, config_data['payload']['debug'])
             self.assertEqual({u'en': u'English', u'sv': u'Svenska'},
                     config_data['payload']['available_languages'])
@@ -323,3 +324,16 @@ class SignupTests(EduidAPITestCase):
                     data = json.loads(response.data)
                     self.assertEqual(data['type'],
                             'GET_SIGNUP_VERIFY_LINK_SUCCESS')
+
+    def test_get_tous(self):
+        with self.session_cookie(self.browser) as client:
+            with client.session_transaction() as sess:
+                response = client.get('/get-tous')
+
+                data = json.loads(response.data)
+                self.assertEqual(data['type'],
+                        'GET_SIGNUP_GET_TOUS_SUCCESS')
+                self.assertEqual(data['payload']['en'],
+                        'test tou english')
+                self.assertEqual(data['payload']['sv'],
+                        'test tou svenska')

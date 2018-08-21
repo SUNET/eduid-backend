@@ -537,6 +537,32 @@ variables defined in this way are added by webpack as global variables, so it's
 convenient to prefix them with ``EDUID_``. Also, the string value provided to
 webpack is evaled, so to add an actual string value, it has to be twice quoted.
 
+Showing components with cookies
+...............................
+
+We can configure any component to be shown or not depending on the presence of
+a cookie. To do this, we have to wrap the component in a CookieChecker
+component, that accepts 2 properties: cookieName and cookiePattern. If there is
+a cookie whose name matches the cookieName, and the regexp pattern in
+cookiePattern matches the contents of the cookie, the wrapped component will
+be rendered. The cookiePattern property is optional: if it is absent, the
+mere presence of a cookie with a name matching the value of the cookieName
+property will be enough to trigger rendering.
+
+As an example,
+
+    import CookieChecker from "components/CookieChecker";
+
+    ...
+
+    <CookieChecker cookieName="test-cookie-checker" cookiePattern="test-pattern">
+      <div>Test contents</div>
+    </CookieChecker>
+
+That snippet of JSX will render as "<div>Test contents</div>" only if there is
+a cookie with the name "test-cookie-checker" and its value matches
+"test-pattern".
+
 
 Development of a component
 ..........................

@@ -31,41 +31,16 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
+from marshmallow import fields
+from eduid_common.api.schemas.base import EduidSchema
 
-from __future__ import absolute_import
+__author__ = 'eperez'
 
-"""
-For more built in configuration options see,
-http://flask.pocoo.org/docs/0.10/config/#builtin-configuration-values
-"""
 
-DEBUG = False
-DEVELOPMENT = DEBUG
+class AuthnSchema(EduidSchema):
 
-# Database URIs
-MONGO_URI = ''
-REDIS_HOST = ''
-REDIS_PORT = 6379
-REDIS_DB = 0
-
-APPLICATION_ROOT = None
-
-# Secret key
-SECRET_KEY = ''
-
-# Logging
-LOG_LEVEL = 'INFO'
-
-DASHBOARD_URL = '/profile/'
-
-PASSWORD_LENGTH = 10
-
-VCCS_URL = 'http://localhost:8550/'
-
-TOU_VERSION = '2018-v1'
-
-AUTH_SHARED_SECRET = 'supersecret'
-
-DEFAULT_FINISH_URL = 'https://www.eduid.se/'
-
-CURRENT_TOU_VERSION = 'test-version'
+    userid = fields.String(required=True)
+    token = fields.String(required=True)
+    nonce = fields.String(required=True)
+    timestamp = fields.String(required=True)
+    idp_session = fields.String(required=True)

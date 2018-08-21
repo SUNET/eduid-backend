@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2016 NORDUnet A/S
+# Copyright (c) 2018 NORDUnet A/S
 # All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or
@@ -32,22 +32,39 @@
 #
 
 from __future__ import absolute_import
+from importlib import import_module
 
+from eduid_common.authn.middleware import UnAuthnApp
 from eduid_common.api.app import eduid_init_app
 from eduid_common.api import am
-from eduid_userdb.personal_data import PersonalDataUserDB
+from eduid_userdb.actions import ActionDB
 
 
-def pd_init_app(name, config):
+class PluginsRegistry(dict):
+
+    def __init__(self, app):
+        for plugin_name in app.config.get('ACTION_PLUGINS', []):
+            if plugin_name in self:
+                app.logger.warn("Duplicate entry point: %s" % plugin_name)
+            else:
+                app.logger.debug("Registering entry point: %s" % plugin_name)
+                module = import_module('eduid_action.{}.action'.format(plugin_name))
+                self[plugin_name] = getattr(module, 'Plugin')
+
+
+def actions_init_app(name, config):
     """
-    Create an instance of an eduid personal data app.
+    Create an instance of an eduid actions app.
 
-    First, it will load the configuration from personal_data.settings.common
+    First, it will load the configuration from actions.settings.common
     then any settings given in the `config` param.
 
     Then, the app instance will be updated with common stuff by `eduid_init_app`,
     all needed blueprints will be registered with it,
     and finally the app is configured with the necessary db connections.
+
+    Note that we use UnAuthnApp as the class for the Flask app,
+    since the actions app is used unauthenticated.
 
     :param name: The name of the instance, it will affect the configuration loaded.
     :type name: str
@@ -59,15 +76,20 @@ def pd_init_app(name, config):
     :rtype: flask.Flask
     """
 
-    app = eduid_init_app(name, config)
+    app = eduid_init_app(name, config, app_class=UnAuthnApp)
     app.config.update(config)
+    app.config['CELERY_CONFIG']['MONGO_URI'] = app.config['MONGO_URI']
 
-    from eduid_webapp.personal_data.views import pd_views
-    app.register_blueprint(pd_views)
+    from eduid_webapp.actions.views import actions_views
+    app.register_blueprint(actions_views)
 
-    app = am.init_relay(app, 'eduid_personal_data')
+    app = am.init_relay(app, 'eduid_actions')
 
-    app.private_userdb = PersonalDataUserDB(app.config['MONGO_URI'])
+    app.actions_db = ActionDB(app.config['MONGO_URI'])
+
+    app.plugins = PluginsRegistry(app)
+    for plugin in app.plugins.values():
+        plugin.includeme(app)
 
     app.logger.info('Init {} app...'.format(name))
 

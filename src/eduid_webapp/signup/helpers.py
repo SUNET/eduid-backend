@@ -43,7 +43,7 @@ from flask import current_app, abort
 
 from eduid_common.api.utils import save_and_sync_user
 from eduid_userdb.exceptions import UserOutOfSync
-from eduid_userdb.password import Password
+from eduid_userdb.credentials import Password
 from eduid_userdb.tou import ToUEvent
 from eduid_webapp.signup.vccs import generate_password
 

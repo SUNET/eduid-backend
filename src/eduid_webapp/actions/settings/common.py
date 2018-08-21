@@ -48,24 +48,14 @@ REDIS_HOST = ''
 REDIS_PORT = 6379
 REDIS_DB = 0
 
-APPLICATION_ROOT = None
-
 # Secret key
-SECRET_KEY = ''
+SECRET_KEY = 'supersecretkey'
 
 # Logging
 LOG_LEVEL = 'INFO'
 
 DASHBOARD_URL = '/profile/'
+BUNDLES_URL = 'http://html.eduid.docker/static/front-build/'
+IDP_URL = 'http://idp.eduid.docker:8080/sso/redirect'
 
-PASSWORD_LENGTH = 10
-
-VCCS_URL = 'http://localhost:8550/'
-
-TOU_VERSION = '2018-v1'
-
-AUTH_SHARED_SECRET = 'supersecret'
-
-DEFAULT_FINISH_URL = 'https://www.eduid.se/'
-
-CURRENT_TOU_VERSION = 'test-version'
+TOKEN_LOGIN_SHARED_KEY = 'supersecret'
