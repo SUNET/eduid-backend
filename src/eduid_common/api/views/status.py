@@ -33,47 +33,97 @@
 
 from __future__ import absolute_import
 
-from flask import json
-from flask import Blueprint, current_app, request, abort
 import redis
+from flask import jsonify
+from flask import Blueprint, current_app
 
-from eduid_userd.db import BaseDB
 from eduid_common.session.session import get_redis_pool
 
 
-status_views = Blueprint('status', __name__, url_prefix='')
+status_views = Blueprint('status', __name__, url_prefix='/status')
 
 
 def _check_mongo():
-    uri = current_app.config['MONGO_URI']
-    db = BaseDB(uri, 'eduid_userdb', 'userdb')
+    db = current_app.central_userdb
     try:
-        assert(db.db_count() > 0)
-    except:
-        return 1
-    else:
-        db.close()
-        return 0
+        db.is_healthy()
+        return True
+    except Exception as exc:
+        current_app.logger.warning('Mongodb health check failed: {}'.format(exc))
+        return False
+
 
 def _check_redis():
     pool = get_redis_pool(current_app.config)
     client = redis.StrictRedis(connection_pool=pool)
     try:
         pong = client.ping()
-    except:
-        return 1
+        if pong:
+            return True
+        current_app.logger.warning('Redis health check failed: response == {!r}'.format(pong))
+    except Exception as exc:
+        current_app.logger.warning('Redis health check failed: {}'.format(exc))
+        return False
+    return False
+
+
+def _check_am():
+    try:
+        res = current_app.am_relay.ping()
+        if res == 'pong for {}'.format(current_app.am_relay.relay_for):
+            return True
+    except Exception as exc:
+        current_app.logger.warning('am health check failed: {}'.format(exc))
+        return False
+    return False
+
+
+def _check_msg():
+    try:
+        res = current_app.msg_relay.ping()
+        if res == 'pong':
+            return True
+    except Exception as exc:
+        current_app.logger.warning('msg health check failed: {}'.format(exc))
+        return False
+    return False
+
+
+def _check_mail():
+    try:
+        res = current_app.mail_relay.ping()
+        if res == 'pong':
+            return True
+    except Exception as exc:
+        current_app.logger.warning('mail health check failed: {}'.format(exc))
+        return False
+    return False
+
+
+@status_views.route('/healthy', methods=['GET'])
+def health_check():
+    res = {'status': 'STATUS_FAIL'}
+    if not _check_mongo():
+        res['reason'] = 'mongodb check failed'
+        current_app.logger.warning('mongodb check failed')
+    elif not _check_redis():
+        res['reason'] = 'redis check failed'
+        current_app.logger.warning('redis check failed')
+    elif getattr(current_app, 'am_relay', False) and not _check_am():
+        res['reason'] = 'am check failed'
+        current_app.logger.warning('am check failed')
+    elif getattr(current_app, 'msg_relay', False) and not _check_msg():
+        res['reason'] = 'msg check failed'
+        current_app.logger.warning('msg check failed')
+    elif getattr(current_app, 'mail_relay', False) and not _check_mail():
+        res['reason'] = 'mail check failed'
+        current_app.logger.warning('mail check failed')
     else:
-        if ping == 'PONG':
-            return 0
-        return 2
-
-
-@status_views.route('/smoke-test', methods=['GET'])
-def smoke_test():
-    return _check_mongo() or _check_redis()
+        res['status'] = 'STATUS_OK'
+        res['reason'] = 'Databases and task queues tested OK'
+    return jsonify(res)
 
 
 @status_views.route('/sanity-check', methods=['GET'])
 def sanity_check():
     pass
-

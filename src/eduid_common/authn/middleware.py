@@ -29,15 +29,24 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+from __future__ import absolute_import
+
+try:
+    import urlparse
+except ImportError:
+    from urllib import parse as urlparse
+
 import re
-import urlparse
+import logging
 from urllib import urlencode
 
 from werkzeug import get_current_url
 from werkzeug.http import parse_cookie, dump_cookie
-from flask import Flask, session, current_app
+from flask import Flask, session, current_app, request
 from eduid_common.api.session import NoSessionDataFoundException
 from eduid_common.api.utils import urlappend
+
+no_context_logger = logging.getLogger(__name__)
 
 
 class AuthnApp(Flask):
@@ -49,9 +58,11 @@ class AuthnApp(Flask):
         next_url = get_current_url(environ)
         next_path = list(urlparse.urlparse(next_url))[2]
         whitelist = self.config.get('NO_AUTHN_URLS', [])
+        no_context_logger.debug('No auth whitelist: {}'.format(whitelist))
         for regex in whitelist:
             m = re.match(regex, next_path)
             if m is not None:
+                no_context_logger.debug('{} matched whitelist'.format(next_path))
                 return super(AuthnApp, self).__call__(environ, start_response)
 
         with self.request_context(environ):
@@ -89,3 +100,30 @@ class AuthnApp(Flask):
 
             start_response('302 Found', headers)
             return []
+
+
+class UnAuthnApp(Flask):
+    """
+    WSGI middleware for unauthenticated apps - e.g., signup.
+    It checks whether the request has a session cookie,
+    and in case it hasn't, adds one and replays the request.
+    """
+    def __call__(self, environ, start_response):
+        next_url = get_current_url(environ)
+
+        with self.request_context(environ):
+            cookie_name = self.config.get('SESSION_COOKIE_NAME', 'signup-sessid')
+            if cookie_name not in request.cookies:
+                cookie = dump_cookie(cookie_name, session._session.token,
+                                     max_age=int(self.config.get('PERMANENT_SESSION_LIFETIME')),
+                                     path=self.config.get('SESSION_COOKIE_PATH'),
+                                     domain=self.config.get('SESSION_COOKIE_DOMAIN'),
+                                     secure=self.config.get('SESSION_COOKIE_SECURE'),
+                                     httponly=self.config.get('SESSION_COOKIE_HTTPONLY'))
+                session.persist()
+                headers = [ ('Location', next_url) ]
+                headers.append(('Set-Cookie', cookie))
+                start_response('302 Found', headers)
+                return []
+        
+        return super(UnAuthnApp, self).__call__(environ, start_response)

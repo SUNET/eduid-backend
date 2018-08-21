@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import re
 from uuid import uuid4
 import sys
 from flask import current_app, session
@@ -149,6 +150,7 @@ def get_flux_type(req, suffix):
         app_root = ''
     url_rule = req.url_rule.rule.replace(app_root, '')
     url_rule = url_rule.replace('/', ' ').replace('-', ' ')
+    url_rule = re.sub(r'<.+?>', '', url_rule)
     flux_type = '_'.join('{!s} {!s} {!s} {!s}'.format(method, blueprint, url_rule, suffix).split()).upper()
     return flux_type
 

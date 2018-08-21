@@ -1,7 +1,13 @@
 from setuptools import setup, find_packages
 
 
-version = '0.3.3b4'
+<<<<<<< HEAD
+version = '0.3.2b19'
+||||||| merged common ancestors
+version = '0.3.2b18'
+=======
+version = '0.3.3b3'
+>>>>>>> master
 
 requires = [
     'setuptools >= 2.2',
