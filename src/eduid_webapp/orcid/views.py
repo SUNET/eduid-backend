@@ -11,13 +11,15 @@ except ImportError:
 from urllib import urlencode
 
 from flask import Blueprint, current_app, request, redirect, url_for, jsonify
-from eduid_common.api.decorators import require_user
+from oic.oic.message import AuthorizationResponse
+
+from eduid_common.api.decorators import require_user, MarshalWith
 from eduid_common.api.utils import get_unique_hash, urlappend, save_and_sync_user
 from eduid_userdb.proofing import ProofingUser, OrcidProofingState
 from eduid_userdb.orcid import Orcid, OidcAuthorization, OidcIdToken
 from eduid_userdb.logs import OrcidProofing
+from eduid_webapp.orcid.schemas import OrcidResponseSchema
 
-from oic.oic.message import AuthorizationResponse
 
 
 __author__ = 'lundberg'
@@ -25,12 +27,46 @@ __author__ = 'lundberg'
 orcid_views = Blueprint('orcid', __name__, url_prefix='', template_folder='templates')
 
 
+@orcid_views.route('/authorize', methods=['GET'])
+@require_user
+def authorize(user):
+    if user.orcid is None:
+        proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn, raise_on_missing=False)
+        if not proofing_state:
+            current_app.logger.debug('No proofing state found for user {!s}. Initializing new proofing state.'.format(
+                user))
+            proofing_state = OrcidProofingState({'eduPersonPrincipalName': user.eppn, 'state': get_unique_hash(),
+                                                 'nonce': get_unique_hash()})
+            current_app.proofing_statedb.save(proofing_state)
+
+        oidc_args = {
+            'client_id': current_app.oidc_client.client_id,
+            'response_type': 'code',
+            'scope': 'openid',
+            'redirect_uri': url_for('orcid.authorization_response', _external=True),
+            'state': proofing_state.state,
+            'nonce': proofing_state.nonce,
+        }
+        authorization_url = '{}?{}'.format(current_app.oidc_client.authorization_endpoint, urlencode(oidc_args))
+        current_app.logger.debug('Authorization url: {!s}'.format(authorization_url))
+        current_app.stats.count(name='authn_request')
+        return redirect(authorization_url)
+    # Orcid already connected to user
+    url = urlappend(current_app.config['DASHBOARD_URL'], 'accountlinking')
+    scheme, netloc, path, query_string, fragment = urlparse.urlsplit(url)
+    new_query_string = urlencode({'msg': ':ERROR:orc.already_connected'})
+    url = urlparse.urlunsplit((scheme, netloc, path, new_query_string, fragment))
+    return redirect(url)
+
+
 @orcid_views.route('/authorization-response', methods=['GET'])
 @require_user
 def authorization_response(user):
     # Redirect url for user feedback
-    url = urlappend(current_app.config['DASHBOARD_URL'], 'personaldata')
+    url = urlappend(current_app.config['DASHBOARD_URL'], 'accountlinking')
     scheme, netloc, path, query_string, fragment = urlparse.urlsplit(url)
+
+    current_app.stats.count(name='authn_response')
 
     # parse authentication response
     query_string = request.query_string.decode('utf-8')
@@ -65,6 +101,18 @@ def authorization_response(user):
         return redirect(url)
     current_app.logger.info('ORCID authorized for user')
 
+    # do userinfo request
+    current_app.logger.debug('Trying to do userinfo request:')
+    userinfo = current_app.oidc_client.do_user_info_request(method=current_app.config['USERINFO_ENDPOINT_METHOD'],
+                                                            state=authn_resp['state'])
+    current_app.logger.debug('userinfo received: {!s}'.format(userinfo))
+    if userinfo['sub'] != id_token['sub']:
+        current_app.logger.error('The \'sub\' of userinfo does not match \'sub\' of ID Token for user {!s}.'.format(
+            proofing_state.eppn))
+        new_query_string = urlencode({'msg': ':ERROR:orc.sub_mismatch'})
+        url = urlparse.urlunsplit((scheme, netloc, path, new_query_string, fragment))
+        return redirect(url)
+
     # Save orcid and oidc data to user
     current_app.logger.info('Saving ORCID data for user')
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
@@ -74,7 +122,9 @@ def authorization_response(user):
     oidc_authz = OidcAuthorization(access_token=token_resp['access_token'], token_type=token_resp['token_type'],
                                    id_token=oidc_id_token, expires_in=token_resp['expires_in'],
                                    refresh_token=token_resp['refresh_token'], application='orcid')
-    orcid_element = Orcid(id=token_resp['orcid'], verified=True, oidc_authz=oidc_authz, application='orcid')
+    orcid_element = Orcid(id=userinfo['id'], name=userinfo['name'], given_name=userinfo['given_name'],
+                          family_name=userinfo['family_name'], verified=True, oidc_authz=oidc_authz,
+                          application='orcid')
     orcid_proofing = OrcidProofing(proofing_user, created_by='orcid', orcid=orcid_element.id,
                                    issuer=orcid_element.oidc_authz.id_token.iss,
                                    audience=orcid_element.oidc_authz.id_token.aud, proofing_method='oidc',
@@ -83,11 +133,12 @@ def authorization_response(user):
         current_app.logger.info('ORCID proofing data saved to log')
         proofing_user.orcid = orcid_element
         save_and_sync_user(proofing_user)
+        current_app.logger.info('ORCID proofing data saved to user')
 
     # Clean up
-    current_app.logger.info('Removing proofing state for user {}'.format(proofing_state.eppn))
+    current_app.logger.info('Removing proofing state')
     current_app.proofing_statedb.remove_state(proofing_state)
-    new_query_string = urlencode({'msg': 'orc.authorization-success'})
+    new_query_string = urlencode({'msg': 'orc.authorization_success'})
     url = urlparse.urlunsplit((scheme, netloc, path, new_query_string, fragment))
     return redirect(url)
 
