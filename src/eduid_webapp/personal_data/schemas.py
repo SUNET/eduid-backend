@@ -34,6 +34,7 @@
 from marshmallow import fields
 from eduid_common.api.schemas.base import FluxStandardAction, EduidSchema
 from eduid_common.api.schemas.nin import NinSchema
+from eduid_common.api.schemas.orcid import OrcidSchema
 from eduid_common.api.schemas.csrf import CSRFResponseMixin, CSRFRequestMixin
 from eduid_webapp.personal_data.validators import validate_language
 from eduid_webapp.personal_data.validators import validate_nonempty
@@ -91,6 +92,7 @@ class AllDataSchema(EduidSchema):
     nins = fields.Nested(NinSchema, many=True)
     emails = fields.Nested(EmailSchema, many=True, attribute='mailAliases')
     phones = fields.Nested(PhoneSchema, many=True, attribute='phone')
+    orcid = fields.Nested(OrcidSchema, attribute='orcid')
 
 
 class AllDataResponseSubSchema(EduidSchema, CSRFResponseMixin):
@@ -103,6 +105,7 @@ class AllDataResponseSubSchema(EduidSchema, CSRFResponseMixin):
     nins = fields.Nested(NinSchema, many=True)
     emails = fields.Nested(EmailSchema, many=True)
     phones = fields.Nested(PhoneSchema, many=True)
+    orcid = fields.Nested(OrcidSchema)
 
 
 class AllDataResponseSchema(FluxStandardAction):
