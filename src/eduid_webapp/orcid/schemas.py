@@ -4,14 +4,14 @@ from marshmallow import fields
 
 from eduid_common.api.schemas.base import EduidSchema, FluxStandardAction
 from eduid_common.api.schemas.csrf import CSRFResponseMixin, CSRFRequestMixin
-from eduid_common.api.schemas.validators import validate_nin
+from eduid_common.api.schemas.orcid import OrcidSchema
 
 __author__ = 'lundberg'
 
 
-class OrcidRequestSchema(EduidSchema, CSRFRequestMixin):
-    pass
+class OrcidResponseSchema(FluxStandardAction):
 
+    class OrcidResponsePayload(EduidSchema, CSRFResponseMixin):
+        orcid = fields.Nested(OrcidSchema)
 
-class OrcidResponseSchema(EduidSchema, CSRFResponseMixin):
-    pass
+    payload = fields.Nested(OrcidResponsePayload)

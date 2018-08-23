@@ -92,43 +92,8 @@ def authorization_response(user):
     return redirect(url)
 
 
-@orcid_views.route('/authorize', methods=['GET'])
+@orcid_views.route('/', methods=['GET'])
+@MarshalWith(OrcidResponseSchema)
 @require_user
-def authorize(user):
-    if user.orcid is None:
-        proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn, raise_on_missing=False)
-        if not proofing_state:
-            current_app.logger.debug('No proofing state found for user {!s}. Initializing new proofing state.'.format(
-                user))
-            proofing_state = OrcidProofingState({'eduPersonPrincipalName': user.eppn, 'state': get_unique_hash(),
-                                                 'nonce': get_unique_hash()})
-            current_app.proofing_statedb.save(proofing_state)
-
-        oidc_args = {
-            'client_id': current_app.oidc_client.client_id,
-            'response_type': 'code',
-            'scope': 'openid',
-            'redirect_uri': url_for('orcid.authorization_response', _external=True),
-            'state': proofing_state.state,
-            'nonce': proofing_state.nonce,
-        }
-        authorization_url = '{}?{}'.format(current_app.oidc_client.authorization_endpoint, urlencode(oidc_args))
-        current_app.logger.debug('Authorization url: {!s}'.format(authorization_url))
-        return redirect(authorization_url)
-    return 'do refresh'
-
-
-@orcid_views.route('/refresh', methods=['GET'])
-@require_user
-def refresh(user):
-    if user.orcid:
-        args = {
-            'refresh_token': user.orcid.refresh_token,
-        }
-
-        response = current_app.oidc_client.do_access_token_refresh(
-            method=current_app.config['REFRESH_TOKEN_ENDPOINT_METHOD'],
-            token=None,
-            request_args=args,
-            authn_method='client_secret_basic')
-        return jsonify(response.to_dict())
+def get_orcid(user):
+    return user.to_dict()
