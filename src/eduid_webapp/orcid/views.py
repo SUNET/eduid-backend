@@ -10,16 +10,16 @@ except ImportError:
     from urllib import parse as urlparse
 from urllib import urlencode
 
-from flask import Blueprint, current_app, request, redirect, url_for, jsonify
+from flask import Blueprint, current_app, request, redirect, url_for
 from oic.oic.message import AuthorizationResponse
 
-from eduid_common.api.decorators import require_user, MarshalWith
+from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
 from eduid_common.api.utils import get_unique_hash, urlappend, save_and_sync_user
+from eduid_common.api.schemas.csrf import CSRFRequest
 from eduid_userdb.proofing import ProofingUser, OrcidProofingState
 from eduid_userdb.orcid import Orcid, OidcAuthorization, OidcIdToken
 from eduid_userdb.logs import OrcidProofing
 from eduid_webapp.orcid.schemas import OrcidResponseSchema
-
 
 
 __author__ = 'lundberg'
@@ -148,3 +148,17 @@ def authorization_response(user):
 @require_user
 def get_orcid(user):
     return user.to_dict()
+
+
+@orcid_views.route('/remove', methods=['POST'])
+@MarshalWith(OrcidResponseSchema)
+@UnmarshalWith(CSRFRequest)
+@require_user
+def remove_orcid(user):
+    current_app.logger.info('Removing ORCID data for user')
+    proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
+    proofing_user.orcid = None
+    save_and_sync_user(proofing_user)
+    current_app.logger.info('ORCID data removed for user')
+    return proofing_user.to_dict()
+
