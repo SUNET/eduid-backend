@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from importlib import import_module
+
 from celery import Task
 from celery.utils.log import get_task_logger
 
@@ -24,6 +26,21 @@ class PluginsRegistry(object):
     def __init__(self, am_conf):
         self.context = dict()
         self.attribute_fetcher = dict()
+
+
+        for plugin_name in am_conf.get('ACTION_PLUGINS', []):
+            try:
+                plugin_module = import_module('eduid_action.{}.am'.format(plugin_name))
+            except ImportError:
+                logger.warn('Configured plugin {} missing from sys.path'.format(plugin_name))
+                continue
+            logger.debug("Registering action plugin: %s" % plugin_name)
+
+            plugin_init = getattr(plugin_module, 'plugin_init')
+            self.context[plugin_name] = plugin_init(am_conf)
+
+            attr_fetcher = getattr(plugin_module, 'attribute_fetcher')
+            self.attribute_fetcher[plugin_name] = attr_fetcher
 
         for entry_point in iter_entry_points('eduid_am.plugin_init'):
             if entry_point.name in self.context:
