@@ -67,8 +67,7 @@ def authn():
                                 "for userid: {})".format(userid))
         session['userid'] = userid
         session['idp_session'] = idp_session
-        url = urlappend(current_app.config.get('ACTIONS_SERVICE_PREFIX'),
-                url_for('actions.get_actions'))
+        url = url_for('actions.get_actions')
         return render_template('index.html', url=url)
     else:
         current_app.logger.debug("Token authentication failed "
