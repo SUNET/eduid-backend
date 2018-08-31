@@ -573,6 +573,7 @@ class User(object):
         res['nins'] = self.nins.to_list_of_dicts(old_userdb_format=old_userdb_format)
         res['tou'] = self.tou.to_list_of_dicts(old_userdb_format=old_userdb_format)
         res['locked_identity'] = self.locked_identity.to_list_of_dicts(old_userdb_format=old_userdb_format)
+        res['orcid'] = None
         if self.orcid is not None:
             res['orcid'] = self.orcid.to_dict()
         if 'eduPersonEntitlement' not in res:

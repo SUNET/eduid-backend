@@ -450,8 +450,8 @@ class Orcid(VerifiedElement):
     :type data: dict
     :type raise_on_unknown: bool
     """
-    def __init__(self, id=None, oidc_authz=None, application=None, verified=False, created_ts=None, data=None,
-                 raise_on_unknown=True):
+    def __init__(self, id=None, name=None, given_name=None, family_name=None, oidc_authz=None, application=None,
+                 verified=False, created_ts=None, data=None, raise_on_unknown=True):
         data_in = data
         data = copy.deepcopy(data_in)  # to not modify callers data
 
@@ -459,6 +459,9 @@ class Orcid(VerifiedElement):
             if created_ts is None:
                 created_ts = True
             data = dict(id=id,
+                        name=name,
+                        given_name=given_name,
+                        family_name=family_name,
                         oidc_authz=oidc_authz,
                         created_by=application,
                         created_ts=created_ts,
@@ -467,6 +470,9 @@ class Orcid(VerifiedElement):
 
         VerifiedElement.__init__(self, data)
         self.id = data.pop('id')
+        self.name = data.pop('name', None)
+        self.given_name = data.pop('given_name', None)
+        self.family_name = data.pop('family_name', None)
 
         # Parse ID token
         _oidc_authz = data.pop('oidc_authz')
@@ -500,12 +506,75 @@ class Orcid(VerifiedElement):
     @id.setter
     def id(self, value):
         """
-        :param value: nin number.
+        :param value: ORCID
         :type value: str | unicode
         """
         if not value or not isinstance(value, string_types):
             raise UserDBValueError("Invalid 'id': {!r}".format(value))
         self._data['id'] = str(value.lower())  # Case insensitive
+
+    # -----------------------------------------------------------------
+    @property
+    def name(self):
+        """
+        Users name
+
+        :return: name
+        :rtype: six.string_types
+        """
+        return self._data['name']
+
+    @name.setter
+    def name(self, value):
+        """
+        :param value: name
+        :type value: str | unicode | None
+        """
+        if value is not None and not isinstance(value, string_types):
+            raise UserDBValueError("Invalid 'name': {!r}".format(value))
+        self._data['name'] = value
+
+    # -----------------------------------------------------------------
+    @property
+    def given_name(self):
+        """
+        Users given_name
+
+        :return: given name
+        :rtype: six.string_types
+        """
+        return self._data['given_name']
+
+    @given_name.setter
+    def given_name(self, value):
+        """
+        :param value: given name
+        :type value: str | unicode | None
+        """
+        if value is not None and not isinstance(value, string_types):
+            raise UserDBValueError("Invalid 'given_name': {!r}".format(value))
+        self._data['given_name'] = value
+
+    # -----------------------------------------------------------------
+    @property
+    def family_name(self):
+        """
+        Users family name
+
+        :return: family name
+        :rtype: six.string_types
+        """
+        return self._data['family_name']
+
+    @family_name.setter
+    def family_name(self, value):
+        """
+        :param value: family name
+        :type value: str | unicode | None
+        """
+        if value is not None and not isinstance(value, string_types):
+            raise UserDBValueError("Invalid 'family_name': {!r}".format(value))
+        self._data['family_name'] = value
 
     # -----------------------------------------------------------------
     @property
