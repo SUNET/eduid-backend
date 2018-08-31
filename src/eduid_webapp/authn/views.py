@@ -49,7 +49,7 @@ from eduid_webapp.authn.acs_registry import get_action, schedule_action
 from eduid_webapp.authn.helpers import verify_auth_token, verify_relay_state
 
 
-authn_views = Blueprint('authn', __name__)
+authn_views = Blueprint('authn', __name__, url_prefix='')
 
 
 @authn_views.route('/login')

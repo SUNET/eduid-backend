@@ -39,6 +39,7 @@ from flask import abort, url_for, render_template
 from eduid_userdb.actions import Action
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith
 from eduid_common.api.schemas.base import FluxStandardAction
+from eduid_common.api.utils import urlappend
 from eduid_webapp.authn.helpers import verify_auth_token
 from eduid_webapp.actions.helpers import get_next_action
 

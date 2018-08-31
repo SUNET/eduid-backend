@@ -181,12 +181,22 @@ been collected when performing the action.
 Code for the IdP
 ----------------
 
-For adding new actions, the plugin must be installed in the python environment
-where the IdP runs. It must declare an entry point named
-``eduid_actions.add_actions``, pointing to a callable that accepts as arguments
-an instance of an IdP application (``eduid_idp.idp:IdPApplication``), a user
-object (``eduid_userdb.user:User``), and an IdP ticket
-(``eduid_idp.login.SSOLoginData``).
+For adding new actions, the plugins must be installed in the python environment
+where the IdP runs. The IdP must have a configuration setting named
+`action_plugins` with a list of plugin names, and for each name, a module
+`eduid_action.<plugin_name>.idp` must be present in the python path, with a
+callable named `add_actions` that accepts as arguments an instance of an IdP
+application (``eduid_idp.idp:IdPApplication``), a user object
+(``eduid_userdb.user:User``), and an IdP ticket
+(``eduid_idp.login.SSOLoginData``), and adds pending actions to the db.
+
+For backwards compattibility, the callables to add new pending actions can also
+be configured as entry points, named ``eduid_actions.add_actions``, and with
+the same signature as the callables configured in the settings.
+
+Care must be taken to only add plugin names to the `action_plugins` setting
+when they cease to have setuptools entry points pointing to them, otherwise
+they will be executed twice, and redundant actions will be added to the db.
 
 Code for the actions backend app
 --------------------------------
@@ -202,15 +212,23 @@ Code for the attribute manager
 
 If an action has recorded some information that needs to end up in the central
 user db, the plugin may act as an AM plugin. For this, it must be installed in
-the python environment where the AM app runs, and it must declare 2 entry
-points. The first, named ``eduid_am.plugin_init``, must point to a callable
-that accepts a dictionary with am configuration data, and returns an object
-that has attributes needed by the attribute fetcher. The second, named
-``eduid_am.attribute_fetcher``, must point to a callable that accepts as
+the python environment where the AM app runs. The AM must have a configuration
+setting named ``ACTION_PLUGINS`` with a list of plugin names, and for each
+configured plugin name the python path must include a module at
+``eduid_action.<plugin_name>.am``, containing 2 callables: ``plugin_init`` and
+``attribute_fetcher`. The ``plugin_init`` callable must accept a dictionary
+with am configuration data, and return an object that has attributes needed by
+the attribute fetcher. The ``attribute_fetcher`` callable must accept as
 arguments the object provided by the first entry point and an user id
-(``bson.ObjectId``), and returns a dictionary ready to use by pymongo to update
-the user object with the provided id in the central user db.
-More details about AM plugins in the eduid-am package.
+(``bson.ObjectId``), and return a dictionary ready to use by pymongo to update
+the user object with the provided id in the central user db.  More details
+about AM plugins in the eduid-am package.
+
+Alternatively, for backwards compatibility, the callables referred to in the
+previous paragraph may be referred to by setuptools entry points:
+``eduid_am.plugin_init`` and ``eduid_am.attribute_fetcher``. If this is the
+case, the plugin name should not be present in the ``ACTION_PLUGINS`` setting,
+otherwise users may end up with duplicated information.
 
 Javascript code
 ---------------
