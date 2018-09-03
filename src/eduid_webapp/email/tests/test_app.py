@@ -308,11 +308,61 @@ class EmailTests(EduidAPITestCase):
                 self.assertEqual(delete_email_data['payload']['emails'][0].get('email'), 'johnsmith@example.com')
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_remove_primary(self, mock_request_user_sync):
+        mock_request_user_sync.side_effect = self.request_user_sync
+
+        response = self.browser.post('/remove')
+        self.assertEqual(response.status_code, 302)  # Redirect to token service
+
+        eppn = self.test_user_data['eduPersonPrincipalName']
+        user = self.app.central_userdb.get_user_by_eppn(eppn)
+
+        # Remove all mail addresses to start with a known state
+        unverified = [address for address in user.mail_addresses.to_list() if not address.is_verified]
+        verified = [address for address in user.mail_addresses.to_list() if address.is_verified]
+        for address in unverified:
+            user.mail_addresses.remove(address.email)
+        for address in verified:
+            address.is_primary = False
+            address.is_verified = False
+            user.mail_addresses.remove(address.email)
+
+        # Add one verified, primary address and one not verified
+        verified = MailAddress(email='verified@example.com', application='test', verified=True, primary=True)
+        verified2 = MailAddress(email='verified2@example.com', application='test', verified=True, primary=False)
+        user.mail_addresses.add(verified)
+        user.mail_addresses.add(verified2)
+        self.request_user_sync(user)
+
+        with self.session_cookie(self.browser, eppn) as client:
+            with client.session_transaction() as sess:
+
+                with self.app.test_request_context():
+                    data = {
+                        'email': 'verified@example.com',
+                        'csrf_token': sess.get_csrf_token()
+                    }
+
+                response2 = client.post('/remove', data=json.dumps(data),
+                                        content_type=self.content_type_json)
+
+                self.assertEqual(response2.status_code, 200)
+
+                delete_email_data = json.loads(response2.data)
+
+                self.assertEqual(delete_email_data['type'], 'POST_EMAIL_REMOVE_SUCCESS')
+                self.assertEqual(delete_email_data['payload']['emails'][0].get('email'), 'verified2@example.com')
+
+        user = self.app.central_userdb.get_user_by_eppn(eppn)
+        self.assertEqual(user.mail_addresses.count, 1)
+        self.assertEqual(user.mail_addresses.verified.count, 1)
+        self.assertEqual(user.mail_addresses.primary.email, 'verified2@example.com')
+
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def test_remove_last_verified(self, mock_request_user_sync):
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_user_data['eduPersonPrincipalName']
-
         user = self.app.central_userdb.get_user_by_eppn(eppn)
 
         # Remove all mail addresses to start with a known state

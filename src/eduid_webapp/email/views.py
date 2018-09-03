@@ -270,45 +270,43 @@ def post_remove(user, email):
                              'from user {}'.format(email, proofing_user))
 
     emails = proofing_user.mail_addresses.to_list()
+    verified_emails = proofing_user.mail_addresses.verified.to_list()
+
+    # Do not let the user remove all mail addresses
     if len(emails) == 1:
-        msg = "Cannot remove unique address: {!r}".format(email)
-        current_app.logger.debug(msg)
+        current_app.logger.debug('Cannot remove the last address: {}'.format(email))
         return {
             '_status': 'error',
             'message': 'emails.cannot_remove_unique'
         }
 
+    # Do not let the user remove all verified mail addresses
+    if len(verified_emails) == 1 and verified_emails[0].email == email:
+        current_app.logger.debug('Cannot remove last verified address: {}'.format(email))
+        return {
+            '_status': 'error',
+            'message': 'emails.cannot_remove_unique_verified'
+        }
+
     try:
         proofing_user.mail_addresses.remove(email)
     except PrimaryElementViolation:
-        new_index = 1 if emails[0].email == email else 0
-        try:
-            proofing_user.mail_addresses.primary = emails[new_index].email
-        except PrimaryElementViolation:
-            return {
-                '_status': 'error',
-                'message': 'emails.cannot_remove_unique_verified'
-            }
+        # Trying to remove the primary mail address, set next verified mail address as primary
+        other_verified = [address for address in verified_emails if address.email != email]
+        proofing_user.mail_addresses.primary = other_verified[0].email
+        # Now remove the unwanted and previous primary mail address
         proofing_user.mail_addresses.remove(email)
 
     try:
         save_and_sync_user(proofing_user)
     except UserOutOfSync:
-        current_app.logger.debug('Couldnt remove email {!r} for user'
-                                 ' {}, data out of sync'.format(email, proofing_user))
+        current_app.logger.debug('Could not remove email {} for user, data out of sync'.format(email))
         return {
             '_status': 'error',
             'message': 'user-out-of-sync'
         }
 
-    except PrimaryElementViolation:
-        return {
-            '_status': 'error',
-            'message': 'emails.cannot_remove_primary'
-        }
-
-    current_app.logger.info('Email address {!r} removed '
-                            'for user {}'.format(email, proofing_user))
+    current_app.logger.info('Email address {} removed'.format(email))
     current_app.stats.count(name='email_remove_success', value=1)
 
     emails = {
