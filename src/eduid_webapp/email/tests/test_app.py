@@ -316,7 +316,11 @@ class EmailTests(EduidAPITestCase):
         user = self.app.central_userdb.get_user_by_eppn(eppn)
 
         # Remove all mail addresses to start with a known state
-        for address in user.mail_addresses.to_list():
+        unverified = [address for address in user.mail_addresses.to_list() if not address.is_verified]
+        verified = [address for address in user.mail_addresses.to_list() if address.is_verified]
+        for address in unverified:
+            user.mail_addresses.remove(address.email)
+        for address in verified:
             address.is_primary = False
             address.is_verified = False
             user.mail_addresses.remove(address.email)
