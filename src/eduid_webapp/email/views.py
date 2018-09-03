@@ -282,7 +282,13 @@ def post_remove(user, email):
         proofing_user.mail_addresses.remove(email)
     except PrimaryElementViolation:
         new_index = 1 if emails[0].email == email else 0
-        proofing_user.mail_addresses.primary = emails[new_index].email
+        try:
+            proofing_user.mail_addresses.primary = emails[new_index].email
+        except PrimaryElementViolation:
+            return {
+                '_status': 'error',
+                'message': 'emails.cannot_remove_unique_verified'
+            }
         proofing_user.mail_addresses.remove(email)
 
     try:
