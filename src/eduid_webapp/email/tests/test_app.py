@@ -352,12 +352,12 @@ class EmailTests(EduidAPITestCase):
 
                 delete_email_data = json.loads(response2.data)
 
-                self.assertEqual(delete_email_data['type'], 'POST_EMAIL_REMOVE_SUCCESS')
+                self.assertEqual(delete_email_data['type'], 'POST_EMAIL_REMOVE_FAIL')
 
         user = self.app.central_userdb.get_user_by_eppn(eppn)
-        self.assertEqual(user.mail_addresses.count, 1)
-        self.assertEqual(user.mail_addresses.verified.count, 0)
-        self.assertEqual(user.mail_addresses.primary, None)
+        self.assertEqual(user.mail_addresses.count, 2)
+        self.assertEqual(user.mail_addresses.verified.count, 1)
+        self.assertEqual(user.mail_addresses.primary.email, 'verified@example.com')
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def test_remove_fail(self, mock_request_user_sync):
