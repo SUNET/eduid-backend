@@ -143,12 +143,12 @@
                         <div class="col-md-6">
                             <table class="table table-hover">
                                 <caption>Email proofing</caption>
-                                {% if item.email_proofing %}
+                                {% for email_proofing in item.email_proofings %}
                                     <tr>
-                                        <th>Created</th><td>{{ item.email_proofing.modified_ts|datetimeformat }}</td>
+                                        <th>Created</th><td>{{ email_proofing.modified_ts|datetimeformat }}</td>
                                     </tr>
                                     <tr>
-                                        <th>Email address</th><td>{{ item.email_proofing.verification.email }}</td>
+                                        <th>Email address</th><td>{{ email_proofing.verification.email }}</td>
                                     </tr>
                                 {% else %}
                                     <tr><td>No data</td></tr>
@@ -158,12 +158,12 @@
                         <div class="col-md-6">
                             <table class="table table-hover">
                                 <caption>Phone proofing</caption>
-                                {% if item.phone_proofing %}
+                                {% for phone_proofing in item.phone_proofings %}
                                     <tr>
-                                        <th>Created</th><td>{{ item.phone_proofing.modified_ts|datetimeformat }}</td>
+                                        <th>Created</th><td>{{ phone_proofing.modified_ts|datetimeformat }}</td>
                                     </tr>
                                     <tr>
-                                        <th>Phone number</th><td>{{ item.phone_proofing.verification.number }}</td>
+                                        <th>Phone number</th><td>{{ phone_proofing.verification.number }}</td>
                                     </tr>
                                 {% else %}
                                     <tr><td>No data</td></tr>
