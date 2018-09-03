@@ -5,6 +5,7 @@
 -r lookup_mobile_proofing.txt
 -r security.txt
 -r signup.txt
+-r actions.txt
 gunicorn
 blinker
 raven

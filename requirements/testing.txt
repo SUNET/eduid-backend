@@ -5,6 +5,7 @@
 -r lookup_mobile_proofing.txt
 -r security.txt
 -r signup.txt
+-r actions.txt
 WebTest==2.0.18
 mock==1.0.1
 nose==1.2.1
