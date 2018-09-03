@@ -123,6 +123,16 @@ class SupportProofingDB(BaseDB):
             doc = self.model(doc)
         return doc
 
+    def get_proofing_states(self, eppn):
+        """
+        :param eppn: User objects eduPersonPrincipalName property
+        :type eppn: str | unicode
+        :return: A list of document dicts
+        :rtype: list
+        """
+        docs = self._get_documents_by_attr('eduPersonPrincipalName', eppn, raise_on_missing=False)
+        return [self.model(doc) for doc in docs]
+
 
 class SupportLetterProofingDB(SupportProofingDB):
 
