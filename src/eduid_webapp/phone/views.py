@@ -123,11 +123,9 @@ def post_primary(user, number):
     current_app.logger.debug('Trying to save phone number {!r} as primary '
                              'for user {}'.format(number, proofing_user))
 
-    try:
-        phone_element = proofing_user.phone_numbers.find(number)
-    except IndexError:
-        current_app.logger.debug('Couldnt save phone number {!r} as primary for user'
-                                 ' {}, data out of sync'.format(number, proofing_user))
+    phone_element = proofing_user.phone_numbers.find(number)
+    if not phone_element:
+        current_app.logger.debug('Could not save phone number {} as primary, data out of sync'.format(number))
         return {
             '_status': 'error',
             'message': 'user-out-of-sync'
