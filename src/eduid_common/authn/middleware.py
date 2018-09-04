@@ -38,7 +38,11 @@ except ImportError:
 
 import re
 import logging
-from urllib import urlencode
+
+try:
+    from urllib import urlencode
+except ImportError:
+    from urllib.parse import urlencode
 
 from werkzeug import get_current_url
 from werkzeug.http import parse_cookie, dump_cookie

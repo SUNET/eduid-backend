@@ -46,7 +46,10 @@ of the Flask application::
 """
 
 from bleach import clean
-from urllib import unquote, quote
+try:
+    from urllib import unquote, quote
+except ImportError:
+    from urllib.parse import unquote, quote
 
 from werkzeug._compat import iteritems, itervalues
 from werkzeug.utils import cached_property
