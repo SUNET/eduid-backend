@@ -93,9 +93,9 @@ logger = logging.getLogger(__name__)
 
 # Prepend an 'a' so we always have a valid NCName,
 # needed by  pysaml2 for its session ids.
-TOKEN_PREFIX = 'a'
+TOKEN_PREFIX = b'a'
 
-HMAC_DIGEST_SIZE = 256 / 8
+HMAC_DIGEST_SIZE = int(256 / 8)
 SESSION_KEY_BITS = 256
 
 
@@ -282,11 +282,11 @@ class Session(collections.MutableMapping):
         else:
             if not session_id:
                 # Generate a random session_id
-                session_id = nacl.utils.random(SESSION_KEY_BITS / 8)
+                session_id = nacl.utils.random(int(SESSION_KEY_BITS / 8))
             _bin_session_id = bytes(session_id)
             self.token_key = derive_key(self.app_secret, _bin_session_id, b'hmac', HMAC_DIGEST_SIZE)
             self.token = self.encode_token(_bin_session_id)
-        self.session_id = _bin_session_id.encode('hex')
+        self.session_id = _bin_session_id.hex()
         return _bin_session_id
 
     def __getitem__(self, key, default=None):
@@ -337,11 +337,11 @@ class Session(collections.MutableMapping):
         """
         sig = sign_session_id(session_id, self.token_key)
         # The last byte ('x') is padding to prevent b32encode from adding an = at the end
-        combined = base64.b32encode(session_id + sig + 'x')
+        combined = base64.b32encode(session_id + sig + b'x')
         # Make sure token will be a valid NCName (pysaml2 requirement)
-        while combined.endswith('='):
+        while combined.endswith(b'='):
             combined = combined[:-1]
-        return ''.join([TOKEN_PREFIX, combined])
+        return b''.join([TOKEN_PREFIX, combined])
 
     def decode_token(self, token):
         """
@@ -358,7 +358,7 @@ class Session(collections.MutableMapping):
         # session id.
         if not token.startswith(TOKEN_PREFIX):
             raise ValueError('Invalid token string {!r}'.format(token))
-        val = token.strip('"')[len(TOKEN_PREFIX):]
+        val = token.strip(b'"')[len(TOKEN_PREFIX):]
         # Split the token into it's two parts - the session_id and the HMAC signature of it
         # (the last byte is ignored - it is padding to make b32encode not put an = at the end)
         _decoded = base64.b32decode(val)
@@ -378,8 +378,9 @@ class Session(collections.MutableMapping):
         nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
         # Version data to make it easier to know how to decode it on reading
         data_json = json.dumps(data_dict, cls=NameIDEncoder)
-        versioned = {'v2': self.nacl_box.encrypt(data_json, nonce,
-                                                 encoder = nacl.encoding.Base64Encoder)
+        versioned = {'v2': self.nacl_box.encrypt(data_json.encode('ascii'), nonce,
+                                                 encoder =
+                                                 nacl.encoding.Base64Encoder).ciphertext.decode('ascii')
                      }
         return json.dumps(versioned)
 
@@ -441,7 +442,13 @@ def derive_key(app_key, session_key, usage, size):
     # the low number of rounds (3) is not important here - we use this to derive two keys
     # (different 'usage') from a single key which is comprised of a 256 bit app_key
     # (shared between instances), and a random session key of 128 bits.
-    return hashlib.pbkdf2_hmac('sha256', app_key, usage + session_key, 3, dklen = size)
+    if type(usage) is str:
+        usage = usage.encode('ascii')
+    if type(session_key) is str:
+        session_key = session_key.encode('ascii')
+    return hashlib.pbkdf2_hmac('sha256', app_key.encode('ascii'),
+                               usage + session_key,
+                               3, dklen = size)
 
 
 def sign_session_id(session_id, signing_key):

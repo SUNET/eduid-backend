@@ -74,7 +74,7 @@ class TestSession(TestCase):
         """ Pysaml uses the token as an XML NCName so it can't contain some characters. """
         for i in range(1024):
             session = self._get_session(data={'foo': 'bar'})
-            self.assertRegexpMatches(session.token, '^[a-z][a-zA-Z0-9.]+$')
+            self.assertRegexpMatches(session.token, b'^[a-z][a-zA-Z0-9.]+$')
 
 
     def _get_session(self, token=None, data=None, secret='s3cr3t', ttl=10,
