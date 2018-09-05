@@ -274,6 +274,8 @@ class Session(collections.MutableMapping):
         :rtype: bytes
         """
         if token:
+            if isinstance(token, str):
+                token = token.encode('ascii')
             self.token = token
             _bin_session_id, _bin_signature = self.decode_token(token)
             self.token_key = derive_key(self.app_secret, _bin_session_id, b'hmac', HMAC_DIGEST_SIZE)
@@ -378,9 +380,8 @@ class Session(collections.MutableMapping):
         nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
         # Version data to make it easier to know how to decode it on reading
         data_json = json.dumps(data_dict, cls=NameIDEncoder)
-        versioned = {'v2': self.nacl_box.encrypt(data_json.encode('ascii'), nonce,
-                                                 encoder =
-                                                 nacl.encoding.Base64Encoder).ciphertext.decode('ascii')
+        versioned = {'v2': bytes(self.nacl_box.encrypt(data_json.encode('ascii'), nonce,
+                                                 encoder = nacl.encoding.Base64Encoder)).decode('ascii')
                      }
         return json.dumps(versioned)
 

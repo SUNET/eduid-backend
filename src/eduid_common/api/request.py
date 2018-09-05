@@ -44,6 +44,11 @@ of the Flask application::
     >>> app = Flask('name')
     >>> app.request_class =  Request
 """
+try:
+    unicode = unicode
+except NameError:
+    # 'unicode' is undefined, must be Python 3
+    basestring = (str,bytes)
 
 from bleach import clean
 try:
