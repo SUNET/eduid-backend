@@ -148,7 +148,7 @@ class InputsTests(EduidAPITestCase):
             response = self.app.dispatch_request()
             unquoted_response = unquote(response.data.decode('utf8'))
             self.assertNotIn(b'<script>', response.data)
-            self.assertNotIn(b'<script>', unquoted_response)
+            self.assertNotIn('<script>', unquoted_response)
 
     def test_get_param_unicode(self):
         url = '/test-get-param?test-param=åäöхэжこんにちわ'
@@ -184,12 +184,12 @@ class InputsTests(EduidAPITestCase):
     def test_post_param_script_percent_encoded_twice(self):
         url = '/test-post-param'
         with self.app.test_request_context(url, method='POST',
-                data={'test-param': '%253Cscript%253Ealert%2528%2522ho%2522%2529%253C%252Fscript%253E'}):
+                data={'test-param': b'%253Cscript%253Ealert%2528%2522ho%2522%2529%253C%252Fscript%253E'}):
 
             response = self.app.dispatch_request()
-            unquoted_response = unquote(response.data.encode('ascii'))
+            unquoted_response = unquote(response.data.decode('ascii'))
             self.assertNotIn(b'<script>', response.data)
-            self.assertNotIn(b'<script>', unquoted_response)
+            self.assertNotIn('<script>', unquoted_response)
 
     def test_cookie_script(self):
         """"""
