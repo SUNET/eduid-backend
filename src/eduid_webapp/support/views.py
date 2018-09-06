@@ -53,8 +53,8 @@ def index(support_user):
             user_data['actions'] = current_app.support_actions_db.get_actions(user_id=user.user_id)
             user_data['letter_proofing'] = current_app.support_letter_proofing_db.get_proofing_state(eppn=user.eppn)
             user_data['oidc_proofing'] = current_app.support_oidc_proofing_db.get_proofing_state(eppn=user.eppn)
-            user_data['email_proofing'] = current_app.support_email_proofing_db.get_proofing_state(eppn=user.eppn)
-            user_data['phone_proofing'] = current_app.support_phone_proofing_db.get_proofing_state(eppn=user.eppn)
+            user_data['email_proofings'] = current_app.support_email_proofing_db.get_proofing_states(eppn=user.eppn)
+            user_data['phone_proofings'] = current_app.support_phone_proofing_db.get_proofing_states(eppn=user.eppn)
             users.append(user_data)
 
         return render_template('index.html', support_user=support_user, users=users, search_query=search_query)
