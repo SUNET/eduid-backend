@@ -117,25 +117,21 @@ def post_primary(user, number):
     view to mark one of the (verified) phone numbers of the logged in user
     as the primary phone number.
 
-    Returns a listing of  all phones for the logged in user.
+    Returns a listing of all phones for the logged in user.
     """
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
-    current_app.logger.debug('Trying to save phone number {!r} as primary '
-                             'for user {}'.format(number, proofing_user))
+    current_app.logger.debug('Trying to save phone number {} as primary'.format(number))
 
-    try:
-        phone_element = proofing_user.phone_numbers.find(number)
-    except IndexError:
-        current_app.logger.debug('Couldnt save phone number {!r} as primary for user'
-                                 ' {}, data out of sync'.format(number, proofing_user))
+    phone_element = proofing_user.phone_numbers.find(number)
+    if not phone_element:
+        current_app.logger.debug('Could not save phone number {} as primary, data out of sync'.format(number))
         return {
             '_status': 'error',
             'message': 'user-out-of-sync'
         }
 
     if not phone_element.is_verified:
-        current_app.logger.debug('Couldnt save phone number {!r} as primary for user'
-                                 ' {}, phone number unconfirmed'.format(number, proofing_user))
+        current_app.logger.debug('Could not save phone number {} as primary, phone number unconfirmed'.format(number))
         return {
             '_status': 'error',
             'message': 'phones.unconfirmed_number_not_primary'
@@ -145,14 +141,12 @@ def post_primary(user, number):
     try:
         save_and_sync_user(proofing_user)
     except UserOutOfSync:
-        current_app.logger.debug('Couldnt save phone number {!r} as primary for user'
-                                 ' {}, data out of sync'.format(number, proofing_user))
+        current_app.logger.debug('Could not save phone number {} as primary, data out of sync'.format(number))
         return {
             '_status': 'error',
             'message': 'user-out-of-sync'
         }
-    current_app.logger.info('Phone number {!r} made primary '
-                            'for user {}'.format(number, proofing_user))
+    current_app.logger.info('Phone number {} made primary'.format(number))
     current_app.stats.count(name='mobile_set_primary', value=1)
 
     phones = {
