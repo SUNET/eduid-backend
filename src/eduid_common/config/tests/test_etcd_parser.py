@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 
 import unittest
-from eduid_common.api.testing import EtcdTemporaryInstance
+from nacl import secret, utils
+from base64 import urlsafe_b64encode
+from os import environ
 
+from eduid_common.api.testing import EtcdTemporaryInstance
 from eduid_common.config.parsers.etcd import EtcdConfigParser
 
 __author__ = 'lundberg'
@@ -79,3 +82,17 @@ class TestEtcdParser(unittest.TestCase):
 
         self.parser.set('my_set_key', 'a nice value')
         self.assertEqual(self.parser.get('MY_SET_KEY'), 'a nice value')
+
+    def test_decrypt(self):
+
+        secret_key = utils.random(secret.SecretBox.KEY_SIZE)
+        environ['APP_CONFIG_SECRET'] = secret_key
+        box = secret.SecretBox(secret_key)
+
+        self.parser.set('MY_SET_KEY_ENCRYPTED', urlsafe_b64encode(box.encrypt('a nice value')))
+        self.assertNotEqual(self.parser.get('MY_SET_KEY_ENCRYPTED'), 'a nice value')
+
+        read_config = self.parser.read_configuration()
+        self.assertEqual({'MY_SET_KEY': 'a nice value'}, read_config)
+
+
