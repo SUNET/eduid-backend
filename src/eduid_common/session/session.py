@@ -76,6 +76,16 @@ appending equal-signs ('=') at the end, since that is not allowed
 in an NCName.
 """
 
+from __future__ import unicode_literals
+
+try:
+    unicode = unicode
+    PY3 = False
+except NameError:
+    # 'unicode' is undefined, must be Python 3
+    PY3 = True
+    basestring = (str,bytes)
+
 import hmac
 import json
 import hashlib
@@ -288,7 +298,10 @@ class Session(collections.MutableMapping):
             _bin_session_id = bytes(session_id)
             self.token_key = derive_key(self.app_secret, _bin_session_id, b'hmac', HMAC_DIGEST_SIZE)
             self.token = self.encode_token(_bin_session_id)
-        self.session_id = _bin_session_id.hex()
+        if PY3:
+            self.session_id = _bin_session_id.hex()
+        else:
+            self.session_id = _bin_session_id.encode('hex')
         return _bin_session_id
 
     def __getitem__(self, key, default=None):
@@ -443,10 +456,16 @@ def derive_key(app_key, session_key, usage, size):
     # the low number of rounds (3) is not important here - we use this to derive two keys
     # (different 'usage') from a single key which is comprised of a 256 bit app_key
     # (shared between instances), and a random session key of 128 bits.
-    if type(usage) is str:
-        usage = usage.encode('ascii')
-    if type(session_key) is str:
-        session_key = session_key.encode('ascii')
+    if PY3:
+        if type(usage) is str:
+            usage = usage.encode('ascii')
+        if type(session_key) is str:
+            session_key = session_key.encode('utf8')
+    else:
+        if type(usage) is unicode:
+            usage = usage.encode('ascii')
+        if type(session_key) is unicode:
+            session_key = session_key.encode('utf8')
     return hashlib.pbkdf2_hmac('sha256', app_key.encode('ascii'),
                                usage + session_key,
                                3, dklen = size)

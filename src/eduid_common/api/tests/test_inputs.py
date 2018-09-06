@@ -31,6 +31,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
+from __future__ import unicode_literals
+
 try:
     from urllib import unquote
 except ImportError:
