@@ -33,10 +33,7 @@
 
 from __future__ import unicode_literals
 
-try:
-    from urllib import unquote
-except ImportError:
-    from urllib.parse import unquote
+from six.moves.urllib_parse import unquote
 
 from werkzeug.http import dump_cookie
 from flask import Flask, Blueprint

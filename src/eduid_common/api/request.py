@@ -44,17 +44,9 @@ of the Flask application::
     >>> app = Flask('name')
     >>> app.request_class =  Request
 """
-try:
-    unicode = unicode
-except NameError:
-    # 'unicode' is undefined, must be Python 3
-    basestring = (str,bytes)
-
+import six
 from bleach import clean
-try:
-    from urllib import unquote, quote
-except ImportError:
-    from urllib.parse import unquote, quote
+from six.moves.urllib_parse import unquote, quote
 
 from werkzeug._compat import iteritems, itervalues
 from werkzeug.utils import cached_property
@@ -137,7 +129,7 @@ class SanitationMixin(object):
         if content_type is None and hasattr(request, 'mimetype'):
             content_type = request.mimetype
 
-        if isinstance(content_type, basestring) and content_type:
+        if isinstance(content_type, six.string_types) and content_type:
 
             if content_type == "application/x-www-form-urlencoded":
                 use_percent_encoding = True
