@@ -38,6 +38,8 @@ SAML_CONFIG = {
                      saml2.BINDING_HTTP_REDIRECT),
                 ],
             },
+            # Do not check for signature during tests
+            'want_response_signed': False,
             # # This is commented to be compatible with simplesamlphp
             # # attributes that this project need to identify a user
             #'required_attributes': ['uid'],
