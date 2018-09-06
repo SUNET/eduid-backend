@@ -284,8 +284,12 @@ class Session(collections.MutableMapping):
         :rtype: bytes
         """
         if token:
-            if isinstance(token, str):
-                token = token.encode('ascii')
+            if PY3:
+                if isinstance(token, str):
+                    token = token.encode('ascii')
+            else:
+                if isinstance(token, unicode):
+                    token = token.encode('ascii')
             self.token = token
             _bin_session_id, _bin_signature = self.decode_token(token)
             self.token_key = derive_key(self.app_secret, _bin_session_id, b'hmac', HMAC_DIGEST_SIZE)
