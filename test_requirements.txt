@@ -4,7 +4,7 @@ urllib3==1.22  # requests and python-etcd disagrees
 python-etcd>=0.4.5
 pysaml2>=4.6.1
 vccs_client>=0.4.5
-Flask>=0.10.1,<0.12
+Flask>=0.12.2,<0.13
 PyYAML>=3.11
 bleach>=2.0.0
 eduid-am>=0.6.3b4
