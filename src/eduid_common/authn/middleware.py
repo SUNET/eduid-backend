@@ -31,14 +31,9 @@
 #
 from __future__ import absolute_import
 
-try:
-    import urlparse
-except ImportError:
-    from urllib import parse as urlparse
-
 import re
 import logging
-from urllib import urlencode
+from six.moves.urllib_parse import urlparse, urlunparse, urlencode, parse_qs
 
 from werkzeug import get_current_url
 from werkzeug.http import parse_cookie, dump_cookie
@@ -56,7 +51,7 @@ class AuthnApp(Flask):
     """
     def __call__(self, environ, start_response):
         next_url = get_current_url(environ)
-        next_path = list(urlparse.urlparse(next_url))[2]
+        next_path = list(urlparse(next_url))[2]
         whitelist = self.config.get('NO_AUTHN_URLS', [])
         no_context_logger.debug('No auth whitelist: {}'.format(whitelist))
         for regex in whitelist:
@@ -79,12 +74,12 @@ class AuthnApp(Flask):
 
         params = {'next': next_url}
 
-        url_parts = list(urlparse.urlparse(ts_url))
-        query = urlparse.parse_qs(url_parts[4])
+        url_parts = list(urlparse(ts_url))
+        query = parse_qs(url_parts[4])
         query.update(params)
 
         url_parts[4] = urlencode(query)
-        location = urlparse.urlunparse(url_parts)
+        location = urlunparse(url_parts)
 
         with self.request_context(environ):
             cookie_name = self.config.get('SESSION_COOKIE_NAME')
