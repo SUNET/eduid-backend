@@ -61,23 +61,29 @@ def decrypt_config(config_dict):
     boxes = {}
     for key, value in config_dict.items():
         if key.endswith('_ENCRYPTED'):
+            decrypted = False
             for item in value:
                 key_name = item['key_name']
-                value = item['value']
+                encrypted_value = item['value']
 
                 if not boxes.get(key_name):
                     try:
                         boxes[key_name] = init_secret_box(key_name=key_name)
                     except SecretKeyException as e:
-                        logging.error(e)
+                        logging.debug(e)
                         continue  # Try next key
                 try:
-                    decrypted_value = boxes[key_name].decrypt(bytes(value).encode('ascii'),
+                    decrypted_value = boxes[key_name].decrypt(bytes(encrypted_value).encode('ascii'),
                                                               encoder=encoding.URLSafeBase64Encoder)
                     config_dict[key.replace('_ENCRYPTED', '')] = decrypted_value
                     del config_dict[key]
+                    decrypted = True
                     break  # Decryption successful, do not try any more keys
                 except exceptions.CryptoError as e:
-                    logging.error(e)
+                    logging.debug(e)
                     continue  # Try next key
+            if not decrypted:
+                logging.error('Failed to decrypt {}:{}'.format(key, value))
+
+
     return config_dict
