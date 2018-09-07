@@ -150,11 +150,11 @@ def unverify_nins(userdb, user_id, nins):
                 if user.user_id != user_id:
                     logger.debug('Removing nin {} from user {}'.format(number, user))
                     logger.debug('Old user NINs BEFORE: {}.'.format(user.nins.to_list()))
-                    if user.nins.primary.number == nin:
+                    if user.nins.primary.number == number:
                         # Promote some other verified nin to primary (future proofing)
                         old_nins = user.nins.verified.to_list()
                         for this in old_nins:
-                            if this.number != nin:
+                            if this.number != number:
                                 user.nins.primary = this.number
                                 break
                     user.nins.find(number).is_primary = False
