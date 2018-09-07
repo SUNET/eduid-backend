@@ -15,17 +15,17 @@ version = '0.6.3b4'
 install_requires = [
     'eduid_userdb>=0.3.2b3',
     'eduid_common>=0.1.3b5',
-    'python-dateutil>=2.1',
-    'celery>=3.1.17, <3.2',
-    'simplejson>=3.6.5',
-    'kombu>=3.0.26, <3.1',
-    'billiard>=3.3.0.20, <3.4',
+    'python-dateutil>=2.2',
+    'celery>=4.2.1',
+    'simplejson>=3.16.0',
+    'kombu>=4.2.1',
+    'billiard>=3.5.0.4',
 ]
 
 testing_extras = [
-    'nose==1.2.1',
-    'nosexcover==1.0.8',
-    'coverage==3.6',
+    'nose==1.3.7',
+    'nosexcover==1.0.11',
+    'coverage==4.5.1',
 ]
 
 setup(
