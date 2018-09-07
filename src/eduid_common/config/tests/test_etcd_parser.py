@@ -85,13 +85,13 @@ class TestEtcdParser(unittest.TestCase):
 
     @patch('eduid_common.config.parsers.decorators.read_secret_key')
     def test_decrypt(self, mock_read_secret_key):
-        mock_read_secret_key.return_value = 'A'*secret.SecretBox.KEY_SIZE
+        mock_read_secret_key.return_value = bytes(b'A'*secret.SecretBox.KEY_SIZE)
 
         box = secret.SecretBox(decorators.read_secret_key('test'))
 
         secret_value = [{
             'key_name': 'test',
-            'value': bytes(box.encrypt('a nice value', encoder=encoding.URLSafeBase64Encoder)).decode('ascii')
+            'value': bytes(box.encrypt(b'a nice value', encoder=encoding.URLSafeBase64Encoder)).decode('ascii')
         }]
         self.parser.set('MY_SET_KEY_ENCRYPTED', secret_value)
         self.parser.set('MY_OTHER_SET_KEY', 'another nice value')
@@ -102,17 +102,17 @@ class TestEtcdParser(unittest.TestCase):
     @patch('eduid_common.config.parsers.decorators.read_secret_key')
     def test_decrypt_multi_key(self, mock_read_secret_key):
 
-        mock_read_secret_key.return_value = 'A'*secret.SecretBox.KEY_SIZE
+        mock_read_secret_key.return_value = bytes(b'A'*secret.SecretBox.KEY_SIZE)
 
         box = secret.SecretBox(decorators.read_secret_key('test'))
-        box2 = secret.SecretBox('B'*secret.SecretBox.KEY_SIZE)
+        box2 = secret.SecretBox(bytes(b'B'*secret.SecretBox.KEY_SIZE))
 
         secret_value = [{
             'key_name': 'not_test',
-            'value': bytes(box2.encrypt('a nice value', encoder=encoding.URLSafeBase64Encoder)).decode('ascii')
+            'value': bytes(box2.encrypt(b'a nice value', encoder=encoding.URLSafeBase64Encoder)).decode('ascii')
         }, {
             'key_name': 'test',
-            'value': bytes(box.encrypt('a nice value', encoder=encoding.URLSafeBase64Encoder)).decode('ascii')
+            'value': bytes(box.encrypt(b'a nice value', encoder=encoding.URLSafeBase64Encoder)).decode('ascii')
         }]
         self.parser.set('MY_SET_KEY_ENCRYPTED', secret_value)
         self.parser.set('MY_OTHER_SET_KEY', 'another nice value')

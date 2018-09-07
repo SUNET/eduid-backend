@@ -3,6 +3,7 @@
 from __future__ import absolute_import
 
 import logging
+import six
 from functools import wraps
 from nacl import secret, encoding, exceptions
 
@@ -73,8 +74,15 @@ def decrypt_config(config_dict):
                         logging.debug(e)
                         continue  # Try next key
                 try:
-                    decrypted_value = boxes[key_name].decrypt(bytes(encrypted_value).encode('ascii'),
-                                                              encoder=encoding.URLSafeBase64Encoder)
+                    if six.PY2:
+                        encrypted_value = encrypted_value.encode('ascii')
+                        decrypted_value = boxes[key_name].decrypt(encrypted_value,
+                                                                  encoder=encoding.URLSafeBase64Encoder)
+                    else:
+                        encrypted_value = bytes(encrypted_value, 'ascii')
+                        decrypted_value = boxes[key_name].decrypt(encrypted_value,
+                                                                  encoder=encoding.URLSafeBase64Encoder).decode('ascii')
+
                     config_dict[key.replace('_ENCRYPTED', '')] = decrypted_value
                     del config_dict[key]
                     decrypted = True
@@ -84,6 +92,4 @@ def decrypt_config(config_dict):
                     continue  # Try next key
             if not decrypted:
                 logging.error('Failed to decrypt {}:{}'.format(key, value))
-
-
     return config_dict
