@@ -23,7 +23,7 @@ class TestIndexes(MongoTestCase):
             'mailAliases-index-v1': {'key': [('mailAliases.email', 1), ('mailAliases.verified', 1)]}
         }
         db = UserDB(self.settings.get('MONGO_URI'))
-        print db._coll.index_information()
+        print(db._coll.index_information())
         db.setup_indexes(indexes)
         current_indexes = db._coll.index_information()
-        print current_indexes
+        print(current_indexes)
