@@ -10,3 +10,7 @@ class ParserException(Exception):
 
     def __str__(self):
         return self.value
+
+
+class SecretKeyException(ParserException):
+    pass

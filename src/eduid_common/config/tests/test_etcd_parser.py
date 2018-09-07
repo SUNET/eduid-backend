@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 
 import unittest
-from nacl import secret, utils
-from base64 import urlsafe_b64encode
-from os import environ
+from mock import patch
+from nacl import secret, encoding
 
 from eduid_common.api.testing import EtcdTemporaryInstance
 from eduid_common.config.parsers.etcd import EtcdConfigParser
+from eduid_common.config.parsers import decorators
 
 __author__ = 'lundberg'
 
@@ -83,16 +83,39 @@ class TestEtcdParser(unittest.TestCase):
         self.parser.set('my_set_key', 'a nice value')
         self.assertEqual(self.parser.get('MY_SET_KEY'), 'a nice value')
 
-    def test_decrypt(self):
+    @patch('eduid_common.config.parsers.decorators.read_secret_key')
+    def test_decrypt(self, mock_read_secret_key):
+        mock_read_secret_key.return_value = 'A'*secret.SecretBox.KEY_SIZE
 
-        secret_key = utils.random(secret.SecretBox.KEY_SIZE)
-        environ['APP_CONFIG_SECRET'] = secret_key
-        box = secret.SecretBox(secret_key)
+        box = secret.SecretBox(decorators.read_secret_key('test'))
 
-        self.parser.set('MY_SET_KEY_ENCRYPTED', urlsafe_b64encode(box.encrypt('a nice value')))
-        self.assertNotEqual(self.parser.get('MY_SET_KEY_ENCRYPTED'), 'a nice value')
+        secret_value = [{
+            'key_name': 'test',
+            'value': bytes(box.encrypt('a nice value', encoder=encoding.URLSafeBase64Encoder)).decode('ascii')
+        }]
+        self.parser.set('MY_SET_KEY_ENCRYPTED', secret_value)
+        self.parser.set('MY_OTHER_SET_KEY', 'another nice value')
 
         read_config = self.parser.read_configuration()
-        self.assertEqual({'MY_SET_KEY': 'a nice value'}, read_config)
+        self.assertEqual({'MY_SET_KEY': 'a nice value', 'MY_OTHER_SET_KEY': 'another nice value'}, read_config)
 
+    @patch('eduid_common.config.parsers.decorators.read_secret_key')
+    def test_decrypt_multi_key(self, mock_read_secret_key):
 
+        mock_read_secret_key.return_value = 'A'*secret.SecretBox.KEY_SIZE
+
+        box = secret.SecretBox(decorators.read_secret_key('test'))
+        box2 = secret.SecretBox('B'*secret.SecretBox.KEY_SIZE)
+
+        secret_value = [{
+            'key_name': 'not_test',
+            'value': bytes(box2.encrypt('a nice value', encoder=encoding.URLSafeBase64Encoder)).decode('ascii')
+        }, {
+            'key_name': 'test',
+            'value': bytes(box.encrypt('a nice value', encoder=encoding.URLSafeBase64Encoder)).decode('ascii')
+        }]
+        self.parser.set('MY_SET_KEY_ENCRYPTED', secret_value)
+        self.parser.set('MY_OTHER_SET_KEY', 'another nice value')
+
+        read_config = self.parser.read_configuration()
+        self.assertEqual({'MY_SET_KEY': 'a nice value', 'MY_OTHER_SET_KEY': 'another nice value'}, read_config)
