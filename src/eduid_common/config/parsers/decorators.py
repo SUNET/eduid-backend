@@ -107,13 +107,56 @@ def interpolate(f):
     return interpolation_decorator
 
 
-def interpolate_config(config_dict):
+def interpolate_list(config_dict, sub_list):
     """
     :param config_dict: Configuration dictionary
+    :param sub_list: Sub configuration list
+
     :type config_dict: dict
+    :type sub_list: list
+
+    :return: Configuration list
+    :rtype: list
+    """
+    for i in range(0, len(sub_list)):
+        item = sub_list[i]
+        # Substitute string items
+        if isinstance(item, six.string_types) and '$' in item:
+            template = Template(item)
+            sub_list[i] = template.safe_substitute(config_dict)
+        # Call interpolate_config with dict items
+        if isinstance(item, dict):
+            sub_list[i] = interpolate_config(config_dict, item)
+        # Recursively call interpolate_list for list items
+        if isinstance(item, list):
+            sub_list[i] = interpolate_list(config_dict, item)
+    return sub_list
+
+
+def interpolate_config(config_dict, sub_dict=None):
+    """
+    :param config_dict: Configuration dictionary
+    :param sub_dict: Sub configuration dictionary
+    :type config_dict: dict
+    :type sub_dict: dict
+
     :return: Configuration dictionary
     :rtype: dict
     """
-    template = Template(json.dumps(config_dict))
-    string_config = template.safe_substitute(config_dict)
-    return json.loads(string_config)
+    if not sub_dict:
+        sub_dict = config_dict
+    for key, value in sub_dict.items():
+        # Substitute string values
+        if isinstance(value, six.string_types) and '$' in value:
+            template = Template(value)
+            sub_dict[key] = template.safe_substitute(config_dict)
+
+        # Check if lists contain string values, dicts or more lists
+        # Offloaded to interpolate_list
+        if isinstance(value, list):
+            sub_dict[key] = interpolate_list(config_dict, value)
+
+        # Recursively call interpolate_config for sub dicts
+        if isinstance(value, dict):
+            sub_dict[key] = interpolate_config(config_dict, value)
+    return sub_dict

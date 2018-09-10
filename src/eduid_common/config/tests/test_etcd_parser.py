@@ -133,6 +133,28 @@ class TestEtcdParser(unittest.TestCase):
         read_config = self.parser.read_configuration()
         self.assertEqual({'MY_SET_KEY': '${MY_VALUE}'}, read_config)
 
+    def test_interpolate_complex_dict(self):
+        self.parser.set('MY_SET_KEY', '${MY_VALUE}')
+        self.parser.set('MY_VALUE', 'a nice value')
+        self.parser.set('A_LIST', ['test', '${MY_VALUE}', {'A_DICT_IN_A_LIST': '${MY_VALUE}'}])
+        self.parser.set('ANOTHER_DICT', {'STRING_IN_SUB_DICT': '${MY_VALUE}'})
+
+        read_config = self.parser.read_configuration()
+
+        expected = {
+            'MY_SET_KEY': 'a nice value',
+            'MY_VALUE': 'a nice value',
+            'A_LIST': [
+                'test',
+                'a nice value',
+                {'A_DICT_IN_A_LIST': 'a nice value'},
+            ],
+            'ANOTHER_DICT': {
+                'STRING_IN_SUB_DICT': 'a nice value'
+            }
+        }
+        self.assertEqual(expected, read_config)
+
     @patch('eduid_common.config.parsers.decorators.read_secret_key')
     def test_decrypt_interpolate(self, mock_read_secret_key):
         mock_read_secret_key.return_value = bytes(b'A'*secret.SecretBox.KEY_SIZE)
