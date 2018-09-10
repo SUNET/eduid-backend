@@ -34,11 +34,7 @@
 from __future__ import absolute_import
 
 from datetime import datetime
-from urllib import urlencode
-try:
-    import urlparse  # Python2
-except ImportError:
-    from urllib.parse import urlparse  # Python3
+from six.moves.urllib_parse import urlparse, urlencode
 
 from flask import Blueprint, current_app, session, abort, url_for, redirect, render_template
 from flask_babel import gettext as _
