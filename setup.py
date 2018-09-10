@@ -18,9 +18,9 @@ install_requires = [
 ]
 
 testing_extras = [
-    'nose == 1.2.1',
-    'nosexcover == 1.0.8',
-    'coverage == 3.6',
+    'nose == 1.3.7',
+    'nosexcover == 1.0.11',
+    'coverage == 4.5.1',
 ]
 
 setup(
