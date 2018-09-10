@@ -82,6 +82,8 @@ class SanitationMixin(object):
         try:
             # Test if the untrusted text is percent encoded
             # before running bleech.
+            if isinstance(untrusted_text, six.binary_type):
+                untrusted_text = untrusted_text.decode('utf-8')
             if unquote(untrusted_text) != untrusted_text:
                 use_percent_encoding = True
             else:
