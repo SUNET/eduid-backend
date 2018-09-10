@@ -238,7 +238,7 @@ class MessageRelay(Task):
             'subject': subject,
             'content_type': content_type,
             'language': language,
-            'message': message
+            'message': message.decode('utf-8')
         })
         response = self.mm_api.message.send.POST(data=data)
         LOG.debug("_send_mm_message response for recipient '%s': '%r'" % (recipient, response))
@@ -452,7 +452,7 @@ def send_message(message_type, reference, message_dict, recipient, template, lan
         countdown = 600 * send_message.request.retries ** 2
         retry_countdown = min(countdown, 86400)
         LOG.error('send_message task error', exc_info=True)
-        LOG.debug("send_message task retrying in %d seconds, error %s", retry_countdown, e.message)
+        LOG.debug("send_message task retrying in %d seconds, error %s", retry_countdown, e.args[0])
         send_message.retry(exc=e, countdown=retry_countdown)
 
 

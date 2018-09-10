@@ -45,7 +45,7 @@ class CacheMDB():
 
     def expire_cache_items(self, force=False):
         ts = time() - self._ttl
-        if not force and (self._last_expire_at > ts - self._expiration_freq):
+        if not force and (self._last_expire_at is not None) and (self._last_expire_at > ts - self._expiration_freq):
             return False
         self._last_expire_at = ts
         date = datetime.fromtimestamp(ts, None)

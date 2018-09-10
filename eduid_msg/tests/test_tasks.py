@@ -98,7 +98,7 @@ class TestTasks(MongoTestCase):
 
         # Test that the template was actually used in send_message function call to the sms service
         template = load_template(celery.conf.get('TEMPLATE_DIR'), 'test.tmpl', self.msg_dict, 'sv_SE')
-        expected = [call(template, 'Test sender', '+466666', prio=2)]
+        expected = [call(template.encode('utf-8'), 'Test sender', '+466666', prio=2)]
         self.assertEqual(sms_mock.mock_calls, expected)
         self.assertTrue(status)
 
@@ -106,7 +106,7 @@ class TestTasks(MongoTestCase):
         try:
             send_message.delay('sms', 'reference', self.msg_dict, '+466666a', 'test.tmpl', 'sv_SE').get()
         except ValueError as e:
-            self.assertEqual(e.message, "'to' is not a valid phone number")
+            self.assertEqual(e.args[0], "'to' is not a valid phone number")
 
     @patch('eduid_msg.tasks.MessageRelay.mm_api')
     def test_is_reachable_cache(self, api_mock):
@@ -135,8 +135,8 @@ class TestTasks(MongoTestCase):
         # Test that the template was actually used in send_message function call to the mm service
         template = load_template(celery.conf.get('TEMPLATE_DIR'), 'test.tmpl', self.msg_dict, 'sv_SE')
         reachable_data = json.dumps({"identity_number": recipient})
-        message_data = json.dumps({"message": template, "recipient": recipient, "content_type": "text/html",
-                                   "language": "svSE", "subject": "Test"})
+        message_data = json.dumps({"recipient": recipient, "subject": "Test", "content_type": "text/html",
+                                   "language": "svSE", "message": template})
         expected = [call.user.reachable.POST(data=reachable_data), call.message.send.POST(data=message_data)]
         self.assertEqual(api_mock.mock_calls, expected)
 

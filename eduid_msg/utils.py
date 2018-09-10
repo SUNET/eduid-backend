@@ -3,6 +3,7 @@
 This module provides utility functions.
 """
 
+import six
 import os
 from collections import OrderedDict
 
@@ -13,7 +14,7 @@ def load_template(template_dir, filename, message_dict, lang):
     """
     from jinja2 import Environment, FileSystemLoader
 
-    if not isinstance(template_dir, basestring):
+    if not isinstance(template_dir, six.string_types):
         return False
     if not os.path.isdir(template_dir):
         return False
