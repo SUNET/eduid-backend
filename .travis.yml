@@ -13,7 +13,7 @@ services:
 # command to install dependencies
 install:
   - pip install -U setuptools
-  - python setup.py install easy_install[testing]
+  - python setup.py testing
 # command to run tests
 script:
   - nosetests
