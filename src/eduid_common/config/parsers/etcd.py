@@ -8,7 +8,7 @@ import yaml
 import json
 import logging
 
-from eduid_common.config.parsers.decorators import decrypt
+from eduid_common.config.parsers.decorators import decrypt, interpolate
 from eduid_common.config.parsers.exceptions import ParserException
 
 __author__ = 'lundberg'
@@ -49,6 +49,7 @@ class EtcdConfigParser(object):
         """
         return '{!s}{!s}'.format(self.ns, key.lower())
 
+    @interpolate
     @decrypt
     def read_configuration(self, silent=False):
         """

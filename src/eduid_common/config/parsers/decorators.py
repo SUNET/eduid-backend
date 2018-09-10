@@ -4,8 +4,10 @@ from __future__ import absolute_import
 
 import logging
 import six
+import json
 from functools import wraps
 from nacl import secret, encoding, exceptions
+from string import Template
 
 from eduid_common.config.parsers.exceptions import SecretKeyException
 
@@ -93,3 +95,25 @@ def decrypt_config(config_dict):
             if not decrypted:
                 logging.error('Failed to decrypt {}:{}'.format(key, value))
     return config_dict
+
+
+def interpolate(f):
+    @wraps(f)
+    def interpolation_decorator(*args, **kwargs):
+        config_dict = f(*args, **kwargs)
+        interpolated_config_dict = interpolate_config(config_dict)
+        return interpolated_config_dict
+
+    return interpolation_decorator
+
+
+def interpolate_config(config_dict):
+    """
+    :param config_dict: Configuration dictionary
+    :type config_dict: dict
+    :return: Configuration dictionary
+    :rtype: dict
+    """
+    template = Template(json.dumps(config_dict))
+    string_config = template.safe_substitute(config_dict)
+    return json.loads(string_config)
