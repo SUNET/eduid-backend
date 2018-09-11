@@ -34,6 +34,7 @@ Define a `eduid_init_app` function to create a Flask app and update
 it with all attributes common to all eduID services.
 """
 
+import os
 from werkzeug.contrib.fixers import ProxyFix
 
 from eduid_userdb import UserDB
@@ -47,6 +48,9 @@ from eduid_common.api.exceptions import init_exception_handlers, init_sentry
 from eduid_common.api.middleware import PrefixMiddleware
 from eduid_common.config.parsers.etcd import EtcdConfigParser
 from eduid_common.stats import NoOpStats, Statsd
+
+
+DEBUG = os.environ.get('EDUID_APP_DEBUG', False)
 
 
 def eduid_init_app_no_db(name, config, app_class=AuthnApp):
@@ -103,6 +107,13 @@ def eduid_init_app_no_db(name, config, app_class=AuthnApp):
 
     # Load optional init time settings
     app.config.update(config)
+
+    if DEBUG:
+        import sys
+        import pprint
+        pprint.pprint(('CONFIGURATION', 'config'), stream=sys.stderr)
+        for key, value in sorted(config.items()):
+            pprint.pprint((key, value), stream=sys.stderr)
 
     # Set app url prefix to APPLICATION_ROOT
     app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix=app.config['APPLICATION_ROOT'],
