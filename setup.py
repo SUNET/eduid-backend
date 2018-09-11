@@ -9,14 +9,14 @@ version = '0.2.1b11'
 requires = []
 
 test_requires = [
-    'WebTest==2.0.18',
-    'mock==1.0.1',
+    'WebTest==2.0.30',
+    'mock==2.0.0',
 ]
 
 testing_extras = test_requires + [
-    'nose>=1.2.1',
-    'coverage>=3.6',
-    'nosexcover>=1.0.8',
+    'nose == 1.3.7',
+    'nosexcover == 1.0.11',
+    'coverage == 4.5.1',
 ]
 
 setup(
