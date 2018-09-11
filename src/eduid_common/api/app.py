@@ -35,9 +35,8 @@ it with all attributes common to all eduID services.
 """
 
 import os
-import sys
-import pprint
 from werkzeug.contrib.fixers import ProxyFix
+from sys import stderr
 
 from eduid_userdb import UserDB
 from eduid_common.authn.middleware import AuthnApp
@@ -48,13 +47,14 @@ from eduid_common.api.logging import init_logging
 from eduid_common.api.utils import init_template_functions
 from eduid_common.api.exceptions import init_exception_handlers, init_sentry
 from eduid_common.api.middleware import PrefixMiddleware
+from eduid_common.api.debug import dump_config
 from eduid_common.config.parsers.etcd import EtcdConfigParser
 from eduid_common.stats import NoOpStats, Statsd
 
 
 DEBUG = os.environ.get('EDUID_APP_DEBUG', False)
 if DEBUG:
-    pprint.pprint('----- WARNING! EDUID_APP_DEBUG is enabled -----', stream=sys.stderr)
+    stderr.writelines('----- WARNING! EDUID_APP_DEBUG is enabled -----\n')
 
 
 def eduid_init_app_no_db(name, config, app_class=AuthnApp):
@@ -113,9 +113,7 @@ def eduid_init_app_no_db(name, config, app_class=AuthnApp):
     app.config.update(config)
 
     if DEBUG:
-        pprint.pprint(('CONFIGURATION', 'app.config'), stream=sys.stderr)
-        for key, value in sorted(app.config.items()):
-            pprint.pprint((key, value), stream=sys.stderr)
+        dump_config(app)
 
     # Set app url prefix to APPLICATION_ROOT
     app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix=app.config['APPLICATION_ROOT'],
