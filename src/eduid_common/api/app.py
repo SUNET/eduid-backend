@@ -111,8 +111,8 @@ def eduid_init_app_no_db(name, config, app_class=AuthnApp):
     if DEBUG:
         import sys
         import pprint
-        pprint.pprint(('CONFIGURATION', 'config'), stream=sys.stderr)
-        for key, value in sorted(config.items()):
+        pprint.pprint(('CONFIGURATION', 'app.config'), stream=sys.stderr)
+        for key, value in sorted(app.config.items()):
             pprint.pprint((key, value), stream=sys.stderr)
 
     # Set app url prefix to APPLICATION_ROOT
