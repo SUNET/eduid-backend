@@ -35,6 +35,8 @@ it with all attributes common to all eduID services.
 """
 
 import os
+import sys
+import pprint
 from werkzeug.contrib.fixers import ProxyFix
 
 from eduid_userdb import UserDB
@@ -51,6 +53,8 @@ from eduid_common.stats import NoOpStats, Statsd
 
 
 DEBUG = os.environ.get('EDUID_APP_DEBUG', False)
+if DEBUG:
+    pprint.pprint('----- WARNING! EDUID_APP_DEBUG is enabled -----', stream=sys.stderr)
 
 
 def eduid_init_app_no_db(name, config, app_class=AuthnApp):
@@ -109,8 +113,6 @@ def eduid_init_app_no_db(name, config, app_class=AuthnApp):
     app.config.update(config)
 
     if DEBUG:
-        import sys
-        import pprint
         pprint.pprint(('CONFIGURATION', 'app.config'), stream=sys.stderr)
         for key, value in sorted(app.config.items()):
             pprint.pprint((key, value), stream=sys.stderr)
