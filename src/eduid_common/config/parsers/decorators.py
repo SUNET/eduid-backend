@@ -47,10 +47,7 @@ def init_secret_box(key_name=None, secret_key=None):
     :rtype: SecretBox
     """
     if not secret_key:
-        try:
-            secret_key = read_secret_key(key_name)
-        except IOError as e:
-            raise SecretKeyException(str(e))
+        secret_key = read_secret_key(key_name)
     return secret.SecretBox(secret_key)
 
 
@@ -72,8 +69,8 @@ def decrypt_config(config_dict):
                 if not boxes.get(key_name):
                     try:
                         boxes[key_name] = init_secret_box(key_name=key_name)
-                    except SecretKeyException as e:
-                        logging.debug(e)
+                    except IOError as e:
+                        logging.error(e)
                         continue  # Try next key
                 try:
                     if six.PY2:
@@ -90,7 +87,7 @@ def decrypt_config(config_dict):
                     decrypted = True
                     break  # Decryption successful, do not try any more keys
                 except exceptions.CryptoError as e:
-                    logging.debug(e)
+                    logging.error(e)
                     continue  # Try next key
             if not decrypted:
                 logging.error('Failed to decrypt {}:{}'.format(key, value))
