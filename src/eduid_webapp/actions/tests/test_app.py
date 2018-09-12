@@ -61,7 +61,7 @@ class ActionsTests(ActionsTestCase):
                 with self.app.test_request_context():
                     response = self.authenticate(client, sess)
                     self.assertEqual(response.status_code, 200)
-                    self.assertTrue('bundle-holder' in response.data)
+                    self.assertTrue(b'bundle-holder' in response.data)
 
     @unittest.skipUnless(NEW_ACTIONS, "Still using old actions")
     def test_authn_wrong_secret(self):
@@ -72,8 +72,10 @@ class ActionsTests(ActionsTestCase):
                     nonce = 'dummy-nonce-xxxx'
                     timestamp = str(hex(int(time.time())))
                     shared_key = 'wrong-shared-key'
-                    token = sha256('{0}|{1}|{2}|{3}'.format(
-                                   shared_key, eppn, nonce, timestamp)).hexdigest()
+                    token_data = '{0}|{1}|{2}|{3}'.format(shared_key, eppn, nonce, timestamp)
+                    hashed = sha256(token_data.encode('ascii'))
+                    token = hashed.hexdigest()
+
                 url = '/?userid={}&token={}&nonce={}&ts={}'.format(eppn,
                                                                    token,
                                                                    nonce,

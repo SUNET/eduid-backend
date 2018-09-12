@@ -30,6 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
+import six
 import os
 import time
 import json
@@ -299,8 +300,13 @@ class AuthnAPITestCase(AuthnAPITestBase):
         eppn = 'hubba-fooo'
         shared_key = self.app.config['TOKEN_LOGIN_SHARED_KEY']
         timestamp = '{:x}'.format(int(time.time()))
-        nonce = os.urandom(16).encode('hex')
-        token = sha256("{0}|{1}|{2}|{3}".format(shared_key, eppn, nonce, timestamp)).hexdigest()
+        if six.PY2:
+            nonce = os.urandom(16).encode('hex')
+        else:
+            nonce = os.urandom(16).hex()
+        token_data = '{0}|{1}|{2}|{3}'.format(shared_key, eppn, nonce, timestamp)
+        hashed = sha256(token_data.encode('ascii'))
+        token = hashed.hexdigest()
 
         data = {
             'eppn': eppn,
@@ -318,8 +324,13 @@ class AuthnAPITestCase(AuthnAPITestBase):
         eppn = 'hubba-bubba'
         shared_key = self.app.config['TOKEN_LOGIN_SHARED_KEY']
         timestamp = '{:x}'.format(int(time.time()))
-        nonce = os.urandom(16).encode('hex')
-        token = sha256("{0}|{1}|{2}|{3}".format(shared_key, eppn, nonce, timestamp)).hexdigest()
+        if six.PY2:
+            nonce = os.urandom(16).encode('hex')
+        else:
+            nonce = os.urandom(16).hex()
+        token_data = '{0}|{1}|{2}|{3}'.format(shared_key, eppn, nonce, timestamp)
+        hashed = sha256(token_data.encode('ascii'))
+        token = hashed.hexdigest()
 
         data = {
             'eppn': eppn,
