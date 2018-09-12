@@ -15,7 +15,7 @@ from oic.oic.message import AuthorizationResponse, ClaimsRequest, Claims
 from eduid_userdb.proofing import ProofingUser
 from eduid_userdb.util import UTC
 from eduid_userdb.exceptions import DocumentDoesNotExist
-from eduid_common.api.utils import StringIO
+from six import BytesIO
 from eduid_common.api.decorators import require_user, can_verify_identity, MarshalWith, UnmarshalWith
 from eduid_common.api.helpers import add_nin_to_user
 from eduid_common.api.exceptions import TaskFailed
@@ -139,10 +139,10 @@ def get_seleg_state(user):
     # Return nonce and nonce as qr code
     current_app.logger.debug('Returning nonce for user {!s}'.format(user))
     current_app.stats.count(name='seleg.proofing_state_returned')
-    buf = StringIO()
+    buf = BytesIO()
     qr_code = helpers.create_opaque_data(proofing_state.nonce, proofing_state.token)
     qrcode.make(qr_code).save(buf)
-    qr_b64 = buf.getvalue().encode('base64')
+    qr_b64 = base64.b64encode(buf.getvalue())
     return {
         'qr_code': qr_code,
         'qr_img': 'data:image/png;base64, {!s}'.format(qr_b64),
