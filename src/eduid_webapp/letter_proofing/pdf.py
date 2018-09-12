@@ -4,7 +4,7 @@ from __future__ import absolute_import
 
 from flask import current_app
 from xhtml2pdf import pisa
-from StringIO import StringIO
+from six import StringIO
 from datetime import timedelta
 
 
