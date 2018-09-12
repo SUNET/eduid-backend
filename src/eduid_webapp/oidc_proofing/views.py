@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
+import six
+import base64
+
 import requests
 import qrcode
 import qrcode.image.svg
-import jose
-
+from jose import jws as jose
 from flask import request, make_response, url_for
 from flask import current_app, Blueprint
 from oic.oic.message import AuthorizationResponse, ClaimsRequest, Claims
@@ -206,14 +208,14 @@ def get_freja_state(user):
         "proto": current_app.config['FREJA_RESPONSE_PROTOCOL'],
         "opaque": opaque_data
     }
-    jwk = {'k': current_app.config['FREJA_JWK_SECRET'].decode('hex')}
+    jwk = current_app.config['FREJA_JWK_SECRET']
     jws_header = {
         'alg': current_app.config['FREJA_JWS_ALGORITHM'],
         'kid': current_app.config['FREJA_JWS_KEY_ID'],
     }
-    jws = jose.sign(request_data, jwk, add_header=jws_header, alg=current_app.config['FREJA_JWS_ALGORITHM'])
+    jws = jose.sign(request_data, jwk, headers=jws_header, algorithm=current_app.config['FREJA_JWS_ALGORITHM'])
     return {
-        'iaRequestData': jose.serialize_compact(jws)
+        'iaRequestData': jws
     }
 
 
