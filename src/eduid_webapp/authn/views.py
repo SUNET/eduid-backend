@@ -163,7 +163,7 @@ def logout():
 
     else:
         logouts = client.global_logout(subject_id)
-        loresponse = logouts.values()[0]
+        loresponse = list(logouts.values())[0]
         # loresponse is a dict for REDIRECT binding, and LogoutResponse for SOAP binding
         if isinstance(loresponse, LogoutResponse):
             if loresponse.status_ok():

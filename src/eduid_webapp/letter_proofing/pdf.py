@@ -78,7 +78,7 @@ def create_pdf(recipient, verification_code, created_timestamp, primary_mail_add
                                       recipient_primary_mail_address=primary_mail_address)
 
     if current_app.config.get("EKOPOST_DEBUG_PDF", None):
-        pdf_document = open(current_app.config.get("EKOPOST_DEBUG_PDF"), "w")
+        pdf_document = open(current_app.config.get("EKOPOST_DEBUG_PDF"))
         pisa.CreatePDF(StringIO(letter_template), pdf_document)
     else:
         pdf_document = StringIO()

@@ -107,9 +107,12 @@ class AuthnAPITestBase(EduidAPITestCase):
         with self.app.test_request_context('/login'):
             self.app.dispatch_request()
             oq_cache = OutstandingQueriesCache(session)
-            oq_cache.set(session.token, came_from)
+            token = session.token
+            if isinstance(token, six.binary_type):
+                token = token.decode('ascii')
+            oq_cache.set(token, came_from)
             session.persist()
-            return session.token
+            return token
 
     def login(self, eppn, came_from):
         """
@@ -133,7 +136,7 @@ class AuthnAPITestBase(EduidAPITestCase):
         """
         session_id = self.add_outstanding_query(came_from)
         cookie = self.dump_session_cookie(session_id)
-        saml_response = auth_response(session_id, eppn)
+        saml_response = auth_response(session_id, eppn).encode('utf-8')
 
         with self.app.test_request_context('/saml2-acs', method='POST',
                                            headers={'Cookie': cookie},
@@ -187,7 +190,9 @@ class AuthnAPITestBase(EduidAPITestCase):
             resp = c.get(url)
             cookie = resp.headers['Set-Cookie']
             token = session._session.token
-            authr = auth_response(token, eppn)
+            if isinstance(token, six.binary_type):
+                token = token.decode('ascii')
+            authr = auth_response(token, eppn).encode('utf-8')
 
         with self.app.test_request_context('/saml2-acs', method='POST',
                                            headers={'Cookie': cookie},
@@ -515,7 +520,7 @@ class LogoutRequestTests(AuthnAPITestBase):
         session_id = self.add_outstanding_query(came_from)
         cookie = self.dump_session_cookie(session_id)
 
-        saml_response = auth_response(session_id, eppn)
+        saml_response = auth_response(session_id, eppn).encode('utf-8')
 
         # Log in through IDP SAMLResponse
         with self.app.test_request_context('/saml2-acs', method='POST',
@@ -545,7 +550,7 @@ class LogoutRequestTests(AuthnAPITestBase):
         session_id = self.add_outstanding_query(came_from)
         cookie = self.dump_session_cookie(session_id)
 
-        saml_response = auth_response(session_id, eppn)
+        saml_response = auth_response(session_id, eppn).encode('utf-8')
 
         # Log in through IDP SAMLResponse
         with self.app.test_request_context('/saml2-acs', method='POST',
