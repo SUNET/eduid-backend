@@ -81,7 +81,7 @@ def _authn(action, force_authn=False):
     relay_state = verify_relay_state(request.args.get('next', redirect_url), redirect_url)
     idps = current_app.saml2_config.getattr('idp')
     assert len(idps) == 1
-    idp = idps.keys()[0]
+    idp = list(idps.keys())[0]
     idp = request.args.get('idp', idp)
     loa = request.args.get('required_loa', None)
     authn_request = get_authn_request(current_app.config, session,
