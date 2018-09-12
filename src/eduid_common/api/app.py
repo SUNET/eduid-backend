@@ -87,7 +87,8 @@ def eduid_init_app_no_db(name, config, app_class=AuthnApp):
 
     # Init etcd config parsers
     common_parser = EtcdConfigParser('/eduid/webapp/common/')
-    app_parser = EtcdConfigParser('/eduid/webapp/{!s}/'.format(name))
+    app_etcd_namespace = os.environ.get('EDUID_CONFIG_NS', '/eduid/webapp/{!s}/'.format(name))
+    app_parser = EtcdConfigParser(app_etcd_namespace)
 
     try:
         # Load project wide default settings
