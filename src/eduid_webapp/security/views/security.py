@@ -34,7 +34,7 @@
 from __future__ import absolute_import
 
 from datetime import datetime
-from six.moves.urllib_parse import urlparse, urlencode
+from six.moves.urllib_parse import urlparse, urlunparse, parse_qs, urlencode
 
 from flask import Blueprint, current_app, session, abort, url_for, redirect, render_template
 from flask_babel import gettext as _
@@ -164,12 +164,12 @@ def delete_account(user):
 
     params = {'next': next_url}
 
-    url_parts = list(urlparse.urlparse(terminate_url))
-    query = urlparse.parse_qs(url_parts[4])
+    url_parts = list(urlparse(terminate_url))
+    query = parse_qs(url_parts[4])
     query.update(params)
 
     url_parts[4] = urlencode(query)
-    location = urlparse.urlunparse(url_parts)
+    location = urlunparse(url_parts)
     return RedirectSchema().dump({'location': location}).data
 
 

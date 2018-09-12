@@ -5,7 +5,7 @@ from __future__ import absolute_import
 import unittest
 from collections import OrderedDict
 from datetime import datetime
-from StringIO import StringIO
+from six import StringIO
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_webapp.letter_proofing.app import init_letter_proofing_app
 from eduid_webapp.letter_proofing import pdf
