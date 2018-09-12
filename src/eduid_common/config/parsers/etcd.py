@@ -30,8 +30,11 @@ class EtcdConfigParser(object):
         :rtype: EtcdConfigParser
         """
         self.ns = namespace.lower()
-        if not self.ns.startswith('/') or not self.ns.endswith('/'):
+        if not self.ns.startswith('/'):
             raise ParserException('Namespace {!s} has to start and end with a \"/\" character'.format(namespace))
+        if not self.ns.endswith('/'):
+            # Be nice and fix it
+            self.ns = '{}/'.format(self.ns)
 
         if not host:
             host = os.environ.get('ETCD_HOST', '127.0.0.1')
