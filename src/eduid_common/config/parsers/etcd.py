@@ -8,6 +8,7 @@ import yaml
 import json
 import logging
 
+from eduid_common.config.parsers.decorators import decrypt, interpolate
 from eduid_common.config.parsers.exceptions import ParserException
 
 __author__ = 'lundberg'
@@ -29,8 +30,11 @@ class EtcdConfigParser(object):
         :rtype: EtcdConfigParser
         """
         self.ns = namespace.lower()
-        if not self.ns.startswith('/') or not self.ns.endswith('/'):
+        if not self.ns.startswith('/'):
             raise ParserException('Namespace {!s} has to start and end with a \"/\" character'.format(namespace))
+        if not self.ns.endswith('/'):
+            # Be nice and fix it
+            self.ns = '{}/'.format(self.ns)
 
         if not host:
             host = os.environ.get('ETCD_HOST', '127.0.0.1')
@@ -48,6 +52,8 @@ class EtcdConfigParser(object):
         """
         return '{!s}{!s}'.format(self.ns, key.lower())
 
+    @interpolate
+    @decrypt
     def read_configuration(self, silent=False):
         """
         :param silent: set to `True` if you want silent failure for missing keys.
@@ -76,18 +82,18 @@ class EtcdConfigParser(object):
         :return: Config dict
         :rtype: dict
         """
-        settings = {}
+        config = {}
         try:
             for child in self.client.read(self.ns, recursive=True).children:
                 # Remove namespace and uppercase the key
                 key = child.key.split('/')[-1].upper()
                 # Load etcd string with json to handle complex structures
-                settings[key] = json.loads(child.value)
+                config[key] = json.loads(child.value)
         except (etcd.EtcdKeyNotFound, etcd.EtcdConnectionFailed) as e:
             logging.info(e)
             if not silent:
                 raise e
-        return settings
+        return config
 
     def get(self, key):
         """

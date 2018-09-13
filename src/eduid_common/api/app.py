@@ -34,7 +34,9 @@ Define a `eduid_init_app` function to create a Flask app and update
 it with all attributes common to all eduID services.
 """
 
+import os
 from werkzeug.contrib.fixers import ProxyFix
+from sys import stderr
 
 from eduid_userdb import UserDB
 from eduid_common.authn.middleware import AuthnApp
@@ -45,8 +47,14 @@ from eduid_common.api.logging import init_logging
 from eduid_common.api.utils import init_template_functions
 from eduid_common.api.exceptions import init_exception_handlers, init_sentry
 from eduid_common.api.middleware import PrefixMiddleware
+from eduid_common.api.debug import dump_config
 from eduid_common.config.parsers.etcd import EtcdConfigParser
 from eduid_common.stats import NoOpStats, Statsd
+
+
+DEBUG = os.environ.get('EDUID_APP_DEBUG', False)
+if DEBUG:
+    stderr.writelines('----- WARNING! EDUID_APP_DEBUG is enabled -----\n')
 
 
 def eduid_init_app_no_db(name, config, app_class=AuthnApp):
@@ -79,7 +87,8 @@ def eduid_init_app_no_db(name, config, app_class=AuthnApp):
 
     # Init etcd config parsers
     common_parser = EtcdConfigParser('/eduid/webapp/common/')
-    app_parser = EtcdConfigParser('/eduid/webapp/{!s}/'.format(name))
+    app_etcd_namespace = os.environ.get('EDUID_CONFIG_NS', '/eduid/webapp/{!s}/'.format(name))
+    app_parser = EtcdConfigParser(app_etcd_namespace)
 
     try:
         # Load project wide default settings
@@ -103,6 +112,9 @@ def eduid_init_app_no_db(name, config, app_class=AuthnApp):
 
     # Load optional init time settings
     app.config.update(config)
+
+    if DEBUG:
+        dump_config(app)
 
     # Set app url prefix to APPLICATION_ROOT
     app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix=app.config['APPLICATION_ROOT'],
