@@ -25,6 +25,7 @@ webapp_requires = [
     'eduid_msg >= 0.10.3b1',
     'eduid-am >= 0.6.2b2',
     'statsd==3.2.1',
+    'zxcvbn>=4.4.27,<5.0',
 ]
 webapp_extras = webapp_requires + []
 
