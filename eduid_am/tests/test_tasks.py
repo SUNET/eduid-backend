@@ -20,7 +20,7 @@ class TestTasks(MongoTestCase):
         user = self.amdb.get_user_by_id(M['_id'])
         self.assertEqual(user.mail_addresses.primary.email, M['mail'])
         with self.assertRaises(UserDoesNotExist):
-            self.amdb.get_user_by_id('123456789012')
+            self.amdb.get_user_by_id(b'123456789012')
 
     def test_get_user_by_mail(self):
         user = self.amdb.get_user_by_mail(M['mailAliases'][0]['email'])
