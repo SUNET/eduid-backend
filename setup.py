@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 
-version = '0.3.5b5'
+version = '0.3.5b6'
 
 requires = [
     'six==1.11.0',
@@ -25,6 +25,7 @@ webapp_requires = [
     'eduid_msg >= 0.10.3b1',
     'eduid-am >= 0.6.2b2',
     'statsd==3.2.1',
+    'zxcvbn>=4.4.27,<5.0',
 ]
 webapp_extras = webapp_requires + []
 

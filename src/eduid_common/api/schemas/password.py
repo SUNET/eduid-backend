@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-import zxcvbn
+import math
+from zxcvbn import zxcvbn
 from marshmallow import Schema, ValidationError
 
 __author__ = 'lundberg'
@@ -31,6 +32,6 @@ class PasswordSchema(Schema):
         password = ''.join(password.split())
 
         # Check password complexity with zxcvbn
-        result = zxcvbn.password_strength(password, user_inputs=self.Meta.zxcvbn_terms)
-        if result.get('entropy', 0) < self.Meta.min_entropy:
+        result = zxcvbn(password, user_inputs=self.Meta.zxcvbn_terms)
+        if math.log2(result.get('guesses', 1)) < self.Meta.min_entropy:
             raise ValidationError('The password complexity is too weak.')
