@@ -33,5 +33,5 @@ class PasswordSchema(Schema):
 
         # Check password complexity with zxcvbn
         result = zxcvbn(password, user_inputs=self.Meta.zxcvbn_terms)
-        if math.log2(result.get('guesses', 1)) < self.Meta.min_entropy:
+        if math.log(result.get('guesses', 1), 2) < self.Meta.min_entropy:
             raise ValidationError('The password complexity is too weak.')
