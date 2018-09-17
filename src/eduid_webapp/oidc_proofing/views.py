@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
+import six
+import base64
+
 import requests
 import qrcode
 import qrcode.image.svg
-import jose
-
+from jose import jws as jose
 from flask import request, make_response, url_for
 from flask import current_app, Blueprint
 from oic.oic.message import AuthorizationResponse, ClaimsRequest, Claims
@@ -13,7 +15,7 @@ from oic.oic.message import AuthorizationResponse, ClaimsRequest, Claims
 from eduid_userdb.proofing import ProofingUser
 from eduid_userdb.util import UTC
 from eduid_userdb.exceptions import DocumentDoesNotExist
-from eduid_common.api.utils import StringIO
+from six import BytesIO
 from eduid_common.api.decorators import require_user, can_verify_identity, MarshalWith, UnmarshalWith
 from eduid_common.api.helpers import add_nin_to_user
 from eduid_common.api.exceptions import TaskFailed
@@ -137,10 +139,10 @@ def get_seleg_state(user):
     # Return nonce and nonce as qr code
     current_app.logger.debug('Returning nonce for user {!s}'.format(user))
     current_app.stats.count(name='seleg.proofing_state_returned')
-    buf = StringIO()
+    buf = BytesIO()
     qr_code = helpers.create_opaque_data(proofing_state.nonce, proofing_state.token)
     qrcode.make(qr_code).save(buf)
-    qr_b64 = buf.getvalue().encode('base64')
+    qr_b64 = base64.b64encode(buf.getvalue())
     return {
         'qr_code': qr_code,
         'qr_img': 'data:image/png;base64, {!s}'.format(qr_b64),
@@ -206,14 +208,14 @@ def get_freja_state(user):
         "proto": current_app.config['FREJA_RESPONSE_PROTOCOL'],
         "opaque": opaque_data
     }
-    jwk = {'k': current_app.config['FREJA_JWK_SECRET'].decode('hex')}
+    jwk = current_app.config['FREJA_JWK_SECRET']
     jws_header = {
         'alg': current_app.config['FREJA_JWS_ALGORITHM'],
         'kid': current_app.config['FREJA_JWS_KEY_ID'],
     }
-    jws = jose.sign(request_data, jwk, add_header=jws_header, alg=current_app.config['FREJA_JWS_ALGORITHM'])
+    jws = jose.sign(request_data, jwk, headers=jws_header, algorithm=current_app.config['FREJA_JWS_ALGORITHM'])
     return {
-        'iaRequestData': jose.serialize_compact(jws)
+        'iaRequestData': jws
     }
 
 

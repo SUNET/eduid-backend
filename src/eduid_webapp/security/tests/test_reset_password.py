@@ -201,7 +201,7 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         with self.app.test_client() as c:
             response2 = c.get('/reset-password/extra-security/{}'.format(email_code))
             self.assertEqual(response2.status_code, 200)
-            self.assertIn('Email address not validated', response2.data)
+            self.assertIn(b'Email address not validated', response2.data)
 
         state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
         self.assertIsNotNone(state)

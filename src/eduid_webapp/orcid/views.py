@@ -2,13 +2,7 @@
 
 from __future__ import absolute_import
 
-try:
-    # Python 2
-    import urlparse
-except ImportError:
-    # Python 3
-    from urllib import parse as urlparse
-from urllib import urlencode
+from six.moves.urllib_parse import urlencode, urlsplit, urlunsplit
 
 from flask import Blueprint, current_app, request, redirect, url_for
 from oic.oic.message import AuthorizationResponse
@@ -53,9 +47,9 @@ def authorize(user):
         return redirect(authorization_url)
     # Orcid already connected to user
     url = urlappend(current_app.config['DASHBOARD_URL'], 'accountlinking')
-    scheme, netloc, path, query_string, fragment = urlparse.urlsplit(url)
+    scheme, netloc, path, query_string, fragment = urlsplit(url)
     new_query_string = urlencode({'msg': ':ERROR:orc.already_connected'})
-    url = urlparse.urlunsplit((scheme, netloc, path, new_query_string, fragment))
+    url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
     return redirect(url)
 
 
@@ -64,7 +58,7 @@ def authorize(user):
 def authorization_response(user):
     # Redirect url for user feedback
     url = urlappend(current_app.config['DASHBOARD_URL'], 'accountlinking')
-    scheme, netloc, path, query_string, fragment = urlparse.urlsplit(url)
+    scheme, netloc, path, query_string, fragment = urlsplit(url)
 
     current_app.stats.count(name='authn_response')
 
@@ -80,7 +74,7 @@ def authorization_response(user):
     if not proofing_state:
         current_app.logger.error('The \'state\' parameter ({!s}) does not match a user state.'.format(user_oidc_state))
         new_query_string = urlencode({'msg': ':ERROR:orc.unknown_state'})
-        url = urlparse.urlunsplit((scheme, netloc, path, new_query_string, fragment))
+        url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
         return redirect(url)
 
     # do token request
@@ -97,7 +91,7 @@ def authorization_response(user):
     if id_token['nonce'] != proofing_state.nonce:
         current_app.logger.error('The \'nonce\' parameter does not match for user')
         new_query_string = urlencode({'msg': ':ERROR:orc.unknown_nonce'})
-        url = urlparse.urlunsplit((scheme, netloc, path, new_query_string, fragment))
+        url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
         return redirect(url)
     current_app.logger.info('ORCID authorized for user')
 
@@ -110,7 +104,7 @@ def authorization_response(user):
         current_app.logger.error('The \'sub\' of userinfo does not match \'sub\' of ID Token for user {!s}.'.format(
             proofing_state.eppn))
         new_query_string = urlencode({'msg': ':ERROR:orc.sub_mismatch'})
-        url = urlparse.urlunsplit((scheme, netloc, path, new_query_string, fragment))
+        url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
         return redirect(url)
 
     # Save orcid and oidc data to user
@@ -139,7 +133,7 @@ def authorization_response(user):
     current_app.logger.info('Removing proofing state')
     current_app.proofing_statedb.remove_state(proofing_state)
     new_query_string = urlencode({'msg': 'orc.authorization_success'})
-    url = urlparse.urlunsplit((scheme, netloc, path, new_query_string, fragment))
+    url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
     return redirect(url)
 
 

@@ -30,6 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
+import six
 import os
 import time
 import json
@@ -106,9 +107,12 @@ class AuthnAPITestBase(EduidAPITestCase):
         with self.app.test_request_context('/login'):
             self.app.dispatch_request()
             oq_cache = OutstandingQueriesCache(session)
-            oq_cache.set(session.token, came_from)
+            token = session.token
+            if isinstance(token, six.binary_type):
+                token = token.decode('ascii')
+            oq_cache.set(token, came_from)
             session.persist()
-            return session.token
+            return token
 
     def login(self, eppn, came_from):
         """
@@ -132,7 +136,7 @@ class AuthnAPITestBase(EduidAPITestCase):
         """
         session_id = self.add_outstanding_query(came_from)
         cookie = self.dump_session_cookie(session_id)
-        saml_response = auth_response(session_id, eppn)
+        saml_response = auth_response(session_id, eppn).encode('utf-8')
 
         with self.app.test_request_context('/saml2-acs', method='POST',
                                            headers={'Cookie': cookie},
@@ -186,7 +190,9 @@ class AuthnAPITestBase(EduidAPITestCase):
             resp = c.get(url)
             cookie = resp.headers['Set-Cookie']
             token = session._session.token
-            authr = auth_response(token, eppn)
+            if isinstance(token, six.binary_type):
+                token = token.decode('ascii')
+            authr = auth_response(token, eppn).encode('utf-8')
 
         with self.app.test_request_context('/saml2-acs', method='POST',
                                            headers={'Cookie': cookie},
@@ -299,8 +305,13 @@ class AuthnAPITestCase(AuthnAPITestBase):
         eppn = 'hubba-fooo'
         shared_key = self.app.config['TOKEN_LOGIN_SHARED_KEY']
         timestamp = '{:x}'.format(int(time.time()))
-        nonce = os.urandom(16).encode('hex')
-        token = sha256("{0}|{1}|{2}|{3}".format(shared_key, eppn, nonce, timestamp)).hexdigest()
+        if six.PY2:
+            nonce = os.urandom(16).encode('hex')
+        else:
+            nonce = os.urandom(16).hex()
+        token_data = '{0}|{1}|{2}|{3}'.format(shared_key, eppn, nonce, timestamp)
+        hashed = sha256(token_data.encode('ascii'))
+        token = hashed.hexdigest()
 
         data = {
             'eppn': eppn,
@@ -318,8 +329,13 @@ class AuthnAPITestCase(AuthnAPITestBase):
         eppn = 'hubba-bubba'
         shared_key = self.app.config['TOKEN_LOGIN_SHARED_KEY']
         timestamp = '{:x}'.format(int(time.time()))
-        nonce = os.urandom(16).encode('hex')
-        token = sha256("{0}|{1}|{2}|{3}".format(shared_key, eppn, nonce, timestamp)).hexdigest()
+        if six.PY2:
+            nonce = os.urandom(16).encode('hex')
+        else:
+            nonce = os.urandom(16).hex()
+        token_data = '{0}|{1}|{2}|{3}'.format(shared_key, eppn, nonce, timestamp)
+        hashed = sha256(token_data.encode('ascii'))
+        token = hashed.hexdigest()
 
         data = {
             'eppn': eppn,
@@ -504,7 +520,7 @@ class LogoutRequestTests(AuthnAPITestBase):
         session_id = self.add_outstanding_query(came_from)
         cookie = self.dump_session_cookie(session_id)
 
-        saml_response = auth_response(session_id, eppn)
+        saml_response = auth_response(session_id, eppn).encode('utf-8')
 
         # Log in through IDP SAMLResponse
         with self.app.test_request_context('/saml2-acs', method='POST',
@@ -534,7 +550,7 @@ class LogoutRequestTests(AuthnAPITestBase):
         session_id = self.add_outstanding_query(came_from)
         cookie = self.dump_session_cookie(session_id)
 
-        saml_response = auth_response(session_id, eppn)
+        saml_response = auth_response(session_id, eppn).encode('utf-8')
 
         # Log in through IDP SAMLResponse
         with self.app.test_request_context('/saml2-acs', method='POST',

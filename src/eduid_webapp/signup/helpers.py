@@ -31,6 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
+import six
 import os
 import time
 import struct
@@ -59,7 +60,7 @@ def generate_eppn():
     """
     for _ in range(10):
         eppn_int = struct.unpack('I', os.urandom(4))[0]
-        eppn = proquint.from_int(eppn_int)
+        eppn = proquint.uint2quint(eppn_int)
         try:
             current_app.central_userdb.get_user_by_eppn(eppn)
         except current_app.central_userdb.exceptions.UserDoesNotExist:
@@ -166,7 +167,10 @@ def complete_registration(signup_user):
 
     secret = current_app.config.get('AUTH_SHARED_SECRET')
     timestamp = '{:x}'.format(int(time.time()))
-    nonce = os.urandom(16).encode('hex')
+    if six.PY2:
+        nonce = os.urandom(16).encode('hex')
+    else:
+        nonce = os.urandom(16).hex()
     auth_token = generate_auth_token(secret, signup_user.eppn, nonce, timestamp)
 
     context.update({
@@ -231,5 +235,6 @@ def generate_auth_token(shared_key, email, nonce, timestamp, generator=sha256):
     """
     current_app.logger.debug("Generating auth-token for user {}, "
                         "nonce {}, ts {!r}".format(email, nonce, timestamp))
-    return generator("{0}|{1}|{2}|{3}".format(
-        shared_key, email, nonce, timestamp)).hexdigest()
+    data = "{0}|{1}|{2}|{3}".format(shared_key, email, nonce, timestamp)
+    hashed = generator(data.encode('utf-8'))
+    return hashed.hexdigest()

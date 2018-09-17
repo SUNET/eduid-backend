@@ -5,7 +5,7 @@ from __future__ import absolute_import
 import unittest
 from collections import OrderedDict
 from datetime import datetime
-from StringIO import StringIO
+from six import StringIO, BytesIO
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_webapp.letter_proofing.app import init_letter_proofing_app
 from eduid_webapp.letter_proofing import pdf
@@ -124,4 +124,4 @@ class CreatePDFTest(EduidAPITestCase):
         with self.app.app_context():
             pdf_document = pdf.create_pdf(recipient, verification_code='bogus code',
                                           created_timestamp=datetime.utcnow(), primary_mail_address='test@example.org')
-            self.assertIsInstance(pdf_document, StringIO)
+            self.assertIsInstance(pdf_document, (StringIO, BytesIO))

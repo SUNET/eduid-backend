@@ -297,12 +297,12 @@ class LetterProofingTests(EduidAPITestCase):
             state = self.app.proofing_statedb.get_state_by_user_id('012345678901234567890123', self.test_user_eppn)
         self.assertIsNotNone(state)
         state_dict = state.to_dict()
-        self.assertItemsEqual(state_dict.keys(), ['_id', 'eduPersonPrincipalName', 'nin', 'proofing_letter',
-                                                  'modified_ts'])
-        self.assertItemsEqual(state_dict['nin'].keys(), ['created_by', 'created_ts', 'number', 'verification_code',
-                                                         'verified'])
-        self.assertItemsEqual(state_dict['proofing_letter'].keys(), ['is_sent', 'sent_ts', 'transaction_id',
-                                                                     'address'])
+        self.assertEquals(sorted(list(state_dict.keys())), sorted(['_id', 'eduPersonPrincipalName', 'nin', 'proofing_letter',
+                                                  'modified_ts']))
+        self.assertEquals(sorted(list(state_dict['nin'].keys())), sorted(['created_by', 'created_ts', 'number', 'verification_code',
+                                                         'verified']))
+        self.assertEquals(sorted(list(state_dict['proofing_letter'].keys())), sorted(['is_sent', 'sent_ts', 'transaction_id',
+                                                                     'address']))
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')

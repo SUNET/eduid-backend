@@ -45,8 +45,9 @@ def verify_auth_token(eppn, token, nonce, timestamp, generator=sha256):
         return False
 
     # verify token format
-    expected = generator('{0}|{1}|{2}|{3}'.format(
-        shared_key, eppn, nonce, timestamp)).hexdigest()
+    data = '{0}|{1}|{2}|{3}'.format(shared_key, eppn, nonce, timestamp)
+    hashed = generator(data.encode('ascii'))
+    expected = hashed.hexdigest()
     if len(expected) != len(token):
         current_app.logger.warning('Auth token bad length')
         return False

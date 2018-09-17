@@ -2,9 +2,10 @@
 
 from __future__ import absolute_import
 
+import six
 import time
 import json
-import jose
+from jose import jws as jose
 from collections import OrderedDict
 from mock import patch
 
@@ -177,18 +178,19 @@ class OidcProofingTests(EduidAPITestCase):
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             response = json.loads(browser.get('/freja/proofing').data)
         self.assertEqual(response['type'], 'GET_OIDC_PROOFING_FREJA_PROOFING_SUCCESS')
-        jwk = {'k': self.app.config['FREJA_JWK_SECRET'].decode('hex')}
-        jwt = str(response['payload']['iaRequestData'])
-        request_data = jose.verify(jose.deserialize_compact(jwt), jwk, alg=self.app.config['FREJA_JWS_ALGORITHM'])
+        jwk = self.app.config['FREJA_JWK_SECRET']
+        jwt = response['payload']['iaRequestData'].encode('ascii')
+        request_data = jose.verify(jwt, jwk, self.app.config['FREJA_JWS_ALGORITHM'])
         expected = {
             'iarp': 'TESTRP',
             'opaque': '1' + json.dumps({'nonce': proofing_state.nonce, 'token': proofing_state.token}),
             'proto': u'1.0'
         }
-        self.assertIn('exp', request_data.claims)
-        self.assertEqual(request_data.claims['iarp'], expected['iarp'])
-        self.assertEqual(request_data.claims['opaque'], expected['opaque'])
-        self.assertEqual(request_data.claims['proto'], expected['proto'])
+        claims = json.loads(request_data.decode('ascii'))
+        self.assertIn('exp', claims)
+        self.assertEqual(claims['iarp'], expected['iarp'])
+        self.assertEqual(claims['opaque'], expected['opaque'])
+        self.assertEqual(claims['proto'], expected['proto'])
 
     def test_get_seleg_state_bad_csrf(self):
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:

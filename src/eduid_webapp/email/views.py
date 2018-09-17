@@ -31,8 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 from __future__ import absolute_import
-import urlparse
-from urllib import urlencode
+from six.moves.urllib_parse import urlencode, urlsplit, urlunsplit
 
 from flask import Blueprint, request, current_app, redirect, abort
 
@@ -220,7 +219,7 @@ def verify_link(user):
     if code and email:
         current_app.logger.debug('Trying to save email address {} as verified for user {}'.format(email, proofing_user))
         url = urlappend(current_app.config['DASHBOARD_URL'], 'emails')
-        scheme, netloc, path, query_string, fragment = urlparse.urlsplit(url)
+        scheme, netloc, path, query_string, fragment = urlsplit(url)
 
         try:
             state = current_app.proofing_statedb.get_state_by_eppn_and_email(proofing_user.eppn, email)
@@ -230,12 +229,12 @@ def verify_link(user):
                 current_app.logger.debug("Proofing state: {}".format(state))
                 current_app.proofing_statedb.remove_state(state)
                 new_query_string = urlencode({'msg': ':ERROR:emails.code_invalid_or_expired'})
-                url = urlparse.urlunsplit((scheme, netloc, path, new_query_string, fragment))
+                url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
                 return redirect(url)
         except DocumentDoesNotExist:
             current_app.logger.info('Could not find proofing state for email {}'.format(email))
             new_query_string = urlencode({'msg': ':ERROR:emails.unknown_email'})
-            url = urlparse.urlunsplit((scheme, netloc, path, new_query_string, fragment))
+            url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
             return redirect(url)
 
         if code == state.verification.verification_code:
@@ -244,18 +243,18 @@ def verify_link(user):
                 current_app.logger.info('Email successfully verified')
                 current_app.logger.debug('Email address: {}'.format(email))
                 new_query_string = urlencode({'msg': 'emails.verification-success'})
-                url = urlparse.urlunsplit((scheme, netloc, path, new_query_string, fragment))
+                url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
                 return redirect(url)
             except UserOutOfSync:
                 current_app.logger.info('Could not confirm email, data out of sync')
                 current_app.logger.debug('Mail address: {}'.format(email))
                 new_query_string = urlencode({'msg': ':ERROR:user-out-of-sync'})
-                url = urlparse.urlunsplit((scheme, netloc, path, new_query_string, fragment))
+                url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
                 return redirect(url)
         current_app.logger.info("Invalid verification code")
         current_app.logger.debug("Email address: {}".format(state.verification.email))
         new_query_string = urlencode({'msg': ':ERROR:emails.code_invalid_or_expired'})
-        url = urlparse.urlunsplit((scheme, netloc, path, new_query_string, fragment))
+        url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
         return redirect(url)
     abort(400)
 
