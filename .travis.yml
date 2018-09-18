@@ -16,7 +16,7 @@ services:
 # command to install dependencies
 install:
   - pip install -U setuptools
-  - pip install --index-url https://pypi.sunet.se --extra-index-url https://pypi.org/simple -r requirements/testing.txt
+  - pip install --index-url https://pypi.sunet.se -r requirements/testing.txt
 # command to run tests
 script:
   - pip freeze

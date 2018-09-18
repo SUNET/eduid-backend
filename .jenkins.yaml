@@ -8,6 +8,8 @@ triggers:
 slack:
   room: "eduid-builds"
 python_module: eduid_webapp
+publish_over_ssh:
+  - pypi.sunet.se
 clean_workspace: true
 
 extra_jobs:
