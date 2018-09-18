@@ -11,3 +11,18 @@ python_module: eduid_webapp
 publish_over_ssh:
   - pypi.sunet.se
 clean_workspace: true
+
+extra_jobs:
+  - name: eduid-webapp-docker
+    builders:
+      - docker
+    docker_name: eduid/eduid-webapp
+    managed_scripts:
+      - docker_build_prep.sh
+      - docker_tag.sh
+    triggers:
+      github_push: false
+      cron: null
+    upstream:
+      - eduid-docker-pythonenv
+      - eduid-webapp
