@@ -34,9 +34,10 @@ from __future__ import absolute_import
 from time import time
 from saml2.ident import code
 from flask import session, request, redirect, current_app
+
+from eduid_common.api.utils import verify_relay_state
 from eduid_common.authn.loa import get_loa
-from eduid_webapp.authn.acs_registry import acs_action
-from eduid_webapp.authn.helpers import verify_relay_state
+from eduid_common.authn.acs_registry import acs_action
 
 
 @acs_action('login-action')
