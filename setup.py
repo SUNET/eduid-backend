@@ -11,20 +11,25 @@ README = 'eduID Lookup Mobile'
 if os.path.exists(README_fn):
     README = open(README_fn).read()
 
-version = '0.0.6b5'
+version = '0.0.7b1'
 
 install_requires = [
-    'eduid-userdb >= 0.0.2',
-    'eduid_common>=0.1.3b5',
-    'celery >= 3.1.9, <4',
+    'eduid-userdb >= 0.4.0b12',
+    'eduid_common>=0.3.5b6',
+    'celery >= 3.1.17, <3.2',
     'suds-jurko >= 0.6',
-    'phonenumbers >= 7.0.2'
+    'phonenumbers >= 8.9.3'
 ]
 
 test_requires = [
-    'nose',
-    'coverage',
-    'nosexcover',
+    'WebTest==2.0.30',
+    'mock==2.0.0',
+]
+
+testing_extras = test_requires + [
+    'nose == 1.3.7',
+    'coverage == 4.5.1',
+    'nosexcover == 1.0.11',
 ]
 
 
@@ -49,6 +54,6 @@ setup(
     tests_require=test_requires,
     test_suite='eduid_lookup_mobile',
     extras_require={
-        'testing': test_requires,
+        'testing': testing_extras,
     },
 )
