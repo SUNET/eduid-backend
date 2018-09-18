@@ -60,7 +60,6 @@ setup(
     package_dir={'': 'src'},
     namespace_packages=['eduid_webapp'],
     zip_safe=False,
-    package_data={'': ['templates/*.html']},
     include_package_data=True,
     install_requires=requires,
     tests_require=test_requires,
