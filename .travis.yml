@@ -1,0 +1,12 @@
+language: python
+python:
+  - "2.7"
+  - "3.6"
+# command to install dependencies
+install:
+  - pip install -U setuptools
+  - python setup.py develop easy_install eduid_lookup_mobile[testing]
+# command to run tests
+script:
+  - pip freeze
+  - nosetests
