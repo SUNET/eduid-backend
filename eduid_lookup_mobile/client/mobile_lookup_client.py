@@ -1,3 +1,4 @@
+import six
 from suds.client import Client
 from suds.plugin import MessagePlugin
 from eduid_lookup_mobile.decorators import TransactionAudit
@@ -39,8 +40,8 @@ class MobileLookupClient(object):
         self.client.set_options(port=self.DEFAULT_CLIENT_PORT)
         self.logger = logger
 
-        self.DEFAULT_CLIENT_PASSWORD = unicode(self.conf['TELEADRESS_CLIENT_PASSWORD'])
-        self.DEFAULT_CLIENT_USER = unicode(self.conf['TELEADRESS_CLIENT_USER'])
+        self.DEFAULT_CLIENT_PASSWORD = six.text_type(self.conf['TELEADRESS_CLIENT_PASSWORD'])
+        self.DEFAULT_CLIENT_USER = six.text_type(self.conf['TELEADRESS_CLIENT_USER'])
 
     @TransactionAudit()
     def find_mobiles_by_NIN(self, national_identity_number, number_region=None):
