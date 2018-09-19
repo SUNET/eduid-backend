@@ -309,7 +309,7 @@ class MongoTestCase(unittest.TestCase):
             self.settings.update(mongo_settings)
 
         for db_name in self.conn.database_names():
-            if db_name in ['local', 'admin']:  # Do not drop mongo internal dbs
+            if db_name in ['local', 'admin', 'config']:  # Do not drop mongo internal dbs
                 continue
             self.conn.drop_database(db_name)
 
@@ -326,7 +326,7 @@ class MongoTestCase(unittest.TestCase):
         for userdoc in self.amdb._get_all_docs():
             assert DashboardUser(data=userdoc)
         for db_name in self.conn.database_names():
-            if db_name in ['local', 'admin']:  # Do not drop mongo internal dbs
+            if db_name in ['local', 'admin', 'config']:  # Do not drop mongo internal dbs
                 continue
             db = self.conn[db_name]
             for col_name in db.collection_names():
