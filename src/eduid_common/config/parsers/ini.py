@@ -29,7 +29,6 @@ class IniConfigParser(object):
         :return: IniConfigParser object
         :rtype: IniConfigParser
         """
-
         self.config_file_name = config_file_name
         self.config_environment_variable = config_environment_variable
         self.known_special_keys = {
@@ -46,10 +45,13 @@ class IniConfigParser(object):
         3. A file named .config_file_name in the user's home directory
         4. A file named config_file_name in the system configuration directory (/etc)
         """
-        file_name = os.environ.get(self.config_environment_variable, self.config_file_name)
+        if self.config_environment_variable:
+            env_file = os.environ.get(self.config_environment_variable, '')
+            if os.path.exists(env_file):
+                return env_file
 
-        if os.path.exists(file_name):
-            return file_name
+        if os.path.exists(self.config_file_name):
+            return self.config_file_name
 
         user_file = os.path.expanduser(
             os.path.join('~', '.', self.config_file_name))
