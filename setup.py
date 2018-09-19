@@ -14,6 +14,7 @@ if os.path.exists(README_fn):
 version = '0.0.7b1'
 
 install_requires = [
+    'six >= 1.11.0',
     'eduid-userdb >= 0.4.0b12',
     'eduid_common>=0.3.5b6',
     'celery >= 3.1.17, <3.2',
