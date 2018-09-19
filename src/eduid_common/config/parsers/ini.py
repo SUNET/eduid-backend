@@ -29,7 +29,8 @@ class IniConfigParser(object):
         :return: IniConfigParser object
         :rtype: IniConfigParser
         """
-
+        if config_environment_variable == None:
+            config_environment_variable = ''
         self.config_file_name = config_file_name
         self.config_environment_variable = config_environment_variable
         self.known_special_keys = {
