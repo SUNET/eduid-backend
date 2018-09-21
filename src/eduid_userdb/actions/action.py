@@ -47,7 +47,7 @@ class Action(object):
 
     :param data: MongoDB document representing an action
     :param action_id: Unique identifier for the action
-    :param user_oid: User id
+    :param eppn: User eppn
     :param action_type: What action to perform
     :param preference: Used to sort actions
     :param session: IdP session identifier
@@ -57,6 +57,7 @@ class Action(object):
 
     :type data: dict | None
     :type action_id: bson.ObjectId | str | None
+    :type eppn: str | None
     :type action_type: str | None
     :type preference: int | None
     :type session: str | None
@@ -64,14 +65,14 @@ class Action(object):
     :type result: object
     :type raise_on_unknown: bool
     """
-    def __init__(self, action_id = None, user_oid = None, action_type = None, preference = None, session = None,
+    def __init__(self, action_id = None, eppn = None, action_type = None, preference = None, session = None,
                  params = None, result = None, data = None, raise_on_unknown = True):
         self._data_in = copy.deepcopy(data)  # to not modify callers data
         self._data = dict()
 
         if self._data_in is None:
             self._data_in = dict(_id = action_id,
-                                 user_oid = user_oid,
+                                 eppn = eppn,
                                  action = action_type,
                                  preference = preference,
                                  session = session or '',
@@ -90,10 +91,7 @@ class Action(object):
         self.result = self._data_in.pop('result', None)
         # things without setters
         self._data['_id'] = _id
-        user_oid = self._data_in.pop('user_oid')
-        if not isinstance(user_oid, bson.ObjectId):
-            user_oid = bson.ObjectId(user_oid)
-        self._data['user_oid'] = user_oid
+        self._data['eppn'] = self._data_in.pop('eppn')
         self._data['action'] = self._data_in.pop('action')
         self._data['preference'] = self._data_in.pop('preference', 100)
         self._data['session'] = self._data_in.pop('session', '')
@@ -115,8 +113,8 @@ class Action(object):
 
         Check actions that can't be loaded for some known reason.
         """
-        if self._data_in.get('user_oid') is None:
-            raise ActionMissingData('Action {!s} has no key user_oid'.format(
+        if self._data_in.get('eppn') is None:
+            raise ActionMissingData('Action {!s} has no key eppn'.format(
                 self._data_in.get('_id')))
         if self._data_in.get('action') is None:
             raise ActionMissingData('Action {!s} has no key action'.format(
@@ -132,7 +130,7 @@ class Action(object):
         return '<eduID {!s}: {}: {} for user {}{}{}>'.format(self.__class__.__name__,
                                                              self.action_id,
                                                              self.action_type,
-                                                             self.user_id,
+                                                             self.eppn,
                                                              sess_str,
                                                              res_str
                                                              )
@@ -156,13 +154,13 @@ class Action(object):
 
     # -----------------------------------------------------------------
     @property
-    def user_id(self):
+    def eppn(self):
         """
         Get the actions's user_oid in MongoDB.
 
         :rtype: bson.ObjectId
         """
-        return self._data['user_oid']
+        return self._data['eppn']
 
     # -----------------------------------------------------------------
     @property

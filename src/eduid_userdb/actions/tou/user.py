@@ -44,41 +44,37 @@ class ToUUser(User):
     Subclass of eduid_userdb.User with
     the eduid-actions plugin for ToU specific data.
 
-    :param userid: user id
-    :type userid: bson.ObjectId
+    :param eppn: eppn
+    :type eppn: str
     :param tou: ToU  list
     :type tou: list
-    :param data: userid and tou
+    :param data: eppn and tou
     :type data: dict
     :param raise_on_unknown: whether to raise an exception if
                              there is unknown data in the data dict
     :type raise_on_unknown: bool
     """
 
-    def __init__(self, userid = None, tou = None, data = None,
+    def __init__(self, eppn = None, tou = None, data = None,
                                          raise_on_unknown = True):
         """
         """
         if data is None:
-            data = {'_id': userid, 'tou': tou}
+            data = {'eppn': eppn, 'tou': tou}
 
-        if '_id' not in data or data['_id'] is None:
+        if 'eppn' not in data or data['eppn'] is None:
             raise UserMissingData('Attempting to record a ToU acceptance '
                                   'for an unidentified user.')
         if 'tou' not in data or data['tou'] is None:
             raise UserMissingData('Attempting to record the acceptance of '
                                   'an unknown version of the ToU for '
-                                  'the user with id ' + str(data['_id']))
+                                  'the user with eppn ' + str(data['eppn']))
 
         self._data_in = deepcopy(data)
         self._data = dict()
 
         # things without setters
-        _id = self._data_in.pop('_id', None)
-        if not isinstance(_id, bson.ObjectId):
-            _id = bson.ObjectId(_id)
-        self._data['_id'] = _id
-
+        self.eppn = self._data_in.pop('eppn', None)
         self._parse_tous()
 
         self.modified_ts = self._data_in.pop('modified_ts', None)
@@ -86,7 +82,7 @@ class ToUUser(User):
         if len(self._data_in) > 0:
             if raise_on_unknown:
                 raise UserHasUnknownData('User {!s} unknown data: {!r}'.format(
-                    self.user_id, self._data_in.keys()
+                    self.eppn, self._data_in.keys()
                 ))
             # Just keep everything that is left as-is
             self._data.update(self._data_in)
