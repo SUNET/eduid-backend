@@ -605,15 +605,17 @@ class User(object):
 
     # -----------------------------------------------------------------
     @classmethod
-    def from_user(cls, user, private_userdb):
+    def from_user(cls, user, private_userdb, raise_on_unknown=True):
         """
         This function is only expected to be used by subclasses of User.
 
         :param user: User instance from AM database
         :param private_userdb: Private UserDB to load modified_ts from
+        :param raise_on_unknown: whether to raise UserHasUnknownData
 
         :type user: User
         :type private_userdb: eduid_userdb.UserDB
+        :type raise_on_unknown: bool
 
         :return: User proper
         :rtype: cls
@@ -624,4 +626,4 @@ class User(object):
             user_dict.pop('modified_ts', None)
         else:
             user_dict['modified_ts'] = private_user.modified_ts
-        return cls(data = user_dict)
+        return cls(data = user_dict, raise_on_unknown=raise_on_unknown)
