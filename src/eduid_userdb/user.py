@@ -605,7 +605,7 @@ class User(object):
 
     # -----------------------------------------------------------------
     @classmethod
-    def from_user(cls, user, private_userdb, raise_on_unknown=True):
+    def from_user(cls, user, private_userdb):
         """
         This function is only expected to be used by subclasses of User.
 
@@ -626,4 +626,4 @@ class User(object):
             user_dict.pop('modified_ts', None)
         else:
             user_dict['modified_ts'] = private_user.modified_ts
-        return cls(data = user_dict, raise_on_unknown=raise_on_unknown)
+        return cls(data = user_dict)
