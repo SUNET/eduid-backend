@@ -611,11 +611,9 @@ class User(object):
 
         :param user: User instance from AM database
         :param private_userdb: Private UserDB to load modified_ts from
-        :param raise_on_unknown: whether to raise UserHasUnknownData
 
         :type user: User
         :type private_userdb: eduid_userdb.UserDB
-        :type raise_on_unknown: bool
 
         :return: User proper
         :rtype: cls
