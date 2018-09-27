@@ -148,11 +148,17 @@ class TestTouUser(TestCase):
         one = copy.deepcopy(_one_dict)
         tou = ToUEvent(data = one, raise_on_unknown = False)
         with self.assertRaises(UserMissingData):
-            user = ToUUser(tou=[tou])
+            user = ToUUser(tou=[tou], userid=USERID)
+
+    def test_missing_userid(self):
+        one = copy.deepcopy(_one_dict)
+        tou = ToUEvent(data = one, raise_on_unknown = False)
+        with self.assertRaises(UserMissingData):
+            user = ToUUser(tou=[tou], eppn=EPPN)
 
     def test_missing_tou(self):
         with self.assertRaises(UserMissingData):
-            user = ToUUser(eppn=EPPN)
+            user = ToUUser(eppn=EPPN, userid=USERID)
 
     def test_unknown_data(self):
         one = copy.deepcopy(_one_dict)

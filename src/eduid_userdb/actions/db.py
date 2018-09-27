@@ -31,6 +31,7 @@
 #
 
 from bson import ObjectId
+from bson.errors import InvalidId
 
 from eduid_userdb.actions import Action
 from eduid_userdb.db import BaseDB
@@ -60,8 +61,11 @@ class ActionDB(BaseDB):
                                                                  self._coll_name,
                                                                  self.ActionClass.__name__)
 
-    def _read_actions_from_db(self, eppn, session, filter_=None, match_no_session=True):
-        query = {'eppn': eppn}
+    def _read_actions_from_db(self, eppn_or_userid, session, filter_=None, match_no_session=True):
+        try:
+            query = {'user_oid': ObjectId(eppn_or_userid)}
+        except InvalidId:
+            query = {'eppn': eppn_or_userid}
         query['$or'] = [{'session': {'$exists': False}},
                         {'session': session}
                         ]
@@ -69,24 +73,24 @@ class ActionDB(BaseDB):
             query.update(filter_)
         return self._coll.find(query).sort('preference')
 
-    def get_actions(self, eppn, session, action_type=None):
+    def get_actions(self, eppn_or_userid, session, action_type=None):
         """
         Check in the db (not in the cache) whether there are actions
         with whatever attributes you feed to the method.
         Used for example when the IdP wants to see if an MFA action it created
         earlier has been updated with an authentication response by the MFA plugin.
 
-        :param eppn: The eppn of the user with possible pending actions
+        :param eppn_or_userid: The eppn (or user_oid) of the user with possible pending actions
         :param session: The actions session for the user
         :param action_type: The type of action to be performed ('mfa', 'tou', ...)
 
-        :type eppn: str
+        :type eppn_or_userid: str
         :type session: string_types | None
         :type action_type: string_types | None
 
         :rtype: list of eduid_userdb.actions.Action
         """
-        actions = self._read_actions_from_db(eppn, session)
+        actions = self._read_actions_from_db(eppn_or_userid, session)
 
         res = []
         if action_type is None:
@@ -97,19 +101,19 @@ class ActionDB(BaseDB):
                 res.append(Action(data=this))
         return res
 
-    def has_actions(self, eppn, session=None, action_type=None, params=None):
+    def has_actions(self, eppn_or_userid, session=None, action_type=None, params=None):
         """
         Check in the db (not in the cache) whether there are actions
         with whatever attributes you feed to the method.
         Used for example when adding a new ToU action, to check
         that another app didn't create the action with another session.
 
-        :param eppn: The id of the user with possible pending actions
+        :param eppn_or_userid: The eppn (or id) of the user with possible pending actions
         :param session: The actions session for the user
         :param action_type: The type of action to be performed
         :param params: Extra params specific to the action type
 
-        :type eppn: str
+        :type eppn_or_userid: str
         :type session: str
         :type action_type: str
         :type params: dict
@@ -122,45 +126,45 @@ class ActionDB(BaseDB):
         if params is not None:
             filter_['params'] = params
 
-        actions = self._read_actions_from_db(eppn, session, filter_)
+        actions = self._read_actions_from_db(eppn_or_userid, session, filter_)
         return actions.count() > 0
 
-    def get_next_action(self, eppn, session=None):
+    def get_next_action(self, eppn_or_userid, session=None):
         """
-        Return next pending action for eppn and session.
+        Return next pending action for eppn_or_userid and session.
         If session is None, search actions with no session,
         otherwise search actions with either no session
         or with the specified session.
         If there is no pending action, return None
 
-        :param eppn: The id of the user with possible pending actions
+        :param eppn_or_userid: The eppn (or id) of the user with possible pending actions
         :param session: The IdP session for the user
 
-        :type eppn: str
+        :type eppn_or_userid: str
         :type session: str
 
         :rtype: eduid_userdb.actions:Action or None
         """
         filter_ = {'result': None}
-        actions = self._read_actions_from_db(eppn, session, filter_)
+        actions = self._read_actions_from_db(eppn_or_userid, session, filter_)
         for this in actions:
             # return first element in list
             return Action(data=this)
         return None
 
-    def add_action(self, eppn=None, action_type=None, preference=100,
+    def add_action(self, eppn_or_userid=None, action_type=None, preference=100,
                    session=None, params=None, data=None):
         """
         Add an action to the DB.
 
-        :param eppn: The id of the user who has to perform the action
+        :param eppn_or_userid: The eppn (or id) of the user who has to perform the action
         :param action_type: the kind of action to be performed
         :param preference: preference to order actions
         :param session: The IdP session for the user
         :param params: Any params the action may need
         :param data: all the previous params together
 
-        :type eppn: str
+        :type eppn_or_userid: str | bson.ObjectId
         :type action_type: str
         :type preference: int
         :type session: str
@@ -170,10 +174,13 @@ class ActionDB(BaseDB):
         :rtype: Action
         """
         if data is None:
-            data = {'eppn': eppn,
-                    'action': action_type,
+            data = {'action': action_type,
                     'preference': preference,
                     }
+            if isinstance(eppn_or_userid, ObjectId):
+                data['user_oid'] = eppn_or_userid
+            else:
+                data['eppn'] = eppn_or_userid
             if session is not None:
                 data['session'] = session
             if params is not None:

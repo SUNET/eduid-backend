@@ -39,7 +39,8 @@ from eduid_userdb.testing import MongoTestCase
 import logging
 logger = logging.getLogger(__name__)
 
-
+USERID3 = '333333333333333333333333'
+USERID4 = '444444444444444444444444'
 EPPN3 = 'hubba-bubba'
 EPPN4 = 'hussa-sussa'
 
@@ -56,6 +57,25 @@ DUMMY_ACTION = {
 TOU_ACTION = {
         '_id': ObjectId('222222222222222222222222'),
         'eppn': EPPN3,  # same user_oid as DUMMY_ACTION
+        'action': 'tou',
+        'preference': 100,
+        'params': {
+            'version': 'test-version'
+            }
+        }
+
+DUMMY_ACTION_USERID = {
+        '_id': ObjectId('111111111111111111111111'),
+        'eppn': USERID3,
+        'action': 'dummy',
+        'preference': 200, 
+        'params': {
+            }
+        }
+
+TOU_ACTION_USERID = {
+        '_id': ObjectId('222222222222222222222222'),
+        'eppn': USERID3,  # same user_oid as DUMMY_ACTION
         'action': 'tou',
         'preference': 100,
         'params': {
@@ -99,4 +119,41 @@ class TestActionsDB(MongoTestCase):
         self.actionsdb.update_action(action)
         # Saving a result on the action should make get_next_action advance to the next one
         next_action = self.actionsdb.get_next_action(EPPN3)
+
+
+class TestActionsDBUserid(MongoTestCase):
+
+    def setUp(self):
+        super(TestActionsDBUserid, self).setUp(None, None)
+        self.actionsdb = ActionDB(self.tmp_db.get_uri(''))
+        self.actionsdb.add_action(data=TOU_ACTION_USERID)
+        self.actionsdb.add_action(data=DUMMY_ACTION_USERID)
+
+    def tearDown(self):
+        self.actionsdb._drop_whole_collection()
+
+    def test_remove_action_userid(self):
+        self.actionsdb.remove_action_by_id(DUMMY_ACTION_USERID['_id'])
+        next_action = self.actionsdb.get_next_action(USERID3)
+        self.assertEquals(next_action.action_type, 'tou')
+        self.actionsdb.remove_action_by_id(next_action.action_id)
+        next_action = self.actionsdb.get_next_action(USERID3)
+        self.assertEquals(next_action, None)
+
+    def test_has_actions_userid(self):
+        self.assertTrue(self.actionsdb.has_actions(eppn=USERID3))
+        self.assertFalse(self.actionsdb.has_actions(eppn=USERID4))
+        self.assertTrue(self.actionsdb.has_actions(eppn=USERID3, session='xzf'))
+        self.assertTrue(self.actionsdb.has_actions(eppn=USERID3, params={'version': 'test-version'}))
+        self.assertFalse(self.actionsdb.has_actions(eppn=USERID3, params={'version': 'WRONG'}))
+        self.assertTrue(self.actionsdb.has_actions(eppn=USERID3,
+                                                   action_type='tou',
+                                                   params={'version': 'test-version'}))
+
+    def test_update_action_with_result_userid(self):
+        action = self.actionsdb.get_next_action(USERID3)
+        action.result = {'test': True}
+        self.actionsdb.update_action(action)
+        # Saving a result on the action should make get_next_action advance to the next one
+        next_action = self.actionsdb.get_next_action(USERID3)
 
