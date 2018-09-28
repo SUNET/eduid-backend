@@ -5,7 +5,7 @@ from __future__ import absolute_import
 from six.moves.urllib_parse import urlencode, urlsplit, urlunsplit
 
 from flask import Blueprint, current_app, request, redirect, url_for
-from oic.oic.message import AuthorizationResponse
+from oic.oic.message import AuthorizationResponse, ClaimsRequest, Claims
 
 from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
 from eduid_common.api.utils import get_unique_hash, urlappend, save_and_sync_user
@@ -33,10 +33,12 @@ def authorize(user):
                                                  'nonce': get_unique_hash()})
             current_app.proofing_statedb.save(proofing_state)
 
+        claims_request = ClaimsRequest(userinfo=Claims(id=None))
         oidc_args = {
             'client_id': current_app.oidc_client.client_id,
             'response_type': 'code',
             'scope': 'openid',
+            'claims': claims_request.to_json(),
             'redirect_uri': url_for('orcid.authorization_response', _external=True),
             'state': proofing_state.state,
             'nonce': proofing_state.nonce,
@@ -65,9 +67,18 @@ def authorization_response(user):
     # parse authentication response
     query_string = request.query_string.decode('utf-8')
     current_app.logger.debug('query_string: {!s}'.format(query_string))
+
     authn_resp = current_app.oidc_client.parse_response(AuthorizationResponse, info=query_string,
                                                         sformat='urlencoded')
     current_app.logger.debug('Authorization response received: {!s}'.format(authn_resp))
+
+    if authn_resp.get('error'):
+        current_app.logger.error('AuthorizationError {!s} - {!s} ({!s})'.format(request.host, authn_resp['error'],
+                                                                                authn_resp.get('error_message'),
+                                                                                authn_resp.get('error_description')))
+        new_query_string = urlencode({'msg': ':ERROR:orc.authorization_fail'})
+        url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
+        return redirect(url)
 
     user_oidc_state = authn_resp['state']
     proofing_state = current_app.proofing_statedb.get_state_by_oidc_state(user_oidc_state, raise_on_missing=False)
