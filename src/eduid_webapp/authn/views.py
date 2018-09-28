@@ -39,14 +39,14 @@ from werkzeug.exceptions import Forbidden
 from flask import request, session, redirect, abort, make_response
 from flask import current_app, Blueprint
 
-from eduid_common.api.decorators import MarshalWith
 from eduid_common.authn.utils import get_location
 from eduid_common.authn.loa import get_loa
 from eduid_common.authn.eduid_saml2 import get_authn_request, get_authn_response
 from eduid_common.authn.eduid_saml2 import authenticate
 from eduid_common.authn.cache import IdentityCache, StateCache
-from eduid_webapp.authn.acs_registry import get_action, schedule_action
-from eduid_webapp.authn.helpers import verify_auth_token, verify_relay_state
+from eduid_common.authn.acs_registry import get_action, schedule_action
+from eduid_common.api.utils import verify_relay_state
+from eduid_webapp.authn.helpers import verify_auth_token
 
 
 authn_views = Blueprint('authn', __name__, url_prefix='')

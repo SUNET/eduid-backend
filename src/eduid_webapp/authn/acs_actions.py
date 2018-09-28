@@ -34,9 +34,11 @@ from __future__ import absolute_import
 from time import time
 from saml2.ident import code
 from flask import session, request, redirect, current_app
+
+from eduid_common.api.utils import verify_relay_state
 from eduid_common.authn.loa import get_loa
-from eduid_webapp.authn.acs_registry import acs_action
-from eduid_webapp.authn.helpers import verify_relay_state
+from eduid_common.authn.acs_registry import acs_action
+from eduid_common.authn.utils import get_saml_attribute
 
 
 @acs_action('login-action')
@@ -57,6 +59,7 @@ def login_action(session_info, user):
     session['user_eppn'] = user.eppn
     loa = get_loa(current_app.config.get('AVAILABLE_LOA'), session_info)
     session['eduPersonAssurance'] = loa
+    session['eduidIdPCredentialsUsed'] = get_saml_attribute(session_info, 'eduidIdPCredentialsUsed')
     session.persist()
 
     # redirect the user to the view where he came from

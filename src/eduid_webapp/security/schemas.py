@@ -47,6 +47,8 @@ class CredentialSchema(EduidSchema):
     credential_type = fields.String(required=True)
     created_ts = fields.String(required=True)
     success_ts = fields.String(required=True)
+    used_for_login = fields.Boolean(required=True, default=False)
+    verified = fields.Boolean(required=True, default=False)
     description = fields.String(required=False)
 
 

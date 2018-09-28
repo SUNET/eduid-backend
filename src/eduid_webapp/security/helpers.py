@@ -2,7 +2,7 @@
 
 from __future__ import absolute_import
 
-from flask import current_app, render_template, url_for
+from flask import current_app, render_template, url_for, session
 from flask_babel import gettext as _
 from eduid_common.api.utils import get_unique_hash, get_short_hash, save_and_sync_user
 from eduid_common.authn.vccs import reset_password
@@ -35,9 +35,14 @@ def compile_credential_list(security_user):
     """
     credentials = []
     authn_info = current_app.authninfo_db.get_authn_info(security_user)
+    credentials_used = session.get('eduidIdPCredentialsUsed', list())
     for credential in security_user.credentials.to_list():
         credential_dict = credential.to_dict()
         credential_dict['key'] = credential.key
+        if credential.key in credentials_used:
+            credential_dict['used_for_login'] = True
+        if credential.is_verified:
+            credential_dict['verified'] = True
         credential_dict.update(authn_info[credential.key])
         credentials.append(credential_dict)
     return credentials
