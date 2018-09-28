@@ -144,7 +144,7 @@ class Action(object):
         res_str = ''
         if self.result:
             res_str = ', result={}'.format(self.result)
-        key = 'user_oid' if self.old_format else 'eppn'
+        key = 'user_id' if self.old_format else 'eppn'
         return '<eduID {!s}: {}: {} for user {}{}{}>'.format(self.__class__.__name__,
                                                              self.action_id,
                                                              self.action_type,

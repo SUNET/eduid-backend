@@ -62,16 +62,18 @@ class ActionDB(BaseDB):
                                                                  self.ActionClass.__name__)
 
     def _read_actions_from_db(self, eppn_or_userid, session, filter_=None, match_no_session=True):
+        old_format = True
         try:
-            query = {'user_oid': ObjectId(eppn_or_userid)}
+            query = {'user_oid': ObjectId(str(eppn_or_userid))}
         except InvalidId:
+            old_format = False
             query = {'eppn': eppn_or_userid}
         query['$or'] = [{'session': {'$exists': False}},
                         {'session': session}
                         ]
         if filter_ is not None:
             query.update(filter_)
-        return self._coll.find(query).sort('preference')
+        return old_format, self._coll.find(query).sort('preference')
 
     def get_actions(self, eppn_or_userid, session, action_type=None):
         """
@@ -90,15 +92,15 @@ class ActionDB(BaseDB):
 
         :rtype: list of eduid_userdb.actions.Action
         """
-        actions = self._read_actions_from_db(eppn_or_userid, session)
+        old_format, actions = self._read_actions_from_db(eppn_or_userid, session)
 
-        res = []
         if action_type is None:
             # Don't filter on action type, return all actions for user(+session)
-            return [Action(data=this) for this in actions]
+            return [Action(data=this, old_format=old_format) for this in actions]
+        res = []
         for this in actions:
             if this['action'] == action_type:
-                res.append(Action(data=this))
+                res.append(Action(data=this, old_format=old_format))
         return res
 
     def has_actions(self, eppn_or_userid, session=None, action_type=None, params=None):
@@ -126,7 +128,7 @@ class ActionDB(BaseDB):
         if params is not None:
             filter_['params'] = params
 
-        actions = self._read_actions_from_db(eppn_or_userid, session, filter_)
+        old_format, actions = self._read_actions_from_db(eppn_or_userid, session, filter_)
         return actions.count() > 0
 
     def get_next_action(self, eppn_or_userid, session=None):
@@ -146,10 +148,10 @@ class ActionDB(BaseDB):
         :rtype: eduid_userdb.actions:Action or None
         """
         filter_ = {'result': None}
-        actions = self._read_actions_from_db(eppn_or_userid, session, filter_)
+        old_format, actions = self._read_actions_from_db(eppn_or_userid, session, filter_)
         for this in actions:
             # return first element in list
-            return Action(data=this)
+            return Action(data=this, old_format=old_format)
         return None
 
     def add_action(self, eppn_or_userid=None, action_type=None, preference=100,
@@ -186,8 +188,12 @@ class ActionDB(BaseDB):
             if params is not None:
                 data['params'] = params
 
+        old_format = False
+        if 'user_oid' in data:
+            old_format = True
+
         # XXX deal with exceptions here ?
-        action = Action(data = data)
+        action = Action(data = data, old_format = old_format)
         result = self._coll.insert(action.to_dict())
         if result == action.action_id:
             return action

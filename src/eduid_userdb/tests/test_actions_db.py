@@ -56,7 +56,7 @@ DUMMY_ACTION = {
 
 TOU_ACTION = {
         '_id': ObjectId('222222222222222222222222'),
-        'eppn': EPPN3,  # same user_oid as DUMMY_ACTION
+        'eppn': EPPN3,  # same eppn as DUMMY_ACTION
         'action': 'tou',
         'preference': 100,
         'params': {
@@ -66,7 +66,7 @@ TOU_ACTION = {
 
 DUMMY_ACTION_USERID = {
         '_id': ObjectId('111111111111111111111111'),
-        'eppn': USERID3,
+        'user_oid': ObjectId(USERID3),
         'action': 'dummy',
         'preference': 200, 
         'params': {
@@ -75,7 +75,7 @@ DUMMY_ACTION_USERID = {
 
 TOU_ACTION_USERID = {
         '_id': ObjectId('222222222222222222222222'),
-        'eppn': USERID3,  # same user_oid as DUMMY_ACTION
+        'user_oid': ObjectId(USERID3),  # same user_oid as DUMMY_ACTION
         'action': 'tou',
         'preference': 100,
         'params': {
@@ -104,12 +104,12 @@ class TestActionsDB(MongoTestCase):
         self.assertEquals(next_action, None)
 
     def test_has_actions(self):
-        self.assertTrue(self.actionsdb.has_actions(eppn=EPPN3))
-        self.assertFalse(self.actionsdb.has_actions(eppn=EPPN4))
-        self.assertTrue(self.actionsdb.has_actions(eppn=EPPN3, session='xzf'))
-        self.assertTrue(self.actionsdb.has_actions(eppn=EPPN3, params={'version': 'test-version'}))
-        self.assertFalse(self.actionsdb.has_actions(eppn=EPPN3, params={'version': 'WRONG'}))
-        self.assertTrue(self.actionsdb.has_actions(eppn=EPPN3,
+        self.assertTrue(self.actionsdb.has_actions(eppn_or_userid=EPPN3))
+        self.assertFalse(self.actionsdb.has_actions(eppn_or_userid=EPPN4))
+        self.assertTrue(self.actionsdb.has_actions(eppn_or_userid=EPPN3, session='xzf'))
+        self.assertTrue(self.actionsdb.has_actions(eppn_or_userid=EPPN3, params={'version': 'test-version'}))
+        self.assertFalse(self.actionsdb.has_actions(eppn_or_userid=EPPN3, params={'version': 'WRONG'}))
+        self.assertTrue(self.actionsdb.has_actions(eppn_or_userid=EPPN3,
                                                    action_type='tou',
                                                    params={'version': 'test-version'}))
 
@@ -141,12 +141,12 @@ class TestActionsDBUserid(MongoTestCase):
         self.assertEquals(next_action, None)
 
     def test_has_actions_userid(self):
-        self.assertTrue(self.actionsdb.has_actions(eppn=USERID3))
-        self.assertFalse(self.actionsdb.has_actions(eppn=USERID4))
-        self.assertTrue(self.actionsdb.has_actions(eppn=USERID3, session='xzf'))
-        self.assertTrue(self.actionsdb.has_actions(eppn=USERID3, params={'version': 'test-version'}))
-        self.assertFalse(self.actionsdb.has_actions(eppn=USERID3, params={'version': 'WRONG'}))
-        self.assertTrue(self.actionsdb.has_actions(eppn=USERID3,
+        self.assertTrue(self.actionsdb.has_actions(eppn_or_userid=USERID3))
+        self.assertFalse(self.actionsdb.has_actions(eppn_or_userid=USERID4))
+        self.assertTrue(self.actionsdb.has_actions(eppn_or_userid=USERID3, session='xzf'))
+        self.assertTrue(self.actionsdb.has_actions(eppn_or_userid=USERID3, params={'version': 'test-version'}))
+        self.assertFalse(self.actionsdb.has_actions(eppn_or_userid=USERID3, params={'version': 'WRONG'}))
+        self.assertTrue(self.actionsdb.has_actions(eppn_or_userid=USERID3,
                                                    action_type='tou',
                                                    params={'version': 'test-version'}))
 
