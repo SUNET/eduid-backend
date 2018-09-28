@@ -43,7 +43,6 @@ def init_eidas_app(name, config=None):
     app.proofing_log = ProofingLog(app.config['MONGO_URI'])
 
     # Init celery
-    app = msg.init_relay(app)
     app = am.init_relay(app, 'eduid_eidas')
 
     app.logger.info('{!s} initialized'.format(name))
