@@ -4,7 +4,9 @@ from __future__ import absolute_import
 
 from eduid_common.authn.utils import get_saml2_config, no_authn_views
 from eduid_common.api.app import eduid_init_app
-from eduid_common.api import am, msg, debug
+from eduid_common.api import am, msg
+from eduid_userdb.proofing.db import EidasProofingUserDB
+from eduid_userdb.logs.db import ProofingLog
 
 __author__ = 'lundberg'
 
@@ -21,6 +23,8 @@ def init_eidas_app(name, config=None):
     :return: the flask app
     :rtype: flask.Flask
     """
+    # Load acs actions on app init
+    from . import acs_actions
 
     app = eduid_init_app(name, config)
 
@@ -35,6 +39,8 @@ def init_eidas_app(name, config=None):
     app = no_authn_views(app, ['/saml2-metadata'])
 
     # Init dbs
+    app.private_userdb = EidasProofingUserDB(app.config['MONGO_URI'])
+    app.proofing_log = ProofingLog(app.config['MONGO_URI'])
 
     # Init celery
     app = msg.init_relay(app)

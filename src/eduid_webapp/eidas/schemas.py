@@ -9,8 +9,8 @@ from eduid_common.api.schemas.validators import validate_nin
 __author__ = 'lundberg'
 
 
-class EidasRequestSchema(EduidSchema, CSRFRequestMixin):
-    pass
+class EidasTokenVerifyRequestSchema(EduidSchema, CSRFRequestMixin):
+    credential_id = fields.String(required=True)
 
 
 class EidasResponseSchema(EduidSchema, CSRFResponseMixin):

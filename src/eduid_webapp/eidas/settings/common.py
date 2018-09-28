@@ -32,6 +32,8 @@ SECRET_KEY = None
 # Logging
 LOG_LEVEL = 'INFO'
 
+DASHBOARD_URL = ''
+
 # Federation config
 AUTHENTICATION_CONTEXT_MAP = {
     'loa1': 'http://id.elegnamnden.se/loa/1.0/loa1',

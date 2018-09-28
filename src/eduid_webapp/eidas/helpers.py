@@ -26,7 +26,8 @@ def create_authn_request(relay_state, selected_idp, required_loa, force_authn=Fa
     # LOA
     current_app.logger.debug('Requesting AuthnContext {}'.format(required_loa))
     loa_uri = current_app.config['AUTHENTICATION_CONTEXT_MAP'][required_loa]
-    requested_authn_context = RequestedAuthnContext(authn_context_class_ref=AuthnContextClassRef(text=loa_uri))
+    requested_authn_context = RequestedAuthnContext(authn_context_class_ref=AuthnContextClassRef(text=loa_uri),
+                                                    comparison='exact')
     kwargs['requested_authn_context'] = requested_authn_context
 
     client = Saml2Client(current_app.saml2_config)
