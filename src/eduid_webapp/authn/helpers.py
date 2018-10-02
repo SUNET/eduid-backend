@@ -48,7 +48,9 @@ def verify_auth_token(eppn, token, nonce, timestamp, generator=sha256):
     # try to open secret box
     encrypted = token
     if isinstance(token, six.text_type):
-        encrypted = token.encode('ascii')
+        encrypted = token.encode('ascii').decode('hex')
+    else:
+        encrypted = token.decode('hex')
     try:
         box = nacl.secret.SecretBox(shared_key)
         plaintext = box.decrypt(encrypted)
