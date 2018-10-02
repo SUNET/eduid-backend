@@ -344,8 +344,8 @@ class AuthnAPITestCase(AuthnAPITestBase):
 
         data = {
             'eppn': eppn,
-            'token': hex_token,
-            'nonce': nonce,
+            'token': token,
+            'nonce': hex_nonce,
             'ts': timestamp
         }
 
