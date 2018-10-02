@@ -7,4 +7,4 @@ from eduid_userdb.proofing.state import OrcidProofingState
 from eduid_userdb.proofing.db import LetterProofingStateDB, OidcProofingStateDB, EmailProofingStateDB
 from eduid_userdb.proofing.db import PhoneProofingStateDB, OrcidProofingStateDB
 from eduid_userdb.proofing.db import OidcProofingUserDB, LetterProofingUserDB, PhoneProofingUserDB, EmailProofingUserDB
-from eduid_userdb.proofing.db import LookupMobileProofingUserDB, OrcidProofingUserDB
+from eduid_userdb.proofing.db import LookupMobileProofingUserDB, OrcidProofingUserDB, EidasProofingUserDB
