@@ -122,11 +122,11 @@ class ActionsTests(ActionsTestCase):
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
-                    eppn = 'dummy-eppn'
+                    eppn = b'dummy-eppn'
                     nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
                     timestamp = str(hex(int(time.time())))
                     shared_key = self.app.config['TOKEN_LOGIN_SHARED_KEY']
-                    token_data = '{0}|{1}'.format(timestamp, eppn)
+                    token_data = b'{0}|{1}'.format(timestamp, eppn)
                     box = nacl.secret.SecretBox(shared_key)
                     encrypted = box.encrypt(token_data, nonce)
                     if six.PY2:
