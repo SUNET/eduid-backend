@@ -54,6 +54,8 @@ class ActionsTests(ActionsTestCase):
         config['TOKEN_LOGIN_SHARED_KEY'] = config['TOKEN_LOGIN_SHARED_KEY'][:nacl.secret.SecretBox.KEY_SIZE]
         if len(config['TOKEN_LOGIN_SHARED_KEY']) < 32:
             config['TOKEN_LOGIN_SHARED_KEY'] += (32 - len(config['TOKEN_LOGIN_SHARED_KEY'])) * '0'
+        if not isinstance(config['TOKEN_LOGIN_SHARED_KEY'], six.binary_type):
+            config['TOKEN_LOGIN_SHARED_KEY'] = config['TOKEN_LOGIN_SHARED_KEY'].encode('ascii')
         self.assertEqual(32, len(config['TOKEN_LOGIN_SHARED_KEY']))
         return config
 

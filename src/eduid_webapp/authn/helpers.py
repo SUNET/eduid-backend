@@ -2,6 +2,7 @@
 from __future__ import absolute_import
 
 import time
+import six
 from flask import current_app
 from hashlib import sha256
 try:
@@ -33,6 +34,8 @@ def verify_auth_token(eppn, token, nonce, timestamp, generator=sha256):
     """
     current_app.logger.debug('Trying to authenticate user {} with auth token {}'.format(eppn, token))
     shared_key = current_app.config.get('TOKEN_LOGIN_SHARED_KEY')
+    if not isinstance(shared_key, six.binary_type):
+        shared_key = shared_key.encode('ascii')
 
     # check timestamp to make sure it is within -300..900 seconds from now
     now = int(time.time())

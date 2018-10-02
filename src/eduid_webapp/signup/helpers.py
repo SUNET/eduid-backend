@@ -169,6 +169,8 @@ def complete_registration(signup_user):
 
     eppn = signup_user.eppn
     shared_key = current_app.config.get('AUTH_SHARED_SECRET')
+    if not isinstance(shared_key, six.binary_type):
+        shared_key = shared_key.encode('ascii')
     timestamp = '{:x}'.format(int(time.time()))
     nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
     token_data = '{0}|{1}'.format(timestamp, eppn)
