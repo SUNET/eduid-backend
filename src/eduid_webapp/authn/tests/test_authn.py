@@ -331,7 +331,7 @@ class AuthnAPITestCase(AuthnAPITestBase):
         eppn = 'hubba-fooo'
         shared_key = self.app.config['TOKEN_LOGIN_SHARED_KEY'].encode('ascii')
         timestamp = '{:x}'.format(int(time.time()))
-        nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE).encode('ascii')
+        nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
         token_data = '{0}|{1}'.format(timestamp, eppn)
         box = nacl.secret.SecretBox(shared_key)
         encrypted = box.encrypt(token_data, nonce)
@@ -380,7 +380,7 @@ class AuthnAPITestCase(AuthnAPITestBase):
         eppn = 'hubba-bubba'
         shared_key = self.app.config['TOKEN_LOGIN_SHARED_KEY'].encode('ascii')
         timestamp = '{:x}'.format(int(time.time()))
-        nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE).encode('ascii')
+        nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
         token_data = '{0}|{1}'.format(timestamp, eppn)
         box = nacl.secret.SecretBox(shared_key)
         encrypted = box.encrypt(token_data, nonce)
