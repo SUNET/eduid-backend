@@ -9,6 +9,9 @@ try:
 except ImportError:
     from urllib.parse import urlparse  # Python 3
 
+import nacl.secret
+import nacl.utils
+import nacl.exceptions
 
 __author__ = 'lundberg'
 
@@ -39,12 +42,22 @@ def verify_auth_token(eppn, token, nonce, timestamp, generator=sha256):
             timestamp, ts - now, now))
         return False
 
+    # try to open secret box
+    try:
+        box = nacl.secret.SecretBox(shared_key)
+        encrypted = token.decode('hex')
+        plaintext = box.decrypt(encrypted)
+        return plaintext == '{}|{}'.format(timestamp, eppn)
+    except (LookupError, nacl.exceptions.CryptoError) as e:
+        current_app.logger.debug('Secretbox decryption failed, error: ' + str(e))
+
     # verify there is a long enough nonce
     if len(nonce) < 16:
         current_app.logger.warning('Auth token nonce {} too short'.format(nonce))
         return False
 
     # verify token format
+
     data = '{0}|{1}|{2}|{3}'.format(shared_key, eppn, nonce, timestamp)
     hashed = generator(data.encode('ascii'))
     expected = hashed.hexdigest()

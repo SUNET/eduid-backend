@@ -37,6 +37,8 @@ import json
 import base64
 from hashlib import sha256
 
+import nacl.secret
+import nacl.utils
 from werkzeug.exceptions import NotFound
 from werkzeug.http import dump_cookie
 from flask import session
@@ -78,7 +80,7 @@ class AuthnAPITestBase(EduidAPITestCase):
             'SAML2_LOGIN_REDIRECT_URL': '/',
             'SAML2_LOGOUT_REDIRECT_URL': '/logged-out',
             'SAML2_SETTINGS_MODULE': saml_config,
-            'TOKEN_LOGIN_SHARED_KEY': 'shared_secret',
+            'TOKEN_LOGIN_SHARED_KEY': 'shared_secretshared_secretshared',
             'TOKEN_LOGIN_SUCCESS_REDIRECT_URL': 'http://test.localhost/success',
             'TOKEN_LOGIN_FAILURE_REDIRECT_URL': 'http://test.localhost/failure',
             'SAFE_RELAY_DOMAIN': 'test.localhost'
@@ -325,6 +327,31 @@ class AuthnAPITestCase(AuthnAPITestBase):
             self.assertEqual(resp.status_code, 302)
             self.assertTrue(resp.location.startswith(self.app.config['TOKEN_LOGIN_SUCCESS_REDIRECT_URL']))
 
+    def test_token_login_new_user_secret_box(self):
+        eppn = 'hubba-fooo'
+        shared_key = self.app.config['TOKEN_LOGIN_SHARED_KEY']
+        timestamp = '{:x}'.format(int(time.time()))
+        nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
+        token_data = '{0}|{1}'.format(timestamp, eppn)
+        box = nacl.secret.SecretBox(shared_key)
+        encrypted = box.encrypt(token_data, nonce)
+        if six.PY2:
+            token = encrypted.encode('hex')
+        else:
+            token = encrypted.hex()
+
+        data = {
+            'eppn': eppn,
+            'token': token,
+            'nonce': nonce,
+            'ts': timestamp
+        }
+
+        with self.app.test_client() as c:
+            resp = c.post('/token-login', data=data)
+            self.assertEqual(resp.status_code, 302)
+            self.assertTrue(resp.location.startswith(self.app.config['TOKEN_LOGIN_SUCCESS_REDIRECT_URL']))
+
     def test_token_login_old_user(self):
         eppn = 'hubba-bubba'
         shared_key = self.app.config['TOKEN_LOGIN_SHARED_KEY']
@@ -336,6 +363,31 @@ class AuthnAPITestCase(AuthnAPITestBase):
         token_data = '{0}|{1}|{2}|{3}'.format(shared_key, eppn, nonce, timestamp)
         hashed = sha256(token_data.encode('ascii'))
         token = hashed.hexdigest()
+
+        data = {
+            'eppn': eppn,
+            'token': token,
+            'nonce': nonce,
+            'ts': timestamp
+        }
+
+        with self.app.test_client() as c:
+            resp = c.post('/token-login', data=data)
+            self.assertEqual(resp.status_code, 302)
+            self.assertTrue(resp.location.startswith(self.app.config['TOKEN_LOGIN_FAILURE_REDIRECT_URL']))
+
+    def test_token_login_old_user_secret_box(self):
+        eppn = 'hubba-bubba'
+        shared_key = self.app.config['TOKEN_LOGIN_SHARED_KEY']
+        timestamp = '{:x}'.format(int(time.time()))
+        nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
+        token_data = '{0}|{1}'.format(timestamp, eppn)
+        box = nacl.secret.SecretBox(shared_key)
+        encrypted = box.encrypt(token_data, nonce)
+        if six.PY2:
+            token = encrypted.encode('hex')
+        else:
+            token = encrypted.hex()
 
         data = {
             'eppn': eppn,
