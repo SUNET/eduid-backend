@@ -33,7 +33,10 @@
 import json
 import time
 import unittest
+import six
 from hashlib import sha256
+import nacl.secret
+import nacl.utils
 from werkzeug.exceptions import InternalServerError, Forbidden
 
 NEW_ACTIONS = True
@@ -64,6 +67,54 @@ class ActionsTests(ActionsTestCase):
                     self.assertTrue(b'bundle-holder' in response.data)
 
     @unittest.skipUnless(NEW_ACTIONS, "Still using old actions")
+    def test_authn_hmac(self):
+        with self.session_cookie(self.browser) as client:
+            with client.session_transaction() as sess:
+                with self.app.test_request_context():
+                    eppn = 'dummy-eppn'
+                    nonce = 'dummy-nonce-xxxx'
+                    timestamp = str(hex(int(time.time())))
+                    shared_key = self.app.config['TOKEN_LOGIN_SHARED_KEY']
+                    token_data = '{0}|{1}|{2}|{3}'.format(shared_key, eppn, nonce, timestamp)
+                    hashed = sha256(token_data.encode('ascii'))
+                    token = hashed.hexdigest()
+
+                url = '/?userid={}&token={}&nonce={}&ts={}'.format(eppn,
+                                                                   token,
+                                                                   nonce,
+                                                                   timestamp)
+                with self.app.test_request_context(url):
+                    response = client.get(url)
+                    self.assertEqual(response.status, '200 OK')
+
+    @unittest.skipUnless(NEW_ACTIONS, "Still using old actions")
+    def test_authn_secret_box(self):
+        with self.session_cookie(self.browser) as client:
+            with client.session_transaction() as sess:
+                with self.app.test_request_context():
+                    eppn = 'dummy-eppn'
+                    nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
+                    timestamp = str(hex(int(time.time())))
+                    shared_key = self.app.config['TOKEN_LOGIN_SHARED_KEY']
+                    token_data = '{0}|{1}'.format(timestamp, eppn)
+                    box = nacl.secret.SecretBox(shared_key)
+                    encrypted = box.encrypt(token_data, nonce)
+                    if six.PY2:
+                        token = encrypted.encode('hex')
+                        hex_nonce = nonce.encode('hex')
+                    else:
+                        token = encrypted.hex()
+                        hex_nonce = nonce.hex()
+
+                url = '/?userid={}&token={}&nonce={}&ts={}'.format(eppn,
+                                                                   token,
+                                                                   hex_nonce,
+                                                                   timestamp)
+                with self.app.test_request_context(url):
+                    response = client.get(url)
+                    self.assertEqual(response.status, '200 OK')
+
+    @unittest.skipUnless(NEW_ACTIONS, "Still using old actions")
     def test_authn_wrong_secret(self):
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
@@ -81,10 +132,8 @@ class ActionsTests(ActionsTestCase):
                                                                    nonce,
                                                                    timestamp)
                 with self.app.test_request_context(url):
-                    try:
+                    with self.assertRaises(Forbidden):
                         response = client.get(url)
-                    except Forbidden:
-                        pass
 
     @unittest.skipUnless(NEW_ACTIONS, "Still using old actions")
     def test_get_config(self):
