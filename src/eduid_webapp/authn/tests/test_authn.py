@@ -329,23 +329,21 @@ class AuthnAPITestCase(AuthnAPITestBase):
 
     def test_token_login_new_user_secret_box(self):
         eppn = 'hubba-fooo'
-        shared_key = self.app.config['TOKEN_LOGIN_SHARED_KEY']
+        shared_key = self.app.config['TOKEN_LOGIN_SHARED_KEY'].encode('ascii')
         timestamp = '{:x}'.format(int(time.time()))
-        nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
+        nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE).encode('ascii')
         token_data = '{0}|{1}'.format(timestamp, eppn)
         box = nacl.secret.SecretBox(shared_key)
         encrypted = box.encrypt(token_data, nonce)
         if six.PY2:
             token = encrypted.encode('hex')
-            hex_nonce = nonce.encode('hex')
         else:
             token = encrypted.hex()
-            hex_nonce = nonce.hex()
 
         data = {
             'eppn': eppn,
             'token': token,
-            'nonce': hex_nonce,
+            'nonce': nonce,
             'ts': timestamp
         }
 
@@ -380,9 +378,9 @@ class AuthnAPITestCase(AuthnAPITestBase):
 
     def test_token_login_old_user_secret_box(self):
         eppn = 'hubba-bubba'
-        shared_key = self.app.config['TOKEN_LOGIN_SHARED_KEY']
+        shared_key = self.app.config['TOKEN_LOGIN_SHARED_KEY'].encode('ascii')
         timestamp = '{:x}'.format(int(time.time()))
-        nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
+        nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE).encode('ascii')
         token_data = '{0}|{1}'.format(timestamp, eppn)
         box = nacl.secret.SecretBox(shared_key)
         encrypted = box.encrypt(token_data, nonce)
