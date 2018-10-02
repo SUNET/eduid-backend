@@ -67,7 +67,28 @@ class ActionsTests(ActionsTestCase):
                     self.assertTrue(b'bundle-holder' in response.data)
 
     @unittest.skipUnless(NEW_ACTIONS, "Still using old actions")
-    def test_authn_hmac(self):
+    def test_authn_hmac_and_userid(self):
+        with self.session_cookie(self.browser) as client:
+            with client.session_transaction() as sess:
+                with self.app.test_request_context():
+                    userid = '012345678901234567890123'
+                    nonce = 'dummy-nonce-xxxx'
+                    timestamp = str(hex(int(time.time())))
+                    shared_key = self.app.config['TOKEN_LOGIN_SHARED_KEY']
+                    token_data = '{0}|{1}|{2}|{3}'.format(shared_key, userid, nonce, timestamp)
+                    hashed = sha256(token_data.encode('ascii'))
+                    token = hashed.hexdigest()
+
+                url = '/?userid={}&token={}&nonce={}&ts={}'.format(userid,
+                                                                   token,
+                                                                   nonce,
+                                                                   timestamp)
+                with self.app.test_request_context(url):
+                    response = client.get(url)
+                    self.assertEqual(response.status, '200 OK')
+
+    @unittest.skipUnless(NEW_ACTIONS, "Still using old actions")
+    def test_authn_hmac_and_eppn(self):
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
@@ -79,10 +100,10 @@ class ActionsTests(ActionsTestCase):
                     hashed = sha256(token_data.encode('ascii'))
                     token = hashed.hexdigest()
 
-                url = '/?userid={}&token={}&nonce={}&ts={}'.format(eppn,
-                                                                   token,
-                                                                   nonce,
-                                                                   timestamp)
+                url = '/?eppn={}&token={}&nonce={}&ts={}'.format(eppn,
+                                                                 token,
+                                                                 nonce,
+                                                                 timestamp)
                 with self.app.test_request_context(url):
                     response = client.get(url)
                     self.assertEqual(response.status, '200 OK')
