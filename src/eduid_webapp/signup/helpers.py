@@ -167,13 +167,14 @@ def complete_registration(signup_user):
             'message': 'user-out-of-sync'
         }
 
-
     eppn = signup_user.eppn
     shared_key = current_app.config.get('AUTH_SHARED_SECRET')
     timestamp = '{:x}'.format(int(time.time()))
     nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
     token_data = '{0}|{1}'.format(timestamp, eppn)
-    box = nacl.secret.SecretBox(shared_key)
+    try:
+        box = nacl.secret.SecretBox(shared_key)
+    except
     encrypted = box.encrypt(token_data, nonce)
     if six.PY2:
         auth_token = encrypted.encode('hex')

@@ -50,6 +50,13 @@ except ImportError:
 
 class ActionsTests(ActionsTestCase):
 
+    def update_actions_config(self, config):
+        config['TOKEN_LOGIN_SHARED_KEY'] = config['TOKEN_LOGIN_SHARED_KEY'][:nacl.secret.SecretBox.KEY_SIZE]
+        if len(config['TOKEN_LOGIN_SHARED_KEY']) < 32:
+            config['TOKEN_LOGIN_SHARED_KEY'] += (32 - len(config['TOKEN_LOGIN_SHARED_KEY'])) * '0'
+        self.assertEqual(32, len(config['TOKEN_LOGIN_SHARED_KEY']))
+        return config
+
     @unittest.skipUnless(NEW_ACTIONS, "Still using old actions")
     def test_authn_no_data(self):
         response = self.browser.get('/')
