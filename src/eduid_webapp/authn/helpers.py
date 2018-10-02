@@ -34,8 +34,9 @@ def verify_auth_token(eppn, token, nonce, timestamp, generator=sha256):
     """
     current_app.logger.debug('Trying to authenticate user {} with auth token {}'.format(eppn, token))
     shared_key = current_app.config.get('TOKEN_LOGIN_SHARED_KEY')
+    secret_key = shared_key
     if not isinstance(shared_key, six.binary_type):
-        shared_key = shared_key.encode('ascii')
+        secret_key = shared_key.encode('ascii')
 
     # check timestamp to make sure it is within -300..900 seconds from now
     now = int(time.time())
@@ -48,11 +49,14 @@ def verify_auth_token(eppn, token, nonce, timestamp, generator=sha256):
     # try to open secret box
     encrypted = token
     if isinstance(token, six.text_type):
-        encrypted = token.encode('ascii').decode('hex')
+        if six.PY2:
+            encrypted = token.encode('ascii').decode('hex')
+        else:
+            encrypted = token.encode('ascii').hex()
     else:
         encrypted = token.decode('hex')
     try:
-        box = nacl.secret.SecretBox(shared_key)
+        box = nacl.secret.SecretBox(secret_key)
         plaintext = box.decrypt(encrypted)
         return plaintext == '{}|{}'.format(timestamp, eppn)
     except (LookupError, nacl.exceptions.CryptoError) as e:

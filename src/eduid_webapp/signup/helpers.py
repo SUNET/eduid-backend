@@ -173,7 +173,7 @@ def complete_registration(signup_user):
         shared_key = shared_key.encode('ascii')
     timestamp = '{:x}'.format(int(time.time()))
     nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
-    token_data = b'{0}|{1}'.format(timestamp, eppn)
+    token_data = '{0}|{1}'.format(timestamp, eppn).encode('ascii')
     box = nacl.secret.SecretBox(shared_key)
     encrypted = box.encrypt(token_data, nonce)
     if six.PY2:
