@@ -337,8 +337,10 @@ class AuthnAPITestCase(AuthnAPITestBase):
         encrypted = box.encrypt(token_data, nonce)
         if six.PY2:
             token = encrypted.encode('hex')
+            hex_nonce = nonce.encode('hex')
         else:
             token = encrypted.hex()
+            hex_nonce = nonce.hex()
 
         data = {
             'eppn': eppn,
