@@ -36,6 +36,9 @@ def compile_credential_list(security_user):
     credentials = []
     authn_info = current_app.authninfo_db.get_authn_info(security_user)
     credentials_used = session.get('eduidIdPCredentialsUsed', list())
+    # In the development environment credentials_used gets set to None
+    if credentials_used is None:
+        credentials_used = []
     for credential in security_user.credentials.to_list():
         credential_dict = credential.to_dict()
         credential_dict['key'] = credential.key
