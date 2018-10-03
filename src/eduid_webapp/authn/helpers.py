@@ -52,13 +52,13 @@ def verify_auth_token(eppn, token, nonce, timestamp, generator=sha256):
         if six.PY2:
             encrypted = token.encode('ascii').decode('hex')
         else:
-            encrypted = token.encode('ascii').hex()
+            encrypted = token.encode('ascii').fromhex(token)
     else:
         encrypted = token.decode('hex')
     try:
         box = nacl.secret.SecretBox(secret_key)
         plaintext = box.decrypt(encrypted)
-        return plaintext == '{}|{}'.format(timestamp, eppn)
+        return plaintext == '{}|{}'.format(timestamp, eppn).encode('ascii')
     except (LookupError, nacl.exceptions.CryptoError) as e:
         current_app.logger.debug('Secretbox decryption failed, error: ' + str(e))
 
