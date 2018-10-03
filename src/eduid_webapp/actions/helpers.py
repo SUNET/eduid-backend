@@ -36,12 +36,12 @@ from flask import session, current_app, abort
 
 
 def get_next_action():
-    userid = session['userid']
+    eppn_or_userid = session.get('userid', session['user_eppn'])
     idp_session = session.get('idp_session', None)
-    action = current_app.actions_db.get_next_action(userid, idp_session)
+    action = current_app.actions_db.get_next_action(eppn_or_userid, idp_session)
     if action is None:
         current_app.logger.info("Finished pre-login actions "
-                                "for userid: {}".format(userid))
+                                "for userid: {}".format(eppn_or_userid))
         idp_url = '{}?key={}'.format(current_app.config.get('IDP_URL'),
                                      idp_session)
         return {'action': False, 'idp_url': idp_url}
@@ -53,7 +53,8 @@ def get_next_action():
 
     action_dict = action.to_dict()
     action_dict['_id'] = str(action_dict['_id'])
-    action_dict['user_oid'] = str(action_dict['user_oid'])
+    if 'user_oid' in action_dict:
+        action_dict['user_oid'] = str(action_dict['user_oid'])
     session['current_action'] = action_dict
     session['current_step'] = 1
     session['current_plugin'] = action.action_type

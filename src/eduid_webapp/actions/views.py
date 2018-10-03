@@ -71,6 +71,7 @@ def authn():
             session['userid'] = userid
         else:
             session['user_eppn'] = eppn
+            session['eduPersonPrincipalName'] = eppn
         session['idp_session'] = idp_session
         url = url_for('actions.get_actions')
         return render_template('index.html', url=url)
@@ -113,7 +114,7 @@ def get_actions():
     action_type = session['current_plugin']
     plugin_obj = current_app.plugins[action_type]()
     action = Action(data=session['current_action'])
-    eppn = 'userid' in session and session['userid'] or session['user_eppn']
+    eppn = session.get('userid', session['user_eppn'])
     current_app.logger.info('Starting pre-login action {} '
                             'for eppn {}'.format(action.action_type, eppn))
     try:
@@ -160,7 +161,7 @@ def post_action():
                 'csrf_token': session.new_csrf_token()
                 }
 
-    eppn = 'userid' in session and session['userid'] or session['user_eppn']
+    eppn = session.get('userid', session['user_eppn'])
     if session['total_steps'] == session['current_step']:
         current_app.logger.info('Finished pre-login action {0} '
                                 'for eppn {1}'.format(action.action_type, eppn))
