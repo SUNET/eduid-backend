@@ -1,13 +1,14 @@
 from __future__ import absolute_import
 
+import bson
 from importlib import import_module
 
 from celery import Task
 from celery.utils.log import get_task_logger
 
-from pkg_resources import iter_entry_points
+from pymongo.errors import ConnectionFailure
 
-import bson
+from pkg_resources import iter_entry_points
 
 from eduid_am.celery import celery
 from eduid_userdb import UserDB
@@ -66,14 +67,25 @@ class AttributeManager(Task):
 
     def __init__(self):
         self.default_db_uri = self.app.conf.get('MONGO_URI')
-
         if self.default_db_uri is not None:
             # self.userdb is the UserDB to which AM will write the updated users. This setting
             # will be None when this class is instantiated on the 'client' side of the AMQP bus,
             # such as in the eduid-signup application.
-            self.userdb = UserDB(self.default_db_uri, 'eduid_am', 'attributes')
+            self.userdb = self.init_db()
 
         self.registry = PluginsRegistry(self.app.conf)
+
+    def init_db(self):
+        return UserDB(self.default_db_uri, 'eduid_am', 'attributes')
+
+    def reload_db(self):
+        self.userdb = self.init_db()
+
+    def on_failure(self, exc, task_id, args, kwargs, einfo):
+        # Try to reload the db on connection failures (mongodb has probably switched master)
+        if isinstance(exc, ConnectionFailure):
+            logger.error('Task failed with mongodb exception ConnectionFailure. Reloading db.')
+            self.reload_db()
 
 
 @celery.task(ignore_results=True, base=AttributeManager)
@@ -167,4 +179,7 @@ def _update_attributes_safe(app_name, user_id):
 
 @celery.task(base=AttributeManager)
 def pong(app_name):
+    if pong.default_db_uri:
+        pong.userdb.is_healthy()
+
     return 'pong for {}'.format(app_name)
