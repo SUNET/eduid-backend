@@ -47,6 +47,7 @@ class Action(object):
 
     :param data: MongoDB document representing an action
     :param action_id: Unique identifier for the action
+    :param eppn: User eppn
     :param user_oid: User id
     :param action_type: What action to perform
     :param preference: Used to sort actions
@@ -54,29 +55,38 @@ class Action(object):
     :param params: Parameters for action
     :param result: Result of action (return value to IdP typically)
     :param raise_on_unknown: Raise exception on unknown data or not
+    :param old_format: Whether to use user_oid (True) or eppn (False) to identify users
 
     :type data: dict | None
     :type action_id: bson.ObjectId | str | None
+    :type user_oid: bson.ObjectId | str | None
+    :type eppn: str | None
     :type action_type: str | None
     :type preference: int | None
     :type session: str | None
     :type params: dict | None
     :type result: object
     :type raise_on_unknown: bool
+    :type old_format: bool
     """
-    def __init__(self, action_id = None, user_oid = None, action_type = None, preference = None, session = None,
-                 params = None, result = None, data = None, raise_on_unknown = True):
+    def __init__(self, action_id = None, eppn = None, user_oid = None, action_type = None,
+                 preference = None, session = None, params = None, result = None, data = None,
+                 raise_on_unknown = True, old_format=False):
+        self.old_format = old_format
         self._data_in = copy.deepcopy(data)  # to not modify callers data
         self._data = dict()
 
         if self._data_in is None:
             self._data_in = dict(_id = action_id,
-                                 user_oid = user_oid,
                                  action = action_type,
                                  preference = preference,
                                  session = session or '',
                                  params = params or {},
                                  result = result)
+            if old_format:
+                self._data_in['user_oid'] = user_oid
+            else:
+                self._data_in['eppn'] = eppn
 
         self._parse_check_invalid_actions()
 
@@ -90,14 +100,18 @@ class Action(object):
         self.result = self._data_in.pop('result', None)
         # things without setters
         self._data['_id'] = _id
-        user_oid = self._data_in.pop('user_oid')
-        if not isinstance(user_oid, bson.ObjectId):
-            user_oid = bson.ObjectId(user_oid)
-        self._data['user_oid'] = user_oid
         self._data['action'] = self._data_in.pop('action')
         self._data['preference'] = self._data_in.pop('preference', 100)
         self._data['session'] = self._data_in.pop('session', '')
         self._data['params'] = self._data_in.pop('params', {})
+
+        if old_format:
+            user_oid = self._data_in.pop('user_oid')
+            if not isinstance(user_oid, bson.ObjectId):
+                user_oid = bson.ObjectId(user_oid)
+            self._data['user_oid'] = user_oid
+        else:
+            self._data['eppn'] = self._data_in.pop('eppn')
 
         if len(self._data_in) > 0:
             if raise_on_unknown:
@@ -115,9 +129,10 @@ class Action(object):
 
         Check actions that can't be loaded for some known reason.
         """
-        if self._data_in.get('user_oid') is None:
-            raise ActionMissingData('Action {!s} has no key user_oid'.format(
-                self._data_in.get('_id')))
+        key = 'user_oid' if self.old_format else 'eppn'
+        if self._data_in.get(key) is None:
+            raise ActionMissingData('Action {!s} has no key {}'.format(
+                self._data_in.get('_id'), key))
         if self._data_in.get('action') is None:
             raise ActionMissingData('Action {!s} has no key action'.format(
                 self._data_in.get('_id')))
@@ -129,10 +144,11 @@ class Action(object):
         res_str = ''
         if self.result:
             res_str = ', result={}'.format(self.result)
+        key = 'user_id' if self.old_format else 'eppn'
         return '<eduID {!s}: {}: {} for user {}{}{}>'.format(self.__class__.__name__,
                                                              self.action_id,
                                                              self.action_type,
-                                                             self.user_id,
+                                                             getattr(self, key),
                                                              sess_str,
                                                              res_str
                                                              )
@@ -153,6 +169,16 @@ class Action(object):
         :rtype: bson.ObjectId
         """
         return self._data['_id']
+
+    # -----------------------------------------------------------------
+    @property
+    def eppn(self):
+        """
+        Get the actions's eppn
+
+        :rtype: str
+        """
+        return self._data['eppn']
 
     # -----------------------------------------------------------------
     @property

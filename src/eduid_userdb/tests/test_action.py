@@ -10,6 +10,18 @@ __author__ = 'eperez'
 
 _action_dict = {
     '_id': bson.ObjectId('234567890123456789012301'),
+    'eppn': 'hubba-bubba',
+    'action': 'accept_tou',
+    'session': 'xyz',
+    'preference': 100,
+    'params': {
+        'version': '2014-v2'
+        },
+    'result': None,
+    }
+
+_action_dict_userid = {
+    '_id': bson.ObjectId('234567890123456789012301'),
     'user_oid': bson.ObjectId('123467890123456789014567'),
     'action': 'accept_tou',
     'session': 'xyz',
@@ -27,6 +39,16 @@ class TestAction(TestCase):
         action_dict = copy.copy(_action_dict)
         action = Action(data=action_dict)
         self.assertEquals(action.action_id, bson.ObjectId('234567890123456789012301'))
+        self.assertEquals(action.eppn, 'hubba-bubba')
+        self.assertEquals(action.action_type, 'accept_tou')
+        self.assertEquals(action.session, 'xyz')
+        self.assertEquals(action.preference, 100)
+        self.assertEquals(action.params, {'version': '2014-v2'})
+
+    def test_proper_action_userid(self):
+        action_dict = copy.copy(_action_dict_userid)
+        action = Action(data=action_dict, old_format=True)
+        self.assertEquals(action.action_id, bson.ObjectId('234567890123456789012301'))
         self.assertEquals(action.user_id, bson.ObjectId('123467890123456789014567'))
         self.assertEquals(action.action_type, 'accept_tou')
         self.assertEquals(action.session, 'xyz')
@@ -35,18 +57,34 @@ class TestAction(TestCase):
 
     def test_proper_action_params(self):
         action = Action(action_id = _action_dict['_id'],
-                        user_oid = _action_dict['user_oid'],
+                        eppn = _action_dict['eppn'],
                         action_type = _action_dict['action'],
                         preference = _action_dict['preference'],
                         session = _action_dict['session'],
                         params = _action_dict['params'])
+        self.assertEquals(action.action_id, bson.ObjectId('234567890123456789012301'))
+        self.assertEquals(action.eppn, 'hubba-bubba')
+        self.assertEquals(action.action_type, 'accept_tou')
+        self.assertEquals(action.session, 'xyz')
+        self.assertEquals(action.preference, 100)
+        self.assertEquals(action.params, {'version': '2014-v2'})
+        self.assertEquals(action.to_dict(), _action_dict)
+
+    def test_proper_action_params_userid(self):
+        action = Action(action_id = _action_dict_userid['_id'],
+                        user_oid = _action_dict_userid['user_oid'],
+                        action_type = _action_dict_userid['action'],
+                        preference = _action_dict_userid['preference'],
+                        session = _action_dict_userid['session'],
+                        params = _action_dict_userid['params'],
+                        old_format=True)
         self.assertEquals(action.action_id, bson.ObjectId('234567890123456789012301'))
         self.assertEquals(action.user_id, bson.ObjectId('123467890123456789014567'))
         self.assertEquals(action.action_type, 'accept_tou')
         self.assertEquals(action.session, 'xyz')
         self.assertEquals(action.preference, 100)
         self.assertEquals(action.params, {'version': '2014-v2'})
-        self.assertEquals(action.to_dict(), _action_dict)
+        self.assertEquals(action.to_dict(), _action_dict_userid)
 
     def test_proper_action_no_id(self):
         action_dict = copy.copy(_action_dict)
@@ -67,7 +105,7 @@ class TestAction(TestCase):
 
     def test_action_missing_user(self):
         action_dict = copy.copy(_action_dict)
-        del action_dict['user_oid']
+        del action_dict['eppn']
         with self.assertRaises(eduid_userdb.exceptions.ActionMissingData):
             Action(data=action_dict)
 

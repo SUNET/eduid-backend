@@ -6,6 +6,7 @@ import datetime
 
 import eduid_userdb.exceptions
 import eduid_userdb.element
+from eduid_userdb.data_samples import NEW_USER_EXAMPLE
 from eduid_userdb.event import Event, EventList
 from eduid_userdb.tou import ToUEvent
 from eduid_userdb.actions.tou import ToUUser
@@ -130,6 +131,7 @@ class TestToUEvent(TestCase):
 
 
 USERID = '123467890123456789014567'
+EPPN = 'hubba-bubba'
 
 
 class TestTouUser(TestCase):
@@ -137,29 +139,41 @@ class TestTouUser(TestCase):
     def test_proper_user(self):
         one = copy.deepcopy(_one_dict)
         tou = ToUEvent(data = one, raise_on_unknown = False)
-        user = ToUUser(userid=USERID, tou=[tou])
+        userdata = copy.deepcopy(NEW_USER_EXAMPLE)
+        userdata['tou'] = [tou]
+        user = ToUUser(data=userdata)
         self.assertEquals(user.tou.to_list_of_dicts()[0]['version'], '1')
+
+    def test_missing_eppn(self):
+        one = copy.deepcopy(_one_dict)
+        tou = ToUEvent(data = one, raise_on_unknown = False)
+        with self.assertRaises(UserMissingData):
+            user = ToUUser(tou=[tou], userid=USERID)
 
     def test_missing_userid(self):
         one = copy.deepcopy(_one_dict)
         tou = ToUEvent(data = one, raise_on_unknown = False)
         with self.assertRaises(UserMissingData):
-            user = ToUUser(tou=[tou])
+            user = ToUUser(tou=[tou], eppn=EPPN)
 
     def test_missing_tou(self):
         with self.assertRaises(UserMissingData):
-            user = ToUUser(userid=USERID)
+            user = ToUUser(eppn=EPPN, userid=USERID)
 
     def test_unknown_data(self):
         one = copy.deepcopy(_one_dict)
         tou = ToUEvent(data = one, raise_on_unknown = False)
-        data = dict(_id=USERID, tou=[tou], foo='bar')
+        userdata = copy.deepcopy(NEW_USER_EXAMPLE)
+        userdata['tou'] = [tou]
+        userdata['foo'] = 'bar'
         with self.assertRaises(UserHasUnknownData):
-            user = ToUUser(data=data)
+            user = ToUUser(data=userdata)
 
     def test_unknown_data_dont_raise(self):
         one = copy.deepcopy(_one_dict)
         tou = ToUEvent(data = one, raise_on_unknown = False)
-        data = dict(_id=USERID, tou=[tou], foo='bar')
-        user = ToUUser(data=data, raise_on_unknown=False)
+        userdata = copy.deepcopy(NEW_USER_EXAMPLE)
+        userdata['tou'] = [tou]
+        userdata['foo'] = 'bar'
+        user = ToUUser(data=userdata, raise_on_unknown=False)
         self.assertEquals(user.to_dict()['foo'], 'bar')

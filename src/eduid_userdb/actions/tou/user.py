@@ -46,62 +46,33 @@ class ToUUser(User):
 
     :param userid: user id
     :type userid: bson.ObjectId
+    :param eppn: eppn
+    :type eppn: str
     :param tou: ToU  list
     :type tou: list
-    :param data: userid and tou
+    :param data: userid, eppn and tou
     :type data: dict
     :param raise_on_unknown: whether to raise an exception if
                              there is unknown data in the data dict
     :type raise_on_unknown: bool
     """
 
-    def __init__(self, userid = None, tou = None, data = None,
+    def __init__(self, userid = None, eppn = None, tou = None, data = None,
                                          raise_on_unknown = True):
         """
         """
         if data is None:
-            data = {'_id': userid, 'tou': tou}
+            data = {'_id': userid, 'eduPersonPrincipalName': eppn, 'tou': tou}
 
         if '_id' not in data or data['_id'] is None:
             raise UserMissingData('Attempting to record a ToU acceptance '
                                   'for an unidentified user.')
+        if 'eduPersonPrincipalName' not in data or data['eduPersonPrincipalName'] is None:
+            raise UserMissingData('Attempting to record a ToU acceptance '
+                                  'for a user without eppn.')
         if 'tou' not in data or data['tou'] is None:
             raise UserMissingData('Attempting to record the acceptance of '
                                   'an unknown version of the ToU for '
-                                  'the user with id ' + str(data['_id']))
+                                  'the user with eppn ' + str(data['eduPersonPrincipalName']))
 
-        self._data_in = deepcopy(data)
-        self._data = dict()
-
-        # things without setters
-        _id = self._data_in.pop('_id', None)
-        if not isinstance(_id, bson.ObjectId):
-            _id = bson.ObjectId(_id)
-        self._data['_id'] = _id
-
-        self._parse_tous()
-
-        self.modified_ts = self._data_in.pop('modified_ts', None)
-
-        if len(self._data_in) > 0:
-            if raise_on_unknown:
-                raise UserHasUnknownData('User {!s} unknown data: {!r}'.format(
-                    self.user_id, self._data_in.keys()
-                ))
-            # Just keep everything that is left as-is
-            self._data.update(self._data_in)
-
-    # -----------------------------------------------------------------
-    def to_dict(self, old_userdb_format=False):
-        """
-        Return user data serialized into a dict that can be stored in MongoDB.
-
-        :param old_userdb_format: Set to True to get the dict in the old database format.
-        :type old_userdb_format: bool
-
-        :return: User as dict
-        :rtype: dict
-        """
-        res = deepcopy(self._data)  # avoid caller messing up our private _data
-        res['tou'] = self.tou.to_list_of_dicts(old_userdb_format=old_userdb_format)
-        return res
+        User.__init__(self, data, raise_on_unknown=raise_on_unknown)
