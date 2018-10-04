@@ -52,7 +52,7 @@ def verify_auth_token(eppn, token, nonce, timestamp, generator=sha256):
     if six.PY2:
         encrypted = token.decode('hex')
     else:
-        encrypted = token.fromhex(token)
+        encrypted = b''.fromhex(token)
     try:
         box = nacl.secret.SecretBox(secret_key)
         plaintext = box.decrypt(encrypted)
