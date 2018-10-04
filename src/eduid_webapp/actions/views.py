@@ -88,7 +88,7 @@ def get_config():
     except KeyError:
         abort(403)
     plugin_obj = current_app.plugins[action_type]()
-    action = Action(data=session['current_action'])
+    action = Action(data=session['current_action'], old_format=True)
     try:
         config = plugin_obj.get_config_for_bundle(action)
         config['csrf_token'] = session.new_csrf_token()
@@ -112,7 +112,7 @@ def get_actions():
                            })
     action_type = session['current_plugin']
     plugin_obj = current_app.plugins[action_type]()
-    action = Action(data=session['current_action'])
+    action = Action(data=session['current_action'], old_format=True)
     eppn = 'userid' in session and session['userid'] or session['user_eppn']
     current_app.logger.info('Starting pre-login action {} '
                             'for eppn {}'.format(action.action_type, eppn))
@@ -139,7 +139,7 @@ def post_action():
     except KeyError:
         abort(403)
     plugin_obj = current_app.plugins[action_type]()
-    action = Action(data=session['current_action'])
+    action = Action(data=session['current_action'], old_format=True)
     errors = {}
     try:
         data = plugin_obj.perform_step(action)
