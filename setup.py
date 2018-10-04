@@ -7,7 +7,7 @@ version = '0.2.2b2'
 
 # Use requirements files
 requires = [
-    'eduid-userdb>=0.4.0b12',
+    'eduid-userdb>=0.4.0b15',
     'eduid-common[webapp]>=0.3.5b6',
     'eduid-action>=0.2.1b1',
     'eduid-am>=0.6.3b5',
