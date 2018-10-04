@@ -47,8 +47,8 @@ def verify_auth_token(eppn, token, nonce, timestamp, generator=sha256):
         return False
 
     # try to open secret box
-    if isinstance(token, six.text_type):
-        token = token.encode('ascii')
+    if isinstance(token, six.binary_type):
+        token = token.decode('ascii')
     if six.PY2:
         encrypted = token.decode('hex')
     else:
