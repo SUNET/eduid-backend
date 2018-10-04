@@ -20,7 +20,8 @@ requires = [
     'python-etcd>=0.4.3',
     'Pillow>=3.0.0',
     'marshmallow>=2.10,<2.11',
-    'flask-babel>=0.11.1',
+    'Babel>=2.6.0',
+    'flask-babel>=0.11.2',
     'oic>=0.8.3',
     'zxcvbn>=4.4.27,<5.0',
     'pysaml2==4.6.1',
@@ -32,6 +33,8 @@ requires = [
     'cryptography>=2.0.3',
     'pyOpenSSL>=17.3.0',
     'proquint==0.2.1',
+    'bleach>=2.1.4',
+    'html5lib>=1.0.1',
 ]
 
 test_requires = [
