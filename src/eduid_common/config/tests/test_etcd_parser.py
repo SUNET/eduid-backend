@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import absolute_import
+
+import six
 import unittest
 from mock import patch
 from nacl import secret, encoding
@@ -97,7 +100,37 @@ class TestEtcdParser(unittest.TestCase):
         self.parser.set('MY_OTHER_SET_KEY', 'another nice value')
 
         read_config = self.parser.read_configuration()
-        self.assertEqual({'MY_SET_KEY': 'a nice value', 'MY_OTHER_SET_KEY': 'another nice value'}, read_config)
+        self.assertEqual({u'MY_SET_KEY': u'a nice value', u'MY_OTHER_SET_KEY': u'another nice value'}, read_config)
+        if six.PY2:
+            self.assertIsInstance(read_config['MY_SET_KEY'], unicode)
+        else:
+            self.assertIsInstance(read_config['MY_SET_KEY'], str)
+
+    @patch('eduid_common.config.parsers.decorators.read_secret_key')
+    def test_decrypt_non_ascii(self, mock_read_secret_key):
+        mock_read_secret_key.return_value = bytes(b'A'*secret.SecretBox.KEY_SIZE)
+
+        box = secret.SecretBox(decorators.read_secret_key('test'))
+
+        the_value = u'a nåjs väljö'
+        if six.PY2:
+            the_value = the_value.encode('utf-8')
+        else:
+            the_value = bytes(the_value, 'utf-8')
+
+        secret_value = [{
+            'key_name': 'test',
+            'value': bytes(box.encrypt(the_value, encoder=encoding.URLSafeBase64Encoder)).decode('ascii')
+        }]
+        self.parser.set('MY_SET_KEY_ENCRYPTED', secret_value)
+        self.parser.set('MY_OTHER_SET_KEY', 'another nice value')
+
+        read_config = self.parser.read_configuration()
+        self.assertEqual({u'MY_SET_KEY': u'a nåjs väljö', u'MY_OTHER_SET_KEY': u'another nice value'}, read_config)
+        if six.PY2:
+            self.assertIsInstance(read_config['MY_SET_KEY'], unicode)
+        else:
+            self.assertIsInstance(read_config['MY_SET_KEY'], str)
 
     @patch('eduid_common.config.parsers.decorators.read_secret_key')
     def test_decrypt_multi_key(self, mock_read_secret_key):
