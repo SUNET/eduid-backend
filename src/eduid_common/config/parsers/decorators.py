@@ -77,10 +77,11 @@ def decrypt_config(config_dict):
                         encrypted_value = encrypted_value.encode('ascii')
                         decrypted_value = boxes[key_name].decrypt(encrypted_value,
                                                                   encoder=encoding.URLSafeBase64Encoder)
+                        decrypted_value = decrypted_value.decode('utf-8')
                     else:
                         encrypted_value = bytes(encrypted_value, 'ascii')
                         decrypted_value = boxes[key_name].decrypt(encrypted_value,
-                                                                  encoder=encoding.URLSafeBase64Encoder).decode('ascii')
+                                                                  encoder=encoding.URLSafeBase64Encoder).decode('utf-8')
 
                     config_dict[key.replace('_ENCRYPTED', '')] = decrypted_value
                     del config_dict[key]
