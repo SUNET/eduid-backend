@@ -51,12 +51,13 @@ except ImportError:
 class ActionsTests(ActionsTestCase):
 
     def update_actions_config(self, config):
-        config['TOKEN_LOGIN_SHARED_KEY'] = config['TOKEN_LOGIN_SHARED_KEY'][:nacl.secret.SecretBox.KEY_SIZE]
-        if len(config['TOKEN_LOGIN_SHARED_KEY']) < 32:
-            config['TOKEN_LOGIN_SHARED_KEY'] += (32 - len(config['TOKEN_LOGIN_SHARED_KEY'])) * '0'
+        key_length = nacl.secret.SecretBox.KEY_SIZE
+        config['TOKEN_LOGIN_SHARED_KEY'] = config['TOKEN_LOGIN_SHARED_KEY'][:key_size]
+        if len(config['TOKEN_LOGIN_SHARED_KEY']) < key_size:
+            config['TOKEN_LOGIN_SHARED_KEY'] += (key_size - len(config['TOKEN_LOGIN_SHARED_KEY'])) * '0'
         if not isinstance(config['TOKEN_LOGIN_SHARED_KEY'], six.binary_type):
             config['TOKEN_LOGIN_SHARED_KEY'] = config['TOKEN_LOGIN_SHARED_KEY'].encode('ascii')
-        self.assertEqual(32, len(config['TOKEN_LOGIN_SHARED_KEY']))
+        self.assertEqual(key_length, len(config['TOKEN_LOGIN_SHARED_KEY']))
         return config
 
     @unittest.skipUnless(NEW_ACTIONS, "Still using old actions")
