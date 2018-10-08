@@ -40,6 +40,8 @@ from hashlib import sha256
 from bson import ObjectId
 import proquint
 
+import nacl.utils
+import nacl.secret
 from flask import current_app, abort
 
 from eduid_common.api.utils import save_and_sync_user
@@ -165,20 +167,28 @@ def complete_registration(signup_user):
             'message': 'user-out-of-sync'
         }
 
-    secret = current_app.config.get('AUTH_SHARED_SECRET')
+    eppn = signup_user.eppn
+    shared_key = current_app.config.get('AUTH_SHARED_SECRET')
+    if not isinstance(shared_key, six.binary_type):
+        shared_key = shared_key.encode('ascii')
     timestamp = '{:x}'.format(int(time.time()))
+    nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
+    token_data = '{0}|{1}'.format(timestamp, eppn).encode('ascii')
+    box = nacl.secret.SecretBox(shared_key)
+    encrypted = box.encrypt(token_data)
     if six.PY2:
-        nonce = os.urandom(16).encode('hex')
+        auth_token = encrypted.encode('hex')
+        hex_nonce = nonce.encode('hex')
     else:
-        nonce = os.urandom(16).hex()
-    auth_token = generate_auth_token(secret, signup_user.eppn, nonce, timestamp)
+        auth_token = encrypted.hex()
+        hex_nonce = nonce.hex()
 
     context.update({
         "status": 'verified',
         "password": password,
         "email": signup_user.mail_addresses.primary.email,
         "eppn": signup_user.eppn,
-        "nonce": nonce,
+        "nonce": hex_nonce,
         "timestamp": timestamp,
         "auth_token": auth_token,
         "dashboard_url": current_app.config.get('AUTH_TOKEN_URL')
@@ -212,29 +222,3 @@ def record_tou(user, source):
         created_ts = created_ts,
         event_id = event_id
         ))
-
-
-def generate_auth_token(shared_key, email, nonce, timestamp, generator=sha256):
-    """
-    Generate authn token for the dashboard.
-    The shared_key is a secret shared with the dashboard app.
-
-    :param shared_key: the secret
-    :type shared_key: str
-    :param email: the email of the user to be authn
-    :type email: str
-    :param nonce: the nonce
-    :type nonce: str
-    :param timestamp: a timestamp
-    :type timestamp: str
-    :param generator: the hash function
-    :type generator: function
-
-    :return: the authn token
-    :rtype: str
-    """
-    current_app.logger.debug("Generating auth-token for user {}, "
-                        "nonce {}, ts {!r}".format(email, nonce, timestamp))
-    data = "{0}|{1}|{2}|{3}".format(shared_key, email, nonce, timestamp)
-    hashed = generator(data.encode('utf-8'))
-    return hashed.hexdigest()

@@ -2,6 +2,7 @@
 from __future__ import absolute_import
 
 import time
+import six
 from flask import current_app
 from hashlib import sha256
 try:
@@ -9,6 +10,9 @@ try:
 except ImportError:
     from urllib.parse import urlparse  # Python 3
 
+import nacl.secret
+import nacl.utils
+import nacl.exceptions
 
 __author__ = 'lundberg'
 
@@ -30,6 +34,9 @@ def verify_auth_token(eppn, token, nonce, timestamp, generator=sha256):
     """
     current_app.logger.debug('Trying to authenticate user {} with auth token {}'.format(eppn, token))
     shared_key = current_app.config.get('TOKEN_LOGIN_SHARED_KEY')
+    secret_key = shared_key
+    if not isinstance(shared_key, six.binary_type):
+        secret_key = shared_key.encode('ascii')
 
     # check timestamp to make sure it is within -300..900 seconds from now
     now = int(time.time())
@@ -39,12 +46,27 @@ def verify_auth_token(eppn, token, nonce, timestamp, generator=sha256):
             timestamp, ts - now, now))
         return False
 
+    # try to open secret box
+    if isinstance(token, six.binary_type):
+        token = token.decode('ascii')
+    if six.PY2:
+        encrypted = token.decode('hex')
+    else:
+        encrypted = b''.fromhex(token)
+    try:
+        box = nacl.secret.SecretBox(secret_key)
+        plaintext = box.decrypt(encrypted)
+        return plaintext == '{}|{}'.format(timestamp, eppn).encode('ascii')
+    except (LookupError, nacl.exceptions.CryptoError) as e:
+        current_app.logger.debug('Secretbox decryption failed, error: ' + str(e))
+
     # verify there is a long enough nonce
     if len(nonce) < 16:
         current_app.logger.warning('Auth token nonce {} too short'.format(nonce))
         return False
 
     # verify token format
+
     data = '{0}|{1}|{2}|{3}'.format(shared_key, eppn, nonce, timestamp)
     hashed = generator(data.encode('ascii'))
     expected = hashed.hexdigest()

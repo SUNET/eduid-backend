@@ -51,27 +51,32 @@ def authn():
     '''
     '''
     userid = request.args.get('userid', None)
+    eppn = request.args.get('eppn', None)
+    eppn = userid or eppn
     token = request.args.get('token', None)
     nonce = request.args.get('nonce', None)
     timestamp = request.args.get('ts', None)
     idp_session = request.args.get('session', None)
-    if not (userid and token and nonce and timestamp):
+    if not (eppn and token and nonce and timestamp):
         msg = ('Insufficient authentication params: '
-               'userid: {}, token: {}, nonce: {}, ts: {}')
-        current_app.logger.debug(msg.format(userid, token, nonce, timestamp))
+               'eppn: {}, token: {}, nonce: {}, ts: {}')
+        current_app.logger.debug(msg.format(eppn, token, nonce, timestamp))
         abort(400)
 
-    if verify_auth_token(eppn=userid, token=token,
+    if verify_auth_token(eppn=eppn, token=token,
                          nonce=nonce, timestamp=timestamp):
         current_app.logger.info("Starting pre-login actions "
-                                "for userid: {})".format(userid))
-        session['userid'] = userid
+                                "for eppn: {})".format(eppn))
+        if userid is not None:
+            session['userid'] = userid
+        else:
+            session['user_eppn'] = eppn
         session['idp_session'] = idp_session
         url = url_for('actions.get_actions')
         return render_template('index.html', url=url)
     else:
         current_app.logger.debug("Token authentication failed "
-                                 "(userid: {})".format(userid))
+                                 "(eppn: {})".format(eppn))
         abort(403)
 
 
@@ -83,7 +88,7 @@ def get_config():
     except KeyError:
         abort(403)
     plugin_obj = current_app.plugins[action_type]()
-    action = Action(data=session['current_action'])
+    action = Action(data=session['current_action'], old_format=True)
     try:
         config = plugin_obj.get_config_for_bundle(action)
         config['csrf_token'] = session.new_csrf_token()
@@ -107,10 +112,10 @@ def get_actions():
                            })
     action_type = session['current_plugin']
     plugin_obj = current_app.plugins[action_type]()
-    action = Action(data=session['current_action'])
+    action = Action(data=session['current_action'], old_format=True)
+    eppn = 'userid' in session and session['userid'] or session['user_eppn']
     current_app.logger.info('Starting pre-login action {} '
-                            'for userid {}'.format(action.action_type,
-                                                    session['userid']))
+                            'for eppn {}'.format(action.action_type, eppn))
     try:
         url = plugin_obj.get_url_for_bundle(action)
         return json.dumps({'action': True,
@@ -134,7 +139,7 @@ def post_action():
     except KeyError:
         abort(403)
     plugin_obj = current_app.plugins[action_type]()
-    action = Action(data=session['current_action'])
+    action = Action(data=session['current_action'], old_format=True)
     errors = {}
     try:
         data = plugin_obj.perform_step(action)
@@ -155,10 +160,10 @@ def post_action():
                 'csrf_token': session.new_csrf_token()
                 }
 
+    eppn = 'userid' in session and session['userid'] or session['user_eppn']
     if session['total_steps'] == session['current_step']:
         current_app.logger.info('Finished pre-login action {0} '
-                                'for userid {1}'.format(action.action_type,
-                                                        session['userid']))
+                                'for eppn {1}'.format(action.action_type, eppn))
         return {
                 'message': 'actions.action-completed',
                 'data': data,
@@ -166,9 +171,9 @@ def post_action():
                 }
 
     current_app.logger.info('Performed step {} for action {} '
-                            'for userid {}'.format(action.action_type,
+                            'for eppn {}'.format(action.action_type,
                                                     session['current_step'],
-                                                    session['userid']))
+                                                    eppn))
     session['current_step'] += 1
 
     return {
@@ -178,10 +183,10 @@ def post_action():
 
 
 def _aborted(action, exc):
-    current_app.logger.info(u'Aborted pre-login action {} for userid {}, '
+    eppn = 'userid' in session and session['userid'] or session['user_eppn']
+    current_app.logger.info(u'Aborted pre-login action {} for eppn {}, '
                             u'reason: {}'.format(action.action_type,
-                                                 session['userid'],
-                                                 exc.args[0]))
+                                                 eppn, exc.args[0]))
     if exc.remove_action:
         aid = action.action_id
         msg = 'Removing faulty action with id '
