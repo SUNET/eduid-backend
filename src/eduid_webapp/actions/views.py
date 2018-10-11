@@ -89,7 +89,10 @@ def get_config():
     except KeyError:
         abort(403)
     plugin_obj = current_app.plugins[action_type]()
-    action = Action(data=session['current_action'])
+    old_format = False
+    if 'user_oid' in session['current_action']:
+        old_format = True
+    action = Action(data=session['current_action'], old_format=old_format)
     try:
         config = plugin_obj.get_config_for_bundle(action)
         config['csrf_token'] = session.new_csrf_token()
@@ -103,7 +106,11 @@ def get_config():
 
 @actions_views.route('/get-actions', methods=['GET'])
 def get_actions():
-    actions = get_next_action()
+    if 'userid' in session:
+        user = current_app.central_userdb.get_user_by_id(session.get('userid'))
+    else:
+        user = current_app.central_userdb.get_user_by_eppn(session.get('user_eppn'))
+    actions = get_next_action(user)
     if not actions['action']:
         return json.dumps({'action': False,
                            'url': actions['idp_url'],
@@ -113,10 +120,12 @@ def get_actions():
                            })
     action_type = session['current_plugin']
     plugin_obj = current_app.plugins[action_type]()
-    action = Action(data=session['current_action'])
-    eppn = session.get('userid', session['user_eppn'])
+    old_format = False
+    if 'user_oid' in session['current_action']:
+        old_format = True
+    action = Action(data=session['current_action'], old_format=old_format)
     current_app.logger.info('Starting pre-login action {} '
-                            'for eppn {}'.format(action.action_type, eppn))
+                            'for user {}'.format(action.action_type, user))
     try:
         url = plugin_obj.get_url_for_bundle(action)
         return json.dumps({'action': True,
@@ -140,7 +149,10 @@ def post_action():
     except KeyError:
         abort(403)
     plugin_obj = current_app.plugins[action_type]()
-    action = Action(data=session['current_action'])
+    old_format = False
+    if 'user_oid' in session['current_action']:
+        old_format = True
+    action = Action(data=session['current_action'], old_format=old_format)
     errors = {}
     try:
         data = plugin_obj.perform_step(action)
@@ -161,7 +173,7 @@ def post_action():
                 'csrf_token': session.new_csrf_token()
                 }
 
-    eppn = session.get('userid', session['user_eppn'])
+    eppn = session.get('userid', session.get('user_eppn'))
     if session['total_steps'] == session['current_step']:
         current_app.logger.info('Finished pre-login action {0} '
                                 'for eppn {1}'.format(action.action_type, eppn))
@@ -184,7 +196,7 @@ def post_action():
 
 
 def _aborted(action, exc):
-    eppn = 'userid' in session and session['userid'] or session['user_eppn']
+    eppn = session.get('userid', session.get('user_eppn'))
     current_app.logger.info(u'Aborted pre-login action {} for eppn {}, '
                             u'reason: {}'.format(action.action_type,
                                                  eppn, exc.args[0]))
