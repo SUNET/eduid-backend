@@ -47,18 +47,22 @@ def verify_auth_token(eppn, token, nonce, timestamp, generator=sha256):
         return False
 
     # try to open secret box
-    if isinstance(token, six.text_type):
-        token = token.encode('ascii')
+    tokensb = token
+    if isinstance(tokensb, six.text_type):
+        tokensb = tokensb.encode('ascii')
     if six.PY2:
-        encrypted = token.decode('hex')
+        encrypted = tokensb.decode('hex')
     else:
-        encrypted = token.fromhex(token)
+        encrypted = tokensb.fromhex(token)
     try:
         box = nacl.secret.SecretBox(secret_key)
         plaintext = box.decrypt(encrypted)
         return plaintext == '{}|{}'.format(timestamp, eppn).encode('ascii')
     except (LookupError, nacl.exceptions.CryptoError) as e:
         current_app.logger.debug('Secretbox decryption failed, error: ' + str(e))
+
+    if isinstance(token, six.text_type):
+        token = token.encode('ascii')
 
     # verify there is a long enough nonce
     if len(nonce) < 16:
@@ -77,7 +81,11 @@ def verify_auth_token(eppn, token, nonce, timestamp, generator=sha256):
     # constant time comparision of the hash, courtesy of
     # http://rdist.root.org/2009/05/28/timing-attack-in-google-keyczar-library/
     result = 0
+    if isinstance(expected, six.binary_type):
+        expected = expected.decode('ascii')
+    if isinstance(token, six.binary_type):
+        token = token.decode('ascii')
     for x, y in zip(expected, token):
-        result |= ord(x) ^ ord(y)
+        result |= ord(x) ^ ord(str(y))
     current_app.logger.debug('Auth token match result: {}'.format(result == 0))
     return result == 0
