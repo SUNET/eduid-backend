@@ -34,6 +34,8 @@
 from __future__ import absolute_import
 from importlib import import_module
 
+from flask import render_template
+
 from eduid_common.authn.middleware import UnAuthnApp
 from eduid_common.api.app import eduid_init_app
 from eduid_common.api import am
@@ -51,6 +53,17 @@ class PluginsRegistry(dict):
                 module = import_module('eduid_action.{}.action'.format(plugin_name))
                 self[plugin_name] = getattr(module, 'Plugin')
 
+
+def _get_tous(self, version=None):
+    if version is None:
+        version = self.config.get('CURRENT_TOU_VERSION')
+    langs = self.config.get('AVAILABLE_LANGUAGES').keys()
+    tous = {}
+    for lang in langs:
+        name = 'tous/tou-{}-{}.txt'.format(version, lang)
+        tous[lang] = render_template(name)
+    return tous
+                
 
 def actions_init_app(name, config):
     """
@@ -90,6 +103,8 @@ def actions_init_app(name, config):
     app.plugins = PluginsRegistry(app)
     for plugin in app.plugins.values():
         plugin.includeme(app)
+
+    app.get_tous = _get_tous
 
     app.logger.info('Init {} app...'.format(name))
 
