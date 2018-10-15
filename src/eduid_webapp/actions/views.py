@@ -89,9 +89,7 @@ def get_config():
     except KeyError:
         abort(403)
     plugin_obj = current_app.plugins[action_type]()
-    old_format = False
-    if 'user_oid' in session['current_action']:
-        old_format = True
+    old_format = 'user_oid' in session['current_action']
     action = Action(data=session['current_action'], old_format=old_format)
     try:
         config = plugin_obj.get_config_for_bundle(action)
@@ -120,9 +118,7 @@ def get_actions():
                            })
     action_type = session['current_plugin']
     plugin_obj = current_app.plugins[action_type]()
-    old_format = False
-    if 'user_oid' in session['current_action']:
-        old_format = True
+    old_format = 'user_oid' in session['current_action']
     action = Action(data=session['current_action'], old_format=old_format)
     current_app.logger.info('Starting pre-login action {} '
                             'for user {}'.format(action.action_type, user))
@@ -149,9 +145,7 @@ def post_action():
     except KeyError:
         abort(403)
     plugin_obj = current_app.plugins[action_type]()
-    old_format = False
-    if 'user_oid' in session['current_action']:
-        old_format = True
+    old_format = 'user_oid' in session['current_action']
     action = Action(data=session['current_action'], old_format=old_format)
     errors = {}
     try:
