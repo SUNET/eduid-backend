@@ -73,7 +73,7 @@ class AttributeManager(Task):
             # such as in the eduid-signup application.
             self.userdb = self.init_db()
 
-        self.registry = PluginsRegistry(self.app.conf)
+            self.registry = PluginsRegistry(self.app.conf)
 
     def init_db(self):
         return UserDB(self.default_db_uri, 'eduid_am', 'attributes')
