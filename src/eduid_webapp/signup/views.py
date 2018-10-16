@@ -94,16 +94,6 @@ def get_config():
             }
 
 
-@signup_views.route('/get-tous', methods=['GET'])
-@MarshalWith(FluxStandardAction)
-def get_tous():
-    """
-    View to GET the current TOU in all available languages
-    """
-    version = request.args.get('version', None)
-    return _get_tous(version=version)
-
-
 @signup_views.route('/trycaptcha', methods=['POST'])
 @UnmarshalWith(RegisterEmailSchema)
 @MarshalWith(AccountCreatedResponse)
