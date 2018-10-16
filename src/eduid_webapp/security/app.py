@@ -67,7 +67,6 @@ def security_init_app(name, config):
 
     app = eduid_init_app(name, config)
     app.config.update(config)
-    app.config['CELERY_CONFIG']['MONGO_URI'] = app.config['MONGO_URI']
 
     from eduid_webapp.security.views.security import security_views
     from eduid_webapp.security.views.u2f import u2f_views

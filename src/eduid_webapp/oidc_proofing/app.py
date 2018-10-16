@@ -34,7 +34,6 @@ def init_oidc_proofing_app(name, config):
 
     app = eduid_init_app(name, config)
     app.config.update(config)
-    app.config['CELERY_CONFIG']['MONGO_URI'] = app.config['MONGO_URI']
 
     from eduid_webapp.oidc_proofing.views import oidc_proofing_views
     app.register_blueprint(oidc_proofing_views)
