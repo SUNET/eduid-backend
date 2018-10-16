@@ -33,6 +33,7 @@
 
 from __future__ import absolute_import
 from importlib import import_module
+import types
 
 from flask import render_template
 
@@ -103,7 +104,7 @@ def actions_init_app(name, config):
     for plugin in app.plugins.values():
         plugin.includeme(app)
 
-    app.get_tous = _get_tous
+    app.get_tous = types.MethodType(_get_tous, app)
 
     app.logger.info('Init {} app...'.format(name))
 
