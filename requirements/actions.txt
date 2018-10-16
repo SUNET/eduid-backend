@@ -1,1 +1,1 @@
-eduid-action>=0.2.1b2
+git+https://github.com/SUNET/eduid-action.git@master
