@@ -24,7 +24,7 @@ Database
 There is an ``eduid_actions`` MongoDB db with an ``actions`` collection
 for the actions that need to be performed, with schema:
 
-User (``user_oid``: ObjectId, required)
+User (``eppn``: String, required)
    identifies the user that must perform an action
 
 Action (``action``: String, required)
@@ -48,7 +48,7 @@ Params (``params``: Dict, possibly empty)
 Example document::
   
    {'_id': ObjectId('234567890123456789012301'),
-    'user_oid': ObjectId('123467890123456789014567'),
+    'eppn': 'hubba-bubba',
     'action': 'accept_tou',
     'session': 'xyz',
     'preference': 100
@@ -74,7 +74,7 @@ the eduid_actions db.
 If any action is needed for the user, the process of issuing a SAML assertion
 is interrupted, and we redirect the user to the actions app, with a URL like::
 
-   https://actions.eduid.se/?userid=123467890123456789014567&token=abc&nonce=sdf&ts=1401093117
+   https://actions.eduid.se/?eppn=hubba-bubba&token=abc&nonce=sdf&ts=1401093117
 
 The nonce and auth_token is an authentication mechanism based on a shared
 secret between the IdP and the actions app, to prove to the action app (without
@@ -84,7 +84,7 @@ If we have inserted actions in the db with a session identifier (by examination
 of the SAML request), this identifier is sent to the actions app as a query
 param in the url::
 
-   https://actions.eduid.se/?userid=123467890123456789014567&token=abc&nonce=sdf&ts=1401093117&session=xyz
+   https://actions.eduid.se/?eppn=hubba-bubba&token=abc&nonce=sdf&ts=1401093117&session=xyz
 
 The needed action is performed - or not
 ---------------------------------------
