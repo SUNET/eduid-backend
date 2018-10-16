@@ -34,7 +34,7 @@ from __future__ import absolute_import
 
 import json
 import urllib3
-from flask import Blueprint, request, session, current_app
+from flask import Blueprint, request, session, current_app, abort
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith
 from eduid_common.api.schemas.base import FluxStandardAction
