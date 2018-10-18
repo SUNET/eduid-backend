@@ -68,6 +68,4 @@ AUTH_SHARED_SECRET = 'supersecret'
 
 DEFAULT_FINISH_URL = 'https://www.eduid.se/'
 
-CURRENT_TOU_VERSION = 'test-version'
-
 INTERNAL_ACTIONS_URL = 'http://actions2.eduid.docker/'

@@ -57,7 +57,7 @@ class PluginsRegistry(dict):
 
 def _get_tous(self, version=None):
     if version is None:
-        version = self.config.get('CURRENT_TOU_VERSION')
+        version = self.config.get('TOU_VERSION')
     langs = self.config.get('AVAILABLE_LANGUAGES').keys()
     tous = {}
     for lang in langs:
