@@ -33,7 +33,7 @@
 import json
 from contextlib import contextmanager
 from mock import patch
-from flask import Flask
+from flask import Flask, Response
 
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_webapp.signup.app import signup_init_app
@@ -95,7 +95,14 @@ class SignupTests(EduidAPITestCase):
         client.set_cookie(server_name, key=self.app.config.get('SESSION_COOKIE_NAME'), value=sess._session.token)
         yield client
 
-    def test_get_config(self):
+    @patch('eduid_webapp.signup.views.http.request')
+    def test_get_config(self, mock_http_request):
+        data = json.dumps({'payload':{
+                               'en': 'test tou english',
+                               'sv': 'test tou svenska'}
+                               })
+        resp = Response(response=data, status=200, mimetype='application/json')
+        mock_http_request.return_value = resp
         response = self.browser.get('/config')
         self.assertEqual(response.status_code, 302)
 
