@@ -58,6 +58,7 @@ class ActionsTests(ActionsTestCase):
         if not isinstance(config['TOKEN_LOGIN_SHARED_KEY'], six.binary_type):
             config['TOKEN_LOGIN_SHARED_KEY'] = config['TOKEN_LOGIN_SHARED_KEY'].encode('ascii')
         self.assertEqual(key_size, len(config['TOKEN_LOGIN_SHARED_KEY']))
+        config['TOU_VERSION'] = 'test-version'
         return config
 
     @unittest.skipUnless(NEW_ACTIONS, "Still using old actions")
