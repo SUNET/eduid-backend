@@ -345,3 +345,16 @@ class ActionsTests(ActionsTestCase):
                             'POST_ACTIONS_POST_ACTION_FAIL')
                     self.assertEquals(data['payload']['message'], 'test error')
                     self.assertFalse(self.app.actions_db.has_actions(sess['user_eppn']))
+
+    def test_get_tous(self):
+        with self.session_cookie(self.browser) as client:
+            with client.session_transaction() as sess:
+                response = client.get('/get-tous')
+
+                data = json.loads(response.data)
+                self.assertEqual(data['type'],
+                        'GET_ACTIONS_GET_TOUS_SUCCESS')
+                self.assertEqual(data['payload']['en'],
+                        'test tou english')
+                self.assertEqual(data['payload']['sv'],
+                        'test tou svenska')
