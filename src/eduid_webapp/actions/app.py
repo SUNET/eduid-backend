@@ -34,7 +34,8 @@
 from __future__ import absolute_import
 from importlib import import_module
 
-from eduid_common.authn.middleware import UnAuthnApp
+from flask import Flask
+
 from eduid_common.api.app import eduid_init_app
 from eduid_common.api import am
 from eduid_userdb.actions import ActionDB
@@ -76,7 +77,7 @@ def actions_init_app(name, config):
     :rtype: flask.Flask
     """
 
-    app = eduid_init_app(name, config, app_class=UnAuthnApp)
+    app = eduid_init_app(name, config, app_class=Flask)
     app.config.update(config)
 
     from eduid_webapp.actions.views import actions_views

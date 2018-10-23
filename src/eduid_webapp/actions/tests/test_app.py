@@ -89,8 +89,6 @@ class ActionsTests(ActionsTestCase):
     @unittest.skipUnless(NEW_ACTIONS, "Still using old actions")
     def test_authn_no_data(self):
         response = self.browser.get('/')
-        self.assertEqual(response.status_code, 302)
-        response = self.browser.get('/')
         self.assertEqual(response.status_code, 400)
 
     @unittest.skipUnless(NEW_ACTIONS, "Still using old actions")
