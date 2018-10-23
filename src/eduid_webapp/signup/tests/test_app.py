@@ -96,8 +96,6 @@ class SignupTests(EduidAPITestCase):
         yield client
 
     def test_get_config(self):
-        response = self.browser.get('/config')
-        self.assertEqual(response.status_code, 302)
 
         with self.session_cookie(self.browser) as client:
             response2 = client.get('/config')
