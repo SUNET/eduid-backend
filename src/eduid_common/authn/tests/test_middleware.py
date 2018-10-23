@@ -37,7 +37,6 @@ from flask import Flask
 
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.api.app import eduid_init_app
-from eduid_common.authn.middleware import UnAuthnApp
 
 
 class AuthnTests(EduidAPITestCase):
@@ -81,7 +80,7 @@ class UnAuthnTests(EduidAPITestCase):
         Called from the parent class, so we can provide the appropiate flask
         app for this test case.
         """
-        return eduid_init_app('testing', config, app_class=UnAuthnApp)
+        return eduid_init_app('testing', config, app_class=Flask)
 
     def update_config(self, config):
         config.update({
@@ -108,9 +107,4 @@ class UnAuthnTests(EduidAPITestCase):
 
     def test_get_view(self):
         response = self.browser.get('/status/healthy')
-        self.assertEqual(response.status_code, 302)
-
-        with self.session_cookie(self.browser) as client:
-            response2 = client.get('/status/healthy')
-            self.assertEqual(response2.status_code, 200)
-
+        self.assertEqual(response.status_code, 200)
