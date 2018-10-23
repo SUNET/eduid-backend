@@ -70,7 +70,7 @@ def authn():
         if userid is not None:
             session['userid'] = userid
         else:
-            session['user_eppn'] = eppn
+            session['eppn'] = eppn
             session['eduPersonPrincipalName'] = eppn
         session['idp_session'] = idp_session
         url = url_for('actions.get_actions')
@@ -107,7 +107,7 @@ def get_actions():
     if 'userid' in session:
         user = current_app.central_userdb.get_user_by_id(session.get('userid'))
     else:
-        user = current_app.central_userdb.get_user_by_eppn(session.get('user_eppn'))
+        user = current_app.central_userdb.get_user_by_eppn(session.get('eppn'))
     actions = get_next_action(user)
     if not actions['action']:
         return json.dumps({'action': False,
@@ -167,7 +167,7 @@ def post_action():
                 'csrf_token': session.new_csrf_token()
                 }
 
-    eppn = session.get('userid', session.get('user_eppn'))
+    eppn = session.get('userid', session.get('eppn'))
     if session['total_steps'] == session['current_step']:
         current_app.logger.info('Finished pre-login action {0} '
                                 'for eppn {1}'.format(action.action_type, eppn))
@@ -190,7 +190,7 @@ def post_action():
 
 
 def _aborted(action, exc):
-    eppn = session.get('userid', session.get('user_eppn'))
+    eppn = session.get('userid', session.get('eppn'))
     current_app.logger.info(u'Aborted pre-login action {} for eppn {}, '
                             u'reason: {}'.format(action.action_type,
                                                  eppn, exc.args[0]))

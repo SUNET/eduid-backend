@@ -269,7 +269,7 @@ def token_login():
                 current_app.logger.error('Not new user {} tried to log in using token login'.format(user))
                 return redirect(location_on_fail)
             session['eduPersonPrincipalName'] = user.eppn
-            session['user_eppn'] = user.eppn
+            session['eppn'] = user.eppn
             session['eduPersonAssurance'] = loa
             session.persist()
 
