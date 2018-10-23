@@ -344,4 +344,4 @@ class ActionsTests(ActionsTestCase):
                     self.assertEquals(data['type'],
                             'POST_ACTIONS_POST_ACTION_FAIL')
                     self.assertEquals(data['payload']['message'], 'test error')
-                    self.assertFalse(self.app.actions_db.has_actions(sess['user_eppn']))
+                    self.assertFalse(self.app.actions_db.has_actions(sess['eppn']))
