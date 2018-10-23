@@ -105,6 +105,14 @@ class UnAuthnApp(Flask):
     """
     def __call__(self, environ, start_response):
         next_url = get_current_url(environ)
+        next_path = list(urlparse(next_url))[2]
+        whitelist = self.config.get('NO_AUTHN_URLS', [])
+        no_context_logger.debug('No auth whitelist: {}'.format(whitelist))
+        for regex in whitelist:
+            m = re.match(regex, next_path)
+            if m is not None:
+                no_context_logger.debug('{} matched whitelist'.format(next_path))
+                return super(UnAuthnApp, self).__call__(environ, start_response)
 
         with self.request_context(environ):
             cookie_name = self.config.get('SESSION_COOKIE_NAME', 'signup-sessid')
