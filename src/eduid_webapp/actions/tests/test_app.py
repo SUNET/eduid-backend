@@ -35,6 +35,7 @@ import time
 import unittest
 import six
 from hashlib import sha256
+from copy import deepcopy
 import nacl.secret
 import nacl.utils
 from werkzeug.exceptions import InternalServerError, Forbidden
