@@ -104,8 +104,6 @@ class SignupTests(EduidAPITestCase):
                                })
         resp = Response(response=data, status=200, mimetype='application/json')
         mock_http_request.return_value = resp
-        response = self.browser.get('/config')
-        self.assertEqual(response.status_code, 302)
 
         with self.session_cookie(self.browser) as client:
             response2 = client.get('/config')
