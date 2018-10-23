@@ -43,7 +43,7 @@ from werkzeug.exceptions import InternalServerError, Forbidden
 NEW_ACTIONS = True
 
 try:
-    from eduid_action.common.testing import ActionsTestCase, TestingActionPlugin
+    from eduid_action.common.testing import ActionsTestCase, TestingActionPlugin, DUMMY_ACTION
 except ImportError:
     class ActionsTestCase: pass
     NEW_ACTIONS = False
