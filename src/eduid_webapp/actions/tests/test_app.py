@@ -35,7 +35,6 @@ import time
 import unittest
 import six
 from hashlib import sha256
-from copy import deepcopy
 import nacl.secret
 import nacl.utils
 from werkzeug.exceptions import InternalServerError, Forbidden
@@ -43,7 +42,7 @@ from werkzeug.exceptions import InternalServerError, Forbidden
 NEW_ACTIONS = True
 
 try:
-    from eduid_action.common.testing import ActionsTestCase, TestingActionPlugin, DUMMY_ACTION
+    from eduid_action.common.testing import ActionsTestCase
 except ImportError:
     class ActionsTestCase: pass
     NEW_ACTIONS = False
