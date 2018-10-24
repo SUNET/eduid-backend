@@ -34,6 +34,7 @@ __author__ = 'ft'
 
 import copy
 import bson
+import six
 
 from eduid_userdb import User
 from eduid_userdb.proofing import EmailProofingElement
@@ -59,6 +60,7 @@ class SignupUser(User):
         _social_network = data.pop('social_network', None)
         _social_network_id = data.pop('social_network_id', None)
         _pending_mail_address = data.pop('pending_mail_address', None)
+        _proofing_reference = data.pop('proofing_reference', None)
         if _pending_mail_address:
             _pending_mail_address = EmailProofingElement(data=_pending_mail_address)
         self._pending_mail_address = None
@@ -69,6 +71,8 @@ class SignupUser(User):
         self.social_network = _social_network
         self.social_network_id = _social_network_id
         self.pending_mail_address = _pending_mail_address
+        if _proofing_reference:
+            self.proofing_reference = _proofing_reference
 
     def _parse_check_invalid_users(self):
         """
@@ -134,7 +138,7 @@ class SignupUser(User):
         and it has to be verified already. Signup is really the special case, so
         we have a special attribute for it.
 
-        :rtype: eduid_userdb.mail.MailAddress
+        :rtype: eduid_userdb.proofing.EmailProofingElement | None
         """
         return self._pending_mail_address
 
@@ -148,4 +152,21 @@ class SignupUser(User):
             raise ValueError('Must be eduid_userdb.proofing.EmailProofingElement')
         self._pending_mail_address = value
 
+    @property
+    def proofing_reference(self):
+        """
+        Holds a reference id that is used for connecting msg tasks with proofing log statements.
 
+        :return: reference id
+        :rtype: six.string_types
+        """
+        if not self._data.get('proofing_reference', None):
+            ref = str(bson.objectid.ObjectId())
+            self.proofing_reference = ref
+        return self._data['proofing_reference']
+
+    @proofing_reference.setter
+    def proofing_reference(self, value):
+        if not isinstance(value, six.string_types):
+            raise ValueError('Must be type string')
+        self._data['proofing_reference'] = value
