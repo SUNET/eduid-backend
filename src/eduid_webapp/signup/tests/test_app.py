@@ -126,30 +126,24 @@ class SignupTests(EduidAPITestCase):
             self.assertEqual('https://www.eduid.se/personal.html',
                     config_data['payload']['staff_link'])
 
-
-
     @patch('eduid_webapp.signup.views.http.request')
     def test_get_config_302_tous(self, mock_http_request):
         resp = Response(status=302, mimetype='application/json')
         mock_http_request.return_value = resp
-        response = self.browser.get('/config')
-        self.assertEqual(response.status_code, 302)
 
         with self.session_cookie(self.browser) as client:
             with self.assertRaises(InternalServerError):
-                response2 = client.get('/config')
+                client.get('/config')
 
 
     @patch('eduid_webapp.signup.views.http.request')
     def test_get_config_500_tous(self, mock_http_request):
         resp = Response(status=500, mimetype='application/json')
         mock_http_request.return_value = resp
-        response = self.browser.get('/config')
-        self.assertEqual(response.status_code, 302)
 
         with self.session_cookie(self.browser) as client:
             with self.assertRaises(InternalServerError):
-                response2 = client.get('/config')
+                client.get('/config')
 
     def test_captcha_no_data_fail(self):
         email = 'dummy@example.com'
