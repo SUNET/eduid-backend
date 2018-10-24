@@ -40,6 +40,7 @@ from eduid_common.api import mail_relay
 from eduid_common.api import am
 from eduid_common.api import translation
 from eduid_userdb.signup import SignupUserDB
+from eduid_userdb.logs import ProofingLog
 
 
 def signup_init_app(name, config):
@@ -77,6 +78,7 @@ def signup_init_app(name, config):
     app = translation.init_babel(app)
 
     app.private_userdb = SignupUserDB(app.config['MONGO_URI'], 'eduid_signup')
+    app.proofing_log = ProofingLog(app.config['MONGO_URI'])
 
     app.logger.info('Init {} app...'.format(name))
 
