@@ -7,14 +7,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2018-05-28 16:53+0200\n"
+"POT-Creation-Date: 2018-10-24 16:20+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: Johan Lundberg <lundberg.johan@gmail.com>, 2018\n"
 "Language-Team: Swedish (https://www.transifex.com/sunet/teams/84844/sv/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.5.3\n"
+"Generated-By: Babel 2.6.0\n"
 "Language: sv\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
@@ -110,27 +110,36 @@ msgstr ""
 "\n"
 "Tyvärr uppstod ett problem så vi måste be dig att bekräfta ditt konto igen med något av de andra sätten att verifiera din identitet.\n"
 
-#: security/schemas.py:171
+#: security/helpers.py:144
+msgid "Terminate account"
+msgstr "Avsluta konto"
+
+#: security/helpers.py:176 security/views/reset_password.py:71
+#: security/views/templates/reset_password.jinja2:28
+msgid "Reset password"
+msgstr "Återställ lösenord"
+
+#: security/schemas.py:173
 msgid "Invalid email address"
 msgstr "Ogiltig e-postadress"
 
-#: security/schemas.py:184
+#: security/schemas.py:186
 msgid "Please enter a code"
 msgstr "Ange en kod"
 
-#: security/schemas.py:200
+#: security/schemas.py:202
 msgid "Please enter a password"
 msgstr "Ange ett lösenord"
 
-#: security/schemas.py:202
+#: security/schemas.py:204
 msgid "Please repeat the password"
 msgstr "Repetera lösenordet"
 
-#: security/schemas.py:204
+#: security/schemas.py:206
 msgid "Passwords does not match"
 msgstr "Lösenorden är olika"
 
-#: security/schemas.py:212
+#: security/schemas.py:214
 msgid "Please use a stronger password"
 msgstr "Lösenordet är inte tillräckligt starkt"
 
@@ -166,11 +175,6 @@ msgstr "Telefonbekräftelsen har gått ut."
 #: security/views/reset_password.py:58 security/views/reset_password.py:178
 msgid "Resend code or try another way"
 msgstr "Skicka en ny kod eller byt säkerhetsmetod"
-
-#: security/views/reset_password.py:71
-#: security/views/templates/reset_password.jinja2:28
-msgid "Reset password"
-msgstr "Återställ lösenord"
 
 #: security/views/reset_password.py:72
 msgid "Enter an email address registered to your account below"
@@ -473,3 +477,57 @@ msgstr ""
 "    Tack för att du använde %(site_name)s.\n"
 "\n"
 "    (Detta är ett automatiserat meddelande och går ej att svara på.)\n"
+
+#: signup/verifications.py:132
+msgid "eduid-signup verification email"
+msgstr "eduID registrering"
+
+#: signup/templates/verification_email.html.jinja2:1
+#, python-format
+msgid ""
+"\n"
+"\n"
+"<h2>Welcome to %(site_name)s,</h2>\n"
+"\n"
+"<p>You recently signed up for <a href=\"%(site_url)s\">%(site_name)s</a>.</p>\n"
+"\n"
+"<p>Please confirm the e-mail address and get your password by clicking on this link:</p>\n"
+"\n"
+"<a href=\"%(verification_link)s\">%(verification_link)s</a>\n"
+"\n"
+msgstr ""
+"\n"
+"\n"
+"<h2>Välkommen till %(site_name)s,</h2>\n"
+"\n"
+"<p>Du anmälde dig nyligen till <a href=\"%(site_url)s\">%(site_name)s</a>.</p>\n"
+"\n"
+"<p>Var vänlig bekräfta e-postadressen och få ditt lösenord genom att klicka på den här länken:</p>\n"
+"\n"
+"<a href=\"%(verification_link)s\">%(verification_link)s</a>\n"
+"\n"
+
+#: signup/templates/verification_email.txt.jinja2:1
+#, python-format
+msgid ""
+"\n"
+"\n"
+"Welcome to %(site_name)s,\n"
+"\n"
+"You recently signed up for %(site_name)s.\n"
+"\n"
+"Please confirm the e-mail address and get your password by clicking on this link:\n"
+"\n"
+"  %(verification_link)s\n"
+"\n"
+msgstr ""
+"\n"
+"\n"
+"Välkommen till %(site_name)s,\n"
+"\n"
+"Du anmälde dig nyligen till %(site_name)s.\n"
+"\n"
+"Var vänlig bekräfta e-postadressen och få ditt lösenord genom att klicka på den här länken:\n"
+"\n"
+"%(verification_link)s\n"
+"\n"
