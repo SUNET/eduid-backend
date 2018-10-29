@@ -381,11 +381,11 @@ class OrcidProofing(ProofingLogElement):
     """
     {
         'eduPersonPrincipalName': eppn,
-        'created_ts': datetime.utcnow()
+        'created_ts': datetime.utcnow(),
         'created_by': 'application',
         'orcid': 'Users orcid',
         'issuer': 'Issuer url',
-        'audience': 'Receiving application(s)'
+        'audience': 'Receiving application(s)',
         'proofing_method': 'oidc',
         'proofing_version': '2018v1'
     }
@@ -412,12 +412,101 @@ class OrcidProofing(ProofingLogElement):
         :return: ProofingLogElement object
         :rtype: ProofingLogElement
         """
-        super(ProofingLogElement, self).__init__(created_by)
-        self._required_keys.extend(['eduPersonPrincipalName', 'orcid', 'issuer', 'audience', 'proofing_method',
-                                    'proofing_version'])
-        self._data['eduPersonPrincipalName'] = user.eppn
+        super(OrcidProofing, self).__init__(user, created_by, proofing_method=proofing_method,
+                                            proofing_version=proofing_version)
+        self._required_keys.extend(['orcid', 'issuer', 'audience'])
         self._data['orcid'] = orcid
         self._data['issuer'] = issuer
         self._data['audience'] = audience
-        self._data['proofing_method'] = proofing_method
-        self._data['proofing_version'] = proofing_version
+
+
+class SwedenConnectProofing(ProofingLogElement):
+    """
+    {
+        'eduPersonPrincipalName': eppn,
+        'created_ts': datetime.utcnow()
+        'created_by': 'application',
+        'proofing_method': 'swedenconnect',
+        'proofing_version': '2018v1',
+        'issuer': 'provider who performed the vetting',
+        'authn_context_class': 'the asserted authn context class',
+        'nin': 'national_identity_number',
+        'user_postal_address': {postal_address_from_navet}
+    }
+    """
+
+    def __init__(self, user, created_by, nin, issuer, authn_context_class, user_postal_address,
+                 proofing_version):
+        """
+        :param user: user object
+        :param created_by: Application creating the log element
+        :param nin: National identity number
+        :param issuer: Provider transaction id
+        :param authn_context_class: The authentication context class asserted
+        :param user_postal_address: Navet response for users official address
+        :param proofing_version: Proofing method version number
+
+        :type user: User
+        :type created_by: six.string_types
+        :type nin: six.string_types
+        :type issuer: six.string_types
+        :type authn_context_class: six.string_types
+        :type user_postal_address: dict
+        :type proofing_version: six.string_types
+
+        :return: SwedenConnectProofing object
+        :rtype: SwedenConnectProofing
+        """
+        super(SwedenConnectProofing, self).__init__(user, created_by, proofing_method='swedenconnect',
+                                                    proofing_version=proofing_version)
+        self._required_keys.extend(['nin', 'issuer', 'authn_context_class', 'user_postal_address'])
+        self._data['nin'] = nin
+        self._data['issuer'] = issuer
+        self._data['authn_context_class'] = authn_context_class
+        self._data['user_postal_address'] = user_postal_address
+
+
+class MFATokenProofing(SwedenConnectProofing):
+    """
+    {
+        'eduPersonPrincipalName': eppn,
+        'created_ts': datetime.utcnow()
+        'created_by': 'application',
+        'proofing_method': 'swedenconnect',
+        'proofing_version': '2018v1',
+        'issuer': 'provider who performed the vetting',
+        'authn_context_class': 'the asserted authn context class',
+        'key_id: 'Key id of token vetted',
+        'nin': 'national_identity_number',
+        'user_postal_address': {postal_address_from_navet}
+    }
+    """
+
+    def __init__(self, user, created_by, nin, issuer, authn_context_class, key_id, user_postal_address,
+                 proofing_version):
+        """
+        :param user: user object
+        :param created_by: Application creating the log element
+        :param nin: National identity number
+        :param issuer: Provider transaction id
+        :param authn_context_class: The authentication context class asserted
+        :param key_id: Data used to initialize the vetting process
+        :param user_postal_address: Navet response for users official address
+        :param proofing_version: Proofing method version number
+
+        :type user: User
+        :type created_by: six.string_types
+        :type nin: six.string_types
+        :type issuer: six.string_types
+        :type authn_context_class: six.string_types
+        :type key_id: six.string_types
+        :type user_postal_address: dict
+        :type proofing_version: six.string_types
+
+        :return: MFATokenProofing object
+        :rtype: MFATokenProofing
+        """
+        super(MFATokenProofing, self).__init__(user, created_by, nin, issuer, authn_context_class, user_postal_address,
+                                               proofing_version=proofing_version)
+        self._required_keys.extend(['key_id'])
+        self._data['key_id'] = key_id
