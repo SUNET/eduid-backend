@@ -134,16 +134,20 @@ def authorization_response(user):
                                    issuer=orcid_element.oidc_authz.id_token.iss,
                                    audience=orcid_element.oidc_authz.id_token.aud, proofing_method='oidc',
                                    proofing_version='2018v1')
+
     if current_app.proofing_log.save(orcid_proofing):
         current_app.logger.info('ORCID proofing data saved to log')
         proofing_user.orcid = orcid_element
         save_and_sync_user(proofing_user)
         current_app.logger.info('ORCID proofing data saved to user')
+        new_query_string = urlencode({'msg': 'orc.authorization_success'})
+    else:
+        current_app.logger.info('ORCID proofing data NOT saved, failed to save proofing log')
+        new_query_string = urlencode({'msg': ':ERROR:Temporary technical problems'})
 
     # Clean up
     current_app.logger.info('Removing proofing state')
     current_app.proofing_statedb.remove_state(proofing_state)
-    new_query_string = urlencode({'msg': 'orc.authorization_success'})
     url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
     return redirect(url)
 

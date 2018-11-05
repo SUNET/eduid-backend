@@ -8,14 +8,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2018-05-28 16:53+0200\n"
+"POT-Creation-Date: 2018-10-24 16:20+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.5.3\n"
+"Generated-By: Babel 2.6.0\n"
 
 #: email/verifications.py:69
 msgid "eduID confirmation email"
@@ -88,27 +88,36 @@ msgid ""
 "    We apologize for any inconvenience.\n"
 msgstr ""
 
-#: security/schemas.py:171
+#: security/helpers.py:144
+msgid "Terminate account"
+msgstr ""
+
+#: security/helpers.py:176 security/views/reset_password.py:71
+#: security/views/templates/reset_password.jinja2:28
+msgid "Reset password"
+msgstr ""
+
+#: security/schemas.py:173
 msgid "Invalid email address"
 msgstr ""
 
-#: security/schemas.py:184
+#: security/schemas.py:186
 msgid "Please enter a code"
 msgstr ""
 
-#: security/schemas.py:200
+#: security/schemas.py:202
 msgid "Please enter a password"
 msgstr ""
 
-#: security/schemas.py:202
+#: security/schemas.py:204
 msgid "Please repeat the password"
 msgstr ""
 
-#: security/schemas.py:204
+#: security/schemas.py:206
 msgid "Passwords does not match"
 msgstr ""
 
-#: security/schemas.py:212
+#: security/schemas.py:214
 msgid "Please use a stronger password"
 msgstr ""
 
@@ -143,11 +152,6 @@ msgstr ""
 
 #: security/views/reset_password.py:58 security/views/reset_password.py:178
 msgid "Resend code or try another way"
-msgstr ""
-
-#: security/views/reset_password.py:71
-#: security/views/templates/reset_password.jinja2:28
-msgid "Reset password"
 msgstr ""
 
 #: security/views/reset_password.py:72
@@ -399,5 +403,42 @@ msgid ""
 "    Thank you for using %(site_name)s.\n"
 "\n"
 "    (This is an automated email. Please do not reply.)\n"
+msgstr ""
+
+#: signup/verifications.py:132
+msgid "eduid-signup verification email"
+msgstr ""
+
+#: signup/templates/verification_email.html.jinja2:1
+#, python-format
+msgid ""
+"\n"
+"\n"
+"<h2>Welcome to %(site_name)s,</h2>\n"
+"\n"
+"<p>You recently signed up for <a "
+"href=\"%(site_url)s\">%(site_name)s</a>.</p>\n"
+"\n"
+"<p>Please confirm the e-mail address and get your password by clicking on"
+" this link:</p>\n"
+"\n"
+"<a href=\"%(verification_link)s\">%(verification_link)s</a>\n"
+"\n"
+msgstr ""
+
+#: signup/templates/verification_email.txt.jinja2:1
+#, python-format
+msgid ""
+"\n"
+"\n"
+"Welcome to %(site_name)s,\n"
+"\n"
+"You recently signed up for %(site_name)s.\n"
+"\n"
+"Please confirm the e-mail address and get your password by clicking on "
+"this link:\n"
+"\n"
+"  %(verification_link)s\n"
+"\n"
 msgstr ""
 

@@ -91,14 +91,14 @@ def check_email_status(email):
         current_app.logger.debug("Found user {} with email {}".format(am_user, email))
         return 'address-used'
     except userdb.exceptions.UserDoesNotExist:
-        current_app.logger.debug("No user found with email {} in eduid userdb".format(email))
+        current_app.logger.debug("No user found with email {} in central userdb".format(email))
 
     signup_user = signup_db.get_user_by_pending_mail_address(email)
     if signup_user is not None:
         current_app.logger.debug("Found user {} with pending email {} in signup db".format(signup_user, email))
         return 'resend-code'
-        
-    current_app.logger.debug("No user found with email {} in signup db either".format(email))
+
+    current_app.logger.debug("Registering new user with email {}".format(email))
     return 'new'
 
 
@@ -194,6 +194,7 @@ def complete_registration(signup_user):
         "dashboard_url": current_app.config.get('AUTH_TOKEN_URL')
     })
 
+    current_app.stats.count(name='signup_complete')
     current_app.logger.info("Signup process for new user {} complete".format(signup_user))
     return context
 

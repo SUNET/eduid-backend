@@ -33,12 +33,14 @@
 
 from __future__ import absolute_import
 
-from eduid_common.authn.middleware import UnAuthnApp
+from flask import Flask
+
 from eduid_common.api.app import eduid_init_app
 from eduid_common.api import mail_relay
 from eduid_common.api import am
 from eduid_common.api import translation
 from eduid_userdb.signup import SignupUserDB
+from eduid_userdb.logs import ProofingLog
 
 
 def signup_init_app(name, config):
@@ -65,7 +67,7 @@ def signup_init_app(name, config):
     :rtype: flask.Flask
     """
 
-    app = eduid_init_app(name, config, app_class=UnAuthnApp)
+    app = eduid_init_app(name, config, app_class=Flask)
     app.config.update(config)
 
     from eduid_webapp.signup.views import signup_views
@@ -76,6 +78,7 @@ def signup_init_app(name, config):
     app = translation.init_babel(app)
 
     app.private_userdb = SignupUserDB(app.config['MONGO_URI'], 'eduid_signup')
+    app.proofing_log = ProofingLog(app.config['MONGO_URI'])
 
     app.logger.info('Init {} app...'.format(name))
 

@@ -3,12 +3,12 @@
 from setuptools import setup, find_packages
 import sys
 
-version = '0.2.2b4'
+version = '0.2.2b6'
 
 # Use requirements files
 requires = [
-    'eduid-userdb>=0.4.0b15',
-    'eduid-common[webapp]>=0.3.5b6',
+    'eduid-userdb>=0.4.0b16',
+    'eduid-common[webapp]>=0.3.5b9',
     'eduid-action>=0.2.1b2',
     'eduid-am>=0.6.3b7',
     'eduid-msg>=0.10.3b7',
