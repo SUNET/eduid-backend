@@ -72,20 +72,20 @@ class MailRelay(object):
         msg['From'] = sender
         msg['To'] = ', '.join(recipients)
         if text:
-            msg.attach(MIMEText(text, 'plain'))
+            msg.attach(MIMEText(text, 'plain', 'utf-8'))
         if html:
-            msg.attach(MIMEText(html, 'html'))
+            msg.attach(MIMEText(html, 'html', 'utf-8'))
 
-        current_app.logger.debug('About to send email:\n\n {}'.format(msg.as_string()))
+        current_app.logger.debug(u'About to send email:\n\n {}'.format(msg.as_string()))
 
         try:
             rtask = self._sendmail.delay(sender, recipients, msg.as_string(), reference, max_retry_seconds)
         except Exception as e:
-            err = 'Error sending mail: {!r}'.format(e)
+            err = u'Error sending mail: {!r}'.format(e)
             current_app.logger.error(err)
             raise MailTaskFailed(err)
 
-        current_app.logger.info('Sent email {} to {} with subject {}'.format(rtask, recipients, subject))
+        current_app.logger.info(u'Sent email {} to {} with subject {}'.format(rtask, recipients, subject))
 
     def ping(self):
         rtask = self._pong.delay()
