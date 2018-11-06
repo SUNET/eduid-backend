@@ -39,14 +39,13 @@ class LookupMobileProofingTests(EduidAPITestCase):
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        res = init_lookup_mobile_proofing_app('testing', config)
-        with self.app.app_context():
-            # have EduidAPITestCase.tearDown() clean up these databases
-            self.cleanup_databases = [self.app.central_userdb,
-                                      self.app.private_userdb,
-                                      self.app.proofing_log,
-                                      ]
-        return res
+        app = init_lookup_mobile_proofing_app('testing', config)
+        # have EduidAPITestCase.tearDown() clean up these databases
+        self.cleanup_databases = [app.central_userdb,
+                                  app.private_userdb,
+                                  app.proofing_log,
+                                  ]
+        return app
 
     def init_data(self):
         """

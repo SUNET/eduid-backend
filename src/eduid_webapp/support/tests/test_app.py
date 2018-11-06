@@ -22,18 +22,17 @@ class SupportAppTests(EduidAPITestCase):
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        res = support_init_app('testing', config)
-        with self.app.app_context():
-            # have EduidAPITestCase.tearDown() clean up these databases
-            self.cleanup_databases = [self.app.support_user_db,
-                                      self.app.support_authn_db,
-                                      self.app.support_proofing_log_db,
-                                      self.app.support_signup_db,
-                                      self.app.support_actions_db,
-                                      self.app.support_letter_proofing_db,
-                                      self.app.central_userdb,
-                                      ]
-        return res
+        app = support_init_app('testing', config)
+        # have EduidAPITestCase.tearDown() clean up these databases
+        self.cleanup_databases = [app.support_user_db,
+                                  app.support_authn_db,
+                                  app.support_proofing_log_db,
+                                  app.support_signup_db,
+                                  app.support_actions_db,
+                                  app.support_letter_proofing_db,
+                                  app.central_userdb,
+                                  ]
+        return app
 
     def update_config(self, config):
         config.update({

@@ -47,14 +47,12 @@ class SignupTests(EduidAPITestCase):
         Called from the parent class, so we can provide the appropiate flask
         app for this test case.
         """
-        res = signup_init_app('signup', config)
-        with self.app.app_context():
-            # have EduidAPITestCase.tearDown() clean up these databases
-            self.cleanup_databases = [self.app.central_userdb,
-                                      self.app.private_userdb,
-                                      ]
-        return res
-        return res
+        app = signup_init_app('signup', config)
+        # have EduidAPITestCase.tearDown() clean up these databases
+        self.cleanup_databases = [app.central_userdb,
+                                  app.private_userdb,
+                                  ]
+        return app
 
     def update_config(self, config):
         config.update({

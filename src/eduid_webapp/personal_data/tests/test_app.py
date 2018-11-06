@@ -44,11 +44,10 @@ class PersonalDataTests(EduidAPITestCase):
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        res = pd_init_app('testing', config)
-        with self.app.app_context():
-            # have EduidAPITestCase.tearDown() clean up these databases
-            self.cleanup_databases = [self.app.private_userdb]
-        return res
+        app = pd_init_app('testing', config)
+        # have EduidAPITestCase.tearDown() clean up these databases
+        self.cleanup_databases = [app.private_userdb]
+        return app
 
     def update_config(self, config):
         config.update({

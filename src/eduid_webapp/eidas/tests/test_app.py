@@ -19,11 +19,10 @@ class EidasTests(EduidAPITestCase):
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        res = init_eidas_app('testing', config)
-        with self.app.app_context():
-            # have EduidAPITestCase.tearDown() clean up these databases
-            self.cleanup_databases = [self.app.central_userdb]
-        return res
+        app = init_eidas_app('testing', config)
+        # have EduidAPITestCase.tearDown() clean up these databases
+        self.cleanup_databases = [app.central_userdb]
+        return app
 
     def update_config(self, config):
         return config

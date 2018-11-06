@@ -89,15 +89,14 @@ class OidcProofingTests(EduidAPITestCase):
         """
         with patch('oic.oic.Client.http_request') as mock_response:
             mock_response.return_value = self.oidc_provider_config_response
-            res = init_oidc_proofing_app('testing', config)
-        with self.app.app_context():
-            # have EduidAPITestCase.tearDown() clean up these databases
-            self.cleanup_databases = [self.app.central_userdb,
-                                      self.app.private_userdb,
-                                      self.app.proofing_statedb,
-                                      self.app.proofing_log,
-                                      ]
-        return res
+            app = init_oidc_proofing_app('testing', config)
+        # have EduidAPITestCase.tearDown() clean up these databases
+        self.cleanup_databases = [app.central_userdb,
+                                  app.private_userdb,
+                                  app.proofing_statedb,
+                                  app.proofing_log,
+                                  ]
+        return app
 
     def init_data(self):
         """

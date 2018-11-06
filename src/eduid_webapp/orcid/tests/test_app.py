@@ -78,11 +78,10 @@ class OrcidTests(EduidAPITestCase):
         """
         with patch('oic.oic.Client.http_request') as mock_response:
             mock_response.return_value = self.oidc_provider_config_response
-            res = init_orcid_app('testing', config)
-        with self.app.app_context():
-            # have EduidAPITestCase.tearDown() clean up these databases
-            self.cleanup_databases = [self.app.central_userdb]
-        return res
+            app = init_orcid_app('testing', config)
+        # have EduidAPITestCase.tearDown() clean up these databases
+        self.cleanup_databases = [app.central_userdb]
+        return app
 
     def update_config(self, config):
         config.update({

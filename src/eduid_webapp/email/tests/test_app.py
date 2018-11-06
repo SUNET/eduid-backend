@@ -45,15 +45,14 @@ class EmailTests(EduidAPITestCase):
         Called from the parent class, so we can provide the appropiate flask
         app for this test case.
         """
-        res = email_init_app('emails', config)
-        with self.app.app_context():
-            # have EduidAPITestCase.tearDown() clean up these databases
-            self.cleanup_databases = [self.app.private_userdb,
-                                      self.app.proofing_statedb,
-                                      self.app.proofing_log,
-                                      self.app.central_userdb,
-                                      ]
-        return res
+        app = email_init_app('emails', config)
+        # have EduidAPITestCase.tearDown() clean up these databases
+        self.cleanup_databases = [app.private_userdb,
+                                  app.proofing_statedb,
+                                  app.proofing_log,
+                                  app.central_userdb,
+                                  ]
+        return app
 
     def update_config(self, config):
         config.update({
