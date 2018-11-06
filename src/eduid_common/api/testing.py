@@ -30,12 +30,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import os
+import sys
 import unittest
 import time
 import shutil
 import atexit
 import random
 import tempfile
+import traceback
 import subprocess
 from contextlib import contextmanager
 from copy import deepcopy
@@ -104,13 +106,23 @@ class EduidAPITestCase(unittest.TestCase):
             with self.app.app_context():
                 self.app.central_userdb.save(self.test_user, check_sync=False)
                 self.init_data()
+        self.cleanup_databases = []
 
         # Helper constants
         self.content_type_json = 'application/json'
 
     def tearDown(self):
+        try:
+            for db in self.cleanup_databases:
+                db._drop_whole_collection()
+                db.close()
+            self.mongo_instance.close()
+        except Exception as exc:
+            sys.stderr.write("Exception in tearDown: {!s}\n{!r}\n".format(exc, exc))
+            traceback.print_exc()
+            #time.sleep(5)
+        super(EduidAPITestCase, self).tearDown()
         # XXX reset redis
-        pass
 
     def load_app(self, config):
         """
