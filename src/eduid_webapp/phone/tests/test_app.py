@@ -46,7 +46,15 @@ class PhoneTests(EduidAPITestCase):
         Called from the parent class, so we can provide the appropiate flask
         app for this test case.
         """
-        return phone_init_app('testing', config)
+        res = phone_init_app('testing', config)
+        with self.app.app_context():
+            # have EduidAPITestCase.tearDown() clean up these databases
+            self.cleanup_databases = [self.app.central_userdb,
+                                      self.app.private_userdb,
+                                      self.app.proofing_statedb,
+                                      self.app.proofing_log,
+                                      ]
+        return res
 
     def update_config(self, config):
         config.update({
@@ -64,14 +72,6 @@ class PhoneTests(EduidAPITestCase):
 
     def init_data(self):
         self.app.private_userdb.save(self.app.private_userdb.UserClass(data=self.test_user.to_dict()), check_sync=False)
-
-    def tearDown(self):
-        super(PhoneTests, self).tearDown()
-        with self.app.app_context():
-            self.app.private_userdb._drop_whole_collection()
-            self.app.proofing_statedb._drop_whole_collection()
-            self.app.proofing_log._drop_whole_collection()
-            self.app.central_userdb._drop_whole_collection()
 
     def test_get_all_phone(self):
         response = self.browser.get('/all')

@@ -22,7 +22,16 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        return security_init_app('testing', config)
+        res = security_init_app('testing', config)
+        with self.app.app_context():
+            # have EduidAPITestCase.tearDown() clean up these databases
+            self.cleanup_databases = [self.app.authninfo_db,
+                                      self.app.central_userdb,
+                                      self.app.password_reset_state_db,
+                                      self.app.private_userdb,
+                                      self.app.proofing_log,
+                                      ]
+        return res
 
     def update_config(self, config):
         config.update({
@@ -39,15 +48,6 @@ class SecurityResetPasswordTests(EduidAPITestCase):
             'PASSWORD_ENTROPY': 25
         })
         return config
-
-    def tearDown(self):
-        super(SecurityResetPasswordTests, self).tearDown()
-        with self.app.app_context():
-            self.app.private_userdb._drop_whole_collection()
-            self.app.authninfo_db._drop_whole_collection()
-            self.app.password_reset_state_db._drop_whole_collection()
-            self.app.proofing_log._drop_whole_collection()
-            self.app.central_userdb._drop_whole_collection()
 
     def post_email_address(self, email_address):
         with self.app.test_client() as c:

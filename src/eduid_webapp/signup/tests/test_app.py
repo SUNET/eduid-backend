@@ -47,7 +47,14 @@ class SignupTests(EduidAPITestCase):
         Called from the parent class, so we can provide the appropiate flask
         app for this test case.
         """
-        return signup_init_app('signup', config)
+        res = signup_init_app('signup', config)
+        with self.app.app_context():
+            # have EduidAPITestCase.tearDown() clean up these databases
+            self.cleanup_databases = [self.app.central_userdb,
+                                      self.app.private_userdb,
+                                      ]
+        return res
+        return res
 
     def update_config(self, config):
         config.update({
@@ -83,10 +90,10 @@ class SignupTests(EduidAPITestCase):
         self.app.private_userdb.save(test_user_dict, check_sync=False)
 
     def tearDown(self):
-        super(SignupTests, self).tearDown()
         with self.app.app_context():
             self.app.private_userdb._drop_whole_collection()
             self.app.central_userdb._drop_whole_collection()
+        super(SignupTests, self).tearDown()
 
     @contextmanager
     def session_cookie(self, client, server_name='localhost'):

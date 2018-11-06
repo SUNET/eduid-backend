@@ -78,7 +78,11 @@ class OrcidTests(EduidAPITestCase):
         """
         with patch('oic.oic.Client.http_request') as mock_response:
             mock_response.return_value = self.oidc_provider_config_response
-            return init_orcid_app('testing', config)
+            res = init_orcid_app('testing', config)
+        with self.app.app_context():
+            # have EduidAPITestCase.tearDown() clean up these databases
+            self.cleanup_databases = [self.app.central_userdb]
+        return res
 
     def update_config(self, config):
         config.update({
@@ -98,11 +102,6 @@ class OrcidTests(EduidAPITestCase):
             'DASHBOARD_URL': 'https://dashboard.example.com/'
         })
         return config
-
-    def tearDown(self):
-        super(OrcidTests, self).tearDown()
-        with self.app.app_context():
-            self.app.central_userdb._drop_whole_collection()
 
     @patch('oic.oic.Client.parse_response')
     @patch('oic.oic.Client.do_user_info_request')

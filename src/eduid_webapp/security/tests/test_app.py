@@ -53,7 +53,16 @@ class SecurityTests(EduidAPITestCase):
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        return security_init_app('testing', config)
+        res = security_init_app('testing', config)
+        with self.app.app_context():
+            # have EduidAPITestCase.tearDown() clean up these databases
+            self.cleanup_databases = [self.app.authninfo_db,
+                                      self.app.central_userdb,
+                                      self.app.password_reset_state_db,
+                                      self.app.private_userdb,
+                                      self.app.proofing_log,
+                                      ]
+        return res
 
     def update_config(self, config):
         config.update({
