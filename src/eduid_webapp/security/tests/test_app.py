@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright (c) 2016 NORDUnet A/S
+# Copyright (c) 2018 SUNET
 # All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or
@@ -36,7 +37,6 @@ import time
 from mock import patch
 
 from eduid_common.api.testing import EduidAPITestCase
-from eduid_userdb.nin import Nin
 from eduid_webapp.security.app import security_init_app
 
 

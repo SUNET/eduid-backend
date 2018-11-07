@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright (c) 2016 NORDUnet A/S
+# Copyright (c) 2018 SUNET
 # All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or
@@ -33,7 +34,6 @@
 import json
 from contextlib import contextmanager
 from mock import patch
-from flask import Flask
 
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_webapp.signup.app import signup_init_app
@@ -81,12 +81,6 @@ class SignupTests(EduidAPITestCase):
     def init_data(self):
         test_user_dict = self.app.private_userdb.UserClass(data=self.test_user.to_dict())
         self.app.private_userdb.save(test_user_dict, check_sync=False)
-
-    def tearDown(self):
-        super(SignupTests, self).tearDown()
-        with self.app.app_context():
-            self.app.private_userdb._drop_whole_collection()
-            self.app.central_userdb._drop_whole_collection()
 
     @contextmanager
     def session_cookie(self, client, server_name='localhost'):

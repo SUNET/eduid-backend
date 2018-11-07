@@ -23,8 +23,3 @@ class EidasTests(EduidAPITestCase):
 
     def update_config(self, config):
         return config
-
-    def tearDown(self):
-        super(EidasTests, self).tearDown()
-        with self.app.app_context():
-            self.app.central_userdb._drop_whole_collection()

@@ -40,15 +40,6 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         })
         return config
 
-    def tearDown(self):
-        super(SecurityResetPasswordTests, self).tearDown()
-        with self.app.app_context():
-            self.app.private_userdb._drop_whole_collection()
-            self.app.authninfo_db._drop_whole_collection()
-            self.app.password_reset_state_db._drop_whole_collection()
-            self.app.proofing_log._drop_whole_collection()
-            self.app.central_userdb._drop_whole_collection()
-
     def post_email_address(self, email_address):
         with self.app.test_client() as c:
             c.get('/reset-password/')
