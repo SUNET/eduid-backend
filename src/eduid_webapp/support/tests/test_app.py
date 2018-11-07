@@ -30,17 +30,6 @@ class SupportAppTests(EduidAPITestCase):
         })
         return config
 
-    def tearDown(self):
-        super(SupportAppTests, self).tearDown()
-        with self.app.app_context():
-            self.app.support_user_db._drop_whole_collection()
-            self.app.support_authn_db._drop_whole_collection()
-            self.app.support_proofing_log_db._drop_whole_collection()
-            self.app.support_signup_db._drop_whole_collection()
-            self.app.support_actions_db._drop_whole_collection()
-            self.app.support_letter_proofing_db._drop_whole_collection()
-            self.app.central_userdb._drop_whole_collection()
-
     def test_authenticate(self):
         response = self.client.get('/')
         self.assertEqual(response.status_code, 302)  # Redirect to token service

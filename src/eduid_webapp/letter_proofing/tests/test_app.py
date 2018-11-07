@@ -65,14 +65,6 @@ class LetterProofingTests(EduidAPITestCase):
         })
         return config
 
-    def tearDown(self):
-        super(LetterProofingTests, self).tearDown()
-        with self.app.app_context():
-            self.app.central_userdb._drop_whole_collection()
-            self.app.private_userdb._drop_whole_collection()
-            self.app.proofing_statedb._drop_whole_collection()
-            self.app.proofing_log._drop_whole_collection()
-
     # Helper methods
     def get_state(self):
         with self.session_cookie(self.browser, self.test_user_eppn) as client:

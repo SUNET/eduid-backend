@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright (c) 2016 NORDUnet A/S
+# Copyright (c) 2018 SUNET
 # All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or
@@ -32,7 +33,6 @@
 
 import json
 
-from flask import current_app
 from mock import patch
 
 from eduid_common.api.testing import EduidAPITestCase
@@ -43,7 +43,7 @@ class PhoneTests(EduidAPITestCase):
 
     def load_app(self, config):
         """
-        Called from the parent class, so we can provide the appropiate flask
+        Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
         return phone_init_app('testing', config)
@@ -64,14 +64,6 @@ class PhoneTests(EduidAPITestCase):
 
     def init_data(self):
         self.app.private_userdb.save(self.app.private_userdb.UserClass(data=self.test_user.to_dict()), check_sync=False)
-
-    def tearDown(self):
-        super(PhoneTests, self).tearDown()
-        with self.app.app_context():
-            self.app.private_userdb._drop_whole_collection()
-            self.app.proofing_statedb._drop_whole_collection()
-            self.app.proofing_log._drop_whole_collection()
-            self.app.central_userdb._drop_whole_collection()
 
     def test_get_all_phone(self):
         response = self.browser.get('/all')
