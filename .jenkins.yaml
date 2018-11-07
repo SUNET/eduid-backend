@@ -8,7 +8,7 @@ script:
   - "virtualenv venv"
   - ". venv/bin/activate"
   - "pip install -U setuptools"
-  - "pip install --index-url https://pypi.sunet.se -r requirements/testing.txt"
+  - "pip install --index-url https://pypi.sunet.se -r test_requirements.txt"
   - "nosetests"
   - "python setup.py sdist bdist_wheel --universal"
 clean_workspace: true
