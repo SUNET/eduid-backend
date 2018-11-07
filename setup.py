@@ -20,7 +20,7 @@ webapp_requires = [
     'python-etcd >= 0.4.5',
     'PyYAML >= 3.11',
     'bleach>=2.0.0',
-    'marshmallow==2.15.1',
+    'marshmallow>=2.15.1,==2.*',
     'Flask-Mail == 0.9.1',
     'eduid_msg >= 0.10.3b1',
     'eduid-am >= 0.6.2b2',
