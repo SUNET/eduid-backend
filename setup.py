@@ -19,7 +19,7 @@ requires = [
     'urllib3>=1.21.1',
     'python-etcd>=0.4.3',
     'Pillow>=3.0.0',
-    'marshmallow>=2.15.1',
+    'marshmallow==2.15.1',
     'Babel>=2.6.0',
     'flask-babel>=0.11.2',
     'oic>=0.8.3',
