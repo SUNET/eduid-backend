@@ -1,5 +1,6 @@
 #
 # Copyright (c) 2013, 2014, 2015 NORDUnet A/S
+# Copyright (c) 2018 SUNET
 # All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or
@@ -184,6 +185,7 @@ class MongoTemporaryInstance(object):
 
     def __init__(self):
         self._port = random.randint(40000, 50000)
+        logger.debug('Starting temporary mongodb instance on port {}'.format(self._port))
         self._process = subprocess.Popen(['docker', 'run', '--rm',
                                           '-p', '{!s}:27017'.format(self._port),
                                           'docker.sunet.se/eduid/mongodb:latest',
@@ -197,10 +199,13 @@ class MongoTemporaryInstance(object):
             time.sleep(0.2)
             try:
                 self._conn = pymongo.MongoClient('localhost', self._port)
+                logger.debug('Connected to temporary mongodb instance: {}'.format(self._conn))
             except pymongo.errors.ConnectionFailure:
+                logger.debug('Connect failed ({})'.format(i))
                 continue
             else:
-                break
+                if self._conn is not None:
+                    break
         else:
             self.shutdown()
             assert False, 'Cannot connect to the mongodb test instance'
@@ -215,11 +220,13 @@ class MongoTemporaryInstance(object):
 
     def close(self):
         if self._conn:
+            logger.debug('Closing connection {}'.format(self._conn))
             self._conn.close()
             self._conn = None
 
     def shutdown(self):
         if self._process:
+            self.close()
             self._process.terminate()
             self._process.wait()
             self._process = None
