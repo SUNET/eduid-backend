@@ -94,7 +94,7 @@ class Element(object):
         self.created_ts = data.pop('created_ts', None)
 
     def __repr__(self):
-        return '<eduID {!s}: {!r}>'.format(self.__class__.__name__, self._data)
+        return '<eduID {!s}: {!r}>'.format(self.__class__.__name__, getattr(self, '_data', None))
 
     # -----------------------------------------------------------------
     @property
@@ -316,7 +316,7 @@ class ElementList(object):
         self._elements = elements
 
     def __repr__(self):
-        return '<eduID {!s}: {!r}>'.format(self.__class__.__name__, self._elements)
+        return '<eduID {!s}: {!r}>'.format(self.__class__.__name__, getattr(self, '_elements', None))
 
     def to_list(self):
         """

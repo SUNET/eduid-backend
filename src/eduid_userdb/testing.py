@@ -213,6 +213,11 @@ class MongoTemporaryInstance(object):
     def port(self):
         return self._port
 
+    def close(self):
+        if self._conn:
+            self._conn.close()
+            self._conn = None
+
     def shutdown(self):
         if self._process:
             self._process.terminate()
@@ -322,7 +327,6 @@ class MongoTestCase(unittest.TestCase):
             self.amdb.save(user, check_sync=False, old_format=userdb_use_old_format)
 
     def tearDown(self):
-        super(MongoTestCase, self).tearDown()
         for userdoc in self.amdb._get_all_docs():
             assert DashboardUser(data=userdoc)
         for db_name in self.conn.database_names():
@@ -336,6 +340,7 @@ class MongoTestCase(unittest.TestCase):
             self.conn.drop_database(db_name)
         self.amdb._drop_whole_collection()
         self.conn.close()
+        super(MongoTestCase, self).tearDown()
 
     def mongodb_uri(self, dbname):
         self.assertIsNotNone(dbname)
