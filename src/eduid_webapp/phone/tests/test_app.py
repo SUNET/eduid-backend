@@ -32,7 +32,6 @@
 
 import json
 
-from flask import current_app
 from mock import patch
 
 from eduid_common.api.testing import EduidAPITestCase
@@ -43,7 +42,7 @@ class PhoneTests(EduidAPITestCase):
 
     def load_app(self, config):
         """
-        Called from the parent class, so we can provide the appropiate flask
+        Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
         app = phone_init_app('testing', config)
