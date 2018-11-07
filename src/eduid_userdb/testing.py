@@ -199,7 +199,7 @@ class MongoTemporaryInstance(object):
             time.sleep(0.2)
             try:
                 self._conn = pymongo.MongoClient('localhost', self._port)
-                logger.debug('Connected to temporary mongodb instance: {}'.format(self._conn))
+                logger.info('Connected to temporary mongodb instance: {}'.format(self._conn))
             except pymongo.errors.ConnectionFailure:
                 logger.debug('Connect failed ({})'.format(i))
                 continue
@@ -218,30 +218,23 @@ class MongoTemporaryInstance(object):
     def port(self):
         return self._port
 
+    @property
+    def uri(self):
+        return 'mongodb://localhost:{}'.format(self.port)
+
     def close(self):
         if self._conn:
-            logger.debug('Closing connection {}'.format(self._conn))
+            logger.info('Closing connection {}'.format(self._conn))
             self._conn.close()
             self._conn = None
 
     def shutdown(self):
         if self._process:
             self.close()
+            logger.info('Shutting down {}'.format(self))
             self._process.terminate()
             self._process.wait()
             self._process = None
-
-    def get_uri(self, dbname=None):
-        """
-        Convenience function to get a mongodb URI to the temporary database.
-
-        :param dbname: database name
-        :return: URI
-        """
-        if dbname:  # Backwards compability
-            return 'mongodb://localhost:{port!s}/{dbname!s}'.format(port=self.port, dbname=dbname)
-        else:
-            return 'mongodb://localhost:{port!s}'.format(port=self.port)
 
 
 class MongoTestCase(unittest.TestCase):
@@ -284,8 +277,6 @@ class MongoTestCase(unittest.TestCase):
         """
         super(MongoTestCase, self).setUp()
         self.tmp_db = MongoTemporaryInstance.get_instance()
-        self.conn = self.tmp_db.conn
-        self.port = self.tmp_db.port
 
         if celery and get_attribute_manager:
             self.am_settings = {
@@ -296,7 +287,7 @@ class MongoTestCase(unittest.TestCase):
                 'CELERY_RESULT_BACKEND': "cache",
                 'CELERY_CACHE_BACKEND': 'memory',
                 # Be sure to tell AttributeManager about the temporary mongodb instance.
-                'MONGO_URI': self.tmp_db.get_uri(''),
+                'MONGO_URI': self.tmp_db.uri,
                 # Set new user date to tomorrow by default
                 'NEW_USER_DATE': str(date.today() + timedelta(days=1))
             }
@@ -306,24 +297,17 @@ class MongoTestCase(unittest.TestCase):
             self.am = get_attribute_manager(celery)
             self.amdb = self.am.userdb
         else:
-            self.amdb = UserDB(self.tmp_db.get_uri(''), 'eduid_am')
-
-        self.amdb._drop_whole_collection()
+            self.amdb = UserDB(self.tmp_db.uri, 'eduid_am')
 
         mongo_settings = {
             'mongo_replicaset': None,
-            'mongo_uri': self.tmp_db.get_uri(''),
+            'mongo_uri': self.tmp_db.uri,
         }
 
         if getattr(self, 'settings', None) is None:
             self.settings = mongo_settings
         else:
             self.settings.update(mongo_settings)
-
-        for db_name in self.conn.database_names():
-            if db_name in ['local', 'admin', 'config']:  # Do not drop mongo internal dbs
-                continue
-            self.conn.drop_database(db_name)
 
         # Set up test users in the MongoDB. Read the users from MockedUserDB, which might
         # be overridden by subclasses.
@@ -336,19 +320,14 @@ class MongoTestCase(unittest.TestCase):
     def tearDown(self):
         for userdoc in self.amdb._get_all_docs():
             assert DashboardUser(data=userdoc)
-        for db_name in self.conn.database_names():
-            if db_name in ['local', 'admin', 'config']:  # Do not drop mongo internal dbs
-                continue
-            db = self.conn[db_name]
-            for col_name in db.collection_names():
-                if 'system' not in col_name:
-                    db.drop_collection(col_name)
-            del db
-            self.conn.drop_database(db_name)
+        # Reset databases for the next test class, but do not shut down the temporary
+        # mongodb instance, for efficiency reasons.
+        for db_name in self.tmp_db.conn.list_database_names():
+            if db_name not in ['local', 'admin', 'config']:  # Do not drop mongo internal dbs
+                self.tmp_db.conn.drop_database(db_name)
         self.amdb._drop_whole_collection()
-        self.conn.close()
         super(MongoTestCase, self).tearDown()
 
-    def mongodb_uri(self, dbname):
-        self.assertIsNotNone(dbname)
-        return self.tmp_db.get_uri(dbname=dbname)
+    #def mongodb_uri(self, dbname):
+    #    self.assertIsNotNone(dbname)
+    #    return self.tmp_db.uri + '/' + dbname
