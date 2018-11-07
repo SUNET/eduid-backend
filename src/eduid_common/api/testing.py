@@ -97,6 +97,7 @@ class EduidAPITestCase(unittest.TestCase):
         config['MONGO_URI'] = 'mongodb://localhost:{}/'.format(self.mongo_instance.port)
         config = self.update_config(config)
         os.environ.update({'ETCD_PORT': str(self.etcd_instance.port)})
+        self.cleanup_databases = []
         self.app = self.load_app(config)
         self.app.test_client_class = CSRFTestClient
         self.browser = self.app.test_client()
@@ -106,7 +107,6 @@ class EduidAPITestCase(unittest.TestCase):
             with self.app.app_context():
                 self.app.central_userdb.save(self.test_user, check_sync=False)
                 self.init_data()
-        self.cleanup_databases = []
 
         # Helper constants
         self.content_type_json = 'application/json'
