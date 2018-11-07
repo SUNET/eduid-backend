@@ -1,5 +1,6 @@
 #
 # Copyright (c) 2016 NORDUnet A/S
+# Copyright (c) 2018 SUNET
 # All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or
@@ -29,13 +30,18 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+
+from __future__ import absolute_import
+
 import os
+import sys
 import unittest
 import time
 import shutil
 import atexit
 import random
 import tempfile
+import traceback
 import subprocess
 from contextlib import contextmanager
 from copy import deepcopy
@@ -45,6 +51,7 @@ import etcd
 from flask.testing import FlaskClient
 
 from eduid_userdb import User
+from eduid_userdb.db import BaseDB
 from eduid_userdb.data_samples import NEW_USER_EXAMPLE
 from eduid_userdb.testing import MongoTemporaryInstance
 
@@ -109,8 +116,18 @@ class EduidAPITestCase(unittest.TestCase):
         self.content_type_json = 'application/json'
 
     def tearDown(self):
+        try:
+            for this in vars(self.app).values():
+                if isinstance(this, BaseDB):
+                    this._drop_whole_collection()
+                    this.close()
+            self.mongo_instance.close()
+        except Exception as exc:
+            sys.stderr.write("Exception in tearDown: {!s}\n{!r}\n".format(exc, exc))
+            traceback.print_exc()
+            #time.sleep(5)
+        super(EduidAPITestCase, self).tearDown()
         # XXX reset redis
-        pass
 
     def load_app(self, config):
         """
