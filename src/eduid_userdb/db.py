@@ -53,8 +53,8 @@ class MongoDB(object):
 
     def __repr__(self):
         return '<eduID {!s}: {!s} {!s}>'.format(self.__class__.__name__,
-                                                self._db_uri,
-                                                self._database_name)
+                                                getattr(self, '_db_uri', None),
+                                                getattr(self, '_database_name', None))
 
     @property
     def sanitized_uri(self):
