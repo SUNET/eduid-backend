@@ -346,7 +346,6 @@ class MongoTestCase(unittest.TestCase):
             del db
             self.conn.drop_database(db_name)
         self.amdb._drop_whole_collection()
-        self.conn.close()
         super(MongoTestCase, self).tearDown()
 
     def mongodb_uri(self, dbname):
