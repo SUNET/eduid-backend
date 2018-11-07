@@ -50,8 +50,8 @@ class VCCSTestCase(MongoTestCase):
         vccs_module.add_password(self.user, new_password='abcd', application='test', vccs=self.vccs_client)
 
     def tearDown(self):
-        MongoTestCase.tearDown(self)
         vccs_module.revoke_passwords(self.user, reason='testing', application='test', vccs=self.vccs_client)
+        super(VCCSTestCase, self).tearDown()
 
     def _check_credentials(self, creds):
         return vccs_module.check_password('dummy', creds, self.user, self.vccs_client)
