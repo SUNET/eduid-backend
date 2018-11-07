@@ -1,5 +1,6 @@
 #
 # Copyright (c) 2016 NORDUnet A/S
+# Copyright (c) 2018 SUNET
 # All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or
@@ -29,6 +30,9 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+
+from __future__ import absolute_import
+
 import os
 import sys
 import unittest
@@ -47,6 +51,7 @@ import etcd
 from flask.testing import FlaskClient
 
 from eduid_userdb import User
+from eduid_userdb.db import BaseDB
 from eduid_userdb.data_samples import NEW_USER_EXAMPLE
 from eduid_userdb.testing import MongoTemporaryInstance
 
@@ -97,7 +102,6 @@ class EduidAPITestCase(unittest.TestCase):
         config['MONGO_URI'] = 'mongodb://localhost:{}/'.format(self.mongo_instance.port)
         config = self.update_config(config)
         os.environ.update({'ETCD_PORT': str(self.etcd_instance.port)})
-        self.cleanup_databases = []
         self.app = self.load_app(config)
         self.app.test_client_class = CSRFTestClient
         self.browser = self.app.test_client()
@@ -113,9 +117,10 @@ class EduidAPITestCase(unittest.TestCase):
 
     def tearDown(self):
         try:
-            for db in self.cleanup_databases:
-                db._drop_whole_collection()
-                db.close()
+            for this in vars(self.app).values():
+                if isinstance(this, BaseDB):
+                    this._drop_whole_collection()
+                    this.close()
             self.mongo_instance.close()
         except Exception as exc:
             sys.stderr.write("Exception in tearDown: {!s}\n{!r}\n".format(exc, exc))
