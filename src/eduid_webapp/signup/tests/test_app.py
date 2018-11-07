@@ -87,12 +87,6 @@ class SignupTests(EduidAPITestCase):
         test_user_dict = self.app.private_userdb.UserClass(data=self.test_user.to_dict())
         self.app.private_userdb.save(test_user_dict, check_sync=False)
 
-    def tearDown(self):
-        with self.app.app_context():
-            self.app.private_userdb._drop_whole_collection()
-            self.app.central_userdb._drop_whole_collection()
-        super(SignupTests, self).tearDown()
-
     @contextmanager
     def session_cookie(self, client, server_name='localhost'):
         with client.session_transaction() as sess:
