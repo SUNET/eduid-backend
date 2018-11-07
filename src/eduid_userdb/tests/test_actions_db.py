@@ -88,7 +88,7 @@ class TestActionsDB(MongoTestCase):
 
     def setUp(self):
         super(TestActionsDB, self).setUp(None, None)
-        self.actionsdb = ActionDB(self.tmp_db.get_uri(''))
+        self.actionsdb = ActionDB(self.tmp_db.uri)
         self.actionsdb.add_action(data=TOU_ACTION)
         self.actionsdb.add_action(data=DUMMY_ACTION)
 
@@ -125,7 +125,7 @@ class TestActionsDBUserid(MongoTestCase):
 
     def setUp(self):
         super(TestActionsDBUserid, self).setUp(None, None)
-        self.actionsdb = ActionDB(self.tmp_db.get_uri(''))
+        self.actionsdb = ActionDB(self.tmp_db.uri)
         self.actionsdb.add_action(data=TOU_ACTION_USERID)
         self.actionsdb.add_action(data=DUMMY_ACTION_USERID)
 
