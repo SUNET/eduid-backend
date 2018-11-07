@@ -12,7 +12,7 @@ from saml2.saml import AuthnContextClassRef
 from saml2.samlp import RequestedAuthnContext
 
 from eduid_common.authn.cache import OutstandingQueriesCache, IdentityCache
-from eduid_common.authn.eduid_saml2 import BadSAMLResponse
+from eduid_common.authn.eduid_saml2 import BadSAMLResponse, get_authn_ctx
 
 __author__ = 'lundberg'
 
@@ -68,6 +68,17 @@ def parse_authn_response(saml_response):
     session_id = response.session_id()
     oq_cache.delete(session_id)
     return response
+
+
+def is_required_loa(session_info, required_loa):
+    authn_context = get_authn_ctx(session_info)
+    loa_uri = current_app.config['AUTHENTICATION_CONTEXT_MAP'][required_loa]
+    if authn_context == loa_uri:
+        return True
+    current_app.logger.error('Asserted authn context class does not match required class')
+    current_app.logger.error('Asserted: {}'.format(authn_context))
+    current_app.logger.error('Required: {}'.format(loa_uri))
+    return False
 
 
 def create_metadata(config):

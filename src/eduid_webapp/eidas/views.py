@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
+from __future__ import absolute_import, unicode_literals
 
 from six.moves.urllib_parse import urlencode, urlsplit, urlunsplit
 from flask import Blueprint, current_app
 from flask import request, session, redirect, abort, make_response
-
 
 from eduid_common.api.decorators import require_user, MarshalWith
 from eduid_common.api.schemas.csrf import CSRFResponse
@@ -13,7 +12,6 @@ from eduid_common.api.utils import verify_relay_state, urlappend
 from eduid_common.authn.acs_registry import get_action, schedule_action
 from eduid_common.authn.utils import get_location
 from eduid_common.authn.eduid_saml2 import BadSAMLResponse
-from eduid_userdb.proofing.user import ProofingUser
 from eduid_userdb.credentials import U2F
 
 from eduid_webapp.eidas.helpers import create_authn_request, parse_authn_response, create_metadata
@@ -34,25 +32,23 @@ def index(user):
 @require_user
 def verify_token(user, credential_id):
     current_app.logger.debug('verify-token called with credential_id: {}'.format(credential_id))
-    proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
 
     url = urlappend(current_app.config['DASHBOARD_URL'], 'security')
     scheme, netloc, path, query_string, fragment = urlsplit(url)
 
     # Check if requested key id is a mfa token and if the user used that to log in
-    token_to_verify = proofing_user.credentials.filter(U2F).find(credential_id)
+    token_to_verify = user.credentials.filter(U2F).find(credential_id)
     if not token_to_verify:
         new_query_string = urlencode({'msg': ':ERROR:eidas.token_not_found'})
         url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
         return redirect(url)
-
     if token_to_verify.key not in session['eduidIdPCredentialsUsed']:
         new_query_string = urlencode({'msg': ':ERROR:eidas.token_not_in_credentials_used'})
         url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
         return redirect(url)
 
     # Set token key id in session
-    session['verify_token_action_key_id'] = credential_id
+    session['verify_token_action_credential_id'] = credential_id
     session.persist()
 
     # Request a authentication from idp
@@ -60,7 +56,30 @@ def verify_token(user, credential_id):
     return _authn('token-verify-action', required_loa, force_authn=True)
 
 
+@eidas_views.route('/verify-nin', methods=['GET'])
+@require_user
+def verify_nin(user):
+    current_app.logger.debug('verify-nin called')
+    # Request a authentication from idp
+    required_loa = 'loa3'
+    return _authn('nin-verify-action', required_loa, force_authn=True)
+
+
 def _authn(action, required_loa, force_authn=False, redirect_url='/'):
+    """
+    :param action: name of action
+    :param required_loa: friendly loa name
+    :param force_authn: should a new authentication be forced
+    :param redirect_url: redirect url after successful authentication
+
+    :type action: six.string_types
+    :type required_loa: six.string_types
+    :type force_authn: bool
+    :type redirect_url: six.string_types
+
+    :return: redirect response
+    :rtype: Response
+    """
     relay_state = verify_relay_state(request.args.get('next', redirect_url), redirect_url)
     idp = request.args.get('idp')
     current_app.logger.debug('Requested IdP: {}'.format(idp))
@@ -87,7 +106,6 @@ def assertion_consumer_service():
     saml_response = request.form['SAMLResponse']
     try:
         authn_response = parse_authn_response(saml_response)
-        current_app.logger.debug('Verified authn response: {}'.format(authn_response))
 
         session_info = authn_response.session_info()
 

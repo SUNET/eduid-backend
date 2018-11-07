@@ -44,6 +44,7 @@ def init_eidas_app(name, config=None):
 
     # Init celery
     app = am.init_relay(app, 'eduid_eidas')
+    app = msg.init_relay(app)
 
     app.logger.info('{!s} initialized'.format(name))
     return app
