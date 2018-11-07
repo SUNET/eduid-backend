@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright (c) 2016 NORDUnet A/S
+# Copyright (c) 2018 SUNET
 # All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or
@@ -33,7 +34,6 @@
 import json
 from contextlib import contextmanager
 from mock import patch
-from flask import Flask
 
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_webapp.signup.app import signup_init_app
@@ -47,12 +47,7 @@ class SignupTests(EduidAPITestCase):
         Called from the parent class, so we can provide the appropiate flask
         app for this test case.
         """
-        app = signup_init_app('signup', config)
-        # have EduidAPITestCase.tearDown() clean up these databases
-        self.cleanup_databases = [app.central_userdb,
-                                  app.private_userdb,
-                                  ]
-        return app
+        return signup_init_app('signup', config)
 
     def update_config(self, config):
         config.update({

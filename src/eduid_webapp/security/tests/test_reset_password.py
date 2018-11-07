@@ -22,15 +22,7 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        app = security_init_app('testing', config)
-        # have EduidAPITestCase.tearDown() clean up these databases
-        self.cleanup_databases = [app.authninfo_db,
-                                  app.central_userdb,
-                                  app.password_reset_state_db,
-                                  app.private_userdb,
-                                  app.proofing_log,
-                                  ]
-        return app
+        return security_init_app('testing', config)
 
     def update_config(self, config):
         config.update({

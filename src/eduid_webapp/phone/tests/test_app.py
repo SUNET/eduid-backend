@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright (c) 2016 NORDUnet A/S
+# Copyright (c) 2018 SUNET
 # All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or
@@ -45,14 +46,7 @@ class PhoneTests(EduidAPITestCase):
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        app = phone_init_app('testing', config)
-        # have EduidAPITestCase.tearDown() clean up these databases
-        self.cleanup_databases = [app.central_userdb,
-                                  app.private_userdb,
-                                  app.proofing_statedb,
-                                  app.proofing_log,
-                                  ]
-        return app
+        return phone_init_app('testing', config)
 
     def update_config(self, config):
         config.update({
