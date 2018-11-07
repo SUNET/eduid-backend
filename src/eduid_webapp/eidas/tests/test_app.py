@@ -176,7 +176,7 @@ class EidasTests(EduidAPITestCase):
         </saml:Assertion>
     </samlp:Response>"""
 
-        return saml_response_tpl.format(**{
+        resp = saml_response_tpl.format(**{
             'asserted_nin': asserted_nin,
             'session_id': session_id,
             'timestamp': timestamp.strftime('%Y-%m-%dT%H:%M:%SZ'),
@@ -184,6 +184,11 @@ class EidasTests(EduidAPITestCase):
             'yesterday': yesterday.strftime('%Y-%m-%dT%H:%M:%SZ'),
             'sp_url': sp_baseurl,
         })
+
+        if six.PY3:
+            # Needs to be bytes
+            return resp.encode('utf-8')
+        return resp
 
     def test_authenticate(self):
         response = self.browser.get('/')
