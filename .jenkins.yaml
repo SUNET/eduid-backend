@@ -1,8 +1,14 @@
-python_module: eduid_common
 publish_over_ssh:
   - pypi.sunet.se
 upstream:
   - eduid-userdb
 slack:
   room: eduid-builds
+script:
+  - "virtualenv venv"
+  - ". venv/bin/activate"
+  - "pip install -U setuptools"
+  - "pip install --index-url https://pypi.sunet.se -r requirements/testing.txt"
+  - "nosetests"
+  - "python setup.py sdist bdist_wheel --universal"
 clean_workspace: true
