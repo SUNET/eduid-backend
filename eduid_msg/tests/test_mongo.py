@@ -8,7 +8,7 @@ class MessageTest(MongoTestCase):
         super(MessageTest, self).setUp(celery=mock_celery(), get_attribute_manager=mock_get_attribute_manager)
 
     def test_mongo(self):
-        db = self.conn['test']
+        db = self.tmp_db.conn['test']
         c = db['test']
         id = c.insert({'baka': 'kaka'})
         doc = c.find_one({'_id': id})

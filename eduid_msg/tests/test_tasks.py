@@ -19,7 +19,7 @@ class TestTasks(MongoTestCase):
             'CELERY_ALWAYS_EAGER': True,
             'CELERY_RESULT_BACKEND': "cache",
             'CELERY_CACHE_BACKEND': 'memory',
-            'MONGO_URI': 'mongodb://localhost:%d/' % self.port,
+            'MONGO_URI': self.tmp_db.uri,
             'MONGO_DBNAME': 'test',
             'SMS_ACC': 'foo',
             'SMS_KEY': 'bar',
@@ -115,7 +115,7 @@ class TestTasks(MongoTestCase):
         api_mock.user.reachable.POST.return_value = response
         status = is_reachable.delay('192705178354').get()
         self.assertTrue(status)
-        mdb = self.conn['test']
+        mdb = self.tmp_db.conn['test']
         result = mdb['recipient_cache'].find_one({'identifier': '192705178354'})
         self.assertEqual(result['data']['SenderAccepted'], True)
 

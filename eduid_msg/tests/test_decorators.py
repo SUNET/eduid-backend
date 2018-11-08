@@ -19,7 +19,7 @@ class TestTransactionAudit(MongoTestCase):
             'CELERY_ALWAYS_EAGER': True,
             'CELERY_RESULT_BACKEND': "cache",
             'CELERY_CACHE_BACKEND': 'memory',
-            'MONGO_URI': 'mongodb://localhost:%d/' % self.port,
+            'MONGO_URI': self.tmp_db.uri,
             'MONGO_DBNAME': 'test',
             'SMS_ACC': 'foo',
             'SMS_KEY': 'bar',
@@ -34,7 +34,7 @@ class TestTransactionAudit(MongoTestCase):
         def no_name():
             return {'baka': 'kaka'}
         no_name()
-        db = self.conn['test']
+        db = self.tmp_db.conn['test']
         c = db['transaction_audit']
         result = c.find()
         self.assertEquals(result.count(), 1)
@@ -63,7 +63,7 @@ class TestTransactionAudit(MongoTestCase):
         self.assertEquals(result['data']['template'], 'template')
 
     def test_transaction_audit_toggle(self):
-        db = self.conn['test']
+        db = self.tmp_db.conn['test']
         c = db['transaction_audit']
         c.remove()  # Clear database
         TransactionAudit.disable()
