@@ -60,13 +60,6 @@ class LookupMobileProofingTests(EduidAPITestCase):
         })
         return config
 
-    def tearDown(self):
-        super(LookupMobileProofingTests, self).tearDown()
-        with self.app.app_context():
-            self.app.private_userdb._drop_whole_collection()
-            self.app.proofing_log._drop_whole_collection()
-            self.app.central_userdb._drop_whole_collection()
-
     def test_authenticate(self):
         response = self.browser.get('/proofing')
         self.assertEqual(response.status_code, 302)  # Redirect to token service

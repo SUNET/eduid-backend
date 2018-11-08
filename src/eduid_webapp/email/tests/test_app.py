@@ -65,14 +65,6 @@ class EmailTests(EduidAPITestCase):
     def init_data(self):
         self.app.private_userdb.save(self.app.private_userdb.UserClass(data=self.test_user.to_dict()), check_sync=False)
 
-    def tearDown(self):
-        super(EmailTests, self).tearDown()
-        with self.app.app_context():
-            self.app.private_userdb._drop_whole_collection()
-            self.app.proofing_statedb._drop_whole_collection()
-            self.app.proofing_log._drop_whole_collection()
-            self.app.central_userdb._drop_whole_collection()
-
     def test_get_all_emails(self):
         response = self.browser.get('/all')
         self.assertEqual(response.status_code, 302)  # Redirect to token service

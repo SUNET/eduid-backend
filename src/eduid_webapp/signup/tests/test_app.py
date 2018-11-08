@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright (c) 2016 NORDUnet A/S
+# Copyright (c) 2018 SUNET
 # All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or
@@ -33,7 +34,7 @@
 import json
 from contextlib import contextmanager
 from mock import patch
-from flask import Flask, Response
+from flask import Response
 from werkzeug.exceptions import InternalServerError
 
 from eduid_common.api.testing import EduidAPITestCase
@@ -82,12 +83,6 @@ class SignupTests(EduidAPITestCase):
     def init_data(self):
         test_user_dict = self.app.private_userdb.UserClass(data=self.test_user.to_dict())
         self.app.private_userdb.save(test_user_dict, check_sync=False)
-
-    def tearDown(self):
-        super(SignupTests, self).tearDown()
-        with self.app.app_context():
-            self.app.private_userdb._drop_whole_collection()
-            self.app.central_userdb._drop_whole_collection()
 
     @contextmanager
     def session_cookie(self, client, server_name='localhost'):
@@ -154,7 +149,10 @@ class SignupTests(EduidAPITestCase):
             self.assertEqual(data['error'], True)
             self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_FAIL')
 
-    def test_captcha_new(self):
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
+    def test_captcha_new(self, mock_sendmail):
+        mock_sendmail.return_value = True
+
         email = 'dummy@example.com'
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
@@ -172,7 +170,10 @@ class SignupTests(EduidAPITestCase):
                 self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_SUCCESS')
                 self.assertEqual(data['payload']['next'], 'new')
 
-    def test_captcha_resend(self):
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
+    def test_captcha_resend(self, mock_sendmail):
+        mock_sendmail.return_value = True
+
         email = 'dummy@example.com'
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
@@ -217,7 +218,7 @@ class SignupTests(EduidAPITestCase):
                                        content_type=self.content_type_json)
 
                 data = json.loads(response.data)
-                self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_SUCCESS')
+                self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_FAIL')
                 self.assertEqual(data['payload']['next'], 'address-used')
 
     def test_captcha_no_email(self):
@@ -254,7 +255,10 @@ class SignupTests(EduidAPITestCase):
                 data = json.loads(response.data)
                 self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_FAIL')
 
-    def test_resend_email(self):
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
+    def test_resend_email(self, mock_sendmail):
+        mock_sendmail.return_value = True
+
         email = 'dummy@example.com'
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
@@ -270,17 +274,20 @@ class SignupTests(EduidAPITestCase):
                 self.assertEqual(data['type'],
                         'POST_SIGNUP_RESEND_VERIFICATION_SUCCESS')
 
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('vccs_client.VCCSClient.add_credentials')
-    def test_verify_code(self, mock_add_credentials, mock_request_user_sync):
+    def test_verify_code(self, mock_add_credentials, mock_request_user_sync, mock_sendmail):
         mock_add_credentials.return_value = True
         mock_request_user_sync.return_value = True
+        mock_sendmail.return_value = True
         email = 'dummy@example.com'
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
-                    code = send_verification_mail(email)
-                    response = client.get('/verify-link/' + code)
+                    send_verification_mail(email)
+                    signup_user = self.app.private_userdb.get_user_by_pending_mail_address(email)
+                    response = client.get('/verify-link/' + signup_user.pending_mail_address.verification_code)
 
                     data = json.loads(response.data)
                     self.assertEqual(data['type'],
@@ -288,11 +295,14 @@ class SignupTests(EduidAPITestCase):
                     self.assertEqual(data['payload']['status'],
                             'verified')
 
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('vccs_client.VCCSClient.add_credentials')
-    def test_verify_non_existing_code(self, mock_add_credentials, mock_request_user_sync):
+    def test_verify_non_existing_code(self, mock_add_credentials, mock_request_user_sync, mock_sendmail):
         mock_add_credentials.return_value = True
         mock_request_user_sync.return_value = True
+        mock_sendmail.return_value = True
+
         email = 'dummy@example.com'
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
@@ -302,33 +312,40 @@ class SignupTests(EduidAPITestCase):
 
                     data = json.loads(response.data)
                     self.assertEqual(data['type'],
-                            'GET_SIGNUP_VERIFY_LINK_SUCCESS')
+                            'GET_SIGNUP_VERIFY_LINK_FAIL')
                     self.assertEqual(data['payload']['status'],
                             'unknown-code')
 
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('vccs_client.VCCSClient.add_credentials')
-    def test_verify_existing_email(self, mock_add_credentials, mock_request_user_sync):
+    def test_verify_existing_email(self, mock_add_credentials, mock_request_user_sync, mock_sendmail):
         mock_add_credentials.return_value = True
         mock_request_user_sync.return_value = True
+        mock_sendmail.return_value = True
+
         email = 'johnsmith@example.com'
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
-                    code = send_verification_mail(email)
-                    response = client.get('/verify-link/' + code)
+                    send_verification_mail(email)
+                    signup_user = self.app.private_userdb.get_user_by_pending_mail_address(email)
+                    response = client.get('/verify-link/' + signup_user.pending_mail_address.verification_code)
 
                     data = json.loads(response.data)
                     self.assertEqual(data['type'],
-                            'GET_SIGNUP_VERIFY_LINK_SUCCESS')
+                            'GET_SIGNUP_VERIFY_LINK_FAIL')
                     self.assertEqual(data['payload']['status'],
                             'already-verified')
 
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('vccs_client.VCCSClient.add_credentials')
-    def test_verify_code_remove_previous(self, mock_add_credentials, mock_request_user_sync):
+    def test_verify_code_remove_previous(self, mock_add_credentials, mock_request_user_sync, mock_sendmail):
         mock_add_credentials.return_value = True
         mock_request_user_sync.return_value = True
+        mock_sendmail.return_value = True
+
         email = 'dummy@example.com'
 
         with self.session_cookie(self.browser) as client:
@@ -343,8 +360,9 @@ class SignupTests(EduidAPITestCase):
                     client.post('/trycaptcha', data=json.dumps(data),
                                        content_type=self.content_type_json)
 
-                    code = send_verification_mail(email)
-                    response = client.get('/verify-link/' + code)
+                    send_verification_mail(email)
+                    signup_user = self.app.private_userdb.get_user_by_pending_mail_address(email)
+                    response = client.get('/verify-link/' + signup_user.pending_mail_address.verification_code)
 
                     data = json.loads(response.data)
                     self.assertEqual(data['type'],

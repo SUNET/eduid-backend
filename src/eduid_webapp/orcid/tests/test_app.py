@@ -99,11 +99,6 @@ class OrcidTests(EduidAPITestCase):
         })
         return config
 
-    def tearDown(self):
-        super(OrcidTests, self).tearDown()
-        with self.app.app_context():
-            self.app.central_userdb._drop_whole_collection()
-
     @patch('oic.oic.Client.parse_response')
     @patch('oic.oic.Client.do_user_info_request')
     @patch('oic.oic.Client.do_access_token_request')

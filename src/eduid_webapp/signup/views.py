@@ -38,17 +38,10 @@ from flask import Blueprint, request, session, current_app, abort
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith
 from eduid_common.api.schemas.base import FluxStandardAction
-from eduid_webapp.signup.schemas import RegisterEmailSchema
-from eduid_webapp.signup.schemas import AccountCreatedResponse
-from eduid_webapp.signup.schemas import EmailSchema
-from eduid_webapp.signup.verifications import verify_recaptcha
-from eduid_webapp.signup.verifications import send_verification_mail
-from eduid_webapp.signup.verifications import verify_email_code
-from eduid_webapp.signup.helpers import check_email_status
-from eduid_webapp.signup.helpers import remove_users_with_mail_address
-from eduid_webapp.signup.helpers import complete_registration
-from eduid_webapp.signup.verifications import CodeDoesNotExist
-from eduid_webapp.signup.verifications import AlreadyVerifiedException
+from eduid_webapp.signup.schemas import RegisterEmailSchema, AccountCreatedResponse, EmailSchema
+from eduid_webapp.signup.verifications import verify_recaptcha, send_verification_mail, verify_email_code
+from eduid_webapp.signup.helpers import check_email_status, remove_users_with_mail_address, complete_registration
+from eduid_webapp.signup.verifications import CodeDoesNotExist, AlreadyVerifiedException, ProofingLogFailure
 
 
 http = urllib3.PoolManager()
@@ -125,11 +118,20 @@ def trycaptcha(email, recaptcha_response, tou_accepted):
             # Workaround for failed earlier sync of user to userdb: Remove any signup_user with this e-mail address.
             remove_users_with_mail_address(email)
             send_verification_mail(email)
-        msg = 'signup.registering-{}'.format(next)
-        return {
-            'message': msg,
-            'next': next
-        }
+            return {
+                'message': 'signup.registering-new',
+                'next': next
+            }
+        elif next == 'resend-code':
+            return {
+                'next': next
+            }
+        elif next == 'address-used':
+            return {
+                '_status': 'error',
+                'message': 'signup.registering-address-used',
+                'next': next
+            }
     return {
             '_status': 'error',
             'message': 'signup.recaptcha-not-verified'
@@ -157,12 +159,19 @@ def verify_link(code):
         user = verify_email_code(code)    
     except CodeDoesNotExist:
         return {
+                '_status': 'error',
                 'status': 'unknown-code',
                 'message': 'signup.unknown-code'
                 }
     except AlreadyVerifiedException:
         return {
+                '_status': 'error',
                 'status': 'already-verified',
                 'message': 'signup.already-verified'
                 }
+    except ProofingLogFailure:
+        return {
+            '_status': 'error',
+            'message': 'Temporary technical problems'
+        }
     return complete_registration(user)

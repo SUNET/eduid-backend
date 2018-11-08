@@ -41,6 +41,7 @@ from flask_babel import gettext as _
 from eduid_userdb import MailAddress
 from eduid_userdb.signup import SignupUser
 from eduid_userdb.proofing import EmailProofingElement
+from eduid_userdb.logs import MailAddressProofing
 from eduid_webapp.signup.helpers import generate_eppn
 
 
@@ -103,7 +104,7 @@ def generate_verification_link():
     """
     code = str(uuid4())
     link = '{}code/{}'.format(current_app.config['SIGNUP_URL'], code)
-    return (link, code)
+    return link, code
 
 
 def send_verification_mail(email):
@@ -113,11 +114,22 @@ def send_verification_mail(email):
 
     :param email: Email address to verify
     :type email: str | unicode
-
-    :return: Generated code
-    :rtype: str
     """
-    (verification_link, code) = generate_verification_link()
+    verification_link, code = generate_verification_link()
+
+    signup_user = current_app.private_userdb.get_user_by_pending_mail_address(email)
+    if not signup_user:
+        mailaddress = EmailProofingElement(email=email, application='signup', verified=False, verification_code=code)
+        signup_user = SignupUser(eppn=generate_eppn())
+        signup_user.pending_mail_address = mailaddress
+        current_app.logger.info("New user {}/{} created. e-mail is pending confirmation".format(signup_user, email))
+    else:
+        # update mailaddress on existing user with new code
+        signup_user.pending_mail_address.verification_code = code
+        current_app.logger.info("User {}/{} updated with new e-mail confirmation code".format(signup_user, email))
+
+    # Send verification mail
+    subject = _("eduid-signup verification email")
 
     context = {
         "email": email,
@@ -135,29 +147,10 @@ def send_verification_mail(email):
             **context
     )
 
-    signup_user = current_app.private_userdb.get_user_by_pending_mail_address(email)
-    if not signup_user:
-        mailaddress = EmailProofingElement(email = email, application = 'signup', verified = False,
-                                           verification_code = code)
-        signup_user = SignupUser(eppn = generate_eppn())
-        signup_user.pending_mail_address = mailaddress
-        current_app.private_userdb.save(signup_user)
-        current_app.logger.info("New user {}/{} created. e-mail is pending confirmation.".format(signup_user, email))
-    else:
-        # update mailaddress on existing user with new code
-        signup_user.pending_mail_address.verification_code = code
-        current_app.private_userdb.save(signup_user)
-        current_app.logger.info("User {}/{} updated with new e-mail confirmation code".format(signup_user, email))
-
-    subject = _("eduid-signup verification email"),
-    if current_app.config.get("DEVEL_MODE", False):
-        # Development
-        current_app.logger.debug("Confirmation e-mail:\nTo: {!s}\nSubject: {!s}\n\n{!s}".format(email, subject, text))
-    else:
-        current_app.mail_relay.sendmail(subject, [email], text, html)
-        current_app.logger.info("Sent email address verification mail to user "
-                                "{} about address {}.".format(user, email))
-    return code
+    current_app.mail_relay.sendmail(subject, [email], text, html, reference=signup_user.proofing_reference)
+    current_app.logger.info("Sent email address verification mail for user {} to address {}".format(signup_user, email))
+    current_app.private_userdb.save(signup_user)
+    current_app.logger.info("Saved user {} to private db".format(signup_user))
 
 
 class AlreadyVerifiedException(Exception):
@@ -165,6 +158,10 @@ class AlreadyVerifiedException(Exception):
 
 
 class CodeDoesNotExist(Exception):
+    pass
+
+
+class ProofingLogFailure(Exception):
     pass
 
 
@@ -201,18 +198,22 @@ def verify_email_code(code):
     if mail_address.is_verified:
         # There really should be no way to get here, is_verified is set to False when
         # the EmailProofingElement is created.
-        current_app.logger.debug("Code {} already verified "
-                                 "({})".format(code, mail_address))
+        current_app.logger.debug("Code {} already verified ({})".format(code, mail_address))
         raise AlreadyVerifiedException()
 
-    mail_address.is_verified = True
-    mail_address.verified_ts = True
-    mail_address.verified_by = 'signup'
-    mail_address.is_primary = True
-    signup_user.pending_mail_address = None
-    signup_user.mail_addresses.add(mail_address)
-    result = signup_db.save(signup_user)
-
-    current_app.logger.info("Code {} verified and user {} "
-                             "saved: {!r}".format(code, signup_user, result))
-    return signup_user
+    mail_address_proofing = MailAddressProofing(signup_user, created_by='signup', mail_address=mail_address.email,
+                                                reference=signup_user.proofing_reference,
+                                                proofing_version='2013v1')
+    if current_app.proofing_log.save(mail_address_proofing):
+        mail_address.is_verified = True
+        mail_address.verified_ts = True
+        mail_address.verified_by = 'signup'
+        mail_address.is_primary = True
+        signup_user.pending_mail_address = None
+        signup_user.mail_addresses.add(mail_address)
+        result = signup_db.save(signup_user)
+        current_app.logger.info("Code {} verified and user {} saved: {!r}".format(code, signup_user, result))
+        return signup_user
+    else:
+        current_app.logger.error('Failed to save proofing log, aborting')
+        raise ProofingLogFailure()

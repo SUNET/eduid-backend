@@ -65,14 +65,6 @@ class LetterProofingTests(EduidAPITestCase):
         })
         return config
 
-    def tearDown(self):
-        super(LetterProofingTests, self).tearDown()
-        with self.app.app_context():
-            self.app.central_userdb._drop_whole_collection()
-            self.app.private_userdb._drop_whole_collection()
-            self.app.proofing_statedb._drop_whole_collection()
-            self.app.proofing_log._drop_whole_collection()
-
     # Helper methods
     def get_state(self):
         with self.session_cookie(self.browser, self.test_user_eppn) as client:
@@ -274,35 +266,6 @@ class LetterProofingTests(EduidAPITestCase):
         json_data = json.loads(response.data)
         self.assertEqual(json_data['type'], 'POST_LETTER_PROOFING_PROOFING_FAIL')
         self.assertIn('nin', json_data['payload']['error'].keys())
-
-    def test_deprecated_proofing_state(self):
-        deprecated_data = {
-            'user_id': ObjectId('012345678901234567890123'),
-            'nin': {
-                'created_by': 'eduid-userdb.tests',
-                'created_ts': datetime(2015, 11, 9, 12, 53, 9, 708761),
-                'number': '200102034567',
-                'verification_code': 'abc123',
-                'verified': False
-            },
-            'proofing_letter': {
-                'is_sent': False,
-                'sent_ts': None,
-                'transaction_id': None,
-                'address': self.mock_address
-            }
-        }
-        with self.app.app_context():
-            self.app.proofing_statedb._coll.insert(deprecated_data)
-            state = self.app.proofing_statedb.get_state_by_user_id('012345678901234567890123', self.test_user_eppn)
-        self.assertIsNotNone(state)
-        state_dict = state.to_dict()
-        self.assertEquals(sorted(list(state_dict.keys())), sorted(['_id', 'eduPersonPrincipalName', 'nin', 'proofing_letter',
-                                                  'modified_ts']))
-        self.assertEquals(sorted(list(state_dict['nin'].keys())), sorted(['created_by', 'created_ts', 'number', 'verification_code',
-                                                         'verified']))
-        self.assertEquals(sorted(list(state_dict['proofing_letter'].keys())), sorted(['is_sent', 'sent_ts', 'transaction_id',
-                                                                     'address']))
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
