@@ -150,7 +150,7 @@ def send_verification_mail(email):
         current_app.logger.info("User {}/{} updated with new e-mail confirmation code".format(signup_user, email))
 
     subject = _("eduid-signup verification email"),
-    if current_app.config.get("DEVELOPMENT", False):
+    if current_app.config.get("DEVEL_MODE", False):
         # Development
         current_app.logger.debug("Confirmation e-mail:\nTo: {!s}\nSubject: {!s}\n\n{!s}".format(email, subject, text))
     else:
