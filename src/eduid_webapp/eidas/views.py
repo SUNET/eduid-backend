@@ -114,7 +114,7 @@ def assertion_consumer_service():
         current_app.logger.debug('Session info:\n{!s}\n\n'.format(session_info))
 
         # Remap nin in staging environment
-        if os.environ.get('ENVIRONMENT', None) == 'staging':
+        if current_app.config.get('ENVIRONMENT', None) == 'staging':
             session_info = staging_nin_remap(session_info)
 
         action = get_action()

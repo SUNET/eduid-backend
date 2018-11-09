@@ -418,7 +418,7 @@ class EidasTests(EduidAPITestCase):
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def test_nin_staging_remap_verify(self, mock_request_user_sync, mock_get_postal_address):
-        os.environ['ENVIRONMENT'] = 'staging'
+        self.app.config['ENVIRONMENT'] = 'staging'
         self.app.config['STAGING_NIN_MAP'] = {
             self.test_user_nin: '190102031234'
         }
