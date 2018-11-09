@@ -2,6 +2,7 @@
 
 from __future__ import absolute_import, unicode_literals
 
+import os
 from six.moves.urllib_parse import urlencode, urlsplit, urlunsplit
 from flask import Blueprint, current_app
 from flask import request, session, redirect, abort, make_response
@@ -14,7 +15,7 @@ from eduid_common.authn.utils import get_location
 from eduid_common.authn.eduid_saml2 import BadSAMLResponse
 from eduid_userdb.credentials import U2F
 
-from eduid_webapp.eidas.helpers import create_authn_request, parse_authn_response, create_metadata
+from eduid_webapp.eidas.helpers import create_authn_request, parse_authn_response, create_metadata, staging_nin_remap
 
 __author__ = 'lundberg'
 
@@ -111,6 +112,10 @@ def assertion_consumer_service():
 
         current_app.logger.debug('Auth response:\n{!s}\n\n'.format(authn_response))
         current_app.logger.debug('Session info:\n{!s}\n\n'.format(session_info))
+
+        # Remap nin in staging environment
+        if os.environ.get('ENVIRONMENT', None) == 'staging':
+            session_info = staging_nin_remap(session_info)
 
         action = get_action()
         return action(session_info)
