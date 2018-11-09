@@ -89,7 +89,6 @@ class EidasTests(EduidAPITestCase):
             self.app.private_userdb._drop_whole_collection()
             self.app.proofing_log._drop_whole_collection()
             self.app.central_userdb._drop_whole_collection()
-        os.environ.pop('ENVIRONMENT', None)
         super(EidasTests, self).tearDown()
 
     def add_token_to_user(self, eppn, credential_id):
