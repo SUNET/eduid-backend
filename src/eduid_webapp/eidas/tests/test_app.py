@@ -84,13 +84,6 @@ class EidasTests(EduidAPITestCase):
             })
         return config
 
-    def tearDown(self):
-        super(EidasTests, self).tearDown()
-        with self.app.app_context():
-            self.app.private_userdb._drop_whole_collection()
-            self.app.proofing_log._drop_whole_collection()
-            self.app.central_userdb._drop_whole_collection()
-
     def add_token_to_user(self, eppn, credential_id):
         user = self.app.central_userdb.get_user_by_eppn(eppn)
         mfa_token = U2F(version='test', keyhandle=credential_id, public_key='test', app_id='test', attest_cert='test',
@@ -413,3 +406,42 @@ class EidasTests(EduidAPITestCase):
                 self.assertEqual(response.location,
                                  '{}/nins?msg=%3AERROR%3Aeidas.nin_already_verified'.format(
                                      self.app.config['DASHBOARD_URL']))
+
+    @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_nin_staging_remap_verify(self, mock_request_user_sync, mock_get_postal_address):
+        self.app.config['ENVIRONMENT'] = 'staging'
+        self.app.config['STAGING_NIN_MAP'] = {
+            self.test_user_nin: '190102031234'
+        }
+
+        mock_get_postal_address.return_value = self.mock_address
+        mock_request_user_sync.side_effect = self.request_user_sync
+
+        user = self.app.central_userdb.get_user_by_eppn(self.test_unverified_user_eppn)
+        self.assertEqual(user.nins.verified.count, 0)
+
+        with self.session_cookie(self.browser, self.test_unverified_user_eppn) as browser:
+            with browser.session_transaction() as sess:
+                response = browser.get('/verify-nin?idp={}'.format(self.test_idp))
+                token = sess._session.token
+                if isinstance(token, six.binary_type):
+                    token = token.decode('ascii')
+                authn_response = self.generate_auth_response(token, self.test_user_nin)
+                oq_cache = OutstandingQueriesCache(sess)
+                oq_cache.set(token, '/')
+                sess['post-authn-action'] = 'nin-verify-action'
+                sess.persist()
+
+                self.assertEqual(response.status_code, 302)
+
+                data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': '/'}
+                browser.post('/saml2-acs', data=data)
+
+                user = self.app.central_userdb.get_user_by_eppn(self.test_unverified_user_eppn)
+
+                self.assertEqual(user.nins.verified.count, 1)
+                self.assertEqual(user.nins.primary.number, '190102031234')
+
+                self.assertEqual(self.app.proofing_log.db_count(), 1)
+

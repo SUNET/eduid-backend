@@ -83,3 +83,20 @@ def is_required_loa(session_info, required_loa):
 
 def create_metadata(config):
     return entity_descriptor(config)
+
+
+def staging_nin_remap(session_info):
+    """
+    Remap from known test nins to users correct nins.
+
+    :param session_info: the SAML session info
+    :type session_info: dict
+    :return: SAML session info with new nin mapped
+    :rtype: dict
+    """
+    attributes = session_info['ava']
+    asserted_test_nin = attributes['personalIdentityNumber'][0]
+    user_nin = current_app.config['STAGING_NIN_MAP'].get(asserted_test_nin, None)
+    if user_nin:
+        attributes['personalIdentityNumber'] = [user_nin]
+    return session_info

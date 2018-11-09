@@ -55,7 +55,7 @@ def token_verify_action(session_info, user):
         return redirect(url)
 
     # Verify asserted NIN for user if there are no verified NIN
-    if proofing_user.nins.verified.count < 1:
+    if proofing_user.nins.verified.count == 0:
         nin_verify_action(session_info)
         user = current_app.central_userdb.get_user_by_eppn(user.eppn)
         proofing_user = ProofingUser.from_user(user, current_app.private_userdb)

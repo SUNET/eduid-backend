@@ -48,3 +48,8 @@ AUTHENTICATION_CONTEXT_MAP = {
     'eidas-nf-sub': 'http://id.elegnamnden.se/loa/1.0/eidas-nf-sub',
     'eidas-nf-high': 'http://id.elegnamnden.se/loa/1.0/eidas-nf-high'
 }
+
+# Staging nin map
+STAGING_NIN_MAP = {
+    #  'test nin': 'user nin'
+}

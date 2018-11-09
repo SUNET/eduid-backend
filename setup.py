@@ -3,7 +3,7 @@
 from setuptools import setup, find_packages
 import sys
 
-version = '0.2.2b6'
+version = '0.2.2b7'
 
 # Use requirements files
 requires = [
