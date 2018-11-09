@@ -84,13 +84,6 @@ class EidasTests(EduidAPITestCase):
             })
         return config
 
-    def tearDown(self):
-        with self.app.app_context():
-            self.app.private_userdb._drop_whole_collection()
-            self.app.proofing_log._drop_whole_collection()
-            self.app.central_userdb._drop_whole_collection()
-        super(EidasTests, self).tearDown()
-
     def add_token_to_user(self, eppn, credential_id):
         user = self.app.central_userdb.get_user_by_eppn(eppn)
         mfa_token = U2F(version='test', keyhandle=credential_id, public_key='test', app_id='test', attest_cert='test',
