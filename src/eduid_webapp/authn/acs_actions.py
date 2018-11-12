@@ -103,6 +103,22 @@ def term_account_action(session_info, user):
     return _reauthn('reauthn-for-termination', session_info, user)
 
 
+@acs_action('reauthn-action')
+def reauthn_account_action(session_info, user):
+    """
+    Upon successful reauthn in the IdP,
+    set a timestamp in the session (key reauthn)
+    and redirect back to the app that asked for reauthn.
+
+    :param session_info: the SAML session info
+    :type session_info: dict
+
+    :param user: the authenticated user
+    :type user: eduid_userdb.User
+    """
+    return _reauthn('reauthn', session_info, user)
+
+
 def _reauthn(reason, session_info, user):
 
     current_app.logger.info("Reauthenticating user {} for {!r}.".format(user, reason))

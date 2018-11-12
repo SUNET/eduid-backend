@@ -30,6 +30,10 @@ def create_authn_request(relay_state, selected_idp, required_loa, force_authn=Fa
                                                     comparison='exact')
     kwargs['requested_authn_context'] = requested_authn_context
 
+    # Authn algorithms
+    kwargs['sign_alg'] = current_app.config['AUTHN_SIGN_ALG']
+    kwargs['digest_alg'] = current_app.config['AUTHN_DIGEST_ALG']
+
     client = Saml2Client(current_app.saml2_config)
     try:
         session_id, info = client.prepare_for_authenticate(entityid=selected_idp, relay_state=relay_state,

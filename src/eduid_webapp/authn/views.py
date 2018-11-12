@@ -60,6 +60,14 @@ def login():
     return _authn('login-action')
 
 
+@authn_views.route('/reauthn')
+def reauthn():
+    """
+    login view with force authn, redirects to SAML2 IdP
+    """
+    return _authn('reauthn-action', force_authn=True)
+
+
 @authn_views.route('/chpass')
 def chpass():
     """

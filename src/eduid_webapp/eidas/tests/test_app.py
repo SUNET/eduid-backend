@@ -81,6 +81,8 @@ class EidasTests(EduidAPITestCase):
                 'eidas-nf-sub': 'http://id.elegnamnden.se/loa/1.0/eidas-nf-sub',
                 'eidas-nf-high': 'http://id.elegnamnden.se/loa/1.0/eidas-nf-high'
             },
+            'AUTHN_SIGN_ALG': 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256',
+            'AUTHN_DIGEST_ALG': 'http://www.w3.org/2001/04/xmlenc#sha256'
             })
         return config
 

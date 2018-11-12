@@ -2,9 +2,8 @@
 
 from __future__ import absolute_import, unicode_literals
 
-import os
 from six.moves.urllib_parse import urlencode, urlsplit, urlunsplit
-from flask import Blueprint, current_app
+from flask import Blueprint, current_app, url_for
 from flask import request, session, redirect, abort, make_response
 
 from eduid_common.api.decorators import require_user, MarshalWith
@@ -44,9 +43,11 @@ def verify_token(user, credential_id):
         url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
         return redirect(url)
     if token_to_verify.key not in session['eduidIdPCredentialsUsed']:
-        new_query_string = urlencode({'msg': ':ERROR:eidas.token_not_in_credentials_used'})
-        url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
-        return redirect(url)
+        # If token was not used for login, reauthn the user
+        ts_url = current_app.config.get('TOKEN_SERVICE_URL')
+        reauthn_url = urlappend(ts_url, 'reauthn')
+        next_url = url_for('eidas.verify_token', credential_id=credential_id, _external=True)
+        return redirect('{}?next={}'.format(reauthn_url, next_url))
 
     # Set token key id in session
     session['verify_token_action_credential_id'] = credential_id
