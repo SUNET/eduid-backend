@@ -68,4 +68,5 @@ AUTH_SHARED_SECRET = 'supersecret'
 
 DEFAULT_FINISH_URL = 'https://www.eduid.se/'
 
-INTERNAL_ACTIONS_URL = 'http://actions2.eduid.docker/'
+# The signup app uses this to retrieve the ToU texts from the actions app
+INTERNAL_ACTIONS_URL = None
