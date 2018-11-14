@@ -10,6 +10,7 @@ from celery.task import periodic_task, task
 from time import time
 from datetime import datetime, timedelta
 from hammock import Hammock
+from pymongo.errors import ConnectionFailure
 
 from eduid_msg.celery import celery, config_parser
 from eduid_msg.cache import CacheMDB
@@ -114,11 +115,23 @@ class MessageRelay(Task):
 
     def cache(self, cache_name, ttl=7200):
         global _CACHE
-        if not cache_name in _CACHE:
+        if cache_name not in _CACHE:
             _CACHE[cache_name] = CacheMDB(self.app.conf.get('MONGO_URI', DEFAULT_MONGODB_URI),
                                           self.app.conf.get('MONGO_DBNAME', DEFAULT_MONGODB_NAME),
                                           cache_name, ttl=ttl, expiration_freq=120)
         return _CACHE[cache_name]
+
+    @staticmethod
+    def reload_db():
+        global _CACHE
+        # Remove initiated cache dbs
+        _CACHE = {}
+
+    def on_failure(self, exc, task_id, args, kwargs, einfo):
+        # Try to reload the db on connection failures (mongodb has probably switched master)
+        if isinstance(exc, ConnectionFailure):
+            LOG.error('Task failed with mongodb exception ConnectionFailure. Reloading db.')
+            self.reload_db()
 
     def is_reachable(self, identity_number, mailbox_url=False):
         """
@@ -411,9 +424,10 @@ class MessageRelay(Task):
 
         return self.sms.send(message, self._sms_sender, recipient, prio=2)
 
-    @staticmethod
-    def pong():
-        return 'pong'
+    def pong(self):
+        # Leverage cache to test mongo db health
+        if self.cache('pong', 0).conn.get_connection().admin.command('ismaster'):
+            return 'pong'
 
 
 @task(base=MessageRelay)

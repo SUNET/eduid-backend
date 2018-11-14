@@ -3,7 +3,7 @@ import json
 from eduid_userdb.testing import MongoTestCase
 from eduid_msg.tests import mock_celery, mock_get_attribute_manager
 from eduid_msg.celery import celery
-from eduid_msg.tasks import send_message, is_reachable
+from eduid_msg.tasks import send_message, is_reachable, pong
 from eduid_msg.utils import load_template
 import pkg_resources
 
@@ -166,3 +166,7 @@ class TestTasks(MongoTestCase):
         status = send_message.delay('mm', 'reference', self.msg_dict, '192705178354', 'test.tmpl', 'sv_SE',
                                     subject='Test').get()
         self.assertEqual(status, "Anonymous")
+
+    def test_ping(self):
+        ret = pong.delay().get()
+        self.assertEqual(ret, 'pong')
