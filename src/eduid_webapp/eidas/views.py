@@ -44,6 +44,7 @@ def verify_token(user, credential_id):
         return redirect(url)
     if token_to_verify.key not in session['eduidIdPCredentialsUsed']:
         # If token was not used for login, reauthn the user
+        current_app.logger.info('Token not used for login, redirecting to idp')
         ts_url = current_app.config.get('TOKEN_SERVICE_URL')
         reauthn_url = urlappend(ts_url, 'reauthn')
         next_url = url_for('eidas.verify_token', credential_id=credential_id, _external=True)
