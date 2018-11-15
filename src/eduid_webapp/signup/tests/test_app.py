@@ -34,6 +34,7 @@
 import json
 from contextlib import contextmanager
 from mock import patch
+from nacl import utils, secret, encoding
 
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_webapp.signup.app import signup_init_app
@@ -50,8 +51,9 @@ class SignupTests(EduidAPITestCase):
         return signup_init_app('signup', config)
 
     def update_config(self, config):
+        signup_and_authn_shared_key = encoding.URLSafeBase64Encoder.encode((utils.random(secret.SecretBox.KEY_SIZE)))
         config.update({
-            'AVAILABLE_LANGUAGES': {'en': 'English','sv': 'Svenska'},
+            'AVAILABLE_LANGUAGES': {'en': 'English', 'sv': 'Svenska'},
             'DASHBOARD_URL': '/profile/',
             'SIGNUP_URL': 'https://localhost/',
             'DEVELOPMENT': 'DEBUG',
@@ -62,7 +64,7 @@ class SignupTests(EduidAPITestCase):
             'PASSWORD_LENGTH': '10',
             'VCCS_URL': 'http://turq:13085/',
             'TOU_VERSION': '2018-v1',
-            'SIGNUP_AND_AUTHN_SHARED_KEY': 'shared_secret_Eifool0ua0eiph7ooc',
+            'SIGNUP_AND_AUTHN_SHARED_KEY': signup_and_authn_shared_key,
             'DEFAULT_FINISH_URL': 'https://www.eduid.se/',
             'RECAPTCHA_PUBLIC_KEY': '',  # disable recaptcha verification
             'RECAPTCHA_PRIVATE_KEY': 'XXXX',
