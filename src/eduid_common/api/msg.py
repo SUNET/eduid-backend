@@ -147,9 +147,9 @@ class MsgRelay(object):
         :type reference: six.string_types
         :type max_retry_seconds: int
         """
+        current_app.logger.info('Trying to send SMS with reference: {}'.format(reference))
+        current_app.logger.debug(u'Recipient: {}. Message: {}'.format(recipient, message))
         try:
-            current_app.logger.info('Trying to send SMS with reference: {}'.format(reference))
-            current_app.logger.debug('Recipient: {}. Message: {}'.format(recipient, message))
             res = _sendsms.delay(recipient, message, reference, max_retry_seconds)
         except Exception as e:
             raise MsgTaskFailed('sendsms task failed: {!r}'.format(e))
