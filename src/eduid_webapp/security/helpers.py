@@ -100,8 +100,12 @@ def send_mail(subject, to_addresses, text_template, html_template, context=None,
         context = {}
     context.update(default_context)
 
+    current_app.logger.debug(u'subject: {}'.format(subject))
+    current_app.logger.debug(u'to addresses: {}'.format(to_addresses))
     text = render_template(text_template, **context)
+    current_app.logger.debug(u'rendered text: {}'.format(text))
     html = render_template(html_template, **context)
+    current_app.logger.debug(u'rendered html: {}'.format(html))
     current_app.mail_relay.sendmail(subject, to_addresses, text, html, reference, max_retry_timeout)
 
 
