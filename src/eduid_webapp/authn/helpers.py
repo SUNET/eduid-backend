@@ -33,7 +33,7 @@ def verify_auth_token(eppn, token, nonce, timestamp, generator=sha256):
     :return: bool, True on valid authentication
     """
     current_app.logger.debug('Trying to authenticate user {} with auth token {}'.format(eppn, token))
-    shared_key = current_app.config.get('TOKEN_LOGIN_SHARED_KEY')
+    shared_key = current_app.config.get('SIGNUP_AND_AUTHN_SHARED_KEY')
     secret_key = shared_key
     if not isinstance(shared_key, six.binary_type):
         secret_key = shared_key.encode('ascii')

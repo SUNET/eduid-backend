@@ -80,7 +80,7 @@ class AuthnAPITestBase(EduidAPITestCase):
             'SAML2_LOGIN_REDIRECT_URL': '/',
             'SAML2_LOGOUT_REDIRECT_URL': '/logged-out',
             'SAML2_SETTINGS_MODULE': saml_config,
-            'TOKEN_LOGIN_SHARED_KEY': 'shared_secretshared_secretshared',
+            'SIGNUP_AND_AUTHN_SHARED_KEY': 'shared_secretshared_secretshared',
             'TOKEN_LOGIN_SUCCESS_REDIRECT_URL': 'http://test.localhost/success',
             'TOKEN_LOGIN_FAILURE_REDIRECT_URL': 'http://test.localhost/failure',
             'SAFE_RELAY_DOMAIN': 'test.localhost'
@@ -305,7 +305,7 @@ class AuthnAPITestCase(AuthnAPITestBase):
 
     def test_token_login_new_user(self):
         eppn = 'hubba-fooo'
-        shared_key = self.app.config['TOKEN_LOGIN_SHARED_KEY']
+        shared_key = self.app.config['SIGNUP_AND_AUTHN_SHARED_KEY']
         timestamp = '{:x}'.format(int(time.time()))
         if six.PY2:
             nonce = os.urandom(16).encode('hex')
@@ -329,7 +329,7 @@ class AuthnAPITestCase(AuthnAPITestBase):
 
     def test_token_login_new_user_secret_box(self):
         eppn = 'hubba-fooo'
-        shared_key = self.app.config['TOKEN_LOGIN_SHARED_KEY'].encode('ascii')
+        shared_key = self.app.config['SIGNUP_AND_AUTHN_SHARED_KEY'].encode('ascii')
         timestamp = '{:x}'.format(int(time.time()))
         nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
         token_data = '{0}|{1}'.format(timestamp, eppn).encode('ascii')
@@ -354,7 +354,7 @@ class AuthnAPITestCase(AuthnAPITestBase):
 
     def test_token_login_old_user(self):
         eppn = 'hubba-bubba'
-        shared_key = self.app.config['TOKEN_LOGIN_SHARED_KEY']
+        shared_key = self.app.config['SIGNUP_AND_AUTHN_SHARED_KEY']
         timestamp = '{:x}'.format(int(time.time()))
         if six.PY2:
             nonce = os.urandom(16).encode('hex')
@@ -378,7 +378,7 @@ class AuthnAPITestCase(AuthnAPITestBase):
 
     def test_token_login_old_user_secret_box(self):
         eppn = 'hubba-bubba'
-        shared_key = self.app.config['TOKEN_LOGIN_SHARED_KEY'].encode('ascii')
+        shared_key = self.app.config['SIGNUP_AND_AUTHN_SHARED_KEY'].encode('ascii')
         timestamp = '{:x}'.format(int(time.time()))
         nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
         token_data = '{0}|{1}'.format(timestamp, eppn).encode('ascii')

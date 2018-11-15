@@ -64,7 +64,7 @@ VCCS_URL = None
 
 TOU_VERSION = '2018-v1'
 
-TOKEN_LOGIN_SHARED_KEY = None
+SIGNUP_AND_AUTHN_SHARED_KEY = None
 
 DEFAULT_FINISH_URL = 'https://www.eduid.se/'
 

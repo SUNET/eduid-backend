@@ -168,7 +168,7 @@ def complete_registration(signup_user):
         }
 
     eppn = signup_user.eppn
-    shared_key = current_app.config.get('TOKEN_LOGIN_SHARED_KEY')
+    shared_key = current_app.config.get('SIGNUP_AND_AUTHN_SHARED_KEY')
     if not isinstance(shared_key, six.binary_type):
         shared_key = shared_key.encode('ascii')
     timestamp = '{:x}'.format(int(time.time()))
