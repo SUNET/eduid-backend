@@ -45,8 +45,8 @@ from eduid_common.authn.eduid_saml2 import get_authn_request, get_authn_response
 from eduid_common.authn.eduid_saml2 import authenticate
 from eduid_common.authn.cache import IdentityCache, StateCache
 from eduid_common.authn.acs_registry import get_action, schedule_action
+from eduid_common.authn.utils import verify_auth_token
 from eduid_common.api.utils import verify_relay_state
-from eduid_webapp.authn.helpers import verify_auth_token
 
 
 authn_views = Blueprint('authn', __name__, url_prefix='')
@@ -268,8 +268,9 @@ def token_login():
     nonce = request.form.get('nonce')
     timestamp = request.form.get('ts')
     loa = get_loa(current_app.config.get('AVAILABLE_LOA'), None)  # With no session_info lowest loa will be returned
+    shared_key = current_app.config.get('SIGNUP_AND_AUTHN_SHARED_KEY')
 
-    if verify_auth_token(eppn=eppn, token=token, nonce=nonce, timestamp=timestamp):
+    if verify_auth_token(shared_key=shared_key, eppn=eppn, token=token, nonce=nonce, timestamp=timestamp):
         try:
             user = current_app.central_userdb.get_user_by_eppn(eppn)
             if user.locked_identity.count > 0:

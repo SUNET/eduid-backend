@@ -40,7 +40,7 @@ from eduid_userdb.actions import Action
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith
 from eduid_common.api.schemas.base import FluxStandardAction
 from eduid_common.api.utils import urlappend
-from eduid_webapp.authn.helpers import verify_auth_token
+from eduid_common.authn.utils import verify_auth_token
 from eduid_webapp.actions.helpers import get_next_action
 
 actions_views = Blueprint('actions', __name__, url_prefix='', template_folder='templates')
@@ -63,7 +63,8 @@ def authn():
         current_app.logger.debug(msg.format(eppn, token, nonce, timestamp))
         abort(400)
 
-    if verify_auth_token(eppn=eppn, token=token,
+    shared_key = current_app.config.get('TOKEN_LOGIN_SHARED_KEY')  # XXX: Change to IDP_AND_ACTIONS_SHARED_KEY
+    if verify_auth_token(shared_key=shared_key, eppn=eppn, token=token,
                          nonce=nonce, timestamp=timestamp):
         current_app.logger.info("Starting pre-login actions "
                                 "for eppn: {})".format(eppn))
