@@ -97,11 +97,11 @@ def save_and_sync_user(user):
 def urlappend(base, path):
     """
     :param base: Base url
-    :type base: str
+    :type base: six.string_types
     :param path: Path to join to base
-    :type path: str
+    :type path: six.string_types
     :return: Joined url
-    :rtype: str
+    :rtype: six.string_types
 
     Used instead of urlparse.urljoin to append path to base in an obvious way.
 
