@@ -48,3 +48,12 @@ AUTHENTICATION_CONTEXT_MAP = {
     'eidas-nf-sub': 'http://id.elegnamnden.se/loa/1.0/eidas-nf-sub',
     'eidas-nf-high': 'http://id.elegnamnden.se/loa/1.0/eidas-nf-high'
 }
+
+# Authn algorithms
+AUTHN_SIGN_ALG = 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256'
+AUTHN_DIGEST_ALG = 'http://www.w3.org/2001/04/xmlenc#sha256'
+
+# Staging nin map
+STAGING_NIN_MAP = {
+    #  'test nin': 'user nin'
+}

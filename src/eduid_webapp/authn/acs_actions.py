@@ -41,6 +41,28 @@ from eduid_common.authn.acs_registry import acs_action
 from eduid_common.authn.utils import get_saml_attribute
 
 
+def update_user_session(session_info, user):
+    """
+    Store login info in the session
+
+    :param session_info: the SAML session info
+    :param user: the authenticated user
+
+    :type session_info: dict
+    :type user: eduid_userdb.User
+
+    :return: None
+    :rtype: None
+    """
+    session['_saml2_session_name_id'] = code(session_info['name_id'])
+    session['eduPersonPrincipalName'] = user.eppn
+    session['user_eppn'] = user.eppn
+    loa = get_loa(current_app.config.get('AVAILABLE_LOA'), session_info)
+    session['eduPersonAssurance'] = loa
+    session['eduidIdPCredentialsUsed'] = get_saml_attribute(session_info, 'eduidIdPCredentialsUsed')
+    session.persist()
+
+
 @acs_action('login-action')
 def login_action(session_info, user):
     """
@@ -54,13 +76,7 @@ def login_action(session_info, user):
     :type user: eduid_userdb.User
     """
     current_app.logger.info("User {} logging in.".format(user))
-    session['_saml2_session_name_id'] = code(session_info['name_id'])
-    session['eduPersonPrincipalName'] = user.eppn
-    session['user_eppn'] = user.eppn
-    loa = get_loa(current_app.config.get('AVAILABLE_LOA'), session_info)
-    session['eduPersonAssurance'] = loa
-    session['eduidIdPCredentialsUsed'] = get_saml_attribute(session_info, 'eduidIdPCredentialsUsed')
-    session.persist()
+    update_user_session(session_info, user)
 
     # redirect the user to the view where he came from
     relay_state = verify_relay_state(request.form.get('RelayState', '/'))
@@ -103,10 +119,27 @@ def term_account_action(session_info, user):
     return _reauthn('reauthn-for-termination', session_info, user)
 
 
+@acs_action('reauthn-action')
+def reauthn_account_action(session_info, user):
+    """
+    Upon successful reauthn in the IdP,
+    set a timestamp in the session (key reauthn)
+    and redirect back to the app that asked for reauthn.
+
+    :param session_info: the SAML session info
+    :type session_info: dict
+
+    :param user: the authenticated user
+    :type user: eduid_userdb.User
+    """
+    return _reauthn('reauthn', session_info, user)
+
+
 def _reauthn(reason, session_info, user):
 
     current_app.logger.info("Reauthenticating user {} for {!r}.".format(user, reason))
-    session['_saml2_session_name_id'] = code(session_info['name_id'])
+    update_user_session(session_info, user)
+    # Set reason for reauth in session
     session[reason] = int(time())
     session.persist()
 

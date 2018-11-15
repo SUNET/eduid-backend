@@ -30,6 +30,10 @@ def create_authn_request(relay_state, selected_idp, required_loa, force_authn=Fa
                                                     comparison='exact')
     kwargs['requested_authn_context'] = requested_authn_context
 
+    # Authn algorithms
+    kwargs['sign_alg'] = current_app.config['AUTHN_SIGN_ALG']
+    kwargs['digest_alg'] = current_app.config['AUTHN_DIGEST_ALG']
+
     client = Saml2Client(current_app.saml2_config)
     try:
         session_id, info = client.prepare_for_authenticate(entityid=selected_idp, relay_state=relay_state,
@@ -83,3 +87,20 @@ def is_required_loa(session_info, required_loa):
 
 def create_metadata(config):
     return entity_descriptor(config)
+
+
+def staging_nin_remap(session_info):
+    """
+    Remap from known test nins to users correct nins.
+
+    :param session_info: the SAML session info
+    :type session_info: dict
+    :return: SAML session info with new nin mapped
+    :rtype: dict
+    """
+    attributes = session_info['ava']
+    asserted_test_nin = attributes['personalIdentityNumber'][0]
+    user_nin = current_app.config['STAGING_NIN_MAP'].get(asserted_test_nin, None)
+    if user_nin:
+        attributes['personalIdentityNumber'] = [user_nin]
+    return session_info
