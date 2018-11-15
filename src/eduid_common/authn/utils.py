@@ -1,5 +1,6 @@
+# -*- coding: utf-8 -*-
 #
-# Copyright (c) 2015 NORDUnet A/S
+# Copyright (c) 2018 SUNET
 # All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or
@@ -30,10 +31,21 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
+from __future__ import absolute_import
 
 import imp
+import time
+import six
+from hashlib import sha256
 from saml2.config import SPConfig
 from pwgen import pwgen
+from nacl import secret, encoding
+import nacl.exceptions
+
+try:
+    from urlparse import urlparse  # Python 2
+except ImportError:
+    from urllib.parse import urlparse  # Python 3
 
 from eduid_common.api.utils import urlappend
 
@@ -114,3 +126,77 @@ def no_authn_views(app, paths):
 
 def generate_password(length=12):
     return pwgen(int(length), no_capitalize=True, no_symbols=True)
+
+
+def verify_auth_token(shared_key, eppn, token, nonce, timestamp, generator=sha256):
+    """
+    Authenticate a user with a token.
+
+    Used after signup or for idp actions.
+
+    Authentication is done using a shared key in the configuration of the
+    authn and signup applications or another shared key in the configuration of idp and actions.
+
+    :param shared_key: Applications shared key
+    :param eppn: the identifier of the user as string
+    :param token: authentication token as string
+    :param nonce: a public nonce for this authentication request as string
+    :param timestamp: unixtime of signup application as hex string
+    :param generator: hash function to use (default: SHA-256)
+    :return: bool, True on valid authentication
+    """
+    logger.debug('Trying to authenticate user {} with auth token {}'.format(eppn, token))
+    if not isinstance(shared_key, six.binary_type):
+        shared_key = shared_key.encode('ascii')
+
+    # check timestamp to make sure it is within -300..900 seconds from now
+    now = int(time.time())
+    ts = int(timestamp, 16)
+    if (ts < now - 300) or (ts > now + 900):
+        logger.debug('Auth token timestamp {} out of bounds ({} seconds from {})'.format(
+            timestamp, ts - now, now))
+        return False
+
+    # try to open secret box
+    tokensb = token
+    if isinstance(tokensb, six.text_type):
+        tokensb = tokensb.encode('ascii')
+    if six.PY2:
+        encrypted = tokensb.decode('hex')
+    else:
+        encrypted = tokensb.fromhex(token)
+    try:
+        box = secret.SecretBox(encoding.URLSafeBase64Encoder.decode(shared_key))
+        plaintext = box.decrypt(encrypted)
+        return plaintext == '{}|{}'.format(timestamp, eppn).encode('ascii')
+    except (LookupError,  ValueError, nacl.exceptions.CryptoError) as e:
+        logger.debug('Secretbox decryption failed, error: ' + str(e))
+
+    if isinstance(token, six.text_type):
+        token = token.encode('ascii')
+
+    # verify there is a long enough nonce
+    if len(nonce) < 16:
+        logger.warning('Auth token nonce {} too short'.format(nonce))
+        return False
+
+    # verify token format
+
+    data = '{0}|{1}|{2}|{3}'.format(shared_key, eppn, nonce, timestamp)
+    hashed = generator(data.encode('ascii'))
+    expected = hashed.hexdigest()
+    if len(expected) != len(token):
+        logger.warning('Auth token bad length')
+        return False
+
+    # constant time comparision of the hash, courtesy of
+    # http://rdist.root.org/2009/05/28/timing-attack-in-google-keyczar-library/
+    result = 0
+    if isinstance(expected, six.binary_type):
+        expected = expected.decode('ascii')
+    if isinstance(token, six.binary_type):
+        token = token.decode('ascii')
+    for x, y in zip(expected, token):
+        result |= ord(x) ^ ord(str(y))
+    logger.debug('Auth token match result: {}'.format(result == 0))
+    return result == 0
