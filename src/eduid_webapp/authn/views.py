@@ -270,7 +270,8 @@ def token_login():
     loa = get_loa(current_app.config.get('AVAILABLE_LOA'), None)  # With no session_info lowest loa will be returned
     shared_key = current_app.config.get('SIGNUP_AND_AUTHN_SHARED_KEY')
 
-    if verify_auth_token(shared_key=shared_key, eppn=eppn, token=token, nonce=nonce, timestamp=timestamp):
+    if verify_auth_token(shared_key=shared_key, eppn=eppn, token=token, nonce=nonce, timestamp=timestamp,
+                         usage='signup_login'):
         try:
             user = current_app.central_userdb.get_user_by_eppn(eppn)
             if user.locked_identity.count > 0:
