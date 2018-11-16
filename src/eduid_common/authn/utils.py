@@ -132,13 +132,14 @@ def generate_auth_token(shared_key, usage, data, ts=None):
     :param usage: The intended usage of this token
     :param data: Protected data
     :param ts: Timestamp when the token is minted
+
     :return: An encrypted and protected token, safe to put in an URL
     """
     if ts is None:
         ts = int(time.time())
     timestamp = '{:x}'.format(ts)
     token_data = '{}|{}|{}'.format(usage, timestamp, data).encode('ascii')
-    box = secret.SecretBox(encoding.URLSafeBase64Encoder.decode(shared_key))
+    box = secret.SecretBox(encoding.URLSafeBase64Encoder.decode(shared_key.encode('ascii')))
     encrypted = box.encrypt(token_data)
     b64 = encoding.URLSafeBase64Encoder.encode(encrypted)
     if six.PY2:
@@ -164,8 +165,8 @@ def verify_auth_token(shared_key, eppn, token, nonce, timestamp, usage, generato
     :param generator: hash function to use (default: SHA-256)
     :return: bool, True on valid authentication
     """
-    logger.debug('Trying to authenticate user {} with auth token {}'.format(eppn, token))
-    if not isinstance(shared_key, six.binary_type):
+    logger.debug('Trying to authenticate user {} with auth token {!r}'.format(eppn, token))
+    if six.PY2:
         shared_key = shared_key.encode('ascii')
 
     # check timestamp to make sure it is within -300..900 seconds from now
@@ -194,7 +195,7 @@ def verify_auth_token(shared_key, eppn, token, nonce, timestamp, usage, generato
         return False
 
     # verify token format
-    data = '{0}|{1}|{2}|{3}'.format(shared_key, eppn, nonce, timestamp)
+    data = u'{0}|{1}|{2}|{3}'.format(shared_key, eppn, nonce, timestamp)
     hashed = generator(data.encode('ascii'))
     expected = hashed.hexdigest()
     if len(expected) != len(token):
