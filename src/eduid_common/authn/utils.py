@@ -175,12 +175,12 @@ def verify_auth_token(shared_key, eppn, token, nonce, timestamp, usage, generato
         return False
 
     # try to open secret box
+    tokensb = token
+    if isinstance(tokensb, six.text_type):
+        tokensb = tokensb.encode('ascii')
     try:
-        encrypted = encoding.URLSafeBase64Encoder.decode(token)
+        encrypted = encoding.URLSafeBase64Encoder.decode(tokensb)
     except:
-        tokensb = token
-        if isinstance(tokensb, six.text_type):
-            tokensb = tokensb.encode('ascii')
         if six.PY2:
             encrypted = tokensb.decode('hex')
         else:
