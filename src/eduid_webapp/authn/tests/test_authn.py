@@ -48,7 +48,7 @@ from eduid_userdb.user import User
 from eduid_userdb.data_samples import NEW_COMPLETED_SIGNUP_USER_EXAMPLE
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.authn.cache import OutstandingQueriesCache
-from eduid_common.authn.utils import get_location, no_authn_views
+from eduid_common.authn.utils import get_location, no_authn_views, generate_auth_token
 from eduid_common.authn.eduid_saml2 import get_authn_request
 from eduid_common.authn.tests.responses import (auth_response,
                                                 logout_response,
@@ -56,10 +56,7 @@ from eduid_common.authn.tests.responses import (auth_response,
 from eduid_webapp.authn.app import authn_init_app
 from eduid_common.api.app import eduid_init_app
 
-try:
-    from urllib import quote_plus
-except ImportError:  # Python3
-    from urllib.parse import quote_plus
+from six.moves.urllib_parse import quote_plus
 
 import logging
 logger = logging.getLogger(__name__)
@@ -329,20 +326,11 @@ class AuthnAPITestCase(AuthnAPITestBase):
 
     def test_token_login_new_user_secret_box(self):
         eppn = 'hubba-fooo'
-        shared_key = encoding.URLSafeBase64Encoder.decode(self.app.config['SIGNUP_AND_AUTHN_SHARED_KEY'])
-        timestamp = '{:x}'.format(int(time.time()))
-        token_data = '{0}|{1}'.format(timestamp, eppn).encode('ascii')
-        box = secret.SecretBox(shared_key)
-        encrypted = box.encrypt(token_data)
-        if six.PY2:
-            token = encrypted.encode('hex')
-        else:
-            token = encrypted.hex()
-
+        shared_key = self.app.config['SIGNUP_AND_AUTHN_SHARED_KEY']
+        token, timestamp = generate_auth_token(shared_key, 'signup_login', eppn)
         data = {
             'eppn': eppn,
             'token': token,
-            'nonce': None,
             'ts': timestamp
         }
 
@@ -377,21 +365,11 @@ class AuthnAPITestCase(AuthnAPITestBase):
 
     def test_token_login_old_user_secret_box(self):
         eppn = 'hubba-bubba'
-        shared_key = encoding.URLSafeBase64Encoder.decode(self.app.config['SIGNUP_AND_AUTHN_SHARED_KEY'])
-        timestamp = '{:x}'.format(int(time.time()))
-        nonce = utils.random(secret.SecretBox.NONCE_SIZE)
-        token_data = '{0}|{1}'.format(timestamp, eppn).encode('ascii')
-        box = secret.SecretBox(shared_key)
-        encrypted = box.encrypt(token_data, nonce)
-        if six.PY2:
-            token = encrypted.encode('hex')
-        else:
-            token = encrypted.hex()
-
+        shared_key = self.app.config['SIGNUP_AND_AUTHN_SHARED_KEY']
+        token, timestamp = generate_auth_token(shared_key, 'signup_login', eppn)
         data = {
             'eppn': eppn,
             'token': token,
-            'nonce': nonce,
             'ts': timestamp
         }
 
