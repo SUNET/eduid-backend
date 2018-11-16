@@ -43,6 +43,7 @@ from nacl import secret, encoding
 from flask import current_app, abort
 
 from eduid_common.api.utils import save_and_sync_user
+from eduid_common.authn.utils import generate_auth_token
 from eduid_userdb.exceptions import UserOutOfSync
 from eduid_userdb.credentials import Password
 from eduid_userdb.tou import ToUEvent
@@ -166,15 +167,7 @@ def complete_registration(signup_user):
         }
 
     shared_key = current_app.config.get('SIGNUP_AND_AUTHN_SHARED_KEY')
-    timestamp = '{:x}'.format(int(time.time()))
-    token_data = '{0}|{1}'.format(timestamp, signup_user.eppn).encode('ascii')
-    box = secret.SecretBox(encoding.URLSafeBase64Encoder.decode(shared_key))
-    encrypted = box.encrypt(token_data)
-    if six.PY2:
-        auth_token = encrypted.encode('hex')
-    else:
-        auth_token = encrypted.hex()
-
+    auth_token, timestamp = generate_auth_token(shared_key, usage='signup_login', data=signup_user.eppn)
     context.update({
         "status": 'verified',
         "password": password,
