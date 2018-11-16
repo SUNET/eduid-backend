@@ -263,7 +263,7 @@ class Session(collections.MutableMapping):
                 continue
             self._data[k] = v
 
-        logger.info('Instantiated session with session_id {} and token {}'.format(self.session_id, self.token))
+        logger.debug('Instantiated session with session_id {} and token {}'.format(self.session_id, self.token))
 
     def _init_token_and_session_id(self, token, session_id):
         """
