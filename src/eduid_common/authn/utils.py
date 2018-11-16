@@ -123,6 +123,26 @@ def generate_password(length=12):
     return pwgen(int(length), no_capitalize=True, no_symbols=True)
 
 
+def generate_auth_token(shared_key, usage, data, ts=None):
+    """
+    Generate tokens that can be sent to one eduID app to another, using a
+    shared secret.
+
+    :param shared_key: The shared secret
+    :param usage: The intended usage of this token
+    :param data: Protected data
+    :param ts: Timestamp when the token is minted
+    :return: An encrypted and protected token, safe to put in an URL
+    """
+    if ts is None:
+        ts = int(time.time())
+    timestamp = '{:x}'.format(ts)
+    token_data = 'signup_login|{}|{}'.format(timestamp, data).encode('ascii')
+    box = secret.SecretBox(encoding.URLSafeBase64Encoder.decode(shared_key))
+    encrypted = box.encrypt(token_data)
+    return encoding.URLSafeBase64Encoder.encode(encrypted), timestamp
+
+
 def verify_auth_token(shared_key, eppn, token, nonce, timestamp, usage, generator=sha256):
     """
     Authenticate a user with a token.
@@ -137,6 +157,8 @@ def verify_auth_token(shared_key, eppn, token, nonce, timestamp, usage, generato
     :param token: authentication token as string
     :param nonce: a public nonce for this authentication request as string
     :param timestamp: unixtime of signup application as hex string
+    :param usage: The intended usage of the token, to safeguard against tokens being maliciously
+                  sent to another token consumer than intended
     :param generator: hash function to use (default: SHA-256)
     :return: bool, True on valid authentication
     """
@@ -153,13 +175,16 @@ def verify_auth_token(shared_key, eppn, token, nonce, timestamp, usage, generato
         return False
 
     # try to open secret box
-    tokensb = token
-    if isinstance(tokensb, six.text_type):
-        tokensb = tokensb.encode('ascii')
-    if six.PY2:
-        encrypted = tokensb.decode('hex')
-    else:
-        encrypted = tokensb.fromhex(token)
+    try:
+        encrypted = encoding.URLSafeBase64Encoder.decode(token)
+    except:
+        tokensb = token
+        if isinstance(tokensb, six.text_type):
+            tokensb = tokensb.encode('ascii')
+        if six.PY2:
+            encrypted = tokensb.decode('hex')
+        else:
+            encrypted = tokensb.fromhex(token)
     try:
         box = secret.SecretBox(encoding.URLSafeBase64Encoder.decode(shared_key))
         plaintext = box.decrypt(encrypted)
