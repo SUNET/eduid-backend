@@ -38,6 +38,7 @@ from hashlib import sha256
 from copy import deepcopy
 from nacl import secret, utils, encoding
 from werkzeug.exceptions import InternalServerError, Forbidden
+from eduid_common.authn.utils import generate_auth_token
 
 NEW_ACTIONS = True
 
@@ -145,15 +146,8 @@ class ActionsTests(ActionsTestCase):
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
                     eppn = 'dummy-eppn'
-                    timestamp = str(hex(int(time.time())))
-                    shared_key = encoding.URLSafeBase64Encoder.decode(self.app.config['TOKEN_LOGIN_SHARED_KEY'])
-                    token_data = '{0}|{1}'.format(timestamp, eppn).encode('ascii')
-                    box = secret.SecretBox(shared_key)
-                    encrypted = box.encrypt(token_data)
-                    if six.PY2:
-                        token = encrypted.encode('hex')
-                    else:
-                        token = encrypted.hex()
+                    token, timestamp = generate_auth_token(
+                        self.app.config['TOKEN_LOGIN_SHARED_KEY'], 'idp_actions', eppn)
 
                 url = '/?userid={}&token={}&nonce={}&ts={}'.format(eppn,
                                                                    token,
