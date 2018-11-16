@@ -42,11 +42,6 @@ from pwgen import pwgen
 from nacl import secret, encoding
 import nacl.exceptions
 
-try:
-    from urlparse import urlparse  # Python 2
-except ImportError:
-    from urllib.parse import urlparse  # Python 3
-
 from eduid_common.api.utils import urlappend
 
 import logging
