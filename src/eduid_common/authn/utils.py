@@ -140,8 +140,10 @@ def generate_auth_token(shared_key, usage, data, ts=None):
     token_data = '{}|{}|{}'.format(usage, timestamp, data).encode('ascii')
     box = secret.SecretBox(encoding.URLSafeBase64Encoder.decode(shared_key))
     encrypted = box.encrypt(token_data)
-    return encoding.URLSafeBase64Encoder.encode(encrypted), timestamp
-
+    b64 = encoding.URLSafeBase64Encoder.encode(encrypted)
+    if six.PY2:
+        return b64, timestamp
+    return b64.decode('utf-8'), timestamp
 
 def verify_auth_token(shared_key, eppn, token, nonce, timestamp, usage, generator=sha256):
     """
@@ -175,25 +177,16 @@ def verify_auth_token(shared_key, eppn, token, nonce, timestamp, usage, generato
         return False
 
     # try to open secret box
-    tokensb = token
-    if isinstance(tokensb, six.text_type):
-        tokensb = tokensb.encode('ascii')
-    try:
-        encrypted = encoding.URLSafeBase64Encoder.decode(tokensb)
-    except:
-        if six.PY2:
-            encrypted = tokensb.decode('hex')
-        else:
-            encrypted = tokensb.fromhex(token)
     try:
         box = secret.SecretBox(encoding.URLSafeBase64Encoder.decode(shared_key))
-        plaintext = box.decrypt(encrypted)
-        return plaintext == '{}|{}|{}'.format(usage, timestamp, eppn).encode('ascii')
+        plaintext = box.decrypt(token.encode('ascii'), encoder=encoding.URLSafeBase64Encoder)
+        expected = '{}|{}|{}'.format(usage, timestamp, eppn).encode('ascii')
+        logger.debug('Comparing plaintext {!r} with expected {!r}'.format(plaintext, expected))
+        return plaintext == expected
     except (LookupError,  ValueError, nacl.exceptions.CryptoError) as e:
         logger.debug('Secretbox decryption failed, error: ' + str(e))
 
-    if isinstance(token, six.text_type):
-        token = token.encode('ascii')
+    # Fall back to HMAC validation
 
     # verify there is a long enough nonce
     if len(nonce) < 16:
@@ -201,7 +194,6 @@ def verify_auth_token(shared_key, eppn, token, nonce, timestamp, usage, generato
         return False
 
     # verify token format
-
     data = '{0}|{1}|{2}|{3}'.format(shared_key, eppn, nonce, timestamp)
     hashed = generator(data.encode('ascii'))
     expected = hashed.hexdigest()
