@@ -128,7 +128,7 @@ def generate_password(length=12):
     return pwgen(int(length), no_capitalize=True, no_symbols=True)
 
 
-def verify_auth_token(shared_key, eppn, token, nonce, timestamp, generator=sha256):
+def verify_auth_token(shared_key, eppn, token, nonce, timestamp, usage, generator=sha256):
     """
     Authenticate a user with a token.
 
@@ -168,7 +168,7 @@ def verify_auth_token(shared_key, eppn, token, nonce, timestamp, generator=sha25
     try:
         box = secret.SecretBox(encoding.URLSafeBase64Encoder.decode(shared_key))
         plaintext = box.decrypt(encrypted)
-        return plaintext == '{}|{}'.format(timestamp, eppn).encode('ascii')
+        return plaintext == '{}|{}|{}'.format(usage, timestamp, eppn).encode('ascii')
     except (LookupError,  ValueError, nacl.exceptions.CryptoError) as e:
         logger.debug('Secretbox decryption failed, error: ' + str(e))
 
