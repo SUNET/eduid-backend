@@ -36,15 +36,14 @@ import os
 import time
 import struct
 import datetime
-from hashlib import sha256
 from bson import ObjectId
 import proquint
 
-import nacl.utils
-import nacl.secret
+from nacl import secret, encoding
 from flask import current_app, abort
 
 from eduid_common.api.utils import save_and_sync_user
+from eduid_common.authn.utils import generate_auth_token
 from eduid_userdb.exceptions import UserOutOfSync
 from eduid_userdb.credentials import Password
 from eduid_userdb.tou import ToUEvent
@@ -167,28 +166,13 @@ def complete_registration(signup_user):
             'message': 'user-out-of-sync'
         }
 
-    eppn = signup_user.eppn
     shared_key = current_app.config.get('SIGNUP_AND_AUTHN_SHARED_KEY')
-    if not isinstance(shared_key, six.binary_type):
-        shared_key = shared_key.encode('ascii')
-    timestamp = '{:x}'.format(int(time.time()))
-    nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
-    token_data = '{0}|{1}'.format(timestamp, eppn).encode('ascii')
-    box = nacl.secret.SecretBox(shared_key)
-    encrypted = box.encrypt(token_data)
-    if six.PY2:
-        auth_token = encrypted.encode('hex')
-        hex_nonce = nonce.encode('hex')
-    else:
-        auth_token = encrypted.hex()
-        hex_nonce = nonce.hex()
-
+    auth_token, timestamp = generate_auth_token(shared_key, usage='signup_login', data=signup_user.eppn)
     context.update({
         "status": 'verified',
         "password": password,
         "email": signup_user.mail_addresses.primary.email,
         "eppn": signup_user.eppn,
-        "nonce": hex_nonce,
         "timestamp": timestamp,
         "auth_token": auth_token,
         "dashboard_url": current_app.config.get('AUTH_TOKEN_URL')

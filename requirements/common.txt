@@ -5,7 +5,7 @@ urllib3==1.23  # Pinned until requests issue 4830 is resolved
 python-etcd>=0.4.3
 Pillow>=3.0.0
 eduid-userdb>=0.4.0b18
-eduid-common[webapp]>=0.3.5
+eduid-common[webapp]>=0.3.6b1
 eduid-am>=0.6.3b7
 eduid-msg>=0.10.3b7
 marshmallow>=2.15.1,==2.*
