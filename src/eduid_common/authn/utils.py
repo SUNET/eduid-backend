@@ -137,7 +137,7 @@ def generate_auth_token(shared_key, usage, data, ts=None):
     if ts is None:
         ts = int(time.time())
     timestamp = '{:x}'.format(ts)
-    token_data = 'signup_login|{}|{}'.format(timestamp, data).encode('ascii')
+    token_data = '{}|{}|{}'.format(usage, timestamp, data).encode('ascii')
     box = secret.SecretBox(encoding.URLSafeBase64Encoder.decode(shared_key))
     encrypted = box.encrypt(token_data)
     return encoding.URLSafeBase64Encoder.encode(encrypted), timestamp
