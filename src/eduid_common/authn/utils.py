@@ -140,7 +140,7 @@ def generate_auth_token(shared_key, usage, data, ts=None):
     token_data = 'signup_login|{}|{}'.format(timestamp, data).encode('ascii')
     box = secret.SecretBox(encoding.URLSafeBase64Encoder.decode(shared_key))
     encrypted = box.encrypt(token_data)
-    return encoding.URLSafeBase64Encoder.encode(encrypted)
+    return encoding.URLSafeBase64Encoder.encode(encrypted), timestamp
 
 
 def verify_auth_token(shared_key, eppn, token, nonce, timestamp, usage, generator=sha256):
