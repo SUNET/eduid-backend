@@ -157,6 +157,8 @@ def verify_auth_token(shared_key, eppn, token, nonce, timestamp, usage, generato
     :param token: authentication token as string
     :param nonce: a public nonce for this authentication request as string
     :param timestamp: unixtime of signup application as hex string
+    :param usage: The intended usage of the token, to safeguard against tokens being maliciously
+                  sent to another token consumer than intended
     :param generator: hash function to use (default: SHA-256)
     :return: bool, True on valid authentication
     """
