@@ -72,7 +72,8 @@ class AuthnAPITestBase(EduidAPITestCase):
         according to the needs of this test case.
         """
         saml_config = os.path.join(HERE, 'saml2_settings.py')
-        signup_and_authn_shared_key = encoding.URLSafeBase64Encoder.encode((utils.random(secret.SecretBox.KEY_SIZE)))
+        signup_and_authn_shared_key = encoding.URLSafeBase64Encoder.encode(
+            (utils.random(secret.SecretBox.KEY_SIZE))).decode('utf-8')
         config.update({
             'SAML2_LOGIN_REDIRECT_URL': '/',
             'SAML2_LOGOUT_REDIRECT_URL': '/logged-out',

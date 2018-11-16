@@ -51,7 +51,8 @@ class SignupTests(EduidAPITestCase):
         return signup_init_app('signup', config)
 
     def update_config(self, config):
-        signup_and_authn_shared_key = encoding.URLSafeBase64Encoder.encode((utils.random(secret.SecretBox.KEY_SIZE)))
+        signup_and_authn_shared_key = encoding.URLSafeBase64Encoder.encode(
+            (utils.random(secret.SecretBox.KEY_SIZE))).decode('utf-8')
         config.update({
             'AVAILABLE_LANGUAGES': {'en': 'English', 'sv': 'Svenska'},
             'DASHBOARD_URL': '/profile/',

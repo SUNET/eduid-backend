@@ -78,9 +78,9 @@ class ActionsTests(ActionsTestCase):
 
     def update_actions_config(self, config):
         if NEW_ACTIONS:
-            shared_key = encoding.URLSafeBase64Encoder.encode((utils.random(secret.SecretBox.KEY_SIZE)))
+            shared_key = encoding.URLSafeBase64Encoder.encode((utils.random(secret.SecretBox.KEY_SIZE))).decode('utf-8')
         else:
-            shared_key = 'not_a_secret_box_secret_key'
+            shared_key = u'not_a_secret_box_secret_key'
         config['TOKEN_LOGIN_SHARED_KEY'] = shared_key
         return config
 
