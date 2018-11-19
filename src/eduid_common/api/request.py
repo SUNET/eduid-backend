@@ -57,139 +57,7 @@ from werkzeug.datastructures import EnvironHeaders
 from flask import Request as BaseRequest
 from flask import abort, current_app, request
 
-
-class SanitationMixin(object):
-    """
-    Mixin for werkzeug datastructures providing methods to
-    sanitize user inputs.
-    """
-
-    def sanitize_input(self, untrusted_text, strip_characters=False):
-        """
-        Sanitize user input by escaping or removing potentially
-        harmful input using a whitelist-based approach with
-        bleach as recommended by OWASP.
-
-        :param untrusted_text User input to sanitize
-        :param strip_characters Set to True to remove instead of escaping
-                                potentially harmful input.
-
-        :return: Sanitized user input
-
-        :type untrusted_text: str | unicode
-        :rtype: str | unicode
-        """
-        try:
-            # Test if the untrusted text is percent encoded
-            # before running bleech.
-            if isinstance(untrusted_text, six.binary_type):
-                untrusted_text = untrusted_text.decode('utf-8')
-            if unquote(untrusted_text) != untrusted_text:
-                use_percent_encoding = True
-            else:
-                use_percent_encoding = False
-
-            return self._sanitize_input(untrusted_text,
-                                        strip_characters=strip_characters,
-                                        percent_encoded=use_percent_encoding)
-
-        except UnicodeDecodeError:
-            current_app.logger.warn('A malicious user tried to crash the application '
-                                    'by sending non-unicode input in a GET request')
-            abort(400)
-
-    def _sanitize_input(self, untrusted_text, strip_characters=False,
-                        content_type=None, percent_encoded=False):
-        """
-        :param untrusted_text: User input to sanitize
-        :param strip_characters: Set to True to remove instead of escaping
-                                 potentially harmful input.
-
-        :param content_type: Set to decide on the use of percent encoding
-                             according to the content type.
-
-        :param percent_encoded: Set to True if the input should be treated
-                                as percent encoded if no content type is
-                                already defined.
-
-        :return: Sanitized user input
-
-        :type untrusted_text: str | unicode
-        :rtype str | unicode
-        """
-        if untrusted_text is None:
-            # If we are given None then there's nothing to clean
-            return None
-
-        # Decide on whether or not to use percent encoding:
-        # 1. Check if the content type has been explicitly set
-        # 2. If set, use percent encoding if requested by the client
-        # 3. If the content type has not been explicitly set,
-        # 3.1 use percent encoding according to the calling
-        #    functions preference or,
-        # 3.2 use the default value as set in the function definition.
-        if content_type is None and hasattr(request, 'mimetype'):
-            content_type = request.mimetype
-
-        if isinstance(content_type, six.string_types) and content_type:
-
-            if content_type == "application/x-www-form-urlencoded":
-                use_percent_encoding = True
-            else:
-                use_percent_encoding = False
-
-        else:
-            use_percent_encoding = percent_encoded
-
-        if use_percent_encoding:
-            # If the untrusted_text is percent encoded we have to:
-            # 1. Decode it so we can process it.
-            # 2. Clean it to remove dangerous characters.
-            # 3. Percent encode, if needed, and returning it back.
-
-            decoded_text = unquote(untrusted_text)
-            cleaned_text = self._safe_clean(decoded_text, strip_characters)
-
-            if decoded_text != cleaned_text:
-                current_app.logger.warn('Some potential harmful characters were '
-                                        'removed from untrusted user input.')
-
-            if decoded_text != untrusted_text:
-                # Note that at least '&' and '=' needs to be unencoded when using PySAML2
-                return quote(cleaned_text, safe='?&=')
-
-            return cleaned_text
-
-        # If the untrusted_text is not percent encoded we only have to:
-        # 1. Clean it to remove dangerous characters.
-
-        cleaned_text = self._safe_clean(untrusted_text, strip_characters)
-
-        if untrusted_text != cleaned_text:
-            current_app.logger.warn('Some potential harmful characters were '
-                                    'removed from untrusted user input.')
-
-        return cleaned_text
-
-    def _safe_clean(self, untrusted_text, strip_characters=False):
-        """
-        Wrapper for the clean function of bleach to be able
-        to catch when illegal UTF-8 is processed.
-
-        :param untrusted_text: Text to sanitize
-        :param strip_characters: Set to True to remove instead of escaping
-        :return: Sanitized text
-
-        :type untrusted_text: str | unicode
-        :rtype: str | unicode
-        """
-        try:
-            return clean(untrusted_text, strip=strip_characters)
-        except KeyError:
-            current_app.logger.warn('A malicious user tried to crash the application by '
-                                    'sending illegal UTF-8 in an URI or other untrusted '
-                                    'user input.')
-            abort(400)
+from eduid_common.api.sanitation import Sanitizer as SanitationMixin
 
 
 class SanitizedImmutableMultiDict(ImmutableMultiDict, SanitationMixin):
@@ -208,7 +76,7 @@ class SanitizedImmutableMultiDict(ImmutableMultiDict, SanitationMixin):
         :raise KeyError: if the key does not exist.
         """
         value = super(SanitizedImmutableMultiDict, self).__getitem__(key)
-        return self.sanitize_input(value)
+        return self.sanitize_input(value, logger=current_app.logger)
 
     def getlist(self, key, type=None):
         """
@@ -224,7 +92,7 @@ class SanitizedImmutableMultiDict(ImmutableMultiDict, SanitationMixin):
         :return: a :class:`list` of all the values for the key.
         """
         value_list = super(SanitizedImmutableMultiDict, self).getlist(key, type=type)
-        return [self.sanitize_input(v) for v in value_list]
+        return [self.sanitize_input(v, logger=current_app.logger) for v in value_list]
 
     def items(self, multi=False):
         """
@@ -235,7 +103,7 @@ class SanitizedImmutableMultiDict(ImmutableMultiDict, SanitationMixin):
                       contain pairs for the first value of each key.
         """
         for key, values in iteritems(dict, self):
-            values = [self.sanitize_input(v) for v in values]
+            values = [self.sanitize_input(v, logger=current_app.logger) for v in values]
             if multi:
                 for value in values:
                     yield key, value
@@ -247,7 +115,7 @@ class SanitizedImmutableMultiDict(ImmutableMultiDict, SanitationMixin):
         of all values associated with the key."""
 
         for key, values in iteritems(dict, self):
-            values = [self.sanitize_input(v) for v in values]
+            values = [self.sanitize_input(v, logger=current_app.logger) for v in values]
             yield key, values
 
     def values(self):
@@ -255,7 +123,7 @@ class SanitizedImmutableMultiDict(ImmutableMultiDict, SanitationMixin):
         Returns an iterator of the first value on every key's value list.
         """
         for values in itervalues(dict, self):
-            yield self.sanitize_input(values[0])
+            yield self.sanitize_input(values[0], logger=current_app.logger)
 
     def listvalues(self):
         """
@@ -267,7 +135,7 @@ class SanitizedImmutableMultiDict(ImmutableMultiDict, SanitationMixin):
         True
         """
         for values in itervalues(dict, self):
-            yield (self.sanitize_input(v) for v in values)
+            yield (self.sanitize_input(v, logger=current_app.logger) for v in values)
 
     def to_dict(self, flat=True):
         """Return the contents as regular dict.  If `flat` is `True` the
@@ -282,7 +150,7 @@ class SanitizedImmutableMultiDict(ImmutableMultiDict, SanitationMixin):
         if flat:
             d = {}
             for k, v in iteritems(self):
-                v = self.sanitize_input(v)
+                v = self.sanitize_input(v, logger=current_app.logger)
                 d[k] = v
             return d
         return dict(self.lists())
@@ -300,7 +168,7 @@ class SanitizedTypeConversionDict(ImmutableTypeConversionDict, SanitationMixin):
         Sanitized __getitem__
         """
         val = ImmutableTypeConversionDict.__getitem__(self, key)
-        return self.sanitize_input(val)
+        return self.sanitize_input(val, logger=current_app.logger)
 
     def get(self, key, default=None, type=None):
         """
@@ -318,7 +186,7 @@ class SanitizedTypeConversionDict(ImmutableTypeConversionDict, SanitationMixin):
         :rtype: object
         """
         try:
-            val = self.sanitize_input(self[key])
+            val = self.sanitize_input(self[key], logger=current_app.logger)
             if type is not None:
                 val = type(val)
         except (KeyError, ValueError):
@@ -329,14 +197,14 @@ class SanitizedTypeConversionDict(ImmutableTypeConversionDict, SanitationMixin):
         """
         sanitized values
         """
-        return [self.sanitize_input(v) for v in
+        return [self.sanitize_input(v, logger=current_app.logger) for v in
                 ImmutableTypeConversionDict.values(self)]
 
     def items(self):
         """
         Sanitized items
         """
-        return [(v[0], self.sanitize_input(v[1])) for v in
+        return [(v[0], self.sanitize_input(v[1], logger=current_app.logger)) for v in
                 ImmutableTypeConversionDict.items(self)]
 
     def pop(self, key):
@@ -347,7 +215,7 @@ class SanitizedTypeConversionDict(ImmutableTypeConversionDict, SanitationMixin):
         :type key: str
         """
         val = ImmutableTypeConversionDict.pop(key)
-        return self.sanitize_input(val)
+        return self.sanitize_input(val, logger=current_app.logger)
 
 
 class SanitizedEnvironHeaders(EnvironHeaders, SanitationMixin):
@@ -366,14 +234,14 @@ class SanitizedEnvironHeaders(EnvironHeaders, SanitationMixin):
         :type _get_mode: bool
         """
         val = EnvironHeaders.__getitem__(self, key, _get_mode=_get_mode)
-        return self.sanitize_input(val)
+        return self.sanitize_input(val, logger=current_app.logger)
 
     def __iter__(self):
         """
         Sanitized __iter__
         """
         for val in EnvironHeaders.__iter__(self):
-            yield self.sanitize_input(val)
+            yield self.sanitize_input(val, logger=current_app.logger)
 
 
 class Request(BaseRequest, SanitationMixin):
@@ -395,7 +263,7 @@ class Request(BaseRequest, SanitationMixin):
     def get_data(self, *args, **kwargs):
         text = super(Request, self).get_data(*args, **kwargs)
         if text:
-            text = self.sanitize_input(text)
+            text = self.sanitize_input(text, logger=current_app.logger)
         if text is None:
             text = ''
         return text
