@@ -154,21 +154,26 @@ def init_template_functions(app):
     return app
 
 
-def verify_relay_state(relay_state, safe_default='/'):
+def verify_relay_state(relay_state, safe_default='/', **kwargs):
     """
     :param relay_state: Next url
     :param safe_default: The default if relay state is found unsafe
+    :param kwargs: When using this function outside the context of a flask app,
+                   one needs to provide a `logger` facility and (string) values
+                   for the `url_scheme` and `safe_domain` configuration variables.
 
     :type safe_default: six.string_types
     :type relay_state: six.string_types
+    :type kwargs: dict
 
     :return: Safe relay state
     :rtype: six.string_types
     """
     if relay_state is not None:
-        current_app.logger.debug('Checking if relay state {} is safe'.format(relay_state))
-        url_scheme = current_app.config['PREFERRED_URL_SCHEME']
-        safe_domain = current_app.config['SAFE_RELAY_DOMAIN']
+        logger = kwargs.get('logger', current_app.logger)
+        logger.debug('Checking if relay state {} is safe'.format(relay_state))
+        url_scheme = kwargs.get('url_scheme', current_app.config['PREFERRED_URL_SCHEME'])
+        safe_domain = kwargs.get('safe_domain', current_app.config['SAFE_RELAY_DOMAIN'])
         parsed_relay_state = urlparse(relay_state)
 
         # If relay state is only a path
@@ -181,6 +186,6 @@ def verify_relay_state(relay_state, safe_default='/'):
                 return relay_state
 
         # Unsafe relay state found
-        current_app.logger.warning('Caught unsafe relay state: {}. '
-                                   'Using safe relay state: {}.'.format(relay_state, safe_default))
+        logger.warning('Caught unsafe relay state: {}. '
+                       'Using safe relay state: {}.'.format(relay_state, safe_default))
     return safe_default
