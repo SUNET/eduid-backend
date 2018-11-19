@@ -16,7 +16,7 @@ class TestTransactionAudit(unittest.TestCase):
         self.conn = self.tmp_db.conn
         self.db = self.tmp_db.conn[_db_name]
         self.port = self.tmp_db.port
-        self.mongo_uri = self.tmp_db.get_uri(_db_name)
+        self.mongo_uri = self.tmp_db.uri
         sys.stderr.write('Set up temp db at {!r}\n'.format(self.mongo_uri))
         self.transaction_audit = True
 
