@@ -45,24 +45,27 @@ class Sanitizer(object):
     Sanitize user inputs.
     """
 
-    def sanitize_input(self, untrusted_text, logger=None,
+    def sanitize_input(self, untrusted_text, logger,
                        content_type=None, strip_characters=False):
         """
         Sanitize user input by escaping or removing potentially
         harmful input using a whitelist-based approach with
         bleach as recommended by OWASP.
 
-        :param untrusted_text User input to sanitize
-        :param strip_characters Set to True to remove instead of escaping
+        :param untrusted_text: User input to sanitize
+        :param logger: logging facility
+        :param content_type: Content type of the input to sanitize
+        :param strip_characters: Set to True to remove instead of escaping
                                 potentially harmful input.
 
         :return: Sanitized user input
 
         :type untrusted_text: str | unicode
+        :type logger: logging.Logger
+        :type content_type: str
+        :type strip_characters: bool
         :rtype: str | unicode
         """
-        if logger is None:
-            logger = current_app.logger
         try:
             # Test if the untrusted text is percent encoded
             # before running bleech.
