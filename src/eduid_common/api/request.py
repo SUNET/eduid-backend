@@ -57,7 +57,22 @@ from werkzeug.datastructures import EnvironHeaders
 from flask import Request as BaseRequest
 from flask import abort, current_app, request
 
-from eduid_common.api.sanitation import Sanitizer as SanitationMixin
+from eduid_common.api.sanitation import Sanitizer, SanitationProblem
+
+
+class SanitationMixin(Sanitizer):
+    """
+    Mixin for werkzeug datastructures providing methods to
+    sanitize user inputs.
+    """
+
+    def sanitize_input(self, untrusted_text, strip_characters=False):
+        logger = current_app.logger
+        try:
+            return super(SanitationMixin, self).sanitize_input(untrusted_text, logger,
+                                                        strip_characters=strip_characters)
+        except SanitationProblem:
+            abort(400)
 
 
 class SanitizedImmutableMultiDict(ImmutableMultiDict, SanitationMixin):
@@ -76,7 +91,7 @@ class SanitizedImmutableMultiDict(ImmutableMultiDict, SanitationMixin):
         :raise KeyError: if the key does not exist.
         """
         value = super(SanitizedImmutableMultiDict, self).__getitem__(key)
-        return self.sanitize_input(value, logger=current_app.logger)
+        return self.sanitize_input(value)
 
     def getlist(self, key, type=None):
         """
@@ -92,7 +107,7 @@ class SanitizedImmutableMultiDict(ImmutableMultiDict, SanitationMixin):
         :return: a :class:`list` of all the values for the key.
         """
         value_list = super(SanitizedImmutableMultiDict, self).getlist(key, type=type)
-        return [self.sanitize_input(v, logger=current_app.logger) for v in value_list]
+        return [self.sanitize_input(v) for v in value_list]
 
     def items(self, multi=False):
         """
@@ -103,7 +118,7 @@ class SanitizedImmutableMultiDict(ImmutableMultiDict, SanitationMixin):
                       contain pairs for the first value of each key.
         """
         for key, values in iteritems(dict, self):
-            values = [self.sanitize_input(v, logger=current_app.logger) for v in values]
+            values = [self.sanitize_input(v) for v in values]
             if multi:
                 for value in values:
                     yield key, value
@@ -115,7 +130,7 @@ class SanitizedImmutableMultiDict(ImmutableMultiDict, SanitationMixin):
         of all values associated with the key."""
 
         for key, values in iteritems(dict, self):
-            values = [self.sanitize_input(v, logger=current_app.logger) for v in values]
+            values = [self.sanitize_input(v) for v in values]
             yield key, values
 
     def values(self):
@@ -123,7 +138,7 @@ class SanitizedImmutableMultiDict(ImmutableMultiDict, SanitationMixin):
         Returns an iterator of the first value on every key's value list.
         """
         for values in itervalues(dict, self):
-            yield self.sanitize_input(values[0], logger=current_app.logger)
+            yield self.sanitize_input(values[0])
 
     def listvalues(self):
         """
@@ -135,7 +150,7 @@ class SanitizedImmutableMultiDict(ImmutableMultiDict, SanitationMixin):
         True
         """
         for values in itervalues(dict, self):
-            yield (self.sanitize_input(v, logger=current_app.logger) for v in values)
+            yield (self.sanitize_input(v) for v in values)
 
     def to_dict(self, flat=True):
         """Return the contents as regular dict.  If `flat` is `True` the
@@ -150,7 +165,7 @@ class SanitizedImmutableMultiDict(ImmutableMultiDict, SanitationMixin):
         if flat:
             d = {}
             for k, v in iteritems(self):
-                v = self.sanitize_input(v, logger=current_app.logger)
+                v = self.sanitize_input(v)
                 d[k] = v
             return d
         return dict(self.lists())
@@ -168,7 +183,7 @@ class SanitizedTypeConversionDict(ImmutableTypeConversionDict, SanitationMixin):
         Sanitized __getitem__
         """
         val = ImmutableTypeConversionDict.__getitem__(self, key)
-        return self.sanitize_input(val, logger=current_app.logger)
+        return self.sanitize_input(val)
 
     def get(self, key, default=None, type=None):
         """
@@ -186,7 +201,7 @@ class SanitizedTypeConversionDict(ImmutableTypeConversionDict, SanitationMixin):
         :rtype: object
         """
         try:
-            val = self.sanitize_input(self[key], logger=current_app.logger)
+            val = self.sanitize_input(self[key])
             if type is not None:
                 val = type(val)
         except (KeyError, ValueError):
@@ -197,14 +212,14 @@ class SanitizedTypeConversionDict(ImmutableTypeConversionDict, SanitationMixin):
         """
         sanitized values
         """
-        return [self.sanitize_input(v, logger=current_app.logger) for v in
+        return [self.sanitize_input(v) for v in
                 ImmutableTypeConversionDict.values(self)]
 
     def items(self):
         """
         Sanitized items
         """
-        return [(v[0], self.sanitize_input(v[1], logger=current_app.logger)) for v in
+        return [(v[0], self.sanitize_input(v[1])) for v in
                 ImmutableTypeConversionDict.items(self)]
 
     def pop(self, key):
@@ -215,7 +230,7 @@ class SanitizedTypeConversionDict(ImmutableTypeConversionDict, SanitationMixin):
         :type key: str
         """
         val = ImmutableTypeConversionDict.pop(key)
-        return self.sanitize_input(val, logger=current_app.logger)
+        return self.sanitize_input(val)
 
 
 class SanitizedEnvironHeaders(EnvironHeaders, SanitationMixin):
@@ -234,14 +249,14 @@ class SanitizedEnvironHeaders(EnvironHeaders, SanitationMixin):
         :type _get_mode: bool
         """
         val = EnvironHeaders.__getitem__(self, key, _get_mode=_get_mode)
-        return self.sanitize_input(val, logger=current_app.logger)
+        return self.sanitize_input(val)
 
     def __iter__(self):
         """
         Sanitized __iter__
         """
         for val in EnvironHeaders.__iter__(self):
-            yield self.sanitize_input(val, logger=current_app.logger)
+            yield self.sanitize_input(val)
 
 
 class Request(BaseRequest, SanitationMixin):
@@ -263,7 +278,7 @@ class Request(BaseRequest, SanitationMixin):
     def get_data(self, *args, **kwargs):
         text = super(Request, self).get_data(*args, **kwargs)
         if text:
-            text = self.sanitize_input(text, logger=current_app.logger)
+            text = self.sanitize_input(text)
         if text is None:
             text = ''
         return text
