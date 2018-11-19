@@ -76,7 +76,7 @@ class MessageTest(MongoTestCase):
         and sends a message notifying the attribute manager instance (am) about a new entry in its dataset thereby
         calling the plugin (above) which is registered with the am in the test setup below.
         """
-        test_context = AmTestUserDb(db_uri = self.tmp_db.get_uri(''), db_name='eduid_am_test')
+        test_context = AmTestUserDb(db_uri=self.tmp_db.uri, db_name='eduid_am_test')
 
         # register fake AMP plugin named 'test'
         self.am.registry.attribute_fetcher['test'] = plugin_attribute_fetcher
