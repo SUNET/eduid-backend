@@ -170,10 +170,16 @@ def verify_relay_state(relay_state, safe_default='/', **kwargs):
     :rtype: six.string_types
     """
     if relay_state is not None:
-        logger = kwargs.get('logger', current_app.logger)
+        logger = kwargs.get('logger', None)
+        if logger is None:
+            logger = current_app.logger
         logger.debug('Checking if relay state {} is safe'.format(relay_state))
-        url_scheme = kwargs.get('url_scheme', current_app.config['PREFERRED_URL_SCHEME'])
-        safe_domain = kwargs.get('safe_domain', current_app.config['SAFE_RELAY_DOMAIN'])
+        url_scheme = kwargs.get('url_scheme', None)
+        if url_scheme is None:
+            url_scheme = current_app.config['PREFERRED_URL_SCHEME']
+        safe_domain = kwargs.get('safe_domain', None)
+        if safe_domain is None:
+            safe_domain = current_app.config['SAFE_RELAY_DOMAIN']
         parsed_relay_state = urlparse(relay_state)
 
         # If relay state is only a path
