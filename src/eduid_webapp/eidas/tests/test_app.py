@@ -218,7 +218,7 @@ class EidasTests(EduidAPITestCase):
 
                 self.assertEqual(response.status_code, 302)
 
-                data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': '/'}
+                data = {'SAMLResponse': base64.b64encode(authn_response)}
                 browser.post('/saml2-acs', data=data)
 
                 user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
@@ -255,7 +255,7 @@ class EidasTests(EduidAPITestCase):
 
                 self.assertEqual(response.status_code, 302)
 
-                data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': '/'}
+                data = {'SAMLResponse': base64.b64encode(authn_response)}
                 browser.post('/saml2-acs', data=data)
 
                 user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
@@ -294,7 +294,7 @@ class EidasTests(EduidAPITestCase):
 
                 self.assertEqual(response.status_code, 302)
 
-                data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': '/'}
+                data = {'SAMLResponse': base64.b64encode(authn_response)}
                 browser.post('/saml2-acs', data=data)
 
                 user = self.app.central_userdb.get_user_by_eppn(self.test_unverified_user_eppn)
@@ -337,7 +337,7 @@ class EidasTests(EduidAPITestCase):
 
                 self.assertEqual(response.status_code, 302)
 
-                data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': '/'}
+                data = {'SAMLResponse': base64.b64encode(authn_response)}
                 response = browser.post('/saml2-acs', data=data)
 
                 self.assertEqual(response.status_code, 302)
@@ -368,7 +368,7 @@ class EidasTests(EduidAPITestCase):
 
                 self.assertEqual(response.status_code, 302)
 
-                data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': '/'}
+                data = {'SAMLResponse': base64.b64encode(authn_response)}
                 browser.post('/saml2-acs', data=data)
 
                 user = self.app.central_userdb.get_user_by_eppn(self.test_unverified_user_eppn)
@@ -401,7 +401,7 @@ class EidasTests(EduidAPITestCase):
 
                 self.assertEqual(response.status_code, 302)
 
-                data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': '/'}
+                data = {'SAMLResponse': base64.b64encode(authn_response)}
                 response = browser.post('/saml2-acs', data=data)
 
                 self.assertEqual(response.status_code, 302)
@@ -437,7 +437,7 @@ class EidasTests(EduidAPITestCase):
 
                 self.assertEqual(response.status_code, 302)
 
-                data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': '/'}
+                data = {'SAMLResponse': base64.b64encode(authn_response)}
                 browser.post('/saml2-acs', data=data)
 
                 user = self.app.central_userdb.get_user_by_eppn(self.test_unverified_user_eppn)
