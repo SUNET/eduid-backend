@@ -68,29 +68,26 @@ def verify_nin(user):
     return _authn('nin-verify-action', required_loa, force_authn=True)
 
 
-def _authn(action, required_loa, force_authn=False, redirect_url='/'):
+def _authn(action, required_loa, force_authn=False):
     """
     :param action: name of action
     :param required_loa: friendly loa name
     :param force_authn: should a new authentication be forced
-    :param redirect_url: redirect url after successful authentication
 
     :type action: six.string_types
     :type required_loa: six.string_types
     :type force_authn: bool
-    :type redirect_url: six.string_types
 
     :return: redirect response
     :rtype: Response
     """
-    relay_state = verify_relay_state(request.args.get('next', redirect_url), redirect_url)
     idp = request.args.get('idp')
     current_app.logger.debug('Requested IdP: {}'.format(idp))
     idps = current_app.saml2_config.metadata.identity_providers()
     current_app.logger.debug('IdPs from metadata: {}'.format(idps))
 
     if idp in idps:
-        authn_request = create_authn_request(relay_state, idp, required_loa, force_authn=force_authn)
+        authn_request = create_authn_request(idp, required_loa, force_authn=force_authn)
         schedule_action(action)
         current_app.logger.info('Redirecting the user to {} for {}'.format(idp, action))
         return redirect(get_location(authn_request))

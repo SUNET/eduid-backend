@@ -17,11 +17,15 @@ from eduid_common.authn.eduid_saml2 import BadSAMLResponse, get_authn_ctx
 __author__ = 'lundberg'
 
 
-def create_authn_request(relay_state, selected_idp, required_loa, force_authn=False):
+def create_authn_request(selected_idp, required_loa, force_authn=False, relay_state=None):
 
     kwargs = {
         "force_authn": str(force_authn).lower(),
     }
+
+    # RelayState
+    if relay_state:
+        kwargs['relay_state'] = relay_state
 
     # LOA
     current_app.logger.debug('Requesting AuthnContext {}'.format(required_loa))
@@ -36,8 +40,8 @@ def create_authn_request(relay_state, selected_idp, required_loa, force_authn=Fa
 
     client = Saml2Client(current_app.saml2_config)
     try:
-        session_id, info = client.prepare_for_authenticate(entityid=selected_idp, relay_state=relay_state,
-                                                           binding=BINDING_HTTP_REDIRECT, **kwargs)
+        session_id, info = client.prepare_for_authenticate(entityid=selected_idp, binding=BINDING_HTTP_REDIRECT,
+                                                           **kwargs)
     except TypeError:
         current_app.logger.error('Unable to know which IdP to use')
         raise
