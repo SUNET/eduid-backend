@@ -218,7 +218,7 @@ class EidasTests(EduidAPITestCase):
 
                 self.assertEqual(response.status_code, 302)
 
-                data = {'SAMLResponse': base64.b64encode(authn_response)}
+                data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': '/'}
                 browser.post('/saml2-acs', data=data)
 
                 user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
@@ -255,7 +255,7 @@ class EidasTests(EduidAPITestCase):
 
                 self.assertEqual(response.status_code, 302)
 
-                data = {'SAMLResponse': base64.b64encode(authn_response)}
+                data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': '/'}
                 browser.post('/saml2-acs', data=data)
 
                 user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
@@ -294,7 +294,7 @@ class EidasTests(EduidAPITestCase):
 
                 self.assertEqual(response.status_code, 302)
 
-                data = {'SAMLResponse': base64.b64encode(authn_response)}
+                data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': '/'}
                 browser.post('/saml2-acs', data=data)
 
                 user = self.app.central_userdb.get_user_by_eppn(self.test_unverified_user_eppn)
@@ -308,12 +308,17 @@ class EidasTests(EduidAPITestCase):
                 self.assertEqual(self.app.proofing_log.db_count(), 2)
 
     def test_mfa_token_verify_no_mfa_login(self):
+        credential_id = 'test'
+        self.add_token_to_user(self.test_user_eppn, credential_id)
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             with browser.session_transaction() as sess:
-                response = browser.get('/verify-token/{}?idp={}'.format('bogus_id', self.test_idp))
+                sess['eduidIdPCredentialsUsed'] = ['other_id']
+                response = browser.get('/verify-token/{}?idp={}'.format('test', self.test_idp))
                 self.assertEqual(response.status_code, 302)
-                self.assertEqual(response.location, '{}/security?msg=%3AERROR%3Aeidas.token_not_found'.format(
-                    self.app.config['DASHBOARD_URL']))
+                self.assertEqual(
+                    response.location,
+                    'http://test.localhost/reauthn?next=http://test.localhost/verify-token/{}?idp={}'.format(
+                        credential_id, self.test_idp))
 
     def test_mfa_token_verify_no_mfa_token_in_session(self):
         credential_id = 'test'
@@ -337,7 +342,7 @@ class EidasTests(EduidAPITestCase):
 
                 self.assertEqual(response.status_code, 302)
 
-                data = {'SAMLResponse': base64.b64encode(authn_response)}
+                data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': '/'}
                 response = browser.post('/saml2-acs', data=data)
 
                 self.assertEqual(response.status_code, 302)
@@ -368,7 +373,7 @@ class EidasTests(EduidAPITestCase):
 
                 self.assertEqual(response.status_code, 302)
 
-                data = {'SAMLResponse': base64.b64encode(authn_response)}
+                data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': '/'}
                 browser.post('/saml2-acs', data=data)
 
                 user = self.app.central_userdb.get_user_by_eppn(self.test_unverified_user_eppn)
@@ -401,7 +406,7 @@ class EidasTests(EduidAPITestCase):
 
                 self.assertEqual(response.status_code, 302)
 
-                data = {'SAMLResponse': base64.b64encode(authn_response)}
+                data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': '/'}
                 response = browser.post('/saml2-acs', data=data)
 
                 self.assertEqual(response.status_code, 302)
@@ -437,7 +442,7 @@ class EidasTests(EduidAPITestCase):
 
                 self.assertEqual(response.status_code, 302)
 
-                data = {'SAMLResponse': base64.b64encode(authn_response)}
+                data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': '/'}
                 browser.post('/saml2-acs', data=data)
 
                 user = self.app.central_userdb.get_user_by_eppn(self.test_unverified_user_eppn)
