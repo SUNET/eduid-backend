@@ -1,5 +1,6 @@
+# -*- coding: utf-8 -*-
 #
-# Copyright (c) 2015 NORDUnet A/S
+# Copyright (c) 2018 SUNET
 # All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or
@@ -30,10 +31,16 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
+from __future__ import absolute_import
 
 import imp
+import time
+import six
+from hashlib import sha256
 from saml2.config import SPConfig
 from pwgen import pwgen
+from nacl import secret, encoding
+import nacl.exceptions
 
 from eduid_common.api.utils import urlappend
 
@@ -114,3 +121,95 @@ def no_authn_views(app, paths):
 
 def generate_password(length=12):
     return pwgen(int(length), no_capitalize=True, no_symbols=True)
+
+
+def generate_auth_token(shared_key, usage, data, ts=None):
+    """
+    Generate tokens that can be sent to one eduID app to another, using a
+    shared secret.
+
+    :param shared_key: The shared secret
+    :param usage: The intended usage of this token
+    :param data: Protected data
+    :param ts: Timestamp when the token is minted
+
+    :return: An encrypted and protected token, safe to put in an URL
+    """
+    if ts is None:
+        ts = int(time.time())
+    timestamp = '{:x}'.format(ts)
+    token_data = '{}|{}|{}'.format(usage, timestamp, data).encode('ascii')
+    box = secret.SecretBox(encoding.URLSafeBase64Encoder.decode(shared_key.encode('ascii')))
+    encrypted = box.encrypt(token_data)
+    b64 = encoding.URLSafeBase64Encoder.encode(encrypted)
+    if six.PY2:
+        return b64, timestamp
+    return b64.decode('utf-8'), timestamp
+
+def verify_auth_token(shared_key, eppn, token, nonce, timestamp, usage, generator=sha256):
+    """
+    Authenticate a user with a token.
+
+    Used after signup or for idp actions.
+
+    Authentication is done using a shared key in the configuration of the
+    authn and signup applications or another shared key in the configuration of idp and actions.
+
+    :param shared_key: Applications shared key
+    :param eppn: the identifier of the user as string
+    :param token: authentication token as string
+    :param nonce: a public nonce for this authentication request as string
+    :param timestamp: unixtime of signup application as hex string
+    :param usage: The intended usage of the token, to safeguard against tokens being maliciously
+                  sent to another token consumer than intended
+    :param generator: hash function to use (default: SHA-256)
+    :return: bool, True on valid authentication
+    """
+    logger.debug('Trying to authenticate user {} with auth token {!r}'.format(eppn, token))
+    if six.PY2:
+        shared_key = shared_key.encode('ascii')
+
+    # check timestamp to make sure it is within -300..900 seconds from now
+    now = int(time.time())
+    ts = int(timestamp, 16)
+    if (ts < now - 300) or (ts > now + 900):
+        logger.debug('Auth token timestamp {} out of bounds ({} seconds from {})'.format(
+            timestamp, ts - now, now))
+        return False
+
+    # try to open secret box
+    try:
+        box = secret.SecretBox(encoding.URLSafeBase64Encoder.decode(shared_key))
+        plaintext = box.decrypt(token.encode('ascii'), encoder=encoding.URLSafeBase64Encoder)
+        expected = '{}|{}|{}'.format(usage, timestamp, eppn).encode('ascii')
+        logger.debug('Comparing plaintext {!r} with expected {!r}'.format(plaintext, expected))
+        return plaintext == expected
+    except (LookupError,  ValueError, nacl.exceptions.CryptoError) as e:
+        logger.debug('Secretbox decryption failed, error: ' + str(e))
+
+    # Fall back to HMAC validation
+
+    # verify there is a long enough nonce
+    if len(nonce) < 16:
+        logger.warning('Auth token nonce {} too short'.format(nonce))
+        return False
+
+    # verify token format
+    data = u'{0}|{1}|{2}|{3}'.format(shared_key, eppn, nonce, timestamp)
+    hashed = generator(data.encode('ascii'))
+    expected = hashed.hexdigest()
+    if len(expected) != len(token):
+        logger.warning('Auth token bad length')
+        return False
+
+    # constant time comparision of the hash, courtesy of
+    # http://rdist.root.org/2009/05/28/timing-attack-in-google-keyczar-library/
+    result = 0
+    if isinstance(expected, six.binary_type):
+        expected = expected.decode('ascii')
+    if isinstance(token, six.binary_type):
+        token = token.decode('ascii')
+    for x, y in zip(expected, token):
+        result |= ord(x) ^ ord(str(y))
+    logger.debug('Auth token match result: {}'.format(result == 0))
+    return result == 0
