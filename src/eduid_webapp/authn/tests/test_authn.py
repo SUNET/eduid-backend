@@ -37,8 +37,7 @@ import json
 import base64
 from hashlib import sha256
 
-import nacl.secret
-import nacl.utils
+from nacl import secret, utils, encoding
 from werkzeug.exceptions import NotFound
 from werkzeug.http import dump_cookie
 from flask import session
@@ -49,7 +48,7 @@ from eduid_userdb.user import User
 from eduid_userdb.data_samples import NEW_COMPLETED_SIGNUP_USER_EXAMPLE
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.authn.cache import OutstandingQueriesCache
-from eduid_common.authn.utils import get_location, no_authn_views
+from eduid_common.authn.utils import get_location, no_authn_views, generate_auth_token
 from eduid_common.authn.eduid_saml2 import get_authn_request
 from eduid_common.authn.tests.responses import (auth_response,
                                                 logout_response,
@@ -57,10 +56,7 @@ from eduid_common.authn.tests.responses import (auth_response,
 from eduid_webapp.authn.app import authn_init_app
 from eduid_common.api.app import eduid_init_app
 
-try:
-    from urllib import quote_plus
-except ImportError:  # Python3
-    from urllib.parse import quote_plus
+from six.moves.urllib_parse import quote_plus
 
 import logging
 logger = logging.getLogger(__name__)
@@ -76,11 +72,13 @@ class AuthnAPITestBase(EduidAPITestCase):
         according to the needs of this test case.
         """
         saml_config = os.path.join(HERE, 'saml2_settings.py')
+        signup_and_authn_shared_key = encoding.URLSafeBase64Encoder.encode(
+            (utils.random(secret.SecretBox.KEY_SIZE))).decode('utf-8')
         config.update({
             'SAML2_LOGIN_REDIRECT_URL': '/',
             'SAML2_LOGOUT_REDIRECT_URL': '/logged-out',
             'SAML2_SETTINGS_MODULE': saml_config,
-            'TOKEN_LOGIN_SHARED_KEY': 'shared_secretshared_secretshared',
+            'SIGNUP_AND_AUTHN_SHARED_KEY': signup_and_authn_shared_key,
             'TOKEN_LOGIN_SUCCESS_REDIRECT_URL': 'http://test.localhost/success',
             'TOKEN_LOGIN_FAILURE_REDIRECT_URL': 'http://test.localhost/failure',
             'SAFE_RELAY_DOMAIN': 'test.localhost'
@@ -305,7 +303,7 @@ class AuthnAPITestCase(AuthnAPITestBase):
 
     def test_token_login_new_user(self):
         eppn = 'hubba-fooo'
-        shared_key = self.app.config['TOKEN_LOGIN_SHARED_KEY']
+        shared_key = self.app.config['SIGNUP_AND_AUTHN_SHARED_KEY']
         timestamp = '{:x}'.format(int(time.time()))
         if six.PY2:
             nonce = os.urandom(16).encode('hex')
@@ -329,21 +327,11 @@ class AuthnAPITestCase(AuthnAPITestBase):
 
     def test_token_login_new_user_secret_box(self):
         eppn = 'hubba-fooo'
-        shared_key = self.app.config['TOKEN_LOGIN_SHARED_KEY'].encode('ascii')
-        timestamp = '{:x}'.format(int(time.time()))
-        nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
-        token_data = '{0}|{1}'.format(timestamp, eppn).encode('ascii')
-        box = nacl.secret.SecretBox(shared_key)
-        encrypted = box.encrypt(token_data, nonce)
-        if six.PY2:
-            token = encrypted.encode('hex')
-        else:
-            token = encrypted.hex()
-
+        shared_key = self.app.config['SIGNUP_AND_AUTHN_SHARED_KEY']
+        token, timestamp = generate_auth_token(shared_key, 'signup_login', eppn)
         data = {
             'eppn': eppn,
             'token': token,
-            'nonce': nonce,
             'ts': timestamp
         }
 
@@ -354,7 +342,7 @@ class AuthnAPITestCase(AuthnAPITestBase):
 
     def test_token_login_old_user(self):
         eppn = 'hubba-bubba'
-        shared_key = self.app.config['TOKEN_LOGIN_SHARED_KEY']
+        shared_key = self.app.config['SIGNUP_AND_AUTHN_SHARED_KEY']
         timestamp = '{:x}'.format(int(time.time()))
         if six.PY2:
             nonce = os.urandom(16).encode('hex')
@@ -378,21 +366,11 @@ class AuthnAPITestCase(AuthnAPITestBase):
 
     def test_token_login_old_user_secret_box(self):
         eppn = 'hubba-bubba'
-        shared_key = self.app.config['TOKEN_LOGIN_SHARED_KEY'].encode('ascii')
-        timestamp = '{:x}'.format(int(time.time()))
-        nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
-        token_data = '{0}|{1}'.format(timestamp, eppn).encode('ascii')
-        box = nacl.secret.SecretBox(shared_key)
-        encrypted = box.encrypt(token_data, nonce)
-        if six.PY2:
-            token = encrypted.encode('hex')
-        else:
-            token = encrypted.hex()
-
+        shared_key = self.app.config['SIGNUP_AND_AUTHN_SHARED_KEY']
+        token, timestamp = generate_auth_token(shared_key, 'signup_login', eppn)
         data = {
             'eppn': eppn,
             'token': token,
-            'nonce': nonce,
             'ts': timestamp
         }
 

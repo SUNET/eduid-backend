@@ -60,11 +60,11 @@ DASHBOARD_URL = '/profile/'
 
 PASSWORD_LENGTH = 10
 
-VCCS_URL = 'http://localhost:8550/'
+VCCS_URL = None
 
 TOU_VERSION = '2018-v1'
 
-AUTH_SHARED_SECRET = 'supersecret'
+SIGNUP_AND_AUTHN_SHARED_KEY = None
 
 DEFAULT_FINISH_URL = 'https://www.eduid.se/'
 
