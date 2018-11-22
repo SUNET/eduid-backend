@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright (c) 2016 NORDUnet A/S
+# Copyright (c) 2018 SUNET
 # All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or
@@ -37,9 +38,8 @@ from flask import Blueprint, request, session, current_app
 from flask import abort, url_for, render_template
 
 from eduid_userdb.actions import Action
-from eduid_common.api.decorators import MarshalWith, UnmarshalWith
+from eduid_common.api.decorators import MarshalWith
 from eduid_common.api.schemas.base import FluxStandardAction
-from eduid_common.api.utils import urlappend
 from eduid_common.authn.utils import verify_auth_token
 from eduid_webapp.actions.helpers import get_next_action
 
@@ -57,7 +57,7 @@ def authn():
     nonce = request.args.get('nonce', None)
     timestamp = request.args.get('ts', None)
     idp_session = request.args.get('session', None)
-    if not (eppn and token and nonce and timestamp):
+    if not (eppn and token and timestamp):
         msg = ('Insufficient authentication params: '
                'eppn: {}, token: {}, nonce: {}, ts: {}')
         current_app.logger.debug(msg.format(eppn, token, nonce, timestamp))
