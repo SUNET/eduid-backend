@@ -180,26 +180,28 @@ def verify_relay_state(relay_state, safe_default='/', logger=None,
     :return: Safe relay state
     :rtype: six.string_types
     """
-    if relay_state is not None:
-        if logger is None:
-            logger = current_app.logger
-        logger.debug('Checking if relay state {} is safe'.format(relay_state))
-        if url_scheme is None:
-            url_scheme = current_app.config['PREFERRED_URL_SCHEME']
-        if safe_domain is None:
-            safe_domain = current_app.config['SAFE_RELAY_DOMAIN']
-        parsed_relay_state = urlparse(relay_state)
+    if relay_state is None:
+        return safe_default
 
-        # If relay state is only a path
-        if (not parsed_relay_state.scheme and not parsed_relay_state.netloc) and parsed_relay_state.path:
+    if logger is None:
+        logger = current_app.logger
+    logger.debug('Checking if relay state {} is safe'.format(relay_state))
+    if url_scheme is None:
+        url_scheme = current_app.config['PREFERRED_URL_SCHEME']
+    if safe_domain is None:
+        safe_domain = current_app.config['SAFE_RELAY_DOMAIN']
+    parsed_relay_state = urlparse(relay_state)
+
+    # If relay state is only a path
+    if (not parsed_relay_state.scheme and not parsed_relay_state.netloc) and parsed_relay_state.path:
+        return relay_state
+
+    # If schema matches PREFERRED_URL_SCHEME and fqdn ends with dot SAFE_RELAY_DOMAIN or equals SAFE_RELAY_DOMAIN
+    if parsed_relay_state.scheme == url_scheme:
+        if parsed_relay_state.netloc.endswith('.' + safe_domain) or parsed_relay_state.netloc == safe_domain:
             return relay_state
 
-        # If schema matches PREFERRED_URL_SCHEME and fqdn ends with dot SAFE_RELAY_DOMAIN or equals SAFE_RELAY_DOMAIN
-        if parsed_relay_state.scheme == url_scheme:
-            if parsed_relay_state.netloc.endswith('.' + safe_domain) or parsed_relay_state.netloc == safe_domain:
-                return relay_state
-
-        # Unsafe relay state found
-        logger.warning('Caught unsafe relay state: {}. '
-                       'Using safe relay state: {}.'.format(relay_state, safe_default))
+    # Unsafe relay state found
+    logger.warning('Caught unsafe relay state: {}. '
+                   'Using safe relay state: {}.'.format(relay_state, safe_default))
     return safe_default
