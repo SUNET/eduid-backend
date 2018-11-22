@@ -10,10 +10,10 @@ README = 'eduID Attribute Manager'
 if os.path.exists(README_fn):
     README = open(README_fn).read()
 
-version = '0.6.3b7'
+version = '0.6.3b8'
 
 install_requires = [
-    'eduid_userdb>=0.3.2b3',
+    'eduid_userdb>=0.4.1b0',
     'eduid_common>=0.1.3b5',
     'python-dateutil>=2.1',
     'celery>=3.1.17, <3.2',
