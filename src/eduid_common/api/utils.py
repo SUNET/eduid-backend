@@ -154,33 +154,54 @@ def init_template_functions(app):
     return app
 
 
-def verify_relay_state(relay_state, safe_default='/'):
+def verify_relay_state(relay_state, safe_default='/', logger=None,
+                       url_scheme=None, safe_domain=None):
     """
+    Make sure the URL provided in relay_state is safe and does
+    not provide an open redirect.
+
+    The reason for the `logger`, `url_scheme`, and `safe_domain`
+    kwars (rather than directly taking them from the current app and config)
+    is so that this can be used in non-flask apps (specifically, in the
+    IdP cherrypy app). Used within a falsk app, these args can be ignored.
+
     :param relay_state: Next url
     :param safe_default: The default if relay state is found unsafe
+    :param logger: A logger facility
+    :param url_scheme: the preferred URL scheme (http|https)
+    :param safe_domain: Safe domain to relay
 
     :type safe_default: six.string_types
     :type relay_state: six.string_types
+    :type logger: logging.Logger
+    :type url_scheme: str
+    :type safe_domain: str
 
     :return: Safe relay state
     :rtype: six.string_types
     """
-    if relay_state is not None:
-        current_app.logger.debug('Checking if relay state {} is safe'.format(relay_state))
-        url_scheme = current_app.config['PREFERRED_URL_SCHEME']
-        safe_domain = current_app.config['SAFE_RELAY_DOMAIN']
-        parsed_relay_state = urlparse(relay_state)
+    if relay_state is None:
+        return safe_default
 
-        # If relay state is only a path
-        if (not parsed_relay_state.scheme and not parsed_relay_state.netloc) and parsed_relay_state.path:
+    if logger is None:
+        logger = current_app.logger
+    logger.debug('Checking if relay state {} is safe'.format(relay_state))
+    if url_scheme is None:
+        url_scheme = current_app.config['PREFERRED_URL_SCHEME']
+    if safe_domain is None:
+        safe_domain = current_app.config['SAFE_RELAY_DOMAIN']
+    parsed_relay_state = urlparse(relay_state)
+
+    # If relay state is only a path
+    if (not parsed_relay_state.scheme and not parsed_relay_state.netloc) and parsed_relay_state.path:
+        return relay_state
+
+    # If schema matches PREFERRED_URL_SCHEME and fqdn ends with dot SAFE_RELAY_DOMAIN or equals SAFE_RELAY_DOMAIN
+    if parsed_relay_state.scheme == url_scheme:
+        if parsed_relay_state.netloc.endswith('.' + safe_domain) or parsed_relay_state.netloc == safe_domain:
             return relay_state
 
-        # If schema matches PREFERRED_URL_SCHEME and fqdn ends with dot SAFE_RELAY_DOMAIN or equals SAFE_RELAY_DOMAIN
-        if parsed_relay_state.scheme == url_scheme:
-            if parsed_relay_state.netloc.endswith('.' + safe_domain) or parsed_relay_state.netloc == safe_domain:
-                return relay_state
-
-        # Unsafe relay state found
-        current_app.logger.warning('Caught unsafe relay state: {}. '
-                                   'Using safe relay state: {}.'.format(relay_state, safe_default))
+    # Unsafe relay state found
+    logger.warning('Caught unsafe relay state: {}. '
+                   'Using safe relay state: {}.'.format(relay_state, safe_default))
     return safe_default

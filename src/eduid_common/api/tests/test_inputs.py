@@ -39,7 +39,12 @@ from werkzeug.http import dump_cookie
 from flask import Flask, Blueprint
 from flask import request
 from flask import make_response
+from marshmallow import fields, ValidationError
 
+from eduid_common.api.schemas.base import EduidSchema
+from eduid_common.api.schemas.csrf import CSRFRequestMixin
+from eduid_common.api.decorators import UnmarshalWith
+from eduid_common.api.decorators import require_user
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.api.session import SessionFactory
 from eduid_common.api.request import Request
@@ -48,6 +53,18 @@ from eduid_userdb import UserDB
 
 import logging
 logger = logging.getLogger(__name__)
+
+__author__ = 'lundberg'
+
+
+def dont_validate(value):
+    raise ValidationError('Problem with {!r}'.format(value))
+
+class NonValidatingSchema(EduidSchema, CSRFRequestMixin):
+    test_data = fields.String(required=True, validate=dont_validate)
+
+    class Meta:
+        strict = True
 
 
 test_views = Blueprint('test', __name__)
@@ -69,6 +86,13 @@ def get_param_view():
 def post_param_view():
     param = request.form.get('test-param')
     return _make_response(param)
+
+
+@test_views.route('/test-post-json', methods=['POST'])
+@UnmarshalWith(NonValidatingSchema)
+def post_json_view(test_data):
+    "never validates"
+    pass
 
 
 @test_views.route('/test-cookie')
@@ -189,6 +213,21 @@ class InputsTests(EduidAPITestCase):
             unquoted_response = unquote(response.data.decode('ascii'))
             self.assertNotIn(b'<script>', response.data)
             self.assertNotIn('<script>', unquoted_response)
+
+    def test_post_json_script(self):
+        """"""
+        url = '/test-post-json'
+        with self.app.test_request_context(url, method='POST',
+                content_type='application/json',
+                headers={
+                    "X-Requested-With": "XMLHttpRequest",
+                    "Host": "test.localhost",
+                    "Origin": "http://test.localhost",
+                },
+                data='{"test_data": "<script>alert(42)</script>", "csrf_token": "failing-token"}'):
+
+            response = self.app.dispatch_request()
+            self.assertNotIn(b'<script>', response.data)
 
     def test_cookie_script(self):
         """"""
