@@ -10,13 +10,13 @@ from celery.task import periodic_task, task
 from time import time
 from datetime import datetime, timedelta
 from hammock import Hammock
-from pymongo.errors import ConnectionFailure
 
 from eduid_msg.celery import celery, config_parser
 from eduid_msg.cache import CacheMDB
 from eduid_msg.utils import load_template, navet_get_name_and_official_address, navet_get_relations
 from eduid_msg.decorators import TransactionAudit
 from eduid_msg.exceptions import NavetException, NavetAPIException
+from eduid_userdb.exceptions import ConnectionError
 
 
 DEFAULT_MONGODB_HOST = 'localhost'
@@ -129,8 +129,8 @@ class MessageRelay(Task):
 
     def on_failure(self, exc, task_id, args, kwargs, einfo):
         # Try to reload the db on connection failures (mongodb has probably switched master)
-        if isinstance(exc, ConnectionFailure):
-            LOG.error('Task failed with mongodb exception ConnectionFailure. Reloading db.')
+        if isinstance(exc, ConnectionError):
+            LOG.error('Task failed with db exception ConnectionError. Reloading db.')
             self.reload_db()
 
     def is_reachable(self, identity_number, mailbox_url=False):
@@ -279,7 +279,8 @@ class MessageRelay(Task):
         # Filter name and address from the Navet lookup results
         return navet_get_name_and_official_address(data)
 
-    def get_devel_postal_address(self):
+    @staticmethod
+    def get_devel_postal_address():
         """
         Return a OrderedDict just as we would get from navet.
         """
@@ -426,8 +427,10 @@ class MessageRelay(Task):
 
     def pong(self):
         # Leverage cache to test mongo db health
-        if self.cache('pong', 0).conn.get_connection().admin.command('ismaster'):
+        if self.cache('pong', 0).conn.is_healthy():
             return 'pong'
+        raise ConnectionError('Database not healthy')
+
 
 
 @task(base=MessageRelay)

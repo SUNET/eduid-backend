@@ -1,5 +1,4 @@
 from eduid_userdb.db import MongoDB
-from pymongo.errors import ConnectionFailure
 from inspect import isclass
 from datetime import datetime
 
@@ -27,7 +26,7 @@ class TransactionAudit(object):
                        'created_at': date}
                 self.collection.insert(doc)
             return ret
-        if self.collection is None or not self.is_healthy():
+        if self.collection is None or not self.conn.is_healthy():
             self.conn = MongoDB(self.db_uri)
             db = self.conn.get_database(self.db_name)
             self.collection = db[self.collection_name]
@@ -54,9 +53,3 @@ class TransactionAudit(object):
         elif func == 'sendsms':
             return {'type': 'sms', 'recipient': args[1], 'transaction_id': data, 'audit_reference': args[3]}
         return data
-
-    def is_healthy(self):
-        try:
-            return self.conn.get_connection().admin.command('ismaster')
-        except ConnectionFailure:
-            return False
