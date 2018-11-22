@@ -5,12 +5,13 @@ from datetime import datetime
 
 class TransactionAudit(object):
     enabled = False
-    collection = None
 
     def __init__(self, db_uri, db_name='eduid_msg', collection_name='transaction_audit'):
+        self._conn = None
         self.db_uri = db_uri
         self.db_name = db_name
         self.collection_name = collection_name
+        self.collection = None
 
     def __call__(self, f):
         if not self.enabled:
@@ -25,9 +26,9 @@ class TransactionAudit(object):
                        'created_at': date}
                 self.collection.insert(doc)
             return ret
-        if self.collection is None:
-            conn = MongoDB(self.db_uri)
-            db = conn.get_database(self.db_name)
+        if self._conn is None or not self._conn.is_healthy():
+            self._conn = MongoDB(self.db_uri)
+            db = self._conn.get_database(self.db_name)
             self.collection = db[self.collection_name]
         return audit
 

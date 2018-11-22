@@ -16,6 +16,7 @@ from eduid_msg.cache import CacheMDB
 from eduid_msg.utils import load_template, navet_get_name_and_official_address, navet_get_relations
 from eduid_msg.decorators import TransactionAudit
 from eduid_msg.exceptions import NavetException, NavetAPIException
+from eduid_userdb.exceptions import ConnectionError
 
 
 DEFAULT_MONGODB_HOST = 'localhost'
@@ -114,11 +115,23 @@ class MessageRelay(Task):
 
     def cache(self, cache_name, ttl=7200):
         global _CACHE
-        if not cache_name in _CACHE:
+        if cache_name not in _CACHE:
             _CACHE[cache_name] = CacheMDB(self.app.conf.get('MONGO_URI', DEFAULT_MONGODB_URI),
                                           self.app.conf.get('MONGO_DBNAME', DEFAULT_MONGODB_NAME),
                                           cache_name, ttl=ttl, expiration_freq=120)
         return _CACHE[cache_name]
+
+    @staticmethod
+    def reload_db():
+        global _CACHE
+        # Remove initiated cache dbs
+        _CACHE = {}
+
+    def on_failure(self, exc, task_id, args, kwargs, einfo):
+        # Try to reload the db on connection failures (mongodb has probably switched master)
+        if isinstance(exc, ConnectionError):
+            LOG.error('Task failed with db exception ConnectionError. Reloading db.')
+            self.reload_db()
 
     def is_reachable(self, identity_number, mailbox_url=False):
         """
@@ -266,7 +279,8 @@ class MessageRelay(Task):
         # Filter name and address from the Navet lookup results
         return navet_get_name_and_official_address(data)
 
-    def get_devel_postal_address(self):
+    @staticmethod
+    def get_devel_postal_address():
         """
         Return a OrderedDict just as we would get from navet.
         """
@@ -411,9 +425,12 @@ class MessageRelay(Task):
 
         return self.sms.send(message, self._sms_sender, recipient, prio=2)
 
-    @staticmethod
-    def pong():
-        return 'pong'
+    def pong(self):
+        # Leverage cache to test mongo db health
+        if self.cache('pong', 0).conn.is_healthy():
+            return 'pong'
+        raise ConnectionError('Database not healthy')
+
 
 
 @task(base=MessageRelay)
