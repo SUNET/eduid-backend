@@ -72,7 +72,7 @@ SESSION_COOKIE_DOMAIN = 'eduid.se'
 SESSION_COOKIE_PATH = '/'
 
 # controls if the cookie should be set with the httponly flag. Defaults to True
-SESSION_COOKIE_HTTPONLY = False
+SESSION_COOKIE_HTTPONLY = True
 
 # controls if the cookie should be set with the secure flag. Defaults to False
 SESSION_COOKIE_SECURE = False
