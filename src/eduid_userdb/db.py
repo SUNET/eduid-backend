@@ -146,7 +146,7 @@ class MongoDB(object):
             self.get_connection().admin.command('ismaster')
             return True
         except pymongo.errors.ConnectionFailure as e:
-            logging.error('MongoDB not healthy: {}'.format(e))
+            logging.error('{} not healthy: {}'.format(self, e))
             return False
 
     def close(self):
