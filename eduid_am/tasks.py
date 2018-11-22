@@ -6,13 +6,11 @@ from importlib import import_module
 from celery import Task
 from celery.utils.log import get_task_logger
 
-from pymongo.errors import ConnectionFailure
-
 from pkg_resources import iter_entry_points
 
 from eduid_am.celery import celery
 from eduid_userdb import UserDB
-from eduid_userdb.exceptions import UserDoesNotExist, LockedIdentityViolation
+from eduid_userdb.exceptions import UserDoesNotExist, LockedIdentityViolation, ConnectionError
 from .consistency_checks import unverify_duplicates, check_locked_identity
 
 logger = get_task_logger(__name__)
@@ -27,7 +25,6 @@ class PluginsRegistry(object):
     def __init__(self, am_conf):
         self.context = dict()
         self.attribute_fetcher = dict()
-
 
         for plugin_name in am_conf.get('ACTION_PLUGINS', []):
             try:
@@ -83,8 +80,8 @@ class AttributeManager(Task):
 
     def on_failure(self, exc, task_id, args, kwargs, einfo):
         # Try to reload the db on connection failures (mongodb has probably switched master)
-        if isinstance(exc, ConnectionFailure):
-            logger.error('Task failed with mongodb exception ConnectionFailure. Reloading db.')
+        if isinstance(exc, ConnectionError):
+            logger.error('Task failed with db exception ConnectionError. Reloading db.')
             self.reload_db()
 
 
@@ -179,7 +176,6 @@ def _update_attributes_safe(app_name, user_id):
 
 @celery.task(base=AttributeManager)
 def pong(app_name):
-    if pong.default_db_uri:
-        pong.userdb.is_healthy()
-
-    return 'pong for {}'.format(app_name)
+    if pong.default_db_uri and pong.userdb.is_healthy():
+        return 'pong for {}'.format(app_name)
+    raise ConnectionError('Database not healthy')
