@@ -22,7 +22,14 @@ class EduIDDBError(Exception):
         )
 
 
-class MongoConnectionError(EduIDDBError):
+class ConnectionError(EduIDDBError):
+    """
+    Error connecting to the database.
+    """
+    pass
+
+
+class MongoConnectionError(ConnectionError):
     """
     Error connecting to MongoDB.
     """
