@@ -10,10 +10,11 @@ from eduid_common.authn.eduid_saml2 import get_authn_ctx
 from eduid_common.authn.utils import get_saml_attribute
 from eduid_common.api.decorators import require_user
 from eduid_common.api.utils import urlappend, save_and_sync_user
+from eduid_common.api.helpers import verify_nin_for_user
 from eduid_common.api.exceptions import AmTaskFailed, MsgTaskFailed
 from eduid_userdb.proofing.user import ProofingUser
+from eduid_userdb.proofing.state import NinProofingState, NinProofingElement
 from eduid_userdb.credentials import U2F
-from eduid_userdb.nin import Nin
 from eduid_userdb.logs import SwedenConnectProofing, MFATokenProofing
 
 from eduid_webapp.eidas.helpers import is_required_loa
@@ -161,22 +162,18 @@ def nin_verify_action(session_info, user):
                                                issuer=issuer, authn_context_class=authn_context,
                                                user_postal_address=user_address, proofing_version='2018v1')
 
-    # Create a verified NIN
-    nin = Nin(number=asserted_nin, application='eduid-eidas', verified=True, created_ts=True, primary=True)
-    proofing_user.nins.add(nin)
-
-    # Save proofing log entry and save user
-    if current_app.proofing_log.save(proofing_log_entry):
-        current_app.logger.info('Recorded NIN verification in the proofing log')
-        try:
-            save_and_sync_user(proofing_user)
-        except AmTaskFailed as e:
-            current_app.logger.error('Verifying NIN for user failed')
-            current_app.logger.error('{}'.format(e))
-            new_query_string = urlencode({'msg': ':ERROR:Temporary technical problems'})
-            url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
-            return redirect(url)
-        current_app.stats.count(name='nin_verified')
+    # Verify NIN for user
+    try:
+        nin_element = NinProofingElement(number=asserted_nin, application='eduid-eidas', verified=False)
+        proofing_state = NinProofingState({'eduPersonPrincipalName': user.eppn, 'nin': nin_element.to_dict()})
+        verify_nin_for_user(user, proofing_state, proofing_log_entry)
+    except AmTaskFailed as e:
+        current_app.logger.error('Verifying NIN for user failed')
+        current_app.logger.error('{}'.format(e))
+        new_query_string = urlencode({'msg': ':ERROR:Temporary technical problems'})
+        url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
+        return redirect(url)
+    current_app.stats.count(name='nin_verified')
 
     new_query_string = urlencode({'msg': 'eidas.nin_verify_success'})
     url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
