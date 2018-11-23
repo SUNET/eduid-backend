@@ -35,9 +35,15 @@ import time
 import unittest
 import six
 from hashlib import sha256
+<<<<<<< HEAD
 import nacl.secret
 import nacl.utils
+=======
+from copy import deepcopy
+from nacl import secret, utils, encoding
+>>>>>>> master
 from werkzeug.exceptions import InternalServerError, Forbidden
+from eduid_common.authn.utils import generate_auth_token
 
 NEW_ACTIONS = True
 
@@ -51,13 +57,11 @@ except ImportError:
 class ActionsTests(ActionsTestCase):
 
     def update_actions_config(self, config):
-        key_size = nacl.secret.SecretBox.KEY_SIZE
-        config['TOKEN_LOGIN_SHARED_KEY'] = config['TOKEN_LOGIN_SHARED_KEY'][:key_size]
-        if len(config['TOKEN_LOGIN_SHARED_KEY']) < key_size:
-            config['TOKEN_LOGIN_SHARED_KEY'] += (key_size - len(config['TOKEN_LOGIN_SHARED_KEY'])) * '0'
-        if not isinstance(config['TOKEN_LOGIN_SHARED_KEY'], six.binary_type):
-            config['TOKEN_LOGIN_SHARED_KEY'] = config['TOKEN_LOGIN_SHARED_KEY'].encode('ascii')
-        self.assertEqual(key_size, len(config['TOKEN_LOGIN_SHARED_KEY']))
+        if NEW_ACTIONS:
+            shared_key = encoding.URLSafeBase64Encoder.encode((utils.random(secret.SecretBox.KEY_SIZE))).decode('utf-8')
+        else:
+            shared_key = u'not_a_secret_box_secret_key'
+        config['TOKEN_LOGIN_SHARED_KEY'] = shared_key
         config['TOU_VERSION'] = 'test-version'
         return config
 
@@ -123,22 +127,12 @@ class ActionsTests(ActionsTestCase):
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
                     eppn = 'dummy-eppn'
-                    nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
-                    timestamp = str(hex(int(time.time())))
-                    shared_key = self.app.config['TOKEN_LOGIN_SHARED_KEY']
-                    token_data = '{0}|{1}'.format(timestamp, eppn).encode('ascii')
-                    box = nacl.secret.SecretBox(shared_key)
-                    encrypted = box.encrypt(token_data, nonce)
-                    if six.PY2:
-                        token = encrypted.encode('hex')
-                        hex_nonce = nonce.encode('hex')
-                    else:
-                        token = encrypted.hex()
-                        hex_nonce = nonce.hex()
+                    token, timestamp = generate_auth_token(
+                        self.app.config['TOKEN_LOGIN_SHARED_KEY'], 'idp_actions', eppn)
 
                 url = '/?userid={}&token={}&nonce={}&ts={}'.format(eppn,
                                                                    token,
-                                                                   hex_nonce,
+                                                                   None,
                                                                    timestamp)
                 with self.app.test_request_context(url):
                     response = client.get(url)

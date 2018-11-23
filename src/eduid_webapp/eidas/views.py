@@ -48,6 +48,10 @@ def verify_token(user, credential_id):
         ts_url = current_app.config.get('TOKEN_SERVICE_URL')
         reauthn_url = urlappend(ts_url, 'reauthn')
         next_url = url_for('eidas.verify_token', credential_id=credential_id, _external=True)
+        # Add idp arg to next_url if set
+        idp = request.args.get('idp')
+        if idp:
+            next_url = '{}?idp={}'.format(next_url, idp)
         return redirect('{}?next={}'.format(reauthn_url, next_url))
 
     # Set token key id in session

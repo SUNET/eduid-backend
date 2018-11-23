@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright (c) 2016 NORDUnet A/S
+# Copyright (c) 2018 SUNET
 # All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or
@@ -37,10 +38,9 @@ from flask import Blueprint, request, session, current_app
 from flask import abort, url_for, render_template
 
 from eduid_userdb.actions import Action
-from eduid_common.api.decorators import MarshalWith, UnmarshalWith
+from eduid_common.api.decorators import MarshalWith
 from eduid_common.api.schemas.base import FluxStandardAction
-from eduid_common.api.utils import urlappend
-from eduid_webapp.authn.helpers import verify_auth_token
+from eduid_common.authn.utils import verify_auth_token
 from eduid_webapp.actions.helpers import get_next_action
 
 actions_views = Blueprint('actions', __name__, url_prefix='', template_folder='templates')
@@ -57,14 +57,15 @@ def authn():
     nonce = request.args.get('nonce', None)
     timestamp = request.args.get('ts', None)
     idp_session = request.args.get('session', None)
-    if not (eppn and token and nonce and timestamp):
+    if not (eppn and token and timestamp):
         msg = ('Insufficient authentication params: '
                'eppn: {}, token: {}, nonce: {}, ts: {}')
         current_app.logger.debug(msg.format(eppn, token, nonce, timestamp))
         abort(400)
 
-    if verify_auth_token(eppn=eppn, token=token,
-                         nonce=nonce, timestamp=timestamp):
+    shared_key = current_app.config.get('TOKEN_LOGIN_SHARED_KEY')  # XXX: Change to IDP_AND_ACTIONS_SHARED_KEY
+    if verify_auth_token(shared_key=shared_key, eppn=eppn, token=token,
+                         nonce=nonce, timestamp=timestamp, usage='idp_actions'):
         current_app.logger.info("Starting pre-login actions "
                                 "for eppn: {})".format(eppn))
         if userid is not None:
