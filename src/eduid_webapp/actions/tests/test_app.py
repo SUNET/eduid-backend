@@ -33,15 +33,8 @@
 import json
 import time
 import unittest
-import six
 from hashlib import sha256
-<<<<<<< HEAD
-import nacl.secret
-import nacl.utils
-=======
-from copy import deepcopy
 from nacl import secret, utils, encoding
->>>>>>> master
 from werkzeug.exceptions import InternalServerError, Forbidden
 from eduid_common.authn.utils import generate_auth_token
 
