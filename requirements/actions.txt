@@ -1,1 +1,1 @@
-eduid-action>=0.2.1b2
+eduid-action>=0.2.1b3

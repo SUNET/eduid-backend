@@ -34,6 +34,8 @@
 import json
 from contextlib import contextmanager
 from mock import patch
+from flask import Response
+from werkzeug.exceptions import InternalServerError
 from nacl import utils, secret, encoding
 
 from eduid_common.api.testing import EduidAPITestCase
@@ -92,7 +94,14 @@ class SignupTests(EduidAPITestCase):
         client.set_cookie(server_name, key=self.app.config.get('SESSION_COOKIE_NAME'), value=sess._session.token)
         yield client
 
-    def test_get_config(self):
+    @patch('eduid_webapp.signup.views.http.request')
+    def test_get_config(self, mock_http_request):
+        data = json.dumps({'payload':{
+                               'en': 'test tou english',
+                               'sv': 'test tou svenska'}
+                               })
+        resp = Response(response=data, status=200, mimetype='application/json')
+        mock_http_request.return_value = resp
 
         with self.session_cookie(self.browser) as client:
             response2 = client.get('/config')
@@ -114,6 +123,25 @@ class SignupTests(EduidAPITestCase):
                     config_data['payload']['technicians_link'])
             self.assertEqual('https://www.eduid.se/personal.html',
                     config_data['payload']['staff_link'])
+
+    @patch('eduid_webapp.signup.views.http.request')
+    def test_get_config_302_tous(self, mock_http_request):
+        resp = Response(status=302, mimetype='application/json')
+        mock_http_request.return_value = resp
+
+        with self.session_cookie(self.browser) as client:
+            with self.assertRaises(InternalServerError):
+                client.get('/config')
+
+
+    @patch('eduid_webapp.signup.views.http.request')
+    def test_get_config_500_tous(self, mock_http_request):
+        resp = Response(status=500, mimetype='application/json')
+        mock_http_request.return_value = resp
+
+        with self.session_cookie(self.browser) as client:
+            with self.assertRaises(InternalServerError):
+                client.get('/config')
 
     def test_captcha_no_data_fail(self):
         email = 'dummy@example.com'
@@ -342,16 +370,3 @@ class SignupTests(EduidAPITestCase):
                     data = json.loads(response.data)
                     self.assertEqual(data['type'],
                             'GET_SIGNUP_VERIFY_LINK_SUCCESS')
-
-    def test_get_tous(self):
-        with self.session_cookie(self.browser) as client:
-            with client.session_transaction() as sess:
-                response = client.get('/get-tous')
-
-                data = json.loads(response.data)
-                self.assertEqual(data['type'],
-                        'GET_SIGNUP_GET_TOUS_SUCCESS')
-                self.assertEqual(data['payload']['en'],
-                        'test tou english')
-                self.assertEqual(data['payload']['sv'],
-                        'test tou svenska')

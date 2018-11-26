@@ -32,9 +32,9 @@
 #
 from __future__ import absolute_import
 
-from flask import Blueprint, request, session, current_app
-from flask import render_template
-from flask_babel import gettext as _
+import json
+import urllib3
+from flask import Blueprint, request, session, current_app, abort
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith
 from eduid_common.api.schemas.base import FluxStandardAction
@@ -43,30 +43,41 @@ from eduid_webapp.signup.verifications import verify_recaptcha, send_verificatio
 from eduid_webapp.signup.helpers import check_email_status, remove_users_with_mail_address, complete_registration
 from eduid_webapp.signup.verifications import CodeDoesNotExist, AlreadyVerifiedException, ProofingLogFailure
 
+
+http = urllib3.PoolManager()
+
 signup_views = Blueprint('signup', __name__, url_prefix='', template_folder='templates')
-
-
-def _get_tous(version=None):
-    if version is None:
-        version = current_app.config.get('CURRENT_TOU_VERSION')
-    langs = current_app.config.get('AVAILABLE_LANGUAGES').keys()
-    tous = {}
-    for lang in langs:
-        name = 'tous/tou-{}-{}.txt'.format(version, lang)
-        tous[lang] = render_template(name)
-    return tous
 
 
 @signup_views.route('/config', methods=['GET'])
 @MarshalWith(FluxStandardAction)
 def get_config():
-
-    jsconfig = {
+    url = current_app.config.get('INTERNAL_ACTIONS_URL')
+    try:
+        r = http.request('GET', url + 'get-tous', retries=False)
+        current_app.logger.debug('Response: {!r} with headers: '
+                '{!r}'.format(r, r.headers))
+        if '302' in str(getattr(r, 'status_code', r.status)):
+            headers = {'Cookie': r.headers.get('Set-Cookie')}
+            current_app.logger.debug('Headers: {!r}'.format(headers))
+            r = http.request('GET', url + 'get-tous',
+                             retries=False, headers=headers)
+            current_app.logger.debug('2nd response: {!r} with headers: '
+                    '{!r}'.format(r, r.headers))
+    except Exception as e:
+        current_app.logger.debug('Problem getting config: {!r}'.format(e))
+        abort(500)
+    if '200' not in str(getattr(r, 'status_code', r.status)):
+        current_app.logger.debug('Problem getting config, '
+                                 'response status: '
+                                 '{!r}'.format(r.status))
+        abort(500)
+    return {
             'csrf_token': session.get_csrf_token(),
             'recaptcha_public_key': current_app.config.get('RECAPTCHA_PUBLIC_KEY'),
             'available_languages': current_app.config.get('AVAILABLE_LANGUAGES'),
             'debug': current_app.config.get('DEBUG'),
-            'tous': _get_tous(),
+            'tous': json.loads(r.data)['payload'],
             'dashboard_url': current_app.config.get('DASHBOARD_URL'),
             'reset_passwd_url': current_app.config.get('RESET_PASSWD_URL'),
             'students_link': current_app.config.get('STUDENTS_LINK'),
@@ -74,17 +85,6 @@ def get_config():
             'staff_link': current_app.config.get('STAFF_LINK'),
             'faq_link': current_app.config.get('FAQ_LINK'),
             }
-    return jsconfig
-
-
-@signup_views.route('/get-tous', methods=['GET'])
-@MarshalWith(FluxStandardAction)
-def get_tous():
-    """
-    View to GET the current TOU in all available languages
-    """
-    version = request.args.get('version', None)
-    return _get_tous(version=version)
 
 
 @signup_views.route('/trycaptcha', methods=['POST'])

@@ -68,4 +68,5 @@ SIGNUP_AND_AUTHN_SHARED_KEY = None
 
 DEFAULT_FINISH_URL = 'https://www.eduid.se/'
 
-CURRENT_TOU_VERSION = 'test-version'
+# The signup app uses this to retrieve the ToU texts from the actions app
+INTERNAL_ACTIONS_URL = ''

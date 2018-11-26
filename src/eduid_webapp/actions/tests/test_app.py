@@ -33,9 +33,7 @@
 import json
 import time
 import unittest
-import six
 from hashlib import sha256
-from copy import deepcopy
 from nacl import secret, utils, encoding
 from werkzeug.exceptions import InternalServerError, Forbidden
 from eduid_common.authn.utils import generate_auth_token
@@ -43,7 +41,7 @@ from eduid_common.authn.utils import generate_auth_token
 NEW_ACTIONS = True
 
 try:
-    from eduid_action.common.testing import ActionsTestCase, TestingActionPlugin, DUMMY_ACTION
+    from eduid_action.common.testing import ActionsTestCase
 except ImportError:
     class ActionsTestCase: pass
     NEW_ACTIONS = False
@@ -51,37 +49,13 @@ except ImportError:
 
 class ActionsTests(ActionsTestCase):
 
-    def prepare_session(self, sess, action_dict=None, rm_action=False, validation_error=False,
-                         action_error=False, total_steps=1, current_step=1,
-                         add_action=True, idp_session='dummy-session',
-                         set_plugin=True, plugin_name='dummy',
-                         plugin_class=TestingActionPlugin):
-        if action_dict is None:
-            action_dict = deepcopy(DUMMY_ACTION)
-        if action_error:
-            action_dict['params']['action_error'] = True
-        if rm_action:
-            action_dict['params']['rm_action'] = True
-        if validation_error:
-            action_dict['params']['validation_error'] = True
-        if add_action:
-            self.app.actions_db.add_action(data=deepcopy(action_dict))
-        action_dict['_id'] = str(action_dict['_id'])
-        sess['eppn'] = str(action_dict['eppn'])
-        sess['current_action'] = action_dict
-        sess['current_plugin'] = plugin_name
-        sess['idp_session'] = idp_session
-        sess['current_step'] = current_step
-        sess['total_steps'] = total_steps
-        if set_plugin:
-            self.app.plugins[plugin_name] = plugin_class
-
     def update_actions_config(self, config):
         if NEW_ACTIONS:
             shared_key = encoding.URLSafeBase64Encoder.encode((utils.random(secret.SecretBox.KEY_SIZE))).decode('utf-8')
         else:
             shared_key = u'not_a_secret_box_secret_key'
         config['TOKEN_LOGIN_SHARED_KEY'] = shared_key
+        config['TOU_VERSION'] = 'test-version'
         return config
 
     @unittest.skipUnless(NEW_ACTIONS, "Still using old actions")

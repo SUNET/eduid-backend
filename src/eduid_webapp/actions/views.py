@@ -82,6 +82,16 @@ def authn():
         abort(403)
 
 
+@actions_views.route('/get-tous', methods=['GET'])
+@MarshalWith(FluxStandardAction)
+def get_tous():
+    """
+    View to GET the current TOU in all available languages
+    """
+    version = request.args.get('version', None)
+    return current_app.get_tous(version=version)
+
+
 @actions_views.route('/config', methods=['GET'])
 @MarshalWith(FluxStandardAction)
 def get_config():
