@@ -38,6 +38,7 @@ from flask import Blueprint, request, session, current_app, abort
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith
 from eduid_common.api.schemas.base import FluxStandardAction
+from eduid_common.api.utils import urlappend
 from eduid_webapp.signup.schemas import RegisterEmailSchema, AccountCreatedResponse, EmailSchema
 from eduid_webapp.signup.verifications import verify_recaptcha, send_verification_mail, verify_email_code
 from eduid_webapp.signup.helpers import check_email_status, remove_users_with_mail_address, complete_registration
@@ -52,19 +53,17 @@ signup_views = Blueprint('signup', __name__, url_prefix='', template_folder='tem
 @signup_views.route('/config', methods=['GET'])
 @MarshalWith(FluxStandardAction)
 def get_config():
-    url = current_app.config.get('INTERNAL_ACTIONS_URL')
+    tou_url = urlappend(current_app.config.get('TOU_URL'), 'get-tous')
     try:
-        r = http.request('GET', url + 'get-tous', retries=False)
-        current_app.logger.debug('Response: {!r} with headers: '
-                '{!r}'.format(r, r.headers))
+        r = http.request('GET', tou_url, retries=False)
+        current_app.logger.debug('Response: {!r} with headers: {!r}'.format(r, r.headers))
+        # XXX: Is the 302 check really needed? Shouldn't TOUs be public?
         if '302' in str(getattr(r, 'status_code', r.status)):
             headers = {'Cookie': r.headers.get('Set-Cookie')}
             current_app.logger.debug('Headers: {!r}'.format(headers))
-            r = http.request('GET', url + 'get-tous',
-                             retries=False, headers=headers)
-            current_app.logger.debug('2nd response: {!r} with headers: '
-                    '{!r}'.format(r, r.headers))
-    except Exception as e:
+            r = http.request('GET', tou_url,  retries=False, headers=headers)
+            current_app.logger.debug('2nd response: {!r} with headers: {!r}'.format(r, r.headers))
+    except urllib3.exceptions.HTTPError as e:
         current_app.logger.debug('Problem getting config: {!r}'.format(e))
         abort(500)
     if '200' not in str(getattr(r, 'status_code', r.status)):

@@ -67,6 +67,7 @@ class SignupTests(EduidAPITestCase):
             'PASSWORD_LENGTH': '10',
             'VCCS_URL': 'http://turq:13085/',
             'TOU_VERSION': '2018-v1',
+            'TOU_URL': 'https://localhost/get-tous',
             'SIGNUP_AND_AUTHN_SHARED_KEY': signup_and_authn_shared_key,
             'DEFAULT_FINISH_URL': 'https://www.eduid.se/',
             'RECAPTCHA_PUBLIC_KEY': '',  # disable recaptcha verification
