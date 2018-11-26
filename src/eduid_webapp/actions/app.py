@@ -35,9 +35,7 @@ from __future__ import absolute_import
 from importlib import import_module
 import types
 
-from flask import render_template
-
-from flask import Flask
+from flask import Flask, render_template, templating
 
 from eduid_common.api.app import eduid_init_app
 from eduid_common.api import am
@@ -47,6 +45,7 @@ from eduid_userdb.actions import ActionDB
 class PluginsRegistry(dict):
 
     def __init__(self, app):
+        super(PluginsRegistry, self).__init__()
         for plugin_name in app.config.get('ACTION_PLUGINS', []):
             if plugin_name in self:
                 app.logger.warn("Duplicate entry point: %s" % plugin_name)
@@ -56,14 +55,18 @@ class PluginsRegistry(dict):
                 self[plugin_name] = getattr(module, 'Plugin')
 
 
-def _get_tous(self, version=None):
+def _get_tous(app, version=None):
     if version is None:
-        version = self.config.get('TOU_VERSION')
-    langs = self.config.get('AVAILABLE_LANGUAGES').keys()
+        version = app.config.get('TOU_VERSION')
+    langs = app.config.get('AVAILABLE_LANGUAGES').keys()
     tous = {}
     for lang in langs:
         name = 'tous/tou-{}-{}.txt'.format(version, lang)
-        tous[lang] = render_template(name)
+        try:
+            tous[lang] = render_template(name)
+        except templating.TemplateNotFound:
+            app.logger.error('TOU template {} not found'.format(name))
+            pass
     return tous
                 
 
