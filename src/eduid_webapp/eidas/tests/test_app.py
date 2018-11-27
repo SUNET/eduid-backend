@@ -40,6 +40,71 @@ class EidasTests(EduidAPITestCase):
                                               (u'City', u'LANDET')]))
         ])
 
+        self.saml_response_tpl_success = """<?xml version='1.0' encoding='UTF-8'?>
+<samlp:Response xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Destination="{sp_url}saml2-acs" ID="id-88b9f586a2a3a639f9327485cc37c40a" InResponseTo="{session_id}" IssueInstant="{timestamp}" Version="2.0">
+  <saml:Issuer Format="urn:oasis:names:tc:SAML:2.0:nameid-format:entity">https://idp.example.com/simplesaml/saml2/idp/metadata.php</saml:Issuer>
+  <samlp:Status>
+    <samlp:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Success" />
+  </samlp:Status>
+  <saml:Assertion ID="id-093952102ceb73436e49cb91c58b0578" IssueInstant="{timestamp}" Version="2.0">
+    <saml:Issuer Format="urn:oasis:names:tc:SAML:2.0:nameid-format:entity">https://idp.example.com/simplesaml/saml2/idp/metadata.php</saml:Issuer>
+    <saml:Subject>
+      <saml:NameID Format="urn:oasis:names:tc:SAML:2.0:nameid-format:transient" NameQualifier="" SPNameQualifier="{sp_url}saml2-metadata">1f87035b4c1325b296a53d92097e6b3fa36d7e30ee82e3fcb0680d60243c1f03</saml:NameID>
+      <saml:SubjectConfirmation Method="urn:oasis:names:tc:SAML:2.0:cm:bearer">
+        <saml:SubjectConfirmationData InResponseTo="{session_id}" NotOnOrAfter="{tomorrow}" Recipient="{sp_url}saml2-acs" />
+      </saml:SubjectConfirmation>
+    </saml:Subject>
+    <saml:Conditions NotBefore="{yesterday}" NotOnOrAfter="{tomorrow}">
+      <saml:AudienceRestriction>
+        <saml:Audience>{sp_url}saml2-metadata</saml:Audience>
+      </saml:AudienceRestriction>
+    </saml:Conditions>
+    <saml:AuthnStatement AuthnInstant="{timestamp}" SessionIndex="{session_id}">
+      <saml:AuthnContext>
+        <saml:AuthnContextClassRef>http://id.elegnamnden.se/loa/1.0/loa3</saml:AuthnContextClassRef>
+      </saml:AuthnContext>
+    </saml:AuthnStatement>
+    <saml:AttributeStatement>
+      <saml:Attribute FriendlyName="personalIdentityNumber" Name="urn:oid:1.2.752.29.4.13" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
+        <saml:AttributeValue xsi:type="xs:string">{asserted_nin}</saml:AttributeValue>
+      </saml:Attribute>
+      <saml:Attribute FriendlyName="displayName" Name="urn:oid:2.16.840.1.113730.3.1.241" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
+        <saml:AttributeValue xsi:type="xs:string">Ülla Älm</saml:AttributeValue>
+      </saml:Attribute>
+      <saml:Attribute FriendlyName="givenName" Name="urn:oid:2.5.4.42" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
+        <saml:AttributeValue xsi:type="xs:string">Ûlla</saml:AttributeValue>
+      </saml:Attribute>
+      <saml:Attribute FriendlyName="dateOfBirth" Name="urn:oid:1.3.6.1.5.5.7.9.1" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
+        <saml:AttributeValue xsi:type="xs:string">1978-01-01</saml:AttributeValue>
+      </saml:Attribute>
+      <saml:Attribute FriendlyName="sn" Name="urn:oid:2.5.4.4" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
+        <saml:AttributeValue xsi:type="xs:string">Älm</saml:AttributeValue>
+      </saml:Attribute>
+    </saml:AttributeStatement>
+  </saml:Assertion>
+</samlp:Response>"""
+        self.saml_response_tpl_fail = """<?xml version="1.0" encoding="UTF-8"?>
+<saml2p:Response xmlns:saml2p="urn:oasis:names:tc:SAML:2.0:protocol" Destination="{sp_url}saml2-acs" ID="_ebad01e547857fa54927b020dba1edb1" InResponseTo="{session_id}" IssueInstant="{timestamp}" Version="2.0">
+  <saml2:Issuer xmlns:saml2="urn:oasis:names:tc:SAML:2.0:assertion">https://idp.example.com/simplesaml/saml2/idp/metadata.php</saml2:Issuer>  
+  <saml2p:Status>
+    <saml2p:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Requester">
+      <saml2p:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:AuthnFailed" />
+    </saml2p:StatusCode>
+    <saml2p:StatusMessage>User login was not successful or could not meet the requirements of the requesting application.</saml2p:StatusMessage>
+  </saml2p:Status>
+</saml2p:Response>"""
+        self.saml_response_tpl_cancel = """
+        <?xml version="1.0" encoding="UTF-8"?>
+<saml2p:Response xmlns:saml2p="urn:oasis:names:tc:SAML:2.0:protocol" Destination="{sp_url}saml2-acs" ID="_ebad01e547857fa54927b020dba1edb1" InResponseTo="{session_id}" IssueInstant="{timestamp}" Version="2.0">
+  <saml2:Issuer xmlns:saml2="urn:oasis:names:tc:SAML:2.0:assertion">https://idp.example.com/simplesaml/saml2/idp/metadata.php</saml2:Issuer>  
+  <saml2p:Status>
+    <saml2p:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Requester">
+      <saml2p:StatusCode Value="http://id.elegnamnden.se/status/1.0/cancel" />
+    </saml2p:StatusCode>
+    <saml2p:StatusMessage>The login attempt was cancelled</saml2p:StatusMessage>
+  </saml2p:Status>
+</saml2p:Response>"""
+
         super(EidasTests, self).setUp()
 
     def load_app(self, config):
@@ -94,7 +159,7 @@ class EidasTests(EduidAPITestCase):
         self.request_user_sync(user)
 
     @staticmethod
-    def generate_auth_response(session_id, asserted_nin):
+    def generate_auth_response(session_id, saml_response_tpl, asserted_nin=None):
         """
         Generates a fresh signed authentication response
         """
@@ -104,72 +169,6 @@ class EidasTests(EduidAPITestCase):
         yesterday = datetime.datetime.now() - datetime.timedelta(days=1)
 
         sp_baseurl = 'http://test.localhost:6544/'
-
-        saml_response_tpl = """<?xml version='1.0' encoding='UTF-8'?>
-    <samlp:Response xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion"
-                    xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol"
-                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-                    Destination="{sp_url}saml2-acs"
-                    ID="id-88b9f586a2a3a639f9327485cc37c40a"
-                    InResponseTo="{session_id}"
-                    IssueInstant="{timestamp}"
-                    Version="2.0">
-        <saml:Issuer Format="urn:oasis:names:tc:SAML:2.0:nameid-format:entity">
-            https://idp.example.com/simplesaml/saml2/idp/metadata.php
-        </saml:Issuer>
-        <samlp:Status>
-            <samlp:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Success" />
-        </samlp:Status>
-        <saml:Assertion ID="id-093952102ceb73436e49cb91c58b0578"
-                        IssueInstant="{timestamp}"
-                        Version="2.0">
-            <saml:Issuer Format="urn:oasis:names:tc:SAML:2.0:nameid-format:entity">
-                https://idp.example.com/simplesaml/saml2/idp/metadata.php
-            </saml:Issuer>
-            <saml:Subject>
-                <saml:NameID Format="urn:oasis:names:tc:SAML:2.0:nameid-format:transient"
-                        NameQualifier=""
-                        SPNameQualifier="{sp_url}saml2-metadata">
-                    1f87035b4c1325b296a53d92097e6b3fa36d7e30ee82e3fcb0680d60243c1f03
-                </saml:NameID>
-                <saml:SubjectConfirmation Method="urn:oasis:names:tc:SAML:2.0:cm:bearer">
-                    <saml:SubjectConfirmationData InResponseTo="{session_id}"
-                                                  NotOnOrAfter="{tomorrow}"
-                                                  Recipient="{sp_url}saml2-acs" />
-                </saml:SubjectConfirmation>
-            </saml:Subject>
-            <saml:Conditions NotBefore="{yesterday}"
-                             NotOnOrAfter="{tomorrow}">
-                <saml:AudienceRestriction>
-                    <saml:Audience>{sp_url}saml2-metadata</saml:Audience>
-                </saml:AudienceRestriction>
-            </saml:Conditions>
-            <saml:AuthnStatement AuthnInstant="{timestamp}"
-                                 SessionIndex="{session_id}">
-                <saml:AuthnContext>
-                    <saml:AuthnContextClassRef>http://id.elegnamnden.se/loa/1.0/loa3</saml:AuthnContextClassRef>
-                </saml:AuthnContext>
-            </saml:AuthnStatement>
-
-            <saml:AttributeStatement>
-                <saml:Attribute FriendlyName="personalIdentityNumber" Name="urn:oid:1.2.752.29.4.13" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
-                  <saml:AttributeValue xsi:type="xs:string">{asserted_nin}</saml:AttributeValue>
-                </saml:Attribute>
-                <saml:Attribute FriendlyName="displayName" Name="urn:oid:2.16.840.1.113730.3.1.241" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
-                  <saml:AttributeValue xsi:type="xs:string">Ülla Älm</saml:AttributeValue>
-                </saml:Attribute>
-                <saml:Attribute FriendlyName="givenName" Name="urn:oid:2.5.4.42" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
-                  <saml:AttributeValue xsi:type="xs:string">Ûlla</saml:AttributeValue>
-                </saml:Attribute>
-                <saml:Attribute FriendlyName="dateOfBirth" Name="urn:oid:1.3.6.1.5.5.7.9.1" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
-                  <saml:AttributeValue xsi:type="xs:string">1978-01-01</saml:AttributeValue>
-                </saml:Attribute>
-                <saml:Attribute FriendlyName="sn" Name="urn:oid:2.5.4.4" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
-                  <saml:AttributeValue xsi:type="xs:string">Älm</saml:AttributeValue>
-                </saml:Attribute>
-            </saml:AttributeStatement>
-        </saml:Assertion>
-    </samlp:Response>"""
 
         resp = saml_response_tpl.format(**{
             'asserted_nin': asserted_nin,
@@ -209,7 +208,7 @@ class EidasTests(EduidAPITestCase):
                 token = sess._session.token
                 if isinstance(token, six.binary_type):
                     token = token.decode('ascii')
-                authn_response = self.generate_auth_response(token, self.test_user_nin)
+                authn_response = self.generate_auth_response(token, self.saml_response_tpl_success, self.test_user_nin)
                 oq_cache = OutstandingQueriesCache(sess)
                 oq_cache.set(token, '/')
                 sess['post-authn-action'] = 'token-verify-action'
@@ -246,7 +245,8 @@ class EidasTests(EduidAPITestCase):
                 token = sess._session.token
                 if isinstance(token, six.binary_type):
                     token = token.decode('ascii')
-                authn_response = self.generate_auth_response(token, self.test_user_wrong_nin)
+                authn_response = self.generate_auth_response(token, self.saml_response_tpl_success,
+                                                             self.test_user_wrong_nin)
                 oq_cache = OutstandingQueriesCache(sess)
                 oq_cache.set(token, '/')
                 sess['post-authn-action'] = 'token-verify-action'
@@ -285,7 +285,7 @@ class EidasTests(EduidAPITestCase):
                 token = sess._session.token
                 if isinstance(token, six.binary_type):
                     token = token.decode('ascii')
-                authn_response = self.generate_auth_response(token, self.test_user_nin)
+                authn_response = self.generate_auth_response(token, self.saml_response_tpl_success, self.test_user_nin)
                 oq_cache = OutstandingQueriesCache(sess)
                 oq_cache.set(token, '/')
                 sess['post-authn-action'] = 'token-verify-action'
@@ -332,7 +332,7 @@ class EidasTests(EduidAPITestCase):
                 token = sess._session.token
                 if isinstance(token, six.binary_type):
                     token = token.decode('ascii')
-                authn_response = self.generate_auth_response(token, self.test_user_nin)
+                authn_response = self.generate_auth_response(token, self.saml_response_tpl_success, self.test_user_nin)
                 oq_cache = OutstandingQueriesCache(sess)
                 oq_cache.set(token, '/')
                 sess['post-authn-action'] = 'token-verify-action'
@@ -352,6 +352,82 @@ class EidasTests(EduidAPITestCase):
 
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_mfa_token_verify_aborted_auth(self, mock_request_user_sync, mock_get_postal_address):
+        mock_get_postal_address.return_value = self.mock_address
+        mock_request_user_sync.side_effect = self.request_user_sync
+
+        credential_id = 'test'
+        self.add_token_to_user(self.test_user_eppn, credential_id)
+
+        with self.session_cookie(self.browser, self.test_user_eppn) as browser:
+            with browser.session_transaction() as sess:
+                sess['eduidIdPCredentialsUsed'] = [credential_id, 'other_id']
+                sess.persist()
+                response = browser.get('/verify-token/{}?idp={}'.format(credential_id, self.test_idp))
+                token = sess._session.token
+                if isinstance(token, six.binary_type):
+                    token = token.decode('ascii')
+                authn_response = self.generate_auth_response(token, self.saml_response_tpl_fail,
+                                                             self.test_user_wrong_nin)
+                oq_cache = OutstandingQueriesCache(sess)
+                oq_cache.set(token, '/')
+                sess['post-authn-action'] = 'token-verify-action'
+                sess['verify_token_action_credential_id'] = credential_id
+                sess.persist()
+
+                self.assertEqual(response.status_code, 302)
+
+                data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': '/'}
+                browser.post('/saml2-acs', data=data)
+
+                user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+                user_mfa_tokens = user.credentials.filter(U2F).to_list()
+
+                self.assertEqual(len(user_mfa_tokens), 1)
+                self.assertEqual(user_mfa_tokens[0].is_verified, False)
+
+                self.assertEqual(self.app.proofing_log.db_count(), 0)
+
+    @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_mfa_token_verify_cancel_auth(self, mock_request_user_sync, mock_get_postal_address):
+        mock_get_postal_address.return_value = self.mock_address
+        mock_request_user_sync.side_effect = self.request_user_sync
+
+        credential_id = 'test'
+        self.add_token_to_user(self.test_user_eppn, credential_id)
+
+        with self.session_cookie(self.browser, self.test_user_eppn) as browser:
+            with browser.session_transaction() as sess:
+                sess['eduidIdPCredentialsUsed'] = [credential_id, 'other_id']
+                sess.persist()
+                response = browser.get('/verify-token/{}?idp={}'.format(credential_id, self.test_idp))
+                token = sess._session.token
+                if isinstance(token, six.binary_type):
+                    token = token.decode('ascii')
+                authn_response = self.generate_auth_response(token, self.saml_response_tpl_cancel,
+                                                             self.test_user_wrong_nin)
+                oq_cache = OutstandingQueriesCache(sess)
+                oq_cache.set(token, '/')
+                sess['post-authn-action'] = 'token-verify-action'
+                sess['verify_token_action_credential_id'] = credential_id
+                sess.persist()
+
+                self.assertEqual(response.status_code, 302)
+
+                data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': '/'}
+                browser.post('/saml2-acs', data=data)
+
+                user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+                user_mfa_tokens = user.credentials.filter(U2F).to_list()
+
+                self.assertEqual(len(user_mfa_tokens), 1)
+                self.assertEqual(user_mfa_tokens[0].is_verified, False)
+
+                self.assertEqual(self.app.proofing_log.db_count(), 0)
+
+    @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def test_nin_verify(self, mock_request_user_sync, mock_get_postal_address):
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -365,7 +441,8 @@ class EidasTests(EduidAPITestCase):
                 token = sess._session.token
                 if isinstance(token, six.binary_type):
                     token = token.decode('ascii')
-                authn_response = self.generate_auth_response(token, self.test_user_nin)
+                authn_response = self.generate_auth_response(token, self.saml_response_tpl_success,
+                                                             self.test_user_nin)
                 oq_cache = OutstandingQueriesCache(sess)
                 oq_cache.set(token, '/')
                 sess['post-authn-action'] = 'nin-verify-action'
@@ -398,7 +475,7 @@ class EidasTests(EduidAPITestCase):
                 token = sess._session.token
                 if isinstance(token, six.binary_type):
                     token = token.decode('ascii')
-                authn_response = self.generate_auth_response(token, self.test_user_nin)
+                authn_response = self.generate_auth_response(token, self.saml_response_tpl_success, self.test_user_nin)
                 oq_cache = OutstandingQueriesCache(sess)
                 oq_cache.set(token, '/')
                 sess['post-authn-action'] = 'nin-verify-action'
@@ -434,7 +511,8 @@ class EidasTests(EduidAPITestCase):
                 token = sess._session.token
                 if isinstance(token, six.binary_type):
                     token = token.decode('ascii')
-                authn_response = self.generate_auth_response(token, self.test_user_nin)
+                authn_response = self.generate_auth_response(token, self.saml_response_tpl_success,
+                                                             self.test_user_nin)
                 oq_cache = OutstandingQueriesCache(sess)
                 oq_cache.set(token, '/')
                 sess['post-authn-action'] = 'nin-verify-action'
