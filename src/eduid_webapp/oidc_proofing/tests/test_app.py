@@ -173,7 +173,7 @@ class OidcProofingTests(EduidAPITestCase):
         self.assertEqual(response['type'], 'GET_OIDC_PROOFING_FREJA_PROOFING_SUCCESS')
         jwk = binascii.unhexlify(self.app.config['FREJA_JWK_SECRET'])
         jwt = response['payload']['iaRequestData'].encode('ascii')
-        request_data = jose.verify(jwt, jwk, self.app.config['FREJA_JWS_ALGORITHM'])
+        request_data = jose.verify(jwt, [jwk], self.app.config['FREJA_JWS_ALGORITHM'])
         expected = {
             'iarp': 'TESTRP',
             'opaque': '1' + json.dumps({'nonce': proofing_state.nonce, 'token': proofing_state.token}),
