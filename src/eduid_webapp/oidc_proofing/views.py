@@ -3,6 +3,7 @@ from __future__ import absolute_import
 
 import six
 import base64
+import binascii
 
 import requests
 import qrcode
@@ -208,7 +209,8 @@ def get_freja_state(user):
         "proto": current_app.config['FREJA_RESPONSE_PROTOCOL'],
         "opaque": opaque_data
     }
-    jwk = current_app.config['FREJA_JWK_SECRET']
+
+    jwk = binascii.unhexlify(current_app.config['FREJA_JWK_SECRET'])
     jws_header = {
         'alg': current_app.config['FREJA_JWS_ALGORITHM'],
         'kid': current_app.config['FREJA_JWS_KEY_ID'],
