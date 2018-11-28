@@ -5,6 +5,7 @@ from __future__ import absolute_import
 import six
 import time
 import json
+import binascii
 from jose import jws as jose
 from collections import OrderedDict
 from mock import patch
@@ -170,7 +171,10 @@ class OidcProofingTests(EduidAPITestCase):
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             response = json.loads(browser.get('/freja/proofing').data)
         self.assertEqual(response['type'], 'GET_OIDC_PROOFING_FREJA_PROOFING_SUCCESS')
-        jwk = self.app.config['FREJA_JWK_SECRET']
+        if six.PY2:
+            jwk = self.app.config['FREJA_JWK_SECRET'].decode('hex')
+        else:
+            jwk = binascii.unhexlify(self.app.config['FREJA_JWK_SECRET'])
         jwt = response['payload']['iaRequestData'].encode('ascii')
         request_data = jose.verify(jwt, jwk, self.app.config['FREJA_JWS_ALGORITHM'])
         expected = {
