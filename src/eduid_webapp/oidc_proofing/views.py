@@ -209,11 +209,8 @@ def get_freja_state(user):
         "proto": current_app.config['FREJA_RESPONSE_PROTOCOL'],
         "opaque": opaque_data
     }
-    if six.PY2:
-        jwk = current_app.config['FREJA_JWK_SECRET'].decode('hex')
-    else:
-        jwk = binascii.unhexlify(current_app.config['FREJA_JWK_SECRET'])
 
+    jwk = binascii.unhexlify(current_app.config['FREJA_JWK_SECRET'])
     jws_header = {
         'alg': current_app.config['FREJA_JWS_ALGORITHM'],
         'kid': current_app.config['FREJA_JWS_KEY_ID'],
