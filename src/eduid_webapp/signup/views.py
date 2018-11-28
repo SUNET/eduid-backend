@@ -53,11 +53,10 @@ signup_views = Blueprint('signup', __name__, url_prefix='', template_folder='tem
 @signup_views.route('/config', methods=['GET'])
 @MarshalWith(FluxStandardAction)
 def get_config():
-    tou_url = urlappend(current_app.config.get('TOU_URL'), 'get-tous')
+    tou_url = current_app.config.get('TOU_URL')
     try:
         r = http.request('GET', tou_url, retries=False)
         current_app.logger.debug('Response: {!r} with headers: {!r}'.format(r, r.headers))
-        # XXX: Is the 302 check really needed? Shouldn't TOUs be public?
         if '302' in str(getattr(r, 'status_code', r.status)):
             headers = {'Cookie': r.headers.get('Set-Cookie')}
             current_app.logger.debug('Headers: {!r}'.format(headers))
