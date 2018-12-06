@@ -170,14 +170,14 @@ class EidasTests(EduidAPITestCase):
 
         sp_baseurl = 'http://test.localhost:6544/'
 
-        resp = saml_response_tpl.format(**{
+        resp = ' '.join(saml_response_tpl.format(**{
             'asserted_nin': asserted_nin,
             'session_id': session_id,
             'timestamp': timestamp.strftime('%Y-%m-%dT%H:%M:%SZ'),
             'tomorrow': tomorrow.strftime('%Y-%m-%dT%H:%M:%SZ'),
             'yesterday': yesterday.strftime('%Y-%m-%dT%H:%M:%SZ'),
             'sp_url': sp_baseurl,
-        })
+        }).split())
 
         if six.PY3:
             # Needs to be bytes
@@ -406,6 +406,44 @@ class EidasTests(EduidAPITestCase):
                 if isinstance(token, six.binary_type):
                     token = token.decode('ascii')
                 authn_response = self.generate_auth_response(token, self.saml_response_tpl_cancel,
+                                                             self.test_user_wrong_nin)
+                oq_cache = OutstandingQueriesCache(sess)
+                oq_cache.set(token, '/')
+                sess['post-authn-action'] = 'token-verify-action'
+                sess['verify_token_action_credential_id'] = credential_id
+                sess.persist()
+
+                self.assertEqual(response.status_code, 302)
+
+                data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': '/'}
+                browser.post('/saml2-acs', data=data)
+
+                user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+                user_mfa_tokens = user.credentials.filter(U2F).to_list()
+
+                self.assertEqual(len(user_mfa_tokens), 1)
+                self.assertEqual(user_mfa_tokens[0].is_verified, False)
+
+                self.assertEqual(self.app.proofing_log.db_count(), 0)
+
+    @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_mfa_token_verify_auth_fail(self, mock_request_user_sync, mock_get_postal_address):
+        mock_get_postal_address.return_value = self.mock_address
+        mock_request_user_sync.side_effect = self.request_user_sync
+
+        credential_id = 'test'
+        self.add_token_to_user(self.test_user_eppn, credential_id)
+
+        with self.session_cookie(self.browser, self.test_user_eppn) as browser:
+            with browser.session_transaction() as sess:
+                sess['eduidIdPCredentialsUsed'] = [credential_id, 'other_id']
+                sess.persist()
+                response = browser.get('/verify-token/{}?idp={}'.format(credential_id, self.test_idp))
+                token = sess._session.token
+                if isinstance(token, six.binary_type):
+                    token = token.decode('ascii')
+                authn_response = self.generate_auth_response(token, self.saml_response_tpl_fail,
                                                              self.test_user_wrong_nin)
                 oq_cache = OutstandingQueriesCache(sess)
                 oq_cache.set(token, '/')
