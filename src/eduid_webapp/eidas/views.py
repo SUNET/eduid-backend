@@ -126,6 +126,7 @@ def assertion_consumer_service():
         action = get_action()
         return action(session_info)
     except BadSAMLResponse as e:
+        current_app.logger.error('BadSAMLResponse: {}'.format(e))
         return make_response(str(e), 400)
 
 
