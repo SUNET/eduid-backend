@@ -35,6 +35,7 @@ requires = [
     'proquint==0.2.1',
     'bleach>=2.1.4',
     'html5lib>=1.0.1',
+    'idna>=2.1,<2.8',
 ]
 
 test_requires = [
