@@ -154,11 +154,13 @@ class User(object):
                 if _mail_addresses[idx]['email'] == self._data_in['mail']:
                     if 'passwords' in self._data_in:
                         # Work around a bug where one could signup, not follow the link in the e-mail
-                        # and then do a password request to set a password. The e-mail address is
+                        # and then do a password reset to set a password. The e-mail address is
                         # implicitly verified by the password reset (which must have been done using e-mail).
                         _mail_addresses[idx]['verified'] = True
-                    if _mail_addresses[idx].get('verified', False) and not any(
-                            [item.get('primary', False) for item in _mail_addresses]):
+                    # If a user does not already have a primary mail address promote "mail" to primary if
+                    # it is verified
+                    _has_primary = any([item.get('primary', False) for item in _mail_addresses])
+                    if _mail_addresses[idx].get('verified', False) and not _has_primary:
                         _mail_addresses[idx]['primary'] = True
             self._data_in.pop('mail')
 
