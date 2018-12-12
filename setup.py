@@ -13,7 +13,7 @@ if os.path.exists(README_fn):
 version = '0.10.3b10'
 
 install_requires = [
-    'six==1.11.0',
+    'six>=1.11.0',
     'eduid_am>=0.6.0',
     'eduid_userdb>=0.4.1b0',
     'eduid_common>=0.1.3b5',
