@@ -199,6 +199,26 @@ class TestUser(TestCase):
         user = User(data)
         self.assertEqual(mail, user.mail_addresses.primary.email)
 
+    def test_user_with_indirectly_verified_primary_mail_and_explicit_primary_mail(self):
+        """
+        If a user has manage to verify a mail address in the new style with the same address still
+        set in old style mail property. Do not make old mail address primary if a primary all ready exists.
+        """
+        old_mail = u'yahoo@example.com'
+        new_mail = u'not_yahoo@example.com'
+        data = {u'_id': ObjectId(),
+                u'eduPersonPrincipalName': u'lutol-bafim',
+                u'mail': old_mail,
+                u'mailAliases': [{u'email': old_mail, u'verified': True, u'primary': False},
+                                 {u'email': new_mail, u'verified': True, u'primary': True}],
+                u'passwords': [{u'created_ts': datetime.datetime(2014, 9, 4, 8, 57, 7, 362000),
+                                u'credential_id': str(ObjectId()),
+                                u'salt': u'salt',
+                                u'source': u'dashboard'}],
+                }
+        user = User(data)
+        self.assertEqual(new_mail, user.mail_addresses.primary.email)
+
     def test_user_with_csrf_junk_in_mail_address(self):
         """
         For a long time, Dashboard leaked CSRF tokens into the mail address dicts.
