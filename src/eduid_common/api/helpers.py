@@ -9,6 +9,36 @@ from eduid_userdb.nin import Nin
 __author__ = 'lundberg'
 
 
+def set_user_names_from_offical_address(proofing_user, proofing_log_entry):
+    """
+    :param proofing_user: Proofing app private userdb user
+    :param proofing_log_entry: Proofing log entry element
+
+    :type proofing_user: eduid_userdb.proofing.ProofingUser
+    :type proofing_log_entry: eduid_userdb.log.element.NinProofingLogElement
+
+    :returns: User object
+    :rtype: eduid_userdb.proofing.ProofingUser
+    """
+    navet_data = proofing_log_entry.user_postal_address
+    name = navet_data['Name']
+    proofing_user.given_name = name['GivenName']
+    proofing_user.surname = name['Surname']
+    given_name_marking = name.get('GivenNameMarking')
+    # Only set display name if not already set
+    if not proofing_user.display_name:
+        if given_name_marking:
+            given_name_marking = (int(given_name_marking)/10)-1  # ex. "20" -> 1 (second given name)
+            proofing_user.display_name = u'{} {}'.format(name['GivenName'].split()[given_name_marking],
+                                                         proofing_user.surname)
+        else:
+            proofing_user.display_name = u'{} {}'.format(user.given_name, user.surname)
+    current_app.logger.info(u'User names set from official address')
+    current_app.logger.debug(u'{} resulted in given_name: {}, surname: {} and display_name: {}'.format(
+        name, proofing_user.given_name, proofing_user.surname, proofing_user.display_name))
+    return proofing_user
+
+
 def number_match_proofing(user, proofing_state, number):
     """
     :param user: Central userdb user
@@ -90,6 +120,9 @@ def verify_nin_for_user(user, proofing_state, proofing_log_entry):
     nin_element.is_verified = True
     nin_element.verified_ts = True
     nin_element.verified_by = proofing_state.nin.created_by
+
+    # Update users name
+    proofing_user = set_user_names_from_offical_address(proofing_user, proofing_log_entry)
 
     # If user was updated successfully continue with logging the proof and saving the user to central db
     # Send proofing data to the proofing log
