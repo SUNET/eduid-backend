@@ -28,7 +28,7 @@ def set_user_names_from_offical_address(proofing_user, proofing_log_entry):
     # Only set display name if not already set
     if not proofing_user.display_name:
         if given_name_marking:
-            given_name_marking = (int(given_name_marking)/10)-1  # ex. "20" -> 1 (second given name)
+            given_name_marking = int((int(given_name_marking)/10)-1)  # ex. "20" -> 1 (second given name)
             proofing_user.display_name = u'{} {}'.format(name['GivenName'].split()[given_name_marking],
                                                          proofing_user.surname)
         else:
