@@ -146,6 +146,7 @@ def generate_auth_token(shared_key, usage, data, ts=None):
         return b64, timestamp
     return b64.decode('utf-8'), timestamp
 
+
 def verify_auth_token(shared_key, eppn, token, nonce, timestamp, usage, generator=sha256):
     """
     Authenticate a user with a token.

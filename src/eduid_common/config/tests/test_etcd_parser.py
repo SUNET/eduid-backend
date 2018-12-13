@@ -170,7 +170,8 @@ class TestEtcdParser(unittest.TestCase):
         self.parser.set('MY_SET_KEY', '${MY_VALUE}')
         self.parser.set('MY_VALUE', 'a nice value')
         self.parser.set('A_LIST', ['test', '${MY_VALUE}', {'A_DICT_IN_A_LIST': '${MY_VALUE}'}])
-        self.parser.set('ANOTHER_DICT', {'STRING_IN_SUB_DICT': '${MY_VALUE}'})
+        self.parser.set('ANOTHER_DICT', {'STRING_IN_SUB_DICT': '${MY_VALUE}',
+                                         'A_DICT_IN_A_DICT': {'another_key': '${MY_VALUE}'}})
 
         read_config = self.parser.read_configuration()
 
@@ -183,7 +184,8 @@ class TestEtcdParser(unittest.TestCase):
                 {'A_DICT_IN_A_LIST': 'a nice value'},
             ],
             'ANOTHER_DICT': {
-                'STRING_IN_SUB_DICT': 'a nice value'
+                'STRING_IN_SUB_DICT': 'a nice value',
+                'A_DICT_IN_A_DICT': {'another_key': 'a nice value'}
             }
         }
         self.assertEqual(expected, read_config)

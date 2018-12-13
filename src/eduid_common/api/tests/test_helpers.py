@@ -8,14 +8,15 @@ from mock import patch
 from eduid_common.api.testing import EduidAPITestCase, NEW_USER_EXAMPLE
 from eduid_userdb.userdb import UserDB
 from eduid_userdb.user import User
+from eduid_userdb.proofing import ProofingUser
 from eduid_userdb.exceptions import UserDoesNotExist
 from eduid_userdb.nin import Nin
 from eduid_userdb.proofing.state import NinProofingState
 from eduid_userdb.proofing import NinProofingElement
 from eduid_userdb.logs import ProofingLog
-from eduid_userdb.logs.element import ProofingLogElement
+from eduid_userdb.logs.element import ProofingLogElement, NinProofingLogElement
 from eduid_common.api.am import init_relay
-from eduid_common.api.helpers import add_nin_to_user, verify_nin_for_user
+from eduid_common.api.helpers import add_nin_to_user, verify_nin_for_user, set_user_names_from_offical_address
 
 __author__ = 'lundberg'
 
@@ -25,6 +26,18 @@ class NinHelpersTest(EduidAPITestCase):
     def setUp(self):
         self.test_user_nin = '200001023456'
         self.wrong_test_user_nin = '199909096789'
+        self.navet_response = {
+            u'Name': {
+                u'GivenName': u'Testaren Test',
+                u'GivenNameMarking': u'20',
+                u'Surname': u'Testsson'
+            },
+            u'OfficialAddress': {
+                u'Address2': u'\xd6RGATAN 79 LGH 10',
+                u'City': u'LANDET',
+                u'PostalCode': u'12345'
+            }
+        }
         super(NinHelpersTest, self).setUp()
 
     def load_app(self, config):
@@ -126,8 +139,10 @@ class NinHelpersTest(EduidAPITestCase):
         user = self.app.central_userdb.get_user_by_eppn(eppn)
         nin_element = NinProofingElement(number=self.test_user_nin, application='NinHelpersTest', verified=False)
         proofing_state = NinProofingState({'eduPersonPrincipalName': eppn, 'nin': nin_element.to_dict()})
-        proofing_log_entry = ProofingLogElement(user, created_by=proofing_state.nin.created_by, proofing_method='test',
-                                                proofing_version='2017')
+        proofing_log_entry = NinProofingLogElement(user, created_by=proofing_state.nin.created_by,
+                                                   nin=proofing_state.nin.number,
+                                                   user_postal_address=self.navet_response, proofing_method='test',
+                                                   proofing_version='2017')
         with self.app.app_context():
             verify_nin_for_user(user, proofing_state, proofing_log_entry)
         user = self.app.private_userdb.get_user_by_eppn(eppn)
@@ -148,8 +163,10 @@ class NinHelpersTest(EduidAPITestCase):
         user = self.app.central_userdb.get_user_by_eppn(eppn)
         nin_element = NinProofingElement(number=self.test_user_nin, application='NinHelpersTest', verified=False)
         proofing_state = NinProofingState({'eduPersonPrincipalName': eppn, 'nin': nin_element.to_dict()})
-        proofing_log_entry = ProofingLogElement(user, created_by=proofing_state.nin.created_by, proofing_method='test',
-                                                proofing_version='2017')
+        proofing_log_entry = NinProofingLogElement(user, created_by=proofing_state.nin.created_by,
+                                                   nin=proofing_state.nin.number,
+                                                   user_postal_address=self.navet_response, proofing_method='test',
+                                                   proofing_version='2017')
         with self.app.app_context():
             verify_nin_for_user(user, proofing_state, proofing_log_entry)
         user = self.app.private_userdb.get_user_by_eppn(eppn)
@@ -174,3 +191,102 @@ class NinHelpersTest(EduidAPITestCase):
             verify_nin_for_user(user, proofing_state, proofing_log_entry)
         with self.assertRaises(UserDoesNotExist):
             self.app.private_userdb.get_user_by_eppn(eppn)
+
+    def test_set_user_names_from_offical_address_1(self):
+        userdata = deepcopy(NEW_USER_EXAMPLE)
+        del userdata['displayName']
+        user = ProofingUser(data=userdata)
+        proofing_element = NinProofingLogElement(user, created_by='test', nin='190102031234',
+                                                 user_postal_address=self.navet_response, proofing_method='test',
+                                                 proofing_version='2018v1')
+        with self.app.app_context():
+            user = set_user_names_from_offical_address(user, proofing_element)
+            self.assertEqual(user.given_name, 'Testaren Test')
+            self.assertEqual(user.surname, 'Testsson')
+            self.assertEqual(user.display_name, 'Test Testsson')
+
+    def test_set_user_names_from_offical_address_2(self):
+        userdata = deepcopy(NEW_USER_EXAMPLE)
+        del userdata['displayName']
+        user = ProofingUser(data=userdata)
+        navet_response = {
+            u'Name':
+                {
+                    u'GivenName': u'Test',
+                    u'GivenNameMarking': u'10',
+                    u'Surname': u'Testsson'
+                },
+            u'OfficialAddress': {u'Address2': u'\xd6RGATAN 79 LGH 10',
+                                 u'City': u'LANDET',
+                                 u'PostalCode': u'12345'
+                                 }
+        }
+        proofing_element = NinProofingLogElement(user, created_by='test', nin='190102031234',
+                                                 user_postal_address=navet_response, proofing_method='test',
+                                                 proofing_version='2018v1')
+        with self.app.app_context():
+            user = set_user_names_from_offical_address(user, proofing_element)
+            self.assertEqual(user.given_name, 'Test')
+            self.assertEqual(user.surname, 'Testsson')
+            self.assertEqual(user.display_name, 'Test Testsson')
+
+    def test_set_user_names_from_offical_address_3(self):
+        userdata = deepcopy(NEW_USER_EXAMPLE)
+        del userdata['displayName']
+        user = ProofingUser(data=userdata)
+        navet_response = {
+            u'Name':
+                {
+                    u'GivenName': u'Pippilotta Viktualia Rullgardina Krusmynta Efraimsdotter',
+                    u'GivenNameMarking': u'30',
+                    u'Surname': u'L\xe5ngstrump'
+                },
+            u'OfficialAddress': {u'Address2': u'\xd6RGATAN 79 LGH 10',
+                                 u'City': u'LANDET',
+                                 u'PostalCode': u'12345'
+                                 }
+        }
+        proofing_element = NinProofingLogElement(user, created_by='test', nin='190102031234',
+                                                 user_postal_address=navet_response, proofing_method='test',
+                                                 proofing_version='2018v1')
+        with self.app.app_context():
+            user = set_user_names_from_offical_address(user, proofing_element)
+            self.assertEqual(user.given_name, u'Pippilotta Viktualia Rullgardina Krusmynta Efraimsdotter')
+            self.assertEqual(user.surname, u'Långstrump')
+            self.assertEqual(user.display_name, u'Rullgardina Långstrump')
+
+    def test_set_user_names_from_offical_address_4(self):
+        userdata = deepcopy(NEW_USER_EXAMPLE)
+        del userdata['displayName']
+        user = ProofingUser(data=userdata)
+        navet_response = {
+            u'Name':
+                {
+                    u'GivenName': u'Testaren Test',
+                    u'Surname': u'Testsson'
+                },
+            u'OfficialAddress': {u'Address2': u'\xd6RGATAN 79 LGH 10',
+                                 u'City': u'LANDET',
+                                 u'PostalCode': u'12345'
+                                 }
+        }
+        proofing_element = NinProofingLogElement(user, created_by='test', nin='190102031234',
+                                                 user_postal_address=navet_response, proofing_method='test',
+                                                 proofing_version='2018v1')
+        with self.app.app_context():
+            user = set_user_names_from_offical_address(user, proofing_element)
+            self.assertEqual(user.given_name, 'Testaren Test')
+            self.assertEqual(user.surname, 'Testsson')
+            self.assertEqual(user.display_name, 'Testaren Test Testsson')
+
+    def test_set_user_names_from_offical_address_existing_display_name(self):
+        userdata = deepcopy(NEW_USER_EXAMPLE)
+        user = ProofingUser(data=userdata)
+        proofing_element = NinProofingLogElement(user, created_by='test', nin='190102031234',
+                                                 user_postal_address=self.navet_response, proofing_method='test',
+                                                 proofing_version='2018v1')
+        with self.app.app_context():
+            user = set_user_names_from_offical_address(user, proofing_element)
+            self.assertEqual(user.given_name, 'Testaren Test')
+            self.assertEqual(user.surname, 'Testsson')
+            self.assertEqual(user.display_name, 'John Smith')
