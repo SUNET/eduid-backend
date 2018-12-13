@@ -8,6 +8,7 @@ from mock import patch
 from eduid_common.api.testing import EduidAPITestCase, NEW_USER_EXAMPLE
 from eduid_userdb.userdb import UserDB
 from eduid_userdb.user import User
+from eduid_userdb.proofing import ProofingUser
 from eduid_userdb.exceptions import UserDoesNotExist
 from eduid_userdb.nin import Nin
 from eduid_userdb.proofing.state import NinProofingState
@@ -194,7 +195,7 @@ class NinHelpersTest(EduidAPITestCase):
     def test_set_user_names_from_offical_address_1(self):
         userdata = deepcopy(NEW_USER_EXAMPLE)
         del userdata['displayName']
-        user = User(data=userdata)
+        user = ProofingUser(data=userdata)
         proofing_element = NinProofingLogElement(user, created_by='test', nin='190102031234',
                                                  user_postal_address=self.navet_response, proofing_method='test',
                                                  proofing_version='2018v1')
@@ -207,7 +208,7 @@ class NinHelpersTest(EduidAPITestCase):
     def test_set_user_names_from_offical_address_2(self):
         userdata = deepcopy(NEW_USER_EXAMPLE)
         del userdata['displayName']
-        user = User(data=userdata)
+        user = ProofingUser(data=userdata)
         navet_response = {
             u'Name':
                 {
@@ -232,7 +233,7 @@ class NinHelpersTest(EduidAPITestCase):
     def test_set_user_names_from_offical_address_3(self):
         userdata = deepcopy(NEW_USER_EXAMPLE)
         del userdata['displayName']
-        user = User(data=userdata)
+        user = ProofingUser(data=userdata)
         navet_response = {
             u'Name':
                 {
@@ -257,7 +258,7 @@ class NinHelpersTest(EduidAPITestCase):
     def test_set_user_names_from_offical_address_4(self):
         userdata = deepcopy(NEW_USER_EXAMPLE)
         del userdata['displayName']
-        user = User(data=userdata)
+        user = ProofingUser(data=userdata)
         navet_response = {
             u'Name':
                 {
@@ -280,7 +281,7 @@ class NinHelpersTest(EduidAPITestCase):
 
     def test_set_user_names_from_offical_address_existing_display_name(self):
         userdata = deepcopy(NEW_USER_EXAMPLE)
-        user = User(data=userdata)
+        user = ProofingUser(data=userdata)
         proofing_element = NinProofingLogElement(user, created_by='test', nin='190102031234',
                                                  user_postal_address=self.navet_response, proofing_method='test',
                                                  proofing_version='2018v1')

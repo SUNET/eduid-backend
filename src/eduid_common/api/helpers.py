@@ -32,7 +32,7 @@ def set_user_names_from_offical_address(proofing_user, proofing_log_entry):
             proofing_user.display_name = u'{} {}'.format(name['GivenName'].split()[given_name_marking],
                                                          proofing_user.surname)
         else:
-            proofing_user.display_name = u'{} {}'.format(user.given_name, user.surname)
+            proofing_user.display_name = u'{} {}'.format(proofing_user.given_name, proofing_user.surname)
     current_app.logger.info(u'User names set from official address')
     current_app.logger.debug(u'{} resulted in given_name: {}, surname: {} and display_name: {}'.format(
         name, proofing_user.given_name, proofing_user.surname, proofing_user.display_name))
