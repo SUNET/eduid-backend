@@ -105,7 +105,7 @@ class U2F(Credential):
         """
         Return the element that is used as key.
         """
-        return 'sha256:' + sha256(self.keyhandle).hexdigest()
+        return 'sha256:' + sha256(self.keyhandle.encode('utf-8')).hexdigest()
 
     @property
     def version(self):

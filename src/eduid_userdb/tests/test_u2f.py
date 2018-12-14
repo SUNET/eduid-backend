@@ -37,7 +37,7 @@ _three_dict = {
 }
 
 def _keyid(kh):
-    return 'sha256:' + sha256(kh).hexdigest()
+    return 'sha256:' + sha256(kh.encode('utf-8')).hexdigest()
 
 
 class TestU2F(TestCase):

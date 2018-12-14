@@ -37,6 +37,9 @@ _four_dict = {
     'public_key': 'foo',
 }
 
+def _keyid(kh):
+    return 'sha256:' + sha256(kh.encode('utf-8')).hexdigest()
+
 
 class TestCredentialList(TestCase):
 
@@ -76,7 +79,7 @@ class TestCredentialList(TestCase):
         match = self.four.filter(U2F)
         self.assertEqual(match.count, 1)
         token = match.to_list()[0]
-        self.assertEqual(token.key, 'sha256:' + sha256('firstU2FElement').hexdigest())
+        self.assertEqual(token.key, _keyid('firstU2FElement'))
         self.assertEqual(token.public_key, 'foo')
 
     def test_add(self):
