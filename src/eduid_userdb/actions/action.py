@@ -1,5 +1,6 @@
 #
 # Copyright (c) 2014-2015 NORDUnet A/S
+# Copyright (c) 2018 SUNET
 # All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or
@@ -65,7 +66,7 @@ class Action(object):
     :type preference: int | None
     :type session: str | None
     :type params: dict | None
-    :type result: object
+    :type result: dict | None
     :type raise_on_unknown: bool
     :type old_format: bool
     """
@@ -236,7 +237,7 @@ class Action(object):
         """
         Get the action result (return value from actions to IdP typically).
 
-        :rtype: str
+        :rtype: dict | None
         """
         return self._data.get('result')
 
@@ -244,8 +245,10 @@ class Action(object):
     def result(self, value):
         """
         :param value: result of performing action (must be serializable by database)
-        :type value: object
+        :type value: dict | None
         """
+        if value is not None and not isinstance(value, dict):
+            raise ValueError('The result must be a dict or None')
         self._data['result'] = value
 
     # -----------------------------------------------------------------
@@ -254,7 +257,7 @@ class Action(object):
         Return action data serialized into a dict that can be stored in MongoDB.
 
         :return: Action as dict
-        :rtype: dict
+        :rtype: dict | None
         """
         res = copy.deepcopy(self._data)  # avoid caller messing up our private _data
         if res['session'] == '':
