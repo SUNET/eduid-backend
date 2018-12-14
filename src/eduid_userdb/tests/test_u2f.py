@@ -4,6 +4,8 @@ import copy
 import datetime
 import eduid_userdb.exceptions
 import eduid_userdb.element
+
+from hashlib import sha256
 from eduid_userdb.credentials import CredentialList, U2F
 
 __author__ = 'lundberg'
@@ -34,6 +36,9 @@ _three_dict = {
     'public_key': 'foo',
 }
 
+def _keyid(kh):
+    return 'sha256:' + sha256(kh.encode('utf-8')).hexdigest()
+
 
 class TestU2F(TestCase):
 
@@ -47,11 +52,11 @@ class TestU2F(TestCase):
         """
         Test that the 'key' property (used by CredentialList) works for the credential.
         """
-        this = self.one.find('firstU2FElement')
-        self.assertEqual(this.key, this.keyhandle)
+        this = self.one.find(_keyid('firstU2FElement'))
+        self.assertEqual(this.key, _keyid(this.keyhandle))
 
     def test_setting_invalid_keyhandle(self):
-        this = self.one.find('firstU2FElement')
+        this = self.one.find(_keyid('firstU2FElement'))
         with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
             this.keyhandle = None
 
@@ -78,14 +83,14 @@ class TestU2F(TestCase):
         self.assertEqual(out['foo'], one['foo'])
 
     def test_created_by(self):
-        this = self.three.find('thirdU2FElement')
+        this = self.three.find(_keyid('thirdU2FElement'))
         this.created_by = 'unit test'
         self.assertEqual(this.created_by, 'unit test')
         with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
             this.created_by = False
 
     def test_modify_created_by(self):
-        this = self.three.find('thirdU2FElement')
+        this = self.three.find(_keyid('thirdU2FElement'))
         with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
             this.created_by = 1
         this.created_by = 'unit test'
@@ -95,14 +100,14 @@ class TestU2F(TestCase):
             this.created_by = 'test unit'
 
     def test_created_ts(self):
-        this = self.three.find('thirdU2FElement')
+        this = self.three.find(_keyid('thirdU2FElement'))
         this.created_ts = True
         self.assertIsInstance(this.created_ts, datetime.datetime)
         with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
             this.created_ts = False
 
     def test_modify_created_ts(self):
-        this = self.three.find('thirdU2FElement')
+        this = self.three.find(_keyid('thirdU2FElement'))
         this.created_ts = datetime.datetime.utcnow()
         with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
             this.created_ts = None
@@ -110,7 +115,7 @@ class TestU2F(TestCase):
             this.created_ts = True
 
     def test_proofing_method(self):
-        this = self.three.find('thirdU2FElement')
+        this = self.three.find(_keyid('thirdU2FElement'))
         this.proofing_method = 'TEST'
         self.assertEqual(this.proofing_method, 'TEST')
         this.proofing_method = 'TEST2'
@@ -122,7 +127,7 @@ class TestU2F(TestCase):
 
 
     def test_proofing_version(self):
-        this = self.three.find('thirdU2FElement')
+        this = self.three.find(_keyid('thirdU2FElement'))
         this.proofing_version = 'TEST'
         self.assertEqual(this.proofing_version, 'TEST')
         this.proofing_version = 'TEST2'

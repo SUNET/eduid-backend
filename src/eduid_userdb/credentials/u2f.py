@@ -35,6 +35,7 @@
 from __future__ import absolute_import
 
 import copy
+from hashlib import sha256
 from six import string_types
 from eduid_userdb.credentials import Credential
 from eduid_userdb.exceptions import UserHasUnknownData, UserDBValueError
@@ -104,7 +105,7 @@ class U2F(Credential):
         """
         Return the element that is used as key.
         """
-        return self.keyhandle
+        return 'sha256:' + sha256(self.keyhandle.encode('utf-8')).hexdigest()
 
     @property
     def version(self):
