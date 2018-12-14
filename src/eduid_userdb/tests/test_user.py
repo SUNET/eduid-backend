@@ -3,14 +3,18 @@ from six import string_types
 import datetime
 
 from unittest import TestCase
+from hashlib import sha256
 
 from eduid_userdb.user import User
 from eduid_userdb.tou import ToUList
 from eduid_userdb.exceptions import UserHasUnknownData, UserHasNotCompletedSignup, UserIsRevoked, EduIDUserDBError
 from eduid_userdb import LockedIdentityNin, OidcAuthorization, OidcIdToken, Orcid
-from eduid_userdb.credentials import U2F, Password, u2f_from_dict, METHOD_SWAMID_AL2_MFA
+from eduid_userdb.credentials import METHOD_SWAMID_AL2_MFA
 
 __author__ = 'ft'
+
+def _keyid(kh):
+    return 'sha256:' + sha256(kh).hexdigest()
 
 
 class TestUser(TestCase):
@@ -503,7 +507,7 @@ class TestUser(TestCase):
     def test_user_verified_credentials(self):
         ver = [x for x in self.user2.credentials.to_list() if x.is_verified]
         keys = [x.key for x in ver]
-        self.assertEqual(keys, ['U2F SWAMID AL2'])
+        self.assertEqual(keys, [_keyid('U2F SWAMID AL2')])
 
     def test_user_unverified_credential(self):
         cred = [x for x in self.user2.credentials.to_list() if x.is_verified][0]

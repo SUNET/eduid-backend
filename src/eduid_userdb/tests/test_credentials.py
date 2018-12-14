@@ -1,6 +1,8 @@
 from unittest import TestCase
 
+from hashlib import sha256
 from bson.objectid import ObjectId
+
 import eduid_userdb.exceptions
 import eduid_userdb.element
 from eduid_userdb.credentials import CredentialList, U2F, Password
@@ -74,7 +76,7 @@ class TestCredentialList(TestCase):
         match = self.four.filter(U2F)
         self.assertEqual(match.count, 1)
         token = match.to_list()[0]
-        self.assertEqual(token.key, 'firstU2FElement')
+        self.assertEqual(token.key, 'sha256:' + sha256('firstU2FElement').hexdigest())
         self.assertEqual(token.public_key, 'foo')
 
     def test_add(self):
