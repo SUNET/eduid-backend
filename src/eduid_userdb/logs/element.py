@@ -68,6 +68,36 @@ class ProofingLogElement(LogElement):
         self._data['proofing_version'] = proofing_version
 
 
+class NinProofingLogElement(ProofingLogElement):
+
+    def __init__(self, user, created_by, nin, user_postal_address, proofing_method, proofing_version):
+        """
+        :param user: user object
+        :param created_by: Application creating the log element
+        :param nin: National identity number
+        :param user_postal_address: Navet response for users official address
+        :param proofing_version: Proofing method version number
+
+        :type user: eduid_userdb.User
+        :type created_by: six.string_types
+        :type nin: six.string_types
+        :type user_postal_address: dict
+        :type proofing_version: six.string_types
+
+        :return: NinProofingLogElement object
+        :rtype: NinProofingLogElement
+        """
+        super(NinProofingLogElement, self).__init__(user, created_by, proofing_method=proofing_method,
+                                                    proofing_version=proofing_version)
+        self._required_keys.extend(['nin', 'user_postal_address'])
+        self._data['nin'] = nin
+        self._data['user_postal_address'] = user_postal_address
+
+    @property
+    def user_postal_address(self):
+        return self._data['user_postal_address']
+
+
 class MailAddressProofing(ProofingLogElement):
     """
     {
@@ -140,7 +170,7 @@ class PhoneNumberProofing(ProofingLogElement):
         self._data['reference'] = reference
 
 
-class TeleAdressProofing(ProofingLogElement):
+class TeleAdressProofing(NinProofingLogElement):
     """
     {
         'eduPersonPrincipalName': eppn,
@@ -177,13 +207,11 @@ class TeleAdressProofing(ProofingLogElement):
         :return: TeleAdressProofing object
         :rtype: TeleAdressProofing
         """
-        super(TeleAdressProofing, self).__init__(user, created_by, proofing_method='TeleAdress',
-                                                 proofing_version=proofing_version)
-        self._required_keys.extend(['reason', 'nin', 'mobile_number', 'user_postal_address'])
+        super(TeleAdressProofing, self).__init__(user, created_by, nin, user_postal_address,
+                                                 proofing_method='TeleAdress', proofing_version=proofing_version)
+        self._required_keys.extend(['reason', 'mobile_number'])
         self._data['reason'] = reason
-        self._data['nin'] = nin
         self._data['mobile_number'] = mobile_number
-        self._data['user_postal_address'] = user_postal_address
 
 
 class TeleAdressProofingRelation(TeleAdressProofing):
@@ -240,7 +268,7 @@ class TeleAdressProofingRelation(TeleAdressProofing):
         self._data['registered_postal_address'] = registered_postal_address
 
 
-class LetterProofing(ProofingLogElement):
+class LetterProofing(NinProofingLogElement):
     """
     {
         'eduPersonPrincipalName': eppn,
@@ -276,17 +304,14 @@ class LetterProofing(ProofingLogElement):
         :return: LetterProofing object
         :rtype: LetterProofing
         """
-        super(LetterProofing, self).__init__(user, created_by, proofing_method='letter',
+        super(LetterProofing, self).__init__(user, created_by, nin, user_postal_address, proofing_method='letter',
                                              proofing_version=proofing_version)
-        self._required_keys.extend(['proofing_method', 'nin', 'letter_sent_to', 'transaction_id',
-                                    'user_postal_address'])
-        self._data['nin'] = nin
+        self._required_keys.extend(['proofing_method', 'letter_sent_to', 'transaction_id'])
         self._data['letter_sent_to'] = letter_sent_to
         self._data['transaction_id'] = transaction_id
-        self._data['user_postal_address'] = user_postal_address
 
 
-class SeLegProofing(ProofingLogElement):
+class SeLegProofing(NinProofingLogElement):
     """
     {
         'eduPersonPrincipalName': eppn,
@@ -322,13 +347,11 @@ class SeLegProofing(ProofingLogElement):
         :return: SeLegProofing object
         :rtype: SeLegProofing
         """
-        super(SeLegProofing, self).__init__(user, created_by, proofing_method='se-leg',
+        super(SeLegProofing, self).__init__(user, created_by, nin, user_postal_address, proofing_method='se-leg',
                                             proofing_version=proofing_version)
-        self._required_keys.extend(['proofing_method', 'nin', 'vetting_by', 'transaction_id', 'user_postal_address'])
-        self._data['nin'] = nin
+        self._required_keys.extend(['proofing_method', 'vetting_by', 'transaction_id'])
         self._data['vetting_by'] = vetting_by
         self._data['transaction_id'] = transaction_id
-        self._data['user_postal_address'] = user_postal_address
 
 
 class SeLegProofingFrejaEid(SeLegProofing):
@@ -420,7 +443,7 @@ class OrcidProofing(ProofingLogElement):
         self._data['audience'] = audience
 
 
-class SwedenConnectProofing(ProofingLogElement):
+class SwedenConnectProofing(NinProofingLogElement):
     """
     {
         'eduPersonPrincipalName': eppn,
@@ -457,13 +480,11 @@ class SwedenConnectProofing(ProofingLogElement):
         :return: SwedenConnectProofing object
         :rtype: SwedenConnectProofing
         """
-        super(SwedenConnectProofing, self).__init__(user, created_by, proofing_method='swedenconnect',
-                                                    proofing_version=proofing_version)
-        self._required_keys.extend(['nin', 'issuer', 'authn_context_class', 'user_postal_address'])
-        self._data['nin'] = nin
+        super(SwedenConnectProofing, self).__init__(user, created_by, nin, user_postal_address,
+                                                    proofing_method='swedenconnect', proofing_version=proofing_version)
+        self._required_keys.extend(['issuer', 'authn_context_class'])
         self._data['issuer'] = issuer
         self._data['authn_context_class'] = authn_context_class
-        self._data['user_postal_address'] = user_postal_address
 
 
 class MFATokenProofing(SwedenConnectProofing):
