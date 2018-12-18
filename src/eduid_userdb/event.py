@@ -57,11 +57,11 @@ class Event(Element):
             data = dict(created_by = application,
                         created_ts = created_ts,
                         event_type = event_type,
-                        id = event_id,
+                        event_id = event_id,
                         )
         Element.__init__(self, data)
         self.event_type = data.pop('event_type', None)
-        if 'id' in data:  # TODO: Load and save all users in the database to replace id with credential_id
+        if 'id' in data:  # TODO: Load and save all users in the database to replace id with event_id
             data['event_id'] = data.pop('id')
         self.event_id = data.pop('event_id')
 
@@ -123,7 +123,7 @@ class Event(Element):
         :type value: bson.ObjectId
         """
         if not isinstance(value, ObjectId):
-            raise UserDBValueError("Invalid 'id': {!r}".format(value))
+            raise UserDBValueError("Invalid 'event_id': {!r}".format(value))
         self._data['event_id'] = value
 
     # -----------------------------------------------------------------
