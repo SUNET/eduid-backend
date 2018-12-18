@@ -1,5 +1,6 @@
 #
 # Copyright (c) 2015 NORDUnet A/S
+# Copyright (c) 2018 SUNET
 # All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or
@@ -57,11 +58,11 @@ class Event(Element):
             data = dict(created_by = application,
                         created_ts = created_ts,
                         event_type = event_type,
-                        id = event_id,
+                        event_id = event_id,
                         )
         Element.__init__(self, data)
         self.event_type = data.pop('event_type', None)
-        if 'id' in data:  # TODO: Load and save all users in the database to replace id with credential_id
+        if 'id' in data:  # TODO: Load and save all users in the database to replace id with event_id
             data['event_id'] = data.pop('id')
         self.event_id = data.pop('event_id')
 
@@ -123,7 +124,7 @@ class Event(Element):
         :type value: bson.ObjectId
         """
         if not isinstance(value, ObjectId):
-            raise UserDBValueError("Invalid 'id': {!r}".format(value))
+            raise UserDBValueError("Invalid 'event_id': {!r}".format(value))
         self._data['event_id'] = value
 
     # -----------------------------------------------------------------
@@ -189,8 +190,12 @@ class EventList(ElementList):
         """
         if not isinstance(event, self._event_class):
             raise UserDBValueError("Invalid event: {!r} (expected {!r})".format(event, self._event_class))
-        if self.find(event.key):
-            raise DuplicateElementViolation("event {!s} already in list".format(event.key))
+        existing = self.find(event.key)
+        if existing:
+            if event.to_dict() == existing.to_dict():
+                # Silently accept duplicate identical events to clean out bad entrys from the database
+                return
+            raise DuplicateElementViolation("Event {!s} already in list".format(event.key))
         super(EventList, self).add(event)
 
     def to_list_of_dicts(self, old_userdb_format=False, mixed_format=False):

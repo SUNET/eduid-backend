@@ -1,5 +1,6 @@
 #
 # Copyright (c) 2015 NORDUnet A/S
+# Copyright (c) 2018 SUNET
 # All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or
@@ -36,7 +37,7 @@ import copy
 from six import string_types
 
 from eduid_userdb.event import Event, EventList
-from eduid_userdb.exceptions import BadEvent, UserDBValueError
+from eduid_userdb.exceptions import BadEvent
 
 
 class ToUEvent(Event):

@@ -118,7 +118,7 @@ class RawDb(object):
                 res = 'REMOVE {}'.format(db_res)
 
         # Write changes.txt after saving, so it will also indicate a successful save
-        self._write_changes(raw, backup_dir, res)
+        return self._write_changes(raw, backup_dir, res)
 
     def _write_changes(self, raw, backup_dir, res):
         """
