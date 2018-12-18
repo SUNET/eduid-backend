@@ -1,5 +1,6 @@
 #
 # Copyright (c) 2015 NORDUnet A/S
+# Copyright (c) 2018 SUNET
 # All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or
@@ -189,8 +190,12 @@ class EventList(ElementList):
         """
         if not isinstance(event, self._event_class):
             raise UserDBValueError("Invalid event: {!r} (expected {!r})".format(event, self._event_class))
-        if self.find(event.key):
-            raise DuplicateElementViolation("event {!s} already in list".format(event.key))
+        existing = self.find(event.key)
+        if existing:
+            if event.to_dict() == existing.to_dict():
+                # Silently accept duplicate identical events to clean out bad entrys from the database
+                return
+            raise DuplicateElementViolation("Event {!s} already in list".format(event.key))
         super(EventList, self).add(event)
 
     def to_list_of_dicts(self, old_userdb_format=False, mixed_format=False):

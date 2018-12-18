@@ -8,6 +8,7 @@ import eduid_userdb.element
 from eduid_userdb.event import EventList
 from eduid_userdb.tou import ToUEvent
 from eduid_userdb.credentials import Password
+from copy import deepcopy
 
 __author__ = 'ft'
 
@@ -69,8 +70,16 @@ class TestEventList(TestCase):
         self.one.add(second)
         self.assertEqual(self.one.to_list_of_dicts(), self.two.to_list_of_dicts())
 
-    def test_add_duplicate(self):
+    def test_add_identical_duplicate(self):
+        old_len = self.two.count
         dup = self.two.to_list()[-1]
+        self.two.add(dup)
+        self.assertEqual(old_len, self.two.count)
+
+    def test_add_duplicate_key(self):
+        data = deepcopy(_two_dict)
+        data['version'] = 'other version'
+        dup = ToUEvent(data = data)
         with self.assertRaises(eduid_userdb.element.DuplicateElementViolation):
             self.two.add(dup)
 
