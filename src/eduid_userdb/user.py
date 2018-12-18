@@ -83,7 +83,6 @@ class User(object):
         self._parse_nins()
         self._parse_tous()
         self._parse_locked_identity()
-        self._orcid = None
         self._parse_orcid()
 
         self._credentials = CredentialList(self._data_in.pop('passwords', []))
@@ -252,6 +251,7 @@ class User(object):
 
         Parse the Orcid element.
         """
+        self._orcid = None
         _orcid = self._data_in.pop('orcid', None)
         if _orcid is not None:
             self._orcid = Orcid(data=_orcid)
@@ -582,7 +582,8 @@ class User(object):
         if 'eduPersonEntitlement' not in res:
             res['eduPersonEntitlement'] = res.pop('entitlements', [])
         # Remove these values if they have a value that evaluates to False
-        for _remove in ['displayName', 'givenName', 'surname', 'preferredLanguage', 'phone']:
+        for _remove in ['displayName', 'givenName', 'surname', 'preferredLanguage', 'phone',
+                        'orcid', 'eduPersonEntitlement', 'locked_identity', 'nins']:
             if _remove in res and not res[_remove]:
                 del res[_remove]
         if old_userdb_format:
