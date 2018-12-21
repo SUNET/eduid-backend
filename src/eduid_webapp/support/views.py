@@ -4,7 +4,7 @@ from __future__ import absolute_import
 from flask import Blueprint, current_app, request, render_template
 from eduid_common.api.decorators import require_support_personnel
 from eduid_userdb.support.models import SupportUserFilter, SupportSignupUserFilter
-from eduid_userdb.exceptions import UserHasUnknownData, UserDoesNotExist
+from eduid_userdb.exceptions import UserHasUnknownData, UserDoesNotExist, UserHasNotCompletedSignup
 from eduid_webapp.support.helpers import get_credentials_aux_data
 
 support_views = Blueprint('support', __name__, url_prefix='', template_folder='templates')
@@ -15,7 +15,11 @@ support_views = Blueprint('support', __name__, url_prefix='', template_folder='t
 def index(support_user):
     if request.method == 'POST':
         search_query = request.form.get('query')
-        lookup_users = current_app.support_user_db.search_users(request.form.get('query'))
+        try:
+            lookup_users = current_app.support_user_db.search_users(request.form.get('query'))
+        except UserHasNotCompletedSignup:
+            # Old bug where incomplete signup users where written to central db
+            lookup_users = []
         users = list()
 
         if len(lookup_users) == 0:
