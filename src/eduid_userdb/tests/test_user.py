@@ -527,7 +527,7 @@ class TestUser(TestCase):
     def test_user_verified_credentials(self):
         ver = [x for x in self.user2.credentials.to_list() if x.is_verified]
         keys = [x.key for x in ver]
-        self.assertEqual(keys, [_keyid('U2F SWAMID AL2')])
+        self.assertEqual(keys, [_keyid('U2F SWAMID AL2' + 'foo')])
 
     def test_user_unverified_credential(self):
         cred = [x for x in self.user2.credentials.to_list() if x.is_verified][0]
