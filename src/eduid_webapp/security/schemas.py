@@ -157,6 +157,12 @@ class RemoveU2FTokenRequestSchema(EduidSchema, CSRFRequestMixin):
 
     key_handle = fields.String(required=True, load_from='keyHandle', dump_to='keyHandle')
 
+# webauthn schemas
+
+class BeginWebauthnRegistrationResponseSchema(FluxStandardAction): pass
+class WebauthnBeginResponseSchema(FluxStandardAction): pass
+class WebauthnAttestationRequestSchema(EduidSchema, CSRFRequestMixin): pass
+
 
 # Reset password schemas
 class ResetPasswordEmailSchema(Schema):
