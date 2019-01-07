@@ -7,11 +7,16 @@ triggers:
   cron: "@weekly"
 slack:
   room: "eduid-builds"
+pre_build_script:
+  - "docker pull docker.sunet.se/eduid/redis:latest"
+  - "docker pull docker.sunet.se/library/etcd:v2.2.5"
+  - "docker pull docker.sunet.se/eduid/mongodb:latest"
 script:
   - "virtualenv venv"
   - ". venv/bin/activate"
   - "pip install -U setuptools"
   - "pip install --index-url https://pypi.sunet.se -r requirements/testing.txt"
+  - "pip freeze"
   - "nosetests"
   - "python setup.py sdist bdist_wheel --universal"
 publish_over_ssh:
