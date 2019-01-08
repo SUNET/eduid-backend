@@ -25,7 +25,7 @@ chown eduid: "${log_dir}" #"${state_dir}"
 chgrp eduid "${ini}" || true
 chmod 640 "${ini}" || true
 
-celery_args="--loglevel INFO"
+celery_args=${celery_args-'--loglevel INFO'}
 if [ -f /opt/eduid/src/${eduid_name}/setup.py -o \
      -f /opt/eduid/src/${app_name}/setup.py ]; then
     # eduid-dev environment
