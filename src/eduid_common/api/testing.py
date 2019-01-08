@@ -171,21 +171,25 @@ class EduidAPITestCase(unittest.TestCase):
         client.set_cookie(server_name, key=self.app.config.get('SESSION_COOKIE_NAME'), value=sess._session.token)
         yield client
 
-    def request_user_sync(self, user):
+    def request_user_sync(self, private_user):
         """
-
         Updates the central db user with data from the private db user.
 
-        :param user: User to save in central db
-        :type user: eduid_db.user.User
+        :param private_user: User to save in central db
+        :type private_user: Private subclass of eduid_db.user.User
         :return: True
         :rtype: Boolean
         """
-        user_id = str(user.user_id)
+        user_id = str(private_user.user_id)
         central_user = self.app.central_userdb.get_user_by_id(user_id)
         modified_ts = central_user.modified_ts
         central_user_dict = central_user.to_dict()
-        central_user_dict.update(user.to_dict())
+        private_user_dict = private_user.to_dict()
+        central_user_dict.update(private_user_dict)
+        # Iterate over all top level keys and remove those missing
+        for key in central_user_dict.keys():
+            if key not in private_user_dict:
+                central_user_dict.pop(key, None)
         user = User(data=central_user_dict)
         user.modified_ts = modified_ts
         self.app.central_userdb.save(user)
