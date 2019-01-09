@@ -6,6 +6,7 @@ import bson
 import time
 import pprint
 import datetime
+import argparse
 
 import bson.json_util
 
@@ -282,3 +283,31 @@ def get_client():
         dburi = 'mongodb://localhost:27017/'
 
     return MongoClient(dburi, read_preference=ReadPreference.SECONDARY)
+
+
+def get_argparser(description=None, eppn=False):
+    """
+    Get a standard argparser for raw db scripts.
+
+    In order to allow the caller to add more arguments, the caller must call parser.parse_args().
+
+    :param description: Script description
+    :param eppn: If True, add a positional argument for a single eppn.
+    :rtype: argparse.ArgumentParser
+    """
+    parser = argparse.ArgumentParser(description=description)
+    parser.add_argument('--debug',
+                        dest='debug',
+                        action='store_true', default=False,
+                        help='Enable debug operation'
+                        )
+    parser.add_argument('--force',
+                        dest='force',
+                        action='store_true', default=False,
+                        help='Actually make changes in the database'
+                        )
+
+    if eppn is True:
+        parser.add_argument('eppn', metavar='STR', type=str, help='eduPersonPrincipalName to operate on')
+
+    return parser
