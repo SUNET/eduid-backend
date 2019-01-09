@@ -149,13 +149,13 @@ class VerifyWithU2FTokenResponseSchema(FluxStandardAction):
 
 class ModifyU2FTokenRequestSchema(EduidSchema, CSRFRequestMixin):
 
-    credential_key = fields.String(required=True, load_from='credential_key', dump_to='credential_key')
+    credential_key = fields.String(required=True)
     description = fields.String(required=True)
 
 
 class RemoveU2FTokenRequestSchema(EduidSchema, CSRFRequestMixin):
 
-    credential_key = fields.String(required=True, load_from='credential_key', dump_to='credential_key')
+    credential_key = fields.String(required=True)
 
 
 # Reset password schemas
