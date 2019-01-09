@@ -91,6 +91,8 @@ def check_email_status(email):
         return 'address-used'
     except userdb.exceptions.UserDoesNotExist:
         current_app.logger.debug("No user found with email {} in central userdb".format(email))
+    except userdb.exceptions.UserHasNotCompletedSignup:
+        current_app.logger.warning("Incomplete user found with email {} in central userdb".format(email))
 
     signup_user = signup_db.get_user_by_pending_mail_address(email)
     if signup_user is not None:

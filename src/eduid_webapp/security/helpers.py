@@ -9,6 +9,7 @@ from eduid_common.authn.vccs import reset_password
 from eduid_common.authn.utils import generate_password
 from eduid_userdb.security import SecurityUser, PasswordResetEmailState, PasswordResetEmailAndPhoneState
 from eduid_userdb.logs import MailAddressProofing, PhoneNumberProofing
+from eduid_userdb.exceptions import UserHasNotCompletedSignup
 from eduid_webapp.security.schemas import ConvertRegisteredKeys
 
 __author__ = 'lundberg'
@@ -160,7 +161,11 @@ def send_password_reset_mail(email_address):
     :return:
     :rtype:
     """
-    user = current_app.central_userdb.get_user_by_mail(email_address, raise_on_missing=False)
+    try:
+        user = current_app.central_userdb.get_user_by_mail(email_address, raise_on_missing=False)
+    except UserHasNotCompletedSignup:
+        # Old bug where incomplete signup users where written to the central db
+        user = None
     if not user:
         current_app.logger.info("Found no user with the following address: {}.".format(email_address))
         return None
