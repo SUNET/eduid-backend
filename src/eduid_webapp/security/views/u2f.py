@@ -119,9 +119,9 @@ def verify(user, key_handle, signature_data, client_data):
 @UnmarshalWith(ModifyU2FTokenRequestSchema)
 @MarshalWith(SecurityResponseSchema)
 @require_user
-def modify(user, key_handle, description):
+def modify(user, credential_key, description):
     security_user = SecurityUser.from_user(user, current_app.private_userdb)
-    token_to_modify = security_user.credentials.filter(U2F).find(key_handle)
+    token_to_modify = security_user.credentials.filter(U2F).find(credential_key)
     if not token_to_modify:
         current_app.logger.error('Did not find requested U2F token for user.')
         return {'_error': True, 'message': 'security.u2f.missing_token'}
@@ -141,11 +141,11 @@ def modify(user, key_handle, description):
 @UnmarshalWith(RemoveU2FTokenRequestSchema)
 @MarshalWith(SecurityResponseSchema)
 @require_user
-def remove(user, key_handle):
+def remove(user, credential_key):
     security_user = SecurityUser.from_user(user, current_app.private_userdb)
-    token_to_remove = security_user.credentials.filter(U2F).find(key_handle)
+    token_to_remove = security_user.credentials.filter(U2F).find(credential_key)
     if token_to_remove:
-        security_user.credentials.remove(key_handle)
+        security_user.credentials.remove(credential_key)
         save_and_sync_user(security_user)
         current_app.stats.count(name='u2f_token_remove')
     return {

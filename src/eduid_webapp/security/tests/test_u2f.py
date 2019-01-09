@@ -46,7 +46,7 @@ class SecurityU2FTests(EduidAPITestCase):
                         application='eduid_security', created_ts=True)
         user.credentials.add(u2f_token)
         self.app.central_userdb.save(user)
-        return SecurityUser.from_user(user, self.app.private_userdb)
+        return u2f_token
 
     def test_enroll_first_key(self):
         response = self.browser.get('/u2f/enroll')
@@ -76,7 +76,7 @@ class SecurityU2FTests(EduidAPITestCase):
         self.assertEqual(response.status_code, 302)  # Redirect to token service
 
         eppn = self.test_user_data['eduPersonPrincipalName']
-        self.add_token_to_user(eppn)
+        user_token = self.add_token_to_user(eppn)
 
         with self.session_cookie(self.browser, eppn) as client:
             response2 = client.get('/u2f/enroll')
@@ -135,7 +135,7 @@ class SecurityU2FTests(EduidAPITestCase):
 
     def test_sign(self):
         eppn = self.test_user_data['eduPersonPrincipalName']
-        security_user = self.add_token_to_user(eppn)
+        user_token = self.add_token_to_user(eppn)
 
         response = self.browser.get('/u2f/sign')
         self.assertEqual(response.status_code, 302)  # Redirect to token service
@@ -160,7 +160,7 @@ class SecurityU2FTests(EduidAPITestCase):
     @patch('u2flib_server.model.U2fSignRequest.complete')
     def test_verify(self, mock_u2f_sign_complete):
         eppn = self.test_user_data['eduPersonPrincipalName']
-        security_user = self.add_token_to_user(eppn)
+        user_token = self.add_token_to_user(eppn)
         device = RegisteredKey({u'keyHandle': u'keyHandle', u'version': u'version', u'appId': u'appId'})
         mock_u2f_sign_complete.return_value = device, 1, 0  # device, signature counter, user presence (touch)
 
@@ -187,7 +187,7 @@ class SecurityU2FTests(EduidAPITestCase):
     def test_modify(self, mock_request_user_sync):
         mock_request_user_sync.side_effect = self.request_user_sync
         eppn = self.test_user_data['eduPersonPrincipalName']
-        security_user = self.add_token_to_user(eppn)
+        user_token = self.add_token_to_user(eppn)
 
         response = self.browser.post('/u2f/modify', data={})
         self.assertEqual(response.status_code, 302)  # Redirect to token service
@@ -197,7 +197,7 @@ class SecurityU2FTests(EduidAPITestCase):
             csrf_token = json.loads(credentials_response.data)['payload']['csrf_token']
             data = {
                 'csrf_token': csrf_token,
-                'key_handle': 'keyHandle',
+                'credential_key': user_token.key,
                 'description': 'test description',
             }
             response2 = client.post('/u2f/modify', data=json.dumps(data), content_type=self.content_type_json)
@@ -213,7 +213,7 @@ class SecurityU2FTests(EduidAPITestCase):
     def test_remove(self, mock_request_user_sync):
         mock_request_user_sync.side_effect = self.request_user_sync
         eppn = self.test_user_data['eduPersonPrincipalName']
-        security_user = self.add_token_to_user(eppn)
+        user_token = self.add_token_to_user(eppn)
 
         response = self.browser.post('/u2f/remove', data={})
         self.assertEqual(response.status_code, 302)  # Redirect to token service
@@ -223,7 +223,7 @@ class SecurityU2FTests(EduidAPITestCase):
             csrf_token = json.loads(credentials_response.data)['payload']['csrf_token']
             data = {
                 'csrf_token': csrf_token,
-                'key_handle': 'keyHandle',
+                'credential_key': user_token.key,
             }
             response2 = client.post('/u2f/remove', data=json.dumps(data), content_type=self.content_type_json)
             modify_data = json.loads(response2.data)
@@ -231,5 +231,5 @@ class SecurityU2FTests(EduidAPITestCase):
             self.assertIsNotNone(modify_data['payload']['credentials'])
             for credential in modify_data['payload']['credentials']:
                 self.assertIsNotNone(credential)
-                if credential['key'] == 'keyHandle':
+                if credential['key'] == user_token.key:
                     raise AssertionError('credential with keyhandle keyHandle should be missing')
