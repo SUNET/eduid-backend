@@ -4,9 +4,11 @@ from celery import Celery
 from celery.signals import celeryd_init
 
 from eduid_userdb import UserDB
-from eduid_common.config.parsers import IniConfigParser
+from eduid_common.config.parsers.ini import IniConfigParser
 
 config_parser = IniConfigParser('eduid_am.ini', 'EDUID_AM_CONFIG')
+# Make action_plugins be parsed as a list (default: []), just like celery_accept_content
+config_parser.known_special_keys['action_plugins'] = (config_parser.read_list, [])
 
 celery = Celery('eduid_am.celery', include=['eduid_am.tasks'])
 celery.conf.update(config_parser.read_configuration())
