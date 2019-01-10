@@ -117,8 +117,6 @@ class IniConfigParser(object):
     def read_configuration(self):
         """
         Read the settings from environment or .ini file and return them as a dict
-
-        The values are decoded as JSON, or used as-is if they can't be decoded as JSON.
         """
         settings = {}
 
