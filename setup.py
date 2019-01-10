@@ -35,6 +35,7 @@ idp_requires = [
     'vccs_client >= 0.4.2',
     'PyNaCl >= 1.0.1',
     'statsd==3.2.1',
+    'bleach>=2.0.0',
 ]
 idp_extras = idp_requires + []
 
