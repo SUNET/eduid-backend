@@ -36,6 +36,7 @@ idp_requires = [
     'PyNaCl >= 1.0.1',
     'statsd==3.2.1',
     'bleach>=2.0.0',
+    'Flask>=0.12.2,==0.12.*',
 ]
 idp_extras = idp_requires + []
 
