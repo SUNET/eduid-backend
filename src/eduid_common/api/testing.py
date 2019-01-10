@@ -187,7 +187,7 @@ class EduidAPITestCase(unittest.TestCase):
         private_user_dict = private_user.to_dict()
         central_user_dict.update(private_user_dict)
         # Iterate over all top level keys and remove those missing
-        for key in central_user_dict.keys():
+        for key in list(central_user_dict.keys()):
             if key not in private_user_dict:
                 central_user_dict.pop(key, None)
         user = User(data=central_user_dict)
