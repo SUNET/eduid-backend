@@ -13,6 +13,21 @@ clean_workspace: true
 publish_over_ssh:
   - pypi.sunet.se
 
+extra_jobs:
+  - name: eduid-msg-docker
+    builders:
+      - docker
+    docker_name: eduid/eduid-msg
+    managed_scripts:
+      - docker_build_prep.sh
+      - docker_tag.sh
+    triggers:
+      github_push: false
+      cron: null
+    upstream:
+      - eduid-docker-python3env
+      - eduid-msg
+
 script:
   - "virtualenv -p python3 venv"
   - ". venv/bin/activate"
