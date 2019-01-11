@@ -22,5 +22,5 @@ extra_jobs:
       github_push: false
       cron: null
     upstream:
-      - eduid-docker-pythonenv
+      - eduid-docker-python3env
       - eduid-lookup-mobile
