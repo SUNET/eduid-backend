@@ -1,5 +1,5 @@
 builders:
-  - python
+  - script
 upstream:
   - eduid-userdb
   - pysmscom
@@ -12,3 +12,11 @@ python_source_directory: eduid_msg
 clean_workspace: true
 publish_over_ssh:
   - pypi.sunet.se
+
+script:
+  - "virtualenv -p python3 venv"
+  - ". venv/bin/activate"
+  - "pip install --upgrade setuptools pip wheel"
+  - "pip install --index-url https://pypi.sunet.se -r test_requirements.txt"
+  - "nosetests"
+  - "python setup.py sdist bdist_wheel --universal"
