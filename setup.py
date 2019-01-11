@@ -16,7 +16,7 @@ install_requires = [
     'eduid_userdb>=0.4.1b0',
     'eduid_common>=0.1.3b5',
     'python-dateutil>=2.1',
-    'celery==4.2.*',
+    'celery[redis]==4.2.*',
     'simplejson>=3.6.5',
     'kombu==4.2.*',
     'billiard==3.5.*',
