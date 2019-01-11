@@ -18,7 +18,7 @@ install_requires = [
     'eduid_userdb>=0.4.1b0',
     'eduid_common>=0.1.3b5',
     'python-dateutil>=2.1',
-    'celery>=3.1.9,<4',
+    'celery[redis]==4.2.*',
     'pysmscom>=0.4',
     'Jinja2>=2.7.3',
     'hammock>=0.2.4',
