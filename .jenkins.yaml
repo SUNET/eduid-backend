@@ -1,5 +1,5 @@
 builders:
-  - python
+  - script
 upstream:
   - eduid-userdb
   - eduid-dashboard-amp
@@ -29,3 +29,11 @@ extra_jobs:
     upstream:
       - eduid-docker-pythonenv
       - eduid-am
+
+script:
+  - "virtualenv -p python3 venv"
+  - ". venv/bin/activate"
+  - "pip install --upgrade setuptools pip wheel"
+  - "pip install --index-url https://pypi.sunet.se -r test_requirements.txt"
+  - "nosetests"
+  - "python setup.py sdist bdist_wheel --universal"

@@ -10,22 +10,13 @@ README = 'eduID Attribute Manager'
 if os.path.exists(README_fn):
     README = open(README_fn).read()
 
-version = '0.6.3b8'
+version = '0.6.4b0'
 
-install_requires = [
-    'eduid_userdb>=0.4.1b0',
-    'eduid_common>=0.1.3b5',
-    'python-dateutil>=2.1',
-    'celery[redis]==4.2.*',
-    'simplejson>=3.6.5',
-    'kombu==4.2.*',
-    'billiard==3.5.*',
-]
-
+here = os.path.abspath(os.path.dirname(__file__))
+install_requires = [x for x in open(os.path.join(here, 'requirements.txt')).read().split('\n') if len(x) > 0]
+testing_extras = [x for x in open(os.path.join(here, 'test_requirements.txt')).read().split('\n') if len(x) > 0 and not x.startswith('-')]
 testing_extras = [
-    'nose==1.3.7',
-    'nosexcover==1.0.11',
-    'coverage==4.5.1',
+
 ]
 
 setup(
