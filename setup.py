@@ -11,28 +11,11 @@ README = 'eduID Lookup Mobile'
 if os.path.exists(README_fn):
     README = open(README_fn).read()
 
-version = '0.0.7b1'
+version = '0.1.0'
 
-install_requires = [
-    'six >= 1.11.0',
-    'eduid-userdb >= 0.4.0b12',
-    'eduid_common>=0.3.5b6',
-    'celery >= 3.1.17, <3.2',
-    'suds-jurko >= 0.6',
-    'phonenumbers >= 8.9.3'
-]
-
-test_requires = [
-    'WebTest==2.0.30',
-    'mock==2.0.0',
-]
-
-testing_extras = test_requires + [
-    'nose == 1.3.7',
-    'coverage == 4.5.1',
-    'nosexcover == 1.0.11',
-]
-
+here = os.path.abspath(os.path.dirname(__file__))
+install_requires = [x for x in open(os.path.join(here, 'requirements.txt')).read().split('\n') if len(x) > 0]
+test_requires = [x for x in open(os.path.join(here, 'test_requirements.txt')).read().split('\n') if len(x) > 0 and not x.startswith('-')]
 
 setup(
     name='eduid_lookup_mobile',
@@ -55,6 +38,6 @@ setup(
     tests_require=test_requires,
     test_suite='eduid_lookup_mobile',
     extras_require={
-        'testing': testing_extras,
+        'testing': test_requires,
     },
 )

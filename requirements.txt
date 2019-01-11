@@ -1,0 +1,6 @@
+six >= 1.11.0
+eduid-userdb >= 0.4.0b12
+eduid_common>=0.3.5b6
+celery[redis]==4.2.*
+suds-jurko >= 0.6
+phonenumbers >= 8.9.3
