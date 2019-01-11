@@ -13,12 +13,12 @@ class TestTasks(MongoTestCase):
         super(TestTasks, self).setUp(celery=mock_celery(), get_attribute_manager=mock_get_attribute_manager)
         data_dir = pkg_resources.resource_filename(__name__, 'data')
         settings = {
-            'BROKER_TRANSPORT': 'memory',
-            'BROKER_URL': 'memory://',
-            'CELERY_EAGER_PROPAGATES_EXCEPTIONS': True,
-            'CELERY_ALWAYS_EAGER': True,
-            'CELERY_RESULT_BACKEND': "cache",
-            'CELERY_CACHE_BACKEND': 'memory',
+            'broker_transport': 'memory',
+            'broker_url': 'memory://',
+            'task_eager_propagates': True,
+            'task_always_eager': True,
+            'result_backend': 'cache',
+            'cache_backend': 'memory',
             'MONGO_URI': self.tmp_db.uri,
             'MONGO_DBNAME': 'test',
             'SMS_ACC': 'foo',
