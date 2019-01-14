@@ -399,6 +399,8 @@ class Session(collections.MutableMapping):
         :return: dict
         :rtype: dict
         """
+        if isinstance(data_str, six.binary_type):
+            data_str = data_str.decode('utf8')
         versioned = json.loads(data_str)
         if 'v2' in versioned:
             _data = self.nacl_box.decrypt(versioned['v2'],
