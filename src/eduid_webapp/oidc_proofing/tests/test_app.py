@@ -246,10 +246,12 @@ class OidcProofingTests(EduidAPITestCase):
         self.assertEqual(user.nins.primary.is_verified, True)
         self.assertEqual(self.app.proofing_log.db_count(), 1)
 
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     @patch('eduid_webapp.oidc_proofing.helpers.do_authn_request')
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def test_seleg_flow_low_score(self, mock_request_user_sync, mock_get_postal_address, mock_oidc_call):
+        mock_sendmail.return_value = True
         mock_oidc_call.return_value = True
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.side_effect = self.request_user_sync
