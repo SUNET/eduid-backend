@@ -405,6 +405,8 @@ class Session(collections.MutableMapping):
         if 'v2' in versioned:
             _data = self.nacl_box.decrypt(versioned['v2'],
                                           encoder = nacl.encoding.Base64Encoder)
+            if isinstance(_data, six.binary_type):
+                _data = _data.decode('utf8')
             decrypted = json.loads(_data)
             logger.debug('Loaded data from cache[{}]:\n{!r}'.format(self.session_id, decrypted))
             return decrypted
