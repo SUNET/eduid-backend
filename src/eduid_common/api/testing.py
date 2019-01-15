@@ -223,12 +223,15 @@ class RedisTemporaryInstance(object):
                                           ],
                                          stdout=open('/tmp/redis-temp.log', 'wb'),
                                          stderr=subprocess.STDOUT)
+        interval = 0.2
         for i in range(10):
-            time.sleep(0.2)
+            time.sleep(interval)
             try:
                 self._conn = redis.Redis('localhost', self._port, 0)
                 self._conn.set('dummy', 'dummy')
             except redis.exceptions.ConnectionError:
+                if interval < 3:
+                    interval += interval
                 continue
             else:
                 break
