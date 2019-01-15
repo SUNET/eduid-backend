@@ -21,7 +21,7 @@ def init_relay(app, application_name):
     :rtype:
     """
     config = deepcopy(app.config['CELERY_CONFIG'])
-    config['BROKER_URL'] = app.config['AM_BROKER_URL']
+    config['broker_url'] = app.config['AM_BROKER_URL']
     eduid_am.celery.celery.conf.update(config)
     app.am_relay = AmRelay(relay_for=application_name)
     return app
