@@ -399,10 +399,14 @@ class Session(collections.MutableMapping):
         :return: dict
         :rtype: dict
         """
+        if isinstance(data_str, six.binary_type):
+            data_str = data_str.decode('utf8')
         versioned = json.loads(data_str)
         if 'v2' in versioned:
             _data = self.nacl_box.decrypt(versioned['v2'],
                                           encoder = nacl.encoding.Base64Encoder)
+            if isinstance(_data, six.binary_type):
+                _data = _data.decode('utf8')
             decrypted = json.loads(_data)
             logger.debug('Loaded data from cache[{}]:\n{!r}'.format(self.session_id, decrypted))
             return decrypted
