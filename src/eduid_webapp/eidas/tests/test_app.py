@@ -157,6 +157,7 @@ class EidasTests(EduidAPITestCase):
                         description='test', application='test')
         user.credentials.add(mfa_token)
         self.request_user_sync(user)
+        return mfa_token
 
     @staticmethod
     def generate_auth_response(session_id, saml_response_tpl, asserted_nin=None):
@@ -197,14 +198,13 @@ class EidasTests(EduidAPITestCase):
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.side_effect = self.request_user_sync
 
-        credential_id = 'test'
-        self.add_token_to_user(self.test_user_eppn, credential_id)
+        credential = self.add_token_to_user(self.test_user_eppn, 'test')
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             with browser.session_transaction() as sess:
-                sess['eduidIdPCredentialsUsed'] = [credential_id, 'other_id']
+                sess['eduidIdPCredentialsUsed'] = [credential.key, 'other_id']
                 sess.persist()
-                response = browser.get('/verify-token/{}?idp={}'.format(credential_id, self.test_idp))
+                response = browser.get('/verify-token/{}?idp={}'.format(credential.key, self.test_idp))
                 token = sess._session.token
                 if isinstance(token, six.binary_type):
                     token = token.decode('ascii')
@@ -212,7 +212,7 @@ class EidasTests(EduidAPITestCase):
                 oq_cache = OutstandingQueriesCache(sess)
                 oq_cache.set(token, '/')
                 sess['post-authn-action'] = 'token-verify-action'
-                sess['verify_token_action_credential_id'] = credential_id
+                sess['verify_token_action_credential_id'] = credential.key
                 sess.persist()
 
                 self.assertEqual(response.status_code, 302)
@@ -234,14 +234,13 @@ class EidasTests(EduidAPITestCase):
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.side_effect = self.request_user_sync
 
-        credential_id = 'test'
-        self.add_token_to_user(self.test_user_eppn, credential_id)
+        credential = self.add_token_to_user(self.test_user_eppn, 'test')
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             with browser.session_transaction() as sess:
-                sess['eduidIdPCredentialsUsed'] = [credential_id, 'other_id']
+                sess['eduidIdPCredentialsUsed'] = [credential.key, 'other_id']
                 sess.persist()
-                response = browser.get('/verify-token/{}?idp={}'.format(credential_id, self.test_idp))
+                response = browser.get('/verify-token/{}?idp={}'.format(credential.key, self.test_idp))
                 token = sess._session.token
                 if isinstance(token, six.binary_type):
                     token = token.decode('ascii')
@@ -250,7 +249,7 @@ class EidasTests(EduidAPITestCase):
                 oq_cache = OutstandingQueriesCache(sess)
                 oq_cache.set(token, '/')
                 sess['post-authn-action'] = 'token-verify-action'
-                sess['verify_token_action_credential_id'] = credential_id
+                sess['verify_token_action_credential_id'] = credential.key
                 sess.persist()
 
                 self.assertEqual(response.status_code, 302)
@@ -272,16 +271,15 @@ class EidasTests(EduidAPITestCase):
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.side_effect = self.request_user_sync
 
-        credential_id = 'test'
-        self.add_token_to_user(self.test_unverified_user_eppn, credential_id)
+        credential = self.add_token_to_user(self.test_unverified_user_eppn, 'test')
         user = self.app.central_userdb.get_user_by_eppn(self.test_unverified_user_eppn)
         self.assertEqual(user.nins.verified.count, 0)
 
         with self.session_cookie(self.browser, self.test_unverified_user_eppn) as browser:
             with browser.session_transaction() as sess:
-                sess['eduidIdPCredentialsUsed'] = [credential_id, 'other_id']
+                sess['eduidIdPCredentialsUsed'] = [credential.key, 'other_id']
                 sess.persist()
-                response = browser.get('/verify-token/{}?idp={}'.format(credential_id, self.test_idp))
+                response = browser.get('/verify-token/{}?idp={}'.format(credential.key, self.test_idp))
                 token = sess._session.token
                 if isinstance(token, six.binary_type):
                     token = token.decode('ascii')
@@ -289,7 +287,7 @@ class EidasTests(EduidAPITestCase):
                 oq_cache = OutstandingQueriesCache(sess)
                 oq_cache.set(token, '/')
                 sess['post-authn-action'] = 'token-verify-action'
-                sess['verify_token_action_credential_id'] = credential_id
+                sess['verify_token_action_credential_id'] = credential.key
                 sess.persist()
 
                 self.assertEqual(response.status_code, 302)
@@ -308,27 +306,26 @@ class EidasTests(EduidAPITestCase):
                 self.assertEqual(self.app.proofing_log.db_count(), 2)
 
     def test_mfa_token_verify_no_mfa_login(self):
-        credential_id = 'test'
-        self.add_token_to_user(self.test_user_eppn, credential_id)
+        credential = self.add_token_to_user(self.test_user_eppn, 'test')
+
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             with browser.session_transaction() as sess:
                 sess['eduidIdPCredentialsUsed'] = ['other_id']
-                response = browser.get('/verify-token/{}?idp={}'.format('test', self.test_idp))
+                response = browser.get('/verify-token/{}?idp={}'.format(credential.key, self.test_idp))
                 self.assertEqual(response.status_code, 302)
                 self.assertEqual(
                     response.location,
                     'http://test.localhost/reauthn?next=http://test.localhost/verify-token/{}?idp={}'.format(
-                        credential_id, self.test_idp))
+                        credential.key, self.test_idp))
 
     def test_mfa_token_verify_no_mfa_token_in_session(self):
-        credential_id = 'test'
-        self.add_token_to_user(self.test_user_eppn, credential_id)
+        credential = self.add_token_to_user(self.test_user_eppn, 'test')
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             with browser.session_transaction() as sess:
-                sess['eduidIdPCredentialsUsed'] = [credential_id, 'other_id']
+                sess['eduidIdPCredentialsUsed'] = [credential.key, 'other_id']
                 sess.persist()
-                response = browser.get('/verify-token/{}?idp={}'.format(credential_id, self.test_idp))
+                response = browser.get('/verify-token/{}?idp={}'.format(credential.key, self.test_idp))
                 token = sess._session.token
                 if isinstance(token, six.binary_type):
                     token = token.decode('ascii')
@@ -336,7 +333,7 @@ class EidasTests(EduidAPITestCase):
                 oq_cache = OutstandingQueriesCache(sess)
                 oq_cache.set(token, '/')
                 sess['post-authn-action'] = 'token-verify-action'
-                sess['verify_token_action_credential_id'] = credential_id
+                sess['verify_token_action_credential_id'] = credential.key
                 sess['eduidIdPCredentialsUsed'] = ['other_id']
                 sess.persist()
 
@@ -356,14 +353,13 @@ class EidasTests(EduidAPITestCase):
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.side_effect = self.request_user_sync
 
-        credential_id = 'test'
-        self.add_token_to_user(self.test_user_eppn, credential_id)
+        credential = self.add_token_to_user(self.test_user_eppn, 'test')
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             with browser.session_transaction() as sess:
-                sess['eduidIdPCredentialsUsed'] = [credential_id, 'other_id']
+                sess['eduidIdPCredentialsUsed'] = [credential.key, 'other_id']
                 sess.persist()
-                response = browser.get('/verify-token/{}?idp={}'.format(credential_id, self.test_idp))
+                response = browser.get('/verify-token/{}?idp={}'.format(credential.key, self.test_idp))
                 token = sess._session.token
                 if isinstance(token, six.binary_type):
                     token = token.decode('ascii')
@@ -372,7 +368,7 @@ class EidasTests(EduidAPITestCase):
                 oq_cache = OutstandingQueriesCache(sess)
                 oq_cache.set(token, '/')
                 sess['post-authn-action'] = 'token-verify-action'
-                sess['verify_token_action_credential_id'] = credential_id
+                sess['verify_token_action_credential_id'] = credential.key
                 sess.persist()
 
                 self.assertEqual(response.status_code, 302)
@@ -394,14 +390,13 @@ class EidasTests(EduidAPITestCase):
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.side_effect = self.request_user_sync
 
-        credential_id = 'test'
-        self.add_token_to_user(self.test_user_eppn, credential_id)
+        credential = self.add_token_to_user(self.test_user_eppn, 'test')
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             with browser.session_transaction() as sess:
-                sess['eduidIdPCredentialsUsed'] = [credential_id, 'other_id']
+                sess['eduidIdPCredentialsUsed'] = [credential.key, 'other_id']
                 sess.persist()
-                response = browser.get('/verify-token/{}?idp={}'.format(credential_id, self.test_idp))
+                response = browser.get('/verify-token/{}?idp={}'.format(credential.key, self.test_idp))
                 token = sess._session.token
                 if isinstance(token, six.binary_type):
                     token = token.decode('ascii')
@@ -410,7 +405,7 @@ class EidasTests(EduidAPITestCase):
                 oq_cache = OutstandingQueriesCache(sess)
                 oq_cache.set(token, '/')
                 sess['post-authn-action'] = 'token-verify-action'
-                sess['verify_token_action_credential_id'] = credential_id
+                sess['verify_token_action_credential_id'] = credential.key
                 sess.persist()
 
                 self.assertEqual(response.status_code, 302)
@@ -432,14 +427,13 @@ class EidasTests(EduidAPITestCase):
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.side_effect = self.request_user_sync
 
-        credential_id = 'test'
-        self.add_token_to_user(self.test_user_eppn, credential_id)
+        credential = self.add_token_to_user(self.test_user_eppn, 'test')
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             with browser.session_transaction() as sess:
-                sess['eduidIdPCredentialsUsed'] = [credential_id, 'other_id']
+                sess['eduidIdPCredentialsUsed'] = [credential.key, 'other_id']
                 sess.persist()
-                response = browser.get('/verify-token/{}?idp={}'.format(credential_id, self.test_idp))
+                response = browser.get('/verify-token/{}?idp={}'.format(credential.key, self.test_idp))
                 token = sess._session.token
                 if isinstance(token, six.binary_type):
                     token = token.decode('ascii')
@@ -448,7 +442,7 @@ class EidasTests(EduidAPITestCase):
                 oq_cache = OutstandingQueriesCache(sess)
                 oq_cache.set(token, '/')
                 sess['post-authn-action'] = 'token-verify-action'
-                sess['verify_token_action_credential_id'] = credential_id
+                sess['verify_token_action_credential_id'] = credential.key
                 sess.persist()
 
                 self.assertEqual(response.status_code, 302)
