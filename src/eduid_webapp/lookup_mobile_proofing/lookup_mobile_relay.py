@@ -6,7 +6,7 @@ __author__ = 'mathiashedstrom'
 
 def init_relay(app):
     config = app.config['CELERY_CONFIG']
-    config['BROKER_URL'] = app.config['LOOKUP_MOBILE_BROKER_URL']
+    config['broker_url'] = app.config['LOOKUP_MOBILE_BROKER_URL']
     eduid_lookup_mobile.celery.app.conf.update(config)
     app.lookup_mobile_relay = LookupMobileRelay()
     return app
