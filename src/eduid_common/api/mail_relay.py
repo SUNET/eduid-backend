@@ -101,6 +101,6 @@ def init_relay(app):
     :rtype: flask.Flask
     """
     config = deepcopy(app.config['CELERY_CONFIG'])
-    config['BROKER_URL'] = app.config.get('MSG_BROKER_URL', '')
+    config['broker_url'] = app.config.get('MSG_BROKER_URL', '')
     app.mail_relay = MailRelay(config)
     return app

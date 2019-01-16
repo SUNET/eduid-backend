@@ -30,7 +30,7 @@ LANGUAGE_MAPPING = {
 
 def init_relay(app):
     config = deepcopy(app.config['CELERY_CONFIG'])
-    config['BROKER_URL'] = app.config['MSG_BROKER_URL']
+    config['broker_url'] = app.config['MSG_BROKER_URL']
     eduid_msg.celery.celery.conf.update(config)
     app.msg_relay = MsgRelay()
     return app
