@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 __author__ = 'lundberg'
 
-from eduid_am.celery import celery, get_attribute_manager
 from eduid_userdb import UserDB
 from eduid_userdb.testing import MongoTestCase
 
@@ -10,7 +9,7 @@ import unittest
 class TestIndexes(MongoTestCase):
 
     def setUp(self):
-        super(TestIndexes, self).setUp(celery, get_attribute_manager)
+        super(TestIndexes, self).setUp(init_am=True)
 
     def test_index_setup(self):
         indexes = {

@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-from ..celery import celery, get_attribute_manager
-
 from eduid_userdb.testing import MongoTestCase
 from bson import ObjectId
 
@@ -68,7 +66,7 @@ class MessageTest(MongoTestCase):
     transforms 'uid' to its urn:oid representation.
     """
     def setUp(self):
-        super(MessageTest, self).setUp(celery, get_attribute_manager)
+        super(MessageTest, self).setUp(init_am=True)
 
     def testMessage(self):
         """
