@@ -57,14 +57,14 @@ def init_etcd_client(host=None, port=None, protocol=None, cert=None, certkey=Non
     return etcd.Client(host, port, protocol=protocol)
 
 
-def prepare_configuration(config, base_namespace_depth, base_ns='', depth=0, ret_list=list()):
+def prepare_configuration(config, skip_levels, ns='', ret_list=None):
     """
     :param config: Dictionary with config
     :type config: dict
-    :param base_namespace_depth: How deep down the interesting key-value pairs start
-    :type base_namespace_depth: int
-    :param base_ns: Cumulative base namespace
-    :type base_ns: str | unicode
+    :param skip_levels: How many levels to skip over
+    :type skip_levels: int
+    :param ns: Cumulative base namespace
+    :type ns: str | unicode
     :param depth: Current depth in the dictionary
     :type depth: int
     :param ret_list: To hold result during
@@ -101,7 +101,8 @@ def prepare_configuration(config, base_namespace_depth, base_ns='', depth=0, ret
                     'LOG_TYPE': ['rotating', 'gelf'],
                     'MONGO_URI': 'mongodb://user:pw@mongodb.docker'
                 }
-            }
+            },
+            'worker': {'foo': 'bar'}
         }
     }
 
@@ -112,17 +113,19 @@ def prepare_configuration(config, base_namespace_depth, base_ns='', depth=0, ret
     /eduid/webapp/oidc_proofing/log_type -> '["rotating", "gelf"]'
     /eduid/webapp/oidc_proofing/mongo_uri -> 'mongodb://user:pw@mongodb.docker'
     /eduid/webapp/common/saml_config -> '{"xmlsec_binary": "/usr/bin/xmlsec1"}'
+    /eduid/worker/foo -> "bar"}'
     """
+    if ret_list is None:
+        ret_list = []
 
-    depth += 1
     for level in config.keys():
-        if depth < base_namespace_depth:
-            base_ns = '{!s}/{!s}'.format(base_ns, level)
-            prepare_configuration(config[level], base_namespace_depth, base_ns, depth, ret_list)
+        if skip_levels:
+            next_ns = '{!s}/{!s}'.format(ns, level)
+            prepare_configuration(config[level], skip_levels - 1, next_ns, ret_list)
         else:
-            ns = '{!s}/{!s}'.format(base_ns, level)
+            this_ns = '{!s}/{!s}'.format(ns, level)
             for key, value in config[level].items():
-                fq_key = '{!s}/{!s}'.format(ns, key).lower()
+                fq_key = '{!s}/{!s}'.format(this_ns, key).lower()
                 json_value = json.dumps(value)
                 ret_list.append((fq_key, json_value))
     return ret_list
@@ -188,7 +191,7 @@ def main():
 
     config_dict = load_yaml(args.configuration)
     etcd_client = init_etcd_client(args.host, args.port, args.protocol, args.cert, args.certkey, args.cacert)
-    config_list = prepare_configuration(config_dict, args.base_ns_depth)
+    config_list = prepare_configuration(config_dict, args.base_ns_depth - 1)
 
     try:
         remove_old_keys(etcd_client, config_list, args.base_ns_depth)
@@ -199,4 +202,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
