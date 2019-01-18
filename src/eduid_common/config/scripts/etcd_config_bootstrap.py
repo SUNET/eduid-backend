@@ -140,11 +140,14 @@ def remove_old_keys(client, config, depth):
     new_keys = [item[0] for item in config]
     base_ns = '/'.join(new_keys[0].split('/')[:depth])
 
-    for item in client.read(base_ns, recursive=True).children:
-        if item.key not in new_keys:
-            client.delete(item.key, recursive=True)
-            if VERBOSE:
-                print('{!s} -> Removed'.format(item.key))
+    try:
+        for item in client.read(base_ns, recursive=True).children:
+            if item.key not in new_keys:
+                client.delete(item.key, recursive=True)
+                if VERBOSE:
+                    print('{!s} -> Removed'.format(item.key))
+    except etcd.EtcdKeyNotFound:
+        pass
 
 
 def write_config(client, config):
