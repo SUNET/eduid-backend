@@ -11,12 +11,16 @@ from time import time
 from datetime import datetime, timedelta
 from hammock import Hammock
 
-from eduid_msg.celery import celery, config_parser
+from eduid_msg.common import celery
 from eduid_msg.cache import CacheMDB
 from eduid_msg.utils import load_template, navet_get_name_and_official_address, navet_get_relations
 from eduid_msg.decorators import TransactionAudit
 from eduid_msg.exceptions import NavetException, NavetAPIException
 from eduid_userdb.exceptions import ConnectionError
+
+
+if celery is None:
+    raise RuntimeError('Must call eduid_msg.init_app before importing tasks')
 
 
 DEFAULT_MONGODB_HOST = 'localhost'
@@ -54,7 +58,7 @@ class MessageRelay(Task):
     _sms_sender = None
     _mm_api = None
     _navet_api = None
-    _config = config_parser.read_configuration()
+    _config = celery.conf
     MONGODB_URI = _config['MONGO_URI'] if 'MONGO_URI' in _config else DEFAULT_MONGODB_URI
     MM_API_URI = _config['MM_API_URI'] if 'MM_API_URI' in _config else DEFAULT_MM_API_URI
     NAVET_API_URI = _config['NAVET_API_URI'] if 'NAVET_API_URI' in _config else DEFAULT_NAVET_API_URI
@@ -80,7 +84,7 @@ class MessageRelay(Task):
             keyfile = self.app.conf.get("MAIL_KEYFILE")
             certfile = self.app.conf.get("MAIL_CERTFILE")
             if keyfile and certfile:
-                _smtp.starttls(keyfile, cerfile)
+                _smtp.starttls(keyfile, certfile)
             else:
                 _smtp.starttls()
         username = self.app.conf.get("MAIL_USERNAME")
@@ -212,6 +216,7 @@ class MessageRelay(Task):
         """
         conf = self.app.conf
 
+        dir = conf.get("TEMPLATE_DIR", None)
         msg = load_template(conf.get("TEMPLATE_DIR", None), template, message_dict, language)
         if not msg:
             raise RuntimeError("template not found")
@@ -636,7 +641,7 @@ def cache_expire():
     Periodic function executed every 5 minutes to expire cached items.
     """
     global _CACHE
-    for cache in _CACHE.iterkeys():
+    for cache in _CACHE.keys():
         LOG.debug("Invoking expire_cache at %s for %s" % (datetime.fromtimestamp(time(), None), cache))
         _CACHE[cache].expire_cache_items()
 

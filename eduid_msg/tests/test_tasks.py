@@ -1,33 +1,13 @@
 from mock import patch, call, MagicMock
 import json
-from eduid_userdb.testing import MongoTestCase
-from eduid_msg.tests import mock_celery, mock_get_attribute_manager
-from eduid_msg.celery import celery
-from eduid_msg.tasks import send_message, is_reachable, pong
+
+from eduid_msg.testing import MsgMongoTestCase
 from eduid_msg.utils import load_template
-import pkg_resources
 
 
-class TestTasks(MongoTestCase):
-    def setUp(self):
-        super(TestTasks, self).setUp(celery=mock_celery(), get_attribute_manager=mock_get_attribute_manager)
-        data_dir = pkg_resources.resource_filename(__name__, 'data')
-        settings = {
-            'broker_transport': 'memory',
-            'broker_url': 'memory://',
-            'task_eager_propagates': True,
-            'task_always_eager': True,
-            'result_backend': 'cache',
-            'cache_backend': 'memory',
-            'MONGO_URI': self.tmp_db.uri,
-            'MONGO_DBNAME': 'test',
-            'SMS_ACC': 'foo',
-            'SMS_KEY': 'bar',
-            'SMS_SENDER': 'Test sender',
-            'TEMPLATE_DIR': data_dir,
-            'MESSAGE_RATE_LIMIT': '2/m',
-        }
-        celery.conf.update(settings)
+class TestTasks(MsgMongoTestCase):
+    def setUp(self, init_msg=True):
+        super(TestTasks, self).setUp(init_msg=init_msg)
         self.msg_dict = {
             'name': 'Godiskungen',
             'admin': 'Testadmin'
@@ -93,16 +73,18 @@ class TestTasks(MongoTestCase):
 
     @patch('smscom.SMSClient.send')
     def test_send_message_sms(self, sms_mock):
+        from eduid_msg.tasks import send_message
         sms_mock.return_value = True
         status = send_message.delay('sms', 'reference', self.msg_dict, '+466666', 'test.tmpl', 'sv_SE').get()
 
         # Test that the template was actually used in send_message function call to the sms service
-        template = load_template(celery.conf.get('TEMPLATE_DIR'), 'test.tmpl', self.msg_dict, 'sv_SE')
+        template = load_template(self.msg.conf.get('TEMPLATE_DIR'), 'test.tmpl', self.msg_dict, 'sv_SE')
         expected = [call(template.encode('utf-8'), 'Test sender', '+466666', prio=2)]
         self.assertEqual(sms_mock.mock_calls, expected)
         self.assertTrue(status)
 
     def test_send_message_invalid_phone_number(self):
+        from eduid_msg.tasks import send_message
         try:
             send_message.delay('sms', 'reference', self.msg_dict, '+466666a', 'test.tmpl', 'sv_SE').get()
         except ValueError as e:
@@ -110,6 +92,7 @@ class TestTasks(MongoTestCase):
 
     @patch('eduid_msg.tasks.MessageRelay.mm_api')
     def test_is_reachable_cache(self, api_mock):
+        from eduid_msg.tasks import is_reachable
         response = self.response()
         response.data = self.recipient_ok
         api_mock.user.reachable.POST.return_value = response
@@ -121,6 +104,7 @@ class TestTasks(MongoTestCase):
 
     @patch('eduid_msg.tasks.MessageRelay.mm_api')
     def test_send_message_mm(self, api_mock):
+        from eduid_msg.tasks import send_message
         reachable_response = self.response()
         reachable_response.data = self.recipient_ok
         api_mock.user.reachable.POST.return_value = reachable_response
@@ -133,7 +117,7 @@ class TestTasks(MongoTestCase):
         self.assertEqual(transaction_id, 'ab6895f8-7203-4695-b083-ca89d68bf346')
 
         # Test that the template was actually used in send_message function call to the mm service
-        template = load_template(celery.conf.get('TEMPLATE_DIR'), 'test.tmpl', self.msg_dict, 'sv_SE')
+        template = load_template(self.msg.conf.get('TEMPLATE_DIR'), 'test.tmpl', self.msg_dict, 'sv_SE')
         reachable_data = json.dumps({"identity_number": recipient})
         message_data = json.dumps({"recipient": recipient, "subject": "Test", "content_type": "text/html",
                                    "language": "svSE", "message": template})
@@ -142,6 +126,7 @@ class TestTasks(MongoTestCase):
 
     @patch('eduid_msg.tasks.MessageRelay.mm_api')
     def test_send_message_mm_sender_not_accepted(self, api_mock):
+        from eduid_msg.tasks import send_message
         reachable_response = self.response()
         reachable_response.data = self.recipient_sender_not
         api_mock.user.reachable.POST.return_value = reachable_response
@@ -151,6 +136,7 @@ class TestTasks(MongoTestCase):
 
     @patch('eduid_msg.tasks.MessageRelay.mm_api')
     def test_send_message_mm_recipient_not_existing(self, api_mock):
+        from eduid_msg.tasks import send_message
         reachable_response = self.response()
         reachable_response.data = self.recipient_not
         api_mock.user.reachable.POST.return_value = reachable_response
@@ -160,6 +146,7 @@ class TestTasks(MongoTestCase):
 
     @patch('eduid_msg.tasks.MessageRelay.mm_api')
     def test_send_message_mm_recipient_anonymous(self, api_mock):
+        from eduid_msg.tasks import send_message
         reachable_response = self.response()
         reachable_response.data = self.recipient_anon
         api_mock.user.reachable.POST.return_value = reachable_response
@@ -168,5 +155,6 @@ class TestTasks(MongoTestCase):
         self.assertEqual(status, "Anonymous")
 
     def test_ping(self):
+        from eduid_msg.tasks import pong
         ret = pong.delay().get()
         self.assertEqual(ret, 'pong')

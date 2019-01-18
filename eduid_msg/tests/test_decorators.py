@@ -1,36 +1,17 @@
 # -*- encoding: utf-8 -*-
+from __future__ import absolute_import
 
-from eduid_userdb.testing import MongoTestCase
-from eduid_msg.tests import mock_celery, mock_get_attribute_manager
-from eduid_msg.celery import celery
+from eduid_msg.testing import MsgMongoTestCase
 from eduid_msg.decorators import TransactionAudit
-import pkg_resources
 
 
-class TestTransactionAudit(MongoTestCase):
-    def setUp(self):
-        super(TestTransactionAudit, self).setUp(celery=mock_celery(), get_attribute_manager=mock_get_attribute_manager)
+class TestTransactionAudit(MsgMongoTestCase):
+    def setUp(self, init_msg=True):
+        super(TestTransactionAudit, self).setUp(init_msg=init_msg)
         TransactionAudit.enable()
-        data_dir = pkg_resources.resource_filename(__name__, 'data')
-        settings = {
-            'BROKER_TRANSPORT': 'memory',
-            'BROKER_URL': 'memory://',
-            'CELERY_EAGER_PROPAGATES_EXCEPTIONS': True,
-            'CELERY_ALWAYS_EAGER': True,
-            'CELERY_RESULT_BACKEND': "cache",
-            'CELERY_CACHE_BACKEND': 'memory',
-            'MONGO_URI': self.tmp_db.uri,
-            'MONGO_DBNAME': 'test',
-            'SMS_ACC': 'foo',
-            'SMS_KEY': 'bar',
-            'SMS_SENDER': 'Test sender',
-            'TEMPLATE_DIR': data_dir,
-            'MESSAGE_RATE_LIMIT': '2/m',
-        }
-        celery.conf.update(settings)
 
     def test_transaction_audit(self):
-        @TransactionAudit(celery.conf.get('MONGO_URI'), db_name='test')
+        @TransactionAudit(self.msg.conf.get('MONGO_URI'), db_name='test')
         def no_name():
             return {'baka': 'kaka'}
         no_name()
@@ -40,14 +21,14 @@ class TestTransactionAudit(MongoTestCase):
         self.assertEquals(result.count(), 1)
         self.assertEquals(result.next()['data']['baka'], 'kaka')
 
-        @TransactionAudit(celery.conf.get('MONGO_URI'), db_name='test')
+        @TransactionAudit(self.msg.conf.get('MONGO_URI'), db_name='test')
         def _get_navet_data(arg1, arg2):
             return {'baka', 'kaka'}
         _get_navet_data('dummy', '1111')
         result = c.find_one({'data': {'identity_number': '1111'}})
         self.assertEquals(result['data']['identity_number'], '1111')
 
-        @TransactionAudit(celery.conf.get('MONGO_URI'), db_name='test')
+        @TransactionAudit(self.msg.conf.get('MONGO_URI'), db_name='test')
         def send_message(_self, message_type, reference, message_dict, recipient, template, language, subject=None):
             return 'kaka'
         send_message('dummy', 'mm', 'reference', 'dummy', '2222', 'template', 'lang')
@@ -68,7 +49,7 @@ class TestTransactionAudit(MongoTestCase):
         c.remove()  # Clear database
         TransactionAudit.disable()
 
-        @TransactionAudit(celery.conf.get('MONGO_URI'), db_name='test')
+        @TransactionAudit(self.msg.conf.get('MONGO_URI'), db_name='test')
         def no_name():
             return {'baka': 'kaka'}
         no_name()
@@ -77,7 +58,7 @@ class TestTransactionAudit(MongoTestCase):
         self.assertEquals(result.count(), 0)
 
         TransactionAudit.enable()
-        @TransactionAudit(celery.conf.get('MONGO_URI'), db_name='test')
+        @TransactionAudit(self.msg.conf.get('MONGO_URI'), db_name='test')
         def no_name2():
             return {'baka': 'kaka'}
         no_name2()

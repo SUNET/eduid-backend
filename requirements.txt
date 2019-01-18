@@ -1,7 +1,7 @@
 six>=1.11.0
 eduid_am>=0.7.0
 eduid_userdb>=0.4.1b0
-eduid_common>=0.1.3b5
+eduid_common>=0.3.6
 python-dateutil>=2.1
 celery[redis]==4.2.*
 pysmscom>=0.4
