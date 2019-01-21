@@ -1,5 +1,5 @@
 six >= 1.11.0
-eduid-userdb >= 0.4.0b12
+eduid-userdb >= 0.4.4
 eduid_common>=0.3.6
 celery[redis]==4.2.*
 suds-jurko >= 0.6
