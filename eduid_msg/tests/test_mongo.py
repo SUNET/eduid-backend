@@ -1,11 +1,9 @@
-from eduid_userdb.testing import MongoTestCase
-from eduid_msg.tests import mock_celery, mock_get_attribute_manager
+from eduid_msg.testing import MsgMongoTestCase
 
-
-class MessageTest(MongoTestCase):
+class MessageTest(MsgMongoTestCase):
 
     def setUp(self):
-        super(MessageTest, self).setUp(celery=mock_celery(), get_attribute_manager=mock_get_attribute_manager)
+        super(MessageTest, self).setUp()
 
     def test_mongo(self):
         db = self.tmp_db.conn['test']
