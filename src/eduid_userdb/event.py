@@ -128,12 +128,11 @@ class Event(Element):
         self._data['event_id'] = value
 
     # -----------------------------------------------------------------
-    def to_dict(self, old_userdb_format=False, mixed_format=False):
+    def to_dict(self, mixed_format=False):
         """
         Convert Element to a dict, that can be used to reconstruct the
         Element later.
 
-        :param old_userdb_format: Ignored, there is no old format for events.
         :param mixed_format: Tag each Event with the event_type. Used when list has multiple types of events.
         :type old_userdb_format: bool
         :type mixed_format: bool
@@ -141,9 +140,6 @@ class Event(Element):
         res = copy.copy(self._data)  # avoid caller messing with our _data
         if not mixed_format and 'event_type' in res:
             del res['event_type']
-        # continue calling the event id 'id' in the database until we've released
-        # a version that can load both 'id' and 'event_id' throghout
-        res['id'] = res.pop('event_id')
         return res
 
 
@@ -198,21 +194,18 @@ class EventList(ElementList):
             raise DuplicateElementViolation("Event {!s} already in list".format(event.key))
         super(EventList, self).add(event)
 
-    def to_list_of_dicts(self, old_userdb_format=False, mixed_format=False):
+    def to_list_of_dicts(self, mixed_format=False):
         """
         Get the elements in a serialized format that can be stored in MongoDB.
 
-        :param old_userdb_format: Set to True to get data back in legacy format.
         :param mixed_format: Tag each Event with the event_type. Used when list has multiple types of events.
 
-        :type old_userdb_format: bool
         :type mixed_format: bool
 
         :return: List of dicts
         :rtype: [dict]
         """
-        return [this.to_dict(old_userdb_format=old_userdb_format,
-                             mixed_format=mixed_format) for this in self._elements]
+        return [this.to_dict(mixed_format=mixed_format) for this in self._elements]
 
 
 def event_from_dict(data, raise_on_unknown=True):
