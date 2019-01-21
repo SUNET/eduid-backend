@@ -1,16 +1,18 @@
+from __future__ import absolute_import
+
 from eduid_userdb import UserDB
 from eduid_common.rpc.worker import get_worker_config
 from eduid_common.rpc.celery import init_celery
 
-import eduid_am.common
+import eduid_am.common as common
 
 
 worker_config = get_worker_config('am')
 celery = init_celery('eduid_am', config=worker_config['CELERY'], include=['eduid_am.tasks'])
 
 # When Celery starts the worker, it expects there to be a 'celery' in the module it loads,
-# but our tasks expect to find the Celery instance in eduid_am.common.celery - so copy it there
-eduid_am.common.celery = celery
+# but our tasks expect to find the Celery instance in common.celery - so copy it there
+common.celery = celery
 
 
 def setup_indexes(db_name, collection):
