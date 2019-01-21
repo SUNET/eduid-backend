@@ -216,7 +216,6 @@ class MessageRelay(Task):
         """
         conf = self.app.conf
 
-        dir = conf.get("TEMPLATE_DIR", None)
         msg = load_template(conf.get("TEMPLATE_DIR", None), template, message_dict, language)
         if not msg:
             raise RuntimeError("template not found")
