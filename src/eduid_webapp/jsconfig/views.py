@@ -43,6 +43,23 @@ from eduid_webapp.jsconfig.settings.front import jsconfig
 
 jsconfig_views = Blueprint('jsconfig', __name__, url_prefix='')
 
+def get_webauthn_registration_options(user):
+    user_webauthn_tokens = user.credentials.filter(U2F)
+    if user_webauthn_tokens.count >= current_app.config['WEBAUTHN_MAX_ALLOWED_TOKENS']:
+        current_app.logger.error('User tried to register more than {} tokens.'.format(
+            current_app.config['WEBAUTHN_MAX_ALLOWED_TOKENS']))
+        return {'_error': True, 'message': 'security.webauthn.max_allowed_tokens'}
+    creds = make_credentials(user_webauthn_tokens.to_list())
+    server = get_webauthn_server()
+    registration_data, state = server.register_begin({
+        'id': user.user_id,
+        'name': user.surname,
+        'displayName': user.display_name,
+        'icon': ''
+    }, creds)
+    session['_webauthn_state_'] = state
+    current_app.stats.count(name='webauthn_register_begin')
+    return WebauthnBeginResponseSchema().load(registration_data).data
 
 @jsconfig_views.route('/config', methods=['GET'])
 @MarshalWith(FluxStandardAction)

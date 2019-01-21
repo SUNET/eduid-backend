@@ -159,8 +159,8 @@ class RemoveU2FTokenRequestSchema(EduidSchema, CSRFRequestMixin):
 
 # webauthn schemas
 
-class BeginWebauthnRegistrationResponseSchema(FluxStandardAction): pass
 class WebauthnBeginResponseSchema(FluxStandardAction): pass
+class BeginWebauthnRegistrationResponseSchema(FluxStandardAction): pass
 class WebauthnAttestationRequestSchema(EduidSchema, CSRFRequestMixin): pass
 
 
