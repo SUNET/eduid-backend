@@ -8,10 +8,14 @@ from celery.utils.log import get_task_logger
 
 from pkg_resources import iter_entry_points
 
-from eduid_am.celery import celery
+from eduid_am.common import celery
 from eduid_userdb import UserDB
 from eduid_userdb.exceptions import UserDoesNotExist, LockedIdentityViolation, ConnectionError
 from .consistency_checks import unverify_duplicates, check_locked_identity
+
+
+if celery is None:
+    raise RuntimeError('Must call eduid_am.init_app before importing tasks')
 
 logger = get_task_logger(__name__)
 

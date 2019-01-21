@@ -8,13 +8,10 @@ from bson import ObjectId
 from eduid_am.consistency_checks import unverify_duplicates, check_locked_identity
 
 
-from eduid_am.celery import celery, get_attribute_manager
-
-
 class TestTasks(MongoTestCase):
 
     def setUp(self):
-        super(TestTasks, self).setUp(celery, get_attribute_manager)
+        super(TestTasks, self).setUp(init_am=True)
 
     def test_get_user_by_id(self):
         user = self.amdb.get_user_by_id(M['_id'])

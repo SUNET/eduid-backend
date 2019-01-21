@@ -50,7 +50,7 @@ cd "${cfg_dir}"
 test -f revision.txt && cat revision.txt; true
 
 echo "$0: Starting Celery app '${app_name}' in directory ${cfg_dir}"
-exec celery worker --app="${app_name}" --events --uid eduid --gid eduid \
+exec celery worker --app="${app_name}.worker" --events --uid eduid --gid eduid \
     --logfile="${logfile}" \
     $celery_args
 
