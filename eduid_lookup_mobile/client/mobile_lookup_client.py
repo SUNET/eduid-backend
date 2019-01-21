@@ -67,7 +67,7 @@ class MobileLookupClient(object):
 
     def _search(self, param):
         # Start the search
-        if self.conf.get('DEVEL_MODE') == 'true':
+        if self.conf.get('DEVEL_MODE') is True:
             result = _get_devel_search_result(param)
         else:
             result = self.client.service.Find(param)

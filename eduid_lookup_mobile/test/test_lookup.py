@@ -1,20 +1,15 @@
-from unittest import TestCase
-from eduid_common.config.parsers import IniConfigParser
 from eduid_lookup_mobile.client.mobile_lookup_client import MobileLookupClient
-from eduid_lookup_mobile.tasks import logger
-import os
-import pkg_resources
+from eduid_lookup_mobile.testing import LookupMobileMongoTestCase
 
 
-class TestVerifiers(TestCase):
+class TestVerifiers(LookupMobileMongoTestCase):
+
     def setUp(self):
-        data_dir = pkg_resources.resource_filename(__name__, 'data')
-        config_file = os.path.join(data_dir, 'test.ini')
-        self.config_parser = IniConfigParser(config_file)
+        super(TestVerifiers, self).setUp()
 
     def test_find_NIN_by_mobile(self):
-        config = self.config_parser.read_configuration()
-        mobile_verifier = MobileLookupClient(logger, config)
+        from eduid_lookup_mobile.tasks import logger
+        mobile_verifier = MobileLookupClient(logger, self.lookup_mobile_settings)
 
         self.assertTrue(mobile_verifier.find_NIN_by_mobile('+46700011222') == '200202025678')
         self.assertTrue(mobile_verifier.find_NIN_by_mobile('+46700011333') == '197512125432')

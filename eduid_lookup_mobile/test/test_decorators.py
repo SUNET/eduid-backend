@@ -1,23 +1,19 @@
 # -*- coding: utf-8 -*-
 __author__ = 'lundberg'
 
-import sys
-import unittest
-from eduid_userdb.testing import MongoTemporaryInstance
+from eduid_lookup_mobile.testing import LookupMobileMongoTestCase
 from eduid_lookup_mobile.decorators import TransactionAudit
 
 
-class TestTransactionAudit(unittest.TestCase):
+class TestTransactionAudit(LookupMobileMongoTestCase):
 
     def setUp(self):
         super(TestTransactionAudit, self).setUp()
         _db_name = 'eduid_lookup_mobile'
-        self.tmp_db = MongoTemporaryInstance.get_instance()
-        self.conn = self.tmp_db.conn
-        self.db = self.tmp_db.conn[_db_name]
-        self.port = self.tmp_db.port
+        # need to set self.mongo_uri and db for the TransactionAudit decorator
         self.mongo_uri = self.tmp_db.uri
-        sys.stderr.write('Set up temp db at {!r}\n'.format(self.mongo_uri))
+        self.db = self.tmp_db.conn['eduid_lookup_mobile']
+
         self.transaction_audit = True
 
     def test_successfull_transaction_audit(self):
