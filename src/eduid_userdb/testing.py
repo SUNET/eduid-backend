@@ -253,7 +253,7 @@ class MongoTestCase(unittest.TestCase):
     user = User(data=MOCKED_USER_STANDARD)
     mock_users_patches = []
 
-    def setUp(self, celery, get_attribute_manager, userdb_use_old_format=False, am_settings=None):
+    def setUp(self, init_am=False, userdb_use_old_format=False, am_settings=None):
         """
         Test case initialization.
 
@@ -278,7 +278,7 @@ class MongoTestCase(unittest.TestCase):
         super(MongoTestCase, self).setUp()
         self.tmp_db = MongoTemporaryInstance.get_instance()
 
-        if celery and get_attribute_manager:
+        if init_am:
             self.am_settings = {
                 'BROKER_TRANSPORT': 'memory',  # Don't use AMQP bus when testing
                 'BROKER_URL': 'memory://',
@@ -293,8 +293,9 @@ class MongoTestCase(unittest.TestCase):
             }
             if am_settings:
                 self.am_settings.update(am_settings)
-            celery.conf.update(self.am_settings)
-            self.am = get_attribute_manager(celery)
+            import eduid_am
+            celery = eduid_am.init_app(self.am_settings)
+            self.am = eduid_am.get_attribute_manager(celery)
             self.amdb = self.am.userdb
         else:
             self.amdb = UserDB(self.tmp_db.uri, 'eduid_am')
