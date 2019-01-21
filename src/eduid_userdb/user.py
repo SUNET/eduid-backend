@@ -574,7 +574,7 @@ class User(object):
         res['phone'] = self.phone_numbers.to_list_of_dicts(old_userdb_format=old_userdb_format)
         res['passwords'] = self.credentials.to_list_of_dicts(old_userdb_format=old_userdb_format)
         res['nins'] = self.nins.to_list_of_dicts(old_userdb_format=old_userdb_format)
-        res['tou'] = self.tou.to_list_of_dicts(old_userdb_format=old_userdb_format)
+        res['tou'] = self.tou.to_list_of_dicts()
         res['locked_identity'] = self.locked_identity.to_list_of_dicts(old_userdb_format=old_userdb_format)
         res['orcid'] = None
         if self.orcid is not None:

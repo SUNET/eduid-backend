@@ -33,10 +33,9 @@
 __author__ = 'eperez'
 
 import bson
-from copy import deepcopy
 
 from eduid_userdb import User
-from eduid_userdb.exceptions import UserMissingData, UserHasUnknownData
+from eduid_userdb.exceptions import UserMissingData
 
 
 class ToUUser(User):
