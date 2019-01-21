@@ -31,6 +31,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
+from __future__ import absolute_import
+
 from marshmallow import fields, Schema, validates, validates_schema, validate, ValidationError
 from flask_babel import gettext as _
 from eduid_common.api.schemas.base import FluxStandardAction, EduidSchema
@@ -159,9 +161,20 @@ class RemoveU2FTokenRequestSchema(EduidSchema, CSRFRequestMixin):
 
 # webauthn schemas
 
-class WebauthnBeginResponseSchema(FluxStandardAction): pass
+class WebauthnRegisteredKey(EduidSchema):
+
+    version = fields.String(required=True)
+    key_handle = fields.String(required=True, load_from='keyHandle', dump_to='keyHandle')
+    app_id = fields.String(required=True, load_from='appId', dump_to='appId')
+    transports = fields.String(required=False)
+
+
+class WebauthnRegisterRequestSchema(EduidSchema, CSRFRequestMixin):
+
+    attestationObject = fields.String(required=False)
+    clientDataJSON = fields.String(required=False)
+
 class BeginWebauthnRegistrationResponseSchema(FluxStandardAction): pass
-class WebauthnAttestationRequestSchema(EduidSchema, CSRFRequestMixin): pass
 
 
 # Reset password schemas
