@@ -9,6 +9,7 @@ from celery.utils.log import get_task_logger
 from pkg_resources import iter_entry_points
 
 from eduid_am.common import celery
+from eduid_am.worker import worker_config
 from eduid_userdb import UserDB
 from eduid_userdb.exceptions import UserDoesNotExist, LockedIdentityViolation, ConnectionError
 from .consistency_checks import unverify_duplicates, check_locked_identity
@@ -30,13 +31,13 @@ class PluginsRegistry(object):
         self.context = dict()
         self.attribute_fetcher = dict()
 
-        for plugin_name in am_conf.get('ACTION_PLUGINS', []):
+        for plugin_name in worker_config.get('ACTION_PLUGINS', []):
             try:
                 plugin_module = import_module('eduid_action.{}.am'.format(plugin_name))
             except ImportError:
                 logger.warn('Configured plugin {} missing from sys.path'.format(plugin_name))
                 continue
-            logger.debug("Registering action plugin: %s" % plugin_name)
+            logger.info("Registering action plugin: %s" % plugin_name)
 
             plugin_init = getattr(plugin_module, 'plugin_init')
             self.context[plugin_name] = plugin_init(am_conf)
@@ -67,14 +68,12 @@ class AttributeManager(Task):
     abstract = True  # This means Celery won't register this as another task
 
     def __init__(self):
-        self.default_db_uri = self.app.conf.get('MONGO_URI')
+        self.default_db_uri = worker_config.get('MONGO_URI')
         if self.default_db_uri is not None:
-            # self.userdb is the UserDB to which AM will write the updated users. This setting
-            # will be None when this class is instantiated on the 'client' side of the AMQP bus,
-            # such as in the eduid-signup application.
+            # self.userdb is the UserDB to which AM will write the updated users. This setting will
+            # be None when this class is instantiated on the 'client' side (e.g. in a microservice)
             self.userdb = self.init_db()
-
-            self.registry = PluginsRegistry(self.app.conf)
+        self.registry = PluginsRegistry(worker_config)
 
     def init_db(self):
         return UserDB(self.default_db_uri, 'eduid_am', 'attributes')
