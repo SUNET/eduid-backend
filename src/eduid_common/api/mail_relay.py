@@ -36,17 +36,17 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 from flask import current_app
-import eduid_msg
+from eduid_msg import get_mail_relay, init_app
 from eduid_common.api.exceptions import MailTaskFailed
 
 
 class MailRelay(object):
 
     def __init__(self, settings):
-        eduid_msg.init_app(settings)
-        self.settings = settings
+        init_app(settings)
         # this import has to happen _after_ init_app
         from eduid_msg.tasks import sendmail, pong
+        self.settings = settings
         self._sendmail = sendmail
         self._pong = pong
 
