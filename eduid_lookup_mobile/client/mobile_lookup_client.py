@@ -24,9 +24,6 @@ class MobileLookupClient(object):
     transaction_audit = False
 
     def __init__(self, logger, config=None):
-        if config is None:
-            from eduid_lookup_mobile.celery import config_parser
-            config = config_parser.read_configuration()
         self.conf = config
 
         if 'MONGO_URI' in self.conf:
