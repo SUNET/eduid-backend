@@ -36,7 +36,8 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 from flask import current_app
-from eduid_msg.celery import celery, get_mail_relay
+from eduid_msg.common import celery
+from eduid_msg import get_mail_relay
 from eduid_msg.tasks import sendmail, pong
 from eduid_common.api.exceptions import MailTaskFailed
 
