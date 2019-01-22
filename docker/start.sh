@@ -7,7 +7,7 @@ set -x
 . /opt/eduid/bin/activate
 
 # These could be set from Puppet if multiple instances are deployed
-eduid_name=${eduid_name-'eduid-lookup-mobile'}
+eduid_name=${eduid_name-'eduid-msg'}
 # this is a Python module name, so can't have hyphen (also name of .ini file)
 app_name=$(echo $eduid_name | tr "-" "_")
 base_dir=${base_dir-"/opt/eduid/${eduid_name}"}

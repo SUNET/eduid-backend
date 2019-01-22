@@ -2,7 +2,7 @@ FROM docker.sunet.se/eduid/python3env
 
 MAINTAINER eduid-dev <eduid-dev@SEGATE.SUNET.SE>
 
-VOLUME ["/opt/eduid/eduid-lookup-mobile/etc", "/var/log/eduid", "/opt/eduid/src"]
+VOLUME ["/opt/eduid/eduid-msg/etc", "/var/log/eduid", "/opt/eduid/src"]
 
 COPY . /src/eduid_msg
 COPY docker/setup.sh /opt/eduid/setup.sh
