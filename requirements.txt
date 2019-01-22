@@ -8,3 +8,4 @@ pysmscom>=0.4
 Jinja2>=2.7.3
 hammock>=0.2.4
 python-etcd>=0.4.5
+PyYAML >= 3.11
