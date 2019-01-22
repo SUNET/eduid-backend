@@ -5,3 +5,5 @@ celery[redis]==4.2.*
 simplejson>=3.6.5
 kombu==4.2.*
 billiard==3.5.*
+python-etcd>=0.4.5
+PyYAML >= 3.11
