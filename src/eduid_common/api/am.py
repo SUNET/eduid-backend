@@ -4,11 +4,11 @@ from __future__ import absolute_import
 
 from copy import deepcopy
 from flask import current_app
-import eduid_am.celery
-from eduid_am.tasks import update_attributes_keep_result, pong
+import eduid_am
 from eduid_common.api.exceptions import AmTaskFailed
 
 __author__ = 'lundberg'
+
 
 
 def init_relay(app, application_name):
@@ -22,7 +22,8 @@ def init_relay(app, application_name):
     """
     config = deepcopy(app.config['CELERY_CONFIG'])
     config['broker_url'] = app.config['AM_BROKER_URL']
-    eduid_am.celery.celery.conf.update(config)
+    config['result_backend'] = config['broker_url']
+    eduid_am.init_app(config)
     app.am_relay = AmRelay(relay_for=application_name)
     return app
 
@@ -46,6 +47,7 @@ class AmRelay(object):
 
         :return:
         """
+        from eduid_am.tasks import update_attributes_keep_result
         # XXX: Do we need to check for acceptable_user_types?
         try:
             user_id = str(user.user_id)
@@ -73,6 +75,7 @@ class AmRelay(object):
                 raise AmTaskFailed('request_user_sync task failed: {}'.format(e))
 
     def ping(self):
+        from eduid_am.tasks import pong
         rtask = pong.delay(self.relay_for)
-        result = rtask.get(timeout=1)
+        result = rtask.get(timeout=2)
         return result

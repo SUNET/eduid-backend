@@ -2,15 +2,9 @@
 
 from __future__ import absolute_import
 
-from copy import deepcopy
 from flask import current_app
-import eduid_msg.celery
 from celery.exceptions import TimeoutError
-from eduid_msg.tasks import send_message as _send_message
-from eduid_msg.tasks import get_postal_address as _get_postal_address
-from eduid_msg.tasks import get_relations_to as _get_relations_to
-from eduid_msg.tasks import sendsms as _sendsms
-from eduid_msg.tasks import pong as _pong
+import eduid_msg
 from eduid_common.api.exceptions import MsgTaskFailed
 
 __author__ = 'lundberg'
@@ -29,9 +23,7 @@ LANGUAGE_MAPPING = {
 
 
 def init_relay(app):
-    config = deepcopy(app.config['CELERY_CONFIG'])
-    config['broker_url'] = app.config['MSG_BROKER_URL']
-    eduid_msg.celery.celery.conf.update(config)
+    eduid_msg.init_app(app.config['CELERY_CONFIG'])
     app.msg_relay = MsgRelay()
     return app
 
@@ -65,6 +57,7 @@ class MsgRelay(object):
                     ]))
                 ])
         """
+        from eduid_msg.tasks import get_postal_address as _get_postal_address
         rtask = _get_postal_address.apply_async(args=[nin])
         try:
             rtask.wait(timeout=timeout)
@@ -96,6 +89,7 @@ class MsgRelay(object):
         :return: List of codes. Empty list if the NINs are not related.
         :rtype: [str | unicode]
         """
+        from eduid_msg.tasks import get_relations_to as _get_relations_to
         rtask = _get_relations_to.apply_async(args=[nin, relative_nin])
         try:
             rtask.wait(timeout=timeout)
@@ -115,6 +109,7 @@ class MsgRelay(object):
                 * code: the verification code
                 * phonenumber: the phone number to verificate
         """
+        from eduid_msg.tasks import send_message as _send_message
         content = {
             'sitename': current_app.config.get('EDUID_SITE_NAME'),
             'sitelink': current_app.config.get('VALIDATION_URL'),
@@ -147,6 +142,7 @@ class MsgRelay(object):
         :type reference: six.string_types
         :type max_retry_seconds: int
         """
+        from eduid_msg.tasks import sendsms as _sendsms
         current_app.logger.info('Trying to send SMS with reference: {}'.format(reference))
         current_app.logger.debug(u'Recipient: {}. Message: {}'.format(recipient, message))
         try:
@@ -156,6 +152,7 @@ class MsgRelay(object):
         current_app.logger.info('SMS with reference {} sent. Task result: {}'.format(reference, res))
 
     def ping(self):
+        from eduid_msg.tasks import pong as _pong
         rtask = _pong.delay()
         result = rtask.get(timeout=1)
         return result
