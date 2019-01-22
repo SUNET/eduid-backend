@@ -7,3 +7,4 @@ celery[redis]==4.2.*
 pysmscom>=0.4
 Jinja2>=2.7.3
 hammock>=0.2.4
+python-etcd>=0.4.5
