@@ -4,7 +4,7 @@ MAINTAINER eduid-dev <eduid-dev@SEGATE.SUNET.SE>
 
 VOLUME ["/opt/eduid/eduid-lookup-mobile/etc", "/var/log/eduid", "/opt/eduid/src"]
 
-COPY . /src/eduid-lookup-mobile
+COPY . /src/eduid_msg
 COPY docker/setup.sh /opt/eduid/setup.sh
 RUN /opt/eduid/setup.sh
 

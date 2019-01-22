@@ -13,6 +13,6 @@ echo "#############################################################"
 echo "$0: Using PyPi URL ${PYPI}"
 echo "#############################################################"
 
-/opt/eduid/bin/pip install --pre -i ${PYPI} /src/eduid-lookup-mobile
+/opt/eduid/bin/pip install --pre -i ${PYPI} /src/eduid_msg
 
 /opt/eduid/bin/pip freeze
