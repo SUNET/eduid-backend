@@ -11,7 +11,7 @@ class TestTransactionAudit(MsgMongoTestCase):
         TransactionAudit.enable()
 
     def test_transaction_audit(self):
-        @TransactionAudit(self.msg.conf.get('MONGO_URI'), db_name='test')
+        @TransactionAudit(self.msg_settings.get('MONGO_URI'), db_name='test')
         def no_name():
             return {'baka': 'kaka'}
         no_name()
@@ -21,14 +21,14 @@ class TestTransactionAudit(MsgMongoTestCase):
         self.assertEquals(result.count(), 1)
         self.assertEquals(result.next()['data']['baka'], 'kaka')
 
-        @TransactionAudit(self.msg.conf.get('MONGO_URI'), db_name='test')
+        @TransactionAudit(self.msg_settings.get('MONGO_URI'), db_name='test')
         def _get_navet_data(arg1, arg2):
             return {'baka', 'kaka'}
         _get_navet_data('dummy', '1111')
         result = c.find_one({'data': {'identity_number': '1111'}})
         self.assertEquals(result['data']['identity_number'], '1111')
 
-        @TransactionAudit(self.msg.conf.get('MONGO_URI'), db_name='test')
+        @TransactionAudit(self.msg_settings.get('MONGO_URI'), db_name='test')
         def send_message(_self, message_type, reference, message_dict, recipient, template, language, subject=None):
             return 'kaka'
         send_message('dummy', 'mm', 'reference', 'dummy', '2222', 'template', 'lang')
@@ -49,7 +49,7 @@ class TestTransactionAudit(MsgMongoTestCase):
         c.remove()  # Clear database
         TransactionAudit.disable()
 
-        @TransactionAudit(self.msg.conf.get('MONGO_URI'), db_name='test')
+        @TransactionAudit(self.msg_settings.get('MONGO_URI'), db_name='test')
         def no_name():
             return {'baka': 'kaka'}
         no_name()
@@ -58,7 +58,7 @@ class TestTransactionAudit(MsgMongoTestCase):
         self.assertEquals(result.count(), 0)
 
         TransactionAudit.enable()
-        @TransactionAudit(self.msg.conf.get('MONGO_URI'), db_name='test')
+        @TransactionAudit(self.msg_settings.get('MONGO_URI'), db_name='test')
         def no_name2():
             return {'baka': 'kaka'}
         no_name2()
