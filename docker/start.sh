@@ -25,7 +25,7 @@ chmod 640 "${ini}" || true
 
 celery_args="--loglevel INFO"
 if [ -f /opt/eduid/src/setup.py ]; then
-    celery_args="--loglevel DEBUG --autoreload"
+    celery_args="--loglevel DEBUG"
 else
     if [ -f "${cfg_dir}/${app_name}_DEBUG" ]; then
 	# eduid-dev environment
@@ -36,7 +36,7 @@ fi
 cd "${cfg_dir}"
 
 echo "$0: Starting Celery app '${app_name}' in directory ${cfg_dir}"
-exec celery worker --app="${app_name}" --events --uid eduid --gid eduid \
+exec celery worker --app="${app_name}.worker" --events --uid eduid --gid eduid \
     --logfile="${logfile}" \
     $celery_args
 
