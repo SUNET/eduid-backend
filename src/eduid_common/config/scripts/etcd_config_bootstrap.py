@@ -1,5 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+#
+# Write contents from a YAML file with eduid component configurations into etcd.
+#
+# Upstream source of this file:
+#
+#   eduid-common/src/eduid_common/config/scripts/etcd_config_bootstrap.py
+#
 
 import sys
 import os
@@ -150,7 +157,7 @@ def remove_old_keys(client, config, depth):
                 if VERBOSE:
                     print('{!s} -> Removed'.format(item.key))
     except etcd.EtcdKeyNotFound:
-        pass
+        pass  # base_ns is missing, nothing to remove
 
 
 def write_config(client, config):
