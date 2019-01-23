@@ -10,7 +10,6 @@ from eduid_common.api.exceptions import AmTaskFailed
 __author__ = 'lundberg'
 
 
-
 def init_relay(app, application_name):
     """
     :param app: Flask app
@@ -23,19 +22,26 @@ def init_relay(app, application_name):
     config = deepcopy(app.config['CELERY_CONFIG'])
     config['broker_url'] = app.config['AM_BROKER_URL']
     config['result_backend'] = config['broker_url']
-    eduid_am.init_app(config)
-    app.am_relay = AmRelay(relay_for=application_name)
+    app.am_relay = AmRelay(config, application_name)
     return app
 
 
 class AmRelay(object):
 
-    def __init__(self, relay_for):
+    def __init__(self, config, relay_for):
         """
+        :param config: ceery config
+        :type config: dict
         :param relay_for: Name of application to relay for
         :type relay_for: str|unicode
         """
         self.relay_for = relay_for
+
+        eduid_am.init_app(config)
+
+        from eduid_am.tasks import update_attributes_keep_result, pong
+        self._update_attrs = update_attributes_keep_result
+        self._pong = pong
 
     def request_user_sync(self, user):
         """
@@ -47,7 +53,6 @@ class AmRelay(object):
 
         :return:
         """
-        from eduid_am.tasks import update_attributes_keep_result
         # XXX: Do we need to check for acceptable_user_types?
         try:
             user_id = str(user.user_id)
@@ -57,7 +62,7 @@ class AmRelay(object):
 
         current_app.logger.debug("Asking Attribute Manager to sync user {!s}".format(user))
         try:
-            rtask = update_attributes_keep_result.delay(self.relay_for, user_id)
+            rtask = self._update_attrs.delay(self.relay_for, user_id)
             result = rtask.get(timeout=3)
             current_app.logger.debug("Attribute Manager sync result: {!r} for user {!s}".format(result, user))
             return result
@@ -66,7 +71,7 @@ class AmRelay(object):
             current_app.logger.exception(
                 "Failed Attribute Manager sync request for user {!s}. trying again".format(user))
             try:
-                rtask = update_attributes_keep_result.delay(self.relay_for, user_id)
+                rtask = self._update_attrs.delay(self.relay_for, user_id)
                 result = rtask.get(timeout=7)
                 current_app.logger.debug("Attribute Manager sync result: {!r} for user {!s}".format(result, user))
                 return result
@@ -75,7 +80,6 @@ class AmRelay(object):
                 raise AmTaskFailed('request_user_sync task failed: {}'.format(e))
 
     def ping(self):
-        from eduid_am.tasks import pong
-        rtask = pong.delay(self.relay_for)
+        rtask = self._pong.delay(self.relay_for)
         result = rtask.get(timeout=2)
         return result
