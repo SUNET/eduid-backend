@@ -1,14 +1,12 @@
-import eduid_lookup_mobile.celery
-from eduid_lookup_mobile.tasks import find_mobiles_by_NIN, find_NIN_by_mobile
+import eduid_lookup_mobile
 
 __author__ = 'mathiashedstrom'
 
 
 def init_relay(app):
     config = app.config['CELERY_CONFIG']
-    config['broker_url'] = app.config['LOOKUP_MOBILE_BROKER_URL']
-    eduid_lookup_mobile.celery.app.conf.update(config)
-    app.lookup_mobile_relay = LookupMobileRelay()
+    config['BROKER_URL'] = app.config['LOOKUP_MOBILE_BROKER_URL']
+    app.lookup_mobile_relay = LookupMobileRelay(config)
     return app
 
 
@@ -18,7 +16,9 @@ class LookupMobileTaskFailed(Exception):
 
 class LookupMobileRelay(object):
 
-    def __init__(self):
+    def __init__(self, config):
+        eduid_lookup_mobile.init_app(config)
+        from eduid_lookup_mobile.tasks import find_mobiles_by_NIN, find_NIN_by_mobile
         self._find_mobiles_by_NIN = find_mobiles_by_NIN
         self._find_NIN_by_mobile = find_NIN_by_mobile
 
