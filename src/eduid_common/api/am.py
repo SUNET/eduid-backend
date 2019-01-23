@@ -13,11 +13,11 @@ __author__ = 'lundberg'
 def init_relay(app, application_name):
     """
     :param app: Flask app
-    :type app:
+    :type app: flask.Flask
     :param application_name: Name to help am find the entry point for the am plugin
     :type application_name: str|unicode
     :return: Flask app
-    :rtype:
+    :rtype: flask.Flask
     """
     config = deepcopy(app.config['CELERY_CONFIG'])
     config['broker_url'] = app.config['AM_BROKER_URL']
@@ -30,7 +30,7 @@ class AmRelay(object):
 
     def __init__(self, config, relay_for):
         """
-        :param config: ceery config
+        :param config: celery config
         :type config: dict
         :param relay_for: Name of application to relay for
         :type relay_for: str|unicode
@@ -38,7 +38,7 @@ class AmRelay(object):
         self.relay_for = relay_for
 
         eduid_am.init_app(config)
-
+        # these have to be imported _after_ eduid_am.init_app()
         from eduid_am.tasks import update_attributes_keep_result, pong
         self._update_attrs = update_attributes_keep_result
         self._pong = pong
@@ -51,7 +51,7 @@ class AmRelay(object):
         :param user: User object
         :type user: eduid_userdb.User
 
-        :return:
+        :return: Result of celery Task.get()
         """
         # XXX: Do we need to check for acceptable_user_types?
         try:
@@ -80,6 +80,10 @@ class AmRelay(object):
                 raise AmTaskFailed('request_user_sync task failed: {}'.format(e))
 
     def ping(self):
+        """
+        Check if this application is able to reach an AM worker.
+        :return: Result of celery Task.get
+        """
         rtask = self._pong.delay(self.relay_for)
         result = rtask.get(timeout=2)
         return result
