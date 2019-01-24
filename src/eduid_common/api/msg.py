@@ -2,15 +2,9 @@
 
 from __future__ import absolute_import
 
-from copy import deepcopy
 from flask import current_app
-import eduid_msg.celery
 from celery.exceptions import TimeoutError
-from eduid_msg.tasks import send_message as _send_message
-from eduid_msg.tasks import get_postal_address as _get_postal_address
-from eduid_msg.tasks import get_relations_to as _get_relations_to
-from eduid_msg.tasks import sendsms as _sendsms
-from eduid_msg.tasks import pong as _pong
+import eduid_msg
 from eduid_common.api.exceptions import MsgTaskFailed
 
 __author__ = 'lundberg'
@@ -29,14 +23,21 @@ LANGUAGE_MAPPING = {
 
 
 def init_relay(app):
-    config = deepcopy(app.config['CELERY_CONFIG'])
-    config['broker_url'] = app.config['MSG_BROKER_URL']
-    eduid_msg.celery.celery.conf.update(config)
-    app.msg_relay = MsgRelay()
+    app.msg_relay = MsgRelay(app.config['CELERY_CONFIG'])
     return app
 
 
 class MsgRelay(object):
+
+    def __init__(self, settings):
+        eduid_msg.init_app(settings)
+        # these have to be imported _after_ eduid_am.init_app()
+        from eduid_msg.tasks import get_postal_address, get_relations_to, send_message, sendsms, pong
+        self._get_postal_address = get_postal_address
+        self._get_relations_to = get_relations_to
+        self._send_message = send_message
+        self._send_sms = sendsms
+        self._pong = pong
 
     def get_language(self, lang):
         return LANGUAGE_MAPPING.get(lang, 'en_US')
@@ -65,7 +66,7 @@ class MsgRelay(object):
                     ]))
                 ])
         """
-        rtask = _get_postal_address.apply_async(args=[nin])
+        rtask = self._get_postal_address.apply_async(args=[nin])
         try:
             rtask.wait(timeout=timeout)
         except TimeoutError:
@@ -96,7 +97,7 @@ class MsgRelay(object):
         :return: List of codes. Empty list if the NINs are not related.
         :rtype: [str | unicode]
         """
-        rtask = _get_relations_to.apply_async(args=[nin, relative_nin])
+        rtask = self._get_relations_to.apply_async(args=[nin, relative_nin])
         try:
             rtask.wait(timeout=timeout)
         except TimeoutError:
@@ -128,7 +129,7 @@ class MsgRelay(object):
             code, targetphone, reference))
 
         try:
-            res = _send_message.delay('sms', reference, content, targetphone, template, lang)
+            res = self._send_message.delay('sms', reference, content, targetphone, template, lang)
         except Exception as e:
             raise MsgTaskFailed('phone_validator task failed: {!r}'.format(e))
 
@@ -150,12 +151,12 @@ class MsgRelay(object):
         current_app.logger.info('Trying to send SMS with reference: {}'.format(reference))
         current_app.logger.debug(u'Recipient: {}. Message: {}'.format(recipient, message))
         try:
-            res = _sendsms.delay(recipient, message, reference, max_retry_seconds)
+            res = self._send_sms.delay(recipient, message, reference, max_retry_seconds)
         except Exception as e:
             raise MsgTaskFailed('sendsms task failed: {!r}'.format(e))
         current_app.logger.info('SMS with reference {} sent. Task result: {}'.format(reference, res))
 
     def ping(self):
-        rtask = _pong.delay()
+        rtask = self._pong.delay()
         result = rtask.get(timeout=1)
         return result
