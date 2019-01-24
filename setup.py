@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 
-version = '0.3.7'
+version = '0.3.8b0'
 
 requires = [
     'six >= 1.11.0',
@@ -41,6 +41,12 @@ idp_requires = [
 ]
 idp_extras = idp_requires + []
 
+worker_requires = [
+    'python-etcd >= 0.4.5',
+    'PyNaCl >= 1.0.1',
+    ]
+worker_extras = worker_requires + []
+
 # No dependecies flavor, let the importing application handle dependencies
 nodeps_requires = requires
 
@@ -78,6 +84,7 @@ setup(name='eduid-common',
           'testing': testing_extras,
           'webapp': webapp_extras,
           'idp': idp_extras,
+          'worker': worker_extras,
           'nodeps': []
       },
       entry_points="""
