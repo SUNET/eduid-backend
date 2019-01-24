@@ -29,6 +29,16 @@ def init_relay(app):
 
 class MsgRelay(object):
 
+    def __init__(self, settings):
+        eduid_msg.init_app(settings)
+        # these have to be imported _after_ eduid_am.init_app()
+        from eduid_msg.tasks import get_postal_address, get_relations_to, send_message, sendsms, pong
+        self._get_postal_address = get_postal_address
+        self._get_relations_to = get_relations_to
+        self._send_message = send_message
+        self._send_sms = sendsms
+        self._pong = pong
+
     def get_language(self, lang):
         return LANGUAGE_MAPPING.get(lang, 'en_US')
 
@@ -56,8 +66,7 @@ class MsgRelay(object):
                     ]))
                 ])
         """
-        from eduid_msg.tasks import get_postal_address as _get_postal_address
-        rtask = _get_postal_address.apply_async(args=[nin])
+        rtask = self._get_postal_address.apply_async(args=[nin])
         try:
             rtask.wait(timeout=timeout)
         except TimeoutError:
@@ -88,8 +97,7 @@ class MsgRelay(object):
         :return: List of codes. Empty list if the NINs are not related.
         :rtype: [str | unicode]
         """
-        from eduid_msg.tasks import get_relations_to as _get_relations_to
-        rtask = _get_relations_to.apply_async(args=[nin, relative_nin])
+        rtask = self._get_relations_to.apply_async(args=[nin, relative_nin])
         try:
             rtask.wait(timeout=timeout)
         except TimeoutError:
@@ -108,7 +116,6 @@ class MsgRelay(object):
                 * code: the verification code
                 * phonenumber: the phone number to verificate
         """
-        from eduid_msg.tasks import send_message as _send_message
         content = {
             'sitename': current_app.config.get('EDUID_SITE_NAME'),
             'sitelink': current_app.config.get('VALIDATION_URL'),
@@ -122,7 +129,7 @@ class MsgRelay(object):
             code, targetphone, reference))
 
         try:
-            res = _send_message.delay('sms', reference, content, targetphone, template, lang)
+            res = self._send_message.delay('sms', reference, content, targetphone, template, lang)
         except Exception as e:
             raise MsgTaskFailed('phone_validator task failed: {!r}'.format(e))
 
@@ -141,17 +148,15 @@ class MsgRelay(object):
         :type reference: six.string_types
         :type max_retry_seconds: int
         """
-        from eduid_msg.tasks import sendsms as _sendsms
         current_app.logger.info('Trying to send SMS with reference: {}'.format(reference))
         current_app.logger.debug(u'Recipient: {}. Message: {}'.format(recipient, message))
         try:
-            res = _sendsms.delay(recipient, message, reference, max_retry_seconds)
+            res = self._send_sms.delay(recipient, message, reference, max_retry_seconds)
         except Exception as e:
             raise MsgTaskFailed('sendsms task failed: {!r}'.format(e))
         current_app.logger.info('SMS with reference {} sent. Task result: {}'.format(reference, res))
 
     def ping(self):
-        from eduid_msg.tasks import pong as _pong
-        rtask = _pong.delay()
+        rtask = self._pong.delay()
         result = rtask.get(timeout=1)
         return result
