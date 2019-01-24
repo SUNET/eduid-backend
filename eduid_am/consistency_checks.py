@@ -218,8 +218,3 @@ def check_locked_identity(userdb, user_id, attributes, app_name):
 
     attributes['$set']['locked_identity'] = locked_identities.to_list_of_dicts()
     return attributes
-
-
-
-
-

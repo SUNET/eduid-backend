@@ -14,10 +14,8 @@ version = '0.7.1'
 
 here = os.path.abspath(os.path.dirname(__file__))
 install_requires = [x for x in open(os.path.join(here, 'requirements.txt')).read().split('\n') if len(x) > 0]
-testing_extras = [x for x in open(os.path.join(here, 'test_requirements.txt')).read().split('\n') if len(x) > 0 and not x.startswith('-')]
-testing_extras = [
-
-]
+testing_extras = [x for x in open(os.path.join(here, 'test_requirements.txt')).read().split('\n')
+                  if len(x) > 0 and not x.startswith('-')]
 
 setup(
     name='eduid_am',
@@ -34,8 +32,7 @@ setup(
     license='BSD',
     packages=find_packages(),
     include_package_data=True,
-    package_data = {
-        },
+    package_data={},
     zip_safe=False,
     install_requires=install_requires,
     extras_require={

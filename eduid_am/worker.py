@@ -37,5 +37,3 @@ def setup_indexes(db_uri, db_name, collection):
 
 if 'MONGO_URI' in worker_config:
     setup_indexes(worker_config['MONGO_URI'], 'eduid_am', 'attributes')
-
-

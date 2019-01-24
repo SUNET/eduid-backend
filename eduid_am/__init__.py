@@ -9,6 +9,7 @@ from __future__ import absolute_import
 from eduid_common.rpc.celery import init_celery
 import eduid_am.common as common
 
+
 def init_app(config):
     common.celery = init_celery('am', config)
     return common.celery

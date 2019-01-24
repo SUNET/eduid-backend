@@ -8,7 +8,6 @@ import shutil
 import tempfile
 import unittest
 import subprocess
-import os
 import pymongo
 
 
@@ -39,11 +38,9 @@ class MongoTemporaryInstance(object):
                                           '--syncdelay', '0',
                                           '--maxConns', '10',
                                           '--nssize', '1', ],
-                                         #stdout=open(os.devnull, 'wb'),
-                                         #stderr=subprocess.STDOUT)
-                                          stdout=sys.stdout,
-                                          stderr=sys.stderr,
-                                          )
+                                         stdout=sys.stdout,
+                                         stderr=sys.stderr,
+                                         )
 
         # XXX: wait for the instance to be ready
         #      Mongo is ready in a glance, we just wait to be able to open a
