@@ -38,7 +38,6 @@ chmod g+x "${logfile}"
 test -f revision.txt && cat revision.txt; true
 
 echo "$0: Starting Celery app '${app_name}' in directory ${cfg_dir}"
-exec celery worker --app="${app_name}" -Q ${eduid_queue} --events \
+exec celery worker --app="${app_name}.worker" -Q ${eduid_queue} --events \
      --events --uid eduid --gid eduid --logfile="${logfile}" \
      $celery_args
-
