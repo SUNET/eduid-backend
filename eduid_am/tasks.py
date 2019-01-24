@@ -107,7 +107,7 @@ def update_attributes_keep_result(app_name, obj_id):
     """
     This task is exactly the same as update_attributes, except that
     it keeps the celery results so that it can be used synchronously.
-    
+
     This is called during signup, so we can tell that the account
     has been successfully created.
 
@@ -124,7 +124,7 @@ def _update_attributes(app_name, obj_id):
     try:
         return _update_attributes_safe(app_name, obj_id)
     except Exception:
-        logger.error('Got exception processing {!r}[{!r}]'.format(app_name, obj_id), exc_info = True)
+        logger.error('Got exception processing {!r}[{!r}]'.format(app_name, obj_id), exc_info=True)
         raise
 
 
