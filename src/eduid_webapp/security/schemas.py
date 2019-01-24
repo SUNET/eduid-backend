@@ -169,6 +169,14 @@ class WebauthnRegisteredKey(EduidSchema):
     transports = fields.String(required=False)
 
 
+class WebauthnOptionsResponseSchema(FluxStandardAction):
+
+    class WebauthnOptionsResponsePayload(EduidSchema, CSRFResponseMixin):
+        options = fields.String(required=True)
+
+    payload = fields.Nested(WebauthnOptionsResponsePayload)
+
+
 class WebauthnRegisterRequestSchema(EduidSchema, CSRFRequestMixin):
 
     attestationObject = fields.String(required=False)
