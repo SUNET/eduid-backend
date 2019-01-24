@@ -10,10 +10,6 @@ def format_NIN(nin):
 
     # Remove all non-digits
     nin = re.sub(r"\D", '', nin)
-    # Format to 10 digits
-    # length = len(nin)
-    # formatted_national_identity_number = nin[-(10-length):length]
-    # return formatted_national_identity_number
     return nin
 
 

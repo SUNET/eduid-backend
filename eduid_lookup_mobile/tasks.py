@@ -22,6 +22,7 @@ def find_mobiles_by_NIN(national_identity_number, number_region=None):
     lookup_client = MobileLookupClient(logger)
     return lookup_client.find_mobiles_by_NIN(national_identity_number, number_region)
 
+
 @celery.task
 def find_NIN_by_mobile(mobile_number):
     """
