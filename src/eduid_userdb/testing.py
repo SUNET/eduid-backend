@@ -280,12 +280,13 @@ class MongoTestCase(unittest.TestCase):
 
         if init_am:
             self.am_settings = {
-                'BROKER_TRANSPORT': 'memory',  # Don't use AMQP bus when testing
-                'BROKER_URL': 'memory://',
-                'CELERY_EAGER_PROPAGATES_EXCEPTIONS': True,
-                'CELERY_ALWAYS_EAGER': True,
-                'CELERY_RESULT_BACKEND': "cache",
-                'CELERY_CACHE_BACKEND': 'memory',
+                'CELERY': {'broker_transport': 'memory',
+                           'broker_url': 'memory://',
+                           'task_eager_propagates': True,
+                           'task_always_eager': True,
+                           'result_backend': 'cache',
+                           'cache_backend': 'memory',
+                           },
                 # Be sure to tell AttributeManager about the temporary mongodb instance.
                 'MONGO_URI': self.tmp_db.uri,
                 # Set new user date to tomorrow by default
@@ -293,8 +294,12 @@ class MongoTestCase(unittest.TestCase):
             }
             if am_settings:
                 self.am_settings.update(am_settings)
+            # initialize eduid_am without requiring config in etcd
             import eduid_am
-            celery = eduid_am.init_app(self.am_settings)
+            celery = eduid_am.init_app(self.am_settings['CELERY'])
+            import eduid_am.worker
+            eduid_am.worker.worker_config = self.am_settings
+
             self.am = eduid_am.get_attribute_manager(celery)
             self.amdb = self.am.userdb
         else:
