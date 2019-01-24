@@ -5,6 +5,8 @@ from eduid_userdb import UserDB
 from eduid_userdb.testing import MongoTestCase
 
 import unittest
+
+
 @unittest.skip("Not working yet")
 class TestIndexes(MongoTestCase):
 

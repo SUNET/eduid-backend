@@ -9,6 +9,7 @@ from eduid_userdb.exceptions import UserDoesNotExist
 
 __author__ = 'leifj'
 
+
 class AmTestUser(eduid_userdb.User):
     """
     User class for the 'test' plugin below.
@@ -16,7 +17,7 @@ class AmTestUser(eduid_userdb.User):
     def __init__(self, data):
         self.uid = data.pop('uid', None)
 
-        eduid_userdb.User.__init__(self, data = data)
+        eduid_userdb.User.__init__(self, data=data)
 
     def to_dict(self, old_userdb_format=False):
         res = eduid_userdb.User.to_dict(self, old_userdb_format=old_userdb_format)
@@ -97,7 +98,7 @@ class MessageTest(MongoTestCase):
         # have instantiated AttributeManagers without the right config if the import is
         # done prior to the Celery app configuration.
         from eduid_am.tasks import update_attributes
-        update_attributes.delay(app_name='test', obj_id = _id)
+        update_attributes.delay(app_name='test', obj_id=_id)
 
         # verify the user has been propagated to the amdb
         am_user = self.amdb.get_user_by_id(_id)
