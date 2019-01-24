@@ -23,8 +23,7 @@ LANGUAGE_MAPPING = {
 
 
 def init_relay(app):
-    eduid_msg.init_app(app.config['CELERY_CONFIG'])
-    app.msg_relay = MsgRelay()
+    app.msg_relay = MsgRelay(app.config['CELERY_CONFIG'])
     return app
 
 

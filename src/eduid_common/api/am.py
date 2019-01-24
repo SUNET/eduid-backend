@@ -2,7 +2,6 @@
 
 from __future__ import absolute_import
 
-from copy import deepcopy
 from flask import current_app
 import eduid_am
 from eduid_common.api.exceptions import AmTaskFailed
@@ -19,10 +18,7 @@ def init_relay(app, application_name):
     :return: Flask app
     :rtype: flask.Flask
     """
-    config = deepcopy(app.config['CELERY_CONFIG'])
-    config['broker_url'] = app.config['AM_BROKER_URL']
-    config['result_backend'] = config['broker_url']
-    app.am_relay = AmRelay(config, application_name)
+    app.am_relay = AmRelay(app.config['CELERY_CONFIG'], application_name)
     return app
 
 
