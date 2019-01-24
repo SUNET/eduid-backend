@@ -1,5 +1,5 @@
-eduid_userdb>=0.4.1b0
 eduid_common[worker]>=0.3.8b0
+eduid_userdb>=0.4.6b0
 python-dateutil>=2.1
 celery[redis]==4.2.*
 
