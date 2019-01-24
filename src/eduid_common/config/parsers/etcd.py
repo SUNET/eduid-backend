@@ -4,7 +4,6 @@ from __future__ import absolute_import
 
 import os
 import etcd
-import yaml
 import json
 import logging
 
@@ -159,6 +158,9 @@ class EtcdConfigParser(object):
 
         :type file_path: str | unicode
         """
+        # import here since most users of this module do not write config to files and
+        # thus might not need a yaml dependency
+        import yaml
         with open(file_path) as f:
             config = yaml.load(f)
             if not config:
