@@ -11,12 +11,13 @@ class MsgMongoTestCase(MongoTestCase):
         data_dir = pkg_resources.resource_filename(__name__, 'tests/data')
         if init_msg:
             self.msg_settings = {
-                'broker_transport': 'memory',
-                'broker_url': 'memory://',
-                'task_eager_propagates': True,
-                'task_always_eager': True,
-                'result_backend': 'cache',
-                'cache_backend': 'memory',
+                'CELERY': {'broker_transport': 'memory',
+                           'broker_url': 'memory://',
+                           'task_eager_propagates': True,
+                           'task_always_eager': True,
+                           'result_backend': 'cache',
+                           'cache_backend': 'memory',
+                           },
                 'MONGO_URI': self.tmp_db.uri,
                 'MONGO_DBNAME': 'test',
                 'SMS_ACC': 'foo',
@@ -25,5 +26,8 @@ class MsgMongoTestCase(MongoTestCase):
                 'TEMPLATE_DIR': data_dir,
                 'MESSAGE_RATE_LIMIT': '2/m',
             }
+            # initialize eduid_msg without requiring config in etcd
             import eduid_msg
-            self.msg = eduid_msg.init_app(self.msg_settings)
+            self.msg = eduid_msg.init_app(self.msg_settings['CELERY'])
+            import eduid_msg.worker
+            eduid_msg.worker.worker_config = self.msg_settings
