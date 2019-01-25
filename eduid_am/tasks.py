@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import sys
 import bson
 from importlib import import_module
 
@@ -12,7 +13,7 @@ from eduid_am.common import celery
 from eduid_am.worker import worker_config
 from eduid_userdb import UserDB
 from eduid_userdb.exceptions import UserDoesNotExist, LockedIdentityViolation, ConnectionError
-from .consistency_checks import unverify_duplicates, check_locked_identity
+from eduid_am.consistency_checks import unverify_duplicates, check_locked_identity
 
 
 if celery is None:
@@ -32,12 +33,15 @@ class PluginsRegistry(object):
         self.attribute_fetcher = dict()
 
         for plugin_name in worker_config.get('ACTION_PLUGINS', []):
+            module_name = 'eduid_action.{}.am'.format(plugin_name)
             try:
-                plugin_module = import_module('eduid_action.{}.am'.format(plugin_name))
-            except ImportError:
-                logger.warn('Configured plugin {} missing from sys.path'.format(plugin_name))
+                plugin_module = import_module(module_name)
+            except ImportError as exc:
+                logger.warn('Configured plugin {} missing from sys.path (could not import {}): {}'.format(
+                    plugin_name, module_name, exc))
+                logger.debug('Extra debug: path: {}'.format(sys.path))
                 continue
-            logger.info("Registering action plugin: %s" % plugin_name)
+            logger.info('Registering action plugin: {} (module {})'.format(plugin_name, module_name))
 
             plugin_init = getattr(plugin_module, 'plugin_init')
             self.context[plugin_name] = plugin_init(am_conf)
