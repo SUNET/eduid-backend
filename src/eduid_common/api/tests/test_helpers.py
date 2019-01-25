@@ -5,8 +5,9 @@ from __future__ import absolute_import
 from flask import Flask
 from copy import deepcopy
 from mock import patch
-from eduid_common.api.testing import EduidAPITestCase, NEW_USER_EXAMPLE
+from eduid_common.api.testing import EduidAPITestCase
 from eduid_userdb.userdb import UserDB
+from eduid_userdb.data_samples import NEW_USER_EXAMPLE
 from eduid_userdb.user import User
 from eduid_userdb.proofing import ProofingUser
 from eduid_userdb.exceptions import UserDoesNotExist
