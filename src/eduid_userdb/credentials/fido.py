@@ -43,48 +43,20 @@ from eduid_userdb.exceptions import UserHasUnknownData, UserDBValueError
 __author__ = 'ft'
 
 
-class U2F(Credential):
+class FidoCredential(Credential):
     """
-    U2F token authentication credential
+    Token authentication credential
     """
 
-    def __init__(self,
-                 version=None, keyhandle=None, public_key=None, app_id=None, attest_cert=None,
-                 description=None,
-                 application=None, created_ts=None, data=None,
-                 raise_on_unknown=True):
+    def __init__(self, data):
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
 
-        if data is None:
-            if created_ts is None:
-                created_ts = True
-            data = dict(version = version,
-                        keyhandle = keyhandle,
-                        public_key = public_key,
-                        app_id = app_id,
-                        attest_cert = attest_cert,
-                        description = description,
-                        created_by = application,
-                        created_ts = created_ts,
-                        )
-
         Credential.__init__(self, data)
-        self.version = data.pop('version')
         self.keyhandle = data.pop('keyhandle')
         self.public_key = data.pop('public_key')
         self.app_id = data.pop('app_id')
-        self.attest_cert = data.pop('attest_cert', '')
         self.description = data.pop('description', '')
-
-        leftovers = data.keys()
-        if leftovers:
-            if raise_on_unknown:
-                raise UserHasUnknownData('U2F {!r} unknown data: {!r}'.format(
-                    self.key, leftovers,
-                ))
-            # Just keep everything that is left as-is
-            self._data.update(data)
 
     def __repr__(self):  # XXX was __repr__ what we settled on for Python3? Don't think so
         kh = self._data['keyhandle'][:8]
@@ -108,26 +80,6 @@ class U2F(Credential):
         return 'sha256:' + sha256(self.keyhandle.encode('utf-8') +
                                   self.public_key.encode('utf-8')
                                   ).hexdigest()
-
-    @property
-    def version(self):
-        """
-        This is the U2F version used by this token.
-
-        :return: U2F version.
-        :rtype: str
-        """
-        return self._data['version']
-
-    @version.setter
-    def version(self, value):
-        """
-        :param value: U2F version. E.g. 'U2F_V2'.
-        :type value: str
-        """
-        if not isinstance(value, string_types):
-            raise UserDBValueError("Invalid 'version': {!r}".format(value))
-        self._data['version'] = value
 
     @property
     def keyhandle(self):
@@ -190,6 +142,86 @@ class U2F(Credential):
         self._data['app_id'] = value
 
     @property
+    def description(self):
+        """
+        User description/name of this token.
+
+        :return: description
+        :rtype: str
+        """
+        return self._data['description']
+
+    @description.setter
+    def description(self, value):
+        """
+        :param value: U2F description.
+        :type value: str
+        """
+        if not isinstance(value, string_types):
+            raise UserDBValueError("Invalid 'description': {!r}".format(value))
+        self._data['description'] = value
+
+
+class U2F(FidoCredential):
+    """
+    U2F token authentication credential
+    """
+
+    def __init__(self,
+                 version=None, keyhandle=None, public_key=None, app_id=None, attest_cert=None,
+                 description=None,
+                 application=None, created_ts=None, data=None,
+                 raise_on_unknown=True):
+        data_in = data
+        data = copy.copy(data_in)  # to not modify callers data
+
+        if data is None:
+            if created_ts is None:
+                created_ts = True
+            data = dict(version = version,
+                        keyhandle = keyhandle,
+                        public_key = public_key,
+                        app_id = app_id,
+                        attest_cert = attest_cert,
+                        description = description,
+                        created_by = application,
+                        created_ts = created_ts,
+                        )
+
+        FidoCredential.__init__(self, data)
+        self.version = data.pop('version')
+        self.attest_cert = data.pop('attest_cert', '')
+
+        leftovers = data.keys()
+        if leftovers:
+            if raise_on_unknown:
+                raise UserHasUnknownData('U2F {!r} unknown data: {!r}'.format(
+                    self.key, leftovers,
+                ))
+            # Just keep everything that is left as-is
+            self._data.update(data)
+
+    @property
+    def version(self):
+        """
+        This is the U2F version used by this token.
+
+        :return: U2F version.
+        :rtype: str
+        """
+        return self._data['version']
+
+    @version.setter
+    def version(self, value):
+        """
+        :param value: U2F version. E.g. 'U2F_V2'.
+        :type value: str
+        """
+        if not isinstance(value, string_types):
+            raise UserDBValueError("Invalid 'version': {!r}".format(value))
+        self._data['version'] = value
+
+    @property
     def attest_cert(self):
         """
         The U2F attest_cert from the credential.
@@ -212,26 +244,6 @@ class U2F(Credential):
             raise UserDBValueError("Invalid 'attest_cert': {!r}".format(value))
         self._data['attest_cert'] = value
 
-    @property
-    def description(self):
-        """
-        User description/name of this token.
-
-        :return: description
-        :rtype: str
-        """
-        return self._data['description']
-
-    @description.setter
-    def description(self, value):
-        """
-        :param value: U2F description.
-        :type value: str
-        """
-        if not isinstance(value, string_types):
-            raise UserDBValueError("Invalid 'description': {!r}".format(value))
-        self._data['description'] = value
-
 
 def u2f_from_dict(data, raise_on_unknown=True):
     """
@@ -245,3 +257,64 @@ def u2f_from_dict(data, raise_on_unknown=True):
     :rtype: U2F
     """
     return U2F(data=data, raise_on_unknown=raise_on_unknown)
+
+
+class Webauthn(FidoCredential):
+    """
+    Webauthn token authentication credential
+    """
+
+    def __init__(self,
+                 keyhandle=None, public_key=None, app_id=None, attest_obj=None,
+                 description=None,
+                 application=None, created_ts=None, data=None,
+                 raise_on_unknown=True):
+        data_in = data
+        data = copy.copy(data_in)  # to not modify callers data
+
+        if data is None:
+            if created_ts is None:
+                created_ts = True
+            data = dict(keyhandle = keyhandle,
+                        public_key = public_key,
+                        app_id = app_id,
+                        attest_obj = attest_obj,
+                        description = description,
+                        created_by = application,
+                        created_ts = created_ts,
+                        )
+
+        FidoCredential.__init__(self, data)
+        self.attest_obj = data.pop('attest_obj', '')
+
+        leftovers = data.keys()
+        if leftovers:
+            if raise_on_unknown:
+                raise UserHasUnknownData('Webauthn {!r} unknown data: {!r}'.format(
+                    self.key, leftovers,
+                ))
+            # Just keep everything that is left as-is
+            self._data.update(data)
+
+    @property
+    def attest_obj(self):
+        """
+        The Webauthn attestation object for the credential.
+
+        We should probably refine what we store here later on, but for now we just
+        store the whole object.
+
+        :return: Webauthn attest_obj
+        :rtype: str
+        """
+        return self._data['attest_obj']
+
+    @attest_obj.setter
+    def attest_obj(self, value):
+        """
+        :param value: Webauthn attest_obj.
+        :type value: str
+        """
+        if not isinstance(value, string_types):
+            raise UserDBValueError("Invalid 'attest_obj': {!r}".format(value))
+        self._data['attest_obj'] = value
