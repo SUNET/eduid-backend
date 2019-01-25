@@ -85,11 +85,6 @@ def eduid_init_app_no_db(name, config, app_class=AuthnApp):
     app.request_class = Request
     app.url_map.strict_slashes = False
 
-    # Init etcd config parsers
-    common_parser = EtcdConfigParser('/eduid/webapp/common/')
-    app_etcd_namespace = os.environ.get('EDUID_CONFIG_NS', '/eduid/webapp/{!s}/'.format(name))
-    app_parser = EtcdConfigParser(app_etcd_namespace)
-
     try:
         # Load project wide default settings
         app.config.from_object('eduid_webapp.settings.common')
@@ -102,16 +97,22 @@ def eduid_init_app_no_db(name, config, app_class=AuthnApp):
     except ImportError:  # No app specific default config found
         pass
 
-    # Load optional project wide settings
-    app.config.update(common_parser.read_configuration(silent=True))
-    # Load optional app specific settings
-    app.config.update(app_parser.read_configuration(silent=True))
+    # Do not use config from etcd if a config dict is supplied
+    if config:
+        # Load init time settings
+        app.config.update(config)
+    else:
+        # Init etcd config parsers
+        common_parser = EtcdConfigParser('/eduid/webapp/common/')
+        app_etcd_namespace = os.environ.get('EDUID_CONFIG_NS', '/eduid/webapp/{!s}/'.format(name))
+        app_parser = EtcdConfigParser(app_etcd_namespace)
+        # Load optional project wide settings
+        app.config.update(common_parser.read_configuration(silent=True))
+        # Load optional app specific settings
+        app.config.update(app_parser.read_configuration(silent=True))
 
     # Load optional app specific secrets
     app.config.from_envvar('LOCAL_CFG_FILE', silent=True)
-
-    # Load optional init time settings
-    app.config.update(config)
 
     if DEBUG:
         dump_config(app)
