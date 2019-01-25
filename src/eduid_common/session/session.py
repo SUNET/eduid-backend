@@ -234,7 +234,7 @@ class Session(collections.MutableMapping):
             if not (token or session_id):
                 raise ValueError('Data must be provided when token/session_id is not provided')
 
-            logger.debug('Looking for session using session_id {!r}'.format(self.session_id))
+            #logger.debug('Looking for session using session_id {!r}'.format(self.session_id))
 
             # Fetch session from self.conn (Redis)
             _encrypted_data = self.conn.get(self.session_id)
@@ -263,7 +263,7 @@ class Session(collections.MutableMapping):
                 continue
             self._data[k] = v
 
-        logger.debug('Instantiated session with session_id {} and token {}'.format(self.session_id, self.token))
+        #logger.debug('Instantiated session with session_id {} and token {}'.format(self.session_id, self.token))
 
     def _init_token_and_session_id(self, token, session_id):
         """
