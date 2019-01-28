@@ -7,10 +7,7 @@ import json
 from datetime import datetime
 from collections import OrderedDict
 from mock import patch
-from bson import ObjectId
 
-from eduid_userdb.data_samples import NEW_UNVERIFIED_USER_EXAMPLE
-from eduid_userdb.user import User
 from eduid_userdb.locked_identity import LockedIdentityNin
 from eduid_userdb.nin import Nin
 from eduid_common.api.testing import EduidAPITestCase
@@ -23,8 +20,6 @@ class LetterProofingTests(EduidAPITestCase):
     """Base TestCase for those tests that need a full environment setup"""
 
     def setUp(self):
-        super(LetterProofingTests, self).setUp()
-
         self.test_user_eppn = 'hubba-baar'
         self.test_user_nin = '200001023456'
         self.test_user_wrong_nin = '190001021234'
@@ -36,6 +31,8 @@ class LetterProofingTests(EduidAPITestCase):
                                               (u'PostalCode', u'12345'),
                                               (u'City', u'LANDET')]))
         ])
+        super(LetterProofingTests, self).setUp(users=['hubba-baar'])
+
 
     def load_app(self, config):
         """
@@ -43,13 +40,6 @@ class LetterProofingTests(EduidAPITestCase):
         app for this test case.
         """
         return init_letter_proofing_app('testing', config)
-
-    def init_data(self):
-        """
-        Called from the parent class, so we can extend data initialized.
-        """
-        test_user = User(data=NEW_UNVERIFIED_USER_EXAMPLE)  # eppn hubba-baar
-        self.app.central_userdb.save(test_user, check_sync=False)
 
     def update_config(self, config):
         config.update({

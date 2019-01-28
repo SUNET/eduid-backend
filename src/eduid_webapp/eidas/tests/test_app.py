@@ -105,7 +105,7 @@ class EidasTests(EduidAPITestCase):
   </saml2p:Status>
 </saml2p:Response>"""
 
-        super(EidasTests, self).setUp()
+        super(EidasTests, self).setUp(users=['hubba-bubba', 'hubba-baar'])
 
     def load_app(self, config):
         """
@@ -113,13 +113,6 @@ class EidasTests(EduidAPITestCase):
         app for this test case.
         """
         return init_eidas_app('testing', config)
-
-    def init_data(self):
-        """
-        Called from the parent class, so we can extend data initialized.
-        """
-        test_user = User(data=NEW_UNVERIFIED_USER_EXAMPLE)  # eppn hubba-baar
-        self.app.central_userdb.save(test_user, check_sync=False)
 
     def update_config(self, config):
         saml_config = os.path.join(HERE, 'saml2_settings.py')

@@ -45,9 +45,12 @@ from eduid_webapp.signup.verifications import send_verification_mail
 
 class SignupTests(EduidAPITestCase):
 
+    def setUp(self):
+        super(SignupTests, self).setUp(copy_user_to_private=True)
+
     def load_app(self, config):
         """
-        Called from the parent class, so we can provide the appropiate flask
+        Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
         return signup_init_app('signup', config)
@@ -83,10 +86,6 @@ class SignupTests(EduidAPITestCase):
             },
         })
         return config
-
-    def init_data(self):
-        test_user_dict = self.app.private_userdb.UserClass(data=self.test_user.to_dict())
-        self.app.private_userdb.save(test_user_dict, check_sync=False)
 
     @contextmanager
     def session_cookie(self, client, server_name='localhost'):

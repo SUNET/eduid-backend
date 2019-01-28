@@ -2,7 +2,6 @@
 
 from __future__ import absolute_import
 
-import six
 import time
 import json
 import binascii
@@ -10,14 +9,12 @@ from jose import jws as jose
 from collections import OrderedDict
 from mock import patch
 
-from eduid_userdb.data_samples import NEW_UNVERIFIED_USER_EXAMPLE
-from eduid_userdb.user import User
 from eduid_userdb.nin import Nin
 from eduid_userdb.locked_identity import LockedIdentityNin
 from eduid_userdb.exceptions import DocumentDoesNotExist
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_webapp.oidc_proofing.app import init_oidc_proofing_app
-from eduid_webapp.oidc_proofing.helpers import create_proofing_state, handle_freja_eid_userinfo, handle_seleg_userinfo
+from eduid_webapp.oidc_proofing.helpers import create_proofing_state, handle_freja_eid_userinfo
 
 __author__ = 'lundberg'
 
@@ -26,10 +23,10 @@ class OidcProofingTests(EduidAPITestCase):
     """Base TestCase for those tests that need a full environment setup"""
 
     def setUp(self):
-
         self.test_user_eppn = 'hubba-baar'
         self.test_user_nin = '200001023456'
         self.test_user_wrong_nin = '190001021234'
+
         self.mock_address = OrderedDict([
             (u'Name', OrderedDict([
                 (u'GivenNameMarking', u'20'), (u'GivenName', u'Testaren Test'),
@@ -81,7 +78,7 @@ class OidcProofingTests(EduidAPITestCase):
 
         self.oidc_provider_config_response = MockResponse(200, json.dumps(self.oidc_provider_config))
 
-        super(OidcProofingTests, self).setUp()
+        super(OidcProofingTests, self).setUp(users=['hubba-baar'])
 
     def load_app(self, config):
         """
@@ -91,13 +88,6 @@ class OidcProofingTests(EduidAPITestCase):
         with patch('oic.oic.Client.http_request') as mock_response:
             mock_response.return_value = self.oidc_provider_config_response
             return init_oidc_proofing_app('testing', config)
-
-    def init_data(self):
-        """
-        Called from the parent class, so we can extend data initialized.
-        """
-        test_user = User(data=NEW_UNVERIFIED_USER_EXAMPLE)  # eppn hubba-baar
-        self.app.central_userdb.save(test_user, check_sync=False)
 
     def update_config(self, config):
         config.update({

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright (c) 2016 NORDUnet A/S
+# Copyright (c) 2018 SUNET
 # All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or
@@ -40,9 +41,12 @@ from eduid_userdb.mail import MailAddress
 
 class EmailTests(EduidAPITestCase):
 
+    def setUp(self):
+        super(EmailTests, self).setUp(copy_user_to_private=True)
+
     def load_app(self, config):
         """
-        Called from the parent class, so we can provide the appropiate flask
+        Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
         return email_init_app('emails', config)
@@ -61,9 +65,6 @@ class EmailTests(EduidAPITestCase):
             'EMAIL_VERIFICATION_TIMEOUT': 86400,
         })
         return config
-
-    def init_data(self):
-        self.app.private_userdb.save(self.app.private_userdb.UserClass(data=self.test_user.to_dict()), check_sync=False)
 
     def test_get_all_emails(self):
         response = self.browser.get('/all')
