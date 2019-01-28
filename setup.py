@@ -1,14 +1,13 @@
 #!/usr/bin/env python
 
 from setuptools import setup, find_packages
-import sys
 
-version = '0.2.2b10'
+version = '0.2.2b11'
 
 # Use requirements files
 requires = [
     'eduid-userdb>=0.4.0b18',
-    'eduid-common[webapp]>=0.3.6b5',
+    'eduid-common[webapp]>=0.3.8b4',
     'eduid-action>=0.2.1b3',
     'eduid-am>=0.6.3b7',
     'eduid-msg>=0.10.3b7',
