@@ -52,6 +52,7 @@ from flask.testing import FlaskClient
 from eduid_userdb import User
 from eduid_userdb.db import BaseDB
 from eduid_userdb.testing import MongoTestCase
+from eduid_userdb.data_samples import NEW_USER_EXAMPLE, NEW_UNVERIFIED_USER_EXAMPLE, NEW_COMPLETED_SIGNUP_USER_EXAMPLE
 
 
 TEST_CONFIG = {
@@ -83,6 +84,22 @@ TEST_CONFIG = {
     'TOKEN_SERVICE_URL': 'http://test.localhost/',
 }
 
+class APIMockedUserDB(object):
+
+    test_users = {}
+
+    def __init__(self, _patches):
+        pass
+
+    def all_userdocs(self):
+        for user in self.test_users.values():
+            yield deepcopy(user)
+
+_standard_test_users = {
+    'hubba-bubba': NEW_USER_EXAMPLE,
+    'hubba-baar': NEW_UNVERIFIED_USER_EXAMPLE,
+    'hubba-fooo': NEW_COMPLETED_SIGNUP_USER_EXAMPLE,
+}
 
 class EduidAPITestCase(MongoTestCase):
     """
@@ -90,7 +107,25 @@ class EduidAPITestCase(MongoTestCase):
 
     See the `load_app` and `update_config` methods below before subclassing.
     """
-    def setUp(self, init_am=True):
+
+    # This concept with a class variable is broken - doesn't provide isolation between tests.
+    # Do what we can and initialise it empty here, and then fill it in __init__.
+    MockedUserDB = APIMockedUserDB
+
+    def setUp(self, init_am=True, users=None, copy_user_to_private=False):
+        self.MockedUserDB.test_users = {}
+        if users is None:
+            users = ['hubba-bubba']
+        for this in users:
+            self.MockedUserDB.test_users[this] = _standard_test_users.get(this)
+
+        # get rid of the class variable self.user from MongoTestCase - class variables does
+        # not provide proper isolation between tests
+        self.user = None
+        # Initialize some convenience variables on self based on the first user in `users'
+        self.test_user_data = _standard_test_users.get(users[0])
+        self.test_user = User(data=self.test_user_data)
+
         am_settings = {'ACTION_PLUGINS': ['mfa', 'tou']}
         super(EduidAPITestCase, self).setUp(init_am=init_am, am_settings=am_settings)
 
@@ -101,7 +136,7 @@ class EduidAPITestCase(MongoTestCase):
         config['MONGO_URI'] = self.tmp_db.uri
         if init_am:
             # 'CELERY' is the key used in workers, and 'CELERY_CONFIG' is used in webapps.
-            # self.am_config is initialized by the super-class MongoTestCase.
+            # self.am_settings is initialized by the super-class MongoTestCase.
             #
             # We need to copy this data from am_settings to config, because AM will be
             # re-initialized in load_app() below.
@@ -116,6 +151,11 @@ class EduidAPITestCase(MongoTestCase):
 
         # Helper constants
         self.content_type_json = 'application/json'
+
+        if copy_user_to_private:
+            data = self.test_user.to_dict()
+            self.app.private_userdb.save(self.app.private_userdb.UserClass(data=data),
+                                         check_sync=False)
 
     def tearDown(self):
         try:
@@ -158,12 +198,6 @@ class EduidAPITestCase(MongoTestCase):
         """
         return config
 
-    def init_data(self):
-        """
-        Method that can be overriden by any subclass,
-        where it can add application specific data to the test dbs
-        """
-        pass
 
     @contextmanager
     def session_cookie(self, client, eppn, server_name='localhost'):
