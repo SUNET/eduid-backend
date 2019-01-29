@@ -287,8 +287,9 @@ class MongoTestCase(unittest.TestCase):
                            'result_backend': 'cache',
                            'cache_backend': 'memory',
                            },
-                # Be sure to tell AttributeManager about the temporary mongodb instance.
-                'MONGO_URI': self.tmp_db.uri,
+                # Be sure to NOT tell AttributeManager about the temporary mongodb instance.
+                # If we do, one or more plugins may open DB connections that never gets closed.
+                'MONGO_URI': None,
                 # Set new user date to tomorrow by default
                 'NEW_USER_DATE': str(date.today() + timedelta(days=1))
             }
@@ -301,9 +302,7 @@ class MongoTestCase(unittest.TestCase):
             eduid_am.worker.worker_config = self.am_settings
 
             self.am = eduid_am.get_attribute_manager(celery)
-            self.amdb = self.am.userdb
-        else:
-            self.amdb = UserDB(self.tmp_db.uri, 'eduid_am')
+        self.amdb = UserDB(self.tmp_db.uri, 'eduid_am')
 
         mongo_settings = {
             'mongo_replicaset': None,
