@@ -110,6 +110,7 @@ def registration_complete(user):
     security_user.credentials.add(credential)
     save_and_sync_user(security_user)
     current_app.stats.count(name='webauthn_register_complete')
+    current_app.logger.info('User {} has completed registration of a webauthn token'.format(security_user))
     return {
         'message': 'security.webauthn_register_success',
         'credentials': compile_credential_list(security_user)
