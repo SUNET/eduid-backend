@@ -4,7 +4,7 @@ from bson import ObjectId
 
 from eduid_userdb.element import ElementList, DuplicateElementViolation
 from eduid_userdb.exceptions import UserHasUnknownData
-from eduid_userdb.credentials import Credential, password_from_dict, u2f_from_dict
+from eduid_userdb.credentials import Credential, password_from_dict, u2f_from_dict, webauthn_from_dict
 
 
 class CredentialList(ElementList):
@@ -26,7 +26,10 @@ class CredentialList(ElementList):
             elif isinstance(this, dict) and 'salt' in this:
                 credential = password_from_dict(this, raise_on_unknown)
             elif isinstance(this, dict) and 'keyhandle' in this:
-                credential = u2f_from_dict(this, raise_on_unknown)
+                if 'version' in this:
+                    credential = u2f_from_dict(this, raise_on_unknown)
+                else:
+                    credential = webauthn_from_dict(this, raise_on_unknown)
             else:
                 raise UserHasUnknownData('Unknown credential data (type {}): {!r}'.format(type(this), this))
             elements.append(credential)

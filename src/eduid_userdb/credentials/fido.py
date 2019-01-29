@@ -49,8 +49,6 @@ class FidoCredential(Credential):
     """
 
     def __init__(self, data):
-        data_in = data
-        data = copy.copy(data_in)  # to not modify callers data
 
         Credential.__init__(self, data)
         self.keyhandle = data.pop('keyhandle')
@@ -318,3 +316,17 @@ class Webauthn(FidoCredential):
         if not isinstance(value, string_types):
             raise UserDBValueError("Invalid 'attest_obj': {!r}".format(value))
         self._data['attest_obj'] = value
+
+
+def webauthn_from_dict(data, raise_on_unknown=True):
+    """
+    Create an Webauthn instance from a dict.
+
+    :param data: Credential parameters from database
+    :param raise_on_unknown: Raise UserHasUnknownData if unrecognized data is encountered
+
+    :type data: dict
+    :type raise_on_unknown: bool
+    :rtype: Webauthn
+    """
+    return Webauthn(data=data, raise_on_unknown=raise_on_unknown)
