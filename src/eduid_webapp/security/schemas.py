@@ -129,14 +129,6 @@ class BindU2FRequestSchema(U2FBindRequestSchema, CSRFRequestMixin):
     description = fields.String(required=False)
 
 
-class WebauthnRegistrationRequestSchema(EduidSchema, CSRFRequestMixin):
-    description = fields.String(required=False)
-    attestation = fields.String(required=True, load_from='attestationObject',
-                                dump_to='attestationObject')
-    client_data_json = fields.String(required=True, load_from='clientDataJSON',
-                                dump_to='clientDataJSON')
-
-
 class SignWithU2FTokenResponseSchema(FluxStandardAction):
 
     class Payload(U2FSignResponseSchema, CSRFResponseMixin):
