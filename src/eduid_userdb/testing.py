@@ -331,6 +331,7 @@ class MongoTestCase(unittest.TestCase):
             if db_name not in ['local', 'admin', 'config']:  # Do not drop mongo internal dbs
                 self.tmp_db.conn.drop_database(db_name)
         self.amdb._drop_whole_collection()
+        self.amdb.close()
         super(MongoTestCase, self).tearDown()
 
     #def mongodb_uri(self, dbname):
