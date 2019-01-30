@@ -11,6 +11,7 @@ from fido2.client import ClientData
 from fido2.server import Fido2Server, RelyingParty
 from fido2.ctap2 import AttestationObject, AuthenticatorData
 from fido2 import cbor
+from fido2.utils import websafe_encode
 
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
@@ -85,7 +86,7 @@ def registration_begin(user):
 @require_user
 def registration_complete(user):
     security_user = SecurityUser.from_user(user, current_app.private_userdb)
-    data = cbor.loads(request.data)[0]
+    data = cbor.loads(request.get_data())[0]
     server = get_webauthn_server()
 
     current_app.logger.debug('Webauthn Registration data: {}.'.format(data))
@@ -97,12 +98,13 @@ def registration_complete(user):
     client_data = ClientData(data['clientDataJSON'])
     state = session['_webauthn_state_']
     auth_data = server.register_complete(state, client_data, att_obj)
+    current_app.logger.debug('Proccessed Webauthn Registration data: {}.'.format(auth_data))
 
     credential = Webauthn(
         keyhandle = credential_id,
-        public_key = str(auth_data.credential_data.public_key).replace('\\\\', '\\'),
+        public_key = websafe_encode(auth_data),
         app_id = current_app.config['WEBAUTHN_RP_ID'],
-        attest_obj = base64.b64encode(attestation).decode('ascii'),
+        attest_obj = websafe_encode(attestation),
         description = description,
         application = 'security'
         )
