@@ -112,7 +112,7 @@ class EduidAPITestCase(MongoTestCase):
     # Do what we can and initialise it empty here, and then fill it in __init__.
     MockedUserDB = APIMockedUserDB
 
-    def setUp(self, init_am=True, users=None, copy_user_to_private=False):
+    def setUp(self, init_am=True, users=None, copy_user_to_private=False, am_settings=None):
         self.MockedUserDB.test_users = {}
         if users is None:
             users = ['hubba-bubba']
@@ -126,7 +126,6 @@ class EduidAPITestCase(MongoTestCase):
         self.test_user_data = _standard_test_users.get(users[0])
         self.test_user = User(data=self.test_user_data)
 
-        am_settings = {'ACTION_PLUGINS': ['mfa', 'tou']}
         super(EduidAPITestCase, self).setUp(init_am=init_am, am_settings=am_settings)
 
         self.redis_instance = RedisTemporaryInstance.get_instance()
@@ -141,7 +140,8 @@ class EduidAPITestCase(MongoTestCase):
             # We need to copy this data from am_settings to config, because AM will be
             # re-initialized in load_app() below.
             config['CELERY_CONFIG'] = self.am_settings['CELERY']
-            config['ACTION_PLUGINS'] = self.am_settings['ACTION_PLUGINS']
+            if self.am_settings.get('ACTION_PLUGINS'):
+                config['ACTION_PLUGINS'] = self.am_settings['ACTION_PLUGINS']
         config = self.update_config(config)
 
         os.environ.update({'ETCD_PORT': str(self.etcd_instance.port)})
