@@ -43,7 +43,7 @@ from eduid_webapp.security.app import security_init_app
 class SecurityTests(EduidAPITestCase):
 
     def setUp(self):
-        super(SecurityTests, self).setUp()
+        super(SecurityTests, self).setUp(copy_user_to_private=True)
 
         self.test_user_eppn = 'hubba-bubba'
         self.test_user_nin = '197801011235'
@@ -71,9 +71,6 @@ class SecurityTests(EduidAPITestCase):
             'EDUID_SITE_URL': 'https://www.eduid.se/',
         })
         return config
-
-    def init_data(self):
-        self.app.private_userdb.save(self.app.private_userdb.UserClass(data=self.test_user.to_dict()), check_sync=False)
 
     def test_get_credentials(self):
         response = self.browser.get('/credentials')

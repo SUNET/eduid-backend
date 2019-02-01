@@ -40,6 +40,9 @@ from eduid_webapp.personal_data.app import pd_init_app
 
 class PersonalDataTests(EduidAPITestCase):
 
+    def setUp(self):
+        super(PersonalDataTests, self).setUp(copy_user_to_private=True)
+
     def load_app(self, config):
         """
         Called from the parent class, so we can provide the appropriate flask
@@ -58,9 +61,6 @@ class PersonalDataTests(EduidAPITestCase):
             },
         })
         return config
-
-    def init_data(self):
-        self.app.private_userdb.save(self.app.private_userdb.UserClass(data=self.test_user.to_dict()), check_sync=False)
 
     def test_get_user(self):
         response = self.browser.get('/user')

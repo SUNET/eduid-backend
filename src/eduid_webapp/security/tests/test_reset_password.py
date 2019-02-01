@@ -13,7 +13,7 @@ __author__ = 'lundberg'
 
 class SecurityResetPasswordTests(EduidAPITestCase):
 
-    def setUp(self, create_user=True):
+    def setUp(self):
         self.test_user_eppn = 'hubba-bubba'
         super(SecurityResetPasswordTests, self).setUp()
 
