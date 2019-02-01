@@ -288,17 +288,13 @@ class MongoTestCase(unittest.TestCase):
                            'result_backend': 'cache',
                            'cache_backend': 'memory',
                            },
-                # Be sure to NOT tell AttributeManager about the temporary mongodb instance if it isn't needed.
+                # Be sure to NOT tell AttributeManager about the temporary mongodb instance.
                 # If we do, one or more plugins may open DB connections that never gets closed.
-                # Set WANT_MONGO_URI to True in am_settings to get a MONGO_URI below.
                 'MONGO_URI': None,
-                # Set new user date to tomorrow by default
-                'NEW_USER_DATE': str(date.today() + timedelta(days=1))
             }
+
             if am_settings:
                 self.am_settings.update(am_settings)
-                if am_settings.get('WANT_MONGO_URI'):
-                    self.am_settings['MONGO_URI'] = self.tmp_db.uri
             # initialize eduid_am without requiring config in etcd
             import eduid_am
             celery = eduid_am.init_app(self.am_settings['CELERY'])
