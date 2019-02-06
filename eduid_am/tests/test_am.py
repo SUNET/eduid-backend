@@ -67,7 +67,7 @@ class MessageTest(MongoTestCase):
     transforms 'uid' to its urn:oid representation.
     """
     def setUp(self):
-        super(MessageTest, self).setUp(init_am=True)
+        super(MessageTest, self).setUp(init_am=True, am_settings={'WANT_MONGO_URI': True})
 
     def testMessage(self):
         """
