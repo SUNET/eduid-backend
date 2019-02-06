@@ -294,12 +294,16 @@ class MongoTestCase(unittest.TestCase):
             }
 
             if am_settings:
+                want_mongo_uri = am_settings.pop('WANT_MONGO_URI')
                 self.am_settings.update(am_settings)
+                if want_mongo_uri:
+                    self.am_settings['MONGO_URI'] = self.tmp_db.uri
             # initialize eduid_am without requiring config in etcd
             import eduid_am
             celery = eduid_am.init_app(self.am_settings['CELERY'])
             import eduid_am.worker
             eduid_am.worker.worker_config = self.am_settings
+            logger.debug('Initialized AM with config:\n{!r}'.format(self.am_settings))
 
             self.am = eduid_am.get_attribute_manager(celery)
         self.amdb = UserDB(self.tmp_db.uri, 'eduid_am')
