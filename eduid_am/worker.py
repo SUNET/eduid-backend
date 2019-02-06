@@ -33,6 +33,7 @@ def setup_indexes(db_uri, db_name, collection):
     }
     userdb = UserDB(db_uri, db_name=db_name, collection=collection)
     userdb.setup_indexes(indexes)
+    userdb.close()
 
 
 if 'MONGO_URI' in worker_config:
