@@ -73,23 +73,27 @@ class AttributeManager(Task):
 
     def __init__(self):
         self.default_db_uri = worker_config.get('MONGO_URI')
+        self.userdb = None
+        self.init_db()
+        self.init_plugins()
+
+    def init_db(self):
         if self.default_db_uri is not None:
             # self.userdb is the UserDB to which AM will write the updated users. This setting will
             # be None when this class is instantiated on the 'client' side (e.g. in a microservice)
-            self.userdb = self.init_db()
+            self.userdb = UserDB(self.default_db_uri, 'eduid_am', 'attributes')
+
+    def init_plugins(self):
         self.registry = PluginsRegistry(worker_config)
 
-    def init_db(self):
-        return UserDB(self.default_db_uri, 'eduid_am', 'attributes')
-
-    def reload_db(self):
-        self.userdb = self.init_db()
-
     def on_failure(self, exc, task_id, args, kwargs, einfo):
-        # Try to reload the db on connection failures (mongodb has probably switched master)
-        if isinstance(exc, ConnectionError):
-            logger.error('Task failed with db exception ConnectionError. Reloading db.')
-            self.reload_db()
+        # The most common problem when tasks raise exceptions is that mongodb has switched master,
+        # but it is hard to accurately trap the right exception without importing pymongo here so
+        # let's just reload all databases (self.userdb here and the plugins databases) when we
+        # get an exception
+        logger.exception('Task failed. Reloading db and plugins.')
+        self.init_db()
+        self.init_plugins()
 
 
 @celery.task(ignore_results=True, base=AttributeManager)
