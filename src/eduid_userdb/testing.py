@@ -303,6 +303,7 @@ class MongoTestCase(unittest.TestCase):
             celery = eduid_am.init_app(self.am_settings['CELERY'])
             import eduid_am.worker
             eduid_am.worker.worker_config = self.am_settings
+            logger.debug('Initialized AM with config:\n{!r}'.format(self.am_settings))
 
             self.am = eduid_am.get_attribute_manager(celery)
         self.amdb = UserDB(self.tmp_db.uri, 'eduid_am')
