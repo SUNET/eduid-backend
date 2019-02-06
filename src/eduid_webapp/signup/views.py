@@ -32,20 +32,16 @@
 #
 from __future__ import absolute_import
 
-import json
-import urllib3
+import requests
 from flask import Blueprint, request, session, current_app, abort
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith
 from eduid_common.api.schemas.base import FluxStandardAction
-from eduid_common.api.utils import urlappend
 from eduid_webapp.signup.schemas import RegisterEmailSchema, AccountCreatedResponse, EmailSchema
 from eduid_webapp.signup.verifications import verify_recaptcha, send_verification_mail, verify_email_code
 from eduid_webapp.signup.helpers import check_email_status, remove_users_with_mail_address, complete_registration
 from eduid_webapp.signup.verifications import CodeDoesNotExist, AlreadyVerifiedException, ProofingLogFailure
 
-
-http = urllib3.PoolManager()
 
 signup_views = Blueprint('signup', __name__, url_prefix='', template_folder='templates')
 
@@ -55,27 +51,27 @@ signup_views = Blueprint('signup', __name__, url_prefix='', template_folder='tem
 def get_config():
     tou_url = current_app.config.get('TOU_URL')
     try:
-        r = http.request('GET', tou_url, retries=False)
+        r = requests.get(tou_url)
         current_app.logger.debug('Response: {!r} with headers: {!r}'.format(r, r.headers))
-        if '302' in str(getattr(r, 'status_code', r.status)):
+        if r.status_code == 302:
             headers = {'Cookie': r.headers.get('Set-Cookie')}
             current_app.logger.debug('Headers: {!r}'.format(headers))
-            r = http.request('GET', tou_url,  retries=False, headers=headers)
+            r = requests.get(tou_url, headers=headers)
             current_app.logger.debug('2nd response: {!r} with headers: {!r}'.format(r, r.headers))
-    except urllib3.exceptions.HTTPError as e:
+    except requests.exceptions.HTTPError as e:
         current_app.logger.debug('Problem getting config: {!r}'.format(e))
         abort(500)
-    if '200' not in str(getattr(r, 'status_code', r.status)):
+    if r.status_code != 200:
         current_app.logger.debug('Problem getting config, '
                                  'response status: '
-                                 '{!r}'.format(r.status))
+                                 '{!r}'.format(r.status_code))
         abort(500)
     return {
             'csrf_token': session.get_csrf_token(),
             'recaptcha_public_key': current_app.config.get('RECAPTCHA_PUBLIC_KEY'),
             'available_languages': current_app.config.get('AVAILABLE_LANGUAGES'),
             'debug': current_app.config.get('DEBUG'),
-            'tous': json.loads(r.data)['payload'],
+            'tous': r.json()['payload'],
             'dashboard_url': current_app.config.get('DASHBOARD_URL'),
             'reset_passwd_url': current_app.config.get('RESET_PASSWD_URL'),
             'students_link': current_app.config.get('STUDENTS_LINK'),
