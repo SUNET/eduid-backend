@@ -23,7 +23,7 @@ class MobileLookupClient(object):
     mongo_uri = None
     transaction_audit = False
 
-    def __init__(self, logger, config=None):
+    def __init__(self, logger, config):
         self.conf = config
 
         if 'MONGO_URI' in self.conf:
