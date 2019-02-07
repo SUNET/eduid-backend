@@ -44,21 +44,17 @@ class Ekopost(object):
 
         # Output date is set it to current time since
         # we want to send the letter as soon as possible.
-        outpute_date = datetime.utcnow().__str__()
+        output_date = str(datetime.utcnow())
 
         # An easily identifiable name for the campaign and envelope
-        letter_id = eppn + "+" + outpute_date
-
-        original_document_size = document.len
-        document_in_base64 = base64.b64encode(document.getvalue())
+        letter_id = eppn + "+" + output_date
 
         # Create a campaign and the envelope that it should contain
-        campaign = self._create_campaign(letter_id, outpute_date, 'eduID')
+        campaign = self._create_campaign(letter_id, output_date, 'eduID')
         envelope = self._create_envelope(campaign['id'], letter_id)
 
         # Include the PDF-document to send
-        self._create_content(campaign['id'], envelope['id'],
-                             document_in_base64, original_document_size)
+        self._create_content(campaign['id'], envelope['id'], document.getvalue())
 
         # To mark the letter as ready to be printed and sent:
         # 1. Close the envelope belonging to the campaign.
@@ -121,23 +117,22 @@ class Ekopost(object):
 
         raise EkopostException('Ekopost exception: {!s} {!s}'.format(response.status_code, response.text))
 
-    def _create_content(self, campaign_id, envelope_id, data, length, mime='application/pdf', type='document'):
+    def _create_content(self, campaign_id, envelope_id, data, mime='application/pdf', type='document'):
         """
         Create the content that should be linked to an envelope
 
         :param campaign_id: Unique id of a campaign within which the envelope exists
         :param envelope_id: Unique id of an envelope to add the content to
-        :param data: The document as a base64 encoded string
-        :param length: The document's size in bytes
+        :param data: The PDF document
         :param mime: The document's mime type
         :param type: Content type, which can be either 'document' or 'attachment'
         """
         content_data = json.dumps({
             'campaign_id': campaign_id,
             'envelope_id': envelope_id,
-            'data': data,
+            'data': base64.b64encode(data),
             'mime': mime,
-            'length': length,
+            'length': len(data),
             'type': type
         })
 
