@@ -233,7 +233,7 @@ class MessageRelay(Task):
             return 'devel_mode'
 
         if message_type == 'sms':
-            LOG.debug("Sending SMS to '%s' using template '%s' and language '%s" % (recipient, template, language))
+            LOG.debug("Sending SMS to {!r} using template {!r} and language {!r}".format(recipient, template, language))
             status = self.sms.send(msg, self._sms_sender, recipient, prio=2)
         elif message_type == 'mm':
             LOG.debug("Sending MM to '%s' using language '%s'" % (recipient, language))
@@ -247,7 +247,11 @@ class MessageRelay(Task):
                 subject = conf.get("MM_DEFAULT_SUBJECT")
 
             status = self._send_mm_message(recipient, subject, 'text/html', language.replace('_', ''), msg)
+        else:
+            LOG.error('Unknown message type: {!r}'.format(message_type))
+            return False
 
+        LOG.debug('send_message result: {!r}'.format(status))
         return status
 
     def _send_mm_message(self, recipient, subject, content_type, language, message):
