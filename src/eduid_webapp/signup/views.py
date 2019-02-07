@@ -59,7 +59,7 @@ def get_config():
             r = requests.get(tou_url, headers=headers)
             current_app.logger.debug('2nd response: {!r} with headers: {!r}'.format(r, r.headers))
     except requests.exceptions.HTTPError as e:
-        current_app.logger.debug('Problem getting config: {!r}'.format(e))
+        current_app.logger.error('Problem getting tous from URL {!r}: {!r}'.format(tou_url, e))
         abort(500)
     if r.status_code != 200:
         current_app.logger.debug('Problem getting config, '
