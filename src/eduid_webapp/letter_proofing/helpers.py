@@ -100,17 +100,14 @@ def send_letter(user, proofing_state):
     :rtype: str|unicode
     """
     # Create the letter as a PDF-document and send it to our letter sender service
-    if current_app.config.get("EKOPOST_DEBUG_PDF", None):
-        pdf.create_pdf(proofing_state.proofing_letter.address,
-                       proofing_state.nin.verification_code,
-                       proofing_state.nin.created_ts,
-                       user.mail_addresses.primary.email)
-        campaign_id = 'debug mode transaction id'
-    else:
-        pdf_letter = pdf.create_pdf(proofing_state.proofing_letter.address,
-                                    proofing_state.nin.verification_code,
-                                    proofing_state.nin.created_ts,
-                                    user.mail_addresses.primary.email)
-
-        campaign_id = current_app.ekopost.send(user.eppn, pdf_letter)
+    pdf_letter = pdf.create_pdf(proofing_state.proofing_letter.address,
+                                proofing_state.nin.verification_code,
+                                proofing_state.nin.created_ts,
+                                user.mail_addresses.primary.email)
+    if current_app.config.get('EKOPOST_DEBUG_PDF'):
+        # Write PDF to file instead of actually sending it if EKOPOST_DEBUG_PDF is set
+        with open(current_app.config.get('EKOPOST_DEBUG_PDF'), 'wb') as fd:
+            fd.write(pdf_letter.getvalue())
+        return 'debug mode transaction id'
+    campaign_id = current_app.ekopost.send(user.eppn, pdf_letter)
     return campaign_id

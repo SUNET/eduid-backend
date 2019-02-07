@@ -77,13 +77,6 @@ def create_pdf(recipient, verification_code, created_timestamp, primary_mail_add
                                       recipient_validity_period=validity_period,
                                       recipient_primary_mail_address=primary_mail_address)
 
-    if current_app.config.get("EKOPOST_DEBUG_PDF", None):
-        pdf_document = open(current_app.config.get("EKOPOST_DEBUG_PDF"), 'wb')
-        pisa.CreatePDF(StringIO(letter_template), pdf_document)
-    else:
-        pdf_document = BytesIO()
-        pisa.CreatePDF(StringIO(letter_template), pdf_document)
-
-        # Only return the document if it should be sent to Ekopost,
-        # since in debug mode we only want to have it printed locally.
-        return pdf_document
+    pdf_document = BytesIO()
+    pisa.CreatePDF(StringIO(letter_template), pdf_document)
+    return pdf_document
