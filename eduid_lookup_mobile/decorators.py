@@ -28,12 +28,12 @@ class TransactionAudit(object):
         def audit(*args, **kwargs):
             ret = f(*args, **kwargs)
             # XXX Ugly hack
-            # The class that uses the decorator needs to have self.mongo_uri  and self.transaction_audit set
+            # The class that uses the decorator needs to have self.conf['MONGO_URI'] and self.transaction_audit set
             # args[0] is wrapped methods self.
-            self.enabled = args[0].transaction_audit
+            self.enabled = getattr(args[0], 'transaction_audit', False)
             if self.enabled:
                 if self.collection is None:
-                    self.db_uri = args[0].mongo_uri
+                    self.db_uri = args[0].conf['MONGO_URI']
                     # Do not initialize the db connection before we know the decorator is actually enabled
                     db = MongoDB(db_uri=self.db_uri, db_name=self.db_name)
                     self.collection = db.get_collection(self.collection_name)

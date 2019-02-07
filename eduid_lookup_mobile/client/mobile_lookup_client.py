@@ -21,17 +21,11 @@ class LogPlugin(MessagePlugin):
 
 class MobileLookupClient(object):
 
-    mongo_uri = None
-    transaction_audit = False
-
-    def __init__(self, logger, config):
+    def __init__(self, logger, config):  # type: (object, dict) -> None
         self.conf = config
 
-        if 'MONGO_URI' in self.conf:
-            # self.mongo_uri used in TransactionAudit decorator
-            self.mongo_uri = self.conf['MONGO_URI']
-        if 'TRANSACTION_AUDIT' in self.conf and self.conf['TRANSACTION_AUDIT'] == 'true':
-            self.transaction_audit = True
+        # enable transaction logging if configured
+        self.transaction_audit = self.conf.get('TRANSACTION_AUDIT') == 'true' and 'MONGO_URI' in self.conf
 
         self.client = Client(DEFAULT_CLIENT_URL)
         self.client.set_options(port=DEFAULT_CLIENT_PORT)
