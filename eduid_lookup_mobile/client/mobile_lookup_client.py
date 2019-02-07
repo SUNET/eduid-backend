@@ -5,6 +5,10 @@ from eduid_lookup_mobile.decorators import TransactionAudit
 from eduid_lookup_mobile.utilities import format_NIN, format_mobile_number
 from eduid_lookup_mobile.development.development_search_result import _get_devel_search_result
 
+DEFAULT_CLIENT_URL = 'http://api.teleadress.se/WSDL/nnapiwebservice.wsdl'
+DEFAULT_CLIENT_PORT = 'NNAPIWebServiceSoap'
+DEFAULT_CLIENT_PERSON_CLASS = 'ns7:FindPersonClass'
+
 
 class LogPlugin(MessagePlugin):
 
@@ -17,9 +21,6 @@ class LogPlugin(MessagePlugin):
 
 class MobileLookupClient(object):
 
-    DEFAULT_CLIENT_URL = 'http://api.teleadress.se/WSDL/nnapiwebservice.wsdl'
-    DEFAULT_CLIENT_PORT = 'NNAPIWebServiceSoap'
-    DEFAULT_CLIENT_PERSON_CLASS = 'ns7:FindPersonClass'
     mongo_uri = None
     transaction_audit = False
 
@@ -32,8 +33,8 @@ class MobileLookupClient(object):
         if 'TRANSACTION_AUDIT' in self.conf and self.conf['TRANSACTION_AUDIT'] == 'true':
             self.transaction_audit = True
 
-        self.client = Client(self.DEFAULT_CLIENT_URL)
-        self.client.set_options(port=self.DEFAULT_CLIENT_PORT)
+        self.client = Client(DEFAULT_CLIENT_URL)
+        self.client.set_options(port=DEFAULT_CLIENT_PORT)
         self.logger = logger
 
         self.DEFAULT_CLIENT_PASSWORD = six.text_type(self.conf['TELEADRESS_CLIENT_PASSWORD'])
@@ -80,7 +81,7 @@ class MobileLookupClient(object):
         return result.record_list[0].record
 
     def _search_by_SSNo(self, national_identity_number):
-        person_search = self.client.factory.create(self.DEFAULT_CLIENT_PERSON_CLASS)
+        person_search = self.client.factory.create(DEFAULT_CLIENT_PERSON_CLASS)
 
         # Set the eduid user id and password
         person_search._Password = self.DEFAULT_CLIENT_PASSWORD
@@ -103,7 +104,7 @@ class MobileLookupClient(object):
         return {'Mobiles': mobile_numbers}
 
     def _search_by_mobile(self, mobile_number):
-        person_search = self.client.factory.create(self.DEFAULT_CLIENT_PERSON_CLASS)
+        person_search = self.client.factory.create(DEFAULT_CLIENT_PERSON_CLASS)
 
         # Set the eduid user id and password
         person_search._Password = self.DEFAULT_CLIENT_PASSWORD
