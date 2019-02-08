@@ -130,7 +130,7 @@ class Ekopost(object):
         content_data = json.dumps({
             'campaign_id': campaign_id,
             'envelope_id': envelope_id,
-            'data': base64.b64encode(data),
+            'data': base64.b64encode(data).decode('utf-8'),  # Needs to be unicode for json
             'mime': mime,
             'length': len(data),
             'type': type
