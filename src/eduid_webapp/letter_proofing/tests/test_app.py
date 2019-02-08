@@ -6,12 +6,13 @@ from os import devnull
 import json
 from datetime import datetime
 from collections import OrderedDict
-from mock import patch
+from mock import patch, Mock
 
 from eduid_userdb.locked_identity import LockedIdentityNin
 from eduid_userdb.nin import Nin
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_webapp.letter_proofing.app import init_letter_proofing_app
+from eduid_webapp.letter_proofing.ekopost import Ekopost
 
 __author__ = 'lundberg'
 
@@ -33,6 +34,30 @@ class LetterProofingTests(EduidAPITestCase):
         ])
         super(LetterProofingTests, self).setUp(users=['hubba-baar'])
 
+    @staticmethod
+    def mock_response(status_code=200, content=None, json_data=None, headers=dict(), raise_for_status=None):
+        """
+        since we typically test a bunch of different
+        requests calls for a service, we are going to do
+        a lot of mock responses, so its usually a good idea
+        to have a helper function that builds these things
+        """
+        mock_resp = Mock()
+        # mock raise_for_status call w/optional error
+        mock_resp.raise_for_status = Mock()
+        if raise_for_status:
+            mock_resp.raise_for_status.side_effect = raise_for_status
+        # set status code and content
+        mock_resp.status_code = status_code
+        mock_resp.content = content
+        # set headers
+        mock_resp.headers = headers
+        # add json data if provided
+        if json_data:
+            mock_resp.json = Mock(
+                return_value=json_data
+            )
+        return mock_resp
 
     def load_app(self, config):
         """
@@ -43,7 +68,10 @@ class LetterProofingTests(EduidAPITestCase):
 
     def update_config(self, config):
         config.update({
-            'EKOPOST_DEBUG_PDF': devnull,
+            #'EKOPOST_DEBUG_PDF': devnull,
+            'EKOPOST_API_URI': 'http://localhost',
+            'EKOPOST_API_USER': 'ekopost_user',
+            'EKOPOST_API_PW': 'secret',
             'LETTER_WAIT_TIME_HOURS': 336,
             'MSG_BROKER_URL': 'amqp://dummy',
             'AM_BROKER_URL': 'amqp://dummy',
@@ -62,9 +90,12 @@ class LetterProofingTests(EduidAPITestCase):
         self.assertEqual(response.status_code, 200)
         return json.loads(response.data)
 
+    @patch('hammock.Hammock._request')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
-    def send_letter(self, nin, csrf_token, mock_get_postal_address, mock_request_user_sync):
+    def send_letter(self, nin, csrf_token, mock_get_postal_address, mock_request_user_sync, mock_hammock):
+        ekopost_response = self.mock_response(json_data={'id': 'test'})
+        mock_hammock.return_value = ekopost_response
         mock_request_user_sync.side_effect = self.request_user_sync
         mock_get_postal_address.return_value = self.mock_address
         data = {'nin': nin, 'csrf_token': csrf_token}
