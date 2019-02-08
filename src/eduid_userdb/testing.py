@@ -294,7 +294,7 @@ class MongoTestCase(unittest.TestCase):
             }
 
             if am_settings:
-                want_mongo_uri = am_settings.pop('WANT_MONGO_URI')
+                want_mongo_uri = am_settings.pop('WANT_MONGO_URI', False)
                 self.am_settings.update(am_settings)
                 if want_mongo_uri:
                     self.am_settings['MONGO_URI'] = self.tmp_db.uri
