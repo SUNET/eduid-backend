@@ -59,7 +59,7 @@ class Ekopost(object):
         # To mark the letter as ready to be printed and sent:
         # 1. Close the envelope belonging to the campaign.
         # 2. Close the campaign that holds the envelope.
-        self._close_evenlope(campaign['id'], envelope['id'])
+        self._close_envelope(campaign['id'], envelope['id'])
         closed_campaign = self._close_campaign(campaign['id'])
 
         return closed_campaign['id']
@@ -117,7 +117,7 @@ class Ekopost(object):
 
         raise EkopostException('Ekopost exception: {!s} {!s}'.format(response.status_code, response.text))
 
-    def _create_content(self, campaign_id, envelope_id, data, mime='application/pdf', type='document'):
+    def _create_content(self, campaign_id, envelope_id, data, mime='application/pdf', content_type='document'):
         """
         Create the content that should be linked to an envelope
 
@@ -125,30 +125,29 @@ class Ekopost(object):
         :param envelope_id: Unique id of an envelope to add the content to
         :param data: The PDF document
         :param mime: The document's mime type
-        :param type: Content type, which can be either 'document' or 'attachment'
+        :param content_type: Content type, which can be either 'document' or 'attachment'
         """
         content_data = json.dumps({
             'campaign_id': campaign_id,
             'envelope_id': envelope_id,
-            'data': base64.b64encode(data),
+            'data': base64.b64encode(data).decode('utf-8'),  # Needs to be unicode for json
             'mime': mime,
             'length': len(data),
-            'type': type
+            'type': content_type
         })
 
         response = self.ekopost_api.\
             campaigns(campaign_id).\
             envelopes(envelope_id).\
-            content.POST(
-            data=content_data,
-            headers={'Content-Type': 'application/json'})
+            content.POST(data=content_data,
+                         headers={'Content-Type': 'application/json'})
 
         if response.status_code == 200:
             return response.json()
 
         raise EkopostException('Ekopost exception: {!s} {!s}'.format(response.status_code, response.text))
 
-    def _close_evenlope(self, campaign_id, envelope_id):
+    def _close_envelope(self, campaign_id, envelope_id):
         """
         Change an envelope state to closed and mark it as ready for print & distribution.
         :param campaign_id: Unique id of a campaign within which the envelope exists
