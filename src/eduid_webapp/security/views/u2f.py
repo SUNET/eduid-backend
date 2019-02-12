@@ -68,7 +68,7 @@ def bind(user, version, registration_data, client_data, description=''):
 
     cert = x509.load_der_x509_certificate(der_cert, default_backend())
     pem_cert = crypto.dump_certificate(crypto.FILETYPE_PEM, cert)
-    if six.PY3:
+    if not isinstance(pem_cert, six.string_types):
         pem_cert = pem_cert.decode('utf-8')
 
     u2f_token = U2F(version=device['version'], keyhandle=device['keyHandle'], app_id=device['appId'],
