@@ -2,7 +2,7 @@
 
 from __future__ import absolute_import
 
-import json
+import six
 from flask import Blueprint, session
 from flask import current_app
 from u2flib_server.u2f import begin_registration, begin_authentication, complete_registration, complete_authentication
@@ -68,6 +68,8 @@ def bind(user, version, registration_data, client_data, description=''):
 
     cert = x509.load_der_x509_certificate(der_cert, default_backend())
     pem_cert = crypto.dump_certificate(crypto.FILETYPE_PEM, cert)
+    if six.PY3:
+        pem_cert = pem_cert.decode('utf-8')
 
     u2f_token = U2F(version=device['version'], keyhandle=device['keyHandle'], app_id=device['appId'],
                     public_key=device['publicKey'], attest_cert=pem_cert, description=description,
