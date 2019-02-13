@@ -2,6 +2,7 @@
 
 from __future__ import print_function, absolute_import, unicode_literals
 
+import struct
 import json
 import base64
 from flask import Blueprint, session, Response
@@ -9,7 +10,7 @@ from flask import current_app, request
 
 from fido2.client import ClientData
 from fido2.server import Fido2Server, RelyingParty
-from fido2.ctap2 import AttestationObject, AuthenticatorData
+from fido2.ctap2 import AttestationObject
 from fido2 import cbor
 from fido2.utils import websafe_encode
 
@@ -22,7 +23,7 @@ from eduid_userdb.security import SecurityUser
 from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
 from eduid_common.api.utils import save_and_sync_user
 from eduid_webapp.security.helpers import credentials_to_registered_keys, compile_credential_list
-from eduid_webapp.security.schemas import WebauthnOptionsResponseSchema
+from eduid_webapp.security.schemas import WebauthnOptionsResponseSchema, WebauthnRegisterRequestSchema
 from eduid_webapp.security.schemas import SecurityResponseSchema
 
 
@@ -38,15 +39,11 @@ def update_webauthn_server(rp_id, name='eduID security API'):
 def get_webauthn_server():
     if WEBAUTHN_SERVER is not None:
         return WEBAUTHN_SERVER
-    return update_webauthn_server(current_app.config['WEBAUTHN_RP_ID'])
+    return update_webauthn_server(current_app.config['FIDO2_RP_ID'])
 
-
-class Credential:
-    def __init__(self, id):
-        self.credential_id = id.encode('ascii')
 
 def make_credentials(creds):
-    return [Credential(cred.key) for cred in creds]
+    return [base64.b64decode(cred.credential_data.encode('ascii')) for cred in creds]
 
 
 webauthn_views = Blueprint('webauthn', __name__, url_prefix='/webauthn', template_folder='templates')
@@ -83,28 +80,27 @@ def registration_begin(user):
 
 @webauthn_views.route('/register/complete', methods=['POST'])
 @MarshalWith(SecurityResponseSchema)
+@UnmarshalWith(WebauthnRegisterRequestSchema)
 @require_user
-def registration_complete(user):
+def registration_complete(user, credential_id, attestation_object, client_data, description):
     security_user = SecurityUser.from_user(user, current_app.private_userdb)
-    data = cbor.loads(request.get_data())[0]
     server = get_webauthn_server()
 
-    current_app.logger.debug('Webauthn Registration data: {}.'.format(data))
-    # csrf_token = data['csrf_token']
-    description = data['description']
-    credential_id = data['credentialId']
-    attestation = data['attestationObject']
+    attestation = base64.b64decode(attestation_object)
     att_obj = AttestationObject(attestation)
-    client_data = ClientData(data['clientDataJSON'])
+    client_data = base64.b64decode(client_data)
+    cdata_obj = ClientData(client_data)
     state = session['_webauthn_state_']
-    auth_data = server.register_complete(state, client_data, att_obj)
-    current_app.logger.debug('Proccessed Webauthn Registration data: {}.'.format(auth_data))
+    auth_data = server.register_complete(state, cdata_obj, att_obj)
+
+    cred_data = auth_data.credential_data
+    current_app.logger.debug('Proccessed Webauthn credential data: {}.'.format(cred_data))
 
     credential = Webauthn(
         keyhandle = credential_id,
-        public_key = websafe_encode(auth_data),
-        app_id = current_app.config['WEBAUTHN_RP_ID'],
-        attest_obj = websafe_encode(attestation),
+        credential_data = base64.b64encode(cred_data).decode('ascii'),
+        app_id = current_app.config['FIDO2_RP_ID'],
+        attest_obj = base64.b64encode(attestation).decode('ascii'),
         description = description,
         application = 'security'
         )

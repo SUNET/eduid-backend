@@ -179,8 +179,10 @@ class WebauthnOptionsResponseSchema(FluxStandardAction):
 
 class WebauthnRegisterRequestSchema(EduidSchema, CSRFRequestMixin):
 
-    attestationObject = fields.String(required=False)
-    clientDataJSON = fields.String(required=False)
+    credential_id = fields.String(required=True, load_from="credentialId")
+    attestation_object = fields.String(required=True, load_from="attestationObject")
+    client_data = fields.String(required=True, load_from="clientDataJSON")
+    description = fields.String(required=True)
 
 class BeginWebauthnRegistrationResponseSchema(FluxStandardAction): pass
 
