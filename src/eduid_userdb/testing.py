@@ -271,8 +271,9 @@ class MongoTestCase(unittest.TestCase):
                     super(MyTest, self).setUp(celery, get_attribute_manager)
                     ...
 
-        :param celery: module
-        :param get_attribute_manager: callable
+        :param init_am: True if the test needs am
+        :param userdb_use_old_format: True if old userdb format should be used
+        :param am_settings: Test specific am settings
         :return:
         """
         super(MongoTestCase, self).setUp()
@@ -287,23 +288,25 @@ class MongoTestCase(unittest.TestCase):
                            'result_backend': 'cache',
                            'cache_backend': 'memory',
                            },
-                # Be sure to tell AttributeManager about the temporary mongodb instance.
-                'MONGO_URI': self.tmp_db.uri,
-                # Set new user date to tomorrow by default
-                'NEW_USER_DATE': str(date.today() + timedelta(days=1))
+                # Be sure to NOT tell AttributeManager about the temporary mongodb instance.
+                # If we do, one or more plugins may open DB connections that never gets closed.
+                'MONGO_URI': None,
             }
+
             if am_settings:
+                want_mongo_uri = am_settings.pop('WANT_MONGO_URI', False)
                 self.am_settings.update(am_settings)
+                if want_mongo_uri:
+                    self.am_settings['MONGO_URI'] = self.tmp_db.uri
             # initialize eduid_am without requiring config in etcd
             import eduid_am
             celery = eduid_am.init_app(self.am_settings['CELERY'])
             import eduid_am.worker
             eduid_am.worker.worker_config = self.am_settings
+            logger.debug('Initialized AM with config:\n{!r}'.format(self.am_settings))
 
             self.am = eduid_am.get_attribute_manager(celery)
-            self.amdb = self.am.userdb
-        else:
-            self.amdb = UserDB(self.tmp_db.uri, 'eduid_am')
+        self.amdb = UserDB(self.tmp_db.uri, 'eduid_am')
 
         mongo_settings = {
             'mongo_replicaset': None,
@@ -332,6 +335,7 @@ class MongoTestCase(unittest.TestCase):
             if db_name not in ['local', 'admin', 'config']:  # Do not drop mongo internal dbs
                 self.tmp_db.conn.drop_database(db_name)
         self.amdb._drop_whole_collection()
+        self.amdb.close()
         super(MongoTestCase, self).tearDown()
 
     #def mongodb_uri(self, dbname):
