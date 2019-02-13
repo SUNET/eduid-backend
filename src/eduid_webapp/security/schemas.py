@@ -192,6 +192,18 @@ class RemoveWebauthnTokenRequestSchema(EduidSchema, CSRFRequestMixin):
     credential_key = fields.String(required=True)
 
 
+class VerifyWithWebauthnTokenRequestSchema(U2FVerifyRequestSchema):
+    pass
+
+
+class VerifyWithWebauthnTokenResponseSchema(FluxStandardAction):
+
+    class Payload(U2FVerifyResponseSchema, CSRFResponseMixin):
+        pass
+
+    payload = fields.Nested(Payload)
+
+
 # Reset password schemas
 class ResetPasswordEmailSchema(Schema):
 
