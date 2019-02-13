@@ -24,7 +24,7 @@ from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
 from eduid_common.api.utils import save_and_sync_user
 from eduid_webapp.security.helpers import credentials_to_registered_keys, compile_credential_list
 from eduid_webapp.security.schemas import WebauthnOptionsResponseSchema, WebauthnRegisterRequestSchema
-from eduid_webapp.security.schemas import SecurityResponseSchema
+from eduid_webapp.security.schemas import SecurityResponseSchema, RemoveWebauthnTokenRequestSchema
 
 
 WEBAUTHN_SERVER = None
@@ -79,8 +79,8 @@ def registration_begin(user):
 
 
 @webauthn_views.route('/register/complete', methods=['POST'])
-@MarshalWith(SecurityResponseSchema)
 @UnmarshalWith(WebauthnRegisterRequestSchema)
+@MarshalWith(SecurityResponseSchema)
 @require_user
 def registration_complete(user, credential_id, attestation_object, client_data, description):
     security_user = SecurityUser.from_user(user, current_app.private_userdb)
@@ -111,5 +111,22 @@ def registration_complete(user, credential_id, attestation_object, client_data, 
     current_app.logger.info('User {} has completed registration of a webauthn token'.format(security_user))
     return {
         'message': 'security.webauthn_register_success',
+        'credentials': compile_credential_list(security_user)
+    }
+
+
+@webauthn_views.route('/remove', methods=['POST'])
+@UnmarshalWith(RemoveWebauthnTokenRequestSchema)
+@MarshalWith(SecurityResponseSchema)
+@require_user
+def remove(user, credential_key):
+    security_user = SecurityUser.from_user(user, current_app.private_userdb)
+    token_to_remove = security_user.credentials.filter(Webauthn).find(credential_key)
+    if token_to_remove:
+        security_user.credentials.remove(credential_key)
+        save_and_sync_user(security_user)
+        current_app.stats.count(name='webauthn_token_remove')
+    return {
+        'message': 'security.webauthn-token-removed',
         'credentials': compile_credential_list(security_user)
     }

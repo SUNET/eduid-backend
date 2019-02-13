@@ -187,6 +187,11 @@ class WebauthnRegisterRequestSchema(EduidSchema, CSRFRequestMixin):
 class BeginWebauthnRegistrationResponseSchema(FluxStandardAction): pass
 
 
+class RemoveWebauthnTokenRequestSchema(EduidSchema, CSRFRequestMixin):
+
+    credential_key = fields.String(required=True)
+
+
 # Reset password schemas
 class ResetPasswordEmailSchema(Schema):
 
