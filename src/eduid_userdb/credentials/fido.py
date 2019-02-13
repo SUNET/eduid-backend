@@ -34,9 +34,10 @@
 #
 from __future__ import absolute_import
 
+import base64
 import copy
 from hashlib import sha256
-from six import string_types
+from six import string_types, binary_type
 from eduid_userdb.credentials import Credential
 from eduid_userdb.exceptions import UserHasUnknownData, UserDBValueError
 
@@ -52,7 +53,6 @@ class FidoCredential(Credential):
 
         Credential.__init__(self, data)
         self.keyhandle = data.pop('keyhandle')
-        self.public_key = data.pop('public_key')
         self.app_id = data.pop('app_id')
         self.description = data.pop('description', '')
 
@@ -68,16 +68,6 @@ class FidoCredential(Credential):
         else:
             return '<eduID {!s}: key_handle=\'{!s}...\', verified=False>'.format(
                 self.__class__.__name__, kh)
-
-
-    @property
-    def key(self):
-        """
-        Return the element that is used as key.
-        """
-        return 'sha256:' + sha256(self.keyhandle.encode('utf-8') +
-                                  self.public_key.encode('utf-8')
-                                  ).hexdigest()
 
     @property
     def keyhandle(self):
@@ -98,26 +88,6 @@ class FidoCredential(Credential):
         if not isinstance(value, string_types):
             raise UserDBValueError("Invalid 'keyhandle': {!r}".format(value))
         self._data['keyhandle'] = value
-
-    @property
-    def public_key(self):
-        """
-        This is the public key of the U2F token.
-
-        :return: U2F public_key.
-        :rtype: str
-        """
-        return self._data['public_key']
-
-    @public_key.setter
-    def public_key(self, value):
-        """
-        :param value: U2F public_key.
-        :type value: str
-        """
-        if not isinstance(value, string_types):
-            raise UserDBValueError("Invalid 'public_key': {!r}".format(value))
-        self._data['public_key'] = value
 
     @property
     def app_id(self):
@@ -167,8 +137,7 @@ class U2F(FidoCredential):
 
     def __init__(self,
                  version=None, keyhandle=None, public_key=None, app_id=None, attest_cert=None,
-                 description=None,
-                 application=None, created_ts=None, data=None,
+                 description=None, application=None, created_ts=None, data=None,
                  raise_on_unknown=True):
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
@@ -188,6 +157,7 @@ class U2F(FidoCredential):
 
         FidoCredential.__init__(self, data)
         self.version = data.pop('version')
+        self.public_key = data.pop('public_key')
         self.attest_cert = data.pop('attest_cert', '')
 
         leftovers = data.keys()
@@ -198,6 +168,16 @@ class U2F(FidoCredential):
                 ))
             # Just keep everything that is left as-is
             self._data.update(data)
+
+
+    @property
+    def key(self):
+        """
+        Return the element that is used as key.
+        """
+        return 'sha256:' + sha256(self.keyhandle.encode('utf-8') +
+                                  self.public_key.encode('utf-8')
+                                  ).hexdigest()
 
     @property
     def version(self):
@@ -242,6 +222,26 @@ class U2F(FidoCredential):
             raise UserDBValueError("Invalid 'attest_cert': {!r}".format(value))
         self._data['attest_cert'] = value
 
+    @property
+    def public_key(self):
+        """
+        This is the public key of the U2F token.
+
+        :return: U2F public_key.
+        :rtype: str
+        """
+        return self._data['public_key']
+
+    @public_key.setter
+    def public_key(self, value):
+        """
+        :param value: U2F public_key.
+        :type value: str
+        """
+        if not isinstance(value, string_types):
+            raise UserDBValueError("Invalid 'public_key': {!r}".format(value))
+        self._data['public_key'] = value
+
 
 def u2f_from_dict(data, raise_on_unknown=True):
     """
@@ -263,9 +263,8 @@ class Webauthn(FidoCredential):
     """
 
     def __init__(self,
-                 keyhandle=None, public_key=None, app_id=None, attest_obj=None,
-                 description=None,
-                 application=None, created_ts=None, data=None,
+                 keyhandle=None, credential_data=None, app_id=None, attest_obj=None,
+                 description=None, application=None, created_ts=None, data=None,
                  raise_on_unknown=True):
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
@@ -274,7 +273,7 @@ class Webauthn(FidoCredential):
             if created_ts is None:
                 created_ts = True
             data = dict(keyhandle = keyhandle,
-                        public_key = public_key,
+                        credential_data = credential_data,
                         app_id = app_id,
                         attest_obj = attest_obj,
                         description = description,
@@ -284,6 +283,7 @@ class Webauthn(FidoCredential):
 
         FidoCredential.__init__(self, data)
         self.attest_obj = data.pop('attest_obj', '')
+        self.credential_data = data.pop('credential_data', '')
 
         leftovers = data.keys()
         if leftovers:
@@ -293,6 +293,16 @@ class Webauthn(FidoCredential):
                 ))
             # Just keep everything that is left as-is
             self._data.update(data)
+
+
+    @property
+    def key(self):
+        """
+        Return the element that is used as key.
+        """
+        return 'sha256:' + sha256(self.keyhandle.encode('utf-8') +
+                                  self.credential_data.encode('utf-8')
+                                  ).hexdigest()
 
     @property
     def attest_obj(self):
@@ -316,6 +326,26 @@ class Webauthn(FidoCredential):
         if not isinstance(value, string_types):
             raise UserDBValueError("Invalid 'attest_obj': {!r}".format(value))
         self._data['attest_obj'] = value
+
+    @property
+    def credential_data(self):
+        """
+        This is the credential data of the Webauthn token.
+
+        :return: Webauthn credential data
+        :rtype: str
+        """
+        return self._data['credential_data']
+
+    @credential_data.setter
+    def credential_data(self, value):
+        """
+        :param value: Webauthn credential data
+        :type value: str
+        """
+        if not isinstance(value, string_types):
+            raise UserDBValueError("Invalid 'credential_data': {!r}".format(value))
+        self._data['credential_data'] = value
 
 
 def webauthn_from_dict(data, raise_on_unknown=True):
