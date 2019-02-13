@@ -102,8 +102,8 @@ class SecurityU2FTests(EduidAPITestCase):
     @patch('u2flib_server.model.U2fRegisterRequest.complete')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def test_bind_key(self, mock_request_user_sync, mock_u2f_register_complete, mock_dump_cert, mock_load_cert):
-        mock_dump_cert.return_value = 'der_cert'
-        mock_load_cert.return_value = 'pem_cert'
+        mock_dump_cert.return_value = b'der_cert'
+        mock_load_cert.return_value = b'pem_cert'
         mock_request_user_sync.side_effect = self.request_user_sync
         mock_u2f_register_complete.return_value = DeviceRegistration(
             version='mock version',

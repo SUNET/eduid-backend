@@ -7,8 +7,6 @@ from collections import OrderedDict
 from datetime import datetime, timedelta
 from mock import patch
 
-from eduid_userdb.data_samples import NEW_UNVERIFIED_USER_EXAMPLE
-from eduid_userdb.user import User
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_webapp.lookup_mobile_proofing.app import init_lookup_mobile_proofing_app
 
@@ -32,7 +30,7 @@ class LookupMobileProofingTests(EduidAPITestCase):
                                               (u'City', u'LANDET')]))
         ])
 
-        super(LookupMobileProofingTests, self).setUp()
+        super(LookupMobileProofingTests, self).setUp(users=['hubba-baar'])
 
     def load_app(self, config):
         """
@@ -40,13 +38,6 @@ class LookupMobileProofingTests(EduidAPITestCase):
         app for this test case.
         """
         return init_lookup_mobile_proofing_app('testing', config)
-
-    def init_data(self):
-        """
-        Called from the parent class, so we can extend data initialized.
-        """
-        test_user = User(data=NEW_UNVERIFIED_USER_EXAMPLE)  # eppn hubba-baar
-        self.app.central_userdb.save(test_user, check_sync=False)
 
     def update_config(self, config):
         config.update({

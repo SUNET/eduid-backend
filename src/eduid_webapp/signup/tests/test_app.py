@@ -33,21 +33,51 @@
 
 import json
 from contextlib import contextmanager
-from mock import patch
+from mock import patch, Mock
 from flask import Response
 from werkzeug.exceptions import InternalServerError
 from nacl import utils, secret, encoding
+from requests import Response as RequestsResponse
 
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_webapp.signup.app import signup_init_app
 from eduid_webapp.signup.verifications import send_verification_mail
 
 
+def mock_response(status_code=200, content=None, json_data=None, headers=dict(), raise_for_status=None):
+    """
+    since we typically test a bunch of different
+    requests calls for a service, we are going to do
+    a lot of mock responses, so its usually a good idea
+    to have a helper function that builds these things
+    """
+    mock_resp = Mock()
+    # mock raise_for_status call w/optional error
+    mock_resp.raise_for_status = Mock()
+    if raise_for_status:
+        mock_resp.raise_for_status.side_effect = raise_for_status
+    # set status code and content
+    mock_resp.status_code = status_code
+    mock_resp.content = content
+    # set headers
+    mock_resp.headers = headers
+    # add json data if provided
+    if json_data:
+        mock_resp.json = Mock(
+            return_value=json_data
+        )
+    return mock_resp
+
+
+
 class SignupTests(EduidAPITestCase):
+
+    def setUp(self):
+        super(SignupTests, self).setUp(copy_user_to_private=True)
 
     def load_app(self, config):
         """
-        Called from the parent class, so we can provide the appropiate flask
+        Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
         return signup_init_app('signup', config)
@@ -84,10 +114,6 @@ class SignupTests(EduidAPITestCase):
         })
         return config
 
-    def init_data(self):
-        test_user_dict = self.app.private_userdb.UserClass(data=self.test_user.to_dict())
-        self.app.private_userdb.save(test_user_dict, check_sync=False)
-
     @contextmanager
     def session_cookie(self, client, server_name='localhost'):
         with client.session_transaction() as sess:
@@ -95,14 +121,13 @@ class SignupTests(EduidAPITestCase):
         client.set_cookie(server_name, key=self.app.config.get('SESSION_COOKIE_NAME'), value=sess._session.token)
         yield client
 
-    @patch('eduid_webapp.signup.views.http.request')
+    @patch('requests.get')
     def test_get_config(self, mock_http_request):
-        data = json.dumps({'payload':{
-                               'en': 'test tou english',
-                               'sv': 'test tou svenska'}
-                               })
-        resp = Response(response=data, status=200, mimetype='application/json')
-        mock_http_request.return_value = resp
+        data = {'payload': {
+            'en': 'test tou english',
+            'sv': 'test tou svenska'}
+        }
+        mock_http_request.return_value = mock_response(status_code=200, json_data=data)
 
         with self.session_cookie(self.browser) as client:
             response2 = client.get('/config')
@@ -125,20 +150,17 @@ class SignupTests(EduidAPITestCase):
             self.assertEqual('https://www.eduid.se/personal.html',
                     config_data['payload']['staff_link'])
 
-    @patch('eduid_webapp.signup.views.http.request')
+    @patch('requests.get')
     def test_get_config_302_tous(self, mock_http_request):
-        resp = Response(status=302, mimetype='application/json')
-        mock_http_request.return_value = resp
+        mock_http_request.return_value = mock_response(status_code=302)
 
         with self.session_cookie(self.browser) as client:
             with self.assertRaises(InternalServerError):
                 client.get('/config')
 
-
-    @patch('eduid_webapp.signup.views.http.request')
+    @patch('requests.get')
     def test_get_config_500_tous(self, mock_http_request):
-        resp = Response(status=500, mimetype='application/json')
-        mock_http_request.return_value = resp
+        mock_http_request.return_value = mock_response(status_code=500)
 
         with self.session_cookie(self.browser) as client:
             with self.assertRaises(InternalServerError):

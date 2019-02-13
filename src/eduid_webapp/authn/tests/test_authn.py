@@ -44,8 +44,6 @@ from flask import session
 from flask import Blueprint
 from saml2.s_utils import deflate_and_base64_encode
 
-from eduid_userdb.user import User
-from eduid_userdb.data_samples import NEW_COMPLETED_SIGNUP_USER_EXAMPLE
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.authn.cache import OutstandingQueriesCache
 from eduid_common.authn.utils import get_location, no_authn_views, generate_auth_token
@@ -228,12 +226,8 @@ class AuthnAPITestCase(AuthnAPITestBase):
     Tests to check the different modes of authentication.
     """
 
-    def init_data(self):
-        """
-        Called from the parent class, so we can extend data initialized.
-        """
-        test_user = User(data=NEW_COMPLETED_SIGNUP_USER_EXAMPLE)  # eppn hubba-fooo
-        self.app.central_userdb.save(test_user, check_sync=False)
+    def setUp(self):
+        super(AuthnAPITestCase, self).setUp(users=['hubba-bubba', 'hubba-fooo'])
 
     def test_login_authn(self):
         self.authn('/login')
@@ -365,6 +359,7 @@ class AuthnAPITestCase(AuthnAPITestBase):
             self.assertTrue(resp.location.startswith(self.app.config['TOKEN_LOGIN_FAILURE_REDIRECT_URL']))
 
     def test_token_login_old_user_secret_box(self):
+        """ A user that has verified their account should not try to use token login """
         eppn = 'hubba-bubba'
         shared_key = self.app.config['SIGNUP_AND_AUTHN_SHARED_KEY']
         token, timestamp = generate_auth_token(shared_key, 'signup_login', eppn)
@@ -414,8 +409,7 @@ class UnAuthnAPITestCase(EduidAPITestCase):
                   'a47')
         self.redis_instance.conn.set(sessid, json.dumps({'v1': {'id': '0'}}))
 
-        eppn = self.test_user_data['eduPersonPrincipalName']
-        with self.session_cookie(self.browser, eppn) as c:
+        with self.session_cookie(self.browser, self.test_user.eppn) as c:
             self.assertRaises(NotFound, c.get, '/')
 
 

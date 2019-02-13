@@ -41,6 +41,9 @@ from eduid_webapp.phone.app import phone_init_app
 
 class PhoneTests(EduidAPITestCase):
 
+    def setUp(self):
+        super(PhoneTests, self).setUp(copy_user_to_private=True)
+
     def load_app(self, config):
         """
         Called from the parent class, so we can provide the appropriate flask
@@ -61,9 +64,6 @@ class PhoneTests(EduidAPITestCase):
             'DEFAULT_COUNTRY_CODE': '46',
         })
         return config
-
-    def init_data(self):
-        self.app.private_userdb.save(self.app.private_userdb.UserClass(data=self.test_user.to_dict()), check_sync=False)
 
     def test_get_all_phone(self):
         response = self.browser.get('/all')
