@@ -71,7 +71,7 @@ U2F_FACETS = []
 
 # webauthn
 WEBAUTHN_MAX_ALLOWED_TOKENS = 10
-WEBAUTHN_RP_ID = 'dashboard.eduid.local.emergya.info'
+FIDO2_RP_ID = 'eduid.se'
 
 # password reset settings
 EMAIL_CODE_TIMEOUT = 7200  # seconds
