@@ -2,7 +2,7 @@
 
 from setuptools import setup, find_packages
 
-version = '0.2.2b11'
+version = '0.2.2b12'
 
 # Use requirements files
 requires = [
