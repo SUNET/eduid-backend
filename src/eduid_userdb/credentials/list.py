@@ -26,7 +26,7 @@ class CredentialList(ElementList):
             elif isinstance(this, dict) and 'salt' in this:
                 credential = password_from_dict(this, raise_on_unknown)
             elif isinstance(this, dict) and 'keyhandle' in this:
-                if 'version' in this:
+                if 'public_key' in this:
                     credential = u2f_from_dict(this, raise_on_unknown)
                 else:
                     credential = webauthn_from_dict(this, raise_on_unknown)
