@@ -35,6 +35,7 @@ from __future__ import absolute_import
 
 from flask import Blueprint, session
 
+from eduid_userdb.credentials import Webauthn
 from eduid_common.config.parsers.etcd import EtcdConfigParser
 from eduid_common.api.decorators import MarshalWith
 from eduid_common.api.schemas.base import FluxStandardAction
@@ -44,7 +45,7 @@ from eduid_webapp.jsconfig.settings.front import jsconfig
 jsconfig_views = Blueprint('jsconfig', __name__, url_prefix='')
 
 def get_webauthn_registration_options(user):
-    user_webauthn_tokens = user.credentials.filter(U2F)
+    user_webauthn_tokens = user.credentials.filter(Webauthn)
     if user_webauthn_tokens.count >= current_app.config['WEBAUTHN_MAX_ALLOWED_TOKENS']:
         current_app.logger.error('User tried to register more than {} tokens.'.format(
             current_app.config['WEBAUTHN_MAX_ALLOWED_TOKENS']))
