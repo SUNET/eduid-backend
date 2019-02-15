@@ -13,6 +13,7 @@ from fido2.server import Fido2Server, RelyingParty
 from fido2.ctap2 import AttestationObject
 from fido2 import cbor
 from fido2.utils import websafe_encode
+from fido2.ctap2 import AttestedCredentialData
 
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
@@ -45,7 +46,14 @@ def get_webauthn_server():
 
 
 def make_credentials(creds):
-    return [base64.b64decode(cred.credential_data.encode('ascii')) for cred in creds]
+    credentials = []
+    for cred in creds:
+        cred_data = base64.b64decode(cred.credential_data.encode('ascii'))
+        credential_data, rest = AttestedCredentialData.unpack_from(cred_data)
+        if rest:
+            continue
+        credentials.append(credential_data)
+    return credentials
 
 
 webauthn_views = Blueprint('webauthn', __name__, url_prefix='/webauthn', template_folder='templates')
