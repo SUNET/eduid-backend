@@ -6,7 +6,7 @@ from bson import ObjectId
 import logging
 
 from eduid_userdb.userdb import BaseDB
-from eduid_userdb.credentials import Password, U2F
+from eduid_userdb.credentials import Password, U2F, Webauthn
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +34,8 @@ class AuthnInfoDB(BaseDB):
                 data_type = 'security.password_credential_type'
             elif isinstance(credential, U2F):
                 data_type = 'security.u2f_credential_type'
+            elif isinstance(credential, Webauthn):
+                data_type = 'security.webauthn_credential_type'
 
             auth_entry = self._coll.find_one(credential.key)
             logger.debug("get_authn_info {!s}: cred id: {!r} auth entry: {!r}".format(
