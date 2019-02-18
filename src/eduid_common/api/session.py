@@ -163,8 +163,12 @@ class Session(collections.MutableMapping):
         """
         Store the session data in the redis backend,
         and renew the ttl for it.
+        
+        Check that session_id exists - when e.g. the account is being terminated,
+        the session has already been invalidated at this point.
         """
-        self._session.commit()
+        if self._session.session_id is not None:
+            self._session.commit()
 
     def renew_ttl(self, renew_backend):
         """
