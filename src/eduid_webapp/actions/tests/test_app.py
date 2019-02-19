@@ -36,6 +36,7 @@ import unittest
 from hashlib import sha256
 from nacl import secret, utils, encoding
 from werkzeug.exceptions import InternalServerError, Forbidden
+from fido2 import cbor
 from eduid_common.authn.utils import generate_auth_token
 
 NEW_ACTIONS = True
@@ -160,9 +161,8 @@ class ActionsTests(ActionsTestCase):
                     self.prepare_session(sess)
                     response = client.get('/config')
                     self.assertEqual(response.status_code, 200)
-                    data = json.loads(response.data)
-                    self.assertEquals(data['type'], 'GET_ACTIONS_CONFIG_SUCCESS')
-                    self.assertEquals(data['payload']['setting1'], 'dummy')
+                    data = cbor.loads(response.data)[0]
+                    self.assertEquals(data['setting1'], 'dummy')
 
     @unittest.skipUnless(NEW_ACTIONS, "Still using old actions")
     def test_get_config_fails(self):
@@ -172,9 +172,8 @@ class ActionsTests(ActionsTestCase):
                     self.prepare_session(sess, action_error=True)
                     response = client.get('/config')
                     self.assertEqual(response.status_code, 200)
-                    data = json.loads(response.data)
-                    self.assertEquals(data['type'], 'GET_ACTIONS_CONFIG_FAIL')
-                    self.assertEquals(data['payload']['message'], 'test error')
+                    data = cbor.loads(response.data)[0]
+                    self.assertEquals(data['message'], 'test error')
 
     @unittest.skipUnless(NEW_ACTIONS, "Still using old actions")
     def test_get_actions(self):

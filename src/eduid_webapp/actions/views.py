@@ -34,8 +34,10 @@
 from __future__ import absolute_import
 import json
 
+from fido2 import cbor
 from flask import Blueprint, request, session, current_app
 from flask import abort, url_for, render_template
+from flask import Response
 
 from eduid_userdb.actions import Action
 from eduid_common.api.decorators import MarshalWith
@@ -105,12 +107,20 @@ def get_config():
     try:
         config = plugin_obj.get_config_for_bundle(action)
         config['csrf_token'] = session.new_csrf_token()
-        return config
+        data = config
     except plugin_obj.ActionError as exc:
-        return {
+        data = {
             '_status': 'error',
             'message':  exc.args[0]
             }
+    cbor_data = cbor.dumps(data)
+    return Response(response=cbor_data,
+                    status=200,
+                    mimetype='application/cbor',
+                    headers={
+                        'Content-Type': 'application/cbor',
+                        'Content-Length': len(cbor_data)
+                    })
 
 
 @actions_views.route('/get-actions', methods=['GET'])
