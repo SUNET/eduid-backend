@@ -16,3 +16,4 @@ zxcvbn>=4.4.27,==4.*
 bleach>=2.1.4
 html5lib>=1.0.1
 idna>=2.1,<2.8
+-e git://github.com/Yubico/python-fido2.git@appid-extension
