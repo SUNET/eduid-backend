@@ -30,19 +30,9 @@ from eduid_webapp.security.schemas import VerifyWithWebauthnTokenRequestSchema
 from eduid_webapp.security.schemas import VerifyWithWebauthnTokenResponseSchema
 
 
-WEBAUTHN_SERVER = None
-
-def update_webauthn_server(rp_id, name='eduID security API'):
+def get_webauthn_server(rp_id, name='eduID security API'):
     rp = RelyingParty(rp_id, name)
-    server = Fido2Server(rp)
-    global WEBAUTHN_SERVER
-    WEBAUTHN_SERVER = server
-    return server
-
-def get_webauthn_server():
-    if WEBAUTHN_SERVER is not None:
-        return WEBAUTHN_SERVER
-    return update_webauthn_server(current_app.config['FIDO2_RP_ID'])
+    return Fido2Server(rp)
 
 
 def make_credentials(creds):
