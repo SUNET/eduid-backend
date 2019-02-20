@@ -161,14 +161,6 @@ class RemoveU2FTokenRequestSchema(EduidSchema, CSRFRequestMixin):
 
 # webauthn schemas
 
-class WebauthnRegisteredKey(EduidSchema):
-
-    version = fields.String(required=True)
-    key_handle = fields.String(required=True, load_from='keyHandle', dump_to='keyHandle')
-    app_id = fields.String(required=True, load_from='appId', dump_to='appId')
-    transports = fields.String(required=False)
-
-
 class WebauthnOptionsResponseSchema(FluxStandardAction):
 
     class WebauthnOptionsResponsePayload(EduidSchema, CSRFResponseMixin):
@@ -183,8 +175,6 @@ class WebauthnRegisterRequestSchema(EduidSchema, CSRFRequestMixin):
     attestation_object = fields.String(required=True, load_from="attestationObject")
     client_data = fields.String(required=True, load_from="clientDataJSON")
     description = fields.String(required=True)
-
-class BeginWebauthnRegistrationResponseSchema(FluxStandardAction): pass
 
 
 class RemoveWebauthnTokenRequestSchema(EduidSchema, CSRFRequestMixin):
