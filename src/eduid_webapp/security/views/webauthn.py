@@ -71,6 +71,10 @@ def registration_begin(user):
         return Response(response=cbor_resp, status=200, mimetype='application/cbor')
     creds = make_credentials(user_webauthn_tokens.to_list())
     server = get_webauthn_server()
+    if user.surname is None or user.display_name is None:
+        resp = {'_status': 'error', 'message': 'security.webauthn-missing-pdata'}
+        cbor_resp = cbor.dumps(resp)
+        return Response(response=cbor_resp, status=200, mimetype='application/cbor')
     registration_data, state = server.register_begin({
         'id': str(user.user_id).encode('ascii'),
         'name': user.surname,
