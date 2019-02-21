@@ -7,6 +7,7 @@ import json
 from celery import Task
 from celery.utils.log import get_task_logger
 from celery.task import periodic_task, task
+from celery.exceptions import Ignore
 from time import time
 from datetime import datetime, timedelta
 from hammock import Hammock
@@ -234,7 +235,14 @@ class MessageRelay(Task):
 
         if message_type == 'sms':
             LOG.debug("Sending SMS to {!r} using template {!r} and language {!r}".format(recipient, template, language))
-            status = self.sms.send(msg, self._sms_sender, recipient, prio=2)
+            try:
+                status = self.sms.send(msg, self._sms_sender, recipient, prio=2)
+            except Exception as e:  # XXX: smscom only raises Exception right now
+                # There seems to be a problem with retrying tasks in a timely way (backoff does not seem to work)
+                # Hack to solve this is to just ignore a task that raises an exception.
+                LOG.error('SMS task failed and was ignored: {}'.format(e))
+                raise Ignore()
+
         elif message_type == 'mm':
             LOG.debug("Sending MM to '%s' using language '%s'" % (recipient, language))
             reachable = self.is_reachable(recipient)
@@ -474,6 +482,9 @@ def send_message(message_type, reference, message_dict, recipient, template, lan
     try:
         return self.send_message(message_type, reference, message_dict, recipient, template, language, subject)
     except Exception as e:
+        # Correctly handle Ignore task exception
+        if isinstance(e, Ignore):
+            raise e
         # Increase countdown every time it fails (to a maximum of 1 day)
         countdown = 600 * send_message.request.retries ** 2
         retry_countdown = min(countdown, 86400)
