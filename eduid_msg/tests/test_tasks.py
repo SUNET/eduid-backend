@@ -90,6 +90,13 @@ class TestTasks(MsgMongoTestCase):
         except ValueError as e:
             self.assertEqual(e.args[0], "'to' is not a valid phone number")
 
+    @patch('smscom.SMSClient.send', side_effect=Exception('Unrecoverable error'))
+    def test_send_message_sms_exception(self, sms_mock):
+        from eduid_msg.tasks import send_message
+        sms_mock.return_value = True
+        status = send_message.delay('sms', 'reference', self.msg_dict, '+386666', 'test.tmpl', 'sv_SE').get()
+        self.assertIsNone(status)
+
     @patch('eduid_msg.tasks.MessageRelay.mm_api')
     def test_is_reachable_cache(self, api_mock):
         from eduid_msg.tasks import is_reachable
