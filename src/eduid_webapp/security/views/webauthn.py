@@ -66,7 +66,7 @@ def registration_begin(user):
         return Response(response=cbor_resp, status=200, mimetype='application/cbor')
     registration_data, state = server.register_begin({
         'id': str(user.eppn).encode('ascii'),
-        'name': user.surname,
+        'name': user.givenName,
         'displayName': user.display_name,
         'icon': ''
     }, creds)
