@@ -31,6 +31,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
+from __future__ import absolute_import
+
 from marshmallow import fields, Schema, validates, validates_schema, validate, ValidationError
 from flask_babel import gettext as _
 from eduid_common.api.schemas.base import FluxStandardAction, EduidSchema
@@ -156,6 +158,40 @@ class ModifyU2FTokenRequestSchema(EduidSchema, CSRFRequestMixin):
 class RemoveU2FTokenRequestSchema(EduidSchema, CSRFRequestMixin):
 
     credential_key = fields.String(required=True)
+
+# webauthn schemas
+
+class WebauthnOptionsResponseSchema(FluxStandardAction):
+
+    class WebauthnOptionsResponsePayload(EduidSchema, CSRFResponseMixin):
+        options = fields.String(required=True)
+
+    payload = fields.Nested(WebauthnOptionsResponsePayload)
+
+
+class WebauthnRegisterRequestSchema(EduidSchema, CSRFRequestMixin):
+
+    credential_id = fields.String(required=True, load_from="credentialId")
+    attestation_object = fields.String(required=True, load_from="attestationObject")
+    client_data = fields.String(required=True, load_from="clientDataJSON")
+    description = fields.String(required=True)
+
+
+class RemoveWebauthnTokenRequestSchema(EduidSchema, CSRFRequestMixin):
+
+    credential_key = fields.String(required=True)
+
+
+class VerifyWithWebauthnTokenRequestSchema(U2FVerifyRequestSchema):
+    pass
+
+
+class VerifyWithWebauthnTokenResponseSchema(FluxStandardAction):
+
+    class Payload(U2FVerifyResponseSchema, CSRFResponseMixin):
+        pass
+
+    payload = fields.Nested(Payload)
 
 
 # Reset password schemas

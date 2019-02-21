@@ -70,9 +70,11 @@ def security_init_app(name, config):
 
     from eduid_webapp.security.views.security import security_views
     from eduid_webapp.security.views.u2f import u2f_views
+    from eduid_webapp.security.views.webauthn import webauthn_views
     from eduid_webapp.security.views.reset_password import reset_password_views
     app.register_blueprint(security_views)
     app.register_blueprint(u2f_views)
+    app.register_blueprint(webauthn_views)
     app.register_blueprint(reset_password_views)
 
     # Register view path that should not be authorized
