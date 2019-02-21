@@ -49,7 +49,6 @@ def make_credentials(creds):
 webauthn_views = Blueprint('webauthn', __name__, url_prefix='/webauthn', template_folder='templates')
 
 @webauthn_views.route('/register/begin', methods=['GET'])
-@MarshalWith(WebauthnOptionsResponseSchema)
 @require_user
 def registration_begin(user):
     user_webauthn_tokens = user.credentials.filter(Webauthn)
@@ -66,7 +65,7 @@ def registration_begin(user):
         cbor_resp = cbor.dumps(resp)
         return Response(response=cbor_resp, status=200, mimetype='application/cbor')
     registration_data, state = server.register_begin({
-        'id': str(user.user_id).encode('ascii'),
+        'id': str(user.eppn).encode('ascii'),
         'name': user.surname,
         'displayName': user.display_name,
         'icon': ''
@@ -151,5 +150,5 @@ def verify(user, key_handle, signature_data, client_data):
         'clientData': client_data
     }
     device, c, t = complete_authentication(challenge, data, current_app.config['U2F_FACETS'])
-    current_app.stats.count(name='u2f_verify')
+    current_app.stats.count(name='webauthn_verify')
     return {'key_handle': device['keyHandle'], 'counter': c, 'touch': t}
