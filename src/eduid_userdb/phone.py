@@ -81,7 +81,7 @@ class PhoneNumber(PrimaryElement):
     @property
     def key(self):
         """
-        Return the element that is used as key for phone numberes in a PrimaryElementList.
+        Return the element that is used as key for phone numbers in a PrimaryElementList.
         """
         return self.number
 

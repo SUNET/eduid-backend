@@ -541,3 +541,25 @@ class TestUser(TestCase):
         self.assertFalse('verified' in _dict2)
         self.assertFalse('proofing_method' in _dict2)
         self.assertFalse('proofing_version' in _dict2)
+
+    def test_both_mobile_and_phone(self):
+        """ Test user that has both 'mobile' and 'phone' """
+        phone = [{'number': '+4673123', 'primary': True, 'verified': True},
+                {'created_by': 'phone',
+                 'created_ts': datetime.datetime.utcnow(),
+                 'number': '+4670999',
+                 'primary': False,
+                 'verified': False}]
+        from eduid_userdb import User
+        user = User(data={
+            '_id': ObjectId(),
+            'eduPersonPrincipalName': 'test-test',
+            'passwords': [],
+            'mobile': [
+                {'mobile': '+4673123',
+                 'primary': True,
+                 'verified': True}],
+            'phone': phone,
+        })
+        out = user.to_dict()['phone']
+        self.assertEqual(phone, out)
