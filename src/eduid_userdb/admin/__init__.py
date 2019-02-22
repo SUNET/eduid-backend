@@ -148,6 +148,7 @@ class RawDb(object):
                                                                 ))
 
             fd.write('DB_RESULT: {}\n'.format(res))
+        return res
 
     def _write_before_and_after(self, raw, backup_dir):
         """
