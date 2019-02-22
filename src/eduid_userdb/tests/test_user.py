@@ -550,7 +550,6 @@ class TestUser(TestCase):
                  'number': '+4670999',
                  'primary': False,
                  'verified': False}]
-        from eduid_userdb import User
         user = User(data={
             '_id': ObjectId(),
             'eduPersonPrincipalName': 'test-test',
@@ -563,3 +562,14 @@ class TestUser(TestCase):
         })
         out = user.to_dict()['phone']
         self.assertEqual(phone, out)
+
+    def test_both_sn_and_surname(self):
+        """ Test user that has both 'sn' and 'surname' """
+        user = User(data={
+            '_id': ObjectId(),
+            'eduPersonPrincipalName': 'test-test',
+            'passwords': [],
+            'surname': 'Right',
+            'sn': 'Wrong',
+        })
+        self.assertEqual('Right', user.to_dict()['surname'])
