@@ -177,7 +177,11 @@ class User(object):
         Parse all the different formats of mobile/phone attributes in the database.
         """
         if 'mobile' in self._data_in:
-            self._data_in['phone'] = self._data_in.pop('mobile')
+            _mobile = self._data_in.pop('mobile')
+            if 'phone' not in self._data_in:
+                # Some users have both 'mobile' and 'phone'. Assume mobile was once transformed
+                # to 'phone' but also left behind - so just discard 'mobile'.
+                self._data_in['phone'] = _mobile
         if 'phone' in self._data_in:
             _phones = self._data_in.pop('phone')
             # Clean up for non verified phone elements that where still primary
