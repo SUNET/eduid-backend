@@ -59,7 +59,7 @@ def registration_begin(user):
         cbor_resp = cbor.dumps(resp)
         return Response(response=cbor_resp, status=200, mimetype='application/cbor')
     creds = make_credentials(user_webauthn_tokens.to_list())
-    server = get_webauthn_server()
+    server = get_webauthn_server(current_app.config['FIDO2_RP_ID'])
     if user.surname is None or user.display_name is None:
         resp = {'_status': 'error', 'message': 'security.webauthn-missing-pdata'}
         cbor_resp = cbor.dumps(resp)
@@ -87,7 +87,7 @@ def registration_begin(user):
 @require_user
 def registration_complete(user, credential_id, attestation_object, client_data, description):
     security_user = SecurityUser.from_user(user, current_app.private_userdb)
-    server = get_webauthn_server()
+    server = get_webauthn_server(current_app.config['FIDO2_RP_ID'])
 
     attestation = base64.b64decode(attestation_object)
     att_obj = AttestationObject(attestation)
