@@ -74,7 +74,11 @@ class User(object):
         self._data['_id'] = _id
 
         if 'sn' in self._data_in:
-            self._data_in['surname'] = self._data_in.pop('sn')
+            _sn = self._data_in.pop('sn')
+            # Some users have both 'sn' and 'surname'. In that case, assume sn was
+            # once converted to surname but also left behind, and discard 'sn'.
+            if 'surname' not in self._data_in:
+                self._data_in['surname'] = _sn
         if 'eduPersonEntitlement' in self._data_in:
             self._data_in['entitlements'] = self._data_in.pop('eduPersonEntitlement')
 
