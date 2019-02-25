@@ -76,10 +76,10 @@ def proofing(user, nin):
     try:
         campaign_id = send_letter(user, proofing_state)
     except pdf.AddressFormatException as e:
-        current_app.logger.error('{!r}'.format(e.message))
+        current_app.logger.error('{}'.format(e))
         return {'_status': 'error', 'message': 'letter.bad-postal-address'}
     except EkopostException as e:
-        current_app.logger.error('{!r}'.format(e.message))
+        current_app.logger.error('{}'.format(e))
         return {'_status': 'error', 'message': 'Temporary technical problems'}
 
     # Save the users proofing state
