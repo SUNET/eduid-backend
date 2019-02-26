@@ -60,7 +60,7 @@ def registration_begin(user):
         return Response(response=cbor_resp, status=200, mimetype='application/cbor')
     creds = make_credentials(user_webauthn_tokens.to_list())
     server = get_webauthn_server(current_app.config['FIDO2_RP_ID'])
-    if user.surname is None or user.display_name is None:
+    if user.given_name is None or user.surname is None or user.display_name is None:
         resp = {'_status': 'error', 'message': 'security.webauthn-missing-pdata'}
         cbor_resp = cbor.dumps(resp)
         return Response(response=cbor_resp, status=200, mimetype='application/cbor')
