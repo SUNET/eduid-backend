@@ -2,6 +2,7 @@
 
 from __future__ import absolute_import
 
+from datetime import datetime, timedelta
 from flask import current_app, session
 from xml.etree.ElementTree import ParseError
 from saml2 import BINDING_HTTP_REDIRECT, BINDING_HTTP_POST
@@ -82,6 +83,23 @@ def is_required_loa(session_info, required_loa):
     current_app.logger.error('Asserted authn context class does not match required class')
     current_app.logger.error('Asserted: {}'.format(authn_context))
     current_app.logger.error('Required: {}'.format(loa_uri))
+    return False
+
+
+def is_valid_reauthn(session_info, max_age=60):
+    """
+    :param session_info: The SAML2 session_info
+    :param max_age: Max time (in seconds) since authn
+    :return: True if authn instant is no older than max_age
+    :rtype: boolean
+    """
+    authn_instant = datetime.strptime(session_info['authn_info'][0][2], '%Y-%m-%dT%H:%M:%SZ')
+    max_age = timedelta(seconds=max_age)
+    if authn_instant < (datetime.utcnow() + max_age):
+        return True
+    current_app.logger.error('Asserted authn instant was older than required')
+    current_app.logger.error('Authn instant: {}'.format(authn_instant))
+    current_app.logger.error('Oldest accepted: {}'.format(datetime.utcnow() + max_age))
     return False
 
 

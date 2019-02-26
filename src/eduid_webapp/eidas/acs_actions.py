@@ -17,7 +17,7 @@ from eduid_userdb.proofing.state import NinProofingState, NinProofingElement
 from eduid_userdb.credentials import U2F
 from eduid_userdb.logs import SwedenConnectProofing, MFATokenProofing
 
-from eduid_webapp.eidas.helpers import is_required_loa
+from eduid_webapp.eidas.helpers import is_required_loa, is_valid_reauthn
 
 __author__ = 'lundberg'
 
@@ -43,6 +43,11 @@ def token_verify_action(session_info, user):
 
     if not is_required_loa(session_info, 'loa3'):
         new_query_string = urlencode({'msg': ':ERROR:eidas.authn_context_mismatch'})
+        url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
+        return redirect(url)
+
+    if not is_valid_reauthn(session_info):
+        new_query_string = urlencode({'msg': ':ERROR:eidas.reauthn_expired'})
         url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
         return redirect(url)
 
@@ -132,6 +137,11 @@ def nin_verify_action(session_info, user):
 
     if not is_required_loa(session_info, 'loa3'):
         new_query_string = urlencode({'msg': ':ERROR:eidas.authn_context_mismatch'})
+        url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
+        return redirect(url)
+
+    if not is_valid_reauthn(session_info):
+        new_query_string = urlencode({'msg': ':ERROR:eidas.reauthn_expired'})
         url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
         return redirect(url)
 
