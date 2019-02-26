@@ -158,9 +158,9 @@ class EidasTests(EduidAPITestCase):
         Generates a fresh signed authentication response
         """
 
-        timestamp = datetime.datetime.now() - datetime.timedelta(seconds=10)
-        tomorrow = datetime.datetime.now() + datetime.timedelta(days=1)
-        yesterday = datetime.datetime.now() - datetime.timedelta(days=1)
+        timestamp = datetime.datetime.utcnow() - datetime.timedelta(seconds=10)
+        tomorrow = datetime.datetime.utcnow() + datetime.timedelta(days=1)
+        yesterday = datetime.datetime.utcnow() - datetime.timedelta(days=1)
 
         sp_baseurl = 'http://test.localhost:6544/'
 
