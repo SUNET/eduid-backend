@@ -86,12 +86,12 @@ def is_required_loa(session_info, required_loa):
     return False
 
 
-def is_valid_reauthn(session_info, max_age=60):
+def is_valid_reauthn(session_info, max_age=60) -> bool:
     """
     :param session_info: The SAML2 session_info
     :param max_age: Max time (in seconds) since authn
     :return: True if authn instant is no older than max_age
-    :rtype: boolean
+    :rtype: bool
     """
     authn_instant = datetime.strptime(session_info['authn_info'][0][2], '%Y-%m-%dT%H:%M:%SZ')
     max_age = timedelta(seconds=max_age)
