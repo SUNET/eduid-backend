@@ -95,7 +95,7 @@ def is_valid_reauthn(session_info, max_age=60):
     """
     authn_instant = datetime.strptime(session_info['authn_info'][0][2], '%Y-%m-%dT%H:%M:%SZ')
     max_age = timedelta(seconds=max_age)
-    if authn_instant < (datetime.utcnow() + max_age):
+    if authn_instant <= (datetime.utcnow() + max_age):
         return True
     current_app.logger.error('Asserted authn instant was older than required')
     current_app.logger.error('Authn instant: {}'.format(authn_instant))
