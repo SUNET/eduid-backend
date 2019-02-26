@@ -9,7 +9,7 @@ try:
     # Do not force applications that does not use EtcdConfigParser to have yaml and etcd installed
     from eduid_common.config.parsers.etcd import EtcdConfigParser
 except ImportError:
-    EtcdConfigParser = None
+    EtcdConfigParser = None  # type: ignore
 from eduid_common.config.parsers.exceptions import ParserException
 
 __author__ = 'lundberg'
