@@ -203,6 +203,7 @@ class EduidAPITestCase(MongoTestCase):
     def session_cookie(self, client, eppn, server_name='localhost'):
         with client.session_transaction() as sess:
             sess['user_eppn'] = eppn
+            sess['user_is_logged_in'] = True
             sess.persist()
         client.set_cookie(server_name, key=self.app.config.get('SESSION_COOKIE_NAME'), value=sess._session.token)
         yield client

@@ -62,7 +62,8 @@ class AuthnApp(Flask):
 
         with self.request_context(environ):
             try:
-                if session.get('user_eppn'):
+                # TODO: Remove the 'is not False' when all live sessions have user_is_logged_in
+                if session.get('user_eppn') and session.get('user_is_logged_in') is not False:
                     return super(AuthnApp, self).__call__(environ, start_response)
             except NoSessionDataFoundException:
                 current_app.logger.info('Caught a NoSessionDataFoundException - forcing the user to authenticate')
