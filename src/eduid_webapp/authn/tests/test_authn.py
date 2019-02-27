@@ -483,6 +483,7 @@ class LogoutRequestTests(AuthnAPITestBase):
         csrft = 'csrf token'
         with self.app.test_request_context('/logout', method='GET'):
             session['user_eppn'] = eppn
+            session['user_is_logged_in'] = False
             session['eduPersonPrincipalName'] = eppn
             response = self.app.dispatch_request()
             self.assertEqual(response.status, '302 FOUND')
