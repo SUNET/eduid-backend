@@ -280,6 +280,7 @@ def token_login():
                 return redirect(location_on_fail)
             session['eduPersonPrincipalName'] = user.eppn
             session['user_eppn'] = user.eppn
+            session['user_is_logged_in'] = True
             session['eduPersonAssurance'] = loa
             session.persist()
 
