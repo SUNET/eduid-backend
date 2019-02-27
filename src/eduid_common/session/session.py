@@ -1,5 +1,6 @@
 #
 # Copyright (c) 2016 NORDUnet A/S
+# Copyright (c) 2018 SUNET
 # All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or
@@ -122,60 +123,6 @@ class NameIDEncoder(json.JSONEncoder):
         if isinstance(obj, NameID):
             return str(obj)
         return json.JSONEncoder.default(self, obj)
-
-
-class SessionManager(object):
-    """
-    Factory objects that hold some configuration data and provide
-    session objects.
-    """
-
-    def __init__(self, cfg, ttl=600,
-                 secret=None, whitelist=None, raise_on_unknown=False):
-        """
-        Constructor for SessionManager
-
-        :param cfg: Redis connection settings dict
-        :param ttl: The time to live for the sessions
-        :param secret: token_key used to sign the keys associated
-                       with the sessions
-        :param whitelist: list of allowed keys for the sessions
-        :param raise_on_unknown: Whether to raise an exception on an attempt
-                                 to set a session session_id not in whitelist
-
-        :type cfg: dict
-        :type ttl: int
-        :type secret: str
-        :type whitelist: list
-        :type raise_on_unknown: bool
-        """
-        self.pool = get_redis_pool(cfg)
-        self.ttl = ttl
-        self.secret = secret
-        self.whitelist = whitelist
-        self.raise_on_unknown = raise_on_unknown
-
-    def get_session(self, token=None, session_id=None, data=None):
-        """
-        Create or fetch a session for the given token or data.
-
-        :param token: the token containing the session_id for the session
-        :param session_id: the session_id to look for
-        :param data: the data for the (new) session
-
-        :type token: str | unicode | None
-        :type session_id: bytes
-        :type data: dict | None
-
-        :return: the session
-        :rtype: Session
-        """
-        conn = redis.StrictRedis(connection_pool=self.pool)
-        return Session(conn, token=token, session_id=session_id, data=data,
-                       secret=self.secret, ttl=self.ttl,
-                       whitelist=self.whitelist,
-                       raise_on_unknown=self.raise_on_unknown,
-                       )
 
 
 class Session(collections.MutableMapping):
@@ -428,6 +375,60 @@ class Session(collections.MutableMapping):
         Restart the ttl countdown
         """
         self.conn.expire(self.session_id, self.ttl)
+
+
+class SessionManager(object):
+    """
+    Factory objects that hold some configuration data and provide
+    session objects.
+    """
+
+    def __init__(self, cfg, ttl=600,
+                 secret=None, whitelist=None, raise_on_unknown=False):
+        """
+        Constructor for SessionManager
+
+        :param cfg: Redis connection settings dict
+        :param ttl: The time to live for the sessions
+        :param secret: token_key used to sign the keys associated
+                       with the sessions
+        :param whitelist: list of allowed keys for the sessions
+        :param raise_on_unknown: Whether to raise an exception on an attempt
+                                 to set a session session_id not in whitelist
+
+        :type cfg: dict
+        :type ttl: int
+        :type secret: str
+        :type whitelist: list
+        :type raise_on_unknown: bool
+        """
+        self.pool = get_redis_pool(cfg)
+        self.ttl = ttl
+        self.secret = secret
+        self.whitelist = whitelist
+        self.raise_on_unknown = raise_on_unknown
+
+    def get_session(self, token=None, session_id=None, data=None):
+        """
+        Create or fetch a session for the given token or data.
+
+        :param token: the token containing the session_id for the session
+        :param session_id: the session_id to look for
+        :param data: the data for the (new) session
+
+        :type token: str | unicode | None
+        :type session_id: bytes
+        :type data: dict | None
+
+        :return: the session
+        :rtype: Session
+        """
+        conn = redis.StrictRedis(connection_pool=self.pool)
+        return Session(conn, token=token, session_id=session_id, data=data,
+                       secret=self.secret, ttl=self.ttl,
+                       whitelist=self.whitelist,
+                       raise_on_unknown=self.raise_on_unknown,
+                       )
 
 
 def derive_key(app_key, session_key, usage, size):
