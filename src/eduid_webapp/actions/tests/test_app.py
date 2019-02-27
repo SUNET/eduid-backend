@@ -32,39 +32,27 @@
 
 import json
 import time
-import unittest
 from hashlib import sha256
 from nacl import secret, utils, encoding
 from werkzeug.exceptions import InternalServerError, Forbidden
 from fido2 import cbor
 from eduid_common.authn.utils import generate_auth_token
 
-NEW_ACTIONS = True
-
-try:
-    from eduid_action.common.testing import ActionsTestCase
-except ImportError:
-    class ActionsTestCase: pass
-    NEW_ACTIONS = False
+from eduid_action.common.testing import ActionsTestCase
 
 
 class ActionsTests(ActionsTestCase):
 
     def update_actions_config(self, config):
-        if NEW_ACTIONS:
-            shared_key = encoding.URLSafeBase64Encoder.encode((utils.random(secret.SecretBox.KEY_SIZE))).decode('utf-8')
-        else:
-            shared_key = u'not_a_secret_box_secret_key'
+        shared_key = encoding.URLSafeBase64Encoder.encode((utils.random(secret.SecretBox.KEY_SIZE))).decode('utf-8')
         config['TOKEN_LOGIN_SHARED_KEY'] = shared_key
         config['TOU_VERSION'] = 'test-version'
         return config
 
-    @unittest.skipUnless(NEW_ACTIONS, "Still using old actions")
     def test_authn_no_data(self):
         response = self.browser.get('/')
         self.assertEqual(response.status_code, 400)
 
-    @unittest.skipUnless(NEW_ACTIONS, "Still using old actions")
     def test_authn(self):
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
@@ -73,7 +61,6 @@ class ActionsTests(ActionsTestCase):
                     self.assertEqual(response.status_code, 200)
                     self.assertTrue(b'bundle-holder' in response.data)
 
-    @unittest.skipUnless(NEW_ACTIONS, "Still using old actions")
     def test_authn_hmac_and_userid(self):
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
@@ -94,7 +81,6 @@ class ActionsTests(ActionsTestCase):
                     response = client.get(url)
                     self.assertEqual(response.status, '200 OK')
 
-    @unittest.skipUnless(NEW_ACTIONS, "Still using old actions")
     def test_authn_hmac_and_eppn(self):
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
@@ -115,7 +101,6 @@ class ActionsTests(ActionsTestCase):
                     response = client.get(url)
                     self.assertEqual(response.status, '200 OK')
 
-    @unittest.skipUnless(NEW_ACTIONS, "Still using old actions")
     def test_authn_secret_box(self):
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
@@ -132,7 +117,6 @@ class ActionsTests(ActionsTestCase):
                     response = client.get(url)
                     self.assertEqual(response.status, '200 OK')
 
-    @unittest.skipUnless(NEW_ACTIONS, "Still using old actions")
     def test_authn_wrong_secret(self):
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
@@ -153,7 +137,6 @@ class ActionsTests(ActionsTestCase):
                     with self.assertRaises(Forbidden):
                         response = client.get(url)
 
-    @unittest.skipUnless(NEW_ACTIONS, "Still using old actions")
     def test_get_config(self):
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
@@ -164,7 +147,6 @@ class ActionsTests(ActionsTestCase):
                     data = cbor.loads(response.data)[0]
                     self.assertEquals(data['setting1'], 'dummy')
 
-    @unittest.skipUnless(NEW_ACTIONS, "Still using old actions")
     def test_get_config_fails(self):
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
@@ -175,7 +157,6 @@ class ActionsTests(ActionsTestCase):
                     data = cbor.loads(response.data)[0]
                     self.assertEquals(data['message'], 'test error')
 
-    @unittest.skipUnless(NEW_ACTIONS, "Still using old actions")
     def test_get_actions(self):
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
@@ -187,7 +168,6 @@ class ActionsTests(ActionsTestCase):
                     self.assertTrue(data['action'])
                     self.assertEquals(data['url'], "http://example.com/plugin.js")
 
-    @unittest.skipUnless(NEW_ACTIONS, "Still using old actions")
     def test_get_actions_action_error(self):
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
@@ -198,7 +178,6 @@ class ActionsTests(ActionsTestCase):
                     except InternalServerError:
                         pass
 
-    @unittest.skipUnless(NEW_ACTIONS, "Still using old actions")
     def test_get_actions_no_action(self):
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
@@ -211,7 +190,6 @@ class ActionsTests(ActionsTestCase):
                     self.assertEquals(data['url'],
                             "https://example.com/idp?key=dummy-session")
 
-    @unittest.skipUnless(NEW_ACTIONS, "Still using old actions")
     def test_get_actions_no_plugin(self):
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
@@ -222,7 +200,29 @@ class ActionsTests(ActionsTestCase):
                     except InternalServerError:
                         pass
 
-    @unittest.skipUnless(NEW_ACTIONS, "Still using old actions")
+    def test_post_action_no_csrf(self):
+        with self.session_cookie(self.browser) as client:
+            with client.session_transaction() as sess:
+                self.prepare_session(sess)
+                with self.app.test_request_context():
+                    response = client.post('/post-action')
+                    data = json.loads(response.data)
+                    self.assertEquals(response.status_code, 400)
+                    self.assertEquals(data['message'], 'Bad Request')
+
+    def test_post_action_wrong_csrf(self):
+        with self.session_cookie(self.browser) as client:
+            with client.session_transaction() as sess:
+                self.prepare_session(sess)
+                with self.app.test_request_context():
+                    token = {'csrf_token': 'wrong code'}
+                    response = client.post('/post-action',
+                            data=json.dumps(token),
+                            content_type=self.content_type_json)
+                    data = json.loads(response.data)
+                    self.assertEquals(response.status_code, 400)
+                    self.assertEquals(data['message'], 'Bad Request')
+
     def test_post_action(self):
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
@@ -237,32 +237,6 @@ class ActionsTests(ActionsTestCase):
                     self.assertEquals(data['type'],
                             'POST_ACTIONS_POST_ACTION_SUCCESS')
 
-    @unittest.skipUnless(NEW_ACTIONS, "Still using old actions")
-    def test_post_action_no_csrf(self):
-        with self.session_cookie(self.browser) as client:
-            with client.session_transaction() as sess:
-                self.prepare_session(sess)
-                with self.app.test_request_context():
-                    response = client.post('/post-action')
-                    data = json.loads(response.data)
-                    self.assertEquals(response.status_code, 400)
-                    self.assertEquals(data['message'], 'Bad Request')
-
-    @unittest.skipUnless(NEW_ACTIONS, "Still using old actions")
-    def test_post_action_wrong_csrf(self):
-        with self.session_cookie(self.browser) as client:
-            with client.session_transaction() as sess:
-                self.prepare_session(sess)
-                with self.app.test_request_context():
-                    token = {'csrf_token': 'wrong code'}
-                    response = client.post('/post-action',
-                            data=json.dumps(token),
-                            content_type=self.content_type_json)
-                    data = json.loads(response.data)
-                    self.assertEquals(response.status_code, 400)
-                    self.assertEquals(data['message'], 'Bad Request')
-
-    @unittest.skipUnless(NEW_ACTIONS, "Still using old actions")
     def test_post_action_action_error(self):
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
@@ -277,7 +251,6 @@ class ActionsTests(ActionsTestCase):
                             'POST_ACTIONS_POST_ACTION_FAIL')
                     self.assertEquals(data['payload']['message'], 'test error')
 
-    @unittest.skipUnless(NEW_ACTIONS, "Still using old actions")
     def test_post_action_validation_error(self):
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
@@ -292,7 +265,6 @@ class ActionsTests(ActionsTestCase):
                             'POST_ACTIONS_POST_ACTION_FAIL')
                     self.assertEquals(data['payload']['errors']['field1'], 'field test error')
 
-    @unittest.skipUnless(NEW_ACTIONS, "Still using old actions")
     def test_post_action_multi_step(self):
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
@@ -315,7 +287,6 @@ class ActionsTests(ActionsTestCase):
                     self.assertEquals(data['type'],
                             'POST_ACTIONS_POST_ACTION_SUCCESS')
 
-    @unittest.skipUnless(NEW_ACTIONS, "Still using old actions")
     def test_post_action_rm_action(self):
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
