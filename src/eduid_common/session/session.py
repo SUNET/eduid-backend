@@ -408,7 +408,7 @@ class SessionManager(object):
         self.whitelist = whitelist
         self.raise_on_unknown = raise_on_unknown
 
-    def get_session(self, token=None, session_id=None, data=None):
+    def get_session(self, token=None, session_id=None, data=None) -> RedisEncryptedSession:
         """
         Create or fetch a session for the given token or data.
 

@@ -35,10 +35,10 @@ from time import time
 import os
 import binascii
 
-from flask import request, current_app
+from flask import request, current_app, Flask
 from flask.sessions import SessionInterface
 
-from eduid_common.session.session import SessionManager
+from eduid_common.session.session import SessionManager, RedisEncryptedSession
 
 
 class NoSessionDataFoundException(Exception):
@@ -73,15 +73,11 @@ class Session(collections.MutableMapping):
     to store the session data in redis.
     """
 
-    def __init__(self, app, base_session, new=False):
+    def __init__(self, app: Flask, base_session: RedisEncryptedSession, new: bool=False):
         """
         :param app: the flask app
         :param base_session: The underlying session object
         :param new: whether the session is new or not.
-
-        :type app: flask.Flask
-        :type base_session: eduid_common.session.session.RedisEncryptedSession
-        :type new: bool
         """
         self.app = app
         self._session = base_session
