@@ -3,6 +3,10 @@
 set -e
 set -x
 
+# tmp test
+export LANG=en_US.UTF-8
+export LANGUAGE=en_US:en
+
 # activate python virtualenv
 . /opt/eduid/bin/activate
 
