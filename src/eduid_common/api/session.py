@@ -80,7 +80,7 @@ class Session(collections.MutableMapping):
         :param new: whether the session is new or not.
 
         :type app: flask.Flask
-        :type base_session: eduid_common.session.session.Session
+        :type base_session: eduid_common.session.session.RedisEncryptedSession
         :type new: bool
         """
         self.app = app

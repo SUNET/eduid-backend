@@ -2,7 +2,7 @@ from unittest import TestCase
 
 import time
 
-from eduid_common.session.session import Session, derive_key
+from eduid_common.session.session import RedisEncryptedSession, derive_key
 
 class FakeRedisConn(object):
 
@@ -79,7 +79,7 @@ class TestSession(TestCase):
 
     def _get_session(self, token=None, data=None, secret='s3cr3t', ttl=10,
                      whitelist=None, raise_on_unknown=False):
-        session = Session(self.conn, token=token, data=data,
-                          secret=secret, ttl=ttl, whitelist=whitelist,
-                          raise_on_unknown=raise_on_unknown)
+        session = RedisEncryptedSession(self.conn, token=token, data=data,
+                                        secret=secret, ttl=ttl, whitelist=whitelist,
+                                        raise_on_unknown=raise_on_unknown)
         return session

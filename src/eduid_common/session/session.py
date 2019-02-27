@@ -125,7 +125,7 @@ class NameIDEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
-class Session(collections.MutableMapping):
+class RedisEncryptedSession(collections.MutableMapping):
     """
     Session objects that keep their data in a redis db.
     """
@@ -421,14 +421,14 @@ class SessionManager(object):
         :type data: dict | None
 
         :return: the session
-        :rtype: Session
+        :rtype: RedisEncryptedSession
         """
         conn = redis.StrictRedis(connection_pool=self.pool)
-        return Session(conn, token=token, session_id=session_id, data=data,
-                       secret=self.secret, ttl=self.ttl,
-                       whitelist=self.whitelist,
-                       raise_on_unknown=self.raise_on_unknown,
-                       )
+        return RedisEncryptedSession(conn, token=token, session_id=session_id, data=data,
+                                     secret=self.secret, ttl=self.ttl,
+                                     whitelist=self.whitelist,
+                                     raise_on_unknown=self.raise_on_unknown,
+                                     )
 
 
 def derive_key(app_key, session_key, usage, size):

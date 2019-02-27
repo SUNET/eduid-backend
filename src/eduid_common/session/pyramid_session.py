@@ -106,7 +106,7 @@ class Session(collections.MutableMapping):
         :param request: the request
         :type request: pyramid.request.Request
         :param base_session: The underlying session object
-        :type base_session: eduid_common.session.session.Session
+        :type base_session: eduid_common.session.session.RedisEncryptedSession
         :param new: whether the session is new or not.
         :type new: bool
         '''
