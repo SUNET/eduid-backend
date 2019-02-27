@@ -98,7 +98,7 @@ class MessageTest(MongoTestCase):
         # have instantiated AttributeManagers without the right config if the import is
         # done prior to the Celery app configuration.
         from eduid_am.tasks import update_attributes
-        update_attributes.delay(app_name='test', obj_id=_id)
+        update_attributes.delay(app_name='test', obj_id=str(_id))
 
         # verify the user has been propagated to the amdb
         am_user = self.amdb.get_user_by_id(_id)
