@@ -31,7 +31,7 @@ extra_jobs:
       - eduid-am
 
 script:
-  - "virtualenv -p python3 venv"
+  - "virtualenv -p python3.7 venv"
   - ". venv/bin/activate"
   - "pip install --upgrade setuptools pip wheel"
   - "pip install --index-url https://pypi.sunet.se -r test_requirements.txt"
