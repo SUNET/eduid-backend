@@ -60,3 +60,6 @@ target/
 # editor backup files
 *~
 \#*
+
+# misc
+.mypy_cache/
