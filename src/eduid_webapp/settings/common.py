@@ -35,6 +35,9 @@
 from __future__ import absolute_import
 from os import path, sep
 
+from typing import List
+
+
 # ==============#
 # Flask config #
 # ==============#
@@ -147,7 +150,7 @@ JSON_AS_ASCII = False
 # for these URLs will be served, rather than redirected to the authn service.
 # The list is a list of regex that are matched against the path of the
 # requested URL ex. ^/test$.
-NO_AUTHN_URLS = []
+NO_AUTHN_URLS: List[str] = []
 
 
 # ================#

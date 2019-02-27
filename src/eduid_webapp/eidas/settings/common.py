@@ -2,6 +2,8 @@
 
 from __future__ import absolute_import
 
+from typing import Dict
+
 
 __author__ = 'lundberg'
 
@@ -54,6 +56,6 @@ AUTHN_SIGN_ALG = 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256'
 AUTHN_DIGEST_ALG = 'http://www.w3.org/2001/04/xmlenc#sha256'
 
 # Staging nin map
-STAGING_NIN_MAP = {
+STAGING_NIN_MAP: Dict[str, str] = {
     #  'test nin': 'user nin'
 }
