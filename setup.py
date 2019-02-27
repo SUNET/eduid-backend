@@ -1,61 +1,23 @@
 #!/usr/bin/env python
-
+import os
 from setuptools import setup, find_packages
 
 version = '0.2.2b13'
 
-# Use requirements files
-requires = [
-    'eduid-userdb>=0.4.6b3',
-    'eduid-common[webapp]>=0.3.8b6',
-    'eduid-action>=0.2.1b8',
-    'eduid-am>=0.6.3b7',
-    'eduid-msg>=0.10.3b7',
-    'eduid_lookup_mobile>=0.0.6b3',
-    'Flask>=0.12,<0.13',
-    'redis>=2.10.5',
-    'pynacl>=1.0.1',
-    'urllib3>=1.21.1',
-    'python-etcd>=0.4.3',
-    'Pillow>=3.0.0',
-    'marshmallow>=2.15.1,==2.*',
-    'Babel>=2.6.0',
-    'flask-babel>=0.11.2',
-    'oic>=0.8.3',
-    'zxcvbn>=4.4.27,==4.*',
-    'pysaml2>=4.6.2,==4.*',
-    'xhtml2pdf>=0.2.2',
-    'hammock>=0.2.4',
-    'qrcode>=5.1',
-    'python-jose>=3.0.1',
-    'python-u2flib-server>=5.0.0',
-    'cryptography>=2.0.3',
-    'pyOpenSSL>=17.3.0',
-    'proquint==0.2.1',
-    'bleach>=2.1.4',
-    'html5lib>=1.0.1',
-    'idna>=2.1,<2.8',
-]
+here = os.path.abspath(os.path.dirname(__file__))
 
-test_requires = [
-    'WebTest==2.0.30',
-    'mock==2.0.0',
-]
-
-testing_extras = test_requires + [
-    'nose == 1.3.7',
-    'nosexcover == 1.0.11',
-    'coverage == 4.5.1',
-]
+install_requires = [x for x in open(os.path.join(here, 'requirements.txt')).read().split('\n') if len(x) > 0]
+testing_extras = [x for x in open(os.path.join(here, 'test_requirements.txt')).read().split('\n')
+                  if len(x) > 0 and not x.startswith('-')]
 
 setup(
     name='eduid-webapp',
     version=version,
     license='bsd',
-    url='https://www.github.com/eduID/',
-    author='NORDUnet A/S',
+    url='https://www.github.com/SUNET/',
+    author='SUNET',
     author_email='',
-    description='authentication service for eduID',
+    description='web apps for eduID',
     classifiers=[
         'Framework :: Flask',
     ],
@@ -64,8 +26,7 @@ setup(
     namespace_packages=['eduid_webapp'],
     zip_safe=False,
     include_package_data=True,
-    install_requires=requires,
-    tests_require=test_requires,
+    install_requires=install_requires,
     extras_require={
         'testing': testing_extras,
     },
