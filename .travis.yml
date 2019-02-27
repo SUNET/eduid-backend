@@ -15,9 +15,10 @@ services:
   - docker
 # command to install dependencies
 install:
-  - pip install -U setuptools
+  - pip install -U setuptools mypy
   - pip install --index-url https://pypi.sunet.se -r requirements/testing.txt
 # command to run tests
 script:
   - pip freeze
   - nosetests
+  - mypy --ignore-missing-imports src/eduid_webapp
