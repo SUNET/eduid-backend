@@ -17,3 +17,4 @@ nosetests.xml
 coverage.xml
 .idea/
 revision.txt
+.mypy_cache
