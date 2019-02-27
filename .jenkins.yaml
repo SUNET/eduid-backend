@@ -10,5 +10,6 @@ script:
   - "pip install -U setuptools wheel"
   - "pip install --index-url https://pypi.sunet.se -r test_requirements.txt"
   - "nosetests"
+  - "mypy --ignore-missing-imports src/eduid_common"
   - "python setup.py sdist bdist_wheel --universal"
 clean_workspace: true

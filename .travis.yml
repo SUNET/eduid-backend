@@ -1,8 +1,8 @@
 sudo: required
 language: python
+dist: xenial
 python:
-  - "2.7"
-  - "3.6"
+  - "3.7"
 before_install:
   - docker pull docker.sunet.se/eduid/redis:latest
   - docker pull docker.sunet.se/eduid/mongodb:latest
@@ -12,9 +12,10 @@ services:
   - docker
 # command to install dependencies
 install:
-  - pip install -U setuptools
+  - pip install -U setuptools wheel mypy
   - pip install --index-url https://pypi.sunet.se -r test_requirements.txt
   - python setup.py install
 # command to run tests
 script:
   - nosetests
+  - mypy --ignore-missing-imports src/eduid_common
