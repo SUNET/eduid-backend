@@ -34,16 +34,16 @@
 from __future__ import absolute_import
 
 import os
-import sys
 import time
 import shutil
 import atexit
 import random
 import tempfile
-import traceback
 import subprocess
 from contextlib import contextmanager
 from copy import deepcopy
+
+from typing import Dict, Any
 
 import redis
 import etcd
@@ -86,7 +86,7 @@ TEST_CONFIG = {
 
 class APIMockedUserDB(object):
 
-    test_users = {}
+    test_users: Dict[str, Any] = {}
 
     def __init__(self, _patches):
         pass

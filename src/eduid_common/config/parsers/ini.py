@@ -3,12 +3,7 @@
 from __future__ import absolute_import
 
 import os
-
-try:
-    import ConfigParser as configparser
-except ImportError:
-    # Python 3
-    import configparser
+from six.moves import configparser
 
 
 __author__ = 'lundberg'

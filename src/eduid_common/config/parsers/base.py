@@ -9,7 +9,7 @@ try:
     # Do not force applications that does not use EtcdConfigParser to have yaml and etcd installed
     from eduid_common.config.parsers.etcd import EtcdConfigParser
 except ImportError:
-    EtcdConfigParser = None
+    EtcdConfigParser = None  # type: ignore
 from eduid_common.config.parsers.exceptions import ParserException
 
 __author__ = 'lundberg'
@@ -31,6 +31,8 @@ class ConfigParser(object):
         ns = os.environ.get('EDUID_CONFIG_NS')
         ini_file_name = os.environ.get('EDUID_INI_FILE_NAME')
         if ns:
+            if EtcdConfigParser is None:
+                raise ParserException('EtcdConfigParser could not be imported')
             return EtcdConfigParser(ns, **kwargs)
         elif ini_file_name:
             return IniConfigParser(ini_file_name, **kwargs)
