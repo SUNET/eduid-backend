@@ -29,9 +29,10 @@ extra_jobs:
       - eduid_msg
 
 script:
-  - "virtualenv -p python3 venv"
+  - "python3.7 -m venv venv"
   - ". venv/bin/activate"
-  - "pip install --upgrade setuptools pip wheel"
+  - "pip install -U setuptools wheel mypy"
   - "pip install --index-url https://pypi.sunet.se -r test_requirements.txt"
   - "nosetests"
+  - "mypy --ignore-missing-imports eduid_msg"
   - "python setup.py sdist bdist_wheel --universal"
