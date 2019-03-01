@@ -47,7 +47,7 @@ DEFAULT_NAVET_API_URI = 'http://{0}:{1}'.format(DEFAULT_NAVET_API_HOST,
 
 
 LOG = get_task_logger(__name__)
-_CACHE = {}
+_CACHE: dict = {}
 MESSAGE_RATE_LIMIT = worker_config.get("MESSAGE_RATE_LIMIT", None)
 
 

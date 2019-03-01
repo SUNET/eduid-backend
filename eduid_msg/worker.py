@@ -3,7 +3,7 @@ from eduid_common.rpc.celery import init_celery
 
 import eduid_msg.common as common
 
-worker_config = {}
+worker_config: dict = {}
 
 if common.celery is None:
     worker_config = get_worker_config('msg')
