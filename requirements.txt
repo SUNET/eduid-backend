@@ -3,7 +3,7 @@ eduid_am>=0.7.0
 eduid_userdb>=0.4.1b0
 eduid_common>=0.3.6
 python-dateutil>=2.1
-celery[redis]==4.2.*
+celery[redis]==4.3.0rc1
 pysmscom>=0.4
 Jinja2>=2.7.3
 hammock>=0.2.4
