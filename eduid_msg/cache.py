@@ -3,8 +3,9 @@ from datetime import datetime
 from time import time
 
 
-class CacheMDB():
-    _init_collections = {}
+class CacheMDB(object):
+
+    _init_collections: dict = {}
 
     def __init__(self, mongo_dburi, mongo_dbname, mongo_collection, ttl, expiration_freq=60):
         self.conn = MongoDB(mongo_dburi)

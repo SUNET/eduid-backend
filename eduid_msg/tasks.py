@@ -47,7 +47,7 @@ DEFAULT_NAVET_API_URI = 'http://{0}:{1}'.format(DEFAULT_NAVET_API_HOST,
 
 
 LOG = get_task_logger(__name__)
-_CACHE = {}
+_CACHE: dict = {}
 MESSAGE_RATE_LIMIT = worker_config.get("MESSAGE_RATE_LIMIT", None)
 
 
@@ -180,7 +180,7 @@ class MessageRelay(Task):
     def _get_is_reachable(self, identity_number):
         # Users always reachable in devel mode
         conf = self._config
-        if conf.get("DEVEL_MODE") == 'true':
+        if conf.get("DEVEL_MODE") is True:
             LOG.debug("Faking that NIN %(identity_number) is reachable".format(identity_number=identity_number))
             return {'AccountStatus': {'Type': 'Secure', 'ServiceSupplier': 'devel_mode'}, 'SenderAccepted': 'devel_mode'}
         data = json.dumps({'identity_number': identity_number})
@@ -224,7 +224,7 @@ class MessageRelay(Task):
         msg = msg.encode('utf-8')
 
         # Only log the message if devel_mode is enabled
-        if conf.get("DEVEL_MODE") == 'true':
+        if conf.get("DEVEL_MODE") is True:
             LOG.debug("\nType: %s\nReference: %s\nRecipient: %s\nLang: %s\nSubject: %s\nMessage:\n %s" % (message_type,
                                                                                                           reference,
                                                                                                           recipient,
@@ -289,7 +289,7 @@ class MessageRelay(Task):
         """
         # Only log the message if devel_mode is enabled
         conf = self._config
-        if conf.get("DEVEL_MODE") == 'true':
+        if conf.get("DEVEL_MODE") is True:
             return self.get_devel_postal_address()
 
         data = self._get_navet_data(identity_number)
@@ -322,7 +322,7 @@ class MessageRelay(Task):
         """
         # Only log the message if devel_mode is enabled
         conf = self._config
-        if conf.get("DEVEL_MODE") == 'true':
+        if conf.get("DEVEL_MODE") is True:
             return self.get_devel_relations()
 
         data = self._get_navet_data(identity_number)
@@ -407,7 +407,7 @@ class MessageRelay(Task):
 
         # Just log the mail if in development mode
         conf = self._config
-        if conf.get("DEVEL_MODE") == 'true':
+        if conf.get("DEVEL_MODE") is True:
             LOG.debug('sendmail task:')
             LOG.debug("\nType: {}\nSender: {}\nRecipients: {}\nMessage:\n{}".format(
                 'email', reference, sender, recipients, message))
@@ -434,7 +434,7 @@ class MessageRelay(Task):
 
         # Just log the sms if in development mode
         conf = self._config
-        if conf.get("DEVEL_MODE") == 'true':
+        if conf.get("DEVEL_MODE") is True:
             LOG.debug('sendsms task:')
             LOG.debug("\nType: {}\nReference: {}\nRecipient: {}\nMessage:\n{}".format(
                 'sms', reference, recipient, message))
