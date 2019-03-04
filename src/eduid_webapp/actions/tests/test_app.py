@@ -35,7 +35,6 @@ import time
 from hashlib import sha256
 from nacl import secret, utils, encoding
 from werkzeug.exceptions import InternalServerError, Forbidden
-from fido2 import cbor
 from eduid_common.authn.utils import generate_auth_token
 
 from eduid_action.common.testing import ActionsTestCase
@@ -144,8 +143,8 @@ class ActionsTests(ActionsTestCase):
                     self.prepare_session(sess)
                     response = client.get('/config')
                     self.assertEqual(response.status_code, 200)
-                    data = cbor.loads(response.data)[0]
-                    self.assertEquals(data['setting1'], 'dummy')
+                    data = json.loads(response.data.decode('ascii'))
+                    self.assertEquals(data['payload']['setting1'], 'dummy')
 
     def test_get_config_fails(self):
         with self.session_cookie(self.browser) as client:
@@ -154,8 +153,8 @@ class ActionsTests(ActionsTestCase):
                     self.prepare_session(sess, action_error=True)
                     response = client.get('/config')
                     self.assertEqual(response.status_code, 200)
-                    data = cbor.loads(response.data)[0]
-                    self.assertEquals(data['message'], 'test error')
+                    data = json.loads(response.data.decode('ascii'))
+                    self.assertEquals(data['payload']['message'], 'test error')
 
     def test_get_actions(self):
         with self.session_cookie(self.browser) as client:
