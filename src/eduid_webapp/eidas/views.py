@@ -8,7 +8,7 @@ from flask import request, session, redirect, abort, make_response
 
 from eduid_common.api.decorators import require_user, MarshalWith
 from eduid_common.api.schemas.csrf import CSRFResponse
-from eduid_common.api.utils import verify_relay_state, urlappend
+from eduid_common.api.utils import verify_relay_state, urlappend, get_unique_hash
 from eduid_common.authn.acs_registry import get_action, schedule_action
 from eduid_common.authn.utils import get_location
 from eduid_common.authn.eduid_saml2 import BadSAMLResponse
@@ -67,9 +67,22 @@ def verify_token(user, credential_id):
 @require_user
 def verify_nin(user):
     current_app.logger.debug('verify-nin called')
-    # Request a authentication from idp
     required_loa = 'loa3'
     return _authn('nin-verify-action', required_loa, force_authn=True)
+
+
+@eidas_views.route('/mfa-authentication', methods=['GET'])
+@require_user
+def mfa_authentication(user):
+    current_app.logger.debug('mfa-authentication called')
+    required_loa = 'loa3'
+    # Clear session keys used for external mfa
+    # TODO: Change to namespace using dataclasses
+    session.pop('mfa_authentication_success', None)
+    session.pop('mfa_authentication_issuer', None)
+    session.pop('mfa_authentication_authn_instant', None)
+    session.pop('mfa_authentication_authn_context', None)
+    return _authn('mfa-authentication-action', required_loa, force_authn=True)
 
 
 def _authn(action, required_loa, force_authn=False, redirect_url='/'):
@@ -87,7 +100,11 @@ def _authn(action, required_loa, force_authn=False, redirect_url='/'):
     :return: redirect response
     :rtype: Response
     """
-    relay_state = verify_relay_state(request.args.get('next', redirect_url), redirect_url)
+    redirect_url = request.args.get('next', redirect_url)
+    relay_state = get_unique_hash()
+    session[relay_state] = redirect_url
+    current_app.logger.info('Cached redirect_url {} for relay_state {}'.format(redirect_url, relay_state))
+
     idp = request.args.get('idp')
     current_app.logger.debug('Requested IdP: {}'.format(idp))
     idps = current_app.saml2_config.metadata.identity_providers()

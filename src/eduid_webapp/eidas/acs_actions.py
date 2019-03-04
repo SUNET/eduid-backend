@@ -2,14 +2,15 @@
 
 from __future__ import absolute_import
 
+import base64
 from six.moves.urllib_parse import urlencode, urlsplit, urlunsplit
-from flask import session, current_app, redirect
+from flask import session, current_app, redirect, request
 
 from eduid_common.authn.acs_registry import acs_action
 from eduid_common.authn.eduid_saml2 import get_authn_ctx
 from eduid_common.authn.utils import get_saml_attribute
 from eduid_common.api.decorators import require_user
-from eduid_common.api.utils import urlappend, save_and_sync_user
+from eduid_common.api.utils import urlappend, save_and_sync_user, verify_relay_state
 from eduid_common.api.helpers import verify_nin_for_user
 from eduid_common.api.exceptions import AmTaskFailed, MsgTaskFailed
 from eduid_userdb.proofing.user import ProofingUser
@@ -187,4 +188,57 @@ def nin_verify_action(session_info, user):
 
     new_query_string = urlencode({'msg': 'eidas.nin_verify_success'})
     url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
+    return redirect(url)
+
+
+@acs_action('mfa-authentication-action')
+@require_user
+def mfa_authentication_action(session_info, user):
+    relay_state = request.form.get('RelayState')
+    current_app.logger.debug('RelayState: {}'.format(relay_state))
+    redirect_url = session.pop(relay_state, None)
+    if not redirect_url:
+        # With no redirect url just redirect the user to dashboard for a new try to log in
+        scheme, netloc, path, query_string, fragment = urlsplit(current_app.config['DASHBOARD_URL'])
+        new_query_string = urlencode({'msg': ':ERROR:eidas.no_redirect_url'})
+        url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
+        return redirect(url)
+
+    # We get the mfa authentication views "next" argument as base64 to avoid our request sanitation
+    # to replace all & to &amp;
+    redirect_url = base64.b64decode(redirect_url).decode('utf-8')
+    # TODO: Rename verify_relay_state to verify_redirect_url
+    redirect_url = verify_relay_state(redirect_url)
+    scheme, netloc, path, query_string, fragment = urlsplit(redirect_url)
+
+    if not is_required_loa(session_info, 'loa3'):
+        new_query_string = urlencode({'msg': ':ERROR:eidas.authn_context_mismatch'})
+        url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
+        return redirect(url)
+
+    if not is_valid_reauthn(session_info):
+        new_query_string = urlencode({'msg': ':ERROR:eidas.reauthn_expired'})
+        url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
+        return redirect(url)
+
+    # Check that a verified NIN is equal to the asserted attribute personalIdentityNumber
+    asserted_nin = get_saml_attribute(session_info, 'personalIdentityNumber')[0]
+    user_nin = user.nins.verified.find(asserted_nin)
+    if not user_nin:
+        current_app.logger.error('Asserted NIN not matching user verified nins')
+        current_app.logger.debug('Asserted NIN: {}'.format(asserted_nin))
+        new_query_string = urlencode({'msg': ':ERROR:eidas.nin_not_matching'})
+        url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
+        return redirect(url)
+
+    # TODO: Create dataclass for session namespace
+    session['mfa_authentication_success'] = True
+    session['mfa_authentication_issuer'] = session_info['issuer']
+    session['mfa_authentication_authn_instant'] = session_info['authn_info'][0][2]
+    session['mfa_authentication_authn_context'] = get_authn_ctx(session_info)
+
+    # Redirect to the correct
+    path = urlappend(path, 'redirect-action')
+    url = urlunsplit((scheme, netloc, path, query_string, fragment))
+    current_app.logger.debug('Redirecting to the redirect_url: ' + redirect_url)
     return redirect(url)
