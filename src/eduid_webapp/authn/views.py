@@ -65,6 +65,7 @@ def reauthn():
     """
     login view with force authn, redirects to SAML2 IdP
     """
+    session['user_is_logged_in'] = False
     return _authn('reauthn-action', force_authn=True)
 
 
