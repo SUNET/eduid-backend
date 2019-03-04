@@ -6,6 +6,7 @@ import os
 import six
 import datetime
 import base64
+import urllib
 from collections import OrderedDict
 from mock import patch
 
@@ -515,6 +516,66 @@ class EidasTests(EduidAPITestCase):
                 self.assertEqual(response.location,
                                  '{}/nins?msg=%3AERROR%3Aeidas.nin_already_verified'.format(
                                      self.app.config['DASHBOARD_URL']))
+
+    def test_mfa_authentication_verified_user(self):
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        self.assertNotEqual(user.nins.verified.count, 0)
+
+        next_url = base64.b64encode(b'http://test.localhost/action').decode('utf-8')
+
+        with self.session_cookie(self.browser, self.test_user_eppn) as browser:
+            with browser.session_transaction() as sess:
+                response = browser.get('/mfa-authentication/?idp={}&next={}'.format(self.test_idp, next_url))
+                ps = urllib.parse.urlparse(response.location)
+                qs = urllib.parse.parse_qs(ps.query)
+                relay_state = qs['RelayState'][0]
+                token = sess._session.token
+                if isinstance(token, six.binary_type):
+                    token = token.decode('ascii')
+                authn_response = self.generate_auth_response(token, self.saml_response_tpl_success, self.test_user_nin)
+                oq_cache = OutstandingQueriesCache(sess)
+                oq_cache.set(token, relay_state)
+                sess['post-authn-action'] = 'mfa-authentication-action'
+                sess[relay_state] = next_url
+
+                self.assertEqual(response.status_code, 302)
+
+                data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': relay_state}
+                response = browser.post('/saml2-acs', data=data)
+
+                self.assertEqual(response.status_code, 302)
+                self.assertEqual(response.location, 'http://test.localhost/action/redirect-action')
+
+    def test_mfa_authentication_wrong_nin(self):
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        self.assertNotEqual(user.nins.verified.count, 0)
+
+        next_url = base64.b64encode(b'http://test.localhost/action').decode('utf-8')
+
+        with self.session_cookie(self.browser, self.test_user_eppn) as browser:
+            with browser.session_transaction() as sess:
+                response = browser.get('/mfa-authentication/?idp={}&next={}'.format(self.test_idp, next_url))
+                ps = urllib.parse.urlparse(response.location)
+                qs = urllib.parse.parse_qs(ps.query)
+                relay_state = qs['RelayState'][0]
+                token = sess._session.token
+                if isinstance(token, six.binary_type):
+                    token = token.decode('ascii')
+                authn_response = self.generate_auth_response(token, self.saml_response_tpl_success,
+                                                             self.test_user_wrong_nin)
+                oq_cache = OutstandingQueriesCache(sess)
+                oq_cache.set(token, relay_state)
+                sess['post-authn-action'] = 'mfa-authentication-action'
+                sess[relay_state] = next_url
+
+                self.assertEqual(response.status_code, 302)
+
+                data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': relay_state}
+                response = browser.post('/saml2-acs', data=data)
+
+                self.assertEqual(response.status_code, 302)
+                self.assertEqual(response.location,
+                                 'http://test.localhost/action?msg=%3AERROR%3Aeidas.nin_not_matching')
 
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
