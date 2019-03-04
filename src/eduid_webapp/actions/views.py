@@ -36,8 +36,9 @@ import json
 
 from fido2 import cbor
 from flask import Blueprint, request, session, current_app
-from flask import abort, url_for, render_template
+from flask import abort, url_for, render_template, redirect
 from flask import Response
+from six.moves.urllib_parse import urlsplit, urlunsplit, urlencode
 
 from eduid_userdb.actions import Action
 from eduid_common.api.decorators import MarshalWith
@@ -208,6 +209,45 @@ def post_action():
             'data': data,
             'csrf_token': session.new_csrf_token()
             }
+
+
+@actions_views.route('/redirect-action', methods=['GET'])
+def redirect_action():
+    action_type = None
+    try:
+        action_type = session['current_plugin']
+    except KeyError:
+        abort(403)
+
+    # Setup a redirect url to action app root
+    scheme, netloc, path, query_string, fragment = urlsplit(request.url)
+    path = url_for('actions.authn')
+    return_url = urlunsplit((scheme, netloc, path, query_string, fragment))
+
+    plugin_obj = current_app.plugins[action_type]()
+    old_format = 'user_oid' in session['current_action']
+    action = Action(data=session['current_action'], old_format=old_format)
+    try:
+        plugin_obj.perform_step(action)
+    except plugin_obj.ActionError as exc:
+        _aborted(action, exc)
+        return redirect(return_url)
+    except plugin_obj.ValidationError as exc:
+        errors = exc.args[0]
+        current_app.logger.info('Validation error {0} for step {1} of action {2}'.format(
+            str(errors), str(session['current_step']), str(action)))
+        session['current_step'] -= 1
+        return redirect(return_url)
+
+    eppn = session.get('userid', session.get('eppn'))
+    if session['total_steps'] == session['current_step']:
+        current_app.logger.info('Finished pre-login action {0} for eppn {1}'.format(action.action_type, eppn))
+        return redirect(return_url)
+
+    current_app.logger.info('Performed step {} for action {} for eppn {}'.format(action.action_type,
+                                                                                 session['current_step'], eppn))
+    session['current_step'] += 1
+    return redirect(return_url)
 
 
 def _aborted(action, exc):
