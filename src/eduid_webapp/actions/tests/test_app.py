@@ -143,7 +143,7 @@ class ActionsTests(ActionsTestCase):
                     self.prepare_session(sess)
                     response = client.get('/config')
                     self.assertEqual(response.status_code, 200)
-                    data = json.loads(response.data.decode('ascii'))
+                    data = json.loads(response.data.decode('utf-8'))
                     self.assertEquals(data['payload']['setting1'], 'dummy')
 
     def test_get_config_fails(self):
@@ -153,7 +153,7 @@ class ActionsTests(ActionsTestCase):
                     self.prepare_session(sess, action_error=True)
                     response = client.get('/config')
                     self.assertEqual(response.status_code, 200)
-                    data = json.loads(response.data.decode('ascii'))
+                    data = json.loads(response.data.decode('utf-8'))
                     self.assertEquals(data['payload']['message'], 'test error')
 
     def test_get_actions(self):
