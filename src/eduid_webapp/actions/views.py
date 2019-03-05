@@ -159,95 +159,60 @@ def get_actions():
 @actions_views.route('/post-action', methods=['POST'])
 @MarshalWith(FluxStandardAction)
 def post_action():
-    if not request.data or \
-            session.get_csrf_token() != json.loads(request.data)['csrf_token']:
+    if not request.data or session.get_csrf_token() != json.loads(request.data)['csrf_token']:
         abort(400)
-    try:
-        action_type = session['current_plugin']
-    except KeyError:
-        abort(403)
-    plugin_obj = current_app.plugins[action_type]()
-    old_format = 'user_oid' in session['current_action']
-    action = Action(data=session['current_action'], old_format=old_format)
-    errors = {}
-    try:
-        data = plugin_obj.perform_step(action)
-    except plugin_obj.ActionError as exc:
-        return _aborted(action, exc)
-
-    except plugin_obj.ValidationError as exc:
-        errors = exc.args[0]
-        current_app.logger.info('Validation error {0} '
-                    'for step {1} of action {2}'.format(
-                        str(errors),
-                        str(session['current_step']),
-                        str(action)))
-        session['current_step'] -= 1
-        return {
-                '_status': 'error',
-                'errors': errors,
-                'csrf_token': session.new_csrf_token()
-                }
-
-    eppn = session.get('userid', session.get('eppn'))
-    if session['total_steps'] == session['current_step']:
-        current_app.logger.info('Finished pre-login action {0} '
-                                'for eppn {1}'.format(action.action_type, eppn))
-        return {
-                'message': 'actions.action-completed',
-                'data': data,
-                'csrf_token': session.new_csrf_token()
-                }
-
-    current_app.logger.info('Performed step {} for action {} '
-                            'for eppn {}'.format(action.action_type,
-                                                    session['current_step'],
-                                                    eppn))
-    session['current_step'] += 1
-
-    return {
-            'data': data,
-            'csrf_token': session.new_csrf_token()
-            }
+    ret = _do_action()
+    # Add a new csrf token as this is a POST request
+    ret['csrf_token'] = session.new_csrf_token()
+    return ret
 
 
 @actions_views.route('/redirect-action', methods=['GET'])
 def redirect_action():
-    action_type = None
-    try:
-        action_type = session['current_plugin']
-    except KeyError:
-        abort(403)
-
     # Setup a redirect url to action app root
     scheme, netloc, path, query_string, fragment = urlsplit(request.url)
     path = url_for('actions.authn')
     return_url = urlunsplit((scheme, netloc, path, query_string, fragment))
+    # TODO: Look in ret to figure out if we need to add a query string with a user message
+    ret = _do_action()
+    return redirect(return_url)
+
+
+def _do_action():
+    action_type = session.get('current_plugin')
+    if not action_type:
+        abort(403)
 
     plugin_obj = current_app.plugins[action_type]()
     old_format = 'user_oid' in session['current_action']
     action = Action(data=session['current_action'], old_format=old_format)
     try:
-        plugin_obj.perform_step(action)
+        data = plugin_obj.perform_step(action)
     except plugin_obj.ActionError as exc:
-        _aborted(action, exc)
-        return redirect(return_url)
+        return _aborted(action, exc)
     except plugin_obj.ValidationError as exc:
         errors = exc.args[0]
-        current_app.logger.info('Validation error {0} for step {1} of action {2}'.format(
-            str(errors), str(session['current_step']), str(action)))
+        current_app.logger.info('Validation error {} for step {} of action {}'.format(
+            errors, session['current_step'], action))
         session['current_step'] -= 1
-        return redirect(return_url)
+        return {
+            '_status': 'error',
+            'errors': errors,
+        }
 
     eppn = session.get('userid', session.get('eppn'))
     if session['total_steps'] == session['current_step']:
-        current_app.logger.info('Finished pre-login action {0} for eppn {1}'.format(action.action_type, eppn))
-        return redirect(return_url)
+        current_app.logger.info('Finished pre-login action {} for eppn {}'.format(action.action_type, eppn))
+        return {
+            'message': 'actions.action-completed',
+            'data': data,
+        }
 
-    current_app.logger.info('Performed step {} for action {} for eppn {}'.format(action.action_type,
-                                                                                 session['current_step'], eppn))
+    current_app.logger.info('Performed step {} for action {} for eppn {}'.format(
+        action.action_type, session['current_step'], eppn))
     session['current_step'] += 1
-    return redirect(return_url)
+
+    return {'data': data}
 
 
 def _aborted(action, exc):
