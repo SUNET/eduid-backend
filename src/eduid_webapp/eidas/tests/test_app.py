@@ -119,6 +119,7 @@ class EidasTests(EduidAPITestCase):
         saml_config = os.path.join(HERE, 'saml2_settings.py')
         config.update({
             'DASHBOARD_URL': 'http://test.localhost/profile',
+            'ACTION_URL': 'http://idp.test.localhost/action',
             'MSG_BROKER_URL': 'amqp://dummy',
             'AM_BROKER_URL': 'amqp://dummy',
             'CELERY_CONFIG': {
@@ -126,7 +127,7 @@ class EidasTests(EduidAPITestCase):
                 'CELERY_TASK_SERIALIZER': 'json'
             },
             'SAML2_SETTINGS_MODULE': saml_config,
-            'SAFE_RELAY_DOMAIN': 'test.localhost',
+            'SAFE_RELAY_DOMAIN': 'localhost',
             'AUTHENTICATION_CONTEXT_MAP': {
                 'loa1': 'http://id.elegnamnden.se/loa/1.0/loa1',
                 'loa2': 'http://id.elegnamnden.se/loa/1.0/loa2',
@@ -521,7 +522,7 @@ class EidasTests(EduidAPITestCase):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         self.assertNotEqual(user.nins.verified.count, 0)
 
-        next_url = base64.b64encode(b'http://test.localhost/action').decode('utf-8')
+        next_url = base64.b64encode(b'http://idp.localhost/action').decode('utf-8')
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             with browser.session_transaction() as sess:
@@ -536,7 +537,7 @@ class EidasTests(EduidAPITestCase):
                 oq_cache = OutstandingQueriesCache(sess)
                 oq_cache.set(token, relay_state)
                 sess['post-authn-action'] = 'mfa-authentication-action'
-                sess[relay_state] = next_url
+                sess['eidas_redirect_urls'] = {relay_state: next_url}
 
                 self.assertEqual(response.status_code, 302)
 
@@ -544,13 +545,13 @@ class EidasTests(EduidAPITestCase):
                 response = browser.post('/saml2-acs', data=data)
 
                 self.assertEqual(response.status_code, 302)
-                self.assertEqual(response.location, 'http://test.localhost/action/redirect-action')
+                self.assertEqual(response.location, 'http://idp.localhost/action/redirect-action')
 
     def test_mfa_authentication_wrong_nin(self):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         self.assertNotEqual(user.nins.verified.count, 0)
 
-        next_url = base64.b64encode(b'http://test.localhost/action').decode('utf-8')
+        next_url = base64.b64encode(b'http://idp.localhost/action').decode('utf-8')
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             with browser.session_transaction() as sess:
@@ -566,7 +567,7 @@ class EidasTests(EduidAPITestCase):
                 oq_cache = OutstandingQueriesCache(sess)
                 oq_cache.set(token, relay_state)
                 sess['post-authn-action'] = 'mfa-authentication-action'
-                sess[relay_state] = next_url
+                sess['eidas_redirect_urls'] = {relay_state: next_url}
 
                 self.assertEqual(response.status_code, 302)
 
@@ -575,7 +576,7 @@ class EidasTests(EduidAPITestCase):
 
                 self.assertEqual(response.status_code, 302)
                 self.assertEqual(response.location,
-                                 'http://test.localhost/action?msg=%3AERROR%3Aeidas.nin_not_matching')
+                                 'http://idp.localhost/action?msg=%3AERROR%3Aeidas.nin_not_matching')
 
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
