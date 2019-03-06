@@ -23,6 +23,7 @@ from eduid_userdb.credentials import Webauthn
 from eduid_userdb.security import SecurityUser
 from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
 from eduid_common.api.utils import save_and_sync_user
+from eduid_common.api.schemas.base import FluxStandardAction
 from eduid_webapp.security.helpers import credentials_to_registered_keys, compile_credential_list
 from eduid_webapp.security.schemas import WebauthnOptionsResponseSchema, WebauthnRegisterRequestSchema
 from eduid_webapp.security.schemas import SecurityResponseSchema, RemoveWebauthnTokenRequestSchema
@@ -49,21 +50,18 @@ def make_credentials(creds):
 webauthn_views = Blueprint('webauthn', __name__, url_prefix='/webauthn', template_folder='templates')
 
 @webauthn_views.route('/register/begin', methods=['GET'])
+@MarshalWith(FluxStandardAction)
 @require_user
 def registration_begin(user):
     user_webauthn_tokens = user.credentials.filter(Webauthn)
     if user_webauthn_tokens.count >= current_app.config['WEBAUTHN_MAX_ALLOWED_TOKENS']:
         current_app.logger.error('User tried to register more than {} tokens.'.format(
             current_app.config['WEBAUTHN_MAX_ALLOWED_TOKENS']))
-        resp = {'_status': 'error', 'message': 'security.webauthn.max_allowed_tokens'}
-        cbor_resp = cbor.dumps(resp)
-        return Response(response=cbor_resp, status=200, mimetype='application/cbor')
+        return {'_status': 'error', 'message': 'security.webauthn.max_allowed_tokens'}
     creds = make_credentials(user_webauthn_tokens.to_list())
     server = get_webauthn_server(current_app.config['FIDO2_RP_ID'])
     if user.given_name is None or user.surname is None or user.display_name is None:
-        resp = {'_status': 'error', 'message': 'security.webauthn-missing-pdata'}
-        cbor_resp = cbor.dumps(resp)
-        return Response(response=cbor_resp, status=200, mimetype='application/cbor')
+        return {'_status': 'error', 'message': 'security.webauthn-missing-pdata'}
     registration_data, state = server.register_begin({
         'id': str(user.eppn).encode('ascii'),
         'name': "{} {}".format(user.given_name, user.surname),
@@ -76,9 +74,11 @@ def registration_begin(user):
     current_app.logger.debug('Webauthn Registration data: {}.'.format(registration_data))
     current_app.stats.count(name='webauthn_register_begin')
 
-    cbor_data = cbor.dumps(registration_data)
-    current_app.logger.debug('CBOR encoded Registration data: {}.'.format(cbor_data))
-    return Response(response=cbor_data, status=200, mimetype='application/cbor')
+    encoded_data = base64.b64encode(cbor.dumps(registration_data)).decode('ascii')
+    return {
+        'csrf_token': session.new_csrf_token(),
+        'registration_data': encoded_data
+    }
 
 
 @webauthn_views.route('/register/complete', methods=['POST'])

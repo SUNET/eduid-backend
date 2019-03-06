@@ -107,20 +107,12 @@ def get_config():
     try:
         config = plugin_obj.get_config_for_bundle(action)
         config['csrf_token'] = session.new_csrf_token()
-        data = config
+        return config
     except plugin_obj.ActionError as exc:
-        data = {
+        return {
             '_status': 'error',
             'message':  exc.args[0]
             }
-    cbor_data = cbor.dumps(data)
-    return Response(response=cbor_data,
-                    status=200,
-                    mimetype='application/cbor',
-                    headers={
-                        'Content-Type': 'application/cbor',
-                        'Content-Length': len(cbor_data)
-                    })
 
 
 @actions_views.route('/get-actions', methods=['GET'])
