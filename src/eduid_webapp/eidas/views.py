@@ -102,7 +102,9 @@ def _authn(action, required_loa, force_authn=False, redirect_url='/'):
     """
     redirect_url = request.args.get('next', redirect_url)
     relay_state = get_unique_hash()
-    session[relay_state] = redirect_url
+    if 'eidas_redirect_urls' not in session:
+        session['eidas_redirect_urls'] = dict()
+    session['eidas_redirect_urls'][relay_state] = redirect_url
     current_app.logger.info('Cached redirect_url {} for relay_state {}'.format(redirect_url, relay_state))
 
     idp = request.args.get('idp')

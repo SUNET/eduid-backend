@@ -196,12 +196,15 @@ def nin_verify_action(session_info, user):
 def mfa_authentication_action(session_info, user):
     relay_state = request.form.get('RelayState')
     current_app.logger.debug('RelayState: {}'.format(relay_state))
-    redirect_url = session.pop(relay_state, None)
+    redirect_url = None
+    if 'eidas_redirect_urls' in session:
+        redirect_url = session['eidas_redirect_urls'].pop(relay_state, None)
     if not redirect_url:
         # With no redirect url just redirect the user to dashboard for a new try to log in
-        scheme, netloc, path, query_string, fragment = urlsplit(current_app.config['DASHBOARD_URL'])
+        scheme, netloc, path, query_string, fragment = urlsplit(current_app.config['ACTION_URL'])
         new_query_string = urlencode({'msg': ':ERROR:eidas.no_redirect_url'})
         url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
+        current_app.logger.error('Missing redirect url for mfa authentication')
         return redirect(url)
 
     # We get the mfa authentication views "next" argument as base64 to avoid our request sanitation
@@ -232,12 +235,15 @@ def mfa_authentication_action(session_info, user):
         return redirect(url)
 
     # TODO: Create dataclass for session namespace
-    session['mfa_authentication_success'] = True
-    session['mfa_authentication_issuer'] = session_info['issuer']
-    session['mfa_authentication_authn_instant'] = session_info['authn_info'][0][2]
-    session['mfa_authentication_authn_context'] = get_authn_ctx(session_info)
+    if 'action' not in session:
+        session['action'] = dict()
+    session['action']['mfa'] = dict()
+    session['action']['mfa']['success'] = True
+    session['action']['mfa']['issuer'] = session_info['issuer']
+    session['action']['mfa']['authn_instant'] = session_info['authn_info'][0][2]
+    session['action']['mfa']['authn_context'] = get_authn_ctx(session_info)
 
-    # Redirect to the correct
+    # Redirect back to action app but to the redirect-action view
     path = urlappend(path, 'redirect-action')
     url = urlunsplit((scheme, netloc, path, query_string, fragment))
     current_app.logger.debug('Redirecting to the redirect_url: ' + redirect_url)

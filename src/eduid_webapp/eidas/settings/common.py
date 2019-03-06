@@ -35,6 +35,7 @@ SECRET_KEY = None
 LOG_LEVEL = 'INFO'
 
 DASHBOARD_URL = ''
+ACTION_URL = ''
 
 # Federation config
 AUTHENTICATION_CONTEXT_MAP = {
