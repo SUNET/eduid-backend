@@ -3,6 +3,8 @@
 from __future__ import absolute_import
 
 from datetime import datetime, timedelta
+from dateutil.parser import parse as dt_parse
+from dateutil.tz import tzutc
 from flask import current_app, session
 from xml.etree.ElementTree import ParseError
 from saml2 import BINDING_HTTP_REDIRECT, BINDING_HTTP_POST
@@ -93,9 +95,10 @@ def is_valid_reauthn(session_info, max_age=60) -> bool:
     :return: True if authn instant is no older than max_age
     :rtype: bool
     """
-    authn_instant = datetime.strptime(session_info['authn_info'][0][2], '%Y-%m-%dT%H:%M:%SZ')
+    utc_tz = tzutc()
+    authn_instant = dt_parse(session_info['authn_info'][0][2])
     max_age = timedelta(seconds=max_age)
-    if authn_instant <= (datetime.utcnow() + max_age):
+    if authn_instant >= (datetime.now(tz=utc_tz) - max_age):
         return True
     current_app.logger.error('Asserted authn instant was older than required')
     current_app.logger.error('Authn instant: {}'.format(authn_instant))

@@ -36,7 +36,7 @@ def init_eidas_app(name, config=None):
     app.register_blueprint(eidas_views)
 
     # Register view path that should not be authorized
-    app = no_authn_views(app, ['/saml2-metadata'])
+    app = no_authn_views(app, ['/saml2-metadata', '/saml2-acs', '/mfa-authentication'])
 
     # Init dbs
     app.private_userdb = EidasProofingUserDB(app.config['MONGO_URI'])

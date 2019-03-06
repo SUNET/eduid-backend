@@ -482,9 +482,8 @@ class LogoutRequestTests(AuthnAPITestBase):
         eppn = 'hubba-bubba'
         csrft = 'csrf token'
         with self.app.test_request_context('/logout', method='GET'):
+            # user_eppn is set in the IdP
             session['user_eppn'] = eppn
-            session['user_is_logged_in'] = False
-            session['eduPersonPrincipalName'] = eppn
             response = self.app.dispatch_request()
             self.assertEqual(response.status, '302 FOUND')
             self.assertIn(self.app.config['SAML2_LOGOUT_REDIRECT_URL'],
@@ -498,6 +497,8 @@ class LogoutRequestTests(AuthnAPITestBase):
         csrft = 'csrf token'
         with self.app.test_request_context('/logout', method='GET',
                                            headers={'Cookie': cookie}):
+            # user_eppn is set in the IdP
+            session['user_eppn'] = eppn
             response2 = self.app.dispatch_request()
             self.assertEqual(response2.status, '302 FOUND')
             self.assertIn('https://idp.example.com/simplesaml/saml2/idp/'
