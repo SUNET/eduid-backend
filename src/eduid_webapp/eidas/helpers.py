@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
-
 from datetime import datetime, timedelta
 from dateutil.parser import parse as dt_parse
 from dateutil.tz import tzutc
+from urllib.parse import urlencode, urlsplit, urlunsplit, parse_qsl
 from flask import current_app, session
 from xml.etree.ElementTree import ParseError
 from saml2 import BINDING_HTTP_REDIRECT, BINDING_HTTP_POST
@@ -108,6 +107,19 @@ def is_valid_reauthn(session_info, max_age=60) -> bool:
 
 def create_metadata(config):
     return entity_descriptor(config)
+
+
+def append_qs_message(url: str, msg: str) -> str:
+    """
+    :param url: URL to redirect to
+    :param msg: message to append to query string
+    :return: URL with appended query string message
+    """
+    scheme, netloc, path, query_string, fragment = urlsplit(url)
+    query_list = parse_qsl(query_string)
+    query_list.append(('msg', msg))
+    new_query_string = urlencode(query_list)
+    return urlunsplit((scheme, netloc, path, new_query_string, fragment))
 
 
 def staging_nin_remap(session_info):
