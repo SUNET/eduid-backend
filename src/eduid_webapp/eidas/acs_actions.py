@@ -3,7 +3,7 @@
 from __future__ import absolute_import
 
 import base64
-from six.moves.urllib_parse import urlencode, urlsplit, urlunsplit
+from six.moves.urllib_parse import urlencode, urlsplit, urlunsplit, parse_qsl
 from flask import session, current_app, redirect, request
 
 from eduid_common.authn.acs_registry import acs_action
@@ -201,6 +201,7 @@ def mfa_authentication_action(session_info, user):
         redirect_url = session['eidas_redirect_urls'].pop(relay_state, None)
     if not redirect_url:
         # With no redirect url just redirect the user to dashboard for a new try to log in
+        # TODO: This will result in a error 400 until we put the authentication in the session
         scheme, netloc, path, query_string, fragment = urlsplit(current_app.config['ACTION_URL'])
         new_query_string = urlencode({'msg': ':ERROR:eidas.no_redirect_url'})
         url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
@@ -213,14 +214,17 @@ def mfa_authentication_action(session_info, user):
     # TODO: Rename verify_relay_state to verify_redirect_url
     redirect_url = verify_relay_state(redirect_url)
     scheme, netloc, path, query_string, fragment = urlsplit(redirect_url)
+    query_list = parse_qsl(query_string)
 
     if not is_required_loa(session_info, 'loa3'):
-        new_query_string = urlencode({'msg': ':ERROR:eidas.authn_context_mismatch'})
+        query_list.append(('msg', ':ERROR:eidas.authn_context_mismatch'))
+        new_query_string = urlencode(query_list)
         url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
         return redirect(url)
 
     if not is_valid_reauthn(session_info):
-        new_query_string = urlencode({'msg': ':ERROR:eidas.reauthn_expired'})
+        query_list.append(('msg', ':ERROR:eidas.reauthn_expired'))
+        new_query_string = urlencode(query_list)
         url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
         return redirect(url)
 
@@ -230,7 +234,8 @@ def mfa_authentication_action(session_info, user):
     if not user_nin:
         current_app.logger.error('Asserted NIN not matching user verified nins')
         current_app.logger.debug('Asserted NIN: {}'.format(asserted_nin))
-        new_query_string = urlencode({'msg': ':ERROR:eidas.nin_not_matching'})
+        query_list.append(('msg', ':ERROR:eidas.nin_not_matching'))
+        new_query_string = urlencode(query_list)
         url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
         return redirect(url)
 
@@ -245,6 +250,8 @@ def mfa_authentication_action(session_info, user):
 
     # Redirect back to action app but to the redirect-action view
     path = urlappend(path, 'redirect-action')
-    url = urlunsplit((scheme, netloc, path, query_string, fragment))
+    query_list.append(('msg', 'actions.action-completed'))
+    new_query_string = urlencode(query_list)
+    url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
     current_app.logger.debug('Redirecting to the redirect_url: ' + redirect_url)
     return redirect(url)
