@@ -545,7 +545,8 @@ class EidasTests(EduidAPITestCase):
                 response = browser.post('/saml2-acs', data=data)
 
                 self.assertEqual(response.status_code, 302)
-                self.assertEqual(response.location, 'http://idp.localhost/action/redirect-action')
+                self.assertEqual(response.location,
+                                 'http://idp.localhost/action/redirect-action?msg=actions.action-completed')
 
     def test_mfa_authentication_wrong_nin(self):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
