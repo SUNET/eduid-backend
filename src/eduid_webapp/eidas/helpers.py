@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from dateutil.parser import parse as dt_parse
 from dateutil.tz import tzutc
 from urllib.parse import urlencode, urlsplit, urlunsplit, parse_qsl
-from flask import current_app, session
+from flask import current_app, session, redirect, Response
 from xml.etree.ElementTree import ParseError
 from saml2 import BINDING_HTTP_REDIRECT, BINDING_HTTP_POST
 from saml2.metadata import entity_descriptor
@@ -109,7 +109,7 @@ def create_metadata(config):
     return entity_descriptor(config)
 
 
-def append_qs_message(url: str, msg: str) -> str:
+def redirect_with_msg(url: str, msg: str) -> Response:
     """
     :param url: URL to redirect to
     :param msg: message to append to query string
@@ -119,7 +119,7 @@ def append_qs_message(url: str, msg: str) -> str:
     query_list = parse_qsl(query_string)
     query_list.append(('msg', msg))
     new_query_string = urlencode(query_list)
-    return urlunsplit((scheme, netloc, path, new_query_string, fragment))
+    return redirect(urlunsplit((scheme, netloc, path, new_query_string, fragment)))
 
 
 def staging_nin_remap(session_info):
