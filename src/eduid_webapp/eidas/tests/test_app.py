@@ -13,7 +13,8 @@ from mock import patch
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.authn.cache import OutstandingQueriesCache
 from eduid_userdb import User
-from eduid_userdb.credentials import U2F
+from eduid_userdb.credentials import U2F, Webauthn
+from eduid_userdb.credentials.fido import FidoCredential
 from eduid_userdb.data_samples import NEW_UNVERIFIED_USER_EXAMPLE
 
 from eduid_webapp.eidas.app import init_eidas_app
@@ -146,10 +147,14 @@ class EidasTests(EduidAPITestCase):
             })
         return config
 
-    def add_token_to_user(self, eppn, credential_id):
+    def add_token_to_user(self, eppn, credential_id, token_type):
         user = self.app.central_userdb.get_user_by_eppn(eppn)
-        mfa_token = U2F(version='test', keyhandle=credential_id, public_key='test', app_id='test', attest_cert='test',
-                        description='test', application='test')
+        if token_type == 'u2f':
+            mfa_token = U2F(version='test', keyhandle=credential_id, public_key='test', app_id='test',
+                            attest_cert='test', description='test', application='test')
+        else:
+            mfa_token = Webauthn(keyhandle=credential_id, credential_data='test', app_id='test', attest_obj='test',
+                                 description='test', application='test')
         user.credentials.add(mfa_token)
         self.request_user_sync(user)
         return mfa_token
@@ -189,11 +194,11 @@ class EidasTests(EduidAPITestCase):
 
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
-    def test_mfa_token_verify(self, mock_request_user_sync, mock_get_postal_address):
+    def test_u2f_token_verify(self, mock_request_user_sync, mock_get_postal_address):
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.side_effect = self.request_user_sync
 
-        credential = self.add_token_to_user(self.test_user_eppn, 'test')
+        credential = self.add_token_to_user(self.test_user_eppn, 'test', 'u2f')
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             with browser.session_transaction() as sess:
@@ -225,11 +230,47 @@ class EidasTests(EduidAPITestCase):
 
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_webauthn_token_verify(self, mock_request_user_sync, mock_get_postal_address):
+        mock_get_postal_address.return_value = self.mock_address
+        mock_request_user_sync.side_effect = self.request_user_sync
+
+        credential = self.add_token_to_user(self.test_user_eppn, 'test', 'webauthn')
+
+        with self.session_cookie(self.browser, self.test_user_eppn) as browser:
+            with browser.session_transaction() as sess:
+                sess['eduidIdPCredentialsUsed'] = [credential.key, 'other_id']
+                sess.persist()
+                response = browser.get('/verify-token/{}?idp={}'.format(credential.key, self.test_idp))
+                token = sess._session.token
+                if isinstance(token, six.binary_type):
+                    token = token.decode('ascii')
+                authn_response = self.generate_auth_response(token, self.saml_response_tpl_success, self.test_user_nin)
+                oq_cache = OutstandingQueriesCache(sess)
+                oq_cache.set(token, '/')
+                sess['post-authn-action'] = 'token-verify-action'
+                sess['verify_token_action_credential_id'] = credential.key
+                sess.persist()
+
+                self.assertEqual(response.status_code, 302)
+
+                data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': '/'}
+                browser.post('/saml2-acs', data=data)
+
+                user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+                user_mfa_tokens = user.credentials.filter(Webauthn).to_list()
+
+                self.assertEqual(len(user_mfa_tokens), 1)
+                self.assertEqual(user_mfa_tokens[0].is_verified, True)
+
+                self.assertEqual(self.app.proofing_log.db_count(), 1)
+
+    @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def test_mfa_token_verify_wrong_verified_nin(self, mock_request_user_sync, mock_get_postal_address):
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.side_effect = self.request_user_sync
 
-        credential = self.add_token_to_user(self.test_user_eppn, 'test')
+        credential = self.add_token_to_user(self.test_user_eppn, 'test', 'u2f')
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             with browser.session_transaction() as sess:
@@ -253,7 +294,7 @@ class EidasTests(EduidAPITestCase):
                 browser.post('/saml2-acs', data=data)
 
                 user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-                user_mfa_tokens = user.credentials.filter(U2F).to_list()
+                user_mfa_tokens = user.credentials.filter(FidoCredential).to_list()
 
                 self.assertEqual(len(user_mfa_tokens), 1)
                 self.assertEqual(user_mfa_tokens[0].is_verified, False)
@@ -266,7 +307,7 @@ class EidasTests(EduidAPITestCase):
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.side_effect = self.request_user_sync
 
-        credential = self.add_token_to_user(self.test_unverified_user_eppn, 'test')
+        credential = self.add_token_to_user(self.test_unverified_user_eppn, 'test', 'webauthn')
         user = self.app.central_userdb.get_user_by_eppn(self.test_unverified_user_eppn)
         self.assertEqual(user.nins.verified.count, 0)
 
@@ -291,7 +332,7 @@ class EidasTests(EduidAPITestCase):
                 browser.post('/saml2-acs', data=data)
 
                 user = self.app.central_userdb.get_user_by_eppn(self.test_unverified_user_eppn)
-                user_mfa_tokens = user.credentials.filter(U2F).to_list()
+                user_mfa_tokens = user.credentials.filter(FidoCredential).to_list()
                 self.assertEqual(len(user_mfa_tokens), 1)
                 self.assertEqual(user_mfa_tokens[0].is_verified, True)
 
@@ -301,7 +342,7 @@ class EidasTests(EduidAPITestCase):
                 self.assertEqual(self.app.proofing_log.db_count(), 2)
 
     def test_mfa_token_verify_no_mfa_login(self):
-        credential = self.add_token_to_user(self.test_user_eppn, 'test')
+        credential = self.add_token_to_user(self.test_user_eppn, 'test', 'u2f')
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             with browser.session_transaction() as sess:
@@ -314,7 +355,7 @@ class EidasTests(EduidAPITestCase):
                         credential.key, self.test_idp))
 
     def test_mfa_token_verify_no_mfa_token_in_session(self):
-        credential = self.add_token_to_user(self.test_user_eppn, 'test')
+        credential = self.add_token_to_user(self.test_user_eppn, 'test', 'webauthn')
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             with browser.session_transaction() as sess:
@@ -348,7 +389,7 @@ class EidasTests(EduidAPITestCase):
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.side_effect = self.request_user_sync
 
-        credential = self.add_token_to_user(self.test_user_eppn, 'test')
+        credential = self.add_token_to_user(self.test_user_eppn, 'test', 'u2f')
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             with browser.session_transaction() as sess:
@@ -372,7 +413,7 @@ class EidasTests(EduidAPITestCase):
                 browser.post('/saml2-acs', data=data)
 
                 user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-                user_mfa_tokens = user.credentials.filter(U2F).to_list()
+                user_mfa_tokens = user.credentials.filter(FidoCredential).to_list()
 
                 self.assertEqual(len(user_mfa_tokens), 1)
                 self.assertEqual(user_mfa_tokens[0].is_verified, False)
@@ -385,7 +426,7 @@ class EidasTests(EduidAPITestCase):
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.side_effect = self.request_user_sync
 
-        credential = self.add_token_to_user(self.test_user_eppn, 'test')
+        credential = self.add_token_to_user(self.test_user_eppn, 'test', 'webauthn')
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             with browser.session_transaction() as sess:
@@ -409,7 +450,7 @@ class EidasTests(EduidAPITestCase):
                 browser.post('/saml2-acs', data=data)
 
                 user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-                user_mfa_tokens = user.credentials.filter(U2F).to_list()
+                user_mfa_tokens = user.credentials.filter(FidoCredential).to_list()
 
                 self.assertEqual(len(user_mfa_tokens), 1)
                 self.assertEqual(user_mfa_tokens[0].is_verified, False)
@@ -422,7 +463,7 @@ class EidasTests(EduidAPITestCase):
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.side_effect = self.request_user_sync
 
-        credential = self.add_token_to_user(self.test_user_eppn, 'test')
+        credential = self.add_token_to_user(self.test_user_eppn, 'test', 'u2f')
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             with browser.session_transaction() as sess:
@@ -446,7 +487,7 @@ class EidasTests(EduidAPITestCase):
                 browser.post('/saml2-acs', data=data)
 
                 user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-                user_mfa_tokens = user.credentials.filter(U2F).to_list()
+                user_mfa_tokens = user.credentials.filter(FidoCredential).to_list()
 
                 self.assertEqual(len(user_mfa_tokens), 1)
                 self.assertEqual(user_mfa_tokens[0].is_verified, False)
