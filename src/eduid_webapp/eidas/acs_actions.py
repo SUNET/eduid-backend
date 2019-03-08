@@ -18,7 +18,7 @@ from eduid_userdb.proofing.state import NinProofingState, NinProofingElement
 from eduid_userdb.credentials import U2F
 from eduid_userdb.logs import SwedenConnectProofing, MFATokenProofing
 
-from eduid_webapp.eidas.helpers import is_required_loa, is_valid_reauthn
+from eduid_webapp.eidas.helpers import is_required_loa, is_valid_reauthn, redirect_with_msg
 
 __author__ = 'lundberg'
 
@@ -39,27 +39,20 @@ def token_verify_action(session_info, user):
     :return: redirect response
     :rtype: Response
     """
-    url = urlappend(current_app.config['DASHBOARD_URL'], 'security')
-    scheme, netloc, path, query_string, fragment = urlsplit(url)
+    redirect_url = urlappend(current_app.config['DASHBOARD_URL'], 'security')
 
     if not is_required_loa(session_info, 'loa3'):
-        new_query_string = urlencode({'msg': ':ERROR:eidas.authn_context_mismatch'})
-        url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
-        return redirect(url)
+        return redirect_with_msg(redirect_url, ':ERROR:eidas.authn_context_mismatch')
 
     if not is_valid_reauthn(session_info):
-        new_query_string = urlencode({'msg': ':ERROR:eidas.reauthn_expired'})
-        url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
-        return redirect(url)
+        return redirect_with_msg(redirect_url, ':ERROR:eidas.reauthn_expired')
 
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     token_to_verify = proofing_user.credentials.filter(U2F).find(session['verify_token_action_credential_id'])
 
     # Check (again) if token was used to authenticate this session
     if token_to_verify.key not in session['eduidIdPCredentialsUsed']:
-        new_query_string = urlencode({'msg': ':ERROR:eidas.token_not_in_credentials_used'})
-        url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
-        return redirect(url)
+        return redirect_with_msg(redirect_url, ':ERROR:eidas.token_not_in_credentials_used')
 
     # Verify asserted NIN for user if there are no verified NIN
     if proofing_user.nins.verified.count == 0:
@@ -74,9 +67,7 @@ def token_verify_action(session_info, user):
     if not user_nin:
         current_app.logger.error('Asserted NIN not matching user verified nins')
         current_app.logger.debug('Asserted NIN: {}'.format(asserted_nin))
-        new_query_string = urlencode({'msg': ':ERROR:eidas.nin_not_matching'})
-        url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
-        return redirect(url)
+        return redirect_with_msg(redirect_url, ':ERROR:eidas.nin_not_matching')
 
     # Create a proofing log
     issuer = session_info['issuer']
@@ -88,9 +79,7 @@ def token_verify_action(session_info, user):
     except MsgTaskFailed as e:
         current_app.logger.error('Navet lookup failed: {}'.format(e))
         current_app.stats.count('navet_error')
-        new_query_string = urlencode({'msg': ':ERROR:error_navet_task'})
-        url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
-        return redirect(url)
+        return redirect_with_msg(redirect_url, ':ERROR:error_navet_task')
     proofing_log_entry = MFATokenProofing(user=proofing_user, created_by='eduid-eidas', nin=user_nin.number,
                                           issuer=issuer, authn_context_class=authn_context, key_id=token_to_verify.key,
                                           user_postal_address=user_address, proofing_version='2018v1')
@@ -108,14 +97,10 @@ def token_verify_action(session_info, user):
         except AmTaskFailed as e:
             current_app.logger.error('Verifying token for user failed')
             current_app.logger.error('{}'.format(e))
-            new_query_string = urlencode({'msg': ':ERROR:Temporary technical problems'})
-            url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
-            return redirect(url)
+            return redirect_with_msg(redirect_url, ':ERROR:Temporary technical problems')
         current_app.stats.count(name='u2f_token_verified')
 
-    new_query_string = urlencode({'msg': 'eidas.token_verify_success'})
-    url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
-    return redirect(url)
+    return redirect_with_msg(redirect_url, 'eidas.token_verify_success')
 
 
 @acs_action('nin-verify-action')
@@ -133,18 +118,13 @@ def nin_verify_action(session_info, user):
     :return: redirect response
     :rtype: Response
     """
-    url = urlappend(current_app.config['DASHBOARD_URL'], 'nins')
-    scheme, netloc, path, query_string, fragment = urlsplit(url)
+    redirect_url = urlappend(current_app.config['DASHBOARD_URL'], 'nins')
 
     if not is_required_loa(session_info, 'loa3'):
-        new_query_string = urlencode({'msg': ':ERROR:eidas.authn_context_mismatch'})
-        url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
-        return redirect(url)
+        return redirect_with_msg(redirect_url, ':ERROR:eidas.authn_context_mismatch')
 
     if not is_valid_reauthn(session_info):
-        new_query_string = urlencode({'msg': ':ERROR:eidas.reauthn_expired'})
-        url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
-        return redirect(url)
+        return redirect_with_msg(redirect_url, ':ERROR:eidas.reauthn_expired')
 
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     asserted_nin = get_saml_attribute(session_info, 'personalIdentityNumber')[0]
@@ -153,9 +133,7 @@ def nin_verify_action(session_info, user):
         current_app.logger.error('User already has a verified NIN')
         current_app.logger.debug('Primary NIN: {}. Asserted NIN: {}'.format(proofing_user.nins.primary.number,
                                                                             asserted_nin))
-        new_query_string = urlencode({'msg': ':ERROR:eidas.nin_already_verified'})
-        url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
-        return redirect(url)
+        return redirect_with_msg(redirect_url, ':ERROR:eidas.nin_already_verified')
 
     # Create a proofing log
     issuer = session_info['issuer']
@@ -165,9 +143,7 @@ def nin_verify_action(session_info, user):
     except MsgTaskFailed as e:
         current_app.logger.error('Navet lookup failed: {}'.format(e))
         current_app.stats.count('navet_error')
-        new_query_string = urlencode({'msg': ':ERROR:error_navet_task'})
-        url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
-        return redirect(url)
+        return redirect_with_msg(redirect_url, ':ERROR:error_navet_task')
 
     proofing_log_entry = SwedenConnectProofing(user=proofing_user, created_by='eduid-eidas', nin=asserted_nin,
                                                issuer=issuer, authn_context_class=authn_context,
@@ -181,14 +157,10 @@ def nin_verify_action(session_info, user):
     except AmTaskFailed as e:
         current_app.logger.error('Verifying NIN for user failed')
         current_app.logger.error('{}'.format(e))
-        new_query_string = urlencode({'msg': ':ERROR:Temporary technical problems'})
-        url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
-        return redirect(url)
+        return redirect_with_msg(redirect_url, ':ERROR:Temporary technical problems')
     current_app.stats.count(name='nin_verified')
 
-    new_query_string = urlencode({'msg': 'eidas.nin_verify_success'})
-    url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
-    return redirect(url)
+    return redirect_with_msg(redirect_url, 'eidas.nin_verify_success')
 
 
 @acs_action('mfa-authentication-action')
@@ -201,28 +173,21 @@ def mfa_authentication_action(session_info, user):
         redirect_url = session['eidas_redirect_urls'].pop(relay_state, None)
     if not redirect_url:
         # With no redirect url just redirect the user to dashboard for a new try to log in
-        scheme, netloc, path, query_string, fragment = urlsplit(current_app.config['ACTION_URL'])
-        new_query_string = urlencode({'msg': ':ERROR:eidas.no_redirect_url'})
-        url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
+        # TODO: This will result in a error 400 until we put the authentication in the session
         current_app.logger.error('Missing redirect url for mfa authentication')
-        return redirect(url)
+        return redirect_with_msg(current_app.config['ACTION_URL'], ':ERROR:eidas.no_redirect_url')
 
     # We get the mfa authentication views "next" argument as base64 to avoid our request sanitation
     # to replace all & to &amp;
     redirect_url = base64.b64decode(redirect_url).decode('utf-8')
     # TODO: Rename verify_relay_state to verify_redirect_url
     redirect_url = verify_relay_state(redirect_url)
-    scheme, netloc, path, query_string, fragment = urlsplit(redirect_url)
 
     if not is_required_loa(session_info, 'loa3'):
-        new_query_string = urlencode({'msg': ':ERROR:eidas.authn_context_mismatch'})
-        url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
-        return redirect(url)
+        return redirect_with_msg(redirect_url, ':ERROR:eidas.authn_context_mismatch')
 
     if not is_valid_reauthn(session_info):
-        new_query_string = urlencode({'msg': ':ERROR:eidas.reauthn_expired'})
-        url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
-        return redirect(url)
+        return redirect_with_msg(redirect_url, ':ERROR:eidas.reauthn_expired')
 
     # Check that a verified NIN is equal to the asserted attribute personalIdentityNumber
     asserted_nin = get_saml_attribute(session_info, 'personalIdentityNumber')[0]
@@ -230,9 +195,7 @@ def mfa_authentication_action(session_info, user):
     if not user_nin:
         current_app.logger.error('Asserted NIN not matching user verified nins')
         current_app.logger.debug('Asserted NIN: {}'.format(asserted_nin))
-        new_query_string = urlencode({'msg': ':ERROR:eidas.nin_not_matching'})
-        url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
-        return redirect(url)
+        return redirect_with_msg(redirect_url, ':ERROR:eidas.nin_not_matching')
 
     # TODO: Create dataclass for session namespace
     if 'action' not in session:
@@ -244,7 +207,9 @@ def mfa_authentication_action(session_info, user):
     session['action']['mfa']['authn_context'] = get_authn_ctx(session_info)
 
     # Redirect back to action app but to the redirect-action view
-    path = urlappend(path, 'redirect-action')
-    url = urlunsplit((scheme, netloc, path, query_string, fragment))
-    current_app.logger.debug('Redirecting to the redirect_url: ' + redirect_url)
-    return redirect(url)
+    resp = redirect_with_msg(redirect_url, 'actions.action-completed')
+    scheme, netloc, path, query_string, fragment = urlsplit(resp.location)
+    new_path = urlappend(path, 'redirect-action')
+    new_url = urlunsplit((scheme, netloc, new_path, query_string, fragment))
+    current_app.logger.debug(f'Redirecting to: {new_url}')
+    return redirect(new_url)

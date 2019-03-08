@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
-
 from datetime import datetime, timedelta
 from dateutil.parser import parse as dt_parse
 from dateutil.tz import tzutc
-from flask import current_app, session
+from urllib.parse import urlencode, urlsplit, urlunsplit, parse_qsl
+from flask import current_app, session, redirect
+from werkzeug.wrappers import Response as WerkzeugResponse
 from xml.etree.ElementTree import ParseError
 from saml2 import BINDING_HTTP_REDIRECT, BINDING_HTTP_POST
 from saml2.metadata import entity_descriptor
@@ -108,6 +108,19 @@ def is_valid_reauthn(session_info, max_age=60) -> bool:
 
 def create_metadata(config):
     return entity_descriptor(config)
+
+
+def redirect_with_msg(url: str, msg: str) -> WerkzeugResponse:
+    """
+    :param url: URL to redirect to
+    :param msg: message to append to query string
+    :return: Redirect response with appended query string message
+    """
+    scheme, netloc, path, query_string, fragment = urlsplit(url)
+    query_list = parse_qsl(query_string)
+    query_list.append(('msg', msg))
+    new_query_string = urlencode(query_list)
+    return redirect(urlunsplit((scheme, netloc, path, new_query_string, fragment)))
 
 
 def staging_nin_remap(session_info):
