@@ -3,7 +3,7 @@
 from __future__ import absolute_import
 
 import base64
-from six.moves.urllib_parse import urlencode, urlsplit, urlunsplit
+from six.moves.urllib_parse import urlsplit, urlunsplit
 from flask import session, current_app, redirect, request
 
 from eduid_common.authn.acs_registry import acs_action
@@ -15,7 +15,8 @@ from eduid_common.api.helpers import verify_nin_for_user
 from eduid_common.api.exceptions import AmTaskFailed, MsgTaskFailed
 from eduid_userdb.proofing.user import ProofingUser
 from eduid_userdb.proofing.state import NinProofingState, NinProofingElement
-from eduid_userdb.credentials import U2F
+# TODO: Import FidoCredential in eduid_userdb.credential.__init__
+from eduid_userdb.credentials.fido import FidoCredential
 from eduid_userdb.logs import SwedenConnectProofing, MFATokenProofing
 
 from eduid_webapp.eidas.helpers import is_required_loa, is_valid_reauthn, redirect_with_msg
@@ -48,7 +49,8 @@ def token_verify_action(session_info, user):
         return redirect_with_msg(redirect_url, ':ERROR:eidas.reauthn_expired')
 
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
-    token_to_verify = proofing_user.credentials.filter(U2F).find(session['verify_token_action_credential_id'])
+    token_to_verify = proofing_user.credentials.filter(FidoCredential).find(
+        session['verify_token_action_credential_id'])
 
     # Check (again) if token was used to authenticate this session
     if token_to_verify.key not in session['eduidIdPCredentialsUsed']:
@@ -59,7 +61,8 @@ def token_verify_action(session_info, user):
         nin_verify_action(session_info)
         user = current_app.central_userdb.get_user_by_eppn(user.eppn)
         proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
-        token_to_verify = proofing_user.credentials.filter(U2F).find(session['verify_token_action_credential_id'])
+        token_to_verify = proofing_user.credentials.filter(FidoCredential).find(
+            session['verify_token_action_credential_id'])
 
     # Check that a verified NIN is equal to the asserted attribute personalIdentityNumber
     asserted_nin = get_saml_attribute(session_info, 'personalIdentityNumber')[0]
@@ -98,7 +101,7 @@ def token_verify_action(session_info, user):
             current_app.logger.error('Verifying token for user failed')
             current_app.logger.error('{}'.format(e))
             return redirect_with_msg(redirect_url, ':ERROR:Temporary technical problems')
-        current_app.stats.count(name='u2f_token_verified')
+        current_app.stats.count(name='fido_token_verified')
 
     return redirect_with_msg(redirect_url, 'eidas.token_verify_success')
 

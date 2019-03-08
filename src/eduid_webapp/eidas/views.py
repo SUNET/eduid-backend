@@ -8,13 +8,15 @@ from flask import request, session, redirect, abort, make_response
 
 from eduid_common.api.decorators import require_user, MarshalWith
 from eduid_common.api.schemas.csrf import CSRFResponse
-from eduid_common.api.utils import verify_relay_state, urlappend, get_unique_hash
+from eduid_common.api.utils import urlappend, get_unique_hash
 from eduid_common.authn.acs_registry import get_action, schedule_action
 from eduid_common.authn.utils import get_location
 from eduid_common.authn.eduid_saml2 import BadSAMLResponse
-from eduid_userdb.credentials import U2F
+# TODO: Import FidoCredential in credentials.__init__
+from eduid_userdb.credentials.fido import FidoCredential
 
 from eduid_webapp.eidas.helpers import create_authn_request, parse_authn_response, create_metadata, staging_nin_remap
+from eduid_webapp.eidas.helpers import redirect_with_msg
 
 __author__ = 'lundberg'
 
@@ -32,16 +34,12 @@ def index(user):
 @require_user
 def verify_token(user, credential_id):
     current_app.logger.debug('verify-token called with credential_id: {}'.format(credential_id))
-
-    url = urlappend(current_app.config['DASHBOARD_URL'], 'security')
-    scheme, netloc, path, query_string, fragment = urlsplit(url)
+    redirect_url = urlappend(current_app.config['DASHBOARD_URL'], 'security')
 
     # Check if requested key id is a mfa token and if the user used that to log in
-    token_to_verify = user.credentials.filter(U2F).find(credential_id)
+    token_to_verify = user.credentials.filter(FidoCredential).find(credential_id)
     if not token_to_verify:
-        new_query_string = urlencode({'msg': ':ERROR:eidas.token_not_found'})
-        url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
-        return redirect(url)
+        return redirect_with_msg(redirect_url, ':ERROR:eidas.token_not_found')
     if token_to_verify.key not in session.get('eduidIdPCredentialsUsed', []):
         # If token was not used for login, reauthn the user
         current_app.logger.info('Token {} not used for login, redirecting to idp'.format(token_to_verify.key))
