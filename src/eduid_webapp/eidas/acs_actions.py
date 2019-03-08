@@ -211,5 +211,5 @@ def mfa_authentication_action(session_info, user):
     scheme, netloc, path, query_string, fragment = urlsplit(resp.location)
     new_path = urlappend(path, 'redirect-action')
     new_url = urlunsplit((scheme, netloc, new_path, query_string, fragment))
-    current_app.logger.debug('Redirecting to the redirect_url: ' + new_url)
+    current_app.logger.debug(f'Redirecting to: {new_url}')
     return redirect(new_url)
