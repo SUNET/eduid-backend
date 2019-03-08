@@ -114,7 +114,7 @@ def redirect_with_msg(url: str, msg: str) -> WerkzeugResponse:
     """
     :param url: URL to redirect to
     :param msg: message to append to query string
-    :return: URL with appended query string message
+    :return: Redirect response with appended query string message
     """
     scheme, netloc, path, query_string, fragment = urlsplit(url)
     query_list = parse_qsl(query_string)
