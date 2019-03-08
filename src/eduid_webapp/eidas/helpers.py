@@ -4,7 +4,8 @@ from datetime import datetime, timedelta
 from dateutil.parser import parse as dt_parse
 from dateutil.tz import tzutc
 from urllib.parse import urlencode, urlsplit, urlunsplit, parse_qsl
-from flask import current_app, session, redirect, Response
+from flask import current_app, session, redirect
+from werkzeug.wrappers import Response as WerkzeugResponse
 from xml.etree.ElementTree import ParseError
 from saml2 import BINDING_HTTP_REDIRECT, BINDING_HTTP_POST
 from saml2.metadata import entity_descriptor
@@ -109,7 +110,7 @@ def create_metadata(config):
     return entity_descriptor(config)
 
 
-def redirect_with_msg(url: str, msg: str) -> Response:
+def redirect_with_msg(url: str, msg: str) -> WerkzeugResponse:
     """
     :param url: URL to redirect to
     :param msg: message to append to query string
