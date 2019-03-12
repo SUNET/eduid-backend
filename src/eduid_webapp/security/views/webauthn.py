@@ -40,7 +40,7 @@ def get_webauthn_server(rp_id, name='eduID security API'):
 def make_credentials(creds):
     credentials = []
     for cred in creds:
-        cred_data = base64.b64decode(cred.credential_data.encode('ascii'))
+        cred_data = base64.urlsafe_b64decode(cred.credential_data.encode('ascii'))
         credential_data, rest = AttestedCredentialData.unpack_from(cred_data)
         if rest:
             continue
