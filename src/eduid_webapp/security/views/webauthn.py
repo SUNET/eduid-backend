@@ -129,8 +129,8 @@ def registration_complete(user, credential_id, attestation_object, client_data, 
 def remove(user, credential_key):
     security_user = SecurityUser.from_user(user, current_app.private_userdb)
     tokens = security_user.credentials.filter(FidoCredential)
-    #if tokens.count <= 1:
-    #    return {'_error': True, 'message': 'security.webauthn-noremove-last'}
+    if tokens.count <= 1:
+        return {'_error': True, 'message': 'security.webauthn-noremove-last'}
     token_to_remove = security_user.credentials.find(credential_key)
     if token_to_remove:
         security_user.credentials.remove(credential_key)
