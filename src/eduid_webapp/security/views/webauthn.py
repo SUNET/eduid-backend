@@ -74,7 +74,7 @@ def registration_begin(user):
     current_app.logger.debug('Webauthn Registration data: {}.'.format(registration_data))
     current_app.stats.count(name='webauthn_register_begin')
 
-    encoded_data = base64.b64encode(cbor.dumps(registration_data)).decode('ascii')
+    encoded_data = base64.urlsafe_b64encode(cbor.dumps(registration_data)).decode('ascii')
     return {
         'csrf_token': session.new_csrf_token(),
         'registration_data': encoded_data
@@ -89,9 +89,9 @@ def registration_complete(user, credential_id, attestation_object, client_data, 
     security_user = SecurityUser.from_user(user, current_app.private_userdb)
     server = get_webauthn_server(current_app.config['FIDO2_RP_ID'])
 
-    attestation = base64.b64decode(attestation_object)
+    attestation = base64.urlsafe_b64decode(attestation_object)
     att_obj = AttestationObject(attestation)
-    client_data = base64.b64decode(client_data)
+    client_data = base64.urlsafe_b64decode(client_data)
     cdata_obj = ClientData(client_data)
     state = session['_webauthn_state_']
     auth_data = server.register_complete(state, cdata_obj, att_obj)
@@ -101,9 +101,9 @@ def registration_complete(user, credential_id, attestation_object, client_data, 
 
     credential = Webauthn(
         keyhandle = credential_id,
-        credential_data = base64.b64encode(cred_data).decode('ascii'),
+        credential_data = base64.urlsafe_b64encode(cred_data).decode('ascii'),
         app_id = current_app.config['FIDO2_RP_ID'],
-        attest_obj = base64.b64encode(attestation).decode('ascii'),
+        attest_obj = base64.urlsafe_b64encode(attestation).decode('ascii'),
         description = description,
         application = 'security'
         )
