@@ -33,7 +33,7 @@ def load_yaml(file_path):
         with open(file_path) as f:
             if VERBOSE:
                 print('Loading configuration from {!s}'.format(file_path))
-            return yaml.load(f)
+            return yaml.safe_load(f)
     except IOError as e:
         sys.stderr.writelines(str(e)+'\n')
         sys.exit(1)
