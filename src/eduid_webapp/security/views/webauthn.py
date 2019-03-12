@@ -65,8 +65,7 @@ def registration_begin(user):
     registration_data, state = server.register_begin({
         'id': str(user.eppn).encode('ascii'),
         'name': "{} {}".format(user.given_name, user.surname),
-        'displayName': user.display_name,
-        'icon': ''
+        'displayName': user.display_name
     }, creds)
     session['_webauthn_state_'] = state
 
