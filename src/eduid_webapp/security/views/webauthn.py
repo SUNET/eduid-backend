@@ -83,7 +83,7 @@ def registration_begin(user):
 
 
 def urlsafe_b64decode(data):
-    data += b'=' * (len(data) % 4)
+    data += '=' * (len(data) % 4)
     return base64.urlsafe_b64decode(data)
 
 
@@ -107,7 +107,7 @@ def registration_complete(user, credential_id, attestation_object, client_data, 
         keyhandle = credential_id,
         credential_data = base64.urlsafe_b64encode(cred_data).decode('ascii'),
         app_id = current_app.config['FIDO2_RP_ID'],
-        attest_obj = base64.urlsafe_b64encode(attestation).decode('ascii'),
+        attest_obj = base64.b64encode(attestation_object.encode('utf-8')).decode('ascii'),
         description = description,
         application = 'security'
         )
