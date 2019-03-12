@@ -19,7 +19,7 @@ from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from OpenSSL import crypto
 
-from eduid_userdb.credentials import Webauthn
+from eduid_userdb.credentials import Webauthn, U2F
 from eduid_userdb.security import SecurityUser
 from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
 from eduid_common.api.utils import save_and_sync_user
@@ -123,13 +123,25 @@ def registration_complete(user, credential_id, attestation_object, client_data, 
 @require_user
 def remove(user, credential_key):
     security_user = SecurityUser.from_user(user, current_app.private_userdb)
-    token_to_remove = security_user.credentials.filter(Webauthn).find(credential_key)
+    tokens = security_user.credentials.filter(U2F).to_list()
+    tokens += security_user.credentials.filter(Webauthn).to_list()
+    if len(tokens) <= 1:
+        return {'_error': True, 'message': 'security.webauthn-noremove-last'}
+    token_to_remove = security_user.credentials.find(credential_key)
     if token_to_remove:
         security_user.credentials.remove(credential_key)
         save_and_sync_user(security_user)
         current_app.stats.count(name='webauthn_token_remove')
+        current_app.logger.info('User {} has removed a security token: {}'.format(security_user,
+                                                                                  credential_key))
+        message = 'security.webauthn-token-removed'
+    else:
+        current_app.logger.info('User {} has tried to remove a'
+                                ' missing security token: {}'.format(security_user,
+                                                                     credential_key))
+        message = 'security.webauthn-token-notfound'
     return {
-        'message': 'security.webauthn-token-removed',
+        'message': message,
         'credentials': compile_credential_list(security_user)
     }
 
