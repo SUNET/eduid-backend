@@ -74,7 +74,7 @@ def registration_begin(user):
     current_app.logger.debug('Webauthn Registration data: {}.'.format(registration_data))
     current_app.stats.count(name='webauthn_register_begin')
 
-    encoded_data = base64.urlsafe_b64encode(cbor.dumps(registration_data)).decode('ascii')
+    encoded_data = base64.b64encode(cbor.dumps(registration_data)).decode('ascii')
     return {
         'csrf_token': session.new_csrf_token(),
         'registration_data': encoded_data
@@ -136,7 +136,7 @@ def remove(user, credential_key):
         message = 'security.webauthn-token-removed'
     else:
         current_app.logger.info(f'User {security_user} has tried to remove a'
-                                 ' missing security token: {credential_key}')
+                                f' missing security token: {credential_key}')
         message = 'security.webauthn-token-notfound'
     return {
         'message': message,
