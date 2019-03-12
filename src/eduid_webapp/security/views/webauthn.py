@@ -132,13 +132,11 @@ def remove(user, credential_key):
         security_user.credentials.remove(credential_key)
         save_and_sync_user(security_user)
         current_app.stats.count(name='webauthn_token_remove')
-        current_app.logger.info('User {} has removed a security token: {}'.format(security_user,
-                                                                                  credential_key))
+        current_app.logger.info(f'User {security_user} has removed a security token: {credential_key}')
         message = 'security.webauthn-token-removed'
     else:
-        current_app.logger.info('User {} has tried to remove a'
-                                ' missing security token: {}'.format(security_user,
-                                                                     credential_key))
+        current_app.logger.info(f'User {security_user} has tried to remove a'
+                                 ' missing security token: {credential_key}')
         message = 'security.webauthn-token-notfound'
     return {
         'message': message,
