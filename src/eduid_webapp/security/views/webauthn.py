@@ -40,7 +40,7 @@ def get_webauthn_server(rp_id, name='eduID security API'):
 def make_credentials(creds):
     credentials = []
     for cred in creds:
-        cred_data = base64.b64decode(cred.credential_data.encode('ascii'))
+        cred_data = base64.urlsafe_b64decode(cred.credential_data.encode('ascii'))
         credential_data, rest = AttestedCredentialData.unpack_from(cred_data)
         if rest:
             continue
@@ -129,8 +129,8 @@ def registration_complete(user, credential_id, attestation_object, client_data, 
 def remove(user, credential_key):
     security_user = SecurityUser.from_user(user, current_app.private_userdb)
     tokens = security_user.credentials.filter(FidoCredential)
-    if tokens.count <= 1:
-        return {'_error': True, 'message': 'security.webauthn-noremove-last'}
+    #if tokens.count <= 1:
+    #    return {'_error': True, 'message': 'security.webauthn-noremove-last'}
     token_to_remove = security_user.credentials.find(credential_key)
     if token_to_remove:
         security_user.credentials.remove(credential_key)
