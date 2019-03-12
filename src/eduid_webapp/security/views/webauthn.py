@@ -75,10 +75,16 @@ def registration_begin(user):
     current_app.stats.count(name='webauthn_register_begin')
 
     encoded_data = base64.urlsafe_b64encode(cbor.dumps(registration_data)).decode('ascii')
+    encoded_data = encoded_data.rstrip('=')
     return {
         'csrf_token': session.new_csrf_token(),
         'registration_data': encoded_data
     }
+
+
+def urlsafe_b64decode(data):
+    data += b'=' * (len(data) % 4)
+    return base64.urlsafe_b64decode(data)
 
 
 @webauthn_views.route('/register/complete', methods=['POST'])
@@ -89,10 +95,8 @@ def registration_complete(user, credential_id, attestation_object, client_data, 
     security_user = SecurityUser.from_user(user, current_app.private_userdb)
     server = get_webauthn_server(current_app.config['FIDO2_RP_ID'])
 
-    attestation = base64.urlsafe_b64decode(attestation_object)
-    att_obj = AttestationObject(attestation)
-    client_data = base64.urlsafe_b64decode(client_data)
-    cdata_obj = ClientData(client_data)
+    att_obj = AttestationObject(urlsafe_b64decode(attestation_object))
+    cdata_obj = ClientData(urlsafe_b64decode(client_data))
     state = session['_webauthn_state_']
     auth_data = server.register_complete(state, cdata_obj, att_obj)
 
