@@ -73,7 +73,7 @@ def registration_begin(user):
     current_app.logger.debug('Webauthn Registration data: {}.'.format(registration_data))
     current_app.stats.count(name='webauthn_register_begin')
 
-    encoded_data = base64.b64encode(cbor.dumps(registration_data)).decode('ascii')
+    encoded_data = base64.urlsafe_b64encode(cbor.dumps(registration_data)).decode('ascii')
     return {
         'csrf_token': session.new_csrf_token(),
         'registration_data': encoded_data
@@ -123,9 +123,8 @@ def registration_complete(user, credential_id, attestation_object, client_data, 
 @require_user
 def remove(user, credential_key):
     security_user = SecurityUser.from_user(user, current_app.private_userdb)
-    tokens = security_user.credentials.filter(U2F).to_list()
-    tokens += security_user.credentials.filter(Webauthn).to_list()
-    if len(tokens) <= 1:
+    tokens = security_user.credentials.filter(FidoCredential)
+    if tokens.count <= 1:
         return {'_error': True, 'message': 'security.webauthn-noremove-last'}
     token_to_remove = security_user.credentials.find(credential_key)
     if token_to_remove:
