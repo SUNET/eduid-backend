@@ -19,7 +19,8 @@ from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from OpenSSL import crypto
 
-from eduid_userdb.credentials import Webauthn, U2F
+from eduid_userdb.credentials import Webauthn
+from eduid_userdb.credentials.fido import FidoCredential
 from eduid_userdb.security import SecurityUser
 from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
 from eduid_common.api.utils import save_and_sync_user
