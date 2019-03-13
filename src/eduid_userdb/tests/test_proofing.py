@@ -4,8 +4,7 @@ from unittest import TestCase
 
 from collections import OrderedDict
 from datetime import datetime
-from eduid_userdb.nin import Nin
-from eduid_userdb.proofing.element import NinProofingElement
+from eduid_userdb.proofing.element import NinProofingElement, SentLetterElement
 from eduid_userdb.proofing.state import ProofingState, LetterProofingState, OidcProofingState
 
 __author__ = 'lundberg'
@@ -66,12 +65,13 @@ class ProofingStateTest(TestCase):
                                         'verified_ts': None,
                                     }),
                                     id=None,
-                                    modified_ts=None,
-                                    proofing_letter={})
+                                    modified_ts=True,
+                                    proofing_letter=SentLetterElement(data={}))
         state.proofing_letter.address = ADDRESS
         x = state.proofing_letter.to_dict()
         state_dict = state.to_dict()
-        self.assertEqual(sorted(state_dict.keys()), ['_id', 'eduPersonPrincipalName', 'nin', 'proofing_letter'])
+        self.assertEqual(sorted(state_dict.keys()), ['_id', 'eduPersonPrincipalName', 'modified_ts', 'nin',
+                                                     'proofing_letter'])
         self.assertEqual(sorted(state_dict['nin'].keys()), ['created_by', 'created_ts', 'number',
                                                             'verification_code', 'verified'])
         self.assertEqual(sorted(state_dict['proofing_letter'].keys()), ['address', 'is_sent', 'sent_ts',
@@ -97,7 +97,8 @@ class ProofingStateTest(TestCase):
                                   modified_ts=None,
                                   )
         state_dict = state.to_dict()
-        self.assertEqual(sorted(state_dict.keys()), ['_id', 'eduPersonPrincipalName', 'nin', 'nonce', 'state', 'token'])
+        self.assertEqual(sorted(state_dict.keys()), ['_id', 'eduPersonPrincipalName', 'modified_ts',
+                                                     'nin', 'nonce', 'state', 'token'])
 
     def test_proofing_state_expiration(self):
         state = ProofingState(id=None, eppn=EPPN, modified_ts=datetime.now(tz=None))

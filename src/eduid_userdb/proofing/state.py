@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright (c) 2015 NORDUnet A/S
+# Copyright (c) 2018 SUNET
 # All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or
@@ -37,7 +38,9 @@ import bson
 import copy
 import datetime
 
-from typing import Dict, Any
+from dataclasses import dataclass, asdict
+
+from typing import Optional, Mapping, MutableMapping, Iterable
 
 from eduid_userdb.exceptions import UserDBValueError
 from eduid_userdb.proofing.element import NinProofingElement, SentLetterElement
@@ -47,90 +50,45 @@ from eduid_userdb.proofing.element import EmailProofingElement, PhoneProofingEle
 __author__ = 'lundberg'
 
 
+
+@dataclass()
 class ProofingState(object):
-    def __init__(self, id, eppn, modified_ts):
-        self._data: Dict[str, Any] = {}
-        self.id = id
-        self.eppn = eppn
-        self.modified_ts = modified_ts
+
+    id: bson.ObjectId
+    eppn: str
+    # Timestamp of last modification in the database.
+    # None if User has never been written to the database.
+    modified_ts: Optional[datetime.datetime]
 
     @classmethod
-    def _default_from_dict(cls, data, fields):
+    def _default_from_dict(cls, data: Mapping, fields: Iterable[str]):
         _leftovers = [x for x in data.keys() if x not in fields]
         if _leftovers:
             raise UserDBValueError(f'{type(cls)}.from_dict() unknown data: {_leftovers}')
 
         return cls(**data)
 
-
-    def __repr__(self):
-        return '<eduID {!s}: {!s}>'.format(self.__class__.__name__, self.eppn)
-
-    @property
-    def id(self) -> bson.ObjectId:
-        """ Get state id. """
-        return self._data['_id']
-
-    @id.setter
-    def id(self, value: bson.ObjectId):
-        self._data['_id'] = value
-
-    @property
-    def reference(self):
-        """
-        Audit reference to help cross reference audit log and events
-
-        :rtype: six.string_types
-        """
-        return '{}'.format(self.id)
-
-    @property
-    def eppn(self):
-        """
-        Get the user's eppn
-
-        :rtype: six.string_types
-        """
-        return self._data['eduPersonPrincipalName']
-
-    @eppn.setter
-    def eppn(self, value: str):
-        self._data['eduPersonPrincipalName'] = value
-
-    @property
-    def modified_ts(self):
-        """
-        :return: Timestamp of last modification in the database.
-                 None if User has never been written to the database.
-        :rtype: datetime.datetime | None
-        """
-        return self._data.get('modified_ts')
-
-    @modified_ts.setter
-    def modified_ts(self, value):
-        """
-        :param value: Timestamp of modification.
-                      Value None is ignored, True is short for datetime.utcnow().
-        :type value: datetime.datetime | True | None
-        """
-        if value is None:
-            return
-        if value is True:
-            value = datetime.datetime.utcnow()
-        self._data['modified_ts'] = value
-
-    def to_dict(self):
-        res = copy.copy(self._data)  # avoid caller messing with our _data
+    def to_dict(self) -> MutableMapping:
+        res = asdict(self)
+        res['_id'] = res.pop('id')
+        res['eduPersonPrincipalName'] = res.pop('eppn')
+        if res['modified_ts'] == True:
+            res['modified_ts'] = datetime.datetime.utcnow()
         return res
 
-    def is_expired(self, timeout_seconds):
+    def __str__(self):
+        return '<eduID {!s}: eppn={!s}>'.format(self.__class__.__name__, self.eppn)
+
+    @property
+    def reference(self) -> str:
+        """ Audit reference to help cross reference audit log and events. """
+        return str(self.id)
+
+    def is_expired(self, timeout_seconds: int) -> bool:
         """
         Check whether the code is expired.
 
         :param timeout_seconds: the number of seconds a code is valid
-        :type timeout_seconds: int
-
-        :rtype: bool
         """
         delta = datetime.timedelta(seconds=timeout_seconds)
         expiry_date = self.modified_ts + delta
@@ -138,139 +96,98 @@ class ProofingState(object):
         return expiry_date < now
 
 
+@dataclass()
 class NinProofingState(ProofingState):
-    def __init__(self, id, eppn, modified_ts, nin: NinProofingElement):
-        super().__init__(id=id, eppn=eppn, modified_ts=modified_ts)
-        self._data['nin'] = nin
+
+    nin: NinProofingElement
 
     @classmethod
-    def from_dict(cls, data) -> NinProofingState:
-        _data = copy.deepcopy(data)  # to not modify callers data
-        data['nin'] = NinProofingElement(data=data['nin'])
+    def from_dict(cls, data: Mapping) -> NinProofingState:
+        _data = copy.deepcopy(dict(data))  # to not modify callers data
+        _data['nin'] = NinProofingElement(data=_data['nin'])
         _known_data = ['id', 'eppn', 'modified_ts', 'nin']
-        return cls._default_from_dict(data, _known_data)
+        return cls._default_from_dict(_data, _known_data)
 
-    @property
-    def nin(self) -> NinProofingElement:
-        return self._data['nin']
-
-    def to_dict(self):
+    def to_dict(self) -> MutableMapping:
         res = super().to_dict()
-        res['nin'] = self.nin.to_dict()
+        res['nin'] = res['nin'].to_dict()
         return res
 
 
+@dataclass()
 class LetterProofingState(NinProofingState):
-    def __init__(self, id, eppn, modified_ts, nin, proofing_letter: dict):
-        super().__init__(id=id, eppn=eppn, modified_ts=modified_ts, nin=nin)
-        _proofing_letter = copy.deepcopy(proofing_letter)  # to not modify callers data
-        self._data['proofing_letter'] = SentLetterElement(data=_proofing_letter)
+
+    proofing_letter: SentLetterElement
 
     @classmethod
-    def from_dict(cls, data) -> LetterProofingState:
+    def from_dict(cls, data: Mapping) -> LetterProofingState:
+        _data = copy.deepcopy(dict(data))  # to not modify callers data
+        _data['proofing_letter'] = SentLetterElement(data=_data['proofing_letter'])
         _known_data = ['id', 'eppn', 'modified_ts', 'nin', 'proofing_letter']
         return cls._default_from_dict(data, _known_data)
 
-    @property
-    def proofing_letter(self) -> SentLetterElement:
-        return self._data['proofing_letter']
-
-    def to_dict(self):
+    def to_dict(self) -> MutableMapping:
         res = super().to_dict()
-        res['proofing_letter'] = self.proofing_letter.to_dict()
+        res['proofing_letter'] = res['proofing_letter'].to_dict()
         return res
 
 
+@dataclass()
 class OrcidProofingState(ProofingState):
-    def __init__(self, id, eppn, modified_ts, state, nonce):
-        super().__init__(id=id, eppn=eppn, modified_ts=modified_ts)
-        self._data['state'] = state
-        self._data['nonce'] = nonce
+
+    state: str
+    nonce: str
 
     @classmethod
-    def from_dict(cls, data) -> OrcidProofingState:
+    def from_dict(cls, data: Mapping) -> OrcidProofingState:
         _known_data = ['id', 'eppn', 'modified_ts', 'state', 'nonce']
         return cls._default_from_dict(data, _known_data)
 
-    @property
-    def state(self):
-        """
-        :rtype: str | unicode
-        """
-        return self._data['state']
 
-    @property
-    def nonce(self):
-        """
-        :rtype: str | unicode
-        """
-        return self._data['nonce']
-
-
+@dataclass()
 class OidcProofingState(NinProofingState):
 
-    def __init__(self, id, eppn, modified_ts, state, nonce, token, nin):
-        super().__init__(id=id, eppn=eppn, modified_ts=modified_ts, nin=nin)
-        self._data['token'] = token
-        self._data['state'] = state
-        self._data['nonce'] = nonce
+    state: str
+    nonce: str
+    token: str
 
-    @property
-    def token(self):
-        """
-        :rtype: str | unicode
-        """
-        return self._data['token']
-
-    @property
-    def state(self):
-        """
-        :rtype: str | unicode
-        """
-        return self._data['state']
-
-    @property
-    def nonce(self):
-        """
-        :rtype: str | unicode
-        """
-        return self._data['nonce']
+    @classmethod
+    def from_dict(cls, data: Mapping) -> OidcProofingState:
+        _known_data = ['id', 'eppn', 'modified_ts', 'state', 'nonce', 'token']
+        return cls._default_from_dict(data, _known_data)
 
 
+@dataclass()
 class EmailProofingState(ProofingState):
-    def __init__(self, id, eppn, modified_ts, verification):
-        super().__init__(id, eppn, modified_ts)
-        _verification = copy.deepcopy(verification)  # to not modify callers data
-        self._data['verification'] = EmailProofingElement(data=_verification)
 
-    @property
-    def verification(self):
-        """
-        :rtype: EmailProofingElement
-        """
-        return self._data['verification']
+    verification: EmailProofingElement
 
-    def to_dict(self):
-        res = super(EmailProofingState, self).to_dict()
-        res['verification'] = self.verification.to_dict()
+    @classmethod
+    def from_dict(cls, data: Mapping) -> EmailProofingState:
+        _data = copy.deepcopy(dict(data))  # to not modify callers data
+        _data['verification'] = EmailProofingElement(data=_data['verification'])
+        _known_data = ['id', 'eppn', 'modified_ts', 'verification']
+        return cls._default_from_dict(data, _known_data)
+
+    def to_dict(self) -> MutableMapping:
+        res = super().to_dict()
+        res['verification'] = res['verification'].to_dict()
         return res
 
 
+@dataclass()
 class PhoneProofingState(ProofingState):
-    def __init__(self, id, eppn, modified_ts, verification):
-        super().__init__(id, eppn, modified_ts)
-        _verification = copy.deepcopy(verification)  # to not modify callers data
-        self._data['verification'] = PhoneProofingElement(data=_verification)
 
-    @property
-    def verification(self):
-        """
-        :rtype: PhoneProofingElement
-        """
-        return self._data['verification']
+    verification: PhoneProofingElement
 
-    def to_dict(self):
-        res = super(PhoneProofingState, self).to_dict()
-        res['verification'] = self.verification.to_dict()
+    @classmethod
+    def from_dict(cls, data: Mapping) -> PhoneProofingState:
+        _data = copy.deepcopy(dict(data))  # to not modify callers data
+        _data['verification'] = EmailProofingElement(data=_data['verification'])
+        _known_data = ['id', 'eppn', 'modified_ts', 'verification']
+        return cls._default_from_dict(data, _known_data)
+
+    def to_dict(self) -> MutableMapping:
+        res = super().to_dict()
+        res['verification'] = res['verification'].to_dict()
         return res
-
