@@ -102,7 +102,7 @@ class UserAuthnInfo(GenericFilterDict):
         _data = deepcopy(data)
         # Remove months with 0 failures or successes
         for attrib in ['fail_count', 'success_count']:
-            for key, value in _data.get(attrib, {}).items():
+            for key, value in data.get(attrib, {}).items():
                 if value == 0:
                     del _data[attrib][key]
         super(UserAuthnInfo, self).__init__(_data)

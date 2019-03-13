@@ -47,3 +47,25 @@ class TestSupportUsers(TestCase):
 
         for password in user['passwords']:
             self.assertNotIn('salt', password)
+
+    def test_support_user_authn_info(self):
+        raw_data = {
+            '_id': '5c5b027c20d6b6000db13187',
+            'fail_count': {
+                '201902': 1,
+                '201903': 0
+            },
+            'last_credential_ids': [
+                '5c5b02c420d6b6000db1318a'
+            ],
+            'success_count': {
+                '201902': 77,
+                '201903': 17
+            },
+            'success_ts': '2019-03-04T16:00:35.466Z'
+        }
+
+        user_authn_info = models.UserAuthnInfo(raw_data)
+        self.assertNotIn('_id', user_authn_info)
+        self.assertNotIn('last_credential_ids', user_authn_info)
+        self.assertEqual(len(user_authn_info['fail_count'].keys()), 1)
