@@ -58,6 +58,19 @@ class Credential(VerifiedElement):
         self.proofing_method = data.pop('proofing_method', None)
         self.proofing_version = data.pop('proofing_version', None)
 
+    def __str__(self):
+        shortkey = self.key[:12]
+        if self.is_verified:
+            return '<eduID {!s}(key=\'{!s}...\'): verified=True, proofing=({!r} v {!r})>'.format(
+                self.__class__.__name__,
+                shortkey,
+                self.proofing_method,
+                self.proofing_version
+            )
+        else:
+            return '<eduID {!s}(key=\'{!s}...\'): verified=False>'.format(
+                self.__class__.__name__, shortkey)
+
     # -----------------------------------------------------------------
     @property
     def proofing_method(self):
