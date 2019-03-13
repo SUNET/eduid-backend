@@ -31,57 +31,49 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from __future__ import absolute_import
+from __future__ import annotations
 
 import bson
 import copy
 import datetime
 
-from .element import NinProofingElement, SentLetterElement
-from .element import EmailProofingElement, PhoneProofingElement
-from eduid_userdb.exceptions import UserHasUnknownData
+from typing import Dict, Any
+
+from eduid_userdb.exceptions import UserDBValueError
+from eduid_userdb.proofing.element import NinProofingElement, SentLetterElement
+from eduid_userdb.proofing.element import EmailProofingElement, PhoneProofingElement
+
 
 __author__ = 'lundberg'
 
 
 class ProofingState(object):
-    def __init__(self, data, raise_on_unknown=True):
-        self._data_in = copy.deepcopy(data)  # to not modify callers data
-        self._data = dict()
+    def __init__(self, id, eppn, modified_ts):
+        self._data: Dict[str, Any] = {}
+        self.id = id
+        self.eppn = eppn
+        self.modified_ts = modified_ts
 
-        # things without setters
-        # _id
-        _id = self._data_in.pop('_id', None)
-        if _id is None:
-            _id = bson.ObjectId()
-        if not isinstance(_id, bson.ObjectId):
-            _id = bson.ObjectId(_id)
-        self._data['_id'] = _id
-        # eppn
-        eppn = self._data_in.pop('eduPersonPrincipalName')
-        self._data['eduPersonPrincipalName'] = eppn
+    @classmethod
+    def _default_from_dict(cls, data, fields):
+        _leftovers = [x for x in data.keys() if x not in fields]
+        if _leftovers:
+            raise UserDBValueError(f'{type(cls)}.from_dict() unknown data: {_leftovers}')
 
-        self.modified_ts = self._data_in.pop('modified_ts', None)
+        return cls(**data)
 
-        if len(self._data_in) > 0:
-            if raise_on_unknown:
-                raise UserHasUnknownData('User {!s} unknown data: {!r}'.format(
-                    self.eppn, self._data_in.keys()
-                ))
-            # Just keep everything that is left as-is
-            self._data.update(self._data_in)
 
     def __repr__(self):
         return '<eduID {!s}: {!s}>'.format(self.__class__.__name__, self.eppn)
 
     @property
-    def id(self):
-        """
-        Get state id
-
-        :rtype: bson.ObjectId
-        """
+    def id(self) -> bson.ObjectId:
+        """ Get state id. """
         return self._data['_id']
+
+    @id.setter
+    def id(self, value: bson.ObjectId):
+        self._data['_id'] = value
 
     @property
     def reference(self):
@@ -100,6 +92,10 @@ class ProofingState(object):
         :rtype: six.string_types
         """
         return self._data['eduPersonPrincipalName']
+
+    @eppn.setter
+    def eppn(self, value: str):
+        self._data['eduPersonPrincipalName'] = value
 
     @property
     def modified_ts(self):
@@ -143,58 +139,58 @@ class ProofingState(object):
 
 
 class NinProofingState(ProofingState):
-    def __init__(self, data, raise_on_unknown=True):
-        self._data_in = copy.deepcopy(data)  # to not modify callers data
-        _nin = NinProofingElement(data=self._data_in.pop('nin'))
+    def __init__(self, id, eppn, modified_ts, nin: NinProofingElement):
+        super().__init__(id=id, eppn=eppn, modified_ts=modified_ts)
+        self._data['nin'] = nin
 
-        ProofingState.__init__(self, self._data_in, raise_on_unknown)
-        self._data['nin'] = _nin
+    @classmethod
+    def from_dict(cls, data) -> NinProofingState:
+        _data = copy.deepcopy(data)  # to not modify callers data
+        data['nin'] = NinProofingElement(data=data['nin'])
+        _known_data = ['id', 'eppn', 'modified_ts', 'nin']
+        return cls._default_from_dict(data, _known_data)
 
     @property
-    def nin(self):
-        """
-        :rtype: NinProofingElement
-        """
+    def nin(self) -> NinProofingElement:
         return self._data['nin']
 
     def to_dict(self):
-        res = super(NinProofingState, self).to_dict()
+        res = super().to_dict()
         res['nin'] = self.nin.to_dict()
         return res
 
 
 class LetterProofingState(NinProofingState):
-    def __init__(self, data, raise_on_unknown=True):
-        self._data_in = copy.deepcopy(data)  # to not modify callers data
-        _proofing_letter = SentLetterElement(self._data_in.pop('proofing_letter', {}))
+    def __init__(self, id, eppn, modified_ts, nin, proofing_letter: dict):
+        super().__init__(id=id, eppn=eppn, modified_ts=modified_ts, nin=nin)
+        _proofing_letter = copy.deepcopy(proofing_letter)  # to not modify callers data
+        self._data['proofing_letter'] = SentLetterElement(data=_proofing_letter)
 
-        super(LetterProofingState, self).__init__(self._data_in, raise_on_unknown)
-        self._data['proofing_letter'] = _proofing_letter
+    @classmethod
+    def from_dict(cls, data) -> LetterProofingState:
+        _known_data = ['id', 'eppn', 'modified_ts', 'nin', 'proofing_letter']
+        return cls._default_from_dict(data, _known_data)
 
     @property
-    def proofing_letter(self):
-        """
-        :rtype: ProofingLetterElement
-        """
+    def proofing_letter(self) -> SentLetterElement:
         return self._data['proofing_letter']
 
     def to_dict(self):
-        res = super(LetterProofingState, self).to_dict()
+        res = super().to_dict()
         res['proofing_letter'] = self.proofing_letter.to_dict()
         return res
 
 
-class OidcState(ProofingState):
-    def __init__(self, data, raise_on_unknown=True):
-        self._data_in = copy.deepcopy(data)  # to not modify callers data
-        # Remove from _data_in before init super class
-        _state = self._data_in.pop('state')
-        _nonce = self._data_in.pop('nonce')
+class OrcidProofingState(ProofingState):
+    def __init__(self, id, eppn, modified_ts, state, nonce):
+        super().__init__(id=id, eppn=eppn, modified_ts=modified_ts)
+        self._data['state'] = state
+        self._data['nonce'] = nonce
 
-        super(OidcState, self).__init__(self._data_in, raise_on_unknown)
-
-        self._data['state'] = _state
-        self._data['nonce'] = _nonce
+    @classmethod
+    def from_dict(cls, data) -> OrcidProofingState:
+        _known_data = ['id', 'eppn', 'modified_ts', 'state', 'nonce']
+        return cls._default_from_dict(data, _known_data)
 
     @property
     def state(self):
@@ -211,16 +207,13 @@ class OidcState(ProofingState):
         return self._data['nonce']
 
 
-class OidcProofingState(OidcState, NinProofingState):
+class OidcProofingState(NinProofingState):
 
-    def __init__(self, data, raise_on_unknown=True):
-        self._data_in = copy.deepcopy(data)  # to not modify callers data
-        # Remove from _data_in before init super class
-        _token = self._data_in.pop('token')
-
-        super(OidcProofingState, self).__init__(self._data_in, raise_on_unknown)
-
-        self._data['token'] = _token
+    def __init__(self, id, eppn, modified_ts, state, nonce, token, nin):
+        super().__init__(id=id, eppn=eppn, modified_ts=modified_ts, nin=nin)
+        self._data['token'] = token
+        self._data['state'] = state
+        self._data['nonce'] = nonce
 
     @property
     def token(self):
@@ -229,18 +222,26 @@ class OidcProofingState(OidcState, NinProofingState):
         """
         return self._data['token']
 
+    @property
+    def state(self):
+        """
+        :rtype: str | unicode
+        """
+        return self._data['state']
 
-class OrcidProofingState(OidcState):
-    pass
+    @property
+    def nonce(self):
+        """
+        :rtype: str | unicode
+        """
+        return self._data['nonce']
 
 
 class EmailProofingState(ProofingState):
-    def __init__(self, data, raise_on_unknown=True):
-        self._data_in = copy.deepcopy(data)  # to not modify callers data
-        _verif = EmailProofingElement(data=self._data_in.pop('verification'))
-
-        ProofingState.__init__(self, self._data_in, raise_on_unknown)
-        self._data['verification'] = _verif
+    def __init__(self, id, eppn, modified_ts, verification):
+        super().__init__(id, eppn, modified_ts)
+        _verification = copy.deepcopy(verification)  # to not modify callers data
+        self._data['verification'] = EmailProofingElement(data=_verification)
 
     @property
     def verification(self):
@@ -256,12 +257,10 @@ class EmailProofingState(ProofingState):
 
 
 class PhoneProofingState(ProofingState):
-    def __init__(self, data, raise_on_unknown=True):
-        self._data_in = copy.deepcopy(data)  # to not modify callers data
-        _verif = PhoneProofingElement(data=self._data_in.pop('verification'))
-
-        ProofingState.__init__(self, self._data_in, raise_on_unknown)
-        self._data['verification'] = _verif
+    def __init__(self, id, eppn, modified_ts, verification):
+        super().__init__(id, eppn, modified_ts)
+        _verification = copy.deepcopy(verification)  # to not modify callers data
+        self._data['verification'] = PhoneProofingElement(data=_verification)
 
     @property
     def verification(self):
