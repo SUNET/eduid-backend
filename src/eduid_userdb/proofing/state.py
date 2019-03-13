@@ -90,6 +90,10 @@ class ProofingState(object):
 
         :param timeout_seconds: the number of seconds a code is valid
         """
+        if not isinstance(self.modified_ts, datetime.datetime):
+            if self.modified_ts is True or self.modified_ts is None:
+                return False
+            raise UserDBValueError(f'Malformed modified_ts: {self.modified_ts!r}')
         delta = datetime.timedelta(seconds=timeout_seconds)
         expiry_date = self.modified_ts + delta
         now = datetime.datetime.now(tz=self.modified_ts.tzinfo)
