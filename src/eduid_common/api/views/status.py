@@ -37,7 +37,7 @@ import redis
 from flask import jsonify
 from flask import Blueprint, current_app
 
-from eduid_common.session.session import get_redis_pool
+from eduid_common.session.redis_session import get_redis_pool
 
 
 status_views = Blueprint('status', __name__, url_prefix='/status')

@@ -38,7 +38,7 @@ from six.moves.urllib_parse import urlparse, urlunparse, urlencode, parse_qs
 from werkzeug import get_current_url
 from werkzeug.http import parse_cookie, dump_cookie
 from flask import Flask, session, current_app, request
-from eduid_common.api.session import NoSessionDataFoundException
+from eduid_common.session.redis_session import NoSessionDataFoundException
 from eduid_common.api.utils import urlappend
 
 no_context_logger = logging.getLogger(__name__)

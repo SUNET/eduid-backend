@@ -46,7 +46,7 @@ from eduid_common.api.schemas.csrf import CSRFRequestMixin
 from eduid_common.api.decorators import UnmarshalWith
 from eduid_common.api.decorators import require_user
 from eduid_common.api.testing import EduidAPITestCase
-from eduid_common.api.session import SessionFactory
+from eduid_common.session.eduid_session import SessionFactory
 from eduid_common.api.request import Request
 from eduid_userdb import UserDB
 

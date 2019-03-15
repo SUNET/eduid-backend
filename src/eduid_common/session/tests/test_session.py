@@ -2,7 +2,8 @@ from unittest import TestCase
 
 import time
 
-from eduid_common.session.session import RedisEncryptedSession, derive_key
+from eduid_common.session.redis_session import RedisEncryptedSession, derive_key
+
 
 class FakeRedisConn(object):
 
@@ -75,7 +76,6 @@ class TestSession(TestCase):
         for i in range(1024):
             session = self._get_session(data={'foo': 'bar'})
             self.assertRegexpMatches(session.token, b'^[a-z][a-zA-Z0-9.]+$')
-
 
     def _get_session(self, token=None, data=None, secret='s3cr3t', ttl=10,
                      whitelist=None, raise_on_unknown=False):
