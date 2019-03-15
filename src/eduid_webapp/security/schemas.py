@@ -169,6 +169,10 @@ class WebauthnOptionsResponseSchema(FluxStandardAction):
     payload = fields.Nested(WebauthnOptionsResponsePayload)
 
 
+class WebauthnRegisterBeginSchema(EduidSchema, CSRFRequestMixin):
+
+    authenticator = fields.String(required=True)
+
 class WebauthnRegisterRequestSchema(EduidSchema, CSRFRequestMixin):
 
     credential_id = fields.String(required=True, load_from="credentialId")
