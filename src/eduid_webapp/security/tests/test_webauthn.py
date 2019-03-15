@@ -203,7 +203,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
                                   CLIENT_DATA_JSON_2,
                                   CREDENTIAL_ID_2)
 
-    def _remove(self, reg_data, state):
+    def _dont_remove_last(self, reg_data, state):
         eppn = self.test_user_data['eduPersonPrincipalName']
         user_token = self._add_token_to_user(reg_data, state)
 
@@ -222,8 +222,40 @@ class SecurityWebauthnTests(EduidAPITestCase):
                                     content_type=self.content_type_json)
             modify_data = json.loads(response2.data)
             self.assertEqual(modify_data['type'], 'POST_WEBAUTHN_WEBAUTHN_REMOVE_SUCCESS')
+            self.assertEqual(modify_data['payload']['message'], 'security.webauthn-noremove-last')
+
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_dont_remove_last_ctap1(self, mock_request_user_sync):
+        mock_request_user_sync.side_effect = self.request_user_sync
+        self._dont_remove_last(REGISTERING_DATA, STATE)
+
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_dont_remove_last_ctap2(self, mock_request_user_sync):
+        mock_request_user_sync.side_effect = self.request_user_sync
+        self._dont_remove_last(REGISTERING_DATA_2, STATE_2)
+
+
+    def _remove(self, reg_data, state, reg_data2, state2):
+        eppn = self.test_user_data['eduPersonPrincipalName']
+        user_token = self._add_token_to_user(reg_data, state)
+        user_token2 = self._add_token_to_user(reg_data2, state2)
+
+        response = self.browser.post('/webauthn/remove', data={})
+        self.assertEqual(response.status_code, 302)  # Redirect to token service
+
+        with self.session_cookie(self.browser, eppn) as client:
+            credentials_response = client.get('/credentials')
+            csrf_token = json.loads(credentials_response.data)['payload']['csrf_token']
+            data = {
+                'csrf_token': csrf_token,
+                'credential_key': user_token.key,
+            }
+            response2 = client.post('/webauthn/remove',
+                                    data=json.dumps(data),
+                                    content_type=self.content_type_json)
+            modify_data = json.loads(response2.data)
+            self.assertEqual(modify_data['type'], 'POST_WEBAUTHN_WEBAUTHN_REMOVE_SUCCESS')
             self.assertIsNotNone(modify_data['payload']['credentials'])
-            import ipdb;ipdb.set_trace()
             for credential in modify_data['payload']['credentials']:
                 self.assertIsNotNone(credential)
                 if credential['key'] == user_token.key:
@@ -232,9 +264,9 @@ class SecurityWebauthnTests(EduidAPITestCase):
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def test_remove_ctap1(self, mock_request_user_sync):
         mock_request_user_sync.side_effect = self.request_user_sync
-        self._remove(REGISTERING_DATA, STATE)
+        self._remove(REGISTERING_DATA, STATE, REGISTERING_DATA_2, STATE_2)
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def test_remove_ctap2(self, mock_request_user_sync):
         mock_request_user_sync.side_effect = self.request_user_sync
-        self._remove(REGISTERING_DATA_2, STATE_2)
+        self._remove(REGISTERING_DATA_2, STATE_2, REGISTERING_DATA, STATE)
