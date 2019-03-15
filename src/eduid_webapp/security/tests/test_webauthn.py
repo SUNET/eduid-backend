@@ -21,15 +21,23 @@ from eduid_webapp.security.views.webauthn import urlsafe_b64decode
 __author__ = 'eperez'
 
 
-def get_webauthn_server(rp_id, name='eduID security API'):
-    rp = RelyingParty(rp_id, name)
-    return Fido2Server(rp)
-
-
 # CTAP1 test data
 
 # result of calling Fido2Server.register_begin
-REGISTRATION_DATA = {'publicKey': {'rp': {'id': 'localhost', 'name': 'Demo server'}, 'user': {'id': b'012345678901234567890123', 'name': 'John', 'displayName': 'John Smith'}, 'challenge': b')\x03\x00S\x8b\xe1X\xbb^R\x88\x9e\xe7\x8a\x03}s\x8d\\\x80@\xfa\x18(\xa2O\xbfN\x84\x19R\\', 'pubKeyCredParams': [{'type': 'public-key', 'alg': -7}], 'excludeCredentials': [], 'timeout': 30000, 'attestation': 'none', 'authenticatorSelection': {'requireResidentKey': False, 'userVerification': 'preferred'}}}
+REGISTRATION_DATA = {
+    'publicKey': {'attestation': 'none',
+                  'authenticatorSelection': {'requireResidentKey': False,
+                                              'userVerification': 'preferred'},
+                  'challenge': b')\x03\x00S\x8b\xe1X\xbb^R\x88\x9e\xe7\x8a\x03}'
+                               b's\x8d\\\x80@\xfa\x18(\xa2O\xbfN\x84\x19R\\',
+                  'excludeCredentials': [],
+                  'pubKeyCredParams': [{'alg': -7, 'type': 'public-key'}],
+                  'rp': {'id': 'localhost', 'name': 'Demo server'},
+                  'timeout': 30000,
+                  'user': {'displayName': 'John Smith',
+                              'id': b'012345678901234567890123',
+                              'name': 'John'}}}
+
 
 STATE = {'challenge': 'KQMAU4vhWLteUoie54oDfXONXIBA-hgook-_ToQZUlw', 'user_verification': 'preferred'}
 
@@ -62,7 +70,26 @@ CREDENTIAL_ID = ('31f8974379e65869f9b7caaf28f0e44eead0fdd883e9c545404e351824a6c4
 # CTAP2 test data
 
 # result of calling Fido2Server.register_begin
-REGISTRATION_DATA_2 = {'publicKey': {'rp': {'id': 'localhost', 'name': 'Demo server'}, 'user': {'id': b'012345678901234567890123', 'name': 'John', 'displayName': 'John Smith'}, 'challenge': b"y\xe2*'\x8c\xea\xabF\xf0\xb8'k\x8c\x9ec\xd1ia\x1c\x9a\xd8\xfc5\xed\x0b@Q0\x9b\xe1u\r", 'pubKeyCredParams': [{'type': 'public-key', 'alg': -7}], 'excludeCredentials': [{'type': 'public-key', 'id': b'1\xf8\x97Cy\xe6Xi\xf9\xb7\xca\xaf(\xf0\xe4N\xea\xd0\xfd\xd8\x83\xe9\xc5E@N5\x18$\xa6\xc4\xce\xa78a>N\xf5\xb9\xd6\x99\xfb\xc4\xd6\xba\xb0Q\x17\xa1<\xc8\x18u\xb72\xe0\x00X\x02qU\xce\xd0G'}], 'timeout': 30000, 'attestation': 'none', 'authenticatorSelection': {'requireResidentKey': False, 'userVerification': 'preferred'}}}
+REGISTRATION_DATA_2 = {
+    'publicKey': {'attestation': 'none',
+                  'authenticatorSelection': {'requireResidentKey': False,
+                                              'userVerification': 'preferred'},
+                  'challenge': b"y\xe2*'\x8c\xea\xabF\xf0\xb8'k\x8c\x9ec\xd1"
+                               b'ia\x1c\x9a\xd8\xfc5\xed\x0b@Q0\x9b\xe1u\r',
+                  'excludeCredentials': [{'id': b'1\xf8\x97Cy\xe6Xi'
+                                                b'\xf9\xb7\xca\xaf(\xf0\xe4N'
+                                                b'\xea\xd0\xfd\xd8\x83\xe9\xc5E'
+                                                b'@N5\x18$\xa6\xc4\xce\xa78a>'
+                                                b'N\xf5\xb9\xd6\x99\xfb\xc4\xd6'
+                                                b'\xba\xb0Q\x17\xa1<\xc8\x18'
+                                                b'u\xb72\xe0\x00X\x02qU\xce\xd0G',
+                                        'type': 'public-key'}],
+                  'pubKeyCredParams': [{'alg': -7, 'type': 'public-key'}],
+                  'rp': {'id': 'localhost', 'name': 'Demo server'},
+                  'timeout': 30000,
+                  'user': {'displayName': 'John Smith',
+                              'id': b'012345678901234567890123',
+                              'name': 'John'}}}
 
 STATE_2 = {'challenge': 'eeIqJ4zqq0bwuCdrjJ5j0WlhHJrY_DXtC0BRMJvhdQ0', 'user_verification': 'preferred'}
 
