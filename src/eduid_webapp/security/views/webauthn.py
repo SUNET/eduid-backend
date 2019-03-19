@@ -13,6 +13,7 @@ from fido2 import cbor
 from fido2.ctap2 import AttestedCredentialData
 
 from eduid_userdb.credentials import Webauthn
+# TODO: Import FidoCredential in eduid_userdb.credentials so we can import it from there
 from eduid_userdb.credentials.fido import FidoCredential
 from eduid_userdb.security import SecurityUser
 from eduid_common.session import session
@@ -48,7 +49,7 @@ webauthn_views = Blueprint('webauthn', __name__, url_prefix='/webauthn', templat
 @MarshalWith(FluxStandardAction)
 @require_user
 def registration_begin(user):
-    user_webauthn_tokens = user.credentials.filter(Webauthn)
+    user_webauthn_tokens = user.credentials.filter(FidoCredential)
     if user_webauthn_tokens.count >= current_app.config['WEBAUTHN_MAX_ALLOWED_TOKENS']:
         current_app.logger.error('User tried to register more than {} tokens.'.format(
             current_app.config['WEBAUTHN_MAX_ALLOWED_TOKENS']))
