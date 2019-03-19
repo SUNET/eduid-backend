@@ -40,10 +40,10 @@ from hashlib import sha256
 from nacl import secret, utils, encoding
 from werkzeug.exceptions import NotFound
 from werkzeug.http import dump_cookie
-from flask import session
 from flask import Blueprint
 from saml2.s_utils import deflate_and_base64_encode
 
+from eduid_common.session import session
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.authn.cache import OutstandingQueriesCache
 from eduid_common.authn.utils import get_location, no_authn_views, generate_auth_token
@@ -109,7 +109,7 @@ class AuthnAPITestBase(EduidAPITestCase):
             if isinstance(token, six.binary_type):
                 token = token.decode('ascii')
             oq_cache.set(token, came_from)
-            session.persist()
+            session.persist()  # Explicit session.persist is needed when working within a test_request_context
             return token
 
     def login(self, eppn, came_from):
@@ -121,7 +121,7 @@ class AuthnAPITestBase(EduidAPITestCase):
         so that the user is logged in (the session corresponding to the cookie
         has her eppn).
         This method returns the cookie that has to be sent with any
-        subsequent request that needs to be athenticated.
+        subsequent request that needs to be authenticated.
 
         :param eppn: the eppn of the user to be logged in
         :type eppn: str
@@ -141,8 +141,8 @@ class AuthnAPITestBase(EduidAPITestCase):
                                            data={'SAMLResponse': base64.b64encode(saml_response),
                                                  'RelayState': came_from}):
 
-            response1 = self.app.dispatch_request()
-            cookie = response1.headers['Set-Cookie']
+            self.app.dispatch_request()
+            session.persist()  # Explicit session.persist is needed when working within a test_request_context
             return cookie
 
     def authn(self, url, force_authn=False, next_url='/'):
@@ -494,16 +494,11 @@ class LogoutRequestTests(AuthnAPITestBase):
         came_from = '/afterlogin/'
         cookie = self.login(eppn, came_from)
 
-        csrft = 'csrf token'
-        with self.app.test_request_context('/logout', method='GET',
-                                           headers={'Cookie': cookie}):
-            # user_eppn is set in the IdP
-            session['user_eppn'] = eppn
-            response2 = self.app.dispatch_request()
-            self.assertEqual(response2.status, '302 FOUND')
-            self.assertIn('https://idp.example.com/simplesaml/saml2/idp/'
-                          'SingleLogoutService.php',
-                          response2.headers['location'])
+        with self.app.test_request_context('/logout', method='GET', headers={'Cookie': cookie}):
+            response = self.app.dispatch_request()
+            self.assertEqual(response.status, '302 FOUND')
+            self.assertIn('https://idp.example.com/simplesaml/saml2/idp/SingleLogoutService.php',
+                          response.headers['location'])
 
     def test_logout_service_startingSP(self):
 
@@ -554,7 +549,8 @@ class LogoutRequestTests(AuthnAPITestBase):
                                            data={'SAMLResponse': base64.b64encode(saml_response),
                                                  'RelayState': '/testing-relay-state',
                                                  }):
-            response = self.app.dispatch_request()
+            self.app.dispatch_request()
+            session.persist()  # Explicit session.persist is needed when working within a test_request_context
 
         with self.app.test_request_context('/saml2-ls', method='POST',
                                            headers={'Cookie': cookie},
@@ -584,7 +580,8 @@ class LogoutRequestTests(AuthnAPITestBase):
                                            data={'SAMLResponse': base64.b64encode(saml_response),
                                                  'RelayState': '/testing-relay-state',
                                                  }):
-            response = self.app.dispatch_request()
+            self.app.dispatch_request()
+            session.persist()  # Explicit session.persist is needed when working within a test_request_context
 
         with self.app.test_request_context('/saml2-ls', method='POST',
                                            headers={'Cookie': cookie},
@@ -594,7 +591,7 @@ class LogoutRequestTests(AuthnAPITestBase):
                                                'RelayState': '/testing-relay-state',
                                            }):
             del session['_saml2_session_name_id']
-            session.persist()
+            session.persist()  # Explicit session.persist is needed when working within a test_request_context
             response = self.app.dispatch_request()
 
             self.assertEqual(response.status, '302 FOUND')

@@ -2,10 +2,10 @@
 
 from __future__ import absolute_import, unicode_literals
 
-from six.moves.urllib_parse import urlencode, urlsplit, urlunsplit
 from flask import Blueprint, current_app, url_for
-from flask import request, session, redirect, abort, make_response
+from flask import request, redirect, abort, make_response
 
+from eduid_common.session import session
 from eduid_common.api.decorators import require_user, MarshalWith
 from eduid_common.api.schemas.csrf import CSRFResponse
 from eduid_common.api.utils import urlappend, get_unique_hash
@@ -54,7 +54,6 @@ def verify_token(user, credential_id):
 
     # Set token key id in session
     session['verify_token_action_credential_id'] = credential_id
-    session.persist()
 
     # Request a authentication from idp
     required_loa = 'loa3'

@@ -2,31 +2,25 @@
 
 from __future__ import print_function, absolute_import, unicode_literals
 
-import struct
-import json
 import base64
-from flask import Blueprint, session, Response
-from flask import current_app, request
+from flask import Blueprint
+from flask import current_app
 
 from fido2.client import ClientData
 from fido2.server import Fido2Server, RelyingParty
 from fido2.ctap2 import AttestationObject
 from fido2 import cbor
-from fido2.utils import websafe_encode
 from fido2.ctap2 import AttestedCredentialData
-
-from cryptography import x509
-from cryptography.hazmat.backends import default_backend
-from OpenSSL import crypto
 
 from eduid_userdb.credentials import Webauthn
 from eduid_userdb.credentials.fido import FidoCredential
 from eduid_userdb.security import SecurityUser
+from eduid_common.session import session
 from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
 from eduid_common.api.utils import save_and_sync_user
 from eduid_common.api.schemas.base import FluxStandardAction
-from eduid_webapp.security.helpers import credentials_to_registered_keys, compile_credential_list
-from eduid_webapp.security.schemas import WebauthnOptionsResponseSchema, WebauthnRegisterRequestSchema
+from eduid_webapp.security.helpers import compile_credential_list
+from eduid_webapp.security.schemas import WebauthnRegisterRequestSchema
 from eduid_webapp.security.schemas import SecurityResponseSchema, RemoveWebauthnTokenRequestSchema
 from eduid_webapp.security.schemas import VerifyWithWebauthnTokenRequestSchema
 from eduid_webapp.security.schemas import VerifyWithWebauthnTokenResponseSchema

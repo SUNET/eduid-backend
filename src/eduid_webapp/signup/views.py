@@ -33,8 +33,9 @@
 from __future__ import absolute_import
 
 import requests
-from flask import Blueprint, request, session, current_app, abort
+from flask import Blueprint, request, current_app, abort
 
+from eduid_common.session import session
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith
 from eduid_common.api.schemas.base import FluxStandardAction
 from eduid_webapp.signup.schemas import RegisterEmailSchema, AccountCreatedResponse, EmailSchema

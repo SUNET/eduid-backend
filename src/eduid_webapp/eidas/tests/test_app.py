@@ -568,6 +568,8 @@ class EidasTests(EduidAPITestCase):
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             with browser.session_transaction() as sess:
                 response = browser.get('/mfa-authentication/?idp={}&next={}'.format(self.test_idp, next_url))
+                self.assertEqual(response.status_code, 302)
+
                 ps = urllib.parse.urlparse(response.location)
                 qs = urllib.parse.parse_qs(ps.query)
                 relay_state = qs['RelayState'][0]
@@ -580,14 +582,12 @@ class EidasTests(EduidAPITestCase):
                 sess['post-authn-action'] = 'mfa-authentication-action'
                 sess['eidas_redirect_urls'] = {relay_state: next_url}
 
-                self.assertEqual(response.status_code, 302)
+            data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': relay_state}
+            response = browser.post('/saml2-acs', data=data)
 
-                data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': relay_state}
-                response = browser.post('/saml2-acs', data=data)
-
-                self.assertEqual(response.status_code, 302)
-                self.assertEqual(response.location,
-                                 'http://idp.localhost/action/redirect-action?msg=actions.action-completed')
+            self.assertEqual(response.status_code, 302)
+            self.assertEqual(response.location,
+                             'http://idp.localhost/action/redirect-action?msg=actions.action-completed')
 
     def test_mfa_authentication_wrong_nin(self):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
@@ -598,6 +598,8 @@ class EidasTests(EduidAPITestCase):
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             with browser.session_transaction() as sess:
                 response = browser.get('/mfa-authentication/?idp={}&next={}'.format(self.test_idp, next_url))
+                self.assertEqual(response.status_code, 302)
+
                 ps = urllib.parse.urlparse(response.location)
                 qs = urllib.parse.parse_qs(ps.query)
                 relay_state = qs['RelayState'][0]
@@ -611,14 +613,12 @@ class EidasTests(EduidAPITestCase):
                 sess['post-authn-action'] = 'mfa-authentication-action'
                 sess['eidas_redirect_urls'] = {relay_state: next_url}
 
-                self.assertEqual(response.status_code, 302)
+            data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': relay_state}
+            response = browser.post('/saml2-acs', data=data)
 
-                data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': relay_state}
-                response = browser.post('/saml2-acs', data=data)
-
-                self.assertEqual(response.status_code, 302)
-                self.assertEqual(response.location,
-                                 'http://idp.localhost/action?msg=%3AERROR%3Aeidas.nin_not_matching')
+            self.assertEqual(response.status_code, 302)
+            self.assertEqual(response.location,
+                             'http://idp.localhost/action?msg=%3AERROR%3Aeidas.nin_not_matching')
 
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')

@@ -32,7 +32,8 @@
 #
 from __future__ import absolute_import
 
-from flask import session, current_app, abort
+from flask import current_app, abort
+from eduid_common.session import session
 
 
 def get_next_action(user):
