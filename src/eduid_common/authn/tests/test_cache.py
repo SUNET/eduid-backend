@@ -31,12 +31,10 @@
 #
 import unittest
 
-from eduid_common.authn.cache import (SessionCacheAdapter,
-                                        OutstandingQueriesCache,
-                                        IdentityCache, StateCache)
+from eduid_common.authn.cache import SessionCacheAdapter, OutstandingQueriesCache, IdentityCache, StateCache
 
 
-class pyramidSessionCacheAdapterTests(unittest.TestCase):
+class SessionCacheAdapterTests(unittest.TestCase):
 
     def test_init(self):
         fake_session_dict = {

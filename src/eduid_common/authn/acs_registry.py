@@ -72,7 +72,6 @@ def schedule_action(action_key):
     """
     current_app.logger.debug('Scheduling acs action ' + action_key)
     session['post-authn-action'] = action_key
-    session.persist()
 
 
 def get_action(default_action='login-action'):

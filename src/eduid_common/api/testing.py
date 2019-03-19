@@ -95,11 +95,13 @@ class APIMockedUserDB(object):
         for user in self.test_users.values():
             yield deepcopy(user)
 
+
 _standard_test_users = {
     'hubba-bubba': NEW_USER_EXAMPLE,
     'hubba-baar': NEW_UNVERIFIED_USER_EXAMPLE,
     'hubba-fooo': NEW_COMPLETED_SIGNUP_USER_EXAMPLE,
 }
+
 
 class EduidAPITestCase(MongoTestCase):
     """
@@ -197,7 +199,6 @@ class EduidAPITestCase(MongoTestCase):
         :rtype: dict
         """
         return config
-
 
     @contextmanager
     def session_cookie(self, client, eppn, server_name='localhost'):

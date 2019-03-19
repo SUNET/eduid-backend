@@ -47,9 +47,9 @@ in eduID has three servers, one master and two slaves, and uses
 Redis sentinel for high availability).
 
 Since Redis does not do authorization, and to prevent data leakage
-if the Redis server would get compromized, all data stored in Redis
+if the Redis server would get compromised, all data stored in Redis
 is signed and encrypted. The current implementation uses the NaCl
-crypto library to conventiently handle this.
+crypto library to conveniently handle this.
 
 To be able to decrypt a session from Redis, one needs the application
 specific key which is expected to be shared by all instances of an
@@ -125,6 +125,10 @@ class NameIDEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
+class NoSessionDataFoundException(Exception):
+    pass
+
+
 class RedisEncryptedSession(collections.MutableMapping):
     """
     Session objects that keep their data in a redis db.
@@ -132,7 +136,7 @@ class RedisEncryptedSession(collections.MutableMapping):
 
     def __init__(self, conn, token=None, session_id=None,
                  data=None, secret='', ttl=None,
-                 whitelist=None, raise_on_unknown=False):
+                 whitelist=None, raise_on_unknown=False, debug=False):
         """
         Retrive or create a session for the given token or data.
 
@@ -159,6 +163,7 @@ class RedisEncryptedSession(collections.MutableMapping):
         :param whitelist: list of allowed keys for the sessions
         :param raise_on_unknown: Whether to raise an exception on an attempt
                                  to set a session key not in whitelist
+        :param debug: Flag for extra debug logging
 
         :type conn: redis.StrictRedis
         :type token: str or None
@@ -168,12 +173,14 @@ class RedisEncryptedSession(collections.MutableMapping):
         :type ttl: int
         :type whitelist: list
         :type raise_on_unknown: bool
+        :type debug: bool
         """
         self.conn = conn
         self.ttl = ttl
         self.whitelist = whitelist
         self.raise_on_unknown = raise_on_unknown
         self.app_secret = secret
+        self.debug = debug
 
         _bin_session_id = self._init_token_and_session_id(token, session_id)
         _encrypted_data = None
@@ -181,15 +188,17 @@ class RedisEncryptedSession(collections.MutableMapping):
             if not (token or session_id):
                 raise ValueError('Data must be provided when token/session_id is not provided')
 
-            #logger.debug('Looking for session using session_id {!r}'.format(self.session_id))
+            if self.debug:
+                logger.debug('Looking for session using session_id {!r}'.format(self.session_id))
 
             # Fetch session from self.conn (Redis)
             _encrypted_data = self.conn.get(self.session_id)
             if not _encrypted_data:
-                logger.debug('Session not found: {!r}'.format(self.session_id))
+                logger.warning('Session not found: {!r}'.format(self.session_id))
                 raise KeyError('Session not found: {!r}'.format(self.session_id))
         else:
-            logger.debug('Creating new session with session_id {} and token {}'.format(self.session_id, token))
+            if self.debug:
+                logger.debug('Creating new session with session_id {} and token {}'.format(self.session_id, token))
 
         _nacl_key = derive_key(self.app_secret, _bin_session_id, b'nacl', nacl.secret.SecretBox.KEY_SIZE)
         self.nacl_box = nacl.secret.SecretBox(_nacl_key)
@@ -210,7 +219,8 @@ class RedisEncryptedSession(collections.MutableMapping):
                 continue
             self._data[k] = v
 
-        #logger.debug('Instantiated session with session_id {} and token {}'.format(self.session_id, self.token))
+        if self.debug:
+            logger.debug('Instantiated session with session_id {} and token {}'.format(self.session_id, self.token))
 
     def _init_token_and_session_id(self, token, session_id):
         """
@@ -275,8 +285,9 @@ class RedisEncryptedSession(collections.MutableMapping):
         Persist the currently held data into the redis db.
         """
         data = self.sign_data(self._data)
-        logger.debug('Committing session {} to the cache with ttl {} ({} bytes)'.format(
-            self.session_id, self.ttl, len(data)))
+        if self.debug:
+            logger.debug('Committing session {} to the cache with ttl {} ({} bytes)'.format(self.session_id,
+                                                                                            self.ttl, len(data)))
         self.conn.setex(self.session_id, self.ttl, data)
 
     def encode_token(self, session_id):
@@ -328,13 +339,13 @@ class RedisEncryptedSession(collections.MutableMapping):
         :return: serialized data
         :rtype: str | unicode
         """
-        # XXX remove this extra debug logging after burn-in period
-        logger.debug('Storing data in cache[{}]:\n{!r}'.format(self.session_id, data_dict))
+        if self.debug:
+            logger.debug('Storing data in cache[{}]:\n{!r}'.format(self.session_id, data_dict))
         nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
         # Version data to make it easier to know how to decode it on reading
         data_json = json.dumps(data_dict, cls=NameIDEncoder)
         versioned = {'v2': bytes(self.nacl_box.encrypt(data_json.encode('ascii'), nonce,
-                                                 encoder = nacl.encoding.Base64Encoder)).decode('ascii')
+                                                       encoder=nacl.encoding.Base64Encoder)).decode('ascii')
                      }
         return json.dumps(versioned)
 
@@ -351,11 +362,12 @@ class RedisEncryptedSession(collections.MutableMapping):
         versioned = json.loads(data_str)
         if 'v2' in versioned:
             _data = self.nacl_box.decrypt(versioned['v2'],
-                                          encoder = nacl.encoding.Base64Encoder)
+                                          encoder=nacl.encoding.Base64Encoder)
             if isinstance(_data, six.binary_type):
                 _data = _data.decode('utf8')
             decrypted = json.loads(_data)
-            logger.debug('Loaded data from cache[{}]:\n{!r}'.format(self.session_id, decrypted))
+            if self.debug:
+                logger.debug('Loaded data from cache[{}]:\n{!r}'.format(self.session_id, decrypted))
             return decrypted
 
         logger.error('Unknown data retrieved from cache[{}]: {!r}'.format(self.session_id, data_str))
@@ -408,17 +420,19 @@ class SessionManager(object):
         self.whitelist = whitelist
         self.raise_on_unknown = raise_on_unknown
 
-    def get_session(self, token=None, session_id=None, data=None) -> RedisEncryptedSession:
+    def get_session(self, token=None, session_id=None, data=None, debug=False) -> RedisEncryptedSession:
         """
         Create or fetch a session for the given token or data.
 
         :param token: the token containing the session_id for the session
         :param session_id: the session_id to look for
         :param data: the data for the (new) session
+        :param debug: Flag for extra debug logging
 
         :type token: str | unicode | None
         :type session_id: bytes
         :type data: dict | None
+        :type debug: bool
 
         :return: the session
         :rtype: RedisEncryptedSession
@@ -428,6 +442,7 @@ class SessionManager(object):
                                      secret=self.secret, ttl=self.ttl,
                                      whitelist=self.whitelist,
                                      raise_on_unknown=self.raise_on_unknown,
+                                     debug=debug
                                      )
 
 
@@ -460,7 +475,7 @@ def derive_key(app_key, session_key, usage, size):
         session_key = session_key.encode('utf8')
     return hashlib.pbkdf2_hmac('sha256', app_key.encode('ascii'),
                                usage + session_key,
-                               3, dklen = size)
+                               3, dklen=size)
 
 
 def sign_session_id(session_id, signing_key):
