@@ -33,8 +33,9 @@ from __future__ import absolute_import
 
 from time import time
 from saml2.ident import code
-from flask import session, request, redirect, current_app
+from flask import request, redirect, current_app
 
+from eduid_common.session import session
 from eduid_common.api.utils import verify_relay_state
 from eduid_common.authn.loa import get_loa
 from eduid_common.authn.acs_registry import acs_action
@@ -61,7 +62,6 @@ def update_user_session(session_info, user):
     loa = get_loa(current_app.config.get('AVAILABLE_LOA'), session_info)
     session['eduPersonAssurance'] = loa
     session['eduidIdPCredentialsUsed'] = get_saml_attribute(session_info, 'eduidIdPCredentialsUsed')
-    session.persist()
 
 
 @acs_action('login-action')
@@ -83,7 +83,7 @@ def login_action(session_info, user):
     relay_state = verify_relay_state(request.form.get('RelayState', '/'))
     current_app.logger.debug('Redirecting to the RelayState: ' + relay_state)
     response = redirect(location=relay_state)
-    session.set_cookie(response)
+    #session.set_cookie(response)  #XXX: Is the explicit set_cookie needed?
     current_app.logger.info('Redirecting user {} to {!r}'.format(user, relay_state))
     return response
 
@@ -142,7 +142,6 @@ def _reauthn(reason, session_info, user):
     update_user_session(session_info, user)
     # Set reason for reauth in session
     session[reason] = int(time())
-    session.persist()
 
     # redirect the user to the view where he came from
     relay_state = verify_relay_state(request.form.get('RelayState', '/'))

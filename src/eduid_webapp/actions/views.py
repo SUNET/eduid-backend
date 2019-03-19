@@ -34,13 +34,12 @@
 from __future__ import absolute_import
 import json
 
-from fido2 import cbor
-from flask import Blueprint, request, session, current_app
+from flask import Blueprint, request, current_app
 from flask import abort, url_for, render_template, redirect
-from flask import Response
-from six.moves.urllib_parse import urlsplit, urlunsplit, urlencode
+from six.moves.urllib_parse import urlsplit, urlunsplit
 
 from eduid_userdb.actions import Action
+from eduid_common.session import session
 from eduid_common.api.decorators import MarshalWith
 from eduid_common.api.schemas.base import FluxStandardAction
 from eduid_common.authn.utils import verify_auth_token
@@ -203,7 +202,6 @@ def _do_action():
     current_app.logger.info('Performed step {} for action {} for eppn {}'.format(
         action.action_type, session['current_step'], eppn))
     session['current_step'] += 1
-
     return {'data': data}
 
 
