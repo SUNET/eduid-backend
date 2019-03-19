@@ -17,6 +17,8 @@ from flask import current_app, Flask
 from flask import request as flask_request
 from flask.sessions import SessionInterface, SessionMixin
 
+
+from eduid_common.api.exceptions import BadConfiguration
 from eduid_common.session.redis_session import SessionManager, RedisEncryptedSession
 
 
@@ -202,28 +204,29 @@ class SessionFactory(SessionInterface):
             cookie_name = app.config['SESSION_COOKIE_NAME']
         except KeyError:
             app.logger.error('SESSION_COOKIE_NAME not set in config')
-            return None
+            raise BadConfiguration('SESSION_COOKIE_NAME not set in config')
+
+        # Load token from cookie
         token = request.cookies.get(cookie_name, None)
         if app.debug:
             current_app.logger.debug('Session cookie {} == {}'.format(cookie_name, token))
-        if token is None:
-            # New session
-            base_session = self.manager.get_session(data={}, debug=app.debug)
-            sess = EduidSession(app, base_session, new=True)
-            if app.debug:
-                current_app.logger.debug('Created new session {}'.format(sess))
-        else:
+
+        if token:
             # Existing session
             try:
                 base_session = self.manager.get_session(token=token, debug=app.debug)
                 sess = EduidSession(app, base_session, new=False)
                 if app.debug:
                     current_app.logger.debug('Loaded existing session {}'.format(sess))
+                return sess
             except (KeyError, ValueError):
-                base_session = self.manager.get_session(data={}, debug=app.debug)
-                sess = EduidSession(app, base_session, new=True)
-                current_app.logger.warning('Re-created missing session {}'.format(sess))
+                current_app.logger.warning('Failed to load session from token {}'.format(token))
 
+        # New session
+        base_session = self.manager.get_session(data={}, debug=app.debug)
+        sess = EduidSession(app, base_session, new=True)
+        if app.debug:
+            current_app.logger.debug('Created new session {}'.format(sess))
         return sess
 
     def save_session(self, app, sess, response):

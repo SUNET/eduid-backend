@@ -47,9 +47,9 @@ in eduID has three servers, one master and two slaves, and uses
 Redis sentinel for high availability).
 
 Since Redis does not do authorization, and to prevent data leakage
-if the Redis server would get compromized, all data stored in Redis
+if the Redis server would get compromised, all data stored in Redis
 is signed and encrypted. The current implementation uses the NaCl
-crypto library to conventiently handle this.
+crypto library to conveniently handle this.
 
 To be able to decrypt a session from Redis, one needs the application
 specific key which is expected to be shared by all instances of an

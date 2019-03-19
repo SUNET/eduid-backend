@@ -32,7 +32,8 @@
 #
 
 from flask import session as flask_session
-from eduid_common.session.eduid_session import EduidSession
+from eduid_common.session.eduid_session import EduidSession, SessionManager
+from eduid_common.session.redis_session import RedisEncryptedSession
 
 
 # Ugly hack to get make type checks/hints to work
