@@ -4,8 +4,10 @@ from __future__ import absolute_import
 
 import json
 from functools import wraps
-from flask import Blueprint, session, request, render_template, current_app, url_for, redirect
+from flask import Blueprint, request, render_template, current_app, url_for, redirect
 from flask_babel import gettext as _
+
+from eduid_common.session import session
 from eduid_userdb.security.state import PasswordResetEmailAndPhoneState
 from eduid_userdb.exceptions import DocumentDoesNotExist
 from eduid_webapp.security.schemas import ResetPasswordEmailSchema, ResetPasswordExtraSecuritySchema

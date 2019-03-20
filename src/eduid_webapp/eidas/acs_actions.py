@@ -4,8 +4,9 @@ from __future__ import absolute_import
 
 import base64
 from six.moves.urllib_parse import urlsplit, urlunsplit
-from flask import session, current_app, redirect, request
+from flask import current_app, redirect, request
 
+from eduid_common.session import session
 from eduid_common.authn.acs_registry import acs_action
 from eduid_common.authn.eduid_saml2 import get_authn_ctx
 from eduid_common.authn.utils import get_saml_attribute

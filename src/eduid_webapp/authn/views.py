@@ -36,9 +36,10 @@ from saml2.client import Saml2Client
 from saml2.response import LogoutResponse
 from saml2.metadata import entity_descriptor
 from werkzeug.exceptions import Forbidden
-from flask import request, session, redirect, abort, make_response
+from flask import request, redirect, abort, make_response
 from flask import current_app, Blueprint
 
+from eduid_common.session import session
 from eduid_common.authn.utils import get_location
 from eduid_common.authn.loa import get_loa
 from eduid_common.authn.eduid_saml2 import get_authn_request, get_authn_response
@@ -283,10 +284,9 @@ def token_login():
             session['user_eppn'] = user.eppn
             session['user_is_logged_in'] = True
             session['eduPersonAssurance'] = loa
-            session.persist()
 
             response = redirect(location_on_success)
-            session.set_cookie(response)
+            #session.set_cookie(response)  # Is this needed as session_interface.save_session will be called?
             current_app.logger.info('Successful token login, redirecting user {} to {}'.format(user,
                                                                                                location_on_success))
             return response

@@ -2,8 +2,10 @@
 
 from __future__ import absolute_import
 
-from flask import current_app, render_template, url_for, session
+from flask import current_app, render_template, url_for
 from flask_babel import gettext as _
+
+from eduid_common.session import session
 from eduid_common.api.utils import get_unique_hash, get_short_hash, save_and_sync_user
 from eduid_common.authn.vccs import reset_password
 from eduid_common.authn.utils import generate_password

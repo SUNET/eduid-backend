@@ -3,7 +3,7 @@
 from __future__ import absolute_import
 
 import six
-from flask import Blueprint, session
+from flask import Blueprint
 from flask import current_app
 from u2flib_server.u2f import begin_registration, begin_authentication, complete_registration, complete_authentication
 
@@ -13,6 +13,7 @@ from OpenSSL import crypto
 
 from eduid_userdb.credentials import U2F
 from eduid_userdb.security import SecurityUser
+from eduid_common.session import session
 from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
 from eduid_common.api.utils import save_and_sync_user
 from eduid_common.api.schemas.u2f import U2FEnrollResponseSchema, U2FSignResponseSchema, U2FBindRequestSchema

@@ -33,8 +33,9 @@
 
 from __future__ import absolute_import
 
-from flask import Blueprint, session
+from flask import Blueprint
 
+from eduid_common.session import session
 from eduid_common.config.parsers.etcd import EtcdConfigParser
 from eduid_common.api.decorators import MarshalWith
 from eduid_common.api.schemas.base import FluxStandardAction
