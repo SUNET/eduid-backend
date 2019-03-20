@@ -89,7 +89,6 @@ def urlsafe_b64decode(data):
 def registration_complete(user, credential_id, attestation_object, client_data, description):
     security_user = SecurityUser.from_user(user, current_app.private_userdb)
     server = get_webauthn_server(current_app.config['FIDO2_RP_ID'])
-
     att_obj = AttestationObject(urlsafe_b64decode(attestation_object))
     cdata_obj = ClientData(urlsafe_b64decode(client_data))
     state = session['_webauthn_state_']
@@ -141,22 +140,3 @@ def remove(user, credential_key):
         'message': message,
         'credentials': compile_credential_list(security_user)
     }
-
-
-@webauthn_views.route('/verify', methods=['POST'])
-@UnmarshalWith(VerifyWithWebauthnTokenRequestSchema)
-@MarshalWith(VerifyWithWebauthnTokenResponseSchema)
-@require_user
-def verify(user, key_handle, signature_data, client_data):
-    challenge = session.pop('_u2f_challenge_')
-    if not challenge:
-        current_app.logger.error('Found no U2F challenge data in session.')
-        return {'_error': True, 'message': 'security.u2f.missing_challenge_data'}
-    data = {
-        'keyHandle': key_handle,
-        'signatureData': signature_data,
-        'clientData': client_data
-    }
-    device, c, t = complete_authentication(challenge, data, current_app.config['U2F_FACETS'])
-    current_app.stats.count(name='webauthn_verify')
-    return {'key_handle': device['keyHandle'], 'counter': c, 'touch': t}
