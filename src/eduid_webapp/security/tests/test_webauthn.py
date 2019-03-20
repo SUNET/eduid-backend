@@ -166,7 +166,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
         self.app.central_userdb.save(self.test_user, check_sync=False)
         return credential
 
-    def _begin_register_key(self, other=None):
+    def _begin_register_key(self, other=None, authenticator='cross-platform'):
         response = self.browser.get('/webauthn/register/begin')
         self.assertEqual(response.status_code, 302)  # Redirect to token service
 
@@ -178,15 +178,23 @@ class SecurityWebauthnTests(EduidAPITestCase):
             user_token = self._add_token_to_user(REGISTERING_DATA_2, STATE_2)
 
         with self.session_cookie(self.browser, eppn) as client:
-            response2 = client.get('/webauthn/register/begin')
             with client.session_transaction() as sess:
-                self.assertIsNotNone(sess['_webauthn_state_'])
-                webauthn_state = sess['_webauthn_state_']
+                with self.app.test_request_context():
+                    data = {
+                        'csrf_token': sess.get_csrf_token(),
+                        'authenticator': authenticator
+                        }
+                response2 = client.post('/webauthn/register/begin',
+                                        data=json.dumps(data),
+                                        content_type=self.content_type_json)
+                with client.session_transaction() as sess:
+                    self.assertIsNotNone(sess['_webauthn_state_'])
+                    webauthn_state = sess['_webauthn_state_']
                 self.assertEqual(webauthn_state['user_verification'], 'preferred')
                 self.assertIn('challenge', webauthn_state)
 
             data = json.loads(response2.data)
-            self.assertEqual(data['type'], 'GET_WEBAUTHN_WEBAUTHN_REGISTER_BEGIN_SUCCESS')
+            self.assertEqual(data['type'], 'POST_WEBAUTHN_WEBAUTHN_REGISTER_BEGIN_SUCCESS')
             self.assertIn('registration_data', data['payload'])
             self.assertIn('csrf_token', data['payload'])
 
@@ -198,6 +206,15 @@ class SecurityWebauthnTests(EduidAPITestCase):
 
     def test_begin_register_2nd_key_ater_ctap2(self):
         self._begin_register_key(other='ctap2')
+
+    def test_begin_register_first_device(self):
+        self._begin_register_key(authenticator='platform')
+
+    def test_begin_register_2nd_device_ater_ctap1(self):
+        self._begin_register_key(other='ctap1', authenticator='platform')
+
+    def test_begin_register_2nd_device_ater_ctap2(self):
+        self._begin_register_key(other='ctap2', authenticator='platform')
 
     def _finish_register_key(self, state, att, cdata, cred_id):
         eppn = self.test_user_data['eduPersonPrincipalName']

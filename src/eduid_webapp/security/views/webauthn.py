@@ -22,6 +22,7 @@ from eduid_common.api.utils import save_and_sync_user
 from eduid_common.api.schemas.base import FluxStandardAction
 from eduid_webapp.security.helpers import compile_credential_list
 from eduid_webapp.security.schemas import WebauthnRegisterRequestSchema
+from eduid_webapp.security.schemas import WebauthnRegisterBeginSchema
 from eduid_webapp.security.schemas import SecurityResponseSchema, RemoveWebauthnTokenRequestSchema
 from eduid_webapp.security.schemas import VerifyWithWebauthnTokenRequestSchema
 from eduid_webapp.security.schemas import VerifyWithWebauthnTokenResponseSchema
@@ -45,10 +46,11 @@ def make_credentials(creds):
 
 webauthn_views = Blueprint('webauthn', __name__, url_prefix='/webauthn', template_folder='templates')
 
-@webauthn_views.route('/register/begin', methods=['GET'])
+@webauthn_views.route('/register/begin', methods=['POST'])
+@UnmarshalWith(WebauthnRegisterBeginSchema)
 @MarshalWith(FluxStandardAction)
 @require_user
-def registration_begin(user):
+def registration_begin(user, authenticator):
     user_webauthn_tokens = user.credentials.filter(FidoCredential)
     if user_webauthn_tokens.count >= current_app.config['WEBAUTHN_MAX_ALLOWED_TOKENS']:
         current_app.logger.error('User tried to register more than {} tokens.'.format(
@@ -62,7 +64,7 @@ def registration_begin(user):
         'id': str(user.eppn).encode('ascii'),
         'name': "{} {}".format(user.given_name, user.surname),
         'displayName': user.display_name
-    }, creds)
+    }, credentials=creds, authenticator_attachment=authenticator)
     session['_webauthn_state_'] = state
 
     current_app.logger.info('User {} has started registration of a webauthn token'.format(user))
