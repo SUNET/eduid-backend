@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from dateutil.parser import parse as dt_parse
 from dateutil.tz import tzutc
 from urllib.parse import urlencode, urlsplit, urlunsplit, parse_qsl
-from flask import current_app, session, redirect
+from flask import current_app, redirect
 from werkzeug.wrappers import Response as WerkzeugResponse
 from xml.etree.ElementTree import ParseError
 from saml2 import BINDING_HTTP_REDIRECT, BINDING_HTTP_POST
@@ -14,6 +14,7 @@ from saml2.response import SAMLError
 from saml2.saml import AuthnContextClassRef
 from saml2.samlp import RequestedAuthnContext
 
+from eduid_common.session import session
 from eduid_common.authn.cache import OutstandingQueriesCache, IdentityCache
 from eduid_common.authn.eduid_saml2 import BadSAMLResponse, get_authn_ctx
 

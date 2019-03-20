@@ -36,12 +36,12 @@ from __future__ import absolute_import
 from datetime import datetime
 from six.moves.urllib_parse import urlparse, urlunparse, parse_qs, urlencode
 
-from flask import Blueprint, current_app, session, abort, url_for, redirect, render_template
-from flask_babel import gettext as _
+from flask import Blueprint, current_app, abort, url_for, redirect
 
 from eduid_userdb.security import SecurityUser
-from eduid_userdb.credentials import Password
 from eduid_userdb.exceptions import UserOutOfSync
+
+from eduid_common.session import session
 from eduid_common.api.utils import urlappend
 from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
 from eduid_common.api.utils import save_and_sync_user
@@ -52,7 +52,7 @@ from eduid_webapp.security.schemas import SuggestedPassword, SuggestedPasswordRe
 from eduid_webapp.security.schemas import ChangePasswordSchema, RedirectResponseSchema
 from eduid_webapp.security.schemas import RedirectSchema, AccountTerminatedSchema, ChpassResponseSchema
 from eduid_webapp.security.schemas import RemoveNINRequestSchema, RemoveNINResponseSchema
-from eduid_webapp.security.helpers import compile_credential_list, send_termination_mail, generate_suggested_password
+from eduid_webapp.security.helpers import send_termination_mail, generate_suggested_password
 from eduid_webapp.security.helpers import compile_credential_list, remove_nin_from_user
 
 security_views = Blueprint('security', __name__, url_prefix='', template_folder='templates')

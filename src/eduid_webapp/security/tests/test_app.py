@@ -278,15 +278,14 @@ class SecurityTests(EduidAPITestCase):
         eppn = self.test_user_data['eduPersonPrincipalName']
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction() as sess:
-
                 sess['reauthn-for-termination'] = 0
-                response2 = client.get('/account-terminated')
-                
-                self.assertEqual(response2.status_code, 200)
-                rdata = json.loads(response2.data)
 
-                self.assertEqual(rdata['type'],
-                                 'GET_SECURITY_ACCOUNT_TERMINATED_FAIL')
+            response2 = client.get('/account-terminated')
+            self.assertEqual(response2.status_code, 200)
+
+            rdata = json.loads(response2.data)
+            self.assertEqual(rdata['type'],
+                             'GET_SECURITY_ACCOUNT_TERMINATED_FAIL')
 
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
@@ -300,12 +299,11 @@ class SecurityTests(EduidAPITestCase):
             with client.session_transaction() as sess:
 
                 sess['reauthn-for-termination'] = int(time.time())
-                response2 = client.get('/account-terminated')
 
-                self.assertEqual(response2.status_code, 302)
-
-                self.assertEqual(response2.location,
-                                 'https://www.eduid.se/')
+            response2 = client.get('/account-terminated')
+            self.assertEqual(response2.status_code, 302)
+            self.assertEqual(response2.location,
+                             'https://www.eduid.se/')
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def test_remove_nin(self, mock_request_user_sync):

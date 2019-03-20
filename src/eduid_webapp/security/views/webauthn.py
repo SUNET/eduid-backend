@@ -3,7 +3,7 @@
 from __future__ import print_function, absolute_import, unicode_literals
 
 import base64
-from flask import Blueprint, session
+from flask import Blueprint
 from flask import current_app
 
 from fido2.client import ClientData
@@ -12,11 +12,11 @@ from fido2.ctap2 import AttestationObject
 from fido2 import cbor
 from fido2.ctap2 import AttestedCredentialData
 
-
 from eduid_userdb.credentials import Webauthn
 # TODO: Import FidoCredential in eduid_userdb.credentials so we can import it from there
 from eduid_userdb.credentials.fido import FidoCredential
 from eduid_userdb.security import SecurityUser
+from eduid_common.session import session
 from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
 from eduid_common.api.utils import save_and_sync_user
 from eduid_common.api.schemas.base import FluxStandardAction
