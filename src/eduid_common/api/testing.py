@@ -51,6 +51,7 @@ import redis
 import etcd
 from flask.testing import FlaskClient
 
+from eduid_common.session import EduidSession
 from eduid_userdb import User
 from eduid_userdb.db import BaseDB
 from eduid_userdb.testing import MongoTestCase
@@ -384,3 +385,12 @@ class CSRFTestClient(FlaskClient):
                 kw['headers'] = csrf_headers
 
         return super(CSRFTestClient, self).post(*args, **kw)
+
+    @contextmanager
+    def session_transaction(self, *args, **kwargs) -> EduidSession:  # type: ignore
+        """
+        Get typed session in tests
+        Use # type: ignore to keep mypy happy
+        """
+        with super().session_transaction(*args, **kwargs) as sess:  # type: ignore
+            yield sess
