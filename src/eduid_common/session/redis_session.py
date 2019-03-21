@@ -177,6 +177,8 @@ class RedisEncryptedSession(collections.MutableMapping):
         """
         self.conn = conn
         self.ttl = ttl
+        self.token = token
+        self.session_id = session_id
         self.whitelist = whitelist
         self.raise_on_unknown = raise_on_unknown
         self.app_secret = secret
@@ -211,7 +213,7 @@ class RedisEncryptedSession(collections.MutableMapping):
             # mostly convince pycharms introspection what type data is here
             raise ValueError('Data must be a dict, not {!s}'.format(type(data)))
 
-        self._data = {}
+        self._data: dict = {}
         for k, v in data.items():
             if self.whitelist and k not in self.whitelist:
                 if self.raise_on_unknown:
@@ -309,7 +311,8 @@ class RedisEncryptedSession(collections.MutableMapping):
             combined = combined[:-1]
         return b''.join([TOKEN_PREFIX, combined])
 
-    def decode_token(self, token):
+    @staticmethod
+    def decode_token(token):
         """
         Decode a token (token is what is stored in a cookie) into it's components.
 
