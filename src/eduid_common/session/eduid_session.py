@@ -48,8 +48,8 @@ class EduidSession(SessionMixin, MutableMapping):
         self.modified = False
 
         # Namespaces
-        self._common = None
-        self._mfa_action = None
+        self._common: Optional[Common] = None
+        self._mfa_action: Optional[MfaAction] = None
 
     def __getitem__(self, key, default=None):
         return self._session.__getitem__(key, default=None)
@@ -84,7 +84,7 @@ class EduidSession(SessionMixin, MutableMapping):
         return self._common
 
     @common.setter
-    def common(self, value: Common):
+    def common(self, value: Optional[Common]):
         if not self._common:
             self._common = value
 
@@ -95,7 +95,7 @@ class EduidSession(SessionMixin, MutableMapping):
         return self._mfa_action
 
     @mfa_action.setter
-    def mfa_action(self, value: MfaAction):
+    def mfa_action(self, value: Optional[MfaAction]):
         if not self._mfa_action:
             self._mfa_action = value
 
@@ -233,12 +233,9 @@ class SessionFactory(SessionInterface):
         ttl = 2 * int(config['PERMANENT_SESSION_LIFETIME'])
         self.manager = SessionManager(config, ttl=ttl, secret=secret)
 
-    def open_session(self, app, request):
+    def open_session(self, app, request) -> EduidSession:  # type: ignore
         """
         See flask.session.SessionInterface
-
-        :return session
-        :rtype EduidSession
         """
         try:
             cookie_name = app.config['SESSION_COOKIE_NAME']

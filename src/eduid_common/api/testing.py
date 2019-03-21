@@ -386,7 +386,7 @@ class CSRFTestClient(FlaskClient):
 
         return super(CSRFTestClient, self).post(*args, **kw)
 
-    @contextmanager
+    @contextmanager  # type: ignore
     def session_transaction(self, *args, **kwargs) -> EduidSession:  # type: ignore
         """
         Get typed session in tests
