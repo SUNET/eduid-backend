@@ -162,7 +162,7 @@ class EtcdConfigParser(object):
         # thus might not need a yaml dependency
         import yaml
         with open(file_path) as f:
-            config = yaml.load(f)
+            config = yaml.safe_load(f)
             if not config:
                 raise ParserException('No YAML found in {!s}'.format(file_path))
             self.write_configuration(config)
