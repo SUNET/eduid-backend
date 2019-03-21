@@ -388,6 +388,9 @@ class RedisEncryptedSession(collections.MutableMapping):
         """
         self.conn.expire(self.session_id, self.ttl)
 
+    def to_dict(self) -> dict:
+        return self._data
+
 
 class SessionManager(object):
     """

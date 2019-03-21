@@ -9,6 +9,7 @@
 
 import os
 import binascii
+import json
 
 from collections.abc import MutableMapping
 from collections import defaultdict
@@ -41,8 +42,6 @@ class EduidSession(SessionMixin, MutableMapping):
         self._created = time()
         self._new = new
         self._invalidated = False
-        if self.app.debug:
-            self._history: SessionHistory = SessionHistory(self)
 
         # From SessionMixin
         self.permanent = True
@@ -53,17 +52,17 @@ class EduidSession(SessionMixin, MutableMapping):
 
     def __setitem__(self, key, value):
         if key not in self._session or self._session[key] != value:
-            if self.app.debug:
-                self._history[key] = value
             self._session[key] = value
             self.modified = True
+            if self.app.debug:
+                self.app.logger.debug(f'SET session[{key}] = {value}')
 
     def __delitem__(self, key):
         if key in self._session:
-            if self.app.debug:
-                del self._history[key]
             del self._session[key]
             self.modified = True
+            if self.app.debug:
+                self.app.logger.debug(f'DEL session[{key}]')
 
     def __iter__(self):
         return self._session.__iter__()
@@ -174,10 +173,10 @@ class EduidSession(SessionMixin, MutableMapping):
         """
         if self.new or self.modified:
             if self._session.session_id is not None:
-                if self.app.debug:
-                    self.app.logger.debug('Saving session')
-                    self.app.logger.debug(self._history)
                 self._session.commit()
+                if self.app.debug:
+                    self.app.logger.debug(
+                        f'Saved session:\n{json.dumps(self._session.to_dict(), indent=4, sort_keys=True)}')
 
 
 class SessionFactory(SessionInterface):
@@ -235,38 +234,3 @@ class SessionFactory(SessionInterface):
         """
         sess.persist()
         sess.set_cookie(response)
-
-
-class SessionHistory(MutableMapping):
-
-    def __init__(self, sess):
-        self._session = sess
-        self._history: dict = defaultdict(list)
-
-    def __getitem__(self, key):
-        return self._history.__getitem__(key)
-
-    def __setitem__(self, key, value):
-        if key in self._session and self._session[key] != value:
-            self._history[key].append(self._session[key])
-        self._history[key].append(value)
-
-    def __delitem__(self, key):
-        if key in self._session:
-            self._history[key].append('Deleted')
-
-    def __iter__(self):
-        return self._history.__iter__()
-
-    def __len__(self):
-        return len(self._history)
-
-    def __contains__(self, key):
-        return self._history.__contains__(key)
-
-    def __str__(self):
-        out = ['Session content history']
-        for key in self._history.keys():
-            out.append(f'session[{key}] = {self._session[key]}')
-            out.append(f'\t Previous values: {[value for value in self._history[key] if value != self._session[key]]}')
-        return '\n'.join(out)
