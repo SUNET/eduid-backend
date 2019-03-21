@@ -12,15 +12,15 @@ import binascii
 import json
 
 from collections.abc import MutableMapping
-from collections import defaultdict
 from time import time
+from typing import Optional
 from flask import current_app, Flask
 from flask import request as flask_request
 from flask.sessions import SessionInterface, SessionMixin
 
-
 from eduid_common.api.exceptions import BadConfiguration
 from eduid_common.session.redis_session import SessionManager, RedisEncryptedSession
+from eduid_common.session.namespaces import SessionNSBase, Common, MfaAction
 
 
 class EduidSession(SessionMixin, MutableMapping):
@@ -47,6 +47,10 @@ class EduidSession(SessionMixin, MutableMapping):
         self.permanent = True
         self.modified = False
 
+        # Namespaces
+        self._common = None
+        self._mfa_action = None
+
     def __getitem__(self, key, default=None):
         return self._session.__getitem__(key, default=None)
 
@@ -72,6 +76,28 @@ class EduidSession(SessionMixin, MutableMapping):
 
     def __contains__(self, key):
         return self._session.__contains__(key)
+
+    @property
+    def common(self) -> Optional[Common]:
+        if not self._common:
+            self._common = Common.from_dict(self._session.get('_common', {}))
+        return self._common
+
+    @common.setter
+    def common(self, value: Common):
+        if not self._common:
+            self._common = value
+
+    @property
+    def mfa_action(self) -> Optional[MfaAction]:
+        if not self._mfa_action:
+            self._mfa_action = MfaAction.from_dict(self._session.get('_mfa_action', {}))
+        return self._mfa_action
+
+    @mfa_action.setter
+    def mfa_action(self, value: MfaAction):
+        if not self._mfa_action:
+            self._mfa_action = value
 
     @property
     def token(self):
@@ -163,6 +189,13 @@ class EduidSession(SessionMixin, MutableMapping):
             token = self.new_csrf_token()
         return token
 
+    def _serialize_namespaces(self):
+        for key in self.__dict__.keys():
+            if key.startswith('_'):  # Keep SessionNS in sunder attrs
+                attr = getattr(self, key)
+                if isinstance(attr, SessionNSBase):
+                    self[key] = attr.to_dict()
+
     def persist(self):
         """
         Store the session data in the redis backend,
@@ -171,12 +204,17 @@ class EduidSession(SessionMixin, MutableMapping):
         Check that session_id exists - when e.g. the account is being terminated,
         the session has already been invalidated at this point.
         """
+        # Serialize namespace dataclasses to see if their content changed
+        self._serialize_namespaces()
+
         if self.new or self.modified:
             if self._session.session_id is not None:
                 self._session.commit()
                 if self.app.debug:
                     self.app.logger.debug(
                         f'Saved session:\n{json.dumps(self._session.to_dict(), indent=4, sort_keys=True)}')
+            else:
+                self.app.logger.warning('Tried to persist a session with no session id')
 
 
 class SessionFactory(SessionInterface):
@@ -198,6 +236,9 @@ class SessionFactory(SessionInterface):
     def open_session(self, app, request):
         """
         See flask.session.SessionInterface
+
+        :return session
+        :rtype EduidSession
         """
         try:
             cookie_name = app.config['SESSION_COOKIE_NAME']
