@@ -211,8 +211,8 @@ class EduidSession(SessionMixin, MutableMapping):
             if self._session.session_id is not None:
                 self._session.commit()
                 if self.app.debug:
-                    self.app.logger.debug(
-                        f'Saved session:\n{json.dumps(self._session.to_dict(), indent=4, sort_keys=True)}')
+                    _saved_data = json.dumps(self._session.to_dict(), indent=4, sort_keys=True)
+                    self.app.logger.debug(f'Saved session:\n{_saved_data}')
             else:
                 self.app.logger.warning('Tried to persist a session with no session id')
 
