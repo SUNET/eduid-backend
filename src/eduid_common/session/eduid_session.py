@@ -9,17 +9,18 @@
 
 import os
 import binascii
+import json
 
 from collections.abc import MutableMapping
-from collections import defaultdict
 from time import time
+from typing import Optional
 from flask import current_app, Flask
 from flask import request as flask_request
 from flask.sessions import SessionInterface, SessionMixin
 
-
 from eduid_common.api.exceptions import BadConfiguration
 from eduid_common.session.redis_session import SessionManager, RedisEncryptedSession
+from eduid_common.session.namespaces import SessionNSBase, Common, MfaAction
 
 
 class EduidSession(SessionMixin, MutableMapping):
@@ -41,29 +42,31 @@ class EduidSession(SessionMixin, MutableMapping):
         self._created = time()
         self._new = new
         self._invalidated = False
-        if self.app.debug:
-            self._history: SessionHistory = SessionHistory(self)
 
         # From SessionMixin
         self.permanent = True
         self.modified = False
+
+        # Namespaces
+        self._common: Optional[Common] = None
+        self._mfa_action: Optional[MfaAction] = None
 
     def __getitem__(self, key, default=None):
         return self._session.__getitem__(key, default=None)
 
     def __setitem__(self, key, value):
         if key not in self._session or self._session[key] != value:
-            if self.app.debug:
-                self._history[key] = value
             self._session[key] = value
             self.modified = True
+            if self.app.debug:
+                self.app.logger.debug(f'SET session[{key}] = {value}')
 
     def __delitem__(self, key):
         if key in self._session:
-            if self.app.debug:
-                del self._history[key]
             del self._session[key]
             self.modified = True
+            if self.app.debug:
+                self.app.logger.debug(f'DEL session[{key}]')
 
     def __iter__(self):
         return self._session.__iter__()
@@ -73,6 +76,28 @@ class EduidSession(SessionMixin, MutableMapping):
 
     def __contains__(self, key):
         return self._session.__contains__(key)
+
+    @property
+    def common(self) -> Optional[Common]:
+        if not self._common:
+            self._common = Common.from_dict(self._session.get('_common', {}))
+        return self._common
+
+    @common.setter
+    def common(self, value: Optional[Common]):
+        if not self._common:
+            self._common = value
+
+    @property
+    def mfa_action(self) -> Optional[MfaAction]:
+        if not self._mfa_action:
+            self._mfa_action = MfaAction.from_dict(self._session.get('_mfa_action', {}))
+        return self._mfa_action
+
+    @mfa_action.setter
+    def mfa_action(self, value: Optional[MfaAction]):
+        if not self._mfa_action:
+            self._mfa_action = value
 
     @property
     def token(self):
@@ -164,6 +189,13 @@ class EduidSession(SessionMixin, MutableMapping):
             token = self.new_csrf_token()
         return token
 
+    def _serialize_namespaces(self):
+        for key in self.__dict__.keys():
+            if key.startswith('_'):  # Keep SessionNS in sunder attrs
+                attr = getattr(self, key)
+                if isinstance(attr, SessionNSBase):
+                    self[key] = attr.to_dict()
+
     def persist(self):
         """
         Store the session data in the redis backend,
@@ -172,12 +204,17 @@ class EduidSession(SessionMixin, MutableMapping):
         Check that session_id exists - when e.g. the account is being terminated,
         the session has already been invalidated at this point.
         """
+        # Serialize namespace dataclasses to see if their content changed
+        self._serialize_namespaces()
+
         if self.new or self.modified:
             if self._session.session_id is not None:
-                if self.app.debug:
-                    self.app.logger.debug('Saving session')
-                    self.app.logger.debug(self._history)
                 self._session.commit()
+                if self.app.debug:
+                    _saved_data = json.dumps(self._session.to_dict(), indent=4, sort_keys=True)
+                    self.app.logger.debug(f'Saved session:\n{_saved_data}')
+            else:
+                self.app.logger.warning('Tried to persist a session with no session id')
 
 
 class SessionFactory(SessionInterface):
@@ -196,7 +233,8 @@ class SessionFactory(SessionInterface):
         ttl = 2 * int(config['PERMANENT_SESSION_LIFETIME'])
         self.manager = SessionManager(config, ttl=ttl, secret=secret)
 
-    def open_session(self, app, request):
+    #  Return type of "open_session" incompatible with supertype "SessionInterface"
+    def open_session(self, app, request) -> EduidSession:  # type: ignore
         """
         See flask.session.SessionInterface
         """
@@ -235,38 +273,3 @@ class SessionFactory(SessionInterface):
         """
         sess.persist()
         sess.set_cookie(response)
-
-
-class SessionHistory(MutableMapping):
-
-    def __init__(self, sess):
-        self._session = sess
-        self._history: dict = defaultdict(list)
-
-    def __getitem__(self, key):
-        return self._history.__getitem__(key)
-
-    def __setitem__(self, key, value):
-        if key in self._session and self._session[key] != value:
-            self._history[key].append(self._session[key])
-        self._history[key].append(value)
-
-    def __delitem__(self, key):
-        if key in self._session:
-            self._history[key].append('Deleted')
-
-    def __iter__(self):
-        return self._history.__iter__()
-
-    def __len__(self):
-        return len(self._history)
-
-    def __contains__(self, key):
-        return self._history.__contains__(key)
-
-    def __str__(self):
-        out = ['Session content history']
-        for key in self._history.keys():
-            out.append(f'session[{key}] = {self._session[key]}')
-            out.append(f'\t Previous values: {[value for value in self._history[key] if value != self._session[key]]}')
-        return '\n'.join(out)

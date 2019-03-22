@@ -4,6 +4,7 @@ from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.api.app import eduid_init_app_no_db
 from eduid_common.authn.utils import no_authn_views
 from eduid_common.session import session
+from eduid_common.session.namespaces import LoginApplication, Common
 
 __author__ = 'lundberg'
 
@@ -29,8 +30,18 @@ def session_init_app(name, config):
 
     @app.route('/common')
     def common():
-        session.common
-        return session['test']
+        session.common.eppn = 'hubba-bubba'
+        session.common.is_logged_in = True
+        session.common.login_source = LoginApplication['authn']
+        return 'Hello, World!'
+
+    @app.route('/mfa-action')
+    def mfa_action():
+        session.mfa_action.success = True
+        session.mfa_action.issuer = 'https://issuer-entity-id.example.com'
+        session.mfa_action.authn_instant = '2019-03-21T16:26:17Z'
+        session.mfa_action.authn_context = 'http://id.elegnamnden.se/loa/1.0/loa3'
+        return 'Hello, World!'
 
     return app
 
@@ -50,6 +61,8 @@ class EduidSessionTests(EduidAPITestCase):
 
     def update_config(self, config):
         config.update({
+            'DEBUG': True,
+            'LOG_LEVEL': 'DEBUG',
             'NO_AUTHN_URLS': [],
         })
         return config
@@ -85,3 +98,22 @@ class EduidSessionTests(EduidAPITestCase):
             session.persist()  # Explicit session.persist is needed when working within a test_request_context
             response = self.app.dispatch_request()
             self.assertEqual(response, 'another session value')
+
+    def test_session_common(self):
+        with self.session_cookie(self.browser, self.test_user_eppn) as browser:
+            response = browser.get('/common')
+            self.assertEqual(response.status_code, 200)
+            with browser.session_transaction() as sess:
+                self.assertTrue(sess.common.is_logged_in)
+                self.assertEqual(sess.common.login_source, LoginApplication('authn'))
+                self.assertEqual(sess.common.eppn, self.test_user_eppn)
+
+    def test_session_mfa_action(self):
+        with self.session_cookie(self.browser, self.test_user_eppn) as browser:
+            response = browser.get('/mfa-action')
+            self.assertEqual(response.status_code, 200)
+            with browser.session_transaction() as sess:
+                self.assertTrue(sess.mfa_action.success)
+                self.assertEqual(sess.mfa_action.issuer, 'https://issuer-entity-id.example.com')
+                self.assertEqual(sess.mfa_action.authn_instant, '2019-03-21T16:26:17Z')
+                self.assertEqual(sess.mfa_action.authn_context, 'http://id.elegnamnden.se/loa/1.0/loa3')

@@ -34,11 +34,13 @@
 from __future__ import absolute_import
 
 import os
+import sys
 import time
 import shutil
 import atexit
 import random
 import tempfile
+import traceback
 import subprocess
 from contextlib import contextmanager
 from copy import deepcopy
@@ -49,6 +51,7 @@ import redis
 import etcd
 from flask.testing import FlaskClient
 
+from eduid_common.session import EduidSession
 from eduid_userdb import User
 from eduid_userdb.db import BaseDB
 from eduid_userdb.testing import MongoTestCase
@@ -205,7 +208,6 @@ class EduidAPITestCase(MongoTestCase):
         with client.session_transaction() as sess:
             sess['user_eppn'] = eppn
             sess['user_is_logged_in'] = True
-            sess.persist()
         client.set_cookie(server_name, key=self.app.config.get('SESSION_COOKIE_NAME'), value=sess._session.token)
         yield client
 
@@ -383,3 +385,18 @@ class CSRFTestClient(FlaskClient):
                 kw['headers'] = csrf_headers
 
         return super(CSRFTestClient, self).post(*args, **kw)
+
+    #  The return type of a generator function should be "Generator" or one of its supertypes
+    #  Argument 1 to "contextmanager" has incompatible type "Callable[[CSRFTestClient, VarArg(Any), KwArg(Any)],
+    #  EduidSession]"; expected "Callable[..., Iterator[<nothing>]]"
+    #  Return type of "session_transaction" incompatible with supertype "FlaskClient"
+    #  "None" has no attribute "__enter__"
+    #  "None" has no attribute "__exit__"
+    @contextmanager  # type: ignore
+    def session_transaction(self, *args, **kwargs) -> EduidSession:  # type: ignore
+        """
+        Get typed session in tests
+        Use # type: ignore to keep mypy happy
+        """
+        with super().session_transaction(*args, **kwargs) as sess:  # type: ignore
+            yield sess
