@@ -100,7 +100,7 @@ class TestToUEvent(TestCase):
                      event_id=bson.ObjectId(),
                      )
 
-    def test_created_ts_is_required(self):
+    def test_created_ts_is_required2(self):
         """
         Test bad 'version'.
         """
