@@ -201,14 +201,10 @@ def mfa_authentication_action(session_info, user):
         current_app.logger.debug('Asserted NIN: {}'.format(asserted_nin))
         return redirect_with_msg(redirect_url, ':ERROR:eidas.nin_not_matching')
 
-    # TODO: Create dataclass for session namespace
-    if 'action' not in session:
-        session['action'] = dict()
-    session['action']['mfa'] = dict()
-    session['action']['mfa']['success'] = True
-    session['action']['mfa']['issuer'] = session_info['issuer']
-    session['action']['mfa']['authn_instant'] = session_info['authn_info'][0][2]
-    session['action']['mfa']['authn_context'] = get_authn_ctx(session_info)
+    session.mfa_action.success = True
+    session.mfa_action.issuer = session_info['issuer']
+    session.mfa_action.authn_instant = session_info['authn_info'][0][2]
+    session.mfa_action.authn_context = get_authn_ctx(session_info)
 
     # Redirect back to action app but to the redirect-action view
     resp = redirect_with_msg(redirect_url, 'actions.action-completed')
