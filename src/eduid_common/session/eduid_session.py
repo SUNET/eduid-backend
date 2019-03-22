@@ -233,6 +233,7 @@ class SessionFactory(SessionInterface):
         ttl = 2 * int(config['PERMANENT_SESSION_LIFETIME'])
         self.manager = SessionManager(config, ttl=ttl, secret=secret)
 
+    #  Return type of "open_session" incompatible with supertype "SessionInterface"
     def open_session(self, app, request) -> EduidSession:  # type: ignore
         """
         See flask.session.SessionInterface

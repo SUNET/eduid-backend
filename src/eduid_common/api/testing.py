@@ -386,6 +386,12 @@ class CSRFTestClient(FlaskClient):
 
         return super(CSRFTestClient, self).post(*args, **kw)
 
+    #  The return type of a generator function should be "Generator" or one of its supertypes
+    #  Argument 1 to "contextmanager" has incompatible type "Callable[[CSRFTestClient, VarArg(Any), KwArg(Any)],
+    #  EduidSession]"; expected "Callable[..., Iterator[<nothing>]]"
+    #  Return type of "session_transaction" incompatible with supertype "FlaskClient"
+    #  "None" has no attribute "__enter__"
+    #  "None" has no attribute "__exit__"
     @contextmanager  # type: ignore
     def session_transaction(self, *args, **kwargs) -> EduidSession:  # type: ignore
         """
