@@ -32,7 +32,6 @@
 
 import json
 import time
-import unittest
 from hashlib import sha256
 from nacl import secret, utils, encoding
 from werkzeug.exceptions import InternalServerError, Forbidden
@@ -41,7 +40,6 @@ from eduid_common.authn.utils import generate_auth_token
 from eduid_action.common.testing import ActionsTestCase
 
 
-@unittest.skip("moment 22 for eduid-webapp and eduid-action")
 class ActionsTests(ActionsTestCase):
 
     def update_actions_config(self, config):
