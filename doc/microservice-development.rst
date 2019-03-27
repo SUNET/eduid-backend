@@ -257,11 +257,36 @@ Update translation strings::
 Development of front end applications
 -------------------------------------
 
+Introduction
+............
+
+We use `React <https://facebook.github.io/react/>`_ and
+`Redux <https://react-redux.js.org/>`_ as the foundation for the
+architecture. React provides the ability to structure the UI in
+reusable components, that are clever working out when to re-render
+themselves. Redux provides management of the state for the different
+parts of the app, keeping it all in a central store and propagating
+the changes to the appropriate react components.
+
+React components themselves keep their own state, in the form of  
+``props`` (which keep "static" state that cannot be changed by the
+actual component, and provoke a re-rendering when the environment
+changes it), and ``state`` that can be bound to UI elements and that
+the component can modify from within.
+
+In this project we almost only use ``props`` to govern the behaviour
+of the components, and keep all state in the central redux store.
+Redux is then capable of taking its state and pass it to the components
+as ``props``, thus causing the affected components to re-render.
+
 Basic development stack
 .......................
 
-Front end apps are developed with `React <https://facebook.github.io/react/>`_,
-and reside in `eduid-html/react`.
+The code for the front end app resides in ``eduid-html/react`` and
+``eduid-front`` (the former was developed with
+bootstrap 3 and ``react-bootstrap`` for integration of bootstrap as
+React components,, and is being migrated to bootstrap 4 and ``reactstrap``
+in the latter.)
 
 The development environment has a few pieces:
 
@@ -278,17 +303,27 @@ The development environment has a few pieces:
     http server, and watches the files for changes to rebundle and re-serve
     them.
   * ``npm test`` runs the tests.
+  * ``npm run test-headless`` runs the tests without graphical environment.
   * ``npm run build`` makes a bundle for production use. This bundle is kept
     under version control, at least until the build process is integrated
     in puppet.
+  * ``npm run manage:translations`` checks for new translatable strings
+  * ``npm run manage:plugins`` build the actions plugins.
 
 * `webpack <https://webpack.js.org/>`_.
   Webpack is a module bundler, whose main purpose is to bundle JavaScript
-  files for usage in a browser. There are 2 config files for webpack, one
+  files for usage in a browser. There are 3 config files for webpack, one
   `react/webpack.config.js
-  <https://github.com/SUNET/eduid-html/blob/master/react/webpack.config.js>`_ for development and testing, and another
+  <https://github.com/SUNET/eduid-html/blob/master/react/webpack.config.js>`_
+  for development and testing, another
+  `react/webpack.staging.config.js
+  <https://github.com/SUNET/eduid-html/blob/master/react/webpack.staging.config.js>`_
+  for staging bundles, and yet another
   `react/webpack.prod.config.js
-  <https://github.com/SUNET/eduid-html/blob/master/react/webpack.prod.config.js>`_ for production bundles.
+  <https://github.com/SUNET/eduid-html/blob/master/react/webpack.prod.config.js>`_
+  for production bundles.
+  In addition, the actions plugins are built by a script ``buildPlugins.js``
+  that uses the production webpack config file and modifies it dynamically.
 
 * `babel <https://babeljs.io/>`_.
   Babel is a transpiler, used by webpack to transpile react and es6 sources
@@ -319,34 +354,42 @@ are passed to the components, that, when needed, are re-rendered, modifying the
 UI. So, a particular state of the store determines a particular state of the
 UI, and any change in the UI should be known by the store.
 
-Components have properties (`props`), as the data that determines their own state
+Components have properties (``props``), as the data that determines their own state
 and behaviour. The value of those properties has 2 possible origins.  First,
 when they are used as subcomponents of other components, these properties can
 be provided as XML attributes in JSX. Second, the components are connected by
 redux to the central store, so that when the central state changes, this change
 can be transmitted to the components via their properties.
 
-We store the components in `react/components`, where we basically define their
+We store the components in ``react/components``, where we basically define their
 visual structure of subcomponents. The most basic components are bootstrap 3
-components, provided by `react-bootstrap
-<https://react-bootstrap.github.io/>`_.
+components, provided by `react-bootstrap <https://react-bootstrap.github.io/>`_
+(and are being migrated to bootstrap 4 and
+`reactstrap <https://reactstrap.github.io/>`_). The React side of the app resides
+here.
 
-The components are extended in `react/containers` with methods and event
+The components are extended in ``react/containers`` with methods and event
 handlers. It is in these container modules that redux connects the components
 with the central state. This connection happens in 2 ways. First, methods
 defned here have access to the central store, both to read from it, and to
 modify it (see dispatching actions in the next paragraph). And, second, here
 you define a map from the central state to the props of the component, so that
 when the central state changes, the properties are updated and the components
-rerendered.
+rerendered. So here is the side of the app that connects React components with
+the Redux state, both for the flow from the state to the component, by
+assigning state variables to the props of the component, and from the component
+to the central state, by allowing the use of ``dispatch`` within the component's
+event handlers.
 
 To modify the central store, we define actions and dispatch them. Actions are
 simple JSON objects that contain the information needed for atomic
 modifications of the state. We also call actions to the functions that produce
-those objects, kept in `react/actions`. These actions are provided to a
-`dispatch` function from redux, and end up reaching specially defined `reducer`
-functions, that reside in `react/reducers`. These reducers that examine the
-actions and return a modified state.
+those objects, kept in ``react/actions``. These actions are provided to a
+``dispatch`` function from redux, and end up reaching specially defined ``reducer``
+functions, that reside in ``react/reducers``. These reducers then examine the
+actions and return a modified state. So in summary, event handlers can dispatch
+actions, and you can control how these actions affect the central state
+with thses reducer functions.
 
 For asynchronous actions, when some event requires sending requests over the
 network, or long computations, we use `redux-saga
@@ -354,15 +397,17 @@ network, or long computations, we use `redux-saga
 whose execution can be suspended while waiting for a yield statement. They can
 also access the state in the central store, and dispatch actions. Each saga is
 configured with a corresponding action, and what redux-saga basically does is
-to watch the store for those actions, and, when they are dispatched to the
-store, trigger the corresponding saga. This saga can then do its things
+to peek into the actions that the ``dispatch`` function is bringing to the
+central state, before they are given to the reducers (Redux allows this
+"hooking", with so-called ``middleware functions``), to trigger any saga function
+that is configured for the dispatched actions. This saga can then do its things
 asynchronously without freezing the UI, and dispatch actions to notify of the
 results of its operations.
 
-Information flux
+Information flow
 ................
 
-So, the normal flux of information, is a user triggers some event in the UI,
+So, the normal flux of information, when a user triggers some event in the UI,
 would be:
 
 * The user triggers some event, e.g. by clicking some button;
@@ -403,44 +448,33 @@ foreground monitoring changes in the code and rebuilding::
   $ npm run build  # production build
   $ npm start  # development build
 
-The available `npm` commands can be seen in the `scripts` section of the
-`package.json` file.
+The available ``npm`` commands can be seen in the ``scripts`` section of the
+``package.json`` file.
 
 App initialization
 ..................
 
 All code necessary for running the app is served in a single bundle. The
-bundles that are built are specified in ``react/webpack.config.js``. For the
-moment, while migrating to react apps, the bundle that is loaded is configured
-in `the ini file for the dashboard
-<https://github.com/SUNET/eduid-developer/blob/master/eduid-dashboard/etc/eduid-dashboard.ini#L161>`_.
-
-The entry point that drives the bundle we are using (while migrating) comes for
-the old dashboard js, and it still does its old thing, except that it also
-loads the configured react components and renders them in the DOM. The function
-that does this is ``init_app``, defined in the `init-app module
-<https://github.com/SUNET/eduid-html/blob/master/react/src/init-app.js>`_, that
-uses the store defined in the `store module
-<https://github.com/SUNET/eduid-html/blob/master/react/src/store.js>`_.
+bundles that are built are specified in ``react/webpack.config.js``.
 
 Testing and debugging
 .....................
 
 We can also run the tests. We can simply run them and see the test coverage,
-doing like this in the `react/` dir::
+doing like this in the ``react/`` dir::
 
-  $ npm test # needs to be run outside the debian-react container
+  $ npm test # needs to be run outside the debian-react container, it needs a graphical environment
   $ npm run-script test-headless # headless tests that can be run inside the debian-react container
 
 If you want to debug the tests, you can insert a breakpoint in the js code
-with `debugger;`. Then you have to run::
+with ``debugger;``. Then you have to run::
 
   $ npm run debug
 
 You will have then a browser's window open, with a DEBUG button on the upper
 right corner; click on it, and you will get a new tab in the browser. Open
 the  inspector/developer tools in this new tab, reload the page, and the tests
-will be run until it hits a `debugger` where it will stop execution.
+will be run until it hits a ``debugger`` where it will stop execution.
 
 It helps debugging to install the `react developer tools
 <https://chrome.google.com/webstore/detail/react-developer-tools/fmkadmapgofadopljbjfkapdkoienihi>`_
@@ -457,7 +491,7 @@ process. The messages are added by the developer at
 are stored in ``react/i18n/l10n/<lang>.json``. Unfortunately this framework does not
 follow the gettext standard, and thus cannot be used with transifex.
 
-An example of an internationalized formatted message::
+An example of a (complex) internationalized formatted message::
 
             <FormattedMessage
                     id="greeting.welcome_message"
@@ -490,7 +524,7 @@ with `this
 <https://github.com/SUNET/eduid-html/blob/master/react/src/i18n-messages.js#L22>`_.
 
 Translatable strings to be used in JSX attributes, then, are registered in a
-special way, `here
+special way, as can be seen in the last lines of `the message catalog
 <https://github.com/SUNET/eduid-html/blob/master/react/src/i18n-messages.js#L524>`_.
 
 After adding new tanslatable messages in ``react/src/i18n-messages.js``,
@@ -508,7 +542,7 @@ css
 
 Custom css is managed with sass and webpack. There is a ``src/variables.scss``
 file to hold common settings. To add style to some component, we have to add an
-scss file to ``src/components/, import from it the ``variables.scss`` file,
+scss file to ``src/styles/``, import from it the ``variables.scss`` file,
 and then import in our js(x) component the new scss file. Our components (top
 level) also have to import the bootstrap.css from it's location under
 ``node_modules``.
@@ -520,9 +554,9 @@ To add a new configuration parameter for the react apps, it has to be added in
 2 different places.
 
  * The default setting is set in Python format, in
-   `eduid_webapp.jsconfig.settings.front`
+   ``eduid_webapp.jsconfig.settings.front``
  * This default can be overriden with a setting for etcd, added in the file
-   `eduid-developer/etcd/conf.yaml`, under the key `/eduid/webapp/jsapps`.
+   ``eduid-developer/etcd/conf.yaml``, under the key ``/eduid/webapp/jsapps``.
 
 Initial configuration
 .....................
@@ -536,6 +570,7 @@ webpack configuration, as a plugin created as a DefinePlugin object. The
 variables defined in this way are added by webpack as global variables, so it's
 convenient to prefix them with ``EDUID_``. Also, the string value provided to
 webpack is evaled, so to add an actual string value, it has to be twice quoted.
+These configuation variables reside in ``init-config.js``.
 
 Showing components with cookies
 ...............................
@@ -577,20 +612,20 @@ as described in `this proposed standard
 <https://github.com/acdlite/flux-standard-action>`_. Basically, a message has
 a schema:
 
- * `type` (required) a string identyfying the action.
- * `payload` (optional) a structure with arbitrary data.
- * `error` (optional) a structure with arbitrary error data.
+ * ``type`` (required) a string identyfying the action.
+ * ``payload`` (optional) a structure with arbitrary data.
+ * ``error`` (optional) a structure with arbitrary error data.
 
-Available actions are located at `eduid-html/react/src/actions/`.
+Available actions are located at ``eduid-html/react/src/actions/``.
 
-Data sent from the browserto the server is in the form of
+Data sent from the browser to the server is in the form of
 json data.
 
 The format for the action type names will be
-`METHOD_BLUEPRINTNAME_URLRULE` for the triggering action (only ever produced in
+``METHOD_BLUEPRINTNAME_URLRULE`` for the triggering action (only ever produced in
 the browser), and for the failure/success consequent actions, that can
 originate either in the server or in the browser, the format will be the same
-but appending either `_FAIL` or `_SUCCESS`. The canonical procedure to
+but appending either ``_FAIL`` or ``_SUCCESS``. The canonical procedure to
 generate action type names can be checked out in
 `here <https://github.com/SUNET/eduid-common/blob/new_utils/src/eduid_common/api/utils.py#L116>`_.
 
