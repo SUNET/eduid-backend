@@ -82,6 +82,10 @@ class ActionPlugin(object):
     '''
     Abstract class to be extended by the different plugins for the
     actions app.
+    
+    ==DEPRECATED==
+    ==============
+    
     The derived classes in the plugins are set as the objects to which
     the entry point ``eduid_actions.action`` in those plugins point at.
 
@@ -91,13 +95,22 @@ class ActionPlugin(object):
     For example, if we have a plugin ``eduid_action.tou``,
     that defines a class ``ToUPlugin`` (subclass of ``ActionPlugin``) in
     its ``__init__.py``, we would have as entry point in its ``setup.py``::
-
         
       entry_points="""
         [eduid_actions.action]
             tou = eduid_action.tou:ToUPlugin
       """,
-
+    
+    //DEPRECATED==
+    ==============
+    
+    The derived classes are placed in ``eduid_webapp.actions.actions``, in
+    their own modules named with the appropriate action name.
+    
+    During the initialization of the actions app, if it receives a
+    configuration parameter ``ACTIONS_PLUGINS`` containing the action name,
+    the plugin will be registered and the app will be able to deal with the
+    kind of actions managed by the plugin.
     '''
 
     __metaclass__ = ABCMeta
