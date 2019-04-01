@@ -37,7 +37,7 @@ from nacl import secret, utils, encoding
 from werkzeug.exceptions import InternalServerError, Forbidden
 from eduid_common.authn.utils import generate_auth_token
 
-from eduid_action.common.testing import ActionsTestCase
+from eduid_webapp.actions.testing import ActionsTestCase
 
 
 class ActionsTests(ActionsTestCase):
