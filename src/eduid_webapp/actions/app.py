@@ -51,7 +51,7 @@ class PluginsRegistry(dict):
                 app.logger.warn("Duplicate entry point: %s" % plugin_name)
             else:
                 app.logger.debug("Registering entry point: %s" % plugin_name)
-                module = import_module('eduid_action.{}.action'.format(plugin_name))
+                module = import_module('eduid_webapp.actions.actions.{}'.format(plugin_name))
                 self[plugin_name] = getattr(module, 'Plugin')
 
 

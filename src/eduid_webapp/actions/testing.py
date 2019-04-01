@@ -43,7 +43,7 @@ from eduid_userdb.userdb import User
 from eduid_userdb.testing import MOCKED_USER_STANDARD
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_webapp.actions.app import actions_init_app
-from eduid_action.common.action_abc import ActionPlugin
+from eduid_webapp.actions.action_abc import ActionPlugin
 
 
 class MockIdPApp:
