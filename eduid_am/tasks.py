@@ -33,7 +33,7 @@ class PluginsRegistry(object):
         self.attribute_fetcher = dict()
 
         for plugin_name in worker_config.get('ACTION_PLUGINS', []):
-            module_name = 'eduid_action.{}.am'.format(plugin_name)
+            module_name = 'eduid_am.ams.{}'.format(plugin_name)
             try:
                 plugin_module = import_module(module_name)
             except ImportError as exc:

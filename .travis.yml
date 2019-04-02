@@ -1,8 +1,8 @@
 sudo: required
+dist: xenial
 language: python
 python:
-  - "2.7"
-  - "3.6"
+  - "3.7"
 before_install:
   - docker pull docker.sunet.se/eduid/redis:latest
   - docker pull docker.sunet.se/eduid/mongodb:latest
@@ -15,4 +15,5 @@ install:
   - python setup.py testing
 # command to run tests
 script:
+  - pip freeze
   - nosetests
