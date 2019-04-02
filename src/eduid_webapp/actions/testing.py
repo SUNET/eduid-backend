@@ -46,7 +46,7 @@ from eduid_webapp.actions.app import actions_init_app
 from eduid_webapp.actions.action_abc import ActionPlugin
 
 
-class MockIdPApp:
+class MockIdPContext:
 
     class Config:
         def __init__(self, **kwargs):

@@ -38,7 +38,7 @@ from bson import ObjectId
 from mock import patch
 from eduid_userdb.credentials import U2F
 from eduid_userdb.testing import MOCKED_USER_STANDARD
-from eduid_webapp.actions.testing import MockIdPApp
+from eduid_webapp.actions.testing import MockIdPContext
 from eduid_webapp.actions.testing import ActionsTestCase
 from eduid_webapp.actions.actions.mfa import Plugin
 from eduid_userdb.exceptions import UserDoesNotExist
@@ -105,7 +105,7 @@ class MFAActionPluginTests(ActionsTestCase):
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
-                    mock_idp_app = MockIdPApp(self.app.actions_db)
+                    mock_idp_app = MockIdPContext(self.app.actions_db)
                     add_actions(mock_idp_app, self.user, MockTicket('mock-session'))
                     self.authenticate(client, sess, idp_session='mock-session')
                     response = client.get('/get-actions')
@@ -119,7 +119,7 @@ class MFAActionPluginTests(ActionsTestCase):
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
-                    mock_idp_app = MockIdPApp(self.app.actions_db)
+                    mock_idp_app = MockIdPContext(self.app.actions_db)
                     add_actions(mock_idp_app, self.user,
                             MockTicket('mock-session'))
                     self.authenticate(client, sess, idp_session='wrong-session')
@@ -134,7 +134,7 @@ class MFAActionPluginTests(ActionsTestCase):
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
                     self.app.config['GENERATE_U2F_CHALLENGES'] = True
-                    mock_idp_app = MockIdPApp(self.app.actions_db)
+                    mock_idp_app = MockIdPContext(self.app.actions_db)
                     add_actions(mock_idp_app, self.user, MockTicket('mock-session'))
                     self.authenticate(client, sess, idp_session='mock-session')
                     response = client.get('/get-actions')
@@ -152,7 +152,7 @@ class MFAActionPluginTests(ActionsTestCase):
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
-                    mock_idp_app = MockIdPApp(self.app.actions_db)
+                    mock_idp_app = MockIdPContext(self.app.actions_db)
                     add_actions(mock_idp_app, self.user, MockTicket('mock-session'))
                     self.authenticate(client, sess, idp_session='mock-session')
                     with self.assertRaises(UserDoesNotExist):

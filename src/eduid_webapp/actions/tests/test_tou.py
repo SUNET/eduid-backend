@@ -41,7 +41,7 @@ from mock import patch
 from datetime import datetime
 from bson import ObjectId
 from eduid_userdb.tou import ToUEvent
-from eduid_webapp.actions.testing import MockIdPApp
+from eduid_webapp.actions.testing import MockIdPContext
 from eduid_webapp.actions.testing import ActionsTestCase
 from eduid_webapp.actions.actions.tou import Plugin
 
@@ -95,7 +95,7 @@ class ToUActionPluginTests(ActionsTestCase):
     def test_get_tou_action(self):
         with self.session_cookie(self.browser) as client:
             with self.app.test_request_context():
-                mock_idp_app = MockIdPApp(self.app.actions_db, tou_version='test-version')
+                mock_idp_app = MockIdPContext(self.app.actions_db, tou_version='test-version')
                 add_actions(mock_idp_app, self.user, None)
                 with client.session_transaction() as sess:
                     self.authenticate(client, sess)
@@ -108,7 +108,7 @@ class ToUActionPluginTests(ActionsTestCase):
     def test_get_config(self):
         with self.session_cookie(self.browser) as client:
             with self.app.test_request_context():
-                mock_idp_app = MockIdPApp(self.app.actions_db, tou_version='test-version')
+                mock_idp_app = MockIdPContext(self.app.actions_db, tou_version='test-version')
                 add_actions(mock_idp_app, self.user, None)
                 with client.session_transaction() as sess:
                     self.authenticate(client, sess)
@@ -121,7 +121,7 @@ class ToUActionPluginTests(ActionsTestCase):
     def test_get_config_no_tous(self):
         with self.session_cookie(self.browser) as client:
             with self.app.test_request_context():
-                mock_idp_app = MockIdPApp(self.app.actions_db, tou_version='not-existing-version')
+                mock_idp_app = MockIdPContext(self.app.actions_db, tou_version='not-existing-version')
                 add_actions(mock_idp_app, self.user, None)
                 with client.session_transaction() as sess:
                     self.authenticate(client, sess)
