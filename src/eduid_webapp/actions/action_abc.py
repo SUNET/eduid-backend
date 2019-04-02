@@ -117,6 +117,9 @@ class ActionPlugin(object):
 
     ActionError = ActionError
 
+    PLUGIN_NAME = 'dummy'
+    PACKAGE_NAME = 'eduid_webapp.actions.actions.' + PLUGIN_NAME
+
     class ValidationError(Exception):
         '''
         exception to be raised if some form doesn't validate.
@@ -162,15 +165,15 @@ class ActionPlugin(object):
         :rtype: unicode
         '''
         base = current_app.config.get('BUNDLES_URL')
-        bundle_name = '{}.js'
+        bundle_name = 'eduid_action.{}.js'
         env = current_app.config.get('ENVIRONMENT', 'dev')
         if env == 'dev':
-            bundle_name = '{}-bundle.dev.js'
+            bundle_name = 'eduid_action.{}-bundle.dev.js'
         elif env == 'staging':
-            bundle_name = '{}.staging.js'
+            bundle_name = 'eduid_action.{}.staging.js'
         url = '{}{}'.format(
                 base,
-                bundle_name.format(self.PACKAGE_NAME)
+                bundle_name.format(self.PLUGIN_NAME)
                 )
         return url
 

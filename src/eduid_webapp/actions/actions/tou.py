@@ -44,6 +44,7 @@ from eduid_userdb.actions.tou import ToUUserDB, ToUUser
 
 class Plugin(ActionPlugin):
 
+    PLUGIN_NAME = 'tou'
     PACKAGE_NAME = 'eduid_webapp.actions.actions.tou'
     steps = 1
 

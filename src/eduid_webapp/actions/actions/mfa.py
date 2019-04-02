@@ -56,6 +56,7 @@ __author__ = 'ft'
 
 class Plugin(ActionPlugin):
 
+    PLUGIN_NAME = 'mfa'
     PACKAGE_NAME = 'eduid_webapp.actions.actions.mfa'
     steps = 1
 

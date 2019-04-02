@@ -57,11 +57,12 @@ MFA_ACTION = {
         }
 
 
-def add_actions(idp_app, user, ticket):
+def add_actions(context, user, ticket):
     """
     This is a stripped down version of eduid_idp.mfa_action.add_actions
+    that adds the action unconditionally.
     """
-    idp_app.actions_db.add_action(
+    context.actions_db.add_action(
         user.eppn,
         action_type = 'mfa',
         preference = 1,
@@ -127,36 +128,6 @@ class MFAActionPluginTests(ActionsTestCase):
                     data = json.loads(response.data)
                     self.assertEquals(data['action'], False)
                     self.assertEquals(len(self.app.actions_db.get_actions(self.user.eppn, 'mock-session')), 1)
-
-    def test_get_mfa_action_no_db(self):
-        with self.session_cookie(self.browser) as client:
-            with client.session_transaction() as sess:
-                with self.app.test_request_context():
-                    mock_idp_app = MockIdPApp(None)
-                    add_actions(mock_idp_app, self.user, MockTicket('mock-session'))
-                    self.authenticate(client, sess, idp_session='mock-session')
-                    response = client.get('/get-actions')
-                    self.assertEqual(response.status_code, 200)
-                    data = json.loads(response.data)
-                    self.assertEquals(data['action'], False)
-                    self.assertEquals(len(self.app.actions_db.get_actions(self.user.eppn, 'mock-session')), 0)
-
-    def test_get_mfa_action_no_u2f_token(self):
-        u2f_tokens = self.user.credentials.filter(U2F).to_list()
-        for token in u2f_tokens:
-            self.user.credentials.remove(token.key)
-            self.app.central_userdb.save(self.user, check_sync=False)
-        with self.session_cookie(self.browser) as client:
-            with client.session_transaction() as sess:
-                with self.app.test_request_context():
-                    mock_idp_app = MockIdPApp(self.app.actions_db)
-                    add_actions(mock_idp_app, self.user, MockTicket('mock-session'))
-                    self.authenticate(client, sess, idp_session='mock-session')
-                    response = client.get('/get-actions')
-                    self.assertEqual(response.status_code, 200)
-                    data = json.loads(response.data)
-                    self.assertEquals(data['action'], False)
-                    self.assertEquals(len(self.app.actions_db.get_actions(self.user.eppn, 'mock-session')), 0)
 
     def test_get_config(self):
         with self.session_cookie(self.browser) as client:
@@ -230,24 +201,7 @@ class MFAActionPluginTests(ActionsTestCase):
                 self.assertEquals(response.status_code, 200)
                 data = json.loads(response.data)
                 self.assertEquals(data['payload']['message'], "actions.action-completed")
-
-    @patch('eduid_webapp.actions.actions.mfa.complete_authentication')
-    def test_action_back_to_idp(self, mock_complete_authn):
-        mock_complete_authn.return_value = ({'keyHandle': 'test_key_handle'}, 'dummy-touch', 'dummy-counter')
-        with self.session_cookie(self.browser) as client:
-            self.prepare(client, Plugin, 'mfa', action_dict=MFA_ACTION)
-            with self.app.test_request_context():
-                with client.session_transaction() as sess:
-                    csrf_token = sess.get_csrf_token()
-                data = json.dumps({'csrf_token': csrf_token,
-                               'tokenResponse': 'dummy-response'})
-                response = client.post('/post-action', data=data, content_type=self.content_type_json)
-                self.assertEquals(response.status_code, 200)
-                data = json.loads(response.data)
                 self.assertEquals(len(self.app.actions_db.get_actions(self.user.eppn, 'mock-session')), 1)
-                mock_idp_app = MockIdPApp(self.app.actions_db)
-                add_actions(mock_idp_app, self.user, MockTicket('mock-session'))
-                self.assertEquals(len(self.app.actions_db.get_actions(self.user.eppn, 'mock-session')), 0)
 
     @patch('eduid_webapp.actions.actions.mfa.complete_authentication')
     def test_action_webauthn_legacy_token(self, mock_complete_authn):
@@ -290,10 +244,6 @@ class MFAActionPluginTests(ActionsTestCase):
                 self.assertEquals(response.status_code, 200)
                 data = json.loads(response.data)
                 self.assertEquals(len(self.app.actions_db.get_actions(self.user.eppn, 'mock-session')), 1)
-                mock_idp_app = MockIdPApp(self.app.actions_db)
-                mock_idp_app.logger = self.app.logger
-                add_actions(mock_idp_app, self.user, MockTicket('mock-session'))
-                self.assertEquals(len(self.app.actions_db.get_actions(self.user.eppn, 'mock-session')), 0)
 
     def test_third_party_mfa_action_success(self):
         with self.session_cookie(self.browser) as client:
