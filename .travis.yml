@@ -11,10 +11,9 @@ services:
   - docker
 # command to install dependencies
 install:
-  - pip install -U setuptools mypy
+  - pip install -U setuptools
   - python setup.py testing
 # command to run tests
 script:
   - pip freeze
   - nosetests
-  - mypy --ignore-missing-imports eduid_am
