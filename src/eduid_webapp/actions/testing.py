@@ -31,8 +31,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 from __future__ import absolute_import
 
-import time
-from hashlib import sha256
 from copy import deepcopy
 from contextlib import contextmanager
 from bson import ObjectId
@@ -41,6 +39,7 @@ from mock import MagicMock
 
 from eduid_userdb.userdb import User
 from eduid_userdb.testing import MOCKED_USER_STANDARD
+from eduid_common.authn.utils import generate_auth_token
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_webapp.actions.app import actions_init_app
 from eduid_webapp.actions.action_abc import ActionPlugin
@@ -98,13 +97,13 @@ DUMMY_ACTION = {
     '_id': ObjectId('234567890123456789012301'),
     'eppn': 'hubba-bubba',
     'action': 'dummy',
-    'preference': 100, 
+    'preference': 100,
     'params': {
     }
 }
 
 TEST_CONFIG = {
-    'AVAILABLE_LANGUAGES': {'en': 'English','sv': 'Svenska'},
+    'AVAILABLE_LANGUAGES': {'en': 'English', 'sv': 'Svenska'},
     'DASHBOARD_URL': '/profile/',
     'DEVELOPMENT': 'DEBUG',
     'APPLICATION_ROOT': '/',
@@ -185,12 +184,9 @@ class ActionsTestCase(EduidAPITestCase):
 
     def authenticate(self, client, sess, shared_key=None, idp_session=None):
         eppn = self.test_eppn
-        timestamp = str(hex(int(time.time())))
         if shared_key is None:
             shared_key = self.app.config.get('TOKEN_LOGIN_SHARED_KEY')
-        data = f'{shared_key}|{eppn}|{timestamp}'
-        hashed = sha256(data.encode('ascii'))
-        token = hashed.hexdigest()
+        token, timestamp = generate_auth_token(shared_key, usage='test_actions', data=eppn)
         url = f'/?eppn={eppn}&token={token}&ts={timestamp}'
         if idp_session is not None:
             url = f'{url}&session={idp_session}'

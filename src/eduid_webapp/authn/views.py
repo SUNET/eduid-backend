@@ -259,20 +259,19 @@ def logout_service():
     abort(400)
 
 
-@authn_views.route('/token-login', methods=['POST'])
+@authn_views.route('/token-login', methods=['GET'])
 def token_login():
     current_app.logger.debug('Starting token login')
     location_on_fail = current_app.config.get('TOKEN_LOGIN_FAILURE_REDIRECT_URL')
     location_on_success = current_app.config.get('TOKEN_LOGIN_SUCCESS_REDIRECT_URL')
 
-    eppn = request.form.get('eppn')
-    token = request.form.get('token')
-    nonce = request.form.get('nonce')
-    timestamp = request.form.get('ts')
+    eppn = session.token_login.eppn
+    token = session.token_login.token
+    timestamp = session.token_login.ts
     loa = get_loa(current_app.config.get('AVAILABLE_LOA'), None)  # With no session_info lowest loa will be returned
     shared_key = current_app.config.get('SIGNUP_AND_AUTHN_SHARED_KEY')
 
-    if verify_auth_token(shared_key=shared_key, eppn=eppn, token=token, nonce=nonce, timestamp=timestamp,
+    if verify_auth_token(shared_key=shared_key, eppn=eppn, token=token, timestamp=timestamp,
                          usage='signup_login'):
         try:
             user = current_app.central_userdb.get_user_by_eppn(eppn)
