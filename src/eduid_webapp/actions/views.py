@@ -56,18 +56,17 @@ def authn():
     eppn = request.args.get('eppn', None)
     eppn = userid or eppn
     token = request.args.get('token', None)
-    nonce = request.args.get('nonce', None)
     timestamp = request.args.get('ts', None)
     idp_session = request.args.get('session', None)
     if not (eppn and token and timestamp):
         msg = ('Insufficient authentication params: '
-               'eppn: {}, token: {}, nonce: {}, ts: {}')
-        current_app.logger.debug(msg.format(eppn, token, nonce, timestamp))
+               'eppn: {}, token: {}, ts: {}')
+        current_app.logger.debug(msg.format(eppn, token, timestamp))
         abort(400)
 
     shared_key = current_app.config.get('TOKEN_LOGIN_SHARED_KEY')  # XXX: Change to IDP_AND_ACTIONS_SHARED_KEY
     if verify_auth_token(shared_key=shared_key, eppn=eppn, token=token,
-                         nonce=nonce, timestamp=timestamp, usage='idp_actions'):
+                         timestamp=timestamp, usage='idp_actions'):
         current_app.logger.info("Starting pre-login actions "
                                 "for eppn: {})".format(eppn))
         if userid is not None:

@@ -138,7 +138,7 @@ def complete_registration(signup_user):
     * generate a password,
     * add it to the user record,
     * update the attribute manager db with the new account,
-    * create authn token and nonce for the dashboard,
+    * create authn token for the dashboard,
     * return information to be sent to the user.
 
     :param signup_user: SignupUser instance

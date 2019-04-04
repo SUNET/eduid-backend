@@ -185,19 +185,15 @@ class ActionsTestCase(EduidAPITestCase):
 
     def authenticate(self, client, sess, shared_key=None, idp_session=None):
         eppn = self.test_eppn
-        nonce = 'dummy-nonce-xxxx'
         timestamp = str(hex(int(time.time())))
         if shared_key is None:
             shared_key = self.app.config.get('TOKEN_LOGIN_SHARED_KEY')
-        data = '{0}|{1}|{2}|{3}'.format(shared_key, eppn, nonce, timestamp)
+        data = f'{shared_key}|{eppn}|{timestamp}'
         hashed = sha256(data.encode('ascii'))
         token = hashed.hexdigest()
-        url = '/?eppn={}&token={}&nonce={}&ts={}'.format(eppn,
-                                                         token,
-                                                         nonce,
-                                                         timestamp)
+        url = f'/?eppn={eppn}&token={token}&ts={timestamp}'
         if idp_session is not None:
-            url = '{}&session={}'.format(url, idp_session)
+            url = f'{url}&session={idp_session}'
         response = client.get(url)
         return response
 

@@ -295,30 +295,6 @@ class AuthnAPITestCase(AuthnAPITestBase):
 
         self.acs('/terminate', eppn, _check)
 
-    def test_token_login_new_user(self):
-        eppn = 'hubba-fooo'
-        shared_key = self.app.config['SIGNUP_AND_AUTHN_SHARED_KEY']
-        timestamp = '{:x}'.format(int(time.time()))
-        if six.PY2:
-            nonce = os.urandom(16).encode('hex')
-        else:
-            nonce = os.urandom(16).hex()
-        token_data = '{0}|{1}|{2}|{3}'.format(shared_key, eppn, nonce, timestamp)
-        hashed = sha256(token_data.encode('ascii'))
-        token = hashed.hexdigest()
-
-        data = {
-            'eppn': eppn,
-            'token': token,
-            'nonce': nonce,
-            'ts': timestamp
-        }
-
-        with self.app.test_client() as c:
-            resp = c.post('/token-login', data=data)
-            self.assertEqual(resp.status_code, 302)
-            self.assertTrue(resp.location.startswith(self.app.config['TOKEN_LOGIN_SUCCESS_REDIRECT_URL']))
-
     def test_token_login_new_user_secret_box(self):
         eppn = 'hubba-fooo'
         shared_key = self.app.config['SIGNUP_AND_AUTHN_SHARED_KEY']
@@ -333,30 +309,6 @@ class AuthnAPITestCase(AuthnAPITestBase):
             resp = c.post('/token-login', data=data)
             self.assertEqual(resp.status_code, 302)
             self.assertTrue(resp.location.startswith(self.app.config['TOKEN_LOGIN_SUCCESS_REDIRECT_URL']))
-
-    def test_token_login_old_user(self):
-        eppn = 'hubba-bubba'
-        shared_key = self.app.config['SIGNUP_AND_AUTHN_SHARED_KEY']
-        timestamp = '{:x}'.format(int(time.time()))
-        if six.PY2:
-            nonce = os.urandom(16).encode('hex')
-        else:
-            nonce = os.urandom(16).hex()
-        token_data = '{0}|{1}|{2}|{3}'.format(shared_key, eppn, nonce, timestamp)
-        hashed = sha256(token_data.encode('ascii'))
-        token = hashed.hexdigest()
-
-        data = {
-            'eppn': eppn,
-            'token': token,
-            'nonce': nonce,
-            'ts': timestamp
-        }
-
-        with self.app.test_client() as c:
-            resp = c.post('/token-login', data=data)
-            self.assertEqual(resp.status_code, 302)
-            self.assertTrue(resp.location.startswith(self.app.config['TOKEN_LOGIN_FAILURE_REDIRECT_URL']))
 
     def test_token_login_old_user_secret_box(self):
         """ A user that has verified their account should not try to use token login """
