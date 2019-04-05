@@ -42,7 +42,7 @@ from eduid_userdb.actions import Action
 from eduid_common.session import session
 from eduid_common.api.decorators import MarshalWith
 from eduid_common.api.schemas.base import FluxStandardAction
-from eduid_common.authn.utils import verify_auth_token
+from eduid_common.authn.utils import check_implicit_login
 from eduid_webapp.actions.helpers import get_next_action
 
 actions_views = Blueprint('actions', __name__, url_prefix='', template_folder='templates')
@@ -52,33 +52,20 @@ actions_views = Blueprint('actions', __name__, url_prefix='', template_folder='t
 def authn():
     '''
     '''
-    userid = request.args.get('userid', None)
-    eppn = request.args.get('eppn', None)
-    eppn = userid or eppn
-    token = request.args.get('token', None)
-    timestamp = request.args.get('ts', None)
-    idp_session = request.args.get('session', None)
-    if not (eppn and token and timestamp):
-        msg = ('Insufficient authentication params: '
-               'eppn: {}, token: {}, ts: {}')
-        current_app.logger.debug(msg.format(eppn, token, timestamp))
-        abort(400)
+    eppn = session.common.eppn
+    timestamp = session.implicit_login.ts
+    idp_session = session.implicit_login.session
 
-    shared_key = current_app.config.get('TOKEN_LOGIN_SHARED_KEY')  # XXX: Change to IDP_AND_ACTIONS_SHARED_KEY
-    if verify_auth_token(shared_key=shared_key, eppn=eppn, token=token,
-                         timestamp=timestamp, usage='idp_actions'):
+    if check_implicit_login(eppn, timestamp):
         current_app.logger.info("Starting pre-login actions "
                                 "for eppn: {})".format(eppn))
-        if userid is not None:
-            session['userid'] = userid
-        else:
-            session['eppn'] = eppn
-            session['eduPersonPrincipalName'] = eppn
+        session['eppn'] = eppn
+        session['eduPersonPrincipalName'] = eppn
         session['idp_session'] = idp_session
         url = url_for('actions.get_actions')
         return render_template('index.html', url=url)
     else:
-        current_app.logger.debug("Token authentication failed "
+        current_app.logger.debug("Implicit authentication failed "
                                  "(eppn: {})".format(eppn))
         abort(403)
 

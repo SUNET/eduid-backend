@@ -46,7 +46,7 @@ from eduid_common.authn.eduid_saml2 import get_authn_request, get_authn_response
 from eduid_common.authn.eduid_saml2 import authenticate
 from eduid_common.authn.cache import IdentityCache, StateCache
 from eduid_common.authn.acs_registry import get_action, schedule_action
-from eduid_common.authn.utils import verify_auth_token
+from eduid_common.authn.utils import check_implicit_login
 from eduid_common.api.utils import verify_relay_state
 
 
@@ -265,14 +265,10 @@ def token_login():
     location_on_fail = current_app.config.get('TOKEN_LOGIN_FAILURE_REDIRECT_URL')
     location_on_success = current_app.config.get('TOKEN_LOGIN_SUCCESS_REDIRECT_URL')
 
-    eppn = session.token_login.eppn
-    token = session.token_login.token
-    timestamp = session.token_login.ts
+    eppn = session.common.eppn
+    timestamp = session.implicit_login.ts
     loa = get_loa(current_app.config.get('AVAILABLE_LOA'), None)  # With no session_info lowest loa will be returned
-    shared_key = current_app.config.get('SIGNUP_AND_AUTHN_SHARED_KEY')
-
-    if verify_auth_token(shared_key=shared_key, eppn=eppn, token=token, timestamp=timestamp,
-                         usage='signup_login'):
+    if check_implicit_login(eppn, timestamp):
         try:
             user = current_app.central_userdb.get_user_by_eppn(eppn)
             if user.locked_identity.count > 0:

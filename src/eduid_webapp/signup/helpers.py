@@ -32,6 +32,7 @@
 #
 
 import os
+import time
 import struct
 import datetime
 from bson import ObjectId
@@ -40,7 +41,6 @@ import proquint
 from flask import current_app, abort, session
 
 from eduid_common.api.utils import save_and_sync_user
-from eduid_common.authn.utils import generate_auth_token
 from eduid_userdb.exceptions import UserOutOfSync
 from eduid_userdb.credentials import Password
 from eduid_userdb.tou import ToUEvent
@@ -165,11 +165,10 @@ def complete_registration(signup_user):
             'message': 'user-out-of-sync'
         }
 
-    shared_key = current_app.config.get('SIGNUP_AND_AUTHN_SHARED_KEY')
-    auth_token, timestamp = generate_auth_token(shared_key, usage='signup_login', data=signup_user.eppn)
-    session.token_login.eppn = signup_user.eppn
-    session.token_login.token = auth_token
-    session.token_login.ts = timestamp
+    ts = int(time.time())
+    timestamp = '{:x}'.format(ts)
+    session.common.eppn = signup_user.eppn
+    session.implicit_login.ts = timestamp
     context.update({
         "status": 'verified',
         "password": password,
