@@ -52,12 +52,12 @@ signup_views = Blueprint('signup', __name__, url_prefix='', template_folder='tem
 def get_config():
     tou_url = current_app.config.get('TOU_URL')
     try:
-        r = requests.get(tou_url)
+        r = requests.get(tou_url, verify=False)
         current_app.logger.debug('Response: {!r} with headers: {!r}'.format(r, r.headers))
         if r.status_code == 302:
             headers = {'Cookie': r.headers.get('Set-Cookie')}
             current_app.logger.debug('Headers: {!r}'.format(headers))
-            r = requests.get(tou_url, headers=headers)
+            r = requests.get(tou_url, headers=headers, verify=False)
             current_app.logger.debug('2nd response: {!r} with headers: {!r}'.format(r, r.headers))
     except requests.exceptions.HTTPError as e:
         current_app.logger.error('Problem getting tous from URL {!r}: {!r}'.format(tou_url, e))
@@ -97,7 +97,7 @@ def trycaptcha(email, recaptcha_response, tou_accepted):
     config = current_app.config
     remote_ip = request.remote_addr
     recaptcha_public_key = config.get('RECAPTCHA_PUBLIC_KEY', '')
-        
+
     if recaptcha_public_key:
         recaptcha_private_key = config.get('RECAPTCHA_PRIVATE_KEY', '')
         recaptcha_verified = verify_recaptcha(recaptcha_private_key,
@@ -151,7 +151,7 @@ def resend_email_verification(email):
 @MarshalWith(FluxStandardAction)
 def verify_link(code):
     try:
-        user = verify_email_code(code)    
+        user = verify_email_code(code)
     except CodeDoesNotExist:
         return {
                 '_status': 'error',
