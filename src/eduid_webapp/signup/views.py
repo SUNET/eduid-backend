@@ -52,12 +52,12 @@ signup_views = Blueprint('signup', __name__, url_prefix='', template_folder='tem
 def get_config():
     tou_url = current_app.config.get('TOU_URL')
     try:
-        r = requests.get(tou_url, verify=False)
+        r = requests.get(tou_url)
         current_app.logger.debug('Response: {!r} with headers: {!r}'.format(r, r.headers))
         if r.status_code == 302:
             headers = {'Cookie': r.headers.get('Set-Cookie')}
             current_app.logger.debug('Headers: {!r}'.format(headers))
-            r = requests.get(tou_url, headers=headers, verify=False)
+            r = requests.get(tou_url, headers=headers)
             current_app.logger.debug('2nd response: {!r} with headers: {!r}'.format(r, r.headers))
     except requests.exceptions.HTTPError as e:
         current_app.logger.error('Problem getting tous from URL {!r}: {!r}'.format(tou_url, e))
