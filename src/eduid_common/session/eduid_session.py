@@ -20,7 +20,7 @@ from flask.sessions import SessionInterface, SessionMixin
 
 from eduid_common.api.exceptions import BadConfiguration
 from eduid_common.session.redis_session import SessionManager, RedisEncryptedSession
-from eduid_common.session.namespaces import SessionNSBase, Common, MfaAction, TokenLogin
+from eduid_common.session.namespaces import SessionNSBase, Common, MfaAction, ImplicitLogin
 
 
 class EduidSession(SessionMixin, MutableMapping):
@@ -50,7 +50,7 @@ class EduidSession(SessionMixin, MutableMapping):
         # Namespaces
         self._common: Optional[Common] = None
         self._mfa_action: Optional[MfaAction] = None
-        self._token_login: Optional[TokenLogin] = None
+        self._implicit_login: Optional[ImplicitLogin] = None
 
     def __getitem__(self, key, default=None):
         return self._session.__getitem__(key, default=None)

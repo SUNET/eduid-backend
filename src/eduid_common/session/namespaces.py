@@ -58,8 +58,6 @@ class MfaAction(SessionNSBase):
 
 
 @dataclass()
-class TokenLogin(SessionNSBase):
-    eppn: str = None
-    token: str = None
+class ImplicitLogin(SessionNSBase):
     ts: str = None
     session: Optional[str] = None
