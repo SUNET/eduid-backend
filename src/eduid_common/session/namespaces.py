@@ -14,12 +14,12 @@ __author__ = 'ft'
 class SessionNSBase(ABC):
 
     def to_dict(self):
-        raise NotImplementedError()
+        return asdict(self)
 
     @classmethod
-    @abstractmethod
     def from_dict(cls, data):
-        raise NotImplementedError()
+        _data = deepcopy(data)  # do not modify callers data
+        return cls(**_data)
 
 
 @unique
@@ -56,10 +56,10 @@ class MfaAction(SessionNSBase):
     authn_instant: Optional[str] = None
     authn_context: Optional[str] = None
 
-    def to_dict(self):
-        return asdict(self)
 
-    @classmethod
-    def from_dict(cls, data):
-        _data = deepcopy(data)  # do not modify callers data
-        return cls(**_data)
+@dataclass()
+class TokenLogin(SessionNSBase):
+    eppn: str = None
+    token: str = None
+    ts: str = None
+    session: Optional[str] = None
