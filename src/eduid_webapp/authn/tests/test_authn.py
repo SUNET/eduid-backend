@@ -299,14 +299,15 @@ class AuthnAPITestCase(AuthnAPITestBase):
         eppn = 'hubba-fooo'
         shared_key = self.app.config['SIGNUP_AND_AUTHN_SHARED_KEY']
         token, timestamp = generate_auth_token(shared_key, 'signup_login', eppn)
-        data = {
-            'eppn': eppn,
-            'token': token,
-            'ts': timestamp
-        }
 
         with self.app.test_client() as c:
-            resp = c.post('/token-login', data=data)
+            with c.session_transaction() as sess:
+                with self.app.test_request_context():
+                    sess.token_login.eppn = eppn
+                    sess.token_login.token = token
+                    sess.token_login.ts = timestamp
+
+            resp = c.get('/token-login')
             self.assertEqual(resp.status_code, 302)
             self.assertTrue(resp.location.startswith(self.app.config['TOKEN_LOGIN_SUCCESS_REDIRECT_URL']))
 
@@ -315,14 +316,15 @@ class AuthnAPITestCase(AuthnAPITestBase):
         eppn = 'hubba-bubba'
         shared_key = self.app.config['SIGNUP_AND_AUTHN_SHARED_KEY']
         token, timestamp = generate_auth_token(shared_key, 'signup_login', eppn)
-        data = {
-            'eppn': eppn,
-            'token': token,
-            'ts': timestamp
-        }
 
         with self.app.test_client() as c:
-            resp = c.post('/token-login', data=data)
+            with c.session_transaction() as sess:
+                with self.app.test_request_context():
+                    sess.token_login.eppn = eppn
+                    sess.token_login.token = token
+                    sess.token_login.ts = timestamp
+
+            resp = c.get('/token-login')
             self.assertEqual(resp.status_code, 302)
             self.assertTrue(resp.location.startswith(self.app.config['TOKEN_LOGIN_FAILURE_REDIRECT_URL']))
 
