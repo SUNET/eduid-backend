@@ -147,7 +147,7 @@ def generate_auth_token(shared_key, usage, data, ts=None):
     return b64.decode('utf-8'), timestamp
 
 
-def verify_auth_token(shared_key, eppn, token, nonce, timestamp, usage, generator=sha256):
+def verify_auth_token(shared_key, eppn, token, timestamp, usage, generator=sha256):
     """
     Authenticate a user with a token.
 
@@ -159,7 +159,6 @@ def verify_auth_token(shared_key, eppn, token, nonce, timestamp, usage, generato
     :param shared_key: Applications shared key
     :param eppn: the identifier of the user as string
     :param token: authentication token as string
-    :param nonce: a public nonce for this authentication request as string
     :param timestamp: unixtime of signup application as hex string
     :param usage: The intended usage of the token, to safeguard against tokens being maliciously
                   sent to another token consumer than intended
@@ -187,30 +186,5 @@ def verify_auth_token(shared_key, eppn, token, nonce, timestamp, usage, generato
         return plaintext == expected
     except (LookupError,  ValueError, nacl.exceptions.CryptoError) as e:
         logger.debug('Secretbox decryption failed, error: ' + str(e))
-
-    # Fall back to HMAC validation
-
-    # verify there is a long enough nonce
-    if len(nonce) < 16:
-        logger.warning('Auth token nonce {} too short'.format(nonce))
         return False
 
-    # verify token format
-    data = u'{0}|{1}|{2}|{3}'.format(shared_key, eppn, nonce, timestamp)
-    hashed = generator(data.encode('ascii'))
-    expected = hashed.hexdigest()
-    if len(expected) != len(token):
-        logger.warning('Auth token bad length')
-        return False
-
-    # constant time comparision of the hash, courtesy of
-    # http://rdist.root.org/2009/05/28/timing-attack-in-google-keyczar-library/
-    result = 0
-    if isinstance(expected, six.binary_type):
-        expected = expected.decode('ascii')
-    if isinstance(token, six.binary_type):
-        token = token.decode('ascii')
-    for x, y in zip(expected, token):
-        result |= ord(x) ^ ord(str(y))
-    logger.debug('Auth token match result: {}'.format(result == 0))
-    return result == 0
