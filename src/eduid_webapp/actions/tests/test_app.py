@@ -35,7 +35,6 @@ import time
 from hashlib import sha256
 from nacl import secret, utils, encoding
 from werkzeug.exceptions import InternalServerError, Forbidden
-from eduid_common.authn.utils import generate_auth_token
 
 from eduid_webapp.actions.testing import ActionsTestCase
 
@@ -59,30 +58,6 @@ class ActionsTests(ActionsTestCase):
                     response = self.authenticate(client, sess)
                 self.assertEqual(response.status_code, 200)
                 self.assertTrue(b'bundle-holder' in response.data)
-
-    def test_authn_secret_box(self):
-        with self.session_cookie(self.browser) as client:
-            with self.app.test_request_context():
-                eppn = 'dummy-eppn'
-                token, timestamp = generate_auth_token(
-                    self.app.config['TOKEN_LOGIN_SHARED_KEY'], 'idp_actions', eppn)
-
-            url = f'/?userid={eppn}&token={token}&ts={timestamp}'
-            with self.app.test_request_context(url):
-                response = client.get(url)
-                self.assertEqual(response.status, '200 OK')
-
-    def test_authn_wrong_secret(self):
-        with self.session_cookie(self.browser) as client:
-            with self.app.test_request_context():
-                eppn = 'dummy-eppn'
-                shared_key = 'wrong-shared-key'
-                token, timestamp = generate_auth_token(shared_key, 'idp_actions', eppn)
-
-            url = f'/?userid={eppn}&token={token}&ts={timestamp}'
-            with self.app.test_request_context(url):
-                with self.assertRaises(Forbidden):
-                    response = client.get(url)
 
     def test_get_config(self):
         with self.session_cookie(self.browser) as client:

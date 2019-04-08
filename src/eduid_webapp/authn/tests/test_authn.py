@@ -40,13 +40,13 @@ from hashlib import sha256
 from nacl import secret, utils, encoding
 from werkzeug.exceptions import NotFound
 from werkzeug.http import dump_cookie
-from flask import Blueprint
+from flask import Blueprint, session
 from saml2.s_utils import deflate_and_base64_encode
 
 from eduid_common.session import session
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.authn.cache import OutstandingQueriesCache
-from eduid_common.authn.utils import get_location, no_authn_views, generate_auth_token
+from eduid_common.authn.utils import get_location, no_authn_views
 from eduid_common.authn.eduid_saml2 import get_authn_request
 from eduid_common.authn.tests.responses import (auth_response,
                                                 logout_response,
@@ -295,38 +295,40 @@ class AuthnAPITestCase(AuthnAPITestBase):
 
         self.acs('/terminate', eppn, _check)
 
-    def test_token_login_new_user_secret_box(self):
+    def test_token_login_new_user(self):
         eppn = 'hubba-fooo'
-        shared_key = self.app.config['SIGNUP_AND_AUTHN_SHARED_KEY']
-        token, timestamp = generate_auth_token(shared_key, 'signup_login', eppn)
+        ts = int(time.time())
+        timestamp = '{:x}'.format(ts)
 
         with self.app.test_client() as c:
-            with c.session_transaction() as sess:
-                with self.app.test_request_context():
-                    sess.token_login.eppn = eppn
-                    sess.token_login.token = token
-                    sess.token_login.ts = timestamp
+            with self.app.test_request_context('/implicit-login'):
+                c.set_cookie('test.localhost',
+                             key=self.app.config.get('SESSION_COOKIE_NAME'),
+                             value=session._session.token)
+                session.common.eppn = eppn
+                session.implicit_login.ts = timestamp
 
-            resp = c.get('/token-login')
-            self.assertEqual(resp.status_code, 302)
-            self.assertTrue(resp.location.startswith(self.app.config['TOKEN_LOGIN_SUCCESS_REDIRECT_URL']))
+                resp = self.app.dispatch_request()
+                self.assertEqual(resp.status_code, 302)
+                self.assertTrue(resp.location.startswith(self.app.config['TOKEN_LOGIN_SUCCESS_REDIRECT_URL']))
 
-    def test_token_login_old_user_secret_box(self):
+    def test_token_login_old_user(self):
         """ A user that has verified their account should not try to use token login """
         eppn = 'hubba-bubba'
-        shared_key = self.app.config['SIGNUP_AND_AUTHN_SHARED_KEY']
-        token, timestamp = generate_auth_token(shared_key, 'signup_login', eppn)
+        ts = int(time.time())
+        timestamp = '{:x}'.format(ts)
 
         with self.app.test_client() as c:
-            with c.session_transaction() as sess:
-                with self.app.test_request_context():
-                    sess.token_login.eppn = eppn
-                    sess.token_login.token = token
-                    sess.token_login.ts = timestamp
+            with self.app.test_request_context('/implicit-login'):
+                c.set_cookie('test.localhost',
+                             key=self.app.config.get('SESSION_COOKIE_NAME'),
+                             value=session._session.token)
+                session.common.eppn = eppn
+                session.implicit_login.ts = timestamp
 
-            resp = c.get('/token-login')
-            self.assertEqual(resp.status_code, 302)
-            self.assertTrue(resp.location.startswith(self.app.config['TOKEN_LOGIN_FAILURE_REDIRECT_URL']))
+                resp = self.app.dispatch_request()
+                self.assertEqual(resp.status_code, 302)
+                self.assertTrue(resp.location.startswith(self.app.config['TOKEN_LOGIN_FAILURE_REDIRECT_URL']))
 
 
 class UnAuthnAPITestCase(EduidAPITestCase):

@@ -259,8 +259,8 @@ def logout_service():
     abort(400)
 
 
-@authn_views.route('/token-login', methods=['GET'])
-def token_login():
+@authn_views.route('/implicit-login', methods=['GET'])
+def implicit_login():
     current_app.logger.debug('Starting token login')
     location_on_fail = current_app.config.get('TOKEN_LOGIN_FAILURE_REDIRECT_URL')
     location_on_success = current_app.config.get('TOKEN_LOGIN_SUCCESS_REDIRECT_URL')

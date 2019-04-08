@@ -31,6 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 from __future__ import absolute_import
 
+import time
 from copy import deepcopy
 from contextlib import contextmanager
 from bson import ObjectId
@@ -39,7 +40,6 @@ from mock import MagicMock
 
 from eduid_userdb.userdb import User
 from eduid_userdb.testing import MOCKED_USER_STANDARD
-from eduid_common.authn.utils import generate_auth_token
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_webapp.actions.app import actions_init_app
 from eduid_webapp.actions.action_abc import ActionPlugin
@@ -182,15 +182,17 @@ class ActionsTestCase(EduidAPITestCase):
         if set_plugin:
             self.app.plugins[plugin_name] = plugin_class
 
-    def authenticate(self, client, sess, shared_key=None, idp_session=None):
+    def authenticate(self, client, sess, idp_session=None):
         eppn = self.test_eppn
-        if shared_key is None:
-            shared_key = self.app.config.get('TOKEN_LOGIN_SHARED_KEY')
-        token, timestamp = generate_auth_token(shared_key, usage='test_actions', data=eppn)
-        url = f'/?eppn={eppn}&token={token}&ts={timestamp}'
+        ts = int(time.time())
+        timestamp = '{:x}'.format(ts)
+        sess.common.eppn = eppn
+        sess.implicit_login.ts = timestamp
         if idp_session is not None:
-            url = f'{url}&session={idp_session}'
-        response = client.get(url)
+            sess.implicit_login.session = idp_session
+        sess.persist()
+        response = client.get('/')
+        sess.persist()
         return response
 
     def prepare(self, client, plugin_class, plugin_name, **kwargs):

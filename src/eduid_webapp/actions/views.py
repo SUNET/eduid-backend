@@ -39,6 +39,7 @@ from flask import abort, url_for, render_template, redirect
 from six.moves.urllib_parse import urlsplit, urlunsplit
 
 from eduid_userdb.actions import Action
+from eduid_common.authn.loa import get_loa
 from eduid_common.session import session
 from eduid_common.api.decorators import MarshalWith
 from eduid_common.api.schemas.base import FluxStandardAction
@@ -55,13 +56,15 @@ def authn():
     eppn = session.common.eppn
     timestamp = session.implicit_login.ts
     idp_session = session.implicit_login.session
+    loa = get_loa(current_app.config.get('AVAILABLE_LOA'), None)  # With no session_info lowest loa will be returned
 
     if check_implicit_login(eppn, timestamp):
         current_app.logger.info("Starting pre-login actions "
                                 "for eppn: {})".format(eppn))
-        session['eppn'] = eppn
         session['eduPersonPrincipalName'] = eppn
-        session['idp_session'] = idp_session
+        session['user_eppn'] = eppn
+        session['user_is_logged_in'] = True
+        session['eduPersonAssurance'] = loa
         url = url_for('actions.get_actions')
         return render_template('index.html', url=url)
     else:
@@ -103,10 +106,7 @@ def get_config():
 
 @actions_views.route('/get-actions', methods=['GET'])
 def get_actions():
-    if 'userid' in session:
-        user = current_app.central_userdb.get_user_by_id(session.get('userid'))
-    else:
-        user = current_app.central_userdb.get_user_by_eppn(session.get('eppn'))
+    user = current_app.central_userdb.get_user_by_eppn(session.get('user_eppn'))
     actions = get_next_action(user)
     if not actions['action']:
         return json.dumps({'action': False,
@@ -177,7 +177,7 @@ def _do_action():
             'errors': errors,
         }
 
-    eppn = session.get('userid', session.get('eppn'))
+    eppn = session.get('user_eppn')
     if session['total_steps'] == session['current_step']:
         current_app.logger.info('Finished pre-login action {} for eppn {}'.format(action.action_type, eppn))
         return {
@@ -192,7 +192,7 @@ def _do_action():
 
 
 def _aborted(action, exc):
-    eppn = session.get('userid', session.get('eppn'))
+    eppn = session.get('user_eppn')
     current_app.logger.info(u'Aborted pre-login action {} for eppn {}, '
                             u'reason: {}'.format(action.action_type,
                                                  eppn, exc.args[0]))

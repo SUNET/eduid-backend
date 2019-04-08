@@ -40,6 +40,7 @@ import unittest
 from mock import patch
 from datetime import datetime
 from bson import ObjectId
+from flask import session
 from eduid_userdb.tou import ToUEvent
 from eduid_webapp.actions.testing import MockIdPContext
 from eduid_webapp.actions.testing import ActionsTestCase
@@ -92,64 +93,72 @@ class ToUActionPluginTests(ActionsTestCase):
             ))
         self.app.central_userdb.save(self.user, check_sync=False)
 
+    def authenticate(self):
+        eppn = self.test_eppn
+        session['eduPersonPrincipalName'] = eppn
+        session['user_eppn'] = eppn
+        session['user_is_logged_in'] = True
+        session.persist()
+
+    def test_authn(self):
+        eppn = self.test_eppn
+        ts = int(time.time())
+        timestamp = '{:x}'.format(ts)
+        with self.app.test_request_context('/'):
+            session.common.eppn = eppn
+            session.implicit_login.ts = timestamp
+            response = self.app.dispatch_request()
+            self.assertEqual(response.status_code, 200)
+            data = json.loads(response.data)
+            self.assertEquals(session.get('user_eppn'), '')
+
     def test_get_tou_action(self):
-        with self.session_cookie(self.browser) as client:
-            with self.app.test_request_context():
-                mock_idp_app = MockIdPContext(self.app.actions_db, tou_version='test-version')
-                add_actions(mock_idp_app, self.user, None)
-                with client.session_transaction() as sess:
-                    self.authenticate(client, sess)
-                response = client.get('/get-actions')
-                self.assertEqual(response.status_code, 200)
-                data = json.loads(response.data)
-                self.assertEquals(data['action'], True)
-                self.assertEquals(data['url'], 'http://example.com/bundles/eduid_action.tou-bundle.dev.js')
+        mock_idp_app = MockIdPContext(self.app.actions_db, tou_version='test-version')
+        add_actions(mock_idp_app, self.user, None)
+        with self.app.test_request_context('/get-actions'):
+            self.authenticate()
+            response = self.app.dispatch_request()
+            data = json.loads(response)
+            self.assertEquals(data['action'], True)
+            self.assertEquals(data['url'], 'http://example.com/bundles/eduid_action.tou-bundle.dev.js')
 
     def test_get_config(self):
-        with self.session_cookie(self.browser) as client:
-            with self.app.test_request_context():
-                mock_idp_app = MockIdPContext(self.app.actions_db, tou_version='test-version')
-                add_actions(mock_idp_app, self.user, None)
-                with client.session_transaction() as sess:
-                    self.authenticate(client, sess)
-                response = client.get('/get-actions')
-                self.assertEqual(response.status_code, 200)
-                response = client.get('/config')
-                data = json.loads(response.data.decode('utf-8'))
-                self.assertEquals(data['payload']['tous']['sv'], 'test tou svenska')
+        mock_idp_app = MockIdPContext(self.app.actions_db, tou_version='test-version')
+        add_actions(mock_idp_app, self.user, None)
+        with self.app.test_request_context('/get-actions'):
+            self.authenticate()
+            response = self.app.dispatch_request()
+            data = json.loads(response.decode('utf-8'))
+            self.assertEquals(data['payload']['tous']['sv'], 'test tou svenska')
 
     def test_get_config_no_tous(self):
-        with self.session_cookie(self.browser) as client:
-            with self.app.test_request_context():
-                mock_idp_app = MockIdPContext(self.app.actions_db, tou_version='not-existing-version')
-                add_actions(mock_idp_app, self.user, None)
-                with client.session_transaction() as sess:
-                    self.authenticate(client, sess)
-                response = client.get('/get-actions')
-                self.assertEqual(response.status_code, 200)
-                response = client.get('/config')
-                data = json.loads(response.data.decode('utf-8'))
-                self.assertEquals(data['payload']['message'], 'tou.no-tou')
+        with self.app.test_request_context('/get-actions'):
+            mock_idp_app = MockIdPContext(self.app.actions_db, tou_version='not-existing-version')
+            add_actions(mock_idp_app, self.user, None)
+            self.authenticate()
+            response = client.get()
+            self.assertEqual(response.status_code, 200)
+            response = self.app.dispatch_request()
+            data = json.loads(response.decode('utf-8'))
+            self.assertEquals(data['payload']['message'], 'tou.no-tou')
 
     @unittest.skip("Fix when celery workers have proper de init or we have a singleton worker")
     def test_get_accept_tou(self):
-        with self.session_cookie(self.browser) as client:
-            self.prepare(client, Plugin, 'tou', action_dict=TOU_ACTION)
-            with self.app.test_request_context():
-                # verify the user hasn't previously accepted the test version
-                user = self.app.central_userdb.get_user_by_eppn(self.user.eppn)
-                self.assertFalse(user.tou.has_accepted(TOU_ACTION['params']['version']))
+        self.prepare(client, Plugin, 'tou', action_dict=TOU_ACTION)
+        with self.app.test_request_context():
+            # verify the user hasn't previously accepted the test version
+            user = self.app.central_userdb.get_user_by_eppn(self.user.eppn)
+            self.assertFalse(user.tou.has_accepted(TOU_ACTION['params']['version']))
 
-                with client.session_transaction() as sess:
-                    csrf_token = sess.get_csrf_token()
-                data = json.dumps({'accept': True, 'csrf_token': csrf_token})
-                response = client.post('/post-action', data=data, content_type=self.content_type_json)
-                self.assertEquals(response.status_code, 200)
-                data = json.loads(response.data)
-                self.assertEquals(data['payload']['message'], "actions.action-completed")
-                # verify the tou is now accepted in the main database
-                user = self.app.central_userdb.get_user_by_eppn(self.user.eppn)
-                self.assertTrue(user.tou.has_accepted(TOU_ACTION['params']['version']))
+            csrf_token = session.get_csrf_token()
+            data = json.dumps({'accept': True, 'csrf_token': csrf_token})
+            response = client.post('/post-action', data=data, content_type=self.content_type_json)
+            self.assertEquals(response.status_code, 200)
+            data = json.loads(response.data)
+            self.assertEquals(data['payload']['message'], "actions.action-completed")
+            # verify the tou is now accepted in the main database
+            user = self.app.central_userdb.get_user_by_eppn(self.user.eppn)
+            self.assertTrue(user.tou.has_accepted(TOU_ACTION['params']['version']))
 
     def test_get_not_accept_tou(self):
         with self.session_cookie(self.browser) as client:
