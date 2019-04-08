@@ -12,7 +12,7 @@ from fido2.ctap2 import AttestationObject
 from fido2 import cbor
 from fido2.ctap2 import AttestedCredentialData
 
-from eduid_userdb.credentials import Webauthn, U2F
+from eduid_userdb.credentials import Webauthn
 # TODO: Import FidoCredential in eduid_userdb.credentials so we can import it from there
 from eduid_userdb.credentials.fido import FidoCredential
 from eduid_userdb.security import SecurityUser
@@ -45,7 +45,6 @@ def make_credentials(creds):
             # cred is of type U2F (legacy registration)
             credential_data = AttestedCredentialData.from_ctap1(cred.keyhandle.encode('ascii'),
                                                                 cred.public_key.encode('ascii'))
-
         credentials.append(credential_data)
     return credentials
 
