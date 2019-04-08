@@ -97,7 +97,7 @@ def trycaptcha(email, recaptcha_response, tou_accepted):
     config = current_app.config
     remote_ip = request.remote_addr
     recaptcha_public_key = config.get('RECAPTCHA_PUBLIC_KEY', '')
-        
+
     if recaptcha_public_key:
         recaptcha_private_key = config.get('RECAPTCHA_PRIVATE_KEY', '')
         recaptcha_verified = verify_recaptcha(recaptcha_private_key,
@@ -151,7 +151,7 @@ def resend_email_verification(email):
 @MarshalWith(FluxStandardAction)
 def verify_link(code):
     try:
-        user = verify_email_code(code)    
+        user = verify_email_code(code)
     except CodeDoesNotExist:
         return {
                 '_status': 'error',

@@ -27,7 +27,7 @@ __author__ = 'eperez'
 REGISTRATION_DATA = {
     'publicKey': {'attestation': 'none',
                   'authenticatorSelection': {'requireResidentKey': False,
-                                              'userVerification': 'preferred'},
+                                              'userVerification': 'discouraged'},
                   'challenge': b')\x03\x00S\x8b\xe1X\xbb^R\x88\x9e\xe7\x8a\x03}'
                                b's\x8d\\\x80@\xfa\x18(\xa2O\xbfN\x84\x19R\\',
                   'excludeCredentials': [],
@@ -39,7 +39,7 @@ REGISTRATION_DATA = {
                               'name': 'John'}}}
 
 
-STATE = {'challenge': 'KQMAU4vhWLteUoie54oDfXONXIBA-hgook-_ToQZUlw', 'user_verification': 'preferred'}
+STATE = {'challenge': 'KQMAU4vhWLteUoie54oDfXONXIBA-hgook-_ToQZUlw', 'user_verification': 'discouraged'}
 
 # Data returned by the UA in response to the above registration data using a CTAP1 key, encoded as base64url
 REGISTERING_DATA = (b'onFhdHRlc3RhdGlvbk9iamVjdFjio2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YVjESZYN5'
@@ -73,7 +73,7 @@ CREDENTIAL_ID = ('31f8974379e65869f9b7caaf28f0e44eead0fdd883e9c545404e351824a6c4
 REGISTRATION_DATA_2 = {
     'publicKey': {'attestation': 'none',
                   'authenticatorSelection': {'requireResidentKey': False,
-                                              'userVerification': 'preferred'},
+                                              'userVerification': 'discouraged'},
                   'challenge': b"y\xe2*'\x8c\xea\xabF\xf0\xb8'k\x8c\x9ec\xd1"
                                b'ia\x1c\x9a\xd8\xfc5\xed\x0b@Q0\x9b\xe1u\r',
                   'excludeCredentials': [{'id': b'1\xf8\x97Cy\xe6Xi'
@@ -91,7 +91,7 @@ REGISTRATION_DATA_2 = {
                               'id': b'012345678901234567890123',
                               'name': 'John'}}}
 
-STATE_2 = {'challenge': 'eeIqJ4zqq0bwuCdrjJ5j0WlhHJrY_DXtC0BRMJvhdQ0', 'user_verification': 'preferred'}
+STATE_2 = {'challenge': 'eeIqJ4zqq0bwuCdrjJ5j0WlhHJrY_DXtC0BRMJvhdQ0', 'user_verification': 'discouraged'}
 
 # Data returned by the UA in response to the above registration data using a CTAP2 key, encoded as base64url
 REGISTERING_DATA_2 = (b'onFhdHRlc3RhdGlvbk9iamVjdFjio2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YVjESZYN5'
@@ -190,7 +190,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
                 with client.session_transaction() as sess:
                     self.assertIsNotNone(sess['_webauthn_state_'])
                     webauthn_state = sess['_webauthn_state_']
-                self.assertEqual(webauthn_state['user_verification'], 'preferred')
+                self.assertEqual(webauthn_state['user_verification'], 'discouraged')
                 self.assertIn('challenge', webauthn_state)
 
             data = json.loads(response2.data)
