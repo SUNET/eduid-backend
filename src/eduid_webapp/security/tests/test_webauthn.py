@@ -11,7 +11,7 @@ from fido2.client import ClientData
 from fido2.ctap2 import AttestationObject
 from fido2.server import Fido2Server, RelyingParty
 
-from eduid_userdb.credentials import Webauthn
+from eduid_userdb.credentials import Webauthn, U2F
 from eduid_userdb.security import SecurityUser
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_webapp.security.app import security_init_app
@@ -119,6 +119,7 @@ CLIENT_DATA_JSON_2 = (b'eyJjaGFsbGVuZ2UiOiJlZUlxSjR6cXEwYnd1Q2Ryako1ajBXbGhISnJZ
 CREDENTIAL_ID_2 = ('7bad3b59fa16e9e8840e2fd15c026a3c9a7d2877fd7d97c25a3b3158d1a9cba1e14b7c9913915'
                    'f912366c18bd06bc9e903bc779409a8a7c749511e2b44e54c88')
 
+
 class SecurityWebauthnTests(EduidAPITestCase):
 
     def load_app(self, config):
@@ -166,11 +167,23 @@ class SecurityWebauthnTests(EduidAPITestCase):
         self.app.central_userdb.save(self.test_user, check_sync=False)
         return credential
 
-    def _begin_register_key(self, other=None, authenticator='cross-platform'):
+    def _add_u2f_token_to_user(self, eppn):
+        user = self.app.central_userdb.get_user_by_eppn(eppn)
+        u2f_token = U2F(version='version', keyhandle='keyHandle', app_id='appId',
+                        public_key='publicKey', attest_cert='cert', description='description',
+                        application='eduid_security', created_ts=True)
+        user.credentials.add(u2f_token)
+        self.app.central_userdb.save(user)
+        return u2f_token
+
+    def _begin_register_key(self, other=None, authenticator='cross-platform', existing_legacy_token=False):
         response = self.browser.get('/webauthn/register/begin')
         self.assertEqual(response.status_code, 302)  # Redirect to token service
 
         eppn = self.test_user_data['eduPersonPrincipalName']
+
+        if existing_legacy_token:
+            self._add_u2f_token_to_user(eppn)
 
         if other == 'ctap1':
             user_token = self._add_token_to_user(REGISTERING_DATA, STATE)
@@ -201,23 +214,44 @@ class SecurityWebauthnTests(EduidAPITestCase):
     def test_begin_register_first_key(self):
         self._begin_register_key()
 
+    def test_begin_register_first_key_with_legacy_token(self):
+        self._begin_register_key(existing_legacy_token=True)
+
     def test_begin_register_2nd_key_ater_ctap1(self):
         self._begin_register_key(other='ctap1')
+
+    def test_begin_register_2nd_key_ater_ctap1_with_legacy_token(self):
+        self._begin_register_key(other='ctap1', existing_legacy_token=True)
 
     def test_begin_register_2nd_key_ater_ctap2(self):
         self._begin_register_key(other='ctap2')
 
+    def test_begin_register_2nd_key_ater_ctap2_with_legacy_token(self):
+        self._begin_register_key(other='ctap2', existing_legacy_token=True)
+
     def test_begin_register_first_device(self):
         self._begin_register_key(authenticator='platform')
+
+    def test_begin_register_first_device_with_legacy_token(self):
+        self._begin_register_key(authenticator='platform', existing_legacy_token=True)
 
     def test_begin_register_2nd_device_ater_ctap1(self):
         self._begin_register_key(other='ctap1', authenticator='platform')
 
+    def test_begin_register_2nd_device_ater_ctap1_with_legacy_token(self):
+        self._begin_register_key(other='ctap1', authenticator='platform', existing_legacy_token=True)
+
     def test_begin_register_2nd_device_ater_ctap2(self):
         self._begin_register_key(other='ctap2', authenticator='platform')
 
-    def _finish_register_key(self, state, att, cdata, cred_id):
+    def test_begin_register_2nd_device_ater_ctap2_with_legacy_token(self):
+        self._begin_register_key(other='ctap2', authenticator='platform', existing_legacy_token=True)
+
+    def _finish_register_key(self, state, att, cdata, cred_id, existing_legacy_token=False):
         eppn = self.test_user_data['eduPersonPrincipalName']
+        if existing_legacy_token:
+            self._add_u2f_token_to_user(eppn)
+
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction() as sess:
                 sess['_webauthn_state_'] = state
@@ -236,19 +270,25 @@ class SecurityWebauthnTests(EduidAPITestCase):
                 self.assertEqual(data['type'], 'POST_WEBAUTHN_WEBAUTHN_REGISTER_COMPLETE_SUCCESS')
 
     def test_finish_register_ctap1(self):
-        self._finish_register_key(STATE,
-                                  ATTESTATION_OBJECT,
-                                  CLIENT_DATA_JSON,
-                                  CREDENTIAL_ID)
+        self._finish_register_key(STATE, ATTESTATION_OBJECT, CLIENT_DATA_JSON, CREDENTIAL_ID)
+
+    def test_finish_register_ctap1_with_legacy_token(self):
+        self._finish_register_key(STATE, ATTESTATION_OBJECT, CLIENT_DATA_JSON, CREDENTIAL_ID,
+                                  existing_legacy_token=True)
 
     def test_finish_register_ctap2(self):
-        self._finish_register_key(STATE_2,
-                                  ATTESTATION_OBJECT_2,
-                                  CLIENT_DATA_JSON_2,
-                                  CREDENTIAL_ID_2)
+        self._finish_register_key(STATE_2, ATTESTATION_OBJECT_2, CLIENT_DATA_JSON_2, CREDENTIAL_ID_2)
 
-    def _dont_remove_last(self, reg_data, state):
+    def test_finish_register_ctap2_with_legacy_token(self):
+        self._finish_register_key(STATE_2, ATTESTATION_OBJECT_2, CLIENT_DATA_JSON_2, CREDENTIAL_ID_2,
+                                  existing_legacy_token=True)
+
+    def _dont_remove_last(self, reg_data, state, existing_legacy_token=False):
         eppn = self.test_user_data['eduPersonPrincipalName']
+
+        if existing_legacy_token:
+            self._add_u2f_token_to_user(eppn)
+
         user_token = self._add_token_to_user(reg_data, state)
 
         response = self.browser.post('/webauthn/remove', data={})
@@ -274,13 +314,25 @@ class SecurityWebauthnTests(EduidAPITestCase):
         self._dont_remove_last(REGISTERING_DATA, STATE)
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_dont_remove_last_ctap1_with_legacy_token(self, mock_request_user_sync):
+        mock_request_user_sync.side_effect = self.request_user_sync
+        self._dont_remove_last(REGISTERING_DATA, STATE, existing_legacy_token=True)
+
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def test_dont_remove_last_ctap2(self, mock_request_user_sync):
         mock_request_user_sync.side_effect = self.request_user_sync
         self._dont_remove_last(REGISTERING_DATA_2, STATE_2)
 
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_dont_remove_last_ctap2_with_legacy_token(self, mock_request_user_sync):
+        mock_request_user_sync.side_effect = self.request_user_sync
+        self._dont_remove_last(REGISTERING_DATA_2, STATE_2, existing_legacy_token=True)
 
-    def _remove(self, reg_data, state, reg_data2, state2):
+    def _remove(self, reg_data, state, reg_data2, state2, existing_legacy_token=False):
         eppn = self.test_user_data['eduPersonPrincipalName']
+        if existing_legacy_token:
+            self._add_u2f_token_to_user(eppn)
+
         user_token = self._add_token_to_user(reg_data, state)
         user_token2 = self._add_token_to_user(reg_data2, state2)
 
@@ -311,6 +363,16 @@ class SecurityWebauthnTests(EduidAPITestCase):
         self._remove(REGISTERING_DATA, STATE, REGISTERING_DATA_2, STATE_2)
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_remove_ctap1_with_legacy_token(self, mock_request_user_sync):
+        mock_request_user_sync.side_effect = self.request_user_sync
+        self._remove(REGISTERING_DATA, STATE, REGISTERING_DATA_2, STATE_2, existing_legacy_token=True)
+
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def test_remove_ctap2(self, mock_request_user_sync):
         mock_request_user_sync.side_effect = self.request_user_sync
         self._remove(REGISTERING_DATA_2, STATE_2, REGISTERING_DATA, STATE)
+
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_remove_ctap2_legacy_token(self, mock_request_user_sync):
+        mock_request_user_sync.side_effect = self.request_user_sync
+        self._remove(REGISTERING_DATA_2, STATE_2, REGISTERING_DATA, STATE, existing_legacy_token=True)

@@ -36,15 +36,21 @@ def get_webauthn_server(rp_id, name='eduID security API'):
 def make_credentials(creds):
     credentials = []
     for cred in creds:
-        cred_data = base64.urlsafe_b64decode(cred.credential_data.encode('ascii'))
-        credential_data, rest = AttestedCredentialData.unpack_from(cred_data)
-        if rest:
-            continue
+        if isinstance(cred, Webauthn):
+            cred_data = base64.urlsafe_b64decode(cred.credential_data.encode('ascii'))
+            credential_data, rest = AttestedCredentialData.unpack_from(cred_data)
+            if rest:
+                continue
+        else:
+            # cred is of type U2F (legacy registration)
+            credential_data = AttestedCredentialData.from_ctap1(cred.keyhandle.encode('ascii'),
+                                                                cred.public_key.encode('ascii'))
         credentials.append(credential_data)
     return credentials
 
 
 webauthn_views = Blueprint('webauthn', __name__, url_prefix='/webauthn', template_folder='templates')
+
 
 @webauthn_views.route('/register/begin', methods=['POST'])
 @UnmarshalWith(WebauthnRegisterBeginSchema)
