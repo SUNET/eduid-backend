@@ -35,6 +35,7 @@ from __future__ import absolute_import
 __author__ = 'eperez'
 
 
+import time
 import json
 import unittest
 from mock import patch
@@ -62,11 +63,16 @@ def add_actions(idp_app, user, ticket):
     stripped down version of eduid_idp.tou_action.add_actions
     """
     version = idp_app.config.tou_version
-    idp_app.actions_db.add_action(
+    action = idp_app.actions_db.add_action(
         user.eppn,
         action_type = 'tou',
         preference = 100,
         params = {'version': version})
+    session['current_plugin'] = 'tou'
+    action_d = action.to_dict()
+    action_d['_id'] = str(action_d['_id'])
+    session['current_action'] = action_d
+    session.persist()
 
 class ToUActionPluginTests(ActionsTestCase):
 
@@ -93,29 +99,10 @@ class ToUActionPluginTests(ActionsTestCase):
             ))
         self.app.central_userdb.save(self.user, check_sync=False)
 
-    def authenticate(self):
-        eppn = self.test_eppn
-        session['eduPersonPrincipalName'] = eppn
-        session['user_eppn'] = eppn
-        session['user_is_logged_in'] = True
-        session.persist()
-
-    def test_authn(self):
-        eppn = self.test_eppn
-        ts = int(time.time())
-        timestamp = '{:x}'.format(ts)
-        with self.app.test_request_context('/'):
-            session.common.eppn = eppn
-            session.implicit_login.ts = timestamp
-            response = self.app.dispatch_request()
-            self.assertEqual(response.status_code, 200)
-            data = json.loads(response.data)
-            self.assertEquals(session.get('user_eppn'), '')
-
     def test_get_tou_action(self):
         mock_idp_app = MockIdPContext(self.app.actions_db, tou_version='test-version')
-        add_actions(mock_idp_app, self.user, None)
         with self.app.test_request_context('/get-actions'):
+            add_actions(mock_idp_app, self.user, None)
             self.authenticate()
             response = self.app.dispatch_request()
             data = json.loads(response)
@@ -124,22 +111,20 @@ class ToUActionPluginTests(ActionsTestCase):
 
     def test_get_config(self):
         mock_idp_app = MockIdPContext(self.app.actions_db, tou_version='test-version')
-        add_actions(mock_idp_app, self.user, None)
-        with self.app.test_request_context('/get-actions'):
+        with self.app.test_request_context('/config'):
+            add_actions(mock_idp_app, self.user, None)
             self.authenticate()
             response = self.app.dispatch_request()
-            data = json.loads(response.decode('utf-8'))
+            data = json.loads(response.data.decode('utf-8'))
             self.assertEquals(data['payload']['tous']['sv'], 'test tou svenska')
 
     def test_get_config_no_tous(self):
-        with self.app.test_request_context('/get-actions'):
-            mock_idp_app = MockIdPContext(self.app.actions_db, tou_version='not-existing-version')
+        mock_idp_app = MockIdPContext(self.app.actions_db, tou_version='not-existing-version')
+        with self.app.test_request_context('/config'):
             add_actions(mock_idp_app, self.user, None)
             self.authenticate()
-            response = client.get()
-            self.assertEqual(response.status_code, 200)
             response = self.app.dispatch_request()
-            data = json.loads(response.decode('utf-8'))
+            data = json.loads(response.data.decode('utf-8'))
             self.assertEquals(data['payload']['message'], 'tou.no-tou')
 
     @unittest.skip("Fix when celery workers have proper de init or we have a singleton worker")

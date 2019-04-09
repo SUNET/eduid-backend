@@ -37,6 +37,7 @@ from contextlib import contextmanager
 from bson import ObjectId
 from datetime import datetime
 from mock import MagicMock
+from flask import session
 
 from eduid_userdb.userdb import User
 from eduid_userdb.testing import MOCKED_USER_STANDARD
@@ -174,6 +175,7 @@ class ActionsTestCase(EduidAPITestCase):
         action_dict['_id'] = str(action_dict['_id'])
         with client.session_transaction() as sess:
             sess['eppn'] = str(action_dict['eppn'])
+            sess['user_eppn'] = str(action_dict['eppn'])
             sess['current_action'] = action_dict
             sess['current_plugin'] = plugin_name
             sess['idp_session'] = idp_session
@@ -182,18 +184,16 @@ class ActionsTestCase(EduidAPITestCase):
         if set_plugin:
             self.app.plugins[plugin_name] = plugin_class
 
-    def authenticate(self, client, sess, idp_session=None):
+    def authenticate(self, action_type=None, idp_session=None):
         eppn = self.test_eppn
-        ts = int(time.time())
-        timestamp = '{:x}'.format(ts)
-        sess.common.eppn = eppn
-        sess.implicit_login.ts = timestamp
-        if idp_session is not None:
-            sess.implicit_login.session = idp_session
-        sess.persist()
-        response = client.get('/')
-        sess.persist()
-        return response
+        session['eduPersonPrincipalName'] = eppn
+        session['user_eppn'] = eppn
+        session['user_is_logged_in'] = True
+        if action_type is not None:
+            session['current_plugin'] = action_type
+        if idp_session is  not None:
+            session.implicit_login.session = idp_session
+        session.persist()
 
     def prepare(self, client, plugin_class, plugin_name, **kwargs):
         self.prepare_session(client, plugin_name=plugin_name,

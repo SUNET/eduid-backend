@@ -48,16 +48,21 @@ class ActionsTests(ActionsTestCase):
         return config
 
     def test_authn_no_data(self):
-        response = self.browser.get('/')
-        self.assertEqual(response.status_code, 400)
+        with self.assertRaises(Forbidden):
+            response = self.browser.get('/')
 
     def test_authn(self):
-        with self.session_cookie(self.browser) as client:
-            with self.app.test_request_context():
-                with client.session_transaction() as sess:
-                    response = self.authenticate(client, sess)
-                self.assertEqual(response.status_code, 200)
-                self.assertTrue(b'bundle-holder' in response.data)
+        eppn = self.test_eppn
+        ts = int(time.time())
+        timestamp = '{:x}'.format(ts)
+        with self.app.test_client() as c:
+            with c.session_transaction() as sess:
+                sess.common.eppn = eppn
+                sess.implicit_login.ts = timestamp
+                sess.persist()
+            response = c.get('/')
+            self.assertIn(b'/get-actions', response.data)
+            self.assertTrue(b'bundle-holder' in response.data)
 
     def test_get_config(self):
         with self.session_cookie(self.browser) as client:
@@ -96,18 +101,20 @@ class ActionsTests(ActionsTestCase):
     def test_get_actions_no_action(self):
         with self.session_cookie(self.browser) as client:
             self.prepare_session(client, add_action=False)
-            response = client.get('/get-actions')
-            self.assertEqual(response.status_code, 200)
-            data = json.loads(response.data)
-            self.assertFalse(data['action'])
-            self.assertEquals(data['url'], 'https://example.com/idp?key=dummy-session')
+            with self.app.test_request_context('/get-actions'):
+                self.authenticate(idp_session='dummy-session')
+                response = self.app.dispatch_request()
+                data = json.loads(response)
+                self.assertFalse(data['action'])
+                self.assertEquals(data['url'], 'https://example.com/idp?key=dummy-session')
 
     def test_get_actions_no_plugin(self):
         with self.session_cookie(self.browser) as client:
             self.prepare_session(client, set_plugin=False)
             with self.app.test_request_context('/get-actions'):
+                self.authenticate(idp_session='dummy-session')
                 try:
-                    response = client.get('/get-actions')
+                    self.app.dispatch_request()
                 except InternalServerError:
                     pass
 

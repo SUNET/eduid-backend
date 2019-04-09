@@ -91,8 +91,7 @@ def get_config():
     except KeyError:
         abort(403)
     plugin_obj = current_app.plugins[action_type]()
-    old_format = 'user_oid' in session['current_action']
-    action = Action(data=session['current_action'], old_format=old_format)
+    action = Action(data=session['current_action'])
     try:
         config = plugin_obj.get_config_for_bundle(action)
         config['csrf_token'] = session.new_csrf_token()
