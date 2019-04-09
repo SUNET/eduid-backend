@@ -101,15 +101,15 @@ class EduidSession(SessionMixin, MutableMapping):
             self._mfa_action = value
 
     @property
-    def token_login(self) -> Optional[TokenLogin]:
-        if not self._token_login:
-            self._token_login = TokenLogin.from_dict(self._session.get('_token_login', {}))
-        return self._token_login
+    def implicit_login(self) -> Optional[ImplicitLogin]:
+        if not self._implicit_login:
+            self._implicit_login = ImplicitLogin.from_dict(self._session.get('_implicit_login', {}))
+        return self._implicit_login
 
-    @token_login.setter
-    def token_login(self, value: Optional[TokenLogin]):
-        if not self._token_login:
-            self._token_login = value
+    @implicit_login.setter
+    def implicit_login(self, value: Optional[ImplicitLogin]):
+        if not self._implicit_login:
+            self._implicit_login = value
 
     @property
     def token(self):
