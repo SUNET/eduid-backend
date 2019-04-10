@@ -120,7 +120,7 @@ def generate_password(length=12):
     return pwgen(int(length), no_capitalize=True, no_symbols=True)
 
 
-def check_implicit_login(eppn, timestamp):
+def check_implicit_login():
     """
     Check that the user, though not properly authenticated, has been recognized
     by some app with access to the shared session
