@@ -124,6 +124,7 @@ def check_implicit_login():
     """
     Check that the user, though not properly authenticated, has been recognized
     by some app with access to the shared session
+    Must be called within a request context.
 
     Used after signup or for idp actions.
 
@@ -132,7 +133,7 @@ def check_implicit_login():
     eppn = session.common.eppn
     timestamp = session.implicit_login.ts
     logger.debug('Trying to authenticate user {} with timestamp {!r}'.format(eppn, timestamp))
-    # check that the eppn has been set (got from the session)
+    # check that the eppn has been set
     if eppn is None:
         return None
     # check timestamp to make sure it is within -300..900 seconds from now
