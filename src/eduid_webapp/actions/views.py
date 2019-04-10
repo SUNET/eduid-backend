@@ -53,12 +53,9 @@ actions_views = Blueprint('actions', __name__, url_prefix='', template_folder='t
 def authn():
     '''
     '''
-    eppn = session.common.eppn
-    timestamp = session.implicit_login.ts
-    idp_session = session.implicit_login.session
-    loa = get_loa(current_app.config.get('AVAILABLE_LOA'), None)  # With no session_info lowest loa will be returned
-
-    if check_implicit_login(eppn, timestamp):
+    eppn = check_implicit_login()
+    if eppn is not None:
+        loa = get_loa(current_app.config.get('AVAILABLE_LOA'), None)  # With no session_info lowest loa will be returned
         current_app.logger.info("Starting pre-login actions "
                                 "for eppn: {})".format(eppn))
         session['eduPersonPrincipalName'] = eppn

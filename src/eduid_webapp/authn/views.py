@@ -265,12 +265,17 @@ def implicit_login():
     location_on_fail = current_app.config.get('TOKEN_LOGIN_FAILURE_REDIRECT_URL')
     location_on_success = current_app.config.get('TOKEN_LOGIN_SUCCESS_REDIRECT_URL')
 
-    eppn = session.common.eppn
-    timestamp = session.implicit_login.ts
-    loa = get_loa(current_app.config.get('AVAILABLE_LOA'), None)  # With no session_info lowest loa will be returned
-    if check_implicit_login(eppn, timestamp):
+    eppn = check_implicit_login()
+    if eppn is not None:
+        loa = get_loa(current_app.config.get('AVAILABLE_LOA'), None)  # With no session_info lowest loa will be returned
+        current_app.logger.info("Starting pre-login actions " "for eppn: {})".format(eppn))
         try:
             user = current_app.central_userdb.get_user_by_eppn(eppn)
+        except current_app.central_userdb.exceptions.UserDoesNotExist:
+            current_app.logger.error('No user with eduPersonPrincipalName = {} found'.format(eppn))
+        except current_app.central_userdb.exceptions.MultipleUsersReturned:
+            current_app.logger.error("There are more than one user with eduPersonPrincipalName = {}".format(eppn))
+        else:
             if user.locked_identity.count > 0:
                 # This user has previously verified their account and is not new, this should not happen.
                 current_app.logger.error('Not new user {} tried to log in using token login'.format(user))
@@ -285,10 +290,6 @@ def implicit_login():
             current_app.logger.info('Successful token login, redirecting user {} to {}'.format(user,
                                                                                                location_on_success))
             return response
-        except current_app.central_userdb.exceptions.UserDoesNotExist:
-            current_app.logger.error('No user with eduPersonPrincipalName = {} found'.format(eppn))
-        except current_app.central_userdb.exceptions.MultipleUsersReturned:
-            current_app.logger.error("There are more than one user with eduPersonPrincipalName = {}".format(eppn))
 
     current_app.logger.info('Token login failed, redirecting user to {}'.format(location_on_fail))
     return redirect(location_on_fail)
