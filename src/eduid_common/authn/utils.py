@@ -37,6 +37,7 @@ import imp
 import time
 from saml2.config import SPConfig
 from pwgen import pwgen
+from flask import session
 
 from eduid_common.api.utils import urlappend
 
@@ -122,25 +123,24 @@ def generate_password(length=12):
 def check_implicit_login(eppn, timestamp):
     """
     Check that the user, though not properly authenticated, has been recognized
-    by some app with access to the shared session (the eppn and timestamp
-    arguments come from the session in the callers)
+    by some app with access to the shared session
 
     Used after signup or for idp actions.
 
-    :param eppn: the identifier of the user as string
-    :param timestamp: unixtime of signup application as hex string
-    :return: bool, True on valid authentication
+    :return: The eppn in case the check is successful, None otherwise
     """
+    eppn = session.common.eppn
+    timestamp = session.implicit_login.ts
     logger.debug('Trying to authenticate user {} with timestamp {!r}'.format(eppn, timestamp))
     # check that the eppn has been set (got from the session)
     if eppn is None:
-        return False
+        return None
     # check timestamp to make sure it is within -300..900 seconds from now
     now = int(time.time())
     ts = int(timestamp, 16)
     if (ts < now - 300) or (ts > now + 900):
         logger.debug('Auth token timestamp {} out of bounds ({} seconds from {})'.format(
             timestamp, ts - now, now))
-        return False
-    return True
+        return None
+    return eppn
 
