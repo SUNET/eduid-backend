@@ -133,10 +133,10 @@ def check_implicit_login():
     eppn = session.common.eppn
     timestamp = session.implicit_login.ts
     logger.debug('Trying to authenticate user {} with timestamp {!r}'.format(eppn, timestamp))
-    # check that the eppn has been set
-    if eppn is None:
+    # check that the eppn and timestamp have been set in the session
+    if eppn is None or timestamp is None:
         return None
-    # check timestamp to make sure it is within -300..900 seconds from now
+    # check timestamp to make sure it is within -300..900
     now = int(time.time())
     ts = int(timestamp, 16)
     if (ts < now - 300) or (ts > now + 900):
