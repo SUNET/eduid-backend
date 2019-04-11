@@ -40,7 +40,7 @@ from hashlib import sha256
 from nacl import secret, utils, encoding
 from werkzeug.exceptions import NotFound
 from werkzeug.http import dump_cookie
-from flask import Blueprint, session
+from flask import Blueprint
 from saml2.s_utils import deflate_and_base64_encode
 
 from eduid_common.session import session
@@ -70,15 +70,12 @@ class AuthnAPITestBase(EduidAPITestCase):
         according to the needs of this test case.
         """
         saml_config = os.path.join(HERE, 'saml2_settings.py')
-        signup_and_authn_shared_key = encoding.URLSafeBase64Encoder.encode(
-            (utils.random(secret.SecretBox.KEY_SIZE))).decode('utf-8')
         config.update({
             'SAML2_LOGIN_REDIRECT_URL': '/',
             'SAML2_LOGOUT_REDIRECT_URL': '/logged-out',
             'SAML2_SETTINGS_MODULE': saml_config,
-            'SIGNUP_AND_AUTHN_SHARED_KEY': signup_and_authn_shared_key,
-            'TOKEN_LOGIN_SUCCESS_REDIRECT_URL': 'http://test.localhost/success',
-            'TOKEN_LOGIN_FAILURE_REDIRECT_URL': 'http://test.localhost/failure',
+            'IMPLICIT_LOGIN_SUCCESS_REDIRECT_URL': 'http://test.localhost/success',
+            'IMPLICIT_LOGIN_FAILURE_REDIRECT_URL': 'http://test.localhost/failure',
             'SAFE_RELAY_DOMAIN': 'test.localhost'
             })
         return config

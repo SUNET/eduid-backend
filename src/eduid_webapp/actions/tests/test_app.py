@@ -42,8 +42,6 @@ from eduid_webapp.actions.testing import ActionsTestCase
 class ActionsTests(ActionsTestCase):
 
     def update_actions_config(self, config):
-        shared_key = encoding.URLSafeBase64Encoder.encode((utils.random(secret.SecretBox.KEY_SIZE))).decode('utf-8')
-        config['TOKEN_LOGIN_SHARED_KEY'] = shared_key
         config['TOU_VERSION'] = 'test-version'
         return config
 

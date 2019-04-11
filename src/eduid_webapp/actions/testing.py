@@ -37,8 +37,8 @@ from contextlib import contextmanager
 from bson import ObjectId
 from datetime import datetime
 from mock import MagicMock
-from flask import session
 
+from eduid_common.session import session
 from eduid_userdb.userdb import User
 from eduid_userdb.testing import MOCKED_USER_STANDARD
 from eduid_common.api.testing import EduidAPITestCase
@@ -109,7 +109,6 @@ TEST_CONFIG = {
     'DEVELOPMENT': 'DEBUG',
     'APPLICATION_ROOT': '/',
     'LOG_LEVEL': 'DEBUG',
-    'TOKEN_LOGIN_SHARED_KEY': 'shared_secret_Eifool0ua0eiph7ooc',
     'IDP_URL': 'https://example.com/idp',
     'INTERNAL_SIGNUP_URL': 'https://example.com/signup',
     'PRESERVE_CONTEXT_ON_EXCEPTION': False,

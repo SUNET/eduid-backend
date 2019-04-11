@@ -36,7 +36,7 @@ import json
 import base64
 from bson import ObjectId
 from mock import patch
-from flask import session
+from eduid_common.session import session
 from eduid_userdb.credentials import U2F
 from eduid_userdb.testing import MOCKED_USER_STANDARD
 from eduid_webapp.actions.testing import MockIdPContext

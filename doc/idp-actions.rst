@@ -74,22 +74,15 @@ the eduid_actions db.
 If any action is needed for the user, the process of issuing a SAML assertion
 is interrupted, and we redirect the user to the actions app, with a URL like::
 
-   https://actions.eduid.se/?eppn=hubba-bubba&token=abc&nonce=sdf&ts=1401093117
+   https://actions.eduid.se/
 
-The nonce and auth_token is an authentication mechanism based on a shared
-secret between the IdP and the actions app, to prove to the action app (without
-    using SAML assertions) that the user has been authenticated by the IdP.
-
-If we have inserted actions in the db with a session identifier (by examination
-of the SAML request), this identifier is sent to the actions app as a query
-param in the url::
-
-   https://actions.eduid.se/?eppn=hubba-bubba&token=abc&nonce=sdf&ts=1401093117&session=xyz
+Some data will be passed to the actions app in the shared session to convince
+the actions app that the IdP has already identified the user.
 
 The needed action is performed - or not
 ---------------------------------------
 
-If the actions app validates the auth token sent by the IdP, it sends in the
+If the actions app validates the request, it sends in the
 response an index.html with a js script that again queries the actions app,
 asking for the url of a react/redux bundled app to load, that will
 lead the user through the process required to perform the needed action. The
@@ -292,9 +285,6 @@ Configuration
 =============
 
 The configuration parameters needed for the backend actions app are:
-
-TOKEN_LOGIN_SHARED_KEY
-    A string to be shared with the IdP, used to authenticate the request.
 
 IDP_URL
     The URL of the IdP, where the app will redirect the user once there are no

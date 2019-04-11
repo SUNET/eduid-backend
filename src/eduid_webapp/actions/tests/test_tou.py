@@ -41,7 +41,7 @@ import unittest
 from mock import patch
 from datetime import datetime
 from bson import ObjectId
-from flask import session
+from eduid_common.session import session
 from eduid_userdb.tou import ToUEvent
 from eduid_webapp.actions.testing import MockIdPContext
 from eduid_webapp.actions.testing import ActionsTestCase
