@@ -3,8 +3,9 @@
 import re
 import six
 from uuid import uuid4
-from flask import current_app, session
+from flask import current_app
 
+from eduid_common.session import session
 from eduid_userdb.exceptions import UserDBValueError, EduIDUserDBError
 from eduid_userdb.exceptions import UserDoesNotExist, MultipleUsersReturned
 from eduid_common.api.exceptions import ApiException

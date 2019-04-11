@@ -37,7 +37,7 @@ import imp
 import time
 from saml2.config import SPConfig
 from pwgen import pwgen
-from flask import session
+from eduid_common.session import session
 
 from eduid_common.api.utils import urlappend
 
@@ -131,6 +131,8 @@ def check_implicit_login():
     :return: The eppn in case the check is successful, None otherwise
     """
     eppn = session.common.eppn
+    if eppn is None:
+        eppn = session['user_eppn']
     timestamp = session.implicit_login.ts
     logger.debug('Trying to authenticate user {} with timestamp {!r}'.format(eppn, timestamp))
     # check that the eppn and timestamp have been set in the session

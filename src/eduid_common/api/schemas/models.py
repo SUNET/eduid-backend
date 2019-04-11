@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from flask import session
+from eduid_common.session import session
 from eduid_common.api.utils import get_flux_type
 
 __author__ = 'lundberg'

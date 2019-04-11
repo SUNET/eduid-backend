@@ -11,7 +11,8 @@ try:
     from flask.logging import default_handler  # Flask 0.13
 except ImportError:
     default_handler = None
-from flask import session, current_app
+from flask import current_app
+from eduid_common.session import session
 from eduid_common.api.exceptions import BadConfiguration
 
 __author__ = 'lundberg'
