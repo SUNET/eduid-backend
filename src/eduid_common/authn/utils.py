@@ -132,7 +132,7 @@ def check_implicit_login():
     """
     eppn = session.common.eppn
     if eppn is None:
-        eppn = session['user_eppn']
+        eppn = session.get('user_eppn', None)
     timestamp = session.implicit_login.ts
     logger.debug('Trying to authenticate user {} with timestamp {!r}'.format(eppn, timestamp))
     # check that the eppn and timestamp have been set in the session
