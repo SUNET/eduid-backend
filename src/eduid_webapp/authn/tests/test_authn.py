@@ -307,7 +307,7 @@ class AuthnAPITestCase(AuthnAPITestBase):
 
                 resp = self.app.dispatch_request()
                 self.assertEqual(resp.status_code, 302)
-                self.assertTrue(resp.location.startswith(self.app.config['TOKEN_LOGIN_SUCCESS_REDIRECT_URL']))
+                self.assertTrue(resp.location.startswith(self.app.config['IMPLICIT_LOGIN_SUCCESS_REDIRECT_URL']))
 
     def test_token_login_old_user(self):
         """ A user that has verified their account should not try to use token login """
@@ -325,7 +325,7 @@ class AuthnAPITestCase(AuthnAPITestBase):
 
                 resp = self.app.dispatch_request()
                 self.assertEqual(resp.status_code, 302)
-                self.assertTrue(resp.location.startswith(self.app.config['TOKEN_LOGIN_FAILURE_REDIRECT_URL']))
+                self.assertTrue(resp.location.startswith(self.app.config['IMPLICIT_LOGIN_FAILURE_REDIRECT_URL']))
 
 
 class UnAuthnAPITestCase(EduidAPITestCase):

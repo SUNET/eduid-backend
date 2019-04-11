@@ -262,8 +262,8 @@ def logout_service():
 @authn_views.route('/implicit-login', methods=['GET'])
 def implicit_login():
     current_app.logger.debug('Starting token login')
-    location_on_fail = current_app.config.get('TOKEN_LOGIN_FAILURE_REDIRECT_URL')
-    location_on_success = current_app.config.get('TOKEN_LOGIN_SUCCESS_REDIRECT_URL')
+    location_on_fail = current_app.config.get('IMPLICIT_LOGIN_FAILURE_REDIRECT_URL')
+    location_on_success = current_app.config.get('IMPLICIT_LOGIN_SUCCESS_REDIRECT_URL')
 
     eppn = check_implicit_login()
     if eppn is not None:

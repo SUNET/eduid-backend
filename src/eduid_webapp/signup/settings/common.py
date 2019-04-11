@@ -56,7 +56,7 @@ SECRET_KEY = ''
 # Logging
 LOG_LEVEL = 'INFO'
 
-DASHBOARD_URL = '/profile/'
+IMPLICIT_LOGIN_URL = '/services/authn/implicit-login'
 
 PASSWORD_LENGTH = 10
 
