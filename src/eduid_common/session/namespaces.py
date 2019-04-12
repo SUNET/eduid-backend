@@ -87,4 +87,4 @@ class Signup(TimestampedNS):
 
 @dataclass()
 class Actions(TimestampedNS):
-    session: Optional[str] = None
+    idp_ticket_key: Optional[str] = None
