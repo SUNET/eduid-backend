@@ -2,6 +2,7 @@
 
 from abc import ABC, abstractmethod
 from copy import deepcopy
+from datetime import datetime
 
 from dataclasses import dataclass, asdict
 
@@ -43,10 +44,15 @@ class Common(SessionNSBase):
 
     @classmethod
     def from_dict(cls, data):
+        _data = cls.process_dict(data)
+        return cls(**_data)
+
+    @classmethod
+    def process_dict(cls, data):
         _data = deepcopy(data)  # do not modify callers data
         if _data.get('login_source') is not None:
             _data['login_source'] = LoginApplication(_data['login_source'])
-        return cls(**_data)
+        return _data
 
 
 @dataclass()
@@ -58,6 +64,27 @@ class MfaAction(SessionNSBase):
 
 
 @dataclass()
-class ImplicitLogin(SessionNSBase):
-    ts: Optional[str] = None
+class TimestampedNS(SessionNSBase):
+    ts: Optional[datetime] = None
+
+    def to_dict(self):
+        res = super(TimestampedNS, self).to_dict()
+        if res.get('ts') is not None:
+            res['ts'] = '{:x}'.format(int(res['ts'].timestamp()))
+        return res
+
+    @classmethod
+    def process_dict(cls, data):
+        _data = super(TimestampedNS, cls).process_dict(data)
+        if _data.get('ts') is not None:
+            _data['ts'] = datetime.fromtimestamp(int(_data['ts'], 16))
+        return _data
+
+
+@dataclass()
+class Signup(TimestampedNS):
+    ''''''
+
+@dataclass()
+class Actions(TimestampedNS):
     session: Optional[str] = None
