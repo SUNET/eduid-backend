@@ -74,7 +74,7 @@ def authn():
             current_app.logger.debug(msg.format(eppn, token, nonce, timestamp))
             abort(400)
 
-        shared_key = current_app.config.get('IDP_AND_ACTIONS_SHARED_KEY')
+        shared_key = current_app.config.get('TOKEN_LOGIN_SHARED_KEY')
         if verify_auth_token(shared_key=shared_key, eppn=eppn, token=token,
                              nonce=nonce, timestamp=timestamp, usage='idp_actions'):
             current_app.logger.info("Starting pre-login actions "

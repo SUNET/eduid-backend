@@ -268,8 +268,8 @@ from eduid_common.authn.utils import verify_auth_token
 def implicit_login():
 
     current_app.logger.debug('Starting token login')
-    location_on_fail = current_app.config.get('IMPLICIT_LOGIN_FAILURE_REDIRECT_URL')
-    location_on_success = current_app.config.get('IMPLICIT_LOGIN_SUCCESS_REDIRECT_URL')
+    location_on_fail = current_app.config.get('TOKEN_LOGIN_FAILURE_REDIRECT_URL')
+    location_on_success = current_app.config.get('TOKEN_LOGIN_SUCCESS_REDIRECT_URL')
 
     # XXX remove after transition to implicit logins
     token = request.form.get('token', None)
