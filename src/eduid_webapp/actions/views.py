@@ -43,7 +43,7 @@ from eduid_common.authn.loa import get_loa
 from eduid_common.session import session
 from eduid_common.api.decorators import MarshalWith
 from eduid_common.api.schemas.base import FluxStandardAction
-from eduid_common.authn.utils import check_implicit_login
+from eduid_common.authn.utils import check_previous_identification
 from eduid_webapp.actions.helpers import get_next_action
 
 actions_views = Blueprint('actions', __name__, url_prefix='', template_folder='templates')
@@ -53,7 +53,7 @@ actions_views = Blueprint('actions', __name__, url_prefix='', template_folder='t
 def authn():
     '''
     '''
-    eppn = check_implicit_login()
+    eppn = check_previous_identification(session.actions)
     if eppn is not None:
         loa = get_loa(current_app.config.get('AVAILABLE_LOA'), None)  # With no session_info lowest loa will be returned
         current_app.logger.info("Starting pre-login actions "
