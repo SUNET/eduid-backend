@@ -298,12 +298,12 @@ class AuthnAPITestCase(AuthnAPITestBase):
         timestamp = '{:x}'.format(ts)
 
         with self.app.test_client() as c:
-            with self.app.test_request_context('/implicit-login'):
+            with self.app.test_request_context('/signup-authn'):
                 c.set_cookie('test.localhost',
                              key=self.app.config.get('SESSION_COOKIE_NAME'),
                              value=session._session.token)
                 session.common.eppn = eppn
-                session.implicit_login.ts = timestamp
+                session.signup.ts = timestamp
 
                 resp = self.app.dispatch_request()
                 self.assertEqual(resp.status_code, 302)
@@ -316,12 +316,12 @@ class AuthnAPITestCase(AuthnAPITestBase):
         timestamp = '{:x}'.format(ts)
 
         with self.app.test_client() as c:
-            with self.app.test_request_context('/implicit-login'):
+            with self.app.test_request_context('/signup-authn'):
                 c.set_cookie('test.localhost',
                              key=self.app.config.get('SESSION_COOKIE_NAME'),
                              value=session._session.token)
                 session.common.eppn = eppn
-                session.implicit_login.ts = timestamp
+                session.signup.ts = timestamp
 
                 resp = self.app.dispatch_request()
                 self.assertEqual(resp.status_code, 302)

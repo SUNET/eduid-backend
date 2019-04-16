@@ -37,7 +37,7 @@ from eduid_common.session import session
 
 
 def get_next_action(user):
-    idp_session = session.implicit_login.session
+    idp_session = session.actions.idp_ticket_key
     action = current_app.actions_db.get_next_action(user.eppn, idp_session)
     if action is None:
         current_app.logger.info("Finished pre-login actions "

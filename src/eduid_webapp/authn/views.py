@@ -37,7 +37,7 @@ from saml2.response import LogoutResponse
 from saml2.metadata import entity_descriptor
 from werkzeug.exceptions import Forbidden
 from flask import request, redirect, abort, make_response
-from flask import current_app, Blueprint
+from flask import current_app, Blueprint, session
 
 from eduid_common.session import session
 from eduid_common.authn.utils import get_location
@@ -265,7 +265,7 @@ def signup_authn():
     location_on_fail = current_app.config.get('IMPLICIT_LOGIN_FAILURE_REDIRECT_URL')
     location_on_success = current_app.config.get('IMPLICIT_LOGIN_SUCCESS_REDIRECT_URL')
 
-    eppn = check_previous_identification(sesion.actions)
+    eppn = check_previous_identification(session.actions)
     if eppn is not None:
         loa = get_loa(current_app.config.get('AVAILABLE_LOA'), None)  # With no session_info lowest loa will be returned
         current_app.logger.info("Starting pre-login actions " "for eppn: {})".format(eppn))
