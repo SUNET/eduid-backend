@@ -148,7 +148,7 @@ def check_previous_identification(session_ns):
     return eppn
 
 
-# XXX the code below is deprecated and only kept fr the transition to implicit
+# XXX TRANSITION_TOKEN_LOGIN the code below is deprecated and only kept fr the transition to implicit
 # logins with data in the session. Please remove after the transition
 
 import six
