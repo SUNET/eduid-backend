@@ -44,15 +44,10 @@ class Common(SessionNSBase):
 
     @classmethod
     def from_dict(cls, data):
-        _data = cls.process_dict(data)
-        return cls(**_data)
-
-    @classmethod
-    def process_dict(cls, data):
         _data = deepcopy(data)  # do not modify callers data
         if _data.get('login_source') is not None:
             _data['login_source'] = LoginApplication(_data['login_source'])
-        return _data
+        return cls(**_data)
 
 
 @dataclass()
@@ -74,11 +69,11 @@ class TimestampedNS(SessionNSBase):
         return res
 
     @classmethod
-    def process_dict(cls, data):
-        _data = super(TimestampedNS, cls).process_dict(data)
+    def from_dict(cls, data):
+        _data = deepcopy(data)  # do not modify callers data
         if _data.get('ts') is not None:
             _data['ts'] = datetime.fromtimestamp(int(_data['ts'], 16))
-        return _data
+        return cls(**_data)
 
 
 @dataclass()
