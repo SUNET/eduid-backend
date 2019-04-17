@@ -265,7 +265,7 @@ def signup_authn():
     location_on_fail = current_app.config.get('SIGNUP_AUTHN_FAILURE_REDIRECT_URL')
     location_on_success = current_app.config.get('SIGNUP_AUTHN_SUCCESS_REDIRECT_URL')
 
-    eppn = check_previous_identification(session.actions)
+    eppn = check_previous_identification(session.signup)
     if eppn is not None:
         loa = get_loa(current_app.config.get('AVAILABLE_LOA'), None)  # With no session_info lowest loa will be returned
         current_app.logger.info("Starting pre-login actions " "for eppn: {})".format(eppn))
