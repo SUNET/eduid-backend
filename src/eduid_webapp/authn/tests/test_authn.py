@@ -74,8 +74,8 @@ class AuthnAPITestBase(EduidAPITestCase):
             'SAML2_LOGIN_REDIRECT_URL': '/',
             'SAML2_LOGOUT_REDIRECT_URL': '/logged-out',
             'SAML2_SETTINGS_MODULE': saml_config,
-            'IMPLICIT_LOGIN_SUCCESS_REDIRECT_URL': 'http://test.localhost/success',
-            'IMPLICIT_LOGIN_FAILURE_REDIRECT_URL': 'http://test.localhost/failure',
+            'SIGNUP_AUTHN_SUCCESS_REDIRECT_URL': 'http://test.localhost/success',
+            'SIGNUP_AUTHN_FAILURE_REDIRECT_URL': 'http://test.localhost/failure',
             'SAFE_RELAY_DOMAIN': 'test.localhost'
             })
         return config
@@ -307,7 +307,7 @@ class AuthnAPITestCase(AuthnAPITestBase):
 
                 resp = self.app.dispatch_request()
                 self.assertEqual(resp.status_code, 302)
-                self.assertTrue(resp.location.startswith(self.app.config['IMPLICIT_LOGIN_SUCCESS_REDIRECT_URL']))
+                self.assertTrue(resp.location.startswith(self.app.config['SIGNUP_AUTHN_SUCCESS_REDIRECT_URL']))
 
     def test_token_login_old_user(self):
         """ A user that has verified their account should not try to use token login """
@@ -325,7 +325,7 @@ class AuthnAPITestCase(AuthnAPITestBase):
 
                 resp = self.app.dispatch_request()
                 self.assertEqual(resp.status_code, 302)
-                self.assertTrue(resp.location.startswith(self.app.config['IMPLICIT_LOGIN_FAILURE_REDIRECT_URL']))
+                self.assertTrue(resp.location.startswith(self.app.config['SIGNUP_AUTHN_FAILURE_REDIRECT_URL']))
 
 
 class UnAuthnAPITestCase(EduidAPITestCase):

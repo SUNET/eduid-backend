@@ -13,5 +13,5 @@ required_loa = {
     'admin': 'http://www.swamid.se/policy/assurance/al3',
 }  # Should be changed to uppercase
 
-IMPLICIT_LOGIN_SUCCESS_REDIRECT_URL = "https://dashboard.eduid.se"
-IMPLICIT_LOGIN_FAILURE_REDIRECT_URL = "https://dashboard.eduid.se"
+SIGNUP_AUTHN_SUCCESS_REDIRECT_URL = "https://dashboard.eduid.se"
+SIGNUP_AUTHN_FAILURE_REDIRECT_URL = "https://dashboard.eduid.se"

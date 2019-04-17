@@ -65,7 +65,7 @@ def authn():
         url = url_for('actions.get_actions')
         return render_template('index.html', url=url)
     else:
-        current_app.logger.debug("Implicit authentication failed "
+        current_app.logger.debug("Signup authentication failed "
                                  "(eppn: {})".format(eppn))
         abort(403)
 

@@ -84,7 +84,7 @@ class SignupTests(EduidAPITestCase):
     def update_config(self, config):
         config.update({
             'AVAILABLE_LANGUAGES': {'en': 'English', 'sv': 'Svenska'},
-            'IMPLICIT_LOGIN_URL': '/services/authn/implicit-login',
+            'SIGNUP_AUTHN_URL': '/services/authn/signup-authn',
             'SIGNUP_URL': 'https://localhost/',
             'DEVELOPMENT': 'DEBUG',
             'APPLICATION_ROOT': '/',
@@ -134,7 +134,7 @@ class SignupTests(EduidAPITestCase):
 
             self.assertEqual('GET_SIGNUP_CONFIG_SUCCESS', config_data['type'])
             self.assertEqual(None, config_data['error'])
-            self.assertEqual('/services/authn/implicit-login',
+            self.assertEqual('/services/authn/signup-authn',
                     config_data['payload']['dashboard_url'])
             self.assertEqual('test tou english', config_data['payload']['tous']['en'])
             self.assertEqual('test tou svenska', config_data['payload']['tous']['sv'])

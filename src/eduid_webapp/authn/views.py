@@ -262,8 +262,8 @@ def logout_service():
 @authn_views.route('/signup-authn', methods=['GET'])
 def signup_authn():
     current_app.logger.debug('Authenticating signing up user')
-    location_on_fail = current_app.config.get('IMPLICIT_LOGIN_FAILURE_REDIRECT_URL')
-    location_on_success = current_app.config.get('IMPLICIT_LOGIN_SUCCESS_REDIRECT_URL')
+    location_on_fail = current_app.config.get('SIGNUP_AUTHN_FAILURE_REDIRECT_URL')
+    location_on_success = current_app.config.get('SIGNUP_AUTHN_SUCCESS_REDIRECT_URL')
 
     eppn = check_previous_identification(session.actions)
     if eppn is not None:
