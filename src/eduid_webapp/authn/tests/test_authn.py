@@ -33,6 +33,7 @@
 import six
 import os
 import time
+from datetime import datetime
 import json
 import base64
 from hashlib import sha256
@@ -294,8 +295,7 @@ class AuthnAPITestCase(AuthnAPITestBase):
 
     def test_token_login_new_user(self):
         eppn = 'hubba-fooo'
-        ts = int(time.time())
-        timestamp = '{:x}'.format(ts)
+        timestamp = datetime.fromtimestamp(time.time())
 
         with self.app.test_client() as c:
             with self.app.test_request_context('/signup-authn'):
@@ -312,8 +312,7 @@ class AuthnAPITestCase(AuthnAPITestBase):
     def test_token_login_old_user(self):
         """ A user that has verified their account should not try to use token login """
         eppn = 'hubba-bubba'
-        ts = int(time.time())
-        timestamp = '{:x}'.format(ts)
+        timestamp = datetime.fromtimestamp(time.time())
 
         with self.app.test_client() as c:
             with self.app.test_request_context('/signup-authn'):
