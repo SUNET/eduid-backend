@@ -166,10 +166,9 @@ def complete_registration(signup_user):
             'message': 'user-out-of-sync'
         }
 
-    ts = int(time.time())
-    timestamp = '{:x}'.format(ts)
+    timestamp = datetime.datetime.fromtimestamp(int(time.time()))
     session.common.eppn = signup_user.eppn
-    session.implicit_login.ts = timestamp
+    session.signup.ts = timestamp
     context.update({
         "status": 'verified',
         "password": password,

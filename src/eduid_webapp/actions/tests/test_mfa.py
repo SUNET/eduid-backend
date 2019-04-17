@@ -52,7 +52,7 @@ MFA_ACTION = {
         '_id': ObjectId('234567890123456789012301'),
         'eppn': MOCKED_USER_STANDARD['eduPersonPrincipalName'],
         'action': 'mfa',
-        'session': 'mock-session',
+        'idp_ticket_key': 'mock-session',
         'preference': 1,
         'params': {}
         }
@@ -67,7 +67,7 @@ def add_actions(context, user, ticket):
         user.eppn,
         action_type = 'mfa',
         preference = 1,
-        session = ticket.key,
+        idp_ticket_key = ticket.key,
         params = {})
     session['current_plugin'] = 'mfa'
     action_d = action.to_dict()

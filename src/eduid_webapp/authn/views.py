@@ -37,7 +37,7 @@ from saml2.response import LogoutResponse
 from saml2.metadata import entity_descriptor
 from werkzeug.exceptions import Forbidden
 from flask import request, redirect, abort, make_response
-from flask import current_app, Blueprint
+from flask import current_app, Blueprint, session
 
 from eduid_common.session import session
 from eduid_common.authn.utils import get_location
@@ -46,7 +46,7 @@ from eduid_common.authn.eduid_saml2 import get_authn_request, get_authn_response
 from eduid_common.authn.eduid_saml2 import authenticate
 from eduid_common.authn.cache import IdentityCache, StateCache
 from eduid_common.authn.acs_registry import get_action, schedule_action
-from eduid_common.authn.utils import check_implicit_login
+from eduid_common.authn.utils import check_previous_identification
 from eduid_common.api.utils import verify_relay_state
 
 
@@ -264,14 +264,13 @@ from eduid_common.authn.utils import verify_auth_token
 # XXX END remove
 
 
-@authn_views.route('/implicit-login', methods=['GET'])
-def implicit_login():
-
-    current_app.logger.debug('Starting token login')
-    location_on_fail = current_app.config.get('TOKEN_LOGIN_FAILURE_REDIRECT_URL')
-    location_on_success = current_app.config.get('TOKEN_LOGIN_SUCCESS_REDIRECT_URL')
+@authn_views.route('/signup-authn', methods=['GET'])
+def signup_authn():
+    current_app.logger.debug('Authenticating signing up user')
 
     # XXX remove after transition to implicit logins
+    location_on_fail = current_app.config.get('TOKEN_LOGIN_FAILURE_REDIRECT_URL')
+    location_on_success = current_app.config.get('TOKEN_LOGIN_SUCCESS_REDIRECT_URL')
     token = request.form.get('token', None)
     if token is not None:
         eppn = request.form.get('eppn')
@@ -306,7 +305,10 @@ def implicit_login():
         return redirect(location_on_fail)
     # XXX END remove
 
-    eppn = check_implicit_login()
+    location_on_fail = current_app.config.get('SIGNUP_AUTHN_FAILURE_REDIRECT_URL')
+    location_on_success = current_app.config.get('SIGNUP_AUTHN_SUCCESS_REDIRECT_URL')
+
+    eppn = check_previous_identification(session.signup)
     if eppn is not None:
         loa = get_loa(current_app.config.get('AVAILABLE_LOA'), None)  # With no session_info lowest loa will be returned
         current_app.logger.info("Starting pre-login actions " "for eppn: {})".format(eppn))

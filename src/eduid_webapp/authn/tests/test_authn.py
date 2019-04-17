@@ -33,6 +33,7 @@
 import six
 import os
 import time
+from datetime import datetime
 import json
 import base64
 from hashlib import sha256
@@ -74,8 +75,8 @@ class AuthnAPITestBase(EduidAPITestCase):
             'SAML2_LOGIN_REDIRECT_URL': '/',
             'SAML2_LOGOUT_REDIRECT_URL': '/logged-out',
             'SAML2_SETTINGS_MODULE': saml_config,
-            'IMPLICIT_LOGIN_SUCCESS_REDIRECT_URL': 'http://test.localhost/success',
-            'IMPLICIT_LOGIN_FAILURE_REDIRECT_URL': 'http://test.localhost/failure',
+            'SIGNUP_AUTHN_SUCCESS_REDIRECT_URL': 'http://test.localhost/success',
+            'SIGNUP_AUTHN_FAILURE_REDIRECT_URL': 'http://test.localhost/failure',
             'SAFE_RELAY_DOMAIN': 'test.localhost'
             })
         return config
@@ -294,38 +295,36 @@ class AuthnAPITestCase(AuthnAPITestBase):
 
     def test_token_login_new_user(self):
         eppn = 'hubba-fooo'
-        ts = int(time.time())
-        timestamp = '{:x}'.format(ts)
+        timestamp = datetime.fromtimestamp(time.time())
 
         with self.app.test_client() as c:
-            with self.app.test_request_context('/implicit-login'):
+            with self.app.test_request_context('/signup-authn'):
                 c.set_cookie('test.localhost',
                              key=self.app.config.get('SESSION_COOKIE_NAME'),
                              value=session._session.token)
                 session.common.eppn = eppn
-                session.implicit_login.ts = timestamp
+                session.signup.ts = timestamp
 
                 resp = self.app.dispatch_request()
                 self.assertEqual(resp.status_code, 302)
-                self.assertTrue(resp.location.startswith(self.app.config['IMPLICIT_LOGIN_SUCCESS_REDIRECT_URL']))
+                self.assertTrue(resp.location.startswith(self.app.config['SIGNUP_AUTHN_SUCCESS_REDIRECT_URL']))
 
     def test_token_login_old_user(self):
         """ A user that has verified their account should not try to use token login """
         eppn = 'hubba-bubba'
-        ts = int(time.time())
-        timestamp = '{:x}'.format(ts)
+        timestamp = datetime.fromtimestamp(time.time())
 
         with self.app.test_client() as c:
-            with self.app.test_request_context('/implicit-login'):
+            with self.app.test_request_context('/signup-authn'):
                 c.set_cookie('test.localhost',
                              key=self.app.config.get('SESSION_COOKIE_NAME'),
                              value=session._session.token)
                 session.common.eppn = eppn
-                session.implicit_login.ts = timestamp
+                session.signup.ts = timestamp
 
                 resp = self.app.dispatch_request()
                 self.assertEqual(resp.status_code, 302)
-                self.assertTrue(resp.location.startswith(self.app.config['IMPLICIT_LOGIN_FAILURE_REDIRECT_URL']))
+                self.assertTrue(resp.location.startswith(self.app.config['SIGNUP_AUTHN_FAILURE_REDIRECT_URL']))
 
 
 class UnAuthnAPITestCase(EduidAPITestCase):

@@ -56,7 +56,7 @@ SECRET_KEY = ''
 # Logging
 LOG_LEVEL = 'INFO'
 
-IMPLICIT_LOGIN_URL = '/services/authn/implicit-login'
+SIGNUP_AUTHN_URL = '/services/authn/signup-authn'
 
 PASSWORD_LENGTH = 10
 

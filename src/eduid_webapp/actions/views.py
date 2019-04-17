@@ -43,7 +43,7 @@ from eduid_common.authn.loa import get_loa
 from eduid_common.session import session
 from eduid_common.api.decorators import MarshalWith
 from eduid_common.api.schemas.base import FluxStandardAction
-from eduid_common.authn.utils import check_implicit_login
+from eduid_common.authn.utils import check_previous_identification
 from eduid_webapp.actions.helpers import get_next_action
 
 # XXX remove after transition to implicit logins
@@ -93,7 +93,7 @@ def authn():
             abort(403)
     # XXX END remove
 
-    eppn = check_implicit_login()
+    eppn = check_previous_identification(session.actions)
     if eppn is not None:
         loa = get_loa(current_app.config.get('AVAILABLE_LOA'), None)  # With no session_info lowest loa will be returned
         current_app.logger.info("Starting pre-login actions "
@@ -105,7 +105,7 @@ def authn():
         url = url_for('actions.get_actions')
         return render_template('index.html', url=url)
     else:
-        current_app.logger.debug("Implicit authentication failed "
+        current_app.logger.debug("Signup authentication failed "
                                  "(eppn: {})".format(eppn))
         abort(403)
 

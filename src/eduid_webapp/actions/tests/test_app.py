@@ -33,6 +33,7 @@
 import json
 import time
 from hashlib import sha256
+from datetime import datetime
 from nacl import secret, utils, encoding
 from werkzeug.exceptions import InternalServerError, Forbidden
 
@@ -51,12 +52,11 @@ class ActionsTests(ActionsTestCase):
 
     def test_authn(self):
         eppn = self.test_eppn
-        ts = int(time.time())
-        timestamp = '{:x}'.format(ts)
+        timestamp = datetime.fromtimestamp(int(time.time()))
         with self.app.test_client() as c:
             with c.session_transaction() as sess:
                 sess.common.eppn = eppn
-                sess.implicit_login.ts = timestamp
+                sess.actions.ts = timestamp
                 sess.persist()
             response = c.get('/')
             self.assertIn(b'/get-actions', response.data)
