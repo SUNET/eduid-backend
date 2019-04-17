@@ -140,7 +140,7 @@ def check_previous_identification(session_ns):
         return None
     # check timestamp to make sure it is within -300..900
     now = int(time.time())
-    ts = int(timestamp, 16)
+    ts = timestamp.timestamp()
     if (ts < now - 300) or (ts > now + 900):
         logger.debug('Auth token timestamp {} out of bounds ({} seconds from {})'.format(
             timestamp, ts - now, now))
