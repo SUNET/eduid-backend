@@ -56,7 +56,7 @@ class ActionsTests(ActionsTestCase):
         with self.app.test_client() as c:
             with c.session_transaction() as sess:
                 sess.common.eppn = eppn
-                sess.signup.ts = timestamp
+                sess.actions.ts = timestamp
                 sess.persist()
             response = c.get('/')
             self.assertIn(b'/get-actions', response.data)
