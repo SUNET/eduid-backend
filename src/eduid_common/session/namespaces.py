@@ -2,6 +2,7 @@
 
 from abc import ABC, abstractmethod
 from copy import deepcopy
+from datetime import datetime
 
 from dataclasses import dataclass, asdict
 
@@ -58,6 +59,27 @@ class MfaAction(SessionNSBase):
 
 
 @dataclass()
-class ImplicitLogin(SessionNSBase):
-    ts: Optional[str] = None
-    session: Optional[str] = None
+class TimestampedNS(SessionNSBase):
+    ts: Optional[datetime] = None
+
+    def to_dict(self):
+        res = super(TimestampedNS, self).to_dict()
+        if res.get('ts') is not None:
+            res['ts'] = '{:x}'.format(int(res['ts'].timestamp()))
+        return res
+
+    @classmethod
+    def from_dict(cls, data):
+        _data = deepcopy(data)  # do not modify callers data
+        if _data.get('ts') is not None:
+            _data['ts'] = datetime.fromtimestamp(int(_data['ts'], 16))
+        return cls(**_data)
+
+
+@dataclass()
+class Signup(TimestampedNS):
+    ''''''
+
+@dataclass()
+class Actions(TimestampedNS):
+    idp_ticket_key: Optional[str] = None

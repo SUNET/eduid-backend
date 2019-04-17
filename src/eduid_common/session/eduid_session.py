@@ -20,7 +20,8 @@ from flask.sessions import SessionInterface, SessionMixin
 
 from eduid_common.api.exceptions import BadConfiguration
 from eduid_common.session.redis_session import SessionManager, RedisEncryptedSession
-from eduid_common.session.namespaces import SessionNSBase, Common, MfaAction, ImplicitLogin
+from eduid_common.session.namespaces import SessionNSBase, Common, MfaAction
+from eduid_common.session.namespaces import Signup, Actions
 
 
 class EduidSession(SessionMixin, MutableMapping):
@@ -50,7 +51,8 @@ class EduidSession(SessionMixin, MutableMapping):
         # Namespaces
         self._common: Optional[Common] = None
         self._mfa_action: Optional[MfaAction] = None
-        self._implicit_login: Optional[ImplicitLogin] = None
+        self._signup: Optional[Signup] = None
+        self._actions: Optional[Actions] = None
 
     def __getitem__(self, key, default=None):
         return self._session.__getitem__(key, default=None)
@@ -101,15 +103,26 @@ class EduidSession(SessionMixin, MutableMapping):
             self._mfa_action = value
 
     @property
-    def implicit_login(self) -> Optional[ImplicitLogin]:
-        if not self._implicit_login:
-            self._implicit_login = ImplicitLogin.from_dict(self._session.get('_implicit_login', {}))
-        return self._implicit_login
+    def signup(self) -> Optional[Signup]:
+        if not self._signup:
+            self._signup = Signup.from_dict(self._session.get('_signup', {}))
+        return self._signup
 
-    @implicit_login.setter
-    def implicit_login(self, value: Optional[ImplicitLogin]):
-        if not self._implicit_login:
-            self._implicit_login = value
+    @signup.setter
+    def signup(self, value: Optional[Signup]):
+        if not self._signup:
+            self._signup = value
+
+    @property
+    def actions(self) -> Optional[Actions]:
+        if not self._actions:
+            self._actions = Actions.from_dict(self._session.get('_actions', {}))
+        return self._actions
+
+    @actions.setter
+    def actions(self, value: Optional[Actions]):
+        if not self._actions:
+            self._actions = value
 
     @property
     def token(self):

@@ -120,7 +120,7 @@ def generate_password(length=12):
     return pwgen(int(length), no_capitalize=True, no_symbols=True)
 
 
-def check_implicit_login():
+def check_previous_identification(session_ns):
     """
     Check that the user, though not properly authenticated, has been recognized
     by some app with access to the shared session
@@ -133,14 +133,14 @@ def check_implicit_login():
     eppn = session.common.eppn
     if eppn is None:
         eppn = session.get('user_eppn', None)
-    timestamp = session.implicit_login.ts
+    timestamp = session_ns.ts
     logger.debug('Trying to authenticate user {} with timestamp {!r}'.format(eppn, timestamp))
     # check that the eppn and timestamp have been set in the session
     if eppn is None or timestamp is None:
         return None
     # check timestamp to make sure it is within -300..900
     now = int(time.time())
-    ts = int(timestamp, 16)
+    ts = timestamp.timestamp()
     if (ts < now - 300) or (ts > now + 900):
         logger.debug('Auth token timestamp {} out of bounds ({} seconds from {})'.format(
             timestamp, ts - now, now))
