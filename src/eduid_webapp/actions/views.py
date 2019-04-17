@@ -46,7 +46,7 @@ from eduid_common.api.schemas.base import FluxStandardAction
 from eduid_common.authn.utils import check_previous_identification
 from eduid_webapp.actions.helpers import get_next_action
 
-# XXX remove after transition to implicit logins
+# XXX TRANSITION_TOKEN_LOGIN remove after transition to implicit logins
 from eduid_common.authn.utils import verify_auth_token
 # XXX END remove
 
@@ -59,7 +59,7 @@ def authn():
     '''
     '''
 
-    # XXX remove after transition to implicit logins
+    # XXX TRANSITION_TOKEN_LOGIN remove after transition to implicit logins
     token = request.args.get('token', None)
     if token is not None:
         userid = request.args.get('userid', None)

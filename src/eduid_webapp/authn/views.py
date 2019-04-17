@@ -259,7 +259,7 @@ def logout_service():
     abort(400)
 
 
-# XXX remove after transition to implicit logins
+# XXX TRANSITION_TOKEN_LOGIN remove after transition to implicit logins
 from eduid_common.authn.utils import verify_auth_token
 # XXX END remove
 
@@ -268,7 +268,7 @@ from eduid_common.authn.utils import verify_auth_token
 def signup_authn():
     current_app.logger.debug('Authenticating signing up user')
 
-    # XXX remove after transition to implicit logins
+    # XXX TRANSITION_TOKEN_LOGIN remove after transition to implicit logins
     location_on_fail = current_app.config.get('TOKEN_LOGIN_FAILURE_REDIRECT_URL')
     location_on_success = current_app.config.get('TOKEN_LOGIN_SUCCESS_REDIRECT_URL')
     token = request.form.get('token', None)
