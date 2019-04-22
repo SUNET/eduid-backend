@@ -264,7 +264,7 @@ from eduid_common.authn.utils import verify_auth_token
 # XXX END remove
 
 
-@authn_views.route('/signup-authn', methods=['GET'])
+@authn_views.route('/signup-authn', methods=['GET', 'POST'])
 def signup_authn():
     current_app.logger.debug('Authenticating signing up user')
 

@@ -191,7 +191,7 @@ class ActionsTestCase(EduidAPITestCase):
         if action_type is not None:
             session['current_plugin'] = action_type
         if idp_session is  not None:
-            session.actions.idp_ticket_key = idp_session
+            session.actions.session = idp_session
         session.persist()
 
     def prepare(self, client, plugin_class, plugin_name, **kwargs):

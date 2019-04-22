@@ -37,7 +37,13 @@ from eduid_common.session import session
 
 
 def get_next_action(user):
-    idp_session = session.actions.idp_ticket_key
+    idp_session = session.actions.session
+
+    # XXX TRANSITION_TOKEN_LOGIN the code below is deprecated and only kept fr the transition to implicit
+    if idp_session is None:
+        idp_session = session.get('idp_session', None)
+    # XXX end TRANSITION_TOKEN_LOGIN the code below is deprecated and only kept fr the transition to implicit
+
     action = current_app.actions_db.get_next_action(user.eppn, idp_session)
     if action is None:
         current_app.logger.info("Finished pre-login actions "
