@@ -2,6 +2,7 @@
 
 from abc import ABC, abstractmethod
 from copy import deepcopy
+from datetime import datetime
 
 from dataclasses import dataclass, asdict
 
@@ -14,12 +15,12 @@ __author__ = 'ft'
 class SessionNSBase(ABC):
 
     def to_dict(self):
-        raise NotImplementedError()
+        return asdict(self)
 
     @classmethod
-    @abstractmethod
     def from_dict(cls, data):
-        raise NotImplementedError()
+        _data = deepcopy(data)  # do not modify callers data
+        return cls(**_data)
 
 
 @unique
@@ -56,10 +57,29 @@ class MfaAction(SessionNSBase):
     authn_instant: Optional[str] = None
     authn_context: Optional[str] = None
 
+
+@dataclass()
+class TimestampedNS(SessionNSBase):
+    ts: Optional[datetime] = None
+
     def to_dict(self):
-        return asdict(self)
+        res = super(TimestampedNS, self).to_dict()
+        if res.get('ts') is not None:
+            res['ts'] = str(int(res['ts'].timestamp()))
+        return res
 
     @classmethod
     def from_dict(cls, data):
         _data = deepcopy(data)  # do not modify callers data
+        if _data.get('ts') is not None:
+            _data['ts'] = datetime.fromtimestamp(int(_data['ts']))
         return cls(**_data)
+
+
+@dataclass()
+class Signup(TimestampedNS):
+    ''''''
+
+@dataclass()
+class Actions(TimestampedNS):
+    session: Optional[str] = None

@@ -41,7 +41,8 @@ and are called with two positional parameters:
  * The user object
 """
 
-from flask import session, current_app
+from flask import current_app
+from eduid_common.session import session
 
 _actions = {}
 

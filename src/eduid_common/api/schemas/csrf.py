@@ -4,7 +4,8 @@ from __future__ import absolute_import
 from six.moves.urllib.parse import urlsplit
 
 from marshmallow import Schema, fields, validates, pre_dump, post_load, ValidationError
-from flask import session, request, current_app
+from flask import request, current_app
+from eduid_common.session import session
 from eduid_common.api.schemas.base import EduidSchema, FluxStandardAction
 
 __author__ = 'lundberg'

@@ -35,12 +35,9 @@ from __future__ import absolute_import
 
 import imp
 import time
-import six
-from hashlib import sha256
 from saml2.config import SPConfig
 from pwgen import pwgen
-from nacl import secret, encoding
-import nacl.exceptions
+from eduid_common.session import session
 
 from eduid_common.api.utils import urlappend
 
@@ -123,39 +120,48 @@ def generate_password(length=12):
     return pwgen(int(length), no_capitalize=True, no_symbols=True)
 
 
-def generate_auth_token(shared_key, usage, data, ts=None):
+def check_previous_identification(session_ns):
     """
-    Generate tokens that can be sent to one eduID app to another, using a
-    shared secret.
+    Check that the user, though not properly authenticated, has been recognized
+    by some app with access to the shared session
+    Must be called within a request context.
 
-    :param shared_key: The shared secret
-    :param usage: The intended usage of this token
-    :param data: Protected data
-    :param ts: Timestamp when the token is minted
+    Used after signup or for idp actions.
 
-    :return: An encrypted and protected token, safe to put in an URL
+    :return: The eppn in case the check is successful, None otherwise
     """
-    if ts is None:
-        ts = int(time.time())
-    timestamp = '{:x}'.format(ts)
-    token_data = '{}|{}|{}'.format(usage, timestamp, data).encode('ascii')
-    box = secret.SecretBox(encoding.URLSafeBase64Encoder.decode(shared_key.encode('ascii')))
-    encrypted = box.encrypt(token_data)
-    b64 = encoding.URLSafeBase64Encoder.encode(encrypted)
-    if six.PY2:
-        return b64, timestamp
-    return b64.decode('utf-8'), timestamp
+    eppn = session.common.eppn
+    if eppn is None:
+        eppn = session.get('user_eppn', None)
+    timestamp = session_ns.ts
+    logger.debug('Trying to authenticate user {} with timestamp {!r}'.format(eppn, timestamp))
+    # check that the eppn and timestamp have been set in the session
+    if eppn is None or timestamp is None:
+        return None
+    # check timestamp to make sure it is within -300..900
+    now = int(time.time())
+    ts = timestamp.timestamp()
+    if (ts < now - 300) or (ts > now + 900):
+        logger.debug('Auth token timestamp {} out of bounds ({} seconds from {})'.format(
+            timestamp, ts - now, now))
+        return None
+    return eppn
 
+
+# XXX TRANSITION_TOKEN_LOGIN the code below is deprecated and only kept fr the transition to implicit
+# logins with data in the session. Please remove after the transition
+
+import six
+from hashlib import sha256
+from nacl import secret, encoding
+import nacl.exceptions
 
 def verify_auth_token(shared_key, eppn, token, nonce, timestamp, usage, generator=sha256):
     """
     Authenticate a user with a token.
-
     Used after signup or for idp actions.
-
     Authentication is done using a shared key in the configuration of the
     authn and signup applications or another shared key in the configuration of idp and actions.
-
     :param shared_key: Applications shared key
     :param eppn: the identifier of the user as string
     :param token: authentication token as string

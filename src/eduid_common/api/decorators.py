@@ -7,8 +7,9 @@ import inspect
 from six import string_types
 from werkzeug.wrappers import Response as WerkzeugResponse
 from functools import wraps
-from flask import session, abort, current_app, request, jsonify
+from flask import abort, current_app, request, jsonify
 from marshmallow.exceptions import ValidationError
+from eduid_common.session import session
 from eduid_userdb.exceptions import UserDoesNotExist, MultipleUsersReturned
 from eduid_common.api.utils import get_user
 from eduid_common.api.schemas.base import FluxStandardAction
