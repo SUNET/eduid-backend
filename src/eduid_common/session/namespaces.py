@@ -65,14 +65,14 @@ class TimestampedNS(SessionNSBase):
     def to_dict(self):
         res = super(TimestampedNS, self).to_dict()
         if res.get('ts') is not None:
-            res['ts'] = '{:x}'.format(int(res['ts'].timestamp()))
+            res['ts'] = str(int(res['ts'].timestamp()))
         return res
 
     @classmethod
     def from_dict(cls, data):
         _data = deepcopy(data)  # do not modify callers data
         if _data.get('ts') is not None:
-            _data['ts'] = datetime.fromtimestamp(int(_data['ts'], 16))
+            _data['ts'] = datetime.fromtimestamp(int(_data['ts']))
         return cls(**_data)
 
 
