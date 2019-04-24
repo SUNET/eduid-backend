@@ -7,7 +7,7 @@ from flask import Blueprint
 from flask import current_app
 
 from fido2.client import ClientData
-from fido2.server import Fido2Server, RelyingParty
+from fido2.server import Fido2Server, RelyingParty, USER_VERIFICATION
 from fido2.ctap2 import AttestationObject
 from fido2 import cbor
 from fido2.ctap2 import AttestedCredentialData
@@ -36,15 +36,21 @@ def get_webauthn_server(rp_id, name='eduID security API'):
 def make_credentials(creds):
     credentials = []
     for cred in creds:
-        cred_data = base64.urlsafe_b64decode(cred.credential_data.encode('ascii'))
-        credential_data, rest = AttestedCredentialData.unpack_from(cred_data)
-        if rest:
-            continue
+        if isinstance(cred, Webauthn):
+            cred_data = base64.urlsafe_b64decode(cred.credential_data.encode('ascii'))
+            credential_data, rest = AttestedCredentialData.unpack_from(cred_data)
+            if rest:
+                continue
+        else:
+            # cred is of type U2F (legacy registration)
+            credential_data = AttestedCredentialData.from_ctap1(cred.keyhandle.encode('ascii'),
+                                                                cred.public_key.encode('ascii'))
         credentials.append(credential_data)
     return credentials
 
 
 webauthn_views = Blueprint('webauthn', __name__, url_prefix='/webauthn', template_folder='templates')
+
 
 @webauthn_views.route('/register/begin', methods=['POST'])
 @UnmarshalWith(WebauthnRegisterBeginSchema)
@@ -60,11 +66,15 @@ def registration_begin(user, authenticator):
     server = get_webauthn_server(current_app.config['FIDO2_RP_ID'])
     if user.given_name is None or user.surname is None or user.display_name is None:
         return {'_status': 'error', 'message': 'security.webauthn-missing-pdata'}
-    registration_data, state = server.register_begin({
-        'id': str(user.eppn).encode('ascii'),
-        'name': "{} {}".format(user.given_name, user.surname),
-        'displayName': user.display_name
-    }, credentials=creds, authenticator_attachment=authenticator)
+    registration_data, state = server.register_begin(
+            {
+                'id': str(user.eppn).encode('ascii'),
+                'name': "{} {}".format(user.given_name, user.surname),
+                'displayName': user.display_name
+            }, credentials=creds,
+            user_verification=USER_VERIFICATION.DISCOURAGED,
+            authenticator_attachment=authenticator,
+            )
     session['_webauthn_state_'] = state
 
     current_app.logger.info('User {} has started registration of a webauthn token'.format(user))
