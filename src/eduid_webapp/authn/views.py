@@ -311,7 +311,7 @@ def signup_authn():
     eppn = check_previous_identification(session.signup)
     if eppn is not None:
         loa = get_loa(current_app.config.get('AVAILABLE_LOA'), None)  # With no session_info lowest loa will be returned
-        current_app.logger.info("Starting pre-login actions " "for eppn: {})".format(eppn))
+        current_app.logger.info("Starting authentication for user from signup with eppn: {})".format(eppn))
         try:
             user = current_app.central_userdb.get_user_by_eppn(eppn)
         except current_app.central_userdb.exceptions.UserDoesNotExist:
@@ -321,7 +321,7 @@ def signup_authn():
         else:
             if user.locked_identity.count > 0:
                 # This user has previously verified their account and is not new, this should not happen.
-                current_app.logger.error('Not new user {} tried to log in using token login'.format(user))
+                current_app.logger.error('Not new user {} tried to log in using signup authn'.format(user))
                 return redirect(location_on_fail)
             session['eduPersonPrincipalName'] = user.eppn
             session['user_eppn'] = user.eppn
@@ -330,11 +330,11 @@ def signup_authn():
 
             response = redirect(location_on_success)
             #session.set_cookie(response)  # Is this needed as session_interface.save_session will be called?
-            current_app.logger.info('Successful token login, redirecting user {} to {}'.format(user,
+            current_app.logger.info('Successful authentication, redirecting user {} to {}'.format(user,
                                                                                                location_on_success))
             return response
 
-    current_app.logger.info('Token login failed, redirecting user to {}'.format(location_on_fail))
+    current_app.logger.info('Signup authn failed, redirecting user to {}'.format(location_on_fail))
     return redirect(location_on_fail)
 
 
