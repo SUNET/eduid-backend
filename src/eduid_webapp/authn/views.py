@@ -37,7 +37,7 @@ from saml2.response import LogoutResponse
 from saml2.metadata import entity_descriptor
 from werkzeug.exceptions import Forbidden
 from flask import request, redirect, abort, make_response
-from flask import current_app, Blueprint
+from flask import current_app, Blueprint, session
 
 from eduid_common.session import session
 from eduid_common.authn.utils import get_location
@@ -46,7 +46,7 @@ from eduid_common.authn.eduid_saml2 import get_authn_request, get_authn_response
 from eduid_common.authn.eduid_saml2 import authenticate
 from eduid_common.authn.cache import IdentityCache, StateCache
 from eduid_common.authn.acs_registry import get_action, schedule_action
-from eduid_common.authn.utils import verify_auth_token
+from eduid_common.authn.utils import check_previous_identification
 from eduid_common.api.utils import verify_relay_state
 
 
@@ -259,26 +259,69 @@ def logout_service():
     abort(400)
 
 
-@authn_views.route('/token-login', methods=['POST'])
-def token_login():
-    current_app.logger.debug('Starting token login')
+# XXX TRANSITION_TOKEN_LOGIN remove after transition to implicit logins
+from eduid_common.authn.utils import verify_auth_token
+# XXX END remove
+
+
+@authn_views.route('/signup-authn', methods=['GET', 'POST'])
+def signup_authn():
+    current_app.logger.debug('Authenticating signing up user')
+
+    # XXX TRANSITION_TOKEN_LOGIN remove after transition to implicit logins
     location_on_fail = current_app.config.get('TOKEN_LOGIN_FAILURE_REDIRECT_URL')
     location_on_success = current_app.config.get('TOKEN_LOGIN_SUCCESS_REDIRECT_URL')
+    token = request.form.get('token', None)
+    if token is not None:
+        eppn = request.form.get('eppn')
+        nonce = request.form.get('nonce')
+        timestamp = request.form.get('ts')
+        loa = get_loa(current_app.config.get('AVAILABLE_LOA'), None)  # With no session_info lowest loa will be returned
+        shared_key = current_app.config.get('SIGNUP_AND_AUTHN_SHARED_KEY')
 
-    eppn = request.form.get('eppn')
-    token = request.form.get('token')
-    nonce = request.form.get('nonce')
-    timestamp = request.form.get('ts')
-    loa = get_loa(current_app.config.get('AVAILABLE_LOA'), None)  # With no session_info lowest loa will be returned
-    shared_key = current_app.config.get('SIGNUP_AND_AUTHN_SHARED_KEY')
+        if verify_auth_token(shared_key=shared_key, eppn=eppn, token=token, nonce=nonce, timestamp=timestamp,
+                             usage='signup_login'):
+            try:
+                user = current_app.central_userdb.get_user_by_eppn(eppn)
+                if user.locked_identity.count > 0:
+                    # This user has previously verified their account and is not new, this should not happen.
+                    current_app.logger.error('Not new user {} tried to log in using token login'.format(user))
+                    return redirect(location_on_fail)
+                session['eduPersonPrincipalName'] = user.eppn
+                session['user_eppn'] = user.eppn
+                session['user_is_logged_in'] = True
+                session['eduPersonAssurance'] = loa
+                response = redirect(location_on_success)
+                #session.set_cookie(response)  # Is this needed as session_interface.save_session will be called?
+                current_app.logger.info('Successful token login, redirecting user {} to {}'.format(user,
+                                                                                                   location_on_success))
+                return response
+            except current_app.central_userdb.exceptions.UserDoesNotExist:
+                current_app.logger.error('No user with eduPersonPrincipalName = {} found'.format(eppn))
+            except current_app.central_userdb.exceptions.MultipleUsersReturned:
+                current_app.logger.error("There are more than one user with eduPersonPrincipalName = {}".format(eppn))
 
-    if verify_auth_token(shared_key=shared_key, eppn=eppn, token=token, nonce=nonce, timestamp=timestamp,
-                         usage='signup_login'):
+        current_app.logger.info('Token login failed, redirecting user to {}'.format(location_on_fail))
+        return redirect(location_on_fail)
+    # XXX END remove
+
+    location_on_fail = current_app.config.get('SIGNUP_AUTHN_FAILURE_REDIRECT_URL')
+    location_on_success = current_app.config.get('SIGNUP_AUTHN_SUCCESS_REDIRECT_URL')
+
+    eppn = check_previous_identification(session.signup)
+    if eppn is not None:
+        loa = get_loa(current_app.config.get('AVAILABLE_LOA'), None)  # With no session_info lowest loa will be returned
+        current_app.logger.info("Starting authentication for user from signup with eppn: {})".format(eppn))
         try:
             user = current_app.central_userdb.get_user_by_eppn(eppn)
+        except current_app.central_userdb.exceptions.UserDoesNotExist:
+            current_app.logger.error('No user with eduPersonPrincipalName = {} found'.format(eppn))
+        except current_app.central_userdb.exceptions.MultipleUsersReturned:
+            current_app.logger.error("There are more than one user with eduPersonPrincipalName = {}".format(eppn))
+        else:
             if user.locked_identity.count > 0:
                 # This user has previously verified their account and is not new, this should not happen.
-                current_app.logger.error('Not new user {} tried to log in using token login'.format(user))
+                current_app.logger.error('Not new user {} tried to log in using signup authn'.format(user))
                 return redirect(location_on_fail)
             session['eduPersonPrincipalName'] = user.eppn
             session['user_eppn'] = user.eppn
@@ -287,15 +330,11 @@ def token_login():
 
             response = redirect(location_on_success)
             #session.set_cookie(response)  # Is this needed as session_interface.save_session will be called?
-            current_app.logger.info('Successful token login, redirecting user {} to {}'.format(user,
+            current_app.logger.info('Successful authentication, redirecting user {} to {}'.format(user,
                                                                                                location_on_success))
             return response
-        except current_app.central_userdb.exceptions.UserDoesNotExist:
-            current_app.logger.error('No user with eduPersonPrincipalName = {} found'.format(eppn))
-        except current_app.central_userdb.exceptions.MultipleUsersReturned:
-            current_app.logger.error("There are more than one user with eduPersonPrincipalName = {}".format(eppn))
 
-    current_app.logger.info('Token login failed, redirecting user to {}'.format(location_on_fail))
+    current_app.logger.info('Signup authn failed, redirecting user to {}'.format(location_on_fail))
     return redirect(location_on_fail)
 
 

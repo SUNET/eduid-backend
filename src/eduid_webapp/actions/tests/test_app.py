@@ -33,9 +33,9 @@
 import json
 import time
 from hashlib import sha256
+from datetime import datetime
 from nacl import secret, utils, encoding
 from werkzeug.exceptions import InternalServerError, Forbidden
-from eduid_common.authn.utils import generate_auth_token
 
 from eduid_webapp.actions.testing import ActionsTestCase
 
@@ -43,94 +43,24 @@ from eduid_webapp.actions.testing import ActionsTestCase
 class ActionsTests(ActionsTestCase):
 
     def update_actions_config(self, config):
-        shared_key = encoding.URLSafeBase64Encoder.encode((utils.random(secret.SecretBox.KEY_SIZE))).decode('utf-8')
-        config['TOKEN_LOGIN_SHARED_KEY'] = shared_key
         config['TOU_VERSION'] = 'test-version'
         return config
 
     def test_authn_no_data(self):
-        response = self.browser.get('/')
-        self.assertEqual(response.status_code, 400)
+        with self.assertRaises(Forbidden):
+            response = self.browser.get('/')
 
     def test_authn(self):
-        with self.session_cookie(self.browser) as client:
-            with self.app.test_request_context():
-                with client.session_transaction() as sess:
-                    response = self.authenticate(client, sess)
-                self.assertEqual(response.status_code, 200)
-                self.assertTrue(b'bundle-holder' in response.data)
-
-    def test_authn_hmac_and_userid(self):
-        with self.session_cookie(self.browser) as client:
-            with self.app.test_request_context():
-                userid = '012345678901234567890123'
-                nonce = 'dummy-nonce-xxxx'
-                timestamp = str(hex(int(time.time())))
-                shared_key = self.app.config['TOKEN_LOGIN_SHARED_KEY']
-                token_data = '{0}|{1}|{2}|{3}'.format(shared_key, userid, nonce, timestamp)
-                hashed = sha256(token_data.encode('ascii'))
-                token = hashed.hexdigest()
-
-            url = '/?userid={}&token={}&nonce={}&ts={}'.format(userid,
-                                                               token,
-                                                               nonce,
-                                                               timestamp)
-            with self.app.test_request_context(url):
-                response = client.get(url)
-                self.assertEqual(response.status, '200 OK')
-
-    def test_authn_hmac_and_eppn(self):
-        with self.session_cookie(self.browser) as client:
-            with self.app.test_request_context():
-                eppn = 'dummy-eppn'
-                nonce = 'dummy-nonce-xxxx'
-                timestamp = str(hex(int(time.time())))
-                shared_key = self.app.config['TOKEN_LOGIN_SHARED_KEY']
-                token_data = '{0}|{1}|{2}|{3}'.format(shared_key, eppn, nonce, timestamp)
-                hashed = sha256(token_data.encode('ascii'))
-                token = hashed.hexdigest()
-
-            url = '/?eppn={}&token={}&nonce={}&ts={}'.format(eppn,
-                                                             token,
-                                                             nonce,
-                                                             timestamp)
-            with self.app.test_request_context(url):
-                response = client.get(url)
-                self.assertEqual(response.status, '200 OK')
-
-    def test_authn_secret_box(self):
-        with self.session_cookie(self.browser) as client:
-            with self.app.test_request_context():
-                eppn = 'dummy-eppn'
-                token, timestamp = generate_auth_token(
-                    self.app.config['TOKEN_LOGIN_SHARED_KEY'], 'idp_actions', eppn)
-
-            url = '/?userid={}&token={}&nonce={}&ts={}'.format(eppn,
-                                                               token,
-                                                               None,
-                                                               timestamp)
-            with self.app.test_request_context(url):
-                response = client.get(url)
-                self.assertEqual(response.status, '200 OK')
-
-    def test_authn_wrong_secret(self):
-        with self.session_cookie(self.browser) as client:
-            with self.app.test_request_context():
-                eppn = 'dummy-eppn'
-                nonce = 'dummy-nonce-xxxx'
-                timestamp = str(hex(int(time.time())))
-                shared_key = 'wrong-shared-key'
-                token_data = '{0}|{1}|{2}|{3}'.format(shared_key, eppn, nonce, timestamp)
-                hashed = sha256(token_data.encode('ascii'))
-                token = hashed.hexdigest()
-
-            url = '/?userid={}&token={}&nonce={}&ts={}'.format(eppn,
-                                                               token,
-                                                               nonce,
-                                                               timestamp)
-            with self.app.test_request_context(url):
-                with self.assertRaises(Forbidden):
-                    response = client.get(url)
+        eppn = self.test_eppn
+        timestamp = datetime.fromtimestamp(int(time.time()))
+        with self.app.test_client() as c:
+            with c.session_transaction() as sess:
+                sess.common.eppn = eppn
+                sess.actions.ts = timestamp
+                sess.persist()
+            response = c.get('/')
+            self.assertIn(b'/get-actions', response.data)
+            self.assertTrue(b'bundle-holder' in response.data)
 
     def test_get_config(self):
         with self.session_cookie(self.browser) as client:
@@ -169,18 +99,20 @@ class ActionsTests(ActionsTestCase):
     def test_get_actions_no_action(self):
         with self.session_cookie(self.browser) as client:
             self.prepare_session(client, add_action=False)
-            response = client.get('/get-actions')
-            self.assertEqual(response.status_code, 200)
-            data = json.loads(response.data)
-            self.assertFalse(data['action'])
-            self.assertEquals(data['url'], 'https://example.com/idp?key=dummy-session')
+            with self.app.test_request_context('/get-actions'):
+                self.authenticate(idp_session='dummy-session')
+                response = self.app.dispatch_request()
+                data = json.loads(response)
+                self.assertFalse(data['action'])
+                self.assertEquals(data['url'], 'https://example.com/idp?key=dummy-session')
 
     def test_get_actions_no_plugin(self):
         with self.session_cookie(self.browser) as client:
             self.prepare_session(client, set_plugin=False)
             with self.app.test_request_context('/get-actions'):
+                self.authenticate(idp_session='dummy-session')
                 try:
-                    response = client.get('/get-actions')
+                    self.app.dispatch_request()
                 except InternalServerError:
                     pass
 

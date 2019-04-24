@@ -56,15 +56,13 @@ SECRET_KEY = ''
 # Logging
 LOG_LEVEL = 'INFO'
 
-DASHBOARD_URL = '/profile/'
+SIGNUP_AUTHN_URL = '/services/authn/signup-authn'
 
 PASSWORD_LENGTH = 10
 
 VCCS_URL = None
 
 TOU_VERSION = '2018-v1'
-
-SIGNUP_AND_AUTHN_SHARED_KEY = None
 
 DEFAULT_FINISH_URL = 'https://www.eduid.se/'
 

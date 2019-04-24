@@ -36,7 +36,6 @@ from contextlib import contextmanager
 from mock import patch, Mock
 from flask import Response
 from werkzeug.exceptions import InternalServerError
-from nacl import utils, secret, encoding
 from requests import Response as RequestsResponse
 
 from eduid_common.api.testing import EduidAPITestCase
@@ -83,11 +82,9 @@ class SignupTests(EduidAPITestCase):
         return signup_init_app('signup', config)
 
     def update_config(self, config):
-        signup_and_authn_shared_key = encoding.URLSafeBase64Encoder.encode(
-            (utils.random(secret.SecretBox.KEY_SIZE))).decode('utf-8')
         config.update({
             'AVAILABLE_LANGUAGES': {'en': 'English', 'sv': 'Svenska'},
-            'DASHBOARD_URL': '/profile/',
+            'SIGNUP_AUTHN_URL': '/services/authn/signup-authn',
             'SIGNUP_URL': 'https://localhost/',
             'DEVELOPMENT': 'DEBUG',
             'APPLICATION_ROOT': '/',
@@ -98,7 +95,6 @@ class SignupTests(EduidAPITestCase):
             'VCCS_URL': 'http://turq:13085/',
             'TOU_VERSION': '2018-v1',
             'TOU_URL': 'https://localhost/get-tous',
-            'SIGNUP_AND_AUTHN_SHARED_KEY': signup_and_authn_shared_key,
             'DEFAULT_FINISH_URL': 'https://www.eduid.se/',
             'RECAPTCHA_PUBLIC_KEY': '',  # disable recaptcha verification
             'RECAPTCHA_PRIVATE_KEY': 'XXXX',
@@ -138,7 +134,7 @@ class SignupTests(EduidAPITestCase):
 
             self.assertEqual('GET_SIGNUP_CONFIG_SUCCESS', config_data['type'])
             self.assertEqual(None, config_data['error'])
-            self.assertEqual('/profile/',
+            self.assertEqual('/services/authn/signup-authn',
                     config_data['payload']['dashboard_url'])
             self.assertEqual('test tou english', config_data['payload']['tous']['en'])
             self.assertEqual('test tou svenska', config_data['payload']['tous']['sv'])

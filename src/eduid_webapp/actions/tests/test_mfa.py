@@ -36,6 +36,7 @@ import json
 import base64
 from bson import ObjectId
 from mock import patch
+from eduid_common.session import session
 from eduid_userdb.credentials import U2F
 from eduid_userdb.testing import MOCKED_USER_STANDARD
 from eduid_webapp.actions.testing import MockIdPContext
@@ -62,12 +63,17 @@ def add_actions(context, user, ticket):
     This is a stripped down version of eduid_idp.mfa_action.add_actions
     that adds the action unconditionally.
     """
-    context.actions_db.add_action(
+    action = context.actions_db.add_action(
         user.eppn,
         action_type = 'mfa',
         preference = 1,
         session = ticket.key,
         params = {})
+    session['current_plugin'] = 'mfa'
+    action_d = action.to_dict()
+    action_d['_id'] = str(action_d['_id'])
+    session['current_action'] = action_d
+    session.persist()
 
 class MockTicket:
     def __init__(self, key):
@@ -102,61 +108,52 @@ class MFAActionPluginTests(ActionsTestCase):
         return config
 
     def test_get_mfa_action(self):
-        with self.session_cookie(self.browser) as client:
-            with client.session_transaction() as sess:
-                with self.app.test_request_context():
-                    mock_idp_app = MockIdPContext(self.app.actions_db)
-                    add_actions(mock_idp_app, self.user, MockTicket('mock-session'))
-                    self.authenticate(client, sess, idp_session='mock-session')
-                    response = client.get('/get-actions')
-                    self.assertEqual(response.status_code, 200)
-                    data = json.loads(response.data)
-                    self.assertEquals(data['action'], True)
-                    self.assertEquals(data['url'], 'http://example.com/bundles/eduid_action.mfa-bundle.dev.js')
-                    self.assertEquals(len(self.app.actions_db.get_actions(self.user.eppn, 'mock-session')), 1)
+        mock_idp_app = MockIdPContext(self.app.actions_db)
+        with self.app.test_request_context('/get-actions'):
+            add_actions(mock_idp_app, self.user, MockTicket('mock-session'))
+            self.authenticate(idp_session='mock-session')
+            response = self.app.dispatch_request()
+            data = json.loads(response)
+            self.assertEquals(data['action'], True)
+            self.assertEquals(data['url'], 'http://example.com/bundles/eduid_action.mfa-bundle.dev.js')
+            self.assertEquals(len(self.app.actions_db.get_actions(self.user.eppn, 'mock-session')), 1)
 
     def test_get_mfa_action_wrong_session(self):
-        with self.session_cookie(self.browser) as client:
-            with client.session_transaction() as sess:
-                with self.app.test_request_context():
-                    mock_idp_app = MockIdPContext(self.app.actions_db)
-                    add_actions(mock_idp_app, self.user,
-                            MockTicket('mock-session'))
-                    self.authenticate(client, sess, idp_session='wrong-session')
-                    response = client.get('/get-actions')
-                    self.assertEqual(response.status_code, 200)
-                    data = json.loads(response.data)
-                    self.assertEquals(data['action'], False)
-                    self.assertEquals(len(self.app.actions_db.get_actions(self.user.eppn, 'mock-session')), 1)
+        mock_idp_app = MockIdPContext(self.app.actions_db)
+        with self.app.test_request_context('/get-actions'):
+            mock_idp_app = MockIdPContext(self.app.actions_db)
+            add_actions(mock_idp_app, self.user,
+                    MockTicket('mock-session'))
+            self.authenticate(idp_session='wrong-session')
+            response = self.app.dispatch_request()
+            data = json.loads(response)
+            self.assertEquals(data['action'], False)
+            self.assertEquals(len(self.app.actions_db.get_actions(self.user.eppn, 'mock-session')), 1)
 
     def test_get_config(self):
-        with self.session_cookie(self.browser) as client:
-            with client.session_transaction() as sess:
-                with self.app.test_request_context():
-                    self.app.config['GENERATE_U2F_CHALLENGES'] = True
-                    mock_idp_app = MockIdPContext(self.app.actions_db)
-                    add_actions(mock_idp_app, self.user, MockTicket('mock-session'))
-                    self.authenticate(client, sess, idp_session='mock-session')
-                    response = client.get('/get-actions')
-                    self.assertEqual(response.status_code, 200)
-                    response = client.get('/config')
-                    data = json.loads(response.data.decode('utf-8'))
-                    u2f_data = json.loads(data['payload']['u2fdata'])
-                    self.assertEquals(u2f_data["registeredKeys"][0]["keyHandle"], "test_key_handle")
-                    self.assertEquals(u2f_data["registeredKeys"][0]["version"], "U2F_V2")
-                    self.assertEquals(u2f_data["appId"], "https://example.com")
-                    self.assertEquals(len(self.app.actions_db.get_actions(self.user.eppn, 'mock-session')), 1)
+        mock_idp_app = MockIdPContext(self.app.actions_db)
+        with self.app.test_request_context('/config'):
+            self.app.config['GENERATE_U2F_CHALLENGES'] = True
+            mock_idp_app = MockIdPContext(self.app.actions_db)
+            add_actions(mock_idp_app, self.user, MockTicket('mock-session'))
+            self.authenticate(idp_session='mock-session')
+            response = self.app.dispatch_request()
+            data = json.loads(response.data)
+            u2f_data = json.loads(data['payload']['u2fdata'])
+            self.assertEquals(u2f_data["registeredKeys"][0]["keyHandle"], "test_key_handle")
+            self.assertEquals(u2f_data["registeredKeys"][0]["version"], "U2F_V2")
+            self.assertEquals(u2f_data["appId"], "https://example.com")
+            self.assertEquals(len(self.app.actions_db.get_actions(self.user.eppn, 'mock-session')), 1)
 
     def test_get_config_no_user(self):
         self.app.central_userdb.remove_user_by_id(self.user.user_id)
-        with self.session_cookie(self.browser) as client:
-            with client.session_transaction() as sess:
-                with self.app.test_request_context():
-                    mock_idp_app = MockIdPContext(self.app.actions_db)
-                    add_actions(mock_idp_app, self.user, MockTicket('mock-session'))
-                    self.authenticate(client, sess, idp_session='mock-session')
-                    with self.assertRaises(UserDoesNotExist):
-                        client.get('/get-actions')
+        mock_idp_app = MockIdPContext(self.app.actions_db)
+        with self.app.test_request_context('/get-actions'):
+            mock_idp_app = MockIdPContext(self.app.actions_db)
+            add_actions(mock_idp_app, self.user, MockTicket('mock-session'))
+            self.authenticate(idp_session='mock-session')
+            with self.assertRaises(UserDoesNotExist):
+                self.app.dispatch_request()
 
     def test_action_no_token_response(self):
         with self.session_cookie(self.browser) as client:
@@ -166,10 +163,9 @@ class MFAActionPluginTests(ActionsTestCase):
                     csrf_token = sess.get_csrf_token()
                     data = json.dumps({'csrf_token': csrf_token})
                     response = client.post('/post-action', data=data, content_type=self.content_type_json)
-                self.assertEquals(response.status_code, 200)
-                data = json.loads(response.data)
-                self.assertEquals(data['payload']['message'], "mfa.no-token-response")
-                self.assertEquals(len(self.app.actions_db.get_actions(self.user.eppn, 'mock-session')), 1)
+                    data = json.loads(response.data.decode('utf-8'))
+                    self.assertEquals(data['payload']['message'], "mfa.no-token-response")
+                    self.assertEquals(len(self.app.actions_db.get_actions(self.user.eppn, 'mock-session')), 1)
 
     @patch('eduid_webapp.actions.actions.mfa.complete_authentication')
     def test_action_wrong_keyhandle(self, mock_complete_authn):
@@ -179,13 +175,12 @@ class MFAActionPluginTests(ActionsTestCase):
             with self.app.test_request_context():
                 with client.session_transaction() as sess:
                     csrf_token = sess.get_csrf_token()
-                data = json.dumps({'csrf_token': csrf_token,
-                                   'tokenResponse': 'dummy-response'})
-                response = client.post('/post-action', data=data, content_type=self.content_type_json)
-                self.assertEquals(response.status_code, 200)
-                data = json.loads(response.data)
-                self.assertEquals(data['payload']['message'], "mfa.unknown-token")
-                self.assertEquals(len(self.app.actions_db.get_actions(self.user.eppn, 'mock-session')), 1)
+                    data = json.dumps({'csrf_token': csrf_token,
+                                       'tokenResponse': 'dummy-response'})
+                    response = client.post('/post-action', data=data, content_type=self.content_type_json)
+                    data = json.loads(response.data.decode('utf-8'))
+                    self.assertEquals(data['payload']['message'], "mfa.unknown-token")
+                    self.assertEquals(len(self.app.actions_db.get_actions(self.user.eppn, 'mock-session')), 1)
 
     @patch('eduid_webapp.actions.actions.mfa.complete_authentication')
     def test_action_success(self, mock_complete_authn):
@@ -195,13 +190,13 @@ class MFAActionPluginTests(ActionsTestCase):
             with self.app.test_request_context():
                 with client.session_transaction() as sess:
                     csrf_token = sess.get_csrf_token()
-                data = json.dumps({'csrf_token': csrf_token,
-                                   'tokenResponse': 'dummy-response'})
-                response = client.post('/post-action', data=data, content_type=self.content_type_json)
-                self.assertEquals(response.status_code, 200)
-                data = json.loads(response.data)
-                self.assertEquals(data['payload']['message'], "actions.action-completed")
-                self.assertEquals(len(self.app.actions_db.get_actions(self.user.eppn, 'mock-session')), 1)
+                    data = json.dumps({'csrf_token': csrf_token,
+                                       'tokenResponse': 'dummy-response'})
+                    response = client.post('/post-action', data=data, content_type=self.content_type_json)
+                    self.assertEquals(response.status_code, 200)
+                    data = json.loads(response.data)
+                    self.assertEquals(data['payload']['message'], "actions.action-completed")
+                    self.assertEquals(len(self.app.actions_db.get_actions(self.user.eppn, 'mock-session')), 1)
 
     @patch('eduid_webapp.actions.actions.mfa.complete_authentication')
     def test_action_webauthn_legacy_token(self, mock_complete_authn):

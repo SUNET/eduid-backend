@@ -39,11 +39,17 @@ from flask import abort, url_for, render_template, redirect
 from six.moves.urllib_parse import urlsplit, urlunsplit
 
 from eduid_userdb.actions import Action
+from eduid_common.authn.loa import get_loa
 from eduid_common.session import session
 from eduid_common.api.decorators import MarshalWith
 from eduid_common.api.schemas.base import FluxStandardAction
-from eduid_common.authn.utils import verify_auth_token
+from eduid_common.authn.utils import check_previous_identification
 from eduid_webapp.actions.helpers import get_next_action
+
+# XXX TRANSITION_TOKEN_LOGIN remove after transition to implicit logins
+from eduid_common.authn.utils import verify_auth_token
+# XXX END remove
+
 
 actions_views = Blueprint('actions', __name__, url_prefix='', template_folder='templates')
 
@@ -52,34 +58,54 @@ actions_views = Blueprint('actions', __name__, url_prefix='', template_folder='t
 def authn():
     '''
     '''
-    userid = request.args.get('userid', None)
-    eppn = request.args.get('eppn', None)
-    eppn = userid or eppn
-    token = request.args.get('token', None)
-    nonce = request.args.get('nonce', None)
-    timestamp = request.args.get('ts', None)
-    idp_session = request.args.get('session', None)
-    if not (eppn and token and timestamp):
-        msg = ('Insufficient authentication params: '
-               'eppn: {}, token: {}, nonce: {}, ts: {}')
-        current_app.logger.debug(msg.format(eppn, token, nonce, timestamp))
-        abort(400)
 
-    shared_key = current_app.config.get('TOKEN_LOGIN_SHARED_KEY')  # XXX: Change to IDP_AND_ACTIONS_SHARED_KEY
-    if verify_auth_token(shared_key=shared_key, eppn=eppn, token=token,
-                         nonce=nonce, timestamp=timestamp, usage='idp_actions'):
+    # XXX TRANSITION_TOKEN_LOGIN remove after transition to implicit logins
+    token = request.args.get('token', None)
+    if token is not None:
+        userid = request.args.get('userid', None)
+        eppn = request.args.get('eppn', None)
+        eppn = userid or eppn
+        nonce = request.args.get('nonce', None)
+        timestamp = request.args.get('ts', None)
+        idp_session = request.args.get('session', None)
+        if not (eppn and token and timestamp):
+            msg = ('Insufficient authentication params: '
+                   'eppn: {}, token: {}, nonce: {}, ts: {}')
+            current_app.logger.debug(msg.format(eppn, token, nonce, timestamp))
+            abort(400)
+
+        shared_key = current_app.config.get('TOKEN_LOGIN_SHARED_KEY')
+        if verify_auth_token(shared_key=shared_key, eppn=eppn, token=token,
+                             nonce=nonce, timestamp=timestamp, usage='idp_actions'):
+            current_app.logger.info("Starting pre-login actions "
+                                    "for eppn: {})".format(eppn))
+            if userid is not None:
+                session['userid'] = userid
+            else:
+                session['eppn'] = eppn
+                session['eduPersonPrincipalName'] = eppn
+            session['idp_session'] = idp_session
+            url = url_for('actions.get_actions')
+            return render_template('index.html', url=url)
+        else:
+            current_app.logger.debug("Token authentication failed "
+                                     "(eppn: {})".format(eppn))
+            abort(403)
+    # XXX END remove
+
+    eppn = check_previous_identification(session.actions)
+    if eppn is not None:
+        loa = get_loa(current_app.config.get('AVAILABLE_LOA'), None)  # With no session_info lowest loa will be returned
         current_app.logger.info("Starting pre-login actions "
                                 "for eppn: {})".format(eppn))
-        if userid is not None:
-            session['userid'] = userid
-        else:
-            session['eppn'] = eppn
-            session['eduPersonPrincipalName'] = eppn
-        session['idp_session'] = idp_session
+        session['eduPersonPrincipalName'] = eppn
+        session['user_eppn'] = eppn
+        session['user_is_logged_in'] = True
+        session['eduPersonAssurance'] = loa
         url = url_for('actions.get_actions')
         return render_template('index.html', url=url)
     else:
-        current_app.logger.debug("Token authentication failed "
+        current_app.logger.debug("Signup authentication failed "
                                  "(eppn: {})".format(eppn))
         abort(403)
 
@@ -102,8 +128,7 @@ def get_config():
     except KeyError:
         abort(403)
     plugin_obj = current_app.plugins[action_type]()
-    old_format = 'user_oid' in session['current_action']
-    action = Action(data=session['current_action'], old_format=old_format)
+    action = Action(data=session['current_action'])
     try:
         config = plugin_obj.get_config_for_bundle(action)
         config['csrf_token'] = session.new_csrf_token()
@@ -117,10 +142,7 @@ def get_config():
 
 @actions_views.route('/get-actions', methods=['GET'])
 def get_actions():
-    if 'userid' in session:
-        user = current_app.central_userdb.get_user_by_id(session.get('userid'))
-    else:
-        user = current_app.central_userdb.get_user_by_eppn(session.get('eppn'))
+    user = current_app.central_userdb.get_user_by_eppn(session.get('user_eppn'))
     actions = get_next_action(user)
     if not actions['action']:
         return json.dumps({'action': False,
@@ -191,7 +213,7 @@ def _do_action():
             'errors': errors,
         }
 
-    eppn = session.get('userid', session.get('eppn'))
+    eppn = session.get('user_eppn')
     if session['total_steps'] == session['current_step']:
         current_app.logger.info('Finished pre-login action {} for eppn {}'.format(action.action_type, eppn))
         return {
@@ -206,7 +228,7 @@ def _do_action():
 
 
 def _aborted(action, exc):
-    eppn = session.get('userid', session.get('eppn'))
+    eppn = session.get('user_eppn')
     current_app.logger.info(u'Aborted pre-login action {} for eppn {}, '
                             u'reason: {}'.format(action.action_type,
                                                  eppn, exc.args[0]))

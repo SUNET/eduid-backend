@@ -32,13 +32,13 @@
 from __future__ import absolute_import
 
 import time
-from hashlib import sha256
 from copy import deepcopy
 from contextlib import contextmanager
 from bson import ObjectId
 from datetime import datetime
 from mock import MagicMock
 
+from eduid_common.session import session
 from eduid_userdb.userdb import User
 from eduid_userdb.testing import MOCKED_USER_STANDARD
 from eduid_common.api.testing import EduidAPITestCase
@@ -98,18 +98,17 @@ DUMMY_ACTION = {
     '_id': ObjectId('234567890123456789012301'),
     'eppn': 'hubba-bubba',
     'action': 'dummy',
-    'preference': 100, 
+    'preference': 100,
     'params': {
     }
 }
 
 TEST_CONFIG = {
-    'AVAILABLE_LANGUAGES': {'en': 'English','sv': 'Svenska'},
+    'AVAILABLE_LANGUAGES': {'en': 'English', 'sv': 'Svenska'},
     'DASHBOARD_URL': '/profile/',
     'DEVELOPMENT': 'DEBUG',
     'APPLICATION_ROOT': '/',
     'LOG_LEVEL': 'DEBUG',
-    'TOKEN_LOGIN_SHARED_KEY': 'shared_secret_Eifool0ua0eiph7ooc',
     'IDP_URL': 'https://example.com/idp',
     'INTERNAL_SIGNUP_URL': 'https://example.com/signup',
     'PRESERVE_CONTEXT_ON_EXCEPTION': False,
@@ -175,6 +174,7 @@ class ActionsTestCase(EduidAPITestCase):
         action_dict['_id'] = str(action_dict['_id'])
         with client.session_transaction() as sess:
             sess['eppn'] = str(action_dict['eppn'])
+            sess['user_eppn'] = str(action_dict['eppn'])
             sess['current_action'] = action_dict
             sess['current_plugin'] = plugin_name
             sess['idp_session'] = idp_session
@@ -183,23 +183,16 @@ class ActionsTestCase(EduidAPITestCase):
         if set_plugin:
             self.app.plugins[plugin_name] = plugin_class
 
-    def authenticate(self, client, sess, shared_key=None, idp_session=None):
+    def authenticate(self, action_type=None, idp_session=None):
         eppn = self.test_eppn
-        nonce = 'dummy-nonce-xxxx'
-        timestamp = str(hex(int(time.time())))
-        if shared_key is None:
-            shared_key = self.app.config.get('TOKEN_LOGIN_SHARED_KEY')
-        data = '{0}|{1}|{2}|{3}'.format(shared_key, eppn, nonce, timestamp)
-        hashed = sha256(data.encode('ascii'))
-        token = hashed.hexdigest()
-        url = '/?eppn={}&token={}&nonce={}&ts={}'.format(eppn,
-                                                         token,
-                                                         nonce,
-                                                         timestamp)
-        if idp_session is not None:
-            url = '{}&session={}'.format(url, idp_session)
-        response = client.get(url)
-        return response
+        session['eduPersonPrincipalName'] = eppn
+        session['user_eppn'] = eppn
+        session['user_is_logged_in'] = True
+        if action_type is not None:
+            session['current_plugin'] = action_type
+        if idp_session is  not None:
+            session.actions.session = idp_session
+        session.persist()
 
     def prepare(self, client, plugin_class, plugin_name, **kwargs):
         self.prepare_session(client, plugin_name=plugin_name,

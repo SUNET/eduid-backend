@@ -58,4 +58,6 @@ DASHBOARD_URL = '/profile/'
 BUNDLES_URL = 'http://html.eduid.docker/static/front-build/'
 IDP_URL = 'http://idp.eduid.docker:8080/sso/redirect'
 
+# XXX TRANSITION_TOKEN_LOGIN remove after transition
 TOKEN_LOGIN_SHARED_KEY = 'supersecret'
+# XXX end TRANSITION_TOKEN_LOGIN remove after transition

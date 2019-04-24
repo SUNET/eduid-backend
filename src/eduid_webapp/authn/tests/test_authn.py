@@ -33,6 +33,7 @@
 import six
 import os
 import time
+from datetime import datetime
 import json
 import base64
 from hashlib import sha256
@@ -46,7 +47,7 @@ from saml2.s_utils import deflate_and_base64_encode
 from eduid_common.session import session
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.authn.cache import OutstandingQueriesCache
-from eduid_common.authn.utils import get_location, no_authn_views, generate_auth_token
+from eduid_common.authn.utils import get_location, no_authn_views
 from eduid_common.authn.eduid_saml2 import get_authn_request
 from eduid_common.authn.tests.responses import (auth_response,
                                                 logout_response,
@@ -70,15 +71,12 @@ class AuthnAPITestBase(EduidAPITestCase):
         according to the needs of this test case.
         """
         saml_config = os.path.join(HERE, 'saml2_settings.py')
-        signup_and_authn_shared_key = encoding.URLSafeBase64Encoder.encode(
-            (utils.random(secret.SecretBox.KEY_SIZE))).decode('utf-8')
         config.update({
             'SAML2_LOGIN_REDIRECT_URL': '/',
             'SAML2_LOGOUT_REDIRECT_URL': '/logged-out',
             'SAML2_SETTINGS_MODULE': saml_config,
-            'SIGNUP_AND_AUTHN_SHARED_KEY': signup_and_authn_shared_key,
-            'TOKEN_LOGIN_SUCCESS_REDIRECT_URL': 'http://test.localhost/success',
-            'TOKEN_LOGIN_FAILURE_REDIRECT_URL': 'http://test.localhost/failure',
+            'SIGNUP_AUTHN_SUCCESS_REDIRECT_URL': 'http://test.localhost/success',
+            'SIGNUP_AUTHN_FAILURE_REDIRECT_URL': 'http://test.localhost/failure',
             'SAFE_RELAY_DOMAIN': 'test.localhost'
             })
         return config
@@ -297,82 +295,36 @@ class AuthnAPITestCase(AuthnAPITestBase):
 
     def test_token_login_new_user(self):
         eppn = 'hubba-fooo'
-        shared_key = self.app.config['SIGNUP_AND_AUTHN_SHARED_KEY']
-        timestamp = '{:x}'.format(int(time.time()))
-        if six.PY2:
-            nonce = os.urandom(16).encode('hex')
-        else:
-            nonce = os.urandom(16).hex()
-        token_data = '{0}|{1}|{2}|{3}'.format(shared_key, eppn, nonce, timestamp)
-        hashed = sha256(token_data.encode('ascii'))
-        token = hashed.hexdigest()
-
-        data = {
-            'eppn': eppn,
-            'token': token,
-            'nonce': nonce,
-            'ts': timestamp
-        }
+        timestamp = datetime.fromtimestamp(time.time())
 
         with self.app.test_client() as c:
-            resp = c.post('/token-login', data=data)
-            self.assertEqual(resp.status_code, 302)
-            self.assertTrue(resp.location.startswith(self.app.config['TOKEN_LOGIN_SUCCESS_REDIRECT_URL']))
+            with self.app.test_request_context('/signup-authn'):
+                c.set_cookie('test.localhost',
+                             key=self.app.config.get('SESSION_COOKIE_NAME'),
+                             value=session._session.token)
+                session.common.eppn = eppn
+                session.signup.ts = timestamp
 
-    def test_token_login_new_user_secret_box(self):
-        eppn = 'hubba-fooo'
-        shared_key = self.app.config['SIGNUP_AND_AUTHN_SHARED_KEY']
-        token, timestamp = generate_auth_token(shared_key, 'signup_login', eppn)
-        data = {
-            'eppn': eppn,
-            'token': token,
-            'ts': timestamp
-        }
-
-        with self.app.test_client() as c:
-            resp = c.post('/token-login', data=data)
-            self.assertEqual(resp.status_code, 302)
-            self.assertTrue(resp.location.startswith(self.app.config['TOKEN_LOGIN_SUCCESS_REDIRECT_URL']))
+                resp = self.app.dispatch_request()
+                self.assertEqual(resp.status_code, 302)
+                self.assertTrue(resp.location.startswith(self.app.config['SIGNUP_AUTHN_SUCCESS_REDIRECT_URL']))
 
     def test_token_login_old_user(self):
-        eppn = 'hubba-bubba'
-        shared_key = self.app.config['SIGNUP_AND_AUTHN_SHARED_KEY']
-        timestamp = '{:x}'.format(int(time.time()))
-        if six.PY2:
-            nonce = os.urandom(16).encode('hex')
-        else:
-            nonce = os.urandom(16).hex()
-        token_data = '{0}|{1}|{2}|{3}'.format(shared_key, eppn, nonce, timestamp)
-        hashed = sha256(token_data.encode('ascii'))
-        token = hashed.hexdigest()
-
-        data = {
-            'eppn': eppn,
-            'token': token,
-            'nonce': nonce,
-            'ts': timestamp
-        }
-
-        with self.app.test_client() as c:
-            resp = c.post('/token-login', data=data)
-            self.assertEqual(resp.status_code, 302)
-            self.assertTrue(resp.location.startswith(self.app.config['TOKEN_LOGIN_FAILURE_REDIRECT_URL']))
-
-    def test_token_login_old_user_secret_box(self):
         """ A user that has verified their account should not try to use token login """
         eppn = 'hubba-bubba'
-        shared_key = self.app.config['SIGNUP_AND_AUTHN_SHARED_KEY']
-        token, timestamp = generate_auth_token(shared_key, 'signup_login', eppn)
-        data = {
-            'eppn': eppn,
-            'token': token,
-            'ts': timestamp
-        }
+        timestamp = datetime.fromtimestamp(time.time())
 
         with self.app.test_client() as c:
-            resp = c.post('/token-login', data=data)
-            self.assertEqual(resp.status_code, 302)
-            self.assertTrue(resp.location.startswith(self.app.config['TOKEN_LOGIN_FAILURE_REDIRECT_URL']))
+            with self.app.test_request_context('/signup-authn'):
+                c.set_cookie('test.localhost',
+                             key=self.app.config.get('SESSION_COOKIE_NAME'),
+                             value=session._session.token)
+                session.common.eppn = eppn
+                session.signup.ts = timestamp
+
+                resp = self.app.dispatch_request()
+                self.assertEqual(resp.status_code, 302)
+                self.assertTrue(resp.location.startswith(self.app.config['SIGNUP_AUTHN_FAILURE_REDIRECT_URL']))
 
 
 class UnAuthnAPITestCase(EduidAPITestCase):

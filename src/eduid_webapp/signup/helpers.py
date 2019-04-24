@@ -31,7 +31,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-import six
 import os
 import time
 import struct
@@ -39,11 +38,10 @@ import datetime
 from bson import ObjectId
 import proquint
 
-from nacl import secret, encoding
 from flask import current_app, abort
 
+from eduid_common.session import session
 from eduid_common.api.utils import save_and_sync_user
-from eduid_common.authn.utils import generate_auth_token
 from eduid_userdb.exceptions import UserOutOfSync
 from eduid_userdb.credentials import Password
 from eduid_userdb.tou import ToUEvent
@@ -138,7 +136,7 @@ def complete_registration(signup_user):
     * generate a password,
     * add it to the user record,
     * update the attribute manager db with the new account,
-    * create authn token and nonce for the dashboard,
+    * create authn token for the dashboard,
     * return information to be sent to the user.
 
     :param signup_user: SignupUser instance
@@ -168,15 +166,13 @@ def complete_registration(signup_user):
             'message': 'user-out-of-sync'
         }
 
-    shared_key = current_app.config.get('SIGNUP_AND_AUTHN_SHARED_KEY')
-    auth_token, timestamp = generate_auth_token(shared_key, usage='signup_login', data=signup_user.eppn)
+    timestamp = datetime.datetime.fromtimestamp(int(time.time()))
+    session.common.eppn = signup_user.eppn
+    session.signup.ts = timestamp
     context.update({
         "status": 'verified',
         "password": password,
         "email": signup_user.mail_addresses.primary.email,
-        "eppn": signup_user.eppn,
-        "timestamp": timestamp,
-        "auth_token": auth_token,
         "dashboard_url": current_app.config.get('AUTH_TOKEN_URL')
     })
 
