@@ -48,7 +48,12 @@ from copy import deepcopy
 from typing import Dict, Any
 
 import redis
-import etcd
+
+try:
+    import etcd
+except ImportError:
+    pass  # Not everything uses etcd
+
 from flask.testing import FlaskClient
 
 from eduid_common.session import EduidSession
