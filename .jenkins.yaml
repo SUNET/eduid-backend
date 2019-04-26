@@ -1,14 +1,23 @@
 builders:
-  - python
+  - script
 triggers:
   cron: "@weekly"
 slack:
   room: "eduid-builds"
-python_module: eduid_lookup_mobile
-python_source_directory: eduid-lookup-mobile
-clean_workspace: true
+pre_build_script:
+  - "docker pull docker.sunet.se/eduid/mongodb:latest"
+script:
+  - "python3.7 -m venv venv"
+  - ". venv/bin/activate"
+  - "pip install -U setuptools wheel mypy"
+  - "pip install --index-url https://pypi.sunet.se -r test_requirements.txt"
+  - "pip freeze"
+  - "nosetests"
+ #- "mypy --ignore-missing-imports eduid_lookup_mobile"
+  - "python setup.py sdist bdist_wheel --universal"
 publish_over_ssh:
   - pypi.sunet.se
+clean_workspace: true
 
 extra_jobs:
   - name: eduid-lookup-mobile-docker
@@ -24,3 +33,4 @@ extra_jobs:
     upstream:
       - eduid-docker-python3env
       - eduid-lookup-mobile
+
