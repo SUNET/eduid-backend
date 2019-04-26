@@ -178,10 +178,9 @@ def verify_auth_token(shared_key, eppn, token, nonce, timestamp, usage, generato
 
     # check timestamp to make sure it is within -300..900 seconds from now
     now = int(time.time())
-    ts = int(timestamp, 16)
-    if (ts < now - 300) or (ts > now + 900):
+    if (timestamp < now - 300) or (timestamp > now + 900):
         logger.debug('Auth token timestamp {} out of bounds ({} seconds from {})'.format(
-            timestamp, ts - now, now))
+            timestamp, timestamp - now, now))
         return False
 
     # try to open secret box
