@@ -35,28 +35,17 @@ from __future__ import absolute_import
 
 import os
 import sys
-import time
-import shutil
-import atexit
-import random
-import tempfile
 import traceback
-import subprocess
 from contextlib import contextmanager
 from copy import deepcopy
 
 from typing import Dict, Any
 
-import redis
-
-try:
-    import etcd
-except ImportError:
-    pass  # Not everything uses etcd
-
 from flask.testing import FlaskClient
 
 from eduid_common.session import EduidSession
+from eduid_common.session.testing import RedisTemporaryInstance
+from eduid_common.config.testing import EtcdTemporaryInstance
 from eduid_userdb import User
 from eduid_userdb.db import BaseDB
 from eduid_userdb.testing import MongoTestCase
@@ -239,131 +228,6 @@ class EduidAPITestCase(MongoTestCase):
         user.modified_ts = modified_ts
         self.app.central_userdb.save(user)
         return True
-
-
-class RedisTemporaryInstance(object):
-    """Singleton to manage a temporary Redis instance
-
-    Use this for testing purpose only. The instance is automatically destroyed
-    at the end of the program.
-
-    """
-    _instance = None
-
-    @classmethod
-    def get_instance(cls):
-        if cls._instance is None:
-            cls._instance = cls()
-            atexit.register(cls._instance.shutdown)
-        return cls._instance
-
-    def __init__(self):
-        self._tmpdir = tempfile.mkdtemp()
-        self._port = random.randint(40000, 65535)
-        self._process = subprocess.Popen(['docker', 'run', '--rm',
-                                          '-p', '{!s}:6379'.format(self._port),
-                                          '-v', '{!s}:/data'.format(self._tmpdir),
-                                          '-e', 'extra_args=--daemonize no --bind 0.0.0.0',
-                                          'docker.sunet.se/eduid/redis:latest',
-                                          ],
-                                         stdout=open('/tmp/redis-temp.log', 'wb'),
-                                         stderr=subprocess.STDOUT)
-        interval = 0.2
-        for i in range(10):
-            time.sleep(interval)
-            try:
-                self._conn = redis.Redis('localhost', self._port, 0)
-                self._conn.set('dummy', 'dummy')
-            except redis.exceptions.ConnectionError:
-                if interval < 3:
-                    interval += interval
-                continue
-            else:
-                break
-        else:
-            self.shutdown()
-            assert False, 'Cannot connect to the redis test instance'
-
-    @property
-    def conn(self):
-        return self._conn
-
-    @property
-    def port(self):
-        return self._port
-
-    def shutdown(self):
-        if self._process:
-            self._process.terminate()
-            self._process.wait()
-            self._process = None
-        shutil.rmtree(self._tmpdir, ignore_errors=True)
-
-    def get_uri(self):
-        """
-        Convenience function to get a redis URI to the temporary database.
-
-        :return: host, port, dbname
-        """
-        return 'localhost', self.port, 0
-
-
-class EtcdTemporaryInstance(object):
-    """Singleton to manage a temporary Etcd instance
-
-    Use this for testing purpose only. The instance is automatically destroyed
-    at the end of the program.
-
-    """
-    _instance = None
-
-    @classmethod
-    def get_instance(cls):
-        if cls._instance is None:
-            cls._instance = cls()
-            atexit.register(cls._instance.shutdown)
-        return cls._instance
-
-    def __init__(self):
-        self._port = random.randint(40000, 50000)
-        self._process = subprocess.Popen(['docker', 'run', '--rm',
-                                          '-p', '{!s}:2379'.format(self._port),
-                                          'docker.sunet.se/library/etcd:v2.2.5',
-                                          '-advertise-client-urls', 'http://${HostIP}:2379',
-                                          '-listen-client-urls', 'http://0.0.0.0:2379'],
-                                         stdout=open('/tmp/etcd-temp.log', 'wb'),
-                                         stderr=subprocess.STDOUT)
-
-        for i in range(10):
-            time.sleep(0.2)
-            try:
-                self._conn = etcd.Client('localhost', self._port)
-                self._conn.stats  # Check connection
-            except etcd.EtcdConnectionFailed:
-                continue
-            else:
-                break
-        else:
-            self.shutdown()
-            assert False, 'Cannot connect to the etcd test instance'
-
-    @property
-    def conn(self):
-        return self._conn
-
-    @property
-    def host(self):
-        return self._conn.host
-
-    @property
-    def port(self):
-        return self._port
-
-    def shutdown(self):
-        if self._process:
-            self._process.terminate()
-            self._process.wait()
-            self._process = None
 
 
 class CSRFTestClient(FlaskClient):
