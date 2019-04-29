@@ -95,13 +95,8 @@ def authn():
 
     eppn = check_previous_identification(session.actions)
     if eppn is not None:
-        loa = get_loa(current_app.config.get('AVAILABLE_LOA'), None)  # With no session_info lowest loa will be returned
         current_app.logger.info("Starting pre-login actions "
                                 "for eppn: {})".format(eppn))
-        session['eduPersonPrincipalName'] = eppn
-        session['user_eppn'] = eppn
-        session['user_is_logged_in'] = True
-        session['eduPersonAssurance'] = loa
         url = url_for('actions.get_actions')
         return render_template('index.html', url=url)
     else:
