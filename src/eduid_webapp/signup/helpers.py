@@ -173,7 +173,7 @@ def complete_registration(signup_user):
         "status": 'verified',
         "password": password,
         "email": signup_user.mail_addresses.primary.email,
-        "dashboard_url": current_app.config.get('AUTH_TOKEN_URL')
+        "dashboard_url": current_app.config.get('SIGNUP_AUTHN_URL')
     })
 
     current_app.stats.count(name='signup_complete')
