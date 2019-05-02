@@ -293,7 +293,7 @@ class AuthnAPITestCase(AuthnAPITestBase):
 
         self.acs('/terminate', eppn, _check)
 
-    def test_token_login_new_user(self):
+    def test_signup_authn_new_user(self):
         eppn = 'hubba-fooo'
         timestamp = datetime.fromtimestamp(time.time())
 
@@ -309,7 +309,7 @@ class AuthnAPITestCase(AuthnAPITestBase):
                 self.assertEqual(resp.status_code, 302)
                 self.assertTrue(resp.location.startswith(self.app.config['SIGNUP_AUTHN_SUCCESS_REDIRECT_URL']))
 
-    def test_token_login_old_user(self):
+    def test_signup_authn_old_user(self):
         """ A user that has verified their account should not try to use token login """
         eppn = 'hubba-bubba'
         timestamp = datetime.fromtimestamp(time.time())
