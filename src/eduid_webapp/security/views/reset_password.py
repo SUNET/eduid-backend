@@ -8,7 +8,7 @@ from flask import Blueprint, request, render_template, current_app, url_for, red
 from flask_babel import gettext as _
 
 from eduid_common.session import session
-from eduid_userdb.security.state import PasswordResetEmailAndPhoneState
+from eduid_userdb.security.state import PasswordResetEmailState, PasswordResetEmailAndPhoneState
 from eduid_userdb.exceptions import DocumentDoesNotExist
 from eduid_webapp.security.schemas import ResetPasswordEmailSchema, ResetPasswordExtraSecuritySchema
 from eduid_webapp.security.schemas import ResetPasswordVerifyPhoneNumberSchema, ResetPasswordNewPasswordSchema
@@ -53,6 +53,11 @@ def require_state(f):
 
         if isinstance(state, PasswordResetEmailAndPhoneState) and state.phone_code.is_expired(sms_expiration_time):
             current_app.logger.info('Phone code expired for state: {}'.format(email_code))
+            # Revert the state to EmailState to allow the user to choose extra security again
+            current_app.password_reset_state_db.remove_state(state)
+            state = PasswordResetEmailState(eppn=state.eppn, email_address=state.email_address,
+                                            email_code=state.email_code)
+            current_app.password_reset_state_db.save(state)
             view_context = {
                 'heading': _('SMS code expired'),
                 'text': _('The phone verification has expired.'),

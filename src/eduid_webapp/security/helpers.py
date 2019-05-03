@@ -177,7 +177,7 @@ def send_password_reset_mail(email_address):
     html_template = 'reset_password_email.html.jinja2'
     to_addresses = [address.email for address in user.mail_addresses.verified.to_list()]
 
-    password_reset_timeout = current_app.config['EMAIL_CODE_TIMEOUT'] / 60 / 60  # seconds to hours
+    password_reset_timeout = current_app.config['EMAIL_CODE_TIMEOUT'] // 60 // 60  # seconds to hours
     context = {
         'reset_password_link': url_for('reset_password.email_reset_code', email_code=state.email_code.code,
                                        _external=True),
