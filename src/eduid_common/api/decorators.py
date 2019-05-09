@@ -124,7 +124,9 @@ class UnmarshalWith(object):
                 kwargs.update(unmarshal_result.data)
                 return f(*args, **kwargs)
             except ValidationError as e:
-                response_data = FluxFailResponse(request, payload={'error': e.normalized_messages()})
+                response_data = FluxFailResponse(request,
+                                                 payload={'error': e.normalized_messages(),
+                                                          'csrf_token': session.get_csrf_token()})
                 return jsonify(response_data.to_dict())
         return unmarshal_decorator
 
