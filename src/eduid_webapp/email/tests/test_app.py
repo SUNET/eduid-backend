@@ -63,6 +63,7 @@ class EmailTests(EduidAPITestCase):
                 'MONGO_URI': config['MONGO_URI'],
             },
             'EMAIL_VERIFICATION_TIMEOUT': 86400,
+            'THROTTLE_RESEND_SECONDS': 300,
         })
         return config
 
@@ -455,11 +456,57 @@ class EmailTests(EduidAPITestCase):
 
                 self.assertEqual(response2.status_code, 200)
 
-                delete_email_data = json.loads(response2.data)
+                resend_code_email_data = json.loads(response2.data)
 
-                self.assertEqual(delete_email_data['type'], 'POST_EMAIL_RESEND_CODE_SUCCESS')
-                self.assertEqual(delete_email_data['payload']['emails'][0].get('email'), 'johnsmith@example.com')
-                self.assertEqual(delete_email_data['payload']['emails'][1].get('email'), 'johnsmith2@example.com')
+                self.assertEqual(resend_code_email_data['type'], 'POST_EMAIL_RESEND_CODE_SUCCESS')
+                self.assertEqual(resend_code_email_data['payload']['emails'][0].get('email'), 'johnsmith@example.com')
+                self.assertEqual(resend_code_email_data['payload']['emails'][1].get('email'), 'johnsmith2@example.com')
+
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_throttle_resend_code(self, mock_request_user_sync, mock_sendmail):
+        mock_request_user_sync.side_effect = self.request_user_sync
+        mock_sendmail.return_value = True
+
+        response = self.browser.post('/resend-code')
+        self.assertEqual(response.status_code, 302)  # Redirect to token service
+
+        eppn = self.test_user_data['eduPersonPrincipalName']
+
+        with self.session_cookie(self.browser, eppn) as client:
+            with client.session_transaction() as sess:
+
+                with self.app.test_request_context():
+                    data = {
+                        'email': 'johnsmith@example.com',
+                        'csrf_token': sess.get_csrf_token()
+                    }
+
+                # Request a code
+                response2 = client.post('/resend-code', data=json.dumps(data),
+                                        content_type=self.content_type_json)
+
+                self.assertEqual(response2.status_code, 200)
+
+                resend_code_email_data = json.loads(response2.data)
+
+                self.assertEqual(resend_code_email_data['type'], 'POST_EMAIL_RESEND_CODE_SUCCESS')
+                self.assertEqual(resend_code_email_data['payload']['emails'][0].get('email'), 'johnsmith@example.com')
+                self.assertEqual(resend_code_email_data['payload']['emails'][1].get('email'), 'johnsmith2@example.com')
+
+                # Request a new code
+                data['csrf_token'] = resend_code_email_data['payload']['csrf_token']
+                response2 = client.post('/resend-code', data=json.dumps(data),
+                                        content_type=self.content_type_json)
+
+                self.assertEqual(response2.status_code, 200)
+
+                resend_code_email_data = json.loads(response2.data)
+
+                self.assertEqual(resend_code_email_data['type'], 'POST_EMAIL_RESEND_CODE_FAIL')
+                self.assertEqual(resend_code_email_data['error'], True)
+                self.assertEqual(resend_code_email_data['payload']['message'], 'still-valid-code')
+                self.assertIsNotNone(resend_code_email_data['payload']['csrf_token'])
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def test_resend_code_fails(self, mock_request_user_sync):

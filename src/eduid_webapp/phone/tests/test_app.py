@@ -60,8 +60,9 @@ class PhoneTests(EduidAPITestCase):
                 'CELERY_RESULT_BACKEND': 'amqp',
                 'CELERY_TASK_SERIALIZER': 'json'
             },
-            'PHONE_VERIFICATION_TIMEOUT': 24,
+            'PHONE_VERIFICATION_TIMEOUT': 7200,
             'DEFAULT_COUNTRY_CODE': '46',
+            'THROTTLE_RESEND_SECONDS': 300,
         })
         return config
 
@@ -395,6 +396,54 @@ class PhoneTests(EduidAPITestCase):
                     self.assertEqual('POST_PHONE_RESEND_CODE_SUCCESS', phone_data['type'])
                     self.assertEqual(u'+34609609609', phone_data['payload']['phones'][0].get('number'))
                     self.assertEqual(u'+34 6096096096', phone_data['payload']['phones'][1].get('number'))
+
+    @patch('eduid_webapp.phone.verifications.get_short_hash')
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_throttle_resend_code(self, mock_request_user_sync, mock_code_verification):
+        mock_request_user_sync.side_effect = self.request_user_sync
+        mock_code_verification.return_value = u'5250f9a4'
+
+        response = self.browser.post('/resend-code')
+        self.assertEqual(response.status_code, 302)  # Redirect to token service
+
+        eppn = self.test_user_data['eduPersonPrincipalName']
+
+        with self.session_cookie(self.browser, eppn) as client:
+            with client.session_transaction() as sess:
+                with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator',
+                           return_value=True) as send_verification_code_mock:
+
+                    # Request a code
+                    with self.app.test_request_context():
+                        data = {
+                            'number': '+34609609609',
+                            'csrf_token': sess.get_csrf_token()
+                        }
+
+                    response2 = client.post('/resend-code', data=json.dumps(data),
+                                            content_type=self.content_type_json)
+
+                    self.assertEqual(response2.status_code, 200)
+
+                    phone_data = json.loads(response2.data)
+
+                    self.assertEqual('POST_PHONE_RESEND_CODE_SUCCESS', phone_data['type'])
+                    self.assertEqual(u'+34609609609', phone_data['payload']['phones'][0].get('number'))
+                    self.assertEqual(u'+34 6096096096', phone_data['payload']['phones'][1].get('number'))
+
+                    # Request a new code
+                    data['csrf_token'] = phone_data['payload']['csrf_token']
+                    response2 = client.post('/resend-code', data=json.dumps(data),
+                                            content_type=self.content_type_json)
+
+                    self.assertEqual(response2.status_code, 200)
+
+                    phone_data = json.loads(response2.data)
+
+                    self.assertEqual('POST_PHONE_RESEND_CODE_FAIL', phone_data['type'])
+                    self.assertEqual(phone_data['error'], True)
+                    self.assertEqual(phone_data['payload']['message'], 'still-valid-code')
+                    self.assertIsNotNone(phone_data['payload']['csrf_token'])
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('eduid_webapp.phone.verifications.get_short_hash')

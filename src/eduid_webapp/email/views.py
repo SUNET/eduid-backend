@@ -330,9 +330,15 @@ def resend_code(user, email):
             '_status': 'error',
             'message': 'user-out-of-sync'
         }
-    
-    send_verification_code(email, user)
-    current_app.logger.debug('New verification code sended to '
+
+    sent = send_verification_code(email, user)
+    if not sent:
+        return {
+            '_status': 'error',
+            'message': 'still-valid-code'
+        }
+
+    current_app.logger.debug('New verification code sent to '
                              'address {} for user {}'.format(email, user))
     current_app.stats.count(name='email_resend_code', value=1)
 
