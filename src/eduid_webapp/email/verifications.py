@@ -31,6 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
+import time
 from flask import current_app, url_for, render_template
 from flask_babel import gettext as _
 
@@ -44,7 +45,11 @@ from eduid_userdb.logs import MailAddressProofing
 def new_proofing_state(email, user):
     old_state = current_app.proofing_statedb.get_state_by_eppn_and_email(
             user.eppn, email, raise_on_missing=False)
+
     if old_state is not None:
+        now = int(time.time())
+        if int(old_state.modified_ts.timestamp()) > now - 300:
+            return None
         current_app.proofing_statedb.remove_state(old_state)
         current_app.logger.info('Removed old proofing state')
         current_app.logger.debug('Old proofing state: {}'.format(old_state.to_dict()))
@@ -68,6 +73,8 @@ def new_proofing_state(email, user):
 def send_verification_code(email, user):
     subject = _('eduID confirmation email')
     state = new_proofing_state(email, user)
+    if state is None:
+        return False
     link = url_for('email.verify_link', code=state.verification.verification_code, email=email, _external=True)
     site_name = current_app.config.get("EDUID_SITE_NAME")
     site_url = current_app.config.get("EDUID_SITE_URL")
@@ -92,6 +99,7 @@ def send_verification_code(email, user):
     current_app.mail_relay.sendmail(subject, [email], text, html, reference=state.reference)
     current_app.logger.info("Sent email address verification mail to user {}"
                             " about address {!s}.".format(user, email))
+    return True
 
 
 def verify_mail_address(state, proofing_user):

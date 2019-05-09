@@ -31,6 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
+import time
 from flask import current_app
 
 from eduid_common.api.utils import get_short_hash
@@ -45,6 +46,9 @@ def new_proofing_state(phone, user):
     old_state = current_app.proofing_statedb.get_state_by_eppn_and_mobile(
                        user.eppn, phone, raise_on_missing=False)
     if old_state is not None:
+        now = int(time.time())
+        if int(old_state.modified_ts.timestamp()) > now - 300:
+            return None
         current_app.logger.debug('removing old proofing state: {!r}.'.format(old_state.to_dict()))
         current_app.proofing_statedb.remove_state(old_state)
 
@@ -66,9 +70,12 @@ def new_proofing_state(phone, user):
 def send_verification_code(user, phone):
 
     state = new_proofing_state(phone, user)
+    if state is None:
+        return False
 
     current_app.msg_relay.phone_validator(state.reference, phone, state.verification.verification_code, user.language)
     current_app.logger.info('Sent verification sms to user {} with phone number {}.'.format(user, phone))
+    return True
 
     
 def verify_phone_number(state, proofing_user):

@@ -286,8 +286,14 @@ def resend_code(user, number):
             'message': 'user-out-of-sync'
         }
 
-    send_verification_code(user, number)
-    current_app.logger.debug('New verification code sended to '
+    sent = send_verification_code(user, number)
+    if not sent:
+        return {
+            '_status': 'error',
+            'message': 'still-valid-code'
+        }
+
+    current_app.logger.debug('New verification code sent to '
                              'phone number {!r} for user {}'.format(number, user))
     current_app.stats.count(name='mobile_resend_code', value=1)
 
