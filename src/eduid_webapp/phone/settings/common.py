@@ -57,5 +57,7 @@ LOG_LEVEL = 'INFO'
 # timeout for phone verification token, in seconds
 PHONE_VERIFICATION_TIMEOUT = 7200
 
+THROTTLE_RESEND_SECONDS = 300
+
 # default country code
 DEFAULT_COUNTRY_CODE = '46'

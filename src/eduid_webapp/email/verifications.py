@@ -48,7 +48,7 @@ def new_proofing_state(email, user):
 
     if old_state is not None:
         now = int(time.time())
-        if int(old_state.modified_ts.timestamp()) > now - 300:
+        if int(old_state.modified_ts.timestamp()) > now - current_app.config['THROTTLE_RESEND_SECONDS']:
             return None
         current_app.proofing_statedb.remove_state(old_state)
         current_app.logger.info('Removed old proofing state')

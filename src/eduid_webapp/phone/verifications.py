@@ -47,7 +47,7 @@ def new_proofing_state(phone, user):
                        user.eppn, phone, raise_on_missing=False)
     if old_state is not None:
         now = int(time.time())
-        if int(old_state.modified_ts.timestamp()) > now - 300:
+        if int(old_state.modified_ts.timestamp()) > now - current_app.config['THROTTLE_RESEND_SECONDS']:
             return None
         current_app.logger.debug('removing old proofing state: {!r}.'.format(old_state.to_dict()))
         current_app.proofing_statedb.remove_state(old_state)
