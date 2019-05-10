@@ -45,7 +45,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def get_saml2_config(module_path):
+def get_saml2_config(module_path: str) -> SPConfig:
 
     module = imp.load_source('saml2_settings', module_path)
 
