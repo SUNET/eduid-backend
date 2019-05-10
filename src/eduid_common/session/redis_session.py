@@ -292,7 +292,7 @@ class RedisEncryptedSession(collections.MutableMapping):
                                                                                             self.ttl, len(data)))
         self.conn.setex(self.session_id, self.ttl, data)
 
-    def encode_token(self, session_id: bytes) -> bytes:
+    def encode_token(self, session_id: bytes) -> str:
         """
         Encode a session id and it's signature into a token that is stored
         in the users browser as a cookie.
@@ -307,8 +307,7 @@ class RedisEncryptedSession(collections.MutableMapping):
         # Make sure token will be a valid NCName (pysaml2 requirement)
         while combined.endswith(b'='):
             combined = combined[:-1]
-        #return (TOKEN_PREFIX + combined).decode('utf-8')
-        return (TOKEN_PREFIX + combined)
+        return (TOKEN_PREFIX + combined).decode('utf-8')
 
     @staticmethod
     def decode_token(token):
