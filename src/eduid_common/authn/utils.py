@@ -52,7 +52,7 @@ def get_saml2_config(module_path: str) -> SPConfig:
     module = importlib.util.module_from_spec(spec)
 
     conf = SPConfig()
-    conf.load(module.SAML_CONFIG)
+    conf.load(module.SAML_CONFIG)  # type: ignore
     return conf
 
 
