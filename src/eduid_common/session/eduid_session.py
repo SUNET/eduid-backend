@@ -282,8 +282,8 @@ class SessionFactory(SessionInterface):
                 if app.debug:
                     current_app.logger.debug('Loaded existing session {}'.format(sess))
                 return sess
-            except (KeyError, ValueError):
-                current_app.logger.warning('Failed to load session from token {}'.format(token))
+            except (KeyError, ValueError) as exc:
+                current_app.logger.warning(f'Failed to load session from token {token}: {exc}')
 
         # New session
         base_session = self.manager.get_session(data={}, debug=app.debug)
