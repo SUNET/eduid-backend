@@ -158,7 +158,7 @@ class AuthnAPITestBase(EduidAPITestCase):
         """
         with self.app.test_client() as c:
             resp = c.get('{}?next={}'.format(url, next_url))
-            authn_req = get_location(get_authn_request(self.app.config,
+            authn_req = get_location(get_authn_request(self.app.saml2_config,
                                                        session, next_url, None,
                                                        force_authn=force_authn))
             idp_url = authn_req.split('?')[0]
