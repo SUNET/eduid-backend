@@ -93,10 +93,8 @@ def _authn(action, force_authn=False):
     assert len(idps) == 1
     idp = list(idps.keys())[0]
     idp = request.args.get('idp', idp)
-    loa = request.args.get('required_loa', None)
-    authn_request = get_authn_request(current_app.config, session,
-                                      relay_state, idp, required_loa=loa,
-                                      force_authn=force_authn)
+    authn_request = get_authn_request(current_app.saml2_config, session,
+                                      relay_state, idp, force_authn=force_authn)
     schedule_action(action)
     current_app.logger.info('Redirecting the user to the IdP for ' + action)
     return redirect(get_location(authn_request))
@@ -112,7 +110,7 @@ def assertion_consumer_service():
         abort(400)
 
     xmlstr = request.form['SAMLResponse']
-    session_info = get_authn_response(current_app.config, session, xmlstr)
+    session_info = get_authn_response(current_app.saml2_config, session, xmlstr)
     current_app.logger.debug('Trying to locate the user authenticated by the IdP')
     user = authenticate(current_app, session_info)
 
