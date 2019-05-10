@@ -33,21 +33,23 @@
 
 from __future__ import absolute_import
 
-import imp
+import importlib.util
+import logging
 import time
-from saml2.config import SPConfig
+
 from pwgen import pwgen
-from eduid_common.session import session
+from saml2.config import SPConfig
 
 from eduid_common.api.utils import urlappend
+from eduid_common.session import session
 
-import logging
 logger = logging.getLogger(__name__)
 
 
 def get_saml2_config(module_path: str) -> SPConfig:
-
-    module = imp.load_source('saml2_settings', module_path)
+    """Load SAML2 config file, in the form of a Python module."""
+    spec = importlib.util.spec_from_file_location('saml2_settings', module_path)
+    module = importlib.util.module_from_spec(spec)
 
     conf = SPConfig()
     conf.load(module.SAML_CONFIG)
