@@ -292,16 +292,14 @@ class RedisEncryptedSession(collections.MutableMapping):
                                                                                             self.ttl, len(data)))
         self.conn.setex(self.session_id, self.ttl, data)
 
-    def encode_token(self, session_id):
+    def encode_token(self, session_id: bytes) -> str:
         """
         Encode a session id and it's signature into a token that is stored
         in the users browser as a cookie.
 
         :param session_id: the session_id (Redis key)
-        :type session_id: str | unicode
 
         :return: a token with the signed session_id
-        :rtype: str | unicode
         """
         sig = sign_session_id(session_id, self.token_key)
         # The last byte ('x') is padding to prevent b32encode from adding an = at the end
@@ -309,7 +307,7 @@ class RedisEncryptedSession(collections.MutableMapping):
         # Make sure token will be a valid NCName (pysaml2 requirement)
         while combined.endswith(b'='):
             combined = combined[:-1]
-        return b''.join([TOKEN_PREFIX, combined])
+        return (TOKEN_PREFIX + combined).decode('utf-8')
 
     @staticmethod
     def decode_token(token):
@@ -484,18 +482,14 @@ def derive_key(app_key, session_key, usage, size):
                                3, dklen=size)
 
 
-def sign_session_id(session_id, signing_key):
+def sign_session_id(session_id: bytes, signing_key: bytes) -> bytes:
     """
     Generate a HMAC signature of session_id using the session-unique signing key.
 
     :param session_id: Session id (Redis key)
     :param signing_key: Key for generating the signature
 
-    :type session_id: bytes
-    :type signing_key: bytes
-
-    :return: Signature
-    :rtype: bytes
+    :return: HMAC signature of session_id
     """
     return hmac.new(signing_key, session_id, digestmod=hashlib.sha256).digest()
 

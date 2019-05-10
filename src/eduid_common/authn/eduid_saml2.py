@@ -30,18 +30,16 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
+import logging
 import pprint
-from saml2 import BINDING_HTTP_REDIRECT, BINDING_HTTP_POST
-from saml2.client import Saml2Client
-from saml2.saml import AuthnContextClassRef
-from saml2.samlp import RequestedAuthnContext
-
 from xml.etree.ElementTree import ParseError
 
-from .cache import IdentityCache, OutstandingQueriesCache, StateCache
-from .utils import get_saml2_config, get_saml_attribute
+from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
+from saml2.client import Saml2Client
 
-import logging
+from .cache import IdentityCache, OutstandingQueriesCache
+from .utils import SPConfig, get_saml_attribute
+
 logger = logging.getLogger(__name__)
 
 
@@ -70,31 +68,20 @@ def get_authn_ctx(session_info):
         return None
 
 
-def get_authn_request(config, session, came_from, selected_idp,
-                      required_loa=None, force_authn=False):
-    # Request the right AuthnContext for workmode
-    # (AL1 for 'personal', AL2 for 'helpdesk' and AL3 for 'admin' by default)
-    if required_loa is None:
-        required_loa = config.get('required_loa', {})
-        workmode = config.get('workmode', 'personal')
-        required_loa = required_loa.get(workmode, '')
-    logger.debug('Requesting AuthnContext {!r}'.format(required_loa))
-    kwargs = {
-        "requested_authn_context": RequestedAuthnContext(
-            authn_context_class_ref=AuthnContextClassRef(
-                text=required_loa
-            )
-        ),
+def get_authn_request(saml2_config: SPConfig, session, came_from, selected_idp,
+                      force_authn=False):
+    args = {
         "force_authn": str(force_authn).lower(),
     }
+    logger.debug(f'Authn request args: {args}')
 
-    client = Saml2Client(get_saml2_config(config['SAML2_SETTINGS_MODULE']))
+    client = Saml2Client(saml2_config)
     try:
         (session_id, info) = client.prepare_for_authenticate(
             entityid=selected_idp,
             relay_state=came_from,
             binding=BINDING_HTTP_REDIRECT,
-            **kwargs
+            **args
         )
     except TypeError:
         logger.error('Unable to know which IdP to use')
@@ -105,9 +92,9 @@ def get_authn_request(config, session, came_from, selected_idp,
     return info
 
 
-def get_authn_response(config, session, raw_response):
+def get_authn_response(saml2_config: SPConfig, session, raw_response):
 
-    client = Saml2Client(config['SAML2_CONFIG'],
+    client = Saml2Client(saml2_config,
                          identity_cache=IdentityCache(session))
 
     oq_cache = OutstandingQueriesCache(session)
