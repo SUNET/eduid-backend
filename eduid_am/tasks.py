@@ -1,15 +1,12 @@
 from __future__ import absolute_import
 
-import sys
 import bson
-from importlib import import_module
 
 from celery import Task
 from celery.utils.log import get_task_logger
 
-from pkg_resources import iter_entry_points
-
 from eduid_am.common import celery
+import eduid_am.ams
 from eduid_am.worker import worker_config
 from eduid_userdb import UserDB
 from eduid_userdb.exceptions import UserDoesNotExist, LockedIdentityViolation, ConnectionError
@@ -22,52 +19,8 @@ if celery is None:
 logger = get_task_logger(__name__)
 
 
-class PluginsRegistry(object):
-    """
-    In-memory information about existing Attribute Manager plugins,
-    and the result of their initialization function (context).
-    """
-
-    def __init__(self, am_conf):
-        self.context = dict()
-        self.attribute_fetcher = dict()
-
-        for plugin_name in worker_config.get('ACTION_PLUGINS', []):
-            module_name = 'eduid_am.ams.{}'.format(plugin_name)
-            try:
-                plugin_module = import_module(module_name)
-            except ImportError as exc:
-                logger.warn('Configured plugin {} missing from sys.path (could not import {}): {}'.format(
-                    plugin_name, module_name, exc))
-                logger.debug('Extra debug: path: {}'.format(sys.path))
-                continue
-            logger.info('Registering action plugin: {} (module {})'.format(plugin_name, module_name))
-
-            plugin_init = getattr(plugin_module, 'plugin_init')
-            self.context[plugin_name] = plugin_init(am_conf)
-
-            attr_fetcher = getattr(plugin_module, 'attribute_fetcher')
-            self.attribute_fetcher[plugin_name] = attr_fetcher
-
-        for entry_point in iter_entry_points('eduid_am.plugin_init'):
-            if entry_point.name in self.context:
-                logger.warn('Duplicate plugin_init entry point: {!r}'.format(entry_point.name))
-            else:
-                logger.debug('Calling plugin_init entry point for {!r}'.format(entry_point.name))
-                plugin_init = entry_point.load()
-                self.context[entry_point.name] = plugin_init(am_conf)
-
-        for entry_point in iter_entry_points('eduid_am.attribute_fetcher'):
-            if entry_point.name in self.attribute_fetcher:
-                logger.warn('Duplicate attribute_fetcher entry point: {!r}'.format(entry_point.name))
-            else:
-                logger.debug('Registering attribute_fetcher entry point for {!r}'.format(entry_point.name))
-                self.attribute_fetcher[entry_point.name] = entry_point.load()
-
-
 class AttributeManager(Task):
-    """Singleton that stores reusable objects like the entry points registry
-    or the MongoDB database."""
+    """Singleton that stores reusable objects like the MongoDB database."""
 
     abstract = True  # This means Celery won't register this as another task
 
@@ -75,16 +28,12 @@ class AttributeManager(Task):
         self.default_db_uri = worker_config.get('MONGO_URI')
         self.userdb = None
         self.init_db()
-        self.init_plugins()
 
     def init_db(self):
         if self.default_db_uri is not None:
             # self.userdb is the UserDB to which AM will write the updated users. This setting will
             # be None when this class is instantiated on the 'client' side (e.g. in a microservice)
             self.userdb = UserDB(self.default_db_uri, 'eduid_am', 'attributes')
-
-    def init_plugins(self):
-        self.registry = PluginsRegistry(worker_config)
 
     def on_failure(self, exc, task_id, args, kwargs, einfo):
         # The most common problem when tasks raise exceptions is that mongodb has switched master,
@@ -93,7 +42,6 @@ class AttributeManager(Task):
         # get an exception
         logger.exception('Task failed. Reloading db and plugins.')
         self.init_db()
-        self.init_plugins()
 
 
 @celery.task(ignore_results=True, base=AttributeManager)
@@ -141,10 +89,12 @@ def _update_attributes_safe(app_name, user_id):
     logger.debug('update {!s}[{!s}]'.format(app_name, user_id))
 
     try:
-        attribute_fetcher = self.registry.attribute_fetcher[app_name]
+        attribute_fetcher = getattr(eduid_am.ams, app_name)
     except KeyError:
         logger.error('Plugin for {!s} is not installed'.format(app_name))
         return
+    else:
+        attribute_fetcher = attribute_fetcher(worker_config)
 
     logger.debug("Attribute fetcher for {!s}: {!r}".format(app_name, attribute_fetcher))
 
@@ -155,18 +105,13 @@ def _update_attributes_safe(app_name, user_id):
         raise ValueError('Bad user_id')
 
     try:
-        _context = self.registry.context[app_name]
-    except KeyError:
-        logger.error('Plugin for {!s} is not initialized'.format(app_name))
-        return
-
-    logger.debug("Context for {!s}: {!r}".format(app_name, _context))
-
-    try:
-        attributes = attribute_fetcher(_context, _id)
+        attributes = attribute_fetcher(_id)
     except UserDoesNotExist as error:
         logger.error('The user {!s} does not exist in the database for plugin {!s}: {!s}'.format(
             _id, app_name, error))
+        return
+    except ValueError as error:
+        logger.error(f'Error syncing user {_id}:  {error}')
         return
 
     try:
