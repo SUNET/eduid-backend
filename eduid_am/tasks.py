@@ -39,21 +39,25 @@ class AFRegistry(dict):
 
 
 class AttributeManager(Task):
-    """Singleton that stores reusable objects like the MongoDB database."""
+    """Singleton that stores reusable objects like the MongoDB database
+       or the attribute fetchers registry."""
 
     abstract = True  # This means Celery won't register this as another task
 
     def __init__(self):
         self.default_db_uri = worker_config.get('MONGO_URI')
         self.userdb = None
-        self.af_registry = AFRegistry(worker_config)
         self.init_db()
+        self.init_af_registry()
 
     def init_db(self):
         if self.default_db_uri is not None:
             # self.userdb is the UserDB to which AM will write the updated users. This setting will
             # be None when this class is instantiated on the 'client' side (e.g. in a microservice)
             self.userdb = UserDB(self.default_db_uri, 'eduid_am', 'attributes')
+
+    def init_af_registry(self):
+        self.af_registry = AFRegistry(worker_config)
 
     def on_failure(self, exc, task_id, args, kwargs, einfo):
         # The most common problem when tasks raise exceptions is that mongodb has switched master,
@@ -62,6 +66,7 @@ class AttributeManager(Task):
         # get an exception
         logger.exception('Task failed. Reloading db and plugins.')
         self.init_db()
+        self.init_af_registry()
 
 
 @celery.task(ignore_results=True, base=AttributeManager)
