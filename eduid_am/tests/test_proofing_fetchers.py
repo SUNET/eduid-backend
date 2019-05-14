@@ -8,9 +8,9 @@ from eduid_userdb.testing import MongoTestCase
 from eduid_userdb.proofing import ProofingUser
 from eduid_userdb.personal_data import PersonalDataUser
 from eduid_userdb.security import SecurityUser
-from eduid_proofing_amp import attribute_fetcher, oidc_plugin_init, letter_plugin_init, lookup_mobile_plugin_init
-from eduid_proofing_amp import email_plugin_init, phone_plugin_init, personal_data_plugin_init, security_plugin_init
-from eduid_proofing_amp import orcid_plugin_init
+
+import eduid_am.ams
+from eduid_am.fetcher_registry import AFRegistry
 
 USER_DATA = {
     'givenName': 'Testaren',
@@ -72,34 +72,36 @@ class AttributeFetcherOldToNewUsersTests(MongoTestCase):
         }
         super(AttributeFetcherOldToNewUsersTests, self).setUp(init_am=True, am_settings=am_settings)
         self.user_data = deepcopy(USER_DATA)
-        self.plugin_contexts = [
-            oidc_plugin_init(self.am_settings),
-            letter_plugin_init(self.am_settings),
-            lookup_mobile_plugin_init(self.am_settings)
-        ]
+        self.af_registry = AFRegistry(self.am_settings)
+        for attr in dir(eduid_am.ams):
+            if attr.startswith('eduid_'):
+                af_class = getattr(eduid_am.ams, attr)
+                if type(af_class) is type:
+                    self.af_registry[attr] = af_class(self.am_settings)
+
         for userdoc in self.amdb._get_all_docs():
             proofing_user = ProofingUser(data=userdoc)
-            for context in self.plugin_contexts:
-                context.private_db.save(proofing_user, check_sync=False)
+            for fetcher in self.af_registry.values():
+                fetcher.private_db.save(proofing_user, check_sync=False)
 
         self.maxDiff = None
 
     def tearDown(self):
-        for context in self.plugin_contexts:
-            context.private_db._drop_whole_collection()
+        for fetcher in self.af_registry:
+            self.af_registry[fetcher].private_db._drop_whole_collection()
         super(AttributeFetcherOldToNewUsersTests, self).tearDown()
 
     def test_invalid_user(self):
-        for context in self.plugin_contexts:
+        for fetcher in self.af_registry:
             with self.assertRaises(UserDoesNotExist):
-                attribute_fetcher(context, bson.ObjectId('0' * 24))
+                fetcher(bson.ObjectId('0' * 24))
 
     def test_existing_user(self):
-        for context in self.plugin_contexts:
+        for fetcher in self.af_registry.values():
             proofing_user = ProofingUser(data=self.user_data)
-            context.private_db.save(proofing_user)
+            fetcher.private_db.save(proofing_user)
 
-            actual_update = attribute_fetcher(context, proofing_user.user_id)
+            actual_update = fetcher(proofing_user.user_id)
             expected_update = {
                     '$set': {
                         "givenName": u"Testaren",
@@ -119,20 +121,20 @@ class AttributeFetcherOldToNewUsersTests(MongoTestCase):
             'malicious': 'hacker',
         })
 
-        for context in self.plugin_contexts:
+        for fetcher in self.af_registry.values():
             # Write bad entry into database
-            user_id = context.private_db._coll.insert(self.user_data)
+            user_id = fetcher.private_db._coll.insert(self.user_data)
 
             with self.assertRaises(UserHasUnknownData):
-                attribute_fetcher(context, user_id)
+                fetcher(user_id)
 
     def test_fillup_attributes(self):
 
-        for context in self.plugin_contexts:
+        for fetcher in self.af_registry.values():
             proofing_user = ProofingUser(data=self.user_data)
-            context.private_db.save(proofing_user)
+            fetcher.private_db.save(proofing_user)
 
-            actual_update = attribute_fetcher(context, proofing_user.user_id)
+            actual_update = fetcher(proofing_user.user_id)
             expected_update = {
                 '$set': {
                     "givenName": u"Testaren",
@@ -176,10 +178,10 @@ class AttributeFetcherOldToNewUsersTests(MongoTestCase):
             ],
         })
         proofing_user = ProofingUser(data=self.user_data)
-        letter_plugin_context = letter_plugin_init(self.am_settings)
-        letter_plugin_context.private_db.save(proofing_user)
+        fetcher = self.af_registry['eduid_letter_proofing']
+        fetcher.private_db.save(proofing_user)
 
-        actual_update = attribute_fetcher(letter_plugin_context, proofing_user.user_id)
+        actual_update = fetcher(proofing_user.user_id)
         expected_update = {
             '$set': {
                 "givenName": u"Testaren",
@@ -217,7 +219,7 @@ class AttributeFetcherOldToNewUsersTests(MongoTestCase):
             expected_update
         )
 
-        actual_update = attribute_fetcher(letter_plugin_context, proofing_user.user_id)
+        actual_update = fetcher(proofing_user.user_id)
 
         # Don't repeat the letter_proofing_data
         self.assertDictEqual(
@@ -251,9 +253,9 @@ class AttributeFetcherOldToNewUsersTests(MongoTestCase):
             }
         )
         proofing_user = ProofingUser(data=self.user_data)
-        letter_plugin_context.private_db.save(proofing_user)
+        fetcher.private_db.save(proofing_user)
 
-        actual_update = attribute_fetcher(letter_plugin_context, proofing_user.user_id)
+        actual_update = fetcher(proofing_user.user_id)
         expected_update = {
             '$set': {
                 "givenName": u"Testaren",
@@ -317,11 +319,11 @@ class AttributeFetcherOldToNewUsersTests(MongoTestCase):
     def convert_and_remove_norEduPersonNIN(self):
         self.user_data.update({'norEduPersonNIN': '123456781235'})
         del self.user_data['nins']
-        for context in self.plugin_contexts:
+        for fetcher in self.af_registry.values():
             proofing_user = ProofingUser(data=self.user_data)
-            context.private_db.save(proofing_user)
+            fetcher.private_db.save(proofing_user)
 
-            actual_update = attribute_fetcher(context, proofing_user.user_id)
+            actual_update = fetcher(proofing_user.user_id)
             expected_update = {
                 '$set': {
                     'nins': [{'number': '123456781235', 'verified': True, 'primary': True}],
@@ -345,36 +347,38 @@ class AttributeFetcherNINProofingTests(MongoTestCase):
         }
         super(AttributeFetcherNINProofingTests, self).setUp(init_am=True, am_settings=am_settings)
         self.user_data = deepcopy(USER_DATA)
-        self.plugin_contexts = [
-            oidc_plugin_init(self.am_settings),
-            letter_plugin_init(self.am_settings),
-            lookup_mobile_plugin_init(self.am_settings)
-        ]
+        self.af_registry = AFRegistry(self.am_settings)
+        for attr in dir(eduid_am.ams):
+            if attr.startswith('eduid_'):
+                af_class = getattr(eduid_am.ams, attr)
+                if type(af_class) is type:
+                    self.af_registry[attr] = af_class(self.am_settings)
+
         for userdoc in self.amdb._get_all_docs():
             proofing_user = ProofingUser(data=userdoc)
-            for context in self.plugin_contexts:
-                context.private_db.save(proofing_user, check_sync=False)
+            for fetcher in self.af_registry.values():
+                fetcher.private_db.save(proofing_user, check_sync=False)
 
         self.maxDiff = None
 
     def tearDown(self):
-        for context in self.plugin_contexts:
-            context.private_db._drop_whole_collection()
+        for fetcher in self.af_registry:
+            self.af_registry[fetcher].private_db._drop_whole_collection()
         super(AttributeFetcherNINProofingTests, self).tearDown()
 
     def test_invalid_user(self):
-        for context in self.plugin_contexts:
+        for fetcher in self.af_registry.values():
             with self.assertRaises(UserDoesNotExist):
-                attribute_fetcher(context, bson.ObjectId('0' * 24))
+                fetcher(bson.ObjectId('0' * 24))
 
     def test_existing_user(self):
 
-        for context in self.plugin_contexts:
+        for fetcher in self.af_registry.values():
             proofing_user = ProofingUser(data=self.user_data)
-            context.private_db.save(proofing_user)
+            fetcher.private_db.save(proofing_user)
 
             self.assertDictEqual(
-                attribute_fetcher(context, proofing_user.user_id),
+                fetcher(proofing_user.user_id),
                 {
                     '$set': {
                         "givenName": u"Testaren",
@@ -392,21 +396,21 @@ class AttributeFetcherNINProofingTests(MongoTestCase):
             'malicious': 'hacker',
         })
 
-        for context in self.plugin_contexts:
+        for fetcher in self.af_registry.values():
             # Write bad entry into database
-            user_id = context.private_db._coll.insert(self.user_data)
+            user_id = fetcher.private_db._coll.insert(self.user_data)
 
             with self.assertRaises(UserHasUnknownData):
-                attribute_fetcher(context, user_id)
+                fetcher(user_id)
 
     def test_fillup_attributes(self):
 
-        for context in self.plugin_contexts:
+        for fetcher in self.af_registry.values():
             proofing_user = ProofingUser(data=self.user_data)
-            context.private_db.save(proofing_user)
+            fetcher.private_db.save(proofing_user)
 
             self.assertDictEqual(
-                attribute_fetcher(context, proofing_user.user_id),
+                fetcher(proofing_user.user_id),
                 {
                     '$set': {
                         "givenName": u"Testaren",
@@ -446,10 +450,10 @@ class AttributeFetcherNINProofingTests(MongoTestCase):
             ],
         })
         proofing_user = ProofingUser(data=self.user_data)
-        letter_plugin_context = letter_plugin_init(self.am_settings)
-        letter_plugin_context.private_db.save(proofing_user)
+        fetcher = self.af_registry['eduid_letter_proofing']
+        fetcher.private_db.save(proofing_user)
 
-        actual_update = attribute_fetcher(letter_plugin_context, proofing_user.user_id)
+        actual_update = fetcher(proofing_user.user_id)
         expected_update = {
                     '$set': {
                         "givenName": u"Testaren",
@@ -488,7 +492,7 @@ class AttributeFetcherNINProofingTests(MongoTestCase):
             expected_update
         )
 
-        actual_update = attribute_fetcher(letter_plugin_context, proofing_user.user_id)
+        actual_update = fetcher(proofing_user.user_id)
 
         # Don't repeat the letter_proofing_data
         self.assertDictEqual(
@@ -522,9 +526,9 @@ class AttributeFetcherNINProofingTests(MongoTestCase):
             }
         )
         proofing_user = ProofingUser(data=self.user_data)
-        letter_plugin_context.private_db.save(proofing_user)
+        fetcher.private_db.save(proofing_user)
 
-        actual_update = attribute_fetcher(letter_plugin_context, proofing_user.user_id)
+        actual_update = fetcher(proofing_user.user_id)
         expected_update = {
             '$set': {
                 "givenName": u"Testaren",
@@ -594,9 +598,7 @@ class AttributeFetcherEmailProofingTests(MongoTestCase):
         }
         super(AttributeFetcherEmailProofingTests, self).setUp(init_am=True, am_settings=am_settings)
         self.user_data = deepcopy(USER_DATA)
-        self.plugin_contexts = [
-            email_plugin_init(self.am_settings),
-        ]
+        self.af_registry = AFRegistry(self.am_settings) 
         #for userdoc in self.amdb._get_all_docs():
         #    proofing_user = ProofingUser(data=userdoc)
         #    for context in self.plugin_contexts:
@@ -605,45 +607,45 @@ class AttributeFetcherEmailProofingTests(MongoTestCase):
         self.maxDiff = None
 
     def tearDown(self):
-        for context in self.plugin_contexts:
-            context.private_db._drop_whole_collection()
+        for fetcher in self.af_registry:
+            self.af_registry[fetcher].private_db._drop_whole_collection()
         super(AttributeFetcherEmailProofingTests, self).tearDown()
 
     def test_invalid_user(self):
-        for context in self.plugin_contexts:
-            with self.assertRaises(UserDoesNotExist):
-                attribute_fetcher(context, bson.ObjectId('0' * 24))
+        fetcher = self.af_registry['eduid_email']
+        with self.assertRaises(UserDoesNotExist):
+            fetcher(bson.ObjectId('0' * 24))
 
     def test_existing_user(self):
 
-        for context in self.plugin_contexts:
-            proofing_user = ProofingUser(data=self.user_data)
-            context.private_db.save(proofing_user)
+        fetcher = self.af_registry['eduid_email']
+        proofing_user = ProofingUser(data=self.user_data)
+        fetcher.private_db.save(proofing_user)
 
-            self.assertDictEqual(
-                attribute_fetcher(context, proofing_user.user_id),
-                {
-                    '$set': {
-                        'mailAliases': [{
-                            'email': 'john@example.com',
-                            'verified': True,
-                            'primary': True,
-                        }],
-                    },
-                }
-            )
+        self.assertDictEqual(
+            fetcher(proofing_user.user_id),
+            {
+                '$set': {
+                    'mailAliases': [{
+                        'email': 'john@example.com',
+                        'verified': True,
+                        'primary': True,
+                    }],
+                },
+            }
+        )
 
     def test_malicious_attributes(self):
         self.user_data.update({
             'malicious': 'hacker',
         })
 
-        for context in self.plugin_contexts:
-            # Write bad entry into database
-            user_id = context.private_db._coll.insert(self.user_data)
+        fetcher = self.af_registry['eduid_email']
+        # Write bad entry into database
+        user_id = fetcher.private_db._coll.insert(self.user_data)
 
-            with self.assertRaises(UserHasUnknownData):
-                attribute_fetcher(context, user_id)
+        with self.assertRaises(UserHasUnknownData):
+            fetcher(user_id)
 
     def test_fillup_attributes(self):
         self.user_data = {
@@ -669,22 +671,22 @@ class AttributeFetcherEmailProofingTests(MongoTestCase):
             'nins': [{'number': '123456781235', 'verified': True, 'primary': True}],
         }
 
-        for context in self.plugin_contexts:
-            proofing_user = ProofingUser(data=self.user_data)
-            context.private_db.save(proofing_user)
+        fetcher = self.af_registry['eduid_email']
+        proofing_user = ProofingUser(data=self.user_data)
+        fetcher.private_db.save(proofing_user)
 
-            self.assertDictEqual(
-                attribute_fetcher(context, proofing_user.user_id),
-                {
-                    '$set': {
-                        'mailAliases': [{
-                            'email': 'john@example.com',
-                            'verified': True,
-                            'primary': True
-                        }],
-                    },
-                }
-            )
+        self.assertDictEqual(
+            fetcher(proofing_user.user_id),
+            {
+                '$set': {
+                    'mailAliases': [{
+                        'email': 'john@example.com',
+                        'verified': True,
+                        'primary': True
+                    }],
+                },
+            }
+        )
 
 
 class AttributeFetcherPhoneProofingTests(MongoTestCase):
@@ -695,73 +697,67 @@ class AttributeFetcherPhoneProofingTests(MongoTestCase):
         }
         super(AttributeFetcherPhoneProofingTests, self).setUp(init_am=True, am_settings=am_settings)
         self.user_data = deepcopy(USER_DATA)
-        self.plugin_contexts = [
-            phone_plugin_init(self.am_settings),
-        ]
+        self.af_registry = AFRegistry(self.am_settings) 
+        self.fetcher = self.af_registry['eduid_phone']
         for userdoc in self.amdb._get_all_docs():
             proofing_user = ProofingUser(data=userdoc)
-            for context in self.plugin_contexts:
-                context.private_db.save(proofing_user, check_sync=False)
+            self.fetcher.private_db.save(proofing_user, check_sync=False)
 
         self.maxDiff = None
 
     def tearDown(self):
-        for context in self.plugin_contexts:
-            context.private_db._drop_whole_collection()
+        for fetcher in self.af_registry:
+            self.af_registry[fetcher].private_db._drop_whole_collection()
         super(AttributeFetcherPhoneProofingTests, self).tearDown()
 
     def test_invalid_user(self):
-        for context in self.plugin_contexts:
-            with self.assertRaises(UserDoesNotExist):
-                attribute_fetcher(context, bson.ObjectId('0' * 24))
+        with self.assertRaises(UserDoesNotExist):
+            self.fetcher(bson.ObjectId('0' * 24))
 
     def test_existing_user(self):
-        for context in self.plugin_contexts:
-            proofing_user = ProofingUser(data=self.user_data)
-            context.private_db.save(proofing_user)
+        proofing_user = ProofingUser(data=self.user_data)
+        self.fetcher.private_db.save(proofing_user)
 
-            self.assertDictEqual(
-                attribute_fetcher(context, proofing_user.user_id),
-                {
-                    '$set': {
-                        'phone': [{
-                            'verified': True,
-                            'number': '+46700011336',
-                            'primary': True
-                        }],
-                    },
-                }
-            )
+        self.assertDictEqual(
+            self.fetcher(proofing_user.user_id),
+            {
+                '$set': {
+                    'phone': [{
+                        'verified': True,
+                        'number': '+46700011336',
+                        'primary': True
+                    }],
+                },
+            }
+        )
 
     def test_malicious_attributes(self):
         self.user_data.update({
             'malicious': 'hacker',
         })
 
-        for context in self.plugin_contexts:
-            # Write bad entry into database
-            user_id = context.private_db._coll.insert(self.user_data)
+        # Write bad entry into database
+        user_id = self.fetcher.private_db._coll.insert(self.user_data)
 
-            with self.assertRaises(UserHasUnknownData):
-                attribute_fetcher(context, user_id)
+        with self.assertRaises(UserHasUnknownData):
+            self.fetcher(user_id)
 
     def test_fillup_attributes(self):
-        for context in self.plugin_contexts:
-            proofing_user = ProofingUser(data=self.user_data)
-            context.private_db.save(proofing_user)
+        proofing_user = ProofingUser(data=self.user_data)
+        self.fetcher.private_db.save(proofing_user)
 
-            self.assertDictEqual(
-                attribute_fetcher(context, proofing_user.user_id),
-                {
-                    '$set': {
-                        'phone': [{
-                            'verified': True,
-                            'number': '+46700011336',
-                            'primary': True
-                        }],
-                    },
-                }
-            )
+        self.assertDictEqual(
+            self.fetcher(proofing_user.user_id),
+            {
+                '$set': {
+                    'phone': [{
+                        'verified': True,
+                        'number': '+46700011336',
+                        'primary': True
+                    }],
+                },
+            }
+        )
 
 
 class AttributeFetcherPersonalDataTests(MongoTestCase):
@@ -772,71 +768,62 @@ class AttributeFetcherPersonalDataTests(MongoTestCase):
         }
         super(AttributeFetcherPersonalDataTests, self).setUp(init_am=True, am_settings=am_settings)
         self.user_data = deepcopy(USER_DATA)
-        self.plugin_contexts = [
-            personal_data_plugin_init(self.am_settings),
-        ]
-        #for userdoc in self.amdb._get_all_docs():
-        #    personal_data_user = PersonalDataUser(data=userdoc)
-        #    for context in self.plugin_contexts:
-        #        context.private_db.save(personal_data_user, check_sync=False)
+        self.af_registry = AFRegistry(self.am_settings) 
+        self.fetcher = self.af_registry['eduid_phone']
 
         self.maxDiff = None
 
     def tearDown(self):
-        for context in self.plugin_contexts:
-            context.private_db._drop_whole_collection()
+        for fetcher in self.af_registry:
+            self.af_registry[fetcher].private_db._drop_whole_collection()
         super(AttributeFetcherPersonalDataTests, self).tearDown()
 
     def test_invalid_user(self):
-        for context in self.plugin_contexts:
-            with self.assertRaises(UserDoesNotExist):
-                attribute_fetcher(context, bson.ObjectId('0' * 24))
+        with self.assertRaises(UserDoesNotExist):
+            self.fetcher(bson.ObjectId('0' * 24))
 
     def test_existing_user(self):
-        for context in self.plugin_contexts:
-            personal_data_user = PersonalDataUser(data=self.user_data)
-            context.private_db.save(personal_data_user)
+        personal_data_user = PersonalDataUser(data=self.user_data)
+        self.fetcher.private_db.save(personal_data_user)
 
-            self.assertDictEqual(
-                attribute_fetcher(context, personal_data_user.user_id),
-                {
-                    '$set': {
-                        'givenName': u'Testaren',
-                        'surname': u'Testsson',
-                        'displayName': u'John',
-                        'preferredLanguage': u'sv',
-                    },
-                }
-            )
+        self.assertDictEqual(
+            self.fetcher(personal_data_user.user_id),
+            {
+                '$set': {
+                    'givenName': u'Testaren',
+                    'surname': u'Testsson',
+                    'displayName': u'John',
+                    'preferredLanguage': u'sv',
+                },
+            }
+        )
 
     def test_malicious_attributes(self):
         self.user_data.update({
             'malicious': 'hacker',
         })
 
-        for context in self.plugin_contexts:
-            # Write bad entry into database
-            user_id = context.private_db._coll.insert(self.user_data)
+        # Write bad entry into database
+        user_id = self.fetcher.private_db._coll.insert(self.user_data)
 
-            with self.assertRaises(UserHasUnknownData):
-                attribute_fetcher(context, user_id)
+        with self.assertRaises(UserHasUnknownData):
+            self.fetcher(user_id)
 
     def test_fillup_attributes(self):
-        for context in self.plugin_contexts:
-            personal_data_user = PersonalDataUser(data=self.user_data)
-            context.private_db.save(personal_data_user)
+        personal_data_user = PersonalDataUser(data=self.user_data)
+        self.fetcher.private_db.save(personal_data_user)
 
-            self.assertDictEqual(
-                attribute_fetcher(context, personal_data_user.user_id),
-                {
-                    '$set': {
-                        'givenName': 'Testaren',
-                        'surname': 'Testsson',
-                        'displayName': 'John',
-                        'preferredLanguage': 'sv',
-                    },
-                }
-            )
+        self.assertDictEqual(
+            self.fetcher(personal_data_user.user_id),
+            {
+                '$set': {
+                    'givenName': 'Testaren',
+                    'surname': 'Testsson',
+                    'displayName': 'John',
+                    'preferredLanguage': 'sv',
+                },
+            }
+        )
 
 
 class AttributeFetcherSecurityTests(MongoTestCase):
@@ -847,97 +834,88 @@ class AttributeFetcherSecurityTests(MongoTestCase):
         }
         super(AttributeFetcherSecurityTests, self).setUp(init_am=True, am_settings=am_settings)
         self.user_data = deepcopy(USER_DATA)
-        self.plugin_contexts = [
-            security_plugin_init(self.am_settings),
-        ]
-        #for userdoc in self.amdb._get_all_docs():
-        #    security_user = SecurityUser(data=userdoc)
-        #    for context in self.plugin_contexts:
-        #        context.private_db.save(security_user, check_sync=False)
+        self.af_registry = AFRegistry(self.am_settings) 
+        self.fetcher = self.af_registry['eduid_security']
 
         self.maxDiff = None
 
     def tearDown(self):
-        for context in self.plugin_contexts:
-            context.private_db._drop_whole_collection()
+        for fetcher in self.af_registry:
+            self.af_registry[fetcher].private_db._drop_whole_collection()
         super(AttributeFetcherSecurityTests, self).tearDown()
 
     def test_invalid_user(self):
-        for context in self.plugin_contexts:
-            with self.assertRaises(UserDoesNotExist):
-                attribute_fetcher(context, bson.ObjectId('0' * 24))
+        with self.assertRaises(UserDoesNotExist):
+            self.fetcher(bson.ObjectId('0' * 24))
 
     def test_existing_user(self):
-        for context in self.plugin_contexts:
-            security_user = SecurityUser(data=self.user_data)
-            context.private_db.save(security_user)
+        security_user = SecurityUser(data=self.user_data)
+        self.fetcher.private_db.save(security_user)
 
-            self.assertDictEqual(
-                attribute_fetcher(context, security_user.user_id),
-                {
-                    '$set': {
-                        'passwords': [{
-                            'credential_id': u'112345678901234567890123',
-                            'salt': '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$',
-                        }],
-                        'nins': [{
-                            'number': '123456781235',
-                            'primary': True,
-                            'verified': True
-                        }],
-                        'phone': [{
-                            'number': '+46700011336',
-                            'primary': True,
-                            'verified': True
-                        }]
-                    },
-                    '$unset': {
-                        'terminated': None
-                    }
+        self.assertDictEqual(
+            self.fetcher(security_user.user_id),
+            {
+                '$set': {
+                    'passwords': [{
+                        'credential_id': u'112345678901234567890123',
+                        'salt': '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$',
+                    }],
+                    'nins': [{
+                        'number': '123456781235',
+                        'primary': True,
+                        'verified': True
+                    }],
+                    'phone': [{
+                        'number': '+46700011336',
+                        'primary': True,
+                        'verified': True
+                    }]
+                },
+                '$unset': {
+                    'terminated': None
                 }
-            )
+            }
+        )
 
     def test_malicious_attributes(self):
         self.user_data.update({
             'malicious': 'hacker',
         })
 
-        for context in self.plugin_contexts:
-            # Write bad entry into database
-            user_id = context.private_db._coll.insert(self.user_data)
+        # Write bad entry into database
+        user_id = self.fetcher.private_db._coll.insert(self.user_data)
 
-            with self.assertRaises(UserHasUnknownData):
-                attribute_fetcher(context, user_id)
+        with self.assertRaises(UserHasUnknownData):
+            self.fetcher(user_id)
 
     def test_fillup_attributes(self):
-        for context in self.plugin_contexts:
-            security_user = SecurityUser(data=self.user_data)
-            context.private_db.save(security_user)
+        security_user = SecurityUser(data=self.user_data)
+        self.fetcher.private_db.save(security_user)
 
-            self.assertDictEqual(
-                attribute_fetcher(context, security_user.user_id),
-                {
-                    '$set': {
-                        'passwords': [{
-                            'credential_id': u'112345678901234567890123',
-                            'salt': '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$',
-                        }],
-                        'nins': [{
-                            'number': '123456781235',
-                            'primary': True,
-                            'verified': True
-                        }],
-                        'phone': [{
-                            'number': '+46700011336',
-                            'primary': True,
-                            'verified': True
-                        }]
-                    },
-                    '$unset': {
-                        'terminated': None
-                    }
+        self.assertDictEqual(
+            self.fetcher(security_user.user_id),
+            {
+                '$set': {
+                    'passwords': [{
+                        'credential_id': u'112345678901234567890123',
+                        'salt': '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$',
+                    }],
+                    'nins': [{
+                        'number': '123456781235',
+                        'primary': True,
+                        'verified': True
+                    }],
+                    'phone': [{
+                        'number': '+46700011336',
+                        'primary': True,
+                        'verified': True
+                    }]
+                },
+                '$unset': {
+                    'terminated': None
                 }
-            )
+            }
+        )
 
 
 class AttributeFetcherOrcidTests(MongoTestCase):
@@ -948,85 +926,80 @@ class AttributeFetcherOrcidTests(MongoTestCase):
         }
         super(AttributeFetcherOrcidTests, self).setUp(init_am=True, am_settings=am_settings)
         self.user_data = deepcopy(USER_DATA)
-        self.plugin_contexts = [
-            orcid_plugin_init(self.am_settings),
-        ]
+        self.af_registry = AFRegistry(self.am_settings) 
+        self.fetcher = self.af_registry['eduid_orcid']
 
         self.maxDiff = None
 
     def tearDown(self):
-        for context in self.plugin_contexts:
-            context.private_db._drop_whole_collection()
+        for fetcher in self.af_registry:
+            self.af_registry[fetcher].private_db._drop_whole_collection()
         super(AttributeFetcherOrcidTests, self).tearDown()
 
     def test_invalid_user(self):
-        for context in self.plugin_contexts:
-            with self.assertRaises(UserDoesNotExist):
-                attribute_fetcher(context, bson.ObjectId('0' * 24))
+        with self.assertRaises(UserDoesNotExist):
+            self.fetcher(bson.ObjectId('0' * 24))
 
     def test_existing_user(self):
-        for context in self.plugin_contexts:
-            proofing_user = ProofingUser(data=self.user_data)
-            context.private_db.save(proofing_user)
+        proofing_user = ProofingUser(data=self.user_data)
+        self.fetcher.private_db.save(proofing_user)
 
-            self.assertDictEqual(
-                attribute_fetcher(context, proofing_user.user_id),
-                {
-                    '$set': {
-                        'orcid': {
-                            'oidc_authz': {
-                                'token_type': 'bearer',
-                                'refresh_token': 'a_refresh_token',
-                                'access_token': 'an_access_token',
-                                'id_token': {
-                                        'nonce': 'a_nonce',
-                                        'sub': 'sub_id',
-                                        'iss': 'https://issuer.example.org',
-                                        'created_by': 'orcid',
-                                        'exp': 1526890816,
-                                        'auth_time': 1526890214,
-                                        'iat': 1526890216,
-                                        'aud': [
-                                                'APP-YIAD0N1L4B3Z3W9Q'
-                                        ]
-                                },
-                                'expires_in': 631138518,
-                                'created_by': 'orcid'
+        self.assertDictEqual(
+            self.fetcher(proofing_user.user_id),
+            {
+                '$set': {
+                    'orcid': {
+                        'oidc_authz': {
+                            'token_type': 'bearer',
+                            'refresh_token': 'a_refresh_token',
+                            'access_token': 'an_access_token',
+                            'id_token': {
+                                    'nonce': 'a_nonce',
+                                    'sub': 'sub_id',
+                                    'iss': 'https://issuer.example.org',
+                                    'created_by': 'orcid',
+                                    'exp': 1526890816,
+                                    'auth_time': 1526890214,
+                                    'iat': 1526890216,
+                                    'aud': [
+                                            'APP-YIAD0N1L4B3Z3W9Q'
+                                    ]
                             },
-                            'given_name': 'Testaren',
-                            'family_name': 'Testsson',
-                            'name': None,
-                            'verified': True,
-                            'id': 'orcid_unique_id',
+                            'expires_in': 631138518,
                             'created_by': 'orcid'
-                        }
-                    },
-                }
-            )
+                        },
+                        'given_name': 'Testaren',
+                        'family_name': 'Testsson',
+                        'name': None,
+                        'verified': True,
+                        'id': 'orcid_unique_id',
+                        'created_by': 'orcid'
+                    }
+                },
+            }
+        )
 
     def test_malicious_attributes(self):
         self.user_data.update({
             'malicious': 'hacker',
         })
 
-        for context in self.plugin_contexts:
-            # Write bad entry into database
-            user_id = context.private_db._coll.insert(self.user_data)
+        # Write bad entry into database
+        user_id = self.fetcher.private_db._coll.insert(self.user_data)
 
-            with self.assertRaises(UserHasUnknownData):
-                attribute_fetcher(context, user_id)
+        with self.assertRaises(UserHasUnknownData):
+            self.fetcher(user_id)
 
     def test_remove_orcid(self):
-        for context in self.plugin_contexts:
-            proofing_user = ProofingUser(data=self.user_data)
-            proofing_user.orcid = None
-            context.private_db.save(proofing_user)
+        proofing_user = ProofingUser(data=self.user_data)
+        proofing_user.orcid = None
+        self.fetcher.private_db.save(proofing_user)
 
-            self.assertDictEqual(
-                attribute_fetcher(context, proofing_user.user_id),
-                {
-                    '$unset': {
-                        'orcid': None
-                    }
+        self.assertDictEqual(
+            self.fetcher(proofing_user.user_id),
+            {
+                '$unset': {
+                    'orcid': None
                 }
-            )
+            }
+        )
