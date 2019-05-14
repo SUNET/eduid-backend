@@ -31,7 +31,7 @@
 #
 __author__ = 'eperez'
 
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import List
 from dataclasses import dataclass
 
@@ -39,6 +39,7 @@ import bson
 import pymongo.errors
 from eduid_userdb.exceptions import UserDoesNotExist
 from eduid_userdb.actions.tou import ToUUserDB
+from eduid_userdb.userdb import UserDB
 
 from celery.utils.log import get_task_logger
 
@@ -47,13 +48,20 @@ logger = get_task_logger(__name__)
 
 class AttributeFetcher(ABC):
 
-    user_db_class: type
     whitelist_set_attrs: List[str]
     whitelist_unset_attrs: List[str]
 
     def __init__(self, worker_config: dict):
         self.conf = worker_config
-        self.private_db = self.user_db_class(worker_config['MONGO_URI'])
+        self.private_db = self.user_db(worker_config['MONGO_URI'])
+
+    @classmethod
+    @abstractmethod
+    def user_db(cls, mongo_uri) -> UserDB:
+        '''
+        return an instance of the subclass of eduid_userdb.userdb.UserDB
+        corresponding to the database holding the data to be fetched.
+        '''
 
     def __call__(self, user_id: bson.ObjectId) -> dict:
         """

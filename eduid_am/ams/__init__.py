@@ -25,7 +25,6 @@ logger = get_task_logger(__name__)
 
 class eduid_signup(AttributeFetcher):
 
-    user_db_class = SignupUserDB
     whitelist_set_attrs = [
         'mail',
         'mailAliases',
@@ -44,11 +43,11 @@ class eduid_signup(AttributeFetcher):
             raise ValueError('Not syncing user that has not completed signup')
         return attributes
 
+    user_db = lambda cls, uri: SignupUserDB(uri)
 
 
 class eduid_oidc_proofing(AttributeFetcher):
 
-    user_db_class = OidcProofingUserDB
     whitelist_set_attrs = [
         # TODO: Arrays must use put or pop, not set, but need more deep refacts
         'nins',  # New format
@@ -60,11 +59,11 @@ class eduid_oidc_proofing(AttributeFetcher):
         'norEduPersonNIN',
         'nins' # New format
     ]
+    user_db = lambda cls, uri: OidcProofingUserDB(uri)
 
 
 class eduid_letter_proofing(AttributeFetcher):
 
-    user_db_class = LetterProofingUserDB
     whitelist_set_attrs = [
         'nins',  # New format
         'letter_proofing_data',
@@ -76,10 +75,11 @@ class eduid_letter_proofing(AttributeFetcher):
         'norEduPersonNIN',
         'nins' # New format
     ]
+    user_db = lambda cls, uri: LetterProofingUserDB(uri)
 
 
 class eduid_lookup_mobile_proofing(AttributeFetcher):
-    user_db_class = LookupMobileProofingUserDB
+
     whitelist_set_attrs = [
         'nins',  # New format
         'givenName',
@@ -90,10 +90,11 @@ class eduid_lookup_mobile_proofing(AttributeFetcher):
         'norEduPersonNIN',
         'nins' # New format
     ]
+    user_db = lambda cls, uri: LookupMobileProofingUserDB(uri)
 
 
 class eduid_email(AttributeFetcher):
-    user_db_class = EmailProofingUserDB
+
     whitelist_set_attrs = [
         'mailAliases'
     ]
@@ -101,10 +102,11 @@ class eduid_email(AttributeFetcher):
         'mailAliases',
         'mail', # Old format
     ]
+    user_db = lambda cls, uri: EmailProofingUserDB(uri)
 
 
 class eduid_phone(AttributeFetcher):
-    user_db_class = PhoneProofingUserDB
+
     whitelist_set_attrs = [
         'phone'
     ]
@@ -112,10 +114,11 @@ class eduid_phone(AttributeFetcher):
         'phone',
         'mobile', # Old format
     ]
+    user_db = lambda cls, uri: PhoneProofingUserDB(uri)
 
 
 class eduid_personal_data(AttributeFetcher):
-    user_db_class = PersonalDataUserDB
+
     whitelist_set_attrs = [
         'givenName',
         'surname',  # New format
@@ -125,10 +128,11 @@ class eduid_personal_data(AttributeFetcher):
     whitelist_unset_attrs = [
         'sn', # Old format
     ]
+    user_db = lambda cls, uri: PersonalDataUserDB(uri)
 
 
 class eduid_security(AttributeFetcher):
-    user_db_class = SecurityUserDB
+
     whitelist_set_attrs = [
         'passwords',
         'terminated',
@@ -142,20 +146,22 @@ class eduid_security(AttributeFetcher):
         'nins',             # For AL1 downgrade on password reset
         'phone', # For AL1 downgrade on password reset
     ]
+    user_db = lambda cls, uri: SecurityUserDB(uri)
 
 
 class eduid_orcid(AttributeFetcher):
-    user_db_class = OrcidProofingUserDB
+
     whitelist_set_attrs = [
         'orcid',
     ]
     whitelist_unset_attrs = [
         'orcid',
     ]
+    user_db = lambda cls, uri: OrcidProofingUserDB(uri)
 
 
 class eduid_eidas(AttributeFetcher):
-    user_db_class = EidasProofingUserDB
+
     whitelist_set_attrs = [
         'passwords',
         'nins',
@@ -165,13 +171,14 @@ class eduid_eidas(AttributeFetcher):
     ]
     whitelist_unset_attrs = [
     ]
+    user_db = lambda cls, uri: EidasProofingUserDB(uri)
 
 
 class eduid_tou(AttributeFetcher):
 
-    user_db_class = ToUUserDB
     whitelist_set_attrs = [
         'tou'
     ]
     whitelist_unset_attrs = [
     ]
+    user_db = lambda cls, uri: ToUUserDB(uri)
