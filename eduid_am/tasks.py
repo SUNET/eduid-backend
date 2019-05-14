@@ -35,7 +35,7 @@ class AFRegistry(dict):
                 self[key] = af_class(self.conf)
             else:
                 raise KeyError(f'Trying to fetch attributes from unknown db: {key}')
-        return self[key]
+        return dict.__getitem__(self, key)
 
 
 class AttributeManager(Task):
