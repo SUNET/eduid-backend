@@ -270,7 +270,7 @@ def signup_authn():
     location_on_fail = current_app.config.get('TOKEN_LOGIN_FAILURE_REDIRECT_URL')
     location_on_success = current_app.config.get('TOKEN_LOGIN_SUCCESS_REDIRECT_URL')
     token = request.form.get('token', None)
-    if token is not None:
+    if token:
         eppn = request.form.get('eppn')
         nonce = request.form.get('nonce')
         timestamp = request.form.get('ts')
