@@ -61,7 +61,7 @@ def authn():
 
     # XXX TRANSITION_TOKEN_LOGIN remove after transition to implicit logins
     token = request.args.get('token', None)
-    if token is not None:
+    if token:
         userid = request.args.get('userid', None)
         eppn = request.args.get('eppn', None)
         eppn = userid or eppn
