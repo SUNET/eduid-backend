@@ -26,7 +26,7 @@ class AFRegistry(dict):
     This should only be done at startup, or at least just once.
     '''
     def __init__(self, config):
-        self.config = config
+        self.conf = config
 
     def __getitem__(self, key):
         if key not in self:
@@ -34,7 +34,7 @@ class AFRegistry(dict):
             if af_class is not None:
                 self[key] = af_class(self.conf)
             else:
-                raise RuntimeError(f'Trying to fetch attributes from unknown db: {key}')
+                raise KeyError(f'Trying to fetch attributes from unknown db: {key}')
         return self[key]
 
 
@@ -114,10 +114,10 @@ def _update_attributes_safe(app_name, user_id):
     logger.debug('update {!s}[{!s}]'.format(app_name, user_id))
 
     try:
-        attribute_fetcher = self.af_registry(app_name)
-    except RuntimeError:
+        attribute_fetcher = self.af_registry[app_name]
+    except KeyError as error:
         logger.error('Attribute fetcher for {!s} is not installed'.format(app_name))
-        raise
+        raise RuntimeError(f'Missing attribute fetcher, {error}')
 
     logger.debug("Attribute fetcher for {!s}: {!r}".format(app_name, attribute_fetcher))
 
