@@ -19,6 +19,25 @@ if celery is None:
 logger = get_task_logger(__name__)
 
 
+class AFRegistry(dict):
+    '''
+    Registry for attribute fetchers.
+    When an attribute fetcher is implemented, it opens a connection to the db.
+    This should only be done at startup, or at least just once.
+    '''
+    def __init__(self, config):
+        self.config = config
+
+    def __getitem__(self, key):
+        if key not in self:
+            af_class = getattr(eduid_am.ams, key, None)
+            if af_class is not None:
+                self[key] = af_class(self.conf)
+            else:
+                raise RuntimeError(f'Trying to fetch attributes from unknown db: {key}')
+        return self[key]
+
+
 class AttributeManager(Task):
     """Singleton that stores reusable objects like the MongoDB database."""
 
@@ -27,6 +46,7 @@ class AttributeManager(Task):
     def __init__(self):
         self.default_db_uri = worker_config.get('MONGO_URI')
         self.userdb = None
+        self.af_registry = AFRegistry(worker_config)
         self.init_db()
 
     def init_db(self):
@@ -89,12 +109,10 @@ def _update_attributes_safe(app_name, user_id):
     logger.debug('update {!s}[{!s}]'.format(app_name, user_id))
 
     try:
-        attribute_fetcher = getattr(eduid_am.ams, app_name)
-    except KeyError:
-        logger.error('Plugin for {!s} is not installed'.format(app_name))
-        return
-    else:
-        attribute_fetcher = attribute_fetcher(worker_config)
+        attribute_fetcher = self.af_registry(app_name)
+    except RuntimeError:
+        logger.error('Attribute fetcher for {!s} is not installed'.format(app_name))
+        raise
 
     logger.debug("Attribute fetcher for {!s}: {!r}".format(app_name, attribute_fetcher))
 
