@@ -53,11 +53,11 @@ class AttributeFetcher(ABC):
 
     def __init__(self, worker_config: dict):
         self.conf = worker_config
-        self.private_db = self.user_db(worker_config['MONGO_URI'])
+        self.private_db = self.get_user_db(worker_config['MONGO_URI'])
 
     @classmethod
     @abstractmethod
-    def user_db(cls, mongo_uri) -> UserDB:
+    def get_user_db(cls, mongo_uri) -> UserDB:
         '''
         return an instance of the subclass of eduid_userdb.userdb.UserDB
         corresponding to the database holding the data to be fetched.
