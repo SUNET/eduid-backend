@@ -181,6 +181,7 @@ def verify_auth_token(shared_key, eppn, token, nonce, timestamp, usage, generato
 
     # check timestamp to make sure it is within -300..900 seconds from now
     now = int(time.time())
+    timestamp = int(timestamp, 16)  # convert from hex string
     if (timestamp < now - 300) or (timestamp > now + 900):
         logger.debug('Auth token timestamp {} out of bounds ({} seconds from {})'.format(
             timestamp, timestamp - now, now))
