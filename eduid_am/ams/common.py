@@ -63,7 +63,7 @@ class AttributeFetcher(ABC):
         corresponding to the database holding the data to be fetched.
         '''
 
-    def __call__(self, user_id: bson.ObjectId) -> dict:
+    def fetch_attrs(self, user_id: bson.ObjectId) -> dict:
         """
         Read a user from the Dashboard private private_db and return an update
         dict to let the Attribute Manager update the use in the central

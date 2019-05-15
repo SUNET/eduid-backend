@@ -36,7 +36,7 @@ class eduid_signup(AttributeFetcher):
     whitelist_unset_attrs = [
     ]
 
-    def __call__(self):
+    def fetch_attrs(self):
         attributes = super(OIDCProofingAF, self).__call__()
         if '$set' not in attributes or 'passwords' not in attributes['$set']:
             logger.info(f'Not syncing signup user with attrs: {attributes}')

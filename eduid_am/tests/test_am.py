@@ -48,7 +48,7 @@ class FakeAttributeFetcher(AttributeFetcher):
     def get_user_db(self, uri):
         return AmTestUserDb(uri, db_name='eduid_am_test')
 
-    def __call__(self, user_id):
+    def fetch_attrs(self, user_id):
 
         user = self.private_db.get_user_by_id(user_id)
         if user is None:

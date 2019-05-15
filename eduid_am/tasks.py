@@ -109,7 +109,7 @@ def _update_attributes_safe(app_name, user_id):
         raise ValueError('Bad user_id')
 
     try:
-        attributes = attribute_fetcher(_id)
+        attributes = attribute_fetcher.fetch_attrs(_id)
     except UserDoesNotExist as error:
         logger.error('The user {!s} does not exist in the database for plugin {!s}: {!s}'.format(
             _id, app_name, error))
