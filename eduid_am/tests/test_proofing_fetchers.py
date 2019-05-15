@@ -94,14 +94,14 @@ class AttributeFetcherOldToNewUsersTests(MongoTestCase):
     def test_invalid_user(self):
         for fetcher in self.af_registry:
             with self.assertRaises(UserDoesNotExist):
-                fetcher(bson.ObjectId('0' * 24))
+                fetcher.fetch_attrs(bson.ObjectId('0' * 24))
 
     def test_existing_user(self):
         for fetcher in self.af_registry.values():
             proofing_user = ProofingUser(data=self.user_data)
             fetcher.private_db.save(proofing_user)
 
-            actual_update = fetcher(proofing_user.user_id)
+            actual_update = fetcher.fetch_attrs(proofing_user.user_id)
             expected_update = {
                     '$set': {
                         "givenName": u"Testaren",
@@ -126,7 +126,7 @@ class AttributeFetcherOldToNewUsersTests(MongoTestCase):
             user_id = fetcher.private_db._coll.insert(self.user_data)
 
             with self.assertRaises(UserHasUnknownData):
-                fetcher(user_id)
+                fetcher.fetch_attrs(user_id)
 
     def test_fillup_attributes(self):
 
@@ -134,7 +134,7 @@ class AttributeFetcherOldToNewUsersTests(MongoTestCase):
             proofing_user = ProofingUser(data=self.user_data)
             fetcher.private_db.save(proofing_user)
 
-            actual_update = fetcher(proofing_user.user_id)
+            actual_update = fetcher.fetch_attrs(proofing_user.user_id)
             expected_update = {
                 '$set': {
                     "givenName": u"Testaren",
@@ -181,7 +181,7 @@ class AttributeFetcherOldToNewUsersTests(MongoTestCase):
         fetcher = self.af_registry['eduid_letter_proofing']
         fetcher.private_db.save(proofing_user)
 
-        actual_update = fetcher(proofing_user.user_id)
+        actual_update = fetcher.fetch_attrs(proofing_user.user_id)
         expected_update = {
             '$set': {
                 "givenName": u"Testaren",
@@ -219,7 +219,7 @@ class AttributeFetcherOldToNewUsersTests(MongoTestCase):
             expected_update
         )
 
-        actual_update = fetcher(proofing_user.user_id)
+        actual_update = fetcher.fetch_attrs(proofing_user.user_id)
 
         # Don't repeat the letter_proofing_data
         self.assertDictEqual(
@@ -255,7 +255,7 @@ class AttributeFetcherOldToNewUsersTests(MongoTestCase):
         proofing_user = ProofingUser(data=self.user_data)
         fetcher.private_db.save(proofing_user)
 
-        actual_update = fetcher(proofing_user.user_id)
+        actual_update = fetcher.fetch_attrs(proofing_user.user_id)
         expected_update = {
             '$set': {
                 "givenName": u"Testaren",
@@ -323,7 +323,7 @@ class AttributeFetcherOldToNewUsersTests(MongoTestCase):
             proofing_user = ProofingUser(data=self.user_data)
             fetcher.private_db.save(proofing_user)
 
-            actual_update = fetcher(proofing_user.user_id)
+            actual_update = fetcher.fetch_attrs(proofing_user.user_id)
             expected_update = {
                 '$set': {
                     'nins': [{'number': '123456781235', 'verified': True, 'primary': True}],
@@ -369,7 +369,7 @@ class AttributeFetcherNINProofingTests(MongoTestCase):
     def test_invalid_user(self):
         for fetcher in self.af_registry.values():
             with self.assertRaises(UserDoesNotExist):
-                fetcher(bson.ObjectId('0' * 24))
+                fetcher.fetch_attrs(bson.ObjectId('0' * 24))
 
     def test_existing_user(self):
 
@@ -378,7 +378,7 @@ class AttributeFetcherNINProofingTests(MongoTestCase):
             fetcher.private_db.save(proofing_user)
 
             self.assertDictEqual(
-                fetcher(proofing_user.user_id),
+                fetcher.fetch_attrs(proofing_user.user_id),
                 {
                     '$set': {
                         "givenName": u"Testaren",
@@ -401,7 +401,7 @@ class AttributeFetcherNINProofingTests(MongoTestCase):
             user_id = fetcher.private_db._coll.insert(self.user_data)
 
             with self.assertRaises(UserHasUnknownData):
-                fetcher(user_id)
+                fetcher.fetch_attrs(user_id)
 
     def test_fillup_attributes(self):
 
@@ -410,7 +410,7 @@ class AttributeFetcherNINProofingTests(MongoTestCase):
             fetcher.private_db.save(proofing_user)
 
             self.assertDictEqual(
-                fetcher(proofing_user.user_id),
+                fetcher.fetch_attrs(proofing_user.user_id),
                 {
                     '$set': {
                         "givenName": u"Testaren",
@@ -453,7 +453,7 @@ class AttributeFetcherNINProofingTests(MongoTestCase):
         fetcher = self.af_registry['eduid_letter_proofing']
         fetcher.private_db.save(proofing_user)
 
-        actual_update = fetcher(proofing_user.user_id)
+        actual_update = fetcher.fetch_attrs(proofing_user.user_id)
         expected_update = {
                     '$set': {
                         "givenName": u"Testaren",
@@ -492,7 +492,7 @@ class AttributeFetcherNINProofingTests(MongoTestCase):
             expected_update
         )
 
-        actual_update = fetcher(proofing_user.user_id)
+        actual_update = fetcher.fetch_attrs(proofing_user.user_id)
 
         # Don't repeat the letter_proofing_data
         self.assertDictEqual(
@@ -528,7 +528,7 @@ class AttributeFetcherNINProofingTests(MongoTestCase):
         proofing_user = ProofingUser(data=self.user_data)
         fetcher.private_db.save(proofing_user)
 
-        actual_update = fetcher(proofing_user.user_id)
+        actual_update = fetcher.fetch_attrs(proofing_user.user_id)
         expected_update = {
             '$set': {
                 "givenName": u"Testaren",
@@ -614,7 +614,7 @@ class AttributeFetcherEmailProofingTests(MongoTestCase):
     def test_invalid_user(self):
         fetcher = self.af_registry['eduid_email']
         with self.assertRaises(UserDoesNotExist):
-            fetcher(bson.ObjectId('0' * 24))
+            fetcher.fetch_attrs(bson.ObjectId('0' * 24))
 
     def test_existing_user(self):
 
@@ -623,7 +623,7 @@ class AttributeFetcherEmailProofingTests(MongoTestCase):
         fetcher.private_db.save(proofing_user)
 
         self.assertDictEqual(
-            fetcher(proofing_user.user_id),
+            fetcher.fetch_attrs(proofing_user.user_id),
             {
                 '$set': {
                     'mailAliases': [{
@@ -645,7 +645,7 @@ class AttributeFetcherEmailProofingTests(MongoTestCase):
         user_id = fetcher.private_db._coll.insert(self.user_data)
 
         with self.assertRaises(UserHasUnknownData):
-            fetcher(user_id)
+            fetcher.fetch_attrs(user_id)
 
     def test_fillup_attributes(self):
         self.user_data = {
@@ -676,7 +676,7 @@ class AttributeFetcherEmailProofingTests(MongoTestCase):
         fetcher.private_db.save(proofing_user)
 
         self.assertDictEqual(
-            fetcher(proofing_user.user_id),
+            fetcher.fetch_attrs(proofing_user.user_id),
             {
                 '$set': {
                     'mailAliases': [{
@@ -712,14 +712,14 @@ class AttributeFetcherPhoneProofingTests(MongoTestCase):
 
     def test_invalid_user(self):
         with self.assertRaises(UserDoesNotExist):
-            self.fetcher(bson.ObjectId('0' * 24))
+            self.fetcher.fetch_attrs(bson.ObjectId('0' * 24))
 
     def test_existing_user(self):
         proofing_user = ProofingUser(data=self.user_data)
         self.fetcher.private_db.save(proofing_user)
 
         self.assertDictEqual(
-            self.fetcher(proofing_user.user_id),
+            self.fetcher.fetch_attrs(proofing_user.user_id),
             {
                 '$set': {
                     'phone': [{
@@ -740,14 +740,14 @@ class AttributeFetcherPhoneProofingTests(MongoTestCase):
         user_id = self.fetcher.private_db._coll.insert(self.user_data)
 
         with self.assertRaises(UserHasUnknownData):
-            self.fetcher(user_id)
+            self.fetcher.fetch_attrs(user_id)
 
     def test_fillup_attributes(self):
         proofing_user = ProofingUser(data=self.user_data)
         self.fetcher.private_db.save(proofing_user)
 
         self.assertDictEqual(
-            self.fetcher(proofing_user.user_id),
+            self.fetcher.fetch_attrs(proofing_user.user_id),
             {
                 '$set': {
                     'phone': [{
@@ -769,7 +769,7 @@ class AttributeFetcherPersonalDataTests(MongoTestCase):
         super(AttributeFetcherPersonalDataTests, self).setUp(init_am=True, am_settings=am_settings)
         self.user_data = deepcopy(USER_DATA)
         self.af_registry = AFRegistry(self.am_settings) 
-        self.fetcher = self.af_registry['eduid_phone']
+        self.fetcher = self.af_registry['eduid_personal_data']
 
         self.maxDiff = None
 
@@ -780,14 +780,14 @@ class AttributeFetcherPersonalDataTests(MongoTestCase):
 
     def test_invalid_user(self):
         with self.assertRaises(UserDoesNotExist):
-            self.fetcher(bson.ObjectId('0' * 24))
+            self.fetcher.fetch_attrs(bson.ObjectId('0' * 24))
 
     def test_existing_user(self):
         personal_data_user = PersonalDataUser(data=self.user_data)
         self.fetcher.private_db.save(personal_data_user)
 
         self.assertDictEqual(
-            self.fetcher(personal_data_user.user_id),
+            self.fetcher.fetch_attrs(personal_data_user.user_id),
             {
                 '$set': {
                     'givenName': u'Testaren',
@@ -807,14 +807,14 @@ class AttributeFetcherPersonalDataTests(MongoTestCase):
         user_id = self.fetcher.private_db._coll.insert(self.user_data)
 
         with self.assertRaises(UserHasUnknownData):
-            self.fetcher(user_id)
+            self.fetcher.fetch_attrs(user_id)
 
     def test_fillup_attributes(self):
         personal_data_user = PersonalDataUser(data=self.user_data)
         self.fetcher.private_db.save(personal_data_user)
 
         self.assertDictEqual(
-            self.fetcher(personal_data_user.user_id),
+            self.fetcher.fetch_attrs(personal_data_user.user_id),
             {
                 '$set': {
                     'givenName': 'Testaren',
@@ -846,14 +846,14 @@ class AttributeFetcherSecurityTests(MongoTestCase):
 
     def test_invalid_user(self):
         with self.assertRaises(UserDoesNotExist):
-            self.fetcher(bson.ObjectId('0' * 24))
+            self.fetcher.fetch_attrs(bson.ObjectId('0' * 24))
 
     def test_existing_user(self):
         security_user = SecurityUser(data=self.user_data)
         self.fetcher.private_db.save(security_user)
 
         self.assertDictEqual(
-            self.fetcher(security_user.user_id),
+            self.fetcher.fetch_attrs(security_user.user_id),
             {
                 '$set': {
                     'passwords': [{
@@ -886,14 +886,14 @@ class AttributeFetcherSecurityTests(MongoTestCase):
         user_id = self.fetcher.private_db._coll.insert(self.user_data)
 
         with self.assertRaises(UserHasUnknownData):
-            self.fetcher(user_id)
+            self.fetcher.fetch_attrs(user_id)
 
     def test_fillup_attributes(self):
         security_user = SecurityUser(data=self.user_data)
         self.fetcher.private_db.save(security_user)
 
         self.assertDictEqual(
-            self.fetcher(security_user.user_id),
+            self.fetcher.fetch_attrs(security_user.user_id),
             {
                 '$set': {
                     'passwords': [{
@@ -938,14 +938,14 @@ class AttributeFetcherOrcidTests(MongoTestCase):
 
     def test_invalid_user(self):
         with self.assertRaises(UserDoesNotExist):
-            self.fetcher(bson.ObjectId('0' * 24))
+            self.fetcher.fetch_attrs(bson.ObjectId('0' * 24))
 
     def test_existing_user(self):
         proofing_user = ProofingUser(data=self.user_data)
         self.fetcher.private_db.save(proofing_user)
 
         self.assertDictEqual(
-            self.fetcher(proofing_user.user_id),
+            self.fetcher.fetch_attrs(proofing_user.user_id),
             {
                 '$set': {
                     'orcid': {
@@ -988,7 +988,7 @@ class AttributeFetcherOrcidTests(MongoTestCase):
         user_id = self.fetcher.private_db._coll.insert(self.user_data)
 
         with self.assertRaises(UserHasUnknownData):
-            self.fetcher(user_id)
+            self.fetcher.fetch_attrs(user_id)
 
     def test_remove_orcid(self):
         proofing_user = ProofingUser(data=self.user_data)
@@ -996,7 +996,7 @@ class AttributeFetcherOrcidTests(MongoTestCase):
         self.fetcher.private_db.save(proofing_user)
 
         self.assertDictEqual(
-            self.fetcher(proofing_user.user_id),
+            self.fetcher.fetch_attrs(proofing_user.user_id),
             {
                 '$unset': {
                     'orcid': None
