@@ -10,8 +10,12 @@ import eduid_am.ams
 class AFRegistry(dict):
     '''
     Registry for attribute fetchers.
-    When an attribute fetcher is implemented, it opens a connection to the db.
+    When an attribute fetcher is instantiated, it opens a connection to the db.
     This should only be done at startup, or at least just once.
+
+    Attribute fetchers are subclasses of eduid_am.ams.common.AttributeFetcher,
+    have (non pep8) names that coincide with those the different eduid_ apps,
+    and reside in eduid_am.ams
     '''
     def __init__(self, config):
         self.conf = config
