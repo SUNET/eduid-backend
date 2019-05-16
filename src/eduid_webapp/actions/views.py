@@ -56,43 +56,9 @@ actions_views = Blueprint('actions', __name__, url_prefix='', template_folder='t
 
 @actions_views.route('/', methods=['GET'])
 def authn():
-    '''
-    '''
-
-    # XXX TRANSITION_TOKEN_LOGIN remove after transition to implicit logins
-    token = request.args.get('token', None)
-    if token:
-        userid = request.args.get('userid', None)
-        eppn = request.args.get('eppn', None)
-        eppn = userid or eppn
-        nonce = request.args.get('nonce', None)
-        timestamp = request.args.get('ts', None)
-        idp_session = request.args.get('session', None)
-        if not (eppn and token and timestamp):
-            msg = ('Insufficient authentication params: '
-                   'eppn: {}, token: {}, nonce: {}, ts: {}')
-            current_app.logger.debug(msg.format(eppn, token, nonce, timestamp))
-            abort(400)
-
-        shared_key = current_app.config.get('TOKEN_LOGIN_SHARED_KEY')
-        if verify_auth_token(shared_key=shared_key, eppn=eppn, token=token,
-                             nonce=nonce, timestamp=timestamp, usage='idp_actions'):
-            current_app.logger.info("Starting pre-login actions "
-                                    "for eppn: {})".format(eppn))
-            if userid is not None:
-                session['userid'] = userid
-            else:
-                session['eppn'] = eppn
-                session['eduPersonPrincipalName'] = eppn
-            session['idp_session'] = idp_session
-            url = url_for('actions.get_actions')
-            return render_template('index.html', url=url)
-        else:
-            current_app.logger.debug("Token authentication failed "
-                                     "(eppn: {})".format(eppn))
-            abort(403)
-    # XXX END remove
-
+    """
+    Check that the user was sent here by the IdP.
+    """
     eppn = check_previous_identification(session.actions)
     if eppn is not None:
         current_app.logger.info("Starting pre-login actions "
@@ -100,9 +66,9 @@ def authn():
         url = url_for('actions.get_actions')
         return render_template('index.html', url=url)
     else:
-        current_app.logger.debug("Signup authentication failed "
+        current_app.logger.debug("Action authentication failed "
                                  "(eppn: {})".format(eppn))
-        abort(403)
+        return render_template('error.html')
 
 
 @actions_views.route('/get-tous', methods=['GET'])
