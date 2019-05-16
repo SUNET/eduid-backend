@@ -49,7 +49,7 @@ REDIS_PORT = 6379
 REDIS_DB = 0
 
 # Secret key
-SECRET_KEY = 'supersecretkey'
+SECRET_KEY = None
 
 # Logging
 LOG_LEVEL = 'INFO'

@@ -61,7 +61,7 @@ PROPAGATE_EXCEPTIONS = None
 PRESERVE_CONTEXT_ON_EXCEPTION = False
 
 # the secret key
-SECRET_KEY = 'supersecretkey'
+SECRET_KEY = None
 
 # the name of the session cookie
 SESSION_COOKIE_NAME = 'sessid'
