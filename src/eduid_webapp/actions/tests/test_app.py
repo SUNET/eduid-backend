@@ -47,8 +47,8 @@ class ActionsTests(ActionsTestCase):
         return config
 
     def test_authn_no_data(self):
-        with self.assertRaises(Forbidden):
-            response = self.browser.get('/')
+        response = self.browser.get('/')
+        self.assertIn(b'Login action error', response.data)
 
     def test_authn(self):
         eppn = self.test_eppn
