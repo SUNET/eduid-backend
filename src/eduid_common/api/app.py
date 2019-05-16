@@ -35,22 +35,21 @@ it with all attributes common to all eduID services.
 """
 
 import os
-from werkzeug.contrib.fixers import ProxyFix
 from sys import stderr
 
 from eduid_userdb import UserDB
-from eduid_common.authn.middleware import AuthnApp
-from eduid_common.authn.utils import no_authn_views
-from eduid_common.api.request import Request
-from eduid_common.api.logging import init_logging
-from eduid_common.api.utils import init_template_functions
-from eduid_common.api.exceptions import init_exception_handlers, init_sentry
-from eduid_common.api.middleware import PrefixMiddleware
-from eduid_common.api.debug import dump_config
-from eduid_common.session.eduid_session import SessionFactory
-from eduid_common.config.parsers.etcd import EtcdConfigParser
-from eduid_common.stats import NoOpStats, Statsd
+from werkzeug.contrib.fixers import ProxyFix
 
+from eduid_common.api.debug import dump_config
+from eduid_common.api.exceptions import init_exception_handlers, init_sentry, BadConfiguration
+from eduid_common.api.logging import init_logging
+from eduid_common.api.middleware import PrefixMiddleware
+from eduid_common.api.request import Request
+from eduid_common.api.utils import init_template_functions
+from eduid_common.authn.middleware import AuthnApp
+from eduid_common.config.parsers.etcd import EtcdConfigParser
+from eduid_common.session.eduid_session import SessionFactory
+from eduid_common.stats import NoOpStats, Statsd
 
 DEBUG = os.environ.get('EDUID_APP_DEBUG', False)
 if DEBUG:
@@ -116,6 +115,10 @@ def eduid_init_app_no_db(name, config, app_class=AuthnApp):
 
     if DEBUG:
         dump_config(app)
+
+    # Check that SECRET_KEY is set
+    if not app.config.get('SECRET_KEY'):
+        raise BadConfiguration('SECRET_KEY is missing')
 
     # Set app url prefix to APPLICATION_ROOT
     app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix=app.config['APPLICATION_ROOT'],
