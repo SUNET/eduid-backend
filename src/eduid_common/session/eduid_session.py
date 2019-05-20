@@ -102,6 +102,12 @@ class EduidSession(SessionMixin, MutableMapping):
         if not self._mfa_action:
             self._mfa_action = value
 
+    @mfa_action.deleter
+    def mfa_action(self):
+        self._mfa_action = None
+        self._session.pop('_mfa_action', None)
+        self.modified = True
+
     @property
     def signup(self) -> Optional[Signup]:
         if not self._signup:

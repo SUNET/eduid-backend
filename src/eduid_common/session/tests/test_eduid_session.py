@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 
-from eduid_common.api.testing import EduidAPITestCase
+from flask import request
+
 from eduid_common.api.app import eduid_init_app_no_db
+from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.authn.utils import no_authn_views
 from eduid_common.session import session
-from eduid_common.session.namespaces import LoginApplication, Common
+from eduid_common.session.namespaces import LoginApplication
 
 __author__ = 'lundberg'
 
@@ -117,3 +119,20 @@ class EduidSessionTests(EduidAPITestCase):
                 self.assertEqual(sess.mfa_action.issuer, 'https://issuer-entity-id.example.com')
                 self.assertEqual(sess.mfa_action.authn_instant, '2019-03-21T16:26:17Z')
                 self.assertEqual(sess.mfa_action.authn_context, 'http://id.elegnamnden.se/loa/1.0/loa3')
+
+    def test_clear_session_mfa_action(self):
+        with self.session_cookie(self.browser, self.test_user_eppn) as browser:
+            response = browser.get('/mfa-action')
+            self.assertEqual(response.status_code, 200)
+            with browser.session_transaction() as sess:
+                self.assertTrue(sess.mfa_action.success)
+                self.assertEqual(sess.mfa_action.issuer, 'https://issuer-entity-id.example.com')
+                self.assertEqual(sess.mfa_action.authn_instant, '2019-03-21T16:26:17Z')
+                self.assertEqual(sess.mfa_action.authn_context, 'http://id.elegnamnden.se/loa/1.0/loa3')
+                del sess.mfa_action
+
+            with browser.session_transaction() as sess:
+                self.assertFalse(sess.mfa_action.success)
+                self.assertIsNone(sess.mfa_action.issuer)
+                self.assertIsNone(sess.mfa_action.authn_instant)
+                self.assertIsNone(sess.mfa_action.authn_context)
