@@ -64,11 +64,11 @@ def can_verify_identity(f):
         user = get_user()
         # For now a user can just have one verified NIN
         if user.nins.primary is not None:
-            return {'_status': FluxResponseStatus.error, 'error': 'User is already verified'}
+            return {'_status': FluxResponseStatus.error, 'message': 'User is already verified'}
         # A user can not verify a nin if another previously was verified
         locked_nin = user.locked_identity.find('nin')
         if locked_nin and locked_nin.number != kwargs['nin']:
-            return {'_status': FluxResponseStatus.error, 'error': 'Another nin is already registered for this user'}
+            return {'_status': FluxResponseStatus.error, 'message': 'Another nin is already registered for this user'}
 
         return f(*args, **kwargs)
 
