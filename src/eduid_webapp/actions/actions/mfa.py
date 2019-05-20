@@ -168,6 +168,8 @@ class Plugin(ActionPlugin):
                 'authn_context': authn_context
             }
             current_app.actions_db.update_action(action)
+            # Clear mfa_action from session
+            del session.mfa_action
             return action.result
 
         req_json = request.get_json()
