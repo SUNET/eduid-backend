@@ -5,8 +5,9 @@ from __future__ import absolute_import
 from flask import current_app
 from datetime import datetime, timedelta
 
-from eduid_userdb.proofing import LetterProofingState
+from eduid_userdb.proofing import LetterProofingState, NinProofingElement
 from eduid_common.api.utils import get_short_hash
+from eduid_userdb.proofing.element import SentLetterElement
 from eduid_webapp.letter_proofing import pdf
 
 __author__ = 'lundberg'
@@ -55,18 +56,15 @@ def check_state(state):
     return {'message': 'letter.not-sent'}
 
 
-def create_proofing_state(eppn, nin):
-    proofing_state = LetterProofingState({
-        'eduPersonPrincipalName': eppn,
-        'nin': {
-            'number': nin,
-            'created_by': 'eduid-idproofing-letter',
-            'created_ts': True,
-            'verified': False,
-            'verification_code': get_short_hash()
-        }
-    })
-    return proofing_state
+def create_proofing_state(eppn: str, nin: str) -> LetterProofingState:
+    nin = NinProofingElement(number=nin,
+                             application='eduid-idproofing-letter',
+                             created_ts=True,
+                             verified=False,
+                             verification_code=get_short_hash()
+                             )
+    proofing_letter = SentLetterElement(data={})
+    return LetterProofingState(id=None, modified_ts=None, eppn=eppn, nin=nin, proofing_letter=proofing_letter)
 
 
 def get_address(user, proofing_state):

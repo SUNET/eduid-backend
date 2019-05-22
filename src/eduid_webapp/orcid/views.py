@@ -29,8 +29,8 @@ def authorize(user):
         if not proofing_state:
             current_app.logger.debug('No proofing state found for user {!s}. Initializing new proofing state.'.format(
                 user))
-            proofing_state = OrcidProofingState({'eduPersonPrincipalName': user.eppn, 'state': get_unique_hash(),
-                                                 'nonce': get_unique_hash()})
+            proofing_state = OrcidProofingState(id=None, modified_ts=None,
+                                                eppn=user.eppn, state=get_unique_hash(), nonce=get_unique_hash())
             current_app.proofing_statedb.save(proofing_state)
 
         claims_request = ClaimsRequest(userinfo=Claims(id=None))
