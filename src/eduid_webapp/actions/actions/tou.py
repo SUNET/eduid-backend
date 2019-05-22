@@ -32,14 +32,16 @@
 
 __author__ = 'eperez'
 
-from bson import ObjectId
 from datetime import datetime
 
+from bson import ObjectId
 from flask import current_app, request
 
-from eduid_webapp.actions.action_abc import ActionPlugin
-from eduid_userdb.tou import ToUEvent
+from eduid_userdb.actions import Action
 from eduid_userdb.actions.tou import ToUUserDB, ToUUser
+from eduid_userdb.tou import ToUEvent
+from eduid_webapp.actions.action_abc import ActionPlugin
+from eduid_common.api.exceptions import AmTaskFailed
 
 
 class Plugin(ActionPlugin):
@@ -59,7 +61,7 @@ class Plugin(ActionPlugin):
     def includeme(cls, app):
         app.tou_db = ToUUserDB(app.config.get('MONGO_URI'))
 
-    def get_config_for_bundle(self, action):
+    def get_config_for_bundle(self, action: Action):
         tous = current_app.get_tous(version=action.params['version'])
         if not tous:
             current_app.logger.error('Could not load any TOUs')
@@ -70,7 +72,7 @@ class Plugin(ActionPlugin):
             'available_languages': current_app.config.get('AVAILABLE_LANGUAGES')
         }
 
-    def perform_step(self, action):
+    def perform_step(self, action: Action):
         if not request.get_json().get('accept', ''):
             raise self.ActionError('tou.must-accept')
 
@@ -78,14 +80,23 @@ class Plugin(ActionPlugin):
         central_user = current_app.central_userdb.get_user_by_eppn(eppn)
         user = ToUUser.from_user(central_user, current_app.tou_db)
         current_app.logger.debug('Loaded ToUUser {} from db'.format(user))
-        current_app.logger.info('ToU version {} accepted by user {}'.format(version, user))
-        event_id = ObjectId()
-        user.tou.add(ToUEvent(
-            version = version,
-            application = 'eduid_tou_plugin',
-            created_ts = datetime.utcnow(),
-            event_id = event_id
+
+        version = action.params['version']
+
+        existing_tou = user.tou.find(version)
+        if existing_tou:
+            current_app.logger.info('ToU version {} reaccepted by user {}'.format(version, user))
+            existing_tou.modified_ts = datetime.utcnow()
+        else:
+            current_app.logger.info('ToU version {} accepted by user {}'.format(version, user))
+            user.tou.add(ToUEvent(
+                version=version,
+                application='eduid_tou_plugin',
+                created_ts=datetime.utcnow(),
+                modified_ts=datetime.utcnow(),
+                event_id=ObjectId()
             ))
+
         current_app.tou_db.save(user, check_sync=False)
         current_app.logger.debug("Asking for sync of {} by Attribute Manager".format(user))
         rtask = self._update_attributes.delay('tou', str(user.user_id))
@@ -95,8 +106,6 @@ class Plugin(ActionPlugin):
             current_app.actions_db.remove_action_by_id(action.action_id)
             current_app.logger.info('Removed completed action {}'.format(action))
             return {}
-        except Exception as e:
+        except AmTaskFailed as e:
             current_app.logger.error("Failed Attribute Manager sync request: " + str(e))
-            user.tou.remove(event_id)
-            current_app.tou_db.save(user)
             raise self.ActionError('tou.sync-problem')
