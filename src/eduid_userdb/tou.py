@@ -34,10 +34,12 @@
 #
 
 import copy
+import datetime
+
 from six import string_types
 
 from eduid_userdb.event import Event, EventList
-from eduid_userdb.exceptions import BadEvent
+from eduid_userdb.exceptions import BadEvent, UserDBValueError
 
 
 class ToUEvent(Event):
@@ -84,6 +86,20 @@ class ToUEvent(Event):
         self._data['version'] = value
 
     # -----------------------------------------------------------------
+    def is_expired(self, interval_seconds: int) -> bool:
+        """
+        Check whether the ToU event needs to be reaccepted.
+
+        :param interval_seconds: the max number of seconds between a users acceptance of the ToU
+        """
+        if not isinstance(self.modified_ts, datetime.datetime):
+            if self.modified_ts is True or self.modified_ts is None:
+                return False
+            raise UserDBValueError(f'Malformed modified_ts: {self.modified_ts!r}')
+        delta = datetime.timedelta(seconds=interval_seconds)
+        expiry_date = self.modified_ts + delta
+        now = datetime.datetime.now(tz=self.modified_ts.tzinfo)
+        return expiry_date < now
 
 
 class ToUList(EventList):
@@ -93,12 +109,12 @@ class ToUList(EventList):
     def __init__(self, events, raise_on_unknown=True, event_class=ToUEvent):
         EventList.__init__(self, events, raise_on_unknown=raise_on_unknown, event_class=event_class)
 
-    def has_accepted(self, version):
+    def has_accepted(self, version: str, reaccept_interval: int):
         """
         Check if the user has accepted a particular version of the ToU.
 
         :param version: Version of ToU
-        :type version: string_types
+        :param reaccept_interval: Time between accepting and the need to reaccept (default 3 years)
 
         :return: True or False
         :rtype: bool
@@ -107,6 +123,6 @@ class ToUList(EventList):
         if version in ['2014-v1', '2014-dev-v1']:
             return True
         for this in self._elements:
-            if this.version == version:
+            if this.version == version and not this.is_expired(interval_seconds=reaccept_interval):
                 return True
         return False
