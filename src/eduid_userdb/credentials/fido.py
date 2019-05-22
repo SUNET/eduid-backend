@@ -34,10 +34,9 @@
 #
 from __future__ import absolute_import
 
-import base64
 import copy
 from hashlib import sha256
-from six import string_types, binary_type
+from six import string_types
 from eduid_userdb.credentials import Credential
 from eduid_userdb.exceptions import UserHasUnknownData, UserDBValueError
 
@@ -55,19 +54,6 @@ class FidoCredential(Credential):
         self.keyhandle = data.pop('keyhandle')
         self.app_id = data.pop('app_id')
         self.description = data.pop('description', '')
-
-    def __repr__(self):  # XXX was __repr__ what we settled on for Python3? Don't think so
-        kh = self._data['keyhandle'][:8]
-        if self.is_verified:
-            return '<eduID {!s}: key_handle=\'{!s}...\', verified=True, proofing=({!r} v {!r})>'.format(
-                self.__class__.__name__,
-                kh,
-                self.proofing_method,
-                self.proofing_version
-            )
-        else:
-            return '<eduID {!s}: key_handle=\'{!s}...\', verified=False>'.format(
-                self.__class__.__name__, kh)
 
     @property
     def keyhandle(self):

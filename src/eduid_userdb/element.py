@@ -93,7 +93,7 @@ class Element(object):
         self.created_by = data.pop('created_by', None)
         self.created_ts = data.pop('created_ts', None)
 
-    def __repr__(self):
+    def __str__(self):
         return '<eduID {!s}: {!r}>'.format(self.__class__.__name__, getattr(self, '_data', None))
 
     # -----------------------------------------------------------------

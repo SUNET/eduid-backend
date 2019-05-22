@@ -11,3 +11,4 @@ metadata.xml
 .*.swp
 coverage.xml
 nosetests.xml
+.mypy_cache
