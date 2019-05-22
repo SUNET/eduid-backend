@@ -227,7 +227,7 @@ class Action(object):
         """
         Get the action params.
 
-        :rtype: str
+        :rtype: dict
         """
         return self._data.get('params')
 

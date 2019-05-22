@@ -35,28 +35,30 @@
 
 import copy
 import datetime
+from typing import Optional
 
 from six import string_types
 
 from eduid_userdb.event import Event, EventList
-from eduid_userdb.exceptions import BadEvent, UserDBValueError
+from eduid_userdb.exceptions import BadEvent, UserDBValueError, EduIDUserDBError
 
 
 class ToUEvent(Event):
     """
     A record of a user's acceptance of a particular version of the Terms of Use.
     """
-    def __init__(self, version=None, application=None, created_ts=None, event_id=None,
+    def __init__(self, version=None, application=None, created_ts=None, modified_ts=None, event_id=None,
                  data=None, raise_on_unknown=True):
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
 
         if data is None:
-            data = dict(version = version,
-                        created_by = application,
-                        created_ts = created_ts,
-                        event_type = 'tou_event',
-                        event_id = event_id,
+            data = dict(version=version,
+                        created_by=application,
+                        created_ts=created_ts,
+                        modified_ts=modified_ts,
+                        event_type='tou_event',
+                        event_id=event_id,
                         )
         for required in ['created_by', 'created_ts']:
             if required not in data or not data.get(required):
@@ -108,6 +110,19 @@ class ToUList(EventList):
     """
     def __init__(self, events, raise_on_unknown=True, event_class=ToUEvent):
         EventList.__init__(self, events, raise_on_unknown=raise_on_unknown, event_class=event_class)
+
+    def find(self, version: str) -> Optional[ToUEvent]:
+        """
+        Find an ToUEvent from the ToUList using ToU version.
+
+        :param version: ToU version to find
+        """
+        res = [this for this in self._elements if this.version == version]
+        if len(res) == 1:
+            return res[0]
+        if len(res) > 1:
+            raise EduIDUserDBError(f'More than one ToUEvent with version {version} found')
+        return None
 
     def has_accepted(self, version: str, reaccept_interval: int):
         """
