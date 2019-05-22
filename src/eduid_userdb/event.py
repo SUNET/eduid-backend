@@ -37,6 +37,7 @@ import copy
 
 from bson import ObjectId
 from six import string_types
+
 from eduid_userdb.element import Element, ElementList, DuplicateElementViolation
 from eduid_userdb.exceptions import UserDBValueError, BadEvent, EventHasUnknownData
 
@@ -47,23 +48,29 @@ class Event(Element):
 
     :type data: dict
     """
-    def __init__(self, application=None, created_ts=None, data=None, event_type=None, event_id=None,
-                 raise_on_unknown=True, ignore_data = None):
+
+    def __init__(self, application=None, created_ts=None, modified_ts=None, data=None, event_type=None, event_id=None,
+                 raise_on_unknown=True, ignore_data=None):
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
 
         if data is None:
             if created_ts is None:
                 created_ts = True
-            data = dict(created_by = application,
-                        created_ts = created_ts,
-                        event_type = event_type,
-                        event_id = event_id,
+            if modified_ts is None:
+                modified_ts = created_ts
+            data = dict(created_by=application,
+                        created_ts=created_ts,
+                        modified_ts=modified_ts,
+                        event_type=event_type,
+                        event_id=event_id,
                         )
+        # modified_ts was not part of Event from the start, make sure it gets added and default to created_ts
+        if 'modified_ts' not in data:
+            data['modified_ts'] = data.get('created_ts', None)
+
         Element.__init__(self, data)
         self.event_type = data.pop('event_type', None)
-        if 'id' in data:  # TODO: Load and save all users in the database to replace id with event_id
-            data['event_id'] = data.pop('id')
         self.event_id = data.pop('event_id')
 
         ignore_data = ignore_data or []
@@ -134,7 +141,6 @@ class Event(Element):
         Element later.
 
         :param mixed_format: Tag each Event with the event_type. Used when list has multiple types of events.
-        :type old_userdb_format: bool
         :type mixed_format: bool
         """
         res = copy.copy(self._data)  # avoid caller messing with our _data
