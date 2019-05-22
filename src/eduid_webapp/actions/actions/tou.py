@@ -73,13 +73,9 @@ class Plugin(ActionPlugin):
     def perform_step(self, action):
         if not request.get_json().get('accept', ''):
             raise self.ActionError('tou.must-accept')
-        if action.old_format:
-            userid = action.user_id
-            central_user = current_app.central_userdb.get_user_by_id(userid)
-        else:
-            eppn = action.eppn
-            central_user = current_app.central_userdb.get_user_by_eppn(eppn)
-        version = action.params['version']
+
+        eppn = action.eppn
+        central_user = current_app.central_userdb.get_user_by_eppn(eppn)
         user = ToUUser.from_user(central_user, current_app.tou_db)
         current_app.logger.debug('Loaded ToUUser {} from db'.format(user))
         current_app.logger.info('ToU version {} accepted by user {}'.format(version, user))
