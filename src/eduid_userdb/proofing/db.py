@@ -30,6 +30,7 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+import datetime
 
 from bson import ObjectId
 from bson.errors import InvalidId
@@ -73,7 +74,7 @@ class ProofingStateDB(BaseDB):
 
         state = self._get_document_by_attr('eduPersonPrincipalName', eppn, raise_on_missing)
         if state:
-            return self.ProofingStateClass(state)
+            return self.ProofingStateClass.from_dict(state)
 
     def save(self, state, check_sync=True):
         """
@@ -88,7 +89,7 @@ class ProofingStateDB(BaseDB):
         """
 
         modified = state.modified_ts
-        state.modified_ts = True  # update to current time
+        state.modified_ts = datetime.datetime.utcnow()  # update to current time
         if modified is None:
             # document has never been modified
             result = self._coll.insert(state.to_dict())
@@ -104,7 +105,7 @@ class ProofingStateDB(BaseDB):
                 db_state = self._coll.find_one({'eduPersonPrincipalName': state.eppn})
                 if db_state:
                     db_ts = db_state['modified_ts']
-                logging.debug("{!s} FAILED Updating state {!r} (ts {!s}) in {!r}). "
+                logging.error("{!s} FAILED Updating state {!r} (ts {!s}) in {!r}). "
                               "ts in db = {!s}".format(self, state, modified, self._coll_name, db_ts))
                 raise DocumentOutOfSync('Stale state object can\'t be saved')
 
@@ -164,7 +165,7 @@ class EmailProofingStateDB(ProofingStateDB):
                         " documents for {!r}".format(spec))
 
             if verifications.count() == 1:
-                return self.ProofingStateClass(verifications[0])
+                return self.ProofingStateClass.from_dict(verifications[0])
         except TypeError:
             # no verifications, and do not raise on missing,
             # produce an empty list;
@@ -216,7 +217,7 @@ class PhoneProofingStateDB(ProofingStateDB):
                         " documents for {!r}".format(spec))
 
             if verifications.count() == 1:
-                return self.ProofingStateClass(verifications[0])
+                return self.ProofingStateClass.from_dict(verifications[0])
         except TypeError:
             # no verifications, and do not raise on missing,
             # produce an empty list;
@@ -256,7 +257,7 @@ class OidcStateDB(ProofingStateDB):
 
         state = self._get_document_by_attr('state', oidc_state, raise_on_missing)
         if state:
-            return self.ProofingStateClass(state)
+            return self.ProofingStateClass.from_dict(state)
 
 
 class OidcProofingStateDB(OidcStateDB):
