@@ -74,11 +74,7 @@ def mfa_authentication(user):
     current_app.logger.debug('mfa-authentication called')
     required_loa = 'loa3'
     # Clear session keys used for external mfa
-    # TODO: Change to namespace using dataclasses
-    session.pop('mfa_authentication_success', None)
-    session.pop('mfa_authentication_issuer', None)
-    session.pop('mfa_authentication_authn_instant', None)
-    session.pop('mfa_authentication_authn_context', None)
+    del session.mfa_action
     return _authn('mfa-authentication-action', required_loa, force_authn=True)
 
 
