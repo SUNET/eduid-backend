@@ -2,6 +2,8 @@
 
 import time
 from flask import current_app
+
+from eduid_userdb import User
 from eduid_userdb.proofing.state import NinProofingState
 from eduid_userdb.proofing.element import NinProofingElement
 from eduid_userdb.proofing.user import ProofingUser
@@ -35,21 +37,14 @@ def nin_to_age(nin):
     return age
 
 
-def create_proofing_state(user, nin):
+def create_proofing_state(user: User, nin: str) -> NinProofingState:
     """
     :param user: Central userdb user
     :param nin: National Identity Number
-
-    :type user: eduid_userdb.user.User
-    :type nin: str
-
-    :return: NinProofingState
-    :rtype: eduid_userdb.proofing.NinProofingState
     """
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     nin_element = NinProofingElement(number=nin, application='lookup_mobile_proofing', verified=False)
-    proofing_state = NinProofingState({'eduPersonPrincipalName': proofing_user.eppn, 'nin': nin_element.to_dict()})
-    return proofing_state
+    return NinProofingState(id=None, modified_ts=None, eppn=proofing_user.eppn, nin=nin_element)
 
 
 def match_mobile_to_user(user, self_asserted_nin, verified_mobile_numbers):
