@@ -1,14 +1,14 @@
+import datetime
+from copy import deepcopy
 from unittest import TestCase
 
 import bson
-import datetime
 
-import eduid_userdb.exceptions
 import eduid_userdb.element
+import eduid_userdb.exceptions
+from eduid_userdb.credentials import Password
 from eduid_userdb.event import EventList
 from eduid_userdb.tou import ToUEvent
-from eduid_userdb.credentials import Password
-from copy import deepcopy
 
 __author__ = 'ft'
 
@@ -18,6 +18,7 @@ _one_dict = \
      'version': '1',
      'created_by': 'test',
      'created_ts': datetime.datetime(2015, 9, 24, 1, 1, 1, 111111),
+     'modified_ts': datetime.datetime(2015, 9, 24, 1, 1, 1, 111111),
      }
 
 _two_dict = \
@@ -26,6 +27,7 @@ _two_dict = \
      'version': '2',
      'created_by': 'test',
      'created_ts': datetime.datetime(2015, 9, 24, 2, 2, 2, 222222),
+     'modified_ts': datetime.datetime(2018, 9, 25, 2, 2, 2, 222222),
      }
 
 _three_dict = \
@@ -34,6 +36,7 @@ _three_dict = \
      'version': '3',
      'created_by': 'test',
      'created_ts': datetime.datetime(2015, 9, 24, 3, 3, 3, 333333),
+     'modified_ts': datetime.datetime(2015, 9, 24, 3, 3, 3, 333333),
      }
 
 
@@ -112,3 +115,41 @@ class TestEventList(TestCase):
             EventList([e1])
         exc = cm.exception
         self.assertIn('Unknown event_type', exc.reason)
+
+    def test_modified_ts_addition(self):
+        _event_no_modified_ts = {
+            'event_id': bson.ObjectId(),
+            'event_type': 'tou_event',
+            'version': '1',
+            'created_by': 'test',
+            'created_ts': datetime.datetime(2015, 9, 24, 1, 1, 1, 111111),
+        }
+        self.assertNotIn('modified_ts', _event_no_modified_ts)
+        el = EventList([_event_no_modified_ts])
+        for event in el.to_list_of_dicts():
+            self.assertIsInstance(event['modified_ts'], datetime.datetime)
+            self.assertEqual(event['modified_ts'], event['created_ts'])
+        for event in el.to_list():
+            self.assertIsInstance(event.modified_ts, datetime.datetime)
+            self.assertEqual(event.modified_ts, event.created_ts)
+
+    def test_update_modified_ts(self):
+        _event_modified_ts = {
+            'event_id': bson.ObjectId(),
+            'event_type': 'tou_event',
+            'version': '1',
+            'created_by': 'test',
+            'created_ts': datetime.datetime(2015, 9, 24, 1, 1, 1, 111111),
+            'modified_ts': datetime.datetime(2015, 9, 24, 1, 1, 1, 111111),
+        }
+        self.assertIn('modified_ts', _event_modified_ts)
+        el = EventList([_event_modified_ts])
+        event = el.to_list()[0]
+
+        self.assertIsInstance(event.modified_ts, datetime.datetime)
+        self.assertEqual(event.modified_ts, event.created_ts)
+
+        event.modified_ts = datetime.datetime(2018, 9, 24, 1, 1, 1, 111111)
+        self.assertIsInstance(event.modified_ts, datetime.datetime)
+        self.assertEqual(event.modified_ts, datetime.datetime(2018, 9, 24, 1, 1, 1, 111111))
+        self.assertNotEqual(event.modified_ts, event.created_ts)

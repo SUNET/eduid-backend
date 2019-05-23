@@ -223,11 +223,9 @@ class Action(object):
 
     # -----------------------------------------------------------------
     @property
-    def params(self):
+    def params(self) -> dict:
         """
         Get the action params.
-
-        :rtype: str
         """
         return self._data.get('params')
 

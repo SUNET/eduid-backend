@@ -199,7 +199,7 @@ NEW_COMPLETED_SIGNUP_USER_EXAMPLE.update({
             'created_ts': datetime.strptime("2017-01-04T16:47:30", "%Y-%m-%dT%H:%M:%S"),
             'version': '2016-v1',
             'created_by': 'signup',
-            'id': ObjectId('912345678901234567890123')
+            'event_id': ObjectId('912345678901234567890123')
         }
     ],
     'eduPersonEntitlement': [],

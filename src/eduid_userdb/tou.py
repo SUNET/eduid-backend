@@ -34,27 +34,31 @@
 #
 
 import copy
+import datetime
+from typing import Optional
+
 from six import string_types
 
 from eduid_userdb.event import Event, EventList
-from eduid_userdb.exceptions import BadEvent
+from eduid_userdb.exceptions import BadEvent, UserDBValueError, EduIDUserDBError
 
 
 class ToUEvent(Event):
     """
     A record of a user's acceptance of a particular version of the Terms of Use.
     """
-    def __init__(self, version=None, application=None, created_ts=None, event_id=None,
+    def __init__(self, version=None, application=None, created_ts=None, modified_ts=None, event_id=None,
                  data=None, raise_on_unknown=True):
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
 
         if data is None:
-            data = dict(version = version,
-                        created_by = application,
-                        created_ts = created_ts,
-                        event_type = 'tou_event',
-                        event_id = event_id,
+            data = dict(version=version,
+                        created_by=application,
+                        created_ts=created_ts,
+                        modified_ts=modified_ts,
+                        event_type='tou_event',
+                        event_id=event_id,
                         )
         for required in ['created_by', 'created_ts']:
             if required not in data or not data.get(required):
@@ -84,6 +88,20 @@ class ToUEvent(Event):
         self._data['version'] = value
 
     # -----------------------------------------------------------------
+    def is_expired(self, interval_seconds: int) -> bool:
+        """
+        Check whether the ToU event needs to be reaccepted.
+
+        :param interval_seconds: the max number of seconds between a users acceptance of the ToU
+        """
+        if not isinstance(self.modified_ts, datetime.datetime):
+            if self.modified_ts is True or self.modified_ts is None:
+                return False
+            raise UserDBValueError(f'Malformed modified_ts: {self.modified_ts!r}')
+        delta = datetime.timedelta(seconds=interval_seconds)
+        expiry_date = self.modified_ts + delta
+        now = datetime.datetime.now(tz=self.modified_ts.tzinfo)
+        return expiry_date < now
 
 
 class ToUList(EventList):
@@ -93,12 +111,25 @@ class ToUList(EventList):
     def __init__(self, events, raise_on_unknown=True, event_class=ToUEvent):
         EventList.__init__(self, events, raise_on_unknown=raise_on_unknown, event_class=event_class)
 
-    def has_accepted(self, version):
+    def find(self, version: str) -> Optional[ToUEvent]:
+        """
+        Find an ToUEvent from the ToUList using ToU version.
+
+        :param version: ToU version to find
+        """
+        res = [this for this in self._elements if this.version == version]
+        if len(res) == 1:
+            return res[0]
+        if len(res) > 1:
+            raise EduIDUserDBError(f'More than one ToUEvent with version {version} found')
+        return None
+
+    def has_accepted(self, version: str, reaccept_interval: int):
         """
         Check if the user has accepted a particular version of the ToU.
 
         :param version: Version of ToU
-        :type version: string_types
+        :param reaccept_interval: Time between accepting and the need to reaccept (default 3 years)
 
         :return: True or False
         :rtype: bool
@@ -107,6 +138,6 @@ class ToUList(EventList):
         if version in ['2014-v1', '2014-dev-v1']:
             return True
         for this in self._elements:
-            if this.version == version:
+            if this.version == version and not this.is_expired(interval_seconds=reaccept_interval):
                 return True
         return False

@@ -31,13 +31,15 @@
 #
 # Author : Fredrik Thulin <fredrik@thulin.net>
 #
-
-__author__ = 'ft'
-
 import copy
 import datetime
+from typing import Optional, Union
+
 from six import string_types
+
 from eduid_userdb.exceptions import EduIDUserDBError, UserHasUnknownData, UserDBValueError
+
+__author__ = 'ft'
 
 
 class ElementError(EduIDUserDBError):
@@ -92,6 +94,7 @@ class Element(object):
 
         self.created_by = data.pop('created_by', None)
         self.created_ts = data.pop('created_ts', None)
+        self.modified_ts = data.pop('modified_ts', None)
 
     def __str__(self):
         return '<eduID {!s}: {!r}>'.format(self.__class__.__name__, getattr(self, '_data', None))
@@ -141,6 +144,22 @@ class Element(object):
         _set_something_ts(self._data, 'created_ts', value)
 
     # -----------------------------------------------------------------
+    @property
+    def modified_ts(self) -> Optional[datetime.datetime]:
+        """
+        :return: Timestamp of element last update.
+        """
+        return self._data.get('modified_ts')
+
+    @modified_ts.setter
+    def modified_ts(self, value: Optional[Union[datetime.datetime, bool]]):
+        """
+        :param value: Timestamp of element last update.
+                      Value None is ignored, True is short for datetime.utcnow().
+        """
+        _set_something_ts(self._data, 'modified_ts', value, allow_update=True)
+    # -----------------------------------------------------------------
+
     def to_dict(self, old_userdb_format = False):
         """
         Convert Element to a dict, that can be used to reconstruct the

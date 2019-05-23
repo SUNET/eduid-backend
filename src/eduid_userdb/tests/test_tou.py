@@ -8,14 +8,14 @@ import eduid_userdb.exceptions
 import eduid_userdb.element
 from eduid_userdb.data_samples import NEW_USER_EXAMPLE
 from eduid_userdb.event import Event, EventList
-from eduid_userdb.tou import ToUEvent
+from eduid_userdb.tou import ToUEvent, ToUList
 from eduid_userdb.actions.tou import ToUUser
 from eduid_userdb.exceptions import UserMissingData, UserHasUnknownData
 
 __author__ = 'ft'
 
 _one_dict = \
-    {'id': bson.ObjectId(),
+    {'event_id': bson.ObjectId(),
      'event_type': 'tou_event',
      'version': '1',
      'created_by': 'test',
@@ -23,19 +23,21 @@ _one_dict = \
      }
 
 _two_dict = \
-    {'id': bson.ObjectId(),
+    {'event_id': bson.ObjectId(),
      'event_type': 'tou_event',
      'version': '2',
      'created_by': 'test',
      'created_ts': datetime.datetime(2015, 9, 24, 2, 2, 2, 222222),
+     'modified_ts': datetime.datetime(2018, 9, 25, 2, 2, 2, 222222),
      }
 
 _three_dict = \
-    {'id': bson.ObjectId(),
+    {'event_id': bson.ObjectId(),
      'event_type': 'tou_event',
      'version': '3',
      'created_by': 'test',
      'created_ts': datetime.datetime(2015, 9, 24, 3, 3, 3, 333333),
+     'modified_ts': datetime.datetime(2015, 9, 24, 3, 3, 3, 333333),
      }
 
 
@@ -128,6 +130,15 @@ class TestToUEvent(TestCase):
             this.event_type = 1
         exc = cm.exception
         self.assertEqual(exc.reason, "Invalid 'event_type': 1")
+
+    def test_reaccept_tou(self):
+        three_years = 94608000  # seconds
+        self.assertGreater(_two_dict['modified_ts'] - _two_dict['created_ts'], datetime.timedelta(seconds=three_years))
+        self.assertLess(_three_dict['modified_ts'] - _three_dict['created_ts'], datetime.timedelta(seconds=three_years))
+
+        tl = ToUList([_two_dict, _three_dict])
+        self.assertTrue(tl.has_accepted(version='2', reaccept_interval=three_years))
+        self.assertFalse(tl.has_accepted(version='3', reaccept_interval=three_years))
 
 
 USERID = '123467890123456789014567'
