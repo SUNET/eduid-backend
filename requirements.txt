@@ -1,4 +1,4 @@
-eduid-userdb>=0.4.6b3
+eduid-userdb>=0.4.6b9
 eduid-common[webapp]>=0.4.1b7
 eduid-action>=0.2.1b8
 eduid-am>=0.6.3b7

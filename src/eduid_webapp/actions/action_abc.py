@@ -28,13 +28,16 @@
 # LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-#
+
 from abc import ABCMeta, abstractmethod
+
 from flask import current_app
+
+from eduid_userdb.actions.action import Action
 
 
 class ActionError(Exception):
-    '''
+    """
     exception to be raised if the action to be performed fails.
     Instantiated with a message that informs about the reason for
     the failure.
@@ -71,7 +74,7 @@ class ActionError(Exception):
     :param rm: whether to remove the action from the db
                on catching the exception.
     :type rm: bool
-    '''
+    """
 
     def __init__(self, msg, rm=False):
         super(ActionError, self).__init__(msg)
@@ -79,7 +82,7 @@ class ActionError(Exception):
 
 
 class ActionPlugin(object):
-    '''
+    """
     Abstract class to be extended by the different plugins for the
     actions app.
     
@@ -96,10 +99,10 @@ class ActionPlugin(object):
     that defines a class ``ToUPlugin`` (subclass of ``ActionPlugin``) in
     its ``__init__.py``, we would have as entry point in its ``setup.py``::
         
-      entry_points="""
+      entry_points='''
         [eduid_actions.action]
             tou = eduid_action.tou:ToUPlugin
-      """,
+      ''',
     
     //DEPRECATED==
     ==============
@@ -111,7 +114,7 @@ class ActionPlugin(object):
     configuration parameter ``ACTIONS_PLUGINS`` containing the action name,
     the plugin will be registered and the app will be able to deal with the
     kind of actions managed by the plugin.
-    '''
+    """
 
     __metaclass__ = ABCMeta
 
@@ -121,26 +124,26 @@ class ActionPlugin(object):
     PACKAGE_NAME = 'eduid_webapp.actions.actions.' + PLUGIN_NAME
 
     class ValidationError(Exception):
-        '''
+        """
         exception to be raised if some form doesn't validate.
         Instantiated with a dict of field names to error messages.
 
         :param arg: error messages for each field
         :type arg: dict
-        '''
+        """
 
     @classmethod
     @abstractmethod
     def includeme(self, app):
-        '''
+        """
         Plugin specific configuration for the actions app.
 
         :param app: the flask app.
         :type app: flask.App
-        '''
+        """
 
     def get_number_of_steps(self):
-        '''
+        """
         The number of steps that the user has to take
         in order to complete this action.
         In other words, the number of requests the client will
@@ -148,11 +151,11 @@ class ActionPlugin(object):
 
         :returns: the number of steps
         :rtype: int
-        '''
+        """
         return self.steps
 
-    def get_url_for_bundle(self, action):
-        '''
+    def get_url_for_bundle(self, action: Action) -> str:
+        """
         Return the url for the bundle that contains the front-end javascript
         side of the plugin. To be injected into an index.html file.  If there
         is some error in the process, raise ActionError.
@@ -160,10 +163,7 @@ class ActionPlugin(object):
         :param action: the action as retrieved from the eduid_actions db
         :returns: the url
         :raise: ActionPlugin.ActionError
-
-        :type action: dict
-        :rtype: unicode
-        '''
+        """
         base = current_app.config.get('BUNDLES_URL')
         bundle_name = 'eduid_action.{}.js'
         env = current_app.config.get('ENVIRONMENT', 'dev')
@@ -178,8 +178,8 @@ class ActionPlugin(object):
         return url
 
     @abstractmethod
-    def get_config_for_bundle(self, action):
-        '''
+    def get_config_for_bundle(self, action) -> dict:
+        """
         Return any configuration parameters needed by the js bundle that
         contains the front-end javascript side of the plugin. If there
         is some error in the process, raise ActionError.
@@ -187,14 +187,11 @@ class ActionPlugin(object):
         :param action: the action as retrieved from the eduid_actions db
         :returns: the config parameters
         :raise: ActionPlugin.ActionError
-
-        :type action: dict
-        :rtype: dict
-        '''
+        """
 
     @abstractmethod
-    def perform_step(self, action):
-        '''
+    def perform_step(self, action: Action) -> dict:
+        """
         The user has provided some data and needs feedback. The provided data
         should be in the request, and the action type and current step should
         be in the session. This may be the last step for this action,
@@ -205,8 +202,5 @@ class ActionPlugin(object):
         user, and raise ActionError otherwise.
 
         :param action: the action as retrieved from the eduid_actions db
-        :type action: dict
-
         :raise: ActionPlugin.ActionError
-        :return: dict
-        '''
+        """

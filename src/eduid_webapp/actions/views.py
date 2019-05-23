@@ -32,24 +32,19 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 from __future__ import absolute_import
+
 import json
 
+from eduid_common.api.decorators import MarshalWith
+from eduid_common.api.schemas.base import FluxStandardAction
+from eduid_common.authn.utils import check_previous_identification
+from eduid_common.session import session
 from flask import Blueprint, request, current_app
 from flask import abort, url_for, render_template, redirect
 from six.moves.urllib_parse import urlsplit, urlunsplit
 
 from eduid_userdb.actions import Action
-from eduid_common.authn.loa import get_loa
-from eduid_common.session import session
-from eduid_common.api.decorators import MarshalWith
-from eduid_common.api.schemas.base import FluxStandardAction
-from eduid_common.authn.utils import check_previous_identification
 from eduid_webapp.actions.helpers import get_next_action
-
-# XXX TRANSITION_TOKEN_LOGIN remove after transition to implicit logins
-from eduid_common.authn.utils import verify_auth_token
-# XXX END remove
-
 
 actions_views = Blueprint('actions', __name__, url_prefix='', template_folder='templates')
 
