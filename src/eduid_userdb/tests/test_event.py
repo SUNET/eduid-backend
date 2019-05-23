@@ -1,14 +1,14 @@
+import datetime
+from copy import deepcopy
 from unittest import TestCase
 
 import bson
-import datetime
 
-import eduid_userdb.exceptions
 import eduid_userdb.element
-from eduid_userdb.event import EventList
-from eduid_userdb.tou import ToUEvent, ToUList
+import eduid_userdb.exceptions
 from eduid_userdb.credentials import Password
-from copy import deepcopy
+from eduid_userdb.event import EventList
+from eduid_userdb.tou import ToUEvent
 
 __author__ = 'ft'
 
@@ -133,12 +133,23 @@ class TestEventList(TestCase):
             self.assertIsInstance(event.modified_ts, datetime.datetime)
             self.assertEqual(event.modified_ts, event.created_ts)
 
-    def test_reaccept_tou(self):
-        three_years = 94608000  # seconds
-        self.assertGreater(_two_dict['modified_ts'] - _two_dict['created_ts'], datetime.timedelta(seconds=three_years))
-        self.assertLess(_three_dict['modified_ts'] - _three_dict['created_ts'], datetime.timedelta(seconds=three_years))
+    def test_update_modified_ts(self):
+        _event_modified_ts = {
+            'event_id': bson.ObjectId(),
+            'event_type': 'tou_event',
+            'version': '1',
+            'created_by': 'test',
+            'created_ts': datetime.datetime(2015, 9, 24, 1, 1, 1, 111111),
+            'modified_ts': datetime.datetime(2015, 9, 24, 1, 1, 1, 111111),
+        }
+        self.assertIn('modified_ts', _event_modified_ts)
+        el = EventList([_event_modified_ts])
+        event = el.to_list()[0]
 
-        tl = ToUList([_two_dict, _three_dict])
-        self.assertTrue(tl.has_accepted(version='2', reaccept_interval=three_years))
-        self.assertFalse(tl.has_accepted(version='3', reaccept_interval=three_years))
+        self.assertIsInstance(event.modified_ts, datetime.datetime)
+        self.assertEqual(event.modified_ts, event.created_ts)
 
+        event.modified_ts = datetime.datetime(2018, 9, 24, 1, 1, 1, 111111)
+        self.assertIsInstance(event.modified_ts, datetime.datetime)
+        self.assertEqual(event.modified_ts, datetime.datetime(2018, 9, 24, 1, 1, 1, 111111))
+        self.assertNotEqual(event.modified_ts, event.created_ts)

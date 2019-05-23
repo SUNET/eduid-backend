@@ -404,8 +404,8 @@ class TestUser(TestCase):
         data = self.data1
         data.update({'tou': tou_events.to_list_of_dicts()})
         user = User(data)
-        self.assertTrue(user.tou.has_accepted('1'))
-        self.assertFalse(user.tou.has_accepted('2'))
+        self.assertTrue(user.tou.has_accepted('1', reaccept_interval=94608000))  # reaccept_interval seconds (3 years)
+        self.assertFalse(user.tou.has_accepted('2', reaccept_interval=94608000))  # reaccept_interval seconds (3 years)
 
     def test_locked_identity_load(self):
         locked_identity = {

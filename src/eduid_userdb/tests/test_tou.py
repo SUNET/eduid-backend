@@ -131,6 +131,15 @@ class TestToUEvent(TestCase):
         exc = cm.exception
         self.assertEqual(exc.reason, "Invalid 'event_type': 1")
 
+    def test_reaccept_tou(self):
+        three_years = 94608000  # seconds
+        self.assertGreater(_two_dict['modified_ts'] - _two_dict['created_ts'], datetime.timedelta(seconds=three_years))
+        self.assertLess(_three_dict['modified_ts'] - _three_dict['created_ts'], datetime.timedelta(seconds=three_years))
+
+        tl = ToUList([_two_dict, _three_dict])
+        self.assertTrue(tl.has_accepted(version='2', reaccept_interval=three_years))
+        self.assertFalse(tl.has_accepted(version='3', reaccept_interval=three_years))
+
 
 USERID = '123467890123456789014567'
 EPPN = 'hubba-bubba'
