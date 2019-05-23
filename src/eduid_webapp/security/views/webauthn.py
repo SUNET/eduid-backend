@@ -81,7 +81,7 @@ def registration_begin(user, authenticator):
     current_app.logger.debug('Webauthn Registration data: {}.'.format(registration_data))
     current_app.stats.count(name='webauthn_register_begin')
 
-    encoded_data = base64.urlsafe_b64encode(cbor.dumps(registration_data)).decode('ascii')
+    encoded_data = base64.urlsafe_b64encode(cbor.encode(registration_data)).decode('ascii')
     encoded_data = encoded_data.rstrip('=')
     return {
         'csrf_token': session.new_csrf_token(),
