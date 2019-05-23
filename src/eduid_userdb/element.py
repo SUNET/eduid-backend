@@ -157,7 +157,7 @@ class Element(object):
                       Value None is ignored, True is short for datetime.utcnow().
         :type value: datetime.datetime | True | None
         """
-        _set_something_ts(self._data, 'modified_ts', value)
+        _set_something_ts(self._data, 'modified_ts', value, allow_update=True)
     # -----------------------------------------------------------------
 
     def to_dict(self, old_userdb_format = False):
