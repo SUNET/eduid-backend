@@ -31,13 +31,15 @@
 #
 # Author : Fredrik Thulin <fredrik@thulin.net>
 #
-
-__author__ = 'ft'
-
 import copy
 import datetime
+from typing import Optional, Union
+
 from six import string_types
+
 from eduid_userdb.exceptions import EduIDUserDBError, UserHasUnknownData, UserDBValueError
+
+__author__ = 'ft'
 
 
 class ElementError(EduIDUserDBError):
@@ -143,19 +145,17 @@ class Element(object):
 
     # -----------------------------------------------------------------
     @property
-    def modified_ts(self):
+    def modified_ts(self) -> Optional[datetime.datetime]:
         """
         :return: Timestamp of element last update.
-        :rtype: datetime.datetime
         """
         return self._data.get('modified_ts')
 
     @modified_ts.setter
-    def modified_ts(self, value):
+    def modified_ts(self, value: Optional[Union[datetime.datetime, bool]]):
         """
         :param value: Timestamp of element last update.
                       Value None is ignored, True is short for datetime.utcnow().
-        :type value: datetime.datetime | True | None
         """
         _set_something_ts(self._data, 'modified_ts', value, allow_update=True)
     # -----------------------------------------------------------------
