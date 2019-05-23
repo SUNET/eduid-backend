@@ -394,7 +394,7 @@ class TestUser(TestCase):
         Basic test for user ToU.
         """
         tou_dict = \
-            {'id': ObjectId(),
+            {'event_id': ObjectId(),
              'event_type': 'tou_event',
              'version': '1',
              'created_by': 'unit test',
