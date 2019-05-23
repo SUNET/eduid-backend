@@ -29,21 +29,22 @@
 # LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+
 from __future__ import absolute_import
 
-import time
-from copy import deepcopy
 from contextlib import contextmanager
-from bson import ObjectId
+from copy import deepcopy
 from datetime import datetime
+
+from bson import ObjectId
+from eduid_common.api.testing import EduidAPITestCase
+from eduid_common.session import session
 from mock import MagicMock
 
-from eduid_common.session import session
-from eduid_userdb.userdb import User
 from eduid_userdb.testing import MOCKED_USER_STANDARD
-from eduid_common.api.testing import EduidAPITestCase
-from eduid_webapp.actions.app import actions_init_app
+from eduid_userdb.userdb import User
 from eduid_webapp.actions.action_abc import ActionPlugin
+from eduid_webapp.actions.app import actions_init_app
 
 
 class MockIdPContext:

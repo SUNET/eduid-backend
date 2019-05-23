@@ -32,31 +32,30 @@
 #
 from __future__ import absolute_import
 
-__author__ = 'eperez'
-
-
-import time
 import json
-import unittest
-from mock import patch
-from datetime import datetime
+from datetime import datetime, timedelta
+
 from bson import ObjectId
 from eduid_common.session import session
-from eduid_userdb.tou import ToUEvent
-from eduid_webapp.actions.testing import MockIdPContext
-from eduid_webapp.actions.testing import ActionsTestCase
-from eduid_webapp.actions.actions.tou import Plugin
+from mock import patch
 
+from eduid_userdb.tou import ToUEvent
+from eduid_webapp.actions.actions.tou import Plugin
+from eduid_webapp.actions.testing import ActionsTestCase
+from eduid_webapp.actions.testing import MockIdPContext
+
+__author__ = 'eperez'
 
 TOU_ACTION = {
-        '_id': ObjectId('234567890123456789012301'),
-        'eppn': 'hubba-bubba',
-        'action': 'tou',
-        'preference': 100,
-        'params': {
-            'version': 'test-version'
-            }
-        }
+    '_id': ObjectId('234567890123456789012301'),
+    'eppn': 'hubba-bubba',
+    'action': 'tou',
+    'preference': 100,
+    'params': {
+        'version': 'test-version'
+    }
+}
+
 
 def add_actions(idp_app, user, ticket):
     """
@@ -65,14 +64,15 @@ def add_actions(idp_app, user, ticket):
     version = idp_app.config.tou_version
     action = idp_app.actions_db.add_action(
         user.eppn,
-        action_type = 'tou',
-        preference = 100,
-        params = {'version': version})
+        action_type='tou',
+        preference=100,
+        params={'version': version})
     session['current_plugin'] = 'tou'
     action_d = action.to_dict()
     action_d['_id'] = str(action_d['_id'])
     session['current_action'] = action_d
     session.persist()
+
 
 class ToUActionPluginTests(ActionsTestCase):
 
@@ -86,7 +86,6 @@ class ToUActionPluginTests(ActionsTestCase):
 
     def update_actions_config(self, config):
         config['ACTION_PLUGINS'] = ['tou']
-        config['INTERNAL_SIGNUP_URL'] = 'http://example.com/signup'
         return config
 
     def tou_accepted(self, version):
@@ -153,7 +152,7 @@ class ToUActionPluginTests(ActionsTestCase):
                     csrf_token = sess.get_csrf_token()
                 data = json.dumps({'accept': False, 'csrf_token': csrf_token})
                 response = client.post('/post-action', data=data,
-                        content_type=self.content_type_json)
+                                       content_type=self.content_type_json)
                 self.assertEquals(response.status_code, 200)
                 data = json.loads(response.data)
                 self.assertEquals(data['payload']['message'], 'tou.must-accept')
