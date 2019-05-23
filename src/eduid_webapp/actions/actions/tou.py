@@ -106,6 +106,6 @@ class Plugin(ActionPlugin):
             current_app.actions_db.remove_action_by_id(action.action_id)
             current_app.logger.info('Removed completed action {}'.format(action))
             return {}
-        except AmTaskFailed as e:
+        except Exception as e:
             current_app.logger.error("Failed Attribute Manager sync request: " + str(e))
             raise self.ActionError('tou.sync-problem')
