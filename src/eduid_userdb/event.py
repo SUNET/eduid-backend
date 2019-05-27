@@ -71,6 +71,8 @@ class Event(Element):
 
         Element.__init__(self, data)
         self.event_type = data.pop('event_type', None)
+        if 'id' in data:  # Compatibility for old format
+            data['event_id'] = data.pop('id')
         self.event_id = data.pop('event_id')
 
         ignore_data = ignore_data or []

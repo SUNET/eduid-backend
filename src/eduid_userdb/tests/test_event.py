@@ -13,7 +13,7 @@ from eduid_userdb.tou import ToUEvent
 __author__ = 'ft'
 
 _one_dict = \
-    {'event_id': bson.ObjectId(),
+    {'id': bson.ObjectId(),  # Keep 'id' instead of event_id to test compatiblity code
      'event_type': 'tou_event',
      'version': '1',
      'created_by': 'test',
@@ -61,7 +61,9 @@ class TestEventList(TestCase):
     def test_to_list_of_dicts(self):
         self.assertEqual([], self.empty.to_list_of_dicts(), list)
 
-        self.assertEqual([_one_dict], self.one.to_list_of_dicts(mixed_format=True))
+        _one_dict_copy = deepcopy(_one_dict)  # Update id to event_id before comparing dicts
+        _one_dict_copy['event_id'] = _one_dict_copy.pop('id')
+        self.assertEqual([_one_dict_copy], self.one.to_list_of_dicts(mixed_format=True))
 
     def test_find(self):
         match = self.one.find(self.one.to_list()[0].key)
