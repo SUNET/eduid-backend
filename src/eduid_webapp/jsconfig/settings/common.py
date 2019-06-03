@@ -51,3 +51,7 @@ SECRET_KEY = ''
 
 # Logging
 LOG_LEVEL = 'INFO'
+
+# Used to load the dashboard react bundle
+BUNDLE_PATH = None
+BUNDLE_VERSION = None

@@ -33,7 +33,7 @@
 
 from __future__ import absolute_import
 
-from flask import Blueprint
+from flask import Blueprint, current_app, render_template
 
 from eduid_common.session import session
 from eduid_common.config.parsers.etcd import EtcdConfigParser
@@ -42,7 +42,7 @@ from eduid_common.api.schemas.base import FluxStandardAction
 from eduid_webapp.jsconfig.settings.front import jsconfig
 
 
-jsconfig_views = Blueprint('jsconfig', __name__, url_prefix='')
+jsconfig_views = Blueprint('jsconfig', __name__, url_prefix='', template_folder='templates')
 
 
 @jsconfig_views.route('/config', methods=['GET'])
@@ -55,3 +55,13 @@ def get_config():
     jsconfig['csrf_token'] = session.get_csrf_token()
 
     return jsconfig
+
+
+@jsconfig_views.route('/dashboard-bundle', methods=['GET'])
+def get_dashboard_bundle():
+    context = {
+        'bundle': current_app.config.get('BUNDLE_PATH'),
+        'version': current_app.config.get('BUNDLE_VERSION'),
+    }
+    return render_template('dashboard_bundle.jinja2', context=context)
+
