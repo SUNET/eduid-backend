@@ -254,13 +254,13 @@ class ResetPasswordNewPasswordSchema(PasswordSchema):
             raise ValidationError(_('Please use a stronger password'))
 
 
-# Remove NIN schemas
-class RemoveNINRequestSchema(EduidSchema, CSRFRequestMixin):
+# NIN schemas
+class NINRequestSchema(EduidSchema, CSRFRequestMixin):
 
     nin = fields.String(required=True, validate=validate_nin)
 
 
-class RemoveNINResponseSchema(FluxStandardAction):
+class NINResponseSchema(FluxStandardAction):
 
     class RemoveNINPayload(EduidSchema, CSRFResponseMixin):
         success = fields.Boolean(required=True)
