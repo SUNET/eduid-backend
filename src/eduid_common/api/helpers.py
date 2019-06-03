@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import
+from typing import Type
 
 from flask import current_app
 
-from eduid_userdb.proofing import ProofingUser
+from eduid_userdb.user import User
 from eduid_userdb.nin import Nin
+from eduid_userdb.proofing import ProofingUser
+from eduid_userdb.proofing.state import NinProofingState
 
 __author__ = 'lundberg'
 
@@ -60,17 +62,9 @@ def number_match_proofing(user, proofing_state, number):
     return False
 
 
-def add_nin_to_user(user, proofing_state):
-    """
-    :param user: Central userdb user
-    :param proofing_state: Proofing state for user
+def add_nin_to_user(user: User, proofing_state: NinProofingState, user_class: Type[User] = ProofingUser) -> None:
 
-    :type user: eduid_userdb.user.User
-    :type proofing_state: eduid_userdb.proofing.NinProofingState
-
-    :return: None
-    """
-    proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
+    proofing_user = user_class.from_user(user, current_app.private_userdb)
     # Add nin to user if not already there
     if not proofing_user.nins.find(proofing_state.nin.number):
         current_app.logger.info('Adding NIN for user {}'.format(user))
