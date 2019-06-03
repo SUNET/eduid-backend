@@ -68,3 +68,7 @@ DEFAULT_FINISH_URL = 'https://www.eduid.se/'
 
 # The signup app uses this to retrieve the ToU texts from the actions app
 TOU_URL = ''
+
+# Used to load the react bundle
+BUNDLE_PATH = 'front-build/signup-bundle.dev.js'
+BUNDLE_VERSION = 'test'

@@ -30,21 +30,28 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from __future__ import absolute_import
 
 import requests
-from flask import Blueprint, request, current_app, abort
+from flask import Blueprint, request, current_app, abort, render_template
 
-from eduid_common.session import session
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith
 from eduid_common.api.schemas.base import FluxStandardAction
-from eduid_webapp.signup.schemas import RegisterEmailSchema, AccountCreatedResponse, EmailSchema
-from eduid_webapp.signup.verifications import verify_recaptcha, send_verification_mail, verify_email_code
+from eduid_common.session import session
 from eduid_webapp.signup.helpers import check_email_status, remove_users_with_mail_address, complete_registration
+from eduid_webapp.signup.schemas import RegisterEmailSchema, AccountCreatedResponse, EmailSchema
 from eduid_webapp.signup.verifications import CodeDoesNotExist, AlreadyVerifiedException, ProofingLogFailure
-
+from eduid_webapp.signup.verifications import verify_recaptcha, send_verification_mail, verify_email_code
 
 signup_views = Blueprint('signup', __name__, url_prefix='', template_folder='templates')
+
+
+@signup_views.route('/', methods=['GET'])
+def get_signup_bundle():
+    context = {
+        'bundle': current_app.config.get('BUNDLE_PATH'),
+        'version': current_app.config.get('BUNDLE_VERSION'),
+    }
+    return render_template('signup_bundle.jinja2', context=context)
 
 
 @signup_views.route('/config', methods=['GET'])
