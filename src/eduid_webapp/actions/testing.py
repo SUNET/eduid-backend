@@ -113,7 +113,8 @@ TEST_CONFIG = {
     'IDP_URL': 'https://example.com/idp',
     'INTERNAL_SIGNUP_URL': 'https://example.com/signup',
     'PRESERVE_CONTEXT_ON_EXCEPTION': False,
-    'BUNDLES_URL': 'http://example.com/bundles/',
+    'EDUID_STATIC_URL': 'http://example.com',
+    'BUNDLES_PATH': '/bundles/',
     'DEBUG': False,
     'DEVEL_MODE': True
 }

@@ -32,8 +32,6 @@
 #
 
 
-from __future__ import absolute_import
-
 """
 For more built in configuration options see,
 http://flask.pocoo.org/docs/0.10/config/#builtin-configuration-values
@@ -55,5 +53,6 @@ SECRET_KEY = None
 LOG_LEVEL = 'INFO'
 
 DASHBOARD_URL = '/profile/'
-BUNDLES_URL = 'http://html.eduid.docker/static/front-build/'
-IDP_URL = 'http://idp.eduid.docker:8080/sso/redirect'
+BUNDLES_PATH = None
+BUNDLES_VERSION = None
+IDP_URL = None
