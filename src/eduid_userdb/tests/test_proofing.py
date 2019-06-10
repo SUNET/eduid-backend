@@ -4,7 +4,7 @@ from unittest import TestCase
 
 from collections import OrderedDict
 from datetime import datetime
-from eduid_userdb.nin import Nin
+from eduid_userdb.proofing.element import NinProofingElement, SentLetterElement
 from eduid_userdb.proofing.state import ProofingState, LetterProofingState, OidcProofingState
 
 __author__ = 'lundberg'
@@ -54,19 +54,24 @@ class ProofingStateTest(TestCase):
              }
          }
         """
-        state = LetterProofingState({
-            'eduPersonPrincipalName': EPPN,
-            'nin': {
-                'number': '200102034567',
-                'created_by': 'eduid_letter_proofing',
-                'created_ts': True,
-                'verified': False,
-                'verification_code': 'abc123'
-            }
-        })
+        state = LetterProofingState(eppn=EPPN,
+                                    nin=NinProofingElement(data={
+                                        'number': '200102034567',
+                                        'created_by': 'eduid_letter_proofing',
+                                        'created_ts': True,
+                                        'verified': False,
+                                        'verification_code': 'abc123',
+                                        'verified_by': None,
+                                        'verified_ts': None,
+                                    }),
+                                    id=None,
+                                    modified_ts=True,
+                                    proofing_letter=SentLetterElement(data={}))
         state.proofing_letter.address = ADDRESS
+        x = state.proofing_letter.to_dict()
         state_dict = state.to_dict()
-        self.assertEqual(sorted(state_dict.keys()), ['_id', 'eduPersonPrincipalName', 'nin', 'proofing_letter'])
+        self.assertEqual(sorted(state_dict.keys()), ['_id', 'eduPersonPrincipalName', 'modified_ts', 'nin',
+                                                     'proofing_letter'])
         self.assertEqual(sorted(state_dict['nin'].keys()), ['created_by', 'created_ts', 'number',
                                                             'verification_code', 'verified'])
         self.assertEqual(sorted(state_dict['proofing_letter'].keys()), ['address', 'is_sent', 'sent_ts',
@@ -82,22 +87,22 @@ class ProofingStateTest(TestCase):
         }
         """
 
-        nin = Nin(number='200102034567', application='eduid_oidc_proofing', verified=False, primary=False)
-        state = OidcProofingState({
-            'eduPersonPrincipalName': EPPN,
-            'state': '2c84fedd-a694-46f0-b235-7c4dd7982852',
-            'nonce': 'bbca50f6-5213-4784-b6e6-289bd1debda5',
-            'token': 'de5b3f2a-14e9-49b8-9c78-a15fcf60d119',
-            'nin': nin.to_dict()
-        })
+        nin_pe = NinProofingElement(number='200102034567', application='eduid_oidc_proofing', verified=False)
+        state = OidcProofingState(eppn=EPPN,
+                                  state='2c84fedd-a694-46f0-b235-7c4dd7982852',
+                                  nonce='bbca50f6-5213-4784-b6e6-289bd1debda5',
+                                  token='de5b3f2a-14e9-49b8-9c78-a15fcf60d119',
+                                  nin=nin_pe,
+                                  id=None,
+                                  modified_ts=None,
+                                  )
         state_dict = state.to_dict()
-        self.assertEqual(sorted(state_dict.keys()), ['_id', 'eduPersonPrincipalName', 'nin', 'nonce', 'state', 'token'])
+        self.assertEqual(sorted(state_dict.keys()), ['_id', 'eduPersonPrincipalName', 'modified_ts',
+                                                     'nin', 'nonce', 'state', 'token'])
 
     def test_proofing_state_expiration(self):
-        state = ProofingState({'eduPersonPrincipalName': EPPN, 'modified_ts': datetime.now(tz=None)})
+        state = ProofingState(id=None, eppn=EPPN, modified_ts=datetime.now(tz=None))
         self.assertFalse(state.is_expired(1))
 
-        expired_state = ProofingState({
-            'eduPersonPrincipalName': EPPN, 'modified_ts': datetime.now(tz=None)
-        })
+        expired_state = ProofingState(id=None, eppn=EPPN, modified_ts=datetime.now(tz=None))
         self.assertTrue(expired_state.is_expired(-1))
