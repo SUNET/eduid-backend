@@ -3,8 +3,8 @@ from __future__ import absolute_import
 from eduid_userdb.testing import MongoTestCase
 from bson import ObjectId
 
+from eduid_am.ams.common import AttributeFetcher
 import eduid_userdb
-
 from eduid_userdb.exceptions import UserDoesNotExist
 
 __author__ = 'leifj'
@@ -32,7 +32,7 @@ class AmTestUserDb(eduid_userdb.UserDB):
     UserClass = AmTestUser
 
 
-def plugin_attribute_fetcher(context, user_id):
+class FakeAttributeFetcher(AttributeFetcher):
     """
     A small fake attribute manager plugin that reads a user and sets the 'eppn'
     attribute to one based on the users _id.
@@ -45,20 +45,22 @@ def plugin_attribute_fetcher(context, user_id):
     :return: update dict
     :rtype: dict
     """
-    assert isinstance(context, AmTestUserDb)
-    db = context
+    def get_user_db(self, uri):
+        return AmTestUserDb(uri, db_name='eduid_am_test')
 
-    user = db.get_user_by_id(user_id)
-    if user is None:
-        raise UserDoesNotExist("No user matching _id={!r}".format(user_id))
+    def fetch_attrs(self, user_id):
 
-    # Transfer all attributes except `uid' from the test plugins database.
-    # Transform eduPersonPrincipalName on the way to make it clear that the
-    # update was done using this code.
-    res = user.to_dict(old_userdb_format=True)
-    res['eduPersonPrincipalName'] = "{!s}@eduid.se".format(user.uid)
-    del res['uid']
-    return res
+        user = self.private_db.get_user_by_id(user_id)
+        if user is None:
+            raise UserDoesNotExist("No user matching _id={!r}".format(user_id))
+
+        # Transfer all attributes except `uid' from the test plugins database.
+        # Transform eduPersonPrincipalName on the way to make it clear that the
+        # update was done using this code.
+        res = user.to_dict(old_userdb_format=True)
+        res['eduPersonPrincipalName'] = "{!s}@eduid.se".format(user.uid)
+        del res['uid']
+        return res
 
 
 class MessageTest(MongoTestCase):
@@ -78,8 +80,7 @@ class MessageTest(MongoTestCase):
         test_context = AmTestUserDb(db_uri=self.tmp_db.uri, db_name='eduid_am_test')
 
         # register fake AMP plugin named 'test'
-        self.am.registry.attribute_fetcher['test'] = plugin_attribute_fetcher
-        self.am.registry.context['test'] = test_context
+        self.am.af_registry['test'] = FakeAttributeFetcher({'MONGO_URI': self.tmp_db.uri})
 
         _id = ObjectId()
         userdoc = {'_id': _id,
