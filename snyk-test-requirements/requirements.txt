@@ -3,10 +3,10 @@ blinker
 coverage==3.6
 cryptography>=2.0.3
 eduid-am>=0.6.2b2
-eduid-common>=0.4.1b7
+eduid-common>=0.4.1b8
 eduid_lookup_mobile>=0.0.6b3
 eduid-msg>=0.10.3b0
-eduid-userdb>=0.4.0b2
+eduid-userdb>=0.4.6b9
 Flask>=0.12,<0.13
 flask-babel>=0.11.1
 gunicorn

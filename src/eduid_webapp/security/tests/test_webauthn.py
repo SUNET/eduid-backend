@@ -146,7 +146,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
     def _add_token_to_user(self, registration_data, state):
         data = registration_data + (b'=' * (len(registration_data) % 4)) 
         data = base64.urlsafe_b64decode(data)
-        data = cbor.loads(data)[0]
+        data = cbor.decode(data)
         client_data = ClientData(data['clientDataJSON'])
         attestation = data['attestationObject']
         att_obj = AttestationObject(attestation)

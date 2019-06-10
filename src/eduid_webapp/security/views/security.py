@@ -34,26 +34,27 @@
 from __future__ import absolute_import
 
 from datetime import datetime
-from six.moves.urllib_parse import urlparse, urlunparse, parse_qs, urlencode
 
 from flask import Blueprint, current_app, abort, url_for, redirect
+from six.moves.urllib_parse import urlparse, urlunparse, parse_qs, urlencode
 
-from eduid_userdb.security import SecurityUser
-from eduid_userdb.exceptions import UserOutOfSync
-
-from eduid_common.session import session
-from eduid_common.api.utils import urlappend
 from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
-from eduid_common.api.utils import save_and_sync_user
 from eduid_common.api.exceptions import AmTaskFailed
+from eduid_common.api.helpers import add_nin_to_user
+from eduid_common.api.utils import save_and_sync_user, urlappend
 from eduid_common.authn.vccs import add_credentials, revoke_all_credentials
+from eduid_common.session import session
+from eduid_userdb.exceptions import UserOutOfSync
+from eduid_userdb.proofing import NinProofingElement
+from eduid_userdb.proofing.state import NinProofingState
+from eduid_userdb.security import SecurityUser
+from eduid_webapp.security.helpers import compile_credential_list, remove_nin_from_user
+from eduid_webapp.security.helpers import send_termination_mail, generate_suggested_password
+from eduid_webapp.security.schemas import ChangePasswordSchema, RedirectResponseSchema
+from eduid_webapp.security.schemas import NINRequestSchema, NINResponseSchema
+from eduid_webapp.security.schemas import RedirectSchema, AccountTerminatedSchema, ChpassResponseSchema
 from eduid_webapp.security.schemas import SecurityResponseSchema, CredentialList, CsrfSchema
 from eduid_webapp.security.schemas import SuggestedPassword, SuggestedPasswordResponseSchema
-from eduid_webapp.security.schemas import ChangePasswordSchema, RedirectResponseSchema
-from eduid_webapp.security.schemas import RedirectSchema, AccountTerminatedSchema, ChpassResponseSchema
-from eduid_webapp.security.schemas import RemoveNINRequestSchema, RemoveNINResponseSchema
-from eduid_webapp.security.helpers import send_termination_mail, generate_suggested_password
-from eduid_webapp.security.helpers import compile_credential_list, remove_nin_from_user
 
 security_views = Blueprint('security', __name__, url_prefix='', template_folder='templates')
 
@@ -232,8 +233,8 @@ def account_terminated(user):
 
 
 @security_views.route('/remove-nin', methods=['POST'])
-@UnmarshalWith(RemoveNINRequestSchema)
-@MarshalWith(RemoveNINResponseSchema)
+@UnmarshalWith(NINRequestSchema)
+@MarshalWith(NINResponseSchema)
 @require_user
 def remove_nin(user, nin):
     security_user = SecurityUser.from_user(user, current_app.private_userdb)
@@ -251,6 +252,35 @@ def remove_nin(user, nin):
                 'message': 'nins.success_removal',
                 'nins': security_user.nins.to_list_of_dicts()}
     except AmTaskFailed as e:
-        current_app.logger.error('Removing nin from user failed'.format(nin, security_user))
+        current_app.logger.error('Removing nin from user failed')
+        current_app.logger.debug(f'NIN: {nin}')
+        current_app.logger.error('{}'.format(e))
+        return {'_status': 'error', 'message': 'Temporary technical problems'}
+
+
+@security_views.route('/add-nin', methods=['POST'])
+@UnmarshalWith(NINRequestSchema)
+@MarshalWith(NINResponseSchema)
+@require_user
+def add_nin(user, nin):
+    security_user = SecurityUser.from_user(user, current_app.private_userdb)
+    current_app.logger.info('Removing NIN from user')
+    current_app.logger.debug('NIN: {}'.format(nin))
+
+    nin_obj = security_user.nins.find(nin)
+    if nin_obj:
+        current_app.logger.info('NIN already added.')
+        return {'_status': 'error', 'success': False, 'message': 'nins.already_exists'}
+
+    try:
+        nin_element = NinProofingElement(number=nin, application='security', verified=False)
+        proofing_state = NinProofingState({'eduPersonPrincipalName': security_user.eppn, 'nin': nin_element.to_dict()})
+        add_nin_to_user(user, proofing_state, user_class=SecurityUser)
+        return {'success': True,
+                'message': 'nins.successfully_added',
+                'nins': security_user.nins.to_list_of_dicts()}
+    except AmTaskFailed as e:
+        current_app.logger.error('Adding nin to user failed')
+        current_app.logger.debug(f'NIN: {nin}')
         current_app.logger.error('{}'.format(e))
         return {'_status': 'error', 'message': 'Temporary technical problems'}

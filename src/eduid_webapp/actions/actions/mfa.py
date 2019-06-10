@@ -111,7 +111,7 @@ class Plugin(ActionPlugin):
         fido2server = _get_fido2server(credentials, fido2rp)
         raw_fido2data, fido2state = fido2server.authenticate_begin(webauthn_credentials)
         current_app.logger.debug('FIDO2 authentication data:\n{}'.format(pprint.pformat(raw_fido2data)))
-        fido2data = base64.urlsafe_b64encode(cbor.dumps(raw_fido2data)).decode('ascii')
+        fido2data = base64.urlsafe_b64encode(cbor.encode(raw_fido2data)).decode('ascii')
         fido2data = fido2data.rstrip('=')
 
         config = {'u2fdata': '{}', 'webauthn_options': fido2data}
