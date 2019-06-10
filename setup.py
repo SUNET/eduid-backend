@@ -38,6 +38,7 @@ idp_requires = [
     'bleach>=2.0.0',
     'Flask>=0.12.2,==0.12.*',
     'pwgen == 0.4',
+    'python-etcd >= 0.4.5',
 ]
 idp_extras = idp_requires + []
 
