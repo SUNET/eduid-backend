@@ -102,7 +102,7 @@ class NinHelpersTest(EduidAPITestCase):
         eppn = self.insert_no_nins_user()
         user = self.app.central_userdb.get_user_by_eppn(eppn)
         nin_element = NinProofingElement(number=self.test_user_nin, application='NinHelpersTest', verified=False)
-        proofing_state = NinProofingState({'eduPersonPrincipalName': eppn, 'nin': nin_element.to_dict()})
+        proofing_state = NinProofingState.from_dict({'eduPersonPrincipalName': eppn, 'nin': nin_element.to_dict()})
         with self.app.app_context():
             add_nin_to_user(user, proofing_state)
         user = self.app.private_userdb.get_user_by_eppn(eppn)
@@ -117,7 +117,7 @@ class NinHelpersTest(EduidAPITestCase):
         eppn = self.insert_not_verified_user()
         user = self.app.central_userdb.get_user_by_eppn(eppn)
         nin_element = NinProofingElement(number=self.test_user_nin, application='NinHelpersTest', verified=False)
-        proofing_state = NinProofingState({'eduPersonPrincipalName': eppn, 'nin': nin_element.to_dict()})
+        proofing_state = NinProofingState.from_dict({'eduPersonPrincipalName': eppn, 'nin': nin_element.to_dict()})
         with self.app.app_context():
             add_nin_to_user(user, proofing_state)
         with self.assertRaises(UserDoesNotExist):
@@ -127,7 +127,7 @@ class NinHelpersTest(EduidAPITestCase):
         eppn = self.insert_verified_user()
         user = self.app.central_userdb.get_user_by_eppn(eppn)
         nin_element = NinProofingElement(number=self.test_user_nin, application='NinHelpersTest', verified=False)
-        proofing_state = NinProofingState({'eduPersonPrincipalName': eppn, 'nin': nin_element.to_dict()})
+        proofing_state = NinProofingState.from_dict({'eduPersonPrincipalName': eppn, 'nin': nin_element.to_dict()})
         with self.app.app_context():
             add_nin_to_user(user, proofing_state)
         with self.assertRaises(UserDoesNotExist):
@@ -139,7 +139,7 @@ class NinHelpersTest(EduidAPITestCase):
         eppn = self.insert_no_nins_user()
         user = self.app.central_userdb.get_user_by_eppn(eppn)
         nin_element = NinProofingElement(number=self.test_user_nin, application='NinHelpersTest', verified=False)
-        proofing_state = NinProofingState({'eduPersonPrincipalName': eppn, 'nin': nin_element.to_dict()})
+        proofing_state = NinProofingState.from_dict({'eduPersonPrincipalName': eppn, 'nin': nin_element.to_dict()})
         proofing_log_entry = NinProofingLogElement(user, created_by=proofing_state.nin.created_by,
                                                    nin=proofing_state.nin.number,
                                                    user_postal_address=self.navet_response, proofing_method='test',
@@ -163,7 +163,7 @@ class NinHelpersTest(EduidAPITestCase):
         eppn = self.insert_not_verified_user()
         user = self.app.central_userdb.get_user_by_eppn(eppn)
         nin_element = NinProofingElement(number=self.test_user_nin, application='NinHelpersTest', verified=False)
-        proofing_state = NinProofingState({'eduPersonPrincipalName': eppn, 'nin': nin_element.to_dict()})
+        proofing_state = NinProofingState.from_dict({'eduPersonPrincipalName': eppn, 'nin': nin_element.to_dict()})
         proofing_log_entry = NinProofingLogElement(user, created_by=proofing_state.nin.created_by,
                                                    nin=proofing_state.nin.number,
                                                    user_postal_address=self.navet_response, proofing_method='test',
@@ -185,7 +185,7 @@ class NinHelpersTest(EduidAPITestCase):
         eppn = self.insert_verified_user()
         user = self.app.central_userdb.get_user_by_eppn(eppn)
         nin_element = NinProofingElement(number=self.test_user_nin, application='NinHelpersTest', verified=False)
-        proofing_state = NinProofingState({'eduPersonPrincipalName': eppn, 'nin': nin_element.to_dict()})
+        proofing_state = NinProofingState.from_dict({'eduPersonPrincipalName': eppn, 'nin': nin_element.to_dict()})
         proofing_log_entry = ProofingLogElement(user, created_by=proofing_state.nin.created_by, proofing_method='test',
                                                 proofing_version='2017')
         with self.app.app_context():
