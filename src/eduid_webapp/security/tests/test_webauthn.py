@@ -269,17 +269,22 @@ class SecurityWebauthnTests(EduidAPITestCase):
                 data = json.loads(response2.data)
                 self.assertEqual(data['type'], 'POST_WEBAUTHN_WEBAUTHN_REGISTER_COMPLETE_SUCCESS')
 
-    def test_finish_register_ctap1(self):
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_finish_register_ctap1(self, mock_request_user_sync):
+        mock_request_user_sync.side_effect = self.request_user_sync
         self._finish_register_key(STATE, ATTESTATION_OBJECT, CLIENT_DATA_JSON, CREDENTIAL_ID)
 
-    def test_finish_register_ctap1_with_legacy_token(self):
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_finish_register_ctap1_with_legacy_token(self, mock_request_user_sync):
         self._finish_register_key(STATE, ATTESTATION_OBJECT, CLIENT_DATA_JSON, CREDENTIAL_ID,
                                   existing_legacy_token=True)
 
-    def test_finish_register_ctap2(self):
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_finish_register_ctap2(self, mock_request_user_sync):
         self._finish_register_key(STATE_2, ATTESTATION_OBJECT_2, CLIENT_DATA_JSON_2, CREDENTIAL_ID_2)
 
-    def test_finish_register_ctap2_with_legacy_token(self):
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_finish_register_ctap2_with_legacy_token(self, mock_request_user_sync):
         self._finish_register_key(STATE_2, ATTESTATION_OBJECT_2, CLIENT_DATA_JSON_2, CREDENTIAL_ID_2,
                                   existing_legacy_token=True)
 
