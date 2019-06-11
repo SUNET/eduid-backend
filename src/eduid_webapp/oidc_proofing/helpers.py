@@ -1,17 +1,18 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
-import requests
 import json
-from flask import current_app, render_template
-from flask_babel import gettext as _
 from datetime import datetime, timedelta
 
-from eduid_userdb.proofing.element import NinProofingElement
-from eduid_userdb.logs import SeLegProofing, SeLegProofingFrejaEid
+import requests
+from flask import current_app, render_template
+from flask_babel import gettext as _
+
+from eduid_common.api.helpers import number_match_proofing, verify_nin_for_user
 from eduid_common.api.utils import get_unique_hash
-from eduid_common.api.helpers import verify_nin_for_user, number_match_proofing
+from eduid_userdb.logs import SeLegProofing, SeLegProofingFrejaEid
 from eduid_userdb.proofing import OidcProofingState
+from eduid_userdb.proofing.element import NinProofingElement
 
 __author__ = 'lundberg'
 
@@ -31,8 +32,9 @@ def create_proofing_state(user, nin):
     nonce = get_unique_hash()
     token = get_unique_hash()
     nin_element = NinProofingElement(number=nin, application='oidc_proofing', verified=False)
-    proofing_state = OidcProofingState({'eduPersonPrincipalName': user.eppn, 'nin': nin_element.to_dict(),
-                                        'state': state, 'nonce': nonce, 'token': token})
+    proofing_state = OidcProofingState(id=None, modified_ts=None,
+                                       eppn=user.eppn, nin=nin_element,
+                                       state=state, nonce=nonce, token=token)
     return proofing_state
 
 

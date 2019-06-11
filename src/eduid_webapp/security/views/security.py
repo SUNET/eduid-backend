@@ -274,7 +274,8 @@ def add_nin(user, nin):
 
     try:
         nin_element = NinProofingElement(number=nin, application='security', verified=False)
-        proofing_state = NinProofingState({'eduPersonPrincipalName': security_user.eppn, 'nin': nin_element.to_dict()})
+        proofing_state = NinProofingState.from_dict({'eduPersonPrincipalName': security_user.eppn,
+                                                     'nin': nin_element.to_dict()})
         add_nin_to_user(user, proofing_state, user_class=SecurityUser)
         return {'success': True,
                 'message': 'nins.successfully_added',
