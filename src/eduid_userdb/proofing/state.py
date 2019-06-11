@@ -72,6 +72,14 @@ class ProofingState(object):
             _data['eppn'] = _data.pop('eduPersonPrincipalName')
         if '_id' in _data:
             _data['id'] = _data.pop('_id')
+
+        # Can not use default args as those will be placed before non default args
+        # in inheriting classes
+        if not _data.get('id'):
+            _data['id'] = None
+        if not _data.get('modified_ts'):
+            _data['modified_ts'] = None
+
         fields.update({'id', 'eppn', 'modified_ts'})
         _leftovers = [x for x in _data.keys() if x not in fields]
         if _leftovers:
@@ -83,7 +91,7 @@ class ProofingState(object):
         res = asdict(self)
         res['_id'] = res.pop('id')
         res['eduPersonPrincipalName'] = res.pop('eppn')
-        if res['modified_ts'] == True:
+        if res['modified_ts'] is True:
             res['modified_ts'] = datetime.datetime.utcnow()
         return res
 
