@@ -516,7 +516,7 @@ def sendmail(sender, recipients, message, reference, max_retry_seconds=86400):
         countdown = 600 * sendmail.request.retries ** 2
         retry_countdown = min(countdown, max_retry_seconds)
         LOG.error('sendmail task error', exc_info=True)
-        LOG.debug("sendmail task retrying in %d seconds, error %s" % (retry_countdown, e.message))
+        LOG.debug("sendmail task retrying in %d seconds, error %s" % (retry_countdown, e))
         sendmail.retry(exc=e, countdown=retry_countdown)
 
 
@@ -541,7 +541,7 @@ def sendsms(recipient, message, reference, max_retry_seconds=86400):
         countdown = 600 * sendsms.request.retries ** 2
         retry_countdown = min(countdown, max_retry_seconds)
         LOG.error('sendsms task error', exc_info=True)
-        LOG.debug("sendsms task retrying in %d seconds, error %s" % (retry_countdown, e.message))
+        LOG.debug("sendsms task retrying in %d seconds, error %s" % (retry_countdown, e))
         sendsms.retry(exc=e, countdown=retry_countdown)
 
 
@@ -567,7 +567,7 @@ def get_postal_address(identity_number):
         countdown = 600 * get_postal_address.request.retries ** 2
         retry_countdown = min(countdown, 86400)
         LOG.error('get_postal_address task error', exc_info=True)
-        LOG.debug("get_postal_address task retrying in %d seconds, error %s", retry_countdown, e.message)
+        LOG.debug("get_postal_address task retrying in %d seconds, error %s", retry_countdown, e)
         get_postal_address.retry(exc=e, countdown=retry_countdown)
 
 
@@ -624,7 +624,7 @@ def get_relations_to(identity_number, relative_nin):
         countdown = 600 * get_relations_to.request.retries ** 2
         retry_countdown = min(countdown, 86400)
         LOG.error('get_relations_to task error', exc_info=True)
-        LOG.debug("get_relations_to task retrying in %d seconds, error %s", retry_countdown, e.message)
+        LOG.debug("get_relations_to task retrying in %d seconds, error %s", retry_countdown, e)
         get_relations_to.retry(exc=e, countdown=retry_countdown)
 
 
@@ -646,7 +646,7 @@ def set_audit_log_postal_address(audit_reference):
         countdown = 600 * set_audit_log_postal_address.request.retries ** 2
         retry_countdown = min(countdown, 86400)
         LOG.error('set_audit_log_postal_address task error', exc_info=True)
-        LOG.debug("set_audit_log_postal_address task retrying in %d seconds, error %s", retry_countdown, e.message)
+        LOG.debug("set_audit_log_postal_address task retrying in %d seconds, error %s", retry_countdown, e)
         set_audit_log_postal_address.retry(exc=e, countdown=retry_countdown)
 
 
