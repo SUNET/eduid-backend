@@ -36,6 +36,7 @@ from xml.etree.ElementTree import ParseError
 
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
+from saml2.response import UnsolicitedResponse
 
 from .cache import IdentityCache, OutstandingQueriesCache
 from .utils import SPConfig, get_saml_attribute
@@ -103,8 +104,8 @@ def get_authn_response(saml2_config: SPConfig, session, raw_response):
     try:
         # process the authentication response
         response = client.parse_authn_request_response(raw_response,
-                BINDING_HTTP_POST,
-                outstanding_queries)
+                                                       BINDING_HTTP_POST,
+                                                       outstanding_queries)
     except AssertionError:
         logger.error('SAML response is not verified')
         raise BadSAMLResponse(
@@ -117,6 +118,13 @@ def get_authn_response(saml2_config: SPConfig, session, raw_response):
             """SAML response is not correctly formatted and therefore the
             XML document could not be parsed.
             """)
+    except UnsolicitedResponse:
+        logger.exception('Unsolicited SAML response')
+        # Extra debug to try and find the cause for some of these that seem to be incorrect
+        logger.debug(f'Session: {session}')
+        logger.debug(f'Outstanding queries cache: {oq_cache}')
+        logger.debug(f'Outstanding queries: {outstanding_queries}')
+        raise BadSAMLResponse('Unsolicited SAML response. Please try to login again.')
 
     if response is None:
         logger.error('SAML response is None')
