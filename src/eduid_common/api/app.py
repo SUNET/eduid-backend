@@ -36,9 +36,10 @@ it with all attributes common to all eduID services.
 
 import os
 from sys import stderr
+from typing import Type
 
-from eduid_userdb import UserDB
-from werkzeug.contrib.fixers import ProxyFix
+from flask import Flask
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from eduid_common.api.debug import dump_config
 from eduid_common.api.exceptions import init_exception_handlers, init_sentry, BadConfiguration
@@ -50,13 +51,14 @@ from eduid_common.authn.middleware import AuthnApp
 from eduid_common.config.parsers.etcd import EtcdConfigParser
 from eduid_common.session.eduid_session import SessionFactory
 from eduid_common.stats import NoOpStats, Statsd
+from eduid_userdb import UserDB
 
 DEBUG = os.environ.get('EDUID_APP_DEBUG', False)
 if DEBUG:
     stderr.writelines('----- WARNING! EDUID_APP_DEBUG is enabled -----\n')
 
 
-def eduid_init_app_no_db(name, config, app_class=AuthnApp):
+def eduid_init_app_no_db(name: str, config: dict, app_class: Type[Flask] = AuthnApp) -> Flask:
     """
     Create and prepare the flask app for eduID APIs with all the attributes
     common to all  apps.
@@ -65,19 +67,6 @@ def eduid_init_app_no_db(name, config, app_class=AuthnApp):
      * Add logging
      * Add db connection
      * Add eduID session
-
-    :param name: The name of the instance, it will affect the configuration file
-                 loaded from the filesystem.
-    :type name: str
-    :param config: any additional configuration settings. Specially useful
-                   in test cases
-    :type config: dict
-    :param app_class: The class used to build the flask app. Should be a
-                      descendant of flask.Flask
-    :type app_class: type
-
-    :return: the flask application.
-    :rtype: flask.Flask
     """
     app = app_class(name)
     app.wsgi_app = ProxyFix(app.wsgi_app)
@@ -141,7 +130,7 @@ def eduid_init_app_no_db(name, config, app_class=AuthnApp):
     return app
 
 
-def eduid_init_app(name, config, app_class=AuthnApp):
+def eduid_init_app(name: str, config: dict, app_class: Type[Flask] = AuthnApp) -> Flask:
     app = eduid_init_app_no_db(name, config, app_class=app_class)
     app.central_userdb = UserDB(app.config['MONGO_URI'], 'eduid_am')  # XXX: Needs updating when we change db
     # Set up generic health check views
