@@ -57,11 +57,27 @@ def get_config():
     return jsconfig
 
 
-@jsconfig_views.route('/dashboard-bundle', methods=['GET'])
+@jsconfig_views.route('/get-bundle', methods=['GET'], subdomain="dashboard")
 def get_dashboard_bundle():
     context = {
-        'bundle': current_app.config.get('BUNDLE_PATH'),
-        'version': current_app.config.get('BUNDLE_VERSION'),
+        'bundle': current_app.config.get('DASHBOARD_BUNDLE_PATH'),
+        'version': current_app.config.get('DASHBOARD_BUNDLE_VERSION'),
     }
-    return render_template('dashboard_bundle.jinja2', context=context)
+    try:
+        return render_template('load_bundle.jinja2', context=context)
+    except AttributeError as e:
+        current_app.logger.error(f'Template rendering failed: {e}')
+        abort(500)
 
+
+@jsconfig_views.route('/get-bundle', methods=['GET'], subdomain="signup")
+def get_signup_bundle():
+    context = {
+        'bundle': current_app.config.get('SIGNUP_BUNDLE_PATH'),
+        'version': current_app.config.get('SIGNUP_BUNDLE_VERSION'),
+    }
+    try:
+        return render_template('load_bundle.jinja2', context=context)
+    except AttributeError as e:
+        current_app.logger.error(f'Template rendering failed: {e}')
+        abort(500)
