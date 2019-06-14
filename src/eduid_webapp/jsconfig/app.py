@@ -31,12 +31,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from __future__ import absolute_import
-
 from eduid_common.api.app import eduid_init_app_no_db
+from eduid_common.authn.utils import no_authn_views
 
 
-def jsconfig_init_app(name, config):
+def jsconfig_init_app(name: str, config: dict):
     """
     Create an instance of an eduid jsconfig data app.
 
@@ -45,15 +44,6 @@ def jsconfig_init_app(name, config):
 
     Then, the app instance will be updated with common stuff by `eduid_init_app`,
     all needed blueprints will be registered with it.
-
-    :param name: The name of the instance, it will affect the configuration loaded.
-    :type name: str
-    :param config: any additional configuration settings. Specially useful
-                   in test cases
-    :type config: dict
-
-    :return: the flask app
-    :rtype: flask.Flask
     """
 
     app = eduid_init_app_no_db(name, config)
@@ -62,6 +52,12 @@ def jsconfig_init_app(name, config):
     from eduid_webapp.jsconfig.views import jsconfig_views
     app.register_blueprint(jsconfig_views)
 
-    app.logger.info('Init {} app...'.format(name))
+    # Register view path that should not be authorized
+    no_auth_paths = [
+        '/get-bundle',
+        '/signup/config'
+    ]
+    app = no_authn_views(app, no_auth_paths)
 
+    app.logger.info('Init {} app...'.format(name))
     return app
