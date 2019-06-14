@@ -68,6 +68,48 @@ def get_dashboard_config() -> dict:
     return config
 
 
+@jsconfig_views.route('/signup/config', methods=['GET'], subdomain="signup")
+@MarshalWith(FluxStandardAction)
+def get_signup_config() -> dict:
+    # Get ToUs from the ToU action
+    tou_url = current_app.config.get('TOU_URL')
+    tous = None
+    try:
+        r = requests.get(tou_url)
+        current_app.logger.debug('Response: {!r} with headers: {!r}'.format(r, r.headers))
+        if r.status_code == 302:
+            headers = {'Cookie': r.headers.get('Set-Cookie')}
+            current_app.logger.debug('Headers: {}'.format(headers))
+            r = requests.get(tou_url, headers=headers)
+            current_app.logger.debug('2nd response: {!r} with headers: {}'.format(r, r.headers))
+            if r.status_code != 200:
+                current_app.logger.debug('Problem getting config, response status: {}'.format(r.status_code))
+                abort(500)
+        tous = r.json()['payload']
+    except requests.exceptions.HTTPError as e:
+        current_app.logger.error('Problem getting tous from URL {!r}: {!r}'.format(tou_url, e))
+        abort(500)
+    # Get config from etcd
+    try:
+        config = get_etcd_config(signup_config)
+        CACHE['signup_config'] = config
+    except etcd.EtcdConnectionFailed as e:
+        current_app.logger.warning(f'No connection to etcd: {e}')
+        current_app.logger.info('Serving cached config')
+        config = CACHE.get('signup_config', {})
+    return {
+        'debug': current_app.config.get('DEBUG'),
+        'reset_passwd_url': current_app.config.get('RESET_PASSWD_URL'),
+        'csrf_token': session.get_csrf_token(),
+        'tous': tous,
+        'available_languages': config.get('available_languages'),
+        'recaptcha_public_key': config.get('RECAPTCHA_PUBLIC_KEY'),
+        'dashboard_url': config.get('SIGNUP_AUTHN_URL'),
+        'students_link': config.get('STATIC_STUDENTS_URL'),
+        'technicians_link': config.get('STATIC_TECHNICIANS_URL'),
+        'staff_link': config.get('STATIC_STAFF_URL'),
+        'faq_link': config.get('STATIC_FAQ_URL'),
+    }
 
 
 @jsconfig_views.route('/get-bundle', methods=['GET'], subdomain="dashboard")
