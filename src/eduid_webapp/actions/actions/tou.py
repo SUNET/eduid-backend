@@ -99,7 +99,7 @@ class Plugin(ActionPlugin):
 
         current_app.tou_db.save(user, check_sync=False)
         current_app.logger.debug("Asking for sync of {} by Attribute Manager".format(user))
-        rtask = self._update_attributes.delay('tou', str(user.user_id))
+        rtask = self._update_attributes.delay('eduid_tou', str(user.user_id))
         try:
             result = rtask.get(timeout=10)
             current_app.logger.debug("Attribute Manager sync result: {!r}".format(result))

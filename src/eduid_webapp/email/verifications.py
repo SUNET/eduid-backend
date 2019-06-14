@@ -55,11 +55,7 @@ def new_proofing_state(email, user):
         current_app.logger.debug('Old proofing state: {}'.format(old_state.to_dict()))
 
     verification = EmailProofingElement(email=email, verification_code=get_unique_hash(), application='email')
-    verification_data = {
-        'eduPersonPrincipalName': user.eppn,
-        'verification': verification.to_dict()
-        }
-    proofing_state = EmailProofingState(verification_data)
+    proofing_state = EmailProofingState(id=None, modified_ts=None, eppn=user.eppn, verification=verification)
     # XXX This should be an atomic transaction together with saving
     # the user and sending the letter.
     current_app.proofing_statedb.save(proofing_state)
