@@ -30,31 +30,44 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+from typing import Optional
 
-from __future__ import absolute_import
-
-from flask import Blueprint, current_app, render_template
-
-from eduid_common.session import session
-from eduid_common.config.parsers.etcd import EtcdConfigParser
+import requests
 from eduid_common.api.decorators import MarshalWith
 from eduid_common.api.schemas.base import FluxStandardAction
-from eduid_webapp.jsconfig.settings.front import jsconfig
+from eduid_common.config.parsers.etcd import etcd, EtcdConfigParser
+from eduid_common.session import session
+from flask import Blueprint, current_app, render_template, abort
 
+from eduid_webapp.jsconfig.settings.front import dashboard_config, signup_config
 
 jsconfig_views = Blueprint('jsconfig', __name__, url_prefix='', template_folder='templates')
 
+CACHE = {}
 
-@jsconfig_views.route('/config', methods=['GET'])
+
+def get_etcd_config(default_config: dict, namespace: Optional[str] = None) -> dict:
+    if namespace is None:
+        namespace = '/eduid/webapp/jsapps/'
+    parser = EtcdConfigParser(namespace)
+    config = parser.read_configuration(silent=False)
+    default_config.update(config)
+    return default_config
+
+
+@jsconfig_views.route('/config', methods=['GET'], subdomain="dashboard")
 @MarshalWith(FluxStandardAction)
-def get_config():
+def get_dashboard_config() -> dict:
+    try:
+        config = get_etcd_config(dashboard_config)
+        CACHE['dashboard_config'] = config
+    except etcd.EtcdConnectionFailed as e:
+        current_app.logger.warning(f'No connection to etcd: {e}')
+        config = CACHE.get('dashboard_config', {})
+    config['csrf_token'] = session.get_csrf_token()
+    return config
 
-    parser = EtcdConfigParser('/eduid/webapp/jsapps/')
-    config = parser.read_configuration(silent=True)
-    jsconfig.update(config)
-    jsconfig['csrf_token'] = session.get_csrf_token()
 
-    return jsconfig
 
 
 @jsconfig_views.route('/get-bundle', methods=['GET'], subdomain="dashboard")
