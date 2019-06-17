@@ -69,7 +69,8 @@ def eduid_init_app_no_db(name: str, config: dict, app_class: Type[Flask] = Authn
      * Add eduID session
     """
     app = app_class(name)
-    app.wsgi_app = ProxyFix(app.wsgi_app)
+    # mypy issue: https://github.com/python/mypy/issues/2427
+    app.wsgi_app = ProxyFix(app.wsgi_app)  # type: ignore
     app.request_class = Request
     app.url_map.strict_slashes = False
 
@@ -110,7 +111,7 @@ def eduid_init_app_no_db(name: str, config: dict, app_class: Type[Flask] = Authn
         raise BadConfiguration('SECRET_KEY is missing')
 
     # Set app url prefix to APPLICATION_ROOT
-    app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix=app.config['APPLICATION_ROOT'],
+    app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix=app.config['APPLICATION_ROOT'],  # type: ignore
                                     server_name=app.config['SERVER_NAME'])
 
     # Initialize shared features
