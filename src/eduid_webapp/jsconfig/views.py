@@ -71,8 +71,16 @@ def get_dashboard_config() -> dict:
 @jsconfig_views.route('/signup/config', methods=['GET'], subdomain="signup")
 @MarshalWith(FluxStandardAction)
 def get_signup_config() -> dict:
+    # Get config from etcd
+    try:
+        config = get_etcd_config(signup_config)
+        CACHE['signup_config'] = config
+    except etcd.EtcdConnectionFailed as e:
+        current_app.logger.warning(f'No connection to etcd: {e}')
+        current_app.logger.info('Serving cached config')
+        config = CACHE.get('signup_config', {})
     # Get ToUs from the ToU action
-    tou_url = current_app.config.get('TOU_URL')
+    tou_url = config.get('TOU_URL')
     tous = None
     try:
         r = requests.get(tou_url)
@@ -89,14 +97,6 @@ def get_signup_config() -> dict:
     except requests.exceptions.HTTPError as e:
         current_app.logger.error('Problem getting tous from URL {!r}: {!r}'.format(tou_url, e))
         abort(500)
-    # Get config from etcd
-    try:
-        config = get_etcd_config(signup_config)
-        CACHE['signup_config'] = config
-    except etcd.EtcdConnectionFailed as e:
-        current_app.logger.warning(f'No connection to etcd: {e}')
-        current_app.logger.info('Serving cached config')
-        config = CACHE.get('signup_config', {})
     return {
         'debug': current_app.config.get('DEBUG'),
         'reset_passwd_url': current_app.config.get('RESET_PASSWD_URL'),
