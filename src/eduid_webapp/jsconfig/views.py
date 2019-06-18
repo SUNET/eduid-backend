@@ -36,6 +36,7 @@ import requests
 from eduid_common.api.decorators import MarshalWith
 from eduid_common.api.schemas.base import FluxStandardAction
 from eduid_common.config.parsers.etcd import etcd, EtcdConfigParser
+from eduid_common.api.exceptions import BadConfiguration
 from eduid_common.session import session
 from flask import Blueprint, current_app, render_template, abort
 
@@ -81,6 +82,8 @@ def get_signup_config() -> dict:
         config = CACHE.get('signup_config', {})
     # Get ToUs from the ToU action
     tou_url = config.get('TOU_URL')
+    if tou_url is None:
+        raise BadConfiguration('TOU_URL not set or None')
     tous = None
     try:
         r = requests.get(tou_url)
