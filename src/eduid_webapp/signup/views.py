@@ -45,15 +45,6 @@ from eduid_webapp.signup.verifications import verify_recaptcha, send_verificatio
 signup_views = Blueprint('signup', __name__, url_prefix='', template_folder='templates')
 
 
-@signup_views.route('/', methods=['GET'])
-def get_signup_bundle():
-    context = {
-        'bundle': current_app.config.get('BUNDLE_PATH'),
-        'version': current_app.config.get('BUNDLE_VERSION'),
-    }
-    return render_template('signup_bundle.jinja2', context=context)
-
-
 @signup_views.route('/config', methods=['GET'])
 @MarshalWith(FluxStandardAction)
 def get_config():
