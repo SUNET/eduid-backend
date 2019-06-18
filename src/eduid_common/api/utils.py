@@ -1,16 +1,17 @@
 # -*- coding: utf-8 -*-
 
 import re
-import six
+from typing import Optional
 from uuid import uuid4
-from flask import current_app
 
+import six
+from flask import current_app
+from six.moves.urllib_parse import urlparse
+
+from eduid_common.api.exceptions import ApiException
 from eduid_common.session import session
 from eduid_userdb.exceptions import UserDBValueError, EduIDUserDBError
 from eduid_userdb.exceptions import UserDoesNotExist, MultipleUsersReturned
-from eduid_common.api.exceptions import ApiException
-
-from six.moves.urllib_parse import urlparse
 
 
 def get_unique_hash():
@@ -146,11 +147,21 @@ def get_flux_type(req, suffix):
     return flux_type
 
 
+def get_static_url_for(f: str, version: Optional[str] = None) -> str:
+    """
+    Get the static url for a file and optionally have a version argument appended for cache busting.
+    """
+    static_url = current_app.config['EDUID_STATIC_URL']
+    if version is not None:
+        static_url = urlappend(current_app.config['EDUID_STATIC_URL'], version)
+    return urlappend(static_url, f)
+
+
 def init_template_functions(app):
 
     @app.template_global()
-    def static_url_for(f):
-        return urlappend(current_app.config['EDUID_STATIC_URL'], f)
+    def static_url_for(f: str, version: Optional[str] = None) -> str:
+        return get_static_url_for(f, version)
 
     return app
 
