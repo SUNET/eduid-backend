@@ -97,9 +97,12 @@ def get_signup_config() -> dict:
                 current_app.logger.debug('Problem getting config, response status: {}'.format(r.status_code))
                 abort(500)
         tous = r.json()['payload']
+        CACHE['tous'] = tous
     except requests.exceptions.HTTPError as e:
-        current_app.logger.error('Problem getting tous from URL {!r}: {!r}'.format(tou_url, e))
-        abort(500)
+        current_app.logger.warning('Problem getting tous from URL {!r}: {!r}'.format(tou_url, e))
+        tous = CACHE.get('tous')
+        if tous is None:
+            abort(500)
     return {
         'debug': current_app.config.get('DEBUG'),
         'reset_passwd_url': current_app.config.get('RESET_PASSWD_URL'),
