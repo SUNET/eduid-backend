@@ -1,5 +1,6 @@
 #
 # Copyright (c) 2013, 2014, 2015 NORDUnet A/S
+#                           2019 SUNET
 # All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or
@@ -36,10 +37,10 @@
 User and user database module.
 """
 import pprint
+import logging
+from typing import List
 
-from six import string_types
-
-from eduid_userdb import UserDB, User
+from eduid_userdb import User
 
 # default list of SAML attributes to release
 _SAML_ATTRIBUTES = ['displayName',
@@ -60,9 +61,11 @@ class IdPUser(User):
     Wrapper class for eduid_userdb.User adding functions useful in the IdP.
     """
 
-    def to_saml_attributes(self, config, logger, filter_attributes=_SAML_ATTRIBUTES):
+    def to_saml_attributes(self, config: dict,
+                           logger: logging.Logger,
+                           filter_attributes: List[str] = _SAML_ATTRIBUTES) -> dict:
         """
-        Return a list of SAML attributes for a user.
+        Return a dict of SAML attributes for a user.
 
         Note that this is _all_ parts of the user that this IdP knows how to express as
         SAML attributes. It is not necessarily the attributes that will actually be released.
@@ -71,12 +74,7 @@ class IdPUser(User):
         :param logger: logging logger
         :param filter_attributes: Filter to apply
 
-        :type config: eduid_idp.config.IdPConfig
-        :type logger: logging.Logger
-        :type filter_attributes: [str | unicode]
-
         :return: SAML attributes
-        :rtype: dict
         """
         attributes_in = self.to_dict(old_userdb_format = True)
         attributes = {}
@@ -84,52 +82,13 @@ class IdPUser(User):
             if approved in attributes_in:
                 attributes[approved] = attributes_in.pop(approved)
         logger.debug('Discarded non-attributes:\n{!s}'.format(pprint.pformat(attributes_in)))
-        attributes1 = _make_scoped_eppn(attributes, config)
-        attributes2 = _add_scoped_affiliation(attributes1, config)
-        attributes = _add_eduperson_assurance(attributes2, self)
+        attributes1 = make_scoped_eppn(attributes, config)
+        attributes2 = add_scoped_affiliation(attributes1, config)
+        attributes = add_eduperson_assurance(attributes2, self)
         return attributes
 
 
-class IdPUserDb(object):
-    """
-
-    :param logger: logging logger
-    :param config: IdP config
-    :param userdb: User database
-
-    :type logger: logging.Logger
-    :type config: eduid_idp.config.IdPConfig
-    :type userdb: eduid_userdb.UserDB
-    """
-
-    def __init__(self, logger, config, userdb = None):
-        self.logger = logger
-        self.config = config
-        if userdb is None:
-            userdb = UserDB(config['MONGO_URI'], db_name=config['USERDB_MONGO_DATABASE'], user_class=IdPUser)
-        self.userdb = userdb
-
-    def lookup_user(self, username):
-        """
-        Load IdPUser from userdb.
-
-        :param username: string
-        :return: user found in database
-        :rtype: IdPUser | None
-        """
-        _user = None
-        if isinstance(username, string_types):
-            if '@' in username:
-                _user = self.userdb.get_user_by_mail(username.lower(), raise_on_missing=False)
-            if not _user:
-                _user = self.userdb.get_user_by_eppn(username.lower(), raise_on_missing=False)
-        if not _user:
-            # username will be ObjectId if this is a lookup using an existing SSO session
-            _user = self.userdb.get_user_by_id(username, raise_on_missing=False)
-        return _user
-
-
-def _make_scoped_eppn(attributes, config):
+def make_scoped_eppn(attributes: dict, config: dict) -> dict:
     """
     Add scope to unscoped eduPersonPrincipalName attributes before relasing them.
 
@@ -139,10 +98,6 @@ def _make_scoped_eppn(attributes, config):
     :param attributes: Attributes of a user
     :param config: IdP configuration data
     :return: New attributes
-
-    :type attributes: dict
-    :type config: IdPConfig
-    :rtype: dict
     """
     eppn = attributes.get('eduPersonPrincipalName')
     scope = config['DEFAULT_EPPN_SCOPE']
@@ -153,7 +108,7 @@ def _make_scoped_eppn(attributes, config):
     return attributes
 
 
-def _add_scoped_affiliation(attributes, config):
+def add_scoped_affiliation(attributes: dict, config: dict) -> dict:
     """
     Add eduPersonScopedAffiliation if configured, and not already present.
 
@@ -163,11 +118,7 @@ def _add_scoped_affiliation(attributes, config):
     :param attributes: Attributes of a user
     :param config: IdP configuration data
 
-    :type attributes: dict
-    :type config: IdPConfig
-
     :return: New attributes
-    :rtype: dict
     """
     epsa = 'eduPersonScopedAffiliation'
     if epsa not in attributes and config.get('DEFAULT_SCOPED_AFFILIATION'):
@@ -175,7 +126,7 @@ def _add_scoped_affiliation(attributes, config):
     return attributes
 
 
-def _add_eduperson_assurance(attributes, user):
+def add_eduperson_assurance(attributes: dict, user: IdPUser) -> dict:
     """
     Add an eduPersonAssurance attribute indicating the level of id-proofing
     a user has achieved, regardless of current session authentication strength.
@@ -183,11 +134,7 @@ def _add_eduperson_assurance(attributes, user):
     :param attributes: Attributes of a user
     :param user: The user in question
 
-    :type attributes: dict
-    :type user: IdPUser
-
     :return: New attributes
-    :rtype: dict
     """
     attributes['eduPersonAssurance'] = 'http://www.swamid.se/policy/assurance/al1'
     _verified_nins = [x for x in user.nins.to_list() if x.is_verified]
