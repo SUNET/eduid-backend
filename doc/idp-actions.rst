@@ -290,8 +290,8 @@ IDP_URL
     The URL of the IdP, where the app will redirect the user once there are no
     more pending actions
 
-BUNDLES_URL
-    The base URL from which js bundles are served.
+BUNDLES_PATH
+    The path from which js bundles are served on the static files server.
 
 There is an `actions` section in the configuration for etcd that can hold these
 settings, and any additional setting needed by any particular action plugin.

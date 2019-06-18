@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2016 NORDUnet A/S
+# Copyright (c) 2019 SUNET
 # All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or
@@ -32,7 +32,7 @@
 #
 
 
-jsconfig = {
+dashboard_config = {
 
     'AVAILABLE_LANGUAGES': [
         ['en', 'English'],
@@ -41,4 +41,24 @@ jsconfig = {
 
     'PERSONAL_DATA_URL': '/personal-data/user',
 
+}
+
+signup_config = {
+    'available_languages': {
+      'en': 'English',
+      'sv': 'Svenska'
+    },
+    'csrf_token': None,
+    'dashboard_url': None,
+    'debug': False,
+    'faq_link': None,
+    'recaptcha_public_key': None,
+    'reset_passwd_url': None,
+    'staff_link': None,
+    'students_link': None,
+    'technicians_link': None,
+    'tous': {
+      'en': None,
+      'sv': None
+    }
 }

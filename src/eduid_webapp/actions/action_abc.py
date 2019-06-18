@@ -33,6 +33,7 @@ from abc import ABCMeta, abstractmethod
 
 from flask import current_app
 
+from eduid_common.api.utils import get_static_url_for, urlappend
 from eduid_userdb.actions.action import Action
 
 
@@ -164,18 +165,16 @@ class ActionPlugin(object):
         :returns: the url
         :raise: ActionPlugin.ActionError
         """
-        base = current_app.config.get('BUNDLES_URL')
+        path = current_app.config.get('BUNDLES_PATH')
+        version = current_app.config.get('BUNDLES_VERSION')
         bundle_name = 'eduid_action.{}.js'
         env = current_app.config.get('ENVIRONMENT', 'dev')
         if env == 'dev':
             bundle_name = 'eduid_action.{}-bundle.dev.js'
         elif env == 'staging':
             bundle_name = 'eduid_action.{}.staging.js'
-        url = '{}{}'.format(
-                base,
-                bundle_name.format(self.PLUGIN_NAME)
-                )
-        return url
+        base = urlappend(path, bundle_name.format(self.PLUGIN_NAME))
+        return get_static_url_for(base, version=version)
 
     @abstractmethod
     def get_config_for_bundle(self, action) -> dict:
