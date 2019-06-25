@@ -116,7 +116,8 @@ class BaseConfig(object):
     SECRET_KEY: str = ''
 
     def __post_init__(self):
-        object.__setattr__(self, 'CELERY_CONFIG', CeleryConfig(**self.CELERY_CONFIG))
+        if isinstance(self.CELERY_CONFIG, dict):
+            object.__setattr__(self, 'CELERY_CONFIG', CeleryConfig(**self.CELERY_CONFIG))
 
     def __getattribute__(self, attr: str, default: Any = None) -> Any:
         try:
