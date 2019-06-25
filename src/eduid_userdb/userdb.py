@@ -29,9 +29,11 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+from typing import Mapping
 
 from bson import ObjectId
 from bson.errors import InvalidId
+from pymongo import ReturnDocument
 
 from eduid_userdb.user import User
 from eduid_userdb.db import BaseDB
@@ -349,44 +351,33 @@ class UserDB(BaseDB):
         logger.debug("{!s} Removing user with id {!r} from {!r}".format(self, user_id, self._coll_name))
         return self.remove_document(spec_or_id=user_id)
 
-    def update_user(self, obj_id, attributes):
+    def update_user(self, obj_id: ObjectId, operations: Mapping) -> None:
         """
-        Update user document in mongodb.
+        Update (or insert) a user document in mongodb.
 
-        `attributes' can be either a dict with plain key-values, or a dict with
-        one or more find_and_modify modifier instructions ({'$set': ...}).
+        operations must be a dict with update operators ({'$set': ..., '$unset': ...}).
+        https://docs.mongodb.com/manual/reference/operator/update/
 
         This update method should only be used in the eduid Attribute Manager when
-        merging updates from applications into the central eduid UserDB.
-
-        :param obj_id: ObjectId
-        :param attributes: dict
-        :return: None
+        merging updates from applications into the central eduID userdb.
         """
-        logger.debug("{!s} updating user {!r} in {!r} with attributes:\n{!s}".format(
-            self, obj_id, self._coll_name, attributes))
+        logger.debug("{!s} updating user {!r} in {!r} with operations:\n{!s}".format(
+            self, obj_id, self._coll_name, operations))
 
-        doc = {'_id': obj_id}
+        query_filter = {'_id': obj_id}
 
-        # check if any of doc attributes contains a modifier instruction.
-        # like any key starting with $
-        #
-        if all([attr.startswith('$') for attr in attributes]):
-            self._coll.find_and_modify(doc, attributes)
-        else:
-            if self._coll.find(doc).count() == 0:
-                # The object is a new object
-                doc.update(attributes)
-                self._coll.save(doc)
-            else:
-                # Dont overwrite the entire object, only the defined
-                # attributes
-                self._coll.find_and_modify(
-                    doc,
-                    {
-                        '$set': attributes,
-                    }
-                )
+        # Check that the operations dict includes only the whitelisted operations
+        whitelisted_operations = ['$set', '$unset']
+        bad_operators = [key for key in operations if key not in whitelisted_operations]
+        if bad_operators:
+            logger.debug(f'Tried to update/insert document: {query_filter} with operations: {operations}')
+            error_msg = f'Invalid update operator: {bad_operators}'
+            logger.error(error_msg)
+            raise eduid_userdb.exceptions.EduIDDBError(error_msg)
+        
+        updated_doc = self._coll.find_one_and_update(filter=query_filter, update=operations,
+                                                     return_document=ReturnDocument.AFTER, upsert=True)
+        logger.debug(f'Updated/inserted document: {updated_doc}')
 
     def get_identity_proofing(self, user):
         """
