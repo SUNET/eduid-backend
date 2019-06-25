@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
+import datetime
+
 from mock import patch
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.authn.testing import TestVCCSClient
 from eduid_userdb.credentials import Password
 from eduid_userdb.exceptions import DocumentDoesNotExist
+from eduid_userdb.security import PasswordResetEmailState
 from eduid_webapp.security.app import security_init_app
 
 __author__ = 'lundberg'
@@ -90,6 +93,7 @@ class SecurityResetPasswordTests(EduidAPITestCase):
     def verify_phone_number(self, state):
         with self.app.test_client() as c:
             c.get('/reset-password/extra-security/phone/{}'.format(state.email_code.code))
+
             with c.session_transaction() as sess:
                 data = {
                     'csrf': sess.get_csrf_token(),
@@ -251,6 +255,38 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         self.assertNotEqual(user.credentials.filter(Password).to_list(), old_passwords)
         self.assertEqual(user.nins.primary.is_verified, True)
         self.assertEqual(user.phone_numbers.primary.is_verified, True)
+
+    @patch('eduid_common.authn.vccs.get_vccs_client')
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
+    @patch('eduid_common.api.msg.MsgRelay.sendsms')
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_reset_password_with_extra_security_phone_expired(self, mock_request_user_sync, mock_sendsms,
+                                                              mock_sendmail, mock_get_vccs_client):
+        mock_request_user_sync.side_effect = self.request_user_sync
+        mock_sendsms.return_value = True
+        mock_sendmail.return_value = True
+        mock_get_vccs_client.return_value = TestVCCSClient()
+
+        self.post_email_address('johnsmith@example.com')
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+        self.verify_email_address(state)
+        self.choose_extra_security_phone_number(state)
+        state = self.app.password_reset_state_db.get_state_by_email_code(state.email_code.code)
+        self.app.logger.info('Moving phone-expire-state back in time')
+        # Move state back in time so that the code will be expired
+        state.phone_code._data['created_ts'] = None
+        state.phone_code.created_ts = datetime.datetime.fromtimestamp(123)
+        self.app.password_reset_state_db.save(state)
+        self.app.logger.info(f'Saved expired state: {state}')
+
+        with self.app.test_client() as c:
+            resp = c.get('/reset-password/extra-security/phone/{}'.format(state.email_code.code))
+            self.assertEqual(resp.status_code, 200)
+            self.assertIn(b'The phone verification has expired.', resp.data)
+
+        state = self.app.password_reset_state_db.get_state_by_email_code(state.email_code.code)
+        # check that state has been 'downgraded' to email again
+        self.assertIsInstance(state, PasswordResetEmailState)
 
     @patch('eduid_common.authn.vccs.get_vccs_client')
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')

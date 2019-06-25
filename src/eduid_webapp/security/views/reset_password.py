@@ -31,6 +31,7 @@ def require_state(f):
         sms_expiration_time = current_app.config['PHONE_CODE_TIMEOUT']
         try:
             state = current_app.password_reset_state_db.get_state_by_email_code(email_code)
+            current_app.logger.debug(f'Found state using email_code {email_code}: {state}')
         except DocumentDoesNotExist:
             current_app.logger.info('State not found: {}'.format(email_code))
             view_context = {
