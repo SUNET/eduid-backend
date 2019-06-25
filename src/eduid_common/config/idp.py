@@ -85,11 +85,16 @@ class IdPConfig(BaseConfig):
     # SSL private key filename (None == SSL disabled)
     SERVER_KEY: Optional[str] = None
 
+    MAX_AUTHN_FAILURES_PER_MONTH: int = 50
+    MAX_AUHTN_FAILURES_PER_MONTH: int = 50
+
     # SSL certificate chain filename, or None
     CERT_CHAIN: Optional[str] = None
     #  UserDB database name. eduid_am for old userdb, eduid_userdb for new
     USERDB_MONGO_DATABASE: str = 'eduid_am'
     # MongoDB connection URI (string). See MongoDB documentation for details.
+    USERDB_MONGO_URI: Optional[str] = None
+    AUTHN_INFO_MONGO_URI: Optional[str] = None
     MONGO_URI: Optional[str] = None
     # MongoDB connection URI (string) for PySAML2 SSO sessions.
     SSO_SESSION_MONGO_URI: Optional[str] = None
@@ -163,13 +168,15 @@ class IdPConfig(BaseConfig):
     SHARED_SESSION_SECRET_KEY: Optional[str] = None
     # TTL for shared sessions.
     SHARED_SESSION_TTL: int = 300
+    HTTP_HEADERS: str = "Content-Security-Policy:default-src 'self'; script-src 'self' 'unsafe-inline', X-Frame-Options:DENY"
+    PRIVACY_LINK: str = "http://html.eduid.docker/privacy.html"
 
 
-def init_config(test_config: Optional[dict] = None) -> IdPConfig:
+def init_config(test_config: Optional[dict] = None, debug: bool = True) -> IdPConfig:
     """
     Initialize configuration wth values from etcd
     """
-    config = {}
+    config = {'DEBUG': debug}
     if test_config is not None:
         # Load init time settings
         config.update(test_config)
