@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import copy
 from datetime import datetime, timedelta
-from typing import Dict, Mapping, Optional, Type, Union
+from typing import Mapping, Type, Union
 
 from six import string_types
 
@@ -15,24 +15,17 @@ __author__ = 'lundberg'
 
 class CodeElement(Element):
 
-    def __init__(self, application: str, code: str, verified: bool = False,
-                 created_ts: Optional[Union[datetime, bool]] = None, data: Optional[Mapping] = None):
+    def __init__(self, application: str, code: str, verified: bool,
+                 created_ts: Union[datetime, bool]):
 
-        data_in = copy.copy(data)  # to not modify callers data
+        data = dict(created_by=application,
+                    created_ts=created_ts,
+                    )
+        super().__init__(data)
 
-        if data_in is None:
-            if created_ts is None:
-                created_ts = True
-            data_in = dict(created_by=application,
-                           created_ts=created_ts,
-                           code=code,
-                           used=verified,
-                           )
-        code = data_in.pop('code', None)
-        verified = data_in.pop('verified', False)
-        Element.__init__(self, data_in)
         self.code = code
         self.is_verified = verified
+
 
     @property
     def key(self) -> str:
@@ -78,11 +71,19 @@ class CodeElement(Element):
         return expiry_date < now
 
     @classmethod
-    def parse(cls: Type[CodeElement], code_or_element: Union[Dict, CodeElement, str], application: str) -> CodeElement:
+    def parse(cls: Type[CodeElement], code_or_element: Union[Mapping, CodeElement, str], application: str) -> CodeElement:
         if isinstance(code_or_element, string_types):
-            return cls(application=application, code=code_or_element)
+            return cls(application=application, code=code_or_element, created_ts=True, verified=False)
         if isinstance(code_or_element, dict):
-            return cls(data=code_or_element)
+            data = code_or_element
+            for this in data.keys():
+                if this not in ['application', 'code', 'created_by', 'created_ts', 'verified']:
+                    raise ValueError(f'Unknown data {this} for CodeElement.parse from mapping')
+            return cls(application=data.get('created_by', application),
+                       code=data['code'],
+                       created_ts=data.get('created_ts', True),
+                       verified=data.get('verified', False),
+                       )
         if isinstance(code_or_element, CodeElement):
             return code_or_element
         raise ValueError(f'Can\'t create CodeElement from input: {code_or_element}')
