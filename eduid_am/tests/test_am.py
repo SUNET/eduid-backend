@@ -67,6 +67,16 @@ class FakeAttributeFetcher(AttributeFetcher):
         return attributes
 
 
+class BadAttributeFetcher(FakeAttributeFetcher):
+    """
+    Returns a bad operations dict.
+    """
+    def fetch_attrs(self, user_id):
+        res = super().fetch_attrs(user_id)
+        res['notanoperator'] = 'test'
+        return res
+
+
 class MessageTest(MongoTestCase):
     """
     This testcase sets up an AttributeManager instance and sends a message to an internally defined plugin that
@@ -75,18 +85,18 @@ class MessageTest(MongoTestCase):
 
     def setUp(self):
         super(MessageTest, self).setUp(init_am=True, am_settings={'WANT_MONGO_URI': True})
+        self.private_db = AmTestUserDb(db_uri=self.tmp_db.uri, db_name='eduid_am_test')
+        # register fake AMP plugin named 'test'
+        self.am.af_registry['test'] = FakeAttributeFetcher({'MONGO_URI': self.tmp_db.uri})
+        # register fake AMP plugin named 'bad'
+        self.am.af_registry['bad'] = BadAttributeFetcher({'MONGO_URI': self.tmp_db.uri})
 
-    def testMessage_insert(self):
+    def test_insert(self):
         """
         This simulates the 'test' application that keeps its own data in the 'user' collection in the 'test' DB
         and sends a message notifying the attribute manager instance (am) about a new entry in its dataset thereby
         calling the plugin (above) which is registered with the am in the test setup below.
         """
-        test_context = AmTestUserDb(db_uri=self.tmp_db.uri, db_name='eduid_am_test')
-
-        # register fake AMP plugin named 'test'
-        self.am.af_registry['test'] = FakeAttributeFetcher({'MONGO_URI': self.tmp_db.uri})
-
         _id = ObjectId()
         with self.assertRaises(eduid_userdb.exceptions.UserDoesNotExist):
             self.amdb.get_user_by_id(_id)
@@ -100,7 +110,7 @@ class MessageTest(MongoTestCase):
                    }
         test_user = AmTestUser(userdoc)
         # Save the user in the eduid_am_test database
-        test_context.save(test_user)
+        self.private_db.save(test_user)
 
         # It is important to not import eduid_am.tasks before the Celery config has been
         # set up (done in MongoTestCase.setUp()). Since Celery uses decorators, it will
@@ -113,17 +123,12 @@ class MessageTest(MongoTestCase):
         am_user = self.amdb.get_user_by_id(_id)
         self.assertEqual(am_user.eppn, 'vlindeman@eduid.se')
 
-    def testMessage_update(self):
+    def test_update(self):
         """
         This simulates the 'test' application that keeps its own data in the 'user' collection in the 'test' DB
         and sends a message notifying the attribute manager instance (am) about a new entry in its dataset thereby
         calling the plugin (above) which is registered with the am in the test setup below.
         """
-        test_context = AmTestUserDb(db_uri=self.tmp_db.uri, db_name='eduid_am_test')
-
-        # register fake AMP plugin named 'test'
-        self.am.af_registry['test'] = FakeAttributeFetcher({'MONGO_URI': self.tmp_db.uri})
-
         _id = ObjectId()
 
         userdoc = {'_id': _id,
@@ -135,7 +140,7 @@ class MessageTest(MongoTestCase):
                    }
         test_user = AmTestUser(userdoc)
         # Save the user in the private database
-        test_context.save(test_user)
+        self.private_db.save(test_user)
         # Save the user in the central database
         user_dict = test_user.to_dict()
         del user_dict['uid']
@@ -155,3 +160,33 @@ class MessageTest(MongoTestCase):
         # verify the user has been propagated to the amdb
         am_user = self.amdb.get_user_by_id(_id)
         self.assertEqual(am_user.eppn, 'vlindeman@eduid.se')
+
+    def test_bad_operator(self):
+        _id = ObjectId()
+
+        userdoc = {'_id': _id,
+                   'eduPersonPrincipalName': 'foo-bar',
+                   'uid': 'vlindeman',
+                   'passwords': [{'id': ObjectId('112345678901234567890123'),
+                                  'salt': '$NDNv1H1$9c81...545$32$32$',
+                                  }],
+                   }
+        test_user = AmTestUser(userdoc)
+        # Save the user in the private database
+        self.private_db.save(test_user)
+        # Save the user in the central database
+        user_dict = test_user.to_dict()
+        del user_dict['uid']
+        central_user = eduid_userdb.User(data=user_dict)
+        self.amdb.save(central_user, check_sync=False)
+
+        am_user = self.amdb.get_user_by_id(_id)
+        self.assertNotEqual(am_user.eppn, 'vlindeman@eduid.se')
+
+        # It is important to not import eduid_am.tasks before the Celery config has been
+        # set up (done in MongoTestCase.setUp()). Since Celery uses decorators, it will
+        # have instantiated AttributeManagers without the right config if the import is
+        # done prior to the Celery app configuration.
+        from eduid_am.tasks import update_attributes
+        with self.assertRaises(eduid_userdb.exceptions.EduIDDBError):
+            update_attributes.delay(app_name='bad', obj_id=str(_id))
