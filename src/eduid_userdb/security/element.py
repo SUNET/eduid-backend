@@ -1,11 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-import copy
 from datetime import datetime, timedelta
 from typing import Mapping, Type, Union
-
-from six import string_types
 
 from eduid_userdb.element import Element
 from eduid_userdb.exceptions import UserDBValueError
@@ -29,31 +26,27 @@ class CodeElement(Element):
 
     @property
     def key(self) -> str:
-        """Get element key"""
+        """Get element key."""
         return self.code
     # -----------------------------------------------------------------
 
     @property
     def code(self) -> str:
-        """Get code"""
+        """Get email code."""
         return self._data['code']
 
     @code.setter
     def code(self, value: str):
-        """Get email code"""
         self._data['code'] = value
     # -----------------------------------------------------------------
 
     @property
     def is_verified(self) -> bool:
-        """True if the code has been used."""
+        """Return True if the code has been used."""
         return self._data['verified']
 
     @is_verified.setter
     def is_verified(self, value: bool):
-        """
-        :param value: True if code is used
-        """
         if not isinstance(value, bool):
             raise UserDBValueError("Invalid 'verified': {!r}".format(value))
         self._data['verified'] = value
@@ -72,7 +65,7 @@ class CodeElement(Element):
 
     @classmethod
     def parse(cls: Type[CodeElement], code_or_element: Union[Mapping, CodeElement, str], application: str) -> CodeElement:
-        if isinstance(code_or_element, string_types):
+        if isinstance(code_or_element, str):
             return cls(application=application, code=code_or_element, created_ts=True, verified=False)
         if isinstance(code_or_element, dict):
             data = code_or_element
