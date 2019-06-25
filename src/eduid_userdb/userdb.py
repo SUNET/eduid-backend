@@ -29,6 +29,7 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+from typing import Mapping
 
 from bson import ObjectId
 from bson.errors import InvalidId
@@ -350,7 +351,7 @@ class UserDB(BaseDB):
         logger.debug("{!s} Removing user with id {!r} from {!r}".format(self, user_id, self._coll_name))
         return self.remove_document(spec_or_id=user_id)
 
-    def update_user(self, obj_id: ObjectId, operations: dict) -> None:
+    def update_user(self, obj_id: ObjectId, operations: Mapping) -> None:
         """
         Update (or insert) a user document in mongodb.
 
@@ -369,9 +370,9 @@ class UserDB(BaseDB):
         whitelisted_operations = ['$set', '$unset']
         for key in operations:
             if key not in whitelisted_operations:
-                logger.error('Document missing update operators')
-                logger.debug(f'Tried to update/insert document: {query_filter} with attributes: {operations}')
-                raise eduid_userdb.exceptions.EduIDDBError('Document missing update operators')
+                logger.error('Invalid update operators')
+                logger.debug(f'Tried to update/insert document: {query_filter} with operations: {operations}')
+                raise eduid_userdb.exceptions.EduIDDBError('Invalid update operators')
         
         updated_doc = self._coll.find_one_and_update(filter=query_filter, update=operations,
                                                      return_document=ReturnDocument.AFTER, upsert=True)
