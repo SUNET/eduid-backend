@@ -368,12 +368,12 @@ class UserDB(BaseDB):
 
         # Check that the operations dict includes only the whitelisted operations
         whitelisted_operations = ['$set', '$unset']
-        for key in operations:
-            if key not in whitelisted_operations:
-                logger.error('Invalid update operator')
-                logger.debug(f'Tried to update/insert document: {query_filter} with operations: {operations}')
-                bad_operators = [key for key in operations if key not in whitelisted_operations]
-                raise eduid_userdb.exceptions.EduIDDBError(f'Invalid update operator: {bad_operators}')
+        bad_operators = [key for key in operations if key not in whitelisted_operations]
+        if bad_operators:
+            logger.debug(f'Tried to update/insert document: {query_filter} with operations: {operations}')
+            error_msg = f'Invalid update operator: {bad_operators}'
+            logger.error(error_msg)
+            raise eduid_userdb.exceptions.EduIDDBError(error_msg)
         
         updated_doc = self._coll.find_one_and_update(filter=query_filter, update=operations,
                                                      return_document=ReturnDocument.AFTER, upsert=True)
