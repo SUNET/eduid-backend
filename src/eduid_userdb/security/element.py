@@ -97,3 +97,7 @@ class CodeElement(Element):
             return cls(application=application, code=code_or_element)
         if isinstance(code_or_element, dict):
             return cls(data=code_or_element)
+        if isinstance(code_or_element, CodeElement):
+            return code_or_element
+        raise ValueError(f'Can\'t create CodeElement from input: {code_or_element}')
+
