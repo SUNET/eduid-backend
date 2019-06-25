@@ -350,30 +350,32 @@ class UserDB(BaseDB):
         logger.debug("{!s} Removing user with id {!r} from {!r}".format(self, user_id, self._coll_name))
         return self.remove_document(spec_or_id=user_id)
 
-    def update_user(self, obj_id: ObjectId, attributes: dict) -> None:
+    def update_user(self, obj_id: ObjectId, operations: dict) -> None:
         """
         Update (or insert) a user document in mongodb.
 
-        attributes must be a dict with update operators ({'$set': ..., '$unset': ...}).
+        operations must be a dict with update operators ({'$set': ..., '$unset': ...}).
         https://docs.mongodb.com/manual/reference/operator/update/
 
         This update method should only be used in the eduid Attribute Manager when
         merging updates from applications into the central eduID userdb.
         """
-        logger.debug("{!s} updating user {!r} in {!r} with attributes:\n{!s}".format(
-            self, obj_id, self._coll_name, attributes))
+        logger.debug("{!s} updating user {!r} in {!r} with operations:\n{!s}".format(
+            self, obj_id, self._coll_name, operations))
 
         query_filter = {'_id': obj_id}
 
-        # Check that all of doc attributes contains a update operator, keys starting with
-        if not all([attr.startswith('$') for attr in attributes]):
-            logger.error('Document missing update operators')
-            logger.debug(f'Tried to update/insert document: {query_filter} with attributes: {attributes}')
-            raise eduid_userdb.exceptions.EduIDUserDBError('Document missing update operators')
-        else:
-            updated_doc = self._coll.find_one_and_update(filter=query_filter, update=attributes,
-                                                         return_document=ReturnDocument.AFTER, upsert=True)
-            logger.debug(f'Updated/inserted document: {updated_doc}')
+        # Check that the operations dict includes only the whitelisted operations
+        whitelisted_operations = ['$set', '$unset']
+        for key in operations:
+            if key not in whitelisted_operations:
+                logger.error('Document missing update operators')
+                logger.debug(f'Tried to update/insert document: {query_filter} with attributes: {operations}')
+                raise eduid_userdb.exceptions.EduIDDBError('Document missing update operators')
+        
+        updated_doc = self._coll.find_one_and_update(filter=query_filter, update=operations,
+                                                     return_document=ReturnDocument.AFTER, upsert=True)
+        logger.debug(f'Updated/inserted document: {updated_doc}')
 
     def get_identity_proofing(self, user):
         """
