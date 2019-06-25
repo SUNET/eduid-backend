@@ -39,7 +39,7 @@ Configuration (file) handling for eduID IdP.
 from dataclasses import dataclass, field
 import os
 from importlib import import_module
-from typing import Optional, List, Tuple, Dict
+from typing import Optional, List, Tuple, Dict, Any
 
 
 @dataclass(frozen=True)
@@ -118,7 +118,19 @@ class BaseConfig(object):
     def __post_init__(self):
         self.CELERY_CONFIG = CeleryConfig(**self.CELERY_CONFIG)
 
-    def __getitem__(self, attr: str):
+    def __getattribute__(self, attr: str, default: Any = None) -> Any:
+        try:
+            return super(BaseConfig, self).__getattribute__(attr)
+        except AttributeError:
+            # Allow the IdP to keep using lower case config keys
+            try:
+                return super(BaseConfig, self).__getattribute__(attr.upper())
+            except AttributeError:
+                if default is not None:
+                    return default
+                raise
+
+    def __getitem__(self, attr: str) -> Any:
         '''
         XXX Once the apps are all accessing configuration as attributes,
             we will be able to remove this method.
@@ -126,10 +138,4 @@ class BaseConfig(object):
         try:
             return self.__getattribute__(attr)
         except AttributeError:
-            try:
-                return self.__getattribute__(attr.upper())
-            except AttributeError:
-                try:
-                    return self.__getattribute__(attr.lower())
-                except AttributeError:
-                    raise KeyError(f'{self} has no {attr} attr')
+            raise KeyError(f'{self} has no {attr} attr')
