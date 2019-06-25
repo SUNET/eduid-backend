@@ -139,3 +139,8 @@ class BaseConfig(object):
             return self.__getattribute__(attr)
         except AttributeError:
             raise KeyError(f'{self} has no {attr} attr')
+
+    @classmethod
+    def defaults(cls):
+        return {key: val for key, val in cls.__dict__.items()
+                  if not key.startswith('__') and not callable(val)}
