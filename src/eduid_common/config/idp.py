@@ -50,126 +50,126 @@ class IdPConfig(BaseConfig):
     Configuration for the IdP
     """
     # session cookie
-    SESSION_COOKIE_PERSISTENT: bool = True
-    SESSION_COOKIE_LOCKING: str = 'explicit'
+    session_cookie_persistent: bool = True
+    session_cookie_locking: str = 'explicit'
     # Secret key
-    SECRET_KEY: Optional[str] = None
+    secret_key: Optional[str] = None
     # Logging
-    LOG_LEVEL: str = 'DEBUG'
+    log_level: str = 'DEBUG'
     # IdP specific
-    SYSLOG_DEBUG: bool = False
-    NUM_THREADS: int = 8
-    LOGDIR: Optional[str] = None
-    LOGFILE: Optional[str] = None
+    syslog_debug: bool = False
+    num_threads: int = 8
+    logdir: Optional[str] = None
+    logfile: Optional[str] = None
     # syslog socket to log to (/dev/log maybe)
-    SYSLOG_SOCKET: Optional[str] = None
+    syslog_socket: Optional[str] = None
     # IP address to listen on.
-    LISTEN_ADDR: str = '0.0.0.0'
+    listen_addr: str = '0.0.0.0'
     # The port the IdP authentication should listen on (integer).
-    LISTEN_PORT: int = 8088
+    listen_port: int = 8088
     # pysaml2 configuration file. Separate config file with SAML related parameters.
-    PYSAML2_CONFIG: str = 'eduid_common.authn.idp_conf'
+    pysaml2_config: str = 'eduid_common.authn.idp_conf'
     # SAML F-TICKS user anonymization key. If this is set, the IdP will log FTICKS data
     # on every login.
-    FTICKS_SECRET_KEY: Optional[str] = None
+    fticks_secret_key: Optional[str] = None
     # Get SAML F-TICKS format string.
-    FTICKS_FORMAT_STRING: str = 'F-TICKS/SWAMID/2.0#TS={ts}#RP={rp}#AP={ap}#PN={pn}#AM={am}#'
+    fticks_format_string: str = 'F-TICKS/SWAMID/2.0#TS={ts}#RP={rp}#AP={ap}#PN={pn}#AM={am}#'
     # directory for local static files
-    STATIC_DIR: Optional[str] = None
+    static_dir: Optional[str] = None
     # URL to static resources that can be used in templates
-    STATIC_LINK: str = '#'
+    static_link: str = '#'
     # one of cherrypy.wsgiserver.ssl_adapters
-    SSL_ADAPTER: str = 'builtin'
+    ssl_adapter: str = 'builtin'
     # SSL certificate filename (None == SSL disabled)
-    SERVER_CERT: Optional[str] = None
+    server_cert: Optional[str] = None
     # SSL private key filename (None == SSL disabled)
-    SERVER_KEY: Optional[str] = None
+    server_key: Optional[str] = None
 
-    MAX_AUTHN_FAILURES_PER_MONTH: int = 50
-    MAX_AUHTN_FAILURES_PER_MONTH: int = 50
+    max_authn_failures_per_month: int = 50
+    max_auhtn_failures_per_month: int = 50
 
     # SSL certificate chain filename, or None
-    CERT_CHAIN: Optional[str] = None
+    cert_chain: Optional[str] = None
     #  UserDB database name. eduid_am for old userdb, eduid_userdb for new
-    USERDB_MONGO_DATABASE: str = 'eduid_am'
+    userdb_mongo_database: str = 'eduid_am'
     # MongoDB connection URI (string). See MongoDB documentation for details.
-    USERDB_MONGO_URI: Optional[str] = None
-    AUTHN_INFO_MONGO_URI: Optional[str] = None
-    MONGO_URI: Optional[str] = None
+    userdb_mongo_uri: Optional[str] = None
+    authn_info_mongo_uri: Optional[str] = None
+    mongo_uri: Optional[str] = None
     # MongoDB connection URI (string) for PySAML2 SSO sessions.
-    SSO_SESSION_MONGO_URI: Optional[str] = None
+    sso_session_mongo_uri: Optional[str] = None
     # Lifetime of SSO session (in minutes).
     # If a user has an active SSO session, they will get SAML assertions made
     # without having to authenticate again (unless SP requires it through
     # ForceAuthn).
     # The total time a user can access a particular SP would therefor be
     # this value, plus the pysaml2 lifetime of the assertion.
-    SSO_SESSION_LIFETIME: int = 15
+    sso_session_lifetime: int = 15
     # Raven DSN (string) for logging exceptions to Sentry.
-    RAVEN_DSN: Optional[str] = None
+    raven_dsn: Optional[str] = None
     # List of Python packages [("name","path") ... ]̣ with content resources
-    CONTENT_PACKAGES: List[Tuple[str]] = field(default_factory=list)
+    content_packages: List[Tuple[str]] = field(default_factory=list)
     # Verify request signatures, if they exist.
     # This defaults to False since it is a trivial DoS to consume all the IdP:s
     # CPU resources if this is set to True.
-    VERIFY_REQUEST_SIGNATURES: bool = False
+    verify_request_signatures: bool = False
     # Get list of usernames valid for use with the /status URL.
     # If this list is ['*'], all usernames are allowed for /status.
-    STATUS_TEST_USERNAMES: List[str] =  field(default_factory=list)
+    status_test_usernames: List[str] =  field(default_factory=list)
     # URL (string) for use in simple templating of login.html.
-    SIGNUP_LINK: str = '#'
+    signup_link: str = '#'
     # URL (string) for use in simple templating of forbidden.html.
-    DASHBOARD_LINK: str = '#'
+    dashboard_link: str = '#'
     # URL (string) for use in simple templating of login.html.
-    PASSWORD_RESET_LINK: str = '#'
+    password_reset_link: str = '#'
     # More links
-    TECHNICIANS_LINK: str = '#'
-    STUDENT_LINK: str = '#'
-    STAFF_LINK: str = '#'
-    FAQ_LINK: str = '#'
+    technicians_link: str = '#'
+    student_link: str = '#'
+    staff_link: str = '#'
+    faq_link: str = '#'
     # Default language code to use when looking for web pages ('en').
-    DEFAULT_LANGUAGE: str = 'en'
+    default_language: str = 'en'
     # Base URL of the IdP. The default base URL is constructed from the
     # Request URI, but for example if there is a load balancer/SSL
     # terminator in front of the IdP it might be required to specify
     # the URL of the service.
-    BASE_URL: Optional[str] = None
+    base_url: Optional[str] = None
     # The scope to append to any unscoped eduPersonPrincipalName
     # attributes found on users in the userdb.
-    DEFAULT_EPPN_SCOPE: Optional[str] = None
+    default_eppn_scope: Optional[str] = None
     # Disallow login for a user after N failures in a given month.
     # This is said to be an imminent Kantara requirement.
     # Kantara 30-day bad authn limit is 100
-    MAX_AUTHN_FAILURES_PER_MONTH: int = 50
+    max_authn_failures_per_month: int = 50
     # Lifetime of state kept in IdP login phase.
     # This is the time, in minutes, a user has to complete the login phase.
     # After this time, login cannot complete because the SAMLRequest, RelayState
     # and possibly other needed information will be forgotten.
-    LOGIN_STATE_TTL: int = 5
+    login_state_ttl: int = 5
     # Add a default eduPersonScopedAffiliation if none is returned from the
     # attribute manager.
-    DEFAULT_SCOPED_AFFILIATION: Optional[str] = None
+    default_scoped_affiliation: Optional[str] = None
     # URL to use with VCCS client. BCP is to have an nginx or similar on
     # localhost that will proxy requests to a currently available backend
     # using TLS.
-    VCCS_URL: str = 'http://localhost:8550/'
-    INSECURE_COOKIES: bool = False
+    vccs_url: str = 'http://localhost:8550/'
+    insecure_cookies: bool = False
     # URI of the actions app.
-    ACTIONS_APP_URI: Optional[str] = 'http://actions.example.com/'
+    actions_app_uri: Optional[str] = 'http://actions.example.com/'
     # The plugins for pre-authentication actions that need to be loaded
-    ACTION_PLUGINS: List[str] = field(default_factory=list)
+    action_plugins: List[str] = field(default_factory=list)
     # The current version of the terms of use agreement.
-    TOU_VERSION: str = 'version1'
+    tou_version: str = 'version1'
     # The interval which a user needs to reaccept an already accepted ToU (in seconds)
-    TOU_REACCEPT_INTERVAL: int = 94608000
+    tou_reaccept_interval: int = 94608000
     # Name of cookie used to persist session information in the users browser.
-    SHARED_SESSION_COOKIE_NAME: str = 'sessid'
+    shared_session_cookie_name: str = 'sessid'
     # Key to decrypt shared sessions.
-    SHARED_SESSION_SECRET_KEY: Optional[str] = None
+    shared_session_secret_key: Optional[str] = None
     # TTL for shared sessions.
-    SHARED_SESSION_TTL: int = 300
-    HTTP_HEADERS: str = "Content-Security-Policy:default-src 'self'; script-src 'self' 'unsafe-inline', X-Frame-Options:DENY"
-    PRIVACY_LINK: str = "http://html.eduid.docker/privacy.html"
+    shared_session_ttl: int = 300
+    http_headers: str = "Content-Security-Policy:default-src 'self'; script-src 'self' 'unsafe-inline', X-Frame-Options:DENY"
+    privacy_link: str = "http://html.eduid.docker/privacy.html"
 
 
 def init_config(test_config: Optional[dict] = None, debug: bool = True) -> IdPConfig:

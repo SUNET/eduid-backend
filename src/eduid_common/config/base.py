@@ -58,66 +58,66 @@ class CeleryConfig(object):
 
 @dataclass(frozen=True)
 class BaseConfig(object):
-    DEVEL_MODE: bool = False
-    DEVELOPMENT: bool = False
+    devel_mode: bool = False
+    development: bool = False
     # enable disable debug mode
-    DEBUG: bool = False
+    debug: bool = False
     # session cookie
-    SESSION_COOKIE_NAME: str = 'sessid'
-    SESSION_COOKIE_PATH: str = '/'
-    SESSION_COOKIE_TIMEOUT: int = 60      # in minutes
+    session_cookie_name: str = 'sessid'
+    session_cookie_path: str = '/'
+    session_cookie_timeout: int = 60      # in minutes
     # the domain for the session cookie. If this is not set, the cookie will
     # be valid for all subdomains of SERVER_NAME.
-    SESSION_COOKIE_DOMAIN: str = ''
-    SESSION_COOKIE_SECURE: bool = True
-    SESSION_COOKIE_HTTPONLY: bool = False
+    session_cookie_domain: str = ''
+    session_cookie_secure: bool = True
+    session_cookie_httponly: bool = False
     # The URL scheme that should be used for URL generation if no URL scheme is
     # available. This defaults to http
-    PREFERRED_URL_SCHEME: str = 'https'
+    preferred_url_scheme: str = 'https'
     # Redis config
     # The Redis host to use for session storage.
-    REDIS_HOST: Optional[str] = None
+    redis_host: Optional[str] = None
     # The port of the Redis server (integer).
-    REDIS_PORT: int = 6379
+    redis_port: int = 6379
     # The Redis database number (integer).
-    REDIS_DB: int = 0
+    redis_db: int = 0
     # Redis sentinel hosts, comma separated
-    REDIS_SENTINEL_HOSTS: Optional[List[str]] = None
+    redis_sentinel_hosts: Optional[List[str]] = None
     # The Redis sentinel 'service name'.
-    REDIS_SENTINEL_SERVICE_NAME: str = 'redis-cluster'
-    SAML2_LOGOUT_REDIRECT_URL: str = 'https://eduid.se/'
-    TOKEN_SERVICE_URL: str = ''
-    CELERY_CONFIG: CeleryConfig = field(default_factory=CeleryConfig)
-    AVAILABLE_LANGUAGES: Dict[str, str] = field(default_factory=lambda: {
+    redis_sentinel_service_name: str = 'redis-cluster'
+    saml2_logout_redirect_url: str = 'https://eduid.se/'
+    token_service_url: str = ''
+    celery_config: CeleryConfig = field(default_factory=CeleryConfig)
+    available_languages: Dict[str, str] = field(default_factory=lambda: {
         'en': 'English',
         'sv': 'Svenska'
         })
-    MAIL_DEFAULT_FROM: str = 'info@eduid.se'
-    EDUID_SITE_URL: str = ''
-    EDUID_STATIC_URL: str = ''
-    STATIC_URL: str = ''
-    DASHBOARD_URL: str = ''
-    RESET_PASSWD_URL: str = ''
+    mail_default_from: str = 'info@eduid.se'
+    eduid_site_url: str = ''
+    eduid_static_url: str = ''
+    static_url: str = ''
+    dashboard_url: str = ''
+    reset_passwd_url: str = ''
     # set absolute URL so it can be included in emails
-    SIGNUP_URL: str = ''
-    NO_AUTHN_URLS: list = field(default_factory=lambda: [
+    signup_url: str = ''
+    no_authn_urls: list = field(default_factory=lambda: [
         "^/status/healthy$",
         "^/status/sanity-check$"
         ])
-    ACTION_PLUGINS: list = field(default_factory=lambda: [
+    action_plugins: list = field(default_factory=lambda: [
         "tou",
         "mfa"
         ])
-    # ENVIRONMENT=(dev|staging|pro)
-    ENVIRONMENT: str = 'dev'
-    TOU_VERSION: str = '2017-v6'
-    CURRENT_TOU_VERSION: str = '2017-v6'  # backwards compat
-    FIDO2_RP_ID: str = ''
-    SECRET_KEY: str = ''
+    # environment=(dev|staging|pro)
+    environment: str = 'dev'
+    tou_version: str = '2017-v6'
+    current_tou_version: str = '2017-v6'  # backwards compat
+    fido2_rp_id: str = ''
+    secret_key: str = ''
 
     def __post_init__(self):
-        if isinstance(self.CELERY_CONFIG, dict):
-            object.__setattr__(self, 'CELERY_CONFIG', CeleryConfig(**self.CELERY_CONFIG))
+        if isinstance(self.celery_config, dict):
+            object.__setattr__(self, 'celery_config', CeleryConfig(**self.celery_config))
 
     def __getattribute__(self, attr: str, default: Any = None) -> Any:
         try:
