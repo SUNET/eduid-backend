@@ -30,8 +30,6 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-# Author : Fredrik Thulin <fredrik@thulin.net>
-#
 """
 Configuration (file) handling for eduID IdP.
 """
