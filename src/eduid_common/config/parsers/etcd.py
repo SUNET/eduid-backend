@@ -15,6 +15,8 @@ __author__ = 'lundberg'
 
 class EtcdConfigParser(object):
 
+    UPPERCASE = True
+
     def __init__(self, namespace, host=None, port=None):
         """
         :param namespace: etcd namespace to read or write, ex. /eduid/webapp/common/
@@ -85,7 +87,9 @@ class EtcdConfigParser(object):
         try:
             for child in self.client.read(self.ns, recursive=True).children:
                 # Remove namespace and uppercase the key
-                key = child.key.split('/')[-1].upper()
+                key = child.key.split('/')[-1]
+                if self.UPPERCASE:
+                    key = key.upper()
                 # Load etcd string with json to handle complex structures
                 config[key] = json.loads(child.value)
         except (etcd.EtcdKeyNotFound, etcd.EtcdConnectionFailed) as e:
@@ -166,3 +170,8 @@ class EtcdConfigParser(object):
             if not config:
                 raise ParserException('No YAML found in {!s}'.format(file_path))
             self.write_configuration(config)
+
+
+class IdPEtcdConfigParser(EtcdConfigParser):
+
+    UPPERCASE = False

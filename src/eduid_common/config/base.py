@@ -119,18 +119,6 @@ class BaseConfig(object):
         if isinstance(self.celery_config, dict):
             object.__setattr__(self, 'celery_config', CeleryConfig(**self.celery_config))
 
-    def __getattribute__(self, attr: str, default: Any = None) -> Any:
-        try:
-            return super(BaseConfig, self).__getattribute__(attr)
-        except AttributeError:
-            # Allow the IdP to keep using lower case config keys
-            try:
-                return super(BaseConfig, self).__getattribute__(attr.upper())
-            except AttributeError:
-                if default is not None:
-                    return default
-                raise
-
     def __getitem__(self, attr: str) -> Any:
         '''
         XXX Once the apps are all accessing configuration as attributes,

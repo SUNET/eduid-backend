@@ -2,15 +2,12 @@
 
 from __future__ import absolute_import
 
-import six
+import os
 import unittest
-from mock import patch
-from nacl import secret, encoding
 
 from eduid_common.api.testing import EtcdTemporaryInstance
-from eduid_common.config.parsers.etcd import EtcdConfigParser
-from eduid_common.config.parsers import decorators
-from eduid_common.config.idp import IdPConfig
+from eduid_common.config.parsers.etcd import IdPEtcdConfigParser
+from eduid_common.config.idp import IdPConfig, init_config
 
 
 class TestTypedConfig(unittest.TestCase):
@@ -18,33 +15,47 @@ class TestTypedConfig(unittest.TestCase):
     def setUp(self):
         self.etcd_instance = EtcdTemporaryInstance()
 
-        self.ns = '/test/'
-        self.parser = EtcdConfigParser(namespace=self.ns, host=self.etcd_instance.host, port=self.etcd_instance.port)
+        self.common_ns = '/common/'
+        self.idp_ns = '/idp/'
+        self.common_parser = IdPEtcdConfigParser(namespace=self.common_ns, host=self.etcd_instance.host, port=self.etcd_instance.port)
+        self.idp_parser = IdPEtcdConfigParser(namespace=self.idp_ns, host=self.etcd_instance.host, port=self.etcd_instance.port)
+
+        common_config = {
+            'common': {
+                'devel_mode': True
+            }
+        }
+
+        idp_config = {
+            'idp': {
+                'signup_link': 'dummy'
+            }
+        }
+        self.common_parser.write_configuration(common_config)
+        self.idp_parser.write_configuration(idp_config)
+        os.environ['EDUID_CONFIG_COMMON_NS'] = '/common/'
+        os.environ['EDUID_CONFIG_NS'] = '/idp/'
+        os.environ['ETCD_HOST'] = self.etcd_instance.host
+        os.environ['ETCD_PORT'] = str(self.etcd_instance.port)
 
     def tearDown(self):
         self.etcd_instance.shutdown()
 
-    def test_write(self):
+    def test_default_setting(self):
+        config = init_config(test_config={})
+        self.assertEqual(config.devel_mode, False)
+        self.assertEqual(config.debug, True)
+        self.assertEqual(config.signup_link, '#')
 
-        config = {
-            'test': {
-                'debug': True,
-            }
-        }
+    def test_test_setting(self):
+        config = init_config(test_config={'devel_mode': True})
+        self.assertEqual(config.devel_mode, True)
 
-        self.parser.write_configuration(config)
+    def test_etcd_setting(self):
+        config = init_config()
+        self.assertEqual(config.signup_link, 'dummy')
+        self.assertEqual(config.devel_mode, True)
 
-        self.assertEqual(self.parser.get('my_bool'), True)
-
-    def test_read(self):
-
-        config = {
-            'test': {
-                'debug': True,
-            }
-        }
-
-        self.parser.write_configuration(config)
-        read_config = self.parser.read_configuration()
-
-        self.assertEqual(config['test'], read_config)
+    def test_debug(self):
+        config = init_config(debug=False)
+        self.assertEqual(config.debug, False)

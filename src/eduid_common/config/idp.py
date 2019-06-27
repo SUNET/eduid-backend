@@ -176,19 +176,19 @@ def init_config(test_config: Optional[dict] = None, debug: bool = True) -> IdPCo
     """
     Initialize configuration wth values from etcd
     """
-    config = {'DEBUG': debug}
+    config = {'debug': debug}
     if test_config is not None:
         # Load init time settings
         config.update(test_config)
     else:
-        from eduid_common.config.parsers.etcd import EtcdConfigParser
+        from eduid_common.config.parsers.etcd import IdPEtcdConfigParser
 
         common_namespace = os.environ.get('EDUID_CONFIG_COMMON_NS', '/eduid/webapp/common/')
-        common_parser = EtcdConfigParser(common_namespace)
+        common_parser = IdPEtcdConfigParser(common_namespace)
         config.update(common_parser.read_configuration(silent=True))
 
         namespace = os.environ.get('EDUID_CONFIG_NS', '/eduid/webapp/idp/')
-        parser = EtcdConfigParser(namespace)
+        parser = IdPEtcdConfigParser(namespace)
         # Load optional app specific settings
         config.update(parser.read_configuration(silent=True))
 
