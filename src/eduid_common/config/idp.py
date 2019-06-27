@@ -39,7 +39,7 @@ Configuration (file) handling for eduID IdP.
 from dataclasses import dataclass, field
 import os
 from importlib import import_module
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Dict, Any
 
 from .base import BaseConfig
 
@@ -52,8 +52,6 @@ class IdPConfig(BaseConfig):
     # session cookie
     session_cookie_persistent: bool = True
     session_cookie_locking: str = 'explicit'
-    # Secret key
-    secret_key: Optional[str] = None
     # Logging
     log_level: str = 'DEBUG'
     # IdP specific
@@ -84,10 +82,6 @@ class IdPConfig(BaseConfig):
     server_cert: Optional[str] = None
     # SSL private key filename (None == SSL disabled)
     server_key: Optional[str] = None
-
-    max_authn_failures_per_month: int = 50
-    max_auhtn_failures_per_month: int = 50
-
     # SSL certificate chain filename, or None
     cert_chain: Optional[str] = None
     #  UserDB database name. eduid_am for old userdb, eduid_userdb for new
@@ -140,6 +134,7 @@ class IdPConfig(BaseConfig):
     # Disallow login for a user after N failures in a given month.
     # This is said to be an imminent Kantara requirement.
     # Kantara 30-day bad authn limit is 100
+    max_auhtn_failures_per_month: int = 50
     max_authn_failures_per_month: int = 50
     # Lifetime of state kept in IdP login phase.
     # This is the time, in minutes, a user has to complete the login phase.
@@ -176,7 +171,7 @@ def init_config(test_config: Optional[dict] = None, debug: bool = True) -> IdPCo
     """
     Initialize configuration wth values from etcd
     """
-    config = {'debug': debug}
+    config : Dict[str, Any] = {'debug': debug}
     if test_config is not None:
         # Load init time settings
         config.update(test_config)
