@@ -58,6 +58,8 @@ class CeleryConfig(object):
 
 @dataclass(frozen=True)
 class BaseConfig(object):
+    # name of the app, which coincides with its namespace in etcd
+    app_name: str = ''
     devel_mode: bool = False
     development: bool = False
     # enable disable debug mode
@@ -135,7 +137,7 @@ class BaseConfig(object):
                   if not key.startswith('__') and not callable(val)}
 
     @classmethod
-    def init_config(cls: type, uppercase: bool = False, debug: bool = True,
+    def init_config(cls, uppercase: bool = False, debug: bool = True,
                     test_config: Optional[dict] = None) -> BaseConfig:
         """
         Initialize configuration wth values from etcd
