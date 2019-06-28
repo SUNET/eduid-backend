@@ -34,6 +34,8 @@
 Configuration (file) handling for eduID IdP.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 import os
 from importlib import import_module
@@ -131,3 +133,27 @@ class BaseConfig(object):
     def defaults(cls):
         return {key: val for key, val in cls.__dict__.items()
                   if not key.startswith('__') and not callable(val)}
+
+    @classmethod
+    def init_config(cls: type, uppercase: bool = False, debug: bool = True,
+                    test_config: Optional[dict] = None) -> BaseConfig:
+        """
+        Initialize configuration wth values from etcd
+        """
+        config : Dict[str, Any] = {'debug': debug}
+        if test_config is not None:
+            # Load init time settings
+            config.update(test_config)
+        else:
+            from eduid_common.config.parsers.etcd import EtcdConfigParser
+
+            common_namespace = os.environ.get('EDUID_CONFIG_COMMON_NS', '/eduid/webapp/common/')
+            common_parser = EtcdConfigParser(common_namespace)
+            config.update(common_parser.read_configuration(uppercase=uppercase, silent=True))
+
+            namespace = os.environ.get('EDUID_CONFIG_NS', f'/eduid/webapp/{cls.app_name}/')
+            parser = EtcdConfigParser(namespace)
+            # Load optional app specific settings
+            config.update(parser.read_configuration(uppercase=uppercase, silent=True))
+
+        return cls(**config)

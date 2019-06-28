@@ -47,6 +47,7 @@ class IdPConfig(BaseConfig):
     """
     Configuration for the IdP
     """
+    app_name: str = 'idp'
     # session cookie
     session_cookie_persistent: bool = True
     session_cookie_locking: str = 'explicit'
@@ -163,28 +164,3 @@ class IdPConfig(BaseConfig):
     shared_session_ttl: int = 300
     http_headers: str = "Content-Security-Policy:default-src 'self'; script-src 'self' 'unsafe-inline', X-Frame-Options:DENY"
     privacy_link: str = "http://html.eduid.docker/privacy.html"
-
-
-def init_config(test_config: Optional[dict] = None, debug: bool = True) -> IdPConfig:
-    """
-    Initialize configuration wth values from etcd
-    """
-    config : Dict[str, Any] = {'debug': debug}
-    if test_config is not None:
-        # Load init time settings
-        config.update(test_config)
-    else:
-        from eduid_common.config.parsers.etcd import IdPEtcdConfigParser
-
-        common_namespace = os.environ.get('EDUID_CONFIG_COMMON_NS', '/eduid/webapp/common/')
-        common_parser = IdPEtcdConfigParser(common_namespace)
-        config.update(common_parser.read_configuration(silent=True))
-
-        namespace = os.environ.get('EDUID_CONFIG_NS', '/eduid/webapp/idp/')
-        parser = IdPEtcdConfigParser(namespace)
-        # Load optional app specific settings
-        config.update(parser.read_configuration(silent=True))
-
-    idp_config = IdPConfig(**config)
-
-    return idp_config
