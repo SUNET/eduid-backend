@@ -51,7 +51,7 @@ class IdPConfig(BaseConfig):
     session_cookie_persistent: bool = True
     session_cookie_locking: str = 'explicit'
     # Logging
-    log_level: str = 'DEBUG'
+    log_level: str = 'INFO'
     # IdP specific
     syslog_debug: bool = False
     num_threads: int = 8
