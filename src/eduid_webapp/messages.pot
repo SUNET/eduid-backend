@@ -1,23 +1,23 @@
 # Translations template for PROJECT.
-# Copyright (C) 2018 ORGANIZATION
+# Copyright (C) 2019 ORGANIZATION
 # This file is distributed under the same license as the PROJECT project.
-# FIRST AUTHOR <EMAIL@ADDRESS>, 2018.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2019.
 #
 #, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2018-10-24 16:20+0200\n"
+"POT-Creation-Date: 2019-07-01 16:50+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.6.0\n"
+"Generated-By: Babel 2.7.0\n"
 
-#: email/verifications.py:69
+#: email/verifications.py:70
 msgid "eduID confirmation email"
 msgstr ""
 
@@ -60,7 +60,7 @@ msgid ""
 "\n"
 msgstr ""
 
-#: oidc_proofing/helpers.py:126
+#: oidc_proofing/helpers.py:128
 #, python-format
 msgid "%(site_name)s account verification"
 msgstr ""
@@ -88,134 +88,134 @@ msgid ""
 "    We apologize for any inconvenience.\n"
 msgstr ""
 
-#: security/helpers.py:144
+#: security/helpers.py:151
 msgid "Terminate account"
 msgstr ""
 
-#: security/helpers.py:176 security/views/reset_password.py:71
+#: security/helpers.py:187 security/views/reset_password.py:79
 #: security/views/templates/reset_password.jinja2:28
 msgid "Reset password"
 msgstr ""
 
-#: security/schemas.py:173
+#: security/schemas.py:213
 msgid "Invalid email address"
 msgstr ""
 
-#: security/schemas.py:186
+#: security/schemas.py:226
 msgid "Please enter a code"
 msgstr ""
 
-#: security/schemas.py:202
+#: security/schemas.py:242
 msgid "Please enter a password"
 msgstr ""
 
-#: security/schemas.py:204
+#: security/schemas.py:244
 msgid "Please repeat the password"
 msgstr ""
 
-#: security/schemas.py:206
+#: security/schemas.py:246
 msgid "Passwords does not match"
 msgstr ""
 
-#: security/schemas.py:214
+#: security/schemas.py:254
 msgid "Please use a stronger password"
 msgstr ""
 
-#: security/views/reset_password.py:35
+#: security/views/reset_password.py:38
 msgid "404 Not found"
 msgstr ""
 
-#: security/views/reset_password.py:36
+#: security/views/reset_password.py:39
 msgid "The requested state can not be found."
 msgstr ""
 
-#: security/views/reset_password.py:38 security/views/reset_password.py:48
-#: security/views/reset_password.py:104 security/views/reset_password.py:159
+#: security/views/reset_password.py:41 security/views/reset_password.py:51
+#: security/views/reset_password.py:112 security/views/reset_password.py:167
 msgid "Reset your password"
 msgstr ""
 
-#: security/views/reset_password.py:45
+#: security/views/reset_password.py:48
 msgid "Link expired"
 msgstr ""
 
-#: security/views/reset_password.py:46
+#: security/views/reset_password.py:49
 msgid "The password reset link has expired."
 msgstr ""
 
-#: security/views/reset_password.py:55
+#: security/views/reset_password.py:63
 msgid "SMS code expired"
 msgstr ""
 
-#: security/views/reset_password.py:56
+#: security/views/reset_password.py:64
 msgid "The phone verification has expired."
 msgstr ""
 
-#: security/views/reset_password.py:58 security/views/reset_password.py:178
+#: security/views/reset_password.py:66 security/views/reset_password.py:186
 msgid "Resend code or try another way"
 msgstr ""
 
-#: security/views/reset_password.py:72
+#: security/views/reset_password.py:80
 msgid "Enter an email address registered to your account below"
 msgstr ""
 
-#: security/views/reset_password.py:76
+#: security/views/reset_password.py:84
 msgid "Reset password message sent. Check your email to continue."
 msgstr ""
 
-#: security/views/reset_password.py:101 security/views/reset_password.py:190
+#: security/views/reset_password.py:109 security/views/reset_password.py:198
 msgid "Temporary technical problem"
 msgstr ""
 
-#: security/views/reset_password.py:102 security/views/reset_password.py:191
+#: security/views/reset_password.py:110 security/views/reset_password.py:199
 msgid "Please try again."
 msgstr ""
 
-#: security/views/reset_password.py:114
+#: security/views/reset_password.py:122
 msgid "Extra security"
 msgstr ""
 
-#: security/views/reset_password.py:115
+#: security/views/reset_password.py:123
 msgid "Choose an option to enhance the security"
 msgstr ""
 
-#: security/views/reset_password.py:126
+#: security/views/reset_password.py:134
 msgid "Email address not validated"
 msgstr ""
 
-#: security/views/reset_password.py:127
+#: security/views/reset_password.py:135
 msgid "Please use the password reset link that you have in your email."
 msgstr ""
 
-#: security/views/reset_password.py:156
+#: security/views/reset_password.py:164
 msgid "Something went wrong"
 msgstr ""
 
-#: security/views/reset_password.py:157
+#: security/views/reset_password.py:165
 msgid "Please restart the password reset procedure."
 msgstr ""
 
-#: security/views/reset_password.py:173
+#: security/views/reset_password.py:181
 #: security/views/templates/reset_password_verify_phone.jinja2:30
 msgid "Verify phone number"
 msgstr ""
 
-#: security/views/reset_password.py:174
+#: security/views/reset_password.py:182
 msgid "Enter the code you received via SMS"
 msgstr ""
 
-#: security/views/reset_password.py:193
+#: security/views/reset_password.py:201
 msgid "Try again"
 msgstr ""
 
-#: security/views/reset_password.py:198
+#: security/views/reset_password.py:206
 msgid "Invalid code. Please try again."
 msgstr ""
 
-#: security/views/reset_password.py:209
+#: security/views/reset_password.py:217
 msgid "New password"
 msgstr ""
 
-#: security/views/reset_password.py:210
+#: security/views/reset_password.py:218
 msgid ""
 "\n"
 "            Please choose a new password for your eduID account. A strong"

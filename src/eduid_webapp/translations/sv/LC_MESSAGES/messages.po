@@ -1,24 +1,28 @@
 # Translations template for PROJECT.
-# Copyright (C) 2018 ORGANIZATION
+# Copyright (C) 2019 ORGANIZATION
 # This file is distributed under the same license as the PROJECT project.
-# FIRST AUTHOR <EMAIL@ADDRESS>, 2018.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2019.
+# 
+# Translators:
+# Johan Lundberg <lundberg.johan@gmail.com>, 2018
+# Johan Lundberg <lundberg@sunet.se>, 2019
 # 
 msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2018-10-24 16:20+0200\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: Johan Lundberg <lundberg.johan@gmail.com>, 2018\n"
+"POT-Creation-Date: 2019-07-01 16:50+0200\n"
+"PO-Revision-Date: 2018-03-27 09:25+0000\n"
+"Last-Translator: Johan Lundberg <lundberg@sunet.se>, 2019\n"
 "Language-Team: Swedish (https://www.transifex.com/sunet/teams/84844/sv/)\n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=utf-8\n"
+"Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.6.0\n"
+"Generated-By: Babel 2.7.0\n"
 "Language: sv\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: email/verifications.py:69
+#: email/verifications.py:70
 msgid "eduID confirmation email"
 msgstr "eduID bekräftelsemejl"
 
@@ -78,7 +82,7 @@ msgstr ""
 "%(code)s\n"
 "\n"
 
-#: oidc_proofing/helpers.py:126
+#: oidc_proofing/helpers.py:128
 #, python-format
 msgid "%(site_name)s account verification"
 msgstr "%(site_name)skontobekräftning"
@@ -110,138 +114,138 @@ msgstr ""
 "\n"
 "Tyvärr uppstod ett problem så vi måste be dig att bekräfta ditt konto igen med något av de andra sätten att verifiera din identitet.\n"
 
-#: security/helpers.py:144
+#: security/helpers.py:151
 msgid "Terminate account"
 msgstr "Avsluta konto"
 
-#: security/helpers.py:176 security/views/reset_password.py:71
+#: security/helpers.py:187 security/views/reset_password.py:79
 #: security/views/templates/reset_password.jinja2:28
 msgid "Reset password"
 msgstr "Återställ lösenord"
 
-#: security/schemas.py:173
+#: security/schemas.py:213
 msgid "Invalid email address"
 msgstr "Ogiltig e-postadress"
 
-#: security/schemas.py:186
+#: security/schemas.py:226
 msgid "Please enter a code"
 msgstr "Ange en kod"
 
-#: security/schemas.py:202
+#: security/schemas.py:242
 msgid "Please enter a password"
 msgstr "Ange ett lösenord"
 
-#: security/schemas.py:204
+#: security/schemas.py:244
 msgid "Please repeat the password"
 msgstr "Repetera lösenordet"
 
-#: security/schemas.py:206
+#: security/schemas.py:246
 msgid "Passwords does not match"
 msgstr "Lösenorden är olika"
 
-#: security/schemas.py:214
+#: security/schemas.py:254
 msgid "Please use a stronger password"
 msgstr "Lösenordet är inte tillräckligt starkt"
 
-#: security/views/reset_password.py:35
+#: security/views/reset_password.py:38
 msgid "404 Not found"
 msgstr "404 Hittades inte"
 
-#: security/views/reset_password.py:36
+#: security/views/reset_password.py:39
 msgid "The requested state can not be found."
 msgstr "Kunde inte ladda sparad status"
 
-#: security/views/reset_password.py:38 security/views/reset_password.py:48
-#: security/views/reset_password.py:104 security/views/reset_password.py:159
+#: security/views/reset_password.py:41 security/views/reset_password.py:51
+#: security/views/reset_password.py:112 security/views/reset_password.py:167
 msgid "Reset your password"
 msgstr "Återställ ditt lösenord"
 
-#: security/views/reset_password.py:45
+#: security/views/reset_password.py:48
 msgid "Link expired"
 msgstr "Länken har gått ut"
 
-#: security/views/reset_password.py:46
+#: security/views/reset_password.py:49
 msgid "The password reset link has expired."
 msgstr "Länken för lösenordsåterställning har gått ut."
 
-#: security/views/reset_password.py:55
+#: security/views/reset_password.py:63
 msgid "SMS code expired"
 msgstr "SMS-koden har gått ut"
 
-#: security/views/reset_password.py:56
+#: security/views/reset_password.py:64
 msgid "The phone verification has expired."
 msgstr "Telefonbekräftelsen har gått ut."
 
-#: security/views/reset_password.py:58 security/views/reset_password.py:178
+#: security/views/reset_password.py:66 security/views/reset_password.py:186
 msgid "Resend code or try another way"
 msgstr "Skicka en ny kod eller byt säkerhetsmetod"
 
-#: security/views/reset_password.py:72
+#: security/views/reset_password.py:80
 msgid "Enter an email address registered to your account below"
 msgstr "Ange en e-postadress som är registrerad på ditt konto"
 
-#: security/views/reset_password.py:76
+#: security/views/reset_password.py:84
 msgid "Reset password message sent. Check your email to continue."
 msgstr ""
 "Ett meddelande om lösenordsåterställning har skickats. Kolla din e-post för "
 "att fortsätta."
 
-#: security/views/reset_password.py:101 security/views/reset_password.py:190
+#: security/views/reset_password.py:109 security/views/reset_password.py:198
 msgid "Temporary technical problem"
 msgstr "Temporärt tekniskt fel"
 
-#: security/views/reset_password.py:102 security/views/reset_password.py:191
+#: security/views/reset_password.py:110 security/views/reset_password.py:199
 msgid "Please try again."
 msgstr "Vänligen försök igen."
 
-#: security/views/reset_password.py:114
+#: security/views/reset_password.py:122
 msgid "Extra security"
 msgstr "Extra säkerhet"
 
-#: security/views/reset_password.py:115
+#: security/views/reset_password.py:123
 msgid "Choose an option to enhance the security"
 msgstr "Välj en metod för att öka säkerheten"
 
-#: security/views/reset_password.py:126
+#: security/views/reset_password.py:134
 msgid "Email address not validated"
 msgstr "E-postadressen kunde inte valideras"
 
-#: security/views/reset_password.py:127
+#: security/views/reset_password.py:135
 msgid "Please use the password reset link that you have in your email."
 msgstr ""
 "Var vänlig och använd återställningslänken som skickats till din "
 "e-postsadress."
 
-#: security/views/reset_password.py:156
+#: security/views/reset_password.py:164
 msgid "Something went wrong"
 msgstr "Något gick fel"
 
-#: security/views/reset_password.py:157
+#: security/views/reset_password.py:165
 msgid "Please restart the password reset procedure."
 msgstr "Var vänlig och börja om lösenordsåterställningen."
 
-#: security/views/reset_password.py:173
+#: security/views/reset_password.py:181
 #: security/views/templates/reset_password_verify_phone.jinja2:30
 msgid "Verify phone number"
 msgstr "Bekräfta telefonnummer"
 
-#: security/views/reset_password.py:174
+#: security/views/reset_password.py:182
 msgid "Enter the code you received via SMS"
 msgstr "Ange bekräftelsekoden som har skickats med SMS"
 
-#: security/views/reset_password.py:193
+#: security/views/reset_password.py:201
 msgid "Try again"
 msgstr "Försök igen"
 
-#: security/views/reset_password.py:198
+#: security/views/reset_password.py:206
 msgid "Invalid code. Please try again."
 msgstr "Felaktig bekräftelsekod. Vänligen försök igen."
 
-#: security/views/reset_password.py:209
+#: security/views/reset_password.py:217
 msgid "New password"
 msgstr "Nytt lösenord"
 
-#: security/views/reset_password.py:210
+#: security/views/reset_password.py:218
 msgid ""
 "\n"
 "            Please choose a new password for your eduID account. A strong password has been generated for you.\n"
@@ -320,7 +324,7 @@ msgstr ""
 "\n"
 "Om det inte går att klicka på länken kan du kopiera och klistra in den i din webbläsare.\n"
 "\n"
-"Länken för återställning av ditt lösenord är giltig i%(password_reset_timeout)s timmar.\n"
+"Länken för återställning av ditt lösenord är giltig i %(password_reset_timeout)s timmar.\n"
 "\n"
 "(Detta är ett automatiserat meddelande och går ej att svara på.)\n"
 
@@ -451,7 +455,7 @@ msgstr ""
 "\n"
 "    <p>Du har valt att ta bort ditt <a href=\"%(site_url)s\">%(site_name)s</a>-konto.</p>\n"
 "\n"
-"    <p><strong>Om det inte var du som tog bort kontot så återställ ditt lösenord omedebart.</strong></p>\n"
+"    <p><strong>Om det inte var du som tog bort kontot så återställ ditt lösenord omedelbart.</strong></p>\n"
 "\n"
 "    <p>Tack för att du använde %(site_name)s.</p>\n"
 "\n"
