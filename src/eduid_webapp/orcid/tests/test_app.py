@@ -95,7 +95,7 @@ class OrcidTests(EduidAPITestCase):
                 'client_secret': 'secret'
             },
             'USERINFO_ENDPOINT_METHOD': 'GET',
-            'DASHBOARD_URL': 'https://dashboard.example.com/'
+            'ORCID_VERIFY_REDIRECT_URL': 'https://dashboard.example.com/'
         })
         return config
 

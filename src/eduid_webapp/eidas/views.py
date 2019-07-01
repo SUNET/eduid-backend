@@ -34,7 +34,7 @@ def index(user):
 @require_user
 def verify_token(user, credential_id):
     current_app.logger.debug('verify-token called with credential_id: {}'.format(credential_id))
-    redirect_url = urlappend(current_app.config['DASHBOARD_URL'], 'security')
+    redirect_url = current_app.config['TOKEN_VERIFY_REDIRECT_URL']
 
     # Check if requested key id is a mfa token and if the user used that to log in
     token_to_verify = user.credentials.filter(FidoCredential).find(credential_id)
