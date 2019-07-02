@@ -53,7 +53,7 @@ class EtcdConfigParser(object):
 
     @interpolate
     @decrypt
-    def read_configuration(self, silent=False):
+    def read_configuration(self, silent=False, uppercase=True):
         """
         :param silent: set to `True` if you want silent failure for missing keys.
         :type silent: bool
@@ -85,7 +85,9 @@ class EtcdConfigParser(object):
         try:
             for child in self.client.read(self.ns, recursive=True).children:
                 # Remove namespace and uppercase the key
-                key = child.key.split('/')[-1].upper()
+                key = child.key.split('/')[-1]
+                if uppercase:
+                    key = key.upper()
                 # Load etcd string with json to handle complex structures
                 config[key] = json.loads(child.value)
         except (etcd.EtcdKeyNotFound, etcd.EtcdConnectionFailed) as e:
