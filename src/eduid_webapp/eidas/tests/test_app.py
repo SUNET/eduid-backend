@@ -119,7 +119,8 @@ class EidasTests(EduidAPITestCase):
     def update_config(self, config):
         saml_config = os.path.join(HERE, 'saml2_settings.py')
         config.update({
-            'DASHBOARD_URL': 'http://test.localhost/profile',
+            'TOKEN_VERIFY_REDIRECT_URL': 'http://test.localhost/profile',
+            'NIN_VERIFY_REDIRECT_URL': 'http://test.localhost/profile',
             'ACTION_URL': 'http://idp.test.localhost/action',
             'MSG_BROKER_URL': 'amqp://dummy',
             'AM_BROKER_URL': 'amqp://dummy',
@@ -380,8 +381,8 @@ class EidasTests(EduidAPITestCase):
 
                 self.assertEqual(response.status_code, 302)
                 self.assertEqual(response.location,
-                                 '{}/security?msg=%3AERROR%3Aeidas.token_not_in_credentials_used'.format(
-                                     self.app.config['DASHBOARD_URL']))
+                                 '{}?msg=%3AERROR%3Aeidas.token_not_in_credentials_used'.format(
+                                     self.app.config['TOKEN_VERIFY_REDIRECT_URL']))
 
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
@@ -556,8 +557,8 @@ class EidasTests(EduidAPITestCase):
 
                 self.assertEqual(response.status_code, 302)
                 self.assertEqual(response.location,
-                                 '{}/nins?msg=%3AERROR%3Aeidas.nin_already_verified'.format(
-                                     self.app.config['DASHBOARD_URL']))
+                                 '{}?msg=%3AERROR%3Aeidas.nin_already_verified'.format(
+                                     self.app.config['NIN_VERIFY_REDIRECT_URL']))
 
     def test_mfa_authentication_verified_user(self):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)

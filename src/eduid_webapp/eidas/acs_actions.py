@@ -41,7 +41,7 @@ def token_verify_action(session_info, user):
     :return: redirect response
     :rtype: Response
     """
-    redirect_url = urlappend(current_app.config['DASHBOARD_URL'], 'security')
+    redirect_url = current_app.config['TOKEN_VERIFY_REDIRECT_URL']
 
     if not is_required_loa(session_info, 'loa3'):
         return redirect_with_msg(redirect_url, ':ERROR:eidas.authn_context_mismatch')
@@ -122,7 +122,8 @@ def nin_verify_action(session_info, user):
     :return: redirect response
     :rtype: Response
     """
-    redirect_url = urlappend(current_app.config['DASHBOARD_URL'], 'nins')
+
+    redirect_url = current_app.config['NIN_VERIFY_REDIRECT_URL']
 
     if not is_required_loa(session_info, 'loa3'):
         return redirect_with_msg(redirect_url, ':ERROR:eidas.authn_context_mismatch')

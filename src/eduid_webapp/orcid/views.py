@@ -48,19 +48,19 @@ def authorize(user):
         current_app.stats.count(name='authn_request')
         return redirect(authorization_url)
     # Orcid already connected to user
-    url = urlappend(current_app.config['DASHBOARD_URL'], 'accountlinking')
-    scheme, netloc, path, query_string, fragment = urlsplit(url)
+    redirect_url = current_app.config['ORCID_VERIFY_REDIRECT_URL']
+    scheme, netloc, path, query_string, fragment = urlsplit(redirect_url)
     new_query_string = urlencode({'msg': ':ERROR:orc.already_connected'})
-    url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
-    return redirect(url)
+    redirect_url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
+    return redirect(redirect_url)
 
 
 @orcid_views.route('/authorization-response', methods=['GET'])
 @require_user
 def authorization_response(user):
     # Redirect url for user feedback
-    url = urlappend(current_app.config['DASHBOARD_URL'], 'accountlinking')
-    scheme, netloc, path, query_string, fragment = urlsplit(url)
+    redirect_url = current_app.config['ORCID_VERIFY_REDIRECT_URL']
+    scheme, netloc, path, query_string, fragment = urlsplit(redirect_url)
 
     current_app.stats.count(name='authn_response')
 
@@ -77,16 +77,16 @@ def authorization_response(user):
                                                                                 authn_resp.get('error_message'),
                                                                                 authn_resp.get('error_description')))
         new_query_string = urlencode({'msg': ':ERROR:orc.authorization_fail'})
-        url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
-        return redirect(url)
+        redirect_url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
+        return redirect(redirect_url)
 
     user_oidc_state = authn_resp['state']
     proofing_state = current_app.proofing_statedb.get_state_by_oidc_state(user_oidc_state, raise_on_missing=False)
     if not proofing_state:
         current_app.logger.error('The \'state\' parameter ({!s}) does not match a user state.'.format(user_oidc_state))
         new_query_string = urlencode({'msg': ':ERROR:orc.unknown_state'})
-        url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
-        return redirect(url)
+        redirect_url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
+        return redirect(redirect_url)
 
     # do token request
     args = {
@@ -102,8 +102,8 @@ def authorization_response(user):
     if id_token['nonce'] != proofing_state.nonce:
         current_app.logger.error('The \'nonce\' parameter does not match for user')
         new_query_string = urlencode({'msg': ':ERROR:orc.unknown_nonce'})
-        url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
-        return redirect(url)
+        redirect_url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
+        return redirect(redirect_url)
     current_app.logger.info('ORCID authorized for user')
 
     # do userinfo request
@@ -115,8 +115,8 @@ def authorization_response(user):
         current_app.logger.error('The \'sub\' of userinfo does not match \'sub\' of ID Token for user {!s}.'.format(
             proofing_state.eppn))
         new_query_string = urlencode({'msg': ':ERROR:orc.sub_mismatch'})
-        url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
-        return redirect(url)
+        redirect_url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
+        return redirect(redirect_url)
 
     # Save orcid and oidc data to user
     current_app.logger.info('Saving ORCID data for user')
@@ -148,8 +148,8 @@ def authorization_response(user):
     # Clean up
     current_app.logger.info('Removing proofing state')
     current_app.proofing_statedb.remove_state(proofing_state)
-    url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
-    return redirect(url)
+    redirect_url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
+    return redirect(redirect_url)
 
 
 @orcid_views.route('/', methods=['GET'])

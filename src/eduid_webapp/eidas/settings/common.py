@@ -34,8 +34,9 @@ SECRET_KEY = None
 # Logging
 LOG_LEVEL = 'INFO'
 
-DASHBOARD_URL = ''
 ACTION_URL = ''
+TOKEN_VERIFY_REDIRECT_URL = '/profile/security'
+NIN_VERIFY_REDIRECT_URL = '/profile/nins'
 
 # Federation config
 AUTHENTICATION_CONTEXT_MAP = {
