@@ -40,11 +40,17 @@ and are called with two positional parameters:
  * the session_info given in the SAML response (a dict)
  * The user object
 """
+from typing import Callable
 
 from flask import current_app
+
 from eduid_common.session import session
 
 _actions = {}
+
+
+class UnregisteredAction(Exception):
+    pass
 
 
 def acs_action(action_key):
@@ -75,7 +81,7 @@ def schedule_action(action_key):
     session['post-authn-action'] = action_key
 
 
-def get_action(default_action='login-action'):
+def get_action(default_action: str = 'login-action') -> Callable:
     """
     retrieve an action from the registry based on the key
     stored in the session.
@@ -83,11 +89,17 @@ def get_action(default_action='login-action'):
     :return: the action
     :rtype: function
     """
-    try:
-        action_key = session['post-authn-action']
-    except KeyError:
+    action_key = session.get('post-authn-action')
+    if action_key is None:
         action_key = default_action
-    else:
+    try:
+        action = _actions[action_key]
+    except KeyError:
+        error_msg = f'acs action "{action_key}" not found in acs registry'
+        current_app.logger.error(error_msg)
+        current_app.logger.debug(f'Registered acs actions: {_actions.keys()}')
+        raise UnregisteredAction(error_msg)
+    finally:
         del session['post-authn-action']
-    current_app.logger.debug('Consuming acs action ' + action_key)
-    return _actions[action_key]
+    current_app.logger.debug(f'Consuming acs action {action_key}')
+    return action
