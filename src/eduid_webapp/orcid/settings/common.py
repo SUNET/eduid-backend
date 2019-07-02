@@ -44,4 +44,4 @@ PROVIDER_CONFIGURATION_INFO = {
 
 USERINFO_ENDPOINT_METHOD = 'GET'
 
-ORCID_VERIFY_REDIRECT_URL = '/profile/'  # /profile/accountlinking
+ORCID_VERIFY_REDIRECT_URL = '/profile/accountlinking'
