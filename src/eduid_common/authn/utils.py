@@ -33,6 +33,7 @@
 
 from __future__ import absolute_import
 
+import six
 import importlib.util
 import logging
 import time
@@ -41,7 +42,6 @@ from pwgen import pwgen
 from saml2.config import SPConfig
 
 from eduid_common.api.utils import urlappend
-from eduid_common.session import session
 
 logger = logging.getLogger(__name__)
 
@@ -133,6 +133,7 @@ def check_previous_identification(session_ns):
 
     :return: The eppn in case the check is successful, None otherwise
     """
+    from eduid_common.session import session
     eppn = session.common.eppn
     if eppn is None:
         eppn = session.get('user_eppn', None)
@@ -149,6 +150,34 @@ def check_previous_identification(session_ns):
             timestamp, ts - now, now))
         return None
     return eppn
+
+
+def maybe_xml_to_string(message, logger=None):
+    """
+    Try to parse message as an XML string, and then return it pretty-printed.
+
+    If message couldn't be parsed, return string representation of it instead.
+
+    This is used to (debug-)log SAML requests/responses in a readable way.
+
+    :param message: XML string typically
+    :param logger: logging logger
+    :return: something ready for logging
+    :rtype: string
+    """
+    if isinstance(message, six.binary_type):
+        # message is returned as binary from pysaml2 in python3
+        message = message.decode('utf-8')
+    message = str(message)
+    try:
+        from defusedxml import ElementTree as DefusedElementTree
+        parser = DefusedElementTree.DefusedXMLParser()
+        xml = DefusedElementTree.XML(message, parser)
+        return DefusedElementTree.tostring(xml)
+    except Exception as exc:
+        if logger is not None:
+            logger.debug("Could not parse message of type {!r} as XML: {!r}".format(type(message), exc))
+        return message
 
 
 # XXX TRANSITION_TOKEN_LOGIN the code below is deprecated and only kept fr the transition to implicit

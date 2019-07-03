@@ -9,7 +9,6 @@ from flask import current_app
 from six.moves.urllib_parse import urlparse
 
 from eduid_common.api.exceptions import ApiException
-from eduid_common.session import session
 from eduid_userdb.exceptions import UserDBValueError, EduIDUserDBError
 from eduid_userdb.exceptions import UserDoesNotExist, MultipleUsersReturned
 
@@ -65,6 +64,7 @@ def get_user():
     :return: Central userdb user
     :rtype: eduid_userdb.user.User
     """
+    from eduid_common.session import session
     eppn = session.get('user_eppn', None)
     if not eppn:
         raise ApiException('Not authorized', status_code=401)

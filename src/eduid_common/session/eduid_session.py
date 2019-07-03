@@ -22,6 +22,7 @@ from eduid_common.api.exceptions import BadConfiguration
 from eduid_common.session.redis_session import SessionManager, RedisEncryptedSession
 from eduid_common.session.namespaces import SessionNSBase, Common, MfaAction
 from eduid_common.session.namespaces import Signup, Actions
+from eduid_common.session.loginstate import SSOLoginData
 
 
 class EduidSession(SessionMixin, MutableMapping):
@@ -53,6 +54,7 @@ class EduidSession(SessionMixin, MutableMapping):
         self._mfa_action: Optional[MfaAction] = None
         self._signup: Optional[Signup] = None
         self._actions: Optional[Actions] = None
+        self._sso_ticket: Optional[SSOLoginData] = None
 
     def __getitem__(self, key, default=None):
         return self._session.__getitem__(key, default=None)
@@ -129,6 +131,17 @@ class EduidSession(SessionMixin, MutableMapping):
     def actions(self, value: Optional[Actions]):
         if not self._actions:
             self._actions = value
+
+    @property
+    def sso_ticket(self) -> Optional[SSOLoginData]:
+        if not self._sso_ticket:
+            self._sso_ticket = SSOLoginData.from_dict(self._session.get('_sso_ticket', {}))
+        return self._sso_ticket
+
+    @sso_ticket.setter
+    def sso_ticket(self, value: Optional[SSOLoginData]):
+        if not self._sso_ticket:
+            self._sso_ticket = value
 
     @property
     def token(self):
