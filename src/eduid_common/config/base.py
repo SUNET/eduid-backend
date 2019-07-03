@@ -136,6 +136,10 @@ class BaseConfig(object):
         return {key: val for key, val in cls.__dict__.items()
                   if isinstance(key, str) and not key.startswith('__') and not callable(val)}
 
+    def to_dict(self):
+        return {key: val for key, val in self.__dict__.items()
+                  if isinstance(key, str) and not key.startswith('__') and not callable(val)}
+
     @classmethod
     def init_config(cls, uppercase: bool = False, debug: bool = True,
                     test_config: Optional[dict] = None) -> BaseConfig:
