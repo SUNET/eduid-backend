@@ -108,7 +108,7 @@ def rotating(app):
             app.logger.addHandler(handler)
             app.logger.info('Rotating log handler initiated')
         except AttributeError as e:
-            raise BadConfiguration(e.message)
+            raise BadConfiguration(e)
     return app
 
 
@@ -131,7 +131,7 @@ def stream(app):
         app.logger.addHandler(handler)
         app.logger.info('Stream log handler initiated')
     except AttributeError as e:
-        raise BadConfiguration(e.message)
+        raise BadConfiguration(e)
     return app
 
 
