@@ -16,9 +16,25 @@ from typing import Dict, Optional
 from urllib.parse import urlencode
 
 from eduid_common.session.namespaces import SessionNSBase
-from eduid_common.authn.idp_authn import ExternalMfaData
 from eduid_common.authn.idp_saml import IdP_SAMLRequest
 from eduid_userdb.credentials import Credential
+
+
+@dataclass
+class ExternalMfaData(object):
+    """
+    Data about a successful external authentication as a multi factor.
+    """
+    issuer: str
+    authn_context: str
+    timestamp: datetime
+
+    def to_session_dict(self):
+        return asdict(self)
+
+    @classmethod
+    def from_session_dict(cls, data: Dict):
+        return cls(**data)
 
 
 @dataclass
@@ -85,20 +101,3 @@ class SSOLoginData(SessionNSBase):
             data['SAMLRequest length'] = len(data['SAMLRequest'])
             del data['SAMLRequest']
         return pprint.pformat(data)
-
-
-@dataclass
-class ExternalMfaData(object):
-    """
-    Data about a successful external authentication as a multi factor.
-    """
-    issuer: str
-    authn_context: str
-    timestamp: datetime
-
-    def to_session_dict(self):
-        return asdict(self)
-
-    @classmethod
-    def from_session_dict(cls, data: Dict):
-        return cls(**data)

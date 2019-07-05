@@ -22,7 +22,7 @@ from eduid_common.api.exceptions import BadConfiguration
 from eduid_common.session.redis_session import SessionManager, RedisEncryptedSession
 from eduid_common.session.namespaces import SessionNSBase, Common, MfaAction
 from eduid_common.session.namespaces import Signup, Actions
-from eduid_common.session.loginstate import SSOLoginData
+from eduid_common.session.logindata import SSOLoginData
 
 
 class EduidSession(SessionMixin, MutableMapping):
