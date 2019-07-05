@@ -11,7 +11,7 @@
 import pprint
 from datetime import datetime
 from html import escape, unescape
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
 from typing import Dict, Optional
 from urllib.parse import urlencode
 
@@ -85,3 +85,20 @@ class SSOLoginData(SessionNSBase):
             data['SAMLRequest length'] = len(data['SAMLRequest'])
             del data['SAMLRequest']
         return pprint.pformat(data)
+
+
+@dataclass
+class ExternalMfaData(object):
+    """
+    Data about a successful external authentication as a multi factor.
+    """
+    issuer: str
+    authn_context: str
+    timestamp: datetime
+
+    def to_session_dict(self):
+        return asdict(self)
+
+    @classmethod
+    def from_session_dict(cls, data: Dict):
+        return cls(**data)
