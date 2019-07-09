@@ -78,6 +78,7 @@ def login_action(session_info, user):
     """
     current_app.logger.info("User {} logging in.".format(user))
     update_user_session(session_info, user)
+    current_app.stats.count('login_success')
 
     # redirect the user to the view where he came from
     relay_state = verify_relay_state(request.form.get('RelayState', '/'))
@@ -101,6 +102,7 @@ def chpass_action(session_info, user):
     :param user: the authenticated user
     :type user: eduid_userdb.User
     """
+    current_app.stats.count('reauthn_chpass_success')
     return _reauthn('reauthn-for-chpass', session_info, user)
 
 
@@ -117,6 +119,7 @@ def term_account_action(session_info, user):
     :param user: the authenticated user
     :type user: eduid_userdb.User
     """
+    current_app.stats.count('reauthn_termination_success')
     return _reauthn('reauthn-for-termination', session_info, user)
 
 
@@ -133,6 +136,7 @@ def reauthn_account_action(session_info, user):
     :param user: the authenticated user
     :type user: eduid_userdb.User
     """
+    current_app.stats.count('reauthn_success')
     return _reauthn('reauthn', session_info, user)
 
 

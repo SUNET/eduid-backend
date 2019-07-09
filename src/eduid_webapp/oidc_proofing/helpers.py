@@ -177,7 +177,7 @@ def handle_seleg_userinfo(user, proofing_state, userinfo):
                                            transaction_id=transaction_id, user_postal_address=address,
                                            proofing_version='2017v1')
         verify_nin_for_user(user, proofing_state, proofing_log_entry)
-        current_app.stats.count(name='seleg.authn_response_handled')
+        current_app.stats.count(name='seleg.nin_verified')
     else:
         current_app.logger.info('se-leg proofing did not result in a verified account due to low score')
         current_app.stats.count(name='seleg.authn_response_with_low_score')
@@ -213,6 +213,4 @@ def handle_freja_eid_userinfo(user, proofing_state, userinfo):
                                                opaque_data=opaque, user_postal_address=address,
                                                proofing_version='2017v1')
     verify_nin_for_user(user, proofing_state, proofing_log_entry)
-    current_app.stats.count(name='freja.authn_response_handled')
-
-
+    current_app.stats.count(name='freja.nin_verified')

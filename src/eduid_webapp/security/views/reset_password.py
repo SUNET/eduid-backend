@@ -141,6 +141,7 @@ def choose_extra_security(state):
         if not form.errors and session.get_csrf_token() == form.data['csrf']:
             if form.data.get('no_extra_security'):
                 current_app.logger.info('Redirecting user to reset password with NO extra security')
+                current_app.stats.count(name='reset_password_no_extra_security')
                 return redirect(url_for('reset_password.new_password', email_code=state.email_code.code))
             if form.data.get('phone_number_index'):
                 phone_number_index = int(form.data.get('phone_number_index'))
@@ -148,6 +149,7 @@ def choose_extra_security(state):
                 current_app.logger.info('Trying to send password reset sms to user {}'.format(state.eppn))
                 send_verify_phone_code(state, phone_number)
                 current_app.logger.info('Redirecting user to verify phone number view')
+                current_app.stats.count(name='reset_password_extra_security_phone')
                 return redirect(url_for('reset_password.extra_security_phone_number', email_code=state.email_code.code))
 
         view_context['errors'] = form.errors
@@ -202,6 +204,7 @@ def extra_security_phone_number(state):
                     }
                     return render_template('error.jinja2', view_context=view_context)
                 current_app.logger.info('Phone code verified redirecting user to set password view')
+                current_app.stats.count(name='reset_password_extra_security_phone_success')
                 return redirect(url_for('reset_password.new_password', email_code=state.email_code.code))
             view_context['form_post_fail_msg'] = _('Invalid code. Please try again.')
         view_context['errors'] = form.errors
@@ -235,9 +238,11 @@ def new_password(state):
             if form.data.get('use_generated_password'):
                 password = state.generated_password
                 current_app.logger.info('Generated password used')
+                current_app.stats.count(name='reset_password_generated_password_used')
             else:
                 password = form.data.get('custom_password')
                 current_app.logger.info('Custom password used')
+                current_app.stats.count(name='reset_password_custom_password_used')
             current_app.logger.info('Resetting password for user {}'.format(state.eppn))
             reset_user_password(state, password)
             current_app.logger.info('Password reset done removing state for user {}'.format(state.eppn))
