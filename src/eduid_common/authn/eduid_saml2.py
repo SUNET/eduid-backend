@@ -118,13 +118,13 @@ def get_authn_response(saml2_config: SPConfig, session, raw_response):
             """SAML response is not correctly formatted and therefore the
             XML document could not be parsed.
             """)
-    except UnsolicitedResponse:
+    except UnsolicitedResponse as e:
         logger.exception('Unsolicited SAML response')
         # Extra debug to try and find the cause for some of these that seem to be incorrect
         logger.debug(f'Session: {session}')
         logger.debug(f'Outstanding queries cache: {oq_cache}')
         logger.debug(f'Outstanding queries: {outstanding_queries}')
-        raise BadSAMLResponse('Unsolicited SAML response. Please try to login again.')
+        raise e
 
     if response is None:
         logger.error('SAML response is None')
