@@ -1,16 +1,29 @@
+import six
 import logging
 from dataclasses import dataclass
-from typing import Mapping, NewType, Optional
+from typing import Mapping, NewType, Optional, AnyStr
+from hashlib import sha1
 
 from eduid_common.authn import utils
 import saml2.server
-from eduid_common.authn.utils import gen_key
 from saml2.s_utils import UnknownPrincipal, UnknownSystemEntity, UnravelError, UnsupportedBinding
 from saml2.saml import Issuer
 from saml2.samlp import RequestedAuthnContext
 from saml2.sigver import verify_redirect_signature
 
 ResponseArgs = NewType('ResponseArgs', dict)
+
+
+def gen_key(something: AnyStr) -> str:
+    """
+    Generate a unique (not strictly guaranteed) key based on `something'.
+
+    :param something: object
+    :return:
+    """
+    if isinstance(something, six.binary_type):
+        return sha1(something).hexdigest()
+    return sha1(something.encode('UTF-8')).hexdigest()
 
 
 @dataclass
