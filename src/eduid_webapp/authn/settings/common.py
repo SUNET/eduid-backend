@@ -17,7 +17,3 @@ SIGNUP_AUTHN_SUCCESS_REDIRECT_URL = "https://dashboard.eduid.se"
 SIGNUP_AUTHN_FAILURE_REDIRECT_URL = "https://dashboard.eduid.se"
 
 
-# XXX TRANSITION_TOKEN_LOGIN remove after transition
-DASHBOARD_URL = '/profile/'
-SIGNUP_AND_AUTHN_SHARED_KEY = None
-# XXX end TRANSITION_TOKEN_LOGIN remove after transition
