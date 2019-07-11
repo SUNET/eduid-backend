@@ -16,4 +16,4 @@ required_loa = {
 SIGNUP_AUTHN_SUCCESS_REDIRECT_URL = "https://dashboard.eduid.se"
 SIGNUP_AUTHN_FAILURE_REDIRECT_URL = "https://dashboard.eduid.se"
 
-
+UNSOLICITED_RESPONSE_REDIRECT_URL = "https://dashboard.eduid.se"
