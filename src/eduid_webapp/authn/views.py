@@ -37,7 +37,7 @@ from saml2.response import LogoutResponse
 from saml2.metadata import entity_descriptor
 from werkzeug.exceptions import Forbidden
 from flask import request, redirect, abort, make_response
-from flask import current_app, Blueprint, session
+from flask import current_app, Blueprint
 
 from eduid_common.session import session
 from eduid_common.authn.utils import get_location

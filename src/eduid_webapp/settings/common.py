@@ -97,7 +97,7 @@ SERVER_NAME = None
 
 # If the application does not occupy a whole domain or subdomain this can be set to the path where the application is
 # configured to live. This is for session cookie as path value. If domains are used, this should be None.
-APPLICATION_ROOT = None
+APPLICATION_ROOT = '/'
 
 # If set to a value in bytes, Flask will reject incoming requests with a
 # content length greater than this by returning a 413 status code.
