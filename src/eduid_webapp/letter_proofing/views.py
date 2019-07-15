@@ -75,11 +75,14 @@ def proofing(user, nin):
 
     try:
         campaign_id = send_letter(user, proofing_state)
+        current_app.stats.count('letter_sent')
     except pdf.AddressFormatException as e:
         current_app.logger.error('{}'.format(e))
+        current_app.stats.count('address_format_error')
         return {'_status': 'error', 'message': 'letter.bad-postal-address'}
     except EkopostException as e:
         current_app.logger.error('{}'.format(e))
+        current_app.stats.count('ekopost_error')
         return {'_status': 'error', 'message': 'Temporary technical problems'}
 
     # Save the users proofing state
@@ -126,6 +129,7 @@ def verify_code(user, code):
         current_app.logger.info('Verified code for user {}'.format(user))
         # Remove proofing state
         current_app.proofing_statedb.remove_state(proofing_state)
+        current_app.stats.count(name='nin_verified')
         return {'success': True,
                 'message': 'letter.verification_success',
                 'nins': user.nins.to_list_of_dicts()}

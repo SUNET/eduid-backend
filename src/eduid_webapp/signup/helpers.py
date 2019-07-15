@@ -98,6 +98,7 @@ def check_email_status(email):
         return 'resend-code'
 
     current_app.logger.debug("Registering new user with email {}".format(email))
+    current_app.stats.count(name='signup_started')
     return 'new'
 
 

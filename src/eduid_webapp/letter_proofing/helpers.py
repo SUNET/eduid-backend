@@ -46,6 +46,7 @@ def check_state(state):
             current_app.logger.info('Letter expired for user with eppn {!s}.'.format(state.eppn))
             current_app.proofing_statedb.remove_document({'eduPersonPrincipalName': state.eppn})
             current_app.logger.info('Removed {!s}'.format(state))
+            current_app.stats.count('letter_expired')
             return {
                 'letter_sent': sent_dt,
                 'letter_expires': sent_dt + max_wait,

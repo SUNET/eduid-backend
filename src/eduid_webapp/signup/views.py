@@ -120,6 +120,7 @@ def trycaptcha(email, recaptcha_response, tou_accepted):
                 'next': next
             }
         elif next == 'address-used':
+            current_app.stats.count(name='address_used_error')
             return {
                 '_status': 'error',
                 'message': 'signup.registering-address-used',
@@ -141,7 +142,7 @@ def resend_email_verification(email):
     """
     current_app.logger.debug("Resend email confirmation to {!s}".format(email))
     send_verification_mail(email)
-
+    current_app.stats.count(name='resend_code')
     return {'message': 'signup.verification-resent'}
 
 

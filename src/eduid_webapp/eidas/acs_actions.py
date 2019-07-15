@@ -200,12 +200,15 @@ def mfa_authentication_action(session_info, user):
     if not user_nin:
         current_app.logger.error('Asserted NIN not matching user verified nins')
         current_app.logger.debug('Asserted NIN: {}'.format(asserted_nin))
+        current_app.stats.count(name='mfa_auth_nin_not_matching')
         return redirect_with_msg(redirect_url, ':ERROR:eidas.nin_not_matching')
 
     session.mfa_action.success = True
     session.mfa_action.issuer = session_info['issuer']
     session.mfa_action.authn_instant = session_info['authn_info'][0][2]
     session.mfa_action.authn_context = get_authn_ctx(session_info)
+    current_app.stats.count(name='mfa_auth_success')
+    current_app.stats.count(name=f'mfa_auth_{session_info["issuer"]}_success')
 
     # Redirect back to action app but to the redirect-action view
     resp = redirect_with_msg(redirect_url, 'actions.action-completed')

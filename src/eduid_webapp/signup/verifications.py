@@ -149,6 +149,7 @@ def send_verification_mail(email):
 
     current_app.mail_relay.sendmail(subject, [email], text, html, reference=signup_user.proofing_reference)
     current_app.logger.info("Sent email address verification mail for user {} to address {}".format(signup_user, email))
+    current_app.stats.count(name='mail_sent')
     current_app.private_userdb.save(signup_user)
     current_app.logger.info("Saved user {} to private db".format(signup_user))
 
@@ -213,6 +214,7 @@ def verify_email_code(code):
         signup_user.mail_addresses.add(mail_address)
         result = signup_db.save(signup_user)
         current_app.logger.info("Code {} verified and user {} saved: {!r}".format(code, signup_user, result))
+        current_app.stats.count(name='mail_verified')
         return signup_user
     else:
         current_app.logger.error('Failed to save proofing log, aborting')
