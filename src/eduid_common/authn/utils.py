@@ -33,6 +33,8 @@
 
 from __future__ import absolute_import
 
+import sys
+import os.path
 import six
 import importlib.util
 import logging
@@ -40,6 +42,7 @@ import time
 
 from pwgen import pwgen
 from saml2.config import SPConfig
+from saml2 import server
 
 from eduid_common.api.utils import urlappend
 
@@ -178,6 +181,26 @@ def maybe_xml_to_string(message, logger=None):
         if logger is not None:
             logger.debug("Could not parse message of type {!r} as XML: {!r}".format(type(message), exc))
         return message
+
+
+def init_pysaml2(cfgfile):
+    """
+    Initialization of PySAML2.
+
+    :return:
+    """
+    old_path = sys.path
+    cfgdir = os.path.dirname(cfgfile)
+    if cfgdir:
+        # add directory part to sys.path, since pysaml2 'import's it's config
+        sys.path = [cfgdir] + sys.path
+        cfgfile = os.path.basename(cfgfile)
+
+    try:
+        return server.Server(cfgfile)
+    finally:
+        # restore path
+        sys.path = old_path
 
 
 # XXX TRANSITION_TOKEN_LOGIN the code below is deprecated and only kept fr the transition to implicit
