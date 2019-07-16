@@ -65,7 +65,7 @@ class ProofingStateTest(TestCase):
                                         'verified_ts': None,
                                     }),
                                     id=None,
-                                    modified_ts=True,
+                                    modified_ts=None,
                                     proofing_letter=SentLetterElement(data={}))
         state.proofing_letter.address = ADDRESS
         x = state.proofing_letter.to_dict()
