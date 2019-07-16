@@ -127,39 +127,33 @@ class LetterProofingStateDB(ProofingStateDB):
 
 
 class EmailProofingStateDB(ProofingStateDB):
-
     ProofingStateClass = EmailProofingState
 
     def __init__(self, db_uri, db_name='eduid_email'):
         ProofingStateDB.__init__(self, db_uri, db_name)
 
-    def get_state_by_eppn_and_email(self, eppn, email, raise_on_missing=True):
+    def get_state_by_eppn_and_email(self, eppn: str, email: str,
+                                    raise_on_missing: bool = True) -> Optional[EmailProofingState]:
         """
         Locate a state in the db given the eppn of the user and the
         email to be verified.
-
-        :param email: email to verify
-        :param raise_on_missing: Raise exception if True else return None
-
-        :type email: str | unicode
-        :type raise_on_missing: bool
-
-        :return: ProofingStateClass instance | None
-        :rtype: ProofingStateClass | None
 
         :raise self.DocumentDoesNotExist: No user match the search criteria
         :raise self.MultipleDocumentsReturned: More than one user
                                                matches the search criteria
         """
-        spec = {'eduPersonPrincipalName': eppn,
-                'verification.email': email}
-        verifications = self._get_documents_by_filter(spec,
-                raise_on_missing=raise_on_missing)
+        spec = {'eduPersonPrincipalName': eppn, 'verification.email': email}
+        verifications = self._get_documents_by_filter(spec, raise_on_missing=raise_on_missing)
 
         try:
             if verifications.count() > 1:
-                raise MultipleDocumentsReturned("Multiple matching"
-                        " documents for {!r}".format(spec))
+                # Multiple states for same user and email address matched
+                # This should not be possible but we have seen it happen
+                states = sorted([state for state in verifications], key=itemgetter('modified_ts'))
+                state_to_keep = states.pop(-1)  # Keep latest state
+                for state in states:
+                    self.remove_document(state['_id'])
+                return self.ProofingStateClass.from_dict(state_to_keep)
 
             if verifications.count() == 1:
                 return self.ProofingStateClass.from_dict(verifications[0])
@@ -176,11 +170,10 @@ class EmailProofingStateDB(ProofingStateDB):
         :type state: ProofingStateClass
         """
         self.remove_document({'eduPersonPrincipalName': state.eppn,
-                        'verification.email': state.verification.email})
+                              'verification.email': state.verification.email})
 
 
 class PhoneProofingStateDB(ProofingStateDB):
-
     ProofingStateClass = PhoneProofingState
 
     def __init__(self, db_uri, db_name='eduid_phone'):
