@@ -31,25 +31,23 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import datetime
-
-from bson import ObjectId
-from bson.errors import InvalidId
+import logging
+from operator import itemgetter
+from typing import Optional
 
 from eduid_userdb.db import BaseDB
-from eduid_userdb.userdb import UserDB
 from eduid_userdb.exceptions import DocumentOutOfSync
-from eduid_userdb.proofing import ProofingUser, LetterProofingState, OidcProofingState, EmailProofingState
-from eduid_userdb.proofing import PhoneProofingState, OrcidProofingState
 from eduid_userdb.exceptions import MultipleDocumentsReturned
+from eduid_userdb.proofing import PhoneProofingState, OrcidProofingState
+from eduid_userdb.proofing import ProofingUser, LetterProofingState, OidcProofingState, EmailProofingState
+from eduid_userdb.userdb import UserDB
 
-import logging
 logger = logging.getLogger(__name__)
 
 __author__ = 'lundberg'
 
 
 class ProofingStateDB(BaseDB):
-
     ProofingStateClass = None
 
     def __init__(self, db_uri, db_name, collection='proofing_data'):
@@ -93,7 +91,7 @@ class ProofingStateDB(BaseDB):
         if modified is None:
             # document has never been modified
             result = self._coll.insert(state.to_dict())
-            logging.debug("{!s} Inserted new state {!r} into {!r}): {!r})".format(
+            logging.debug("{} Inserted new state {} into {}): {})".format(
                 self, state, self._coll_name, result))
         else:
             test_doc = {'eduPersonPrincipalName': state.eppn}
@@ -105,11 +103,11 @@ class ProofingStateDB(BaseDB):
                 db_state = self._coll.find_one({'eduPersonPrincipalName': state.eppn})
                 if db_state:
                     db_ts = db_state['modified_ts']
-                logging.error("{!s} FAILED Updating state {!r} (ts {!s}) in {!r}). "
+                logging.error("{} FAILED Updating state {} (ts {}) in {}). "
                               "ts in db = {!s}".format(self, state, modified, self._coll_name, db_ts))
                 raise DocumentOutOfSync('Stale state object can\'t be saved')
 
-            logging.debug("{!s} Updated state {!r} (ts {!s}) in {!r}): {!r}".format(
+            logging.debug("{!s} Updated state {} (ts {}) in {}): {}".format(
                 self, state, modified, self._coll_name, result))
 
     def remove_state(self, state):
@@ -122,7 +120,6 @@ class ProofingStateDB(BaseDB):
 
 
 class LetterProofingStateDB(ProofingStateDB):
-
     ProofingStateClass = LetterProofingState
 
     def __init__(self, db_uri, db_name='eduid_idproofing_letter'):
@@ -210,11 +207,11 @@ class PhoneProofingStateDB(ProofingStateDB):
         spec = {'eduPersonPrincipalName': eppn,
                 'verification.number': number}
         verifications = self._get_documents_by_filter(spec,
-                raise_on_missing=raise_on_missing)
+                                                      raise_on_missing=raise_on_missing)
         try:
             if verifications.count() > 1:
                 raise MultipleDocumentsReturned("Multiple matching"
-                        " documents for {!r}".format(spec))
+                                                " documents for {!r}".format(spec))
 
             if verifications.count() == 1:
                 return self.ProofingStateClass.from_dict(verifications[0])
@@ -235,7 +232,6 @@ class PhoneProofingStateDB(ProofingStateDB):
 
 
 class OidcStateDB(ProofingStateDB):
-
     ProofingStateClass = None
 
     def get_state_by_oidc_state(self, oidc_state, raise_on_missing=True):
@@ -261,7 +257,6 @@ class OidcStateDB(ProofingStateDB):
 
 
 class OidcProofingStateDB(OidcStateDB):
-
     ProofingStateClass = OidcProofingState
 
     def __init__(self, db_uri, db_name='eduid_oidc_proofing'):
@@ -269,7 +264,6 @@ class OidcProofingStateDB(OidcStateDB):
 
 
 class OrcidProofingStateDB(OidcStateDB):
-
     ProofingStateClass = OrcidProofingState
 
     def __init__(self, db_uri, db_name='eduid_orcid'):
@@ -277,7 +271,6 @@ class OrcidProofingStateDB(OidcStateDB):
 
 
 class ProofingUserDB(UserDB):
-
     UserClass = ProofingUser
 
     def __init__(self, db_uri, db_name, collection='profiles'):
