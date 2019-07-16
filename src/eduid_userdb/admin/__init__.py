@@ -278,10 +278,16 @@ def get_client():
     """
     user = os.environ.get('MONGODB_ADMIN')
     pw = os.environ.get('MONGODB_ADMIN_PASSWORD')
+    host = os.environ.get('MONGODB_HOST')
+    port = os.environ.get('MONGODB_PORT')
+    if not host:
+        host = 'localhost'
+    if not port:
+        port = '27017'
     if user and pw:
-        dburi = 'mongodb://{!s}:{!s}@localhost:27017/'.format(user, pw)
+        dburi = f'mongodb://{user}:{pw}@{host}:{port}/'
     else:
-        dburi = 'mongodb://localhost:27017/'
+        dburi = f'mongodb://{host}:{port}/'
 
     return MongoClient(dburi, read_preference=ReadPreference.SECONDARY)
 
