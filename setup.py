@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 
-version = '0.4.1b12'
+version = '0.4.1b13'
 
 requires = [
     'six >= 1.11.0',
@@ -11,7 +11,7 @@ requires = [
 
 # Flavours
 webapp_requires = [
-    'Flask>=0.12.2,<0.13',
+    'Flask>=1.1,<1.2',
     'pysaml2 >= 4.6.1',  # version sync with dashboard to avoid pip catastrophes
     'redis >= 2.10.5',
     'pwgen == 0.4',

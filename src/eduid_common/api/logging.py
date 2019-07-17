@@ -7,10 +7,6 @@ import time
 from os import environ
 from logging import StreamHandler
 from logging.handlers import RotatingFileHandler
-try:
-    from flask.logging import default_handler  # Flask 0.13
-except ImportError:
-    default_handler = None
 from flask import current_app
 from eduid_common.session import session
 from eduid_common.api.exceptions import BadConfiguration
@@ -108,7 +104,7 @@ def rotating(app):
             app.logger.addHandler(handler)
             app.logger.info('Rotating log handler initiated')
         except AttributeError as e:
-            raise BadConfiguration(e.message)
+            raise BadConfiguration(e)
     return app
 
 
@@ -131,7 +127,7 @@ def stream(app):
         app.logger.addHandler(handler)
         app.logger.info('Stream log handler initiated')
     except AttributeError as e:
-        raise BadConfiguration(e.message)
+        raise BadConfiguration(e)
     return app
 
 
@@ -144,14 +140,9 @@ def init_logging(app):
     """
     app.config.setdefault('LOG_LEVEL', 'INFO')
     app.config.setdefault('LOG_TYPE', ['stream'])
-
-    app.logger.setLevel(app.config['LOG_LEVEL'])
     root.setLevel(app.config['LOG_LEVEL'])
-    if default_handler:
-        app.logger.removeHandler(default_handler)  # Flask 0.13
-    else:
-        app.logger.handlers = []
-
+    app.logger.handlers = []  # Remove any handler that Flask set up
+    app.logger.setLevel(app.config['LOG_LEVEL'])
     # Add extra context
     app.logger.addFilter(AppFilter(app))
     app.logger.addFilter(UserFilter(app))

@@ -138,7 +138,7 @@ def get_flux_type(req, suffix):
     # Remove APPLICATION_ROOT from request url rule
     # XXX: There must be a better way to get the internal path info
     app_root = current_app.config['APPLICATION_ROOT']
-    if app_root is None:
+    if app_root is None or app_root == '/':  # "/" is default in Flask >1.0
         app_root = ''
     url_rule = req.url_rule.rule.replace(app_root, '')
     url_rule = url_rule.replace('/', ' ').replace('-', ' ')
