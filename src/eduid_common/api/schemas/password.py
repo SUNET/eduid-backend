@@ -31,6 +31,10 @@ class PasswordSchema(Schema):
         # Remove whitespace
         password = ''.join(password.split())
 
+        # Reject blank passwords
+        if not password:
+            raise ValidationError('The password complexity is too weak.')
+
         # Check password complexity with zxcvbn
         result = zxcvbn(password, user_inputs=self.Meta.zxcvbn_terms)
         if math.log(result.get('guesses', 1), 2) < self.Meta.min_entropy:
