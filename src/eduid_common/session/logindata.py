@@ -81,9 +81,9 @@ class SSOLoginData(SessionNSBase):
 
     def to_dict(self):
         return {'key': unescape(self.key),
-                'SAMLRequest': unescape(self.SAMLRequest),  # backwards compat
+                'SAMLRequest': self.saml_req.request,
                 'RelayState': unescape(self.RelayState),
-                'binding': unescape(self.binding),  # backwards compat
+                'binding': self.saml_req.binding,
                 'FailCount': self.FailCount,
                 }
 
@@ -91,8 +91,8 @@ class SSOLoginData(SessionNSBase):
     def from_dict(cls, data):
         key = escape(data['key'])
         SAMLRequest = escape(data['SAMLRequest'])
-        binding = escape(data['binding'])
         RelayState = escape(data['RelayState'])
+        binding = escape(data['binding'])
         FailCount = data['FailCount']
         return cls(key, SAMLRequest, binding, RelayState, FailCount)
 
