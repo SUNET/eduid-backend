@@ -30,13 +30,15 @@
 # LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-
 import json
-from mock import patch
+from datetime import datetime, timedelta
 
 from eduid_common.api.testing import EduidAPITestCase
-from eduid_webapp.email.app import email_init_app
 from eduid_userdb.mail import MailAddress
+from eduid_userdb.proofing import EmailProofingElement, EmailProofingState
+from mock import patch
+
+from eduid_webapp.email.app import email_init_app
 
 
 class EmailTests(EduidAPITestCase):
@@ -708,3 +710,16 @@ class EmailTests(EduidAPITestCase):
                 self.assertEqual(mail_address_element.is_verified, False)
                 self.assertEqual(mail_address_element.is_primary, False)
                 self.assertEqual(self.app.proofing_log.db_count(), 0)
+
+    def test_handle_multiple_email_proofings(self):
+        eppn = self.test_user_data['eduPersonPrincipalName']
+        email = 'example@example.com'
+        verification1 = EmailProofingElement(email=email, verification_code='test_code_1')
+        verification2 = EmailProofingElement(email=email, verification_code='test_code_2')
+        modified_ts = datetime.now(tz=None) - timedelta(seconds=1)
+        state1 = EmailProofingState(id=None, eppn=eppn, modified_ts=modified_ts, verification=verification1)
+        state2 = EmailProofingState(id=None, eppn=eppn, modified_ts=None, verification=verification2)
+        self.app.proofing_statedb.save(state1, check_sync=False)
+        self.app.proofing_statedb.save(state2, check_sync=False)
+        state = self.app.proofing_statedb.get_state_by_eppn_and_email(eppn=eppn, email=email)
+        self.assertEqual(state.verification.verification_code, 'test_code_2')
