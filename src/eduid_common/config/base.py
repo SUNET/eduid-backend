@@ -38,6 +38,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 import os
+from logging import Logger
 from importlib import import_module
 from typing import Optional, List, Tuple, Dict, Any
 
@@ -116,6 +117,7 @@ class BaseConfig(object):
     current_tou_version: str = '2017-v6'  # backwards compat
     fido2_rp_id: str = ''
     secret_key: str = ''
+    logger : Optional[Logger] = None
 
     def __post_init__(self):
         if isinstance(self.celery_config, dict):
