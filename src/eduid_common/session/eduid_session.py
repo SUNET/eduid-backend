@@ -188,6 +188,7 @@ class EduidSession(SessionMixin, MutableMapping):
         cookie_path = self.app.config.get('SESSION_COOKIE_PATH')
         cookie_secure = self.app.config.get('SESSION_COOKIE_SECURE')
         cookie_httponly = self.app.config.get('SESSION_COOKIE_HTTPONLY')
+        cookie_samesite = self.app.config.get('SESSION_COOKIE_SAMESITE')
         max_age = int(self.app.config.get('PERMANENT_SESSION_LIFETIME'))
         response.set_cookie(cookie_name,
                             value=self.token,
@@ -195,6 +196,7 @@ class EduidSession(SessionMixin, MutableMapping):
                             path=cookie_path,
                             secure=cookie_secure,
                             httponly=cookie_httponly,
+                            samesite=cookie_samesite,
                             max_age=max_age
                             )
 
