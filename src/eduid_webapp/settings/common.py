@@ -80,6 +80,11 @@ SESSION_COOKIE_HTTPONLY = True
 # controls if the cookie should be set with the secure flag. Defaults to False
 SESSION_COOKIE_SECURE = False
 
+# Restrict how cookies are sent with requests from external sites.
+# Can be set to None (samesite key omitted), 'None', 'Lax' (recommended) or 'Strict'.
+# Defaults to None
+SESSION_COOKIE_SAMESITE = None
+
 # the lifetime of a permanent session as datetime.timedelta object.
 # Starting with Flask 0.8 this can also be an integer representing seconds.
 PERMANENT_SESSION_LIFETIME = 3600
