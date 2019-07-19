@@ -39,7 +39,7 @@ such as rate limiting.
 
 import datetime
 
-from eduid_common.idp.user import IdPUser
+from eduid_userdb.idp import IdPUser
 from eduid_userdb import MongoDB
 from eduid_userdb.exceptions import UserHasNotCompletedSignup
 
