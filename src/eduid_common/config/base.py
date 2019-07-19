@@ -74,6 +74,7 @@ class BaseConfig(object):
     session_cookie_domain: str = ''
     session_cookie_secure: bool = True
     session_cookie_httponly: bool = False
+    session_cookie_samesite: Optional[str] = None
     # The URL scheme that should be used for URL generation if no URL scheme is
     # available. This defaults to http
     preferred_url_scheme: str = 'https'
