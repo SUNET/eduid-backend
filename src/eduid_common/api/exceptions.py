@@ -72,6 +72,14 @@ class MailTaskFailed(TaskFailed):
     pass
 
 
+class EduidTooManyRequests(Exception):
+    pass
+
+
+class EduidForbidden(Exception):
+    pass
+
+
 def init_exception_handlers(app):
 
     # Init error handler for raised exceptions
