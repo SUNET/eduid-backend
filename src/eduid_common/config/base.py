@@ -37,6 +37,7 @@ Configuration (file) handling for eduID IdP.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import timedelta
 import os
 from logging import Logger
 from importlib import import_module
@@ -49,6 +50,7 @@ class CeleryConfig(object):
     accept_content: List[str] = field(default_factory=lambda: ["application/json"])
     broker_url: str = ''
     result_backend: str = ''
+    task_serializer: str = 'json'
     # backwards incompatible setting that the documentation says will be the default in the future
     broker_transport_options: dict = field(default_factory=lambda: {"fanout_prefix": True})
     task_routes: dict = field(default_factory=lambda: {
@@ -64,6 +66,7 @@ class BaseConfig(object):
     server_name: str = ''
     devel_mode: bool = False
     development: bool = False
+    testing: bool = False
     # enable disable debug mode
     debug: bool = False
     log_level: str = 'INFO'
@@ -173,7 +176,23 @@ class BaseConfig(object):
         return cls(**config)
 
 
+@dataclass(frozen=True)
 class FlaskConfig(BaseConfig):
     env : str = 'production'
-    propagate_exceptions : Optional[bool] = None
-    preserve_context_on_exception : bool = False
+    propagate_exceptions: Optional[bool] = None
+    preserve_context_on_exception: bool = False
+    trap_http_exceptions: Optional[bool] = None
+    trap_bad_request_errors: Optional[bool] = None
+    permanent_session_lifetime: Union[int, timedelta] = timedelta(days=31)
+    session_refresh_each_request: bool = True
+    use_x_sendfile: bool = False
+    send_file_max_age_default: Union[int, timedelta] = timedelta(hours=12)
+    application_root: str = '/'
+    max_content_length: Optional[int] = None
+    json_as_ascii: bool = True
+    json_sort_keys: bool = True
+    jsonify_prettyprint_regular: bool = False
+    jsonify_mimetype: str = 'application/json'
+    templates_auto_reload: Optional[bool] = None
+    explain_template_loading: bool = False
+    max_cookie_size: int = 4093

@@ -50,16 +50,16 @@ class AuthnTests(EduidAPITestCase):
 
     def update_config(self, config):
         config.update({
-            'AVAILABLE_LANGUAGES': {'en': 'English','sv': 'Svenska'},
-            'DEVELOPMENT': 'DEBUG',
-            'APPLICATION_ROOT': '/',
-            'LOG_LEVEL': 'DEBUG',
-            'AM_BROKER_URL': 'amqp://eduid:eduid_pw@rabbitmq/am',
-            'MSG_BROKER_URL': 'amqp://eduid:eduid_pw@rabbitmq/msg',
-            'CELERY_CONFIG': {
+            'available_languages': {'en': 'English','sv': 'Svenska'},
+            'development': 'DEBUG',
+            'application_root': '/',
+            'log_level': 'DEBUG',
+            'am_broker_url': 'amqp://eduid:eduid_pw@rabbitmq/am',
+            'msg_broker_url': 'amqp://eduid:eduid_pw@rabbitmq/msg',
+            'celery_config': {
                 'CELERY_RESULT_BACKEND': 'amqp',
                 'CELERY_TASK_SERIALIZER': 'json',
-                'MONGO_URI': config['MONGO_URI'],
+                'MONGO_URI': config.mongo_uri,
             },
         })
         return config
@@ -84,16 +84,16 @@ class UnAuthnTests(EduidAPITestCase):
 
     def update_config(self, config):
         config.update({
-            'AVAILABLE_LANGUAGES': {'en': 'English','sv': 'Svenska'},
-            'DEVELOPMENT': 'DEBUG',
-            'APPLICATION_ROOT': '/',
-            'LOG_LEVEL': 'DEBUG',
-            'AM_BROKER_URL': 'amqp://eduid:eduid_pw@rabbitmq/am',
-            'MSG_BROKER_URL': 'amqp://eduid:eduid_pw@rabbitmq/msg',
-            'CELERY_CONFIG': {
+            'available_languages': {'en': 'English','sv': 'Svenska'},
+            'development': 'DEBUG',
+            'application_root': '/',
+            'log_level': 'DEBUG',
+            'am_broker_url': 'amqp://eduid:eduid_pw@rabbitmq/am',
+            'msg_broker_url': 'amqp://eduid:eduid_pw@rabbitmq/msg',
+            'celery_config': {
                 'CELERY_RESULT_BACKEND': 'amqp',
                 'CELERY_TASK_SERIALIZER': 'json',
-                'MONGO_URI': config['MONGO_URI'],
+                'MONGO_URI': config.mongo_uri,
             },
         })
         return config

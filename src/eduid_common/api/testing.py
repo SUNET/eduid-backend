@@ -62,7 +62,6 @@ TEST_CONFIG = {
     'session_cookie_httponly': False,
     'session_cookie_secure': False,
     'permanent_session_lifetime': '60',
-    'logger_name': 'testing',
     'server_name': 'test.localhost',
     'propagate_exceptions': True,
     'preserve_context_on_exception': True,
@@ -111,7 +110,8 @@ class EduidAPITestCase(MongoTestCase):
     # Do what we can and initialise it empty here, and then fill it in __init__.
     MockedUserDB = APIMockedUserDB
 
-    def setUp(self, init_am=True, users=None, copy_user_to_private=False, am_settings=None):
+    def setUp(self, init_am=True, users=None, copy_user_to_private=False,
+            am_settings=None):
         self.MockedUserDB.test_users = {}
         if users is None:
             users = ['hubba-bubba']
@@ -141,8 +141,9 @@ class EduidAPITestCase(MongoTestCase):
             config['celery_config'] = self.am_settings['CELERY']
             if self.am_settings.get('ACTION_PLUGINS'):
                 config['action_plugins'] = self.am_settings['ACTION_PLUGINS']
+        
         config = self.update_config(config)
-
+        
         os.environ.update({'ETCD_PORT': str(self.etcd_instance.port)})
         self.app = self.load_app(config)
         self.app.test_client_class = CSRFTestClient

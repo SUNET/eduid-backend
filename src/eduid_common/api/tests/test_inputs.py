@@ -48,6 +48,7 @@ from eduid_common.api.decorators import require_user
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.session.eduid_session import SessionFactory
 from eduid_common.api.request import Request
+from eduid_common.config.base import BaseConfig
 from eduid_userdb import UserDB
 
 
@@ -136,8 +137,9 @@ class InputsTests(EduidAPITestCase):
         app = Flask('test.localhost')
         app.request_class = Request
         app.config.update(config)
+        app.config = BaseConfig(**app.config)
         app.register_blueprint(test_views)
-        app.central_userdb = UserDB(app.config['MONGO_URI'], 'eduid_am')
+        app.central_userdb = UserDB(app.config.mongo_uri, 'eduid_am')
         app.session_interface = SessionFactory(app.config)
         return app
 

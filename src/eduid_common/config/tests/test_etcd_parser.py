@@ -29,28 +29,28 @@ class TestEtcdParser(unittest.TestCase):
 
         config = {
             'test': {
-                'MY_BOOL': True,
-                'MY_STRING': 'A value',
-                'MY_LIST': ['One', 'Two', 3],
-                'MY_DICT': {'A': 'B'}
+                'my_bool': True,
+                'my_string': 'A value',
+                'my_list': ['One', 'Two', 3],
+                'my_dict': {'A': 'B'}
             }
         }
 
         self.parser.write_configuration(config)
 
-        self.assertEqual(self.parser.get('MY_BOOL'), True)
-        self.assertEqual(self.parser.get('MY_STRING'), 'A value')
-        self.assertEqual(self.parser.get('MY_LIST'), ['One', 'Two', 3])
-        self.assertEqual(self.parser.get('MY_DICT'), {'A': 'B'})
+        self.assertEqual(self.parser.get('my_bool'), True)
+        self.assertEqual(self.parser.get('my_string'), 'A value')
+        self.assertEqual(self.parser.get('my_list'), ['One', 'Two', 3])
+        self.assertEqual(self.parser.get('my_dict'), {'A': 'B'})
 
     def test_read(self):
 
         config = {
             'test': {
-                'MY_BOOL': True,
-                'MY_STRING': 'A value',
-                'MY_LIST': ['One', 'Two', 3],
-                'MY_DICT': {'A': 'B'}
+                'my_bool': True,
+                'my_string': 'A value',
+                'my_list': ['One', 'Two', 3],
+                'my_dict': {'A': 'B'}
             }
         }
 
