@@ -48,6 +48,7 @@ from eduid_common.api.middleware import PrefixMiddleware
 from eduid_common.api.request import Request
 from eduid_common.api.utils import init_template_functions
 from eduid_common.authn.middleware import AuthnApp
+from eduid_common.config.base import BaseConfig
 from eduid_common.config.parsers.etcd import EtcdConfigParser
 from eduid_common.session.eduid_session import SessionFactory
 from eduid_common.stats import NoOpStats, Statsd
@@ -58,7 +59,9 @@ if DEBUG:
     stderr.writelines('----- WARNING! EDUID_APP_DEBUG is enabled -----\n')
 
 
-def eduid_init_app_no_db(name: str, config: dict, app_class: Type[Flask] = AuthnApp) -> Flask:
+def eduid_init_app_no_db(name: str, config: dict,
+                         config_class: Type[BaseConfig],
+                         app_class: Type[Flask] = AuthnApp) -> Flask:
     """
     Create and prepare the flask app for eduID APIs with all the attributes
     common to all  apps.
@@ -102,17 +105,21 @@ def eduid_init_app_no_db(name: str, config: dict, app_class: Type[Flask] = Authn
 
     # Load optional app specific secrets
     app.config.from_envvar('LOCAL_CFG_FILE', silent=True)
+    
+    config = {key.lower(): val for key, val in app.config.items()}
+
+    app.config = config_class(**config)
 
     if DEBUG:
         dump_config(app)
 
     # Check that SECRET_KEY is set
-    if not app.config.get('SECRET_KEY'):
+    if not app.config.secret_key:
         raise BadConfiguration('SECRET_KEY is missing')
 
     # Set app url prefix to APPLICATION_ROOT
-    app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix=app.config['APPLICATION_ROOT'],  # type: ignore
-                                    server_name=app.config['SERVER_NAME'])
+    app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix=app.config.application_root,  # type: ignore
+                                    server_name=app.config.server_name)
 
     # Initialize shared features
     app = init_logging(app)
@@ -121,19 +128,21 @@ def eduid_init_app_no_db(name: str, config: dict, app_class: Type[Flask] = Authn
     app = init_template_functions(app)
     app.session_interface = SessionFactory(app.config)
 
-    stats_host = app.config.get('STATS_HOST', False)
+    stats_host = app.config.stats_host
     if not stats_host:
         app.stats = NoOpStats()
     else:
-        stats_port = app.config.get('STATS_PORT', 8125)
+        stats_port = app.config.stats_port
         app.stats = Statsd(host=stats_host, port=stats_port, prefix=name)
 
     return app
 
 
-def eduid_init_app(name: str, config: dict, app_class: Type[Flask] = AuthnApp) -> Flask:
-    app = eduid_init_app_no_db(name, config, app_class=app_class)
-    app.central_userdb = UserDB(app.config['MONGO_URI'], 'eduid_am')  # XXX: Needs updating when we change db
+def eduid_init_app(name: str, config: dict,
+                   config_class: Type[BaseConfig],
+                   app_class: Type[Flask] = AuthnApp) -> Flask:
+    app = eduid_init_app_no_db(name, config, config_class=config_class, app_class=app_class)
+    app.central_userdb = UserDB(app.mongo_uri, 'eduid_am')
     # Set up generic health check views
     from eduid_common.api.views.status import status_views
     app.register_blueprint(status_views)

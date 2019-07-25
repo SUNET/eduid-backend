@@ -61,10 +61,12 @@ class CeleryConfig(object):
 class BaseConfig(object):
     # name of the app, which coincides with its namespace in etcd
     app_name: str = ''
+    server_name: str = ''
     devel_mode: bool = False
     development: bool = False
     # enable disable debug mode
     debug: bool = False
+    log_level: str = 'INFO'
     # session cookie
     session_cookie_name: str = 'sessid'
     session_cookie_path: str = '/'
@@ -78,6 +80,8 @@ class BaseConfig(object):
     # The URL scheme that should be used for URL generation if no URL scheme is
     # available. This defaults to http
     preferred_url_scheme: str = 'https'
+    # mongo_uri
+    mongo_uri: str = 'mongodb://'
     # Redis config
     # The Redis host to use for session storage.
     redis_host: Optional[str] = None
@@ -92,6 +96,8 @@ class BaseConfig(object):
     saml2_logout_redirect_url: str = 'https://eduid.se/'
     token_service_url: str = ''
     celery_config: CeleryConfig = field(default_factory=CeleryConfig)
+    am_broker_url: str = ''
+    msg_broker_url: str = ''
     available_languages: Dict[str, str] = field(default_factory=lambda: {
         'en': 'English',
         'sv': 'Svenska'
@@ -130,22 +136,21 @@ class BaseConfig(object):
             we will be able to remove this method.
         '''
         try:
-            return self.__getattribute__(attr)
+            return self.__getattribute__(attr.lower())
         except AttributeError:
             raise KeyError(f'{self} has no {attr} attr')
 
     @classmethod
-    def defaults(cls):
-        return {key: val for key, val in cls.__dict__.items()
+    def defaults(cls, transform_key: callable = lambda x: x) -> dict:
+        return {transform_key(key): val for key, val in cls.__dict__.items()
                   if isinstance(key, str) and not key.startswith('__') and not callable(val)}
 
-    def to_dict(self):
-        return {key: val for key, val in self.__dict__.items()
+    def to_dict(self, transform_key: callable = lambda x: x) -> dict:
+        return {transform_key(key): val for key, val in self.__dict__.items()
                   if isinstance(key, str) and not key.startswith('__') and not callable(val)}
 
     @classmethod
-    def init_config(cls, uppercase: bool = False, debug: bool = True,
-                    test_config: Optional[dict] = None) -> BaseConfig:
+    def init_config(cls, debug: bool = True, test_config: Optional[dict] = None) -> BaseConfig:
         """
         Initialize configuration wth values from etcd
         """
@@ -158,11 +163,17 @@ class BaseConfig(object):
 
             common_namespace = os.environ.get('EDUID_CONFIG_COMMON_NS', '/eduid/webapp/common/')
             common_parser = EtcdConfigParser(common_namespace)
-            config.update(common_parser.read_configuration(uppercase=uppercase, silent=True))
+            config.update(common_parser.read_configuration(silent=True))
 
             namespace = os.environ.get('EDUID_CONFIG_NS', f'/eduid/webapp/{cls.app_name}/')
             parser = EtcdConfigParser(namespace)
             # Load optional app specific settings
-            config.update(parser.read_configuration(uppercase=uppercase, silent=True))
+            config.update(parser.read_configuration(silent=True))
 
         return cls(**config)
+
+
+class FlaskConfig(BaseConfig):
+    env : str = 'production'
+    propagate_exceptions : Optional[bool] = None
+    preserve_context_on_exception : bool = False

@@ -53,32 +53,32 @@ from eduid_userdb.data_samples import NEW_USER_EXAMPLE, NEW_UNVERIFIED_USER_EXAM
 
 
 TEST_CONFIG = {
-    'DEBUG': True,
-    'TESTING': True,
-    'SECRET_KEY': 'mysecretkey',
-    'SESSION_COOKIE_NAME': 'sessid',
-    'SESSION_COOKIE_DOMAIN': 'test.localhost',
-    'SESSION_COOKIE_PATH': '/',
-    'SESSION_COOKIE_HTTPONLY': False,
-    'SESSION_COOKIE_SECURE': False,
-    'PERMANENT_SESSION_LIFETIME': '60',
-    'LOGGER_NAME': 'testing',
-    'SERVER_NAME': 'test.localhost',
-    'PROPAGATE_EXCEPTIONS': True,
-    'PRESERVE_CONTEXT_ON_EXCEPTION': True,
-    'TRAP_HTTP_EXCEPTIONS': True,
-    'TRAP_BAD_REQUEST_ERRORS': True,
-    'PREFERRED_URL_SCHEME': 'http',
-    'JSON_AS_ASCII': False,
-    'JSON_SORT_KEYS': True,
-    'JSONIFY_PRETTYPRINT_REGULAR': True,
-    'MONGO_URI': 'mongodb://dummy',
-    'REDIS_HOST': 'localhost',
-    'REDIS_PORT': '6379',
-    'REDIS_DB': '0',
-    'REDIS_SENTINEL_HOSTS': '',
-    'REDIS_SENTINEL_SERVICE_NAME': '',
-    'TOKEN_SERVICE_URL': 'http://test.localhost/',
+    'debug': True,
+    'testing': True,
+    'secret_key': 'mysecretkey',
+    'session_cookie_name': 'sessid',
+    'session_cookie_domain': 'test.localhost',
+    'session_cookie_path': '/',
+    'session_cookie_httponly': False,
+    'session_cookie_secure': False,
+    'permanent_session_lifetime': '60',
+    'logger_name': 'testing',
+    'server_name': 'test.localhost',
+    'propagate_exceptions': True,
+    'preserve_context_on_exception': True,
+    'trap_http_exceptions': True,
+    'trap_bad_request_errors': True,
+    'preferred_url_scheme': 'http',
+    'json_as_ascii': False,
+    'json_sort_keys': True,
+    'jsonify_prettyprint_regular': True,
+    'mongo_uri': 'mongodb://dummy',
+    'redis_host': 'localhost',
+    'redis_port': '6379',
+    'redis_db': '0',
+    'redis_sentinel_hosts': '',
+    'redis_sentinel_service_name': '',
+    'token_service_url': 'http://test.localhost/',
 }
 
 class APIMockedUserDB(object):
@@ -130,17 +130,17 @@ class EduidAPITestCase(MongoTestCase):
         self.redis_instance = RedisTemporaryInstance.get_instance()
         self.etcd_instance = EtcdTemporaryInstance.get_instance()
         config = deepcopy(TEST_CONFIG)
-        config['REDIS_PORT'] = str(self.redis_instance.port)
-        config['MONGO_URI'] = self.tmp_db.uri
+        config['redis_port'] = str(self.redis_instance.port)
+        config['mongo_uri'] = self.tmp_db.uri
         if init_am:
             # 'CELERY' is the key used in workers, and 'CELERY_CONFIG' is used in webapps.
             # self.am_settings is initialized by the super-class MongoTestCase.
             #
             # We need to copy this data from am_settings to config, because AM will be
             # re-initialized in load_app() below.
-            config['CELERY_CONFIG'] = self.am_settings['CELERY']
+            config['celery_config'] = self.am_settings['CELERY']
             if self.am_settings.get('ACTION_PLUGINS'):
-                config['ACTION_PLUGINS'] = self.am_settings['ACTION_PLUGINS']
+                config['action_plugins'] = self.am_settings['ACTION_PLUGINS']
         config = self.update_config(config)
 
         os.environ.update({'ETCD_PORT': str(self.etcd_instance.port)})
@@ -202,7 +202,7 @@ class EduidAPITestCase(MongoTestCase):
         with client.session_transaction() as sess:
             sess['user_eppn'] = eppn
             sess['user_is_logged_in'] = True
-        client.set_cookie(server_name, key=self.app.config.get('SESSION_COOKIE_NAME'), value=sess._session.token)
+        client.set_cookie(server_name, key=self.app.config.session_cookie_name, value=sess._session.token)
         yield client
 
     def request_user_sync(self, private_user):
@@ -240,12 +240,12 @@ class CSRFTestClient(FlaskClient):
         This could also be done with updating FlaskClient.environ_base with the below header keys but
         that makes it harder to override per call to post.
         """
-        test_host = '{}://{}'.format(self.application.config['PREFERRED_URL_SCHEME'],
-                                     self.application.config['SERVER_NAME'])
+        test_host = '{}://{}'.format(self.application.config.preferred_url_scheme,
+                                     self.application.config.server_name)
         csrf_headers = {
             'X-Requested-With': 'XMLHttpRequest',
             'Referer': test_host,
-            'X-Forwarded-Host': self.application.config['SERVER_NAME']
+            'X-Forwarded-Host': self.application.config.server_name
         }
         if kw.pop('custom_csrf_headers', True):
             if 'headers' in kw:
