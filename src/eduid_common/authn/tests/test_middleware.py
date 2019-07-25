@@ -57,9 +57,9 @@ class AuthnTests(EduidAPITestCase):
             'am_broker_url': 'amqp://eduid:eduid_pw@rabbitmq/am',
             'msg_broker_url': 'amqp://eduid:eduid_pw@rabbitmq/msg',
             'celery_config': {
-                'CELERY_RESULT_BACKEND': 'amqp',
-                'CELERY_TASK_SERIALIZER': 'json',
-                'MONGO_URI': config.mongo_uri,
+                'result_backend': 'amqp',
+                'task_serializer': 'json',
+                'mongo_uri': config['mongo_uri'],
             },
         })
         return config
@@ -91,9 +91,9 @@ class UnAuthnTests(EduidAPITestCase):
             'am_broker_url': 'amqp://eduid:eduid_pw@rabbitmq/am',
             'msg_broker_url': 'amqp://eduid:eduid_pw@rabbitmq/msg',
             'celery_config': {
-                'CELERY_RESULT_BACKEND': 'amqp',
-                'CELERY_TASK_SERIALIZER': 'json',
-                'MONGO_URI': config.mongo_uri,
+                'result_backend': 'amqp',
+                'task_serializer': 'json',
+                'mongo_uri': config['mongo_uri'],
             },
         })
         return config

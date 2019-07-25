@@ -48,7 +48,7 @@ from eduid_common.api.middleware import PrefixMiddleware
 from eduid_common.api.request import Request
 from eduid_common.api.utils import init_template_functions
 from eduid_common.authn.middleware import AuthnApp
-from eduid_common.config.base import BaseConfig
+from eduid_common.config.base import FlaskConfig
 from eduid_common.config.parsers.etcd import EtcdConfigParser
 from eduid_common.session.eduid_session import SessionFactory
 from eduid_common.stats import NoOpStats, Statsd
@@ -60,7 +60,7 @@ if DEBUG:
 
 
 def eduid_init_app_no_db(name: str, config: dict,
-                         config_class: Type[BaseConfig],
+                         config_class: Type[FlaskConfig] = FlaskConfig,
                          app_class: Type[Flask] = AuthnApp) -> Flask:
     """
     Create and prepare the flask app for eduID APIs with all the attributes
@@ -107,7 +107,6 @@ def eduid_init_app_no_db(name: str, config: dict,
     app.config.from_envvar('LOCAL_CFG_FILE', silent=True)
     
     config = {key.lower(): val for key, val in app.config.items()}
-
     app.config = config_class(**config)
 
     if DEBUG:
@@ -139,10 +138,10 @@ def eduid_init_app_no_db(name: str, config: dict,
 
 
 def eduid_init_app(name: str, config: dict,
-                   config_class: Type[BaseConfig],
+                   config_class: Type[FlaskConfig] = FlaskConfig,
                    app_class: Type[Flask] = AuthnApp) -> Flask:
     app = eduid_init_app_no_db(name, config, config_class=config_class, app_class=app_class)
-    app.central_userdb = UserDB(app.mongo_uri, 'eduid_am')
+    app.central_userdb = UserDB(app.config.mongo_uri, 'eduid_am')
     # Set up generic health check views
     from eduid_common.api.views.status import status_views
     app.register_blueprint(status_views)

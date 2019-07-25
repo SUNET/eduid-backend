@@ -88,18 +88,13 @@ def rotating(app):
     LOG_MAX_BYTES = 1000000
     LOG_BACKUP_COUNT = 10
     """
-    app.config.setdefault('LOG_FILE', None)
-    app.config.setdefault('LOG_MAX_BYTES', 1000000)  # 1 MB
-    app.config.setdefault('LOG_BACKUP_COUNT', 10)  # 10 x 1 MB
-    app.config.setdefault('LOG_FORMAT',
-                          '%(asctime)s | %(levelname)s | %(hostname)s | %(name)s | %(module)s | %(eppn)s | %(message)s')
 
-    if app.config['LOG_FILE']:
+    if app.config.log_file:
         try:
-            handler = RotatingFileHandler(app.config['LOG_FILE'], maxBytes=app.config['LOG_MAX_BYTES'],
-                                          backupCount=app.config['LOG_BACKUP_COUNT'])
-            handler.setLevel(app.config['LOG_LEVEL'])
-            formatter = EduidFormatter(app.config['LOG_FORMAT'])
+            handler = RotatingFileHandler(app.config.log_file, maxBytes=app.config.log_max_bytes,
+                                          backupCount=app.config.log_backup_count)
+            handler.setLevel(app.config.log_level)
+            formatter = EduidFormatter(app.config.log_format)
             handler.setFormatter(formatter)
             app.logger.addHandler(handler)
             app.logger.info('Rotating log handler initiated')
@@ -117,12 +112,10 @@ def stream(app):
     :return: Flask app with rotating log handler
     :rtype: flask.app.Flask
     """
-    app.config.setdefault('LOG_FORMAT',
-                          '%(asctime)s | %(levelname)s | %(hostname)s | %(name)s | %(module)s | %(eppn)s | %(message)s')
     try:
         handler = StreamHandler()
-        handler.setLevel(app.config['LOG_LEVEL'])
-        formatter = EduidFormatter(app.config['LOG_FORMAT'])
+        handler.setLevel(app.config.log_level)
+        formatter = EduidFormatter(app.config.log_format)
         handler.setFormatter(formatter)
         app.logger.addHandler(handler)
         app.logger.info('Stream log handler initiated')
@@ -138,16 +131,14 @@ def init_logging(app):
     :return: Flask app with log handlers
     :rtype: flask.app.Flask
     """
-    app.config.setdefault('LOG_LEVEL', 'INFO')
-    app.config.setdefault('LOG_TYPE', ['stream'])
-    root.setLevel(app.config['LOG_LEVEL'])
+    root.setLevel(app.config.log_level)
     app.logger.handlers = []  # Remove any handler that Flask set up
-    app.logger.setLevel(app.config['LOG_LEVEL'])
+    app.logger.setLevel(app.config.log_level)
     # Add extra context
     app.logger.addFilter(AppFilter(app))
     app.logger.addFilter(UserFilter(app))
 
-    for log_type in app.config['LOG_TYPE']:
+    for log_type in app.config.log_type:
         init_handler = globals().get(log_type)
         if init_handler:
             app = init_handler(app)

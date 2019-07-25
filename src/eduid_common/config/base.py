@@ -49,14 +49,20 @@ class CeleryConfig(object):
 
     accept_content: List[str] = field(default_factory=lambda: ["application/json"])
     broker_url: str = ''
-    result_backend: str = ''
+    result_backend: str = 'cache'
+    cache_backend: str = 'memory'
     task_serializer: str = 'json'
+    task_eager_propagates: bool = False
+    task_always_eager: bool = False
     # backwards incompatible setting that the documentation says will be the default in the future
+    broker_transport: str = ''
     broker_transport_options: dict = field(default_factory=lambda: {"fanout_prefix": True})
     task_routes: dict = field(default_factory=lambda: {
       'eduid_am.*': {'queue': 'am'},
       'eduid_msg.*': {'queue': 'msg'},
       'eduid_letter_proofing.*': {'queue': 'letter_proofing'}})
+    mongo_uri: str = ''
+
 
 
 @dataclass(frozen=True)
@@ -70,6 +76,12 @@ class BaseConfig(object):
     # enable disable debug mode
     debug: bool = False
     log_level: str = 'INFO'
+    log_file: Optional[str] = None
+    log_max_bytes: int = 1000000  # 1 MB
+    log_backup_count: int = 10  # 10 x 1 MB
+    log_format: str = '%(asctime)s | %(levelname)s | %(hostname)s | %(name)s | %(module)s | %(eppn)s | %(message)s'
+    log_type: List[str] = field(default_factory=lambda:['stream'])
+    logger : Optional[Logger] = None
     # session cookie
     session_cookie_name: str = 'sessid'
     session_cookie_path: str = '/'
@@ -127,21 +139,11 @@ class BaseConfig(object):
     current_tou_version: str = '2017-v6'  # backwards compat
     fido2_rp_id: str = ''
     secret_key: str = ''
-    logger : Optional[Logger] = None
+    stats_host: str = ''
 
     def __post_init__(self):
         if isinstance(self.celery_config, dict):
             object.__setattr__(self, 'celery_config', CeleryConfig(**self.celery_config))
-
-    def __getitem__(self, attr: str) -> Any:
-        '''
-        XXX Once the apps are all accessing configuration as attributes,
-            we will be able to remove this method.
-        '''
-        try:
-            return self.__getattribute__(attr.lower())
-        except AttributeError:
-            raise KeyError(f'{self} has no {attr} attr')
 
     @classmethod
     def defaults(cls, transform_key: callable = lambda x: x) -> dict:
@@ -196,3 +198,21 @@ class FlaskConfig(BaseConfig):
     templates_auto_reload: Optional[bool] = None
     explain_template_loading: bool = False
     max_cookie_size: int = 4093
+
+    def __getitem__(self, attr: str) -> Any:
+        '''
+        This is needed so that Flask code can access Flask configuration
+        '''
+        try:
+            return self.__getattribute__(attr.lower())
+        except AttributeError:
+            raise KeyError(f'{self} has no {attr} attr')
+
+    def get(self, key, default=None):
+        '''
+        This is needed so that Flask code can access Flask configuration
+        '''
+        try:
+            return self.__getattribute__(key.lower())
+        except AttributeError:
+            return default

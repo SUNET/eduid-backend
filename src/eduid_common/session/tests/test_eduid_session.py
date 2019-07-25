@@ -6,7 +6,6 @@ from eduid_common.api.app import eduid_init_app_no_db
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.authn.utils import no_authn_views
 from eduid_common.session import session
-from eduid_common.session.settings.common import Config
 from eduid_common.session.namespaces import LoginApplication
 
 __author__ = 'lundberg'
@@ -14,8 +13,7 @@ __author__ = 'lundberg'
 
 def session_init_app(name, config):
     app = eduid_init_app_no_db(name, config)
-    app.config.update(config)
-    app = no_authn_views(app, ['/unauthenticated'], config_class=Config)
+    app = no_authn_views(app, ['/unauthenticated'])
 
     @app.route('/authenticated')
     def authenticated():
@@ -64,9 +62,9 @@ class EduidSessionTests(EduidAPITestCase):
 
     def update_config(self, config):
         config.update({
-            'DEBUG': True,
-            'LOG_LEVEL': 'DEBUG',
-            'NO_AUTHN_URLS': [],
+            'debug': True,
+            'log_level': 'DEBUG',
+            'no_authn_urls': [],
         })
         return config
 

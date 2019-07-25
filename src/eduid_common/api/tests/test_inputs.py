@@ -48,7 +48,7 @@ from eduid_common.api.decorators import require_user
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.session.eduid_session import SessionFactory
 from eduid_common.api.request import Request
-from eduid_common.config.base import BaseConfig
+from eduid_common.config.base import FlaskConfig
 from eduid_userdb import UserDB
 
 
@@ -125,8 +125,6 @@ class InputsTests(EduidAPITestCase):
         Called from the parent class, so that we can update the configuration
         according to the needs of this test case.
         """
-        config.update({
-            })
         return config
 
     def load_app(self, config):
@@ -137,7 +135,8 @@ class InputsTests(EduidAPITestCase):
         app = Flask('test.localhost')
         app.request_class = Request
         app.config.update(config)
-        app.config = BaseConfig(**app.config)
+        app.config = {key.lower(): val for key, val in app.config.items()}
+        app.config = FlaskConfig(**app.config)
         app.register_blueprint(test_views)
         app.central_userdb = UserDB(app.config.mongo_uri, 'eduid_am')
         app.session_interface = SessionFactory(app.config)
