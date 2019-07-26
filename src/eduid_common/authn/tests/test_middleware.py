@@ -53,6 +53,7 @@ class AuthnTests(EduidAPITestCase):
             'available_languages': {'en': 'English','sv': 'Svenska'},
             'development': 'DEBUG',
             'application_root': '/',
+            'no_authn_urls': [],
             'log_level': 'DEBUG',
             'am_broker_url': 'amqp://eduid:eduid_pw@rabbitmq/am',
             'msg_broker_url': 'amqp://eduid:eduid_pw@rabbitmq/msg',

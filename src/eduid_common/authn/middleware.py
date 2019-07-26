@@ -53,7 +53,7 @@ class AuthnApp(Flask):
     def __call__(self, environ, start_response):
         next_url = get_current_url(environ)
         next_path = list(urlparse(next_url))[2]
-        whitelist = self.config.get('NO_AUTHN_URLS', [])
+        whitelist = self.config.no_authn_urls
         no_context_logger.debug('No auth whitelist: {}'.format(whitelist))
         for regex in whitelist:
             m = re.match(regex, next_path)
@@ -71,7 +71,7 @@ class AuthnApp(Flask):
                 # If HTTP_COOKIE is not removed self.request_context(environ) below
                 # will try to look up the Session data in the backend
 
-        ts_url = urlappend(self.config.get('TOKEN_SERVICE_URL'), 'login')
+        ts_url = urlappend(self.config.token_service_url, 'login')
 
         params = {'next': next_url}
 
