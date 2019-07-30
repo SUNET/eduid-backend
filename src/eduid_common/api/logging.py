@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
-
 import logging
-import time
 from os import environ
-from logging import StreamHandler
-from logging.handlers import RotatingFileHandler
-from flask import current_app
-from eduid_common.session import session
+from pprint import pprint
+
+import time
+from flask import Flask
+
 from eduid_common.api.exceptions import BadConfiguration
+from eduid_common.session import session
 
 __author__ = 'lundberg'
 
@@ -17,8 +16,10 @@ __author__ = 'lundberg'
 Adds the following entries to logging context:
 system_hostname - Set with environment variable SYSTEM_HOSTNAME
 app_name - Flask app name
-eppn - Available if a session initiated
+eppn - Available if a user session is initiated
 """
+
+DEFAULT_FORMAT = '%(asctime)s | %(levelname)s | %(hostname)s | %(name)s | %(module)s | %(eppn)s | %(message)s'
 
 
 # Default to RFC3339/ISO 8601 with tz
@@ -38,23 +39,21 @@ class EduidFormatter(logging.Formatter):
 
 class AppFilter(logging.Filter):
 
-    def __init__(self, app):
+    def __init__(self, app_name):
         logging.Filter.__init__(self)
-        self.app = app
+        self.app_name = app_name
 
     def filter(self, record):
         record.system_hostname = environ.get('SYSTEM_HOSTNAME', '')  # Underlying hosts name for containers
         record.hostname = environ.get('HOSTNAME', '')  # Actual hostname or container id
-        with self.app.app_context():
-            record.app_name = current_app.name
+        record.app_name = self.app_name
         return True
 
 
 class UserFilter(logging.Filter):
 
-    def __init__(self, app):
+    def __init__(self):
         logging.Filter.__init__(self)
-        self.app = app
 
     def filter(self, record):
         record.eppn = ''
@@ -63,92 +62,78 @@ class UserFilter(logging.Filter):
         return True
 
 
-# Root log config
-root_handler = logging.StreamHandler()
-root_formatter = EduidFormatter('%(asctime)s | %(levelname)s | %(module)s | %(message)s')
-root_handler.setFormatter(root_formatter)
-root = logging.getLogger()
-root.addHandler(root_handler)
+def merge_config(base_config: dict, new_config: dict) -> dict:
+    def merge(node, key, value):
+        if isinstance(value, dict):
+            for item in value:
+                try:
+                    merge(node[key], item, value[item])
+                except KeyError:
+                    # No such key in base_config, just set it
+                    node[key] = value
+        else:
+            node[key] = value
+
+    for k, v in new_config.items():
+        merge(base_config, k, v)
+    return base_config
 
 
-def rotating(app):
+def init_logging(app: Flask) -> Flask:
     """
-    :param app: Flask app
+    Init logging using dictConfig.
 
-    :type app: flask.app.Flask
+    Will look for the following settings keys:
+    LOG_LEVEL
+    LOG_FORMAT (optional)
 
-    :return: Flask app with rotating log handler
-    :rtype: flask.app.Flask
-
-    Override the following config settings if needed:
-    LOG_TYPE = ['rotating']
-    LOG_FILE = None
-    LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    LOG_LEVEL = 'INFO'
-    LOG_MAX_BYTES = 1000000
-    LOG_BACKUP_COUNT = 10
+    Merges optional dictConfig from settings before initializing.
     """
-    app.config.setdefault('LOG_FILE', None)
-    app.config.setdefault('LOG_MAX_BYTES', 1000000)  # 1 MB
-    app.config.setdefault('LOG_BACKUP_COUNT', 10)  # 10 x 1 MB
-    app.config.setdefault('LOG_FORMAT',
-                          '%(asctime)s | %(levelname)s | %(hostname)s | %(name)s | %(module)s | %(eppn)s | %(message)s')
-
-    if app.config['LOG_FILE']:
-        try:
-            handler = RotatingFileHandler(app.config['LOG_FILE'], maxBytes=app.config['LOG_MAX_BYTES'],
-                                          backupCount=app.config['LOG_BACKUP_COUNT'])
-            handler.setLevel(app.config['LOG_LEVEL'])
-            formatter = EduidFormatter(app.config['LOG_FORMAT'])
-            handler.setFormatter(formatter)
-            app.logger.addHandler(handler)
-            app.logger.info('Rotating log handler initiated')
-        except AttributeError as e:
-            raise BadConfiguration(e)
-    return app
-
-
-def stream(app):
-    """
-    :param app: Flask app
-
-    :type app: flask.app.Flask
-
-    :return: Flask app with rotating log handler
-    :rtype: flask.app.Flask
-    """
-    app.config.setdefault('LOG_FORMAT',
-                          '%(asctime)s | %(levelname)s | %(hostname)s | %(name)s | %(module)s | %(eppn)s | %(message)s')
     try:
-        handler = StreamHandler()
-        handler.setLevel(app.config['LOG_LEVEL'])
-        formatter = EduidFormatter(app.config['LOG_FORMAT'])
-        handler.setFormatter(formatter)
-        app.logger.addHandler(handler)
-        app.logger.info('Stream log handler initiated')
-    except AttributeError as e:
-        raise BadConfiguration(e)
-    return app
+        local_context = {
+            'level': app.config["LOG_LEVEL"],
+            'format': app.config.setdefault("LOG_FORMAT", DEFAULT_FORMAT),
+            'app_name': app.name,
+        }
+    except (KeyError, AttributeError) as e:
+        raise BadConfiguration(message=f'Could not initialize local_context. {type(e).__name__}: {e}')
 
-
-def init_logging(app):
-    """
-    :param app: Flask app
-    :type app: flask.app.Flask
-    :return: Flask app with log handlers
-    :rtype: flask.app.Flask
-    """
-    app.config.setdefault('LOG_LEVEL', 'INFO')
-    app.config.setdefault('LOG_TYPE', ['stream'])
-    root.setLevel(app.config['LOG_LEVEL'])
-    app.logger.handlers = []  # Remove any handler that Flask set up
-    app.logger.setLevel(app.config['LOG_LEVEL'])
-    # Add extra context
-    app.logger.addFilter(AppFilter(app))
-    app.logger.addFilter(UserFilter(app))
-
-    for log_type in app.config['LOG_TYPE']:
-        init_handler = globals().get(log_type)
-        if init_handler:
-            app = init_handler(app)
+    settings_config = app.config.setdefault("LOGGING_CONFIG", {})
+    base_config = {
+        'version': 1,
+        'disable_existing_loggers': False,
+        # Local variables
+        'local_context': local_context,
+        'formatters': {
+            'default': {
+                '()': 'eduid_common.api.logging.EduidFormatter',
+                'fmt': 'cfg://local_context.format'
+            },
+        },
+        'filters': {
+            'app_filter': {
+                '()': 'eduid_common.api.logging.AppFilter',
+                'app_name': 'cfg://local_context.app_name',
+            },
+            'user_filter': {
+                '()': 'eduid_common.api.logging.UserFilter',
+            }
+        },
+        'handlers': {
+            'console': {
+                'class': 'logging.StreamHandler',
+                'level': 'cfg://local_context.level',
+                'formatter': 'default',
+                'filters': ['app_filter', 'user_filter']
+            },
+        },
+        'root': {
+            'handlers': ['console'],
+            'level': 'cfg://local_context.level',
+        },
+    }
+    logging_config = merge_config(base_config, settings_config)
+    logging.config.dictConfig(logging_config)
+    app.logger.debug(pprint(logging_config))
+    app.logger.info('Logging configured')
     return app
