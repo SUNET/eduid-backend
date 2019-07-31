@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 
 import logging
+import logging.config
 from os import environ
-from pprint import pprint
+from pprint import PrettyPrinter
 
 import time
 from flask import Flask
@@ -62,6 +63,26 @@ class UserFilter(logging.Filter):
         return True
 
 
+class RequireDebugTrue(logging.Filter):
+
+    def __init__(self, app_debug):
+        logging.Filter.__init__(self)
+        self.app_debug = app_debug
+
+    def filter(self, record):
+        return self.app_debug
+
+
+class RequireDebugFalse(logging.Filter):
+
+    def __init__(self, app_debug):
+        logging.Filter.__init__(self)
+        self.app_debug = app_debug
+
+    def filter(self, record):
+        return not self.app_debug
+
+
 def merge_config(base_config: dict, new_config: dict) -> dict:
     def merge(node, key, value):
         if isinstance(value, dict):
@@ -94,9 +115,10 @@ def init_logging(app: Flask) -> Flask:
             'level': app.config["LOG_LEVEL"],
             'format': app.config.setdefault("LOG_FORMAT", DEFAULT_FORMAT),
             'app_name': app.name,
+            'app_debug': app.debug,
         }
     except (KeyError, AttributeError) as e:
-        raise BadConfiguration(message=f'Could not initialize local_context. {type(e).__name__}: {e}')
+        raise BadConfiguration(message=f'Could not initialize logging local_context. {type(e).__name__}: {e}')
 
     settings_config = app.config.setdefault("LOGGING_CONFIG", {})
     base_config = {
@@ -117,6 +139,14 @@ def init_logging(app: Flask) -> Flask:
             },
             'user_filter': {
                 '()': 'eduid_common.api.logging.UserFilter',
+            },
+            'require_debug_true': {
+                '()': 'eduid_common.api.logging.RequireDebugTrue',
+                'app_debug': 'cfg://local_context.app_debug',
+            },
+            'require_debug_false': {
+                '()': 'eduid_common.api.logging.RequireDebugFalse',
+                'app_debug': 'cfg://local_context.app_debug',
             }
         },
         'handlers': {
@@ -134,6 +164,8 @@ def init_logging(app: Flask) -> Flask:
     }
     logging_config = merge_config(base_config, settings_config)
     logging.config.dictConfig(logging_config)
-    app.logger.debug(pprint(logging_config))
+    if app.debug:
+        pp = PrettyPrinter()
+        app.logger.debug(f'Logging config:\n{pp.pformat(logging_config)}')
     app.logger.info('Logging configured')
     return app
