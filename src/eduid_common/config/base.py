@@ -109,6 +109,10 @@ class BaseConfig(object):
     # The Redis sentinel 'service name'.
     redis_sentinel_service_name: str = 'redis-cluster'
     saml2_logout_redirect_url: str = 'https://eduid.se/'
+    saml2_login_redirect_url: str = ''
+    saml2_settings_module: str = ''
+    saml2_strip_saml_user_suffix: bool = False
+    saml2_user_main_attribute: str = 'eduPersonPrincipalName'
     token_service_url: str = ''
     celery_config: CeleryConfig = field(default_factory=CeleryConfig)
     am_broker_url: str = ''
@@ -117,12 +121,23 @@ class BaseConfig(object):
         'en': 'English',
         'sv': 'Svenska'
         })
+    supported_languages: Dict[str, str] = field(default_factory=lambda: {
+        'en': 'English',
+        'sv': 'Svenska'
+        })
     mail_default_from: str = 'info@eduid.se'
+    eduid_site_name: str = ''
     eduid_site_url: str = ''
     eduid_static_url: str = ''
     static_url: str = ''
     dashboard_url: str = ''
     reset_passwd_url: str = ''
+    default_finish_url: str = ''
+    safe_relay_domain: str = ''
+    faq_link: str = ''
+    students_link: str = ''
+    staff_link: str = ''
+    technicians_link: str = ''
     # set absolute URL so it can be included in emails
     signup_url: str = ''
     no_authn_urls: list = field(default_factory=lambda: [
@@ -198,6 +213,8 @@ class FlaskConfig(BaseConfig):
     templates_auto_reload: Optional[bool] = None
     explain_template_loading: bool = False
     max_cookie_size: int = 4093
+    babel_translation_directories: List[str] = field(default_factory=list)
+    logger_name: str = ''
 
     def __getitem__(self, attr: str) -> Any:
         '''

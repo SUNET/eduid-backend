@@ -61,7 +61,10 @@ if DEBUG:
 
 def eduid_init_app_no_db(name: str, config: dict,
                          config_class: Type[FlaskConfig] = FlaskConfig,
-                         app_class: Type[Flask] = AuthnApp) -> Flask:
+                         app_class: Type[Flask] = AuthnApp,
+                         # XXX the legacy_config arg is to be removed once all apps
+                         # are using the new configuration classes
+                         legacy_config : bool = True) -> Flask:
     """
     Create and prepare the flask app for eduID APIs with all the attributes
     common to all  apps.
@@ -105,9 +108,10 @@ def eduid_init_app_no_db(name: str, config: dict,
 
     # Load optional app specific secrets
     app.config.from_envvar('LOCAL_CFG_FILE', silent=True)
-    
-    config = {key.lower(): val for key, val in app.config.items()}
-    app.config = config_class(**config)
+
+    if not legacy_config:
+        config = {key.lower(): val for key, val in app.config.items()}
+        app.config = config_class(**config)
 
     if DEBUG:
         dump_config(app)
