@@ -130,17 +130,17 @@ class EduidAPITestCase(MongoTestCase):
         self.redis_instance = RedisTemporaryInstance.get_instance()
         self.etcd_instance = EtcdTemporaryInstance.get_instance()
         config = deepcopy(TEST_CONFIG)
-        config['redis_port'] = str(self.redis_instance.port)
-        config['mongo_uri'] = self.tmp_db.uri
+        config['REDIS_PORT'] = str(self.redis_instance.port)
+        config['MONGO_URI'] = self.tmp_db.uri
         if init_am:
             # 'CELERY' is the key used in workers, and 'CELERY_CONFIG' is used in webapps.
             # self.am_settings is initialized by the super-class MongoTestCase.
             #
             # We need to copy this data from am_settings to config, because AM will be
             # re-initialized in load_app() below.
-            config['celery_config'] = self.am_settings['CELERY']
+            config['CELERY_CONFIG'] = self.am_settings['CELERY']
             if self.am_settings.get('ACTION_PLUGINS'):
-                config['action_plugins'] = self.am_settings['ACTION_PLUGINS']
+                config['ACTION_PLUGINS'] = self.am_settings['ACTION_PLUGINS']
         
         config = self.update_config(config)
         

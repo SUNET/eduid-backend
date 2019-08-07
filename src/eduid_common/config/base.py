@@ -158,7 +158,12 @@ class BaseConfig(object):
 
     def __post_init__(self):
         if isinstance(self.celery_config, dict):
-            object.__setattr__(self, 'celery_config', CeleryConfig(**self.celery_config))
+            cconfig = {}
+            for k, v in self.celery_config.items():
+                if k.startswith('CELERY_'):
+                    k = k[7:]
+                cconfig[k.lower()] = v
+            object.__setattr__(self, 'celery_config', CeleryConfig(**cconfig))
 
     @classmethod
     def defaults(cls, transform_key: callable = lambda x: x) -> dict:
@@ -215,6 +220,54 @@ class FlaskConfig(BaseConfig):
     max_cookie_size: int = 4093
     babel_translation_directories: List[str] = field(default_factory=list)
     logger_name: str = ''
+
+    # XXX attributes that belong in the config classes for the particular apps,
+    # to be removed when eduid-webapp starts using the new config classes
+    u2f_app_id: str = ''
+    vccs_url: str = ''
+    password_length: int = 8
+    phone_verification_timeout: int = 5
+    webauthn_max_allowed_tokens: int = 5
+    bundle_path: str = ''
+    bundles_path: str = ''
+    bundle_version: str = ''
+    bundles_version: str = ''
+    support_personnel: str = ''
+    signup_authn_url: str = ''
+    email_code_timeout: int = 0
+    password_entropy: int = 0
+    default_country_code: str = 'en'
+    provider_configuration_info: str = ''
+    ekopost_api_uri: str = ''
+    email_verify_redirect_url: str = ''
+    token_verify_redirect_url: str = ''
+    signup_authn_success_redirect_url: str = ''
+    tou_url: str = ''
+    u2f_max_allowed_tokens: int = 0
+    phone_code_timeout: int = 0
+    chpass_timeout: int = 0
+    throttle_resend_seconds: int = 0
+    client_registration_info: str = ''
+    lookup_mobile_broker_url: str = ''
+    ekopost_api_user: str = ''
+    email_verification_timeout: int = 0
+    nin_verify_redirect_url: str = ''
+    signup_authn_failure_redirect_url: str = ''
+    idp_url: str = ''
+    recaptcha_public_key: str = ''
+    u2f_facets: str = ''
+    userinfo_endpoint_method: str = ''
+    letter_wait_time_hours: int = 0
+    ekopost_api_pw: str = ''
+    action_url: str = ''
+    internal_signup_url: str = ''
+    recaptcha_private_key: str = ''
+    freja_jws_algorithm: str = ''
+    authentication_context_map: str = ''
+    mfa_testing: bool = False
+    freja_jws_key_id: str = ''
+    authn_sign_alg: str = ''
+    u2f_valid_facets: str = ''
 
     def __getitem__(self, attr: str) -> Any:
         '''
