@@ -268,6 +268,9 @@ class FlaskConfig(BaseConfig):
     freja_jws_key_id: str = ''
     authn_sign_alg: str = ''
     u2f_valid_facets: str = ''
+    u2f_max_description_length: int = 0
+    freja_jwk_secret: str = ''
+    orcid_verify_redirect_url: str = ''
 
     def __getitem__(self, attr: str) -> Any:
         '''
