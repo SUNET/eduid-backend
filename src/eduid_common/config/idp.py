@@ -42,7 +42,7 @@ from typing import Optional, List, Tuple, Dict, Any
 from .base import BaseConfig
 
 
-@dataclass(frozen=True)
+@dataclass
 class IdPConfig(BaseConfig):
     """
     Configuration for the IdP

@@ -44,9 +44,13 @@ from importlib import import_module
 from typing import Optional, List, Tuple, Dict, Any
 
 
-@dataclass(frozen=True)
-class CeleryConfig(object):
 
+
+@dataclass
+class CeleryConfig:
+    """
+    Celery configuration 
+    """
     accept_content: List[str] = field(default_factory=lambda: ["application/json"])
     broker_url: str = ''
     result_backend: str = 'cache'
@@ -61,12 +65,16 @@ class CeleryConfig(object):
       'eduid_am.*': {'queue': 'am'},
       'eduid_msg.*': {'queue': 'msg'},
       'eduid_letter_proofing.*': {'queue': 'letter_proofing'}})
-    mongo_uri: str = ''
+    mongo_uri: str = 'mongodb://'
 
 
 
-@dataclass(frozen=True)
-class BaseConfig(object):
+@dataclass
+class BaseConfig:
+    """
+    Configuration common to all web apps, roughly equivalent to the
+    "eduid/webapp/common" namespace in etcd.
+    """
     # name of the app, which coincides with its namespace in etcd
     app_name: str = ''
     server_name: str = ''
@@ -115,8 +123,19 @@ class BaseConfig(object):
     saml2_user_main_attribute: str = 'eduPersonPrincipalName'
     token_service_url: str = ''
     celery_config: CeleryConfig = field(default_factory=CeleryConfig)
+    celery: CeleryConfig = field(default_factory=CeleryConfig)
+    new_user_date: str = ''
+    sms_sender: str = ''
+    mail_starttls: bool = False
+    template_dir: str = ''
+    audit: bool = False
+    mail_host: str = ''
+    mail_port: str = ''
     am_broker_url: str = ''
     msg_broker_url: str = ''
+    teleadress_client_user: str = ''
+    teleadress_client_password: str = ''
+    transaction_audit: bool = False
     available_languages: Dict[str, str] = field(default_factory=lambda: {
         'en': 'English',
         'sv': 'Svenska'
@@ -163,7 +182,32 @@ class BaseConfig(object):
                 if k.startswith('CELERY_'):
                     k = k[7:]
                 cconfig[k.lower()] = v
-            object.__setattr__(self, 'celery_config', CeleryConfig(**cconfig))
+            self.celery_config = CeleryConfig(**cconfig)
+            self.celery = self.celery_config
+
+    def __getitem__(self, attr: str) -> Any:
+        '''
+        This is needed so that Flask code can access Flask configuration
+        '''
+        try:
+            return self.__getattribute__(attr.lower())
+        except AttributeError:
+            raise KeyError(f'{self} has no {attr} attr')
+
+    def __setitem__(self, attr: str, value: Any):
+        setattr(self, attr, value)
+
+    def get(self, key, default=None):
+        '''
+        This is needed so that Flask code can access Flask configuration
+        '''
+        try:
+            return self.__getattribute__(key.lower())
+        except AttributeError:
+            return default
+
+    def __contains__(self, key):
+        return hasattr(self, key.lower())
 
     @classmethod
     def defaults(cls, transform_key: callable = lambda x: x) -> dict:
@@ -177,7 +221,7 @@ class BaseConfig(object):
     @classmethod
     def init_config(cls, debug: bool = True, test_config: Optional[dict] = None) -> BaseConfig:
         """
-        Initialize configuration wth values from etcd
+        Initialize configuration with values from etcd (or with test values)
         """
         config : Dict[str, Any] = {'debug': debug}
         if test_config is not None:
@@ -197,8 +241,17 @@ class BaseConfig(object):
 
         return cls(**config)
 
+    def update(self, config: dict, transform_key: callable = lambda x: x.lower()):
+        for key, value in config.items():
+            setattr(self, transform_key(key), value)
 
-@dataclass(frozen=True)
+    def setdefault(self, key: str, value: Any,
+                   transform_key: callable = lambda x: x.lower()):
+        if not getattr(self, transform_key(key)):
+            setattr(self, transform_key(key), value)
+
+
+@dataclass
 class FlaskConfig(BaseConfig):
     env : str = 'production'
     propagate_exceptions: Optional[bool] = None
@@ -219,6 +272,9 @@ class FlaskConfig(BaseConfig):
     explain_template_loading: bool = False
     max_cookie_size: int = 4093
     babel_translation_directories: List[str] = field(default_factory=list)
+    babel_default_locale: str = ''
+    babel_default_timezone: str = ''
+    babel_domain: str = ''
     logger_name: str = ''
 
     # XXX attributes that belong in the config classes for the particular apps,
@@ -229,6 +285,10 @@ class FlaskConfig(BaseConfig):
     phone_verification_timeout: int = 5
     webauthn_max_allowed_tokens: int = 5
     bundle_path: str = ''
+    dashboard_bundle_path: str = ''
+    dashboard_bundle_version: str = ''
+    signup_bundle_path: str = ''
+    signup_bundle_version: str = ''
     bundles_path: str = ''
     bundle_version: str = ''
     bundles_version: str = ''
@@ -250,6 +310,8 @@ class FlaskConfig(BaseConfig):
     client_registration_info: str = ''
     lookup_mobile_broker_url: str = ''
     ekopost_api_user: str = ''
+    ekopost_api_verify_ssl: bool = False
+    ekopost_debug_pdf: bool = False
     email_verification_timeout: int = 0
     nin_verify_redirect_url: str = ''
     signup_authn_failure_redirect_url: str = ''
@@ -263,6 +325,10 @@ class FlaskConfig(BaseConfig):
     internal_signup_url: str = ''
     recaptcha_private_key: str = ''
     freja_jws_algorithm: str = ''
+    freja_expire_time_hours: int = 0
+    seleg_expire_time_hours: int = 0
+    freja_iarp: str = ''
+    freja_response_protocol: str = ''
     authentication_context_map: str = ''
     mfa_testing: bool = False
     freja_jws_key_id: str = ''
@@ -271,21 +337,8 @@ class FlaskConfig(BaseConfig):
     u2f_max_description_length: int = 0
     freja_jwk_secret: str = ''
     orcid_verify_redirect_url: str = ''
-
-    def __getitem__(self, attr: str) -> Any:
-        '''
-        This is needed so that Flask code can access Flask configuration
-        '''
-        try:
-            return self.__getattribute__(attr.lower())
-        except AttributeError:
-            raise KeyError(f'{self} has no {attr} attr')
-
-    def get(self, key, default=None):
-        '''
-        This is needed so that Flask code can access Flask configuration
-        '''
-        try:
-            return self.__getattribute__(key.lower())
-        except AttributeError:
-            return default
+    unsolicited_response_redirect_url: str = ''
+    mfa_authn_idp: str = ''
+    eidas_url: str = ''
+    authn_digest_alg: str = ''
+    staging_nin_map: dict = field(default_factory=dict)

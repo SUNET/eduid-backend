@@ -5,6 +5,7 @@ from __future__ import absolute_import
 import os
 
 from eduid_common.config.parsers.etcd import EtcdConfigParser
+from eduid_common.config.base import BaseConfig
 
 
 def get_worker_config(name):
@@ -25,4 +26,4 @@ def get_worker_config(name):
     app_parser = EtcdConfigParser(app_etcd_namespace)
     cfg.update(common_parser.read_configuration(silent=True))
     cfg.update(app_parser.read_configuration(silent=True))
-    return cfg
+    return BaseConfig(**cfg)
