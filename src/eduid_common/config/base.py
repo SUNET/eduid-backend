@@ -342,3 +342,5 @@ class FlaskConfig(BaseConfig):
     eidas_url: str = ''
     authn_digest_alg: str = ''
     staging_nin_map: dict = field(default_factory=dict)
+    generate_u2f_challenges: bool = True
+    staging_nin_map: dict = field(default_factory=dict)
