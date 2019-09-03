@@ -112,8 +112,8 @@ def init_logging(app: Flask) -> Flask:
     """
     try:
         local_context = {
-            'level': app.config["LOG_LEVEL"],
-            'format': app.config.setdefault("LOG_FORMAT", DEFAULT_FORMAT),
+            'level': app.config.setdefault('LOG_LEVEL', 'INFO'),
+            'format': app.config.setdefault('LOG_FORMAT', DEFAULT_FORMAT),
             'app_name': app.name,
             'app_debug': app.debug,
         }
