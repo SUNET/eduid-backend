@@ -60,7 +60,7 @@ class AuthnTests(EduidAPITestCase):
             'celery_config': {
                 'result_backend': 'amqp',
                 'task_serializer': 'json',
-                'mongo_uri': config['mongo_uri'],
+                'mongo_uri': config['MONGO_URI'],
             },
         })
         return config
@@ -94,7 +94,7 @@ class UnAuthnTests(EduidAPITestCase):
             'celery_config': {
                 'result_backend': 'amqp',
                 'task_serializer': 'json',
-                'mongo_uri': config['mongo_uri'],
+                'mongo_uri': config['MONGO_URI'],
             },
         })
         return config

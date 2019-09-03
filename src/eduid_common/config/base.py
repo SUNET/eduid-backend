@@ -226,18 +226,23 @@ class BaseConfig:
         config : Dict[str, Any] = {'debug': debug}
         if test_config is not None:
             # Load init time settings
+            test_config = {k.lower(): v for k, v in test_config.items()}
             config.update(test_config)
         else:
             from eduid_common.config.parsers.etcd import EtcdConfigParser
 
             common_namespace = os.environ.get('EDUID_CONFIG_COMMON_NS', '/eduid/webapp/common/')
             common_parser = EtcdConfigParser(common_namespace)
-            config.update(common_parser.read_configuration(silent=True))
+            common_config = common_parser.read_configuration(silent=True)
+            common_config = {k.lower(): v for k, v in common_config.items()}
+            config.update(common_config)
 
             namespace = os.environ.get('EDUID_CONFIG_NS', f'/eduid/webapp/{cls.app_name}/')
             parser = EtcdConfigParser(namespace)
             # Load optional app specific settings
-            config.update(parser.read_configuration(silent=True))
+            proper_config = parser.read_configuration(silent=True)
+            proper_config = {k.lower(): v for k, v in proper_config.items()}
+            config.update(proper_config)
 
         return cls(**config)
 
