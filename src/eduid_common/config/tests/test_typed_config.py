@@ -84,7 +84,8 @@ class TestTypedFlaskConfig(unittest.TestCase):
             'eduid': {
                 'webapp': {
                     'common': {
-                        'DEVEL_MODE': True
+                        'DEVEL_MODE': True,
+                        'PREFERRED_URL_SCHEME': 'https'
                     }
                 }
             }
@@ -94,7 +95,8 @@ class TestTypedFlaskConfig(unittest.TestCase):
             'eduid': {
                 'webapp': {
                     'authn': {
-                        'SAFE_RELAY_DOMAIN': 'eduid.se'
+                        'SAFE_RELAY_DOMAIN': 'eduid.se',
+                        'APPLICATION_ROOT': '/services/authn'
                     }
                 }
             }
