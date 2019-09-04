@@ -120,7 +120,7 @@ def init_logging(app: Flask) -> Flask:
     except (KeyError, AttributeError) as e:
         raise BadConfiguration(message=f'Could not initialize logging local_context. {type(e).__name__}: {e}')
 
-    settings_config = app.config.setdefault("LOGGING_CONFIG", {})
+    settings_config = app.config.logging_config
     base_config = {
         'version': 1,
         'disable_existing_loggers': False,

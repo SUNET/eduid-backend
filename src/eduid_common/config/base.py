@@ -83,6 +83,7 @@ class BaseConfig:
     testing: bool = False
     # enable disable debug mode
     debug: bool = False
+    logging_config: dict = field(default_factory=dict)
     log_level: str = 'INFO'
     log_file: Optional[str] = None
     log_max_bytes: int = 1000000  # 1 MB
