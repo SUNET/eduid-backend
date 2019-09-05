@@ -2,6 +2,7 @@
 
 import logging
 import logging.config
+from typing import Any
 from os import environ
 from pprint import PrettyPrinter
 
@@ -100,7 +101,7 @@ def merge_config(base_config: dict, new_config: dict) -> dict:
     return base_config
 
 
-def init_logging(app: Flask) -> Flask:
+def init_logging(app: Any) -> Any:
     """
     Init logging using dictConfig.
 

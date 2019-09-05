@@ -41,7 +41,7 @@ from datetime import timedelta
 import os
 from logging import Logger
 from importlib import import_module
-from typing import Optional, List, Tuple, Dict, Any
+from typing import Optional, List, Tuple, Dict, Any, Union, Callable
 
 
 
@@ -151,14 +151,20 @@ class BaseConfig:
     technicians_link: str = ''
     # set absolute URL so it can be included in emails
     signup_url: str = ''
+    # URL to use with VCCS client. BCP is to have an nginx or similar on
+    # localhost that will proxy requests to a currently available backend
+    # using TLS.
+    vccs_url: str = ''
     no_authn_urls: list = field(default_factory=lambda: [
         "^/status/healthy$",
         "^/status/sanity-check$"
         ])
+    # The plugins for pre-authentication actions that need to be loaded
     action_plugins: list = field(default_factory=lambda: [
         "tou",
         "mfa"
         ])
+    # The current version of the terms of use agreement.
     tou_version: str = '2017-v6'
     current_tou_version: str = '2017-v6'  # backwards compat
     fido2_rp_id: str = ''
@@ -199,13 +205,13 @@ class BaseConfig:
         return hasattr(self, key.lower())
 
     @classmethod
-    def defaults(cls, transform_key: callable = lambda x: x) -> dict:
+    def defaults(cls, transform_key: Callable = lambda x: x) -> dict:
         return {transform_key(key): val for key, val in cls.__dict__.items()
-                  if isinstance(key, str) and not key.startswith('__') and not callable(val)}
+                  if isinstance(key, str) and not key.startswith('_') and not callable(val)}
 
-    def to_dict(self, transform_key: callable = lambda x: x) -> dict:
+    def to_dict(self, transform_key: Callable = lambda x: x) -> dict:
         return {transform_key(key): val for key, val in self.__dict__.items()
-                  if isinstance(key, str) and not key.startswith('__') and not callable(val)}
+                  if isinstance(key, str) and not key.startswith('_') and not callable(val)}
 
     @classmethod
     def init_config(cls, debug: bool = True, test_config: Optional[dict] = None) -> BaseConfig:
@@ -235,12 +241,12 @@ class BaseConfig:
 
         return cls(**config)
 
-    def update(self, config: dict, transform_key: callable = lambda x: x.lower()):
+    def update(self, config: dict, transform_key: Callable = lambda x: x.lower()):
         for key, value in config.items():
             setattr(self, transform_key(key), value)
 
     def setdefault(self, key: str, value: Any,
-                   transform_key: callable = lambda x: x.lower()):
+                   transform_key: Callable = lambda x: x.lower()):
         if not hasattr(self, transform_key(key)):
             setattr(self, transform_key(key), value)
             return value
@@ -299,7 +305,6 @@ class FlaskConfig(BaseConfig):
     # XXX attributes that belong in the config classes for the particular apps,
     # to be removed when eduid-webapp starts using the new config classes
     u2f_app_id: str = ''
-    vccs_url: str = ''
     password_length: int = 8
     phone_verification_timeout: int = 5
     webauthn_max_allowed_tokens: int = 5

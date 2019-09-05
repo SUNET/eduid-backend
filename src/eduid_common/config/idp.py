@@ -51,8 +51,6 @@ class IdPConfig(BaseConfig):
     # session cookie
     session_cookie_persistent: bool = True
     session_cookie_locking: str = 'explicit'
-    # Logging
-    log_level: str = 'INFO'
     # IdP specific
     syslog_debug: bool = False
     num_threads: int = 8
@@ -88,7 +86,6 @@ class IdPConfig(BaseConfig):
     # MongoDB connection URI (string). See MongoDB documentation for details.
     userdb_mongo_uri: Optional[str] = None
     authn_info_mongo_uri: Optional[str] = None
-    mongo_uri: Optional[str] = None
     # MongoDB connection URI (string) for PySAML2 SSO sessions.
     sso_session_mongo_uri: Optional[str] = None
     # Lifetime of SSO session (in minutes).
@@ -115,11 +112,6 @@ class IdPConfig(BaseConfig):
     dashboard_link: str = '#'
     # URL (string) for use in simple templating of login.html.
     password_reset_link: str = '#'
-    # More links
-    technicians_link: str = '#'
-    student_link: str = '#'
-    staff_link: str = '#'
-    faq_link: str = '#'
     # Default language code to use when looking for web pages ('en').
     default_language: str = 'en'
     # Base URL of the IdP. The default base URL is constructed from the
@@ -143,17 +135,9 @@ class IdPConfig(BaseConfig):
     # Add a default eduPersonScopedAffiliation if none is returned from the
     # attribute manager.
     default_scoped_affiliation: Optional[str] = None
-    # URL to use with VCCS client. BCP is to have an nginx or similar on
-    # localhost that will proxy requests to a currently available backend
-    # using TLS.
-    vccs_url: str = 'http://localhost:8550/'
     insecure_cookies: bool = False
     # URI of the actions app.
     actions_app_uri: Optional[str] = 'http://actions.example.com/'
-    # The plugins for pre-authentication actions that need to be loaded
-    action_plugins: List[str] = field(default_factory=list)
-    # The current version of the terms of use agreement.
-    tou_version: str = 'version1'
     # The interval which a user needs to reaccept an already accepted ToU (in seconds)
     tou_reaccept_interval: int = 94608000
     # Name of cookie used to persist session information in the users browser.
