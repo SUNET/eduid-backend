@@ -73,16 +73,23 @@ class CeleryConfig:
 class BaseConfig:
     """
     Configuration common to all web apps, roughly equivalent to the
-    "eduid/webapp/common" namespace in etcd.
+    "eduid/webapp/common" namespace in etcd - excluding Flask's own
+    configuration
     """
+    debug: bool = False
+    # These below are configuration keys used in the webapps, common to most
+    # or at least to several of them.
+
     # name of the app, which coincides with its namespace in etcd
     app_name: str = ''
-    server_name: str = ''
+    eduid_site_name: str = ''
+    eduid_site_url: str = ''
+    eduid_static_url: str = ''
+    # environment=(dev|staging|pro)
+    environment: str = 'dev'
     devel_mode: bool = False
     development: bool = False
-    testing: bool = False
     # enable disable debug mode
-    debug: bool = False
     logging_config: dict = field(default_factory=dict)
     log_level: str = 'INFO'
     log_file: Optional[str] = None
@@ -91,19 +98,6 @@ class BaseConfig:
     log_format: str = '%(asctime)s | %(levelname)s | %(hostname)s | %(name)s | %(module)s | %(eppn)s | %(message)s'
     log_type: List[str] = field(default_factory=lambda:['stream'])
     logger : Optional[Logger] = None
-    # session cookie
-    session_cookie_name: str = 'sessid'
-    session_cookie_path: str = '/'
-    session_cookie_timeout: int = 60      # in minutes
-    # the domain for the session cookie. If this is not set, the cookie will
-    # be valid for all subdomains of SERVER_NAME.
-    session_cookie_domain: str = ''
-    session_cookie_secure: bool = True
-    session_cookie_httponly: bool = False
-    session_cookie_samesite: Optional[str] = None
-    # The URL scheme that should be used for URL generation if no URL scheme is
-    # available. This defaults to http
-    preferred_url_scheme: str = 'http'
     # mongo_uri
     mongo_uri: str = 'mongodb://'
     # Redis config
@@ -130,13 +124,13 @@ class BaseConfig:
     mail_starttls: bool = False
     template_dir: str = ''
     audit: bool = False
+    transaction_audit: bool = False
     mail_host: str = ''
     mail_port: str = ''
     am_broker_url: str = ''
     msg_broker_url: str = ''
     teleadress_client_user: str = ''
     teleadress_client_password: str = ''
-    transaction_audit: bool = False
     available_languages: Dict[str, str] = field(default_factory=lambda: {
         'en': 'English',
         'sv': 'Svenska'
@@ -146,9 +140,6 @@ class BaseConfig:
         'sv': 'Svenska'
         })
     mail_default_from: str = 'info@eduid.se'
-    eduid_site_name: str = ''
-    eduid_site_url: str = ''
-    eduid_static_url: str = ''
     static_url: str = ''
     dashboard_url: str = ''
     reset_passwd_url: str = ''
@@ -168,12 +159,9 @@ class BaseConfig:
         "tou",
         "mfa"
         ])
-    # environment=(dev|staging|pro)
-    environment: str = 'dev'
     tou_version: str = '2017-v6'
     current_tou_version: str = '2017-v6'  # backwards compat
     fido2_rp_id: str = ''
-    secret_key: str = ''
     stats_host: str = ''
 
     def __post_init__(self):
@@ -261,16 +249,39 @@ class BaseConfig:
 
 @dataclass
 class FlaskConfig(BaseConfig):
+    '''
+    These are configuration keys used by Flask (and flask-babel) itself,
+    with the default values provided by flask.
+    See the flask documentation for the semantics of each key.
+    '''
+    # What environment the app is running in.
+    # This is set by the FLASK_ENV environment variable and may not
+    # behave as expected if set in code
     env : str = 'production'
+    testing: bool = False
     propagate_exceptions: Optional[bool] = None
-    preserve_context_on_exception: bool = False
-    trap_http_exceptions: Optional[bool] = None
+    preserve_context_on_exception: Optional[bool] = None
+    trap_http_exceptions: bool = False
     trap_bad_request_errors: Optional[bool] = None
+    secret_key: Optional[str] = None
+    # session cookie
+    session_cookie_name: str = 'sessid'
+    # the domain for the session cookie. If this is not set, the cookie will
+    # be valid for all subdomains of SERVER_NAME.
+    session_cookie_domain: Optional[str] = None
+    session_cookie_path: Optional[str] = None
+    session_cookie_httponly: bool = True
+    session_cookie_secure: bool = False
+    session_cookie_samesite: Optional[str] = None
     permanent_session_lifetime: Union[int, timedelta] = timedelta(days=31)
     session_refresh_each_request: bool = True
     use_x_sendfile: bool = False
     send_file_max_age_default: Union[int, timedelta] = timedelta(hours=12)
+    server_name: Optional[str] = None
     application_root: str = '/'
+    # The URL scheme that should be used for URL generation if no URL scheme is
+    # available. This defaults to http
+    preferred_url_scheme: str = 'http'
     max_content_length: Optional[int] = None
     json_as_ascii: bool = True
     json_sort_keys: bool = True
@@ -280,7 +291,7 @@ class FlaskConfig(BaseConfig):
     explain_template_loading: bool = False
     max_cookie_size: int = 4093
     babel_translation_directories: List[str] = field(default_factory=list)
-    babel_default_locale: str = ''
+    babel_default_locale: str = 'en'
     babel_default_timezone: str = ''
     babel_domain: str = ''
     logger_name: str = ''

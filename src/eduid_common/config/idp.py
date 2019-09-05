@@ -158,6 +158,7 @@ class IdPConfig(BaseConfig):
     tou_reaccept_interval: int = 94608000
     # Name of cookie used to persist session information in the users browser.
     shared_session_cookie_name: str = 'sessid'
+    session_cookie_timeout: int = 60      # in minutes
     # Key to decrypt shared sessions.
     shared_session_secret_key: Optional[str] = None
     # TTL for shared sessions.
