@@ -198,7 +198,7 @@ class BaseConfig:
     def __setitem__(self, attr: str, value: Any):
         setattr(self, attr.lower(), value)
 
-    def get(self, key, default=None):
+    def get(self, key: str, default: Any = None) -> Any:
         '''
         This is needed so that Flask code can access Flask configuration
         '''
@@ -207,7 +207,7 @@ class BaseConfig:
         except AttributeError:
             return default
 
-    def __contains__(self, key):
+    def __contains__(self, key: str) -> bool:
         return hasattr(self, key.lower())
 
     @classmethod
@@ -253,8 +253,10 @@ class BaseConfig:
 
     def setdefault(self, key: str, value: Any,
                    transform_key: callable = lambda x: x.lower()):
-        if not getattr(self, transform_key(key)):
+        if not hasattr(self, transform_key(key)):
             setattr(self, transform_key(key), value)
+            return value
+        return getattr(self, transform_key(key))
 
 
 @dataclass

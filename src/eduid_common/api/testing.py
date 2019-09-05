@@ -141,9 +141,8 @@ class EduidAPITestCase(MongoTestCase):
             config['CELERY_CONFIG'] = self.am_settings['CELERY']
             if self.am_settings.get('ACTION_PLUGINS'):
                 config['ACTION_PLUGINS'] = self.am_settings['ACTION_PLUGINS']
-        
         config = self.update_config(config)
-        
+
         os.environ.update({'ETCD_PORT': str(self.etcd_instance.port)})
         self.app = self.load_app(config)
         self.app.test_client_class = CSRFTestClient

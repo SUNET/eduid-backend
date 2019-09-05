@@ -56,7 +56,7 @@ class NinHelpersTest(EduidAPITestCase):
 
     def update_config(self, config):
         config.update({
-            'am_broker_url': 'memory://',
+            'am_broker_url': 'amqp://dummy',
             'celery_config': {
                 'result_backend': 'amqp',
                 'task_serializer': 'json'
