@@ -196,7 +196,7 @@ class BaseConfig:
             raise KeyError(f'{self} has no {attr} attr')
 
     def __setitem__(self, attr: str, value: Any):
-        setattr(self, attr, value)
+        setattr(self, attr.lower(), value)
 
     def get(self, key, default=None):
         '''
