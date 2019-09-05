@@ -70,7 +70,6 @@ class MsgRelay(object):
         try:
             rtask.wait(timeout=timeout)
         except TimeoutError:
-            rtask.revoke()
             raise MsgTaskFailed('get_postal_address task timed out')
 
         if rtask.successful():
