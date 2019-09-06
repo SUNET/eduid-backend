@@ -161,6 +161,13 @@ class IdPConfig(BaseConfig):
     session_cookie_timeout: int = 60      # in minutes
     # Key to decrypt shared sessions.
     shared_session_secret_key: Optional[str] = None
+    secret_key: Optional[str] = None
+    preferred_url_scheme: str = 'http'
+    session_cookie_domain: Optional[str] = None
+    session_cookie_name: str = 'sessid'
+    session_cookie_secure: bool = False
+    session_cookie_path: Optional[str] = None
+    session_cookie_httponly: bool = True
     # TTL for shared sessions.
     shared_session_ttl: int = 300
     http_headers: str = "Content-Security-Policy:default-src 'self'; script-src 'self' 'unsafe-inline', X-Frame-Options:DENY"
