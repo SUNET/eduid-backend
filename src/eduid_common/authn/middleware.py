@@ -37,15 +37,16 @@ from six.moves.urllib_parse import urlparse, urlunparse, urlencode, parse_qs
 
 from werkzeug import get_current_url
 from werkzeug.http import parse_cookie, dump_cookie
-from flask import Flask, current_app, request
+from flask import current_app, request
 from eduid_common.session import session
 from eduid_common.session.redis_session import NoSessionDataFoundException
 from eduid_common.api.utils import urlappend
+from eduid_common.config.app import EduIDApp
 
 no_context_logger = logging.getLogger(__name__)
 
 
-class AuthnApp(Flask):
+class AuthnApp(EduIDApp):
     """
     WSGI middleware that checks whether the request is authenticated,
     and in case it isn't, redirects to the authn service.
