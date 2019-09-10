@@ -7,7 +7,6 @@ from os import environ
 from pprint import PrettyPrinter
 
 import time
-from flask import Flask
 
 from eduid_common.api.exceptions import BadConfiguration
 from eduid_common.session import session

@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-from flask import Flask
 
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.api.logging import merge_config
+from eduid_common.config.app import EduIDApp
 
 __author__ = 'lundberg'
 
@@ -15,7 +15,7 @@ class LoggingTest(EduidAPITestCase):
                                        am_settings=am_settings)
 
     def load_app(self, config):
-        app = Flask('test_app')
+        app = EduIDApp('test_app')
         app.config.update(config)
         return app
 

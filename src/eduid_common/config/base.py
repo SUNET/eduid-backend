@@ -169,6 +169,7 @@ class BaseConfig:
     current_tou_version: str = '2017-v6'  # backwards compat
     fido2_rp_id: str = ''
     stats_host: str = ''
+    stats_port: int = 0
 
     def __post_init__(self):
         if isinstance(self.celery_config, dict):

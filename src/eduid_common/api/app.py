@@ -38,6 +38,7 @@ import os
 from sys import stderr
 from typing import Type, Any, cast
 
+from flask import Config
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from eduid_common.api.debug import dump_config
@@ -79,13 +80,13 @@ def eduid_init_app_no_db(name: str, config: dict,
 
     try:
         # Load project wide default settings
-        app.config.from_object('eduid_webapp.settings.common')
+        cast(Config, app.config).from_object('eduid_webapp.settings.common')
     except ImportError:  # No config found
         pass
 
     try:
         # Load optional app specific default settings
-        app.config.from_object('eduid_webapp.{!s}.settings.common'.format(name))
+        cast(Config, app.config).from_object('eduid_webapp.{!s}.settings.common'.format(name))
     except ImportError:  # No app specific default config found
         pass
 
@@ -104,7 +105,7 @@ def eduid_init_app_no_db(name: str, config: dict,
         app.config.update(app_parser.read_configuration(silent=True))
 
     # Load optional app specific secrets
-    app.config.from_envvar('LOCAL_CFG_FILE', silent=True)
+    cast(Config, app.config).from_envvar('LOCAL_CFG_FILE', silent=True)
 
     if not isinstance(app, EduIDApp):
         app.__class__ = EduIDApp

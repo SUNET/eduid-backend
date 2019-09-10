@@ -2,7 +2,6 @@
 
 from __future__ import absolute_import
 
-from flask import Flask
 from copy import deepcopy
 from mock import patch
 from eduid_common.api.testing import EduidAPITestCase
@@ -19,6 +18,7 @@ from eduid_userdb.logs.element import ProofingLogElement, NinProofingLogElement
 from eduid_common.api.am import init_relay
 from eduid_common.api.helpers import add_nin_to_user, verify_nin_for_user, set_user_names_from_offical_address
 from eduid_common.config.base import FlaskConfig
+from eduid_common.config.app import EduIDApp
 
 __author__ = 'lundberg'
 
@@ -43,7 +43,7 @@ class NinHelpersTest(EduidAPITestCase):
         super(NinHelpersTest, self).setUp()
 
     def load_app(self, config):
-        app = Flask('test_app')
+        app = EduIDApp('test_app')
         app.config.update(config)
         # Flask sets a few default setting uppercased
         config = {key.lower(): val for key, val in app.config.items()}
