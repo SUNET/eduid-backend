@@ -29,8 +29,8 @@ else
 fi
 
 touch "${logfile}"
-chgrp eduid "${logfile}"
-chmod g+x "${logfile}"
+chown eduid: "${logfile}"
+chmod 640 "${logfile}"
 
 # nice to have in docker run output, to check what
 # version of something is actually running.
