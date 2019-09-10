@@ -60,7 +60,7 @@ def decrypt_config(config_dict):
     """
     boxes = {}
     for key, value in config_dict.items():
-        if key.endswith('_encrypted'):
+        if key.lower().endswith('_encrypted'):
             decrypted = False
             for item in value:
                 key_name = item['key_name']
@@ -83,7 +83,7 @@ def decrypt_config(config_dict):
                         decrypted_value = boxes[key_name].decrypt(encrypted_value,
                                                                   encoder=encoding.URLSafeBase64Encoder).decode('utf-8')
 
-                    config_dict[key.replace('_encrypted', '')] = decrypted_value
+                        config_dict[key[:-10]] = decrypted_value
                     del config_dict[key]
                     decrypted = True
                     break  # Decryption successful, do not try any more keys

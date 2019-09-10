@@ -49,7 +49,7 @@ class EtcdConfigParser(object):
         :return: Fully qualified key, self.ns + key
         :rtype: str | unicode
         """
-        return '{!s}{!s}'.format(self.ns, key.lower())
+        return '{!s}{!s}'.format(self.ns, key)
 
     @interpolate
     @decrypt
@@ -87,7 +87,7 @@ class EtcdConfigParser(object):
                 # Remove namespace
                 key = child.key.split('/')[-1]
                 # Load etcd string with json to handle complex structures
-                config[key] = json.loads(child.value)
+                config[key.upper()] = json.loads(child.value)
         except (etcd.EtcdKeyNotFound, etcd.EtcdConnectionFailed) as e:
             logging.info(e)
             if not silent:
@@ -102,7 +102,7 @@ class EtcdConfigParser(object):
         :return: JSON loaded value
         :rtype: str | unicode | int | float | list | dict
         """
-        value = self.client.read(self._fq_key(key)).value
+        value = self.client.read(self._fq_key(key.lower())).value
         return json.loads(value)
 
     def set(self, key, value):
