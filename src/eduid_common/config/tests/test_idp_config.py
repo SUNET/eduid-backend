@@ -54,7 +54,7 @@ TEST_CONFIG = {
 class TestCredStore(unittest.TestCase):
 
     def setUp(self):
-        self.config = IdPConfig.init_config(test_config=TEST_CONFIG, debug=False)
+        self.config = IdPConfig(**TEST_CONFIG)
 
     def test_static_config(self):
         """

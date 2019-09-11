@@ -36,7 +36,7 @@ it with all attributes common to all eduID services.
 
 import os
 from sys import stderr
-from typing import Type, Any, cast
+from typing import Type, cast
 
 from flask import Config
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -110,7 +110,8 @@ def eduid_init_app_no_db(name: str, config: dict,
     if not isinstance(app, EduIDApp):
         app.__class__ = EduIDApp
 
-    app.init_config(config_class)
+    config = {key.lower(): val for key, val in app.config.items()}
+    app.init_config(config_class, config)
 
     if DEBUG:
         dump_config(app)
@@ -139,11 +140,10 @@ def eduid_init_app_no_db(name: str, config: dict,
 
     return app
 
-
 def eduid_init_app(name: str, config: dict,
                    config_class: Type[FlaskConfig] = FlaskConfig,
                    app_class: Type[EduIDApp] = AuthnApp) -> EduIDApp:
-    app = eduid_init_app_no_db(name, config, config_class=config_class, app_class=app_class)
+    app = eduid_init_app_no_db(name, config=config, config_class=config_class, app_class=app_class)
     app.central_userdb = UserDB(app.config.mongo_uri, 'eduid_am')
     # Set up generic health check views
     from eduid_common.api.views.status import status_views

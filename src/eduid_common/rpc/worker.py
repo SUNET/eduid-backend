@@ -26,4 +26,5 @@ def get_worker_config(name):
     app_parser = EtcdConfigParser(app_etcd_namespace)
     cfg.update(common_parser.read_configuration(silent=True))
     cfg.update(app_parser.read_configuration(silent=True))
+    cfg = {key.lower(): value for key, value in cfg.items()}
     return BaseConfig(**cfg)

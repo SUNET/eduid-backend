@@ -37,11 +37,10 @@ Configuration (file) handling for eduID IdP.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import timedelta
 import os
 from logging import Logger
 from importlib import import_module
-from typing import Optional, List, Tuple, Dict, Any, Union, Callable
+from typing import Optional, List, Tuple, Dict, Any, Callable
 
 
 
@@ -215,25 +214,29 @@ class BaseConfig:
                   if isinstance(key, str) and not key.startswith('_') and not callable(val)}
 
     @classmethod
-    def init_config(cls, debug: bool = True, test_config: Optional[dict] = None) -> BaseConfig:
+    def init_config(cls, superns: str = 'webapp',
+                    test_config: Optional[dict] = None, debug: bool = True) -> BaseConfig:
         """
         Initialize configuration with values from etcd (or with test values)
+        XXX remove when the IdP no lnger uses it
         """
-        config : Dict[str, Any] = {'debug': debug}
-        if test_config is not None:
+        config : Dict[str, Any] = {
+                'debug': debug,
+                }
+        if test_config:
             # Load init time settings
             test_config = {k.lower(): v for k, v in test_config.items()}
             config.update(test_config)
         else:
             from eduid_common.config.parsers.etcd import EtcdConfigParser
 
-            common_namespace = os.environ.get('EDUID_CONFIG_COMMON_NS', '/eduid/webapp/common/')
+            common_namespace = os.environ.get('EDUID_CONFIG_COMMON_NS', f'/eduid/{superns}/common/')
             common_parser = EtcdConfigParser(common_namespace)
             common_config = common_parser.read_configuration(silent=True)
             common_config = {k.lower(): v for k, v in common_config.items()}
             config.update(common_config)
 
-            namespace = os.environ.get('EDUID_CONFIG_NS', f'/eduid/webapp/{cls.app_name}/')
+            namespace = os.environ.get('EDUID_CONFIG_NS', f'/eduid/{superns}/{cls.app_name}/')
             parser = EtcdConfigParser(namespace)
             # Load optional app specific settings
             proper_config = parser.read_configuration(silent=True)
@@ -280,10 +283,10 @@ class FlaskConfig(BaseConfig):
     session_cookie_httponly: bool = True
     session_cookie_secure: bool = False
     session_cookie_samesite: Optional[str] = None
-    permanent_session_lifetime: Union[int, timedelta] = timedelta(days=31)
+    permanent_session_lifetime: int = 2678400  # 31 days
     session_refresh_each_request: bool = True
     use_x_sendfile: bool = False
-    send_file_max_age_default: Union[int, timedelta] = timedelta(hours=12)
+    send_file_max_age_default: int = 43200  # 12 hours
     server_name: Optional[str] = None
     application_root: str = '/'
     # The URL scheme that should be used for URL generation if no URL scheme is
@@ -367,4 +370,4 @@ class FlaskConfig(BaseConfig):
     eidas_url: str = ''
     authn_digest_alg: str = ''
     staging_nin_map: dict = field(default_factory=dict)
-    generate_u2f_challenges: bool = True
+    generate_u2f_challenges: bool = False

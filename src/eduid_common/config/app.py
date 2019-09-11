@@ -38,6 +38,5 @@ from eduid_common.config.base import FlaskConfig
 
 class EduIDApp(Flask):
 
-    def init_config(self, config_class):
-        config = {key.lower(): val for key, val in self.config.items()}
+    def init_config(self, config_class, config):
         self.config: FlaskConfig = config_class(**config)
