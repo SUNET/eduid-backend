@@ -251,10 +251,11 @@ class BaseConfig:
 
     def setdefault(self, key: str, value: Any,
                    transform_key: Callable = lambda x: x.lower()):
-        if not hasattr(self, transform_key(key)):
-            setattr(self, transform_key(key), value)
+        tkey = transform_key(key)
+        if not getattr(self, tkey):
+            setattr(self, tkey, value)
             return value
-        return getattr(self, transform_key(key))
+        return getattr(self, tkey)
 
 
 @dataclass
