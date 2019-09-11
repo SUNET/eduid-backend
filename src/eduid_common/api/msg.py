@@ -104,7 +104,7 @@ class MsgRelay(object):
                 * phonenumber: the phone number to verify
         """
         warnings.warn(
-            "This function will be removed use sendsms instead",
+            "This function will be removed. Use sendsms instead.",
             DeprecationWarning
         )
         current_app.logger.info('Trying to send phone validation SMS with reference: {}'.format(reference))
@@ -122,8 +122,8 @@ class MsgRelay(object):
             res = rtask.get(timeout=timeout)
             current_app.logger.debug(f"SENT mobile validator message code: {code} phone number: {targetphone} with "
                                      f"reference {reference}")
-            current_app.logger.debug(f"Extra debug: Send message result: {res!r},"
-                                     f" parameters:\n{['sms', reference, content, targetphone, template, lang]!r}")
+            current_app.logger.debug(f"Extra debug: Send message result: {repr(res)},"
+                                     f" parameters:\n{repr(['sms', reference, content, targetphone, template, lang])}")
         except Exception as e:
             rtask.forget()
             raise MsgTaskFailed(f'phone_validator task failed: {e}')
@@ -144,7 +144,7 @@ class MsgRelay(object):
             current_app.logger.info('SMS with reference {} sent. Task result: {}'.format(reference, res))
         except Exception as e:
             rtask.forget()
-            raise MsgTaskFailed(f'sendsms task failed: {e!r}')
+            raise MsgTaskFailed(f'sendsms task failed: {repr(e)}')
 
     def ping(self, timeout: int = 1) -> str:
         rtask = self._pong.apply_async()
@@ -152,7 +152,7 @@ class MsgRelay(object):
             return rtask.get(timeout=timeout)
         except Exception as e:
             rtask.forget()
-            raise MsgTaskFailed(f'ping task failed: {e!r}')
+            raise MsgTaskFailed(f'ping task failed: {repr(e)}')
 
 
 

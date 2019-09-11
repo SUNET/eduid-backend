@@ -73,5 +73,9 @@ class AmRelay(object):
         :return: Result of celery Task.get
         """
         rtask = self._pong.delay(self.relay_for)
-        result = rtask.get(timeout=timeout)
+        try:
+            result = rtask.get(timeout=timeout)
+        except Exception as e:
+            rtask.forget()
+            raise AmTaskFailed(f'ping task failed: {repr(e)}')
         return result
