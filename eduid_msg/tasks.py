@@ -3,7 +3,7 @@
 import json
 import smtplib
 from datetime import datetime, timedelta
-from typing import Optional, Union
+from typing import Optional, Union, List
 
 from celery import Task
 from celery.task import periodic_task, task
@@ -261,7 +261,7 @@ class MessageRelay(Task):
             'message': message
         })
         response = self.mm_api.message.send.POST(data=data)
-        logger.debug(f"_send_mm_message response for recipient '{recipient}': '{response!r}'")
+        logger.debug(f"_send_mm_message response for recipient '{recipient}': '{repr(response)}'")
         if response.status_code == 200:
             return response.json()['transaction_id']
         error = f"MM API send message response: {response.status_code} {response.json().get('message', 'No message')}"
@@ -507,7 +507,7 @@ def get_postal_address(self: MessageRelay, identity_number: str) -> dict:
 
 
 @task(bind=True, base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT)
-def get_relations_to(self: MessageRelay, identity_number: str, relative_nin: str) -> list:
+def get_relations_to(self: MessageRelay, identity_number: str, relative_nin: str) -> List[str]:
     """
     Get the relative status between identity_number and relative_nin.
 
