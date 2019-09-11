@@ -2,7 +2,7 @@ eduid_am>=0.7.0
 eduid_userdb>=0.4.1b0
 eduid_common>=0.3.6
 python-dateutil>=2.1
-vine<5.0.0a1  # Version missmatch problem
+vine<5.0.0a1  # Version mismatch problem
 celery[redis]==4.3.*
 pysmscom>=0.4
 Jinja2>=2.7.3
