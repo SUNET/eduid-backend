@@ -1,5 +1,6 @@
 eduid_common[worker]>=0.4.1b4
 eduid_userdb>=0.4.6b13
 python-dateutil>=2.1
+vine<5.0.0a1  # Version mismatch problem
 celery[redis]==4.3.*
 

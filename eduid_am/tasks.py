@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import warnings
+
 import bson
 
 from celery import Task
@@ -28,6 +30,7 @@ class AttributeManager(Task):
     def __init__(self):
         self.default_db_uri = worker_config.get('MONGO_URI')
         self.userdb = None
+        self.af_registry = None
         self.init_db()
         self.init_af_registry()
 
@@ -50,92 +53,84 @@ class AttributeManager(Task):
         self.init_af_registry()
 
 
-@celery.task(ignore_results=True, base=AttributeManager)
-def update_attributes(app_name, obj_id):
+@celery.task(bind=True, ignore_results=True, base=AttributeManager)
+def update_attributes(self: AttributeManager, app_name: str, user_id: str) -> None:
     """
     Task executing on the Celery worker service as an RPC called from
     the different eduID applications.
 
+    :param self: base class
     :param app_name: calling application name, like 'eduid_signup'
-    :param obj_id: entry in the calling applications name that has changed (object id)
-    :type app_name: string
-    :type obj_id: string
+    :param user_id: id for the user that has been updated by the calling application
     """
-    _update_attributes(app_name, obj_id)
+    warnings.warn(
+        "This function will be removed. Use update_attributes_keep_result instead.",
+        DeprecationWarning
+    )
+    _update_attributes(self, app_name, user_id)
 
 
-@celery.task(base=AttributeManager)
-def update_attributes_keep_result(app_name, obj_id):
+@celery.task(bind=True, base=AttributeManager)
+def update_attributes_keep_result(self: AttributeManager, app_name: str, user_id: str) -> bool:
     """
     This task is exactly the same as update_attributes, except that
     it keeps the celery results so that it can be used synchronously.
 
-    This is called during signup, so we can tell that the account
-    has been successfully created.
-
+    :param self: base class
     :param app_name: calling application name, like 'eduid_signup'
-    :param obj_id: entry in the calling applications name that has changed (object id)
-    :type app_name: string
-    :type obj_id: string
+    :param user_id: id for the user that has been updated by the calling application
     """
-    _update_attributes(app_name, obj_id)
+    return _update_attributes(self, app_name, user_id)
 
 
-def _update_attributes(app_name, obj_id):
-    logger.debug('Update attributes called for {!r} by {!r}'.format(obj_id, app_name))
-    try:
-        return _update_attributes_safe(app_name, obj_id)
-    except Exception:
-        logger.error('Got exception processing {!r}[{!r}]'.format(app_name, obj_id), exc_info=True)
-        raise
-
-
-def _update_attributes_safe(app_name, user_id):
-    self = update_attributes
-    logger.debug('update {!s}[{!s}]'.format(app_name, user_id))
+def _update_attributes(task: AttributeManager, app_name: str, user_id: str) -> bool:
+    logger.debug(f'Update attributes called for {user_id} by {app_name}')
 
     try:
-        attribute_fetcher = self.af_registry[app_name]
-    except KeyError as error:
-        logger.error('Attribute fetcher for {!s} is not installed'.format(app_name))
-        raise RuntimeError(f'Missing attribute fetcher, {error}')
-
-    logger.debug("Attribute fetcher for {!s}: {!r}".format(app_name, attribute_fetcher))
+        attribute_fetcher = task.af_registry[app_name]
+        logger.debug(f"Attribute fetcher for {app_name}: {repr(attribute_fetcher)}")
+    except KeyError as e:
+        logger.error(f'Attribute fetcher for {app_name} is not installed')
+        raise RuntimeError(f'Missing attribute fetcher, {e}')
 
     try:
         _id = bson.ObjectId(user_id)
     except bson.errors.InvalidId:
-        logger.error('Invalid user_id {!s} from app {!s}'.format(user_id, app_name))
-        raise ValueError('Bad user_id')
+        logger.error(f'Invalid user_id {user_id} from app {app_name}')
+        raise ValueError('Invalid user_id')
 
     try:
         attributes = attribute_fetcher.fetch_attrs(_id)
-    except UserDoesNotExist as error:
-        logger.error('The user {!s} does not exist in the database for plugin {!s}: {!s}'.format(
-            _id, app_name, error))
-        return
-    except ValueError as error:
-        logger.error(f'Error syncing user {_id}:  {error}')
-        return
+    except UserDoesNotExist as e:
+        logger.error(f'The user {_id} does not exist in the database for plugin {app_name}: {e}')
+        raise e
+    except ValueError as e:
+        logger.error(f'Error syncing user {_id}:  {e}')
+        raise e
 
     try:
-        logger.debug('Checking locked identity during sync attempt from {}'.format(app_name))
-        attributes = check_locked_identity(self.userdb, _id, attributes, app_name)
+        logger.debug(f'Checking locked identity during sync attempt from {app_name}')
+        attributes = check_locked_identity(task.userdb, _id, attributes, app_name)
     except LockedIdentityViolation as e:
         logger.error(e)
-        return
+        raise e
 
     # TODO: Update mongodb to >3.2 (partial index support) so we can optimistically update a user and run this check
     # TODO: if the update fails
-    logger.debug('Checking other users for already verified elements during sync attempt from {}'.format(app_name))
-    unverify_duplicates(self.userdb, _id, attributes)
+    logger.debug(f'Checking other users for already verified elements during sync attempt from {app_name}')
+    unverify_duplicates(task.userdb, _id, attributes)
 
-    logger.debug('Attributes fetched from app {!s} for user {!s}: {!s}'.format(app_name, user_id, attributes))
-    self.userdb.update_user(_id, attributes)
+    logger.debug(f'Attributes fetched from app {app_name} for user {_id}: {attributes}')
+    try:
+        task.userdb.update_user(_id, attributes)
+    except ConnectionError as e:
+        logger.error(f'update_attributes_keep_result connection error: {e}', exc_info=True)
+        task.retry(default_retry_delay=1, max_retries=3, exc=e)
+    return True
 
 
-@celery.task(base=AttributeManager)
-def pong(app_name):
-    if pong.default_db_uri and pong.userdb.is_healthy():
-        return 'pong for {}'.format(app_name)
+@celery.task(bind=True, base=AttributeManager)
+def pong(self, app_name):
+    if self.default_db_uri and self.userdb.is_healthy():
+        return f'pong for {app_name}'
     raise ConnectionError('Database not healthy')
