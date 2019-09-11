@@ -103,6 +103,10 @@ HMAC_DIGEST_SIZE = int(256 / 8)
 SESSION_KEY_BITS = 256
 
 
+# XXX we still keep access to configuration as uc dict access here:
+# The IdP (cherrypy) accesses the configuration as lc attr access, but had to
+# use an adapter (_UCAdapter) to get the redis pool below; We must remove that
+# adapter from the IdP before moving this function to lc attr access.
 def get_redis_pool(cfg):
     port = cfg['REDIS_PORT']
     if cfg.get('REDIS_SENTINEL_HOSTS') and cfg.get('REDIS_SENTINEL_SERVICE_NAME'):

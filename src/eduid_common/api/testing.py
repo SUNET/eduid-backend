@@ -62,7 +62,6 @@ TEST_CONFIG = {
     'SESSION_COOKIE_HTTPONLY': False,
     'SESSION_COOKIE_SECURE': False,
     'PERMANENT_SESSION_LIFETIME': '60',
-    'LOGGER_NAME': 'testing',
     'SERVER_NAME': 'test.localhost',
     'PROPAGATE_EXCEPTIONS': True,
     'PRESERVE_CONTEXT_ON_EXCEPTION': True,
@@ -72,7 +71,7 @@ TEST_CONFIG = {
     'JSON_AS_ASCII': False,
     'JSON_SORT_KEYS': True,
     'JSONIFY_PRETTYPRINT_REGULAR': True,
-    'MONGO_URI': 'mongodb://dummy',
+    'MONGO_URI': 'mongodb://localhost',
     'REDIS_HOST': 'localhost',
     'REDIS_PORT': '6379',
     'REDIS_DB': '0',
@@ -111,7 +110,8 @@ class EduidAPITestCase(MongoTestCase):
     # Do what we can and initialise it empty here, and then fill it in __init__.
     MockedUserDB = APIMockedUserDB
 
-    def setUp(self, init_am=True, users=None, copy_user_to_private=False, am_settings=None):
+    def setUp(self, init_am=True, users=None, copy_user_to_private=False,
+            am_settings=None):
         self.MockedUserDB.test_users = {}
         if users is None:
             users = ['hubba-bubba']
@@ -202,7 +202,7 @@ class EduidAPITestCase(MongoTestCase):
         with client.session_transaction() as sess:
             sess['user_eppn'] = eppn
             sess['user_is_logged_in'] = True
-        client.set_cookie(server_name, key=self.app.config.get('SESSION_COOKIE_NAME'), value=sess._session.token)
+        client.set_cookie(server_name, key=self.app.config.session_cookie_name, value=sess._session.token)
         yield client
 
     def request_user_sync(self, private_user):
@@ -240,12 +240,12 @@ class CSRFTestClient(FlaskClient):
         This could also be done with updating FlaskClient.environ_base with the below header keys but
         that makes it harder to override per call to post.
         """
-        test_host = '{}://{}'.format(self.application.config['PREFERRED_URL_SCHEME'],
-                                     self.application.config['SERVER_NAME'])
+        test_host = '{}://{}'.format(self.application.config.preferred_url_scheme,
+                                     self.application.config.server_name)
         csrf_headers = {
             'X-Requested-With': 'XMLHttpRequest',
             'Referer': test_host,
-            'X-Forwarded-Host': self.application.config['SERVER_NAME']
+            'X-Forwarded-Host': self.application.config.server_name
         }
         if kw.pop('custom_csrf_headers', True):
             if 'headers' in kw:

@@ -6,10 +6,10 @@ from os import environ
 from pprint import PrettyPrinter
 
 import time
-from flask import Flask
 
 from eduid_common.api.exceptions import BadConfiguration
 from eduid_common.session import session
+from eduid_common.config.app import EduIDApp
 
 __author__ = 'lundberg'
 
@@ -100,7 +100,7 @@ def merge_config(base_config: dict, new_config: dict) -> dict:
     return base_config
 
 
-def init_logging(app: Flask) -> Flask:
+def init_logging(app: EduIDApp) -> EduIDApp:
     """
     Init logging using dictConfig.
 
@@ -120,7 +120,7 @@ def init_logging(app: Flask) -> Flask:
     except (KeyError, AttributeError) as e:
         raise BadConfiguration(message=f'Could not initialize logging local_context. {type(e).__name__}: {e}')
 
-    settings_config = app.config.setdefault("LOGGING_CONFIG", {})
+    settings_config = app.config.logging_config
     base_config = {
         'version': 1,
         'disable_existing_loggers': False,

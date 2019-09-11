@@ -36,7 +36,7 @@ from __future__ import unicode_literals
 from six.moves.urllib_parse import unquote
 
 from werkzeug.http import dump_cookie
-from flask import Flask, Blueprint
+from flask import Blueprint
 from flask import request
 from flask import make_response
 from marshmallow import fields, ValidationError
@@ -48,6 +48,8 @@ from eduid_common.api.decorators import require_user
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.session.eduid_session import SessionFactory
 from eduid_common.api.request import Request
+from eduid_common.config.base import FlaskConfig
+from eduid_common.config.app import EduIDApp
 from eduid_userdb import UserDB
 
 
@@ -124,8 +126,6 @@ class InputsTests(EduidAPITestCase):
         Called from the parent class, so that we can update the configuration
         according to the needs of this test case.
         """
-        config.update({
-            })
         return config
 
     def load_app(self, config):
@@ -133,11 +133,13 @@ class InputsTests(EduidAPITestCase):
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        app = Flask('test.localhost')
+        app = EduIDApp('test.localhost')
         app.request_class = Request
         app.config.update(config)
+        app.config = {key.lower(): val for key, val in app.config.items()}
+        app.config = FlaskConfig(**app.config)
         app.register_blueprint(test_views)
-        app.central_userdb = UserDB(app.config['MONGO_URI'], 'eduid_am')
+        app.central_userdb = UserDB(app.config.mongo_uri, 'eduid_am')
         app.session_interface = SessionFactory(app.config)
         return app
 

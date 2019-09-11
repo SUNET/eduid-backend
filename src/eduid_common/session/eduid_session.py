@@ -14,11 +14,12 @@ import json
 from collections.abc import MutableMapping
 from time import time
 from typing import Optional
-from flask import current_app, Flask
+from flask import current_app
 from flask import request as flask_request
 from flask.sessions import SessionInterface, SessionMixin
 
 from eduid_common.api.exceptions import BadConfiguration
+from eduid_common.config.app import EduIDApp
 from eduid_common.session.redis_session import SessionManager, RedisEncryptedSession
 from eduid_common.session.namespaces import SessionNSBase, Common, MfaAction
 from eduid_common.session.namespaces import Signup, Actions
@@ -32,7 +33,7 @@ class EduidSession(SessionMixin, MutableMapping):
     to store the session data in redis.
     """
 
-    def __init__(self, app: Flask, base_session: RedisEncryptedSession, new: bool = False):
+    def __init__(self, app: EduIDApp, base_session: RedisEncryptedSession, new: bool = False):
         """
         :param app: the flask app
         :param base_session: The underlying session object

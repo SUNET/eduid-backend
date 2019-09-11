@@ -37,15 +37,16 @@ from six.moves.urllib_parse import urlparse, urlunparse, urlencode, parse_qs
 
 from werkzeug import get_current_url
 from werkzeug.http import parse_cookie, dump_cookie
-from flask import Flask, current_app, request
+from flask import current_app, request
 from eduid_common.session import session
 from eduid_common.session.redis_session import NoSessionDataFoundException
 from eduid_common.api.utils import urlappend
+from eduid_common.config.app import EduIDApp
 
 no_context_logger = logging.getLogger(__name__)
 
 
-class AuthnApp(Flask):
+class AuthnApp(EduIDApp):
     """
     WSGI middleware that checks whether the request is authenticated,
     and in case it isn't, redirects to the authn service.
@@ -53,7 +54,7 @@ class AuthnApp(Flask):
     def __call__(self, environ, start_response):
         next_url = get_current_url(environ)
         next_path = list(urlparse(next_url))[2]
-        whitelist = self.config.get('NO_AUTHN_URLS', [])
+        whitelist = self.config.no_authn_urls
         no_context_logger.debug('No auth whitelist: {}'.format(whitelist))
         for regex in whitelist:
             m = re.match(regex, next_path)
@@ -71,7 +72,7 @@ class AuthnApp(Flask):
                 # If HTTP_COOKIE is not removed self.request_context(environ) below
                 # will try to look up the Session data in the backend
 
-        ts_url = urlappend(self.config.get('TOKEN_SERVICE_URL'), 'login')
+        ts_url = urlappend(self.config.token_service_url, 'login')
 
         params = {'next': next_url}
 

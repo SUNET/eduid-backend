@@ -42,7 +42,7 @@ from typing import Optional, List, Tuple, Dict, Any
 from .base import BaseConfig
 
 
-@dataclass(frozen=True)
+@dataclass
 class IdPConfig(BaseConfig):
     """
     Configuration for the IdP
@@ -88,7 +88,7 @@ class IdPConfig(BaseConfig):
     # MongoDB connection URI (string). See MongoDB documentation for details.
     userdb_mongo_uri: Optional[str] = None
     authn_info_mongo_uri: Optional[str] = None
-    mongo_uri: Optional[str] = None
+    mongo_uri: str = 'mongodb://'
     # MongoDB connection URI (string) for PySAML2 SSO sessions.
     sso_session_mongo_uri: Optional[str] = None
     # Lifetime of SSO session (in minutes).
@@ -158,8 +158,16 @@ class IdPConfig(BaseConfig):
     tou_reaccept_interval: int = 94608000
     # Name of cookie used to persist session information in the users browser.
     shared_session_cookie_name: str = 'sessid'
+    session_cookie_timeout: int = 60      # in minutes
     # Key to decrypt shared sessions.
     shared_session_secret_key: Optional[str] = None
+    secret_key: Optional[str] = None
+    preferred_url_scheme: str = 'http'
+    session_cookie_domain: Optional[str] = None
+    session_cookie_name: str = 'sessid'
+    session_cookie_secure: bool = False
+    session_cookie_path: Optional[str] = None
+    session_cookie_httponly: bool = True
     # TTL for shared sessions.
     shared_session_ttl: int = 300
     http_headers: str = "Content-Security-Policy:default-src 'self'; script-src 'self' 'unsafe-inline', X-Frame-Options:DENY"
