@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import warnings
+
 import bson
 
 from celery import Task
@@ -52,49 +54,50 @@ class AttributeManager(Task):
 
 
 @celery.task(bind=True, ignore_results=True, base=AttributeManager)
-def update_attributes(self: AttributeManager, app_name: str, obj_id: str) -> None:
+def update_attributes(self: AttributeManager, app_name: str, user_id: str) -> None:
     """
     Task executing on the Celery worker service as an RPC called from
     the different eduID applications.
 
     :param self: base class
     :param app_name: calling application name, like 'eduid_signup'
-    :param obj_id: entry in the calling applications name that has changed (object id)
+    :param user_id: id for the user that has been updated by the calling application
     """
-    _update_attributes(self, app_name, obj_id)
+    warnings.warn(
+        "This function will be removed. Use update_attributes_keep_result instead.",
+        DeprecationWarning
+    )
+    _update_attributes(self, app_name, user_id)
 
 
 @celery.task(bind=True, base=AttributeManager)
-def update_attributes_keep_result(self: AttributeManager, app_name: str, obj_id: str) -> bool:
+def update_attributes_keep_result(self: AttributeManager, app_name: str, user_id: str) -> bool:
     """
     This task is exactly the same as update_attributes, except that
     it keeps the celery results so that it can be used synchronously.
 
-    This is called during signup, so we can tell that the account
-    has been successfully created.
-
     :param self: base class
     :param app_name: calling application name, like 'eduid_signup'
-    :param obj_id: entry in the calling applications name that has changed (object id)
+    :param user_id: id for the user that has been updated by the calling application
     """
-    return _update_attributes(self, app_name, obj_id)
+    return _update_attributes(self, app_name, user_id)
 
 
-def _update_attributes(task: AttributeManager, app_name: str, obj_id: str) -> bool:
-    logger.debug(f'Update attributes called for {obj_id} by {app_name}')
+def _update_attributes(task: AttributeManager, app_name: str, user_id: str) -> bool:
+    logger.debug(f'Update attributes called for {user_id} by {app_name}')
 
     try:
         attribute_fetcher = task.af_registry[app_name]
-        logger.debug(f"Attribute fetcher for {app_name}: {attribute_fetcher!r}")
+        logger.debug(f"Attribute fetcher for {app_name}: {repr(attribute_fetcher)}")
     except KeyError as e:
         logger.error(f'Attribute fetcher for {app_name} is not installed')
         raise RuntimeError(f'Missing attribute fetcher, {e}')
 
     try:
-        _id = bson.ObjectId(obj_id)
+        _id = bson.ObjectId(user_id)
     except bson.errors.InvalidId:
-        logger.error(f'Invalid user_id {obj_id} from app {app_name}')
-        raise ValueError('Invalid obj_id')
+        logger.error(f'Invalid user_id {user_id} from app {app_name}')
+        raise ValueError('Invalid user_id')
 
     try:
         attributes = attribute_fetcher.fetch_attrs(_id)
