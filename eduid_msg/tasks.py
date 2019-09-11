@@ -1,25 +1,23 @@
 # -*- encoding: utf-8 -*-
-from __future__ import absolute_import
 
-import smtplib
 import json
+import smtplib
+from datetime import datetime, timedelta
+from typing import Optional, Union, List
 
 from celery import Task
-from celery.utils.log import get_task_logger
 from celery.task import periodic_task, task
-from celery.exceptions import Ignore
-from time import time
-from datetime import datetime, timedelta
+from celery.utils.log import get_task_logger
 from hammock import Hammock
+from time import time
 
-from eduid_msg.common import celery
-from eduid_msg.worker import worker_config
 from eduid_msg.cache import CacheMDB
-from eduid_msg.utils import load_template, navet_get_name_and_official_address, navet_get_relations
+from eduid_msg.common import celery
 from eduid_msg.decorators import TransactionAudit
 from eduid_msg.exceptions import NavetException, NavetAPIException
+from eduid_msg.utils import load_template, navet_get_name_and_official_address, navet_get_relations
+from eduid_msg.worker import worker_config
 from eduid_userdb.exceptions import ConnectionError
-
 
 if celery is None:
     raise RuntimeError('Must call eduid_msg.init_app before importing tasks')
@@ -46,7 +44,7 @@ DEFAULT_NAVET_API_URI = 'http://{0}:{1}'.format(DEFAULT_NAVET_API_HOST,
                                                 DEFAULT_NAVET_API_PORT)
 
 
-LOG = get_task_logger(__name__)
+logger = get_task_logger(__name__)
 _CACHE: dict = {}
 MESSAGE_RATE_LIMIT = worker_config.get("MESSAGE_RATE_LIMIT", None)
 
@@ -136,21 +134,20 @@ class MessageRelay(Task):
     def on_failure(self, exc, task_id, args, kwargs, einfo):
         # Try to reload the db on connection failures (mongodb has probably switched master)
         if isinstance(exc, ConnectionError):
-            LOG.error('Task failed with db exception ConnectionError. Reloading db.')
+            logger.error('Task failed with db exception ConnectionError. Reloading db.')
             self.reload_db()
 
-    def is_reachable(self, identity_number, mailbox_url=False):
+    def is_reachable(self, identity_number: str, mailbox_url: bool = False) -> Union[bool, str]:
         """
         Check if the user is registered with Swedish government mailbox service.
 
-        @param identity_number: User social security number
-        @type identity_number: str
-        @param mailbox_url: (optional) Return mailbox URL instead of true if the user exist and accept messages from
-        the sender.
-        @type mailbox_url: bool
-        @return: True if the user is reachable, False if the user is not registered with the government mailbox service.
-        'Anonymous' if the user is registered but has not confirmed their identity with the government mailbox service.
-        'Sender_not' if the sender (you) is blocked by the recipient.
+        :param identity_number: User social security number
+        :param mailbox_url: (optional) Return mailbox URL instead of true if the user exist and accept messages from
+                            the sender.
+        :return: True if the user is reachable, False if the user is not registered with the government mailbox service.
+                 'Anonymous' if the user is registered but has not confirmed their identity with the government mailbox
+                  service.
+                 'Sender_not' if the sender (you) is blocked by the recipient.
         """
         result = self.cache('recipient_cache', 7200).get_cache_item(identity_number)
         retval = False
@@ -177,78 +174,71 @@ class MessageRelay(Task):
         return retval
 
     @TransactionAudit(MONGODB_URI)
-    def _get_is_reachable(self, identity_number):
+    def _get_is_reachable(self, identity_number: str) -> dict:
         # Users always reachable in devel mode
         conf = self._config
         if conf.get("DEVEL_MODE") is True:
-            LOG.debug("Faking that NIN %(identity_number) is reachable".format(identity_number=identity_number))
-            return {'AccountStatus': {'Type': 'Secure', 'ServiceSupplier': 'devel_mode'}, 'SenderAccepted': 'devel_mode'}
+            logger.debug(f"Faking that NIN {identity_number} is reachable")
+            return {
+                'AccountStatus': {
+                    'Type': 'Secure',
+                    'ServiceSupplier': 'devel_mode'
+                },
+                'SenderAccepted': 'devel_mode'
+            }
         data = json.dumps({'identity_number': identity_number})
         response = self.mm_api.user.reachable.POST(data=data)
         if response.status_code == 200:
             return response.json()
         error = 'MM API is_reachable response: {0} {1}'.format(response.status_code,
                                                                response.json().get('message', 'No message'))
-        LOG.error(error)
+        logger.error(error)
         raise RuntimeError(error)
 
     @TransactionAudit(MONGODB_URI)
-    def send_message(self, message_type, reference, message_dict, recipient, template, language, subject=None):
+    def send_message(self, message_type: str, reference: str, message_dict: dict, recipient: str, template: str,
+                     language: str, subject: Optional[str] = None) -> str:
         """
-        @param message_type: Message notification type (sms or mm)
-        @type message_type: str (possible values 'sms' and 'mm')
-        @param reference: Unique reference id
-        @type reference: str
-        @param message_dict: A dict of key value pairs used in the template of choice
-        @type message_dict: dict
-        @param recipient: Recipient mobile phone number or social security number (depends on the choice of
-        message_type)
-        @type recipient: str
-        @param template: Name of the message template to use
-        @type template: str
-        @param language: List of preferred languages for the template. The list is processed in order and the first
-        template matching a language will be used.
-        @type language: List of languages in the form (sv_SE, en_US)
-        @param subject: (Optional) Subject used in my messages service or email deliveries
-        @type subject: str
-        @return: For type 'sms' a message id is returned if successful, if unsuccessful an error message is returned.
-        For type 'mm' a message id is returned if successful, the message id can be used to verify if that the message
-        has been delivered to the users mailbox service by calling check_distribution_status(message_id),
-        if unsuccessful an error message is returned.
+        :param message_type: Message notification type (sms or mm)
+        :param reference: Unique reference id
+        :param message_dict: A dict of key value pairs used in the template of choice
+        :param recipient: Recipient mobile phone number or social security number (depends on the choice of
+                          message_type)
+        :param template: Name of the message template to use
+        :param language: Preferred language for the template.
+        :param subject: (Optional) Subject used in my messages service or email deliveries
+        :return: For type 'sms' a message id is returned if successful, if unsuccessful an error message is returned.
+                 For type 'mm' a message id is returned if successful, the message id can be used to verify if that the
+                 message has been delivered to the users mailbox service by calling
+                 check_distribution_status(message_id), if unsuccessful an error message is returned.
         """
         conf = self._config
 
         msg = load_template(conf.get("TEMPLATE_DIR", None), template, message_dict, language)
         if not msg:
             raise RuntimeError("template not found")
-        msg = msg.encode('utf-8')
 
         # Only log the message if devel_mode is enabled
         if conf.get("DEVEL_MODE") is True:
-            LOG.debug("\nType: %s\nReference: %s\nRecipient: %s\nLang: %s\nSubject: %s\nMessage:\n %s" % (message_type,
-                                                                                                          reference,
-                                                                                                          recipient,
-                                                                                                          language,
-                                                                                                          subject,
-                                                                                                          msg))
+            logger.debug(f"\nType: {message_type}\nReference: {reference}\nRecipient: {recipient}"
+                         f"\nLang: {language}\nSubject: {subject}\nMessage:\n {msg}")
             return 'devel_mode'
 
         if message_type == 'sms':
-            LOG.debug("Sending SMS to {!r} using template {!r} and language {!r}".format(recipient, template, language))
+            logger.debug(f"Sending SMS to {recipient} using template {template} and language {language}")
             try:
+                msg = msg.encode('utf-8')
                 status = self.sms.send(msg, self._sms_sender, recipient, prio=2)
             except Exception as e:  # XXX: smscom only raises Exception right now
-                # There seems to be a problem with retrying tasks in a timely way (backoff does not seem to work)
-                # Hack to solve this is to just ignore a task that raises an exception.
-                LOG.error('SMS task failed and was ignored: {}'.format(e))
-                raise Ignore()
+                logger.error(f'SMS task failed: {e}')
+                raise e
 
         elif message_type == 'mm':
-            LOG.debug("Sending MM to '%s' using language '%s'" % (recipient, language))
+            logger.debug("Sending MM to '%s' using language '%s'" % (recipient, language))
             reachable = self.is_reachable(recipient)
 
             if reachable is not True:
-                LOG.debug("User not reachable - reason: %s" % (reachable))
+                logger.debug(f"User not reachable - reason: {reachable}")
                 return reachable
 
             if subject is None:
@@ -256,36 +246,34 @@ class MessageRelay(Task):
 
             status = self._send_mm_message(recipient, subject, 'text/html', language.replace('_', ''), msg)
         else:
-            LOG.error('Unknown message type: {!r}'.format(message_type))
-            return False
+            logger.error(f'Unknown message type: {message_type}')
+            raise NotImplementedError(f'message_type {message_type} is not implemented')
 
-        LOG.debug('send_message result: {!r}'.format(status))
+        logger.debug(f'send_message result: {status}')
         return status
 
-    def _send_mm_message(self, recipient, subject, content_type, language, message):
+    def _send_mm_message(self, recipient: str, subject: str, content_type: str, language: str, message: str) -> str:
         data = json.dumps({
             'recipient': recipient,
             'subject': subject,
             'content_type': content_type,
             'language': language,
-            'message': message.decode('utf-8')
+            'message': message
         })
         response = self.mm_api.message.send.POST(data=data)
-        LOG.debug("_send_mm_message response for recipient '%s': '%r'" % (recipient, response))
+        logger.debug(f"_send_mm_message response for recipient '{recipient}': '{repr(response)}'")
         if response.status_code == 200:
             return response.json()['transaction_id']
-        error = 'MM API send message response: {0} {1}'.format(response.status_code,
-                                                               response.json().get('message', 'No message'))
-        LOG.error(error)
+        error = f"MM API send message response: {response.status_code} {response.json().get('message', 'No message')}"
+        logger.error(error)
         raise RuntimeError(error)
 
-    def get_postal_address(self, identity_number):
+    def get_postal_address(self, identity_number: str) -> dict:
         """
         Fetch name and postal address from NAVET
 
-        @param identity_number: Swedish national identity number
-        @type identity_number: str
-        @return: dict containing name and postal address
+        :param identity_number: Swedish national identity number
+        :return: dict containing name and postal address
         """
         # Only log the message if devel_mode is enabled
         conf = self._config
@@ -297,7 +285,7 @@ class MessageRelay(Task):
         return navet_get_name_and_official_address(data)
 
     @staticmethod
-    def get_devel_postal_address():
+    def get_devel_postal_address() -> dict:
         """
         Return a OrderedDict just as we would get from navet.
         """
@@ -312,13 +300,12 @@ class MessageRelay(Task):
         ])
         return result
 
-    def get_relations(self, identity_number):
+    def get_relations(self, identity_number: str) -> dict:
         """
         Fetch information about someones relatives from NAVET
 
-        @param identity_number: Swedish national identity number
-        @type identity_number: str
-        @return: dict containing name and postal address
+        :param identity_number: Swedish national identity number
+        :return: dict containing name and postal address
         """
         # Only log the message if devel_mode is enabled
         conf = self._config
@@ -330,7 +317,7 @@ class MessageRelay(Task):
         return navet_get_relations(data)
 
     @staticmethod
-    def get_devel_relations():
+    def get_devel_relations() -> dict:
         """
         Return a OrderedDict just as we would get from navet.
         """
@@ -350,14 +337,12 @@ class MessageRelay(Task):
         return result
 
     @TransactionAudit(MONGODB_URI)
-    def _get_navet_data(self, identity_number):
+    def _get_navet_data(self, identity_number: str) -> dict:
         """
         Fetch all data about a NIN from Navet.
 
-        @param identity_number: Swedish national identity number
-        @type identity_number: str
-        @return: Loaded JSON
-        @rtype: dict
+        :param identity_number: Swedish national identity number
+        :return: Loaded JSON
         """
         json_data = self.cache('navet_cache').get_cache_item(identity_number)
         if json_data is None:
@@ -371,7 +356,7 @@ class MessageRelay(Task):
             self.cache('navet_cache').add_cache_item(identity_number, json_data)
         return json_data
 
-    def set_audit_log_postal_address(self, audit_reference):
+    def set_audit_log_postal_address(self, audit_reference: str) -> bool:
         from eduid_userdb import MongoDB
 
         conn = MongoDB(self.MONGODB_URI)
@@ -387,7 +372,7 @@ class MessageRelay(Task):
         return False
 
     @TransactionAudit(MONGODB_URI)
-    def sendmail(self, sender, recipients, message, reference):
+    def sendmail(self, sender: str, recipients: list, message: str, reference: str) -> dict:
         """
         Send mail
 
@@ -396,27 +381,21 @@ class MessageRelay(Task):
         :param message: email.mime.multipart.MIMEMultipart message as a string
         :param reference: Audit reference to help cross reference audit log and events
 
-        :type sender: str
-        :type recipients: list of str
-        :type message: six.string_types
-        :type reference: six.string_types
-
         :return Dict of errors
-        :rtype dict
         """
 
         # Just log the mail if in development mode
         conf = self._config
         if conf.get("DEVEL_MODE") is True:
-            LOG.debug('sendmail task:')
-            LOG.debug("\nType: {}\nSender: {}\nRecipients: {}\nMessage:\n{}".format(
+            logger.debug('sendmail task:')
+            logger.debug("\nType: {}\nSender: {}\nRecipients: {}\nMessage:\n{}".format(
                 'email', reference, sender, recipients, message))
-            return 'devel_mode'
+            return {'devel_mode': True}
 
         return self.smtp.sendmail(sender, recipients, message)
 
     @TransactionAudit(MONGODB_URI)
-    def sendsms(self, recipient, message, reference):
+    def sendsms(self, recipient: str, message: str, reference: str) -> str:
         """
         Send sms
 
@@ -424,20 +403,14 @@ class MessageRelay(Task):
         :param message: message as a string (160 chars per sms)
         :param reference: Audit reference to help cross reference audit log and events
 
-        :type recipient: six.string_types
-        :type message: six.string_types
-        :type reference: six.string_types
-
         :return Transaction ID
-        :rtype six.string_types
         """
 
         # Just log the sms if in development mode
         conf = self._config
         if conf.get("DEVEL_MODE") is True:
-            LOG.debug('sendsms task:')
-            LOG.debug("\nType: {}\nReference: {}\nRecipient: {}\nMessage:\n{}".format(
-                'sms', reference, recipient, message))
+            logger.debug('sendsms task:')
+            logger.debug(f"\nType: sms\nReference: {reference}\nRecipient: {recipient}\nMessage:\n{message}")
             return 'devel_mode'
 
         return self.sms.send(message, self._sms_sender, recipient, prio=2)
@@ -449,130 +422,92 @@ class MessageRelay(Task):
         raise ConnectionError('Database not healthy')
 
 
-
-@task(base=MessageRelay)
-def is_reachable(identity_number):
+@task(bind=True, base=MessageRelay)
+def is_reachable(self, identity_number: str) -> bool:
     """
     Check if the user is registered with Swedish government mailbox service.
 
-    @param identity_number: Swedish national identity number
-    @type identity_number: str
-    @return: True if the user is reachable, otherwise False
+    :param self: base clas
+    :param identity_number: Swedish national identity number
+    :return: True if the user is reachable, otherwise False
     """
-    self = is_reachable
-    return self.is_reachable(identity_number)
+    try:
+        return self.is_reachable(identity_number)
+    except Exception as e:
+        logger.error(f'is_reachable task error: {e}', exc_info=True)
+        self.retry(default_retry_delay=1, max_retries=3, exc=e)
 
 
-@task(base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT, max_retries=10)
-def send_message(message_type, reference, message_dict, recipient, template, language, subject=None):
+@task(bind=True, base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT)
+def send_message(self: MessageRelay, message_type: str, reference: str, message_dict: dict, recipient: str,
+                 template: str, language: str, subject: Optional[str] = None) -> str:
     """
-    @param message_type: Message notification type (sms or mm)
-    @type message_type: str (possible values 'sms' and 'mm')
-    @param message_dict: A dict of key value pairs used in the template of choice
-    @type message_dict: dict
-    @param recipient: Recipient phone number or social security number (depends on the choice of message_type)
-    @type recipient: str
-    @param template: Name of the message template to use
-    @type template: str
-    @param language: List of preferred languages for the template. The list is processed in order and the first
-    template matching a language will be used.
-    @type language: List of languages in the form (sv_SE, en_US)
+    :param self: base class
+    :param message_type: Message notification type (sms or mm)
+    :param reference: Audit reference to help cross reference audit log and events
+    :param message_dict: A dict of key value pairs used in the template of choice
+    :param recipient: Recipient phone number or social security number (depends on the choice of message_type)
+    :param template: Name of the message template to use
+    :param language: Preferred language for the template
+    :param subject: Optional message subject
     """
-    self = send_message
     try:
         return self.send_message(message_type, reference, message_dict, recipient, template, language, subject)
     except Exception as e:
-        # Correctly handle Ignore task exception
-        if isinstance(e, Ignore):
-            raise e
-        # Increase countdown every time it fails (to a maximum of 1 day)
-        countdown = 600 * send_message.request.retries ** 2
-        retry_countdown = min(countdown, 86400)
-        LOG.error('send_message task error', exc_info=True)
-        LOG.debug("send_message task retrying in %d seconds, error %s", retry_countdown, e.args[0])
-        send_message.retry(exc=e, countdown=retry_countdown)
+        logger.error(f'send_message task error: {e}', exc_info=True)
+        self.retry(default_retry_delay=1, max_retries=3, exc=e)
 
 
-@task(base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT, max_retries=10)
-def sendmail(sender, recipients, message, reference, max_retry_seconds=86400):
+@task(bind=True, base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT)
+def sendmail(self: MessageRelay, sender: str, recipients: list, message: str, reference: str) -> dict:
     """
+    :param self: base class
     :param sender: the From of the email
     :param recipients: the recipients of the email
     :param message: email.mime.multipart.MIMEMultipart message as a string
     :param reference: Audit reference to help cross reference audit log and events
-    :param max_retry_seconds: Do not retry this task if seconds trying exceeds this number
-
-    :type sender: str
-    :type recipients: list of str
-    :type message: six.string_types
-    :type reference: six.string_types
-    :type max_retry_seconds: int
     """
-    self = sendmail
     try:
         return self.sendmail(sender, recipients, message, reference)
     except Exception as e:
-        # Increase countdown every time it fails (to a maximum of 1 day)
-        countdown = 600 * sendmail.request.retries ** 2
-        retry_countdown = min(countdown, max_retry_seconds)
-        LOG.error('sendmail task error', exc_info=True)
-        LOG.debug("sendmail task retrying in %d seconds, error %s" % (retry_countdown, e))
-        sendmail.retry(exc=e, countdown=retry_countdown)
+        logger.error(f'sendmail task error: {e}', exc_info=True)
+        self.retry(default_retry_delay=1, max_retries=3, exc=e)
 
 
-@task(base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT, max_retries=10)
-def sendsms(recipient, message, reference, max_retry_seconds=86400):
+@task(bind=True, base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT)
+def sendsms(self: MessageRelay, recipient: str, message: str, reference: str) -> str:
     """
+    :param self: base class
     :param recipient: the recipient of the sms
     :param message: message as a string (160 chars per sms)
     :param reference: Audit reference to help cross reference audit log and events
-    :param max_retry_seconds: Do not retry this task if seconds trying exceeds this number
-
-    :type recipient: six.string_types
-    :type message: six.string_types
-    :type reference: six.string_types
-    :type max_retry_seconds: int
     """
-    self = sendsms
     try:
         return self.sendsms(recipient, message, reference)
     except Exception as e:
-        # Increase countdown every time it fails (to a maximum of 1 day)
-        countdown = 600 * sendsms.request.retries ** 2
-        retry_countdown = min(countdown, max_retry_seconds)
-        LOG.error('sendsms task error', exc_info=True)
-        LOG.debug("sendsms task retrying in %d seconds, error %s" % (retry_countdown, e))
-        sendsms.retry(exc=e, countdown=retry_countdown)
+        logger.error(f'sendsms task error: {e}', exc_info=True)
+        self.retry(default_retry_delay=1, max_retries=3, exc=e)
 
 
-@task(base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT, max_retries=10)
-def get_postal_address(identity_number):
+@task(bind=True, base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT)
+def get_postal_address(self: MessageRelay, identity_number: str) -> dict:
     """
     Retrieve name and postal address from the Swedish population register using a Swedish national
     identity number.
 
-    @param identity_number: Swedish national identity number
-    @type identity_number: str
-    @return: Ordered dict
+    :param self: base class
+    :param identity_number: Swedish national identity number
+    :return: Ordered dict
     """
-    # Decorator task base=MessageRelay makes this an instance of MessageRelay().
-    # This funny looking assignment of self to this function supposedly lets us
-    # access other attributes etc. on the MessageRelay instance.
-    # http://docs.celeryproject.org/en/latest/userguide/tasks.html#instantiation
-    self = get_postal_address
     try:
         return self.get_postal_address(identity_number)
     except Exception as e:
-        # Increase countdown every time it fails (to a maximum of 1 day)
-        countdown = 600 * get_postal_address.request.retries ** 2
-        retry_countdown = min(countdown, 86400)
-        LOG.error('get_postal_address task error', exc_info=True)
-        LOG.debug("get_postal_address task retrying in %d seconds, error %s", retry_countdown, e)
-        get_postal_address.retry(exc=e, countdown=retry_countdown)
+        logger.error(f'get_postal_address task error: {e}', exc_info=True)
+        self.retry(default_retry_delay=1, max_retries=3, exc=e)
 
 
-@task(base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT, max_retries=3)
-def get_relations_to(identity_number, relative_nin):
+@task(bind=True, base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT)
+def get_relations_to(self: MessageRelay, identity_number: str, relative_nin: str) -> List[str]:
     """
     Get the relative status between identity_number and relative_nin.
 
@@ -583,17 +518,10 @@ def get_relations_to(identity_number, relative_nin):
       MO = mother
       VF = some kind of legal guardian status. Childs typically have ['B', 'VF'] it seems.
 
-    @param identity_number: Swedish national identity number
-    @type identity_number: str
-    @param relative_nin: Swedish national identity number
-    @type relative_nin: str
-    @return: [str | unicode]
+    :param self: base class
+    :param identity_number: Swedish national identity number
+    :param relative_nin: Swedish national identity number
     """
-    # Decorator task base=MessageRelay makes this an instance of MessageRelay().
-    # This funny looking assignment of self to this function supposedly lets us
-    # access other attributes etc. on the MessageRelay instance.
-    # http://docs.celeryproject.org/en/latest/userguide/tasks.html#instantiation
-    self = get_relations_to
     try:
         relations = self.get_relations(identity_number)
         if not relations:
@@ -611,43 +539,29 @@ def get_relations_to(identity_number, relative_nin):
         #
         # (I wonder what other types of Relations than Relation that NAVET can come up with...)
         import pprint
-        LOG.debug("Looking for relations between {!r} and {!r} in:{!s}".format(identity_number,
-                                                                               relative_nin,
-                                                                               pprint.pformat(relations)))
+        logger.debug(f"Looking for relations between {identity_number} and {relative_nin} in: "
+                     f"{pprint.pformat(relations)}")
         for d in relations['Relations']['Relation']:
             if d.get('RelationId', {}).get("NationalIdentityNumber") == relative_nin:
                 if 'RelationType' in d:
                     result.append(d['RelationType'])
         return result
     except Exception as e:
-        # Increase countdown every time it fails (to a maximum of 1 day)
-        countdown = 600 * get_relations_to.request.retries ** 2
-        retry_countdown = min(countdown, 86400)
-        LOG.error('get_relations_to task error', exc_info=True)
-        LOG.debug("get_relations_to task retrying in %d seconds, error %s", retry_countdown, e)
-        get_relations_to.retry(exc=e, countdown=retry_countdown)
+        logger.error(f'get_relations_to task error: {e}', exc_info=True)
+        self.retry(default_retry_delay=1, max_retries=3, exc=e)
 
 
-@task(base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT, max_retries=10)
-def set_audit_log_postal_address(audit_reference):
+@task(bind=True, base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT)
+def set_audit_log_postal_address(self, audit_reference: str) -> bool:
     """
     Looks in the transaction audit collection for the audit reference and make a postal address lookup and adds the
     result to the transaction audit document.
     """
-    # Decorator task base=MessageRelay makes this an instance of MessageRelay().
-    # This funny looking assignment of self to this function supposedly lets us
-    # access other attributes etc. on the MessageRelay instance.
-    # http://docs.celeryproject.org/en/latest/userguide/tasks.html#instantiation
-    self = set_audit_log_postal_address
     try:
         return self.set_audit_log_postal_address(audit_reference)
     except Exception as e:
-        # Increase countdown every time it fails (to a maximum of 1 day)
-        countdown = 600 * set_audit_log_postal_address.request.retries ** 2
-        retry_countdown = min(countdown, 86400)
-        LOG.error('set_audit_log_postal_address task error', exc_info=True)
-        LOG.debug("set_audit_log_postal_address task retrying in %d seconds, error %s", retry_countdown, e)
-        set_audit_log_postal_address.retry(exc=e, countdown=retry_countdown)
+        logger.error(f'set_audit_log_postal_address task error: {e}', exc_info=True)
+        raise e
 
 
 @periodic_task(run_every=timedelta(minutes=5))
@@ -657,11 +571,10 @@ def cache_expire():
     """
     global _CACHE
     for cache in _CACHE.keys():
-        LOG.debug("Invoking expire_cache at %s for %s" % (datetime.fromtimestamp(time(), None), cache))
+        logger.debug(f"Invoking expire_cache at {datetime.fromtimestamp(time(), None)} for {cache}")
         _CACHE[cache].expire_cache_items()
 
 
-@task(base=MessageRelay)
-def pong():
-    self = pong
+@task(bind=True, base=MessageRelay)
+def pong(self):
     return self.pong()
