@@ -94,8 +94,8 @@ class TestTasks(MsgMongoTestCase):
     def test_send_message_sms_exception(self, sms_mock):
         from eduid_msg.tasks import send_message
         sms_mock.return_value = True
-        status = send_message.delay('sms', 'reference', self.msg_dict, '+386666', 'test.tmpl', 'sv_SE').get()
-        self.assertIsNone(status)
+        with self.assertRaises(Exception):
+            send_message.apply_async(args=['sms', 'reference', self.msg_dict, '+386666', 'test.tmpl', 'sv_SE'])
 
     @patch('eduid_msg.tasks.MessageRelay.mm_api')
     def test_is_reachable_cache(self, api_mock):

@@ -3,18 +3,18 @@
 This module provides utility functions.
 """
 
-import six
 import os
 from collections import OrderedDict
+from typing import Union, Optional
 
 
-def load_template(template_dir, filename, message_dict, lang):
+def load_template(template_dir: str, filename: str, message_dict: dict, lang: str) -> Union[str, bool]:
     """
     This function loads a template file by provided language.
     """
     from jinja2 import Environment, FileSystemLoader
 
-    if not isinstance(template_dir, six.string_types):
+    if not isinstance(template_dir, str):
         return False
     if not os.path.isdir(template_dir):
         return False
@@ -28,12 +28,10 @@ def load_template(template_dir, filename, message_dict, lang):
         return False
 
 
-def navet_get_name(navet_data):
+def navet_get_name(navet_data: dict) -> Optional[dict]:
     """
     :param navet_data: Loaded JSON response from eduid-navet_service
-    :type navet_data: dict
     :return: Name data object
-    :rtype: OrderedDict|None
     """
     try:
         person = navet_get_person(navet_data)
@@ -43,12 +41,10 @@ def navet_get_name(navet_data):
     return result
 
 
-def navet_get_official_address(navet_data):
+def navet_get_official_address(navet_data: dict) -> Optional[dict]:
     """
     :param navet_data:  Loaded JSON response from eduid-navet_service
-    :type navet_data: dict
     :return: Official address data object
-    :rtype: OrderedDict|None
     """
     try:
         person = navet_get_person(navet_data)
@@ -58,12 +54,10 @@ def navet_get_official_address(navet_data):
     return result
 
 
-def navet_get_name_and_official_address(navet_data):
+def navet_get_name_and_official_address(navet_data: dict) -> Optional[dict]:
     """
     :param navet_data:  Loaded JSON response from eduid-navet_service
-    :type navet_data: dict
     :return: Name and official address data objects
-    :rtype: OrderedDict|None
     """
     try:
         person = navet_get_person(navet_data)
@@ -75,12 +69,10 @@ def navet_get_name_and_official_address(navet_data):
     return result
 
 
-def navet_get_relations(navet_data):
+def navet_get_relations(navet_data: dict) -> Optional[dict]:
     """
     :param navet_data:  Loaded JSON response from eduid-navet_service
-    :type navet_data: dict
     :return: Relations data object
-    :rtype: OrderedDict|None
     """
     try:
         person = navet_get_person(navet_data)
@@ -90,10 +82,9 @@ def navet_get_relations(navet_data):
     return result
 
 
-def navet_get_person(navet_data):
+def navet_get_person(navet_data: dict) -> Optional[dict]:
     """
     :param navet_data: Loaded JSON response from eduid-navet_service
-    :type navet_data: dict
     :return: Personpost
     {
         "Name": {
@@ -121,7 +112,6 @@ def navet_get_person(navet_data):
             }
         ]
     }
-    :rtype: OrderedDict
     """
     try:
         result = OrderedDict(navet_data['PopulationItems'][0]['PersonItem'])
