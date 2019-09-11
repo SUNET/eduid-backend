@@ -362,7 +362,7 @@ class FlaskConfig(BaseConfig):
     mfa_testing: bool = False
     freja_jws_key_id: str = ''
     authn_sign_alg: str = ''
-    u2f_valid_facets: str = ''
+    u2f_valid_facets: list = field(default_factory=list)
     u2f_max_description_length: int = 0
     freja_jwk_secret: str = ''
     orcid_verify_redirect_url: str = ''
