@@ -110,7 +110,7 @@ def eduid_init_app_no_db(name: str, config: dict,
     if not isinstance(app, EduIDApp):
         app.__class__ = EduIDApp
 
-    config = {key.lower(): val for key, val in app.config.items()}
+    config = {key.lower(): val for key, val in cast(Config, app.config).items()}
     app.init_config(config_class, config)
 
     if DEBUG:
