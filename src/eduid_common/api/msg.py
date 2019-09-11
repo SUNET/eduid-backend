@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import warnings
+from typing import Optional, List, Mapping
 
 from flask import Flask, current_app
 
@@ -27,7 +29,7 @@ def init_relay(app: Flask) -> Flask:
 
 class MsgRelay(object):
 
-    def __init__(self, settings: dict):
+    def __init__(self, settings: Mapping):
         eduid_msg.init_app(settings)
         # these have to be imported _after_ eduid_am.init_app()
         from eduid_msg.tasks import get_postal_address, get_relations_to, send_message, sendsms, pong
@@ -41,7 +43,7 @@ class MsgRelay(object):
     def get_language(lang: str) -> str:
         return LANGUAGE_MAPPING.get(lang, 'en_US')
 
-    def get_postal_address(self, nin: str, timeout: int = 4) -> dict:
+    def get_postal_address(self, nin: str, timeout: int = 4) -> Optional[dict]:
         """
         :param nin: Swedish national identity number
         :param timeout: Max wait time for task to finish
@@ -69,7 +71,7 @@ class MsgRelay(object):
             rtask.forget()
             raise MsgTaskFailed(f'get_postal_address task failed: {e}')
 
-    def get_relations_to(self, nin: str, relative_nin: str, timeout: int = 4) -> list:
+    def get_relations_to(self, nin: str, relative_nin: str, timeout: int = 4) -> List[str]:
         """
         Get a list of the NAVET 'Relations' type codes between a NIN and a relatives NIN.
 
@@ -97,10 +99,14 @@ class MsgRelay(object):
         """
             The template keywords are:
                 * sitename: (eduID by default)
-                * sitelink: (the url dashboard in personal workmode)
+                * sitelink: (the url dashboard)
                 * code: the verification code
-                * phonenumber: the phone number to verificate
+                * phonenumber: the phone number to verify
         """
+        warnings.warn(
+            "This function will be removed use sendsms instead",
+            DeprecationWarning
+        )
         current_app.logger.info('Trying to send phone validation SMS with reference: {}'.format(reference))
         content = {
             'sitename': current_app.config.get('EDUID_SITE_NAME'),

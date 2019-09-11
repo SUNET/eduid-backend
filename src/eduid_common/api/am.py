@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from typing import Mapping
 
 import eduid_am
 from flask import Flask, current_app
@@ -22,7 +23,7 @@ def init_relay(app: Flask, application_name: str) -> Flask:
 
 class AmRelay(object):
 
-    def __init__(self, config: dict, relay_for: str):
+    def __init__(self, config: Mapping, relay_for: str):
         """
         :param config: celery config
         :param relay_for: Name of application to relay for
@@ -63,6 +64,7 @@ class AmRelay(object):
             raise e
         except Exception as e:
             rtask.forget()
+            current_app.logger.exception(f"Failed Attribute Manager sync request for user {user}")
             raise AmTaskFailed(f'request_user_sync task failed: {e}')
 
     def ping(self, timeout: int = 1) -> str:
