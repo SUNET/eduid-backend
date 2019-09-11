@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 import warnings
-from typing import Optional, List, Mapping
+from typing import Optional, List
 
-from flask import Flask, current_app
+from flask import current_app
 
 import eduid_msg
+from eduid_common.api.app import EduIDApp
 from eduid_common.api.exceptions import MsgTaskFailed
+from eduid_common.config.base import CeleryConfig
 
 __author__ = 'lundberg'
 
@@ -22,14 +24,14 @@ LANGUAGE_MAPPING = {
 }
 
 
-def init_relay(app: Flask) -> Flask:
-    app.msg_relay = MsgRelay(app.config['CELERY_CONFIG'])
+def init_relay(app: EduIDApp) -> EduIDApp:
+    app.msg_relay = MsgRelay(app.config.celery_config)
     return app
 
 
 class MsgRelay(object):
 
-    def __init__(self, settings: Mapping):
+    def __init__(self, settings: CeleryConfig):
         eduid_msg.init_app(settings)
         # these have to be imported _after_ eduid_am.init_app()
         from eduid_msg.tasks import get_postal_address, get_relations_to, send_message, sendsms, pong
