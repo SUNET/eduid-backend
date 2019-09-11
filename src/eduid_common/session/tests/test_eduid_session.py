@@ -13,7 +13,6 @@ __author__ = 'lundberg'
 
 def session_init_app(name, config):
     app = eduid_init_app_no_db(name, config)
-    app.config.update(config)
     app = no_authn_views(app, ['/unauthenticated'])
 
     @app.route('/authenticated')
@@ -63,9 +62,9 @@ class EduidSessionTests(EduidAPITestCase):
 
     def update_config(self, config):
         config.update({
-            'DEBUG': True,
-            'LOG_LEVEL': 'DEBUG',
-            'NO_AUTHN_URLS': [],
+            'debug': True,
+            'log_level': 'DEBUG',
+            'no_authn_urls': [],
         })
         return config
 

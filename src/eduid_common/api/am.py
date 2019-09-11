@@ -18,7 +18,7 @@ def init_relay(app, application_name):
     :return: Flask app
     :rtype: flask.Flask
     """
-    app.am_relay = AmRelay(app.config['CELERY_CONFIG'], application_name)
+    app.am_relay = AmRelay(app.config.celery_config, application_name)
     return app
 
 

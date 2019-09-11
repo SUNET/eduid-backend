@@ -49,11 +49,11 @@ class EtcdConfigParser(object):
         :return: Fully qualified key, self.ns + key
         :rtype: str | unicode
         """
-        return '{!s}{!s}'.format(self.ns, key.lower())
+        return '{!s}{!s}'.format(self.ns, key)
 
     @interpolate
     @decrypt
-    def read_configuration(self, silent=False, uppercase=True):
+    def read_configuration(self, silent=False):
         """
         :param silent: set to `True` if you want silent failure for missing keys.
         :type silent: bool
@@ -84,12 +84,10 @@ class EtcdConfigParser(object):
         config = {}
         try:
             for child in self.client.read(self.ns, recursive=True).children:
-                # Remove namespace and uppercase the key
+                # Remove namespace
                 key = child.key.split('/')[-1]
-                if uppercase:
-                    key = key.upper()
                 # Load etcd string with json to handle complex structures
-                config[key] = json.loads(child.value)
+                config[key.upper()] = json.loads(child.value)
         except (etcd.EtcdKeyNotFound, etcd.EtcdConnectionFailed) as e:
             logging.info(e)
             if not silent:
@@ -104,7 +102,7 @@ class EtcdConfigParser(object):
         :return: JSON loaded value
         :rtype: str | unicode | int | float | list | dict
         """
-        value = self.client.read(self._fq_key(key)).value
+        value = self.client.read(self._fq_key(key.lower())).value
         return json.loads(value)
 
     def set(self, key, value):

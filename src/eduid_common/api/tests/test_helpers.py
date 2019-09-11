@@ -2,7 +2,6 @@
 
 from __future__ import absolute_import
 
-from flask import Flask
 from copy import deepcopy
 from mock import patch
 from eduid_common.api.testing import EduidAPITestCase
@@ -18,6 +17,8 @@ from eduid_userdb.logs import ProofingLog
 from eduid_userdb.logs.element import ProofingLogElement, NinProofingLogElement
 from eduid_common.api.am import init_relay
 from eduid_common.api.helpers import add_nin_to_user, verify_nin_for_user, set_user_names_from_offical_address
+from eduid_common.config.base import FlaskConfig
+from eduid_common.config.app import EduIDApp
 
 __author__ = 'lundberg'
 
@@ -42,20 +43,23 @@ class NinHelpersTest(EduidAPITestCase):
         super(NinHelpersTest, self).setUp()
 
     def load_app(self, config):
-        app = Flask('test_app')
+        app = EduIDApp('test_app')
         app.config.update(config)
+        # Flask sets a few default setting uppercased
+        config = {key.lower(): val for key, val in app.config.items()}
+        app.config = FlaskConfig(**config)
         app = init_relay(app, 'testing')
-        app.central_userdb = UserDB(config['MONGO_URI'], 'eduid_am')
-        app.private_userdb = UserDB(config['MONGO_URI'], 'test_proofing_userdb')
-        app.proofing_log = ProofingLog(config['MONGO_URI'], 'test_proofing_log')
+        app.central_userdb = UserDB(app.config.mongo_uri, 'eduid_am')
+        app.private_userdb = UserDB(app.config.mongo_uri, 'test_proofing_userdb')
+        app.proofing_log = ProofingLog(app.config.mongo_uri, 'test_proofing_log')
         return app
 
     def update_config(self, config):
         config.update({
-            'AM_BROKER_URL': 'amqp://dummy',
-            'CELERY_CONFIG': {
-                'CELERY_RESULT_BACKEND': 'amqp',
-                'CELERY_TASK_SERIALIZER': 'json'
+            'am_broker_url': 'amqp://dummy',
+            'celery_config': {
+                'result_backend': 'amqp',
+                'task_serializer': 'json'
             },
         })
         return config

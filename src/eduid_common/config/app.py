@@ -1,6 +1,5 @@
-#!/usr/bin/python
 #
-# Copyright (c) 2013 NORDUnet A/S
+# Copyright (c) 2019 SUNET
 # All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or
@@ -30,35 +29,14 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-# Author : Fredrik Thulin <fredrik@thulin.net>
-#
+from typing import cast
 
-"""
-Test config parsing.
-"""
+from flask import Flask
 
-import os
-import unittest
-import pkg_resources
-
-from eduid_common.config.idp import IdPConfig
+from eduid_common.config.base import FlaskConfig
 
 
-TEST_CONFIG = {
-        'listen_port': 8000,
-        'static_dir': '/home/ft/work/NORDUnet/eduid-IdP/static/',
-        'vccs_url': 'dummy'
-        }
+class EduIDApp(Flask):
 
-
-class TestCredStore(unittest.TestCase):
-
-    def setUp(self):
-        self.config = IdPConfig(**TEST_CONFIG)
-
-    def test_static_config(self):
-        """
-        Verify setting test values
-        """
-        self.assertTrue(self.config.static_dir.startswith('/home/'))
-        self.assertEqual(self.config.listen_port, 8000)
+    def init_config(self, config_class, config):
+        self.config: FlaskConfig = config_class(**config)
