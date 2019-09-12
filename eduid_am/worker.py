@@ -3,14 +3,15 @@ from __future__ import absolute_import
 from eduid_userdb import UserDB
 from eduid_common.rpc.worker import get_worker_config
 from eduid_common.rpc.celery import init_celery
-
+from eduid_common.config.base import CommonConfig
+from eduid_am.config import AmConfig
 import eduid_am.common as common
 
-worker_config = {}
+worker_config: AmConfig = AmConfig()
 
 if common.celery is None:
-    worker_config = get_worker_config('am')
-    celery = init_celery('eduid_am', config=worker_config['CELERY'], include=['eduid_am.tasks'])
+    worker_config = get_worker_config('am', config_class=AmConfig)
+    celery = init_celery('eduid_am', config=worker_config.celery, include=['eduid_am.tasks'])
 
     # When Celery starts the worker, it expects there to be a 'celery' in the module it loads,
     # but our tasks expect to find the Celery instance in common.celery - so copy it there
@@ -36,5 +37,5 @@ def setup_indexes(db_uri, db_name, collection):
     userdb.close()
 
 
-if 'MONGO_URI' in worker_config:
-    setup_indexes(worker_config['MONGO_URI'], 'eduid_am', 'attributes')
+if worker_config.mongo_uri:
+    setup_indexes(worker_config.mongo_uri, 'eduid_am', 'attributes')
