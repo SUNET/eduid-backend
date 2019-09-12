@@ -149,7 +149,7 @@ class TestTasks(MsgMongoTestCase):
         api_mock.user.reachable.POST.return_value = reachable_response
         status = send_message.delay('mm', 'reference', self.msg_dict, '192705178354', 'test.tmpl', 'sv_SE',
                                     subject='Test').get()
-        self.assertEqual(status, False)
+        self.assertEqual(status, None)
 
     @patch('eduid_msg.tasks.MessageRelay.mm_api')
     def test_send_message_mm_recipient_anonymous(self, api_mock):

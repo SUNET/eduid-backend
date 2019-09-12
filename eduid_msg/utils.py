@@ -5,7 +5,7 @@ This module provides utility functions.
 
 import os
 from collections import OrderedDict
-from typing import Union, Optional
+from typing import Optional
 
 
 def load_template(template_dir: str, filename: str, message_dict: dict, lang: str) -> str:

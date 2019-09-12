@@ -206,7 +206,7 @@ class MessageRelay(Task):
 
     @TransactionAudit(MONGODB_URI)
     def send_message(self, message_type: str, reference: str, message_dict: dict, recipient: str, template: str,
-                     language: str, subject: Optional[str] = None) -> str:
+                     language: str, subject: Optional[str] = None) -> Optional[str]:
         """
         :param message_type: Message notification type (sms or mm)
         :param reference: Unique reference id
@@ -246,7 +246,9 @@ class MessageRelay(Task):
 
             if reachable is not True:
                 logger.debug(f"User not reachable - reason: {reachable}")
-                return str(reachable)  # Make mypy happy
+                if isinstance(reachable, str):
+                    return reachable
+                return None
 
             if subject is None:
                 subject = f'{conf.get("MM_DEFAULT_SUBJECT")}'  # make mypy happy

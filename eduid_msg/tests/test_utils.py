@@ -1,7 +1,8 @@
 from unittest import TestCase
-from eduid_msg.utils import load_template
-from jinja2 import TemplateNotFound
+
 import pkg_resources
+
+from eduid_msg.utils import load_template
 
 
 class TestUtils(TestCase):
@@ -13,10 +14,8 @@ class TestUtils(TestCase):
         }
 
     def test_load_template_missing(self):
-        try:
+        with self.assertRaises(RuntimeError):
             load_template(self.template_dir, 'apa.tmpl', self.msg_dict, 'sv_SE')
-        except TemplateNotFound:
-            pass
 
     def test_load_and_render_template(self):
         message = load_template(self.template_dir, 'test.tmpl', self.msg_dict, 'sv_SE')
