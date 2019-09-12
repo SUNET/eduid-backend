@@ -82,8 +82,6 @@ class MongoTestCase(unittest.TestCase):
     A test can access the connection using the attribute `conn`.
     A test can access the port using the attribute `port`
     """
-    fixtures = []
-
     def __init__(self, *args, **kwargs):
         super(MongoTestCase, self).__init__(*args, **kwargs)
         self.db = MongoTemporaryInstance.get_instance()
