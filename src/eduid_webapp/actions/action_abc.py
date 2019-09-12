@@ -165,10 +165,10 @@ class ActionPlugin(object):
         :returns: the url
         :raise: ActionPlugin.ActionError
         """
-        path = current_app.config.get('BUNDLES_PATH')
-        version = current_app.config.get('BUNDLES_VERSION')
+        path = current_app.config.bundles_path
+        version = current_app.config.bundles_version
         bundle_name = 'eduid_action.{}.js'
-        env = current_app.config.get('ENVIRONMENT', 'dev')
+        env = current_app.config.environment
         if env == 'dev':
             bundle_name = 'eduid_action.{}-bundle.dev.js'
         elif env == 'staging':

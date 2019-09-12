@@ -105,18 +105,18 @@ DUMMY_ACTION = {
 }
 
 TEST_CONFIG = {
-    'AVAILABLE_LANGUAGES': {'en': 'English', 'sv': 'Svenska'},
-    'DASHBOARD_URL': '/profile/',
-    'DEVELOPMENT': 'DEBUG',
-    'APPLICATION_ROOT': '/',
-    'LOG_LEVEL': 'DEBUG',
-    'IDP_URL': 'https://example.com/idp',
-    'INTERNAL_SIGNUP_URL': 'https://example.com/signup',
-    'PRESERVE_CONTEXT_ON_EXCEPTION': False,
-    'EDUID_STATIC_URL': 'http://example.com',
-    'BUNDLES_PATH': '/bundles/',
-    'DEBUG': False,
-    'DEVEL_MODE': True
+    'available_languages': {'en': 'English', 'sv': 'Svenska'},
+    'dashboard_url': '/profile/',
+    'development': 'DEBUG',
+    'application_root': '/',
+    'log_level': 'DEBUG',
+    'idp_url': 'https://example.com/idp',
+    'internal_signup_url': 'https://example.com/signup',
+    'preserve_context_on_exception': False,
+    'eduid_static_url': 'http://example.com',
+    'bundles_path': '/bundles/',
+    'debug': False,
+    'devel_mode': True
 }
 
 

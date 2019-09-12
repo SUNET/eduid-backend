@@ -59,7 +59,7 @@ class Plugin(ActionPlugin):
 
     @classmethod
     def includeme(cls, app):
-        app.tou_db = ToUUserDB(app.config.get('MONGO_URI'))
+        app.tou_db = ToUUserDB(app.config.mongo_uri)
 
     def get_config_for_bundle(self, action: Action):
         tous = current_app.get_tous(version=action.params['version'])
@@ -69,7 +69,7 @@ class Plugin(ActionPlugin):
         return {
             'version': action.params['version'],
             'tous': tous,
-            'available_languages': current_app.config.get('AVAILABLE_LANGUAGES')
+            'available_languages': current_app.config.available_languages
         }
 
     def perform_step(self, action: Action):

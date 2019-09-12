@@ -92,7 +92,7 @@ class ToUActionPluginTests(ActionsTestCase):
         super(ToUActionPluginTests, self).tearDown()
 
     def update_actions_config(self, config):
-        config['ACTION_PLUGINS'] = ['tou']
+        config['action_plugins'] = ['tou']
         return config
 
     def tou_accepted(self, user, version, created_ts=None, modified_ts=None):

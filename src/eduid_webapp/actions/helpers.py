@@ -48,7 +48,7 @@ def get_next_action(user):
     if action is None:
         current_app.logger.info("Finished pre-login actions "
                                 "for user: {}".format(user))
-        idp_url = '{}?key={}'.format(current_app.config.get('IDP_URL'),
+        idp_url = '{}?key={}'.format(current_app.config.idp_url,
                                      idp_session)
         return {'action': False, 'idp_url': idp_url}
 

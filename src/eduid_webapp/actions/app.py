@@ -39,7 +39,9 @@ from flask import Flask, render_template, templating
 
 from eduid_common.api.app import eduid_init_app
 from eduid_common.api import am
+from eduid_common.config.app import EduIDApp
 from eduid_userdb.actions import ActionDB
+from eduid_webapp.actions.settings.common import ActionsConfig
 
 
 class PluginsRegistry(dict):
@@ -94,15 +96,14 @@ def actions_init_app(name, config):
     :rtype: flask.Flask
     """
 
-    app = eduid_init_app(name, config, app_class=Flask)
-    app.config.update(config)
+    app = eduid_init_app(name, config, config_class=ActionsConfig, app_class=EduIDApp)
 
     from eduid_webapp.actions.views import actions_views
     app.register_blueprint(actions_views)
 
     app = am.init_relay(app, 'eduid_actions')
 
-    app.actions_db = ActionDB(app.config['MONGO_URI'])
+    app.actions_db = ActionDB(app.config.mongo_uri)
 
     app.plugins = PluginsRegistry(app)
     for plugin in app.plugins.values():

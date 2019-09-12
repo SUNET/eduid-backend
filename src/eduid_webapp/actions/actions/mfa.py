@@ -63,18 +63,18 @@ class Plugin(ActionPlugin):
     @classmethod
     def includeme(cls, app):
         mandatory_config_keys = [
-            'U2F_APP_ID',
-            'U2F_VALID_FACETS',
-            'FIDO2_RP_ID',
-            'EIDAS_URL',
-            'MFA_AUTHN_IDP'
+            'u2f_app_id',
+            'u2f_valid_facets',
+            'fido2_rp_id',
+            'eidas_url',
+            'mfa_authn_idp'
         ]
 
         for item in mandatory_config_keys:
-            if app.config.get(item) is None:
-                app.logger.error('The "{}" configuration option is required'.format(item))
+            if not getattr(app.config, item):
+                app.logger.error(f'The "{item}" configuration option is required')
 
-        app.config.setdefault('MFA_TESTING', False)
+        app.config.mfa_testing = False
 
     def get_config_for_bundle(self, action):
         if action.old_format:
@@ -95,10 +95,10 @@ class Plugin(ActionPlugin):
         # CTAP1/U2F
         # TODO: Only make U2F challenges for U2F tokens?
         challenge = None
-        if current_app.config.get('GENERATE_U2F_CHALLENGES') is True:
+        if current_app.config.generate_u2f_challenges is True:
             u2f_tokens = [v['u2f'] for v in credentials.values()]
             try:
-                challenge = begin_authentication(current_app.config['U2F_APP_ID'], u2f_tokens)
+                challenge = begin_authentication(current_app.config.u2f_app_id, u2f_tokens)
                 current_app.logger.debug('U2F challenge:\n{}'.format(pprint.pformat(challenge)))
             except ValueError:
                 # there is no U2F key registered for this user
@@ -107,7 +107,7 @@ class Plugin(ActionPlugin):
         # CTAP2/Webauthn
         # TODO: Only make Webauthn challenges for Webauthn tokens?
         webauthn_credentials = [v['webauthn'] for v in credentials.values()]
-        fido2rp = RelyingParty(current_app.config['FIDO2_RP_ID'], 'eduID')
+        fido2rp = RelyingParty(current_app.config.fido2_rp_id, 'eduID')
         fido2server = _get_fido2server(credentials, fido2rp)
         raw_fido2data, fido2state = fido2server.authenticate_begin(webauthn_credentials)
         current_app.logger.debug('FIDO2 authentication data:\n{}'.format(pprint.pformat(raw_fido2data)))
@@ -126,21 +126,21 @@ class Plugin(ActionPlugin):
         session[self.PACKAGE_NAME + '.webauthn.state'] = json.dumps(fido2state)
 
         # Explicit check for boolean True
-        if current_app.config.get('MFA_TESTING') is True:
+        if current_app.config.mfa_testing is True:
             current_app.logger.info('MFA test mode is enabled')
             config['testing'] = True
         else:
             config['testing'] = False
 
         # Add config for external mfa auth
-        config['eidas_url'] = current_app.config['EIDAS_URL']
-        config['mfa_authn_idp'] = current_app.config['MFA_AUTHN_IDP']
+        config['eidas_url'] = current_app.config.eidas_url
+        config['mfa_authn_idp'] = current_app.config.mfa_authn_idp
 
         return config
 
     def perform_step(self, action):
         current_app.logger.debug('Performing MFA step')
-        if current_app.config['MFA_TESTING']:
+        if current_app.config.mfa_testing:
             current_app.logger.debug('Test mode is on, faking authentication')
             return {
                 'success': True,
@@ -187,7 +187,7 @@ class Plugin(ActionPlugin):
             current_app.logger.debug('Challenge: {!r}'.format(challenge))
 
             device, counter, touch = complete_authentication(challenge, token_response,
-                                                             current_app.config['U2F_VALID_FACETS'])
+                                                             current_app.config.u2f_valid_facets)
             current_app.logger.debug('U2F authentication data: {}'.format({
                 'keyHandle': device['keyHandle'],
                 'touch': touch,
@@ -223,7 +223,7 @@ class Plugin(ActionPlugin):
             credentials = _get_user_credentials(user)
             fido2state = json.loads(session[self.PACKAGE_NAME + '.webauthn.state'])
 
-            rp_id = current_app.config['FIDO2_RP_ID']
+            rp_id = current_app.config.fido2_rp_id
             fido2rp = RelyingParty(rp_id, 'eduID')
             fido2server = _get_fido2server(credentials, fido2rp)
             matching_credentials = [(v['webauthn'], k) for k,v in credentials.items()

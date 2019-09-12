@@ -43,7 +43,7 @@ from eduid_webapp.actions.testing import ActionsTestCase
 class ActionsTests(ActionsTestCase):
 
     def update_actions_config(self, config):
-        config['TOU_VERSION'] = 'test-version'
+        config['tou_version'] = 'test-version'
         return config
 
     def test_authn_no_data(self):
