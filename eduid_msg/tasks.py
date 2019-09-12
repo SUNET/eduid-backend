@@ -2,6 +2,7 @@
 
 import json
 import smtplib
+from collections import OrderedDict
 from datetime import datetime, timedelta
 from typing import Optional, Union, List
 
@@ -137,41 +138,49 @@ class MessageRelay(Task):
             logger.error('Task failed with db exception ConnectionError. Reloading db.')
             self.reload_db()
 
-    def is_reachable(self, identity_number: str, mailbox_url: bool = False) -> Union[bool, str]:
+    def is_reachable(self, identity_number: str) -> Union[bool, str]:
         """
         Check if the user is registered with Swedish government mailbox service.
 
         :param identity_number: User social security number
-        :param mailbox_url: (optional) Return mailbox URL instead of true if the user exist and accept messages from
-                            the sender.
         :return: True if the user is reachable, False if the user is not registered with the government mailbox service.
                  'Anonymous' if the user is registered but has not confirmed their identity with the government mailbox
                   service.
                  'Sender_not' if the sender (you) is blocked by the recipient.
         """
         result = self.cache('recipient_cache', 7200).get_cache_item(identity_number)
-        retval = False
 
         if result is None:
             result = self._get_is_reachable(identity_number)
             if result['AccountStatus']['Type'] == 'Secure' and result['SenderAccepted']:
                 self.cache('recipient_cache').add_cache_item(identity_number, result)
 
-        if retval is False:
-            if result['AccountStatus']['Type'] == 'Secure':
-                if result['SenderAccepted']:
-                    retval = True
-                else:
-                    retval = 'Sender_not'
-            elif result['AccountStatus']['Type'] == 'Not':
-                pass
-            elif result['AccountStatus']['Type'] == 'Anonymous':
-                retval = 'Anonymous'
+        if result['AccountStatus']['Type'] == 'Secure':
+            if result['SenderAccepted']:
+                return True
+            else:
+                return 'Sender_not'
+        elif result['AccountStatus']['Type'] == 'Not':
+            return False
+        elif result['AccountStatus']['Type'] == 'Anonymous':
+            return 'Anonymous'
+        return False
 
-        if mailbox_url is True and retval is True:
-            return result['AccountStatus']['ServiceSupplier']['ServiceAddress']
+    def get_mailbox_url(self, identity_number: str) -> Optional[str]:
+        """
+        :param identity_number: User social security number
+        :return: Returns mailbox URL if the user exist and accept messages from the sender.
+        """
+        result = self.cache('recipient_cache', 7200).get_cache_item(identity_number)
+        if result is None:
+            result = self._get_is_reachable(identity_number)
+            if result['AccountStatus']['Type'] == 'Secure' and result['SenderAccepted']:
+                self.cache('recipient_cache').add_cache_item(identity_number, result)
 
-        return retval
+        if result['AccountStatus']['Type'] == 'Secure':
+            if result['SenderAccepted']:
+                return result['AccountStatus']['ServiceSupplier']['ServiceAddress']
+        return None
 
     @TransactionAudit(MONGODB_URI)
     def _get_is_reachable(self, identity_number: str) -> dict:
@@ -215,8 +224,6 @@ class MessageRelay(Task):
         conf = self._config
 
         msg = load_template(conf.get("TEMPLATE_DIR", None), template, message_dict, language)
-        if not msg:
-            raise RuntimeError("template not found")
 
         # Only log the message if devel_mode is enabled
         if conf.get("DEVEL_MODE") is True:
@@ -227,8 +234,8 @@ class MessageRelay(Task):
         if message_type == 'sms':
             logger.debug(f"Sending SMS to {recipient} using template {template} and language {language}")
             try:
-                msg = msg.encode('utf-8')
-                status = self.sms.send(msg, self._sms_sender, recipient, prio=2)
+                msg_bytes = msg.encode('utf-8')
+                status = self.sms.send(msg_bytes, self._sms_sender, recipient, prio=2)
             except Exception as e:  # XXX: smscom only raises Exception right now
                 logger.error(f'SMS task failed: {e}')
                 raise e
@@ -239,10 +246,10 @@ class MessageRelay(Task):
 
             if reachable is not True:
                 logger.debug(f"User not reachable - reason: {reachable}")
-                return reachable
+                return str(reachable)  # Make mypy happy
 
             if subject is None:
-                subject = conf.get("MM_DEFAULT_SUBJECT")
+                subject = f'{conf.get("MM_DEFAULT_SUBJECT")}'  # make mypy happy
 
             status = self._send_mm_message(recipient, subject, 'text/html', language.replace('_', ''), msg)
         else:
@@ -268,7 +275,7 @@ class MessageRelay(Task):
         logger.error(error)
         raise RuntimeError(error)
 
-    def get_postal_address(self, identity_number: str) -> dict:
+    def get_postal_address(self, identity_number: str) -> Optional[OrderedDict]:
         """
         Fetch name and postal address from NAVET
 
@@ -285,11 +292,10 @@ class MessageRelay(Task):
         return navet_get_name_and_official_address(data)
 
     @staticmethod
-    def get_devel_postal_address() -> dict:
+    def get_devel_postal_address() -> OrderedDict:
         """
         Return a OrderedDict just as we would get from navet.
         """
-        from collections import OrderedDict
         result = OrderedDict([
             (u'Name', OrderedDict([
                 (u'GivenNameMarking', u'20'), (u'GivenName', u'Testaren Test'),
@@ -300,7 +306,7 @@ class MessageRelay(Task):
         ])
         return result
 
-    def get_relations(self, identity_number: str) -> dict:
+    def get_relations(self, identity_number: str) -> Optional[OrderedDict]:
         """
         Fetch information about someones relatives from NAVET
 
@@ -317,11 +323,10 @@ class MessageRelay(Task):
         return navet_get_relations(data)
 
     @staticmethod
-    def get_devel_relations() -> dict:
+    def get_devel_relations() -> OrderedDict:
         """
         Return a OrderedDict just as we would get from navet.
         """
-        from collections import OrderedDict
         result = \
             OrderedDict([(u'Relations', {u'Relation':
                          [{u'RelationType': u'VF', u'RelationId': {u'NationalIdentityNumber': u'200202025678'},
@@ -435,7 +440,9 @@ def is_reachable(self, identity_number: str) -> bool:
         return self.is_reachable(identity_number)
     except Exception as e:
         logger.error(f'is_reachable task error: {e}', exc_info=True)
+        # self.retry raises Retry exception, assert False will not be reached
         self.retry(default_retry_delay=1, max_retries=3, exc=e)
+    assert False  # make mypy happy
 
 
 @task(bind=True, base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT)
@@ -455,7 +462,9 @@ def send_message(self: MessageRelay, message_type: str, reference: str, message_
         return self.send_message(message_type, reference, message_dict, recipient, template, language, subject)
     except Exception as e:
         logger.error(f'send_message task error: {e}', exc_info=True)
+        # self.retry raises Retry exception, assert False will not be reached
         self.retry(default_retry_delay=1, max_retries=3, exc=e)
+    assert False  # make mypy happy
 
 
 @task(bind=True, base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT)
@@ -471,7 +480,9 @@ def sendmail(self: MessageRelay, sender: str, recipients: list, message: str, re
         return self.sendmail(sender, recipients, message, reference)
     except Exception as e:
         logger.error(f'sendmail task error: {e}', exc_info=True)
+        # self.retry raises Retry exception, assert False will not be reached
         self.retry(default_retry_delay=1, max_retries=3, exc=e)
+    assert False  # make mypy happy
 
 
 @task(bind=True, base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT)
@@ -486,11 +497,13 @@ def sendsms(self: MessageRelay, recipient: str, message: str, reference: str) ->
         return self.sendsms(recipient, message, reference)
     except Exception as e:
         logger.error(f'sendsms task error: {e}', exc_info=True)
+        # self.retry raises Retry exception, assert False will not be reached
         self.retry(default_retry_delay=1, max_retries=3, exc=e)
+    assert False  # make mypy happy
 
 
 @task(bind=True, base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT)
-def get_postal_address(self: MessageRelay, identity_number: str) -> dict:
+def get_postal_address(self: MessageRelay, identity_number: str) -> Optional[OrderedDict]:
     """
     Retrieve name and postal address from the Swedish population register using a Swedish national
     identity number.
@@ -503,7 +516,9 @@ def get_postal_address(self: MessageRelay, identity_number: str) -> dict:
         return self.get_postal_address(identity_number)
     except Exception as e:
         logger.error(f'get_postal_address task error: {e}', exc_info=True)
+        # self.retry raises Retry exception, assert False will not be reached
         self.retry(default_retry_delay=1, max_retries=3, exc=e)
+    assert False  # make mypy happy
 
 
 @task(bind=True, base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT)
@@ -548,7 +563,9 @@ def get_relations_to(self: MessageRelay, identity_number: str, relative_nin: str
         return result
     except Exception as e:
         logger.error(f'get_relations_to task error: {e}', exc_info=True)
+        # self.retry raises Retry exception, assert False will not be reached
         self.retry(default_retry_delay=1, max_retries=3, exc=e)
+    assert False  # make mypy happy
 
 
 @task(bind=True, base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT)

@@ -8,81 +8,84 @@ from collections import OrderedDict
 from typing import Union, Optional
 
 
-def load_template(template_dir: str, filename: str, message_dict: dict, lang: str) -> Union[str, bool]:
+def load_template(template_dir: str, filename: str, message_dict: dict, lang: str) -> str:
     """
     This function loads a template file by provided language.
     """
     from jinja2 import Environment, FileSystemLoader
 
-    if not isinstance(template_dir, str):
-        return False
-    if not os.path.isdir(template_dir):
-        return False
-    try:
-        f = '.'.join([filename, lang])
-        if os.path.exists(os.path.join(template_dir, f)):
-            filename = f
-        template = Environment(loader=FileSystemLoader(template_dir)).get_template(filename)
-        return template.render(message_dict)
-    except OSError:
-        return False
+    if isinstance(template_dir, str) and os.path.isdir(template_dir):
+        try:
+            f = '.'.join([filename, lang])
+            if os.path.exists(os.path.join(template_dir, f)):
+                filename = f
+            template = Environment(loader=FileSystemLoader(template_dir)).get_template(filename)
+            return template.render(message_dict)
+        except OSError:
+            pass
+    raise RuntimeError("template not found")
 
 
-def navet_get_name(navet_data: dict) -> Optional[dict]:
+def navet_get_name(navet_data: dict) -> Optional[OrderedDict]:
     """
     :param navet_data: Loaded JSON response from eduid-navet_service
     :return: Name data object
     """
-    try:
-        person = navet_get_person(navet_data)
-        result = OrderedDict([(u'Name', person['Name']), ])
-    except (KeyError, TypeError):
-        result = None
-    return result
+    person = navet_get_person(navet_data)
+    if person is not None:
+        try:
+            return OrderedDict([(u'Name', person['Name']), ])
+        except KeyError:
+            pass
+    return None
 
 
-def navet_get_official_address(navet_data: dict) -> Optional[dict]:
+def navet_get_official_address(navet_data: dict) -> Optional[OrderedDict]:
     """
     :param navet_data:  Loaded JSON response from eduid-navet_service
     :return: Official address data object
     """
-    try:
-        person = navet_get_person(navet_data)
-        result = OrderedDict([(u'OfficialAddress', person['PostalAddresses']['OfficialAddress']), ])
-    except (KeyError, TypeError):
-        result = None
-    return result
+    person = navet_get_person(navet_data)
+    if person is not None:
+        try:
+            return OrderedDict([(u'OfficialAddress', person['PostalAddresses']['OfficialAddress']), ])
+        except KeyError:
+            pass
+    return None
 
 
-def navet_get_name_and_official_address(navet_data: dict) -> Optional[dict]:
+def navet_get_name_and_official_address(navet_data: dict) -> Optional[OrderedDict]:
     """
     :param navet_data:  Loaded JSON response from eduid-navet_service
     :return: Name and official address data objects
     """
-    try:
-        person = navet_get_person(navet_data)
-        result = OrderedDict([(u'Name', person['Name']),
-                              (u'OfficialAddress', person['PostalAddresses']['OfficialAddress']),
-                              ])
-    except (KeyError, TypeError):
-        result = None
-    return result
+    person = navet_get_person(navet_data)
+    if person is not None:
+        try:
+            return OrderedDict([
+                (u'Name', person['Name']),
+                (u'OfficialAddress', person['PostalAddresses']['OfficialAddress']),
+            ])
+        except KeyError:
+            pass
+    return None
 
 
-def navet_get_relations(navet_data: dict) -> Optional[dict]:
+def navet_get_relations(navet_data: dict) -> Optional[OrderedDict]:
     """
     :param navet_data:  Loaded JSON response from eduid-navet_service
     :return: Relations data object
     """
-    try:
-        person = navet_get_person(navet_data)
-        result = OrderedDict([(u'Relations', {u'Relation': person['Relations']}), ])
-    except (KeyError, TypeError):
-        result = None
-    return result
+    person = navet_get_person(navet_data)
+    if person is not None:
+        try:
+            return OrderedDict([('Relations', {'Relation': person['Relations']}), ])
+        except KeyError:
+            pass
+    return None
 
 
-def navet_get_person(navet_data: dict) -> Optional[dict]:
+def navet_get_person(navet_data: dict) -> Optional[OrderedDict]:
     """
     :param navet_data: Loaded JSON response from eduid-navet_service
     :return: Personpost
@@ -113,8 +116,9 @@ def navet_get_person(navet_data: dict) -> Optional[dict]:
         ]
     }
     """
-    try:
-        result = OrderedDict(navet_data['PopulationItems'][0]['PersonItem'])
-    except (KeyError, TypeError):
-        result = None
-    return result
+    if navet_data is not None:
+        try:
+            return OrderedDict(navet_data['PopulationItems'][0]['PersonItem'])
+        except KeyError:
+            pass
+    return None
