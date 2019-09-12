@@ -1,22 +1,22 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
-
-from flask import current_app
 import eduid_am
+from flask import current_app
+
+from eduid_common.api.app import EduIDApp
 from eduid_common.api.exceptions import AmTaskFailed
+from eduid_common.config.base import CeleryConfig
+from eduid_userdb import User
+from eduid_userdb.exceptions import LockedIdentityViolation
 
 __author__ = 'lundberg'
 
 
-def init_relay(app, application_name):
+def init_relay(app: EduIDApp, application_name: str) -> EduIDApp:
     """
     :param app: Flask app
-    :type app: flask.Flask
     :param application_name: Name to help am find the entry point for the am plugin
-    :type application_name: str|unicode
     :return: Flask app
-    :rtype: flask.Flask
     """
     app.am_relay = AmRelay(app.config.celery_config, application_name)
     return app
@@ -24,12 +24,10 @@ def init_relay(app, application_name):
 
 class AmRelay(object):
 
-    def __init__(self, config, relay_for):
+    def __init__(self, config: CeleryConfig, relay_for: str):
         """
         :param config: celery config
-        :type config: dict
         :param relay_for: Name of application to relay for
-        :type relay_for: str|unicode
         """
         self.relay_for = relay_for
 
@@ -39,47 +37,46 @@ class AmRelay(object):
         self._update_attrs = update_attributes_keep_result
         self._pong = pong
 
-    def request_user_sync(self, user):
+    def request_user_sync(self, user: User, timeout: int = 4) -> bool:
         """
         Use Celery to ask eduid-am worker to propagate changes from our
         private UserDB into the central UserDB.
 
         :param user: User object
-        :type user: eduid_userdb.User
+        :param timeout: Max wait time for task to finish
 
-        :return: Result of celery Task.get()
+        :return: True if successful
         """
         # XXX: Do we need to check for acceptable_user_types?
         try:
             user_id = str(user.user_id)
         except (AttributeError, ValueError) as e:
-            current_app.logger.error('Bad user_id in sync request: {!s}'.format(e))
+            current_app.logger.error(f'Bad user_id in sync request: {e}')
             raise ValueError('Missing user_id. Can only propagate changes for eduid_userdb.User users.')
 
-        current_app.logger.debug("Asking Attribute Manager to sync user {!s}".format(user))
+        current_app.logger.debug(f"Asking Attribute Manager to sync user {user}")
+        rtask = self._update_attrs.delay(self.relay_for, user_id)
         try:
-            rtask = self._update_attrs.delay(self.relay_for, user_id)
-            result = rtask.get(timeout=3)
-            current_app.logger.debug("Attribute Manager sync result: {!r} for user {!s}".format(result, user))
+            result = rtask.get(timeout=timeout)
+            current_app.logger.debug(f"Attribute Manager sync result: {result} for user {user}")
             return result
+        except LockedIdentityViolation as e:
+            rtask.forget()
+            raise e
         except Exception as e:
-            current_app.logger.exception("Exception: {!s}".format(e))
-            current_app.logger.exception(
-                "Failed Attribute Manager sync request for user {!s}. trying again".format(user))
-            try:
-                rtask = self._update_attrs.delay(self.relay_for, user_id)
-                result = rtask.get(timeout=7)
-                current_app.logger.debug("Attribute Manager sync result: {!r} for user {!s}".format(result, user))
-                return result
-            except Exception as e:
-                current_app.logger.exception("Failed Attribute Manager sync request retry for user {!s}".format(user))
-                raise AmTaskFailed('request_user_sync task failed: {}'.format(e))
+            rtask.forget()
+            current_app.logger.exception(f"Failed Attribute Manager sync request for user {user}")
+            raise AmTaskFailed(f'request_user_sync task failed: {e}')
 
-    def ping(self):
+    def ping(self, timeout: int = 1) -> str:
         """
         Check if this application is able to reach an AM worker.
         :return: Result of celery Task.get
         """
         rtask = self._pong.delay(self.relay_for)
-        result = rtask.get(timeout=2)
+        try:
+            result = rtask.get(timeout=timeout)
+        except Exception as e:
+            rtask.forget()
+            raise AmTaskFailed(f'ping task failed: {repr(e)}')
         return result

@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
+import warnings
+from typing import Optional, List
 
 from flask import current_app
-from celery.exceptions import TimeoutError
+
 import eduid_msg
+from eduid_common.api.app import EduIDApp
 from eduid_common.api.exceptions import MsgTaskFailed
+from eduid_common.config.base import CeleryConfig
 
 __author__ = 'lundberg'
 
@@ -22,14 +24,14 @@ LANGUAGE_MAPPING = {
 }
 
 
-def init_relay(app):
-    app.msg_relay = MsgRelay(app.config['CELERY_CONFIG'])
+def init_relay(app: EduIDApp) -> EduIDApp:
+    app.msg_relay = MsgRelay(app.config.celery_config)
     return app
 
 
 class MsgRelay(object):
 
-    def __init__(self, settings):
+    def __init__(self, settings: CeleryConfig):
         eduid_msg.init_app(settings)
         # these have to be imported _after_ eduid_am.init_app()
         from eduid_msg.tasks import get_postal_address, get_relations_to, send_message, sendsms, pong
@@ -39,17 +41,15 @@ class MsgRelay(object):
         self._send_sms = sendsms
         self._pong = pong
 
-    def get_language(self, lang):
+    @staticmethod
+    def get_language(lang: str) -> str:
         return LANGUAGE_MAPPING.get(lang, 'en_US')
 
-    def get_postal_address(self, nin, timeout=4):
+    def get_postal_address(self, nin: str, timeout: int = 4) -> Optional[dict]:
         """
         :param nin: Swedish national identity number
         :param timeout: Max wait time for task to finish
-        :type nin: string
-        :type timeout: int
         :return: Official name and postal address
-        :rtype: OrderedDict|None
 
             The expected address format is:
 
@@ -68,16 +68,12 @@ class MsgRelay(object):
         """
         rtask = self._get_postal_address.apply_async(args=[nin])
         try:
-            rtask.wait(timeout=timeout)
-        except TimeoutError:
-            raise MsgTaskFailed('get_postal_address task timed out')
+            return rtask.get(timeout=timeout)
+        except Exception as e:
+            rtask.forget()
+            raise MsgTaskFailed(f'get_postal_address task failed: {e}')
 
-        if rtask.successful():
-            return rtask.get()
-        else:
-            raise MsgTaskFailed('get_postal_address task failed: {}'.format(rtask.get(propagate=False)))
-
-    def get_relations_to(self, nin, relative_nin, timeout=4):
+    def get_relations_to(self, nin: str, relative_nin: str, timeout: int = 4) -> List[str]:
         """
         Get a list of the NAVET 'Relations' type codes between a NIN and a relatives NIN.
 
@@ -91,31 +87,29 @@ class MsgRelay(object):
         :param nin: Swedish National Identity Number
         :param relative_nin: Another Swedish National Identity Number
         :param timeout: Max wait time for task to finish
-        :type nin: str | unicode
-        :type relative_nin: str | unicode
-        :type timeout: int
         :return: List of codes. Empty list if the NINs are not related.
-        :rtype: [str | unicode]
         """
         rtask = self._get_relations_to.apply_async(args=[nin, relative_nin])
         try:
-            rtask.wait(timeout=timeout)
-        except TimeoutError:
-            raise MsgTaskFailed('get_relations_to task timed out')
+            return rtask.get(timeout=timeout)
+        except Exception as e:
+            rtask.forget()
+            raise MsgTaskFailed(f'get_relations_to task failed: {e}')
 
-        if rtask.successful():
-            return rtask.get()
-        else:
-            raise MsgTaskFailed('get_relations_to task failed: {}'.format(rtask.get(propagate=False)))
-
-    def phone_validator(self, reference, targetphone, code, language, template_name='mobile-validator'):
+    def phone_validator(self, reference: str, targetphone: str, code: str, language: str,
+                        template_name: str = 'mobile-validator', timeout: int = 4) -> None:
         """
             The template keywords are:
                 * sitename: (eduID by default)
-                * sitelink: (the url dashboard in personal workmode)
+                * sitelink: (the url dashboard)
                 * code: the verification code
-                * phonenumber: the phone number to verificate
+                * phonenumber: the phone number to verify
         """
+        warnings.warn(
+            "This function will be removed. Use sendsms instead.",
+            DeprecationWarning
+        )
+        current_app.logger.info('Trying to send phone validation SMS with reference: {}'.format(reference))
         content = {
             'sitename': current_app.config.get('EDUID_SITE_NAME'),
             'sitelink': current_app.config.get('VALIDATION_URL'),
@@ -125,38 +119,42 @@ class MsgRelay(object):
         lang = self.get_language(language)
         template = TEMPLATES_RELATION.get(template_name)
 
-        current_app.logger.debug("SENT mobile validator message code: {0} phone number: {1} with reference {2}".format(
-            code, targetphone, reference))
-
+        rtask = self._send_message.apply_async(args=['sms', reference, content, targetphone, template, lang])
         try:
-            res = self._send_message.delay('sms', reference, content, targetphone, template, lang)
+            res = rtask.get(timeout=timeout)
+            current_app.logger.debug(f"SENT mobile validator message code: {code} phone number: {targetphone} with "
+                                     f"reference {reference}")
+            current_app.logger.debug(f"Extra debug: Send message result: {repr(res)},"
+                                     f" parameters:\n{repr(['sms', reference, content, targetphone, template, lang])}")
         except Exception as e:
-            raise MsgTaskFailed('phone_validator task failed: {!r}'.format(e))
+            rtask.forget()
+            raise MsgTaskFailed(f'phone_validator task failed: {e}')
 
-        current_app.logger.debug("Extra debug: Send message result: {!r}, parameters:\n{!r}".format(
-            res, ['sms', reference, content, targetphone, template, lang]))
-
-    def sendsms(self, recipient, message, reference, max_retry_seconds=86400):
+    def sendsms(self, recipient: str, message: str, reference: str, timeout: int = 4) -> None:
         """
         :param recipient: the recipient of the sms
         :param message: message as a string (160 chars per sms)
         :param reference: Audit reference to help cross reference audit log and events
-        :param max_retry_seconds: Do not retry this task if seconds trying exceeds this number
-
-        :type recipient: six.string_types
-        :type message: six.string_types
-        :type reference: six.string_types
-        :type max_retry_seconds: int
+        :param timeout: Max wait time for task to finish
         """
         current_app.logger.info('Trying to send SMS with reference: {}'.format(reference))
         current_app.logger.debug(u'Recipient: {}. Message: {}'.format(recipient, message))
-        try:
-            res = self._send_sms.delay(recipient, message, reference, max_retry_seconds)
-        except Exception as e:
-            raise MsgTaskFailed('sendsms task failed: {!r}'.format(e))
-        current_app.logger.info('SMS with reference {} sent. Task result: {}'.format(reference, res))
+        rtask = self._send_sms.apply_async(args=[recipient, message, reference])
 
-    def ping(self):
-        rtask = self._pong.delay()
-        result = rtask.get(timeout=1)
-        return result
+        try:
+            res = rtask.get(timeout=timeout)
+            current_app.logger.info('SMS with reference {} sent. Task result: {}'.format(reference, res))
+        except Exception as e:
+            rtask.forget()
+            raise MsgTaskFailed(f'sendsms task failed: {repr(e)}')
+
+    def ping(self, timeout: int = 1) -> str:
+        rtask = self._pong.apply_async()
+        try:
+            return rtask.get(timeout=timeout)
+        except Exception as e:
+            rtask.forget()
+            raise MsgTaskFailed(f'ping task failed: {repr(e)}')
+
+
+
