@@ -38,6 +38,7 @@ import sys
 import traceback
 from contextlib import contextmanager
 from copy import deepcopy
+from unittest import TestCase
 
 from typing import Dict, Any
 
@@ -46,9 +47,11 @@ from flask.testing import FlaskClient
 from eduid_common.session import EduidSession
 from eduid_common.session.testing import RedisTemporaryInstance
 from eduid_common.config.testing import EtcdTemporaryInstance
+from eduid_common.config.workers import AmConfig
+from eduid_common.config.base import FlaskConfig
 from eduid_userdb import User
 from eduid_userdb.db import BaseDB
-from eduid_userdb.testing import MongoTestCase
+from eduid_userdb.testing import MongoTemporaryInstance
 from eduid_userdb.data_samples import NEW_USER_EXAMPLE, NEW_UNVERIFIED_USER_EXAMPLE, NEW_COMPLETED_SIGNUP_USER_EXAMPLE
 
 
@@ -112,6 +115,7 @@ class EduidAPITestCase(MongoTestCase):
 
     def setUp(self, init_am=True, users=None, copy_user_to_private=False,
             am_settings=None):
+        super(MongoTestCase, self).setUp()
         self.MockedUserDB.test_users = {}
         if users is None:
             users = ['hubba-bubba']
@@ -125,7 +129,52 @@ class EduidAPITestCase(MongoTestCase):
         self.test_user_data = _standard_test_users.get(users[0])
         self.test_user = User(data=self.test_user_data)
 
-        super(EduidAPITestCase, self).setUp(init_am=init_am, am_settings=am_settings)
+        self.tmp_db = MongoTemporaryInstance.get_instance()
+
+        if init_am:
+            celery_settings = {
+                    'broker_transport': 'memory',
+                    'broker_url': 'memory://',
+                    'task_eager_propagates': True,
+                    'task_always_eager': True,
+                    'result_backend': 'cache',
+                    'cache_backend': 'memory',
+                    }
+            # Be sure to NOT tell AttributeManager about the temporary mongodb instance.
+            # If we do, one or more plugins may open DB connections that never gets closed.
+            mongo_uri = None
+            if am_settings:
+                want_mongo_uri = am_settings.pop('WANT_MONGO_URI', False)
+                if want_mongo_uri:
+                    mongo_uri = self.tmp_db.uri
+            else:
+                am_settings = {}
+            am_settings['celery'] = celery_settings
+            am_settings['mongo_uri'] = mongo_uri
+            self.am_settings = AmConfig(**am_settings)
+            # initialize eduid_am without requiring config in etcd
+            import eduid_am
+            celery = eduid_am.init_app(self.am_settings.celery)
+            import eduid_am.worker
+            eduid_am.worker.worker_config = self.am_settings
+            logger.debug('Initialized AM with config:\n{!r}'.format(self.am_settings))
+
+            self.am = eduid_am.get_attribute_manager(celery)
+        self.amdb = UserDB(self.tmp_db.uri, 'eduid_am')
+
+        mongo_settings = {
+            'mongo_replicaset': None,
+            'mongo_uri': self.tmp_db.uri,
+        }
+        self.settings = FlaskSettings(**mongo_settings)
+
+        # Set up test users in the MongoDB. Read the users from MockedUserDB, which might
+        # be overridden by subclasses.
+        _foo_userdb = self.MockedUserDB(self.mock_users_patches)
+        for userdoc in _foo_userdb.all_userdocs():
+            this = deepcopy(userdoc)  # deep-copy to not have side effects between tests
+            user = User(data=this)
+            self.amdb.save(user, check_sync=False, old_format=userdb_use_old_format)
 
         self.redis_instance = RedisTemporaryInstance.get_instance()
         self.etcd_instance = EtcdTemporaryInstance.get_instance()
