@@ -2,10 +2,7 @@ builders:
   - script
 upstream:
   - eduid-userdb
-  - eduid-dashboard-amp
-  - eduid-signup-amp
-  - eduid-api-amp
-  - eduid-proofing-amp
+  - eduid-common
 triggers:
   cron: "@weekly"
 slack:
