@@ -107,8 +107,8 @@ def eduid_init_app_no_db(name: str, config: dict,
     # Load optional app specific secrets
     cast(Config, app.config).from_envvar('LOCAL_CFG_FILE', silent=True)
 
-    if not isinstance(app, EduIDApp):
-        app.__class__ = EduIDApp
+    if not isinstance(app, app_class):
+        app.__class__ = app_class
 
     config = {key.lower(): val for key, val in cast(Config, app.config).items()}
     app.init_config(config_class, config)
