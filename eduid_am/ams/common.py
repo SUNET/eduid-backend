@@ -40,6 +40,7 @@ import pymongo.errors
 from eduid_userdb.exceptions import UserDoesNotExist
 from eduid_userdb.actions.tou import ToUUserDB
 from eduid_userdb.userdb import UserDB
+from eduid_common.config.workers import AmConfig
 
 from celery.utils.log import get_task_logger
 
@@ -51,7 +52,7 @@ class AttributeFetcher(ABC):
     whitelist_set_attrs: List[str]
     whitelist_unset_attrs: List[str]
 
-    def __init__(self, worker_config: dict):
+    def __init__(self, worker_config: AmConfig):
         self.conf = worker_config
         self.private_db = self.get_user_db(worker_config.mongo_uri)
 

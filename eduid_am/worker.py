@@ -4,7 +4,7 @@ from eduid_userdb import UserDB
 from eduid_common.rpc.worker import get_worker_config
 from eduid_common.rpc.celery import init_celery
 from eduid_common.config.base import CommonConfig
-from eduid_am.config import AmConfig
+from eduid_common.config.workers import AmConfig
 import eduid_am.common as common
 
 worker_config: AmConfig = AmConfig()

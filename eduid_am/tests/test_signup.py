@@ -5,6 +5,7 @@ from datetime import date, timedelta
 from eduid_userdb.signup import SignupUser
 from eduid_userdb.exceptions import UserDoesNotExist, UserHasUnknownData
 from eduid_userdb.testing import MongoTestCase, MOCKED_USER_STANDARD as M
+from eduid_common.config.workers import AmConfig
 from eduid_am.ams import eduid_signup
 from eduid_am.tests.test_proofing_fetchers import USER_DATA
 
@@ -18,6 +19,7 @@ class AttributeFetcherTests(MongoTestCase):
         }
         super(AttributeFetcherTests, self).setUp(init_am=True, am_settings=am_settings)
 
+        self.am_settings: AmConfig = AmConfig(**self.am_settings)
         self.fetcher = eduid_signup(self.am_settings)
 
         for userdoc in self.amdb._get_all_docs():
