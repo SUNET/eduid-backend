@@ -373,3 +373,4 @@ class FlaskConfig(BaseConfig):
     staging_nin_map: dict = field(default_factory=dict)
     generate_u2f_challenges: bool = False
     mail_username: str = ''
+    mongo_password: str = ''
