@@ -3,6 +3,7 @@ builders:
 upstream:
   - eduid-userdb
   - pysmscom
+  - eduid-common
 triggers:
   cron: "@weekly"
 slack:
