@@ -100,6 +100,9 @@ def interpolate(f):
     def interpolation_decorator(*args, **kwargs):
         config_dict = f(*args, **kwargs)
         interpolated_config_dict = interpolate_config(config_dict)
+        for key in list(interpolated_config_dict.keys()):
+            if key.lower().startswith('var_'):
+                del interpolated_config_dict[key]
         return interpolated_config_dict
 
     return interpolation_decorator
