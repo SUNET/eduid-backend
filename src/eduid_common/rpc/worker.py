@@ -27,4 +27,4 @@ def get_worker_config(name: str, config_class: Type[CommonConfig] = BaseConfig) 
     cfg.update(common_parser.read_configuration(silent=True))
     cfg.update(app_parser.read_configuration(silent=True))
     cfg = {key.lower(): value for key, value in cfg.items()}
-    return common_config(**cfg)
+    return config_class(**cfg)

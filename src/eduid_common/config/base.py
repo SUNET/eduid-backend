@@ -64,7 +64,7 @@ class CeleryConfig:
       'eduid_am.*': {'queue': 'am'},
       'eduid_msg.*': {'queue': 'msg'},
       'eduid_letter_proofing.*': {'queue': 'letter_proofing'}})
-    mongo_uri: str = 'mongodb://'
+    mongo_uri: Optional[str] = None
 
 
 @dataclass
@@ -73,7 +73,7 @@ class CommonConfig:
     Configuration common to all web apps and celery workers
     """
     # mongo uri
-    mongo_uri: str = 'mongodb://'
+    mongo_uri: Optional[str] = None
     # Celery config -- duplicated for backwards compat
     celery_config: CeleryConfig = field(default_factory=CeleryConfig)
     celery: CeleryConfig = field(default_factory=CeleryConfig)
