@@ -72,6 +72,7 @@ class CommonConfig:
     """
     Configuration common to all web apps and celery workers
     """
+    devel_mode: bool = False
     # mongo uri
     mongo_uri: Optional[str] = None
     # Celery config -- duplicated for backwards compat
@@ -152,7 +153,6 @@ class BaseConfig(CommonConfig):
     eduid_static_url: str = ''
     # environment=(dev|staging|pro)
     environment: str = 'dev'
-    devel_mode: bool = False
     development: bool = False
     # enable disable debug mode
     logging_config: dict = field(default_factory=dict)

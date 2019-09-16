@@ -41,3 +41,27 @@ class AmConfig(CommonConfig):
     new_user_date: str = '2001-01-01'
     action_plugins: list = field(default_factory=lambda: ['tou'])
 
+
+@dataclass
+class MsgConfig(CommonConfig):
+    mongo_dbname: str = ''
+    template_dir: str = ''
+    audit: bool = True
+    mail_host: str = 'localhost'
+    mail_port: int = 25
+    mail_starttls: bool = False
+    mail_keyfile: str = ''
+    mail_certfile: str = ''
+    mail_username: str = ''
+    mail_password: str = ''
+    # for celery. tasks per second - None for n rate limit
+    message_rate_limit: Optional[int] = None
+    # Navet
+    navet_api_uri: str = ''
+    navet_api_verify_ssl: bool = False
+    navet_api_user: str = ''
+    navet_api_pw: str = ''
+    # SMS
+    sms_acc: str = ''
+    sms_key: str = ''
+    sms_sender: str = 'eduID'
