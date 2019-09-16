@@ -19,7 +19,8 @@ class AttributeFetcherTests(MongoTestCase):
         }
         super(AttributeFetcherTests, self).setUp(init_am=True, am_settings=am_settings)
 
-        self.am_settings: AmConfig = AmConfig(**self.am_settings)
+        self.am_settings: AmConfig = AmConfig(**{key.lower(): val for key,val
+                                                 in self.am_settings.items()})
         self.fetcher = eduid_signup(self.am_settings)
 
         for userdoc in self.amdb._get_all_docs():

@@ -28,7 +28,7 @@ class AttributeManager(Task):
     abstract = True  # This means Celery won't register this as another task
 
     def __init__(self):
-        self.default_db_uri = worker_config.mongo_uri
+        self.default_db_uri = worker_config['MONGO_URI']
         self.userdb = None
         self.af_registry = None
         self.init_db()
