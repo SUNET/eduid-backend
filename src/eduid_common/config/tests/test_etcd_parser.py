@@ -32,7 +32,8 @@ class TestEtcdParser(unittest.TestCase):
                 'my_bool': True,
                 'my_string': 'A value',
                 'my_list': ['One', 'Two', 3],
-                'my_dict': {'A': 'B'}
+                'my_dict': {'A': 'B'},
+                'var_ignore_me': 'Do not mind me'
             }
         }
 
@@ -42,6 +43,7 @@ class TestEtcdParser(unittest.TestCase):
         self.assertEqual(self.parser.get('MY_STRING'), 'A value')
         self.assertEqual(self.parser.get('MY_LIST'), ['One', 'Two', 3])
         self.assertEqual(self.parser.get('MY_DICT'), {'A': 'B'})
+        self.assertEqual(self.parser.get('VAR_IGNORE_ME'), 'Do not mind me')
 
     def test_read(self):
 
@@ -50,7 +52,8 @@ class TestEtcdParser(unittest.TestCase):
                 'my_bool': True,
                 'my_string': 'A value',
                 'my_list': ['One', 'Two', 3],
-                'my_dict': {'A': 'B'}
+                'my_dict': {'A': 'B'},
+                'var_ignore_me': 'Do not mind me'
             }
         }
         test_key = {
@@ -153,6 +156,14 @@ class TestEtcdParser(unittest.TestCase):
 
         read_config = self.parser.read_configuration()
         self.assertEqual({'MY_SET_KEY': 'a nice value', 'MY_VALUE': 'a nice value'}, read_config)
+
+    def test_interpolate_variable_key(self):
+        self.parser.set('my_set_key', '${VAR_MY_VALUE}')
+        self.parser.set('var_my_value', 'a nice value')
+        self.assertEqual('a nice value', self.parser.get('VAR_MY_VALUE'))
+
+        read_config = self.parser.read_configuration()
+        self.assertEqual({'MY_SET_KEY': 'a nice value'}, read_config)
 
     def test_interpolate_missing_key(self):
         self.parser.set('my_set_key', '${my_value}')
