@@ -3,7 +3,7 @@
 from __future__ import absolute_import
 
 import os
-from typing import Type
+from typing import Type, Dict, Any
 
 from eduid_common.config.parsers.etcd import EtcdConfigParser
 from eduid_common.config.base import CommonConfig, BaseConfig
@@ -20,7 +20,7 @@ def get_worker_config(name: str, config_class: Type[CommonConfig] = BaseConfig) 
     :return: Configuration
     :rtype: dict
     """
-    cfg = {}
+    cfg: Dict[str, Any] = {}
     app_etcd_namespace = os.environ.get('EDUID_CONFIG_NS', '/eduid/worker/{}/'.format(name))
     common_parser = EtcdConfigParser('/eduid/worker/common/')
     app_parser = EtcdConfigParser(app_etcd_namespace)
