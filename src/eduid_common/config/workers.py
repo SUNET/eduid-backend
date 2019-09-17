@@ -39,12 +39,18 @@ from eduid_common.config.base import CommonConfig
 
 @dataclass
 class AmConfig(CommonConfig):
+    """
+    Configuration for the attribute manager celery worker
+    """
     new_user_date: str = '2001-01-01'
     action_plugins: list = field(default_factory=lambda: ['tou'])
 
 
 @dataclass
 class MsgConfig(CommonConfig):
+    """
+    Configuration for the msg celery worker
+    """
     mongo_dbname: str = 'eduid_msg'
     template_dir: str = ''
     audit: bool = True
@@ -70,5 +76,8 @@ class MsgConfig(CommonConfig):
 
 @dataclass
 class MobConfig(CommonConfig):
+    """
+    Configuration for the lookup mobile celery worker
+    """
     teleadress_client_user: str = ''
     teleadress_client_password: str = ''
