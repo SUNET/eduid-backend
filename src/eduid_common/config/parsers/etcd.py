@@ -62,6 +62,8 @@ class EtcdConfigParser(object):
 
         Recurse over keys in a given namespace and create a dict from the key-value pairs.
 
+        Keys starting with var_ (var underscore) will be ignored in the final configuration but can still be used
+        for interpolation.
         Values will be json encoded on write and json decoded on read.
 
         Ex.
@@ -70,12 +72,15 @@ class EtcdConfigParser(object):
 
         Key and value in etcd:
         /eduid/webapp/common/saml_config -> "{xmlsec_binary': '/usr/bin/xmlsec1'}"
+        /eduid/webapp/common/var_password -> "secret"
+        /eduid/webapp/common/basic_auth -> "user:$VAR_PASSWORD@localost"
 
         This will return:
         {
             'SAML_CONFIG': {
                 'xmlsec_binary': '/usr/bin/xmlsec1'
-            }
+            },
+            'BASIC_AUTH': 'user:secret@localhost'
         }
 
         :return: Config dict
