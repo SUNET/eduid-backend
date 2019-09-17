@@ -64,12 +64,81 @@ class CeleryConfig:
       'eduid_am.*': {'queue': 'am'},
       'eduid_msg.*': {'queue': 'msg'},
       'eduid_letter_proofing.*': {'queue': 'letter_proofing'}})
-    mongo_uri: str = 'mongodb://'
-
+    mongo_uri: Optional[str] = None
 
 
 @dataclass
-class BaseConfig:
+class CommonConfig:
+    """
+    Configuration common to all web apps and celery workers
+    """
+    devel_mode: bool = False
+    # mongo uri
+    mongo_uri: Optional[str] = None
+    # Celery config -- duplicated for backwards compat
+    celery_config: CeleryConfig = field(default_factory=CeleryConfig)
+    celery: CeleryConfig = field(default_factory=CeleryConfig)
+    audit: bool = False
+    transaction_audit: bool = False
+
+    def __post_init__(self):
+        if isinstance(self.celery_config, dict):
+            cconfig = {}
+            for k, v in self.celery_config.items():
+                if k.startswith('CELERY_'):
+                    k = k[7:]
+                cconfig[k.lower()] = v
+            self.celery_config = CeleryConfig(**cconfig)
+            self.celery = self.celery_config
+
+    def __getitem__(self, attr: str) -> Any:
+        '''
+        This is needed so that Flask code can access Flask configuration
+        '''
+        try:
+            return self.__getattribute__(attr.lower())
+        except AttributeError:
+            raise KeyError(f'{self} has no {attr} attr')
+
+    def __setitem__(self, attr: str, value: Any):
+        setattr(self, attr.lower(), value)
+
+    def get(self, key: str, default: Any = None) -> Any:
+        '''
+        This is needed so that Flask code can access Flask configuration
+        '''
+        try:
+            return self.__getattribute__(key.lower())
+        except AttributeError:
+            return default
+
+    def __contains__(self, key: str) -> bool:
+        return hasattr(self, key.lower())
+
+    @classmethod
+    def defaults(cls, transform_key: Callable = lambda x: x) -> dict:
+        return {transform_key(key): val for key, val in cls.__dict__.items()
+                  if isinstance(key, str) and not key.startswith('_') and not callable(val)}
+
+    def to_dict(self, transform_key: Callable = lambda x: x) -> dict:
+        return {transform_key(key): val for key, val in self.__dict__.items()
+                  if isinstance(key, str) and not key.startswith('_') and not callable(val)}
+
+    def update(self, config: dict, transform_key: Callable = lambda x: x.lower()):
+        for key, value in config.items():
+            setattr(self, transform_key(key), value)
+
+    def setdefault(self, key: str, value: Any,
+                   transform_key: Callable = lambda x: x.lower()):
+        tkey = transform_key(key)
+        if not getattr(self, tkey):
+            setattr(self, tkey, value)
+            return value
+        return getattr(self, tkey)
+
+
+@dataclass
+class BaseConfig(CommonConfig):
     """
     Configuration common to all web apps, roughly equivalent to the
     "eduid/webapp/common" namespace in etcd - excluding Flask's own
@@ -86,7 +155,6 @@ class BaseConfig:
     eduid_static_url: str = ''
     # environment=(dev|staging|pro)
     environment: str = 'dev'
-    devel_mode: bool = False
     development: bool = False
     # enable disable debug mode
     logging_config: dict = field(default_factory=dict)
@@ -97,8 +165,6 @@ class BaseConfig:
     log_format: str = '%(asctime)s | %(levelname)s | %(hostname)s | %(name)s | %(module)s | %(eppn)s | %(message)s'
     log_type: List[str] = field(default_factory=lambda:['stream'])
     logger : Optional[Logger] = None
-    # mongo_uri
-    mongo_uri: str = 'mongodb://'
     # Redis config
     # The Redis host to use for session storage.
     redis_host: Optional[str] = None
@@ -116,14 +182,10 @@ class BaseConfig:
     saml2_strip_saml_user_suffix: bool = False
     saml2_user_main_attribute: str = 'eduPersonPrincipalName'
     token_service_url: str = ''
-    celery_config: CeleryConfig = field(default_factory=CeleryConfig)
-    celery: CeleryConfig = field(default_factory=CeleryConfig)
     new_user_date: str = ''
     sms_sender: str = ''
     mail_starttls: bool = False
     template_dir: str = ''
-    audit: bool = False
-    transaction_audit: bool = False
     mail_host: str = ''
     mail_port: str = ''
     am_broker_url: str = ''
@@ -170,49 +232,6 @@ class BaseConfig:
     stats_host: str = ''
     stats_port: int = 0
 
-    def __post_init__(self):
-        if isinstance(self.celery_config, dict):
-            cconfig = {}
-            for k, v in self.celery_config.items():
-                if k.startswith('CELERY_'):
-                    k = k[7:]
-                cconfig[k.lower()] = v
-            self.celery_config = CeleryConfig(**cconfig)
-            self.celery = self.celery_config
-
-    def __getitem__(self, attr: str) -> Any:
-        '''
-        This is needed so that Flask code can access Flask configuration
-        '''
-        try:
-            return self.__getattribute__(attr.lower())
-        except AttributeError:
-            raise KeyError(f'{self} has no {attr} attr')
-
-    def __setitem__(self, attr: str, value: Any):
-        setattr(self, attr.lower(), value)
-
-    def get(self, key: str, default: Any = None) -> Any:
-        '''
-        This is needed so that Flask code can access Flask configuration
-        '''
-        try:
-            return self.__getattribute__(key.lower())
-        except AttributeError:
-            return default
-
-    def __contains__(self, key: str) -> bool:
-        return hasattr(self, key.lower())
-
-    @classmethod
-    def defaults(cls, transform_key: Callable = lambda x: x) -> dict:
-        return {transform_key(key): val for key, val in cls.__dict__.items()
-                  if isinstance(key, str) and not key.startswith('_') and not callable(val)}
-
-    def to_dict(self, transform_key: Callable = lambda x: x) -> dict:
-        return {transform_key(key): val for key, val in self.__dict__.items()
-                  if isinstance(key, str) and not key.startswith('_') and not callable(val)}
-
     @classmethod
     def init_config(cls, superns: str = 'webapp',
                     test_config: Optional[dict] = None, debug: bool = True) -> BaseConfig:
@@ -244,18 +263,6 @@ class BaseConfig:
             config.update(proper_config)
 
         return cls(**config)
-
-    def update(self, config: dict, transform_key: Callable = lambda x: x.lower()):
-        for key, value in config.items():
-            setattr(self, transform_key(key), value)
-
-    def setdefault(self, key: str, value: Any,
-                   transform_key: Callable = lambda x: x.lower()):
-        tkey = transform_key(key)
-        if not getattr(self, tkey):
-            setattr(self, tkey, value)
-            return value
-        return getattr(self, tkey)
 
 
 @dataclass
