@@ -66,3 +66,9 @@ class MsgConfig(CommonConfig):
     sms_acc: str = ''
     sms_key: str = ''
     sms_sender: str = 'eduID'
+
+
+@dataclass
+class MobConfig(CommonConfig):
+    teleadress_client_user: str = ''
+    teleadress_client_password: str = ''

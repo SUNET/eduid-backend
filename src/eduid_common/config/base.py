@@ -78,6 +78,8 @@ class CommonConfig:
     # Celery config -- duplicated for backwards compat
     celery_config: CeleryConfig = field(default_factory=CeleryConfig)
     celery: CeleryConfig = field(default_factory=CeleryConfig)
+    audit: bool = False
+    transaction_audit: bool = False
 
     def __post_init__(self):
         if isinstance(self.celery_config, dict):
@@ -184,8 +186,6 @@ class BaseConfig(CommonConfig):
     sms_sender: str = ''
     mail_starttls: bool = False
     template_dir: str = ''
-    audit: bool = False
-    transaction_audit: bool = False
     mail_host: str = ''
     mail_port: str = ''
     am_broker_url: str = ''
