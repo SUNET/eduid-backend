@@ -31,6 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
+from typing import Optional
 from dataclasses import dataclass, field
 
 from eduid_common.config.base import CommonConfig
@@ -54,7 +55,7 @@ class MsgConfig(CommonConfig):
     mail_certfile: str = ''
     mail_username: str = ''
     mail_password: str = ''
-    # for celery. tasks per second - None for n rate limit
+    # for celery. tasks per second - None for no rate limit
     message_rate_limit: Optional[int] = None
     # Navet
     navet_api_uri: str = ''
