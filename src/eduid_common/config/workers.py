@@ -45,7 +45,7 @@ class AmConfig(CommonConfig):
 
 @dataclass
 class MsgConfig(CommonConfig):
-    mongo_dbname: str = ''
+    mongo_dbname: str = 'eduid_msg'
     template_dir: str = ''
     audit: bool = True
     mail_host: str = 'localhost'
