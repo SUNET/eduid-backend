@@ -50,21 +50,19 @@ class MailRelay(object):
         self._sendmail = sendmail
         self._pong = pong
 
-    def sendmail(self, subject, recipients, text=None, html=None, reference=None, max_retry_seconds=86400):
+    def sendmail(self, subject, recipients, text=None, html=None, reference=None):
         """
         :param subject: Message subject
         :param recipients: List of recipients
         :param text: Message in text format
         :param html: Message in html format
         :param reference: Audit reference to help cross reference audit log and events
-        :param max_retry_seconds: Do not retry this task if seconds trying exceeds this number
 
         :type subject: six.string_types
         :type recipients: list
         :type text: six.string_types
         :type html: six.string_types
         :type reference: six.string_types
-        :type max_retry_seconds: int
         """
         sender = current_app.config["MAIL_DEFAULT_FROM"]
         msg = MIMEMultipart('alternative')
@@ -79,7 +77,7 @@ class MailRelay(object):
         current_app.logger.debug(u'About to send email:\n\n {}'.format(msg.as_string()))
 
         try:
-            rtask = self._sendmail.delay(sender, recipients, msg.as_string(), reference, max_retry_seconds)
+            rtask = self._sendmail.delay(sender, recipients, msg.as_string(), reference)
         except Exception as e:
             err = u'Error sending mail: {!r}'.format(e)
             current_app.logger.error(err)
