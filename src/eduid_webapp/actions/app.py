@@ -70,6 +70,13 @@ def _get_tous(app, version=None):
             app.logger.error('TOU template {} not found'.format(name))
             pass
     return tous
+
+
+class ActionsApp(EduIDApp):
+
+    def __init__(self, *args, **kwargs):
+        super(ActionsApp, self).__init__(*args, **kwargs)
+        self.config: ActionsConfig = cast(ActionsConfig, self.config)
                 
 
 def actions_init_app(name, config):
