@@ -35,6 +35,7 @@ from __future__ import absolute_import
 
 import os
 import sys
+import logging
 import traceback
 from contextlib import contextmanager
 from copy import deepcopy
@@ -49,10 +50,12 @@ from eduid_common.session.testing import RedisTemporaryInstance
 from eduid_common.config.testing import EtcdTemporaryInstance
 from eduid_common.config.workers import AmConfig
 from eduid_common.config.base import FlaskConfig
-from eduid_userdb import User
+from eduid_userdb import UserDB, User
 from eduid_userdb.db import BaseDB
 from eduid_userdb.testing import MongoTemporaryInstance
 from eduid_userdb.data_samples import NEW_USER_EXAMPLE, NEW_UNVERIFIED_USER_EXAMPLE, NEW_COMPLETED_SIGNUP_USER_EXAMPLE
+
+logger = logging.getLogger(__name__)
 
 
 TEST_CONFIG = {
@@ -102,7 +105,7 @@ _standard_test_users = {
 }
 
 
-class EduidAPITestCase(MongoTestCase):
+class EduidAPITestCase(TestCase):
     """
     Base Test case for eduID APIs.
 
@@ -113,16 +116,17 @@ class EduidAPITestCase(MongoTestCase):
     # Do what we can and initialise it empty here, and then fill it in __init__.
     MockedUserDB = APIMockedUserDB
 
+    mock_users_patches = []
+
     def setUp(self, init_am=True, users=None, copy_user_to_private=False,
             am_settings=None):
-        super(MongoTestCase, self).setUp()
+        super(EduidAPITestCase, self).setUp()
         self.MockedUserDB.test_users = {}
         if users is None:
             users = ['hubba-bubba']
         for this in users:
             self.MockedUserDB.test_users[this] = _standard_test_users.get(this)
 
-        # get rid of the class variable self.user from MongoTestCase - class variables does
         # not provide proper isolation between tests
         self.user = None
         # Initialize some convenience variables on self based on the first user in `users'
@@ -163,10 +167,9 @@ class EduidAPITestCase(MongoTestCase):
         self.amdb = UserDB(self.tmp_db.uri, 'eduid_am')
 
         mongo_settings = {
-            'mongo_replicaset': None,
             'mongo_uri': self.tmp_db.uri,
         }
-        self.settings = FlaskSettings(**mongo_settings)
+        self.settings = FlaskConfig(**mongo_settings)
 
         # Set up test users in the MongoDB. Read the users from MockedUserDB, which might
         # be overridden by subclasses.
@@ -174,7 +177,7 @@ class EduidAPITestCase(MongoTestCase):
         for userdoc in _foo_userdb.all_userdocs():
             this = deepcopy(userdoc)  # deep-copy to not have side effects between tests
             user = User(data=this)
-            self.amdb.save(user, check_sync=False, old_format=userdb_use_old_format)
+            self.amdb.save(user, check_sync=False)
 
         self.redis_instance = RedisTemporaryInstance.get_instance()
         self.etcd_instance = EtcdTemporaryInstance.get_instance()
