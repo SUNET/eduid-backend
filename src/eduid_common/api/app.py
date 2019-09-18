@@ -38,7 +38,7 @@ import os
 from sys import stderr
 from typing import Type, cast
 
-from flask import Config
+from flask import Config, Flask
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from eduid_common.api.debug import dump_config
@@ -72,6 +72,8 @@ def eduid_init_app_no_db(name: str, config: dict,
      * Add db connection
      * Add eduID session
     """
+    if app_class is Flask:
+        app_class = EduIDApp
     app = app_class(name)
     # mypy issue: https://github.com/python/mypy/issues/2427
     app.wsgi_app = ProxyFix(app.wsgi_app)  # type: ignore
