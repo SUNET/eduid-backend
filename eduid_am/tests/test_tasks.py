@@ -1,17 +1,27 @@
 from __future__ import absolute_import
 
+from bson import ObjectId
+
 import eduid_userdb
 from eduid_userdb.testing import MongoTestCase, MOCKED_USER_STANDARD as M
 from eduid_userdb.locked_identity import LockedIdentityList, LockedIdentityNin
 from eduid_userdb.exceptions import MultipleUsersReturned, UserDoesNotExist, EduIDUserDBError
-from bson import ObjectId
+from eduid_common.config.base import FlaskConfig
+from eduid_common.config.workers import AmConfig
 from eduid_am.consistency_checks import unverify_duplicates, check_locked_identity
 
 
 class TestTasks(MongoTestCase):
 
     def setUp(self):
-        super(TestTasks, self).setUp(init_am=True)
+        am_settings = {'WANT_MONGO_URI': True}
+        super(TestTasks, self).setUp(init_am=True, am_settings=am_settings)
+
+    def fix_am_settings(self):
+        self.am_settings = AmConfig(**self.am_settings)
+
+    def fix_app_settings(self):
+        self.settings = FlaskConfig(**self.settings)
 
     def test_get_user_by_id(self):
         user = self.amdb.get_user_by_id(M['_id'])

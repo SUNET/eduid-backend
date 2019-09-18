@@ -54,7 +54,7 @@ class AttributeFetcher(ABC):
 
     def __init__(self, worker_config: AmConfig):
         self.conf = worker_config
-        self.private_db = self.get_user_db(worker_config['MONGO_URI'])
+        self.private_db = self.get_user_db(worker_config.mongo_uri)
 
     @classmethod
     @abstractmethod

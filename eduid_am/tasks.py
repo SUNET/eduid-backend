@@ -9,7 +9,6 @@ from celery.utils.log import get_task_logger
 
 from eduid_am.common import celery
 from eduid_am.fetcher_registry import AFRegistry
-from eduid_am.worker import worker_config
 from eduid_userdb import UserDB
 from eduid_userdb.exceptions import UserDoesNotExist, LockedIdentityViolation, ConnectionError
 from eduid_am.consistency_checks import unverify_duplicates, check_locked_identity
@@ -28,7 +27,9 @@ class AttributeManager(Task):
     abstract = True  # This means Celery won't register this as another task
 
     def __init__(self):
-        self.default_db_uri = worker_config['MONGO_URI']
+        from eduid_am.worker import worker_config
+        self.worker_config = worker_config
+        self.default_db_uri = worker_config.mongo_uri
         self.userdb = None
         self.af_registry = None
         self.init_db()
@@ -41,7 +42,7 @@ class AttributeManager(Task):
             self.userdb = UserDB(self.default_db_uri, 'eduid_am', 'attributes')
 
     def init_af_registry(self):
-        self.af_registry = AFRegistry(worker_config)
+        self.af_registry = AFRegistry(self.worker_config)
 
     def on_failure(self, exc, task_id, args, kwargs, einfo):
         # The most common problem when tasks raise exceptions is that mongodb has switched master,
