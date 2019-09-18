@@ -97,3 +97,5 @@ class EtcdTemporaryInstance(object):
             self._process.terminate()
             self._process.wait()
             self._process = None
+        if EtcdTemporaryInstance._instance == self:
+            EtcdTemporaryInstance._instance = None
