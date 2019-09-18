@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from eduid_common.api.app import eduid_init_app
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.api.logging import merge_config
 from eduid_common.config.app import EduIDApp
@@ -15,12 +16,13 @@ class LoggingTest(EduidAPITestCase):
                                        am_settings=am_settings)
 
     def load_app(self, config):
-        app = EduIDApp('test_app')
-        app.config.update(config)
-        return app
+        """
+        Called from the parent class, so we can provide the appropiate flask
+        app for this test case.
+        """
+        return eduid_init_app('test_app', config, app_class=EduIDApp)
 
     def update_config(self, config):
-        config.update({})
         return config
 
     def tearDown(self):

@@ -36,6 +36,7 @@ from mock import patch
 
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.api.app import eduid_init_app
+from eduid_common.config.base import FlaskConfig
 from eduid_common.config.app import EduIDApp
 
 
@@ -81,7 +82,8 @@ class UnAuthnTests(EduidAPITestCase):
         Called from the parent class, so we can provide the appropiate flask
         app for this test case.
         """
-        return eduid_init_app('testing', config, app_class=EduIDApp)
+        return eduid_init_app('testing', config, app_class=EduIDApp,
+                              config_class=FlaskConfig)
 
     def update_config(self, config):
         config.update({
@@ -103,7 +105,7 @@ class UnAuthnTests(EduidAPITestCase):
     def session_cookie(self, client, server_name='localhost'):
         with client.session_transaction() as sess:
             sess.persist()
-        client.set_cookie(server_name, key=self.app.config.get('SESSION_COOKIE_NAME'), value=sess._session.token)
+        client.set_cookie(server_name, key=self.app.config.session_cookie_name, value=sess._session.token)
         yield client
 
     def test_get_view(self):
