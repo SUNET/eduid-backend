@@ -40,7 +40,7 @@ from datetime import datetime
 class TestUserDB(MongoTestCase):
 
     def setUp(self):
-        super(TestUserDB, self).setUp(None, None)
+        super(TestUserDB, self).setUp()
 
     def test_get_user_by_id(self):
         """ Test get_user_by_id """
@@ -99,7 +99,7 @@ class TestUserDB(MongoTestCase):
 class TestUserDB_mail(MongoTestCase):
 
     def setUp(self):
-        super(TestUserDB_mail, self).setUp(None, None)
+        super(TestUserDB_mail, self).setUp()
         data1 = {u'_id': bson.ObjectId(),
                  u'eduPersonPrincipalName': u'mail-test1',
                  u'mail': u'test@gmail.com',
@@ -150,7 +150,7 @@ class TestUserDB_mail(MongoTestCase):
 class TestUserDB_phone(MongoTestCase):
 
     def setUp(self):
-        super(TestUserDB_phone, self).setUp(None, None)
+        super(TestUserDB_phone, self).setUp()
         data1 = {u'_id': bson.ObjectId(),
                  u'eduPersonPrincipalName': u'phone-test1',
                  u'mail': u'kalle@example.com',
@@ -231,7 +231,7 @@ class TestUserDB_phone(MongoTestCase):
 class TestUserDB_nin(MongoTestCase):
 
     def setUp(self):
-        super(TestUserDB_nin, self).setUp(None, None)
+        super(TestUserDB_nin, self).setUp()
         data1 = {u'_id': bson.ObjectId(),
                  u'eduPersonPrincipalName': u'nin-test1',
                  u'mail': u'kalle@example.com',
