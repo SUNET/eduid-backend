@@ -10,9 +10,9 @@ __author__ = 'lundberg'
 
 class LoggingTest(EduidAPITestCase):
 
-    def setUp(self, init_am=True, users=None, copy_user_to_private=False, am_settings=None):
+    def setUp(self, users=None, copy_user_to_private=False, am_settings=None):
 
-        super(LoggingTest, self).setUp(init_am=init_am, users=users, copy_user_to_private=copy_user_to_private,
+        super(LoggingTest, self).setUp(users=users, copy_user_to_private=copy_user_to_private,
                                        am_settings=am_settings)
 
     def load_app(self, config):

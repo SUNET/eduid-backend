@@ -52,38 +52,38 @@ from eduid_common.config.workers import AmConfig
 from eduid_common.config.base import FlaskConfig
 from eduid_userdb import UserDB, User
 from eduid_userdb.db import BaseDB
-from eduid_userdb.testing import MongoTemporaryInstance
+from eduid_userdb.testing import MongoTestCase
 from eduid_userdb.data_samples import NEW_USER_EXAMPLE, NEW_UNVERIFIED_USER_EXAMPLE, NEW_COMPLETED_SIGNUP_USER_EXAMPLE
 
 logger = logging.getLogger(__name__)
 
 
 TEST_CONFIG = {
-    'DEBUG': True,
-    'TESTING': True,
-    'SECRET_KEY': 'mysecretkey',
-    'SESSION_COOKIE_NAME': 'sessid',
-    'SESSION_COOKIE_DOMAIN': 'test.localhost',
-    'SESSION_COOKIE_PATH': '/',
-    'SESSION_COOKIE_HTTPONLY': False,
-    'SESSION_COOKIE_SECURE': False,
-    'PERMANENT_SESSION_LIFETIME': '60',
-    'SERVER_NAME': 'test.localhost',
-    'PROPAGATE_EXCEPTIONS': True,
-    'PRESERVE_CONTEXT_ON_EXCEPTION': True,
-    'TRAP_HTTP_EXCEPTIONS': True,
-    'TRAP_BAD_REQUEST_ERRORS': True,
-    'PREFERRED_URL_SCHEME': 'http',
-    'JSON_AS_ASCII': False,
-    'JSON_SORT_KEYS': True,
-    'JSONIFY_PRETTYPRINT_REGULAR': True,
-    'MONGO_URI': 'mongodb://localhost',
-    'REDIS_HOST': 'localhost',
-    'REDIS_PORT': '6379',
-    'REDIS_DB': '0',
-    'REDIS_SENTINEL_HOSTS': '',
-    'REDIS_SENTINEL_SERVICE_NAME': '',
-    'TOKEN_SERVICE_URL': 'http://test.localhost/',
+    'debug': True,
+    'testing': True,
+    'secret_key': 'mysecretkey',
+    'session_cookie_name': 'sessid',
+    'session_cookie_domain': 'test.localhost',
+    'session_cookie_path': '/',
+    'session_cookie_httponly': False,
+    'session_cookie_secure': False,
+    'permanent_session_lifetime': '60',
+    'server_name': 'test.localhost',
+    'propagate_exceptions': True,
+    'preserve_context_on_exception': True,
+    'trap_http_exceptions': True,
+    'trap_bad_request_errors': True,
+    'preferred_url_scheme': 'http',
+    'json_as_ascii': False,
+    'json_sort_keys': True,
+    'jsonify_prettyprint_regular': True,
+    'mongo_uri': 'mongodb://localhost',
+    'redis_host': 'localhost',
+    'redis_port': '6379',
+    'redis_db': '0',
+    'redis_sentinel_hosts': '',
+    'redis_sentinel_service_name': '',
+    'token_service_url': 'http://test.localhost/',
 }
 
 class APIMockedUserDB(object):
@@ -105,98 +105,96 @@ _standard_test_users = {
 }
 
 
-class EduidAPITestCase(TestCase):
+class CommonTestCase(MongoTestCase):
     """
     Base Test case for eduID APIs.
-
-    See the `load_app` and `update_config` methods below before subclassing.
     """
 
-    # This concept with a class variable is broken - doesn't provide isolation between tests.
-    # Do what we can and initialise it empty here, and then fill it in __init__.
-    MockedUserDB = APIMockedUserDB
-
-    mock_users_patches = []
-
-    def setUp(self, init_am=True, users=None, copy_user_to_private=False,
-            am_settings=None):
-        super(EduidAPITestCase, self).setUp()
+    def setUp(self, users=None, copy_user_to_private=False, am_settings=None):
+        '''
+        set up tests
+        '''
+        # test users
         self.MockedUserDB.test_users = {}
         if users is None:
             users = ['hubba-bubba']
         for this in users:
             self.MockedUserDB.test_users[this] = _standard_test_users.get(this)
 
-        # not provide proper isolation between tests
+        super(CommonTestCase, self).setUp()
+
         self.user = None
         # Initialize some convenience variables on self based on the first user in `users'
         self.test_user_data = _standard_test_users.get(users[0])
         self.test_user = User(data=self.test_user_data)
 
-        self.tmp_db = MongoTemporaryInstance.get_instance()
+        # setup AM
+        celery_settings = {
+                'broker_transport': 'memory',
+                'broker_url': 'memory://',
+                'task_eager_propagates': True,
+                'task_always_eager': True,
+                'result_backend': 'cache',
+                'cache_backend': 'memory',
+                }
+        # Be sure to NOT tell AttributeManager about the temporary mongodb instance.
+        # If we do, one or more plugins may open DB connections that never gets closed.
+        mongo_uri = None
+        if am_settings:
+            want_mongo_uri = am_settings.pop('WANT_MONGO_URI', False)
+            if want_mongo_uri:
+                mongo_uri = self.tmp_db.uri
+        else:
+            am_settings = {}
+        am_settings['celery'] = celery_settings
+        self.am_settings = AmConfig(**am_settings)
+        self.am_settings.mongo_uri = mongo_uri
+        # initialize eduid_am without requiring config in etcd
+        import eduid_am
+        celery = eduid_am.init_app(self.am_settings.celery)
+        import eduid_am.worker
+        eduid_am.worker.worker_config = self.am_settings
+        logger.debug('Initialized AM with config:\n{!r}'.format(self.am_settings))
 
-        if init_am:
-            celery_settings = {
-                    'broker_transport': 'memory',
-                    'broker_url': 'memory://',
-                    'task_eager_propagates': True,
-                    'task_always_eager': True,
-                    'result_backend': 'cache',
-                    'cache_backend': 'memory',
-                    }
-            # Be sure to NOT tell AttributeManager about the temporary mongodb instance.
-            # If we do, one or more plugins may open DB connections that never gets closed.
-            mongo_uri = None
-            if am_settings:
-                want_mongo_uri = am_settings.pop('WANT_MONGO_URI', False)
-                if want_mongo_uri:
-                    mongo_uri = self.tmp_db.uri
-            else:
-                am_settings = {}
-            am_settings['celery'] = celery_settings
-            am_settings['mongo_uri'] = mongo_uri
-            self.am_settings = AmConfig(**am_settings)
-            # initialize eduid_am without requiring config in etcd
-            import eduid_am
-            celery = eduid_am.init_app(self.am_settings.celery)
-            import eduid_am.worker
-            eduid_am.worker.worker_config = self.am_settings
-            logger.debug('Initialized AM with config:\n{!r}'.format(self.am_settings))
+        self.am = eduid_am.get_attribute_manager(celery)
 
-            self.am = eduid_am.get_attribute_manager(celery)
-        self.amdb = UserDB(self.tmp_db.uri, 'eduid_am')
-
-        mongo_settings = {
-            'mongo_uri': self.tmp_db.uri,
-        }
-        self.settings = FlaskConfig(**mongo_settings)
-
-        # Set up test users in the MongoDB. Read the users from MockedUserDB, which might
-        # be overridden by subclasses.
-        _foo_userdb = self.MockedUserDB(self.mock_users_patches)
-        for userdoc in _foo_userdb.all_userdocs():
-            this = deepcopy(userdoc)  # deep-copy to not have side effects between tests
-            user = User(data=this)
-            self.amdb.save(user, check_sync=False)
-
+        # Set up Redis for shared sessions
         self.redis_instance = RedisTemporaryInstance.get_instance()
+        # Set up etcd
         self.etcd_instance = EtcdTemporaryInstance.get_instance()
-        config = deepcopy(TEST_CONFIG)
-        config['REDIS_PORT'] = str(self.redis_instance.port)
-        config['MONGO_URI'] = self.tmp_db.uri
-        if init_am:
-            # 'CELERY' is the key used in workers, and 'CELERY_CONFIG' is used in webapps.
-            # self.am_settings is initialized by the super-class MongoTestCase.
-            #
-            # We need to copy this data from am_settings to config, because AM will be
-            # re-initialized in load_app() below.
-            config['CELERY_CONFIG'] = self.am_settings['CELERY']
-            if self.am_settings.get('ACTION_PLUGINS'):
-                config['ACTION_PLUGINS'] = self.am_settings['ACTION_PLUGINS']
-        config = self.update_config(config)
-
         os.environ.update({'ETCD_PORT': str(self.etcd_instance.port)})
-        self.app = self.load_app(config)
+
+
+class EduidAPITestCase(CommonTestCase):
+    """
+    Base Test case for eduID APIs.
+
+    See the `load_app` and `update_config` methods below before subclassing.
+    """
+
+    def setUp(self, users=None, copy_user_to_private=False, am_settings=None):
+        '''
+        set up tests
+        '''
+        super(EduidAPITestCase, self).setUp(users=users,
+                                            copy_user_to_private=copy_user_to_private,
+                                            am_settings=am_settings)
+
+        # settings
+        config = deepcopy(TEST_CONFIG)
+        config = self.update_config(config)
+        self.settings = FlaskConfig(**config)
+        self.settings.redis_port = str(self.redis_instance.port)
+        self.settings.mongo_uri = self.tmp_db.uri
+        # 'CELERY' is the key used in workers, and 'CELERY_CONFIG' is used in webapps.
+        # self.am_settings is initialized by the super-class MongoTestCase.
+        #
+        # We need to copy this data from am_settings to config, because AM will be
+        # re-initialized in load_app() below.
+        self.settings.celery_config = self.am_settings.celery
+        self.settings.action_plugins = self.am_settings.action_plugins
+
+        self.app = self.load_app(self.settings.to_dict())
         self.app.test_client_class = CSRFTestClient
         self.browser = self.app.test_client()
 

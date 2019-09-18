@@ -82,6 +82,8 @@ class CommonConfig:
     transaction_audit: bool = False
 
     def __post_init__(self):
+        if self.celery and not self.celery_config:
+            self.celery.config = self.celery
         if isinstance(self.celery_config, dict):
             cconfig = {}
             for k, v in self.celery_config.items():
