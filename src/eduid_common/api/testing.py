@@ -33,27 +33,20 @@
 
 from __future__ import absolute_import
 
-import os
 import sys
 import logging
 import traceback
 from contextlib import contextmanager
 from copy import deepcopy
-from unittest import TestCase
-
-from typing import Dict, Any
 
 from flask.testing import FlaskClient
 
-from eduid_common.session import EduidSession
 from eduid_common.session.testing import RedisTemporaryInstance
-from eduid_common.config.testing import EtcdTemporaryInstance
-from eduid_common.config.workers import AmConfig
+from eduid_common.api.testing_base import CommonTestCase
+from eduid_common.session import EduidSession
 from eduid_common.config.base import FlaskConfig
-from eduid_userdb import UserDB, User
+from eduid_userdb import User
 from eduid_userdb.db import BaseDB
-from eduid_userdb.testing import MongoTestCase
-from eduid_userdb.data_samples import NEW_USER_EXAMPLE, NEW_UNVERIFIED_USER_EXAMPLE, NEW_COMPLETED_SIGNUP_USER_EXAMPLE
 
 logger = logging.getLogger(__name__)
 
@@ -86,84 +79,6 @@ TEST_CONFIG = {
     'token_service_url': 'http://test.localhost/',
 }
 
-class APIMockedUserDB(object):
-
-    test_users: Dict[str, Any] = {}
-
-    def __init__(self, _patches):
-        pass
-
-    def all_userdocs(self):
-        for user in self.test_users.values():
-            yield deepcopy(user)
-
-
-_standard_test_users = {
-    'hubba-bubba': NEW_USER_EXAMPLE,
-    'hubba-baar': NEW_UNVERIFIED_USER_EXAMPLE,
-    'hubba-fooo': NEW_COMPLETED_SIGNUP_USER_EXAMPLE,
-}
-
-
-class CommonTestCase(MongoTestCase):
-    """
-    Base Test case for eduID APIs.
-    """
-
-    def setUp(self, users=None, copy_user_to_private=False, am_settings=None):
-        '''
-        set up tests
-        '''
-        # test users
-        self.MockedUserDB.test_users = {}
-        if users is None:
-            users = ['hubba-bubba']
-        for this in users:
-            self.MockedUserDB.test_users[this] = _standard_test_users.get(this)
-
-        super(CommonTestCase, self).setUp()
-
-        self.user = None
-        # Initialize some convenience variables on self based on the first user in `users'
-        self.test_user_data = _standard_test_users.get(users[0])
-        self.test_user = User(data=self.test_user_data)
-
-        # setup AM
-        celery_settings = {
-                'broker_transport': 'memory',
-                'broker_url': 'memory://',
-                'task_eager_propagates': True,
-                'task_always_eager': True,
-                'result_backend': 'cache',
-                'cache_backend': 'memory',
-                }
-        # Be sure to NOT tell AttributeManager about the temporary mongodb instance.
-        # If we do, one or more plugins may open DB connections that never gets closed.
-        mongo_uri = None
-        if am_settings:
-            want_mongo_uri = am_settings.pop('WANT_MONGO_URI', False)
-            if want_mongo_uri:
-                mongo_uri = self.tmp_db.uri
-        else:
-            am_settings = {}
-        am_settings['celery'] = celery_settings
-        self.am_settings = AmConfig(**am_settings)
-        self.am_settings.mongo_uri = mongo_uri
-        # initialize eduid_am without requiring config in etcd
-        import eduid_am
-        celery = eduid_am.init_app(self.am_settings.celery)
-        import eduid_am.worker
-        eduid_am.worker.worker_config = self.am_settings
-        logger.debug('Initialized AM with config:\n{!r}'.format(self.am_settings))
-
-        self.am = eduid_am.get_attribute_manager(celery)
-
-        # Set up Redis for shared sessions
-        self.redis_instance = RedisTemporaryInstance.get_instance()
-        # Set up etcd
-        self.etcd_instance = EtcdTemporaryInstance.get_instance()
-        os.environ.update({'ETCD_PORT': str(self.etcd_instance.port)})
-
 
 class EduidAPITestCase(CommonTestCase):
     """
@@ -172,14 +87,14 @@ class EduidAPITestCase(CommonTestCase):
     See the `load_app` and `update_config` methods below before subclassing.
     """
 
-    def setUp(self, users=None, copy_user_to_private=False, am_settings=None):
+    def setUp(self, users=None, am_settings=None):
         '''
         set up tests
         '''
         super(EduidAPITestCase, self).setUp(users=users,
-                                            copy_user_to_private=copy_user_to_private,
                                             am_settings=am_settings)
-
+        # Set up Redis for shared sessions
+        self.redis_instance = RedisTemporaryInstance.get_instance()
         # settings
         config = deepcopy(TEST_CONFIG)
         config = self.update_config(config)
@@ -219,7 +134,7 @@ class EduidAPITestCase(CommonTestCase):
             sys.stderr.write("Exception in tearDown: {!s}\n{!r}\n".format(exc, exc))
             traceback.print_exc()
             #time.sleep(5)
-        super(EduidAPITestCase, self).tearDown()
+        super(CommonTestCase, self).tearDown()
         # XXX reset redis
 
     def load_app(self, config):
