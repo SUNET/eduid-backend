@@ -35,8 +35,6 @@ from __future__ import absolute_import
 
 import os
 import logging
-from typing import Dict, Any
-from copy import deepcopy
 
 from eduid_common.config.testing import EtcdTemporaryInstance
 from eduid_common.config.workers import AmConfig
@@ -47,50 +45,16 @@ from eduid_userdb.data_samples import NEW_USER_EXAMPLE, NEW_UNVERIFIED_USER_EXAM
 logger = logging.getLogger(__name__)
 
 
-_standard_test_users = {
-    'hubba-bubba': NEW_USER_EXAMPLE,
-    'hubba-baar': NEW_UNVERIFIED_USER_EXAMPLE,
-    'hubba-fooo': NEW_COMPLETED_SIGNUP_USER_EXAMPLE,
-}
-
-
-class APIMockedUserDB(object):
-
-    test_users: Dict[str, Any] = {}
-
-    def __init__(self, _patches):
-        pass
-
-    def all_userdocs(self):
-        for user in self.test_users.values():
-            yield deepcopy(user)
-
-
 class CommonTestCase(MongoTestCase):
     """
     Base Test case for eduID APIs.
     """
-    # This concept with a class variable is broken - doesn't provide isolation between tests.
-    # Do what we can and initialise it empty here, and then fill it in __init__.
-    MockedUserDB = APIMockedUserDB
 
     def setUp(self, users=None, am_settings=None):
         '''
         set up tests
         '''
-        # test users
-        self.MockedUserDB.test_users = {}
-        if users is None:
-            users = ['hubba-bubba']
-        for this in users:
-            self.MockedUserDB.test_users[this] = _standard_test_users.get(this)
-
         super(CommonTestCase, self).setUp()
-
-        self.user = None
-        # Initialize some convenience variables on self based on the first user in `users'
-        self.test_user_data = _standard_test_users.get(users[0])
-        self.test_user = User(data=self.test_user_data)
 
         # setup AM
         celery_settings = {
