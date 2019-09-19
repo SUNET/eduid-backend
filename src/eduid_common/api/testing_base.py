@@ -69,7 +69,7 @@ class CommonTestCase(MongoTestCase):
         # If we do, one or more plugins may open DB connections that never gets closed.
         mongo_uri = None
         if am_settings:
-            want_mongo_uri = am_settings.pop('WANT_MONGO_URI', False)
+            want_mongo_uri = am_settings.pop('want_mongo_uri', False)
             if want_mongo_uri:
                 mongo_uri = self.tmp_db.uri
         else:
