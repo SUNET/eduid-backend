@@ -15,7 +15,7 @@ from eduid_am.consistency_checks import unverify_duplicates, check_locked_identi
 class TestTasks(AMTestCase):
 
     def setUp(self):
-        am_settings = {'WANT_MONGO_URI': True}
+        am_settings = {'want_mongo_uri': True}
         super(TestTasks, self).setUp(am_settings=am_settings)
 
     def fix_am_settings(self):

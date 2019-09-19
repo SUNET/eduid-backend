@@ -2,16 +2,16 @@
 __author__ = 'lundberg'
 
 from eduid_userdb import UserDB
-from eduid_userdb.testing import MongoTestCase
+from eduid_am.testing import AMTestCase
 
 import unittest
 
 
 @unittest.skip("Not working yet")
-class TestIndexes(MongoTestCase):
+class TestIndexes(AMTestCase):
 
     def setUp(self):
-        super(TestIndexes, self).setUp(init_am=True)
+        super(TestIndexes, self).setUp()
 
     def test_index_setup(self):
         indexes = {
@@ -23,7 +23,7 @@ class TestIndexes(MongoTestCase):
             'mobile-index-v1': {'key': [('mobile.mobile', 1), ('mobile.verified', 1)]},
             'mailAliases-index-v1': {'key': [('mailAliases.email', 1), ('mailAliases.verified', 1)]}
         }
-        db = UserDB(self.settings.get('MONGO_URI'))
+        db = UserDB(self.settings.mongo_uri)
         print(db._coll.index_information())
         db.setup_indexes(indexes)
         current_indexes = db._coll.index_information()
