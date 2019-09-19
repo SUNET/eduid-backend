@@ -3,7 +3,8 @@ from __future__ import absolute_import
 from bson import ObjectId
 
 import eduid_userdb
-from eduid_userdb.testing import MongoTestCase, MOCKED_USER_STANDARD as M
+from eduid_userdb.testing import MOCKED_USER_STANDARD as M
+from eduid_am.testing import AMTestCase
 from eduid_userdb.locked_identity import LockedIdentityList, LockedIdentityNin
 from eduid_userdb.exceptions import MultipleUsersReturned, UserDoesNotExist, EduIDUserDBError
 from eduid_common.config.base import FlaskConfig
@@ -11,11 +12,11 @@ from eduid_common.config.workers import AmConfig
 from eduid_am.consistency_checks import unverify_duplicates, check_locked_identity
 
 
-class TestTasks(MongoTestCase):
+class TestTasks(AMTestCase):
 
     def setUp(self):
         am_settings = {'WANT_MONGO_URI': True}
-        super(TestTasks, self).setUp(init_am=True, am_settings=am_settings)
+        super(TestTasks, self).setUp(am_settings=am_settings)
 
     def fix_am_settings(self):
         self.am_settings = AmConfig(**self.am_settings)

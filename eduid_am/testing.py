@@ -48,6 +48,7 @@ from datetime import date, timedelta
 import pymongo
 from bson import ObjectId
 
+from eduid_common.api.testing_base import CommonTestCase
 from eduid_userdb import UserDB, User
 from eduid_userdb.dashboard.user import DashboardUser
 
@@ -62,12 +63,12 @@ class AMTestCase(CommonTestCase):
     """TestCase with an embedded Attribute Manager.
     """
 
-    def setUp(self):
+    def setUp(self, am_settings=None):
         """
         Test case initialization.
 
         """
-        super(AMTestCase, self).setUp()
+        super(AMTestCase, self).setUp(am_settings=am_settings)
         import eduid_am
         celery = eduid_am.init_app(self.am_settings.celery)
         import eduid_am.worker
