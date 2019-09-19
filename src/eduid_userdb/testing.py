@@ -44,7 +44,6 @@ import subprocess
 import time
 import unittest
 from copy import deepcopy
-from datetime import date, timedelta
 
 import pymongo
 from bson import ObjectId
