@@ -92,9 +92,9 @@ class CommonConfig:
             self.celery = self.celery_config
 
     def __getitem__(self, attr: str) -> Any:
-        '''
+        """
         This is needed so that Flask code can access Flask configuration
-        '''
+        """
         try:
             return self.__getattribute__(attr.lower())
         except AttributeError:
@@ -104,9 +104,9 @@ class CommonConfig:
         setattr(self, attr.lower(), value)
 
     def get(self, key: str, default: Any = None) -> Any:
-        '''
+        """
         This is needed so that Flask code can access Flask configuration
-        '''
+        """
         try:
             return self.__getattribute__(key.lower())
         except AttributeError:
@@ -267,11 +267,11 @@ class BaseConfig(CommonConfig):
 
 @dataclass
 class FlaskConfig(BaseConfig):
-    '''
+    """
     These are configuration keys used by Flask (and flask-babel) itself,
     with the default values provided by flask.
     See the flask documentation for the semantics of each key.
-    '''
+    """
     # What environment the app is running in.
     # This is set by the FLASK_ENV environment variable and may not
     # behave as expected if set in code
