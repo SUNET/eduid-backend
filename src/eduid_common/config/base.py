@@ -80,6 +80,7 @@ class CommonConfig:
     celery: CeleryConfig = field(default_factory=CeleryConfig)
     audit: bool = False
     transaction_audit: bool = False
+    validation_url: str = ''
 
     def __post_init__(self):
         """
