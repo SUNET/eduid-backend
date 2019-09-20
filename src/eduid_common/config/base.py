@@ -82,7 +82,11 @@ class CommonConfig:
     transaction_audit: bool = False
 
     def __post_init__(self):
-        if self.celery and not self.celery_config:
+        # broker_url's default is the empty string, so to check that it is
+        # populated with defaults, and so overridable by anything set to the
+        # celery key, we check for that.
+        if self.celery and (not self.celery_config or
+                            not self.celery_config.broker_url):
             self.celery_config = self.celery
         if isinstance(self.celery_config, dict):
             cconfig = {}
