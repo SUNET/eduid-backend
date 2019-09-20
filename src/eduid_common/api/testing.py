@@ -111,9 +111,9 @@ class EduidAPITestCase(CommonTestCase):
     MockedUserDB = APIMockedUserDB
 
     def setUp(self, users=None, am_settings=None):
-        '''
+        """
         set up tests
-        '''
+        """
         # test users
         self.MockedUserDB.test_users = {}
         if users is None:

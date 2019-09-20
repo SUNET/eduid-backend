@@ -45,7 +45,7 @@ logger = logging.getLogger(__name__)
 
 
 class BadSAMLResponse(Exception):
-    '''Bad SAML response'''
+    """Bad SAML response"""
 
 
 def get_authn_ctx(session_info):

@@ -51,9 +51,9 @@ class CommonTestCase(MongoTestCase):
     """
 
     def setUp(self, users=None, am_settings=None):
-        '''
+        """
         set up tests
-        '''
+        """
         super(CommonTestCase, self).setUp()
 
         # setup AM
