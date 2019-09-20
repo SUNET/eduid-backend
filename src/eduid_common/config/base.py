@@ -82,6 +82,9 @@ class CommonConfig:
     transaction_audit: bool = False
 
     def __post_init__(self):
+        """
+        Set celery configuration as a typed dataclass
+        """
         if isinstance(self.celery_config, dict):
             cconfig = {}
             for k, v in self.celery_config.items():
@@ -93,7 +96,12 @@ class CommonConfig:
 
     def __getitem__(self, attr: str) -> Any:
         """
-        This is needed so that Flask code can access Flask configuration
+        This is a dict method, used on the configuration dicts by either
+        webapps, celery workers, or flask or celery themselves.
+        
+        XXX Once we migrate the celery workers and webapps to configuration in
+        dataclasses, we can check whether we can remove this method from here,
+        i.e., check whether celery or flask use it internally.
         """
         try:
             return self.__getattribute__(attr.lower())
@@ -101,11 +109,24 @@ class CommonConfig:
             raise KeyError(f'{self} has no {attr} attr')
 
     def __setitem__(self, attr: str, value: Any):
+        """
+        This is a dict method, used on the configuration dicts by either
+        webapps, celery workers, or flask or celery themselves.
+        
+        XXX Once we migrate the celery workers and webapps to configuration in
+        dataclasses, we can check whether we can remove this method from here,
+        i.e., check whether celery or flask use it internally.
+        """
         setattr(self, attr.lower(), value)
 
     def get(self, key: str, default: Any = None) -> Any:
         """
-        This is needed so that Flask code can access Flask configuration
+        This is a dict method, used on the configuration dicts by either
+        webapps, celery workers, or flask or celery themselves.
+        
+        XXX Once we migrate the celery workers and webapps to configuration in
+        dataclasses, we can check whether we can remove this method from here,
+        i.e., check whether celery or flask use it internally.
         """
         try:
             return self.__getattribute__(key.lower())
@@ -113,28 +134,58 @@ class CommonConfig:
             return default
 
     def __contains__(self, key: str) -> bool:
+        """
+        This is a dict method, used on the configuration dicts by either
+        webapps, celery workers, or flask or celery themselves.
+        
+        XXX Once we migrate the celery workers and webapps to configuration in
+        dataclasses, we can check whether we can remove this method from here,
+        i.e., check whether celery or flask use it internally.
+        """
         return hasattr(self, key.lower())
 
-    @classmethod
-    def defaults(cls, transform_key: Callable = lambda x: x) -> dict:
-        return {transform_key(key): val for key, val in cls.__dict__.items()
-                  if isinstance(key, str) and not key.startswith('_') and not callable(val)}
-
-    def to_dict(self, transform_key: Callable = lambda x: x) -> dict:
-        return {transform_key(key): val for key, val in self.__dict__.items()
-                  if isinstance(key, str) and not key.startswith('_') and not callable(val)}
-
     def update(self, config: dict, transform_key: Callable = lambda x: x.lower()):
+        """
+        This is a dict method, used on the configuration dicts by either
+        webapps, celery workers, or flask or celery themselves.
+        
+        XXX Once we migrate the celery workers and webapps to configuration in
+        dataclasses, we can check whether we can remove this method from here,
+        i.e., check whether celery or flask use it internally.
+        """
         for key, value in config.items():
             setattr(self, transform_key(key), value)
 
     def setdefault(self, key: str, value: Any,
                    transform_key: Callable = lambda x: x.lower()):
+        """
+        This is a dict method, used on the configuration dicts by either
+        webapps, celery workers, or flask or celery themselves.
+        
+        XXX Once we migrate the celery workers and webapps to configuration in
+        dataclasses, we can check whether we can remove this method from here,
+        i.e., check whether celery or flask use it internally.
+        """
         tkey = transform_key(key)
         if not getattr(self, tkey):
             setattr(self, tkey, value)
             return value
         return getattr(self, tkey)
+
+    @classmethod
+    def defaults(cls, transform_key: Callable = lambda x: x) -> dict:
+        """
+        get a dict with the default values for all configuration keys
+        """
+        return {transform_key(key): val for key, val in cls.__dict__.items()
+                  if isinstance(key, str) and not key.startswith('_') and not callable(val)}
+
+    def to_dict(self, transform_key: Callable = lambda x: x) -> dict:
+        """
+        get a dict with all configured values
+        """
+        return {transform_key(key): val for key, val in self.__dict__.items()
+                  if isinstance(key, str) and not key.startswith('_') and not callable(val)}
 
 
 @dataclass
