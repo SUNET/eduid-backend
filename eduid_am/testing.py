@@ -55,10 +55,6 @@ from eduid_userdb.dashboard.user import DashboardUser
 logger = logging.getLogger(__name__)
 
 
-MONGO_URI_AM_TEST = 'mongodb://localhost:27017/eduid_userdb_test'
-MONGO_URI_TEST = 'mongodb://localhost:27017/eduid_dashboard_test'
-
-
 class AMTestCase(CommonTestCase):
     """TestCase with an embedded Attribute Manager.
     """
