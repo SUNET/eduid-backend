@@ -44,6 +44,7 @@ import subprocess
 import time
 import unittest
 from copy import deepcopy
+from datetime import date, timedelta
 
 import pymongo
 from bson import ObjectId
@@ -252,7 +253,7 @@ class MongoTestCase(unittest.TestCase):
     user = User(data=MOCKED_USER_STANDARD)
     mock_users_patches = []
 
-    def setUp(self):
+    def setUp(self, init_am=False, userdb_use_old_format=False, am_settings=None):
         """
         Test case initialization.
 
@@ -269,11 +270,53 @@ class MongoTestCase(unittest.TestCase):
                 def setUp(self):
                     super(MyTest, self).setUp(celery, get_attribute_manager)
                     ...
+
+        :param init_am: True if the test needs am
+        :param userdb_use_old_format: True if old userdb format should be used
+        :param am_settings: Test specific am settings
+        :return:
         """
         super(MongoTestCase, self).setUp()
         self.tmp_db = MongoTemporaryInstance.get_instance()
 
+        if init_am:
+            self.am_settings = {
+                'CELERY': {'broker_transport': 'memory',
+                           'broker_url': 'memory://',
+                           'task_eager_propagates': True,
+                           'task_always_eager': True,
+                           'result_backend': 'cache',
+                           'cache_backend': 'memory',
+                           },
+                # Be sure to NOT tell AttributeManager about the temporary mongodb instance.
+                # If we do, one or more plugins may open DB connections that never gets closed.
+                'MONGO_URI': None,
+            }
+
+            if am_settings:
+                want_mongo_uri = am_settings.pop('WANT_MONGO_URI', False)
+                self.am_settings.update(am_settings)
+                if want_mongo_uri:
+                    self.am_settings['MONGO_URI'] = self.tmp_db.uri
+            # initialize eduid_am without requiring config in etcd
+            import eduid_am
+            celery = eduid_am.init_app(self.am_settings['CELERY'])
+            import eduid_am.worker
+            eduid_am.worker.worker_config = self.am_settings
+            logger.debug('Initialized AM with config:\n{!r}'.format(self.am_settings))
+
+            self.am = eduid_am.get_attribute_manager(celery)
         self.amdb = UserDB(self.tmp_db.uri, 'eduid_am')
+
+        mongo_settings = {
+            'mongo_replicaset': None,
+            'mongo_uri': self.tmp_db.uri,
+        }
+
+        if getattr(self, 'settings', None) is None:
+            self.settings = mongo_settings
+        else:
+            self.settings.update(mongo_settings)
 
         # Set up test users in the MongoDB. Read the users from MockedUserDB, which might
         # be overridden by subclasses.
@@ -281,7 +324,7 @@ class MongoTestCase(unittest.TestCase):
         for userdoc in _foo_userdb.all_userdocs():
             this = deepcopy(userdoc)  # deep-copy to not have side effects between tests
             user = User(data=this)
-            self.amdb.save(user, check_sync=False)
+            self.amdb.save(user, check_sync=False, old_format=userdb_use_old_format)
 
     def tearDown(self):
         for userdoc in self.amdb._get_all_docs():
@@ -294,3 +337,7 @@ class MongoTestCase(unittest.TestCase):
         self.amdb._drop_whole_collection()
         self.amdb.close()
         super(MongoTestCase, self).tearDown()
+
+    #def mongodb_uri(self, dbname):
+    #    self.assertIsNotNone(dbname)
+    #    return self.tmp_db.uri + '/' + dbname
