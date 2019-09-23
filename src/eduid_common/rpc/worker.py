@@ -3,7 +3,7 @@
 from __future__ import absolute_import
 
 import os
-from typing import Type, Dict, Any
+from typing import Type, Dict, Any, cast
 
 from eduid_common.config.exceptions import BadConfiguration
 from eduid_common.config.parsers.etcd import EtcdConfigParser
@@ -29,6 +29,8 @@ def get_worker_config(name: str, config_class: Type[CommonConfig] = BaseConfig) 
     cfg.update(common_parser.read_configuration(silent=True))
     cfg.update(app_parser.read_configuration(silent=True))
     cfg = {key.lower(): value for key, value in cfg.items()}
+    # XXX Remove when celery workers are migrated to dataclass configuration
+    # and provide their own config classes.
     if name == 'msg':
         config_class = MsgConfig
     elif name == 'am':
@@ -36,6 +38,6 @@ def get_worker_config(name: str, config_class: Type[CommonConfig] = BaseConfig) 
     elif name == 'lookup_mobile':
         config_class = MobConfig
     config = config_class(**cfg)
-    if 'broker_url' not in config.celery:
+    if 'broker_url' not in cast(Dict, config.celery):
         raise BadConfiguration('broker_url for celery is missing')
     return config
