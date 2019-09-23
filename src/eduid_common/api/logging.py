@@ -2,14 +2,13 @@
 
 import logging
 import logging.config
+import time
 from os import environ
 from pprint import PrettyPrinter
 
-import time
-
-from eduid_common.api.exceptions import BadConfiguration
-from eduid_common.session import session
 from eduid_common.config.app import EduIDApp
+from eduid_common.config.exceptions import BadConfiguration
+from eduid_common.session import session
 
 __author__ = 'lundberg'
 

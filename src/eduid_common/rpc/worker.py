@@ -5,6 +5,7 @@ from __future__ import absolute_import
 import os
 from typing import Type, Dict, Any
 
+from eduid_common.config.exceptions import BadConfiguration
 from eduid_common.config.parsers.etcd import EtcdConfigParser
 from eduid_common.config.base import CommonConfig, BaseConfig
 
@@ -27,4 +28,7 @@ def get_worker_config(name: str, config_class: Type[CommonConfig] = BaseConfig) 
     cfg.update(common_parser.read_configuration(silent=True))
     cfg.update(app_parser.read_configuration(silent=True))
     cfg = {key.lower(): value for key, value in cfg.items()}
-    return config_class(**cfg)
+    config = config_class(**cfg)
+    if not config.celery.broker_url:
+        raise BadConfiguration('broker_url for celery is missing')
+    return config
