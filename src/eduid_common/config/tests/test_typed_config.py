@@ -14,7 +14,7 @@ from eduid_common.config.base import FlaskConfig
 class TestTypedIdPConfig(unittest.TestCase):
 
     def setUp(self):
-        self.etcd_instance = EtcdTemporaryInstance()
+        self.etcd_instance = EtcdTemporaryInstance.get_instance()
 
         self.common_ns = '/eduid/webapp/common/'
         self.idp_ns = '/eduid/webapp/idp/'
@@ -47,9 +47,6 @@ class TestTypedIdPConfig(unittest.TestCase):
         os.environ['ETCD_HOST'] = self.etcd_instance.host
         os.environ['ETCD_PORT'] = str(self.etcd_instance.port)
 
-    def tearDown(self):
-        self.etcd_instance.shutdown()
-
     def test_default_setting(self):
         config = IdPConfig(app_name='idp')
         self.assertEqual(config.devel_mode, False)
@@ -72,7 +69,7 @@ class TestTypedIdPConfig(unittest.TestCase):
 class TestTypedFlaskConfig(unittest.TestCase):
 
     def setUp(self):
-        self.etcd_instance = EtcdTemporaryInstance()
+        self.etcd_instance = EtcdTemporaryInstance.get_instance()
 
         self.common_ns = '/eduid/webapp/common/'
         self.authn_ns = '/eduid/webapp/authn/'
@@ -106,9 +103,6 @@ class TestTypedFlaskConfig(unittest.TestCase):
         os.environ['EDUID_CONFIG_NS'] = '/eduid/webapp/authn/'
         os.environ['ETCD_HOST'] = self.etcd_instance.host
         os.environ['ETCD_PORT'] = str(self.etcd_instance.port)
-
-    def tearDown(self):
-        self.etcd_instance.shutdown()
 
     def test_base_default_setting(self):
         etcd_config = self.common_parser.read_configuration(silent=True)
