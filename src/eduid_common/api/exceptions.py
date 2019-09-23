@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import traceback
 from flask import jsonify, current_app
-from werkzeug.exceptions import default_exceptions, HTTPException, InternalServerError, BadRequest
 
 __author__ = 'lundberg'
 
@@ -44,16 +42,6 @@ class ApiException(Exception):
         if self.payload:
             rv['payload'] = self.payload
         return rv
-
-
-class BadConfiguration(Exception):
-
-    def __init__(self, message):
-        Exception.__init__(self)
-        self.value = message
-
-    def __str__(self):
-        return self.value
 
 
 class TaskFailed(Exception):
