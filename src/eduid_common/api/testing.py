@@ -48,6 +48,9 @@ from eduid_common.session import EduidSession
 from eduid_common.config.base import FlaskConfig
 from eduid_userdb import User
 from eduid_userdb.db import BaseDB
+from eduid_userdb.data_samples import (NEW_USER_EXAMPLE,
+                                       NEW_UNVERIFIED_USER_EXAMPLE,
+                                       NEW_COMPLETED_SIGNUP_USER_EXAMPLE)
 
 logger = logging.getLogger(__name__)
 
@@ -110,7 +113,7 @@ class EduidAPITestCase(CommonTestCase):
     # Do what we can and initialise it empty here, and then fill it in __init__.
     MockedUserDB = APIMockedUserDB
 
-    def setUp(self, users=None, am_settings=None):
+    def setUp(self, users=None, copy_user_to_private=False, am_settings=None):
         """
         set up tests
         """

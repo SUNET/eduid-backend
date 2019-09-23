@@ -85,16 +85,14 @@ class CommonConfig:
         # broker_url's default is the empty string, so to check that it is
         # populated with defaults, and so overridable by anything set to the
         # celery key, we check for that.
-        if self.celery and (not self.celery_config or
-                            not self.celery_config.broker_url):
-            self.celery_config = self.celery
-        if isinstance(self.celery_config, dict):
-            cconfig = {}
-            for k, v in self.celery_config.items():
-                if k.startswith('CELERY_'):
-                    k = k[7:]
-                cconfig[k.lower()] = v
-            self.celery_config = CeleryConfig(**cconfig)
+        for conf in (self.celery, self.celery_config):
+            if isinstance(conf, dict):
+                config = {}
+                for k, v in conf.items():
+                    if k.startswith('CELERY_'):
+                        k = k[7:]
+                    config[k.lower()] = v
+                self.celery_config = CeleryConfig(**config)
         self.celery = self.celery_config
 
     def __getitem__(self, attr: str) -> Any:

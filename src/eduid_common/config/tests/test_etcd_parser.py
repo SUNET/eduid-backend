@@ -7,7 +7,7 @@ import unittest
 from mock import patch
 from nacl import secret, encoding
 
-from eduid_common.api.testing import EtcdTemporaryInstance
+from eduid_common.config.testing import EtcdTemporaryInstance
 from eduid_common.config.parsers.etcd import EtcdConfigParser
 from eduid_common.config.parsers import decorators
 

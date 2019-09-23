@@ -77,14 +77,6 @@ class CommonTestCase(MongoTestCase):
         am_settings['celery'] = celery_settings
         self.am_settings = AmConfig(**am_settings)
         self.am_settings.mongo_uri = mongo_uri
-        # initialize eduid_am without requiring config in etcd
-        import eduid_am
-        celery = eduid_am.init_app(self.am_settings.celery)
-        import eduid_am.worker
-        eduid_am.worker.worker_config = self.am_settings
-        logger.debug('Initialized AM with config:\n{!r}'.format(self.am_settings))
-
-        self.am = eduid_am.get_attribute_manager(celery)
         # Set up etcd
         self.etcd_instance = EtcdTemporaryInstance.get_instance()
         os.environ.update({'ETCD_PORT': str(self.etcd_instance.port)})
