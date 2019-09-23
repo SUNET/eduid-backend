@@ -42,7 +42,7 @@ from flask import Config
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from eduid_common.api.debug import dump_config
-from eduid_common.api.exceptions import init_exception_handlers, init_sentry, BadConfiguration
+from eduid_common.api.exceptions import init_exception_handlers, init_sentry
 from eduid_common.api.logging import init_logging
 from eduid_common.api.middleware import PrefixMiddleware
 from eduid_common.api.request import Request
@@ -50,6 +50,7 @@ from eduid_common.api.utils import init_template_functions
 from eduid_common.authn.middleware import AuthnApp
 from eduid_common.config.app import EduIDApp
 from eduid_common.config.base import FlaskConfig
+from eduid_common.config.exceptions import BadConfiguration
 from eduid_common.config.parsers.etcd import EtcdConfigParser
 from eduid_common.session.eduid_session import SessionFactory
 from eduid_common.stats import NoOpStats, Statsd

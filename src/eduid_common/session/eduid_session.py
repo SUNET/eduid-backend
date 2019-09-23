@@ -18,7 +18,7 @@ from flask import current_app
 from flask import request as flask_request
 from flask.sessions import SessionInterface, SessionMixin
 
-from eduid_common.api.exceptions import BadConfiguration
+from eduid_common.config.exceptions import BadConfiguration
 from eduid_common.config.app import EduIDApp
 from eduid_common.session.redis_session import SessionManager, RedisEncryptedSession
 from eduid_common.session.namespaces import SessionNSBase, Common, MfaAction
