@@ -78,7 +78,7 @@ class TimestampedNS(SessionNSBase):
 
 @dataclass()
 class Signup(TimestampedNS):
-    ''''''
+    """"""
 
 @dataclass()
 class Actions(TimestampedNS):
