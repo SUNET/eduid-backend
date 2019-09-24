@@ -7,7 +7,7 @@ from eduid_common.config.workers import MobConfig
 
 import eduid_lookup_mobile.common as common
 
-worker_config: MobConfig = {}
+worker_config: MobConfig = MobConfig()
 
 if common.celery is None:
     worker_config = get_worker_config('lookup_mobile', config_class=MobConfig)

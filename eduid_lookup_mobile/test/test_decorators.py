@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 __author__ = 'lundberg'
 
+from eduid_common.config.workers import MsgConfig
 from eduid_lookup_mobile.testing import LookupMobileMongoTestCase
 from eduid_lookup_mobile.decorators import TransactionAudit
 
@@ -10,7 +11,7 @@ class TestTransactionAudit(LookupMobileMongoTestCase):
     def setUp(self):
         super(TestTransactionAudit, self).setUp()
         # need to set self.mongo_uri and db for the TransactionAudit decorator
-        self.conf = {'MONGO_URI': self.tmp_db.uri}
+        self.conf = MsgConfig(**{'mongo_uri': self.tmp_db.uri})
         self.db = self.tmp_db.conn['eduid_lookup_mobile']
 
         self.transaction_audit = True

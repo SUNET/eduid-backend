@@ -33,7 +33,7 @@ class TransactionAudit(object):
             self.enabled = getattr(args[0], 'transaction_audit', False)
             if self.enabled:
                 if self.collection is None:
-                    self.db_uri = args[0].conf['MONGO_URI']
+                    self.db_uri = args[0].conf.mongo_uri
                     # Do not initialize the db connection before we know the decorator is actually enabled
                     db = MongoDB(db_uri=self.db_uri, db_name=self.db_name)
                     self.collection = db.get_collection(self.collection_name)

@@ -25,14 +25,14 @@ class MobileLookupClient(object):
         self.conf = config
 
         # enable transaction logging if configured
-        self.transaction_audit = self.conf.get('TRANSACTION_AUDIT') == 'true' and 'MONGO_URI' in self.conf
+        self.transaction_audit = self.conf.transaction_audit == 'true' and self.conf.mongo_uri
 
         self.client = Client(DEFAULT_CLIENT_URL)
         self.client.set_options(port=DEFAULT_CLIENT_PORT)
         self.logger = logger
 
-        self.DEFAULT_CLIENT_PASSWORD = six.text_type(self.conf['TELEADRESS_CLIENT_PASSWORD'])
-        self.DEFAULT_CLIENT_USER = six.text_type(self.conf['TELEADRESS_CLIENT_USER'])
+        self.DEFAULT_CLIENT_PASSWORD = six.text_type(self.conf.teleadress_client_password)
+        self.DEFAULT_CLIENT_USER = six.text_type(self.conf.teleadress_client_user)
 
     @TransactionAudit()
     def find_mobiles_by_NIN(self, national_identity_number, number_region=None):
@@ -58,7 +58,7 @@ class MobileLookupClient(object):
 
     def _search(self, param):
         # Start the search
-        if self.conf.get('DEVEL_MODE') is True:
+        if self.conf.devel_mode is True:
             result = _get_devel_search_result(param)
         else:
             result = self.client.service.Find(param)
