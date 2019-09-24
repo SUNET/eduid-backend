@@ -79,5 +79,6 @@ class MobConfig(CommonConfig):
     """
     Configuration for the lookup mobile celery worker
     """
+    log_path: str = ''
     teleadress_client_user: str = ''
     teleadress_client_password: str = ''
