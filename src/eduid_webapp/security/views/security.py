@@ -39,7 +39,7 @@ from flask import Blueprint, current_app, abort, url_for, redirect
 from six.moves.urllib_parse import urlparse, urlunparse, parse_qs, urlencode
 
 from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
-from eduid_common.api.exceptions import AmTaskFailed
+from eduid_common.api.exceptions import AmTaskFailed, MsgTaskFailed
 from eduid_common.api.helpers import add_nin_to_user
 from eduid_common.api.utils import save_and_sync_user, urlappend
 from eduid_common.authn.vccs import add_credentials, revoke_all_credentials
@@ -221,7 +221,11 @@ def account_terminated(user):
     current_app.logger.info('Terminated user account')
 
     # email the user
-    send_termination_mail(security_user)
+    try:
+        send_termination_mail(security_user)
+    except MsgTaskFailed as e:
+        current_app.logger.error(f'Failed to send account termination mail: {e}')
+        current_app.logger.error('Account will be terminated successfully anyway.')
 
     session.invalidate()
     current_app.logger.info('Invalidated session for user')
