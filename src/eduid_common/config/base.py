@@ -264,6 +264,7 @@ class BaseConfig(CommonConfig):
     students_link: str = ''
     staff_link: str = ''
     technicians_link: str = ''
+    tou_url: str = ''
     # set absolute URL so it can be included in emails
     signup_url: str = ''
     # URL to use with VCCS client. BCP is to have an nginx or similar on
@@ -283,6 +284,7 @@ class BaseConfig(CommonConfig):
     tou_version: str = '2017-v6'
     current_tou_version: str = '2017-v6'  # backwards compat
     fido2_rp_id: str = ''
+    u2f_app_id: str = ''
     stats_host: str = ''
     stats_port: int = 0
     sentry_dsn: Optional[str] = None
@@ -371,7 +373,6 @@ class FlaskConfig(BaseConfig):
 
     # XXX attributes that belong in the config classes for the particular apps,
     # to be removed when eduid-webapp starts using the new config classes
-    u2f_app_id: str = ''
     password_length: int = 8
     phone_verification_timeout: int = 5
     webauthn_max_allowed_tokens: int = 5
@@ -393,7 +394,6 @@ class FlaskConfig(BaseConfig):
     email_verify_redirect_url: str = ''
     token_verify_redirect_url: str = ''
     signup_authn_success_redirect_url: str = ''
-    tou_url: str = ''
     u2f_max_allowed_tokens: int = 0
     phone_code_timeout: int = 0
     chpass_timeout: int = 0
