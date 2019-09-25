@@ -87,7 +87,7 @@ def terminate():
 
 
 def _authn(action, force_authn=False):
-    redirect_url = current_app.config.get('SAML2_LOGIN_REDIRECT_URL', '/')
+    redirect_url = current_app.config.saml2_login_redirect_url
     relay_state = verify_relay_state(request.args.get('next', redirect_url), redirect_url)
     idps = current_app.saml2_config.getattr('idp')
     assert len(idps) == 1
@@ -118,7 +118,7 @@ def assertion_consumer_service():
         action = get_action()
         return action(session_info, user)
     except UnsolicitedResponse:
-        unsolicited_response_redirect_url = current_app.config['UNSOLICITED_RESPONSE_REDIRECT_URL']
+        unsolicited_response_redirect_url = current_app.config.unsolicited_response_redirect_url
         current_app.logger.info(f'Unsolicited response. Redirecting user to {unsolicited_response_redirect_url}')
         return redirect(unsolicited_response_redirect_url)
     except BadSAMLResponse as e:
@@ -158,7 +158,7 @@ def logout():
 
     if eppn is None:
         current_app.logger.info('Session cookie has expired, no logout action needed')
-        location = current_app.config.get('SAML2_LOGOUT_REDIRECT_URL')
+        location = current_app.config.saml2_logout_redirect_url
         return redirect(location)
 
     user = current_app.central_userdb.get_user_by_eppn(eppn)
@@ -179,7 +179,7 @@ def logout():
             'The session does not contain '
             'the subject id for user {}'.format(user))
         session.clear()
-        location = current_app.config.get('SAML2_LOGOUT_REDIRECT_URL')
+        location = current_app.config.saml2_logout_redirect_url
 
     else:
         logouts = client.global_logout(subject_id)
@@ -189,7 +189,7 @@ def logout():
             if loresponse.status_ok():
                 current_app.logger.debug('Performing local logout for {}'.format(user))
                 session.clear()
-                location = current_app.config.get('SAML2_LOGOUT_REDIRECT_URL')
+                location = current_app.config.saml2_logout_redirect_url
                 location = verify_relay_state(request.form.get('RelayState', location), location)
                 return redirect(location)
             else:
@@ -221,7 +221,7 @@ def logout_service():
                          state_cache=state,
                          identity_cache=identity)
 
-    logout_redirect_url = current_app.config.get('SAML2_LOGOUT_REDIRECT_URL')
+    logout_redirect_url = current_app.config.saml2_logout_redirect_url
     next_page = session.get('next', logout_redirect_url)
     next_page = request.args.get('next', next_page)
     next_page = request.form.get('RelayState', next_page)
@@ -272,12 +272,12 @@ def logout_service():
 @authn_views.route('/signup-authn', methods=['GET', 'POST'])
 def signup_authn():
     current_app.logger.debug('Authenticating signing up user')
-    location_on_fail = current_app.config.get('SIGNUP_AUTHN_FAILURE_REDIRECT_URL')
-    location_on_success = current_app.config.get('SIGNUP_AUTHN_SUCCESS_REDIRECT_URL')
+    location_on_fail = current_app.config.signup_authn_failure_redirect_url
+    location_on_success = current_app.config.signup_authn_success_redirect_url
 
     eppn = check_previous_identification(session.signup)
     if eppn is not None:
-        loa = get_loa(current_app.config.get('AVAILABLE_LOA'), None)  # With no session_info lowest loa will be returned
+        loa = get_loa(current_app.config.available_loa, None)  # With no session_info lowest loa will be returned
         current_app.logger.info("Starting authentication for user from signup with eppn: {})".format(eppn))
         try:
             user = current_app.central_userdb.get_user_by_eppn(eppn)

@@ -59,7 +59,7 @@ def update_user_session(session_info, user):
     session['eduPersonPrincipalName'] = user.eppn
     session['user_eppn'] = user.eppn  # TODO: Remove when we have deployed and IdP that sets user_eppn
     session['user_is_logged_in'] = True
-    loa = get_loa(current_app.config.get('AVAILABLE_LOA'), session_info)
+    loa = get_loa(current_app.config.available_loa, session_info)
     session['eduPersonAssurance'] = loa
     session['eduidIdPCredentialsUsed'] = get_saml_attribute(session_info, 'eduidIdPCredentialsUsed')
 

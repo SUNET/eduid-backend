@@ -72,12 +72,12 @@ class AuthnAPITestBase(EduidAPITestCase):
         """
         saml_config = os.path.join(HERE, 'saml2_settings.py')
         config.update({
-            'SAML2_LOGIN_REDIRECT_URL': '/',
-            'SAML2_LOGOUT_REDIRECT_URL': '/logged-out',
-            'SAML2_SETTINGS_MODULE': saml_config,
-            'SIGNUP_AUTHN_SUCCESS_REDIRECT_URL': 'http://test.localhost/success',
-            'SIGNUP_AUTHN_FAILURE_REDIRECT_URL': 'http://test.localhost/failure',
-            'SAFE_RELAY_DOMAIN': 'test.localhost'
+            'saml2_login_redirect_url': '/',
+            'saml2_logout_redirect_url': '/logged-out',
+            'saml2_settings_module': saml_config,
+            'signup_authn_success_redirect_url': 'http://test.localhost/success',
+            'signup_authn_failure_redirect_url': 'http://test.localhost/failure',
+            'safe_relay_domain': 'test.localhost'
             })
         return config
 
@@ -213,10 +213,10 @@ class AuthnAPITestBase(EduidAPITestCase):
 
         :return: the cookie
         """
-        return dump_cookie(self.app.config.get('SESSION_COOKIE_NAME'), session_id,
-                           max_age=float(self.app.config.get('PERMANENT_SESSION_LIFETIME')),
-                           path=self.app.config.get('SESSION_COOKIE_PATH'),
-                           domain=self.app.config.get('SESSION_COOKIE_DOMAIN'))
+        return dump_cookie(self.app.config.session_cookie_name, session_id,
+                           max_age=float(self.app.config.permanent_session_lifetime),
+                           path=self.app.config.session_cookie_path,
+                           domain=self.app.config.session_cookie_domain)
 
 
 class AuthnAPITestCase(AuthnAPITestBase):
@@ -300,14 +300,14 @@ class AuthnAPITestCase(AuthnAPITestBase):
         with self.app.test_client() as c:
             with self.app.test_request_context('/signup-authn'):
                 c.set_cookie('test.localhost',
-                             key=self.app.config.get('SESSION_COOKIE_NAME'),
+                             key=self.app.config.session_cookie_name,
                              value=session._session.token)
                 session.common.eppn = eppn
                 session.signup.ts = timestamp
 
                 resp = self.app.dispatch_request()
                 self.assertEqual(resp.status_code, 302)
-                self.assertTrue(resp.location.startswith(self.app.config['SIGNUP_AUTHN_SUCCESS_REDIRECT_URL']))
+                self.assertTrue(resp.location.startswith(self.app.config.signup_authn_success_redirect_url))
 
     def test_signup_authn_old_user(self):
         """ A user that has verified their account should not try to use token login """
@@ -317,14 +317,14 @@ class AuthnAPITestCase(AuthnAPITestBase):
         with self.app.test_client() as c:
             with self.app.test_request_context('/signup-authn'):
                 c.set_cookie('test.localhost',
-                             key=self.app.config.get('SESSION_COOKIE_NAME'),
+                             key=self.app.config.session_cookie_name,
                              value=session._session.token)
                 session.common.eppn = eppn
                 session.signup.ts = timestamp
 
                 resp = self.app.dispatch_request()
                 self.assertEqual(resp.status_code, 302)
-                self.assertTrue(resp.location.startswith(self.app.config['SIGNUP_AUTHN_FAILURE_REDIRECT_URL']))
+                self.assertTrue(resp.location.startswith(self.app.config.signup_authn_failure_redirect_url))
 
 
 class UnAuthnAPITestCase(EduidAPITestCase):
@@ -336,8 +336,8 @@ class UnAuthnAPITestCase(EduidAPITestCase):
         """
         saml_config = os.path.join(HERE, 'saml2_settings.py')
         config.update({
-            'TOKEN_SERVICE_URL': 'http://login',
-            'SAML2_SETTINGS_MODULE': saml_config,
+            'token_service_url': 'http://login',
+            'saml2_settings_module': saml_config,
             })
         return config
 
@@ -352,7 +352,7 @@ class UnAuthnAPITestCase(EduidAPITestCase):
         with self.app.test_client() as c:
             resp = c.get('/')
             self.assertEqual(resp.status_code, 302)
-            self.assertTrue(resp.location.startswith(self.app.config['TOKEN_SERVICE_URL']))
+            self.assertTrue(resp.location.startswith(self.app.config.token_service_url))
 
     def test_cookie(self):
         token = ('a7MPUEQQLAEEQEAQDGJOXKAMFM467EUW6HCETFI4VP5JCU3CDVJDQZSHMXAOSC'
@@ -388,9 +388,9 @@ class NoAuthnAPITestCase(EduidAPITestCase):
         """
         saml_config = os.path.join(HERE, 'saml2_settings.py')
         config.update({
-            'TOKEN_SERVICE_URL': 'http://login',
-            'SAML2_SETTINGS_MODULE': saml_config,
-            'NO_AUTHN_URLS': ['^/test$'],
+            'token_service_url': 'http://login',
+            'saml2_settings_module': saml_config,
+            'no_authn_urls': ['^/test$'],
             })
         return config
 
@@ -410,13 +410,13 @@ class NoAuthnAPITestCase(EduidAPITestCase):
         with self.app.test_client() as c:
             resp = c.get('/test2')
             self.assertEqual(resp.status_code, 302)
-            self.assertTrue(resp.location.startswith(self.app.config['TOKEN_SERVICE_URL']))
+            self.assertTrue(resp.location.startswith(self.app.config.token_service_url))
 
     def test_no_authn_util(self):
-        no_authn_urls_before = [path for path in self.app.config['NO_AUTHN_URLS']]
+        no_authn_urls_before = [path for path in self.app.config.no_authn_urls]
         no_authn_path = '/test3'
         no_authn_views(self.app, [no_authn_path])
-        self.assertEqual(no_authn_urls_before + ['^{!s}$'.format(no_authn_path)], self.app.config['NO_AUTHN_URLS'])
+        self.assertEqual(no_authn_urls_before + ['^{!s}$'.format(no_authn_path)], self.app.config.no_authn_urls)
 
         with self.app.test_client() as c:
             resp = c.get('/test3')
@@ -438,7 +438,7 @@ class LogoutRequestTests(AuthnAPITestBase):
             session['user_eppn'] = eppn
             response = self.app.dispatch_request()
             self.assertEqual(response.status, '302 FOUND')
-            self.assertIn(self.app.config['SAML2_LOGOUT_REDIRECT_URL'],
+            self.assertIn(self.app.config.saml2_logout_redirect_url,
                           response.headers['Location'])
 
     def test_logout_loggedin(self):

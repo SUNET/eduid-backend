@@ -34,6 +34,15 @@ from flask import Flask
 
 from eduid_common.authn.utils import get_saml2_config
 from eduid_common.api.app import eduid_init_app
+from eduid_common.config.app import EduIDApp
+from eduid_webapp.authn.settings.common import AuthnConfig
+
+
+class AuthnApp(EduIDApp):
+
+    def __init__(self, *args, **kwargs):
+        super(AuthnApp, self).__init__(*args, **kwargs)
+        self.config: AuthnConfig = cast(AuthnConfig, self.config)
 
 
 def authn_init_app(name, config):
@@ -58,8 +67,10 @@ def authn_init_app(name, config):
     :rtype: flask.Flask
     """
     from . import acs_actions
-    app = eduid_init_app(name, config, app_class=Flask)
-    app.saml2_config = get_saml2_config(app.config['SAML2_SETTINGS_MODULE'])
+    app = eduid_init_app(name, config,
+                         config_class=AuthnConfig,
+                         app_class=AuthnApp)
+    app.saml2_config = get_saml2_config(app.config.saml2_settings_module)
 
     from eduid_webapp.authn.views import authn_views
     app.register_blueprint(authn_views)
