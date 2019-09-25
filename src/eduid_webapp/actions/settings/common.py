@@ -44,7 +44,7 @@ from eduid_common.config.base import FlaskConfig
 @dataclass
 class ActionsConfig(FlaskConfig):
     """
-    Configuration for the IdP
+    Configuration for the actions app
     """
     app_name: str = 'actions'
 

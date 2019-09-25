@@ -48,7 +48,7 @@ class PluginsRegistry(dict):
 
     def __init__(self, app):
         super(PluginsRegistry, self).__init__()
-        for plugin_name in app.config.get('ACTION_PLUGINS', []):
+        for plugin_name in app.config.action_plugins:
             if plugin_name in self:
                 app.logger.warn("Duplicate entry point: %s" % plugin_name)
             else:
@@ -59,8 +59,8 @@ class PluginsRegistry(dict):
 
 def _get_tous(app, version=None):
     if version is None:
-        version = app.config.get('TOU_VERSION')
-    langs = app.config.get('AVAILABLE_LANGUAGES').keys()
+        version = app.config.tou_version
+    langs = app.config.available_languages.keys()
     tous = {}
     for lang in langs:
         name = 'tous/tou-{}-{}.txt'.format(version, lang)
@@ -103,7 +103,9 @@ def actions_init_app(name, config):
     :rtype: flask.Flask
     """
 
-    app = eduid_init_app(name, config, config_class=ActionsConfig, app_class=EduIDApp)
+    app = eduid_init_app(name, config,
+                         config_class=ActionsConfig,
+                         app_class=ActionsApp)
 
     from eduid_webapp.actions.views import actions_views
     app.register_blueprint(actions_views)

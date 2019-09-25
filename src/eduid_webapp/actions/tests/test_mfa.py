@@ -96,15 +96,15 @@ class MFAActionPluginTests(ActionsTestCase):
         self.app.central_userdb.save(self.user, check_sync=False)
 
     def update_actions_config(self, config):
-        config['ACTION_PLUGINS'] = ['mfa']
-        config['MFA_TESTING'] = False
-        config['U2F_APP_ID'] = 'https://example.com'
-        config['U2F_VALID_FACETS'] = [
+        config['action_plugins'] = ['mfa']
+        config['mfa_testing'] = False
+        config['u2f_app_id'] = 'https://example.com'
+        config['u2f_valid_facets'] = [
             'https://dashboard.dev.eduid.se',
             'https://idp.dev.eduid.se']
-        config['FIDO2_RP_ID'] = 'idp.example.com'
-        config['EIDAS_URL'] = 'https://eidas.dev.eduid.se/mfa-authentication'
-        config['MFA_AUTHN_IDP'] = 'https://eidas-idp.example.com'
+        config['fido2_rp_id'] = 'idp.example.com'
+        config['eidas_url'] = 'https://eidas.dev.eduid.se/mfa-authentication'
+        config['mfa_authn_idp'] = 'https://eidas-idp.example.com'
         return config
 
     def test_get_mfa_action(self):
@@ -133,7 +133,7 @@ class MFAActionPluginTests(ActionsTestCase):
     def test_get_config(self):
         mock_idp_app = MockIdPContext(self.app.actions_db)
         with self.app.test_request_context('/config'):
-            self.app.config['GENERATE_U2F_CHALLENGES'] = True
+            self.app.config.generate_u2f_challenges = True
             mock_idp_app = MockIdPContext(self.app.actions_db)
             add_actions(mock_idp_app, self.user, MockTicket('mock-session'))
             self.authenticate(idp_session='mock-session')
@@ -234,7 +234,7 @@ class MFAActionPluginTests(ActionsTestCase):
                                                 'ow72j6J92KaY2rLR6qSXEbLam09ZXbSkBnQ'}
                                   )
 
-                self.app.config['FIDO2_RP_ID'] = 'idp.dev.eduid.se'
+                self.app.config.fido2_rp_id = 'idp.dev.eduid.se'
                 response = client.post('/post-action', data=data, content_type=self.content_type_json)
                 self.assertEquals(response.status_code, 200)
                 data = json.loads(response.data)
