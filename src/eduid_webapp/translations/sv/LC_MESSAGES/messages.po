@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2019-07-01 16:50+0200\n"
+"POT-Creation-Date: 2019-09-24 16:52+0200\n"
 "PO-Revision-Date: 2018-03-27 09:25+0000\n"
 "Last-Translator: Johan Lundberg <lundberg@sunet.se>, 2019\n"
 "Language-Team: Swedish (https://www.transifex.com/sunet/teams/84844/sv/)\n"
@@ -114,11 +114,11 @@ msgstr ""
 "\n"
 "Tyvärr uppstod ett problem så vi måste be dig att bekräfta ditt konto igen med något av de andra sätten att verifiera din identitet.\n"
 
-#: security/helpers.py:151
+#: security/helpers.py:152
 msgid "Terminate account"
 msgstr "Avsluta konto"
 
-#: security/helpers.py:187 security/views/reset_password.py:79
+#: security/helpers.py:187 security/views/reset_password.py:81
 #: security/views/templates/reset_password.jinja2:28
 msgid "Reset password"
 msgstr "Återställ lösenord"
@@ -147,105 +147,118 @@ msgstr "Lösenorden är olika"
 msgid "Please use a stronger password"
 msgstr "Lösenordet är inte tillräckligt starkt"
 
-#: security/views/reset_password.py:38
+#: security/views/reset_password.py:40
 msgid "404 Not found"
 msgstr "404 Hittades inte"
 
-#: security/views/reset_password.py:39
+#: security/views/reset_password.py:41
 msgid "The requested state can not be found."
 msgstr "Kunde inte ladda sparad status"
 
-#: security/views/reset_password.py:41 security/views/reset_password.py:51
-#: security/views/reset_password.py:112 security/views/reset_password.py:167
+#: security/views/reset_password.py:43 security/views/reset_password.py:53
+#: security/views/reset_password.py:124 security/views/reset_password.py:191
 msgid "Reset your password"
 msgstr "Återställ ditt lösenord"
 
-#: security/views/reset_password.py:48
+#: security/views/reset_password.py:50
 msgid "Link expired"
 msgstr "Länken har gått ut"
 
-#: security/views/reset_password.py:49
+#: security/views/reset_password.py:51
 msgid "The password reset link has expired."
 msgstr "Länken för lösenordsåterställning har gått ut."
 
-#: security/views/reset_password.py:63
+#: security/views/reset_password.py:65
 msgid "SMS code expired"
 msgstr "SMS-koden har gått ut"
 
-#: security/views/reset_password.py:64
+#: security/views/reset_password.py:66
 msgid "The phone verification has expired."
 msgstr "Telefonbekräftelsen har gått ut."
 
-#: security/views/reset_password.py:66 security/views/reset_password.py:186
+#: security/views/reset_password.py:68 security/views/reset_password.py:210
 msgid "Resend code or try another way"
 msgstr "Skicka en ny kod eller byt säkerhetsmetod"
 
-#: security/views/reset_password.py:80
+#: security/views/reset_password.py:82
 msgid "Enter an email address registered to your account below"
 msgstr "Ange en e-postadress som är registrerad på ditt konto"
 
-#: security/views/reset_password.py:84
+#: security/views/reset_password.py:86
 msgid "Reset password message sent. Check your email to continue."
 msgstr ""
 "Ett meddelande om lösenordsåterställning har skickats. Kolla din e-post för "
 "att fortsätta."
 
-#: security/views/reset_password.py:109 security/views/reset_password.py:198
+#: security/views/reset_password.py:98
+msgid "Could not send e-mail"
+msgstr "Kunde inte skicka e-postmeddelande"
+
+#: security/views/reset_password.py:99 security/views/reset_password.py:168
+msgid "The request could not complete due to an internal server error"
+msgstr "Begäran kunde inte genomföras på grund av ett internt fel"
+
+#: security/views/reset_password.py:101 security/views/reset_password.py:170
+#: security/views/reset_password.py:225
+msgid "Try again"
+msgstr "Försök igen"
+
+#: security/views/reset_password.py:121 security/views/reset_password.py:222
 msgid "Temporary technical problem"
 msgstr "Temporärt tekniskt fel"
 
-#: security/views/reset_password.py:110 security/views/reset_password.py:199
+#: security/views/reset_password.py:122 security/views/reset_password.py:223
 msgid "Please try again."
 msgstr "Vänligen försök igen."
 
-#: security/views/reset_password.py:122
+#: security/views/reset_password.py:134
 msgid "Extra security"
 msgstr "Extra säkerhet"
 
-#: security/views/reset_password.py:123
+#: security/views/reset_password.py:135
 msgid "Choose an option to enhance the security"
 msgstr "Välj en metod för att öka säkerheten"
 
-#: security/views/reset_password.py:134
+#: security/views/reset_password.py:146
 msgid "Email address not validated"
 msgstr "E-postadressen kunde inte valideras"
 
-#: security/views/reset_password.py:135
+#: security/views/reset_password.py:147
 msgid "Please use the password reset link that you have in your email."
 msgstr ""
 "Var vänlig och använd återställningslänken som skickats till din "
 "e-postsadress."
 
-#: security/views/reset_password.py:164
+#: security/views/reset_password.py:167
+msgid "Could not send sms"
+msgstr "Kunde inte skicka SMS-meddelande"
+
+#: security/views/reset_password.py:188
 msgid "Something went wrong"
 msgstr "Något gick fel"
 
-#: security/views/reset_password.py:165
+#: security/views/reset_password.py:189
 msgid "Please restart the password reset procedure."
 msgstr "Var vänlig och börja om lösenordsåterställningen."
 
-#: security/views/reset_password.py:181
+#: security/views/reset_password.py:205
 #: security/views/templates/reset_password_verify_phone.jinja2:30
 msgid "Verify phone number"
 msgstr "Bekräfta telefonnummer"
 
-#: security/views/reset_password.py:182
+#: security/views/reset_password.py:206
 msgid "Enter the code you received via SMS"
 msgstr "Ange bekräftelsekoden som har skickats med SMS"
 
-#: security/views/reset_password.py:201
-msgid "Try again"
-msgstr "Försök igen"
-
-#: security/views/reset_password.py:206
+#: security/views/reset_password.py:231
 msgid "Invalid code. Please try again."
 msgstr "Felaktig bekräftelsekod. Vänligen försök igen."
 
-#: security/views/reset_password.py:217
+#: security/views/reset_password.py:242
 msgid "New password"
 msgstr "Nytt lösenord"
 
-#: security/views/reset_password.py:218
+#: security/views/reset_password.py:243
 msgid ""
 "\n"
 "            Please choose a new password for your eduID account. A strong password has been generated for you.\n"
