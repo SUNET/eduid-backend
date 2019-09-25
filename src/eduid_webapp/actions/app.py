@@ -33,6 +33,7 @@
 
 from __future__ import absolute_import
 from importlib import import_module
+from typing import cast
 import types
 
 from flask import Flask, render_template, templating
