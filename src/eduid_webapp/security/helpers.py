@@ -2,6 +2,8 @@
 
 from __future__ import absolute_import
 
+from typing import Optional, List
+
 from flask import current_app, render_template, url_for
 from flask_babel import gettext as _
 
@@ -90,8 +92,8 @@ def generate_suggested_password():
     return password
 
 
-def send_mail(subject: str, to_addresses: list, text_template: str, html_template: str, context: dict = None,
-              reference: str = None):
+def send_mail(subject: str, to_addresses: List[str], text_template: str, html_template: str,
+              context: Optional[dict] = None, reference: Optional[str] = None):
     """
     :param subject: subject text
     :param to_addresses: email addresses for the to field
@@ -120,7 +122,7 @@ def send_mail(subject: str, to_addresses: list, text_template: str, html_templat
     current_app.mail_relay.sendmail(subject, to_addresses, text, html, reference)
 
 
-def send_sms(phone_number: str, text_template: str, context: dict = None, reference: str = None):
+def send_sms(phone_number: str, text_template: str, context: Optional[dict] = None, reference: Optional[str] = None):
     """
     :param phone_number: the recipient of the sms
     :param text_template: message as a jinja template
