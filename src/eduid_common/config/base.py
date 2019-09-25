@@ -53,6 +53,7 @@ class CeleryConfig:
     accept_content: List[str] = field(default_factory=lambda: ["application/json"])
     broker_url: str = ''
     result_backend: str = 'cache'
+    result_backend_transport_options: dict = field(default_factory=dict)
     cache_backend: str = 'memory'
     task_serializer: str = 'json'
     task_eager_propagates: bool = False
@@ -284,6 +285,7 @@ class BaseConfig(CommonConfig):
     fido2_rp_id: str = ''
     stats_host: str = ''
     stats_port: int = 0
+    sentry_dsn: Optional[str] = None
 
     @classmethod
     def init_config(cls, superns: str = 'webapp',
