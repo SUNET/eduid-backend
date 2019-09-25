@@ -283,6 +283,7 @@ class BaseConfig(CommonConfig):
     fido2_rp_id: str = ''
     stats_host: str = ''
     stats_port: int = 0
+    sentry_dsn: Optional[str] = None
 
     @classmethod
     def init_config(cls, superns: str = 'webapp',
