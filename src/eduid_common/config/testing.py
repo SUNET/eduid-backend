@@ -61,9 +61,10 @@ class EtcdTemporaryInstance(object):
         self._port = random.randint(40000, 50000)
         self._process = subprocess.Popen(['docker', 'run', '--rm',
                                           '-p', '{!s}:2379'.format(self._port),
-                                          'docker.sunet.se/library/etcd:v2.2.5',
-                                          '-advertise-client-urls', 'http://${HostIP}:2379',
-                                          '-listen-client-urls', 'http://0.0.0.0:2379'],
+                                          'docker.sunet.se/library/etcd:v3.3.12',
+                                          'etcd',
+                                          '--advertise-client-urls', 'http://0.0.0.0:2379',
+                                          '--listen-client-urls', 'http://0.0.0.0:2379'],
                                          stdout=open('/tmp/etcd-temp.log', 'wb'),
                                          stderr=subprocess.STDOUT)
 
