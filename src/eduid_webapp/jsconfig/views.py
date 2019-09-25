@@ -33,13 +33,13 @@
 from typing import Optional
 
 import requests
+from flask import Blueprint, abort, current_app, render_template
+
 from eduid_common.api.decorators import MarshalWith
 from eduid_common.api.schemas.base import FluxStandardAction
-from eduid_common.config.parsers.etcd import etcd, EtcdConfigParser
-from eduid_common.api.exceptions import BadConfiguration
+from eduid_common.config.exceptions import BadConfiguration
+from eduid_common.config.parsers.etcd import EtcdConfigParser, etcd
 from eduid_common.session import session
-from flask import Blueprint, current_app, render_template, abort
-
 from eduid_webapp.jsconfig.settings.front import dashboard_config, signup_config
 
 jsconfig_views = Blueprint('jsconfig', __name__, url_prefix='', template_folder='templates')

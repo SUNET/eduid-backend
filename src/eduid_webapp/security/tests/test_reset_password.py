@@ -3,6 +3,7 @@ from __future__ import absolute_import
 
 import datetime
 
+from eduid_common.api.exceptions import MsgTaskFailed, MailTaskFailed
 from mock import patch
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.authn.testing import TestVCCSClient
@@ -51,15 +52,16 @@ class SecurityResetPasswordTests(EduidAPITestCase):
                     'csrf': sess.get_csrf_token(),
                     'email': email_address
                 }
-            response2 = c.post('/reset-password/', data=data)
-            self.assertEqual(response2.status_code, 200)
+            response = c.post('/reset-password/', data=data)
+            self.assertEqual(response.status_code, 200)
+        return response
 
     def verify_email_address(self, state):
         with self.app.test_client() as c:
-            response2 = c.get('/reset-password/email/{}'.format(state.email_code.code))
+            response = c.get('/reset-password/email/{}'.format(state.email_code.code))
 
-            self.assertEqual(response2.status_code, 302)
-            self.assertEqual(response2.location, 'http://{}/reset-password/extra-security/{}'.format(
+            self.assertEqual(response.status_code, 302)
+            self.assertEqual(response.location, 'http://{}/reset-password/extra-security/{}'.format(
                              self.app.config['SERVER_NAME'], state.email_code.code))
             self.assertEqual(self.app.proofing_log.db_count(), 1)
 
@@ -71,8 +73,8 @@ class SecurityResetPasswordTests(EduidAPITestCase):
                     'csrf': sess.get_csrf_token(),
                     'phone_number_index': '0'
                 }
-            response2 = c.post('/reset-password/extra-security/{}'.format(state.email_code.code), data=data)
-            self.assertEqual(response2.status_code, 302)
+            response = c.post('/reset-password/extra-security/{}'.format(state.email_code.code), data=data)
+            self.assertEqual(response.status_code, 302)
 
     def choose_no_extra_security(self, state):
         with self.app.test_client() as c:
@@ -82,8 +84,8 @@ class SecurityResetPasswordTests(EduidAPITestCase):
                     'csrf': sess.get_csrf_token(),
                     'no_extra_security': 'true'
                 }
-            response2 = c.post('/reset-password/extra-security/{}'.format(state.email_code.code), data=data)
-            self.assertEqual(response2.status_code, 302)
+            response = c.post('/reset-password/extra-security/{}'.format(state.email_code.code), data=data)
+            self.assertEqual(response.status_code, 302)
 
     def no_extra_security_alternatives(self, state):
         with self.app.test_client() as c:
@@ -99,8 +101,8 @@ class SecurityResetPasswordTests(EduidAPITestCase):
                     'csrf': sess.get_csrf_token(),
                     'phone_code': state.phone_code.code
                 }
-            response2 = c.post('/reset-password/extra-security/phone/{}'.format(state.email_code.code), data=data)
-            self.assertEqual(response2.status_code, 302)
+            response = c.post('/reset-password/extra-security/phone/{}'.format(state.email_code.code), data=data)
+            self.assertEqual(response.status_code, 302)
             self.assertEqual(self.app.proofing_log.db_count(), 2)
 
     def choose_generated_password(self, state):
@@ -111,8 +113,8 @@ class SecurityResetPasswordTests(EduidAPITestCase):
                     'csrf': sess.get_csrf_token(),
                     'use_generated_password': 'true'
                 }
-            response2 = c.post('/reset-password/new-password/{}'.format(state.email_code.code), data=data)
-            self.assertEqual(response2.status_code, 200)
+            response = c.post('/reset-password/new-password/{}'.format(state.email_code.code), data=data)
+            self.assertEqual(response.status_code, 200)
 
         with self.assertRaises(DocumentDoesNotExist):
             self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
@@ -126,8 +128,8 @@ class SecurityResetPasswordTests(EduidAPITestCase):
                     'custom_password': 'a_pretty_long_password',
                     'repeat_password': 'a_pretty_long_password'
                 }
-            response2 = c.post('/reset-password/new-password/{}'.format(state.email_code.code), data=data)
-            self.assertEqual(response2.status_code, 200)
+            response = c.post('/reset-password/new-password/{}'.format(state.email_code.code), data=data)
+            self.assertEqual(response.status_code, 200)
 
         with self.assertRaises(DocumentDoesNotExist):
             self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
@@ -185,6 +187,18 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         self.assertEqual(self.app.proofing_log.db_count(), 1)
 
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
+    def test_password_reset_email_code_mail_relay_problem(self, mock_sendmail):
+        mock_sendmail.side_effect = MailTaskFailed('test')
+        response = self.post_email_address('johnsmith@example.com')
+        self.assertIn(b'Temporary technical problem', response.data)
+
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+        self.assertIsNotNone(state)
+
+        self.assertEqual(state.email_code.is_verified, False)
+        self.assertEqual(self.app.proofing_log.db_count(), 0)
+
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     def test_password_reset_extra_security_no_verified_email(self, mock_sendmail):
         mock_sendmail.return_value = True
         self.post_email_address('johnsmith@example.com')
@@ -194,9 +208,9 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         email_code = state.email_code.code
 
         with self.app.test_client() as c:
-            response2 = c.get('/reset-password/extra-security/{}'.format(email_code))
-            self.assertEqual(response2.status_code, 200)
-            self.assertIn(b'Email address not validated', response2.data)
+            response = c.get('/reset-password/extra-security/{}'.format(email_code))
+            self.assertEqual(response.status_code, 200)
+            self.assertIn(b'Email address not validated', response.data)
 
         state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
         self.assertIsNotNone(state)
@@ -227,6 +241,34 @@ class SecurityResetPasswordTests(EduidAPITestCase):
 
         state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
         self.assertEqual(state.phone_code.is_verified, True)
+
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
+    @patch('eduid_common.api.msg.MsgRelay.sendsms')
+    def test_password_reset_extra_security_phone_msg_relay_problem(self, mock_sendsms, mock_sendmail):
+        mock_sendmail.return_value = True
+        mock_sendsms.side_effect = MsgTaskFailed('test')
+        self.post_email_address('johnsmith@example.com')
+
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+        self.assertIsNotNone(state)
+
+        self.verify_email_address(state)
+
+        # Choose extra security phone and send sms
+        with self.app.test_client() as c:
+            c.get('/reset-password/extra-security/{}'.format(state.email_code.code))
+            with c.session_transaction() as sess:
+                data = {
+                    'csrf': sess.get_csrf_token(),
+                    'phone_number_index': '0'
+                }
+            response = c.post('/reset-password/extra-security/{}'.format(state.email_code.code), data=data)
+            self.assertEqual(response.status_code, 200)
+            self.assertIn(b'Temporary technical problem', response.data)
+
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+        self.assertIsNotNone(state.phone_code)
+        self.assertEqual(state.phone_code.is_verified, False)
 
     @patch('eduid_common.authn.vccs.get_vccs_client')
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
@@ -433,8 +475,8 @@ class SecurityResetPasswordTests(EduidAPITestCase):
                     'custom_password': 'bad',
                     'repeat_password': 'bad'
                 }
-            response2 = c.post('/reset-password/new-password/{}'.format(state.email_code.code), data=data)
-            self.assertEqual(response2.status_code, 200)
+            response = c.post('/reset-password/new-password/{}'.format(state.email_code.code), data=data)
+            self.assertEqual(response.status_code, 200)
 
         state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
         self.assertIsNotNone(state)
@@ -475,8 +517,8 @@ class SecurityResetPasswordTests(EduidAPITestCase):
                     'custom_password': '',
                     'repeat_password': ''
                 }
-            response2 = c.post('/reset-password/new-password/{}'.format(state.email_code.code), data=data)
-            self.assertEqual(response2.status_code, 200)
+            response = c.post('/reset-password/new-password/{}'.format(state.email_code.code), data=data)
+            self.assertEqual(response.status_code, 200)
 
         state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
         self.assertIsNotNone(state)

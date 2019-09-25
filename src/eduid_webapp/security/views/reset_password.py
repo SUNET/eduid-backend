@@ -4,6 +4,8 @@ from __future__ import absolute_import
 
 import json
 from functools import wraps
+
+from eduid_common.api.exceptions import MailTaskFailed, MsgTaskFailed
 from flask import Blueprint, request, render_template, current_app, url_for, redirect
 from flask_babel import gettext as _
 
@@ -88,7 +90,17 @@ def reset_password():
         form = ResetPasswordEmailSchema().load(request.form)
         if not form.errors and session.get_csrf_token() == form.data['csrf']:
             current_app.logger.info('Trying to send password reset email to {}'.format(form.data['email']))
-            send_password_reset_mail(form.data['email'])
+            try:
+                send_password_reset_mail(form.data['email'])
+            except MailTaskFailed as e:
+                current_app.logger.error('Sending e-mail failed: {}'.format(e))
+                view_context = {
+                    'heading': _('Temporary technical problem'),
+                    'text': _('Please try again.'),
+                    'retry_url': url_for('reset_password.reset_password'),
+                    'retry_url_txt': _('Try again'),
+                }
+                return render_template('error.jinja2', view_context=view_context)
             view_context['form_post_success'] = True
             view_context['text'] = ''
         view_context['errors'] = form.errors
@@ -147,7 +159,17 @@ def choose_extra_security(state):
                 phone_number_index = int(form.data.get('phone_number_index'))
                 phone_number = state.extra_security['phone_numbers'][phone_number_index]
                 current_app.logger.info('Trying to send password reset sms to user {}'.format(state.eppn))
-                send_verify_phone_code(state, phone_number)
+                try:
+                    send_verify_phone_code(state, phone_number)
+                except MsgTaskFailed as e:
+                    current_app.logger.error('Sending sms failed: {}'.format(e))
+                    view_context = {
+                        'heading': _('Temporary technical problem'),
+                        'text': _('Please try again.'),
+                        'retry_url': url_for('reset_password.choose_extra_security', email_code=state.email_code.code),
+                        'retry_url_txt': _('Try again'),
+                    }
+                    return render_template('error.jinja2', view_context=view_context)
                 current_app.logger.info('Redirecting user to verify phone number view')
                 current_app.stats.count(name='reset_password_extra_security_phone')
                 return redirect(url_for('reset_password.extra_security_phone_number', email_code=state.email_code.code))

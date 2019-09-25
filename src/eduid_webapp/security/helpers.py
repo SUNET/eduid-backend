@@ -2,6 +2,8 @@
 
 from __future__ import absolute_import
 
+from typing import Optional, List
+
 from flask import current_app, render_template, url_for
 from flask_babel import gettext as _
 
@@ -90,8 +92,16 @@ def generate_suggested_password():
     return password
 
 
-def send_mail(subject, to_addresses, text_template, html_template, context=None, reference=None,
-              max_retry_timeout=86400):
+def send_mail(subject: str, to_addresses: List[str], text_template: str, html_template: str,
+              context: Optional[dict] = None, reference: Optional[str] = None):
+    """
+    :param subject: subject text
+    :param to_addresses: email addresses for the to field
+    :param text_template: text message as a jinja template
+    :param html_template: html message as a jinja template
+    :param context: template context
+    :param reference: Audit reference to help cross reference audit log and events
+    """
     site_name = current_app.config.get("EDUID_SITE_NAME")
     site_url = current_app.config.get("EDUID_SITE_URL")
 
@@ -109,22 +119,15 @@ def send_mail(subject, to_addresses, text_template, html_template, context=None,
     current_app.logger.debug(u'rendered text: {}'.format(text))
     html = render_template(html_template, **context)
     current_app.logger.debug(u'rendered html: {}'.format(html))
-    current_app.mail_relay.sendmail(subject, to_addresses, text, html, reference, max_retry_timeout)
+    current_app.mail_relay.sendmail(subject, to_addresses, text, html, reference)
 
 
-def send_sms(phone_number, text_template, context=None, reference=None, max_retry_timeout=86400):
+def send_sms(phone_number: str, text_template: str, context: Optional[dict] = None, reference: Optional[str] = None):
     """
     :param phone_number: the recipient of the sms
     :param text_template: message as a jinja template
     :param context: template context
     :param reference: Audit reference to help cross reference audit log and events
-    :param max_retry_timeout: Do not retry this task if seconds trying exceeds this number
-
-    :type phone_number: six.string_types
-    :type text_template: six.string_types
-    :type context: dict
-    :type reference: six.string_types
-    :type max_retry_timeout: int
     """
     site_name = current_app.config.get("EDUID_SITE_NAME")
     site_url = current_app.config.get("EDUID_SITE_URL")
@@ -138,7 +141,7 @@ def send_sms(phone_number, text_template, context=None, reference=None, max_retr
     context.update(default_context)
 
     message = render_template(text_template, **context)
-    current_app.msg_relay.sendsms(phone_number, message, reference, max_retry_timeout)
+    current_app.msg_relay.sendsms(phone_number, message, reference)
 
 
 def send_termination_mail(user):
@@ -183,9 +186,8 @@ def send_password_reset_mail(email_address):
                                        _external=True),
         'password_reset_timeout': password_reset_timeout
     }
-    max_retry_timeout = current_app.config['EMAIL_CODE_TIMEOUT']  # password reset timeout in seconds
     subject = _('Reset password')
-    send_mail(subject, to_addresses, text_template, html_template, context, state.reference, max_retry_timeout)
+    send_mail(subject, to_addresses, text_template, html_template, context, state.reference)
     current_app.logger.info('Sent password reset email to user {}'.format(state.eppn))
     current_app.logger.debug('Mail address: {}'.format(to_addresses))
 
@@ -219,12 +221,10 @@ def send_verify_phone_code(state, phone_number):
                                                              phone_code=get_short_hash())
     current_app.password_reset_state_db.save(state)
     template = 'reset_password_sms.txt.jinja2'
-    # password reset timeout in seconds
-    password_reset_timeout = current_app.config['PHONE_CODE_TIMEOUT']
     context = {
         'verification_code': state.phone_code.code
     }
-    send_sms(state.phone_number, template, context, state.reference, password_reset_timeout)
+    send_sms(state.phone_number, template, context, state.reference)
     current_app.logger.info('Sent password reset sms to user {}'.format(state.eppn))
     current_app.logger.debug('Phone number: {}'.format(state.phone_number))
 
