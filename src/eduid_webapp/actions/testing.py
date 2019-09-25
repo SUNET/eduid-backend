@@ -122,8 +122,8 @@ TEST_CONFIG = {
 
 class ActionsTestCase(EduidAPITestCase):
 
-    def setUp(self, init_am=True, users=None, copy_user_to_private=False, am_settings=None):
-        super(ActionsTestCase, self).setUp(init_am=True, users=None, copy_user_to_private=False, am_settings=None)
+    def setUp(self, users=None, copy_user_to_private=False, am_settings=None):
+        super(ActionsTestCase, self).setUp(users=None, copy_user_to_private=False, am_settings=None)
         user_data = deepcopy(MOCKED_USER_STANDARD)
         user_data['modified_ts'] = datetime.utcnow()
         self.user = User(data=user_data)
