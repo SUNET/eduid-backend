@@ -34,6 +34,7 @@ from copy import deepcopy
 
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from typing import List, Optional
 
 from flask import current_app
 import eduid_msg
@@ -50,19 +51,15 @@ class MailRelay(object):
         self._sendmail = sendmail
         self._pong = pong
 
-    def sendmail(self, subject, recipients, text=None, html=None, reference=None):
+    def sendmail(self, subject: str, recipients: List[str], text: Optional[str] = None, html: Optional[str] = None,
+                 reference: Optional[str] = None, timeout: Optional[int] = 4):
         """
         :param subject: Message subject
         :param recipients: List of recipients
         :param text: Message in text format
         :param html: Message in html format
         :param reference: Audit reference to help cross reference audit log and events
-
-        :type subject: six.string_types
-        :type recipients: list
-        :type text: six.string_types
-        :type html: six.string_types
-        :type reference: six.string_types
+        :param timeout: Max wait time for task to finish
         """
         sender = current_app.config["MAIL_DEFAULT_FROM"]
         msg = MIMEMultipart('alternative')
@@ -75,13 +72,14 @@ class MailRelay(object):
             msg.attach(MIMEText(html, 'html', 'utf-8'))
 
         current_app.logger.debug(u'About to send email:\n\n {}'.format(msg.as_string()))
+        rtask = self._sendmail.apply_async(args=[sender, recipients, msg.as_string(), reference])
 
         try:
-            rtask = self._sendmail.delay(sender, recipients, msg.as_string(), reference)
+            res = rtask.get(timeout=timeout)
+            current_app.logger.info('SMS with reference {} sent. Task result: {}'.format(reference, res))
         except Exception as e:
-            err = u'Error sending mail: {!r}'.format(e)
-            current_app.logger.error(err)
-            raise MailTaskFailed(err)
+            rtask.forget()
+            raise MailTaskFailed(f'sendmail task failed: {repr(e)}')
 
         current_app.logger.info(u'Sent email {} to {} with subject {}'.format(rtask, recipients, subject))
 
