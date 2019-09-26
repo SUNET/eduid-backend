@@ -52,6 +52,7 @@ from eduid_common.authn.eduid_saml2 import get_authn_request
 from eduid_common.authn.tests.responses import (auth_response,
                                                 logout_response,
                                                 logout_request)
+from eduid_webapp.authn.settings.common import AuthnConfig
 from eduid_webapp.authn.app import authn_init_app
 from eduid_common.api.app import eduid_init_app
 
@@ -79,7 +80,7 @@ class AuthnAPITestBase(EduidAPITestCase):
             'signup_authn_failure_redirect_url': 'http://test.localhost/failure',
             'safe_relay_domain': 'test.localhost'
             })
-        return config
+        return AuthnConfig(**config)
 
     def load_app(self, config):
         """
@@ -339,14 +340,14 @@ class UnAuthnAPITestCase(EduidAPITestCase):
             'token_service_url': 'http://login',
             'saml2_settings_module': saml_config,
             })
-        return config
+        return AuthnConfig(**config)
 
     def load_app(self, config):
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        return eduid_init_app('testing', config)
+        return eduid_init_app('testing', config, config_class=AuthnConfig)
 
     def test_no_cookie(self):
         with self.app.test_client() as c:
@@ -392,14 +393,14 @@ class NoAuthnAPITestCase(EduidAPITestCase):
             'saml2_settings_module': saml_config,
             'no_authn_urls': ['^/test$'],
             })
-        return config
+        return AuthnConfig(**config)
 
     def load_app(self, config):
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        return eduid_init_app('testing', config)
+        return eduid_init_app('testing', config, config_class=AuthnConfig)
 
     def test_no_authn(self):
         with self.app.test_client() as c:
