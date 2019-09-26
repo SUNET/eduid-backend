@@ -45,6 +45,7 @@ from eduid_userdb.testing import MOCKED_USER_STANDARD
 from eduid_userdb.userdb import User
 from eduid_webapp.actions.action_abc import ActionPlugin
 from eduid_webapp.actions.app import actions_init_app
+from eduid_webapp.actions.settings.common import ActionsConfig
 
 
 class MockIdPContext:
@@ -152,7 +153,7 @@ class ActionsTestCase(EduidAPITestCase):
     def update_config(self, config):
         more_config = self.update_actions_config(deepcopy(TEST_CONFIG))
         config.update(more_config)
-        return config
+        return ActionsConfig(**config)
 
     @contextmanager
     def session_cookie(self, client, server_name='localhost'):
