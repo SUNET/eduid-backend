@@ -51,17 +51,17 @@ class AuthnTests(EduidAPITestCase):
 
     def update_config(self, config):
         config.update({
-            'available_languages': {'en': 'English','sv': 'Svenska'},
-            'development': 'DEBUG',
-            'application_root': '/',
-            'no_authn_urls': [],
-            'log_level': 'DEBUG',
-            'am_broker_url': 'amqp://eduid:eduid_pw@rabbitmq/am',
-            'msg_broker_url': 'amqp://eduid:eduid_pw@rabbitmq/msg',
-            'celery_config': {
-                'result_backend': 'amqp',
-                'task_serializer': 'json',
-                'mongo_uri': config['mongo_uri'],
+            'AVAILABLE_LANGUAGES': {'en': 'English','sv': 'Svenska'},
+            'DEVELOPMENT': 'DEBUG',
+            'APPLICATION_ROOT': '/',
+            'NO_AUTHN_URLS': [],
+            'LOG_LEVEL': 'DEBUG',
+            'AM_BROKER_URL': 'amqp://eduid:eduid_pw@rabbitmq/am',
+            'MSG_BROKER_URL': 'amqp://eduid:eduid_pw@rabbitmq/msg',
+            'CELERY_CONFIG': {
+                'RESULT_BACKEND': 'amqp',
+                'TASK_SERIALIZER': 'json',
+                'MONGO_URI': config['MONGO_URI'],
             },
         })
         return config
@@ -87,16 +87,16 @@ class UnAuthnTests(EduidAPITestCase):
 
     def update_config(self, config):
         config.update({
-            'available_languages': {'en': 'English','sv': 'Svenska'},
-            'development': 'DEBUG',
-            'application_root': '/',
-            'log_level': 'DEBUG',
-            'am_broker_url': 'amqp://eduid:eduid_pw@rabbitmq/am',
-            'msg_broker_url': 'amqp://eduid:eduid_pw@rabbitmq/msg',
-            'celery_config': {
-                'result_backend': 'amqp',
-                'task_serializer': 'json',
-                'mongo_uri': config['mongo_uri'],
+            'AVAILABLE_LANGUAGES': {'en': 'English','sv': 'Svenska'},
+            'DEVELOPMENT': 'DEBUG',
+            'APPLICATION_ROOT': '/',
+            'LOG_LEVEL': 'DEBUG',
+            'AM_BROKER_URL': 'amqp://eduid:eduid_pw@rabbitmq/am',
+            'MSG_BROKER_URL': 'amqp://eduid:eduid_pw@rabbitmq/msg',
+            'CELERY_CONFIG': {
+                'RESULT_BACKEND': 'amqp',
+                'TASK_SERIALIZER': 'json',
+                'MONGO_URI': config['MONGO_URI'],
             },
         })
         return config
