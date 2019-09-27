@@ -20,9 +20,6 @@ script:
   - "pip freeze"
   - "nosetests"
   - "mypy --ignore-missing-imports src/eduid_webapp"
-  - "python setup.py sdist bdist_wheel --universal"
-publish_over_ssh:
-  - pypi.sunet.se
 clean_workspace: true
 
 extra_jobs:
