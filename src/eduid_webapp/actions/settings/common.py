@@ -32,7 +32,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 """
-Configuration (file) handling for eduID IdP.
+Configuration (file) handling for the eduID actions app.
 """
 
 from dataclasses import dataclass, field
