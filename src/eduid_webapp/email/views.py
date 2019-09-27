@@ -166,7 +166,7 @@ def verify(user, code, email):
     db = current_app.proofing_statedb
     try:
         state = db.get_state_by_eppn_and_email(proofing_user.eppn, email)
-        timeout = current_app.config['EMAIL_VERIFICATION_TIMEOUT']
+        timeout = current_app.config.email_verification_timeout
         if state.is_expired(timeout):
             current_app.logger.info("Verification code is expired. Removing the state")
             current_app.logger.debug("Proofing state: {}".format(state))
@@ -218,12 +218,12 @@ def verify_link(user):
     email = request.args.get('email')
     if code and email:
         current_app.logger.debug('Trying to save email address {} as verified for user {}'.format(email, proofing_user))
-        redirect_url = current_app.config['EMAIL_VERIFY_REDIRECT_URL']
+        redirect_url = current_app.config.email_verify_redirect_url
         scheme, netloc, path, query_string, fragment = urlsplit(redirect_url)
 
         try:
             state = current_app.proofing_statedb.get_state_by_eppn_and_email(proofing_user.eppn, email)
-            timeout = current_app.config.get('EMAIL_VERIFICATION_TIMEOUT', 24)
+            timeout = current_app.config.email_verification_timeout
             if state.is_expired(timeout):
                 current_app.logger.info("Verification code is expired. Removing the state")
                 current_app.logger.debug("Proofing state: {}".format(state))
