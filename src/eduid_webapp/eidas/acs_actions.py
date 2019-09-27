@@ -41,7 +41,7 @@ def token_verify_action(session_info, user):
     :return: redirect response
     :rtype: Response
     """
-    redirect_url = current_app.config['TOKEN_VERIFY_REDIRECT_URL']
+    redirect_url = current_app.config.token_verify_redirect_url
 
     if not is_required_loa(session_info, 'loa3'):
         return redirect_with_msg(redirect_url, ':ERROR:eidas.authn_context_mismatch')
@@ -123,7 +123,7 @@ def nin_verify_action(session_info, user):
     :rtype: Response
     """
 
-    redirect_url = current_app.config['NIN_VERIFY_REDIRECT_URL']
+    redirect_url = current_app.config.nin_verify_redirect_url
 
     if not is_required_loa(session_info, 'loa3'):
         return redirect_with_msg(redirect_url, ':ERROR:eidas.authn_context_mismatch')
@@ -180,7 +180,7 @@ def mfa_authentication_action(session_info, user):
         # With no redirect url just redirect the user to dashboard for a new try to log in
         # TODO: This will result in a error 400 until we put the authentication in the session
         current_app.logger.error('Missing redirect url for mfa authentication')
-        return redirect_with_msg(current_app.config['ACTION_URL'], ':ERROR:eidas.no_redirect_url')
+        return redirect_with_msg(current_app.config.action_url, ':ERROR:eidas.no_redirect_url')
 
     # We get the mfa authentication views "next" argument as base64 to avoid our request sanitation
     # to replace all & to &amp;
