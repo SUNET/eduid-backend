@@ -21,4 +21,4 @@ Test
 Once installed, test it with::
 
   $ source venv/bin/activate
-  $ nosetests
+  $ pytest
