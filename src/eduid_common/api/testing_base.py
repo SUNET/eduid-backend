@@ -47,7 +47,7 @@ logger = logging.getLogger(__name__)
 
 class CommonTestCase(MongoTestCase):
     """
-    Base Test case for eduID APIs.
+    Base Test case for eduID webapps and celery workers
     """
 
     def setUp(self, users=None, am_settings=None):
