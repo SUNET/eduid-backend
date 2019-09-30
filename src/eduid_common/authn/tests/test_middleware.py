@@ -36,6 +36,7 @@ from mock import patch
 
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.api.app import eduid_init_app
+from eduid_common.config.base import FlaskConfig
 from eduid_common.config.app import EduIDApp
 
 
@@ -50,17 +51,17 @@ class AuthnTests(EduidAPITestCase):
 
     def update_config(self, config):
         config.update({
-            'available_languages': {'en': 'English','sv': 'Svenska'},
-            'development': 'DEBUG',
-            'application_root': '/',
-            'no_authn_urls': [],
-            'log_level': 'DEBUG',
-            'am_broker_url': 'amqp://eduid:eduid_pw@rabbitmq/am',
-            'msg_broker_url': 'amqp://eduid:eduid_pw@rabbitmq/msg',
-            'celery_config': {
-                'result_backend': 'amqp',
-                'task_serializer': 'json',
-                'mongo_uri': config['MONGO_URI'],
+            'AVAILABLE_LANGUAGES': {'en': 'English','sv': 'Svenska'},
+            'DEVELOPMENT': 'DEBUG',
+            'APPLICATION_ROOT': '/',
+            'NO_AUTHN_URLS': [],
+            'LOG_LEVEL': 'DEBUG',
+            'AM_BROKER_URL': 'amqp://eduid:eduid_pw@rabbitmq/am',
+            'MSG_BROKER_URL': 'amqp://eduid:eduid_pw@rabbitmq/msg',
+            'CELERY_CONFIG': {
+                'RESULT_BACKEND': 'amqp',
+                'TASK_SERIALIZER': 'json',
+                'MONGO_URI': config['MONGO_URI'],
             },
         })
         return config
@@ -81,20 +82,21 @@ class UnAuthnTests(EduidAPITestCase):
         Called from the parent class, so we can provide the appropiate flask
         app for this test case.
         """
-        return eduid_init_app('testing', config, app_class=EduIDApp)
+        return eduid_init_app('testing', config, app_class=EduIDApp,
+                              config_class=FlaskConfig)
 
     def update_config(self, config):
         config.update({
-            'available_languages': {'en': 'English','sv': 'Svenska'},
-            'development': 'DEBUG',
-            'application_root': '/',
-            'log_level': 'DEBUG',
-            'am_broker_url': 'amqp://eduid:eduid_pw@rabbitmq/am',
-            'msg_broker_url': 'amqp://eduid:eduid_pw@rabbitmq/msg',
-            'celery_config': {
-                'result_backend': 'amqp',
-                'task_serializer': 'json',
-                'mongo_uri': config['MONGO_URI'],
+            'AVAILABLE_LANGUAGES': {'en': 'English','sv': 'Svenska'},
+            'DEVELOPMENT': 'DEBUG',
+            'APPLICATION_ROOT': '/',
+            'LOG_LEVEL': 'DEBUG',
+            'AM_BROKER_URL': 'amqp://eduid:eduid_pw@rabbitmq/am',
+            'MSG_BROKER_URL': 'amqp://eduid:eduid_pw@rabbitmq/msg',
+            'CELERY_CONFIG': {
+                'RESULT_BACKEND': 'amqp',
+                'TASK_SERIALIZER': 'json',
+                'MONGO_URI': config['MONGO_URI'],
             },
         })
         return config
@@ -103,7 +105,7 @@ class UnAuthnTests(EduidAPITestCase):
     def session_cookie(self, client, server_name='localhost'):
         with client.session_transaction() as sess:
             sess.persist()
-        client.set_cookie(server_name, key=self.app.config.get('SESSION_COOKIE_NAME'), value=sess._session.token)
+        client.set_cookie(server_name, key=self.app.config.session_cookie_name, value=sess._session.token)
         yield client
 
     def test_get_view(self):

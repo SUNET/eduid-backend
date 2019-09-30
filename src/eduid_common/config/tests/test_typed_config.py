@@ -5,7 +5,7 @@ from __future__ import absolute_import
 import os
 import unittest
 
-from eduid_common.api.testing import EtcdTemporaryInstance
+from eduid_common.config.testing import EtcdTemporaryInstance
 from eduid_common.config.parsers.etcd import EtcdConfigParser
 from eduid_common.config.idp import IdPConfig
 from eduid_common.config.base import FlaskConfig

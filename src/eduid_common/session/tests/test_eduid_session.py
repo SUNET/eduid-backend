@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from typing import Optional, List, Dict, Any
+
 from flask import request
 
 from eduid_common.api.app import eduid_init_app_no_db
@@ -49,9 +51,15 @@ def session_init_app(name, config):
 
 class EduidSessionTests(EduidAPITestCase):
 
-    def setUp(self, init_am=True, users=None, copy_user_to_private=False, am_settings=None):
+
+    def setUp(self, users: Optional[List[str]] = None,
+              copy_user_to_private: bool = False,
+              am_settings: Optional[Dict[str, Any]] = None,
+              init_am: bool = True  # XXX for backwards compat, remove when all webapps
+                                    # are using the new config dataclasses
+              ):
         self.test_user_eppn = 'hubba-bubba'
-        super().setUp(init_am=init_am, users=users, copy_user_to_private=copy_user_to_private, am_settings=am_settings)
+        super().setUp(users=users, copy_user_to_private=copy_user_to_private, am_settings=am_settings)
 
     def load_app(self, config):
         """

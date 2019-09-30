@@ -33,23 +33,26 @@
 
 from __future__ import absolute_import
 
-import os
 import sys
+import logging
 import traceback
 from contextlib import contextmanager
 from copy import deepcopy
-
-from typing import Dict, Any
+from typing import Optional, List, Dict, Any
 
 from flask.testing import FlaskClient
 
-from eduid_common.session import EduidSession
 from eduid_common.session.testing import RedisTemporaryInstance
-from eduid_common.config.testing import EtcdTemporaryInstance
+from eduid_common.api.testing_base import CommonTestCase
+from eduid_common.session import EduidSession
+from eduid_common.config.base import FlaskConfig
 from eduid_userdb import User
 from eduid_userdb.db import BaseDB
-from eduid_userdb.testing import MongoTestCase
-from eduid_userdb.data_samples import NEW_USER_EXAMPLE, NEW_UNVERIFIED_USER_EXAMPLE, NEW_COMPLETED_SIGNUP_USER_EXAMPLE
+from eduid_userdb.data_samples import (NEW_USER_EXAMPLE,
+                                       NEW_UNVERIFIED_USER_EXAMPLE,
+                                       NEW_COMPLETED_SIGNUP_USER_EXAMPLE)
+
+logger = logging.getLogger(__name__)
 
 
 TEST_CONFIG = {
@@ -80,6 +83,14 @@ TEST_CONFIG = {
     'TOKEN_SERVICE_URL': 'http://test.localhost/',
 }
 
+
+_standard_test_users = {
+    'hubba-bubba': NEW_USER_EXAMPLE,
+    'hubba-baar': NEW_UNVERIFIED_USER_EXAMPLE,
+    'hubba-fooo': NEW_COMPLETED_SIGNUP_USER_EXAMPLE,
+}
+
+
 class APIMockedUserDB(object):
 
     test_users: Dict[str, Any] = {}
@@ -92,59 +103,58 @@ class APIMockedUserDB(object):
             yield deepcopy(user)
 
 
-_standard_test_users = {
-    'hubba-bubba': NEW_USER_EXAMPLE,
-    'hubba-baar': NEW_UNVERIFIED_USER_EXAMPLE,
-    'hubba-fooo': NEW_COMPLETED_SIGNUP_USER_EXAMPLE,
-}
-
-
-class EduidAPITestCase(MongoTestCase):
+class EduidAPITestCase(CommonTestCase):
     """
     Base Test case for eduID APIs.
 
     See the `load_app` and `update_config` methods below before subclassing.
     """
-
     # This concept with a class variable is broken - doesn't provide isolation between tests.
     # Do what we can and initialise it empty here, and then fill it in __init__.
     MockedUserDB = APIMockedUserDB
 
-    def setUp(self, init_am=True, users=None, copy_user_to_private=False,
-            am_settings=None):
+    def setUp(self, users: Optional[List[str]] = None,
+              copy_user_to_private: bool = False,
+              am_settings: Optional[Dict[str, Any]] = None,
+              init_am: bool = True  # XXX for backwards compat, remove when all webapps
+                                    # are using the new config dataclasses
+              ):
+        """
+        set up tests
+        """
+        # test users
         self.MockedUserDB.test_users = {}
         if users is None:
             users = ['hubba-bubba']
         for this in users:
             self.MockedUserDB.test_users[this] = _standard_test_users.get(this)
 
-        # get rid of the class variable self.user from MongoTestCase - class variables does
-        # not provide proper isolation between tests
         self.user = None
         # Initialize some convenience variables on self based on the first user in `users'
         self.test_user_data = _standard_test_users.get(users[0])
         self.test_user = User(data=self.test_user_data)
 
-        super(EduidAPITestCase, self).setUp(init_am=init_am, am_settings=am_settings)
-
+        super(EduidAPITestCase, self).setUp(users=users,
+                                            am_settings=am_settings)
+        # Set up Redis for shared sessions
         self.redis_instance = RedisTemporaryInstance.get_instance()
-        self.etcd_instance = EtcdTemporaryInstance.get_instance()
+        # settings
         config = deepcopy(TEST_CONFIG)
-        config['REDIS_PORT'] = str(self.redis_instance.port)
-        config['MONGO_URI'] = self.tmp_db.uri
-        if init_am:
-            # 'CELERY' is the key used in workers, and 'CELERY_CONFIG' is used in webapps.
-            # self.am_settings is initialized by the super-class MongoTestCase.
-            #
-            # We need to copy this data from am_settings to config, because AM will be
-            # re-initialized in load_app() below.
-            config['CELERY_CONFIG'] = self.am_settings['CELERY']
-            if self.am_settings.get('ACTION_PLUGINS'):
-                config['ACTION_PLUGINS'] = self.am_settings['ACTION_PLUGINS']
-        config = self.update_config(config)
+        self.settings = self.update_config(config)
+        self.settings['REDIS_PORT'] = str(self.redis_instance.port)
+        self.settings['MONGO_URI'] = self.tmp_db.uri
+        # 'CELERY' is the key used in workers, and 'CELERY_CONFIG' is used in webapps.
+        # self.am_settings is initialized by the super-class MongoTestCase.
+        #
+        # We need to copy this data from am_settings to config, because AM will be
+        # re-initialized in load_app() below.
+        self.settings['CELERY_CONFIG'] = self.am_settings['CELERY']
 
-        os.environ.update({'ETCD_PORT': str(self.etcd_instance.port)})
-        self.app = self.load_app(config)
+        settings = self.settings
+        if not isinstance(settings, dict):
+            settings = settings.to_dict()
+
+        self.app = self.load_app(settings)
         self.app.test_client_class = CSRFTestClient
         self.browser = self.app.test_client()
 
@@ -169,7 +179,7 @@ class EduidAPITestCase(MongoTestCase):
             sys.stderr.write("Exception in tearDown: {!s}\n{!r}\n".format(exc, exc))
             traceback.print_exc()
             #time.sleep(5)
-        super(EduidAPITestCase, self).tearDown()
+        super(CommonTestCase, self).tearDown()
         # XXX reset redis
 
     def load_app(self, config):
@@ -193,7 +203,7 @@ class EduidAPITestCase(MongoTestCase):
         :type config: dict
 
         :return: the updated configuration
-        :rtype: dict
+        :rtype: FlaskConfig
         """
         return config
 

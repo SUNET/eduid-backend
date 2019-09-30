@@ -38,6 +38,6 @@ def get_worker_config(name: str, config_class: Type[CommonConfig] = BaseConfig) 
     elif name == 'lookup_mobile':
         config_class = MobConfig
     config = config_class(**cfg)
-    if 'broker_url' not in cast(Dict, config.celery):
+    if config.celery.broker_url == '':
         raise BadConfiguration('broker_url for celery is missing')
     return config

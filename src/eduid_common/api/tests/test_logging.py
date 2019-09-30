@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 
+from typing import Optional, List, Dict, Any
+
+from eduid_common.api.app import eduid_init_app
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.api.logging import merge_config
 from eduid_common.config.app import EduIDApp
@@ -9,18 +12,24 @@ __author__ = 'lundberg'
 
 class LoggingTest(EduidAPITestCase):
 
-    def setUp(self, init_am=True, users=None, copy_user_to_private=False, am_settings=None):
+    def setUp(self, users: Optional[List[str]] = None,
+              copy_user_to_private: bool = False,
+              am_settings: Optional[Dict[str, Any]] = None,
+              init_am: bool = True  # XXX for backwards compat, remove when all webapps
+                                    # are using the new config dataclasses
+              ):
 
-        super(LoggingTest, self).setUp(init_am=init_am, users=users, copy_user_to_private=copy_user_to_private,
+        super(LoggingTest, self).setUp(users=users, copy_user_to_private=copy_user_to_private,
                                        am_settings=am_settings)
 
     def load_app(self, config):
-        app = EduIDApp('test_app')
-        app.config.update(config)
-        return app
+        """
+        Called from the parent class, so we can provide the appropiate flask
+        app for this test case.
+        """
+        return eduid_init_app('test_app', config, app_class=EduIDApp)
 
     def update_config(self, config):
-        config.update({})
         return config
 
     def tearDown(self):
