@@ -54,7 +54,10 @@ class EduidSessionTests(EduidAPITestCase):
 
     def setUp(self, users: Optional[List[str]] = None,
               copy_user_to_private: bool = False,
-              am_settings: Optional[Dict[str, Any]] = None):
+              am_settings: Optional[Dict[str, Any]] = None,
+              init_am: bool = True  # XXX for backwards compat, remove when all webapps
+                                    # are using the new config dataclasses
+              ):
         self.test_user_eppn = 'hubba-bubba'
         super().setUp(users=users, copy_user_to_private=copy_user_to_private, am_settings=am_settings)
 
