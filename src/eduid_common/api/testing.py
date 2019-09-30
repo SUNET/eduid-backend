@@ -38,7 +38,7 @@ import logging
 import traceback
 from contextlib import contextmanager
 from copy import deepcopy
-from typing import Dict, Any
+from typing import Optional, List, Dict, Any
 
 from flask.testing import FlaskClient
 
@@ -113,9 +113,11 @@ class EduidAPITestCase(CommonTestCase):
     # Do what we can and initialise it empty here, and then fill it in __init__.
     MockedUserDB = APIMockedUserDB
 
-    def setUp(self, users=None, copy_user_to_private=False, am_settings=None,
-              init_am=True  # XXX for backwards compat, remove when all webapps
-                            # are using the new config dataclasses
+    def setUp(self, users: Optional[List[str]] = None,
+              copy_user_to_private: bool = False,
+              am_settings: Optional[Dict[str, Any]] = None,
+              init_am: bool = True  # XXX for backwards compat, remove when all webapps
+                                    # are using the new config dataclasses
               ):
         """
         set up tests

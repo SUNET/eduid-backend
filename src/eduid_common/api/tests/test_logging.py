@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from typing import Optional, List, Dict, Any
+
 from eduid_common.api.app import eduid_init_app
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.api.logging import merge_config
@@ -10,7 +12,9 @@ __author__ = 'lundberg'
 
 class LoggingTest(EduidAPITestCase):
 
-    def setUp(self, users=None, copy_user_to_private=False, am_settings=None):
+    def setUp(self, users: Optional[List[str]] = None,
+              copy_user_to_private: bool = False,
+              am_settings: Optional[Dict[str, Any]] = None):
 
         super(LoggingTest, self).setUp(users=users, copy_user_to_private=copy_user_to_private,
                                        am_settings=am_settings)

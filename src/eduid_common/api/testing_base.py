@@ -35,6 +35,7 @@ from __future__ import absolute_import
 
 import os
 import logging
+from typing import Optional, List, Dict, Any
 
 from eduid_common.config.testing import EtcdTemporaryInstance
 from eduid_common.config.workers import AmConfig
@@ -50,7 +51,12 @@ class CommonTestCase(MongoTestCase):
     Base Test case for eduID webapps and celery workers
     """
 
-    def setUp(self, users=None, am_settings=None):
+    def setUp(self, users: Optional[List[str]] = None,
+              copy_user_to_private: bool = False,
+              am_settings: Optional[Dict[str, Any]] = None,
+              init_am: bool = True  # XXX for backwards compat, remove when all webapps
+                                    # are using the new config dataclasses
+              ):
         """
         set up tests
         """
