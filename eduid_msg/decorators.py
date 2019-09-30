@@ -24,7 +24,7 @@ class TransactionAudit(object):
                 doc = {'function': f.__name__,
                        'data': self._filter(f.__name__, ret, *args, **kwargs),
                        'created_at': date}
-                self.collection.insert(doc)
+                self.collection.insert_one(doc)
             return ret
         if self._conn is None or not self._conn.is_healthy():
             self._conn = MongoDB(self.db_uri)

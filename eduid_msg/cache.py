@@ -21,7 +21,7 @@ class CacheMDB(object):
         doc = {'identifier': identifier,
                'data': data,
                'created_at': date}
-        self.collection.insert(doc)
+        self.collection.insert_one(doc)
         self.expire_cache_items()
         return True
 
@@ -42,7 +42,7 @@ class CacheMDB(object):
                                       getLastError=True)
 
     def remove_cache_item(self, identifier):
-        return self.collection.remove({'identifier': identifier}, w=1, getLastError=True)
+        return self.collection.delete_one({'identifier': identifier})
 
     def expire_cache_items(self, force=False):
         ts = time() - self._ttl
@@ -50,11 +50,11 @@ class CacheMDB(object):
             return False
         self._last_expire_at = ts
         date = datetime.fromtimestamp(ts, None)
-        self.collection.remove({'created_at': {'$lt': date}}, w=1)
+        self.collection.delete_many({'created_at': {'$lt': date}})
         return True
 
     def ensure_indices(self, collection):
         if collection not in self._init_collections:  # Only ensure indices once
             self._init_collections[collection] = 1
-            self.db[collection].ensure_index('created_at', name='created_at_idx', unique=False)
-            self.db[collection].ensure_index('identifier', name='identifier_idx', unique=True)
+            self.db[collection].create_index('created_at', name='created_at_idx', unique=False)
+            self.db[collection].create_index('identifier', name='identifier_idx', unique=True)
