@@ -95,6 +95,7 @@ class CommonConfig:
                         k = k[7:]
                     config[k.lower()] = v
                 self.celery_config = CeleryConfig(**config)
+                break
         self.celery = self.celery_config
 
     def __getitem__(self, attr: str) -> Any:
