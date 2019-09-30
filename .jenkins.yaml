@@ -18,7 +18,7 @@ script:
   - "pip install -U setuptools wheel mypy"
   - "pip install --index-url https://pypi.sunet.se -r requirements/testing.txt"
   - "pip freeze"
-  - "nosetests"
+  - "pytest"
   - "mypy --ignore-missing-imports src/eduid_webapp"
 clean_workspace: true
 

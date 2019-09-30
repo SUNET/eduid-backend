@@ -200,8 +200,8 @@ class AuthnAPITestBase(EduidAPITestCase):
 
             resp = self.app.dispatch_request()
 
-            self.assertEquals(resp.status_code, 302)
-            self.assertEquals(resp.location, came_from)
+            self.assertEqual(resp.status_code, 302)
+            self.assertEqual(resp.location, came_from)
             check_fn()
 
     def dump_session_cookie(self, session_id):
@@ -248,7 +248,7 @@ class AuthnAPITestCase(AuthnAPITestBase):
 
         def _check():
             eppn = 'hubba-bubba'
-            self.assertEquals(session['eduPersonPrincipalName'], eppn)
+            self.assertEqual(session['eduPersonPrincipalName'], eppn)
 
         self.acs('/login', eppn, _check)
 
@@ -257,7 +257,7 @@ class AuthnAPITestCase(AuthnAPITestBase):
 
         def _check():
             eppn = 'hubba-bubba'
-            self.assertEquals(session['eduPersonPrincipalName'], eppn)
+            self.assertEqual(session['eduPersonPrincipalName'], eppn)
 
         self.acs('/login', eppn, _check, came_from='http://test.localhost/profile/')
 
@@ -266,7 +266,7 @@ class AuthnAPITestCase(AuthnAPITestBase):
 
         def _check():
             eppn = 'hubba-bubba'
-            self.assertEquals(session['eduPersonPrincipalName'], eppn)
+            self.assertEqual(session['eduPersonPrincipalName'], eppn)
 
         with self.assertRaises(AssertionError):
             self.acs('/login', eppn, _check, came_from='http://bad.localhost/evil/')
