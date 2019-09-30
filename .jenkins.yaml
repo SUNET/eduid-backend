@@ -34,6 +34,6 @@ script:
   - ". venv/bin/activate"
   - "pip install -U setuptools wheel mypy"
   - "pip install --index-url https://pypi.sunet.se -r test_requirements.txt"
-  - "nosetests"
+  - "pytest"
   - "mypy --ignore-missing-imports eduid_msg"
   - "python setup.py sdist bdist_wheel --universal"
