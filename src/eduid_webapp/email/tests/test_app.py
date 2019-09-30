@@ -63,7 +63,7 @@ class EmailTests(EduidAPITestCase):
             'celery_config': {
                 'result_backend': 'amqp',
                 'task_serializer': 'json',
-                'mongo_uri': config['mongo_uri'],
+                'mongo_uri': config['MONGO_URI'],
             },
             'email_verification_timeout': 86400,
             'throttle_resend_seconds': 300,
