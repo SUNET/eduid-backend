@@ -29,13 +29,13 @@ class TestProofingLog(TestCase):
                                               proofing_version='test')
         self.proofing_log_db.save(proofing_element)
 
-        result = self.proofing_log_db._coll.find({})
-        self.assertEquals(result.count(), 1)
-        hit = next(result)
-        self.assertEquals(hit['eduPersonPrincipalName'], self.user.eppn)
-        self.assertEquals(hit['created_by'], 'test')
+        result = list(self.proofing_log_db._coll.find({}))
+        self.assertEqual(len(result), 1)
+        hit = result[0]
+        self.assertEqual(hit['eduPersonPrincipalName'], self.user.eppn)
+        self.assertEqual(hit['created_by'], 'test')
         self.assertIsNotNone(hit['created_ts'])
-        self.assertEquals(hit['proofing_method'], 'test')
+        self.assertEqual(hit['proofing_method'], 'test')
 
     def test_teleadress_proofing(self):
         data = {
@@ -47,18 +47,20 @@ class TestProofingLog(TestCase):
             'proofing_version': 'test'
         }
         proofing_element = TeleAdressProofing(self.user, **data)
-        self.assertDictContainsSubset(data, proofing_element.to_dict())
+        for key, value in data.items():
+            self.assertIn(key, proofing_element.to_dict())
+            self.assertEqual(value, proofing_element.to_dict().get(key))
 
         self.proofing_log_db.save(proofing_element)
-        result = self.proofing_log_db._coll.find({})
-        self.assertEquals(result.count(), 1)
-        hit = next(result)
-        self.assertEquals(hit['eduPersonPrincipalName'], self.user.eppn)
-        self.assertEquals(hit['created_by'], 'test')
+        result = list(self.proofing_log_db._coll.find({}))
+        self.assertEqual(len(result), 1)
+        hit = result[0]
+        self.assertEqual(hit['eduPersonPrincipalName'], self.user.eppn)
+        self.assertEqual(hit['created_by'], 'test')
         self.assertIsNotNone(hit['created_ts'])
-        self.assertEquals(hit['reason'], 'matched')
-        self.assertEquals(hit['proofing_method'], 'TeleAdress')
-        self.assertEquals(hit['proofing_version'], 'test')
+        self.assertEqual(hit['reason'], 'matched')
+        self.assertEqual(hit['proofing_method'], 'TeleAdress')
+        self.assertEqual(hit['proofing_version'], 'test')
 
     def test_teleadress_proofing_relation(self):
         data = {
@@ -73,18 +75,20 @@ class TestProofingLog(TestCase):
             'proofing_version': 'test'
         }
         proofing_element = TeleAdressProofingRelation(self.user, **data)
-        self.assertDictContainsSubset(data, proofing_element.to_dict())
+        for key, value in data.items():
+            self.assertIn(key, proofing_element.to_dict())
+            self.assertEqual(value, proofing_element.to_dict().get(key))
 
         self.proofing_log_db.save(proofing_element)
-        result = self.proofing_log_db._coll.find({})
-        self.assertEquals(result.count(), 1)
-        hit = next(result)
-        self.assertEquals(hit['eduPersonPrincipalName'], self.user.eppn)
-        self.assertEquals(hit['created_by'], 'test')
+        result = list(self.proofing_log_db._coll.find({}))
+        self.assertEqual(len(result), 1)
+        hit = result[0]
+        self.assertEqual(hit['eduPersonPrincipalName'], self.user.eppn)
+        self.assertEqual(hit['created_by'], 'test')
         self.assertIsNotNone(hit['created_ts'])
-        self.assertEquals(hit['reason'], 'matched_by_navet')
-        self.assertEquals(hit['proofing_method'], 'TeleAdress')
-        self.assertEquals(hit['proofing_version'], 'test')
+        self.assertEqual(hit['reason'], 'matched_by_navet')
+        self.assertEqual(hit['proofing_method'], 'TeleAdress')
+        self.assertEqual(hit['proofing_version'], 'test')
 
     def test_teleadress_proofing_extend_bug(self):
         data_match = {
@@ -126,19 +130,21 @@ class TestProofingLog(TestCase):
             'proofing_version': 'test'
         }
         proofing_element = LetterProofing(self.user, **data)
-        self.assertDictContainsSubset(data, proofing_element.to_dict())
+        for key, value in data.items():
+            self.assertIn(key, proofing_element.to_dict())
+            self.assertEqual(value, proofing_element.to_dict().get(key))
 
         self.proofing_log_db.save(proofing_element)
-        result = self.proofing_log_db._coll.find({})
-        self.assertEquals(result.count(), 1)
-        hit = next(result)
-        self.assertEquals(hit['eduPersonPrincipalName'], self.user.eppn)
-        self.assertEquals(hit['created_by'], 'test')
+        result = list(self.proofing_log_db._coll.find({}))
+        self.assertEqual(len(result), 1)
+        hit = result[0]
+        self.assertEqual(hit['eduPersonPrincipalName'], self.user.eppn)
+        self.assertEqual(hit['created_by'], 'test')
         self.assertIsNotNone(hit['created_ts'])
         self.assertIsNotNone(hit['letter_sent_to'])
         self.assertIsNotNone(hit['transaction_id'])
-        self.assertEquals(hit['proofing_method'], 'letter')
-        self.assertEquals(hit['proofing_version'], 'test')
+        self.assertEqual(hit['proofing_method'], 'letter')
+        self.assertEqual(hit['proofing_version'], 'test')
 
     def test_mail_address_proofing(self):
         data = {
@@ -148,17 +154,19 @@ class TestProofingLog(TestCase):
             'reference': 'reference id'
         }
         proofing_element = MailAddressProofing(self.user, **data)
-        self.assertDictContainsSubset(data, proofing_element.to_dict())
+        for key, value in data.items():
+            self.assertIn(key, proofing_element.to_dict())
+            self.assertEqual(value, proofing_element.to_dict().get(key))
 
         self.proofing_log_db.save(proofing_element)
-        result = self.proofing_log_db._coll.find({})
-        self.assertEquals(result.count(), 1)
-        hit = next(result)
-        self.assertEquals(hit['eduPersonPrincipalName'], self.user.eppn)
-        self.assertEquals(hit['created_by'], 'test')
+        result = list(self.proofing_log_db._coll.find({}))
+        self.assertEqual(len(result), 1)
+        hit = result[0]
+        self.assertEqual(hit['eduPersonPrincipalName'], self.user.eppn)
+        self.assertEqual(hit['created_by'], 'test')
         self.assertIsNotNone(hit['created_ts'])
-        self.assertEquals(hit['proofing_method'], 'e-mail')
-        self.assertEquals(hit['mail_address'], 'some_mail_address')
+        self.assertEqual(hit['proofing_method'], 'e-mail')
+        self.assertEqual(hit['mail_address'], 'some_mail_address')
 
     def test_phone_number_proofing(self):
         data = {
@@ -168,18 +176,20 @@ class TestProofingLog(TestCase):
             'reference': 'reference id'
         }
         proofing_element = PhoneNumberProofing(self.user, **data)
-        self.assertDictContainsSubset(data, proofing_element.to_dict())
+        for key, value in data.items():
+            self.assertIn(key, proofing_element.to_dict())
+            self.assertEqual(value, proofing_element.to_dict().get(key))
 
         self.proofing_log_db.save(proofing_element)
-        result = self.proofing_log_db._coll.find({})
-        self.assertEquals(result.count(), 1)
-        hit = next(result)
-        self.assertEquals(hit['eduPersonPrincipalName'], self.user.eppn)
-        self.assertEquals(hit['created_by'], 'test')
+        result = list(self.proofing_log_db._coll.find({}))
+        self.assertEqual(len(result), 1)
+        hit = result[0]
+        self.assertEqual(hit['eduPersonPrincipalName'], self.user.eppn)
+        self.assertEqual(hit['created_by'], 'test')
         self.assertIsNotNone(hit['created_ts'])
-        self.assertEquals(hit['proofing_method'], 'sms')
-        self.assertEquals(hit['phone_number'], 'some_phone_number')
-        self.assertEquals(hit['proofing_version'], 'test')
+        self.assertEqual(hit['proofing_method'], 'sms')
+        self.assertEqual(hit['phone_number'], 'some_phone_number')
+        self.assertEqual(hit['proofing_version'], 'test')
 
     def test_se_leg_proofing(self):
         data = {
@@ -191,21 +201,23 @@ class TestProofingLog(TestCase):
             'user_postal_address': {'response_data': {'some': 'data'}},
         }
         proofing_element = SeLegProofing(self.user, **data)
-        self.assertDictContainsSubset(data, proofing_element.to_dict())
+        for key, value in data.items():
+            self.assertIn(key, proofing_element.to_dict())
+            self.assertEqual(value, proofing_element.to_dict().get(key))
 
         self.proofing_log_db.save(proofing_element)
-        result = self.proofing_log_db._coll.find({})
-        self.assertEquals(result.count(), 1)
-        hit = next(result)
-        self.assertEquals(hit['eduPersonPrincipalName'], self.user.eppn)
-        self.assertEquals(hit['created_by'], 'test')
+        result = list(self.proofing_log_db._coll.find({}))
+        self.assertEqual(len(result), 1)
+        hit = result[0]
+        self.assertEqual(hit['eduPersonPrincipalName'], self.user.eppn)
+        self.assertEqual(hit['created_by'], 'test')
         self.assertIsNotNone(hit['created_ts'])
         self.assertIsNotNone(hit['nin'])
         self.assertIsNotNone(hit['user_postal_address'])
-        self.assertEquals(hit['vetting_by'], 'provider')
-        self.assertEquals(hit['transaction_id'], 'transaction_id')
-        self.assertEquals(hit['proofing_method'], 'se-leg')
-        self.assertEquals(hit['proofing_version'], 'test')
+        self.assertEqual(hit['vetting_by'], 'provider')
+        self.assertEqual(hit['transaction_id'], 'transaction_id')
+        self.assertEqual(hit['proofing_method'], 'se-leg')
+        self.assertEqual(hit['proofing_version'], 'test')
 
     def test_se_leg_proofing_freja(self):
         data = {
@@ -217,22 +229,24 @@ class TestProofingLog(TestCase):
             'user_postal_address': {'response_data': {'some': 'data'}},
         }
         proofing_element = SeLegProofingFrejaEid(self.user, **data)
-        self.assertDictContainsSubset(data, proofing_element.to_dict())
+        for key, value in data.items():
+            self.assertIn(key, proofing_element.to_dict())
+            self.assertEqual(value, proofing_element.to_dict().get(key))
 
         self.proofing_log_db.save(proofing_element)
-        result = self.proofing_log_db._coll.find({})
-        self.assertEquals(result.count(), 1)
-        hit = next(result)
-        self.assertEquals(hit['eduPersonPrincipalName'], self.user.eppn)
-        self.assertEquals(hit['created_by'], 'test')
+        result = list(self.proofing_log_db._coll.find({}))
+        self.assertEqual(len(result), 1)
+        hit = result[0]
+        self.assertEqual(hit['eduPersonPrincipalName'], self.user.eppn)
+        self.assertEqual(hit['created_by'], 'test')
         self.assertIsNotNone(hit['created_ts'])
         self.assertIsNotNone(hit['nin'])
         self.assertIsNotNone(hit['user_postal_address'])
-        self.assertEquals(hit['vetting_by'], 'Freja eID')
-        self.assertEquals(hit['transaction_id'], 'transaction_id')
-        self.assertEquals(hit['opaque_data'], 'some data')
-        self.assertEquals(hit['proofing_method'], 'se-leg')
-        self.assertEquals(hit['proofing_version'], 'test')
+        self.assertEqual(hit['vetting_by'], 'Freja eID')
+        self.assertEqual(hit['transaction_id'], 'transaction_id')
+        self.assertEqual(hit['opaque_data'], 'some data')
+        self.assertEqual(hit['proofing_method'], 'se-leg')
+        self.assertEqual(hit['proofing_version'], 'test')
 
     def test_blank_string_proofing_data(self):
         data = {

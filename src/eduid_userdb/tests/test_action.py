@@ -38,22 +38,22 @@ class TestAction(TestCase):
     def test_proper_action(self):
         action_dict = copy.copy(_action_dict)
         action = Action(data=action_dict)
-        self.assertEquals(action.action_id, bson.ObjectId('234567890123456789012301'))
-        self.assertEquals(action.eppn, 'hubba-bubba')
-        self.assertEquals(action.action_type, 'accept_tou')
-        self.assertEquals(action.session, 'xyz')
-        self.assertEquals(action.preference, 100)
-        self.assertEquals(action.params, {'version': '2014-v2'})
+        self.assertEqual(action.action_id, bson.ObjectId('234567890123456789012301'))
+        self.assertEqual(action.eppn, 'hubba-bubba')
+        self.assertEqual(action.action_type, 'accept_tou')
+        self.assertEqual(action.session, 'xyz')
+        self.assertEqual(action.preference, 100)
+        self.assertEqual(action.params, {'version': '2014-v2'})
 
     def test_proper_action_userid(self):
         action_dict = copy.copy(_action_dict_userid)
         action = Action(data=action_dict, old_format=True)
-        self.assertEquals(action.action_id, bson.ObjectId('234567890123456789012301'))
-        self.assertEquals(action.user_id, bson.ObjectId('123467890123456789014567'))
-        self.assertEquals(action.action_type, 'accept_tou')
-        self.assertEquals(action.session, 'xyz')
-        self.assertEquals(action.preference, 100)
-        self.assertEquals(action.params, {'version': '2014-v2'})
+        self.assertEqual(action.action_id, bson.ObjectId('234567890123456789012301'))
+        self.assertEqual(action.user_id, bson.ObjectId('123467890123456789014567'))
+        self.assertEqual(action.action_type, 'accept_tou')
+        self.assertEqual(action.session, 'xyz')
+        self.assertEqual(action.preference, 100)
+        self.assertEqual(action.params, {'version': '2014-v2'})
 
     def test_proper_action_params(self):
         action = Action(action_id = _action_dict['_id'],
@@ -62,13 +62,13 @@ class TestAction(TestCase):
                         preference = _action_dict['preference'],
                         session = _action_dict['session'],
                         params = _action_dict['params'])
-        self.assertEquals(action.action_id, bson.ObjectId('234567890123456789012301'))
-        self.assertEquals(action.eppn, 'hubba-bubba')
-        self.assertEquals(action.action_type, 'accept_tou')
-        self.assertEquals(action.session, 'xyz')
-        self.assertEquals(action.preference, 100)
-        self.assertEquals(action.params, {'version': '2014-v2'})
-        self.assertEquals(action.to_dict(), _action_dict)
+        self.assertEqual(action.action_id, bson.ObjectId('234567890123456789012301'))
+        self.assertEqual(action.eppn, 'hubba-bubba')
+        self.assertEqual(action.action_type, 'accept_tou')
+        self.assertEqual(action.session, 'xyz')
+        self.assertEqual(action.preference, 100)
+        self.assertEqual(action.params, {'version': '2014-v2'})
+        self.assertEqual(action.to_dict(), _action_dict)
 
     def test_proper_action_params_userid(self):
         action = Action(action_id = _action_dict_userid['_id'],
@@ -78,30 +78,30 @@ class TestAction(TestCase):
                         session = _action_dict_userid['session'],
                         params = _action_dict_userid['params'],
                         old_format=True)
-        self.assertEquals(action.action_id, bson.ObjectId('234567890123456789012301'))
-        self.assertEquals(action.user_id, bson.ObjectId('123467890123456789014567'))
-        self.assertEquals(action.action_type, 'accept_tou')
-        self.assertEquals(action.session, 'xyz')
-        self.assertEquals(action.preference, 100)
-        self.assertEquals(action.params, {'version': '2014-v2'})
-        self.assertEquals(action.to_dict(), _action_dict_userid)
+        self.assertEqual(action.action_id, bson.ObjectId('234567890123456789012301'))
+        self.assertEqual(action.user_id, bson.ObjectId('123467890123456789014567'))
+        self.assertEqual(action.action_type, 'accept_tou')
+        self.assertEqual(action.session, 'xyz')
+        self.assertEqual(action.preference, 100)
+        self.assertEqual(action.params, {'version': '2014-v2'})
+        self.assertEqual(action.to_dict(), _action_dict_userid)
 
     def test_proper_action_no_id(self):
         action_dict = copy.copy(_action_dict)
         del action_dict['_id']
         action = Action(data=action_dict)
-        self.assertEquals(type(action.action_id), bson.ObjectId)
+        self.assertEqual(type(action.action_id), bson.ObjectId)
 
     def test_proper_action_no_bson_id(self):
         action_dict = copy.copy(_action_dict)
         action_dict['_id'] = '234567890123456789012301'
         action = Action(data=action_dict)
-        self.assertEquals(action.action_id, bson.ObjectId('234567890123456789012301'))
+        self.assertEqual(action.action_id, bson.ObjectId('234567890123456789012301'))
 
     def test_action_to_dict(self):
         action_dict = copy.copy(_action_dict)
         action = Action(data=action_dict)
-        self.assertEquals(action_dict, action.to_dict())
+        self.assertEqual(action_dict, action.to_dict())
 
     def test_action_missing_user(self):
         action_dict = copy.copy(_action_dict)
@@ -125,7 +125,7 @@ class TestAction(TestCase):
         action_dict = copy.copy(_action_dict)
         action_dict['ho'] = 'ho ho'
         action = Action(data=action_dict, raise_on_unknown=False)
-        self.assertEquals(action.to_dict()['ho'], 'ho ho')
+        self.assertEqual(action.to_dict()['ho'], 'ho ho')
 
     def test_action_repr(self):
         action_dict = copy.copy(_action_dict)

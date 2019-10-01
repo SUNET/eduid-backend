@@ -153,7 +153,7 @@ class TestTouUser(TestCase):
         userdata = copy.deepcopy(NEW_USER_EXAMPLE)
         userdata['tou'] = [tou]
         user = ToUUser(data=userdata)
-        self.assertEquals(user.tou.to_list_of_dicts()[0]['version'], '1')
+        self.assertEqual(user.tou.to_list_of_dicts()[0]['version'], '1')
 
     def test_missing_eppn(self):
         one = copy.deepcopy(_one_dict)
@@ -187,4 +187,4 @@ class TestTouUser(TestCase):
         userdata['tou'] = [tou]
         userdata['foo'] = 'bar'
         user = ToUUser(data=userdata, raise_on_unknown=False)
-        self.assertEquals(user.to_dict()['foo'], 'bar')
+        self.assertEqual(user.to_dict()['foo'], 'bar')

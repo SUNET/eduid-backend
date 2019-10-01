@@ -98,10 +98,10 @@ class TestActionsDB(MongoTestCase):
     def test_remove_action(self):
         self.actionsdb.remove_action_by_id(DUMMY_ACTION['_id'])
         next_action = self.actionsdb.get_next_action(EPPN3)
-        self.assertEquals(next_action.action_type, 'tou')
+        self.assertEqual(next_action.action_type, 'tou')
         self.actionsdb.remove_action_by_id(next_action.action_id)
         next_action = self.actionsdb.get_next_action(EPPN3)
-        self.assertEquals(next_action, None)
+        self.assertEqual(next_action, None)
 
     def test_has_actions(self):
         self.assertTrue(self.actionsdb.has_actions(eppn_or_userid=EPPN3))
@@ -135,10 +135,10 @@ class TestActionsDBUserid(MongoTestCase):
     def test_remove_action_userid(self):
         self.actionsdb.remove_action_by_id(DUMMY_ACTION_USERID['_id'])
         next_action = self.actionsdb.get_next_action(USERID3)
-        self.assertEquals(next_action.action_type, 'tou')
+        self.assertEqual(next_action.action_type, 'tou')
         self.actionsdb.remove_action_by_id(next_action.action_id)
         next_action = self.actionsdb.get_next_action(USERID3)
-        self.assertEquals(next_action, None)
+        self.assertEqual(next_action, None)
 
     def test_has_actions_userid(self):
         self.assertTrue(self.actionsdb.has_actions(eppn_or_userid=USERID3))
