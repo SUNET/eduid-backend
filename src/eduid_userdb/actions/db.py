@@ -29,17 +29,18 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+import logging
+from typing import Union, Optional, List, Tuple, Dict, Any
 
 from bson import ObjectId
 from bson.errors import InvalidId
+from pymongo.cursor import Cursor
+from pymongo.results import DeleteResult
 
 from eduid_userdb.actions import Action
 from eduid_userdb.db import BaseDB
 from eduid_userdb.exceptions import ActionDBError
 
-from six import string_types
-
-import logging
 logger = logging.getLogger(__name__)
 
 
@@ -61,7 +62,8 @@ class ActionDB(BaseDB):
                                                                  self._coll_name,
                                                                  self.ActionClass.__name__)
 
-    def _read_actions_from_db(self, eppn_or_userid, session, filter_=None, match_no_session=True):
+    def _read_actions_from_db(self, eppn_or_userid: Union[str, ObjectId], session: Optional[str],
+                              filter_: Optional[dict] = None, match_no_session: bool = True) -> Tuple[bool, Cursor]:
         old_format = True
         try:
             query = {'user_oid': ObjectId(str(eppn_or_userid))}
@@ -75,7 +77,8 @@ class ActionDB(BaseDB):
             query.update(filter_)
         return old_format, self._coll.find(query).sort('preference')
 
-    def get_actions(self, eppn_or_userid, session, action_type=None):
+    def get_actions(self, eppn_or_userid: Union[str, ObjectId], session: Optional[str],
+                    action_type: Optional[str] = None) -> List[Action]:
         """
         Check in the db (not in the cache) whether there are actions
         with whatever attributes you feed to the method.
@@ -85,12 +88,6 @@ class ActionDB(BaseDB):
         :param eppn_or_userid: The eppn (or user_oid) of the user with possible pending actions
         :param session: The actions session for the user
         :param action_type: The type of action to be performed ('mfa', 'tou', ...)
-
-        :type eppn_or_userid: str
-        :type session: string_types | None
-        :type action_type: string_types | None
-
-        :rtype: list of eduid_userdb.actions.Action
         """
         old_format, actions = self._read_actions_from_db(eppn_or_userid, session)
 
@@ -103,7 +100,8 @@ class ActionDB(BaseDB):
                 res.append(Action(data=this, old_format=old_format))
         return res
 
-    def has_actions(self, eppn_or_userid, session=None, action_type=None, params=None):
+    def has_actions(self, eppn_or_userid: Union[str, ObjectId], session: Optional[str] = None,
+                    action_type: Optional[str] = None, params: Optional[dict] = None) -> bool:
         """
         Check in the db (not in the cache) whether there are actions
         with whatever attributes you feed to the method.
@@ -114,22 +112,15 @@ class ActionDB(BaseDB):
         :param session: The actions session for the user
         :param action_type: The type of action to be performed
         :param params: Extra params specific to the action type
-
-        :type eppn_or_userid: str
-        :type session: str
-        :type action_type: str
-        :type params: dict
-
-        :rtype: bool
         """
-        filter_ = {}
+        filter_: Dict[str, Any] = {}
         if action_type is not None:
             filter_['action'] = action_type
         if params is not None:
             filter_['params'] = params
 
         old_format, actions = self._read_actions_from_db(eppn_or_userid, session, filter_)
-        return actions.count() > 0
+        return len(list(actions)) > 0
 
     def get_next_action(self, eppn_or_userid, session=None):
         """
@@ -154,8 +145,9 @@ class ActionDB(BaseDB):
             return Action(data=this, old_format=old_format)
         return None
 
-    def add_action(self, eppn_or_userid=None, action_type=None, preference=100,
-                   session=None, params=None, data=None):
+    def add_action(self, eppn_or_userid: Optional[Union[str, ObjectId]] = None, action_type: Optional[str] = None,
+                   preference: int = 100, session: Optional[str] = None, params: Optional[dict] = None,
+                   data: Optional[dict] = None) -> Action:
         """
         Add an action to the DB.
 
@@ -165,15 +157,7 @@ class ActionDB(BaseDB):
         :param session: The IdP session for the user
         :param params: Any params the action may need
         :param data: all the previous params together
-
-        :type eppn_or_userid: str | bson.ObjectId
-        :type action_type: str
-        :type preference: int
-        :type session: str
-        :type params: dict
-        :type data: dict
-
-        :rtype: Action
+        :returns: Added action
         """
         if data is None:
             data = {'action': action_type,
@@ -193,9 +177,9 @@ class ActionDB(BaseDB):
             old_format = True
 
         # XXX deal with exceptions here ?
-        action = Action(data = data, old_format = old_format)
-        result = self._coll.insert(action.to_dict())
-        if result == action.action_id:
+        action = Action(data=data, old_format=old_format)
+        result = self._coll.insert_one(action.to_dict())
+        if result.acknowledged:
             return action
         logger.error("Failed inserting action {!r} into db".format(action))
         raise ActionDBError('Failed inserting action into db')
@@ -209,19 +193,19 @@ class ActionDB(BaseDB):
         :type action: Action
         :rtype: None
         """
-        result = self._coll.update({'_id': action.action_id}, action.to_dict())
-        if result['updatedExisting']:
+        result = self._coll.replace_one({'_id': action.action_id}, action.to_dict())
+        if result.modified_count:
             logger.debug('Updated action {} in the db: {}'.format(action, result))
             return
         logger.error('Failed updating action {} in db: {}'.format(action, result))
         raise ActionDBError('Failed updating action in db')
 
-    def remove_action_by_id(self, action_id):
+    def remove_action_by_id(self, action_id: ObjectId) -> bool:
         """
         Remove an action in the actions db given the action's _id.
 
         :param action_id: Action id
-        :type action_id: bson.ObjectId
         """
         logger.debug("{!s} Removing action with id {!r} from {!r}".format(self, action_id, self._coll_name))
-        return self._coll.remove(spec_or_id=action_id)
+        result = self._coll.delete_one({'_id': action_id})
+        return result.acknowledged

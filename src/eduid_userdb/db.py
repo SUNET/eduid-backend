@@ -1,8 +1,18 @@
 from __future__ import absolute_import
 
 import copy
+import warnings
+from typing import Optional, Mapping, Union, List, Any
+
 import pymongo
 import logging
+
+from bson import ObjectId
+from pymongo.cursor import Cursor
+from pymongo.errors import PyMongoError
+from pymongo.results import DeleteResult
+from pymongo.uri_parser import parse_uri
+
 from eduid_userdb.exceptions import DocumentDoesNotExist, MultipleDocumentsReturned, MongoConnectionError
 
 
@@ -19,7 +29,7 @@ class MongoDB(object):
         self._database_name = db_name
         self._sanitized_uri = None
 
-        self._parsed_uri = pymongo.uri_parser.parse_uri(db_uri)
+        self._parsed_uri = parse_uri(db_uri)
 
         if self._parsed_uri.get('database') is None:
             self._parsed_uri['database'] = db_name
@@ -30,10 +40,13 @@ class MongoDB(object):
         _options = self._parsed_uri.get('options')
         if connection_factory is None:
             connection_factory = pymongo.MongoClient
-        if 'replicaSet' in kwargs:
-            connection_factory = pymongo.MongoReplicaSetClient
+        elif connection_factory == pymongo.MongoReplicaSetClient:
+            warnings.warn(
+                f"{__name__} initialized with connection_factory {connection_factory} use pymongo.MongoClient instead.",
+                DeprecationWarning
+            )
+
         if 'replicaSet' in _options and _options['replicaSet'] is not None:
-            connection_factory = pymongo.MongoReplicaSetClient
             kwargs['replicaSet'] = _options['replicaSet']
 
         if 'replicaSet' in kwargs:
@@ -49,7 +62,7 @@ class MongoDB(object):
                 host=self._db_uri,
                 tz_aware=True,
                 **kwargs)
-        except pymongo.errors.PyMongoError as e:
+        except PyMongoError as e:
             raise MongoConnectionError('Error connecting to mongodb {!r}: {}'.format(self, e))
 
     def __repr__(self):
@@ -234,90 +247,84 @@ class BaseDB(object):
         """
         return self._coll.find({})
 
-    def _get_document_by_attr(self, attr, value, raise_on_missing=True):
+    def _get_document_by_attr(self, attr: str, value: str, raise_on_missing: bool = True) -> Optional[Mapping]:
         """
         Return the document in the MongoDB matching field=value
 
         :param attr: The name of a field
-        :type attr: str
         :param value: The field value
-        :type value: str
         :param raise_on_missing:  If True, raise exception if no matching user object can be found.
-        :type raise_on_missing: bool
         :return: A document dict
-        :rtype: dict | None
         """
-        docs = self._coll.find({attr: value})
-        if docs.count() == 0:
+        docs = list(self._coll.find({attr: value}))
+        doc_count = len(docs)
+        if doc_count == 0:
             if raise_on_missing:
-                raise DocumentDoesNotExist("No document matching %s='%s'" % (attr, value))
+                raise DocumentDoesNotExist(f"No document matching {attr}='{value}'")
             return None
-        elif docs.count() > 1:
-            raise MultipleDocumentsReturned("Multiple matching documents for %s='%s'" % (attr, value))
+        elif doc_count > 1:
+            raise MultipleDocumentsReturned(f"Multiple matching documents for {attr}='{value}'")
         return docs[0]
 
-    def _get_documents_by_attr(self, attr, value, raise_on_missing=True):
+    def _get_documents_by_attr(self, attr: str, value: str, raise_on_missing: bool = True) -> List[Mapping]:
         """
         Return the document in the MongoDB matching field=value
 
         :param attr: The name of a field
-        :type attr: str
         :param value: The field value
-        :type value: str
         :param raise_on_missing:  If True, raise exception if no matching user object can be found.
-        :type raise_on_missing: bool
         :return: A document dict
-        :rtype: cursor | []
         :raise DocumentDoesNotExist: No document matching the search criteria
         """
-        docs = self._coll.find({attr: value})
-        if docs.count() == 0:
+        docs = list(self._coll.find({attr: value}))
+        doc_count = len(docs)
+        if doc_count == 0:
             if raise_on_missing:
-                raise DocumentDoesNotExist("No document matching %s='%s'" % (attr, value))
+                raise DocumentDoesNotExist(f"No document matching {attr}='{value}'")
             return []
         return docs
 
-    def _get_documents_by_filter(self, spec, fields=None, raise_on_missing=True):
+    def _get_documents_by_filter(self, spec: dict, fields: Optional[dict] = None,
+                                 raise_on_missing: bool = True) -> List[Mapping]:
         """
         Locate a documents in the db using a custom search filter.
 
         :param spec: the search filter
-        :type spec: dict
         :param fields: the fields to return in the search result
-        :type fields: dict
         :return: A document dict
-        :rtype: cursor | []
         :raise DocumentDoesNotExist: No document matching the search criteria
         """
         if fields is None:
-            docs = self._coll.find(spec)
+            docs = list(self._coll.find(spec))
         else:
-            docs = self._coll.find(spec, fields)
-        if docs.count() == 0:
+            docs = list(self._coll.find(spec, fields))
+        doc_count = len(docs)
+        if doc_count == 0:
             if raise_on_missing:
-                raise DocumentDoesNotExist('No document matching {!s}'.format(spec))
+                raise DocumentDoesNotExist(f'No document matching {spec}')
             return []
         return docs
 
-    def db_count(self):
+    def db_count(self) -> int:
         """
         Return number of entries in the database.
 
         Used in test cases.
 
         :return: User count
-        :rtype: int
         """
-        return self._coll.find({}).count()
+        return self._coll.count_documents({})
 
-    def remove_document(self, spec_or_id):
+    def remove_document(self, spec_or_id: Union[dict, ObjectId]) -> bool:
         """
         Remove a document in the db given the _id or dict spec.
 
         :param spec_or_id: spec or document id (_id)
-        :type spec_or_id: dict | bson.ObjectId
         """
-        return self._coll.remove(spec_or_id=spec_or_id)
+        if isinstance(spec_or_id, ObjectId):
+            spec_or_id = {'_id': spec_or_id}
+        result = self._coll.delete_one(spec_or_id)
+        return result.acknowledged
 
     def is_healthy(self):
         """

@@ -246,12 +246,12 @@ class MongoTestCase(unittest.TestCase):
     A test can access the connection using the attribute `conn`.
     A test can access the port using the attribute `port`
     """
-    fixtures = []
+    fixtures: list = []
 
     MockedUserDB = MockedUserDB
 
     user = User(data=MOCKED_USER_STANDARD)
-    mock_users_patches = []
+    mock_users_patches: list = []
 
     def setUp(self, init_am=False, userdb_use_old_format=False, am_settings=None):
         """

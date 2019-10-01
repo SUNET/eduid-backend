@@ -3,6 +3,7 @@
 from __future__ import absolute_import
 
 from copy import deepcopy
+from typing import Optional, List
 
 __author__ = 'lundberg'
 
@@ -10,8 +11,8 @@ __author__ = 'lundberg'
 # Models for filtering out unneeded or unwanted data from eduID database objects
 class GenericFilterDict(dict):
 
-    add_keys = None
-    remove_keys = None
+    add_keys: Optional[List[str]] = None
+    remove_keys: Optional[List[str]] = None
 
     def __init__(self, data):
         """

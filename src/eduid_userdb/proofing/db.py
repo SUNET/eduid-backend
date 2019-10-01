@@ -33,22 +33,26 @@
 import datetime
 import logging
 from operator import itemgetter
-from typing import Optional
+from typing import Optional, Type, TypeVar, ClassVar
 
 from eduid_userdb.db import BaseDB
 from eduid_userdb.exceptions import DocumentOutOfSync
 from eduid_userdb.exceptions import MultipleDocumentsReturned
 from eduid_userdb.proofing import PhoneProofingState, OrcidProofingState
 from eduid_userdb.proofing import ProofingUser, LetterProofingState, OidcProofingState, EmailProofingState
+from eduid_userdb.proofing.state import ProofingState
 from eduid_userdb.userdb import UserDB
 
 logger = logging.getLogger(__name__)
 
 __author__ = 'lundberg'
 
+ProofingStateInstance = TypeVar('ProofingStateInstance', bound=ProofingState)
+
 
 class ProofingStateDB(BaseDB):
-    ProofingStateClass = None
+
+    ProofingStateClass: Type[ProofingState] = ProofingState
 
     def __init__(self, db_uri, db_name, collection='proofing_data'):
         BaseDB.__init__(self, db_uri, db_name, collection)
@@ -107,7 +111,6 @@ class ProofingStateDB(BaseDB):
 
         :return:
         """
-
         modified = state.modified_ts
         state.modified_ts = datetime.datetime.utcnow()  # update to current time
         if modified is None:
@@ -216,7 +219,6 @@ class PhoneProofingStateDB(ProofingStateDB):
 
 
 class OidcStateDB(ProofingStateDB):
-    ProofingStateClass = None
 
     def get_state_by_oidc_state(self, oidc_state, raise_on_missing=True):
         """
