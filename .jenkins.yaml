@@ -32,5 +32,5 @@ script:
   - ". venv/bin/activate"
   - "pip install --upgrade setuptools pip wheel"
   - "pip install --index-url https://pypi.sunet.se -r test_requirements.txt"
-  - "nosetests"
+  - "pytest"
   - "python setup.py sdist bdist_wheel --universal"
