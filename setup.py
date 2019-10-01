@@ -18,9 +18,8 @@ install_requires = [
 ]
 
 testing_extras = [
-    'nose == 1.3.7',
-    'nosexcover == 1.0.11',
-    'coverage == 4.5.1',
+    'pytest>=5.2.0'
+    'pytest-cov>=2.7.1'
 ]
 
 setup(
