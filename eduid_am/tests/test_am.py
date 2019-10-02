@@ -2,10 +2,11 @@ from __future__ import absolute_import
 
 from bson import ObjectId
 
+from eduid_common.config.workers import AmConfig
 import eduid_userdb
 from eduid_am.ams.common import AttributeFetcher
 from eduid_userdb.exceptions import UserDoesNotExist
-from eduid_userdb.testing import MongoTestCase
+from eduid_am.testing import AMTestCase
 
 __author__ = 'leifj'
 
@@ -77,19 +78,19 @@ class BadAttributeFetcher(FakeAttributeFetcher):
         return res
 
 
-class MessageTest(MongoTestCase):
+class MessageTest(AMTestCase):
     """
     This testcase sets up an AttributeManager instance and sends a message to an internally defined plugin that
     transforms 'uid' to its urn:oid representation.
     """
 
     def setUp(self):
-        super(MessageTest, self).setUp(init_am=True, am_settings={'WANT_MONGO_URI': True})
+        super(MessageTest, self).setUp(am_settings={'want_mongo_uri': True})
         self.private_db = AmTestUserDb(db_uri=self.tmp_db.uri, db_name='eduid_am_test')
         # register fake AMP plugin named 'test'
-        self.am.af_registry['test'] = FakeAttributeFetcher({'MONGO_URI': self.tmp_db.uri})
+        self.am.af_registry['test'] = FakeAttributeFetcher(AmConfig(**{'mongo_uri': self.tmp_db.uri}))
         # register fake AMP plugin named 'bad'
-        self.am.af_registry['bad'] = BadAttributeFetcher({'MONGO_URI': self.tmp_db.uri})
+        self.am.af_registry['bad'] = BadAttributeFetcher(AmConfig(**{'mongo_uri': self.tmp_db.uri}))
 
     def test_insert(self):
         """

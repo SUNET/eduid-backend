@@ -4,7 +4,7 @@ import bson
 from copy import deepcopy
 
 from eduid_userdb.exceptions import UserDoesNotExist, UserHasUnknownData
-from eduid_userdb.testing import MongoTestCase
+from eduid_am.testing import AMTestCase
 from eduid_userdb.proofing import ProofingUser
 from eduid_userdb.personal_data import PersonalDataUser
 from eduid_userdb.security import SecurityUser
@@ -64,13 +64,13 @@ USER_DATA = {
 }
 
 
-class AttributeFetcherOldToNewUsersTests(MongoTestCase):
+class AttributeFetcherOldToNewUsersTests(AMTestCase):
 
     def setUp(self):
         am_settings = {
-            'WANT_MONGO_URI': True
+            'want_mongo_uri': True
         }
-        super(AttributeFetcherOldToNewUsersTests, self).setUp(init_am=True, am_settings=am_settings)
+        super(AttributeFetcherOldToNewUsersTests, self).setUp(am_settings=am_settings)
         self.user_data = deepcopy(USER_DATA)
         self.af_registry = AFRegistry(self.am_settings)
         for attr in dir(eduid_am.ams):
@@ -339,13 +339,13 @@ class AttributeFetcherOldToNewUsersTests(MongoTestCase):
             )
 
 
-class AttributeFetcherNINProofingTests(MongoTestCase):
+class AttributeFetcherNINProofingTests(AMTestCase):
 
     def setUp(self):
         am_settings = {
-            'WANT_MONGO_URI': True
+            'want_mongo_uri': True
         }
-        super(AttributeFetcherNINProofingTests, self).setUp(init_am=True, am_settings=am_settings)
+        super(AttributeFetcherNINProofingTests, self).setUp(am_settings=am_settings)
         self.user_data = deepcopy(USER_DATA)
         self.af_registry = AFRegistry(self.am_settings)
         for attr in dir(eduid_am.ams):
@@ -590,13 +590,13 @@ class AttributeFetcherNINProofingTests(MongoTestCase):
         )
 
 
-class AttributeFetcherEmailProofingTests(MongoTestCase):
+class AttributeFetcherEmailProofingTests(AMTestCase):
 
     def setUp(self):
         am_settings = {
-            'WANT_MONGO_URI': True
+            'want_mongo_uri': True
         }
-        super(AttributeFetcherEmailProofingTests, self).setUp(init_am=True, am_settings=am_settings)
+        super(AttributeFetcherEmailProofingTests, self).setUp(am_settings=am_settings)
         self.user_data = deepcopy(USER_DATA)
         self.af_registry = AFRegistry(self.am_settings) 
         #for userdoc in self.amdb._get_all_docs():
@@ -689,13 +689,13 @@ class AttributeFetcherEmailProofingTests(MongoTestCase):
         )
 
 
-class AttributeFetcherPhoneProofingTests(MongoTestCase):
+class AttributeFetcherPhoneProofingTests(AMTestCase):
 
     def setUp(self):
         am_settings = {
-            'WANT_MONGO_URI': True
+            'want_mongo_uri': True
         }
-        super(AttributeFetcherPhoneProofingTests, self).setUp(init_am=True, am_settings=am_settings)
+        super(AttributeFetcherPhoneProofingTests, self).setUp(am_settings=am_settings)
         self.user_data = deepcopy(USER_DATA)
         self.af_registry = AFRegistry(self.am_settings) 
         self.fetcher = self.af_registry['eduid_phone']
@@ -760,13 +760,13 @@ class AttributeFetcherPhoneProofingTests(MongoTestCase):
         )
 
 
-class AttributeFetcherPersonalDataTests(MongoTestCase):
+class AttributeFetcherPersonalDataTests(AMTestCase):
 
     def setUp(self):
         am_settings = {
-            'WANT_MONGO_URI': True
+            'want_mongo_uri': True
         }
-        super(AttributeFetcherPersonalDataTests, self).setUp(init_am=True, am_settings=am_settings)
+        super(AttributeFetcherPersonalDataTests, self).setUp(am_settings=am_settings)
         self.user_data = deepcopy(USER_DATA)
         self.af_registry = AFRegistry(self.am_settings) 
         self.fetcher = self.af_registry['eduid_personal_data']
@@ -826,13 +826,13 @@ class AttributeFetcherPersonalDataTests(MongoTestCase):
         )
 
 
-class AttributeFetcherSecurityTests(MongoTestCase):
+class AttributeFetcherSecurityTests(AMTestCase):
 
     def setUp(self):
         am_settings = {
-            'WANT_MONGO_URI': True
+            'want_mongo_uri': True
         }
-        super(AttributeFetcherSecurityTests, self).setUp(init_am=True, am_settings=am_settings)
+        super(AttributeFetcherSecurityTests, self).setUp(am_settings=am_settings)
         self.user_data = deepcopy(USER_DATA)
         self.af_registry = AFRegistry(self.am_settings) 
         self.fetcher = self.af_registry['eduid_security']
@@ -918,13 +918,13 @@ class AttributeFetcherSecurityTests(MongoTestCase):
         )
 
 
-class AttributeFetcherOrcidTests(MongoTestCase):
+class AttributeFetcherOrcidTests(AMTestCase):
 
     def setUp(self):
         am_settings = {
-            'WANT_MONGO_URI': True
+            'want_mongo_uri': True
         }
-        super(AttributeFetcherOrcidTests, self).setUp(init_am=True, am_settings=am_settings)
+        super(AttributeFetcherOrcidTests, self).setUp(am_settings=am_settings)
         self.user_data = deepcopy(USER_DATA)
         self.af_registry = AFRegistry(self.am_settings) 
         self.fetcher = self.af_registry['eduid_orcid']

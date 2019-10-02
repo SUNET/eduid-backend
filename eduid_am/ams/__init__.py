@@ -6,6 +6,8 @@ See the file LICENSE.txt for full license statement.
 """
 __author__ = 'eperez'
 
+from typing import List
+
 from eduid_userdb.signup import SignupUserDB
 from eduid_userdb.proofing import OidcProofingUserDB, LetterProofingUserDB
 from eduid_userdb.proofing import EmailProofingUserDB, PhoneProofingUserDB
@@ -33,7 +35,7 @@ class eduid_signup(AttributeFetcher):
         'passwords',
         'tou'
     ]
-    whitelist_unset_attrs = [
+    whitelist_unset_attrs: List[str] = [
     ]
 
     def fetch_attrs(self, user_id):
@@ -169,7 +171,7 @@ class eduid_eidas(AttributeFetcher):
         'surname',  # New format
         'displayName',
     ]
-    whitelist_unset_attrs = [
+    whitelist_unset_attrs: List[str] = [
     ]
     get_user_db = lambda cls, uri: EidasProofingUserDB(uri)
 
@@ -179,7 +181,7 @@ class eduid_tou(AttributeFetcher):
     whitelist_set_attrs = [
         'tou'
     ]
-    whitelist_unset_attrs = [
+    whitelist_unset_attrs: List[str] = [
     ]
     get_user_db = lambda cls, uri: ToUUserDB(uri)
 
