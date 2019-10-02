@@ -55,7 +55,8 @@ class EmailTests(EduidAPITestCase):
         return email_init_app('emails', config)
 
     def update_config(self, config):
-        config.update({
+        app_config = {k.lower(): v for k,v in config.items()}
+        app_config.update({
             'available_languages': {'en': 'English','sv': 'Svenska'},
             'msg_broker_url': 'amqp://dummy',
             'am_broker_url': 'amqp://dummy',
@@ -68,7 +69,7 @@ class EmailTests(EduidAPITestCase):
             'email_verification_timeout': 86400,
             'throttle_resend_seconds': 300,
         })
-        return EmailConfig(**config)
+        return EmailConfig(**app_config)
 
     def test_get_all_emails(self):
         response = self.browser.get('/all')
