@@ -68,7 +68,7 @@ class ActionsTests(ActionsTestCase):
             response = client.get('/config')
             self.assertEqual(response.status_code, 200)
             data = json.loads(response.data.decode('utf-8'))
-            self.assertEquals(data['payload']['setting1'], 'dummy')
+            self.assertEqual(data['payload']['setting1'], 'dummy')
 
     def test_get_config_fails(self):
         with self.session_cookie(self.browser) as client:
@@ -76,7 +76,7 @@ class ActionsTests(ActionsTestCase):
             response = client.get('/config')
             self.assertEqual(response.status_code, 200)
             data = json.loads(response.data.decode('utf-8'))
-            self.assertEquals(data['payload']['message'], 'test error')
+            self.assertEqual(data['payload']['message'], 'test error')
 
     def test_get_actions(self):
         with self.session_cookie(self.browser) as client:
@@ -85,7 +85,7 @@ class ActionsTests(ActionsTestCase):
             self.assertEqual(response.status_code, 200)
             data = json.loads(response.data)
             self.assertTrue(data['action'])
-            self.assertEquals(data['url'], "http://example.com/plugin.js")
+            self.assertEqual(data['url'], "http://example.com/plugin.js")
 
     def test_get_actions_action_error(self):
         with self.session_cookie(self.browser) as client:
@@ -104,7 +104,7 @@ class ActionsTests(ActionsTestCase):
                 response = self.app.dispatch_request()
                 data = json.loads(response)
                 self.assertFalse(data['action'])
-                self.assertEquals(data['url'], 'https://example.com/idp?key=dummy-session')
+                self.assertEqual(data['url'], 'https://example.com/idp?key=dummy-session')
 
     def test_get_actions_no_plugin(self):
         with self.session_cookie(self.browser) as client:
@@ -122,8 +122,8 @@ class ActionsTests(ActionsTestCase):
             with self.app.test_request_context():
                 response = client.post('/post-action')
                 data = json.loads(response.data)
-                self.assertEquals(response.status_code, 400)
-                self.assertEquals(data['message'], 'Bad Request')
+                self.assertEqual(response.status_code, 400)
+                self.assertEqual(data['message'], 'Bad Request')
 
     def test_post_action_wrong_csrf(self):
         with self.session_cookie(self.browser) as client:
@@ -131,8 +131,8 @@ class ActionsTests(ActionsTestCase):
             token = {'csrf_token': 'wrong code'}
             response = client.post('/post-action', data=json.dumps(token), content_type=self.content_type_json)
             data = json.loads(response.data)
-            self.assertEquals(response.status_code, 400)
-            self.assertEquals(data['message'], 'Bad Request')
+            self.assertEqual(response.status_code, 400)
+            self.assertEqual(data['message'], 'Bad Request')
 
     def test_post_action(self):
         with self.session_cookie(self.browser) as client:
@@ -142,8 +142,8 @@ class ActionsTests(ActionsTestCase):
                     token = {'csrf_token': sess.get_csrf_token()}
             response = client.post('/post-action', data=json.dumps(token), content_type=self.content_type_json)
             data = json.loads(response.data)
-            self.assertEquals(data['payload']['data']['completed'], 'done')
-            self.assertEquals(data['type'], 'POST_ACTIONS_POST_ACTION_SUCCESS')
+            self.assertEqual(data['payload']['data']['completed'], 'done')
+            self.assertEqual(data['type'], 'POST_ACTIONS_POST_ACTION_SUCCESS')
 
     def test_post_action_action_error(self):
         with self.session_cookie(self.browser) as client:
@@ -153,8 +153,8 @@ class ActionsTests(ActionsTestCase):
                     token = {'csrf_token': sess.get_csrf_token()}
             response = client.post('/post-action', data=json.dumps(token), content_type=self.content_type_json)
             data = json.loads(response.data)
-            self.assertEquals(data['type'], 'POST_ACTIONS_POST_ACTION_FAIL')
-            self.assertEquals(data['payload']['message'], 'test error')
+            self.assertEqual(data['type'], 'POST_ACTIONS_POST_ACTION_FAIL')
+            self.assertEqual(data['payload']['message'], 'test error')
 
     def test_post_action_validation_error(self):
         with self.session_cookie(self.browser) as client:
@@ -164,8 +164,8 @@ class ActionsTests(ActionsTestCase):
                     token = {'csrf_token': sess.get_csrf_token()}
             response = client.post('/post-action', data=json.dumps(token), content_type=self.content_type_json)
             data = json.loads(response.data)
-            self.assertEquals(data['type'], 'POST_ACTIONS_POST_ACTION_FAIL')
-            self.assertEquals(data['payload']['errors']['field1'], 'field test error')
+            self.assertEqual(data['type'], 'POST_ACTIONS_POST_ACTION_FAIL')
+            self.assertEqual(data['payload']['errors']['field1'], 'field test error')
 
     def test_post_action_multi_step(self):
         with self.session_cookie(self.browser) as client:
@@ -176,14 +176,14 @@ class ActionsTests(ActionsTestCase):
             # First step
             response = client.post('/post-action', data=json.dumps(token), content_type=self.content_type_json)
             data = json.loads(response.data)
-            self.assertEquals(data['payload']['data']['completed'], 'done')
-            self.assertEquals(data['type'], 'POST_ACTIONS_POST_ACTION_SUCCESS')
+            self.assertEqual(data['payload']['data']['completed'], 'done')
+            self.assertEqual(data['type'], 'POST_ACTIONS_POST_ACTION_SUCCESS')
             token = {'csrf_token': data['payload']['csrf_token']}
             # Second step
             response = client.post('/post-action', data=json.dumps(token), content_type=self.content_type_json)
             data = json.loads(response.data)
-            self.assertEquals(data['payload']['data']['completed'], 'done')
-            self.assertEquals(data['type'], 'POST_ACTIONS_POST_ACTION_SUCCESS')
+            self.assertEqual(data['payload']['data']['completed'], 'done')
+            self.assertEqual(data['type'], 'POST_ACTIONS_POST_ACTION_SUCCESS')
 
     def test_post_action_rm_action(self):
         with self.session_cookie(self.browser) as client:
@@ -194,6 +194,6 @@ class ActionsTests(ActionsTestCase):
                     token = {'csrf_token': sess.get_csrf_token()}
             response = client.post('/post-action', data=json.dumps(token), content_type=self.content_type_json)
             data = json.loads(response.data)
-            self.assertEquals(data['type'], 'POST_ACTIONS_POST_ACTION_FAIL')
-            self.assertEquals(data['payload']['message'], 'test error')
+            self.assertEqual(data['type'], 'POST_ACTIONS_POST_ACTION_FAIL')
+            self.assertEqual(data['payload']['message'], 'test error')
             self.assertFalse(self.app.actions_db.has_actions(eppn))

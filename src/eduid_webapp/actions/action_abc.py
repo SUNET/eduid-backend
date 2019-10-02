@@ -31,7 +31,7 @@
 
 from abc import ABCMeta, abstractmethod
 
-from flask import current_app
+from eduid_webapp.actions.app import current_actions_app as current_app
 
 from eduid_common.api.utils import get_static_url_for, urlappend
 from eduid_userdb.actions.action import Action

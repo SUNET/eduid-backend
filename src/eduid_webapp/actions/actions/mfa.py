@@ -34,11 +34,12 @@
 import json
 import pprint
 import base64
-from flask import current_app, request
+from flask import request
 
 from eduid_common.session import session
 from eduid_webapp.actions.action_abc import ActionPlugin
 from eduid_userdb.credentials import U2F, Webauthn
+from eduid_webapp.actions.app import current_actions_app as current_app
 
 from u2flib_server.u2f import begin_authentication, complete_authentication
 

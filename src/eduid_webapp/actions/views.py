@@ -39,12 +39,13 @@ from eduid_common.api.decorators import MarshalWith
 from eduid_common.api.schemas.base import FluxStandardAction
 from eduid_common.authn.utils import check_previous_identification
 from eduid_common.session import session
-from flask import Blueprint, request, current_app
+from flask import Blueprint, request
 from flask import abort, url_for, render_template, redirect
 from six.moves.urllib_parse import urlsplit, urlunsplit
 
 from eduid_userdb.actions import Action
 from eduid_webapp.actions.helpers import get_next_action
+from eduid_webapp.actions.app import current_actions_app as current_app
 
 actions_views = Blueprint('actions', __name__, url_prefix='', template_folder='templates')
 
