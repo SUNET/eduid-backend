@@ -13,9 +13,10 @@ services:
   - docker
 # command to install dependencies
 install:
-  - pip install -U setuptools
+  - pip install -U setuptools mypy
   - python setup.py develop easy_install eduid_lookup_mobile[testing]
 # command to run tests
 script:
   - pip freeze
-  - nosetests
+  - pytest
+  - mypy --ignore-missing-imports eduid_lookup_mobile

@@ -23,8 +23,6 @@ var/
 *.egg
 .idea
 *.pw
-*.ini
-
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
