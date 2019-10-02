@@ -4,4 +4,3 @@ eduid_common[worker]>=0.4.1b24
 celery[redis]==4.3.*
 suds-jurko >= 0.6
 phonenumbers >= 8.9.3
-vine<5.0.0a1,>=1.1.3
