@@ -120,8 +120,8 @@ class ToUActionPluginTests(ActionsTestCase):
             self.authenticate()
             response = self.app.dispatch_request()
             data = json.loads(response)
-            self.assertEquals(data['action'], True)
-            self.assertEquals(data['url'], 'http://example.com/bundles/eduid_action.tou-bundle.dev.js')
+            self.assertEqual(data['action'], True)
+            self.assertEqual(data['url'], 'http://example.com/bundles/eduid_action.tou-bundle.dev.js')
 
     def test_get_config(self):
         mock_idp_app = MockIdPContext(self.app.actions_db, tou_version='test-version')
@@ -130,7 +130,7 @@ class ToUActionPluginTests(ActionsTestCase):
             self.authenticate()
             response = self.app.dispatch_request()
             data = json.loads(response.data.decode('utf-8'))
-            self.assertEquals(data['payload']['tous']['sv'], 'test tou svenska')
+            self.assertEqual(data['payload']['tous']['sv'], 'test tou svenska')
 
     def test_get_config_no_tous(self):
         mock_idp_app = MockIdPContext(self.app.actions_db, tou_version='not-existing-version')
@@ -139,7 +139,7 @@ class ToUActionPluginTests(ActionsTestCase):
             self.authenticate()
             response = self.app.dispatch_request()
             data = json.loads(response.data.decode('utf-8'))
-            self.assertEquals(data['payload']['message'], 'tou.no-tou')
+            self.assertEqual(data['payload']['message'], 'tou.no-tou')
 
     @patch('eduid_am.tasks.update_attributes_keep_result.delay')
     def test_get_accept_tou(self, mock_request_user_sync):
@@ -156,9 +156,9 @@ class ToUActionPluginTests(ActionsTestCase):
                 data = json.dumps({'accept': True, 'csrf_token': csrf_token})
                 response = client.post('/post-action', data=data,
                                        content_type=self.content_type_json)
-                self.assertEquals(response.status_code, 200)
+                self.assertEqual(response.status_code, 200)
                 response_data = json.loads(response.data)
-                self.assertEquals(response_data['payload']['message'], 'actions.action-completed')
+                self.assertEqual(response_data['payload']['message'], 'actions.action-completed')
 
         # verify the tou is now accepted in the main database
         user = self.app.central_userdb.get_user_by_eppn(self.user.eppn)
@@ -186,9 +186,9 @@ class ToUActionPluginTests(ActionsTestCase):
                 data = json.dumps({'accept': True, 'csrf_token': csrf_token})
                 response = client.post('/post-action', data=data,
                                        content_type=self.content_type_json)
-                self.assertEquals(response.status_code, 200)
+                self.assertEqual(response.status_code, 200)
                 response_data = json.loads(response.data)
-                self.assertEquals(response_data['payload']['message'], 'actions.action-completed')
+                self.assertEqual(response_data['payload']['message'], 'actions.action-completed')
 
         # verify the tou is now accepted in the main database
         user = self.app.central_userdb.get_user_by_eppn(self.user.eppn)
@@ -217,9 +217,9 @@ class ToUActionPluginTests(ActionsTestCase):
                 data = json.dumps({'accept': True, 'csrf_token': csrf_token})
                 response = client.post('/post-action', data=data,
                                        content_type=self.content_type_json)
-                self.assertEquals(response.status_code, 200)
+                self.assertEqual(response.status_code, 200)
                 response_data = json.loads(response.data)
-                self.assertEquals(response_data['payload']['message'], 'actions.action-completed')
+                self.assertEqual(response_data['payload']['message'], 'actions.action-completed')
 
         # verify the tou is now accepted in the main database
         user = self.app.central_userdb.get_user_by_eppn(self.user.eppn)
@@ -235,6 +235,6 @@ class ToUActionPluginTests(ActionsTestCase):
                 data = json.dumps({'accept': False, 'csrf_token': csrf_token})
                 response = client.post('/post-action', data=data,
                                        content_type=self.content_type_json)
-                self.assertEquals(response.status_code, 200)
+                self.assertEqual(response.status_code, 200)
                 data = json.loads(response.data)
-                self.assertEquals(data['payload']['message'], 'tou.must-accept')
+                self.assertEqual(data['payload']['message'], 'tou.must-accept')

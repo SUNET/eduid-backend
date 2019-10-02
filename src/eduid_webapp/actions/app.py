@@ -37,6 +37,7 @@ from typing import cast
 import types
 
 from flask import Flask, render_template, templating
+from flask import current_app
 
 from eduid_common.api.app import eduid_init_app
 from eduid_common.api import am
@@ -78,7 +79,8 @@ class ActionsApp(EduIDApp):
     def __init__(self, *args, **kwargs):
         super(ActionsApp, self).__init__(*args, **kwargs)
         self.config: ActionsConfig = cast(ActionsConfig, self.config)
-                
+
+current_actions_app: ActionsApp = cast(ActionsApp, current_app)
 
 def actions_init_app(name, config):
     """

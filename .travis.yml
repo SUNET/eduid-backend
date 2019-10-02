@@ -1,4 +1,3 @@
-sudo: required
 dist: xenial
 addons:
   apt:
@@ -20,7 +19,7 @@ install:
 # command to run tests
 script:
   - pip freeze
-  - nosetests --with-xcoverage
+  - pytest
   - mypy --ignore-missing-imports src/eduid_webapp
 after_success:
   - codecov

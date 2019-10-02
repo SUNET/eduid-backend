@@ -119,7 +119,8 @@ class EidasTests(EduidAPITestCase):
 
     def update_config(self, config):
         saml_config = os.path.join(HERE, 'saml2_settings.py')
-        config.update({
+        app_config = {k.lower(): v for k,v in config.items()}
+        app_config.update({
             'token_verify_redirect_url': 'http://test.localhost/profile',
             'nin_verify_redirect_url': 'http://test.localhost/profile',
             'action_url': 'http://idp.test.localhost/action',
@@ -147,7 +148,7 @@ class EidasTests(EduidAPITestCase):
             'authn_sign_alg': 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256',
             'authn_digest_alg': 'http://www.w3.org/2001/04/xmlenc#sha256'
             })
-        return EidasConfig(**config)
+        return EidasConfig(**app_config)
 
     def add_token_to_user(self, eppn, credential_id, token_type):
         user = self.app.central_userdb.get_user_by_eppn(eppn)
