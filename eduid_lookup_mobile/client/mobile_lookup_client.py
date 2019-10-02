@@ -1,9 +1,11 @@
-import six
+
 from suds.client import Client
 from suds.plugin import MessagePlugin
+
+from eduid_common.config.workers import MobConfig
 from eduid_lookup_mobile.decorators import TransactionAudit
-from eduid_lookup_mobile.utilities import format_NIN, format_mobile_number
 from eduid_lookup_mobile.development.development_search_result import _get_devel_search_result
+from eduid_lookup_mobile.utilities import format_NIN, format_mobile_number
 
 DEFAULT_CLIENT_URL = 'http://api.teleadress.se/WSDL/nnapiwebservice.wsdl'
 DEFAULT_CLIENT_PORT = 'NNAPIWebServiceSoap'
@@ -21,7 +23,7 @@ class LogPlugin(MessagePlugin):
 
 class MobileLookupClient(object):
 
-    def __init__(self, logger, config):  # type: (object, dict) -> None
+    def __init__(self, logger, config: MobConfig) -> None:
         self.conf = config
 
         # enable transaction logging if configured
@@ -31,8 +33,8 @@ class MobileLookupClient(object):
         self.client.set_options(port=DEFAULT_CLIENT_PORT)
         self.logger = logger
 
-        self.DEFAULT_CLIENT_PASSWORD = six.text_type(self.conf.teleadress_client_password)
-        self.DEFAULT_CLIENT_USER = six.text_type(self.conf.teleadress_client_user)
+        self.DEFAULT_CLIENT_PASSWORD = str(self.conf.teleadress_client_password)
+        self.DEFAULT_CLIENT_USER = str(self.conf.teleadress_client_user)
 
     @TransactionAudit()
     def find_mobiles_by_NIN(self, national_identity_number, number_region=None):
