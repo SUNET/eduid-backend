@@ -66,9 +66,9 @@ class SupportAuthnInfoDB(BaseDB):
         if not isinstance(user_id, ObjectId):
             user_id = ObjectId(user_id)
         docs = self._get_documents_by_filter({'_id': user_id}, raise_on_missing=False)
-        if docs:
-            return self.model(dict(docs[0]))  # Cast to dict to allow mutability
-        return dict()
+        if not docs:
+            return dict()
+        return self.model(dict(docs[0]))  # Cast to dict to allow mutability
 
     def get_credential_info(self, credential_id):
         """
@@ -78,9 +78,9 @@ class SupportAuthnInfoDB(BaseDB):
         :rtype: dict
         """
         doc = self._get_document_by_attr('_id', credential_id, raise_on_missing=False)
-        if doc:
-            doc = self.model(dict(doc))  # Cast to dict to allow mutability
-        return doc
+        if not doc:
+            return dict()
+        return self.model(dict(doc))  # Cast to dict to allow mutability
 
 
 class SupportActionsDB(BaseDB):
@@ -120,9 +120,9 @@ class SupportProofingDB(BaseDB):
         :rtype: dict
         """
         doc = self._get_document_by_attr('eduPersonPrincipalName', eppn, raise_on_missing=False)
-        if doc:
-            doc = self.model(dict(doc))  # Cast to dict to allow mutability
-        return doc
+        if not doc:
+            return dict()
+        return self.model(dict(doc))  # Cast to dict to allow mutability
 
     def get_proofing_states(self, eppn):
         """

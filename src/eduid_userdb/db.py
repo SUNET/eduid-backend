@@ -42,7 +42,7 @@ class MongoDB(object):
             connection_factory = pymongo.MongoClient
         elif connection_factory == pymongo.MongoReplicaSetClient:
             warnings.warn(
-                f"{__name__} initialized with connection_factory {connection_factory} use pymongo.MongoClient instead.",
+                f'{__name__} initialized with connection_factory {connection_factory} use pymongo.MongoClient instead.',
                 DeprecationWarning
             )
 
@@ -260,10 +260,10 @@ class BaseDB(object):
         doc_count = len(docs)
         if doc_count == 0:
             if raise_on_missing:
-                raise DocumentDoesNotExist(f"No document matching {attr}='{value}'")
+                raise DocumentDoesNotExist(f'No document matching {attr}={repr(value)}')
             return None
         elif doc_count > 1:
-            raise MultipleDocumentsReturned(f"Multiple matching documents for {attr}='{value}'")
+            raise MultipleDocumentsReturned(f'Multiple matching documents for {attr}={repr(value)}')
         return docs[0]
 
     def _get_documents_by_attr(self, attr: str, value: str, raise_on_missing: bool = True) -> List[Mapping]:
@@ -280,7 +280,7 @@ class BaseDB(object):
         doc_count = len(docs)
         if doc_count == 0:
             if raise_on_missing:
-                raise DocumentDoesNotExist(f"No document matching {attr}='{value}'")
+                raise DocumentDoesNotExist(f'No document matching {attr}={repr(value)}')
             return []
         return docs
 

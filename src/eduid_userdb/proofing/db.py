@@ -86,20 +86,20 @@ class ProofingStateDB(BaseDB):
         :param raise_on_missing: Raise exception if True else return None
         :return: Latest state found
         """
-        result = self._get_documents_by_filter(spec, raise_on_missing=raise_on_missing)
-        if not result:
+        docs = self._get_documents_by_filter(spec, raise_on_missing=raise_on_missing)
+        if not docs:
             return None
 
-        if len(result) > 1:
+        if len(docs) > 1:
             # Ex. multiple states for same user and email address matched
             # This should not be possible but we have seen it happen
-            states = sorted([state for state in result], key=itemgetter('modified_ts'))
+            states = sorted(docs, key=itemgetter('modified_ts'))
             state_to_keep = states.pop(-1)  # Keep latest state
             for state in states:
                 self.remove_document(state['_id'])
             return self.ProofingStateClass.from_dict(state_to_keep)
 
-        return self.ProofingStateClass.from_dict(result[0])
+        return self.ProofingStateClass.from_dict(docs[0])
 
     def save(self, state, check_sync=True):
         """
