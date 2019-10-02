@@ -8,6 +8,6 @@ class MessageTest(MsgMongoTestCase):
     def test_mongo(self):
         db = self.tmp_db.conn['test']
         c = db['test']
-        id = c.insert({'baka': 'kaka'})
+        id = c.insert_one({'baka': 'kaka'}).inserted_id
         doc = c.find_one({'_id': id})
         assert(doc['baka'] == 'kaka')

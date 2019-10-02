@@ -32,7 +32,7 @@ class TestPostalAddress(TestCase):
         response = self.navet.personpost.navetnotification.POST(self.request)
         if response.status_code == 200:
             result = utils.navet_get_name(response.json())
-            self.assertEquals(result['Name']['GivenName'], 'Saskariot Teofil')
+            self.assertEqual(result['Name']['GivenName'], 'Saskariot Teofil')
             with self.assertRaises(KeyError):
                 non_existing_address = result['OfficialAddress']
 
@@ -40,7 +40,7 @@ class TestPostalAddress(TestCase):
         response = self.navet.personpost.navetnotification.POST(self.request)
         if response.status_code == 200:
             result = utils.navet_get_official_address(response.json())
-            self.assertEquals(result['OfficialAddress']['Address2'], u'MALMSKILLNADSGATAN 54 25 TR LÄG 458')
+            self.assertEqual(result['OfficialAddress']['Address2'], u'MALMSKILLNADSGATAN 54 25 TR LÄG 458')
             with self.assertRaises(KeyError):
                 non_existing_name = result['Name']
 
@@ -48,13 +48,13 @@ class TestPostalAddress(TestCase):
         response = self.navet.personpost.navetnotification.POST(self.request)
         if response.status_code == 200:
             result = utils.navet_get_name_and_official_address(response.json())
-            self.assertEquals(result['Name']['GivenName'], 'Saskariot Teofil')
-            self.assertEquals(result['OfficialAddress']['Address2'], u'MALMSKILLNADSGATAN 54 25 TR LÄG 458')
+            self.assertEqual(result['Name']['GivenName'], 'Saskariot Teofil')
+            self.assertEqual(result['OfficialAddress']['Address2'], u'MALMSKILLNADSGATAN 54 25 TR LÄG 458')
 
     def test_get_relations(self):
         response = self.navet.personpost.navetnotification.POST(self.request)
         if response.status_code == 200:
             result = utils.navet_get_relations(response.json())
-            self.assertEquals(result['Relations']['Relation'][0]['RelationId']['NationalIdentityNumber'],
+            self.assertEqual(result['Relations']['Relation'][0]['RelationId']['NationalIdentityNumber'],
                               '196910199287')
-            self.assertEquals(result['Relations']['Relation'][0]['RelationType'], 'M')
+            self.assertEqual(result['Relations']['Relation'][0]['RelationType'], 'M')
