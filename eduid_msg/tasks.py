@@ -47,7 +47,7 @@ DEFAULT_NAVET_API_URI = 'http://{0}:{1}'.format(DEFAULT_NAVET_API_HOST,
 
 logger = get_task_logger(__name__)
 _CACHE: dict = {}
-MESSAGE_RATE_LIMIT = worker_config.get("MESSAGE_RATE_LIMIT", None)
+MESSAGE_RATE_LIMIT = worker_config.message_rate_limit
 
 
 class MessageRelay(Task):
@@ -60,10 +60,10 @@ class MessageRelay(Task):
     _mm_api = None
     _navet_api = None
     _config = worker_config
-    MONGODB_URI = _config['MONGO_URI'] if 'MONGO_URI' in _config else DEFAULT_MONGODB_URI
+    MONGODB_URI = _config.mongo_uri
     MM_API_URI = _config['MM_API_URI'] if 'MM_API_URI' in _config else DEFAULT_MM_API_URI
-    NAVET_API_URI = _config['NAVET_API_URI'] if 'NAVET_API_URI' in _config else DEFAULT_NAVET_API_URI
-    if 'AUDIT' in _config and _config['AUDIT'] == 'true':
+    NAVET_API_URI = _config.navet_api_uri
+    if _config.audit == 'true':
         TransactionAudit.enable()
 
     @property
@@ -71,25 +71,25 @@ class MessageRelay(Task):
         if self._sms is None:
             from smscom import SMSClient
 
-            self._sms = SMSClient(self._config.get("SMS_ACC"), self._config.get("SMS_KEY"))
-            self._sms_sender = self._config.get("SMS_SENDER")
+            self._sms = SMSClient(self._config.sms_acc, self._config.sms_key)
+            self._sms_sender = self._config.sms_sender
         return self._sms
 
     @property
     def smtp(self):
-        host = self._config.get("MAIL_HOST")
-        port = self._config.get("MAIL_PORT")
+        host = self._config.mail_host
+        port = self._config.mail_port
         _smtp = smtplib.SMTP(host, port)
-        starttls = self._config.get("MAIL_STARTTLS")
+        starttls = self._config.mail_starttls
         if starttls:
-            keyfile = self._config.get("MAIL_KEYFILE")
-            certfile = self._config.get("MAIL_CERTFILE")
+            keyfile = self._config.mail_keyfile
+            certfile = self._config.mail_certfile
             if keyfile and certfile:
                 _smtp.starttls(keyfile, certfile)
             else:
                 _smtp.starttls()
-        username = self._config.get("MAIL_USERNAME")
-        password = self._config.get("MAIL_PASSWORD")
+        username = self._config.mail_username
+        password = self._config.mail_password
         if username and password:
             _smtp.login(username, password)
         return _smtp
@@ -99,10 +99,10 @@ class MessageRelay(Task):
         if self._mm_api is None:
             verify_ssl = True
             auth = None
-            if self._config.get("MM_API_VERIFY_SSL", None) == 'false':
+            if self._config.mm_api_verify_ssl == 'false':
                 verify_ssl = False
-            if self._config.get("MM_API_USER", None) and self._config.get("MM_API_PW"):
-                auth = (self._config.get("MM_API_USER"), self._config.get("MM_API_PW"))
+            if self._config.mm_api_user and self._config.mm_api_pw:
+                auth = (self._config.mm_api_user, self._config.mm_api_pw)
             self._mm_api = Hammock(self.MM_API_URI, auth=auth, verify=verify_ssl)
         return self._mm_api
 
@@ -111,18 +111,18 @@ class MessageRelay(Task):
         if self._navet_api is None:
             verify_ssl = True
             auth = None
-            if self._config.get("NAVET_API_VERIFY_SSL", None) == 'false':
+            if self._config.navet_api_verify_ssl == 'false':
                 verify_ssl = False
-            if self._config.get("NAVET_API_USER", None) and self._config.get("NAVET_API_PW"):
-                auth = (self._config.get("NAVET_API_USER"), self._config.get("NAVET_API_PW"))
+            if self._config.navet_api_user and self._config.navet_api_pw:
+                auth = (self._config.navet_api_user, self._config.navet_api_pw)
             self._navet_api = Hammock(self.NAVET_API_URI, auth=auth, verify=verify_ssl)
         return self._navet_api
 
     def cache(self, cache_name, ttl=7200):
         global _CACHE
         if cache_name not in _CACHE:
-            _CACHE[cache_name] = CacheMDB(self._config.get('MONGO_URI', DEFAULT_MONGODB_URI),
-                                          self._config.get('MONGO_DBNAME', DEFAULT_MONGODB_NAME),
+            _CACHE[cache_name] = CacheMDB(self._config.mongo_uri,
+                                          self._config.mongo_dbname,
                                           cache_name, ttl=ttl, expiration_freq=120)
         return _CACHE[cache_name]
 
@@ -186,7 +186,7 @@ class MessageRelay(Task):
     def _get_is_reachable(self, identity_number: str) -> dict:
         # Users always reachable in devel mode
         conf = self._config
-        if conf.get("DEVEL_MODE") is True:
+        if conf.devel_mode is True:
             logger.debug(f"Faking that NIN {identity_number} is reachable")
             return {
                 'AccountStatus': {
@@ -223,10 +223,10 @@ class MessageRelay(Task):
         """
         conf = self._config
 
-        msg = load_template(conf.get("TEMPLATE_DIR", None), template, message_dict, language)
+        msg = load_template(conf.template_dir, template, message_dict, language)
 
         # Only log the message if devel_mode is enabled
-        if conf.get("DEVEL_MODE") is True:
+        if conf.devel_mode is True:
             logger.debug(f"\nType: {message_type}\nReference: {reference}\nRecipient: {recipient}"
                          f"\nLang: {language}\nSubject: {subject}\nMessage:\n {msg}")
             return 'devel_mode'
@@ -251,7 +251,7 @@ class MessageRelay(Task):
                 return None
 
             if subject is None:
-                subject = f'{conf.get("MM_DEFAULT_SUBJECT")}'  # make mypy happy
+                subject = f'{conf.mm_default_subject}'  # make mypy happy
 
             status = self._send_mm_message(recipient, subject, 'text/html', language.replace('_', ''), msg)
         else:
@@ -286,7 +286,7 @@ class MessageRelay(Task):
         """
         # Only log the message if devel_mode is enabled
         conf = self._config
-        if conf.get("DEVEL_MODE") is True:
+        if conf.devel_mode is True:
             return self.get_devel_postal_address()
 
         data = self._get_navet_data(identity_number)
@@ -317,7 +317,7 @@ class MessageRelay(Task):
         """
         # Only log the message if devel_mode is enabled
         conf = self._config
-        if conf.get("DEVEL_MODE") is True:
+        if conf.devel_mode is True:
             return self.get_devel_relations()
 
         data = self._get_navet_data(identity_number)
@@ -393,7 +393,7 @@ class MessageRelay(Task):
 
         # Just log the mail if in development mode
         conf = self._config
-        if conf.get("DEVEL_MODE") is True:
+        if conf.devel_mode is True:
             logger.debug('sendmail task:')
             logger.debug("\nType: {}\nSender: {}\nRecipients: {}\nMessage:\n{}".format(
                 'email', reference, sender, recipients, message))
@@ -415,7 +415,7 @@ class MessageRelay(Task):
 
         # Just log the sms if in development mode
         conf = self._config
-        if conf.get("DEVEL_MODE") is True:
+        if conf.devel_mode is True:
             logger.debug('sendsms task:')
             logger.debug(f"\nType: sms\nReference: {reference}\nRecipient: {recipient}\nMessage:\n{message}")
             return 'devel_mode'
