@@ -118,7 +118,7 @@ class TestChpassUser(TestCase):
         one = copy.deepcopy(_one_dict)
         password = Password(data = one, raise_on_unknown = False)
         user = ChpassUser(userid=USERID, passwords=[password])
-        self.assertEquals(user.passwords.to_list_of_dicts()[0]['salt'], 'firstPasswordElement')
+        self.assertEqual(user.passwords.to_list_of_dicts()[0]['salt'], 'firstPasswordElement')
 
     def test_missing_userid(self):
         one = copy.deepcopy(_one_dict)
@@ -142,4 +142,4 @@ class TestChpassUser(TestCase):
         password = Password(data = one, raise_on_unknown = False)
         data = dict(_id=USERID, passwords=[password], foo='bar')
         user = ChpassUser(data=data, raise_on_unknown=False)
-        self.assertEquals(user.to_dict()['foo'], 'bar')
+        self.assertEqual(user.to_dict()['foo'], 'bar')

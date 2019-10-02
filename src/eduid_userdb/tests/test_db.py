@@ -2,6 +2,8 @@ import eduid_userdb.db as db
 
 from unittest import TestCase
 
+from eduid_userdb.testing import MongoTestCase
+
 
 class DummyDatabase(object):
 
@@ -73,3 +75,9 @@ class TestMongoDB(TestCase):
         uri = 'mongodb://john:s3cr3t@db.example.com:27017/?ssl=true&replicaSet=rs9'
         mdb = db.MongoDB(uri, db_name='testdb', connection_factory=DummyConnection)
         self.assertEqual(mdb.sanitized_uri, 'mongodb://john:secret@db.example.com/testdb?replicaset=rs9&ssl=true')
+
+
+class TestDB(MongoTestCase):
+
+    def test_db_count(self):
+        self.assertEqual(self.amdb.db_count(), len(list(self.MockedUserDB().all_userdocs())))

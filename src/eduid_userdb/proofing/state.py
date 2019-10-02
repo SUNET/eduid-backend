@@ -87,6 +87,10 @@ class ProofingState(object):
 
         return cls(**_data)
 
+    @classmethod
+    def from_dict(cls, data: Mapping):
+        raise NotImplementedError(f'from_dict not implemented for class {cls.__name__}')
+
     def to_dict(self) -> MutableMapping:
         res = asdict(self)
         res['_id'] = res.pop('id')

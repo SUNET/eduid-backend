@@ -10,7 +10,7 @@ README = 'eduID User Database interface module'
 if os.path.exists(README_fn):
     README = open(README_fn).read()
 
-version = '0.4.6b15'
+version = '0.4.6'
 
 install_requires = [
     'pymongo >= 3.6',
@@ -18,9 +18,8 @@ install_requires = [
 ]
 
 testing_extras = [
-    'nose == 1.3.7',
-    'nosexcover == 1.0.11',
-    'coverage == 4.5.1',
+    'pytest>=5.2.0'
+    'pytest-cov>=2.7.1'
 ]
 
 setup(

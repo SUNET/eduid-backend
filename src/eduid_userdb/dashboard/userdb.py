@@ -29,12 +29,13 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-
-__author__ = 'ft'
+from typing import Type
 
 from eduid_userdb import UserDB, User
-from eduid_userdb.dashboard import DashboardUser
 from eduid_userdb.dashboard import DashboardLegacyUser
+from eduid_userdb.dashboard import DashboardUser
+
+__author__ = 'ft'
 
 import logging
 logger = logging.getLogger('eduiddashboard')
@@ -42,7 +43,7 @@ logger = logging.getLogger('eduiddashboard')
 
 class DashboardUserDB(UserDB):
 
-    UserClass = DashboardUser
+    UserClass: Type[User] = DashboardUser
 
     def __init__(self, db_uri, db_name='eduid_dashboard', collection='profiles'):
         super(DashboardUserDB, self).__init__(db_uri, db_name, collection=collection)
@@ -50,13 +51,13 @@ class DashboardUserDB(UserDB):
 
 class DashboardOldUserDB(DashboardUserDB):
 
-    UserClass = DashboardLegacyUser
+    UserClass = DashboardLegacyUser  # type: ignore
 
 
 # Wrapper for the central userdb, for now eduid_am.attributes
 class UserDBWrapper(UserDB):
 
-    UserClass = DashboardLegacyUser
+    UserClass = DashboardLegacyUser  # type: ignore
 
     def __init__(self, db_uri, db_name='eduid_am', collection='attributes'):
         UserDB.__init__(self, db_uri, db_name, collection)

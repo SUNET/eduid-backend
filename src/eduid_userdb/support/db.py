@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
+from typing import Type
 
 from bson import ObjectId
 
-from eduid_userdb.userdb import BaseDB, UserDB
 from eduid_userdb.signup import SignupUserDB
 from eduid_userdb.support import SupportUser, SupportSignupUser, models
+from eduid_userdb.support.models import GenericFilterDict
+from eduid_userdb.userdb import BaseDB, UserDB
 
 __author__ = 'lundberg'
 
@@ -64,10 +65,10 @@ class SupportAuthnInfoDB(BaseDB):
         """
         if not isinstance(user_id, ObjectId):
             user_id = ObjectId(user_id)
-        doc = self._get_document_by_attr('_id', user_id, raise_on_missing=False)
-        if doc:
-            doc = self.model(doc)
-        return doc
+        docs = self._get_documents_by_filter({'_id': user_id}, raise_on_missing=False)
+        if not docs:
+            return dict()
+        return self.model(dict(docs[0]))  # Cast to dict to allow mutability
 
     def get_credential_info(self, credential_id):
         """
@@ -77,9 +78,9 @@ class SupportAuthnInfoDB(BaseDB):
         :rtype: dict
         """
         doc = self._get_document_by_attr('_id', credential_id, raise_on_missing=False)
-        if doc:
-            doc = self.model(doc)
-        return doc
+        if not doc:
+            return dict()
+        return self.model(dict(doc))  # Cast to dict to allow mutability
 
 
 class SupportActionsDB(BaseDB):
@@ -100,13 +101,13 @@ class SupportActionsDB(BaseDB):
         """
         if not isinstance(user_id, ObjectId):
             user_id = ObjectId(user_id)
-        docs = self._get_documents_by_attr('user_oid', user_id, raise_on_missing=False)
-        return [self.model(doc) for doc in docs]
+        docs = self._get_documents_by_filter(spec={'user_oid': user_id}, raise_on_missing=False)
+        return [self.model(dict(doc)) for doc in docs]  # Cast to dict to allow mutability
 
 
 class SupportProofingDB(BaseDB):
 
-    model = None
+    model: Type[GenericFilterDict] = GenericFilterDict
 
     def __init__(self, db_uri, db_name, collection):
         super(SupportProofingDB, self).__init__(db_uri, db_name, collection)
@@ -119,9 +120,9 @@ class SupportProofingDB(BaseDB):
         :rtype: dict
         """
         doc = self._get_document_by_attr('eduPersonPrincipalName', eppn, raise_on_missing=False)
-        if doc:
-            doc = self.model(doc)
-        return doc
+        if not doc:
+            return dict()
+        return self.model(dict(doc))  # Cast to dict to allow mutability
 
     def get_proofing_states(self, eppn):
         """
@@ -131,7 +132,7 @@ class SupportProofingDB(BaseDB):
         :rtype: list
         """
         docs = self._get_documents_by_attr('eduPersonPrincipalName', eppn, raise_on_missing=False)
-        return [self.model(doc) for doc in docs]
+        return [self.model(dict(doc)) for doc in docs]  # Cast to dict to allow mutability
 
 
 class SupportLetterProofingDB(SupportProofingDB):

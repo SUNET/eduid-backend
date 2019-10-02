@@ -33,22 +33,26 @@
 import datetime
 import logging
 from operator import itemgetter
-from typing import Optional
+from typing import Optional, Type, TypeVar, ClassVar
 
 from eduid_userdb.db import BaseDB
 from eduid_userdb.exceptions import DocumentOutOfSync
 from eduid_userdb.exceptions import MultipleDocumentsReturned
 from eduid_userdb.proofing import PhoneProofingState, OrcidProofingState
 from eduid_userdb.proofing import ProofingUser, LetterProofingState, OidcProofingState, EmailProofingState
+from eduid_userdb.proofing.state import ProofingState
 from eduid_userdb.userdb import UserDB
 
 logger = logging.getLogger(__name__)
 
 __author__ = 'lundberg'
 
+ProofingStateInstance = TypeVar('ProofingStateInstance', bound=ProofingState)
+
 
 class ProofingStateDB(BaseDB):
-    ProofingStateClass = None
+
+    ProofingStateClass: Type[ProofingState] = ProofingState
 
     def __init__(self, db_uri, db_name, collection='proofing_data'):
         BaseDB.__init__(self, db_uri, db_name, collection)
@@ -74,9 +78,31 @@ class ProofingStateDB(BaseDB):
         if state:
             return self.ProofingStateClass.from_dict(state)
 
+    def get_latest_state_by_spec(self, spec: dict, raise_on_missing: bool = True) -> Optional[ProofingStateInstance]:
+        """
+        Returns the latest inserted state and __removes any other state found__ defined by the spec .
+
+        :param spec: the search filter
+        :param raise_on_missing: Raise exception if True else return None
+        :return: Latest state found
+        """
+        docs = self._get_documents_by_filter(spec, raise_on_missing=raise_on_missing)
+        if not docs:
+            return None
+
+        if len(docs) > 1:
+            # Ex. multiple states for same user and email address matched
+            # This should not be possible but we have seen it happen
+            states = sorted(docs, key=itemgetter('modified_ts'))
+            state_to_keep = states.pop(-1)  # Keep latest state
+            for state in states:
+                self.remove_document(state['_id'])
+            return self.ProofingStateClass.from_dict(state_to_keep)
+
+        return self.ProofingStateClass.from_dict(docs[0])
+
     def save(self, state, check_sync=True):
         """
-
         :param state: ProofingStateClass object
         :param check_sync: Ensure the document hasn't been updated in the database since it was loaded
 
@@ -85,7 +111,6 @@ class ProofingStateDB(BaseDB):
 
         :return:
         """
-
         modified = state.modified_ts
         state.modified_ts = datetime.datetime.utcnow()  # update to current time
         if modified is None:
@@ -143,25 +168,7 @@ class EmailProofingStateDB(ProofingStateDB):
                                                matches the search criteria
         """
         spec = {'eduPersonPrincipalName': eppn, 'verification.email': email}
-        verifications = self._get_documents_by_filter(spec, raise_on_missing=raise_on_missing)
-
-        try:
-            if verifications.count() > 1:
-                # Multiple states for same user and email address matched
-                # This should not be possible but we have seen it happen
-                states = sorted([state for state in verifications], key=itemgetter('modified_ts'))
-                state_to_keep = states.pop(-1)  # Keep latest state
-                for state in states:
-                    self.remove_document(state['_id'])
-                return self.ProofingStateClass.from_dict(state_to_keep)
-
-            if verifications.count() == 1:
-                return self.ProofingStateClass.from_dict(verifications[0])
-        except TypeError:
-            # no verifications, and do not raise on missing,
-            # produce an empty list;
-            # and [].count() raises a TypeError
-            return None
+        return self.get_latest_state_by_spec(spec, raise_on_missing)
 
     def remove_state(self, state):
         """
@@ -199,20 +206,7 @@ class PhoneProofingStateDB(ProofingStateDB):
         """
         spec = {'eduPersonPrincipalName': eppn,
                 'verification.number': number}
-        verifications = self._get_documents_by_filter(spec,
-                                                      raise_on_missing=raise_on_missing)
-        try:
-            if verifications.count() > 1:
-                raise MultipleDocumentsReturned("Multiple matching"
-                                                " documents for {!r}".format(spec))
-
-            if verifications.count() == 1:
-                return self.ProofingStateClass.from_dict(verifications[0])
-        except TypeError:
-            # no verifications, and do not raise on missing,
-            # produce an empty list;
-            # and [].count() raises a TypeError
-            return None
+        return self.get_latest_state_by_spec(spec, raise_on_missing)
 
     def remove_state(self, state):
         """
@@ -225,7 +219,6 @@ class PhoneProofingStateDB(ProofingStateDB):
 
 
 class OidcStateDB(ProofingStateDB):
-    ProofingStateClass = None
 
     def get_state_by_oidc_state(self, oidc_state, raise_on_missing=True):
         """
