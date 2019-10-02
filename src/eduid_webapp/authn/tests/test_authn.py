@@ -72,7 +72,8 @@ class AuthnAPITestBase(EduidAPITestCase):
         according to the needs of this test case.
         """
         saml_config = os.path.join(HERE, 'saml2_settings.py')
-        config.update({
+        app_config = {k.lower(): v for k,v in config.items()}
+        app_config.update({
             'saml2_login_redirect_url': '/',
             'saml2_logout_redirect_url': '/logged-out',
             'saml2_settings_module': saml_config,
@@ -80,7 +81,7 @@ class AuthnAPITestBase(EduidAPITestCase):
             'signup_authn_failure_redirect_url': 'http://test.localhost/failure',
             'safe_relay_domain': 'test.localhost'
             })
-        return AuthnConfig(**config)
+        return AuthnConfig(**app_config)
 
     def load_app(self, config):
         """
@@ -336,11 +337,12 @@ class UnAuthnAPITestCase(EduidAPITestCase):
         according to the needs of this test case.
         """
         saml_config = os.path.join(HERE, 'saml2_settings.py')
-        config.update({
+        app_config = {k.lower(): v for k,v in config.items()}
+        app_config.update({
             'token_service_url': 'http://login',
             'saml2_settings_module': saml_config,
             })
-        return AuthnConfig(**config)
+        return AuthnConfig(**app_config)
 
     def load_app(self, config):
         """
@@ -388,12 +390,13 @@ class NoAuthnAPITestCase(EduidAPITestCase):
         according to the needs of this test case.
         """
         saml_config = os.path.join(HERE, 'saml2_settings.py')
-        config.update({
+        app_config = {k.lower(): v for k,v in config.items()}
+        app_config.update({
             'token_service_url': 'http://login',
             'saml2_settings_module': saml_config,
             'no_authn_urls': ['^/test$'],
             })
-        return AuthnConfig(**config)
+        return AuthnConfig(**app_config)
 
     def load_app(self, config):
         """
