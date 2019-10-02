@@ -1,9 +1,8 @@
 eduid-userdb>=0.4.6b15
-eduid-common[webapp]>=0.4.1
-eduid-action>=0.2.1b8
-eduid-am>=0.6.3b7
-eduid-msg>=0.10.3b7
-eduid_lookup_mobile>=0.0.6b3
+eduid-common[webapp]>=0.4.2b0
+eduid-am>=0.7.3
+eduid-msg>=0.10.9
+eduid_lookup_mobile>=0.1.2
 Flask>=1.1,<1.2
 redis>=2.10.5
 pynacl>=1.0.1
