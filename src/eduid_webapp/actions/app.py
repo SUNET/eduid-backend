@@ -33,20 +33,24 @@
 
 from __future__ import absolute_import
 from importlib import import_module
+from typing import cast
 import types
 
 from flask import Flask, render_template, templating
+from flask import current_app
 
 from eduid_common.api.app import eduid_init_app
 from eduid_common.api import am
+from eduid_common.config.app import EduIDApp
 from eduid_userdb.actions import ActionDB
+from eduid_webapp.actions.settings.common import ActionsConfig
 
 
 class PluginsRegistry(dict):
 
     def __init__(self, app):
         super(PluginsRegistry, self).__init__()
-        for plugin_name in app.config.get('ACTION_PLUGINS', []):
+        for plugin_name in app.config.action_plugins:
             if plugin_name in self:
                 app.logger.warn("Duplicate entry point: %s" % plugin_name)
             else:
@@ -57,8 +61,8 @@ class PluginsRegistry(dict):
 
 def _get_tous(app, version=None):
     if version is None:
-        version = app.config.get('TOU_VERSION')
-    langs = app.config.get('AVAILABLE_LANGUAGES').keys()
+        version = app.config.tou_version
+    langs = app.config.available_languages.keys()
     tous = {}
     for lang in langs:
         name = 'tous/tou-{}-{}.txt'.format(version, lang)
@@ -68,7 +72,15 @@ def _get_tous(app, version=None):
             app.logger.error('TOU template {} not found'.format(name))
             pass
     return tous
-                
+
+
+class ActionsApp(EduIDApp):
+
+    def __init__(self, *args, **kwargs):
+        super(ActionsApp, self).__init__(*args, **kwargs)
+        self.config: ActionsConfig = cast(ActionsConfig, self.config)
+
+current_actions_app: ActionsApp = cast(ActionsApp, current_app)
 
 def actions_init_app(name, config):
     """
@@ -94,15 +106,16 @@ def actions_init_app(name, config):
     :rtype: flask.Flask
     """
 
-    app = eduid_init_app(name, config, app_class=Flask)
-    app.config.update(config)
+    app = eduid_init_app(name, config,
+                         config_class=ActionsConfig,
+                         app_class=ActionsApp)
 
     from eduid_webapp.actions.views import actions_views
     app.register_blueprint(actions_views)
 
     app = am.init_relay(app, 'eduid_actions')
 
-    app.actions_db = ActionDB(app.config['MONGO_URI'])
+    app.actions_db = ActionDB(app.config.mongo_uri)
 
     app.plugins = PluginsRegistry(app)
     for plugin in app.plugins.values():

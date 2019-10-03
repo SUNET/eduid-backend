@@ -35,12 +35,13 @@ __author__ = 'eperez'
 from datetime import datetime
 
 from bson import ObjectId
-from flask import current_app, request
+from flask import request
 
 from eduid_userdb.actions import Action
 from eduid_userdb.actions.tou import ToUUserDB, ToUUser
 from eduid_userdb.tou import ToUEvent
 from eduid_webapp.actions.action_abc import ActionPlugin
+from eduid_webapp.actions.app import current_actions_app as current_app
 from eduid_common.api.exceptions import AmTaskFailed
 
 
@@ -59,7 +60,7 @@ class Plugin(ActionPlugin):
 
     @classmethod
     def includeme(cls, app):
-        app.tou_db = ToUUserDB(app.config.get('MONGO_URI'))
+        app.tou_db = ToUUserDB(app.config.mongo_uri)
 
     def get_config_for_bundle(self, action: Action):
         tous = current_app.get_tous(version=action.params['version'])
@@ -69,7 +70,7 @@ class Plugin(ActionPlugin):
         return {
             'version': action.params['version'],
             'tous': tous,
-            'available_languages': current_app.config.get('AVAILABLE_LANGUAGES')
+            'available_languages': current_app.config.available_languages
         }
 
     def perform_step(self, action: Action):

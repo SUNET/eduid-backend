@@ -45,6 +45,7 @@ from eduid_userdb.testing import MOCKED_USER_STANDARD
 from eduid_userdb.userdb import User
 from eduid_webapp.actions.action_abc import ActionPlugin
 from eduid_webapp.actions.app import actions_init_app
+from eduid_webapp.actions.settings.common import ActionsConfig
 
 
 class MockIdPContext:
@@ -105,25 +106,25 @@ DUMMY_ACTION = {
 }
 
 TEST_CONFIG = {
-    'AVAILABLE_LANGUAGES': {'en': 'English', 'sv': 'Svenska'},
-    'DASHBOARD_URL': '/profile/',
-    'DEVELOPMENT': 'DEBUG',
-    'APPLICATION_ROOT': '/',
-    'LOG_LEVEL': 'DEBUG',
-    'IDP_URL': 'https://example.com/idp',
-    'INTERNAL_SIGNUP_URL': 'https://example.com/signup',
-    'PRESERVE_CONTEXT_ON_EXCEPTION': False,
-    'EDUID_STATIC_URL': 'http://example.com',
-    'BUNDLES_PATH': '/bundles/',
-    'DEBUG': False,
-    'DEVEL_MODE': True
+    'available_languages': {'en': 'English', 'sv': 'Svenska'},
+    'dashboard_url': '/profile/',
+    'development': 'DEBUG',
+    'application_root': '/',
+    'log_level': 'DEBUG',
+    'idp_url': 'https://example.com/idp',
+    'internal_signup_url': 'https://example.com/signup',
+    'preserve_context_on_exception': False,
+    'eduid_static_url': 'http://example.com',
+    'bundles_path': '/bundles/',
+    'debug': False,
+    'devel_mode': True
 }
 
 
 class ActionsTestCase(EduidAPITestCase):
 
-    def setUp(self, init_am=True, users=None, copy_user_to_private=False, am_settings=None):
-        super(ActionsTestCase, self).setUp(init_am=True, users=None, copy_user_to_private=False, am_settings=None)
+    def setUp(self, users=None, copy_user_to_private=False, am_settings=None):
+        super(ActionsTestCase, self).setUp(users=None, copy_user_to_private=False, am_settings=None)
         user_data = deepcopy(MOCKED_USER_STANDARD)
         user_data['modified_ts'] = datetime.utcnow()
         self.user = User(data=user_data)
@@ -152,12 +153,13 @@ class ActionsTestCase(EduidAPITestCase):
     def update_config(self, config):
         more_config = self.update_actions_config(deepcopy(TEST_CONFIG))
         config.update(more_config)
-        return config
+        actions_config = {k.lower(): v for k,v in config.items()}
+        return ActionsConfig(**actions_config)
 
     @contextmanager
     def session_cookie(self, client, server_name='localhost'):
         with client.session_transaction() as sess:
-            client.set_cookie(server_name, key=self.app.config.get('SESSION_COOKIE_NAME'), value=sess._session.token)
+            client.set_cookie(server_name, key=self.app.config.session_cookie_name, value=sess._session.token)
         yield client
 
     def prepare_session(self, client, action_dict=None, rm_action=False, validation_error=False, action_error=False,

@@ -83,7 +83,7 @@ def add_actions(idp_app, user, ticket):
 class ToUActionPluginTests(ActionsTestCase):
 
     def setUp(self):
-        super(ToUActionPluginTests, self).setUp(init_am=True, am_settings={'ACTION_PLUGINS': ['tou']})
+        super(ToUActionPluginTests, self).setUp(am_settings={'ACTION_PLUGINS': ['tou']})
         self.tou_db = self.app.tou_db
         self.reaccept_interval = 94608000  # seconds (3 years)
 
@@ -92,7 +92,7 @@ class ToUActionPluginTests(ActionsTestCase):
         super(ToUActionPluginTests, self).tearDown()
 
     def update_actions_config(self, config):
-        config['ACTION_PLUGINS'] = ['tou']
+        config['action_plugins'] = ['tou']
         return config
 
     def tou_accepted(self, user, version, created_ts=None, modified_ts=None):

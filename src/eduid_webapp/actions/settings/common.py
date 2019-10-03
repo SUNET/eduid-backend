@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2016 NORDUnet A/S
+# Copyright (c) 2013-2016 NORDUnet A/S
+# Copyright (c) 2019 SUNET
 # All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or
@@ -30,29 +31,37 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-
-
 """
-For more built in configuration options see,
-http://flask.pocoo.org/docs/0.10/config/#builtin-configuration-values
+Configuration (file) handling for the eduID actions app.
 """
 
-DEBUG = False
-DEVELOPMENT = DEBUG
+from dataclasses import dataclass, field
+from typing import Optional
 
-# Database URIs
-MONGO_URI = ''
-REDIS_HOST = ''
-REDIS_PORT = 6379
-REDIS_DB = 0
+from eduid_common.config.base import FlaskConfig
 
-# Secret key
-SECRET_KEY = None
 
-# Logging
-LOG_LEVEL = 'INFO'
+@dataclass
+class ActionsConfig(FlaskConfig):
+    """
+    Configuration for the actions app
+    """
+    app_name: str = 'actions'
 
-DASHBOARD_URL = '/profile/'
-BUNDLES_PATH = None
-BUNDLES_VERSION = None
-IDP_URL = None
+    bundles_path: str = ''
+    bundles_version: str = ''
+    idp_url: str = ''
+    mfa_testing: bool = False
+    generate_u2f_challenges: bool = False
+    u2f_app_id: str = ''
+    fido2_rp_id: str = ''
+    eidas_url: str = ''
+    mfa_authn_idp: str = ''
+    u2f_valid_facets: list = field(default_factory=list)
+    # The plugins for pre-authentication actions that need to be loaded
+    action_plugins: list = field(default_factory=lambda: [
+        "tou",
+        "mfa"
+        ])
+    tou_version: str = '2017-v6'
+    
