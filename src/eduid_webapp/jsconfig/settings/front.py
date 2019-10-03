@@ -32,33 +32,39 @@
 #
 
 
-dashboard_config = {
 
-    'AVAILABLE_LANGUAGES': [
-        ['en', 'English'],
-        ['sv', 'Svenska'],
-    ],
+@dataclass
+class DashboardConfig:
+    """
+    Dashboard front-end configuration 
+    """
+    csrf_token: str = ''
+    available_languages: Dict[str, str] = {
+            'en': 'English',
+            'sv': 'Svenska',
+            }
+    personal_data_url: str = '/personal-data/user'
 
-    'PERSONAL_DATA_URL': '/personal-data/user',
 
-}
-
-signup_config = {
-    'available_languages': {
-      'en': 'English',
-      'sv': 'Svenska'
-    },
-    'csrf_token': None,
-    'dashboard_url': None,
-    'debug': False,
-    'faq_link': None,
-    'recaptcha_public_key': None,
-    'reset_passwd_url': None,
-    'staff_link': None,
-    'students_link': None,
-    'technicians_link': None,
-    'tous': {
-      'en': None,
-      'sv': None
-    }
-}
+@dataclass
+class SignupConfig:
+    """
+    Dashboard front-end configuration 
+    """
+    csrf_token: str = ''
+    available_languages: Dict[str, str] = {
+            'en': 'English',
+            'sv': 'Svenska',
+            }
+    dashboard_url: str = ''
+    debug: bool = False
+    faq_link: str = ''
+    recaptcha_public_key: str = ''
+    reset_passwd_url: str = ''
+    staff_link: str = ''
+    students_link: str = ''
+    technicians_link: str = ''
+    tous: Dict[str, str] = {
+            'en': '',
+            'sv': ''
+            }

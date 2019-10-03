@@ -40,33 +40,34 @@ from eduid_common.api.schemas.base import FluxStandardAction
 from eduid_common.config.exceptions import BadConfiguration
 from eduid_common.config.parsers.etcd import EtcdConfigParser, etcd
 from eduid_common.session import session
-from eduid_webapp.jsconfig.settings.front import dashboard_config, signup_config
+from eduid_webapp.jsconfig.settings.front import DashboardConfig, SignupConfig
 
 jsconfig_views = Blueprint('jsconfig', __name__, url_prefix='', template_folder='templates')
 
 CACHE = {}
 
 
-def get_etcd_config(default_config: dict, namespace: Optional[str] = None) -> dict:
+def get_etcd_config(namespace: Optional[str] = None) -> dict:
     if namespace is None:
         namespace = '/eduid/webapp/jsapps/'
     parser = EtcdConfigParser(namespace)
     config = parser.read_configuration(silent=False)
-    default_config.update(config)
-    return default_config
+    return config
 
 
 @jsconfig_views.route('/config', methods=['GET'], subdomain="dashboard")
 @MarshalWith(FluxStandardAction)
 def get_dashboard_config() -> dict:
     try:
-        config = get_etcd_config(dashboard_config)
+        config = get_etcd_config()
         CACHE['dashboard_config'] = config
     except etcd.EtcdConnectionFailed as e:
         current_app.logger.warning(f'No connection to etcd: {e}')
-        config = CACHE.get('dashboard_config', {})
-    config['csrf_token'] = session.get_csrf_token()
-    return config
+        config = CACHE.get('dashboard_config')
+    if config is None:
+        raise BadConfiguration('Configuration not found')
+    config.csrf_token = session.get_csrf_token()
+    return config.asdict()
 
 
 @jsconfig_views.route('/signup/config', methods=['GET'], subdomain="signup")
@@ -74,16 +75,19 @@ def get_dashboard_config() -> dict:
 def get_signup_config() -> dict:
     # Get config from etcd
     try:
-        config = get_etcd_config(signup_config)
+        config_dict = get_etcd_config()
+        config = SignupConfig(**config_dict)
         CACHE['signup_config'] = config
     except etcd.EtcdConnectionFailed as e:
         current_app.logger.warning(f'No connection to etcd: {e}')
         current_app.logger.info('Serving cached config')
-        config = CACHE.get('signup_config', {})
+        config = CACHE.get('signup_config')
     # Get ToUs from the ToU action
-    tou_url = config.get('TOU_URL')
-    if tou_url is None:
-        raise BadConfiguration('TOU_URL not set or None')
+    if config is None:
+        raise BadConfiguration('Configuration not found')
+    if not config.tou_url:
+        raise BadConfiguration('tou_url not set')
+    tou_url = config.tou_url
     tous = None
     try:
         r = requests.get(tou_url)
@@ -103,26 +107,19 @@ def get_signup_config() -> dict:
         tous = CACHE.get('tous')
         if tous is None:
             abort(500)
-    return {
-        'debug': current_app.config.get('DEBUG'),
-        'reset_passwd_url': current_app.config.get('RESET_PASSWD_URL'),
-        'csrf_token': session.get_csrf_token(),
-        'tous': tous,
-        'available_languages': config.get('available_languages'),
-        'recaptcha_public_key': config.get('RECAPTCHA_PUBLIC_KEY'),
-        'dashboard_url': config.get('SIGNUP_AUTHN_URL'),
-        'students_link': config.get('STATIC_STUDENTS_URL'),
-        'technicians_link': config.get('STATIC_TECHNICIANS_URL'),
-        'staff_link': config.get('STATIC_STAFF_URL'),
-        'faq_link': config.get('STATIC_FAQ_URL'),
-    }
+
+    config.debug = current_app.config.debug
+    config.reset_passwd_url = current_app.config.reset_passwd_url
+    config.csrf_token = session.get_csrf_token()
+    config.tous = tous
+    return config.asdict()
 
 
 @jsconfig_views.route('/get-bundle', methods=['GET'], subdomain="dashboard")
 def get_dashboard_bundle():
     context = {
-        'bundle': current_app.config.get('DASHBOARD_BUNDLE_PATH'),
-        'version': current_app.config.get('DASHBOARD_BUNDLE_VERSION'),
+        'bundle': current_app.config.dashboard_bundle_path,
+        'version': current_app.config.dashboard_bundle_version,
     }
     try:
         return render_template('load_bundle.jinja2', context=context)
@@ -134,8 +131,8 @@ def get_dashboard_bundle():
 @jsconfig_views.route('/get-bundle', methods=['GET'], subdomain="signup")
 def get_signup_bundle():
     context = {
-        'bundle': current_app.config.get('SIGNUP_BUNDLE_PATH'),
-        'version': current_app.config.get('SIGNUP_BUNDLE_VERSION'),
+        'bundle': current_app.config.signup_bundle_path,
+        'version': current_app.config.signup_bundle_version,
     }
     try:
         return render_template('load_bundle.jinja2', context=context)
