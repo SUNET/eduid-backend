@@ -34,7 +34,7 @@ def index(user):
 @require_user
 def verify_token(user, credential_id):
     current_app.logger.debug('verify-token called with credential_id: {}'.format(credential_id))
-    redirect_url = current_app.config['TOKEN_VERIFY_REDIRECT_URL']
+    redirect_url = current_app.config.token_verify_redirect_url
 
     # Check if requested key id is a mfa token and if the user used that to log in
     token_to_verify = user.credentials.filter(FidoCredential).find(credential_id)
@@ -43,7 +43,7 @@ def verify_token(user, credential_id):
     if token_to_verify.key not in session.get('eduidIdPCredentialsUsed', []):
         # If token was not used for login, reauthn the user
         current_app.logger.info('Token {} not used for login, redirecting to idp'.format(token_to_verify.key))
-        ts_url = current_app.config.get('TOKEN_SERVICE_URL')
+        ts_url = current_app.config.token_service_url
         reauthn_url = urlappend(ts_url, 'reauthn')
         next_url = url_for('eidas.verify_token', credential_id=credential_id, _external=True)
         # Add idp arg to next_url if set
@@ -132,7 +132,7 @@ def assertion_consumer_service():
         current_app.logger.debug('Session info:\n{!s}\n\n'.format(session_info))
 
         # Remap nin in staging environment
-        if current_app.config.get('ENVIRONMENT', None) == 'staging':
+        if current_app.config.environment == 'staging':
             session_info = staging_nin_remap(session_info)
 
         action = get_action()

@@ -12,6 +12,7 @@ from mock import patch
 
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.authn.cache import OutstandingQueriesCache
+from eduid_webapp.eidas.settings.common import EidasConfig
 from eduid_userdb import User
 from eduid_userdb.credentials import U2F, Webauthn
 from eduid_userdb.credentials.fido import FidoCredential
@@ -118,19 +119,20 @@ class EidasTests(EduidAPITestCase):
 
     def update_config(self, config):
         saml_config = os.path.join(HERE, 'saml2_settings.py')
-        config.update({
-            'TOKEN_VERIFY_REDIRECT_URL': 'http://test.localhost/profile',
-            'NIN_VERIFY_REDIRECT_URL': 'http://test.localhost/profile',
-            'ACTION_URL': 'http://idp.test.localhost/action',
-            'MSG_BROKER_URL': 'amqp://dummy',
-            'AM_BROKER_URL': 'amqp://dummy',
-            'CELERY_CONFIG': {
-                'CELERY_RESULT_BACKEND': 'amqp',
-                'CELERY_TASK_SERIALIZER': 'json'
+        app_config = {k.lower(): v for k,v in config.items()}
+        app_config.update({
+            'token_verify_redirect_url': 'http://test.localhost/profile',
+            'nin_verify_redirect_url': 'http://test.localhost/profile',
+            'action_url': 'http://idp.test.localhost/action',
+            'msg_broker_url': 'amqp://dummy',
+            'am_broker_url': 'amqp://dummy',
+            'celery_config': {
+                'result_backend': 'amqp',
+                'task_serializer': 'json'
             },
-            'SAML2_SETTINGS_MODULE': saml_config,
-            'SAFE_RELAY_DOMAIN': 'localhost',
-            'AUTHENTICATION_CONTEXT_MAP': {
+            'saml2_settings_module': saml_config,
+            'safe_relay_domain': 'localhost',
+            'authentication_context_map': {
                 'loa1': 'http://id.elegnamnden.se/loa/1.0/loa1',
                 'loa2': 'http://id.elegnamnden.se/loa/1.0/loa2',
                 'loa3': 'http://id.elegnamnden.se/loa/1.0/loa3',
@@ -143,10 +145,10 @@ class EidasTests(EduidAPITestCase):
                 'eidas-nf-sub': 'http://id.elegnamnden.se/loa/1.0/eidas-nf-sub',
                 'eidas-nf-high': 'http://id.elegnamnden.se/loa/1.0/eidas-nf-high'
             },
-            'AUTHN_SIGN_ALG': 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256',
-            'AUTHN_DIGEST_ALG': 'http://www.w3.org/2001/04/xmlenc#sha256'
+            'authn_sign_alg': 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256',
+            'authn_digest_alg': 'http://www.w3.org/2001/04/xmlenc#sha256'
             })
-        return config
+        return EidasConfig(**app_config)
 
     def add_token_to_user(self, eppn, credential_id, token_type):
         user = self.app.central_userdb.get_user_by_eppn(eppn)
@@ -382,7 +384,7 @@ class EidasTests(EduidAPITestCase):
                 self.assertEqual(response.status_code, 302)
                 self.assertEqual(response.location,
                                  '{}?msg=%3AERROR%3Aeidas.token_not_in_credentials_used'.format(
-                                     self.app.config['TOKEN_VERIFY_REDIRECT_URL']))
+                                     self.app.config.token_verify_redirect_url))
 
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
@@ -558,7 +560,7 @@ class EidasTests(EduidAPITestCase):
                 self.assertEqual(response.status_code, 302)
                 self.assertEqual(response.location,
                                  '{}?msg=%3AERROR%3Aeidas.nin_already_verified'.format(
-                                     self.app.config['NIN_VERIFY_REDIRECT_URL']))
+                                     self.app.config.nin_verify_redirect_url))
 
     def test_mfa_authentication_verified_user(self):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
@@ -624,8 +626,8 @@ class EidasTests(EduidAPITestCase):
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def test_nin_staging_remap_verify(self, mock_request_user_sync, mock_get_postal_address):
-        self.app.config['ENVIRONMENT'] = 'staging'
-        self.app.config['STAGING_NIN_MAP'] = {
+        self.app.config.environment = 'staging'
+        self.app.config.staging_nin_map = {
             self.test_user_nin: '190102031234'
         }
 
