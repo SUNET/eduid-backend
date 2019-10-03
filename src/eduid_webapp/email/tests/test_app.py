@@ -39,6 +39,7 @@ from eduid_userdb.proofing import EmailProofingElement, EmailProofingState
 from mock import patch
 
 from eduid_webapp.email.app import email_init_app
+from eduid_webapp.email.settings.common import EmailConfig
 
 
 class EmailTests(EduidAPITestCase):
@@ -54,20 +55,21 @@ class EmailTests(EduidAPITestCase):
         return email_init_app('emails', config)
 
     def update_config(self, config):
-        config.update({
-            'AVAILABLE_LANGUAGES': {'en': 'English','sv': 'Svenska'},
-            'MSG_BROKER_URL': 'amqp://dummy',
-            'AM_BROKER_URL': 'amqp://dummy',
-            'EMAIL_VERIFY_REDIRECT_URL': '/profile/',
-            'CELERY_CONFIG': {
-                'CELERY_RESULT_BACKEND': 'amqp',
-                'CELERY_TASK_SERIALIZER': 'json',
-                'MONGO_URI': config['MONGO_URI'],
+        app_config = {k.lower(): v for k,v in config.items()}
+        app_config.update({
+            'available_languages': {'en': 'English','sv': 'Svenska'},
+            'msg_broker_url': 'amqp://dummy',
+            'am_broker_url': 'amqp://dummy',
+            'email_verify_redirect_url': '/profile/',
+            'celery_config': {
+                'result_backend': 'amqp',
+                'task_serializer': 'json',
+                'mongo_uri': config['MONGO_URI'],
             },
-            'EMAIL_VERIFICATION_TIMEOUT': 86400,
-            'THROTTLE_RESEND_SECONDS': 300,
+            'email_verification_timeout': 86400,
+            'throttle_resend_seconds': 300,
         })
-        return config
+        return EmailConfig(**app_config)
 
     def test_get_all_emails(self):
         response = self.browser.get('/all')

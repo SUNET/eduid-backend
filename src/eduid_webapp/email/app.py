@@ -33,13 +33,24 @@
 
 from __future__ import absolute_import
 
+from typing import cast
+
 from eduid_common.api.app import eduid_init_app
 from eduid_common.api import mail_relay
 from eduid_common.api import am
 from eduid_common.api import translation
+from eduid_common.authn.middleware import AuthnApp
 from eduid_userdb.proofing import EmailProofingUserDB
 from eduid_userdb.proofing import EmailProofingStateDB
 from eduid_userdb.logs import ProofingLog
+from eduid_webapp.email.settings.common import EmailConfig
+
+
+class EmailApp(AuthnApp):
+
+    def __init__(self, *args, **kwargs):
+        super(EmailApp, self).__init__(*args, **kwargs)
+        self.config: EmailConfig = cast(EmailConfig, self.config)
 
 
 def email_init_app(name, config):
@@ -63,8 +74,9 @@ def email_init_app(name, config):
     :rtype: flask.Flask
     """
 
-    app = eduid_init_app(name, config)
-    app.config.update(config)
+    app = eduid_init_app(name, config,
+                         config_class=EmailConfig,
+                         app_class=EmailApp)
 
     from eduid_webapp.email.views import email_views
     app.register_blueprint(email_views)
@@ -73,9 +85,9 @@ def email_init_app(name, config):
     app = mail_relay.init_relay(app)
     app = translation.init_babel(app)
 
-    app.private_userdb = EmailProofingUserDB(app.config['MONGO_URI'])
-    app.proofing_statedb = EmailProofingStateDB(app.config['MONGO_URI'])
-    app.proofing_log = ProofingLog(app.config['MONGO_URI'])
+    app.private_userdb = EmailProofingUserDB(app.config.mongo_uri)
+    app.proofing_statedb = EmailProofingStateDB(app.config.mongo_uri)
+    app.proofing_log = ProofingLog(app.config.mongo_uri)
 
     app.logger.info('Init {} app...'.format(name))
 

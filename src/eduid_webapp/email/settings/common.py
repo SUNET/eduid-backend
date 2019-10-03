@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2016 NORDUnet A/S
+# Copyright (c) 2013-2016 NORDUnet A/S
+# Copyright (c) 2019 SUNET
 # All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or
@@ -30,30 +31,20 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-
-
-from __future__ import absolute_import
-
 """
-For more built in configuration options see,
-http://flask.pocoo.org/docs/0.10/config/#builtin-configuration-values
+Configuration (file) handling for the eduID eidas app.
 """
 
-DEBUG = False
+from dataclasses import dataclass
 
-# Database URIs
-MONGO_URI = ''
-REDIS_HOST = ''
-REDIS_PORT = 6379
-REDIS_DB = 0
+from eduid_common.config.base import FlaskConfig
 
-# Secret key
-SECRET_KEY = ''
 
-# Logging
-LOG_LEVEL = 'INFO'
-
-EMAIL_VERIFICATION_TIMEOUT = 86400  # seconds
-THROTTLE_RESEND_SECONDS = 300
-
-EMAIL_VERIFY_REDIRECT_URL = '/profile/emails'
+@dataclass
+class EmailConfig(FlaskConfig):
+    """
+    Configuration for the eidas app
+    """
+    email_verification_timeout: int = 86400  # seconds
+    throttle_resend_seconds: int = 300
+    email_verify_redirect_url: str = '/profile/emails'
