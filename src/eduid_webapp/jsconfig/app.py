@@ -30,12 +30,23 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+from typing import cast
 
 from eduid_common.api.app import eduid_init_app_no_db
 from eduid_common.authn.utils import no_authn_views
+from eduid_common.config.app import EduIDApp
+from eduid_webapp.jsconfig.settings.common import JSConfigConfig
+from eduid_webapp.jsconfig.settings.front import FrontConfig
 
 
-def jsconfig_init_app(name: str, config: dict):
+class JSConfigApp(EduIDApp):
+
+    def __init__(self, *args, **kwargs):
+        super(JSConfigApp, self).__init__(*args, **kwargs)
+        self.config: FrontConfig = cast(FrontConfig, self.config)
+
+
+def jsconfig_init_app(name: str, config: dict) -> JSConfigApp:
     """
     Create an instance of an eduid jsconfig data app.
 
@@ -46,8 +57,9 @@ def jsconfig_init_app(name: str, config: dict):
     all needed blueprints will be registered with it.
     """
 
-    app = eduid_init_app_no_db(name, config)
-    app.config.update(config)
+    app = eduid_init_app_no_db(name, config,
+                               config_class=JSConfigConfig,
+                               app_class=JSConfigApp)
 
     from eduid_webapp.jsconfig.views import jsconfig_views
     app.register_blueprint(jsconfig_views)

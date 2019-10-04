@@ -30,41 +30,57 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-
-
-
-@dataclass
-class DashboardConfig:
-    """
-    Dashboard front-end configuration 
-    """
-    csrf_token: str = ''
-    available_languages: Dict[str, str] = {
-            'en': 'English',
-            'sv': 'Svenska',
-            }
-    personal_data_url: str = '/personal-data/user'
+from dataclasses import dataclass, field
+from typing import Dict
 
 
 @dataclass
-class SignupConfig:
+class FrontConfig:
     """
-    Dashboard front-end configuration 
+    Dashboard front-end configuration.
+
+    This is sent to the client, so care must be taken to avoid setting sectrets here.
     """
-    csrf_token: str = ''
-    available_languages: Dict[str, str] = {
-            'en': 'English',
-            'sv': 'Svenska',
-            }
-    dashboard_url: str = ''
     debug: bool = False
+    csrf_token: str = ''
+    available_languages: Dict[str, str] = field(default_factory=lambda: {
+            'en': 'English',
+            'sv': 'Svenska',
+            })
+    tous: Dict[str, str] = field(default_factory=lambda: {
+            'en': '',
+            'sv': ''
+            })
+    # URLs
     faq_link: str = ''
-    recaptcha_public_key: str = ''
-    reset_passwd_url: str = ''
     staff_link: str = ''
     students_link: str = ''
     technicians_link: str = ''
-    tous: Dict[str, str] = {
-            'en': '',
-            'sv': ''
-            }
+    reset_passwd_url: str = ''
+    dashboard_url: str = ''
+    personal_data_url: str = '/personal-data/user'
+    emails_url: str = '/services/email/'
+    mobile_url: str = '/services/phone/'
+    oidc_proofing_url: str = '/services/oidc-proofing/proofing/'
+    lookup_mobile_proofing_url: str = '/services/lookup-mobile-proofing/proofing/'
+    letter_proofing_url: str = '/services/letter-proofing/'
+    security_url: str = '/services/security/'
+    token_service_url: str = '/services/authn/'
+    oidc_proofing_freja_url: str = '/services/oidc-proofing/freja/proofing/'
+    orcid_url: str = '/services/orcid/'
+    eidas_url: str = 'https://eidas.eduid.local.emergya.info'
+    token_verify_idp: str = 'http://dev.test.swedenconnect.se/idp'
+    signup_authn_url: str = '/services/authn/signup-authn'
+    # changing password
+    password_length: int = 12
+    password_entropy: int = 25
+    chpass_timeout: int = 600
+    proofing_methods: list = field(default_factory=lambda: ['letter',
+                                                            'lookup_mobile',
+                                                            'oidc',
+                                                            'eidas'])
+    default_country_code: int = 46
+    # This key is for signup.eduid.docker:8080
+    recaptcha_public_key: str = '6Lf5rCETAAAAAAW6UP4o59VSNEWG7RrzY_b5uH_M'
+    # This key is for signup.eduid.local.emergya.info
+    # recaptcha_public_key: str = '6Ld2IUwUAAAAAD5saiXoQKgmUC9JhQLqcHZoemTh'

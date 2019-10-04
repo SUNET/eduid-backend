@@ -31,6 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 from typing import Optional
+from dataclasses import asdict
 
 import requests
 from flask import Blueprint, abort, current_app, render_template
@@ -40,7 +41,7 @@ from eduid_common.api.schemas.base import FluxStandardAction
 from eduid_common.config.exceptions import BadConfiguration
 from eduid_common.config.parsers.etcd import EtcdConfigParser, etcd
 from eduid_common.session import session
-from eduid_webapp.jsconfig.settings.front import DashboardConfig, SignupConfig
+from eduid_webapp.jsconfig.settings.front import FrontConfig
 
 jsconfig_views = Blueprint('jsconfig', __name__, url_prefix='', template_folder='templates')
 
@@ -52,12 +53,15 @@ def get_etcd_config(namespace: Optional[str] = None) -> dict:
         namespace = '/eduid/webapp/jsapps/'
     parser = EtcdConfigParser(namespace)
     config = parser.read_configuration(silent=False)
-    return config
+    return FrontConfig(**config)
 
 
-@jsconfig_views.route('/config', methods=['GET'], subdomain="dashboard")
+@jsconfig_views.route('/config', methods=['GET'])
 @MarshalWith(FluxStandardAction)
 def get_dashboard_config() -> dict:
+    """
+    Configuration for the dashboard front app
+    """
     try:
         config = get_etcd_config()
         CACHE['dashboard_config'] = config
@@ -67,12 +71,18 @@ def get_dashboard_config() -> dict:
     if config is None:
         raise BadConfiguration('Configuration not found')
     config.csrf_token = session.get_csrf_token()
-    return config.asdict()
+    return asdict(config)
 
 
 @jsconfig_views.route('/signup/config', methods=['GET'], subdomain="signup")
 @MarshalWith(FluxStandardAction)
 def get_signup_config() -> dict:
+    """
+    Configuration for the signup front app
+    """
+    if not current_app.config.tou_url:
+        raise BadConfiguration('tou_url not set')
+    tou_url = current_app.config.tou_url
     # Get config from etcd
     try:
         config_dict = get_etcd_config()
@@ -85,9 +95,6 @@ def get_signup_config() -> dict:
     # Get ToUs from the ToU action
     if config is None:
         raise BadConfiguration('Configuration not found')
-    if not config.tou_url:
-        raise BadConfiguration('tou_url not set')
-    tou_url = config.tou_url
     tous = None
     try:
         r = requests.get(tou_url)
@@ -105,14 +112,15 @@ def get_signup_config() -> dict:
     except requests.exceptions.HTTPError as e:
         current_app.logger.warning('Problem getting tous from URL {!r}: {!r}'.format(tou_url, e))
         tous = CACHE.get('tous')
-        if tous is None:
-            abort(500)
+
+    if tous is None:
+        abort(500)
 
     config.debug = current_app.config.debug
     config.reset_passwd_url = current_app.config.reset_passwd_url
     config.csrf_token = session.get_csrf_token()
     config.tous = tous
-    return config.asdict()
+    return asdict(config)
 
 
 @jsconfig_views.route('/get-bundle', methods=['GET'], subdomain="dashboard")
