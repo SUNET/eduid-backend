@@ -42,6 +42,7 @@ from eduid_webapp.jsconfig.settings.front import FrontConfig
 class JSConfigApp(EduIDApp):
 
     def __init__(self, *args, **kwargs):
+        kwargs['subdomain_matching'] = True
         super(JSConfigApp, self).__init__(*args, **kwargs)
         self.config: FrontConfig = cast(FrontConfig, self.config)
 

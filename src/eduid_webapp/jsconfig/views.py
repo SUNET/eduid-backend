@@ -43,7 +43,12 @@ from eduid_common.config.parsers.etcd import EtcdConfigParser, etcd
 from eduid_common.session import session
 from eduid_webapp.jsconfig.settings.front import FrontConfig
 
-jsconfig_views = Blueprint('jsconfig', __name__, url_prefix='', template_folder='templates')
+
+jsconfig_views = Blueprint('jsconfig',
+                           __name__,
+                           url_prefix='',
+                           template_folder='templates',
+                           default_subdomain='dashboard')
 
 CACHE = {}
 
@@ -53,10 +58,11 @@ def get_etcd_config(namespace: Optional[str] = None) -> dict:
         namespace = '/eduid/webapp/jsapps/'
     parser = EtcdConfigParser(namespace)
     config = parser.read_configuration(silent=False)
+    config = {k.lower(): v for k,v in config.items()}
     return FrontConfig(**config)
 
 
-@jsconfig_views.route('/config', methods=['GET'])
+@jsconfig_views.route('/config', methods=['GET'], subdomain="dashboard")
 @MarshalWith(FluxStandardAction)
 def get_dashboard_config() -> dict:
     """
