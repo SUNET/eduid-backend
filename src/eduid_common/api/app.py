@@ -103,9 +103,9 @@ def eduid_init_app_no_db(name: str, config: dict,
         app_etcd_namespace = os.environ.get('EDUID_CONFIG_NS', '/eduid/webapp/{!s}/'.format(name))
         app_parser = EtcdConfigParser(app_etcd_namespace)
         # Load optional project wide settings
-        app.config.update(common_parser.read_configuration(silent=True))
+        app.config.update(common_parser.read_configuration(silent=False))
         # Load optional app specific settings
-        app.config.update(app_parser.read_configuration(silent=True))
+        app.config.update(app_parser.read_configuration(silent=False))
 
     # Load optional app specific secrets
     cast(Config, app.config).from_envvar('LOCAL_CFG_FILE', silent=True)
@@ -142,6 +142,7 @@ def eduid_init_app_no_db(name: str, config: dict,
         app.stats = Statsd(host=stats_host, port=stats_port, prefix=name)
 
     return app
+
 
 def eduid_init_app(name: str, config: dict,
                    config_class: Type[FlaskConfig] = FlaskConfig,
