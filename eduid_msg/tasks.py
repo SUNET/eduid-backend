@@ -379,7 +379,8 @@ class MessageRelay(Task):
         return False
 
     @TransactionAudit(MONGODB_URI)
-    def sendmail(self, sender: str, recipients: list, message: str, reference: str) -> dict:
+    def sendmail(self, sender: str, recipients: list, message: str, reference: str,
+                 max_retry_seconds: Optional[int] = None) -> dict:
         """
         Send mail
 
@@ -387,6 +388,7 @@ class MessageRelay(Task):
         :param recipients: the recipients of the email
         :param message: email.mime.multipart.MIMEMultipart message as a string
         :param reference: Audit reference to help cross reference audit log and events
+        :param max_retry_seconds: DEPRECATED
 
         :return Dict of errors
         """
@@ -402,13 +404,14 @@ class MessageRelay(Task):
         return self.smtp.sendmail(sender, recipients, message)
 
     @TransactionAudit(MONGODB_URI)
-    def sendsms(self, recipient: str, message: str, reference: str) -> str:
+    def sendsms(self, recipient: str, message: str, reference: str, max_retry_seconds: Optional[int] = None) -> str:
         """
         Send sms
 
         :param recipient: the recipient of the sms
         :param message: message as a string (160 chars per sms)
         :param reference: Audit reference to help cross reference audit log and events
+        :param max_retry_seconds: DEPRECATED
 
         :return Transaction ID
         """
@@ -470,13 +473,15 @@ def send_message(self: MessageRelay, message_type: str, reference: str, message_
 
 
 @task(bind=True, base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT)
-def sendmail(self: MessageRelay, sender: str, recipients: list, message: str, reference: str) -> dict:
+def sendmail(self: MessageRelay, sender: str, recipients: list, message: str, reference: str,
+             max_retry_seconds: Optional[int] = None) -> dict:
     """
     :param self: base class
     :param sender: the From of the email
     :param recipients: the recipients of the email
     :param message: email.mime.multipart.MIMEMultipart message as a string
     :param reference: Audit reference to help cross reference audit log and events
+    :param max_retry_seconds: DEPRECATED
     """
     try:
         return self.sendmail(sender, recipients, message, reference)
@@ -488,12 +493,14 @@ def sendmail(self: MessageRelay, sender: str, recipients: list, message: str, re
 
 
 @task(bind=True, base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT)
-def sendsms(self: MessageRelay, recipient: str, message: str, reference: str) -> str:
+def sendsms(self: MessageRelay, recipient: str, message: str, reference: str,
+            max_retry_seconds: Optional[int] = None) -> str:
     """
     :param self: base class
     :param recipient: the recipient of the sms
     :param message: message as a string (160 chars per sms)
     :param reference: Audit reference to help cross reference audit log and events
+    :param max_retry_seconds: DEPRECATED
     """
     try:
         return self.sendsms(recipient, message, reference)
