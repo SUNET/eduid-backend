@@ -47,8 +47,8 @@ from eduid_webapp.jsconfig.settings.front import FrontConfig
 jsconfig_views = Blueprint('jsconfig',
                            __name__,
                            url_prefix='',
-                           template_folder='templates',
-                           default_subdomain='dashboard')
+                           template_folder='templates')
+
 
 CACHE = {}
 
@@ -77,7 +77,8 @@ def get_dashboard_config() -> dict:
     if config is None:
         raise BadConfiguration('Configuration not found')
     config.csrf_token = session.get_csrf_token()
-    return asdict(config)
+    # the front app expects upper case settings
+    return {k.upper(): v for k,v in asdict(config).items()}
 
 
 @jsconfig_views.route('/signup/config', methods=['GET'], subdomain="signup")
@@ -91,8 +92,7 @@ def get_signup_config() -> dict:
     tou_url = current_app.config.tou_url
     # Get config from etcd
     try:
-        config_dict = get_etcd_config()
-        config = SignupConfig(**config_dict)
+        config = get_etcd_config()
         CACHE['signup_config'] = config
     except etcd.EtcdConnectionFailed as e:
         current_app.logger.warning(f'No connection to etcd: {e}')
@@ -126,7 +126,8 @@ def get_signup_config() -> dict:
     config.reset_passwd_url = current_app.config.reset_passwd_url
     config.csrf_token = session.get_csrf_token()
     config.tous = tous
-    return asdict(config)
+    # the front app expects upper case settings
+    return {k.upper(): v for k,v in asdict(config).items()}
 
 
 @jsconfig_views.route('/get-bundle', methods=['GET'], subdomain="dashboard")

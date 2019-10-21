@@ -60,8 +60,15 @@ def jsconfig_init_app(name: str, config: dict) -> JSConfigApp:
 
     app = eduid_init_app_no_db(name, config,
                                config_class=JSConfigConfig,
-                               app_class=JSConfigApp)
+                               app_class=JSConfigApp,
+                               app_args={
+                                   'host_matching': True,
+                                   'static_folder': None,
+                                   'subdomain_matching': True,
+                                   })
 
+    if not app.testing:
+        app.url_map.host_matching = False
     from eduid_webapp.jsconfig.views import jsconfig_views
     app.register_blueprint(jsconfig_views)
 

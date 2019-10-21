@@ -42,7 +42,6 @@ class FrontConfig:
     This is sent to the client, so care must be taken to avoid setting sectrets here.
     """
     debug: bool = False
-    csrf_token: str = ''
     available_languages: Dict[str, str] = field(default_factory=lambda: {
             'en': 'English',
             'sv': 'Svenska',
@@ -52,10 +51,10 @@ class FrontConfig:
             'sv': ''
             })
     # URLs
-    faq_link: str = ''
-    staff_link: str = ''
-    students_link: str = ''
-    technicians_link: str = ''
+    static_faq_url: str = ''
+    static_staff_url: str = ''
+    static_students_url: str = ''
+    static_technicians_url: str = ''
     reset_passwd_url: str = ''
     dashboard_url: str = ''
     personal_data_url: str = '/personal-data/user'
@@ -70,7 +69,6 @@ class FrontConfig:
     orcid_url: str = '/services/orcid/'
     eidas_url: str = 'https://eidas.eduid.local.emergya.info'
     token_verify_idp: str = 'http://dev.test.swedenconnect.se/idp'
-    signup_authn_url: str = '/services/authn/signup-authn'
     # changing password
     password_length: int = 12
     password_entropy: int = 25
@@ -80,6 +78,7 @@ class FrontConfig:
                                                             'oidc',
                                                             'eidas'])
     default_country_code: int = 46
+    signup_authn_url: str = '/services/authn/signup-authn'
     # This key is for signup.eduid.docker:8080
     recaptcha_public_key: str = '6Lf5rCETAAAAAAW6UP4o59VSNEWG7RrzY_b5uH_M'
     # This key is for signup.eduid.local.emergya.info

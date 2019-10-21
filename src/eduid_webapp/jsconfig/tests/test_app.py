@@ -35,6 +35,7 @@ import os
 import json
 from datetime import datetime, timedelta
 
+from mock import patch
 import flask.testing
 
 from eduid_common.api.testing import EduidAPITestCase
@@ -51,7 +52,9 @@ class JSConfigTests(EduidAPITestCase):
         super(JSConfigTests, self).setUp(copy_user_to_private=False)
 
         self.jsconfig_ns = '/eduid/webapp/jsapps/'
-        self.jsconfig_parser = EtcdConfigParser(namespace=self.jsconfig_ns, host=self.etcd_instance.host, port=self.etcd_instance.port)
+        self.jsconfig_parser = EtcdConfigParser(namespace=self.jsconfig_ns,
+                                                host=self.etcd_instance.host,
+                                                port=self.etcd_instance.port)
 
         jsconfig_config = {
             'eduid': {
@@ -67,19 +70,23 @@ class JSConfigTests(EduidAPITestCase):
         os.environ['ETCD_HOST'] = self.etcd_instance.host
         os.environ['ETCD_PORT'] = str(self.etcd_instance.port)
         
-        self.browser = self.app.test_client(allow_subdomain_redirects=True)
 
     def load_app(self, config):
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        return jsconfig_init_app('jsconfig', config)
+        app = jsconfig_init_app('jsconfig', config)
+        app.url_map.host_matching = False
+        self.browser = app.test_client(allow_subdomain_redirects=True)
+        return app
 
     def update_config(self, config):
         app_config = {k.lower(): v for k,v in config.items()}
         app_config.update({
-            'server_name': 'example.com'
+            'server_name': 'example.com',
+            'tou_url': 'dummy-url',
+            'testing': True,
         })
         return JSConfigConfig(**app_config)
 
@@ -94,17 +101,34 @@ class JSConfigTests(EduidAPITestCase):
 
             self.assertEqual(config_data['type'], 'GET_JSCONFIG_CONFIG_SUCCESS')
             self.assertEqual(config_data['payload']['dashboard_url'], 'dummy-url')
-            self.assertEqual(config_data['payload']['faq_link'], '')
+            self.assertEqual(config_data['payload']['static_faq_url'], '')
 
-    def test_get_signup_config(self):
+    @patch('eduid_webapp.jsconfig.views.requests.get')
+    def test_get_signup_config(self, mock_request_get):
+
+        class MockResponse:
+            status_code = 200
+            headers = {'mock-header': 'dummy-value'}
+            def json(self):
+                return {
+                        'payload': {
+                            'test-version-1': '1st Dummy TOU',
+                            'test-version-2': '2st Dummy TOU',
+                            }
+                        }
+
+
+        mock_request_get.return_value = MockResponse()
+
         eppn = self.test_user_data['eduPersonPrincipalName']
         with self.session_cookie(self.browser, eppn) as client:
-            response = client.get('/signup/config', base_url='http://signup.example.com')
+            response = client.get('http://signup.example.com/signup/config')
 
             self.assertEqual(response.status_code, 200)
 
             config_data = json.loads(response.data)
 
-            self.assertEqual(config_data['type'], 'GET_JSCONFIG_CONFIG_SUCCESS')
+            self.assertEqual(config_data['type'], 'GET_JSCONFIG_SIGNUP_CONFIG_SUCCESS')
             self.assertEqual(config_data['payload']['dashboard_url'], 'dummy-url')
-            self.assertEqual(config_data['payload']['faq_link'], '')
+            self.assertEqual(config_data['payload']['static_faq_url'], '')
+            self.assertEqual(config_data['payload']['tous']['test-version-2'], '2st Dummy TOU')
