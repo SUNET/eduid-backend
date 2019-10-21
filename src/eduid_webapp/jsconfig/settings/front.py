@@ -42,6 +42,7 @@ class FrontConfig:
     This is sent to the client, so care must be taken to avoid setting sectrets here.
     """
     debug: bool = False
+    csrf_token: str = ''
     available_languages: Dict[str, str] = field(default_factory=lambda: {
             'en': 'English',
             'sv': 'Svenska',
