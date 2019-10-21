@@ -36,7 +36,7 @@ it with all attributes common to all eduID services.
 
 import os
 from sys import stderr
-from typing import Type, cast
+from typing import Type, cast, Optional
 
 from flask import Config, Flask
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -63,7 +63,8 @@ if DEBUG:
 
 def eduid_init_app_no_db(name: str, config: dict,
                          config_class: Type[FlaskConfig] = FlaskConfig,
-                         app_class: Type[EduIDApp] = AuthnApp) -> EduIDApp:
+                         app_class: Type[EduIDApp] = AuthnApp,
+                         app_args: Optional[dict] = None) -> EduIDApp:
     """
     Create and prepare the flask app for eduID APIs with all the attributes
     common to all  apps.
@@ -75,7 +76,9 @@ def eduid_init_app_no_db(name: str, config: dict,
     """
     if app_class is Flask:
         app_class = EduIDApp
-    app = app_class(name)
+    if app_args is None:
+        app_args = {}
+    app = app_class(name, **app_args)
     # mypy issue: https://github.com/python/mypy/issues/2427
     app.wsgi_app = ProxyFix(app.wsgi_app)  # type: ignore
     app.request_class = Request
