@@ -397,8 +397,8 @@ class MessageRelay(Task):
         conf = self._config
         if conf.devel_mode is True:
             logger.debug('sendmail task:')
-            logger.debug("\nType: {}\nSender: {}\nRecipients: {}\nMessage:\n{}".format(
-                'email', reference, sender, recipients, message))
+            logger.debug(f"\nType: email\nReference: {reference}\nSender: {sender}\nRecipients: {recipients}\n"
+                         f"Message:\n{message}")
             return {'devel_mode': True}
 
         return self.smtp.sendmail(sender, recipients, message)
