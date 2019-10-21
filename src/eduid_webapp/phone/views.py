@@ -168,7 +168,7 @@ def verify(user, code, number):
     Returns a listing of  all phones for the logged in user.
     """
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
-    current_app.logger.debug('Trying to save phone number {} as verified'.format(number, proofing_user))
+    current_app.logger.debug('Trying to save phone number {} as verified'.format(number))
 
     db = current_app.proofing_statedb
     try:

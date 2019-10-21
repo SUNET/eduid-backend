@@ -42,9 +42,9 @@ def authorization_response():
     current_app.logger.debug('Authorization response received: {!s}'.format(authn_resp))
 
     if authn_resp.get('error'):
-        current_app.logger.error('AuthorizationError {!s} - {!s} ({!s})'.format(request.host, authn_resp['error'],
-                                                                                authn_resp.get('error_message'),
-                                                                                authn_resp.get('error_uri')))
+        current_app.logger.error('AuthorizationError from {}: {} - {} ({})'.format(request.host, authn_resp['error'],
+                                                                                   authn_resp.get('error_message'),
+                                                                                   authn_resp.get('error_uri')))
         current_app.stats.count(name='authn_response_op_error')
         return make_response('OK', 200)
 
