@@ -155,8 +155,9 @@ class EduidAPITestCase(CommonTestCase):
             settings = settings.to_dict()
 
         self.app = self.load_app(settings)
-        self.app.test_client_class = CSRFTestClient
-        self.browser = self.app.test_client()
+        if not self.browser:
+            self.app.test_client_class = CSRFTestClient
+            self.browser = self.app.test_client()
 
         # Helper constants
         self.content_type_json = 'application/json'
