@@ -77,8 +77,15 @@ def get_dashboard_config() -> dict:
     if config is None:
         raise BadConfiguration('Configuration not found')
     config.csrf_token = session.get_csrf_token()
-    # the front app expects upper case settings
-    return {k.upper(): v for k,v in asdict(config).items()}
+    # XXX the front app consumes some settings as upper case and some as lower
+    # case. We'll provide them all in both upper and lower case, to
+    # possibilitate migration of the front app - preferably to lower case.
+    config_dict = asdict(config)
+    config_upper = {}
+    for k,v in config_dict.items():
+        config_upper[k.upper()] = v
+    config_dict.update(config_upper)
+    return config_dict
 
 
 @jsconfig_views.route('/signup/config', methods=['GET'], subdomain="signup")
@@ -126,8 +133,15 @@ def get_signup_config() -> dict:
     config.reset_passwd_url = current_app.config.reset_passwd_url
     config.csrf_token = session.get_csrf_token()
     config.tous = tous
-    # the front app expects upper case settings
-    return {k.upper(): v for k,v in asdict(config).items()}
+    # XXX the front app consumes some settings as upper case and some as lower
+    # case. We'll provide them all in both upper and lower case, to
+    # possibilitate migration of the front app - preferably to lower case.
+    config_dict = asdict(config)
+    config_upper = {}
+    for k,v in config_dict.items():
+        config_upper[k.upper()] = v
+    config_dict.update(config_upper)
+    return config_dict
 
 
 @jsconfig_views.route('/get-bundle', methods=['GET'], subdomain="dashboard")
