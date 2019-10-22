@@ -30,7 +30,7 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from typing import Optional
+from typing import cast, Dict, Optional
 from dataclasses import asdict
 
 import requests
@@ -42,6 +42,7 @@ from eduid_common.config.exceptions import BadConfiguration
 from eduid_common.config.parsers.etcd import EtcdConfigParser, etcd
 from eduid_common.session import session
 from eduid_webapp.jsconfig.settings.front import FrontConfig
+from eduid_webapp.jsconfig.settings.common import JSConfigConfig
 
 
 jsconfig_views = Blueprint('jsconfig',
@@ -53,7 +54,7 @@ jsconfig_views = Blueprint('jsconfig',
 CACHE = {}
 
 
-def get_etcd_config(namespace: Optional[str] = None) -> dict:
+def get_etcd_config(namespace: Optional[str] = None) -> FrontConfig:
     if namespace is None:
         namespace = '/eduid/webapp/jsapps/'
     parser = EtcdConfigParser(namespace)
@@ -69,7 +70,7 @@ def get_dashboard_config() -> dict:
     Configuration for the dashboard front app
     """
     try:
-        config = get_etcd_config()
+        config: Optional[FrontConfig] = get_etcd_config()
         CACHE['dashboard_config'] = config
     except etcd.EtcdConnectionFailed as e:
         current_app.logger.warning(f'No connection to etcd: {e}')
@@ -94,12 +95,12 @@ def get_signup_config() -> dict:
     """
     Configuration for the signup front app
     """
-    if not current_app.config.tou_url:
+    if not cast(JSConfigConfig, current_app.config).tou_url:
         raise BadConfiguration('tou_url not set')
-    tou_url = current_app.config.tou_url
+    tou_url = cast(JSConfigConfig, current_app.config).tou_url
     # Get config from etcd
     try:
-        config = get_etcd_config()
+        config: Optional[FrontConfig] = get_etcd_config()
         CACHE['signup_config'] = config
     except etcd.EtcdConnectionFailed as e:
         current_app.logger.warning(f'No connection to etcd: {e}')
@@ -129,10 +130,10 @@ def get_signup_config() -> dict:
     if tous is None:
         abort(500)
 
-    config.debug = current_app.config.debug
-    config.reset_passwd_url = current_app.config.reset_passwd_url
+    config.debug = cast(JSConfigConfig, current_app.config).debug
+    config.reset_passwd_url = cast(JSConfigConfig, current_app.config).reset_passwd_url
     config.csrf_token = session.get_csrf_token()
-    config.tous = tous
+    config.tous = cast(Dict[str, str], tous)
     # XXX the front app consumes some settings as upper case and some as lower
     # case. We'll provide them all in both upper and lower case, to
     # possibilitate migration of the front app - preferably to lower case.
