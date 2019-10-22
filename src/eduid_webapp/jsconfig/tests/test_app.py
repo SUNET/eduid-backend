@@ -77,8 +77,8 @@ class JSConfigTests(EduidAPITestCase):
         app for this test case.
         """
         app = jsconfig_init_app('jsconfig', config)
-        app.url_map.host_matching = False
         self.browser = app.test_client(allow_subdomain_redirects=True)
+        app.url_map.host_matching = False
         return app
 
     def update_config(self, config):
@@ -87,12 +87,17 @@ class JSConfigTests(EduidAPITestCase):
             'server_name': 'example.com',
             'tou_url': 'dummy-url',
             'testing': True,
+            'dashboard_bundle_path': 'dummy-dashboard-bundle',
+            'dashboard_bundle_version': 'dummy-dashboard-version',
+            'signup_bundle_path': 'dummy-signup-bundle',
+            'signup_bundle_version': 'dummy-signup-version',
         })
         return JSConfigConfig(**app_config)
 
     def test_get_dashboard_config(self):
         eppn = self.test_user_data['eduPersonPrincipalName']
-        with self.session_cookie(self.browser, eppn) as client:
+        with self.session_cookie(self.browser, eppn, server_name='example.com',
+                                 subdomain='dashboard') as client:
             response = client.get('http://dashboard.example.com/config')
 
             self.assertEqual(response.status_code, 200)
@@ -121,7 +126,8 @@ class JSConfigTests(EduidAPITestCase):
         mock_request_get.return_value = MockResponse()
 
         eppn = self.test_user_data['eduPersonPrincipalName']
-        with self.session_cookie(self.browser, eppn) as client:
+        with self.session_cookie(self.browser, eppn, server_name='example.com',
+                                 subdomain='signup') as client:
             response = client.get('http://signup.example.com/signup/config')
 
             self.assertEqual(response.status_code, 200)
@@ -132,3 +138,28 @@ class JSConfigTests(EduidAPITestCase):
             self.assertEqual(config_data['payload']['dashboard_url'], 'dummy-url')
             self.assertEqual(config_data['payload']['static_faq_url'], '')
             self.assertEqual(config_data['payload']['tous']['test-version-2'], '2st Dummy TOU')
+
+    def test_get_dashboard_bundle(self):
+        eppn = self.test_user_data['eduPersonPrincipalName']
+        with self.session_cookie(self.browser, eppn, server_name='example.com',
+                                 subdomain='dashboard') as client:
+            response = client.get('http://dashboard.example.com/get-bundle')
+
+            self.assertEqual(response.status_code, 200)
+
+            body = response.data
+            self.assertTrue('dummy-dashboard-bundle' in str(body))
+            self.assertTrue('dummy-dashboard-version' in str(body))
+
+    # def test_get_signup_bundle(self):
+        # eppn = self.test_user_data['eduPersonPrincipalName']
+        # with self.session_cookie(self.browser, eppn, server_name='example.com',
+                                 # subdomain='signup') as client:
+            # response = client.get('/signup/get-bundle', subdomain='signup',
+                    # follow_redirects=True)
+
+            # self.assertEqual(response.status_code, 200)
+
+            # body = response.data
+            # self.assertTrue('dummy-signup-bundle' in str(body))
+            # self.assertTrue('dummy-signup-version' in str(body))
