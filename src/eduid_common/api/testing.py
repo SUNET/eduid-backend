@@ -155,8 +155,9 @@ class EduidAPITestCase(CommonTestCase):
             settings = settings.to_dict()
 
         self.app = self.load_app(settings)
-        self.app.test_client_class = CSRFTestClient
-        self.browser = self.app.test_client()
+        if not getattr(self, 'browser', False):
+            self.app.test_client_class = CSRFTestClient
+            self.browser = self.app.test_client()
 
         # Helper constants
         self.content_type_json = 'application/json'
@@ -208,8 +209,8 @@ class EduidAPITestCase(CommonTestCase):
         return config
 
     @contextmanager
-    def session_cookie(self, client, eppn, server_name='localhost'):
-        with client.session_transaction() as sess:
+    def session_cookie(self, client, eppn, server_name='localhost', **kwargs):
+        with client.session_transaction(**kwargs) as sess:
             sess['user_eppn'] = eppn
             sess['user_is_logged_in'] = True
         client.set_cookie(server_name, key=self.app.config.session_cookie_name, value=sess._session.token)
