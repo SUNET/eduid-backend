@@ -155,7 +155,7 @@ class EduidAPITestCase(CommonTestCase):
             settings = settings.to_dict()
 
         self.app = self.load_app(settings)
-        if not self.browser:
+        if not getattr(self, 'browser', False):
             self.app.test_client_class = CSRFTestClient
             self.browser = self.app.test_client()
 
