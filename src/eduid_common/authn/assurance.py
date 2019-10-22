@@ -155,6 +155,7 @@ def response_authn(req_authn_ctx: Optional[str], user: IdPUser, sso_session, log
     cc = {'REFEDS_MFA':  'https://refeds.org/profile/mfa',
           'REFEDS_SFA':  'https://refeds.org/profile/sfa',
           'FIDO_U2F':    'https://www.swamid.se/specs/id-fido-u2f-ce-transports',
+          'EDUID_MFA':   'https://eduid.se/specs/mfa',
           'PASSWORD_PT': 'urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport',
           }
 
@@ -176,6 +177,11 @@ def response_authn(req_authn_ctx: Optional[str], user: IdPUser, sso_session, log
         if not authn.is_singlefactor:
             raise MissingSingleFactor()
         response_authn = cc['REFEDS_SFA']
+
+    elif req_authn_ctx == cc['EDUID_MFA']:
+        if not authn.is_multifactor:
+            raise MissingMultiFactor()
+        response_authn = cc['EDUID_MFA']
 
     elif req_authn_ctx == cc['FIDO_U2F']:
         if not authn.password_used and authn.fido_used:
