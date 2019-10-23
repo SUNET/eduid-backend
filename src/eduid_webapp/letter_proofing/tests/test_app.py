@@ -13,6 +13,7 @@ from eduid_userdb.nin import Nin
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_webapp.letter_proofing.app import init_letter_proofing_app
 from eduid_webapp.letter_proofing.ekopost import Ekopost
+from eduid_webapp.letter_proofing.settings.common import LetterProofingConfig
 
 __author__ = 'lundberg'
 
@@ -67,21 +68,24 @@ class LetterProofingTests(EduidAPITestCase):
         return init_letter_proofing_app('testing', config)
 
     def update_config(self, config):
-        config.update({
-            #'EKOPOST_DEBUG_PDF': devnull,
-            'EKOPOST_API_URI': 'http://localhost',
-            'EKOPOST_API_USER': 'ekopost_user',
-            'EKOPOST_API_PW': 'secret',
-            'LETTER_WAIT_TIME_HOURS': 336,
-            'MSG_BROKER_URL': 'amqp://dummy',
-            'AM_BROKER_URL': 'amqp://dummy',
-            'CELERY_CONFIG': {
-                'CELERY_RESULT_BACKEND': 'amqp',
-                'CELERY_TASK_SERIALIZER': 'json',
-                'MONGO_URI': config['MONGO_URI']
+        #  XXX remove this lower casing once the default config in
+        #  common.api.testing is lower case
+        app_config = {k.lower(): v for k,v in config.items()}
+        app_config.update({
+            # 'ekopost_debug_pdf': devnull,
+            'ekopost_api_uri': 'http://localhost',
+            'ekopost_api_user': 'ekopost_user',
+            'ekopost_api_pw': 'secret',
+            'letter_wait_time_hours': 336,
+            'msg_broker_url': 'amqp://dummy',
+            'am_broker_url': 'amqp://dummy',
+            'celery_config': {
+                'result_backend': 'amqp',
+                'task_serializer': 'json',
+                'mongo_uri': app_config['mongo_uri']
             },
         })
-        return config
+        return LetterProofingConfig(**app_config)
 
     # Helper methods
     def get_state(self):
@@ -131,6 +135,20 @@ class LetterProofingTests(EduidAPITestCase):
         json_data = self.get_state()
         csrf_token = json_data['payload']['csrf_token']
         json_data = self.send_letter(self.test_user_nin, csrf_token)
+        expires = json_data['payload']['letter_expires']
+        expires = datetime.utcfromtimestamp(int(expires))
+        self.assertIsInstance(expires, datetime)
+        expires = expires.strftime('%Y-%m-%d')
+        self.assertIsInstance(expires, str)
+
+    def test_resend_letter(self):
+        json_data = self.get_state()
+        csrf_token = json_data['payload']['csrf_token']
+        json_data = self.send_letter(self.test_user_nin, csrf_token)
+        csrf_token = json_data['payload']['csrf_token']
+        self.assertEqual(json_data['payload']['message'], 'letter.saved-unconfirmed')
+        json_data = self.send_letter(self.test_user_nin, csrf_token)
+        self.assertEqual(json_data['payload']['message'], 'letter.already-sent')
         expires = json_data['payload']['letter_expires']
         expires = datetime.utcfromtimestamp(int(expires))
         self.assertIsInstance(expires, datetime)
@@ -271,7 +289,7 @@ class LetterProofingTests(EduidAPITestCase):
         self.send_letter(self.test_user_nin, csrf_token)
         json_data = self.get_state()
         self.assertIn('letter_sent', json_data['payload'])
-        self.app.config.update({'LETTER_WAIT_TIME_HOURS': -24})
+        self.app.config.letter_wait_time_hours = -24
         json_data = self.get_state()
         self.assertTrue(json_data['payload']['letter_expired'])
         self.assertIn('letter_sent', json_data['payload'])
