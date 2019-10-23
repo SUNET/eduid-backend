@@ -73,7 +73,7 @@ def authorization_response(user):
     current_app.logger.debug('Authorization response received: {!s}'.format(authn_resp))
 
     if authn_resp.get('error'):
-        current_app.logger.error('AuthorizationError {!s} - {!s} ({!s})'.format(request.host, authn_resp['error'],
+        current_app.logger.error('AuthorizationError for {}: {!s} - {!s} ({!s})'.format(request.host, authn_resp['error'],
                                                                                 authn_resp.get('error_message'),
                                                                                 authn_resp.get('error_description')))
         new_query_string = urlencode({'msg': ':ERROR:orc.authorization_fail'})
