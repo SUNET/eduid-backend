@@ -73,9 +73,9 @@ def authorization_response(user):
     current_app.logger.debug('Authorization response received: {!s}'.format(authn_resp))
 
     if authn_resp.get('error'):
-        current_app.logger.error('AuthorizationError for {}: {!s} - {!s} ({!s})'.format(request.host, authn_resp['error'],
-                                                                                authn_resp.get('error_message'),
-                                                                                authn_resp.get('error_description')))
+        current_app.logger.error('AuthorizationError from {}: {} - {} ({})'.format(request.host, authn_resp['error'],
+                                                                                   authn_resp.get('error_message'),
+                                                                                   authn_resp.get('error_description')))
         new_query_string = urlencode({'msg': ':ERROR:orc.authorization_fail'})
         redirect_url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
         return redirect(redirect_url)
