@@ -9,6 +9,7 @@ from six import StringIO, BytesIO
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_webapp.letter_proofing.app import init_letter_proofing_app
 from eduid_webapp.letter_proofing import pdf
+from eduid_webapp.letter_proofing.settings.common import LetterProofingConfig
 
 # We need to add Navet responses that we fail to handle
 
@@ -97,16 +98,19 @@ class CreatePDFTest(EduidAPITestCase):
         return init_letter_proofing_app('testing', config)
 
     def update_config(self, config):
-        config.update({
-            'LETTER_WAIT_TIME_HOURS': 336,
-            'MSG_BROKER_URL': 'amqp://dummy',
-            'AM_BROKER_URL': 'amqp://dummy',
-            'CELERY_CONFIG': {
-                'CELERY_RESULT_BACKEND': 'amqp',
-                'CELERY_TASK_SERIALIZER': 'json'
+        #  XXX remove this lower casing once the default config in
+        #  common.api.testing is lower case
+        app_config = {k.lower(): v for k,v in config.items()}
+        app_config.update({
+            'letter_wait_time_hours': 336,
+            'msg_broker_url': 'amqp://dummy',
+            'am_broker_url': 'amqp://dummy',
+            'celery_config': {
+                'result_backend': 'amqp',
+                'task_serializer': 'json'
             },
         })
-        return config
+        return LetterProofingConfig(**app_config)
 
     def test_create_pdf(self):
 
