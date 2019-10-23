@@ -26,11 +26,11 @@ class Ekopost(object):
         if self._ekopost_api is None:
             verify_ssl = True
             auth = None
-            if self.app.config.get("EKOPOST_API_VERIFY_SSL", None) == 'false':
+            if self.app.config.ekopost_api_verify_ssl == 'false':
                 verify_ssl = False
-            if self.app.config.get("EKOPOST_API_USER", None) and self.app.config.get("EKOPOST_API_PW"):
-                auth = (self.app.config.get("EKOPOST_API_USER"), self.app.config.get("EKOPOST_API_PW"))
-            self._ekopost_api = Hammock(self.app.config.get("EKOPOST_API_URI"), auth=auth, verify=verify_ssl)
+            if self.app.config.ekopost_api_user and self.app.config.ekopost_api_pw:
+                auth = (self.app.config.ekopost_api_user, self.app.config.ekopost_api_pw)
+            self._ekopost_api = Hammock(self.app.config.ekopost_api_uri, auth=auth, verify=verify_ssl)
         return self._ekopost_api
 
     def send(self, eppn, document):

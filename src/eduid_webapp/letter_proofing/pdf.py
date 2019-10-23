@@ -2,10 +2,11 @@
 
 from __future__ import absolute_import
 
-from flask import current_app
 from xhtml2pdf import pisa
 from six import StringIO, BytesIO
 from datetime import timedelta
+
+from eduid_webapp.letter_proofing.app import current_letterp_app as current_app
 
 
 class AddressFormatException(Exception):
@@ -63,7 +64,7 @@ def create_pdf(recipient, verification_code, created_timestamp, primary_mail_add
 
     # Calculate the validity period of the verification
     # code that is to be shown in the letter.
-    max_wait = timedelta(hours=current_app.config['LETTER_WAIT_TIME_HOURS'])
+    max_wait = timedelta(hours=current_app.config.letter_wait_time_hours)
     validity_period = (created_timestamp + max_wait).strftime('%Y-%m-%d')
 
     letter_template = render_template('letter.html',

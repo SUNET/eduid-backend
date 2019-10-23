@@ -2,13 +2,13 @@
 
 from __future__ import absolute_import
 
-from flask import current_app
 from datetime import datetime, timedelta
 
 from eduid_userdb.proofing import LetterProofingState, NinProofingElement
 from eduid_common.api.utils import get_short_hash
 from eduid_userdb.proofing.element import SentLetterElement
 from eduid_webapp.letter_proofing import pdf
+from eduid_webapp.letter_proofing.app import current_letterp_app as current_app
 
 __author__ = 'lundberg'
 
@@ -27,7 +27,7 @@ def check_state(state):
         sent_dt = state.proofing_letter.sent_ts
         minutes_until_midnight = (24 - sent_dt.hour) * 60  # Give the user until midnight the day the code expires
         now = datetime.now(sent_dt.tzinfo)  # Use tz_info from timezone aware mongodb datetime
-        max_wait = timedelta(hours=current_app.config['LETTER_WAIT_TIME_HOURS'], minutes=minutes_until_midnight)
+        max_wait = timedelta(hours=current_app.config.letter_wait_time_hours, minutes=minutes_until_midnight)
 
         time_since_sent = now - sent_dt
         if time_since_sent < max_wait:
@@ -103,9 +103,9 @@ def send_letter(user, proofing_state):
                                 proofing_state.nin.verification_code,
                                 proofing_state.nin.created_ts,
                                 user.mail_addresses.primary.email)
-    if current_app.config.get('EKOPOST_DEBUG_PDF'):
+    if current_app.config.ekopost_debug_pdf:
         # Write PDF to file instead of actually sending it if EKOPOST_DEBUG_PDF is set
-        with open(current_app.config.get('EKOPOST_DEBUG_PDF'), 'wb') as fd:
+        with open(current_app.config.ekopost_debug_pdf, 'wb') as fd:
             fd.write(pdf_letter.getvalue())
         return 'debug mode transaction id'
     campaign_id = current_app.ekopost.send(user.eppn, pdf_letter)

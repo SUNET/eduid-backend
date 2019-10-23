@@ -2,7 +2,7 @@
 
 from __future__ import absolute_import
 
-from flask import Blueprint, current_app
+from flask import Blueprint
 
 from eduid_common.api.decorators import require_user, can_verify_identity, MarshalWith, UnmarshalWith
 from eduid_common.api.helpers import add_nin_to_user, verify_nin_for_user
@@ -12,6 +12,7 @@ from eduid_webapp.letter_proofing import pdf
 from eduid_webapp.letter_proofing import schemas
 from eduid_webapp.letter_proofing.ekopost import EkopostException
 from eduid_webapp.letter_proofing.helpers import create_proofing_state, check_state, get_address, send_letter
+from eduid_webapp.letter_proofing.app import current_letterp_app as current_app
 
 __author__ = 'lundberg'
 
