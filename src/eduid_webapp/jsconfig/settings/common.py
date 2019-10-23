@@ -31,27 +31,20 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-
 from __future__ import absolute_import
 
-"""
-For more built in configuration options see,
-http://flask.pocoo.org/docs/0.10/config/#builtin-configuration-values
-"""
+from dataclasses import dataclass
 
-DEBUG = False
+from eduid_common.config.base import FlaskConfig
 
-# Database URIs
-REDIS_HOST = ''
-REDIS_PORT = 6379
-REDIS_DB = 0
 
-# Secret key
-SECRET_KEY = ''
-
-# Logging
-LOG_LEVEL = 'INFO'
-
-# Used to load the dashboard react bundle
-BUNDLE_PATH = None
-BUNDLE_VERSION = None
+@dataclass
+class JSConfigConfig(FlaskConfig):
+    """
+    Configuration for the jsconfig app
+    """
+    dashboard_bundle_path: str = 'front-build/dashboard-bundle.dev.js'
+    dashboard_bundle_version: str = 'dev'
+    # Signup config
+    signup_bundle_path: str = 'front-build/signup-bundle.dev.js'
+    signup_bundle_version: str = 'dev'

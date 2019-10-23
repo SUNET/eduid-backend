@@ -30,60 +30,86 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from typing import Optional
+from typing import cast, Dict, Optional
+from dataclasses import asdict
 
 import requests
-from flask import Blueprint, abort, current_app, render_template
+from flask import Blueprint, abort, render_template
 
 from eduid_common.api.decorators import MarshalWith
 from eduid_common.api.schemas.base import FluxStandardAction
 from eduid_common.config.exceptions import BadConfiguration
 from eduid_common.config.parsers.etcd import EtcdConfigParser, etcd
 from eduid_common.session import session
-from eduid_webapp.jsconfig.settings.front import dashboard_config, signup_config
+from eduid_webapp.jsconfig.app import current_jsconfig_app as current_app
+from eduid_webapp.jsconfig.settings.front import FrontConfig
+from eduid_webapp.jsconfig.settings.common import JSConfigConfig
 
-jsconfig_views = Blueprint('jsconfig', __name__, url_prefix='', template_folder='templates')
+
+jsconfig_views = Blueprint('jsconfig',
+                           __name__,
+                           url_prefix='',
+                           template_folder='templates')
+
 
 CACHE = {}
 
 
-def get_etcd_config(default_config: dict, namespace: Optional[str] = None) -> dict:
+def get_etcd_config(namespace: Optional[str] = None) -> FrontConfig:
     if namespace is None:
         namespace = '/eduid/webapp/jsapps/'
     parser = EtcdConfigParser(namespace)
     config = parser.read_configuration(silent=False)
-    default_config.update(config)
-    return default_config
+    config = {k.lower(): v for k,v in config.items()}
+    return FrontConfig(**config)
 
 
 @jsconfig_views.route('/config', methods=['GET'], subdomain="dashboard")
 @MarshalWith(FluxStandardAction)
 def get_dashboard_config() -> dict:
+    """
+    Configuration for the dashboard front app
+    """
     try:
-        config = get_etcd_config(dashboard_config)
+        config: Optional[FrontConfig] = get_etcd_config()
         CACHE['dashboard_config'] = config
     except etcd.EtcdConnectionFailed as e:
         current_app.logger.warning(f'No connection to etcd: {e}')
-        config = CACHE.get('dashboard_config', {})
-    config['csrf_token'] = session.get_csrf_token()
-    return config
+        config = CACHE.get('dashboard_config')
+    if config is None:
+        raise BadConfiguration('Configuration not found')
+    config.csrf_token = session.get_csrf_token()
+    # XXX the front app consumes some settings as upper case and some as lower
+    # case. We'll provide them all in both upper and lower case, to
+    # possibilitate migration of the front app - preferably to lower case.
+    config_dict = asdict(config)
+    config_upper = {}
+    for k,v in config_dict.items():
+        config_upper[k.upper()] = v
+    config_dict.update(config_upper)
+    return config_dict
 
 
 @jsconfig_views.route('/signup/config', methods=['GET'], subdomain="signup")
 @MarshalWith(FluxStandardAction)
 def get_signup_config() -> dict:
+    """
+    Configuration for the signup front app
+    """
+    if not current_app.config.tou_url:
+        raise BadConfiguration('tou_url not set')
+    tou_url = current_app.config.tou_url
     # Get config from etcd
     try:
-        config = get_etcd_config(signup_config)
+        config: Optional[FrontConfig] = get_etcd_config()
         CACHE['signup_config'] = config
     except etcd.EtcdConnectionFailed as e:
         current_app.logger.warning(f'No connection to etcd: {e}')
         current_app.logger.info('Serving cached config')
-        config = CACHE.get('signup_config', {})
+        config = CACHE.get('signup_config')
     # Get ToUs from the ToU action
-    tou_url = config.get('TOU_URL')
-    if tou_url is None:
-        raise BadConfiguration('TOU_URL not set or None')
+    if config is None:
+        raise BadConfiguration('Configuration not found')
     tous = None
     try:
         r = requests.get(tou_url)
@@ -101,28 +127,30 @@ def get_signup_config() -> dict:
     except requests.exceptions.HTTPError as e:
         current_app.logger.warning('Problem getting tous from URL {!r}: {!r}'.format(tou_url, e))
         tous = CACHE.get('tous')
-        if tous is None:
-            abort(500)
-    return {
-        'debug': current_app.config.get('DEBUG'),
-        'reset_passwd_url': current_app.config.get('RESET_PASSWD_URL'),
-        'csrf_token': session.get_csrf_token(),
-        'tous': tous,
-        'available_languages': config.get('available_languages'),
-        'recaptcha_public_key': config.get('RECAPTCHA_PUBLIC_KEY'),
-        'dashboard_url': config.get('SIGNUP_AUTHN_URL'),
-        'students_link': config.get('STATIC_STUDENTS_URL'),
-        'technicians_link': config.get('STATIC_TECHNICIANS_URL'),
-        'staff_link': config.get('STATIC_STAFF_URL'),
-        'faq_link': config.get('STATIC_FAQ_URL'),
-    }
+
+    if tous is None:
+        abort(500)
+
+    config.debug = current_app.config.debug
+    config.reset_passwd_url = current_app.config.reset_passwd_url
+    config.csrf_token = session.get_csrf_token()
+    config.tous = cast(Dict[str, str], tous)
+    # XXX the front app consumes some settings as upper case and some as lower
+    # case. We'll provide them all in both upper and lower case, to
+    # possibilitate migration of the front app - preferably to lower case.
+    config_dict = asdict(config)
+    config_upper = {}
+    for k,v in config_dict.items():
+        config_upper[k.upper()] = v
+    config_dict.update(config_upper)
+    return config_dict
 
 
 @jsconfig_views.route('/get-bundle', methods=['GET'], subdomain="dashboard")
 def get_dashboard_bundle():
     context = {
-        'bundle': current_app.config.get('DASHBOARD_BUNDLE_PATH'),
-        'version': current_app.config.get('DASHBOARD_BUNDLE_VERSION'),
+        'bundle': current_app.config.dashboard_bundle_path,
+        'version': current_app.config.dashboard_bundle_version,
     }
     try:
         return render_template('load_bundle.jinja2', context=context)
@@ -134,8 +162,8 @@ def get_dashboard_bundle():
 @jsconfig_views.route('/get-bundle', methods=['GET'], subdomain="signup")
 def get_signup_bundle():
     context = {
-        'bundle': current_app.config.get('SIGNUP_BUNDLE_PATH'),
-        'version': current_app.config.get('SIGNUP_BUNDLE_VERSION'),
+        'bundle': current_app.config.signup_bundle_path,
+        'version': current_app.config.signup_bundle_version,
     }
     try:
         return render_template('load_bundle.jinja2', context=context)

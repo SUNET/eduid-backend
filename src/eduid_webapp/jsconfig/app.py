@@ -30,12 +30,28 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+from typing import cast
+
+from flask import current_app
 
 from eduid_common.api.app import eduid_init_app_no_db
 from eduid_common.authn.utils import no_authn_views
+from eduid_common.config.app import EduIDApp
+from eduid_webapp.jsconfig.settings.common import JSConfigConfig
 
 
-def jsconfig_init_app(name: str, config: dict):
+class JSConfigApp(EduIDApp):
+
+    def __init__(self, *args, **kwargs):
+        kwargs['subdomain_matching'] = True
+        super(JSConfigApp, self).__init__(*args, **kwargs)
+        self.config: JSConfigConfig = cast(JSConfigConfig, self.config)
+
+
+current_jsconfig_app: JSConfigApp = cast(JSConfigApp, current_app)
+
+
+def jsconfig_init_app(name: str, config: dict) -> JSConfigApp:
     """
     Create an instance of an eduid jsconfig data app.
 
@@ -46,9 +62,17 @@ def jsconfig_init_app(name: str, config: dict):
     all needed blueprints will be registered with it.
     """
 
-    app = eduid_init_app_no_db(name, config)
-    app.config.update(config)
+    app = eduid_init_app_no_db(name, config,
+                               config_class=JSConfigConfig,
+                               app_class=JSConfigApp,
+                               app_args={
+                                   'host_matching': True,
+                                   'static_folder': None,
+                                   'subdomain_matching': True,
+                                   })
 
+    if not app.testing:
+        app.url_map.host_matching = False
     from eduid_webapp.jsconfig.views import jsconfig_views
     app.register_blueprint(jsconfig_views)
 
