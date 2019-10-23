@@ -9,6 +9,7 @@ from mock import patch
 
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_webapp.lookup_mobile_proofing.app import init_lookup_mobile_proofing_app
+from eduid_webapp.lookup_mobile_proofing.settings.common import MobileProofingConfig
 
 __author__ = 'lundberg'
 
@@ -40,16 +41,19 @@ class LookupMobileProofingTests(EduidAPITestCase):
         return init_lookup_mobile_proofing_app('testing', config)
 
     def update_config(self, config):
-        config.update({
-            'MSG_BROKER_URL': 'amqp://dummy',
-            'AM_BROKER_URL': 'amqp://dummy',
-            'LOOKUP_MOBILE_BROKER_URL': 'amqp://dummy',
-            'CELERY_CONFIG': {
-                'CELERY_RESULT_BACKEND': 'amqp',
-                'CELERY_TASK_SERIALIZER': 'json'
+        #  XXX remove this lower casing once the default config in
+        #  common.api.testing is lower case
+        app_config = {k.lower(): v for k,v in config.items()}
+        app_config.update({
+            'msg_broker_url': 'amqp://dummy',
+            'am_broker_url': 'amqp://dummy',
+            'lookup_mobile_broker_url': 'amqp://dummy',
+            'celery_config': {
+                'result_backend': 'amqp',
+                'task_serializer': 'json'
             },
         })
-        return config
+        return MobileProofingConfig(**app_config)
 
     def test_authenticate(self):
         response = self.browser.get('/proofing')

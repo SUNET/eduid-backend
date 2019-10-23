@@ -20,8 +20,8 @@ __author__ = 'lundberg'
 class MobileProofingApp(AuthnApp):
 
     def __init__(self, *args, **kwargs):
-        super(LetterProofingApp, self).__init__(*args, **kwargs)
-        self.config: LetterProofingConfig = cast(LetterProofingConfig, self.config)
+        super(MobileProofingApp, self).__init__(*args, **kwargs)
+        self.config: MobileProofingConfig = cast(MobileProofingConfig, self.config)
 
 
 current_mobilep_app: MobileProofingApp = cast(MobileProofingApp, current_app)
@@ -41,8 +41,8 @@ def init_lookup_mobile_proofing_app(name, config=None):
     """
 
     app = eduid_init_app(name, config,
-                         config_class=LetterProofingConfig,
-                         app_class=LetterProofingApp)
+                         config_class=MobileProofingConfig,
+                         app_class=MobileProofingApp)
 
     # Register views
     from eduid_webapp.lookup_mobile_proofing.views import mobile_proofing_views
