@@ -34,13 +34,14 @@ from typing import cast, Dict, Optional
 from dataclasses import asdict
 
 import requests
-from flask import Blueprint, abort, current_app, render_template
+from flask import Blueprint, abort, render_template
 
 from eduid_common.api.decorators import MarshalWith
 from eduid_common.api.schemas.base import FluxStandardAction
 from eduid_common.config.exceptions import BadConfiguration
 from eduid_common.config.parsers.etcd import EtcdConfigParser, etcd
 from eduid_common.session import session
+from eduid_webapp.jsconfig.app import current_jsconfig_app as current_app
 from eduid_webapp.jsconfig.settings.front import FrontConfig
 from eduid_webapp.jsconfig.settings.common import JSConfigConfig
 
@@ -95,9 +96,9 @@ def get_signup_config() -> dict:
     """
     Configuration for the signup front app
     """
-    if not cast(JSConfigConfig, current_app.config).tou_url:
+    if not current_app.config.tou_url:
         raise BadConfiguration('tou_url not set')
-    tou_url = cast(JSConfigConfig, current_app.config).tou_url
+    tou_url = current_app.config.tou_url
     # Get config from etcd
     try:
         config: Optional[FrontConfig] = get_etcd_config()
@@ -130,8 +131,8 @@ def get_signup_config() -> dict:
     if tous is None:
         abort(500)
 
-    config.debug = cast(JSConfigConfig, current_app.config).debug
-    config.reset_passwd_url = cast(JSConfigConfig, current_app.config).reset_passwd_url
+    config.debug = current_app.config.debug
+    config.reset_passwd_url = current_app.config.reset_passwd_url
     config.csrf_token = session.get_csrf_token()
     config.tous = cast(Dict[str, str], tous)
     # XXX the front app consumes some settings as upper case and some as lower

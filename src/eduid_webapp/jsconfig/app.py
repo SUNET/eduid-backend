@@ -32,11 +32,12 @@
 #
 from typing import cast
 
+from flask import current_app
+
 from eduid_common.api.app import eduid_init_app_no_db
 from eduid_common.authn.utils import no_authn_views
 from eduid_common.config.app import EduIDApp
 from eduid_webapp.jsconfig.settings.common import JSConfigConfig
-from eduid_webapp.jsconfig.settings.front import FrontConfig
 
 
 class JSConfigApp(EduIDApp):
@@ -44,7 +45,10 @@ class JSConfigApp(EduIDApp):
     def __init__(self, *args, **kwargs):
         kwargs['subdomain_matching'] = True
         super(JSConfigApp, self).__init__(*args, **kwargs)
-        self.config: FrontConfig = cast(FrontConfig, self.config)
+        self.config: JSConfigConfig = cast(JSConfigConfig, self.config)
+
+
+current_jsconfig_app: JSConfigApp = cast(JSConfigApp, current_app)
 
 
 def jsconfig_init_app(name: str, config: dict) -> JSConfigApp:
