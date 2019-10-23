@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import time
-from flask import current_app
 
 from eduid_userdb import User
 from eduid_userdb.proofing.state import NinProofingState
@@ -10,6 +9,7 @@ from eduid_userdb.proofing.user import ProofingUser
 from eduid_userdb.logs import TeleAdressProofing, TeleAdressProofingRelation
 from eduid_lookup_mobile.utilities import format_NIN
 from eduid_webapp.lookup_mobile_proofing.lookup_mobile_relay import LookupMobileTaskFailed
+from eduid_webapp.lookup_mobile_proofing.app import current_mobilep_app as current_app
 
 __author__ = 'lundberg'
 
