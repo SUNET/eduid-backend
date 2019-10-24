@@ -390,7 +390,7 @@ class FlaskConfig(BaseConfig):
     email_code_timeout: int = 0
     password_entropy: int = 0
     default_country_code: str = 'en'
-    provider_configuration_info: str = ''
+    provider_configuration_info: Dict[str, str] = field(default_factory=dict)
     ekopost_api_uri: str = ''
     email_verify_redirect_url: str = ''
     token_verify_redirect_url: str = ''
@@ -399,7 +399,7 @@ class FlaskConfig(BaseConfig):
     phone_code_timeout: int = 0
     chpass_timeout: int = 0
     throttle_resend_seconds: int = 0
-    client_registration_info: str = ''
+    client_registration_info: Dict[str, str] = field(default_factory=dict)
     lookup_mobile_broker_url: str = ''
     ekopost_api_user: str = ''
     ekopost_api_verify_ssl: bool = False
