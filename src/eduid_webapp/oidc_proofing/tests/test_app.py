@@ -15,6 +15,7 @@ from eduid_userdb.exceptions import DocumentDoesNotExist
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_webapp.oidc_proofing.app import init_oidc_proofing_app
 from eduid_webapp.oidc_proofing.helpers import create_proofing_state, handle_freja_eid_userinfo
+from eduid_webapp.oidc_proofing.settings.common import OIDCProofingConfig
 
 __author__ = 'lundberg'
 
@@ -90,30 +91,33 @@ class OidcProofingTests(EduidAPITestCase):
             return init_oidc_proofing_app('testing', config)
 
     def update_config(self, config):
-        config.update({
-            'MSG_BROKER_URL': 'amqp://dummy',
-            'AM_BROKER_URL': 'amqp://dummy',
-            'CELERY_CONFIG': {
-                'CELERY_RESULT_BACKEND': 'amqp',
-                'CELERY_TASK_SERIALIZER': 'json'
+        #  XXX remove this lower casing once the default config in
+        #  common.api.testing is lower case
+        app_config = {k.lower(): v for k,v in config.items()}
+        app_config.update({
+            'msg_broker_url': 'amqp://dummy',
+            'am_broker_url': 'amqp://dummy',
+            'celery_config': {
+                'result_backend': 'amqp',
+                'task_serializer': 'json'
             },
-            'PROVIDER_CONFIGURATION_INFO': {
+            'provider_configuration_info': {
                 'issuer': 'https://example.com/op/'
             },
-            'CLIENT_REGISTRATION_INFO': {
+            'client_registration_info': {
                 'client_id': 'test_client',
                 'client_secret': 'secret'
             },
-            'USERINFO_ENDPOINT_METHOD': 'POST',
-            'FREJA_JWS_ALGORITHM': 'HS256',
-            'FREJA_JWS_KEY_ID': '0',
-            'FREJA_JWK_SECRET': '499602d2',  # in hex
-            'FREJA_IARP': 'TESTRP',
-            'FREJA_EXPIRE_TIME_HOURS': 336,
-            'FREJA_RESPONSE_PROTOCOL': '1.0',
-            'SELEG_EXPIRE_TIME_HOURS': 336,
+            'userinfo_endpoint_method': 'POST',
+            'freja_jws_algorithm': 'HS256',
+            'freja_jws_key_id': '0',
+            'freja_jwk_secret': '499602d2',  # in hex
+            'freja_iarp': 'TESTRP',
+            'freja_expire_time_hours': 336,
+            'freja_response_protocol': '1.0',
+            'seleg_expire_time_hours': 336,
         })
-        return config
+        return OIDCProofingConfig(**app_config)
 
     @patch('oic.oic.Client.parse_response')
     @patch('oic.oic.Client.do_user_info_request')
@@ -161,9 +165,9 @@ class OidcProofingTests(EduidAPITestCase):
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             response = json.loads(browser.get('/freja/proofing').data)
         self.assertEqual(response['type'], 'GET_OIDC_PROOFING_FREJA_PROOFING_SUCCESS')
-        jwk = binascii.unhexlify(self.app.config['FREJA_JWK_SECRET'])
+        jwk = binascii.unhexlify(self.app.config.freja_jwk_secret)
         jwt = response['payload']['iaRequestData'].encode('ascii')
-        request_data = jose.verify(jwt, [jwk], self.app.config['FREJA_JWS_ALGORITHM'])
+        request_data = jose.verify(jwt, [jwk], self.app.config.freja_jws_algorithm)
         expected = {
             'iarp': 'TESTRP',
             'opaque': '1' + json.dumps({'nonce': proofing_state.nonce, 'token': proofing_state.token}),
@@ -543,7 +547,7 @@ class OidcProofingTests(EduidAPITestCase):
         self.assertEqual(response['type'], 'POST_OIDC_PROOFING_FREJA_PROOFING_SUCCESS')
 
         # Set expire time to yesterday
-        self.app.config.update({'FREJA_EXPIRE_TIME_HOURS': -24})
+        self.app.config.freja_expire_time_hours = -24
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             response = json.loads(browser.get('/freja/proofing').data)

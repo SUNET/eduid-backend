@@ -5,7 +5,7 @@ import json
 from datetime import datetime, timedelta
 
 import requests
-from flask import current_app, render_template
+from flask import render_template
 from flask_babel import gettext as _
 
 from eduid_common.api.helpers import number_match_proofing, verify_nin_for_user
@@ -13,6 +13,7 @@ from eduid_common.api.utils import get_unique_hash
 from eduid_userdb.logs import SeLegProofing, SeLegProofingFrejaEid
 from eduid_userdb.proofing import OidcProofingState
 from eduid_userdb.proofing.element import NinProofingElement
+from eduid_webapp.oidc_proofing.app import current_oidcp_app as current_app
 
 __author__ = 'lundberg'
 
@@ -115,7 +116,7 @@ def do_authn_request(proofing_state, claims_request, redirect_url):
     response = requests.post(current_app.oidc_client.authorization_endpoint, data=oidc_args)
     if response.status_code == 200:
         current_app.logger.debug('Authentication request delivered to provider {!s}'.format(
-            current_app.config['PROVIDER_CONFIGURATION_INFO']['issuer']))
+            current_app.config.provider_configuration_info['issuer']))
         return True
     current_app.logger.error('Bad response from OP: {!s} {!s} {!s}'.format(response.status_code,
                                                                            response.reason, response.content))
@@ -123,8 +124,8 @@ def do_authn_request(proofing_state, claims_request, redirect_url):
 
 
 def send_new_verification_method_mail(user):
-    site_name = current_app.config.get("EDUID_SITE_NAME")
-    site_url = current_app.config.get("EDUID_SITE_URL")
+    site_name = current_app.config.eduid_site_name
+    site_url = current_app.config.eduid_site_url
     subject = _('%(site_name)s account verification', site_name=site_name)
 
     email_address = user.mail_addresses.primary.email
