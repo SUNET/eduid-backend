@@ -62,7 +62,7 @@ class OIDCProofingConfig(FlaskConfig):
     freja_jws_key_id: str = ''
     freja_jwk_secret: str = ''  # secret in hex
     freja_iarp: str = ''  # Relying party identity
-    freja_expire_time_hours: str = 336  # 2 weeks, needs minimum 5 minutes and maximum 60 days
+    freja_expire_time_hours: int = 336  # 2 weeks, needs minimum 5 minutes and maximum 60 days
     freja_response_protocol: str = '1.0'  # Version
     # SE-LEG config
-    seleg_expire_time_hours: str = 336  # Needs to be the same as FREJA_EXPIRE_TIME_HOURS as state is shared
+    seleg_expire_time_hours: int = 336  # Needs to be the same as FREJA_EXPIRE_TIME_HOURS as state is shared
