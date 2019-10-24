@@ -9,6 +9,7 @@ from eduid_common.api.testing import EduidAPITestCase
 from eduid_userdb.proofing import ProofingUser
 from eduid_userdb.orcid import Orcid, OidcAuthorization, OidcIdToken
 from eduid_webapp.orcid.app import init_orcid_app
+from eduid_webapp.orcid.settings.common import OrcidConfig
 
 __author__ = 'lundberg'
 
@@ -81,23 +82,26 @@ class OrcidTests(EduidAPITestCase):
             return init_orcid_app('testing', config)
 
     def update_config(self, config):
-        config.update({
-            'AM_BROKER_URL': 'amqp://dummy',
-            'CELERY_CONFIG': {
-                'CELERY_RESULT_BACKEND': 'amqp',
-                'CELERY_TASK_SERIALIZER': 'json'
+        #  XXX remove this lower casing once the default config in
+        #  common.api.testing is lower case
+        app_config = {k.lower(): v for k,v in config.items()}
+        app_config.update({
+            'am_broker_url': 'amqp://dummy',
+            'celery_config': {
+                'result_backend': 'amqp',
+                'task_serializer': 'json'
             },
-            'PROVIDER_CONFIGURATION_INFO': {
+            'provider_configuration_info': {
                 'issuer': 'https://example.com/op/'
             },
-            'CLIENT_REGISTRATION_INFO': {
+            'client_registration_info': {
                 'client_id': 'test_client',
                 'client_secret': 'secret'
             },
-            'USERINFO_ENDPOINT_METHOD': 'GET',
-            'ORCID_VERIFY_REDIRECT_URL': 'https://dashboard.example.com/'
+            'userinfo_endpoint_method': 'GET',
+            'orcid_verify_redirect_url': 'https://dashboard.example.com/'
         })
-        return config
+        return OrcidConfig(**app_config)
 
     @patch('oic.oic.Client.parse_response')
     @patch('oic.oic.Client.do_user_info_request')
@@ -139,11 +143,11 @@ class OrcidTests(EduidAPITestCase):
     def test_authenticate(self):
         response = self.browser.get('/authorize')
         self.assertEqual(response.status_code, 302)  # Redirect to token service
-        self.assertTrue(response.location.startswith(self.app.config['TOKEN_SERVICE_URL']))
+        self.assertTrue(response.location.startswith(self.app.config.token_service_url))
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             response = browser.get('/authorize')
         self.assertEqual(response.status_code, 302)  # Authenticated request redirected to OP
-        self.assertTrue(response.location.startswith(self.app.config['PROVIDER_CONFIGURATION_INFO']['issuer']))
+        self.assertTrue(response.location.startswith(self.app.config.provider_configuration_info['issuer']))
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def test_oidc_flow(self, mock_request_user_sync):
