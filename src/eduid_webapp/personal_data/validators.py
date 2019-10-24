@@ -32,11 +32,11 @@
 #
 
 from marshmallow import ValidationError
-from flask import current_app
+from eduid_webapp.personal_data.app import current_pdata_app as current_app
 
 
 def validate_language(lang):
-    available_langs = current_app.config.get('AVAILABLE_LANGUAGES')
+    available_langs = current_app.config.available_languages
     if lang not in available_langs:
         raise ValidationError('Language {!r} is not available'.format(lang))
 
