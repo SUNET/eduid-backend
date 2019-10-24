@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2016 NORDUnet A/S
+# Copyright (c) 2019 SUNET
 # All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or
@@ -31,33 +31,19 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-
 from __future__ import absolute_import
 
-"""
-For more built in configuration options see,
-http://flask.pocoo.org/docs/0.10/config/#builtin-configuration-values
-"""
+from dataclasses import dataclass
+from eduid_common.config.base import FlaskConfig
 
-DEBUG = False
 
-# Database URIs
-MONGO_URI = ''
-REDIS_HOST = ''
-REDIS_PORT = 6379
-REDIS_DB = 0
-AM_BROKER_URL = ''
-
-# Secret key
-SECRET_KEY = ''
-
-# Logging
-LOG_LEVEL = 'INFO'
-
-# timeout for phone verification token, in seconds
-PHONE_VERIFICATION_TIMEOUT = 7200
-
-THROTTLE_RESEND_SECONDS = 300
-
-# default country code
-DEFAULT_COUNTRY_CODE = '46'
+@dataclass
+class PhoneConfig(FlaskConfig):
+    """
+    Configuration for the phone app
+    """
+    # timeout for phone verification token, in seconds
+    phone_verification_timeout: int = 7200
+    throttle_resend_seconds: int = 300
+    # default country code
+    default_country_code: str = '46'

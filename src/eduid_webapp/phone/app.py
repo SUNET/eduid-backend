@@ -33,12 +33,28 @@
 
 from __future__ import absolute_import
 
+from typing import cast
+
+from flask import current_app
+
 from eduid_common.api.app import eduid_init_app
 from eduid_common.api import am
 from eduid_common.api import msg
+from eduid_common.authn.middleware import AuthnApp
 from eduid_userdb.proofing import PhoneProofingUserDB
 from eduid_userdb.proofing import PhoneProofingStateDB
 from eduid_userdb.logs import ProofingLog
+from eduid_webapp.phone.settings.common import PhoneConfig
+
+
+class PhoneApp(AuthnApp):
+
+    def __init__(self, *args, **kwargs):
+        super(PhoneApp, self).__init__(*args, **kwargs)
+        self.config: PhoneConfig = cast(PhoneConfig, self.config)
+
+
+current_phone_app: PhoneApp = cast(PhoneApp, current_app)
 
 
 def phone_init_app(name, config):
@@ -62,8 +78,9 @@ def phone_init_app(name, config):
     :rtype: flask.Flask
     """
 
-    app = eduid_init_app(name, config)
-    app.config.update(config)
+    app = eduid_init_app(name, config,
+                         config_class=PhoneConfig,
+                         app_class=PhoneApp)
 
     from eduid_webapp.phone.views import phone_views
     app.register_blueprint(phone_views)
@@ -71,9 +88,9 @@ def phone_init_app(name, config):
     app = am.init_relay(app, 'eduid_phone')
     app = msg.init_relay(app)
 
-    app.private_userdb = PhoneProofingUserDB(app.config['MONGO_URI'])
-    app.proofing_statedb = PhoneProofingStateDB(app.config['MONGO_URI'])
-    app.proofing_log = ProofingLog(app.config['MONGO_URI'])
+    app.private_userdb = PhoneProofingUserDB(app.config.mongo_uri)
+    app.proofing_statedb = PhoneProofingStateDB(app.config.mongo_uri)
+    app.proofing_log = ProofingLog(app.config.mongo_uri)
 
     app.logger.info('Init {} app...'.format(name))
 

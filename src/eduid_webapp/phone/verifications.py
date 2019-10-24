@@ -32,7 +32,6 @@
 #
 
 import time
-from flask import current_app
 
 from eduid_common.api.utils import get_short_hash
 from eduid_common.api.utils import save_and_sync_user
@@ -40,6 +39,7 @@ from eduid_userdb.element import DuplicateElementViolation
 from eduid_userdb.proofing import PhoneProofingElement, PhoneProofingState
 from eduid_userdb.phone import PhoneNumber
 from eduid_userdb.logs import PhoneNumberProofing
+from eduid_webapp.phone.app import current_phone_app as current_app
 
 
 def new_proofing_state(phone, user):
@@ -47,7 +47,7 @@ def new_proofing_state(phone, user):
                        user.eppn, phone, raise_on_missing=False)
     if old_state is not None:
         now = int(time.time())
-        if int(old_state.modified_ts.timestamp()) > now - current_app.config['THROTTLE_RESEND_SECONDS']:
+        if int(old_state.modified_ts.timestamp()) > now - current_app.config.throttle_resend_seconds:
             return None
         current_app.logger.debug('removing old proofing state: {!r}.'.format(old_state.to_dict()))
         current_app.proofing_statedb.remove_state(old_state)
