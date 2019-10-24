@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright (c) 2016 NORDUnet A/S
+# Copyright (c) 2019 SUNET
 # All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or
@@ -33,9 +34,25 @@
 
 from __future__ import absolute_import
 
+from typing import cast
+
+from flask import current_app
+
 from eduid_common.api.app import eduid_init_app
 from eduid_common.api import am
+from eduid_common.authn.middleware import AuthnApp
+from eduid_common.config.base import FlaskConfig
 from eduid_userdb.personal_data import PersonalDataUserDB
+
+
+class PersonalDataApp(AuthnApp):
+
+    def __init__(self, *args, **kwargs):
+        super(PersonalDataApp, self).__init__(*args, **kwargs)
+        self.config: FlaskConfig = cast(FlaskConfig, self.config)
+
+
+current_pdata_app: PersonalDataApp = cast(PersonalDataApp, current_app)
 
 
 def pd_init_app(name, config):
@@ -59,15 +76,16 @@ def pd_init_app(name, config):
     :rtype: flask.Flask
     """
 
-    app = eduid_init_app(name, config)
-    app.config.update(config)
+    app = eduid_init_app(name, config,
+                         config_class=FlaskConfig,
+                         app_class=PersonalDataApp)
 
     from eduid_webapp.personal_data.views import pd_views
     app.register_blueprint(pd_views)
 
     app = am.init_relay(app, 'eduid_personal_data')
 
-    app.private_userdb = PersonalDataUserDB(app.config['MONGO_URI'])
+    app.private_userdb = PersonalDataUserDB(app.config.mongo_uri)
 
     app.logger.info('Init {} app...'.format(name))
 

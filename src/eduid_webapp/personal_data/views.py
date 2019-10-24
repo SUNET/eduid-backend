@@ -33,7 +33,7 @@
 
 from __future__ import absolute_import
 
-from flask import Blueprint, current_app
+from flask import Blueprint
 
 from eduid_userdb.exceptions import UserOutOfSync
 from eduid_userdb.personal_data import PersonalDataUser
@@ -44,6 +44,7 @@ from eduid_webapp.personal_data.schemas import PersonalDataRequestSchema
 from eduid_webapp.personal_data.schemas import PersonalDataSchema
 from eduid_webapp.personal_data.schemas import NinsResponseSchema
 from eduid_webapp.personal_data.schemas import AllDataResponseSchema, AllDataSchema
+from eduid_webapp.personal_data.app import current_pdata_app as current_app
 
 pd_views = Blueprint('personal_data', __name__, url_prefix='')
 
