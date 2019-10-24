@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright (c) 2016 NORDUnet A/S
+# Copyright (c) 2019 SUNET
 # All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or
@@ -31,51 +32,33 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-
 from __future__ import absolute_import
 
 from typing import List
+from dataclasses import dataclass, field
+
+from eduid_common.config.base import FlaskConfig
 
 
-"""
-For more built in configuration options see,
-http://flask.pocoo.org/docs/0.10/config/#builtin-configuration-values
-"""
-
-DEBUG = False
-
-# Database URIs
-MONGO_URI = ''
-REDIS_HOST = ''
-REDIS_PORT = 6379
-REDIS_DB = 0
-AM_BROKER_URL = ''
-
-# Secret key
-SECRET_KEY = ''
-
-# Logging
-LOG_LEVEL = 'INFO'
-
-# timeout for phone verification token, in hours
-PHONE_VERIFICATION_TIMEOUT = 24
-
-PASSWORD_LENGTH = 12
-PASSWORD_ENTROPY = 25
-CHPASS_TIMEOUT = 600
-
-VCCS_URL = ''
-
-# uf2 settings
-U2F_APP_ID = 'https://eduid.se/u2f-app-id.json'
-U2F_MAX_ALLOWED_TOKENS = 50  # Do not let a user register more than this amount of tokens
-U2F_MAX_DESCRIPTION_LENGTH = 64  # Do not allow longer descriptions than this number
-U2F_FACETS = List[str]
-
-# webauthn
-WEBAUTHN_MAX_ALLOWED_TOKENS = 10
-FIDO2_RP_ID = 'eduid.se'
-
-# password reset settings
-EMAIL_CODE_TIMEOUT = 7200  # seconds
-PHONE_CODE_TIMEOUT = 600  # seconds
+@dataclass
+class SecurityConfig(FlaskConfig):
+    """
+    Configuration for the security app
+    """
+    # timeout for phone verification token, in hours
+    phone_verification_timeout: int = 24
+    password_length: int = 12
+    password_entropy: int = 25
+    chpass_timeout: int = 600
+    vccs_url: str = ''
+    # uf2 settings
+    u2f_app_id: str = 'https://eduid.se/u2f-app-id.json'
+    u2f_max_allowed_tokens: int = 50  # Do not let a user register more than this amount of tokens
+    u2f_max_description_length: int = 64  # Do not allow longer descriptions than this number
+    u2f_facets: List[str] = field(default_factory=list)
+    # webauthn
+    webauthn_max_allowed_tokens: int = 10
+    fido2_rp_id: str = 'eduid.se'
+    # password reset settings
+    email_code_timeout: int = 7200  # seconds
+    phone_code_timeout: int = 600  # seconds

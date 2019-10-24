@@ -6,7 +6,7 @@ import json
 from functools import wraps
 
 from eduid_common.api.exceptions import MailTaskFailed, MsgTaskFailed
-from flask import Blueprint, request, render_template, current_app, url_for, redirect
+from flask import Blueprint, request, render_template, url_for, redirect
 from flask_babel import gettext as _
 
 from eduid_common.session import session
@@ -17,6 +17,7 @@ from eduid_webapp.security.schemas import ResetPasswordVerifyPhoneNumberSchema, 
 from eduid_webapp.security.helpers import send_password_reset_mail, get_extra_security_alternatives, mask_alternatives
 from eduid_webapp.security.helpers import send_verify_phone_code, verify_email_address, verify_phone_number
 from eduid_webapp.security.helpers import generate_suggested_password, get_zxcvbn_terms, reset_user_password
+from eduid_webapp.security.app import current_security_app as current_app
 
 
 __author__ = 'lundberg'
@@ -29,8 +30,8 @@ def require_state(f):
     @wraps(f)
     def require_state_decorator(*args, **kwargs):
         email_code = kwargs.pop('email_code')
-        mail_expiration_time = current_app.config['EMAIL_CODE_TIMEOUT']
-        sms_expiration_time = current_app.config['PHONE_CODE_TIMEOUT']
+        mail_expiration_time = current_app.config.email_code_timeout
+        sms_expiration_time = current_app.config.phone_code_timeout
         try:
             state = current_app.password_reset_state_db.get_state_by_email_code(email_code)
             current_app.logger.debug(f'Found state using email_code {email_code}: {state}')
@@ -252,7 +253,7 @@ def new_password(state):
         'errors': [],
     }
     if request.method == 'POST':
-        min_entropy = current_app.config['PASSWORD_ENTROPY']
+        min_entropy = current_app.config.password_entropy
         form = ResetPasswordNewPasswordSchema(
             zxcvbn_terms=view_context['zxcvbn_terms'], min_entropy=int(min_entropy)).load(request.form)
         current_app.logger.debug(form)
@@ -270,7 +271,7 @@ def new_password(state):
             current_app.logger.info('Password reset done removing state for user {}'.format(state.eppn))
             current_app.password_reset_state_db.remove_state(state)
             view_context['form_post_success'] = True
-            view_context['login_url'] = current_app.config['EDUID_SITE_URL']
+            view_context['login_url'] = current_app.config.eduid_site_url
             return render_template('reset_password_new_password.jinja2', view_context=view_context)
 
         view_context['errors'] = form.errors

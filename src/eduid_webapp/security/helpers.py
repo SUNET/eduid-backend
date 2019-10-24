@@ -15,6 +15,7 @@ from eduid_userdb.security import SecurityUser, PasswordResetEmailState, Passwor
 from eduid_userdb.logs import MailAddressProofing, PhoneNumberProofing
 from eduid_userdb.exceptions import UserHasNotCompletedSignup
 from eduid_webapp.security.schemas import ConvertRegisteredKeys
+from eduid_webapp.security.app import current_security_app as current_app
 
 __author__ = 'lundberg'
 
@@ -84,7 +85,7 @@ def generate_suggested_password():
     """
     The suggested password is saved in session to avoid form hijacking
     """
-    password_length = current_app.config.get('PASSWORD_LENGTH', 12)
+    password_length = current_app.config.password_length
 
     password = generate_password(length=password_length)
     password = ' '.join([password[i*4: i*4+4] for i in range(0, int(len(password)/4))])
@@ -102,8 +103,8 @@ def send_mail(subject: str, to_addresses: List[str], text_template: str, html_te
     :param context: template context
     :param reference: Audit reference to help cross reference audit log and events
     """
-    site_name = current_app.config.get("EDUID_SITE_NAME")
-    site_url = current_app.config.get("EDUID_SITE_URL")
+    site_name = current_app.config.eduid_site_name
+    site_url = current_app.config.eduid_site_url
 
     default_context = {
         "site_url": site_url,
@@ -129,8 +130,8 @@ def send_sms(phone_number: str, text_template: str, context: Optional[dict] = No
     :param context: template context
     :param reference: Audit reference to help cross reference audit log and events
     """
-    site_name = current_app.config.get("EDUID_SITE_NAME")
-    site_url = current_app.config.get("EDUID_SITE_URL")
+    site_name = current_app.config.eduid_site_name
+    site_url = current_app.config.eduid_site_url
 
     default_context = {
         "site_url": site_url,
@@ -180,7 +181,7 @@ def send_password_reset_mail(email_address):
     html_template = 'reset_password_email.html.jinja2'
     to_addresses = [address.email for address in user.mail_addresses.verified.to_list()]
 
-    password_reset_timeout = current_app.config['EMAIL_CODE_TIMEOUT'] // 60 // 60  # seconds to hours
+    password_reset_timeout = current_app.config.email_code_timeout // 60 // 60  # seconds to hours
     context = {
         'reset_password_link': url_for('reset_password.email_reset_code', email_code=state.email_code.code,
                                        _external=True),
@@ -277,7 +278,7 @@ def reset_user_password(state, password):
     :return: None
     :rtype: None
     """
-    vccs_url = current_app.config.get('VCCS_URL')
+    vccs_url = current_app.config.vccs_url
 
     user = current_app.central_userdb.get_user_by_eppn(state.eppn, raise_on_missing=False)
     security_user = SecurityUser.from_user(user, private_userdb=current_app.private_userdb)

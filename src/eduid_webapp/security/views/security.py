@@ -35,7 +35,7 @@ from __future__ import absolute_import
 
 from datetime import datetime
 
-from flask import Blueprint, current_app, abort, url_for, redirect
+from flask import Blueprint, abort, url_for, redirect
 from six.moves.urllib_parse import urlparse, urlunparse, parse_qs, urlencode
 
 from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
@@ -55,6 +55,7 @@ from eduid_webapp.security.schemas import NINRequestSchema, NINResponseSchema
 from eduid_webapp.security.schemas import RedirectSchema, AccountTerminatedSchema, ChpassResponseSchema
 from eduid_webapp.security.schemas import SecurityResponseSchema, CredentialList, CsrfSchema
 from eduid_webapp.security.schemas import SuggestedPassword, SuggestedPasswordResponseSchema
+from eduid_webapp.security.app import current_security_app as current_app
 
 security_views = Blueprint('security', __name__, url_prefix='', template_folder='templates')
 
@@ -114,11 +115,11 @@ def change_password(user, old_password, new_password):
 
     now = datetime.utcnow()
     delta = now - datetime.fromtimestamp(authn_ts)
-    timeout = current_app.config.get('CHPASS_TIMEOUT', 600)
+    timeout = current_app.config.chpass_timeout
     if int(delta.total_seconds()) > timeout:
         return error_message('chpass.stale_reauthn')
 
-    vccs_url = current_app.config.get('VCCS_URL')
+    vccs_url = current_app.config.vccs_url
     added = add_credentials(vccs_url, old_password, new_password, security_user, source='security')
 
     if not added:
@@ -136,7 +137,7 @@ def change_password(user, old_password, new_password):
     current_app.stats.count(name='security_password_changed', value=1)
     current_app.logger.info('Changed password for user {}'.format(security_user.eppn))
 
-    next_url = current_app.config.get('DASHBOARD_URL', '/profile')
+    next_url = current_app.config.dashboard_url
     credentials = {
         'next_url': next_url,
         'credentials': compile_credential_list(security_user),
@@ -159,7 +160,7 @@ def delete_account(user):
     """
     current_app.logger.debug('Initiating account termination for user {}'.format(user))
 
-    ts_url = current_app.config.get('TOKEN_SERVICE_URL')
+    ts_url = current_app.config.token_service_url
     terminate_url = urlappend(ts_url, 'terminate')
     next_url = url_for('security.account_terminated')
 
@@ -202,7 +203,7 @@ def account_terminated(user):
     del session['reauthn-for-termination']
 
     # revoke all user passwords
-    revoke_all_credentials(current_app.config.get('VCCS_URL'), security_user)
+    revoke_all_credentials(current_app.config.vccs_url, security_user)
     # Skip removing old passwords from the user at this point as a password reset will do that anyway.
     # This fixes the problem with loading users for a password reset as users without passwords triggers
     # the UserHasNotCompletedSignup check in eduid-userdb.
@@ -230,7 +231,7 @@ def account_terminated(user):
     session.invalidate()
     current_app.logger.info('Invalidated session for user')
 
-    site_url = current_app.config.get("EDUID_SITE_URL")
+    site_url = current_app.config.eduid_site_url
     current_app.logger.info('Redirection user to user {}'.format(site_url))
     # TODO: Add a account termination completed view to redirect to
     return redirect(site_url)

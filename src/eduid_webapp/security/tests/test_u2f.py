@@ -24,20 +24,23 @@ class SecurityU2FTests(EduidAPITestCase):
         return security_init_app('testing', config)
 
     def update_config(self, config):
-        config.update({
-            'AVAILABLE_LANGUAGES': {'en': 'English', 'sv': 'Svenska'},
-            'MSG_BROKER_URL': 'amqp://dummy',
-            'AM_BROKER_URL': 'amqp://dummy',
-            'CELERY_CONFIG': {
-                'CELERY_RESULT_BACKEND': 'amqp',
-                'CELERY_TASK_SERIALIZER': 'json'
+        #  XXX remove this lower casing once the default config in
+        #  common.api.testing is lower case
+        app_config = {k.lower(): v for k,v in config.items()}
+        app_config.update({
+            'available_languages': {'en': 'English', 'sv': 'Svenska'},
+            'msg_broker_url': 'amqp://dummy',
+            'am_broker_url': 'amqp://dummy',
+            'celery_config': {
+                'result_backend': 'amqp',
+                'task_serializer': 'json'
             },
-            'U2F_APP_ID': 'https://eduid.se/u2f-app-id.json',
-            'U2F_MAX_ALLOWED_TOKENS': 2,
-            'U2F_FACETS': 'https://dashboard.eduid.se',
-            'U2F_MAX_DESCRIPTION_LENGTH': 50
+            'u2f_app_id': 'https://eduid.se/u2f-app-id.json',
+            'u2f_max_allowed_tokens': 2,
+            'u2f_facets': 'https://dashboard.eduid.se',
+            'u2f_max_description_length': 50
         })
-        return config
+        return SecurityConfig(**app_config)
 
     def add_token_to_user(self, eppn):
         user = self.app.central_userdb.get_user_by_eppn(eppn)

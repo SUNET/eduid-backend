@@ -130,18 +130,21 @@ class SecurityWebauthnTests(EduidAPITestCase):
         return security_init_app('testing', config)
 
     def update_config(self, config):
-        config.update({
-            'AVAILABLE_LANGUAGES': {'en': 'English', 'sv': 'Svenska'},
-            'MSG_BROKER_URL': 'amqp://dummy',
-            'AM_BROKER_URL': 'amqp://dummy',
-            'CELERY_CONFIG': {
-                'CELERY_RESULT_BACKEND': 'amqp',
-                'CELERY_TASK_SERIALIZER': 'json'
+        #  XXX remove this lower casing once the default config in
+        #  common.api.testing is lower case
+        app_config = {k.lower(): v for k,v in config.items()}
+        app_config.update({
+            'available_languages': {'en': 'English', 'sv': 'Svenska'},
+            'msg_broker_url': 'amqp://dummy',
+            'am_broker_url': 'amqp://dummy',
+            'celery_config': {
+                'result_backend': 'amqp',
+                'task_serializer': 'json'
             },
-            'WEBAUTHN_MAX_ALLOWED_TOKENS': 10,
-            'FIDO2_RP_ID': 'localhost'
+            'webauthn_max_allowed_tokens': 10,
+            'fido2_rp_id': 'localhost'
         })
-        return config
+        return SecurityConfig(**app_config)
 
     def _add_token_to_user(self, registration_data, state):
         data = registration_data + (b'=' * (len(registration_data) % 4)) 
@@ -150,7 +153,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
         client_data = ClientData(data['clientDataJSON'])
         attestation = data['attestationObject']
         att_obj = AttestationObject(attestation)
-        server = get_webauthn_server(self.app.config.get('FIDO2_RP_ID'))
+        server = get_webauthn_server(self.app.config.fido2_rp_id)
         auth_data = server.register_complete(state, client_data, att_obj)
         cred_data = auth_data.credential_data
         cred_id = cred_data.credential_id
@@ -158,7 +161,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
         credential = Webauthn(
             keyhandle = cred_id.hex(),
             credential_data = base64.urlsafe_b64encode(cred_data).decode('ascii'),
-            app_id = self.app.config['FIDO2_RP_ID'],
+            app_id = self.app.config.fido2_rp_id,
             attest_obj = base64.b64encode(attestation).decode('ascii'),
             description = 'ctap1 token',
             application = 'test_security'

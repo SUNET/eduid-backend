@@ -33,15 +33,31 @@
 
 from __future__ import absolute_import
 
+from typing import cast
+
+from flask import current_app
+
 from eduid_common.api.app import eduid_init_app
 from eduid_common.api import msg
 from eduid_common.api import am
 from eduid_common.api import mail_relay
 from eduid_common.api import translation
+from eduid_common.authn.middleware import AuthnApp
 from eduid_common.authn.utils import no_authn_views
 from eduid_userdb.security import SecurityUserDB, PasswordResetStateDB
 from eduid_userdb.authninfo import AuthnInfoDB
 from eduid_userdb.logs import ProofingLog
+from eduid_webapp.security.settings.common import SecurityConfig
+
+
+class SecurityApp(AuthnApp):
+
+    def __init__(self, *args, **kwargs):
+        super(SecurityApp, self).__init__(*args, **kwargs)
+        self.config: SecurityConfig = cast(SecurityConfig, self.config)
+
+
+current_security_app: SecurityApp = cast(SecurityApp, current_app)
 
 
 def security_init_app(name, config):
@@ -65,8 +81,9 @@ def security_init_app(name, config):
     :rtype: flask.Flask
     """
 
-    app = eduid_init_app(name, config)
-    app.config.update(config)
+    app = eduid_init_app(name, config,
+                         config_class=SecurityConfig,
+                         app_class=SecurityApp)
 
     from eduid_webapp.security.views.security import security_views
     from eduid_webapp.security.views.u2f import u2f_views
@@ -85,10 +102,10 @@ def security_init_app(name, config):
     app = mail_relay.init_relay(app)
     app = translation.init_babel(app)
 
-    app.private_userdb = SecurityUserDB(app.config['MONGO_URI'])
-    app.authninfo_db = AuthnInfoDB(app.config['MONGO_URI'])
-    app.password_reset_state_db = PasswordResetStateDB(app.config['MONGO_URI'])
-    app.proofing_log = ProofingLog(app.config['MONGO_URI'])
+    app.private_userdb = SecurityUserDB(app.config.mongo_uri)
+    app.authninfo_db = AuthnInfoDB(app.config.mongo_uri)
+    app.password_reset_state_db = PasswordResetStateDB(app.config.mongo_uri)
+    app.proofing_log = ProofingLog(app.config.mongo_uri)
 
     app.logger.info('Init {} app...'.format(name))
 
