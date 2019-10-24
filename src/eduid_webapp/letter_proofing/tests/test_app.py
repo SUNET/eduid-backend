@@ -141,6 +141,20 @@ class LetterProofingTests(EduidAPITestCase):
         expires = expires.strftime('%Y-%m-%d')
         self.assertIsInstance(expires, str)
 
+    def test_resend_letter(self):
+        json_data = self.get_state()
+        csrf_token = json_data['payload']['csrf_token']
+        json_data = self.send_letter(self.test_user_nin, csrf_token)
+        csrf_token = json_data['payload']['csrf_token']
+        self.assertEqual(json_data['payload']['message'], 'letter.saved-unconfirmed')
+        json_data = self.send_letter(self.test_user_nin, csrf_token)
+        self.assertEqual(json_data['payload']['message'], 'letter.already-sent')
+        expires = json_data['payload']['letter_expires']
+        expires = datetime.utcfromtimestamp(int(expires))
+        self.assertIsInstance(expires, datetime)
+        expires = expires.strftime('%Y-%m-%d')
+        self.assertIsInstance(expires, str)
+
     def test_send_letter_bad_csrf(self):
         json_data = self.send_letter(self.test_user_nin, 'bad_csrf')
         self.assertEqual(json_data['type'], 'POST_LETTER_PROOFING_PROOFING_FAIL')
