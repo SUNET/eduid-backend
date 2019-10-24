@@ -4,7 +4,7 @@ from __future__ import absolute_import
 
 from six.moves.urllib_parse import urlencode, urlsplit, urlunsplit
 
-from flask import Blueprint, current_app, request, redirect, url_for
+from flask import Blueprint, request, redirect, url_for
 from oic.oic.message import AuthorizationResponse, ClaimsRequest, Claims
 
 from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
@@ -14,6 +14,7 @@ from eduid_userdb.proofing import ProofingUser, OrcidProofingState
 from eduid_userdb.orcid import Orcid, OidcAuthorization, OidcIdToken
 from eduid_userdb.logs import OrcidProofing
 from eduid_webapp.orcid.schemas import OrcidResponseSchema
+from eduid_webapp.orcid.app import current_orcid_app as current_app
 
 
 __author__ = 'lundberg'
@@ -48,7 +49,7 @@ def authorize(user):
         current_app.stats.count(name='authn_request')
         return redirect(authorization_url)
     # Orcid already connected to user
-    redirect_url = current_app.config['ORCID_VERIFY_REDIRECT_URL']
+    redirect_url = current_app.config.orcid_verify_redirect_url
     scheme, netloc, path, query_string, fragment = urlsplit(redirect_url)
     new_query_string = urlencode({'msg': ':ERROR:orc.already_connected'})
     redirect_url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
@@ -59,7 +60,7 @@ def authorize(user):
 @require_user
 def authorization_response(user):
     # Redirect url for user feedback
-    redirect_url = current_app.config['ORCID_VERIFY_REDIRECT_URL']
+    redirect_url = current_app.config.orcid_verify_redirect_url
     scheme, netloc, path, query_string, fragment = urlsplit(redirect_url)
 
     current_app.stats.count(name='authn_response')
@@ -108,7 +109,7 @@ def authorization_response(user):
 
     # do userinfo request
     current_app.logger.debug('Trying to do userinfo request:')
-    userinfo = current_app.oidc_client.do_user_info_request(method=current_app.config['USERINFO_ENDPOINT_METHOD'],
+    userinfo = current_app.oidc_client.do_user_info_request(method=current_app.config.userinfo_endpoint_method,
                                                             state=authn_resp['state'])
     current_app.logger.debug('userinfo received: {!s}'.format(userinfo))
     if userinfo['sub'] != id_token['sub']:
