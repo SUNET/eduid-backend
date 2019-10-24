@@ -34,7 +34,6 @@
 from __future__ import absolute_import
 
 from flask import Blueprint
-from flask import current_app
 
 from eduid_userdb.element import PrimaryElementViolation, UserDBValueError
 from eduid_userdb.exceptions import UserOutOfSync
@@ -46,6 +45,7 @@ from eduid_common.api.utils import save_and_sync_user
 from eduid_webapp.phone.schemas import PhoneListPayload, SimplePhoneSchema, PhoneSchema, PhoneResponseSchema
 from eduid_webapp.phone.schemas import VerificationCodeSchema
 from eduid_webapp.phone.verifications import send_verification_code, verify_phone_number
+from eduid_webapp.phone.app import current_phone_app as current_app
 
 
 phone_views = Blueprint('phone', __name__, url_prefix='', template_folder='templates')
@@ -173,7 +173,7 @@ def verify(user, code, number):
     db = current_app.proofing_statedb
     try:
         state = db.get_state_by_eppn_and_mobile(proofing_user.eppn, number)
-        timeout = current_app.config['PHONE_VERIFICATION_TIMEOUT']
+        timeout = current_app.config.phone_verification_timeout
         if state.is_expired(timeout):
             current_app.logger.info("Proofing state is expired. Removing the state.")
             current_app.logger.debug("Proofing state: {!r}".format(state))

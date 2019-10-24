@@ -37,6 +37,7 @@ from mock import patch
 
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_webapp.phone.app import phone_init_app
+from eduid_webapp.phone.settings.common import PhoneConfig
 
 
 class PhoneTests(EduidAPITestCase):
@@ -52,19 +53,22 @@ class PhoneTests(EduidAPITestCase):
         return phone_init_app('testing', config)
 
     def update_config(self, config):
-        config.update({
-            'AVAILABLE_LANGUAGES': {'en': 'English','sv': 'Svenska'},
-            'MSG_BROKER_URL': 'amqp://dummy',
-            'AM_BROKER_URL': 'amqp://dummy',
-            'CELERY_CONFIG': {
-                'CELERY_RESULT_BACKEND': 'amqp',
-                'CELERY_TASK_SERIALIZER': 'json'
+        #  XXX remove this lower casing once the default config in
+        #  common.api.testing is lower case
+        app_config = {k.lower(): v for k,v in config.items()}
+        app_config.update({
+            'available_languages': {'en': 'English','sv': 'Svenska'},
+            'msg_broker_url': 'amqp://dummy',
+            'am_broker_url': 'amqp://dummy',
+            'celery_config': {
+                'result_backend': 'amqp',
+                'task_serializer': 'json'
             },
-            'PHONE_VERIFICATION_TIMEOUT': 7200,
-            'DEFAULT_COUNTRY_CODE': '46',
-            'THROTTLE_RESEND_SECONDS': 300,
+            'phone_verification_timeout': 7200,
+            'default_country_code': '46',
+            'throttle_resend_seconds': 300,
         })
-        return config
+        return PhoneConfig(**app_config)
 
     def test_get_all_phone(self):
         response = self.browser.get('/all')

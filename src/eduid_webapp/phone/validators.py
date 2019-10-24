@@ -34,8 +34,8 @@
 import re
 
 from marshmallow import ValidationError
-from flask import current_app
 from eduid_common.api.utils import get_user
+from eduid_webapp.phone.app import current_phone_app as current_app
 
 
 def normalize_to_e_164(number):
@@ -43,7 +43,7 @@ def normalize_to_e_164(number):
     if number.startswith(u'00'):
         raise ValidationError("phone.e164_format")
     if number.startswith(u'0'):
-        country_code = current_app.config.get('DEFAULT_COUNTRY_CODE')
+        country_code = current_app.config.default_country_code
         number = '+{}{}'.format(country_code, number[1:])
     return number
 
