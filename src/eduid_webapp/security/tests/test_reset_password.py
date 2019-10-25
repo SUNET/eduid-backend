@@ -11,6 +11,7 @@ from eduid_userdb.credentials import Password
 from eduid_userdb.exceptions import DocumentDoesNotExist
 from eduid_userdb.security import PasswordResetEmailState
 from eduid_webapp.security.app import security_init_app
+from eduid_webapp.security.settings.common import SecurityConfig
 
 __author__ = 'lundberg'
 

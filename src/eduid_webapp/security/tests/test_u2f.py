@@ -10,6 +10,7 @@ from eduid_userdb.credentials import U2F
 from eduid_userdb.security import SecurityUser
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_webapp.security.app import security_init_app
+from eduid_webapp.security.settings.common import SecurityConfig
 
 __author__ = 'lundberg'
 

@@ -15,6 +15,7 @@ from eduid_userdb.credentials import Webauthn, U2F
 from eduid_userdb.security import SecurityUser
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_webapp.security.app import security_init_app
+from eduid_webapp.security.settings.common import SecurityConfig
 from eduid_webapp.security.views.webauthn import get_webauthn_server
 from eduid_webapp.security.views.webauthn import urlsafe_b64decode
 
