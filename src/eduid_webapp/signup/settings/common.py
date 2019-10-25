@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright (c) 2016 NORDUnet A/S
+# Copyright (c) 2019 SUNET
 # All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or
@@ -31,44 +32,26 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-
 from __future__ import absolute_import
 
-"""
-For more built in configuration options see,
-http://flask.pocoo.org/docs/0.10/config/#builtin-configuration-values
-"""
+from typing import Optional
+from dataclasses import dataclass
 
-DEBUG = False
-DEVELOPMENT = DEBUG
+from eduid_common.config.base import FlaskConfig
 
-# Database URIs
-MONGO_URI = ''
-REDIS_HOST = ''
-REDIS_PORT = 6379
-REDIS_DB = 0
 
-APPLICATION_ROOT = None
-
-# Secret key
-SECRET_KEY = ''
-
-# Logging
-LOG_LEVEL = 'INFO'
-
-SIGNUP_AUTHN_URL = '/services/authn/signup-authn'
-
-PASSWORD_LENGTH = 10
-
-VCCS_URL = None
-
-TOU_VERSION = '2018-v1'
-
-DEFAULT_FINISH_URL = 'https://www.eduid.se/'
-
-# The signup app uses this to retrieve the ToU texts from the actions app
-TOU_URL = ''
-
-# Used to load the react bundle
-BUNDLE_PATH = 'front-build/signup-bundle.dev.js'
-BUNDLE_VERSION = 'test'
+@dataclass
+class SignupConfig(FlaskConfig):
+    """
+    Configuration for the signup app
+    """
+    signup_authn_url: str = '/services/authn/signup-authn'
+    password_length: int = 10
+    vccs_url: Optional[str] = None
+    tou_version: str = '2018-v1'
+    default_finish_url: str = 'https://www.eduid.se/'
+    # The signup app uses this to retrieve the ToU texts from the actions app
+    tou_url: str = ''
+    # Used to load the react bundle
+    bundle_path: str = 'front-build/signup-bundle.dev.js'
+    bundle_version: str = 'test'

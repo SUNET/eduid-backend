@@ -33,14 +33,26 @@
 
 from __future__ import absolute_import
 
-from flask import Flask
+from typing import cast
 
 from eduid_common.api.app import eduid_init_app
 from eduid_common.api import mail_relay
 from eduid_common.api import am
 from eduid_common.api import translation
+from eduid_common.config.app import EduIDApp
 from eduid_userdb.signup import SignupUserDB
 from eduid_userdb.logs import ProofingLog
+from eduid_webapp.signup.settings.common import SignupConfig
+
+
+class SignupApp(EduIDApp):
+
+    def __init__(self, *args, **kwargs):
+        super(SignupApp, self).__init__(*args, **kwargs)
+        self.config: SignupConfig = cast(SignupConfig, self.config)
+
+
+current_signup_app: SignupApp = cast(SignupApp, current_app)
 
 
 def signup_init_app(name, config):
@@ -67,8 +79,9 @@ def signup_init_app(name, config):
     :rtype: flask.Flask
     """
 
-    app = eduid_init_app(name, config, app_class=Flask)
-    app.config.update(config)
+    app = eduid_init_app(name, config,
+                         config_class=SignupConfig,
+                         app_class=SignupApp)
 
     from eduid_webapp.signup.views import signup_views
     app.register_blueprint(signup_views)
@@ -77,8 +90,8 @@ def signup_init_app(name, config):
     app = mail_relay.init_relay(app)
     app = translation.init_babel(app)
 
-    app.private_userdb = SignupUserDB(app.config['MONGO_URI'], 'eduid_signup')
-    app.proofing_log = ProofingLog(app.config['MONGO_URI'])
+    app.private_userdb = SignupUserDB(app.config.mongo_uri, 'eduid_signup')
+    app.proofing_log = ProofingLog(app.config.mongo_uri)
 
     app.logger.info('Init {} app...'.format(name))
 

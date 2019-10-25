@@ -38,7 +38,7 @@ import datetime
 from bson import ObjectId
 import proquint
 
-from flask import current_app, abort
+from flask import abort
 
 from eduid_common.session import session
 from eduid_common.api.utils import save_and_sync_user
@@ -46,6 +46,7 @@ from eduid_userdb.exceptions import UserOutOfSync
 from eduid_userdb.credentials import Password
 from eduid_userdb.tou import ToUEvent
 from eduid_webapp.signup.vccs import generate_password
+from eduid_webapp.signup.app import current_signup_app as current_app
 
 
 def generate_eppn():
@@ -174,7 +175,7 @@ def complete_registration(signup_user):
         "status": 'verified',
         "password": password,
         "email": signup_user.mail_addresses.primary.email,
-        "dashboard_url": current_app.config.get('SIGNUP_AUTHN_URL')
+        "dashboard_url": current_app.config.signup_authn_url
     })
 
     current_app.stats.count(name='signup_complete')
@@ -196,7 +197,7 @@ def record_tou(user, source):
     """
     event_id = ObjectId()
     created_ts = datetime.datetime.utcnow()
-    tou_version = current_app.config['TOU_VERSION']
+    tou_version = current_app.config.tou_version
     current_app.logger.info('Recording ToU acceptance {!r} (version {})'
                  ' for user {} (source: {})'.format(
                      event_id, tou_version, user, source))
