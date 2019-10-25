@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright (c) 2016 NORDUnet A/S
-# Copyright (c) 2018 SUNET
+# Copyright (c) 2018-2019 SUNET
 # All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or
@@ -41,6 +41,7 @@ from requests import Response as RequestsResponse
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_webapp.signup.app import signup_init_app
 from eduid_webapp.signup.verifications import send_verification_mail
+from eduid_webapp.signup.settings.common import SignupConfig
 
 
 def mock_response(status_code=200, content=None, json_data=None, headers=dict(), raise_for_status=None):
@@ -82,39 +83,42 @@ class SignupTests(EduidAPITestCase):
         return signup_init_app('signup', config)
 
     def update_config(self, config):
-        config.update({
-            'AVAILABLE_LANGUAGES': {'en': 'English', 'sv': 'Svenska'},
-            'SIGNUP_AUTHN_URL': '/services/authn/signup-authn',
-            'SIGNUP_URL': 'https://localhost/',
-            'DEVELOPMENT': 'DEBUG',
-            'APPLICATION_ROOT': '/',
-            'LOG_LEVEL': 'DEBUG',
-            'AM_BROKER_URL': 'amqp://eduid:eduid_pw@rabbitmq/am',
-            'MSG_BROKER_URL': 'amqp://eduid:eduid_pw@rabbitmq/msg',
-            'PASSWORD_LENGTH': '10',
-            'VCCS_URL': 'http://turq:13085/',
-            'TOU_VERSION': '2018-v1',
-            'TOU_URL': 'https://localhost/get-tous',
-            'DEFAULT_FINISH_URL': 'https://www.eduid.se/',
-            'RECAPTCHA_PUBLIC_KEY': '',  # disable recaptcha verification
-            'RECAPTCHA_PRIVATE_KEY': 'XXXX',
-            'STUDENTS_LINK': 'https://www.eduid.se/index.html',
-            'TECHNICIANS_LINK': 'https://www.eduid.se/tekniker.html',
-            'STAFF_LINK': 'https://www.eduid.se/personal.html',
-            'FAQ_LINK': 'https://www.eduid.se/faq.html',
-            'CELERY_CONFIG': {
-                'CELERY_RESULT_BACKEND': 'amqp',
-                'CELERY_TASK_SERIALIZER': 'json',
-                'MONGO_URI': config['MONGO_URI'],
+        #  XXX remove this lower casing once the default config in
+        #  common.api.testing is lower case
+        app_config = {k.lower(): v for k,v in config.items()}
+        app_config.update({
+            'available_languages': {'en': 'English', 'sv': 'Svenska'},
+            'signup_authn_url': '/services/authn/signup-authn',
+            'signup_url': 'https://localhost/',
+            'development': 'DEBUG',
+            'application_root': '/',
+            'log_level': 'DEBUG',
+            'am_broker_url': 'amqp://eduid:eduid_pw@rabbitmq/am',
+            'msg_broker_url': 'amqp://eduid:eduid_pw@rabbitmq/msg',
+            'password_length': '10',
+            'vccs_url': 'http://turq:13085/',
+            'tou_version': '2018-v1',
+            'tou_url': 'https://localhost/get-tous',
+            'default_finish_url': 'https://www.eduid.se/',
+            'recaptcha_public_key': '',  # disable recaptcha verification
+            'recaptcha_private_key': 'XXXX',
+            'students_link': 'https://www.eduid.se/index.html',
+            'technicians_link': 'https://www.eduid.se/tekniker.html',
+            'staff_link': 'https://www.eduid.se/personal.html',
+            'faq_link': 'https://www.eduid.se/faq.html',
+            'celery_config': {
+                'result_backend': 'amqp',
+                'task_serializer': 'json',
+                'mongo_uri': app_config['mongo_uri'],
             },
         })
-        return config
+        return SignupConfig(**app_config)
 
     @contextmanager
     def session_cookie(self, client, server_name='localhost'):
         with client.session_transaction() as sess:
             sess.persist()
-        client.set_cookie(server_name, key=self.app.config.get('SESSION_COOKIE_NAME'), value=sess._session.token)
+        client.set_cookie(server_name, key=self.app.config.session_cookie_name, value=sess._session.token)
         yield client
 
     @patch('requests.get')

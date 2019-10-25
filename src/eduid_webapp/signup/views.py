@@ -32,7 +32,7 @@
 #
 
 import requests
-from flask import Blueprint, request, current_app, abort, render_template
+from flask import Blueprint, request, abort, render_template
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith
 from eduid_common.api.schemas.base import FluxStandardAction
@@ -41,6 +41,7 @@ from eduid_webapp.signup.helpers import check_email_status, remove_users_with_ma
 from eduid_webapp.signup.schemas import RegisterEmailSchema, AccountCreatedResponse, EmailSchema
 from eduid_webapp.signup.verifications import CodeDoesNotExist, AlreadyVerifiedException, ProofingLogFailure
 from eduid_webapp.signup.verifications import verify_recaptcha, send_verification_mail, verify_email_code
+from eduid_webapp.signup.app import current_signup_app as current_app
 
 signup_views = Blueprint('signup', __name__, url_prefix='', template_folder='templates')
 
@@ -48,7 +49,7 @@ signup_views = Blueprint('signup', __name__, url_prefix='', template_folder='tem
 @signup_views.route('/config', methods=['GET'])
 @MarshalWith(FluxStandardAction)
 def get_config():
-    tou_url = current_app.config.get('TOU_URL')
+    tou_url = current_app.config.tou_url
     try:
         r = requests.get(tou_url)
         current_app.logger.debug('Response: {!r} with headers: {!r}'.format(r, r.headers))
@@ -67,16 +68,16 @@ def get_config():
         abort(500)
     return {
             'csrf_token': session.get_csrf_token(),
-            'recaptcha_public_key': current_app.config.get('RECAPTCHA_PUBLIC_KEY'),
-            'available_languages': current_app.config.get('AVAILABLE_LANGUAGES'),
-            'debug': current_app.config.get('DEBUG'),
+            'recaptcha_public_key': current_app.config.recaptcha_public_key,
+            'available_languages': current_app.config.available_languages,
+            'debug': current_app.config.debug,
             'tous': r.json()['payload'],
-            'dashboard_url': current_app.config.get('SIGNUP_AUTHN_URL'),
-            'reset_passwd_url': current_app.config.get('RESET_PASSWD_URL'),
-            'students_link': current_app.config.get('STUDENTS_LINK'),
-            'technicians_link': current_app.config.get('TECHNICIANS_LINK'),
-            'staff_link': current_app.config.get('STAFF_LINK'),
-            'faq_link': current_app.config.get('FAQ_LINK'),
+            'dashboard_url': current_app.config.signup_authn_url,
+            'reset_passwd_url': current_app.config.reset_passwd_url,
+            'students_link': current_app.config.students_link,
+            'technicians_link': current_app.config.technicians_link,
+            'staff_link': current_app.config.staff_link,
+            'faq_link': current_app.config.faq_link,
             }
 
 
@@ -94,10 +95,10 @@ def trycaptcha(email, recaptcha_response, tou_accepted):
         }
     config = current_app.config
     remote_ip = request.remote_addr
-    recaptcha_public_key = config.get('RECAPTCHA_PUBLIC_KEY', '')
+    recaptcha_public_key = config.recaptcha_public_key
 
     if recaptcha_public_key:
-        recaptcha_private_key = config.get('RECAPTCHA_PRIVATE_KEY', '')
+        recaptcha_private_key = config.recaptcha_private_key
         recaptcha_verified = verify_recaptcha(recaptcha_private_key,
                                               recaptcha_response, remote_ip)
     else:

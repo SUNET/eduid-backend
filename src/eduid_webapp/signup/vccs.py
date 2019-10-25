@@ -1,7 +1,7 @@
 from pwgen import pwgen
 from re import findall
 
-from flask import current_app
+from eduid_webapp.signup.app import current_signup_app as current_app
 
 import vccs_client
 
@@ -19,13 +19,13 @@ def generate_password(credential_id, user):
     """
     user_id = str(user.user_id)
     config = current_app.config
-    password = pwgen(int(config.get('PASSWORD_LENGTH')),
+    password = pwgen(int(config.password_length),
                      no_capitalize = True, no_symbols = True)
     factor = vccs_client.VCCSPasswordFactor(password, credential_id)
     current_app.logger.info("Adding VCCS password factor for user {}, "
                              "credential_id {!r}".format(user, credential_id))
 
-    vccs = vccs_client.VCCSClient(base_url = config.get('VCCS_URL'))
+    vccs = vccs_client.VCCSClient(base_url = config.vccs_url)
     try:
         result = vccs.add_credentials(user_id, [factor])
     except vccs_client.VCCSClientHTTPError as e:

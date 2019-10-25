@@ -35,7 +35,7 @@ from uuid import uuid4
 import time
 import requests
 
-from flask import current_app, render_template
+from flask import render_template
 from flask_babel import gettext as _
 
 from eduid_userdb import MailAddress
@@ -43,6 +43,7 @@ from eduid_userdb.signup import SignupUser
 from eduid_userdb.proofing import EmailProofingElement
 from eduid_userdb.logs import MailAddressProofing
 from eduid_webapp.signup.helpers import generate_eppn
+from eduid_webapp.signup.app import current_signup_app as current_app
 
 
 def verify_recaptcha(secret_key, captcha_response, user_ip, retries=3):
@@ -103,7 +104,7 @@ def generate_verification_link():
     :rtype: pair of str
     """
     code = str(uuid4())
-    link = '{}code/{}'.format(current_app.config['SIGNUP_URL'], code)
+    link = '{}code/{}'.format(current_app.config.signup_url, code)
     return link, code
 
 
@@ -134,8 +135,8 @@ def send_verification_mail(email):
     context = {
         "email": email,
         "verification_link": verification_link,
-        "site_name": current_app.config.get("EDUID_SITE_NAME"),
-        "site_url": current_app.config.get("EDUID_SITE_URL"),
+        "site_name": current_app.config.eduid_site_name,
+        "site_url": current_app.config.eduid_site_url,
     }
 
     text = render_template(
