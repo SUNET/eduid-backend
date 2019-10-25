@@ -4,7 +4,7 @@ from __future__ import absolute_import
 
 from typing import Optional, List
 
-from flask import current_app, render_template, url_for
+from flask import render_template, url_for
 from flask_babel import gettext as _
 
 from eduid_common.session import session
