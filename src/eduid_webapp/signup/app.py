@@ -35,6 +35,8 @@ from __future__ import absolute_import
 
 from typing import cast
 
+from flask import current_app
+
 from eduid_common.api.app import eduid_init_app
 from eduid_common.api import mail_relay
 from eduid_common.api import am
