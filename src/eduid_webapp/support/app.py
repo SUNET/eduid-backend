@@ -1,13 +1,59 @@
 # -*- coding: utf-8 -*-
+#
+# Copyright (c) 2019 SUNET
+# All rights reserved.
+#
+#   Redistribution and use in source and binary forms, with or
+#   without modification, are permitted provided that the following
+#   conditions are met:
+#
+#     1. Redistributions of source code must retain the above copyright
+#        notice, this list of conditions and the following disclaimer.
+#     2. Redistributions in binary form must reproduce the above
+#        copyright notice, this list of conditions and the following
+#        disclaimer in the documentation and/or other materials provided
+#        with the distribution.
+#     3. Neither the name of the NORDUnet nor the names of its
+#        contributors may be used to endorse or promote products derived
+#        from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+# COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+#
 
 from __future__ import absolute_import
 
+from typing import cast
 import operator
+
+from flask import current_app
 from jinja2.exceptions import UndefinedError
 
 from eduid_common.api.app import eduid_init_app
 from eduid_common.api.utils import urlappend
+from eduid_common.authn.middleware import AuthnApp
 from eduid_userdb.support import db
+from eduid_webapp.support.settings.common import SupportConfig
+
+
+class SupportApp(AuthnApp):
+
+    def __init__(self, *args, **kwargs):
+        super(SupportApp, self).__init__(*args, **kwargs)
+        self.config: SupportConfig = cast(SupportConfig, self.config)
+
+
+current_support_app: SupportApp = cast(SupportApp, current_app)
 
 
 def register_template_funcs(app):
@@ -58,24 +104,25 @@ def support_init_app(name, config):
     :rtype: flask.Flask
     """
 
-    app = eduid_init_app(name, config)
-    app.config.update(config)
+    app = eduid_init_app(name, config,
+                         config_class=SupportConfig,
+                         app_class=SupportApp)
 
-    if app.config.get('TOKEN_SERVICE_URL_LOGOUT') is None:
-        app.config['TOKEN_SERVICE_URL_LOGOUT'] = urlappend(app.config['TOKEN_SERVICE_URL'], 'logout')
+    if app.config.token_service_url_logout is None:
+        app.config.token_service_url_logout = urlappend(app.config.token_service_url, 'logout')
 
     from eduid_webapp.support.views import support_views
     app.register_blueprint(support_views)
 
-    app.support_user_db = db.SupportUserDB(app.config['MONGO_URI'])
-    app.support_authn_db = db.SupportAuthnInfoDB(app.config['MONGO_URI'])
-    app.support_proofing_log_db = db.SupportProofingLogDB(app.config['MONGO_URI'])
-    app.support_signup_db = db.SupportSignupUserDB(app.config['MONGO_URI'])
-    app.support_actions_db = db.SupportActionsDB(app.config['MONGO_URI'])
-    app.support_letter_proofing_db = db.SupportLetterProofingDB(app.config['MONGO_URI'])
-    app.support_oidc_proofing_db = db.SupportOidcProofingDB(app.config['MONGO_URI'])
-    app.support_email_proofing_db = db.SupportEmailProofingDB(app.config['MONGO_URI'])
-    app.support_phone_proofing_db = db.SupportPhoneProofingDB(app.config['MONGO_URI'])
+    app.support_user_db = db.SupportUserDB(app.config.mongo_uri)
+    app.support_authn_db = db.SupportAuthnInfoDB(app.config.mongo_uri)
+    app.support_proofing_log_db = db.SupportProofingLogDB(app.config.mongo_uri)
+    app.support_signup_db = db.SupportSignupUserDB(app.config.mongo_uri)
+    app.support_actions_db = db.SupportActionsDB(app.config.mongo_uri)
+    app.support_letter_proofing_db = db.SupportLetterProofingDB(app.config.mongo_uri)
+    app.support_oidc_proofing_db = db.SupportOidcProofingDB(app.config.mongo_uri)
+    app.support_email_proofing_db = db.SupportEmailProofingDB(app.config.mongo_uri)
+    app.support_phone_proofing_db = db.SupportPhoneProofingDB(app.config.mongo_uri)
 
     app = register_template_funcs(app)
 
