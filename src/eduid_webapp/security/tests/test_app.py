@@ -38,6 +38,7 @@ from mock import patch
 
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_webapp.security.app import security_init_app
+from eduid_webapp.security.settings.common import SecurityConfig
 
 
 class SecurityTests(EduidAPITestCase):
@@ -56,21 +57,24 @@ class SecurityTests(EduidAPITestCase):
         return security_init_app('testing', config)
 
     def update_config(self, config):
-        config.update({
-            'AVAILABLE_LANGUAGES': {'en': 'English', 'sv': 'Svenska'},
-            'MSG_BROKER_URL': 'amqp://dummy',
-            'AM_BROKER_URL': 'amqp://dummy',
-            'CELERY_CONFIG': {
-                'CELERY_RESULT_BACKEND': 'amqp',
-                'CELERY_TASK_SERIALIZER': 'json'
+        #  XXX remove this lower casing once the default config in
+        #  common.api.testing is lower case
+        app_config = {k.lower(): v for k,v in config.items()}
+        app_config.update({
+            'available_languages': {'en': 'English', 'sv': 'Svenska'},
+            'msg_broker_url': 'amqp://dummy',
+            'am_broker_url': 'amqp://dummy',
+            'celery_config': {
+                'result_backend': 'amqp',
+                'task_serializer': 'json'
             },
-            'PASSWORD_LENGTH': 12,
-            'PASSWORD_ENTROPY': 25,
-            'CHPASS_TIMEOUT': 600,
-            'EDUID_SITE_NAME': 'eduID',
-            'EDUID_SITE_URL': 'https://www.eduid.se/',
+            'password_length': 12,
+            'password_entropy': 25,
+            'chpass_timeout': 600,
+            'eduid_site_name': 'eduID',
+            'eduid_site_url': 'https://www.eduid.se/',
         })
-        return config
+        return SecurityConfig(**app_config)
 
     def test_get_credentials(self):
         response = self.browser.get('/credentials')

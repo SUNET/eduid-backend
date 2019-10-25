@@ -11,6 +11,7 @@ from eduid_userdb.credentials import Password
 from eduid_userdb.exceptions import DocumentDoesNotExist
 from eduid_userdb.security import PasswordResetEmailState
 from eduid_webapp.security.app import security_init_app
+from eduid_webapp.security.settings.common import SecurityConfig
 
 __author__ = 'lundberg'
 
@@ -29,20 +30,23 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         return security_init_app('testing', config)
 
     def update_config(self, config):
-        config.update({
-            'AVAILABLE_LANGUAGES': {'en': 'English', 'sv': 'Svenska'},
-            'MSG_BROKER_URL': 'amqp://dummy',
-            'AM_BROKER_URL': 'amqp://dummy',
-            'CELERY_CONFIG': {
-                'CELERY_RESULT_BACKEND': 'amqp',
-                'CELERY_TASK_SERIALIZER': 'json'
+        #  XXX remove this lower casing once the default config in
+        #  common.api.testing is lower case
+        app_config = {k.lower(): v for k,v in config.items()}
+        app_config.update({
+            'available_languages': {'en': 'English', 'sv': 'Svenska'},
+            'msg_broker_url': 'amqp://dummy',
+            'am_broker_url': 'amqp://dummy',
+            'celery_config': {
+                'result_backend': 'amqp',
+                'task_serializer': 'json'
             },
-            'VCCS_URL': 'http://vccs',
-            'EMAIL_CODE_TIMEOUT': 7200,
-            'PHONE_CODE_TIMEOUT': 600,
-            'PASSWORD_ENTROPY': 25
+            'vccs_url': 'http://vccs',
+            'email_code_timeout': 7200,
+            'phone_code_timeout': 600,
+            'password_entropy': 25
         })
-        return config
+        return SecurityConfig(**app_config)
 
     def post_email_address(self, email_address):
         with self.app.test_client() as c:
@@ -62,7 +66,7 @@ class SecurityResetPasswordTests(EduidAPITestCase):
 
             self.assertEqual(response.status_code, 302)
             self.assertEqual(response.location, 'http://{}/reset-password/extra-security/{}'.format(
-                             self.app.config['SERVER_NAME'], state.email_code.code))
+                             self.app.config.server_name, state.email_code.code))
             self.assertEqual(self.app.proofing_log.db_count(), 1)
 
     def choose_extra_security_phone_number(self, state):
