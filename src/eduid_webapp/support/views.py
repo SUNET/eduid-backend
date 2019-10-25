@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
-from flask import Blueprint, current_app, request, render_template
+from flask import Blueprint, request, render_template
 from eduid_common.api.decorators import require_support_personnel
 from eduid_userdb.support.models import SupportUserFilter, SupportSignupUserFilter
 from eduid_userdb.exceptions import UserHasUnknownData, UserDoesNotExist, UserHasNotCompletedSignup
 from eduid_webapp.support.helpers import get_credentials_aux_data
+from eduid_webapp.support.app import current_support_app as current_app
 
 support_views = Blueprint('support', __name__, url_prefix='', template_folder='templates')
 

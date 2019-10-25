@@ -2,7 +2,7 @@
 
 from __future__ import absolute_import
 
-from flask import current_app
+from eduid_webapp.support.app import current_support_app as current_app
 
 __author__ = 'lundberg'
 
