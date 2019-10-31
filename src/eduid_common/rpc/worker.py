@@ -29,14 +29,6 @@ def get_worker_config(name: str, config_class: Type[CommonConfig] = BaseConfig) 
     cfg.update(common_parser.read_configuration(silent=True))
     cfg.update(app_parser.read_configuration(silent=True))
     cfg = {key.lower(): value for key, value in cfg.items()}
-    # XXX Remove when celery workers are migrated to dataclass configuration
-    # and provide their own config classes.
-    if name == 'msg':
-        config_class = MsgConfig
-    elif name == 'am':
-        config_class = AmConfig
-    elif name == 'lookup_mobile':
-        config_class = MobConfig
     config = config_class(**cfg)
     if config.celery.broker_url == '':
         raise BadConfiguration('broker_url for celery is missing')

@@ -111,8 +111,8 @@ def init_logging(app: EduIDApp) -> EduIDApp:
     """
     try:
         local_context = {
-            'level': app.config.setdefault('LOG_LEVEL', 'INFO'),
-            'format': app.config.setdefault('LOG_FORMAT', DEFAULT_FORMAT),
+            'level': app.config.setdefault('log_level', 'INFO'),
+            'format': app.config.setdefault('log_format', DEFAULT_FORMAT),
             'app_name': app.name,
             'app_debug': app.debug,
         }

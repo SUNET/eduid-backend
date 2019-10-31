@@ -108,7 +108,7 @@ class CommonConfig:
         i.e., check whether celery or flask use it internally.
         """
         try:
-            return self.__getattribute__(attr.lower())
+            return self.__getattribute__(attr)
         except AttributeError:
             raise KeyError(f'{self} has no {attr} attr')
 
@@ -121,7 +121,7 @@ class CommonConfig:
         dataclasses, we can check whether we can remove this method from here,
         i.e., check whether celery or flask use it internally.
         """
-        setattr(self, attr.lower(), value)
+        setattr(self, attr, value)
 
     def get(self, key: str, default: Any = None) -> Any:
         """
@@ -133,7 +133,7 @@ class CommonConfig:
         i.e., check whether celery or flask use it internally.
         """
         try:
-            return self.__getattribute__(key.lower())
+            return self.__getattribute__(key)
         except AttributeError:
             return default
 
@@ -146,9 +146,9 @@ class CommonConfig:
         dataclasses, we can check whether we can remove this method from here,
         i.e., check whether celery or flask use it internally.
         """
-        return hasattr(self, key.lower())
+        return hasattr(self, key)
 
-    def update(self, config: dict, transform_key: Callable = lambda x: x.lower()):
+    def update(self, config: dict):
         """
         This is a dict method, used on the configuration dicts by either
         webapps, celery workers, or flask or celery themselves.
@@ -158,10 +158,9 @@ class CommonConfig:
         i.e., check whether celery or flask use it internally.
         """
         for key, value in config.items():
-            setattr(self, transform_key(key), value)
+            setattr(self, key, value)
 
-    def setdefault(self, key: str, value: Any,
-                   transform_key: Callable = lambda x: x.lower()):
+    def setdefault(self, key: str, value: Any):
         """
         This is a dict method, used on the configuration dicts by either
         webapps, celery workers, or flask or celery themselves.
@@ -170,25 +169,24 @@ class CommonConfig:
         dataclasses, we can check whether we can remove this method from here,
         i.e., check whether celery or flask use it internally.
         """
-        tkey = transform_key(key)
-        if not getattr(self, tkey):
-            setattr(self, tkey, value)
+        if not getattr(self, key):
+            setattr(self, key, value)
             return value
-        return getattr(self, tkey)
+        return getattr(self, key)
 
     @classmethod
-    def defaults(cls, transform_key: Callable = lambda x: x) -> dict:
+    def defaults(cls) -> dict:
         """
         get a dict with the default values for all configuration keys
         """
-        return {transform_key(key): val for key, val in cls.__dict__.items()
+        return {key: val for key, val in cls.__dict__.items()
                   if isinstance(key, str) and not key.startswith('_') and not callable(val)}
 
-    def to_dict(self, transform_key: Callable = lambda x: x) -> dict:
+    def to_dict(self) -> dict:
         """
         get a dict with all configured values
         """
-        return {transform_key(key): val for key, val in self.__dict__.items()
+        return {key: val for key, val in self.__dict__.items()
                   if isinstance(key, str) and not key.startswith('_') and not callable(val)}
 
 
@@ -295,7 +293,6 @@ class BaseConfig(CommonConfig):
                     test_config: Optional[dict] = None, debug: bool = True) -> BaseConfig:
         """
         Initialize configuration with values from etcd (or with test values)
-        XXX remove when the IdP no lnger uses it
         """
         config : Dict[str, Any] = {
                 'debug': debug,
@@ -371,69 +368,6 @@ class FlaskConfig(BaseConfig):
     babel_default_timezone: str = ''
     babel_domain: str = ''
     logger_name: str = ''
-
-    # XXX attributes that belong in the config classes for the particular apps,
-    # to be removed when eduid-webapp starts using the new config classes
-    password_length: int = 8
-    phone_verification_timeout: int = 5
-    webauthn_max_allowed_tokens: int = 5
-    bundle_path: str = ''
-    dashboard_bundle_path: str = ''
-    dashboard_bundle_version: str = ''
-    signup_bundle_path: str = ''
-    signup_bundle_version: str = ''
-    bundles_path: str = ''
-    bundle_version: str = ''
-    bundles_version: str = ''
-    support_personnel: str = ''
-    signup_authn_url: str = ''
-    email_code_timeout: int = 0
-    password_entropy: int = 0
-    default_country_code: str = 'en'
-    provider_configuration_info: Dict[str, str] = field(default_factory=dict)
-    ekopost_api_uri: str = ''
-    email_verify_redirect_url: str = ''
-    token_verify_redirect_url: str = ''
-    signup_authn_success_redirect_url: str = ''
-    u2f_max_allowed_tokens: int = 0
-    phone_code_timeout: int = 0
-    chpass_timeout: int = 0
-    throttle_resend_seconds: int = 0
-    client_registration_info: Dict[str, str] = field(default_factory=dict)
-    lookup_mobile_broker_url: str = ''
-    ekopost_api_user: str = ''
-    ekopost_api_verify_ssl: bool = False
-    ekopost_debug_pdf: bool = False
-    email_verification_timeout: int = 0
-    nin_verify_redirect_url: str = ''
-    signup_authn_failure_redirect_url: str = ''
-    idp_url: str = ''
-    recaptcha_public_key: str = ''
-    u2f_facets: str = ''
-    userinfo_endpoint_method: str = ''
-    letter_wait_time_hours: int = 0
-    ekopost_api_pw: str = ''
-    action_url: str = ''
     internal_signup_url: str = ''
+    recaptcha_public_key: str = ''
     recaptcha_private_key: str = ''
-    freja_jws_algorithm: str = ''
-    freja_expire_time_hours: int = 0
-    seleg_expire_time_hours: int = 0
-    freja_iarp: str = ''
-    freja_response_protocol: str = ''
-    authentication_context_map: str = ''
-    mfa_testing: bool = False
-    freja_jws_key_id: str = ''
-    authn_sign_alg: str = ''
-    u2f_valid_facets: list = field(default_factory=list)
-    u2f_max_description_length: int = 0
-    freja_jwk_secret: str = ''
-    orcid_verify_redirect_url: str = ''
-    unsolicited_response_redirect_url: str = ''
-    mfa_authn_idp: str = ''
-    eidas_url: str = ''
-    authn_digest_alg: str = ''
-    staging_nin_map: dict = field(default_factory=dict)
-    generate_u2f_challenges: bool = False
-    mail_username: str = ''
-    mongo_password: str = ''
