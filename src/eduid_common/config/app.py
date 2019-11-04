@@ -38,11 +38,3 @@ class EduIDApp(Flask):
 
     def init_config(self, config_class, config):
         self.config: FlaskConfig = config_class(**config)
-
-    @property
-    def debug(self):
-        """
-        Override Flask's default (that looks for the property as an upper case
-        key in self.config)
-        """
-        return self.config['debug']
