@@ -108,7 +108,7 @@ class CommonConfig:
         i.e., check whether celery or flask use it internally.
         """
         try:
-            return self.__getattribute__(attr)
+            return self.__getattribute__(attr.lower())
         except AttributeError:
             raise KeyError(f'{self} has no {attr} attr')
 
@@ -121,7 +121,7 @@ class CommonConfig:
         dataclasses, we can check whether we can remove this method from here,
         i.e., check whether celery or flask use it internally.
         """
-        setattr(self, attr, value)
+        setattr(self, attr.lower(), value)
 
     def get(self, key: str, default: Any = None) -> Any:
         """
@@ -133,7 +133,7 @@ class CommonConfig:
         i.e., check whether celery or flask use it internally.
         """
         try:
-            return self.__getattribute__(key)
+            return self.__getattribute__(key.lower())
         except AttributeError:
             return default
 
@@ -146,7 +146,7 @@ class CommonConfig:
         dataclasses, we can check whether we can remove this method from here,
         i.e., check whether celery or flask use it internally.
         """
-        return hasattr(self, key)
+        return hasattr(self, key.lower())
 
     def update(self, config: dict):
         """
@@ -169,6 +169,7 @@ class CommonConfig:
         dataclasses, we can check whether we can remove this method from here,
         i.e., check whether celery or flask use it internally.
         """
+        key = key.lower()
         if not getattr(self, key):
             setattr(self, key, value)
             return value
