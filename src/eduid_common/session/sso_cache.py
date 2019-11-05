@@ -328,10 +328,11 @@ class SSOSessionCacheMDB(SSOSessionCache):
                 self.sso_sessions.ensure_index('session_id', name = 'session_id_idx', unique = True)
                 self.sso_sessions.ensure_index('username', name = 'username_idx', unique = False)
                 break
-            except Exception:
+            except Exception as e:
                 if not retry:
+                    self.logger.error(f'Failed ensuring mongodb index due to exception: {e}')
                     raise
-                self.logger.error('Failed ensuring mongodb index, retrying ({})'.format(retry))
+                self.logger.error(f'Failed ensuring mongodb index, retrying ({retry})')
 
     def remove_session(self, sid: SSOSessionId):
         res = self.sso_sessions.remove({'session_id': sid}, w = 'majority')
