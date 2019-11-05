@@ -28,7 +28,6 @@ def get_worker_config(name: str, config_class: Type[CommonConfig] = BaseConfig) 
     app_parser = EtcdConfigParser(app_etcd_namespace)
     cfg.update(common_parser.read_configuration(silent=True))
     cfg.update(app_parser.read_configuration(silent=True))
-    cfg = {key.lower(): value for key, value in cfg.items()}
     config = config_class(**cfg)
     if config.celery.broker_url == '':
         raise BadConfiguration('broker_url for celery is missing')

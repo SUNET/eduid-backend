@@ -135,9 +135,7 @@ class InputsTests(EduidAPITestCase):
         """
         app = EduIDApp('test.localhost')
         app.request_class = Request
-        app.config.update(config)
-        app.config = {key.lower(): val for key, val in app.config.items()}
-        app.config = FlaskConfig(**app.config)
+        app.config = FlaskConfig(**config)
         app.register_blueprint(test_views)
         app.central_userdb = UserDB(app.config.mongo_uri, 'eduid_am')
         app.session_interface = SessionFactory(app.config)

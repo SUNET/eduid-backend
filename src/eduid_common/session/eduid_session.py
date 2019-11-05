@@ -197,13 +197,13 @@ class EduidSession(SessionMixin, MutableMapping):
         :param response: the response  object to carry the cookie
         :type response: flask.Response
         """
-        cookie_name = self.app.config.get('SESSION_COOKIE_NAME')
-        cookie_domain = self.app.config.get('SESSION_COOKIE_DOMAIN')
-        cookie_path = self.app.config.get('SESSION_COOKIE_PATH')
-        cookie_secure = self.app.config.get('SESSION_COOKIE_SECURE')
-        cookie_httponly = self.app.config.get('SESSION_COOKIE_HTTPONLY')
-        cookie_samesite = self.app.config.get('SESSION_COOKIE_SAMESITE')
-        max_age = int(self.app.config.get('PERMANENT_SESSION_LIFETIME'))
+        cookie_name = self.app.config.get('session_cookie_name')
+        cookie_domain = self.app.config.get('session_cookie_domain')
+        cookie_path = self.app.config.get('session_cookie_path')
+        cookie_secure = self.app.config.get('session_cookie_secure')
+        cookie_httponly = self.app.config.get('session_cookie_httponly')
+        cookie_samesite = self.app.config.get('session_cookie_samesite')
+        max_age = int(self.app.config.get('permanent_session_lifetime'))
         response.set_cookie(cookie_name,
                             value=self.token,
                             domain=cookie_domain,
@@ -276,8 +276,8 @@ class SessionFactory(SessionInterface):
     def __init__(self, config):
 
         self.config = config
-        secret = config['SECRET_KEY']
-        ttl = 2 * int(config['PERMANENT_SESSION_LIFETIME'])
+        secret = config['secret_key']
+        ttl = 2 * int(config['permanent_session_lifetime'])
         self.manager = SessionManager(config, ttl=ttl, secret=secret)
 
     #  Return type of "open_session" incompatible with supertype "SessionInterface"
@@ -286,10 +286,10 @@ class SessionFactory(SessionInterface):
         See flask.session.SessionInterface
         """
         try:
-            cookie_name = app.config['SESSION_COOKIE_NAME']
+            cookie_name = app.config['session_cookie_name']
         except KeyError:
-            app.logger.error('SESSION_COOKIE_NAME not set in config')
-            raise BadConfiguration('SESSION_COOKIE_NAME not set in config')
+            app.logger.error('session_cookie_name not set in config')
+            raise BadConfiguration('session_cookie_name not set in config')
 
         # Load token from cookie
         token = request.cookies.get(cookie_name, None)

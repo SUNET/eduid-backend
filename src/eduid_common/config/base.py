@@ -89,23 +89,14 @@ class CommonConfig:
         """
         for conf in (self.celery, self.celery_config):
             if isinstance(conf, dict):
-                config = {}
-                for k, v in conf.items():
-                    if k.startswith('CELERY_'):
-                        k = k[7:]
-                    config[k.lower()] = v
-                self.celery_config = CeleryConfig(**config)
+                self.celery_config = CeleryConfig(**conf)
                 break
         self.celery = self.celery_config
 
     def __getitem__(self, attr: str) -> Any:
         """
         This is a dict method, used on the configuration dicts by either
-        webapps, celery workers, or flask or celery themselves.
-        
-        XXX Once we migrate the celery workers and webapps to configuration in
-        dataclasses, we can check whether we can remove this method from here,
-        i.e., check whether celery or flask use it internally.
+        flask or celery
         """
         try:
             return self.__getattribute__(attr.lower())
@@ -284,7 +275,6 @@ class BaseConfig(CommonConfig):
                 }
         if test_config:
             # Load init time settings
-            test_config = {k.lower(): v for k, v in test_config.items()}
             config.update(test_config)
         else:
             from eduid_common.config.parsers.etcd import EtcdConfigParser
@@ -292,14 +282,12 @@ class BaseConfig(CommonConfig):
             common_namespace = os.environ.get('EDUID_CONFIG_COMMON_NS', f'/eduid/{superns}/common/')
             common_parser = EtcdConfigParser(common_namespace)
             common_config = common_parser.read_configuration(silent=True)
-            common_config = {k.lower(): v for k, v in common_config.items()}
             config.update(common_config)
 
             namespace = os.environ.get('EDUID_CONFIG_NS', f'/eduid/{superns}/{cls.app_name}/')
             parser = EtcdConfigParser(namespace)
             # Load optional app specific settings
             proper_config = parser.read_configuration(silent=True)
-            proper_config = {k.lower(): v for k, v in proper_config.items()}
             config.update(proper_config)
 
         return cls(**config)
