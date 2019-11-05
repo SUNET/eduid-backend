@@ -95,10 +95,9 @@ def get_saml_attribute(session_info, attr_name):
 
     logger.debug('SAML attributes received: %s' % attributes)
 
-    attr_name = attr_name.lower()
     # Look for the canonicalized attribute in the SAML assertion attributes
-    for saml_attr, local_fields in attributes.items():
-        if saml_attr.lower() == attr_name:
+    for saml_attr, _ in attributes.items():
+        if saml_attr.lower() == attr_name.lower():
             return attributes[saml_attr]
 
 

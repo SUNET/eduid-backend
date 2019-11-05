@@ -34,6 +34,7 @@ Define a `eduid_init_app` function to create a Flask app and update
 it with all attributes common to all eduID services.
 """
 
+import importlib.util
 import os
 from sys import stderr
 from typing import Type, cast, Optional
@@ -61,6 +62,43 @@ if DEBUG:
     stderr.writelines('----- WARNING! EDUID_APP_DEBUG is enabled -----\n')
 
 
+def get_app_config(name: str, config: Optional[dict] = None):
+    """
+    Get configuration for flask app.
+
+    If config is not provided, retrieve configuration values from etcd.
+    If there is an env var LOCAL_CFG_FILE pointing to a file with configuration
+    keys, load them as well.
+    """
+    if config is None:
+        config = {}
+    # Do not use config from etcd if a config dict is supplied
+    if not config:
+        # Init etcd config parsers
+        common_parser = EtcdConfigParser('/eduid/webapp/common/')
+        app_etcd_namespace = os.environ.get('EDUID_CONFIG_NS', '/eduid/webapp/{!s}/'.format(name))
+        app_parser = EtcdConfigParser(app_etcd_namespace)
+        # Load optional project wide settings
+        common_config = common_parser.read_configuration(silent=False)
+        if common_config:
+            config.update(common_config)
+        # Load optional app specific settings
+        app_config = app_parser.read_configuration(silent=False)
+        if app_config:
+            config.update(app_config)
+
+    # Load optional app specific secrets
+    secrets_path = os.environ.get('LOCAL_CFG_FILE')
+    if secrets_path is not None and os.path.exists(secrets_path):
+        spec = importlib.util.spec_from_file_location("secret.settings", secrets_path)
+        secret_settings_module = importlib.util.module_from_spec(spec)
+        for secret in dir(secret_settings_module):
+            if not secret.startswith('_'):
+                config[secret.lower()] = getattr(secret_settings_module, secret)
+    return config
+
+
+
 def eduid_init_app_no_db(name: str, config: dict,
                          config_class: Type[FlaskConfig] = FlaskConfig,
                          app_class: Type[EduIDApp] = AuthnApp,
@@ -84,39 +122,11 @@ def eduid_init_app_no_db(name: str, config: dict,
     app.request_class = Request
     app.url_map.strict_slashes = False
 
-    try:
-        # Load project wide default settings
-        cast(Config, app.config).from_object('eduid_webapp.settings.common')
-    except ImportError:  # No config found
-        pass
-
-    try:
-        # Load optional app specific default settings
-        cast(Config, app.config).from_object('eduid_webapp.{!s}.settings.common'.format(name))
-    except ImportError:  # No app specific default config found
-        pass
-
-    # Do not use config from etcd if a config dict is supplied
-    if config:
-        # Load init time settings
-        app.config.update(config)
-    else:
-        # Init etcd config parsers
-        common_parser = EtcdConfigParser('/eduid/webapp/common/')
-        app_etcd_namespace = os.environ.get('EDUID_CONFIG_NS', '/eduid/webapp/{!s}/'.format(name))
-        app_parser = EtcdConfigParser(app_etcd_namespace)
-        # Load optional project wide settings
-        app.config.update(common_parser.read_configuration(silent=False))
-        # Load optional app specific settings
-        app.config.update(app_parser.read_configuration(silent=False))
-
-    # Load optional app specific secrets
-    cast(Config, app.config).from_envvar('LOCAL_CFG_FILE', silent=True)
+    config = get_app_config(name, config)
 
     if not isinstance(app, app_class):
         app.__class__ = app_class
 
-    config = {key.lower(): val for key, val in cast(Config, app.config).items()}
     app.init_config(config_class, config)
 
     if DEBUG:
@@ -129,7 +139,6 @@ def eduid_init_app_no_db(name: str, config: dict,
     # Set app url prefix to APPLICATION_ROOT
     app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix=app.config.application_root,  # type: ignore
                                     server_name=app.config.server_name)
-
     # Initialize shared features
     app = init_logging(app)
     app = init_exception_handlers(app)

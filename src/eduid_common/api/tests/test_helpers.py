@@ -44,9 +44,6 @@ class NinHelpersTest(EduidAPITestCase):
 
     def load_app(self, config):
         app = EduIDApp('test_app')
-        app.config.update(config)
-        # Flask sets a few default setting uppercased
-        config = {key.lower(): val for key, val in app.config.items()}
         app.config = FlaskConfig(**config)
         app = init_relay(app, 'testing')
         app.central_userdb = UserDB(app.config.mongo_uri, 'eduid_am')
