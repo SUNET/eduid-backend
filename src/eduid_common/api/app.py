@@ -70,9 +70,10 @@ def get_app_config(name: str, config: Optional[dict] = None):
     If there is an env var LOCAL_CFG_FILE pointing to a file with configuration
     keys, load them as well.
     """
-    # Do not use config from etcd if a config dict is supplied
     if config is None:
         config = {}
+    # Do not use config from etcd if a config dict is supplied
+    if not config:
         # Init etcd config parsers
         common_parser = EtcdConfigParser('/eduid/webapp/common/')
         app_etcd_namespace = os.environ.get('EDUID_CONFIG_NS', '/eduid/webapp/{!s}/'.format(name))
