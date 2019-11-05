@@ -25,7 +25,7 @@ class TestTypedIdPConfig(unittest.TestCase):
             'eduid': {
                 'webapp': {
                     'common': {
-                        'DEVEL_MODE': True
+                        'devel_mode': True
                     }
                 }
             }
@@ -80,8 +80,8 @@ class TestTypedFlaskConfig(unittest.TestCase):
             'eduid': {
                 'webapp': {
                     'common': {
-                        'DEVEL_MODE': True,
-                        'PREFERRED_URL_SCHEME': 'https'
+                        'devel_mode': True,
+                        'preferred_url_scheme': 'https'
                     }
                 }
             }
@@ -91,8 +91,8 @@ class TestTypedFlaskConfig(unittest.TestCase):
             'eduid': {
                 'webapp': {
                     'authn': {
-                        'SAFE_RELAY_DOMAIN': 'eduid.se',
-                        'APPLICATION_ROOT': '/services/authn'
+                        'safe_relay_domain': 'eduid.se',
+                        'application_root': '/services/authn'
                     }
                 }
             }
@@ -111,7 +111,6 @@ class TestTypedFlaskConfig(unittest.TestCase):
         config = FlaskConfig(**etcd_config)
         self.assertEqual(config.log_backup_count, 10)
         self.assertEqual(config['log_backup_count'], 10)
-        self.assertEqual(config['LOG_BACKUP_COUNT'], 10)
 
     def test_flask_default_setting(self):
         etcd_config = self.common_parser.read_configuration(silent=True)
@@ -120,7 +119,6 @@ class TestTypedFlaskConfig(unittest.TestCase):
         config = FlaskConfig(**etcd_config)
         self.assertEqual(config.session_refresh_each_request, True)
         self.assertEqual(config['session_refresh_each_request'], True)
-        self.assertEqual(config['SESSION_REFRESH_EACH_REQUEST'], True)
 
     def test_override_setting(self):
         etcd_config = self.common_parser.read_configuration(silent=True)
@@ -129,13 +127,11 @@ class TestTypedFlaskConfig(unittest.TestCase):
         config = FlaskConfig(**etcd_config)
         self.assertEqual(config.devel_mode, True)
         self.assertEqual(config['devel_mode'], True)
-        self.assertEqual(config['DEVEL_MODE'], True)
 
     def test_set_setting(self):
         config = FlaskConfig(**{'log_backup_count': 100})
         self.assertEqual(config.log_backup_count, 100)
         self.assertEqual(config['log_backup_count'], 100)
-        self.assertEqual(config['LOG_BACKUP_COUNT'], 100)
 
     def test_common_etcd_setting(self):
         etcd_config = self.common_parser.read_configuration(silent=True)
@@ -144,7 +140,6 @@ class TestTypedFlaskConfig(unittest.TestCase):
         config = FlaskConfig(**etcd_config)
         self.assertEqual(config.preferred_url_scheme, 'https')
         self.assertEqual(config['preferred_url_scheme'], 'https')
-        self.assertEqual(config['PREFERRED_URL_SCHEME'], 'https')
 
     def test_specific_etcd_setting(self):
         etcd_config = self.common_parser.read_configuration(silent=True)
@@ -152,5 +147,4 @@ class TestTypedFlaskConfig(unittest.TestCase):
         etcd_config = {key.lower(): value for key, value in etcd_config.items()}
         config = FlaskConfig(**etcd_config)
         self.assertEqual(config.application_root, '/services/authn')
-        self.assertEqual(config['APPLICATION_ROOT'], '/services/authn')
         self.assertEqual(config['application_root'], '/services/authn')
