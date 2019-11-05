@@ -90,10 +90,10 @@ def get_app_config(name: str, config: Optional[dict] = None):
     secrets_path = os.environ.get('LOCAL_CFG_FILE')
     if secrets_path is not None and os.path.exists(secrets_path):
         spec = importlib.util.spec_from_file_location("secret.settings", secrets_path)
-        secret_settings = importlib.util.module_from_spec(spec)
-        for secret in dir(secret_settings):
+        secret_settings_module = importlib.util.module_from_spec(spec)
+        for secret in dir(secret_settings_mdule):
             if not secret.startswith('_'):
-                config[secret] = getattr(secret_settings, secret)
+                config[secret] = getattr(secret_settings_module, secret)
     return config
 
 
