@@ -93,7 +93,7 @@ def get_app_config(name: str, config: Optional[dict] = None):
         secret_settings_module = importlib.util.module_from_spec(spec)
         for secret in dir(secret_settings_mdule):
             if not secret.startswith('_'):
-                config[secret] = getattr(secret_settings_module, secret)
+                config[secret.lower()] = getattr(secret_settings_module, secret)
     return config
 
 
