@@ -62,7 +62,7 @@ if DEBUG:
     stderr.writelines('----- WARNING! EDUID_APP_DEBUG is enabled -----\n')
 
 
-def get_app_config(name: str, config: dict = None):
+def get_app_config(name: str, config: Optional[dict] = None):
     """
     Get configuration for flask app.
 
@@ -71,24 +71,28 @@ def get_app_config(name: str, config: dict = None):
     keys, load them as well.
     """
     # Do not use config from etcd if a config dict is supplied
-    if not config:
+    if config is None:
+        config = {}
         # Init etcd config parsers
         common_parser = EtcdConfigParser('/eduid/webapp/common/')
         app_etcd_namespace = os.environ.get('EDUID_CONFIG_NS', '/eduid/webapp/{!s}/'.format(name))
         app_parser = EtcdConfigParser(app_etcd_namespace)
         # Load optional project wide settings
-        config = common_parser.read_configuration(silent=False)
+        common_config = common_parser.read_configuration(silent=False)
+        if common_config:
+            config.update(common_config)
         # Load optional app specific settings
-        config.update(app_parser.read_configuration(silent=False))
+        app_config = app_parser.read_configuration(silent=False)
+        if app_config:
+            config.update(app_config)
 
     # Load optional app specific secrets
     secrets_path = os.environ.get('LOCAL_CFG_FILE')
     if secrets_path is not None and os.path.exists(secrets_path):
         spec = importlib.util.spec_from_file_location("secret.settings", secrets_path)
         secret_settings = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(secret_settings)
         for secret in dir(secret_settings):
-            if secret.isupper() and not secret.startswith('_'):
+            if not secret.startswith('_'):
                 config[secret] = getattr(secret_settings, secret)
     return config
 
