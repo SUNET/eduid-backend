@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
+import warnings
+from dataclasses import asdict
 
 import sys
 import pprint
-import urllib
+from urllib import parse
 from flask import url_for
 
 __author__ = 'lundberg'
@@ -34,7 +36,7 @@ def log_endpoints(app):
 
             methods = ','.join(rule.methods)
             url = url_for(rule.endpoint, **options)
-            line = urllib.unquote("{:50s} {:20s} {}".format(rule.endpoint, methods, url))
+            line = parse.unquote("{:50s} {:20s} {}".format(rule.endpoint, methods, url))
             output.append(line)
 
         for line in sorted(output):
@@ -43,7 +45,15 @@ def log_endpoints(app):
 
 def dump_config(app):
     pprint.pprint(('CONFIGURATION', 'app.config'), stream=sys.stderr)
-    for key, value in sorted(app.config.items()):
+    try:
+        config_items = asdict(app.config).items()
+    except TypeError:
+        config_items = app.config.items()
+        warnings.warn(
+            f'{app.name} is using old dict config',
+            DeprecationWarning
+        )
+    for key, value in sorted(config_items):
         pprint.pprint((key, value), stream=sys.stderr)
 
 

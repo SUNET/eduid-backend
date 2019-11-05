@@ -42,7 +42,7 @@ from typing import Type, cast, Optional
 from flask import Config, Flask
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from eduid_common.api.debug import dump_config
+from eduid_common.api.debug import init_app_debug
 from eduid_common.api.exceptions import init_exception_handlers, init_sentry
 from eduid_common.api.logging import init_logging
 from eduid_common.api.middleware import PrefixMiddleware
@@ -130,7 +130,7 @@ def eduid_init_app_no_db(name: str, config: dict,
     app.init_config(config_class, config)
 
     if DEBUG:
-        dump_config(app)
+        app = init_app_debug(app)
 
     # Check that SECRET_KEY is set
     if not app.config.secret_key:
