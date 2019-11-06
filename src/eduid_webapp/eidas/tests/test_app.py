@@ -117,9 +117,8 @@ class EidasTests(EduidAPITestCase):
         """
         return init_eidas_app('testing', config)
 
-    def update_config(self, config):
+    def update_config(self, app_config):
         saml_config = os.path.join(HERE, 'saml2_settings.py')
-        app_config = {k.lower(): v for k,v in config.items()}
         app_config.update({
             'token_verify_redirect_url': 'http://test.localhost/profile',
             'nin_verify_redirect_url': 'http://test.localhost/profile',

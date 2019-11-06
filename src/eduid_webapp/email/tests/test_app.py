@@ -54,8 +54,7 @@ class EmailTests(EduidAPITestCase):
         """
         return email_init_app('emails', config)
 
-    def update_config(self, config):
-        app_config = {k.lower(): v for k,v in config.items()}
+    def update_config(self, app_config):
         app_config.update({
             'available_languages': {'en': 'English','sv': 'Svenska'},
             'msg_broker_url': 'amqp://dummy',
