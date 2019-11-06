@@ -86,4 +86,3 @@ class FrontConfig:
     static_students_url: str = 'http://html.eduid.docker/'
     static_technicians_url: str = 'http://html.eduid.docker/tekniker.html'
     static_staff_url: str = 'http://html.eduid.docker/personal.html'
-    static_faq_url: str = 'http://html.eduid.docker/faq.html'
