@@ -121,51 +121,6 @@ class SignupTests(EduidAPITestCase):
         client.set_cookie(server_name, key=self.app.config.session_cookie_name, value=sess._session.token)
         yield client
 
-    @patch('requests.get')
-    def test_get_config(self, mock_http_request):
-        data = {'payload': {
-            'en': 'test tou english',
-            'sv': 'test tou svenska'}
-        }
-        mock_http_request.return_value = mock_response(status_code=200, json_data=data)
-
-        with self.session_cookie(self.browser) as client:
-            response2 = client.get('/config')
-
-            self.assertEqual(response2.status_code, 200)
-
-            config_data = json.loads(response2.data)
-
-            self.assertEqual('GET_SIGNUP_CONFIG_SUCCESS', config_data['type'])
-            self.assertEqual(None, config_data['error'])
-            self.assertEqual('/services/authn/signup-authn',
-                    config_data['payload']['dashboard_url'])
-            self.assertEqual('test tou english', config_data['payload']['tous']['en'])
-            self.assertEqual('test tou svenska', config_data['payload']['tous']['sv'])
-            self.assertEqual(True, config_data['payload']['debug'])
-            self.assertEqual({u'en': u'English', u'sv': u'Svenska'},
-                    config_data['payload']['available_languages'])
-            self.assertEqual('https://www.eduid.se/tekniker.html',
-                    config_data['payload']['technicians_link'])
-            self.assertEqual('https://www.eduid.se/personal.html',
-                    config_data['payload']['staff_link'])
-
-    @patch('requests.get')
-    def test_get_config_302_tous(self, mock_http_request):
-        mock_http_request.return_value = mock_response(status_code=302)
-
-        with self.session_cookie(self.browser) as client:
-            with self.assertRaises(InternalServerError):
-                client.get('/config')
-
-    @patch('requests.get')
-    def test_get_config_500_tous(self, mock_http_request):
-        mock_http_request.return_value = mock_response(status_code=500)
-
-        with self.session_cookie(self.browser) as client:
-            with self.assertRaises(InternalServerError):
-                client.get('/config')
-
     def test_captcha_no_data_fail(self):
         email = 'dummy@example.com'
         with self.session_cookie(self.browser) as client:
