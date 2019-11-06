@@ -9,7 +9,7 @@
 <body>
     <div class="container">
         <div class="pull-right">
-            <form id="logout-form" class="form-inline" method="GET" action="{{ config.TOKEN_SERVICE_URL_LOGOUT }}">
+            <form id="logout-form" class="form-inline" method="GET" action="{{ config.token_service_url_logout }}">
                 <div class="form-group">
                     {{ support_user.display_name }}
                     <input type="hidden" name="csrf" value="{{ session.get_csrf_token() }}">

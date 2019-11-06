@@ -81,8 +81,7 @@ class JSConfigTests(EduidAPITestCase):
         app.url_map.host_matching = False
         return app
 
-    def update_config(self, config):
-        app_config = {k.lower(): v for k,v in config.items()}
+    def update_config(self, app_config):
         app_config.update({
             'server_name': 'example.com',
             'tou_url': 'dummy-url',

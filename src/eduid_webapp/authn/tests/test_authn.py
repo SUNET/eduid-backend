@@ -66,13 +66,12 @@ HERE = os.path.abspath(os.path.dirname(__file__))
 
 class AuthnAPITestBase(EduidAPITestCase):
 
-    def update_config(self, config):
+    def update_config(self, app_config):
         """
         Called from the parent class, so that we can update the configuration
         according to the needs of this test case.
         """
         saml_config = os.path.join(HERE, 'saml2_settings.py')
-        app_config = {k.lower(): v for k,v in config.items()}
         app_config.update({
             'saml2_login_redirect_url': '/',
             'saml2_logout_redirect_url': '/logged-out',
@@ -331,13 +330,12 @@ class AuthnAPITestCase(AuthnAPITestBase):
 
 class UnAuthnAPITestCase(EduidAPITestCase):
 
-    def update_config(self, config):
+    def update_config(self, app_config):
         """
         Called from the parent class, so that we can update the configuration
         according to the needs of this test case.
         """
         saml_config = os.path.join(HERE, 'saml2_settings.py')
-        app_config = {k.lower(): v for k,v in config.items()}
         app_config.update({
             'token_service_url': 'http://login',
             'saml2_settings_module': saml_config,
@@ -384,13 +382,12 @@ class NoAuthnAPITestCase(EduidAPITestCase):
 
         self.app.register_blueprint(test_views)
 
-    def update_config(self, config):
+    def update_config(self, app_config):
         """
         Called from the parent class, so that we can update the configuration
         according to the needs of this test case.
         """
         saml_config = os.path.join(HERE, 'saml2_settings.py')
-        app_config = {k.lower(): v for k,v in config.items()}
         app_config.update({
             'token_service_url': 'http://login',
             'saml2_settings_module': saml_config,

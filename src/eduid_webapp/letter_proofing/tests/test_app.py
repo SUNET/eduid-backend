@@ -67,10 +67,7 @@ class LetterProofingTests(EduidAPITestCase):
         """
         return init_letter_proofing_app('testing', config)
 
-    def update_config(self, config):
-        #  XXX remove this lower casing once the default config in
-        #  common.api.testing is lower case
-        app_config = {k.lower(): v for k,v in config.items()}
+    def update_config(self, app_config):
         app_config.update({
             # 'ekopost_debug_pdf': devnull,
             'ekopost_api_uri': 'http://localhost',

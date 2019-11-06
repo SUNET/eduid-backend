@@ -81,10 +81,7 @@ class OrcidTests(EduidAPITestCase):
             mock_response.return_value = self.oidc_provider_config_response
             return init_orcid_app('testing', config)
 
-    def update_config(self, config):
-        #  XXX remove this lower casing once the default config in
-        #  common.api.testing is lower case
-        app_config = {k.lower(): v for k,v in config.items()}
+    def update_config(self, app_config):
         app_config.update({
             'am_broker_url': 'amqp://dummy',
             'celery_config': {
