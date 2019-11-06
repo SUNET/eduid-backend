@@ -65,7 +65,7 @@ class FrontConfig:
     token_service_url: str = '/services/authn/'
     oidc_proofing_freja_url: str = '/services/oidc-proofing/freja/proofing/'
     orcid_url: str = '/services/orcid/'
-    eidas_url: str = 'https://eidas.eduid.local.emergya.info'
+    eidas_url: str = 'http://eidas.eduid.docker:8080/'
     token_verify_idp: str = 'http://dev.test.swedenconnect.se/idp'
     # changing password
     password_length: int = 12
