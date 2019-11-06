@@ -160,8 +160,23 @@ class TestEtcdParser(unittest.TestCase):
         read_config = self.parser.read_configuration()
         self.assertEqual({'my_set_key': 'a nice value', 'my_value': 'a nice value'}, read_config)
 
+    def test_interpolate_upper(self):
+        self.parser.set('my_set_key', '${MY_VALUE}')
+        self.parser.set('my_value', 'a nice value')
+
+        read_config = self.parser.read_configuration()
+        self.assertEqual({'my_set_key': 'a nice value', 'my_value': 'a nice value'}, read_config)
+
     def test_interpolate_variable_key(self):
         self.parser.set('my_set_key', '${var_my_value}')
+        self.parser.set('var_my_value', 'a nice value')
+        self.assertEqual('a nice value', self.parser.get('var_my_value'))
+
+        read_config = self.parser.read_configuration()
+        self.assertEqual({'my_set_key': 'a nice value'}, read_config)
+
+    def test_interpolate_variable_key_upper(self):
+        self.parser.set('my_set_key', '${VAR_MY_VALUE}')
         self.parser.set('var_my_value', 'a nice value')
         self.assertEqual('a nice value', self.parser.get('var_my_value'))
 
@@ -174,12 +189,42 @@ class TestEtcdParser(unittest.TestCase):
         read_config = self.parser.read_configuration()
         self.assertEqual({'my_set_key': '${my_value}'}, read_config)
 
+    def test_interpolate_missing_key_upper(self):
+        self.parser.set('my_set_key', '${MY_VALUE}')
+
+        read_config = self.parser.read_configuration()
+        self.assertEqual({'my_set_key': '${MY_VALUE}'}, read_config)
+
     def test_interpolate_complex_dict(self):
         self.parser.set('my_set_key', '${my_value}')
         self.parser.set('my_value', 'a nice value')
         self.parser.set('a_list', ['test', '${my_value}', {'a_dict_in_a_list': '${my_value}'}])
         self.parser.set('another_dict', {'string_in_sub_dict': '${my_value}',
                                          'a_dict_in_a_dict': {'another_key': '${my_value}'}})
+
+        read_config = self.parser.read_configuration()
+
+        expected = {
+            'my_set_key': 'a nice value',
+            'my_value': 'a nice value',
+            'a_list': [
+                'test',
+                'a nice value',
+                {'a_dict_in_a_list': 'a nice value'},
+            ],
+            'another_dict': {
+                'string_in_sub_dict': 'a nice value',
+                'a_dict_in_a_dict': {'another_key': 'a nice value'}
+            }
+        }
+        self.assertEqual(expected, read_config)
+
+    def test_interpolate_complex_dict_upper(self):
+        self.parser.set('my_set_key', '${MY_VALUE}')
+        self.parser.set('my_value', 'a nice value')
+        self.parser.set('a_list', ['test', '${MY_VALUE}', {'a_dict_in_a_list': '${MY_VALUE}'}])
+        self.parser.set('another_dict', {'string_in_sub_dict': '${MY_VALUE}',
+                                         'a_dict_in_a_dict': {'another_key': '${MY_VALUE}'}})
 
         read_config = self.parser.read_configuration()
 

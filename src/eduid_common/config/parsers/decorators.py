@@ -146,18 +146,23 @@ def interpolate_config(config_dict, sub_dict=None):
     """
     if not sub_dict:
         sub_dict = config_dict
+    # XXX case insensitive substitution - transitioning to lc config
+    ci_config_dict = {}
+    for k,v in config_dict.items():
+        ci_config_dict[k] = v
+        ci_config_dict[k.upper()] = v
     for key, value in sub_dict.items():
         # Substitute string values
         if isinstance(value, six.string_types) and '$' in value:
             template = Template(value)
-            sub_dict[key] = template.safe_substitute(config_dict)
+            sub_dict[key] = template.safe_substitute(ci_config_dict)
 
         # Check if lists contain string values, dicts or more lists
         # Offloaded to interpolate_list
         if isinstance(value, list):
-            sub_dict[key] = interpolate_list(config_dict, value)
+            sub_dict[key] = interpolate_list(ci_config_dict, value)
 
         # Recursively call interpolate_config for sub dicts
         if isinstance(value, dict):
-            sub_dict[key] = interpolate_config(config_dict, value)
+            sub_dict[key] = interpolate_config(ci_config_dict, value)
     return sub_dict
