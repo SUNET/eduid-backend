@@ -150,7 +150,6 @@ def interpolate_config(config_dict, sub_dict=None):
     ci_config_dict = {}
     for k,v in config_dict.items():
         ci_config_dict[k] = v
-        ci_config_dict[k.lower()] = v
         ci_config_dict[k.upper()] = v
     for key, value in sub_dict.items():
         # Substitute string values
