@@ -335,9 +335,9 @@ class FlaskConfig(BaseConfig):
     session_cookie_domain: Optional[str] = None
     # the path for the session cookie. If this is not set the cookie will be valid
     # for all of APPLICATION_ROOT or if that is not set for '/'.
-    session_cookie_path: Optional[str] = None
+    session_cookie_path: str = '/'
     # controls if the cookie should be set with the httponly flag. Defaults to True
-    session_cookie_httponly: bool = True
+    session_cookie_httponly: bool = False
     # controls if the cookie should be set with the secure flag. Defaults to False
     session_cookie_secure: bool = False
     # Restrict how cookies are sent with requests from external sites.
