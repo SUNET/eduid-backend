@@ -82,7 +82,3 @@ class FrontConfig:
     # This key is for signup.eduid.local.emergya.info
     # recaptcha_public_key: str = '6Ld2IUwUAAAAAD5saiXoQKgmUC9JhQLqcHZoemTh'
     sentry_dsn: str = ''
-    # Static links
-    static_students_url: str = 'http://html.eduid.docker/'
-    static_technicians_url: str = 'http://html.eduid.docker/tekniker.html'
-    static_staff_url: str = 'http://html.eduid.docker/personal.html'
