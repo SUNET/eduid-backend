@@ -46,41 +46,6 @@ from eduid_webapp.signup.app import current_signup_app as current_app
 signup_views = Blueprint('signup', __name__, url_prefix='', template_folder='templates')
 
 
-@signup_views.route('/config', methods=['GET'])
-@MarshalWith(FluxStandardAction)
-def get_config():
-    tou_url = current_app.config.tou_url
-    try:
-        r = requests.get(tou_url)
-        current_app.logger.debug('Response: {!r} with headers: {!r}'.format(r, r.headers))
-        if r.status_code == 302:
-            headers = {'Cookie': r.headers.get('Set-Cookie')}
-            current_app.logger.debug('Headers: {!r}'.format(headers))
-            r = requests.get(tou_url, headers=headers)
-            current_app.logger.debug('2nd response: {!r} with headers: {!r}'.format(r, r.headers))
-    except requests.exceptions.HTTPError as e:
-        current_app.logger.error('Problem getting tous from URL {!r}: {!r}'.format(tou_url, e))
-        abort(500)
-    if r.status_code != 200:
-        current_app.logger.debug('Problem getting config, '
-                                 'response status: '
-                                 '{!r}'.format(r.status_code))
-        abort(500)
-    return {
-            'csrf_token': session.get_csrf_token(),
-            'recaptcha_public_key': current_app.config.recaptcha_public_key,
-            'available_languages': current_app.config.available_languages,
-            'debug': current_app.config.debug,
-            'tous': r.json()['payload'],
-            'dashboard_url': current_app.config.signup_authn_url,
-            'reset_passwd_url': current_app.config.reset_passwd_url,
-            'students_link': current_app.config.students_link,
-            'technicians_link': current_app.config.technicians_link,
-            'staff_link': current_app.config.staff_link,
-            'faq_link': current_app.config.faq_link,
-            }
-
-
 @signup_views.route('/trycaptcha', methods=['POST'])
 @UnmarshalWith(RegisterEmailSchema)
 @MarshalWith(AccountCreatedResponse)
