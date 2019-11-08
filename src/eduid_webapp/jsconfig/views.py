@@ -132,7 +132,6 @@ def get_signup_config() -> dict:
         abort(500)
 
     config.debug = current_app.config.debug
-    config.reset_passwd_url = current_app.config.reset_passwd_url
     config.csrf_token = session.get_csrf_token()
     config.tous = cast(Dict[str, str], tous)
     # XXX the front app consumes some settings as upper case and some as lower
