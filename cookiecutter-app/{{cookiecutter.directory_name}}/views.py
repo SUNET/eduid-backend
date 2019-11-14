@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
-
-from flask import Blueprint, current_app
+from flask import Blueprint
 
 from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
+from eduid_webapp.{{cookiecutter.directory_name}}.app import current_{{cookiecutter.directory_name}}_app as current_app
 
 __author__ = '{{cookiecutter.author}}'
 
