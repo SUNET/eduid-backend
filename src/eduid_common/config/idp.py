@@ -97,7 +97,7 @@ class IdPConfig(BaseConfig):
     # ForceAuthn).
     # The total time a user can access a particular SP would therefor be
     # this value, plus the pysaml2 lifetime of the assertion.
-    sso_session_lifetime: int = 15
+    sso_session_lifetime: int = 600
     # Raven DSN (string) for logging exceptions to Sentry.
     raven_dsn: Optional[str] = None
     # List of Python packages [("name","path") ... ]̣ with content resources
