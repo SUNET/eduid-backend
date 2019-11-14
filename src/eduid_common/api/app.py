@@ -54,7 +54,7 @@ from eduid_common.config.base import FlaskConfig
 from eduid_common.config.exceptions import BadConfiguration
 from eduid_common.config.parsers.etcd import EtcdConfigParser
 from eduid_common.session.eduid_session import SessionFactory
-from eduid_common.stats import NoOpStats, Statsd
+from eduid_common.stats import init_app_stats
 
 DEBUG = os.environ.get('EDUID_APP_DEBUG', False)
 if DEBUG:
@@ -96,14 +96,8 @@ class EduIDApp(Flask):
         init_exception_handlers(self)
         init_sentry(self)
         init_template_functions(self)
+        init_app_stats(self)
         self.session_interface = SessionFactory(asdict(self.config))
-
-        stats_host = self.config.stats_host
-        if not stats_host:
-            self.stats = NoOpStats()
-        else:
-            stats_port = self.config.stats_port
-            self.stats = Statsd(host=stats_host, port=stats_port, prefix=name)
 
         if init_central_userdb:
             self.central_userdb = UserDB(self.config.mongo_uri, 'eduid_am')
@@ -205,14 +199,8 @@ def eduid_init_app_no_db(name: str, config: dict,
     app = init_exception_handlers(app)
     app = init_sentry(app)
     app = init_template_functions(app)
+    app = init_app_stats(app)
     app.session_interface = SessionFactory(app.config)
-
-    stats_host = app.config.stats_host
-    if not stats_host:
-        app.stats = NoOpStats()
-    else:
-        stats_port = app.config.stats_port
-        app.stats = Statsd(host=stats_host, port=stats_port, prefix=name)
 
     return app
 
