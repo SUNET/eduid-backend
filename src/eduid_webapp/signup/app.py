@@ -31,19 +31,17 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from __future__ import absolute_import
-
 from typing import cast
 
 from flask import current_app
 
-from eduid_common.api.app import eduid_init_app
-from eduid_common.api import mail_relay
 from eduid_common.api import am
+from eduid_common.api import mail_relay
 from eduid_common.api import translation
-from eduid_common.config.app import EduIDApp
-from eduid_userdb.signup import SignupUserDB
+from eduid_common.api.app import EduIDApp
+from eduid_common.api.app import eduid_init_app
 from eduid_userdb.logs import ProofingLog
+from eduid_userdb.signup import SignupUserDB
 from eduid_webapp.signup.settings.common import SignupConfig
 
 

@@ -33,13 +33,14 @@ from __future__ import absolute_import
 
 from time import time
 from saml2.ident import code
-from flask import request, redirect, current_app
+from flask import request, redirect
 
 from eduid_common.session import session
 from eduid_common.api.utils import verify_relay_state
 from eduid_common.authn.loa import get_loa
 from eduid_common.authn.acs_registry import acs_action
 from eduid_common.authn.utils import get_saml_attribute
+from eduid_webapp.authn.app import current_authn_app as current_app
 
 
 def update_user_session(session_info, user):

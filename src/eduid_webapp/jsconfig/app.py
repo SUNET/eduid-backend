@@ -34,9 +34,9 @@ from typing import cast
 
 from flask import current_app
 
+from eduid_common.api.app import EduIDApp
 from eduid_common.api.app import eduid_init_app_no_db
 from eduid_common.authn.utils import no_authn_views
-from eduid_common.config.app import EduIDApp
 from eduid_webapp.jsconfig.settings.common import JSConfigConfig
 
 
