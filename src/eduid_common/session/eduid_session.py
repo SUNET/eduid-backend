@@ -1,11 +1,11 @@
-#
-#
-#   Redistribution and use in source and binary forms, with or
-#   without modification, are permitted provided that the following
-#   conditions are met:
-#
-#
-#
+
+# From https://stackoverflow.com/a/39757388
+# The TYPE_CHECKING constant is always False at runtime, so the import won't be evaluated, but mypy
+# (and other type-checking tools) will evaluate the contents of that block.
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from eduid_common.api.app import EduIDApp
 
 import os
 import binascii
@@ -19,7 +19,6 @@ from flask import request as flask_request
 from flask.sessions import SessionInterface, SessionMixin
 
 from eduid_common.config.exceptions import BadConfiguration
-from eduid_common.config.app import EduIDApp
 from eduid_common.session.redis_session import SessionManager, RedisEncryptedSession
 from eduid_common.session.namespaces import SessionNSBase, Common, MfaAction
 from eduid_common.session.namespaces import Signup, Actions
