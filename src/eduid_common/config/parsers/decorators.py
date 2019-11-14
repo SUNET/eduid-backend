@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
-
 import logging
-import six
-import json
 from functools import wraps
+from typing import Optional
+
 from nacl import secret, encoding, exceptions
 from string import Template
 
@@ -24,12 +22,10 @@ def decrypt(f):
     return decrypt_decorator
 
 
-def read_secret_key(key_name):
+def read_secret_key(key_name: str) -> bytes:
     """
     :param key_name: Key file name
-    :type key_name: six.string_types
     :return: 32 bytes of secret data
-    :rtype: bytes
     """
     sanitized_key_name = "".join([c for c in key_name if c.isalpha() or c.isdigit() or c == '_'])
     fp = '/run/secrets/{}'.format(sanitized_key_name)
@@ -37,28 +33,25 @@ def read_secret_key(key_name):
         return encoding.URLSafeBase64Encoder.decode(f.readline())
 
 
-def init_secret_box(key_name=None, secret_key=None):
+def init_secret_box(key_name: Optional[str] = None, secret_key: Optional[bytes] = None) -> secret.SecretBox:
     """
     :param key_name: Key file name
-    :type key_name: six.string_types
     :param secret_key: 32 bytes of secret data
-    :type secret_key: bytes
     :return: SecretBox
-    :rtype: SecretBox
     """
     if not secret_key:
+        if not key_name:
+            raise SecretKeyException('Can not initialize a SecretBox without either key_name or secret_key')
         secret_key = read_secret_key(key_name)
     return secret.SecretBox(secret_key)
 
 
-def decrypt_config(config_dict):
+def decrypt_config(config_dict: dict) -> dict:
     """
     :param config_dict: Configuration dictionary
-    :type config_dict: dict
     :return: Configuration dictionary
-    :rtype: dict
     """
-    boxes = {}
+    boxes: dict = {}
     for key, value in config_dict.items():
         if key.lower().endswith('_encrypted'):
             decrypted = False
@@ -73,17 +66,10 @@ def decrypt_config(config_dict):
                         logging.error(e)
                         continue  # Try next key
                 try:
-                    if six.PY2:
-                        encrypted_value = encrypted_value.encode('ascii')
-                        decrypted_value = boxes[key_name].decrypt(encrypted_value,
-                                                                  encoder=encoding.URLSafeBase64Encoder)
-                        decrypted_value = decrypted_value.decode('utf-8')
-                    else:
-                        encrypted_value = bytes(encrypted_value, 'ascii')
-                        decrypted_value = boxes[key_name].decrypt(encrypted_value,
-                                                                  encoder=encoding.URLSafeBase64Encoder).decode('utf-8')
-
-                        config_dict[key[:-10]] = decrypted_value
+                    encrypted_value = bytes(encrypted_value, 'ascii')
+                    decrypted_value = boxes[key_name].decrypt(encrypted_value,
+                                                              encoder=encoding.URLSafeBase64Encoder).decode('utf-8')
+                    config_dict[key[:-10]] = decrypted_value
                     del config_dict[key]
                     decrypted = True
                     break  # Decryption successful, do not try any more keys
@@ -108,21 +94,17 @@ def interpolate(f):
     return interpolation_decorator
 
 
-def interpolate_list(config_dict, sub_list):
+def interpolate_list(config_dict: dict, sub_list: list) -> list:
     """
     :param config_dict: Configuration dictionary
     :param sub_list: Sub configuration list
 
-    :type config_dict: dict
-    :type sub_list: list
-
     :return: Configuration list
-    :rtype: list
     """
     for i in range(0, len(sub_list)):
         item = sub_list[i]
         # Substitute string items
-        if isinstance(item, six.string_types) and '$' in item:
+        if isinstance(item, str) and '$' in item:
             template = Template(item)
             sub_list[i] = template.safe_substitute(config_dict)
         # Call interpolate_config with dict items
@@ -134,15 +116,12 @@ def interpolate_list(config_dict, sub_list):
     return sub_list
 
 
-def interpolate_config(config_dict, sub_dict=None):
+def interpolate_config(config_dict: dict, sub_dict: Optional[dict] = None) -> dict:
     """
     :param config_dict: Configuration dictionary
     :param sub_dict: Sub configuration dictionary
-    :type config_dict: dict
-    :type sub_dict: dict
 
     :return: Configuration dictionary
-    :rtype: dict
     """
     if not sub_dict:
         sub_dict = config_dict
@@ -153,7 +132,7 @@ def interpolate_config(config_dict, sub_dict=None):
         ci_config_dict[k.upper()] = v
     for key, value in sub_dict.items():
         # Substitute string values
-        if isinstance(value, six.string_types) and '$' in value:
+        if isinstance(value, str) and '$' in value:
             template = Template(value)
             sub_dict[key] = template.safe_substitute(ci_config_dict)
 
