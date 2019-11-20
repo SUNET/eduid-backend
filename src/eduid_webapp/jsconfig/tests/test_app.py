@@ -150,15 +150,39 @@ class JSConfigTests(EduidAPITestCase):
             self.assertTrue('dummy-dashboard-bundle' in str(body))
             self.assertTrue('dummy-dashboard-version' in str(body))
 
+    def test_get_login_bundle(self):
+        eppn = self.test_user_data['eduPersonPrincipalName']
+        with self.session_cookie(self.browser, eppn, server_name='example.com',
+                                 subdomain='dashboard') as client:
+            response = client.get('http://dashboard.example.com/get-bundle')
+
+            self.assertEqual(response.status_code, 200)
+
+            body = response.data
+            self.assertTrue('dummy-dashboard-bundle' in str(body))
+            self.assertTrue('dummy-dashboard-version' in str(body))
+
     # def test_get_signup_bundle(self):
         # eppn = self.test_user_data['eduPersonPrincipalName']
         # with self.session_cookie(self.browser, eppn, server_name='example.com',
-                                 # subdomain='signup') as client:
+                                  # subdomain='signup') as client:
             # response = client.get('/signup/get-bundle', subdomain='signup',
-                    # follow_redirects=True)
+                  # follow_redirects=True)
 
             # self.assertEqual(response.status_code, 200)
 
             # body = response.data
             # self.assertTrue('dummy-signup-bundle' in str(body))
             # self.assertTrue('dummy-signup-version' in str(body))
+
+    # def test_get_login_bundle(self):
+        # eppn = self.test_user_data['eduPersonPrincipalName']
+        # with self.session_cookie(self.browser, eppn, server_name='example.com',
+                                  # subdomain='login') as client:
+            # response = client.get('http://login.example.com/get-bundle')
+
+            # self.assertEqual(response.status_code, 200)
+
+            # body = response.data
+            # self.assertTrue('dummy-login-bundle' in str(body))
+            # self.assertTrue('dummy-login-version' in str(body))
