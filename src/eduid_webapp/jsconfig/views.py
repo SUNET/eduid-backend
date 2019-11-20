@@ -169,3 +169,16 @@ def get_signup_bundle():
     except AttributeError as e:
         current_app.logger.error(f'Template rendering failed: {e}')
         abort(500)
+
+
+@jsconfig_views.route('/get-bundle', methods=['GET'], subdomain="login")
+def get_login_bundle():
+    context = {
+        'bundle': current_app.config.login_bundle_path,
+        'version': current_app.config.login_bundle_version,
+    }
+    try:
+        return render_template('load_bundle.jinja2', context=context)
+    except AttributeError as e:
+        current_app.logger.error(f'Template rendering failed: {e}')
+        abort(500)

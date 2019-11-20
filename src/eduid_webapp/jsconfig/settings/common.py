@@ -49,3 +49,6 @@ class JSConfigConfig(FlaskConfig):
     signup_bundle_path: str = 'front-build/signup-bundle.dev.js'
     signup_bundle_version: str = 'dev'
     tou_url: str = '/get-tous'
+    # Login config
+    login_bundle_path: str = 'front-build/login-bundle.dev.js'
+    login_bundle_version: str = 'dev'
