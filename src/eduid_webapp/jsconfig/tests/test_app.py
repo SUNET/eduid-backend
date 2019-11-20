@@ -150,18 +150,6 @@ class JSConfigTests(EduidAPITestCase):
             self.assertTrue('dummy-dashboard-bundle' in str(body))
             self.assertTrue('dummy-dashboard-version' in str(body))
 
-    def test_get_login_bundle(self):
-        eppn = self.test_user_data['eduPersonPrincipalName']
-        with self.session_cookie(self.browser, eppn, server_name='example.com',
-                                 subdomain='dashboard') as client:
-            response = client.get('http://dashboard.example.com/get-bundle')
-
-            self.assertEqual(response.status_code, 200)
-
-            body = response.data
-            self.assertTrue('dummy-dashboard-bundle' in str(body))
-            self.assertTrue('dummy-dashboard-version' in str(body))
-
     # def test_get_signup_bundle(self):
         # eppn = self.test_user_data['eduPersonPrincipalName']
         # with self.session_cookie(self.browser, eppn, server_name='example.com',
