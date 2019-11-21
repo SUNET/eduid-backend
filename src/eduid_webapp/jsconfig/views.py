@@ -145,6 +145,22 @@ def get_signup_config() -> dict:
     return config_dict
 
 
+@jsconfig_views.route('/login/config', methods=['GET'], subdomain="login")
+@MarshalWith(FluxStandardAction)
+def get_login_config() -> dict:
+    """
+    Configuration for the login front app
+    """
+    current_app.logger.info(f'Serving configuration for the login app')
+
+    config = get_etcd_config()
+    return {
+            'csrf_token': session.get_csrf_token(),
+            'password_entropy': config.password_entropy,
+            'password_length': config.password_length,
+            }
+
+
 @jsconfig_views.route('/get-bundle', methods=['GET'], subdomain="dashboard")
 def get_dashboard_bundle():
     context = {

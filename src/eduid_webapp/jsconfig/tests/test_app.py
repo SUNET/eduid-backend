@@ -60,6 +60,8 @@ class JSConfigTests(EduidAPITestCase):
             'eduid': {
                 'webapp': {
                     'jsapps': {
+                        'password_entropy': 12,
+                        'password_length': 10,
                         'dashboard_url': 'dummy-url'
                     }
                 }
@@ -86,6 +88,8 @@ class JSConfigTests(EduidAPITestCase):
             'server_name': 'example.com',
             'tou_url': 'dummy-url',
             'testing': True,
+            'password_entropy': 12,
+            'password_length': 10,
             'dashboard_bundle_path': 'dummy-dashboard-bundle',
             'dashboard_bundle_version': 'dummy-dashboard-version',
             'signup_bundle_path': 'dummy-signup-bundle',
@@ -139,6 +143,21 @@ class JSConfigTests(EduidAPITestCase):
             self.assertEqual(config_data['payload']['dashboard_url'], 'dummy-url')
             self.assertEqual(config_data['payload']['static_faq_url'], '')
             self.assertEqual(config_data['payload']['tous']['test-version-2'], '2st Dummy TOU')
+
+    def test_get_login_config(self):
+
+        eppn = self.test_user_data['eduPersonPrincipalName']
+        with self.session_cookie(self.browser, eppn, server_name='example.com',
+                                 subdomain='login') as client:
+            response = client.get('http://login.example.com/login/config')
+
+            self.assertEqual(response.status_code, 200)
+
+            config_data = json.loads(response.data)
+
+            self.assertEqual(config_data['type'], 'GET_JSCONFIG_LOGIN_CONFIG_SUCCESS')
+            self.assertEqual(config_data['payload']['password_entropy'], 12)
+            self.assertEqual(config_data['payload']['password_length'], 10)
 
     def test_get_dashboard_bundle(self):
         eppn = self.test_user_data['eduPersonPrincipalName']

@@ -52,3 +52,6 @@ class JSConfigConfig(FlaskConfig):
     # Login config
     login_bundle_path: str = 'front-build/login-bundle.dev.js'
     login_bundle_version: str = 'dev'
+    # reset password config
+    password_entropy: int = 25
+    password_length: int = 12
