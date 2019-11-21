@@ -60,6 +60,8 @@ class JSConfigTests(EduidAPITestCase):
             'eduid': {
                 'webapp': {
                     'jsapps': {
+                        'password_entropy': 12,
+                        'password_length': 10,
                         'dashboard_url': 'dummy-url'
                     }
                 }
@@ -90,6 +92,8 @@ class JSConfigTests(EduidAPITestCase):
             'dashboard_bundle_version': 'dummy-dashboard-version',
             'signup_bundle_path': 'dummy-signup-bundle',
             'signup_bundle_version': 'dummy-signup-version',
+            'login_bundle_path': 'dummy-login-bundle',
+            'login_bundle_version': 'dummy-login-version',
         })
         return JSConfigConfig(**app_config)
 
@@ -138,6 +142,21 @@ class JSConfigTests(EduidAPITestCase):
             self.assertEqual(config_data['payload']['static_faq_url'], '')
             self.assertEqual(config_data['payload']['tous']['test-version-2'], '2st Dummy TOU')
 
+    def test_get_login_config(self):
+
+        eppn = self.test_user_data['eduPersonPrincipalName']
+        with self.session_cookie(self.browser, eppn, server_name='example.com',
+                                 subdomain='login') as client:
+            response = client.get('http://login.example.com/login/config')
+
+            self.assertEqual(response.status_code, 200)
+
+            config_data = json.loads(response.data)
+
+            self.assertEqual(config_data['type'], 'GET_JSCONFIG_LOGIN_CONFIG_SUCCESS')
+            self.assertEqual(config_data['payload']['password_entropy'], 12)
+            self.assertEqual(config_data['payload']['password_length'], 10)
+
     def test_get_dashboard_bundle(self):
         eppn = self.test_user_data['eduPersonPrincipalName']
         with self.session_cookie(self.browser, eppn, server_name='example.com',
@@ -150,15 +169,36 @@ class JSConfigTests(EduidAPITestCase):
             self.assertTrue('dummy-dashboard-bundle' in str(body))
             self.assertTrue('dummy-dashboard-version' in str(body))
 
-    # def test_get_signup_bundle(self):
-        # eppn = self.test_user_data['eduPersonPrincipalName']
-        # with self.session_cookie(self.browser, eppn, server_name='example.com',
-                                 # subdomain='signup') as client:
-            # response = client.get('/signup/get-bundle', subdomain='signup',
-                    # follow_redirects=True)
+    def test_get_signup_bundle(self):
+        # XXX Here we access the view by exposing it in a different path - the
+        # production manner of distinguishing it (throught its subdomain) does
+        # not work with the test client
+        from eduid_webapp.jsconfig import views
+        views.jsconfig_views.route('/get-signup-bundle', methods=['GET'])(views.get_signup_bundle)
+        self.app.register_blueprint(views.jsconfig_views)
+        eppn = self.test_user_data['eduPersonPrincipalName']
+        with self.session_cookie(self.browser, eppn) as client:
+            response = client.get('http://signup.example.com/get-signup-bundle')
 
-            # self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.status_code, 200)
 
-            # body = response.data
-            # self.assertTrue('dummy-signup-bundle' in str(body))
-            # self.assertTrue('dummy-signup-version' in str(body))
+            body = response.data
+            self.assertTrue('dummy-signup-bundle' in str(body))
+            self.assertTrue('dummy-signup-version' in str(body))
+
+    def test_get_login_bundle(self):
+        # XXX Here we access the view by exposing it in a different path - the
+        # production manner of distinguishing it (throught its subdomain) does
+        # not work with the test client
+        from eduid_webapp.jsconfig import views
+        views.jsconfig_views.route('/get-login-bundle', methods=['GET'])(views.get_login_bundle)
+        self.app.register_blueprint(views.jsconfig_views)
+        eppn = self.test_user_data['eduPersonPrincipalName']
+        with self.session_cookie(self.browser, eppn) as client:
+            response = client.get('http://login.example.com/get-login-bundle')
+
+            self.assertEqual(response.status_code, 200)
+
+            body = response.data
+            self.assertTrue('dummy-login-bundle' in str(body))
+            self.assertTrue('dummy-login-version' in str(body))
