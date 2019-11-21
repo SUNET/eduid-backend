@@ -88,8 +88,6 @@ class JSConfigTests(EduidAPITestCase):
             'server_name': 'example.com',
             'tou_url': 'dummy-url',
             'testing': True,
-            'password_entropy': 12,
-            'password_length': 10,
             'dashboard_bundle_path': 'dummy-dashboard-bundle',
             'dashboard_bundle_version': 'dummy-dashboard-version',
             'signup_bundle_path': 'dummy-signup-bundle',
