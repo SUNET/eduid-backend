@@ -31,17 +31,16 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from __future__ import absolute_import
+import types
 from importlib import import_module
 from typing import cast
-import types
 
-from flask import Flask, render_template, templating
 from flask import current_app
+from flask import render_template, templating
 
-from eduid_common.api.app import eduid_init_app
 from eduid_common.api import am
-from eduid_common.config.app import EduIDApp
+from eduid_common.api.app import EduIDApp
+from eduid_common.api.app import eduid_init_app
 from eduid_userdb.actions import ActionDB
 from eduid_webapp.actions.settings.common import ActionsConfig
 

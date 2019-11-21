@@ -31,11 +31,11 @@
 #
 from typing import cast
 
-from flask import Flask
+from flask import current_app
 
-from eduid_common.authn.utils import get_saml2_config
+from eduid_common.api.app import EduIDApp
 from eduid_common.api.app import eduid_init_app
-from eduid_common.config.app import EduIDApp
+from eduid_common.authn.utils import get_saml2_config
 from eduid_webapp.authn.settings.common import AuthnConfig
 
 
@@ -44,6 +44,14 @@ class AuthnApp(EduIDApp):
     def __init__(self, *args, **kwargs):
         super(AuthnApp, self).__init__(*args, **kwargs)
         self.config: AuthnConfig = cast(AuthnConfig, self.config)
+
+
+def get_current_app() -> AuthnApp:
+    """Teach pycharm about AuthnApp"""
+    return current_app  # type: ignore
+
+
+current_authn_app = get_current_app()
 
 
 def authn_init_app(name, config):
@@ -67,7 +75,6 @@ def authn_init_app(name, config):
     :return: the flask app
     :rtype: flask.Flask
     """
-    from . import acs_actions
     app = eduid_init_app(name, config,
                          config_class=AuthnConfig,
                          app_class=AuthnApp)
