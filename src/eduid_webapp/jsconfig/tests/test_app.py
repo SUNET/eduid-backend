@@ -169,13 +169,6 @@ class JSConfigTests(EduidAPITestCase):
             self.assertTrue('dummy-dashboard-bundle' in str(body))
             self.assertTrue('dummy-dashboard-version' in str(body))
 
-# XXX the tests below are wrong, they should not be testing for dummy-dashboard
-# but for dummy-login and dummy-signup.
-# the problem is that the test browser does not play well with subdomains.
-# So they should be commented out, in which case, codecov does not allow the
-# PR.
-
-
     def test_get_signup_bundle(self):
         # XXX Here we access the view by exposing it in a different path - the
         # production manner of distinguishing it (throught its subdomain) does
