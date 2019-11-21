@@ -1,24 +1,24 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
-
 from copy import deepcopy
-from mock import patch
-from eduid_common.api.testing import EduidAPITestCase
-from eduid_userdb.userdb import UserDB
+
 from eduid_userdb.data_samples import NEW_USER_EXAMPLE
-from eduid_userdb.user import User
-from eduid_userdb.proofing import ProofingUser
 from eduid_userdb.exceptions import UserDoesNotExist
-from eduid_userdb.nin import Nin
-from eduid_userdb.proofing.state import NinProofingState
-from eduid_userdb.proofing import NinProofingElement
 from eduid_userdb.logs import ProofingLog
 from eduid_userdb.logs.element import ProofingLogElement, NinProofingLogElement
+from eduid_userdb.nin import Nin
+from eduid_userdb.proofing import NinProofingElement
+from eduid_userdb.proofing import ProofingUser
+from eduid_userdb.proofing.state import NinProofingState
+from eduid_userdb.user import User
+from eduid_userdb.userdb import UserDB
+from mock import patch
+
 from eduid_common.api.am import init_relay
+from eduid_common.api.app import EduIDApp
 from eduid_common.api.helpers import add_nin_to_user, verify_nin_for_user, set_user_names_from_offical_address
+from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.config.base import FlaskConfig
-from eduid_common.config.app import EduIDApp
 
 __author__ = 'lundberg'
 

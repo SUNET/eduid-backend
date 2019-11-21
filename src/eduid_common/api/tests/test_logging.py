@@ -2,10 +2,10 @@
 
 from typing import Optional, List, Dict, Any
 
+from eduid_common.api.app import EduIDApp
 from eduid_common.api.app import eduid_init_app
-from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.api.logging import merge_config
-from eduid_common.config.app import EduIDApp
+from eduid_common.api.testing import EduidAPITestCase
 
 __author__ = 'lundberg'
 

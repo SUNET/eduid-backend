@@ -31,29 +31,25 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from __future__ import unicode_literals
+import logging
+from urllib.parse import unquote
 
-from six.moves.urllib_parse import unquote
-
-from werkzeug.http import dump_cookie
+from eduid_userdb import UserDB
 from flask import Blueprint
-from flask import request
 from flask import make_response
+from flask import request
 from marshmallow import fields, ValidationError
+from werkzeug.http import dump_cookie
 
+from eduid_common.api.app import EduIDApp
+from eduid_common.api.decorators import UnmarshalWith
+from eduid_common.api.request import Request
 from eduid_common.api.schemas.base import EduidSchema
 from eduid_common.api.schemas.csrf import CSRFRequestMixin
-from eduid_common.api.decorators import UnmarshalWith
-from eduid_common.api.decorators import require_user
 from eduid_common.api.testing import EduidAPITestCase
-from eduid_common.session.eduid_session import SessionFactory
-from eduid_common.api.request import Request
 from eduid_common.config.base import FlaskConfig
-from eduid_common.config.app import EduIDApp
-from eduid_userdb import UserDB
+from eduid_common.session.eduid_session import SessionFactory
 
-
-import logging
 logger = logging.getLogger(__name__)
 
 __author__ = 'lundberg'

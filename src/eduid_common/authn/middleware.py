@@ -29,19 +29,20 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from __future__ import absolute_import
 
-import re
 import logging
-from six.moves.urllib_parse import urlparse, urlunparse, urlencode, parse_qs
+import re
+from typing import cast
 
-from werkzeug import get_current_url
-from werkzeug.http import parse_cookie, dump_cookie
-from flask import current_app, request
+from flask import current_app
+from urllib.parse import urlparse, urlunparse, urlencode, parse_qs
+from werkzeug.wsgi import get_current_url
+
+from eduid_common.api.app import EduIDApp
+from eduid_common.api.utils import urlappend
+from eduid_common.config.base import FlaskConfig
 from eduid_common.session import session
 from eduid_common.session.redis_session import NoSessionDataFoundException
-from eduid_common.api.utils import urlappend
-from eduid_common.config.app import EduIDApp
 
 no_context_logger = logging.getLogger(__name__)
 
