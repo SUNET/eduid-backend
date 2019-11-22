@@ -35,7 +35,7 @@ from __future__ import absolute_import
 
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_webapp.reset_password.app import init_reset_password_app
-from eduid_webapp.reset_password.settings.common import ResetPassordConfig
+from eduid_webapp.reset_password.settings.common import ResetPasswordConfig
 
 __author__ = 'eperez'
 
