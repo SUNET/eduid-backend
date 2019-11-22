@@ -42,8 +42,8 @@ reset_password_views = Blueprint('reset_password', __name__, url_prefix='', temp
 
 
 @reset_password_views.route('/index', methods=['GET'])
-@UnmarshalWith()
-@MarshalWith()
+# @UnmarshalWith()
+# @MarshalWith()
 @require_user
 def index(user):
     pass
