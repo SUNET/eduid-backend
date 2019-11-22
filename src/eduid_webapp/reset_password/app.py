@@ -53,7 +53,7 @@ class ResetPasswordApp(AuthnApp):
         # Init app config
         self.config = ResetPasswordConfig(**config)
         # Init dbs
-        self.private_userdb = PasswordResetStateDB(app.config.mongo_uri)
+        self.private_userdb = PasswordResetStateDB(self.config.mongo_uri)
         # Init celery
         msg.init_relay(self)
         am.init_relay(self, 'eduid_reset_password')
