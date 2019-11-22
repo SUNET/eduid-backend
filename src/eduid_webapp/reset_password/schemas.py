@@ -31,18 +31,82 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from marshmallow import fields
+from marshmallow import fields, Schema, validates, validates_schema, validate, ValidationError
 
 from eduid_common.api.schemas.base import EduidSchema, FluxStandardAction
 from eduid_common.api.schemas.csrf import CSRFResponseMixin, CSRFRequestMixin
-from eduid_common.api.schemas.validators import validate_nin
+from eduid_common.api.schemas.validators import validate_email
 
 __author__ = 'eperez'
 
 
-class ResetPasswordRequestSchema(EduidSchema, CSRFRequestMixin):
-    pass
+class ResetPasswordInitSchema(Schema):
+
+    email = fields.String(required=True)
+
+    @validates('email')
+    def validate_email_field(self, value):
+        # Set a new error message
+        try:
+            validate_email(value)
+        except ValidationError:
+            raise ValidationError(_('Invalid email address'))
 
 
-class ResetPasswordResponseSchema(EduidSchema, CSRFResponseMixin):
-    pass
+class ResetPasswordEmailCodeSchema(Schema):
+
+    code = fields.String(required=True)
+
+
+class ResetPasswordWithCodeSchema(CSRFRequestMixin):
+    # XXX this class should be merged with the other schemas dealing with
+    # passwords
+    
+    code = fields.String(required=True)
+    use_generated_password = fields.Boolean(required=False, default=False)
+    custom_password = fields.String(required=False)
+    repeat_password = fields.String(required=False)
+
+    @validates_schema
+    def new_password_validation(self, data):
+        if not data.get('use_generated_password', False):
+            custom_password = data.get('custom_password', None)
+            repeat_password = data.get('repeat_password', None)
+            if not custom_password:
+                raise ValidationError(_('Please enter a password'), ['custom_password'])
+            if not repeat_password:
+                raise ValidationError(_('Please repeat the password'), ['repeat_password'])
+            if custom_password != repeat_password:
+                raise ValidationError(_('Passwords does not match'), ['repeat_password'])
+
+    @validates('custom_password')
+    def validate_custom_password(self, value):
+        # Set a new error message
+        try:
+            self.validate_password(value)
+        except ValidationError:
+            raise ValidationError(_('Please use a stronger password'))
+
+    def validate_password(self, password):
+        """
+        :param password: New password
+        :type password: string_types
+
+        :return: True|ValidationError
+        :rtype: Boolean|ValidationError
+
+        Checks the complexity of the password
+        """
+        # Remove whitespace
+        password = ''.join(password.split())
+
+        # Reject blank passwords
+        if not password:
+            raise ValidationError('The password complexity is too weak.')
+
+        # Check password complexity with zxcvbn
+        from eduid_webapp.security.app import current_security_app
+        min_entropy = current_security_app.config.min_entropy
+        result = zxcvbn(password)
+        if math.log(result.get('guesses', 1), 2) < min_entropy:
+            raise ValidationError('The password complexity is too weak.')

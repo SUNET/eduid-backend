@@ -33,6 +33,10 @@
 
 from __future__ import absolute_import
 
+import json
+
+from mock import patch
+
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_webapp.reset_password.app import init_reset_password_app
 from eduid_webapp.reset_password.settings.common import ResetPasswordConfig
@@ -44,6 +48,8 @@ class ResetPasswordTests(EduidAPITestCase):
     """Base TestCase for those tests that need a full environment setup"""
 
     def setUp(self):
+        self.test_user_eppn = 'hubba-bubba'
+        self.test_user_email = 'johnsmith@example.com'
         super(ResetPasswordTests, self).setUp()
 
     def load_app(self, config):
@@ -55,6 +61,18 @@ class ResetPasswordTests(EduidAPITestCase):
 
     def update_config(self, config):
         config.update({
+            'available_languages': {'en': 'English', 'sv': 'Svenska'},
+            'msg_broker_url': 'amqp://dummy',
+            'am_broker_url': 'amqp://dummy',
+            'celery_config': {
+                'result_backend': 'amqp',
+                'task_serializer': 'json'
+            },
+            'vccs_url': 'http://vccs',
+            'email_code_timeout': 7200,
+            'phone_code_timeout': 600,
+            'password_entropy': 25,
+            'no_authn_urls': ["^/reset-pw/"]
         })
         return ResetPasswordConfig(**config)
 
@@ -65,3 +83,17 @@ class ResetPasswordTests(EduidAPITestCase):
 
     def test_app_starts(self):
         self.assertEquals(self.app.config.app_name, "reset_password") 
+
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
+    def test_post_email_address(self, mock_sendmail):
+        mock_sendmail.return_value = True
+        with self.app.test_client() as c:
+            data = {
+                'email': self.test_user_email
+            }
+            response = c.post('/reset-pw/',
+                              data=json.dumps(data),
+                              content_type=self.content_type_json)
+            self.assertEqual(response.status_code, 200)
+            state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+            self.assertEqual(state.email_address, 'johnsmith@example.com')

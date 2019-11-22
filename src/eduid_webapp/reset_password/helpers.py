@@ -30,21 +30,19 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-"""
-Configuration (file) handling for the eduID reset_password app.
-"""
 
-from dataclasses import dataclass
-
-from eduid_common.config.base import FlaskConfig
+from typing import Union
 
 
-@dataclass
-class ResetPasswordConfig(FlaskConfig):
-    """
-    Configuration for the reset_password app
-    """
-    app_name: str = "reset_password"
-    email_code_timeout: int = 7200
-    phone_code_timeout: int = 600
-    password_entropy: int = 25
+def success_message(message: Union[str, bytes]) -> dict:
+    return {
+        '_status': 'ok',
+        'message': str(message)
+    }
+
+
+def error_message(message: Union[str, bytes]) -> dict:
+    return {
+        '_status': 'error',
+        'message': str(message)
+    }
