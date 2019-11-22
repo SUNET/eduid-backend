@@ -30,9 +30,10 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+from dataclasses import dataclass
 from datetime import timedelta, datetime
 from os import environ
-from typing import Tuple, Dict
+from typing import Dict, Mapping
 
 import redis
 from flask import Blueprint, current_app
@@ -42,7 +43,14 @@ from eduid_common.session.redis_session import get_redis_pool
 
 status_views = Blueprint('status', __name__, url_prefix='/status')
 
-SIMPLE_CACHE: Dict[str, Tuple[datetime, dict]] = dict()
+
+@dataclass
+class SimpleCacheItem:
+    expire_time: datetime
+    data: Mapping
+
+
+SIMPLE_CACHE: Dict[str, SimpleCacheItem] = dict()
 
 
 def _check_mongo():
@@ -106,22 +114,22 @@ def cached_json_response(key, data):
     cache_for_seconds = current_app.config.status_cache_seconds
     now = datetime.utcnow()
     if SIMPLE_CACHE.get(key) is not None:
-        if now < SIMPLE_CACHE[key][0]:
+        if now < SIMPLE_CACHE[key].expire_time:
             if current_app.debug:
                 current_app.logger.debug(f'Returned cached response for {key}'
-                                         f' {now} < {SIMPLE_CACHE[key][0]}')
-            response = jsonify(SIMPLE_CACHE[key][1])
-            response.headers.add('Expires', SIMPLE_CACHE[key][0].strftime("%a, %d %b %Y %H:%M:%S UTC"))
+                                         f' {now} < {SIMPLE_CACHE[key].expire_time}')
+            response = jsonify(SIMPLE_CACHE[key].data)
+            response.headers.add('Expires', SIMPLE_CACHE[key].expire_time.strftime("%a, %d %b %Y %H:%M:%S UTC"))
             response.headers.add('Cache-Control', f'public,max-age={cache_for_seconds}')
             return response
 
-    then = now + timedelta(seconds=cache_for_seconds)
+    expires = now + timedelta(seconds=cache_for_seconds)
     response = jsonify(data)
-    response.headers.add('Expires', then.strftime("%a, %d %b %Y %H:%M:%S UTC"))
+    response.headers.add('Expires', expires.strftime("%a, %d %b %Y %H:%M:%S UTC"))
     response.headers.add('Cache-Control', f'public,max-age={cache_for_seconds}')
-    SIMPLE_CACHE[key] = (then, data)
+    SIMPLE_CACHE[key] = SimpleCacheItem(expire_time=expires, data=data)
     if current_app.debug:
-        current_app.logger.debug(f'Cached response for {key} until {then}')
+        current_app.logger.debug(f'Cached response for {key} until {expires}')
     return response
 
 
@@ -144,8 +152,9 @@ def health_check():
         res['reason'] = 'mail check failed'
         current_app.logger.warning('mail check failed')
     else:
+        # Value of status crafted for grepabilty, trailing underscore intentional
         res['status'] = f'STATUS_OK_{current_app.name}_'
-        res['hostname'] = environ.get('HOSTNAME', '')
+        res['hostname'] = environ.get('HOSTNAME', 'UNKNOWN')
         res['reason'] = 'Databases and task queues tested OK'
 
     return cached_json_response('health_check', res)
