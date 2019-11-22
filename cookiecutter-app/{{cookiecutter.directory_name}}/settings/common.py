@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2013-2016 NORDUnet A/S
 # Copyright (c) 2019 SUNET
 # All rights reserved.
 #
@@ -45,3 +44,4 @@ class {{cookiecutter.class_name}}Config(FlaskConfig):
     """
     Configuration for the {{cookiecutter.directory_name}} app
     """
+    app_name: str = "{{cookiecutter.directory_name}}"
