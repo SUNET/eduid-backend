@@ -35,6 +35,7 @@ from __future__ import absolute_import
 
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_webapp.reset_password.app import init_reset_password_app
+from eduid_webapp.reset_password.settings.common import ResetPassordConfig
 
 __author__ = 'eperez'
 
@@ -53,7 +54,9 @@ class ResetPasswordTests(EduidAPITestCase):
         return init_reset_password_app('testing', config)
 
     def update_config(self, config):
-        return config
+        config.update({
+        })
+        return ResetPasswordConfig(**config)
 
     def tearDown(self):
         super(ResetPasswordTests, self).tearDown()

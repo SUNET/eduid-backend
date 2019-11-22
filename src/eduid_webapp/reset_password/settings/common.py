@@ -44,4 +44,4 @@ class ResetPasswordConfig(FlaskConfig):
     """
     Configuration for the reset_password app
     """
-    app_name: str = reset_password
+    app_name: str = "reset_password"
