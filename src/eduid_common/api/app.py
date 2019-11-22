@@ -49,7 +49,8 @@ from eduid_common.api.exceptions import init_exception_handlers, init_sentry
 from eduid_common.api.logging import init_logging
 from eduid_common.api.middleware import PrefixMiddleware
 from eduid_common.api.request import Request
-from eduid_common.api.utils import init_template_functions
+from eduid_common.api.utils import init_template_functions, urlappend
+from eduid_common.authn.utils import no_authn_views
 from eduid_common.config.base import FlaskConfig
 from eduid_common.config.exceptions import BadConfiguration
 from eduid_common.config.parsers.etcd import EtcdConfigParser
@@ -103,8 +104,7 @@ class EduIDApp(Flask):
             self.central_userdb = UserDB(self.config.mongo_uri, 'eduid_am')
 
         # Set up generic health check views
-        from eduid_common.api.views.status import status_views
-        self.register_blueprint(status_views)
+        init_status_views(self)
 
     def init_config(self, config_class, config):
         warnings.warn("init_config is deprecated. The configuration is now loaded when instantiating the class.",
@@ -150,6 +150,15 @@ def get_app_config(name: str, config: Optional[dict] = None):
             if not secret.startswith('_'):
                 config[secret.lower()] = getattr(secret_settings_module, secret)
     return config
+
+
+def init_status_views(app):
+    from eduid_common.api.views.status import status_views
+    app.register_blueprint(status_views)
+    # Register status paths for unauthorized requests
+    status_paths = ['/status/healthy', '/status/sanity-check']
+    app = no_authn_views(app, status_paths)
+    return app
 
 
 def eduid_init_app_no_db(name: str, config: dict,
@@ -208,11 +217,10 @@ def eduid_init_app_no_db(name: str, config: dict,
 def eduid_init_app(name: str, config: dict,
                    config_class: Type[FlaskConfig] = FlaskConfig,
                    app_class: Type[EduIDApp] = AuthnAppMiddleware) -> EduIDApp:
-    warnings.warn("eduid_init_app_no_db is deprecated. The app setup is now done when instantiating the class.",
+    warnings.warn("eduid_init_app is deprecated. The app setup is now done when instantiating the class.",
                   DeprecationWarning)
     app = eduid_init_app_no_db(name, config=config, config_class=config_class, app_class=app_class)
     app.central_userdb = UserDB(app.config.mongo_uri, 'eduid_am')
     # Set up generic health check views
-    from eduid_common.api.views.status import status_views
-    app.register_blueprint(status_views)
+    app = init_status_views(app)
     return app

@@ -30,17 +30,27 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-
-from __future__ import absolute_import
+from dataclasses import dataclass
+from datetime import timedelta, datetime
+from os import environ
+from typing import Dict, Mapping
 
 import redis
-from flask import jsonify
 from flask import Blueprint, current_app
+from flask import jsonify
 
 from eduid_common.session.redis_session import get_redis_pool
 
-
 status_views = Blueprint('status', __name__, url_prefix='/status')
+
+
+@dataclass
+class SimpleCacheItem:
+    expire_time: datetime
+    data: Mapping
+
+
+SIMPLE_CACHE: Dict[str, SimpleCacheItem] = dict()
 
 
 def _check_mongo():
@@ -100,9 +110,36 @@ def _check_mail():
     return False
 
 
+def cached_json_response(key, data):
+    cache_for_seconds = current_app.config.status_cache_seconds
+    now = datetime.utcnow()
+    if SIMPLE_CACHE.get(key) is not None:
+        if now < SIMPLE_CACHE[key].expire_time:
+            if current_app.debug:
+                current_app.logger.debug(f'Returned cached response for {key}'
+                                         f' {now} < {SIMPLE_CACHE[key].expire_time}')
+            response = jsonify(SIMPLE_CACHE[key].data)
+            response.headers.add('Expires', SIMPLE_CACHE[key].expire_time.strftime("%a, %d %b %Y %H:%M:%S UTC"))
+            response.headers.add('Cache-Control', f'public,max-age={cache_for_seconds}')
+            return response
+
+    expires = now + timedelta(seconds=cache_for_seconds)
+    response = jsonify(data)
+    response.headers.add('Expires', expires.strftime("%a, %d %b %Y %H:%M:%S UTC"))
+    response.headers.add('Cache-Control', f'public,max-age={cache_for_seconds}')
+    SIMPLE_CACHE[key] = SimpleCacheItem(expire_time=expires, data=data)
+    if current_app.debug:
+        current_app.logger.debug(f'Cached response for {key} until {expires}')
+    return response
+
+
 @status_views.route('/healthy', methods=['GET'])
 def health_check():
-    res = {'status': 'STATUS_FAIL'}
+    res = {
+        # Value of status crafted for grepabilty, trailing underscore intentional
+        'status': f'STATUS_FAIL_{current_app.name}_',
+        'hostname': environ.get('HOSTNAME', 'UNKNOWN'),
+    }
     if not _check_mongo():
         res['reason'] = 'mongodb check failed'
         current_app.logger.warning('mongodb check failed')
@@ -119,11 +156,12 @@ def health_check():
         res['reason'] = 'mail check failed'
         current_app.logger.warning('mail check failed')
     else:
-        res['status'] = 'STATUS_OK'
+        res['status'] = f'STATUS_OK_{current_app.name}_'
         res['reason'] = 'Databases and task queues tested OK'
-    return jsonify(res)
+
+    return cached_json_response('health_check', res)
 
 
 @status_views.route('/sanity-check', methods=['GET'])
 def sanity_check():
-    pass
+    return cached_json_response('sanity_check', {})
