@@ -135,7 +135,11 @@ def cached_json_response(key, data):
 
 @status_views.route('/healthy', methods=['GET'])
 def health_check():
-    res = {'status': 'STATUS_FAIL'}
+    res = {
+        # Value of status crafted for grepabilty, trailing underscore intentional
+        'status': f'STATUS_FAIL_{current_app.name}_',
+        'hostname': environ.get('HOSTNAME', 'UNKNOWN'),
+    }
     if not _check_mongo():
         res['reason'] = 'mongodb check failed'
         current_app.logger.warning('mongodb check failed')
@@ -152,9 +156,7 @@ def health_check():
         res['reason'] = 'mail check failed'
         current_app.logger.warning('mail check failed')
     else:
-        # Value of status crafted for grepabilty, trailing underscore intentional
         res['status'] = f'STATUS_OK_{current_app.name}_'
-        res['hostname'] = environ.get('HOSTNAME', 'UNKNOWN')
         res['reason'] = 'Databases and task queues tested OK'
 
     return cached_json_response('health_check', res)
