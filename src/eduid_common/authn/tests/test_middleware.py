@@ -32,6 +32,8 @@
 
 from contextlib import contextmanager
 
+from werkzeug.exceptions import NotFound
+
 from eduid_common.api.app import EduIDApp
 from eduid_common.api.app import eduid_init_app
 from eduid_common.api.testing import EduidAPITestCase
@@ -65,12 +67,12 @@ class AuthnTests(EduidAPITestCase):
         return config
 
     def test_get_view(self):
-        response = self.browser.get('/status/healthy')
+        response = self.browser.get('/some/path')
         self.assertEqual(response.status_code, 302)
 
         with self.session_cookie(self.browser, 'hubba-bubba') as client:
-            response2 = client.get('/status/healthy')
-            self.assertEqual(response2.status_code, 200)
+            with self.assertRaises(NotFound):
+                client.get('/some/path')
 
 
 class UnAuthnTests(EduidAPITestCase):

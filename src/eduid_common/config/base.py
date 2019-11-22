@@ -263,6 +263,7 @@ class BaseConfig(CommonConfig):
     stats_host: str = ''
     stats_port: int = 0
     sentry_dsn: Optional[str] = None
+    status_cache_seconds: int = 10
 
     @classmethod
     def init_config(cls, superns: str = 'webapp',

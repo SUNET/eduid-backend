@@ -6,7 +6,7 @@ from uuid import uuid4
 
 import six
 from flask import current_app
-from six.moves.urllib_parse import urlparse
+from urllib.parse import urlparse
 
 from eduid_common.api.exceptions import ApiException
 from eduid_userdb.exceptions import UserDBValueError, EduIDUserDBError
