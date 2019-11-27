@@ -40,7 +40,6 @@ import sys
 from flask import Blueprint, current_app
 from flask import jsonify
 
-from eduid_common.api import am
 from eduid_common.session.redis_session import get_redis_pool
 
 status_views = Blueprint('status', __name__, url_prefix='/status')
