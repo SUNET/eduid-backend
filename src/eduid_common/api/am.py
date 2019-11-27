@@ -73,10 +73,9 @@ class AmRelay(object):
         Check if this application is able to reach an AM worker.
         :return: Result of celery Task.get
         """
-        rtask = self._pong.delay(self.relay_for)
+        rtask = self._pong.apply_async(kwargs={'app_name': self.relay_for})
         try:
-            result = rtask.get(timeout=timeout)
+            return rtask.get(timeout=timeout)
         except Exception as e:
             rtask.forget()
             raise AmTaskFailed(f'ping task failed: {repr(e)}')
-        return result
