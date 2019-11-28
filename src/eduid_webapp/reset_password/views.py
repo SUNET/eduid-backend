@@ -30,14 +30,7 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-
-__author__ = 'eperez'
-
-
-import json
-from functools import wraps
-
-from flask import Blueprint, request, render_template, url_for, redirect
+from flask import Blueprint, render_template, url_for, redirect
 from flask_babel import gettext as _
 
 from eduid_common.api.exceptions import MailTaskFailed, MsgTaskFailed

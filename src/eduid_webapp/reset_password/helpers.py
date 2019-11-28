@@ -30,16 +30,20 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-
+import os
 from typing import Union
 
+import bcrypt
 from flask import url_for
 from flask_babel import gettext as _
 
 from eduid_userdb.exceptions import UserHasNotCompletedSignup
-from eduid_userdb.security import PasswordResetEmailState
 from eduid_common.api.utils import get_unique_hash
+from eduid_userdb.security import PasswordResetState
+from eduid_userdb.security import PasswordResetEmailAndPhoneState
+from eduid_userdb.security import PasswordResetEmailState
 from eduid_webapp.security.helpers import send_mail
+from eduid_userdb.exceptions import DocumentDoesNotExist
 from eduid_webapp.reset_password.app import current_reset_password_app as current_app
 
 
@@ -57,34 +61,109 @@ def error_message(message: Union[str, bytes]) -> dict:
     }
 
 
-def send_password_reset_mail(email_address):
+def get_pwreset_state(email_code: str) -> PasswordResetState:
+    """
+    get the password reset state for the provided code
+
+    raises BadCode in case of problems
+    """
+    mail_expiration_time = current_app.config.email_code_timeout
+    sms_expiration_time = current_app.config.phone_code_timeout
+    try:
+        state = current_app.password_reset_state_db.get_state_by_email_code(email_code)
+        current_app.logger.debug(f'Found state using email_code {email_code}: {state}')
+    except DocumentDoesNotExist:
+        current_app.logger.info('State not found: {email_code}')
+        raise BadCode('resetpw.unknown-code')
+
+    if state.email_code.is_expired(mail_expiration_time):
+        current_app.logger.info(f'State expired: {email_code}')
+        raise BadCode('resetpw.expired-email-code')
+
+    if isinstance(state, PasswordResetEmailAndPhoneState) and state.phone_code.is_expired(sms_expiration_time):
+        current_app.logger.info(f'Phone code expired for state: {email_code}')
+        # Revert the state to EmailState to allow the user to choose extra security again
+        current_app.password_reset_state_db.remove_state(state)
+        state = PasswordResetEmailState(eppn=state.eppn, email_address=state.email_address,
+                                        email_code=state.email_code)
+        current_app.password_reset_state_db.save(state)
+        raise BadCode('resetpw.expired-sms-code')
+
+    return state
+
+
+def send_password_reset_mail(email_address: str):
     """
     :param email_address: User input for password reset
-    :type email_address: six.string_types
-    :return:
-    :rtype:
     """
     try:
-        user = current_app.central_userdb.get_user_by_mail(email_address, raise_on_missing=False)
+        user = current_app.central_userdb.get_user_by_mail(email_address,
+                                                        raise_on_missing=False)
     except UserHasNotCompletedSignup:
         # Old bug where incomplete signup users where written to the central db
         user = None
     if not user:
-        current_app.logger.info("Found no user with the following address: {}.".format(email_address))
+        current_app.logger.info(f"Found no user with the following "
+                                 "address: {email_address}.")
         return None
-    state = PasswordResetEmailState(eppn=user.eppn, email_address=email_address, email_code=get_unique_hash())
+    state = PasswordResetEmailState(eppn=user.eppn,
+                                    email_address=email_address,
+                                    email_code=get_unique_hash())
     current_app.password_reset_state_db.save(state)
     text_template = 'reset_password_email.txt.jinja2'
     html_template = 'reset_password_email.html.jinja2'
     to_addresses = [address.email for address in user.mail_addresses.verified.to_list()]
 
-    password_reset_timeout = current_app.config.email_code_timeout // 60 // 60  # seconds to hours
+    pwreset_timeout = current_app.config.email_code_timeout // 60 // 60  # seconds to hours
     context = {
-        'reset_password_link': url_for('reset_password.set_new_pw', email_code=state.email_code.code,
+        'reset_password_link': url_for('reset_password.set_new_pw',
+                                       email_code=state.email_code.code,
                                        _external=True),
-        'password_reset_timeout': password_reset_timeout
+        'password_reset_timeout': pwreset_timeout
     }
     subject = _('Reset password')
-    send_mail(subject, to_addresses, text_template, html_template, context, state.reference)
-    current_app.logger.info('Sent password reset email to user {}'.format(state.eppn))
-    current_app.logger.debug('Mail address: {}'.format(to_addresses))
+    send_mail(subject, to_addresses, text_template,
+              html_template, context, state.reference)
+    current_app.logger.info(f'Sent password reset email to user {state.eppn}')
+    current_app.logger.debug(f'Mail addresses: {to_addresses}')
+
+
+def hash_password(password: str,
+                  salt: str = None,
+                  strip_whitespace: bool = True) -> bytes:
+    """
+    :param password: string, password as plaintext
+    :param salt: string or None, NDNv1H1 salt to be used for pre-hashing
+                 (if None, one will be generated.)
+    :param strip_whitespace: boolean, Remove all whitespace from input
+    """
+    if salt is None:
+        salt_length = current_app.config.password_salt_length
+        key_length = current_app.config.password_hash_length
+        rounds = current_app.config.password_generation_rounds
+        random = os.urandom(salt_length)
+        random_str = random.hex()
+        salt = f"$NDNv1H1${random_str}${key_length}${rounds}$"
+
+    if not salt.startswith('$NDNv1H1$'):
+        raise ValueError('Invalid salt (not NDNv1H1)')
+
+    salt, key_length, rounds = decode_salt(salt)
+
+    if strip_whitespace:
+        password = ''.join(password.split())
+
+    T1 = bytes(f"{len(password)}{password}", 'utf-8')
+
+    return bcrypt.kdf(T1, salt, key_length, rounds)
+
+
+def decode_salt(salt: str):
+    """
+    Function to decode a NDNv1H1 salt.
+    """
+    _, version, salt, desired_key_length, rounds, _ = salt.split('$')
+    if version == 'NDNv1H1':
+        salt = bytes().fromhex(salt)
+        return salt, int(desired_key_length), int(rounds)
+    raise NotImplementedError('Unknown hashing scheme')
