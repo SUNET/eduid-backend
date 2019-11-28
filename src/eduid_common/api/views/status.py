@@ -79,7 +79,7 @@ def log_failure_info(key: str, msg: str, exc: Optional[Exception] = None) -> Non
 def reset_failure_info(key: str) -> None:
     if key not in FAILURE_INFO:
         return None
-    info = FAILURE_INFO.pop('_check_msg')
+    info = FAILURE_INFO.pop(key)
     current_app.logger.info(f'Check {key} back to normal. Resetting info {info}')
 
 
