@@ -72,7 +72,7 @@ class ResetPasswordTests(EduidAPITestCase):
             'email_code_timeout': 7200,
             'phone_code_timeout': 600,
             'password_entropy': 25,
-            'no_authn_urls': ["^/reset-pw/"]
+            'no_authn_urls': ["^/"]
         })
         return ResetPasswordConfig(**config)
 
@@ -91,8 +91,7 @@ class ResetPasswordTests(EduidAPITestCase):
             data = {
                 'email': self.test_user_email
             }
-            response = c.post('/reset-pw/',
-                              data=json.dumps(data),
+            response = c.post('/', data=json.dumps(data),
                               content_type=self.content_type_json)
             self.assertEqual(response.status_code, 200)
             state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)

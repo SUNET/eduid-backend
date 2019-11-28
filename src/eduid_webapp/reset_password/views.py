@@ -50,7 +50,7 @@ from eduid_userdb.exceptions import DocumentDoesNotExist
 from eduid_webapp.reset_password.schemas import ResetPasswordInitSchema
 from eduid_webapp.reset_password.schemas import ResetPasswordEmailCodeSchema, ResetPasswordWithCodeSchema
 from eduid_webapp.reset_password.helpers import error_message, success_message
-from eduid_webapp.security.helpers import send_password_reset_mail
+from eduid_webapp.reset_password.helpers import send_password_reset_mail
 from eduid_webapp.security.helpers import generate_suggested_password, get_zxcvbn_terms, reset_user_password
 from eduid_webapp.reset_password.app import current_reset_password_app as current_app
 

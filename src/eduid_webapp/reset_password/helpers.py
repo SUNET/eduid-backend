@@ -33,6 +33,15 @@
 
 from typing import Union
 
+from flask import url_for
+from flask_babel import gettext as _
+
+from eduid_userdb.exceptions import UserHasNotCompletedSignup
+from eduid_userdb.security import PasswordResetEmailState
+from eduid_common.api.utils import get_unique_hash
+from eduid_webapp.security.helpers import send_mail
+from eduid_webapp.reset_password.app import current_reset_password_app as current_app
+
 
 def success_message(message: Union[str, bytes]) -> dict:
     return {
@@ -46,3 +55,36 @@ def error_message(message: Union[str, bytes]) -> dict:
         '_status': 'error',
         'message': str(message)
     }
+
+
+def send_password_reset_mail(email_address):
+    """
+    :param email_address: User input for password reset
+    :type email_address: six.string_types
+    :return:
+    :rtype:
+    """
+    try:
+        user = current_app.central_userdb.get_user_by_mail(email_address, raise_on_missing=False)
+    except UserHasNotCompletedSignup:
+        # Old bug where incomplete signup users where written to the central db
+        user = None
+    if not user:
+        current_app.logger.info("Found no user with the following address: {}.".format(email_address))
+        return None
+    state = PasswordResetEmailState(eppn=user.eppn, email_address=email_address, email_code=get_unique_hash())
+    current_app.password_reset_state_db.save(state)
+    text_template = 'reset_password_email.txt.jinja2'
+    html_template = 'reset_password_email.html.jinja2'
+    to_addresses = [address.email for address in user.mail_addresses.verified.to_list()]
+
+    password_reset_timeout = current_app.config.email_code_timeout // 60 // 60  # seconds to hours
+    context = {
+        'reset_password_link': url_for('reset_password.set_new_pw', email_code=state.email_code.code,
+                                       _external=True),
+        'password_reset_timeout': password_reset_timeout
+    }
+    subject = _('Reset password')
+    send_mail(subject, to_addresses, text_template, html_template, context, state.reference)
+    current_app.logger.info('Sent password reset email to user {}'.format(state.eppn))
+    current_app.logger.debug('Mail address: {}'.format(to_addresses))
