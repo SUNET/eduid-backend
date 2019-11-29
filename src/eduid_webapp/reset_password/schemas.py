@@ -31,6 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
+from flask_babel import gettext as _
 from marshmallow import fields, Schema, validates, validates_schema, validate, ValidationError
 
 from eduid_common.api.schemas.base import EduidSchema, FluxStandardAction

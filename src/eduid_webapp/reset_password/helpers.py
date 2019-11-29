@@ -30,6 +30,7 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+import math
 import os
 from typing import Union
 
@@ -38,7 +39,10 @@ from flask import url_for
 from flask_babel import gettext as _
 
 from eduid_userdb.exceptions import UserHasNotCompletedSignup
+from eduid_userdb.security import SecurityUser, PasswordResetEmailState, PasswordResetEmailAndPhoneState
+from eduid_common.api.utils import save_and_sync_user
 from eduid_common.api.utils import get_unique_hash
+from eduid_common.authn.utils import generate_password
 from eduid_userdb.security import PasswordResetState
 from eduid_userdb.security import PasswordResetEmailAndPhoneState
 from eduid_userdb.security import PasswordResetEmailState
@@ -59,6 +63,14 @@ def error_message(message: Union[str, bytes]) -> dict:
         '_status': 'error',
         'message': str(message)
     }
+
+
+class BadCode(Exception):
+    """
+    Exception to signal that the password reset code received is not valid.
+    """
+    def __init__(self, msg: str):
+        self.msg = msg
 
 
 def get_pwreset_state(email_code: str) -> PasswordResetState:
@@ -128,6 +140,18 @@ def send_password_reset_mail(email_address: str):
     current_app.logger.debug(f'Mail addresses: {to_addresses}')
 
 
+def generate_suggested_password() -> str:
+    """
+    The suggested password is saved in session to avoid form hijacking
+    """
+    password_length = current_app.config.password_length
+
+    password = generate_password(length=password_length)
+    password = ' '.join([password[i*4: i*4+4] for i in range(0, math.ceil(len(password)/4))])
+
+    return password
+
+
 def hash_password(password: str,
                   salt: str = None,
                   strip_whitespace: bool = True) -> bytes:
@@ -167,3 +191,41 @@ def decode_salt(salt: str):
         salt = bytes().fromhex(salt)
         return salt, int(desired_key_length), int(rounds)
     raise NotImplementedError('Unknown hashing scheme')
+
+
+def reset_user_password(state: PasswordResetState, password: str):
+    """
+    :param state: Password reset state
+    :param password: Plain text password
+    """
+    vccs_url = current_app.config.vccs_url
+
+    user = current_app.central_userdb.get_user_by_eppn(state.eppn, raise_on_missing=False)
+    security_user = SecurityUser.from_user(user, private_userdb=current_app.private_userdb)
+
+    # If no extra security is all verified information (except email addresses) is set to not verified
+    if not extra_security_used(state):
+        current_app.logger.info(f'No extra security used by user {state.eppn}')
+        # Phone numbers
+        verified_phone_numbers = security_user.phone_numbers.verified.to_list()
+        if verified_phone_numbers:
+            current_app.logger.info(f'Unverifying phone numbers for user {state.eppn}')
+            security_user.phone_numbers.primary.is_primary = False
+            for phone_number in verified_phone_numbers:
+                phone_number.is_verified = False
+                current_app.logger.debug(f'Phone number {phone_number.number} unverified')
+        # NINs
+        verified_nins = security_user.nins.verified.to_list()
+        if verified_nins:
+            current_app.logger.info('Unverifying nins for user {state.eppn}')
+            security_user.nins.primary.is_primary = False
+            for nin in verified_nins:
+                nin.is_verified = False
+                current_app.logger.debug('NIN {nin.number} unverified')
+
+    security_user = reset_password(security_user, new_password=password,
+                                   application='security', vccs_url=vccs_url)
+    security_user.terminated = False
+    save_and_sync_user(security_user)
+    current_app.stats.count(name='security_password_reset', value=1)
+    current_app.logger.info('Reset password successful for user {security_user.eppn}')

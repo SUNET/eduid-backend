@@ -35,6 +35,7 @@ from __future__ import absolute_import
 
 import json
 
+from flask import url_for
 from mock import patch
 
 from eduid_common.api.testing import EduidAPITestCase
@@ -96,3 +97,24 @@ class ResetPasswordTests(EduidAPITestCase):
             self.assertEqual(response.status_code, 200)
             state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
             self.assertEqual(state.email_address, 'johnsmith@example.com')
+
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
+    def test_post_reset_code(self, mock_sendmail):
+        mock_sendmail.return_value = True
+        with self.app.test_client() as c:
+            data = {
+                'email': self.test_user_email
+            }
+            response = c.post('/', data=json.dumps(data),
+                              content_type=self.content_type_json)
+            self.assertEqual(response.status_code, 200)
+            state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+            url = url_for('reset_password.config_reset_pw',
+                           _external=True)
+            data = {
+                'code': state.email_code.code
+            }
+            response = c.post(url, data=json.dumps(data),
+                              content_type=self.content_type_json)
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_CONFIG_SUCCESS')
