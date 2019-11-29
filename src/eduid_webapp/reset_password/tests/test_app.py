@@ -34,6 +34,7 @@
 from __future__ import absolute_import
 
 import json
+from base64 import b64encode
 
 from flask import url_for
 from mock import patch
@@ -41,6 +42,8 @@ from mock import patch
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_webapp.reset_password.app import init_reset_password_app
 from eduid_webapp.reset_password.settings.common import ResetPasswordConfig
+from eduid_webapp.reset_password.helpers import hash_password
+from eduid_webapp.reset_password.helpers import generate_suggested_password
 
 __author__ = 'eperez'
 
@@ -116,5 +119,33 @@ class ResetPasswordTests(EduidAPITestCase):
             }
             response = c.post(url, data=json.dumps(data),
                               content_type=self.content_type_json)
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_CONFIG_SUCCESS')
+
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
+    def test_post_reset_password(self, mock_sendmail):
+        mock_sendmail.return_value = True
+        with self.app.test_client() as c:
+            data = {
+                'email': self.test_user_email
+            }
+            response = c.post('/', data=json.dumps(data),
+                              content_type=self.content_type_json)
+            self.assertEqual(response.status_code, 200)
+            state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+
+            with c.session_transaction() as session:
+                new_password = generate_suggested_password()
+                hashed = b64encode(hash_password(new_password)).decode('utf8')
+                session.reset_password.generated_password_hash = hashed
+
+                url = url_for('reset_password.set_new_pw', _external=True)
+                data = {
+                    'code': state.email_code.code,
+                    'password': new_password
+                }
+                response = c.post(url, data=json.dumps(data),
+                                  content_type=self.content_type_json)
+
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_CONFIG_SUCCESS')

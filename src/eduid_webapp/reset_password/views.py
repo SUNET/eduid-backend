@@ -92,9 +92,9 @@ def config_reset_pw(code: str) -> dict:
         return error_message(e.msg)
 
     new_password = generate_suggested_password()
-    new_hash = b64encode(hash_password(new_password))
+    hashed = b64encode(hash_password(new_password)).decode('utf8')
 
-    session.reset_password.generated_password_hash = new_hash.decode('utf8')
+    session.reset_password.generated_password_hash = hashed
 
     return {
             'csrf_token': session.get_csrf_token(),
@@ -106,21 +106,17 @@ def config_reset_pw(code: str) -> dict:
 @reset_password_views.route('/new-pw/', methods=['POST'])
 @UnmarshalWith(ResetPasswordWithCodeSchema)
 @MarshalWith(FluxStandardAction)
-def set_new_pw(code: str,
-               use_generated_password: bool,
-               custom_password: str,
-               repeat_password: str):
+def set_new_pw(code: str, password: str):
     try:
-        state = get_pwreset_state(email_code)
+        state = get_pwreset_state(code)
     except BadCode as e:
         return error_message(e.msg)
 
-    if use_generated_password:
-        password = state.generated_password
+    hashed = b64encode(hash_password(password)).decode('utf8')
+    if hashed == session.reset_password.generated_password_hash:
         current_app.logger.info('Generated password used')
         current_app.stats.count(name='reset_password_generated_password_used')
     else:
-        password = custom_password
         current_app.logger.info('Custom password used')
         current_app.stats.count(name='reset_password_custom_password_used')
 

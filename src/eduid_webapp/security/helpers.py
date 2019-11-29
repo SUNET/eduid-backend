@@ -254,21 +254,6 @@ def verify_phone_number(state):
     return False
 
 
-def extra_security_used(state):
-    """
-    Check if any extra security method was used
-
-    :param state: Password reset state
-    :type state: PasswordResetState
-    :return: True|False
-    :rtype: bool
-    """
-    if isinstance(state, PasswordResetEmailAndPhoneState):
-        return state.email_code.is_verified and state.phone_code.is_verified
-
-    return False
-
-
 def reset_user_password(state, password):
     """
     :param state: Password reset state

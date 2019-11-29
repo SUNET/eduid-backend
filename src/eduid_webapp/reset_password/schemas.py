@@ -60,28 +60,12 @@ class ResetPasswordEmailCodeSchema(Schema):
 
 
 class ResetPasswordWithCodeSchema(CSRFRequestMixin):
-    # XXX this class should be merged with the other schemas dealing with
-    # passwords
     
     code = fields.String(required=True)
-    use_generated_password = fields.Boolean(required=False, default=False)
-    custom_password = fields.String(required=False)
-    repeat_password = fields.String(required=False)
+    password = fields.String(required=True)
 
-    @validates_schema
-    def new_password_validation(self, data):
-        if not data.get('use_generated_password', False):
-            custom_password = data.get('custom_password', None)
-            repeat_password = data.get('repeat_password', None)
-            if not custom_password:
-                raise ValidationError(_('Please enter a password'), ['custom_password'])
-            if not repeat_password:
-                raise ValidationError(_('Please repeat the password'), ['repeat_password'])
-            if custom_password != repeat_password:
-                raise ValidationError(_('Passwords does not match'), ['repeat_password'])
-
-    @validates('custom_password')
-    def validate_custom_password(self, value):
+    @validates('password')
+    def validate_password(self, value):
         # Set a new error message
         try:
             self.validate_password(value)
@@ -106,8 +90,8 @@ class ResetPasswordWithCodeSchema(CSRFRequestMixin):
             raise ValidationError('The password complexity is too weak.')
 
         # Check password complexity with zxcvbn
-        from eduid_webapp.security.app import current_security_app
-        min_entropy = current_security_app.config.min_entropy
+        from eduid_webapp.reset_password.app import current_reset_password_app
+        min_entropy = current_reset_password_app.config.min_entropy
         result = zxcvbn(password)
         if math.log(result.get('guesses', 1), 2) < min_entropy:
             raise ValidationError('The password complexity is too weak.')

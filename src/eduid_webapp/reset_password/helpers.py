@@ -40,6 +40,7 @@ from flask_babel import gettext as _
 
 from eduid_userdb.exceptions import UserHasNotCompletedSignup
 from eduid_userdb.security import SecurityUser, PasswordResetEmailState, PasswordResetEmailAndPhoneState
+from eduid_common.authn.vccs import reset_password
 from eduid_common.api.utils import save_and_sync_user
 from eduid_common.api.utils import get_unique_hash
 from eduid_common.authn.utils import generate_password
@@ -191,6 +192,21 @@ def decode_salt(salt: str):
         salt = bytes().fromhex(salt)
         return salt, int(desired_key_length), int(rounds)
     raise NotImplementedError('Unknown hashing scheme')
+
+
+def extra_security_used(state: PasswordResetState) -> bool:
+    """
+    Check if any extra security method was used
+
+    :param state: Password reset state
+    :type state: PasswordResetState
+    :return: True|False
+    :rtype: bool
+    """
+    if isinstance(state, PasswordResetEmailAndPhoneState):
+        return state.email_code.is_verified and state.phone_code.is_verified
+
+    return False
 
 
 def reset_user_password(state: PasswordResetState, password: str):
