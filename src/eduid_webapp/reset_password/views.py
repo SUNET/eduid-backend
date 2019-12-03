@@ -32,6 +32,7 @@
 #
 from base64 import b64encode
 from flask import Blueprint, render_template
+from flask import request
 from flask_babel import gettext as _
 
 from eduid_common.api.exceptions import MailTaskFailed, MsgTaskFailed
@@ -43,10 +44,12 @@ from eduid_userdb.security.state import PasswordResetEmailState, PasswordResetEm
 from eduid_userdb.exceptions import DocumentDoesNotExist
 from eduid_webapp.reset_password.schemas import ResetPasswordInitSchema
 from eduid_webapp.reset_password.schemas import ResetPasswordEmailCodeSchema, ResetPasswordWithCodeSchema
+from eduid_webapp.reset_password.schemas import ResetPasswordExtraSecSchema
 from eduid_webapp.reset_password.helpers import error_message, success_message
 from eduid_webapp.reset_password.helpers import send_password_reset_mail
 from eduid_webapp.reset_password.helpers import get_pwreset_state, BadCode, hash_password
 from eduid_webapp.reset_password.helpers import generate_suggested_password, reset_user_password
+from eduid_webapp.reset_password.helpers import get_extra_security_alternatives, mask_alternatives
 from eduid_webapp.reset_password.app import current_reset_password_app as current_app
 
 
@@ -98,18 +101,26 @@ def config_reset_pw(code: str) -> dict:
     user = current_app.central_userdb.get_user_by_eppn(state.eppn)
     verified_phones = user.phone_numbers.verified.to_list()
 
+    try:
+        alternatives = get_extra_security_alternatives(state.eppn)
+        state.extra_security = alternatives
+        current_app.password_reset_state_db.save(state)
+    except DocumentDoesNotExist:
+        current_app.logger.error(f'User {state.eppn} not found')
+        return error_message('resetpw.user-not-found')
+
     return {
             'csrf_token': session.get_csrf_token(),
             'suggested_password': new_password,
             'email_code': state.email_code.code,
-            'extra_security': bool(verified_phones),
+            'extra_security': mask_alternatives(alternatives),
             }
 
 
 @reset_password_views.route('/new-pw/', methods=['POST'])
 @UnmarshalWith(ResetPasswordWithCodeSchema)
 @MarshalWith(FluxStandardAction)
-def set_new_pw(code: str, password: str):
+def set_new_pw(code: str, password: str) -> dict:
     try:
         state = get_pwreset_state(code)
     except BadCode as e:
@@ -123,8 +134,36 @@ def set_new_pw(code: str, password: str):
         current_app.logger.info('Custom password used')
         current_app.stats.count(name='reset_password_custom_password_used')
 
-    current_app.logger.info('Resetting password for user {state.eppn}')
+    current_app.logger.info(f'Resetting password for user {state.eppn}')
     reset_user_password(state, password)
-    current_app.logger.info('Password reset done, removing state for user {state.eppn}')
+    current_app.logger.info(f'Password reset done, removing state for user {state.eppn}')
     current_app.password_reset_state_db.remove_state(state)
     return success_message('resetpw.pw-resetted')
+
+
+@reset_password_views.route('/extra-security/', methods=['POST'])
+@UnmarshalWith(ResetPasswordExtraSecSchema)
+@MarshalWith(FluxStandardAction)
+def choose_extra_security(code: str, phone_index: str) -> dict:
+    try:
+        state = get_pwreset_state(code)
+    except BadCode as e:
+        return error_message(e.msg)
+
+    current_app.logger.info(f'Password reset: choose_extra_security for {state.eppn}')
+
+    # Check that the email code has been validated
+    if not state.email_code.is_verified:
+        current_app.logger.info(f'User {state.eppn} has not verified their email address')
+        return error_message('resetpw.email-not-validated')
+
+    phone_number = state.extra_security['phone_numbers'][phone_index]
+    current_app.logger.info(f'Trying to send password reset sms to user {state.eppn}')
+    try:
+        send_verify_phone_code(state, phone_number)
+    except MsgTaskFailed as e:
+        current_app.logger.error(f'Sending sms failed: {e}')
+        return error_message('resetpw.sms-failed')
+
+    current_app.stats.count(name='reset_password_extra_security_phone')
+    return success_message('resetpw.sms-success')

@@ -54,9 +54,15 @@ class ResetPasswordInitSchema(Schema):
             raise ValidationError(_('Invalid email address'))
 
 
-class ResetPasswordEmailCodeSchema(Schema):
+class ResetPasswordEmailCodeSchema(CSRFRequestMixin):
 
     code = fields.String(required=True)
+
+
+class ResetPasswordExtraSecSchema(CSRFRequestMixin):
+
+    code = fields.String(required=True)
+    phone_index = fields.String(required=True)
 
 
 class ResetPasswordWithCodeSchema(CSRFRequestMixin):
