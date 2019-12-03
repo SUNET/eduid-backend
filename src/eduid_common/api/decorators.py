@@ -13,7 +13,7 @@ from eduid_common.session import session
 from eduid_userdb.exceptions import UserDoesNotExist, MultipleUsersReturned
 from eduid_common.api.utils import get_user
 from eduid_common.api.schemas.base import FluxStandardAction
-from eduid_common.api.schemas.models import flux_response_status, FluxSuccessResponse, FluxFailResponse
+from eduid_common.api.schemas.models import FluxResponseStatus, FluxSuccessResponse, FluxFailResponse
 
 __author__ = 'lundberg'
 
@@ -64,11 +64,11 @@ def can_verify_identity(f):
         user = get_user()
         # For now a user can just have one verified NIN
         if user.nins.primary is not None:
-            return {'_status': flux_response_status.error, 'message': 'User is already verified'}
+            return {'_status': FluxResponseStatus.error, 'message': 'User is already verified'}
         # A user can not verify a nin if another previously was verified
         locked_nin = user.locked_identity.find('nin')
         if locked_nin and locked_nin.number != kwargs['nin']:
-            return {'_status': flux_response_status.error, 'message': 'Another nin is already registered for this user'}
+            return {'_status': FluxResponseStatus.error, 'message': 'Another nin is already registered for this user'}
 
         return f(*args, **kwargs)
 
@@ -89,16 +89,16 @@ class MarshalWith(object):
                 return ret
 
             try:
-                response_status = ret.pop('_status', flux_response_status.ok)
+                response_status = ret.pop('_status', FluxResponseStatus.ok)
             # ret may be a list:
             except TypeError:
                 for item in ret:
-                    response_status = item.pop('_status', flux_response_status.ok)
-                    if response_status != flux_response_status.ok:
+                    response_status = item.pop('_status', FluxResponseStatus.ok)
+                    if response_status != FluxResponseStatus.ok:
                         break
 
             # Handle fail responses
-            if response_status != flux_response_status.ok:
+            if response_status != FluxResponseStatus.ok:
                 response_data = FluxFailResponse(request, payload=ret)
                 return jsonify(self.schema().dump(response_data.to_dict()).data)
 
