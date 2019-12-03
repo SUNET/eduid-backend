@@ -139,6 +139,12 @@ class ResetPasswordTests(EduidAPITestCase):
             self.assertEqual(response.status_code, 200)
             state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
 
+            user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+            verified_phone_numbers = user.phone_numbers.verified.to_list()
+            self.assertEquals(len(verified_phone_numbers), 1)
+            verified_nins = user.nins.verified.to_list()
+            self.assertEquals(len(verified_nins), 2)
+
             with c.session_transaction() as session:
                 new_password = generate_suggested_password()
                 hashed = b64encode(hash_password(new_password)).decode('utf8')
@@ -154,3 +160,9 @@ class ResetPasswordTests(EduidAPITestCase):
 
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_NEW_PW_SUCCESS')
+
+            user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
+            verified_phone_numbers = user.phone_numbers.verified.to_list()
+            self.assertEquals(len(verified_phone_numbers), 0)
+            verified_nins = user.nins.verified.to_list()
+            self.assertEquals(len(verified_nins), 0)
