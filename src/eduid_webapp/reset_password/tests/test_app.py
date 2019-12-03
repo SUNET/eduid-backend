@@ -40,6 +40,7 @@ from flask import url_for
 from mock import patch
 
 from eduid_common.api.testing import EduidAPITestCase
+from eduid_common.authn.testing import TestVCCSClient
 from eduid_webapp.reset_password.app import init_reset_password_app
 from eduid_webapp.reset_password.settings.common import ResetPasswordConfig
 from eduid_webapp.reset_password.helpers import hash_password
@@ -122,9 +123,13 @@ class ResetPasswordTests(EduidAPITestCase):
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_CONFIG_SUCCESS')
 
+    @patch('eduid_common.authn.vccs.get_vccs_client')
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
-    def test_post_reset_password(self, mock_sendmail):
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_post_reset_password(self, mock_request_user_sync, mock_sendmail, mock_get_vccs_client):
+        mock_request_user_sync.side_effect = self.request_user_sync
         mock_sendmail.return_value = True
+        mock_get_vccs_client.return_value = TestVCCSClient()
         with self.app.test_client() as c:
             data = {
                 'email': self.test_user_email
@@ -138,14 +143,14 @@ class ResetPasswordTests(EduidAPITestCase):
                 new_password = generate_suggested_password()
                 hashed = b64encode(hash_password(new_password)).decode('utf8')
                 session.reset_password.generated_password_hash = hashed
-
                 url = url_for('reset_password.set_new_pw', _external=True)
                 data = {
                     'code': state.email_code.code,
                     'password': new_password
                 }
-                response = c.post(url, data=json.dumps(data),
-                                  content_type=self.content_type_json)
+
+            response = c.post(url, data=json.dumps(data),
+                              content_type=self.content_type_json)
 
             self.assertEqual(response.status_code, 200)
-            self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_CONFIG_SUCCESS')
+            self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_NEW_PW_SUCCESS')
