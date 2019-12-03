@@ -93,13 +93,16 @@ def config_reset_pw(code: str) -> dict:
 
     new_password = generate_suggested_password()
     hashed = b64encode(hash_password(new_password)).decode('utf8')
-
     session.reset_password.generated_password_hash = hashed
+
+    user = current_app.central_userdb.get_user_by_eppn(state.eppn)
+    verified_phones = user.phone_numbers.verified.to_list()
 
     return {
             'csrf_token': session.get_csrf_token(),
             'suggested_password': new_password,
             'email_code': state.email_code.code,
+            'extra_security': bool(verified_phones),
             }
 
 
