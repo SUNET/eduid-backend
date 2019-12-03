@@ -16,6 +16,8 @@ class FluxResponseStatus(object):
     def error(self):
         return 'error'
 
+flux_response_status = FluxResponseStatus()
+
 
 class FluxResponse(object):
 
