@@ -1,20 +1,17 @@
 # -*- coding: utf-8 -*-
 
+from dataclasses import dataclass
+
 from eduid_common.session import session
 from eduid_common.api.utils import get_flux_type
 
 __author__ = 'lundberg'
 
 
-class FluxResponseStatus(object):
-
-    @property
-    def ok(self):
-        return 'ok'
-
-    @property
-    def error(self):
-        return 'error'
+@dataclass
+class FluxResponseStatus:
+    ok: str = 'ok'
+    error: str = 'error'
 
 
 class FluxResponse(object):
