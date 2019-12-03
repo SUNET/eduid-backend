@@ -50,6 +50,7 @@ from eduid_webapp.reset_password.helpers import send_password_reset_mail
 from eduid_webapp.reset_password.helpers import get_pwreset_state, BadCode, hash_password
 from eduid_webapp.reset_password.helpers import generate_suggested_password, reset_user_password
 from eduid_webapp.reset_password.helpers import get_extra_security_alternatives, mask_alternatives
+from eduid_webapp.reset_password.helpers import verify_email_address
 from eduid_webapp.reset_password.app import current_reset_password_app as current_app
 
 
@@ -93,6 +94,8 @@ def config_reset_pw(code: str) -> dict:
         state = get_pwreset_state(code)
     except BadCode as e:
         return error_message(e.msg)
+
+    # XXX verify_email_address(state)
 
     new_password = generate_suggested_password()
     hashed = b64encode(hash_password(new_password)).decode('utf8')

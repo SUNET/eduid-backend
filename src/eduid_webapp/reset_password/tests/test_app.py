@@ -196,3 +196,31 @@ class ResetPasswordTests(EduidAPITestCase):
             self.assertEquals(len(verified_phone_numbers), 0)
             verified_nins = user.nins.verified.to_list()
             self.assertEquals(len(verified_nins), 0)
+
+    @patch('eduid_common.authn.vccs.get_vccs_client')
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_post_choose_extra_sec(self, mock_request_user_sync, mock_sendmail, mock_get_vccs_client):
+        mock_request_user_sync.side_effect = self.request_user_sync
+        mock_sendmail.return_value = True
+        mock_get_vccs_client.return_value = TestVCCSClient()
+        with self.app.test_client() as c:
+            data = {
+                'email': self.test_user_email
+            }
+            response = c.post('/', data=json.dumps(data),
+                              content_type=self.content_type_json)
+            self.assertEqual(response.status_code, 200)
+            state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+
+            url = url_for('reset_password.choose_extra_security', _external=True)
+            data = {
+                'code': state.email_code.code,
+                'phone_index': '0'
+            }
+
+            response = c.post(url, data=json.dumps(data),
+                              content_type=self.content_type_json)
+
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_NEW_PW_SUCCESS')

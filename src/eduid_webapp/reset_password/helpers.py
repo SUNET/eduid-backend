@@ -47,6 +47,7 @@ from eduid_common.authn.utils import generate_password
 from eduid_userdb.security import PasswordResetState
 from eduid_userdb.security import PasswordResetEmailAndPhoneState
 from eduid_userdb.security import PasswordResetEmailState
+from eduid_userdb.logs import MailAddressProofing
 from eduid_webapp.security.helpers import send_mail
 from eduid_userdb.exceptions import DocumentDoesNotExist
 from eduid_webapp.reset_password.app import current_reset_password_app as current_app
@@ -275,3 +276,27 @@ def mask_alternatives(alternatives: dict) -> dict:
 
         alternatives['phone_numbers'] = masked_phone_numbers
     return alternatives
+
+
+def verify_email_address(state: PasswordResetEmailState) -> bool:
+    """
+    :param state: Password reset state
+    """
+    user = current_app.central_userdb.get_user_by_eppn(state.eppn,
+                                                       raise_on_missing=False)
+    if not user:
+        current_app.logger.error(f'Could not find user {state.eppn}')
+        return False
+
+    proofing_element = MailAddressProofing(user, created_by='security',
+                                           mail_address=state.email_address,
+                                           reference=state.reference,
+                                           proofing_version='2013v1')
+
+    if current_app.proofing_log.save(proofing_element):
+        state.email_code.is_verified = True
+        current_app.password_reset_state_db.save(state)
+        current_app.logger.info(f'Email code marked as used for {state.eppn}')
+        return True
+
+    return False
