@@ -45,13 +45,22 @@ class JSConfigConfig(FlaskConfig):
     """
     dashboard_bundle_path: str = 'front-build/dashboard-bundle.dev.js'
     dashboard_bundle_version: str = 'dev'
+    # Dashboard feature toggle settings
+    dashboard_bundle_feature_cookie: str = ''
+    dashboard_bundle_feature_version: str = ''
     # Signup config
     signup_bundle_path: str = 'front-build/signup-bundle.dev.js'
     signup_bundle_version: str = 'dev'
     tou_url: str = '/get-tous'
+    # Signup feature toggle settings
+    signup_bundle_feature_cookie: str = ''
+    signup_bundle_feature_version: str = ''
     # Login config
     login_bundle_path: str = 'front-build/login-bundle.dev.js'
     login_bundle_version: str = 'dev'
     # reset password config
     password_entropy: int = 25
     password_length: int = 12
+    # Login feature toggle settings
+    login_bundle_feature_cookie: str = ''
+    login_bundle_feature_version: str = ''

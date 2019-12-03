@@ -34,7 +34,7 @@ from typing import cast, Dict, Optional
 from dataclasses import asdict
 
 import requests
-from flask import Blueprint, abort, render_template
+from flask import Blueprint, abort, render_template, request
 
 from eduid_common.api.decorators import MarshalWith
 from eduid_common.api.schemas.base import FluxStandardAction
@@ -167,6 +167,8 @@ def get_dashboard_bundle():
         'bundle': current_app.config.dashboard_bundle_path,
         'version': current_app.config.dashboard_bundle_version,
     }
+    if request.cookies.get(current_app.config.dashboard_bundle_feature_cookie):
+        context['version'] = current_app.config.dashboard_bundle_feature_version
     try:
         return render_template('load_bundle.jinja2', context=context)
     except AttributeError as e:
@@ -180,6 +182,8 @@ def get_signup_bundle():
         'bundle': current_app.config.signup_bundle_path,
         'version': current_app.config.signup_bundle_version,
     }
+    if request.cookies.get(current_app.config.signup_bundle_feature_cookie):
+        context['version'] = current_app.config.signup_bundle_feature_version
     try:
         return render_template('load_bundle.jinja2', context=context)
     except AttributeError as e:
@@ -193,6 +197,8 @@ def get_login_bundle():
         'bundle': current_app.config.login_bundle_path,
         'version': current_app.config.login_bundle_version,
     }
+    if request.cookies.get(current_app.config.login_bundle_feature_cookie):
+        context['version'] = current_app.config.login_bundle_feature_version
     try:
         return render_template('load_bundle.jinja2', context=context)
     except AttributeError as e:
