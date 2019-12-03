@@ -50,6 +50,8 @@ class ActionsConfig(FlaskConfig):
 
     bundles_path: str = ''
     bundles_version: str = ''
+    bundles_feature_cookie: str = ''
+    bundles_feature_version: str = ''
     idp_url: str = ''
     mfa_testing: bool = False
     generate_u2f_challenges: bool = False

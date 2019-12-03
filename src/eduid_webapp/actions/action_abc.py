@@ -30,6 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 from abc import ABCMeta, abstractmethod
+from flask import request
 
 from eduid_webapp.actions.app import current_actions_app as current_app
 
@@ -167,6 +168,8 @@ class ActionPlugin(object):
         """
         path = current_app.config.bundles_path
         version = current_app.config.bundles_version
+        if request.cookies.get(current_app.config.bundles_feature_cookie):
+            version = current_app.config.bundles_feature_version
         bundle_name = 'eduid_action.{}.js'
         env = current_app.config.environment
         if env == 'dev':
