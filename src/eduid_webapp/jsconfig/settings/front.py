@@ -52,6 +52,11 @@ class FrontConfig:
             'sv': ''
             })
     # URLs
+    # TODO: Remove after new design
+    static_staff_url: str = ''
+    static_students_url: str = ''
+    static_technicians_url: str = ''
+    # TODO: Remove after new design end
     static_faq_url: str = ''
     reset_passwd_url: str = ''
     dashboard_url: str = ''
