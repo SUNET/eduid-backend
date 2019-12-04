@@ -168,8 +168,9 @@ class ActionPlugin(object):
         """
         path = current_app.config.bundles_path
         version = current_app.config.bundles_version
-        if request.cookies.get(current_app.config.bundles_feature_cookie):
-            version = current_app.config.bundles_feature_version
+        feature_cookie = request.cookies.get(current_app.config.bundles_feature_cookie)
+        if feature_cookie and feature_cookie in current_app.config.bundles_feature_version:
+            version = current_app.config.bundles_feature_version[feature_cookie]
         bundle_name = 'eduid_action.{}.js'
         env = current_app.config.environment
         if env == 'dev':

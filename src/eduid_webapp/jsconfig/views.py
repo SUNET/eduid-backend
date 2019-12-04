@@ -167,8 +167,9 @@ def get_dashboard_bundle():
         'bundle': current_app.config.dashboard_bundle_path,
         'version': current_app.config.dashboard_bundle_version,
     }
-    if request.cookies.get(current_app.config.dashboard_bundle_feature_cookie):
-        context['version'] = current_app.config.dashboard_bundle_feature_version
+    feature_cookie = request.cookies.get(current_app.config.dashboard_bundle_feature_cookie)
+    if feature_cookie and feature_cookie in current_app.config.dashboard_bundle_feature_version:
+        context['version'] = current_app.config.dashboard_bundle_feature_version[feature_cookie]
     try:
         return render_template('load_bundle.jinja2', context=context)
     except AttributeError as e:
@@ -182,8 +183,9 @@ def get_signup_bundle():
         'bundle': current_app.config.signup_bundle_path,
         'version': current_app.config.signup_bundle_version,
     }
-    if request.cookies.get(current_app.config.signup_bundle_feature_cookie):
-        context['version'] = current_app.config.signup_bundle_feature_version
+    feature_cookie = request.cookies.get(current_app.config.signup_bundle_feature_cookie)
+    if feature_cookie and feature_cookie in current_app.config.signup_bundle_feature_version:
+        context['version'] = current_app.config.signup_bundle_feature_version[feature_cookie]
     try:
         return render_template('load_bundle.jinja2', context=context)
     except AttributeError as e:
@@ -197,8 +199,9 @@ def get_login_bundle():
         'bundle': current_app.config.login_bundle_path,
         'version': current_app.config.login_bundle_version,
     }
-    if request.cookies.get(current_app.config.login_bundle_feature_cookie):
-        context['version'] = current_app.config.login_bundle_feature_version
+    feature_cookie = request.cookies.get(current_app.config.login_bundle_feature_cookie)
+    if feature_cookie and feature_cookie in current_app.config.login_bundle_feature_version:
+        context['version'] = current_app.config.login_bundle_feature_version[feature_cookie]
     try:
         return render_template('load_bundle.jinja2', context=context)
     except AttributeError as e:
