@@ -46,6 +46,7 @@ from eduid_userdb.security import PasswordResetState
 from eduid_userdb.security import PasswordResetEmailState
 from eduid_userdb.security import PasswordResetEmailAndPhoneState
 from eduid_userdb.logs import MailAddressProofing
+from eduid_userdb.logs import PhoneNumberProofing
 from eduid_common.api.utils import save_and_sync_user
 from eduid_common.api.utils import get_unique_hash
 from eduid_common.api.utils import get_short_hash
@@ -340,3 +341,27 @@ def send_sms(phone_number: str, text_template: str,
 
     message = render_template(text_template, **context)
     current_app.msg_relay.sendsms(phone_number, message, reference)
+
+
+def verify_phone_number(state: PasswordResetEmailAndPhoneState) -> bool:
+    """
+    :param state: Password reset state
+    """
+
+    user = current_app.central_userdb.get_user_by_eppn(state.eppn,
+                                                       raise_on_missing=False)
+    if not user:
+        current_app.logger.error(f'Could not find user {state.eppn}')
+        return False
+
+    proofing_element = PhoneNumberProofing(user, created_by='security',
+                                           phone_number=state.phone_number,
+                                           reference=state.reference,
+                                           proofing_version='2013v1')
+    if current_app.proofing_log.save(proofing_element):
+        state.phone_code.is_verified = True
+        current_app.password_reset_state_db.save(state)
+        current_app.logger.info('Phone code marked as used for {state.eppn}')
+        return True
+
+    return False

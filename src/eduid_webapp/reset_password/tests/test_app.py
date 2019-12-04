@@ -207,7 +207,6 @@ class ResetPasswordTests(EduidAPITestCase):
         mock_request_user_sync.side_effect = self.request_user_sync
         mock_sendmail.return_value = True
         mock_get_vccs_client.return_value = TestVCCSClient()
-        # mock_sendsms.side_effect = MsgTaskFailed('test')
         mock_sendsms.return_value = True
         with self.app.test_client() as c:
             data = {

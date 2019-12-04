@@ -43,7 +43,9 @@ from eduid_userdb.security.state import PasswordResetState
 from eduid_userdb.security.state import PasswordResetEmailState, PasswordResetEmailAndPhoneState
 from eduid_userdb.exceptions import DocumentDoesNotExist
 from eduid_webapp.reset_password.schemas import ResetPasswordInitSchema
-from eduid_webapp.reset_password.schemas import ResetPasswordEmailCodeSchema, ResetPasswordWithCodeSchema
+from eduid_webapp.reset_password.schemas import ResetPasswordEmailCodeSchema
+from eduid_webapp.reset_password.schemas import ResetPasswordWithCodeSchema
+from eduid_webapp.reset_password.schemas import ResetPasswordWithPhoneCodeSchema
 from eduid_webapp.reset_password.schemas import ResetPasswordExtraSecSchema
 from eduid_webapp.reset_password.helpers import error_message, success_message
 from eduid_webapp.reset_password.helpers import send_password_reset_mail
@@ -171,3 +173,41 @@ def choose_extra_security(code: str, phone_index: str) -> dict:
 
     current_app.stats.count(name='reset_password_extra_security_phone')
     return success_message('resetpw.sms-success')
+
+
+@reset_password_views.route('/new-pw/', methods=['POST'])
+@UnmarshalWith(ResetPasswordWithPhoneCodeSchema)
+@MarshalWith(FluxStandardAction)
+def set_new_pw_extra_security(phone_code: str, code: str,
+                              password: str) -> dict:
+    try:
+        state = get_pwreset_state(code)
+    except BadCode as e:
+        return error_message(e.msg)
+
+    if phone_code == state.phone_code.code:
+        if not verify_phone_number(state):
+            current_app.logger.info(f'Could not verify phone code for {state.eppn}')
+            return error_message('resetpw.phone-invalid')
+
+        current_app.logger.info(f'Phone code verified for user {state.eppn}')
+        current_app.stats.count(name='reset_password_extra_security_phone_success')
+    else:
+        current_app.logger.info(f'Could not verify phone code for {state.eppn}')
+        return error_message('resetpw.phone-code-unknown')
+
+    # XXX continue
+
+    hashed = b64encode(hash_password(password)).decode('utf8')
+    if hashed == session.reset_password.generated_password_hash:
+        current_app.logger.info('Generated password used')
+        current_app.stats.count(name='reset_password_generated_password_used')
+    else:
+        current_app.logger.info('Custom password used')
+        current_app.stats.count(name='reset_password_custom_password_used')
+
+    current_app.logger.info(f'Resetting password for user {state.eppn}')
+    reset_user_password(state, password)
+    current_app.logger.info(f'Password reset done, removing state for user {state.eppn}')
+    current_app.password_reset_state_db.remove_state(state)
+    return success_message('resetpw.pw-resetted')

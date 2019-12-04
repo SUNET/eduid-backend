@@ -101,3 +101,8 @@ class ResetPasswordWithCodeSchema(CSRFRequestMixin):
         result = zxcvbn(password)
         if math.log(result.get('guesses', 1), 2) < min_entropy:
             raise ValidationError('The password complexity is too weak.')
+
+
+class ResetPasswordWithPhoneCodeSchema(ResetPasswordWithCodeSchema):
+    
+    phone_code = fields.String(required=True)
