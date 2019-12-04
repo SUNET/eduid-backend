@@ -39,6 +39,7 @@ from base64 import b64encode
 from flask import url_for
 from mock import patch
 
+from eduid_common.api.exceptions import MsgTaskFailed
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.authn.testing import TestVCCSClient
 from eduid_webapp.reset_password.app import init_reset_password_app
@@ -138,6 +139,7 @@ class ResetPasswordTests(EduidAPITestCase):
 
             state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
             user = self.app.central_userdb.get_user_by_eppn(state.eppn)
+            # Unverify phone numbers
             for number in user.phone_numbers.verified.to_list():
                 user.phone_numbers.remove(number.key)
             self.app.central_userdb.save(user)
@@ -200,10 +202,13 @@ class ResetPasswordTests(EduidAPITestCase):
     @patch('eduid_common.authn.vccs.get_vccs_client')
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
-    def test_post_choose_extra_sec(self, mock_request_user_sync, mock_sendmail, mock_get_vccs_client):
+    @patch('eduid_common.api.msg.MsgRelay.sendsms')
+    def test_post_choose_extra_sec(self, mock_sendsms, mock_request_user_sync, mock_sendmail, mock_get_vccs_client):
         mock_request_user_sync.side_effect = self.request_user_sync
         mock_sendmail.return_value = True
         mock_get_vccs_client.return_value = TestVCCSClient()
+        # mock_sendsms.side_effect = MsgTaskFailed('test')
+        mock_sendsms.return_value = True
         with self.app.test_client() as c:
             data = {
                 'email': self.test_user_email
@@ -212,6 +217,14 @@ class ResetPasswordTests(EduidAPITestCase):
                               content_type=self.content_type_json)
             self.assertEqual(response.status_code, 200)
             state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+
+            url = url_for('reset_password.config_reset_pw', _external=True)
+            data = {
+                'code': state.email_code.code
+            }
+            response = c.post(url, data=json.dumps(data),
+                              content_type=self.content_type_json)
+            self.assertEqual(response.status_code, 200)
 
             url = url_for('reset_password.choose_extra_security', _external=True)
             data = {
@@ -223,4 +236,4 @@ class ResetPasswordTests(EduidAPITestCase):
                               content_type=self.content_type_json)
 
             self.assertEqual(response.status_code, 200)
-            self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_NEW_PW_SUCCESS')
+            self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_EXTRA_SECURITY_SUCCESS')

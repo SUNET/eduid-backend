@@ -32,24 +32,26 @@
 #
 import math
 import os
-from typing import Union
+from typing import Union, Optional
 
 import bcrypt
 from flask import url_for
+from flask import render_template
 from flask_babel import gettext as _
 
 from eduid_userdb.exceptions import UserHasNotCompletedSignup
-from eduid_userdb.security import SecurityUser, PasswordResetEmailState, PasswordResetEmailAndPhoneState
-from eduid_common.authn.vccs import reset_password
+from eduid_userdb.exceptions import DocumentDoesNotExist
+from eduid_userdb.security import SecurityUser
+from eduid_userdb.security import PasswordResetState
+from eduid_userdb.security import PasswordResetEmailState
+from eduid_userdb.security import PasswordResetEmailAndPhoneState
+from eduid_userdb.logs import MailAddressProofing
 from eduid_common.api.utils import save_and_sync_user
 from eduid_common.api.utils import get_unique_hash
+from eduid_common.api.utils import get_short_hash
 from eduid_common.authn.utils import generate_password
-from eduid_userdb.security import PasswordResetState
-from eduid_userdb.security import PasswordResetEmailAndPhoneState
-from eduid_userdb.security import PasswordResetEmailState
-from eduid_userdb.logs import MailAddressProofing
+from eduid_common.authn.vccs import reset_password
 from eduid_webapp.security.helpers import send_mail
-from eduid_userdb.exceptions import DocumentDoesNotExist
 from eduid_webapp.reset_password.app import current_reset_password_app as current_app
 
 
@@ -300,3 +302,41 @@ def verify_email_address(state: PasswordResetEmailState) -> bool:
         return True
 
     return False
+
+
+def send_verify_phone_code(state: PasswordResetEmailState, phone_number: str):
+    state = PasswordResetEmailAndPhoneState.from_email_state(state,
+                                            phone_number=phone_number,
+                                            phone_code=get_short_hash())
+    current_app.password_reset_state_db.save(state)
+    template = 'reset_password_sms.txt.jinja2'
+    context = {
+        'verification_code': state.phone_code.code
+    }
+    send_sms(state.phone_number, template, context, state.reference)
+    current_app.logger.info(f'Sent password reset sms to user {state.eppn}')
+    current_app.logger.debug(f'Phone number: {state.phone_number}')
+
+
+def send_sms(phone_number: str, text_template: str,
+             context: Optional[dict] = None,
+             reference: Optional[str] = None):
+    """
+    :param phone_number: the recipient of the sms
+    :param text_template: message as a jinja template
+    :param context: template context
+    :param reference: Audit reference to help cross reference audit log and events
+    """
+    site_name = current_app.config.eduid_site_name
+    site_url = current_app.config.eduid_site_url
+
+    default_context = {
+        "site_url": site_url,
+        "site_name": site_name,
+    }
+    if not context:
+        context = {}
+    context.update(default_context)
+
+    message = render_template(text_template, **context)
+    current_app.msg_relay.sendsms(phone_number, message, reference)
