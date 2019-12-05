@@ -10,10 +10,12 @@ from six import string_types
 from eduid_userdb.element import _set_something_ts
 from eduid_userdb.exceptions import UserHasUnknownData, UserDBValueError
 from eduid_userdb.security.element import CodeElement
+from eduid_userdb.deprecation import deprecated
 
 __author__ = 'lundberg'
 
 
+@deprecated
 class PasswordResetState(object):
     def __init__(self, data, raise_on_unknown=True):
 
@@ -180,6 +182,7 @@ class PasswordResetState(object):
         return res
 
 
+@deprecated
 class PasswordResetEmailState(PasswordResetState):
     def __init__(self, eppn=None, email_address=None, email_code=None, created_ts=None, data=None,
                  raise_on_unknown=True):
@@ -253,6 +256,7 @@ class PasswordResetEmailState(PasswordResetState):
         return res
 
 
+@deprecated
 class PasswordResetEmailAndPhoneState(PasswordResetEmailState):
     def __init__(self, eppn=None, email_address=None, email_code=None, phone_number=None,
                  phone_code=None, created_ts=None, data=None, raise_on_unknown=True):

@@ -38,6 +38,7 @@ from eduid_userdb.userdb import UserDB
 from eduid_userdb.exceptions import DocumentOutOfSync, MultipleDocumentsReturned
 from eduid_userdb.security import SecurityUser
 from eduid_userdb.security import PasswordResetEmailState, PasswordResetEmailAndPhoneState
+from eduid_userdb.deprecation import deprecated
 
 import logging
 logger = logging.getLogger(__name__)
@@ -56,6 +57,7 @@ class SecurityUserDB(UserDB):
         super(SecurityUserDB, self).save(user, check_sync=check_sync, old_format=old_format)
 
 
+@deprecated
 class PasswordResetStateDB(BaseDB):
 
     def __init__(self, db_uri, db_name='eduid_security', collection='password_reset_data'):

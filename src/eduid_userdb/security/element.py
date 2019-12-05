@@ -6,10 +6,12 @@ from typing import Mapping, Type, Union
 
 from eduid_userdb.element import Element
 from eduid_userdb.exceptions import UserDBValueError
+from eduid_userdb.deprecation import deprecated
 
 __author__ = 'lundberg'
 
 
+@deprecated
 class CodeElement(Element):
 
     def __init__(self, application: str, code: str, verified: bool,
