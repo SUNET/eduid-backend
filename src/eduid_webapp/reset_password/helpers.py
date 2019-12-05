@@ -328,14 +328,11 @@ def send_sms(phone_number: str, text_template: str,
     :param context: template context
     :param reference: Audit reference to help cross reference audit log and events
     """
-    site_name = current_app.config.eduid_site_name
-    site_url = current_app.config.eduid_site_url
-
     default_context = {
-        "site_url": site_url,
-        "site_name": site_name,
+        "site_url": current_app.config.eduid_site_url,
+        "site_name": current_app.config.eduid_site_name,
     }
-    if not context:
+    if context is None:
         context = {}
     context.update(default_context)
 
