@@ -123,7 +123,7 @@ def config_reset_pw(code: str) -> dict:
             }
 
 
-@reset_password_views.route('/new-pw/', methods=['POST'])
+@reset_password_views.route('/new-password/', methods=['POST'])
 @UnmarshalWith(ResetPasswordWithCodeSchema)
 @MarshalWith(FluxStandardAction)
 def set_new_pw(code: str, password: str) -> dict:
@@ -175,7 +175,7 @@ def choose_extra_security(code: str, phone_index: str) -> dict:
     return success_message('resetpw.sms-success')
 
 
-@reset_password_views.route('/new-pw/', methods=['POST'])
+@reset_password_views.route('/new-password-secure/', methods=['POST'])
 @UnmarshalWith(ResetPasswordWithPhoneCodeSchema)
 @MarshalWith(FluxStandardAction)
 def set_new_pw_extra_security(phone_code: str, code: str,

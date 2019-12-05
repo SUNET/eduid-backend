@@ -190,7 +190,7 @@ class ResetPasswordTests(EduidAPITestCase):
                               content_type=self.content_type_json)
 
             self.assertEqual(response.status_code, 200)
-            self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_NEW_PW_SUCCESS')
+            self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_NEW_PASSWORD_SUCCESS')
 
             # check that the user no longer has verified data
             user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
@@ -236,3 +236,49 @@ class ResetPasswordTests(EduidAPITestCase):
 
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_EXTRA_SECURITY_SUCCESS')
+
+    @patch('eduid_common.authn.vccs.get_vccs_client')
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_post_reset_password_secure(self, mock_request_user_sync, mock_sendmail, mock_get_vccs_client):
+        mock_request_user_sync.side_effect = self.request_user_sync
+        mock_sendmail.return_value = True
+        mock_get_vccs_client.return_value = TestVCCSClient()
+        with self.app.test_client() as c:
+            data = {
+                'email': self.test_user_email
+            }
+            response = c.post('/', data=json.dumps(data),
+                              content_type=self.content_type_json)
+            self.assertEqual(response.status_code, 200)
+            state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+
+            # check that the user has verified data
+            user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+            verified_phone_numbers = user.phone_numbers.verified.to_list()
+            self.assertEquals(len(verified_phone_numbers), 1)
+            verified_nins = user.nins.verified.to_list()
+            self.assertEquals(len(verified_nins), 2)
+
+            with c.session_transaction() as session:
+                new_password = generate_suggested_password()
+                hashed = b64encode(hash_password(new_password)).decode('utf8')
+                session.reset_password.generated_password_hash = hashed
+                url = url_for('reset_password.set_new_pw', _external=True)
+                data = {
+                    'code': state.email_code.code,
+                    'password': new_password
+                }
+
+            response = c.post(url, data=json.dumps(data),
+                              content_type=self.content_type_json)
+
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_NEW_PASSWORD_SECURE_SUCCESS')
+
+            # check that the user no longer has verified data
+            user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
+            verified_phone_numbers = user.phone_numbers.verified.to_list()
+            self.assertEquals(len(verified_phone_numbers), 0)
+            verified_nins = user.nins.verified.to_list()
+            self.assertEquals(len(verified_nins), 0)
