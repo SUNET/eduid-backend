@@ -62,7 +62,7 @@ class ResetPasswordEmailCodeSchema(CSRFRequestMixin):
 class ResetPasswordExtraSecSchema(CSRFRequestMixin):
 
     code = fields.String(required=True)
-    phone_index = fields.String(required=True)
+    phone_index = fields.Integer(required=True)
 
 
 class ResetPasswordWithCodeSchema(CSRFRequestMixin):

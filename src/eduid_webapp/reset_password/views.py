@@ -53,6 +53,7 @@ from eduid_webapp.reset_password.helpers import get_pwreset_state, BadCode, hash
 from eduid_webapp.reset_password.helpers import generate_suggested_password, reset_user_password
 from eduid_webapp.reset_password.helpers import get_extra_security_alternatives, mask_alternatives
 from eduid_webapp.reset_password.helpers import verify_email_address
+from eduid_webapp.reset_password.helpers import verify_phone_number
 from eduid_webapp.reset_password.helpers import send_verify_phone_code
 from eduid_webapp.reset_password.app import current_reset_password_app as current_app
 
@@ -150,7 +151,7 @@ def set_new_pw(code: str, password: str) -> dict:
 @reset_password_views.route('/extra-security/', methods=['POST'])
 @UnmarshalWith(ResetPasswordExtraSecSchema)
 @MarshalWith(FluxStandardAction)
-def choose_extra_security(code: str, phone_index: str) -> dict:
+def choose_extra_security(code: str, phone_index: int) -> dict:
     try:
         state = get_pwreset_state(code)
     except BadCode as e:
@@ -163,7 +164,7 @@ def choose_extra_security(code: str, phone_index: str) -> dict:
         current_app.logger.info(f'User {state.eppn} has not verified their email address')
         return error_message('resetpw.email-not-validated')
 
-    phone_number = state.extra_security['phone_numbers'][int(phone_index)]
+    phone_number = state.extra_security['phone_numbers'][phone_index]
     current_app.logger.info(f'Trying to send password reset sms to user {state.eppn}')
     try:
         send_verify_phone_code(state, phone_number)
