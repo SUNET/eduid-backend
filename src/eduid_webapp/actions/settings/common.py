@@ -36,7 +36,7 @@ Configuration (file) handling for the eduID actions app.
 """
 
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Optional, Mapping
 
 from eduid_common.config.base import FlaskConfig
 
@@ -50,6 +50,8 @@ class ActionsConfig(FlaskConfig):
 
     bundles_path: str = ''
     bundles_version: str = ''
+    bundles_feature_cookie: str = ''
+    bundles_feature_version: Mapping = field(default_factory=dict)
     idp_url: str = ''
     mfa_testing: bool = False
     generate_u2f_challenges: bool = False
