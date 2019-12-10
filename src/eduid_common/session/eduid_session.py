@@ -22,6 +22,7 @@ from eduid_common.config.exceptions import BadConfiguration
 from eduid_common.session.redis_session import SessionManager, RedisEncryptedSession
 from eduid_common.session.namespaces import SessionNSBase, Common, MfaAction
 from eduid_common.session.namespaces import Signup, Actions
+from eduid_common.session.namespaces import ResetPasswordNS
 from eduid_common.session.logindata import SSOLoginData
 
 
@@ -55,6 +56,7 @@ class EduidSession(SessionMixin, MutableMapping):
         self._signup: Optional[Signup] = None
         self._actions: Optional[Actions] = None
         self._sso_ticket: Optional[SSOLoginData] = None
+        self._reset_password: Optional[ResetPasswordNS] = None
 
     def __getitem__(self, key, default=None):
         return self._session.__getitem__(key, default=None)
@@ -142,6 +144,17 @@ class EduidSession(SessionMixin, MutableMapping):
     def sso_ticket(self, value: Optional[SSOLoginData]):
         if not self._sso_ticket:
             self._sso_ticket = value
+
+    @property
+    def reset_password(self) -> Optional[ResetPasswordNS]:
+        if not self._reset_password:
+            self._reset_password = ResetPasswordNS.from_dict(self._session.get('_reset_password', {}))
+        return self._reset_password
+
+    @reset_password.setter
+    def reset_password(self, value: Optional[ResetPasswordNS]):
+        if not self._reset_password:
+            self._reset_password = value
 
     @property
     def token(self):

@@ -76,6 +76,11 @@ class TimestampedNS(SessionNSBase):
         return cls(**_data)
 
 
+@dataclass
+class ResetPasswordNS(SessionNSBase):
+    generated_password_hash: Optional[str] = None
+
+
 @dataclass()
 class Signup(TimestampedNS):
     """"""
