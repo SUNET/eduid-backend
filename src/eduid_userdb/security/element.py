@@ -11,7 +11,7 @@ from eduid_userdb.deprecation import deprecated
 __author__ = 'lundberg'
 
 
-@deprecated
+@deprecated("Remove once the password reset views are served from their own webapp")
 class CodeElement(Element):
 
     def __init__(self, application: str, code: str, verified: bool,

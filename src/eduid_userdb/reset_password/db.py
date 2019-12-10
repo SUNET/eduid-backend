@@ -65,8 +65,8 @@ class ResetPasswordStateDB(BaseDB):
         super(ResetPasswordStateDB, self).__init__(db_uri, db_name,
                                                    collection=collection)
 
-        def get_state_by_email_code(self, email_code: str,
-                                    raise_on_missing: bool = True):
+    def get_state_by_email_code(self, email_code: str,
+                                raise_on_missing: bool = True):
         """
         Locate a state in the db given the state's email code.
 

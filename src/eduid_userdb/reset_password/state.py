@@ -65,7 +65,7 @@ class ResetPasswordState(object):
         self._data['extra_security'] = self._data_in.pop('extra_security', None)
 
         # generated password
-        self._data['generated_password'] = self._data_in.pop('generated_password', None)
+        self._data['generated_password'] = self._data_in.pop('generated_password', False)
 
         # meta
         self.created_ts = self._data_in.pop('created_ts', None)
@@ -293,7 +293,7 @@ class ResetPasswordEmailAndPhoneState(ResetPasswordEmailState):
 
     @classmethod
     def from_email_state(cls, email_state: ResetPasswordEmailState,
-                         phone_number: str, phone_code: str) -> ResetPasswordEmailAndPhoneState:
+                         phone_number: str, phone_code: str) -> ResetPasswordState:
         data = email_state.to_dict()
         data['phone_number'] = phone_number
         data['phone_code'] = phone_code
