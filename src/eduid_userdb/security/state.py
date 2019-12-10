@@ -15,8 +15,10 @@ from eduid_userdb.deprecation import deprecated
 __author__ = 'lundberg'
 
 
-@deprecated("Remove once the password reset views are served from their own webapp")
+# @deprecated("Remove once the password reset views are served from their own webapp")
 class PasswordResetState(object):
+
+    @deprecated("Remove once the password reset views are served from their own webapp")
     def __init__(self, data, raise_on_unknown=True):
 
         self._data_in = copy.deepcopy(data)  # to not modify callers data
@@ -182,8 +184,10 @@ class PasswordResetState(object):
         return res
 
 
-@deprecated("Remove once the password reset views are served from their own webapp")
+# @deprecated("Remove once the password reset views are served from their own webapp")
 class PasswordResetEmailState(PasswordResetState):
+
+    @deprecated("Remove once the password reset views are served from their own webapp")
     def __init__(self, eppn=None, email_address=None, email_code=None, created_ts=None, data=None,
                  raise_on_unknown=True):
         if data is None:
@@ -256,8 +260,10 @@ class PasswordResetEmailState(PasswordResetState):
         return res
 
 
-@deprecated("Remove once the password reset views are served from their own webapp")
+# @deprecated("Remove once the password reset views are served from their own webapp")
 class PasswordResetEmailAndPhoneState(PasswordResetEmailState):
+
+    @deprecated("Remove once the password reset views are served from their own webapp")
     def __init__(self, eppn=None, email_address=None, email_code=None, phone_number=None,
                  phone_code=None, created_ts=None, data=None, raise_on_unknown=True):
         if data is None:

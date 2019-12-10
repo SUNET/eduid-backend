@@ -11,9 +11,10 @@ from eduid_userdb.deprecation import deprecated
 __author__ = 'lundberg'
 
 
-@deprecated("Remove once the password reset views are served from their own webapp")
+# @deprecated("Remove once the password reset views are served from their own webapp")
 class CodeElement(Element):
 
+    @deprecated("Remove once the password reset views are served from their own webapp")
     def __init__(self, application: str, code: str, verified: bool,
                  created_ts: Union[datetime, bool]):
 
