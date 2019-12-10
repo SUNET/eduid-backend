@@ -30,9 +30,11 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+from typing import Optional, Mapping, Dict, Any
 
 from pymongo.errors import DuplicateKeyError
 from eduid_userdb.db import BaseDB
+from eduid_userdb.user import User
 from eduid_userdb.userdb import UserDB
 from eduid_userdb.exceptions import DocumentOutOfSync, MultipleDocumentsReturned
 from eduid_userdb.reset_password import ResetPasswordUser
@@ -53,8 +55,10 @@ class ResetPasswordUserDB(UserDB):
         super(ResetPasswordUserDB, self).__init__(db_uri, db_name,
                                                   collection=collection)
 
-    def save(self, user: ResetPasswordUser, check_sync: bool = True):
-        super(ResetPasswordUserDB, self).save(user, check_sync=check_sync)
+    def save(self, user: User, check_sync: bool = True,
+             old_format: bool = False) -> bool:
+        return super(ResetPasswordUserDB, self).save(user, check_sync=check_sync,
+                                                     old_format=old_format)
 
 
 class ResetPasswordStateDB(BaseDB):
@@ -111,11 +115,13 @@ class ResetPasswordStateDB(BaseDB):
             return self.init_state(state)
 
     @staticmethod
-    def init_state(state: ResetPasswordState):
+    def init_state(state: Mapping) -> Optional[ResetPasswordState]:
+        resetpw_state = None
         if state.get('method') == 'email':
-            return ResetPasswordEmailState(data=state)
+            resetpw_state = ResetPasswordEmailState(data=state)
         if state.get('method') == 'email_and_phone':
-            return ResetPasswordEmailAndPhoneState(data=state)
+            resetpw_state = ResetPasswordEmailAndPhoneState(data=state)
+        return resetpw_state
 
     def save(self, state: ResetPasswordState, check_sync: bool = True):
         """
@@ -139,7 +145,7 @@ class ResetPasswordStateDB(BaseDB):
                           f"{self._coll_name}): {result})")
 
         else:
-            test_doc = {'eduPersonPrincipalName': state.eppn}
+            test_doc: Dict[str, Any] = {'eduPersonPrincipalName': state.eppn}
             if check_sync:
                 test_doc['modified_ts'] = modified
             result = self._coll.update(test_doc, state.to_dict(),
