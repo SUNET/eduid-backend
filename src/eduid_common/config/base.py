@@ -178,6 +178,7 @@ class BaseConfig(CommonConfig):
     eduid_site_name: str = 'eduID'
     eduid_site_url: str = 'https://www.eduid.se'
     eduid_static_url: str = 'https://www.eduid.se/static/'
+    safe_relay_domain: str = 'eduid.se'
     # environment=(dev|staging|pro)
     environment: str = 'dev'
     development: bool = False
@@ -230,7 +231,6 @@ class BaseConfig(CommonConfig):
     dashboard_url: str = ''
     reset_passwd_url: str = ''
     default_finish_url: str = ''
-    safe_relay_domain: str = ''
     faq_link: str = ''
     students_link: str = ''
     staff_link: str = ''
