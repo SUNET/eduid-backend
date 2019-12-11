@@ -37,7 +37,6 @@ from __future__ import absolute_import
 import copy
 from typing import Optional, Union
 from bson.objectid import ObjectId
-from six import string_types
 
 from eduid_userdb.credentials import Credential
 from eduid_userdb.exceptions import UserHasUnknownData, UserDBValueError
@@ -106,7 +105,7 @@ class Password(Credential):
         if isinstance(value, ObjectId):
             # backwards compatibility
             value = str(value)
-        if not isinstance(value, string_types):
+        if not isinstance(value, str):
             raise UserDBValueError("Invalid 'credential_id': {!r}".format(value))
         self._data['credential_id'] = value
 
@@ -122,8 +121,8 @@ class Password(Credential):
         """
         :param value: Password salt.
         """
-        if not isinstance(value, string_types):
-            raise UserDBValueError("Invalid 'salt': {value}")
+        if not isinstance(value, str):
+            raise UserDBValueError(f"Invalid 'salt': {value}")
         self._data['salt'] = value
 
     @property
