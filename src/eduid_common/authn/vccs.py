@@ -29,8 +29,10 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+from typing import Optional, Union
 
 from bson import ObjectId
+from eduid_userdb.user import User
 from eduid_userdb.dashboard import DashboardLegacyUser, DashboardUser
 from eduid_userdb.credentials import Password
 from eduid_common.api.decorators import deprecated
@@ -92,7 +94,10 @@ def check_password(vccs_url, password, user, vccs=None):
     return False
 
 
-def add_password(user, new_password, application, vccs_url=None, vccs=None):
+def add_password(user: User, new_password: str,
+                 application: str, is_generated: bool = False,
+                 vccs_url: Optional[str] = None,
+                 vccs: Optional[vccs_client.VCCSClient] = None) -> Union[User, bool]:
     """
     :param user: User object
     :param new_password: plaintext new password
@@ -100,14 +105,7 @@ def add_password(user, new_password, application, vccs_url=None, vccs=None):
     :param vccs_url: URL to VCCS authentication backend
     :param vccs: Instantiated vccs client
 
-    :type user: User | DashboardLegacyUser
-    :type new_password: six.string_types
-    :type application: six.string_types
-    :type vccs_url: six.string_types
-    :type vccs: vccs_client.VCCSClient
-
     :return: User object | Boolean
-    :rtype: User | False
     """
     if vccs is None:
         vccs = get_vccs_client(vccs_url)
@@ -123,12 +121,18 @@ def add_password(user, new_password, application, vccs_url=None, vccs=None):
     logger.info('Added password credential {} for user {}'.format(new_factor.credential_id, user))
 
     # Add new password to user
-    new_password = Password(credential_id=credential_id, salt=new_factor.salt, application=application)
+    new_password = Password(credential_id=credential_id,
+                            salt=new_factor.salt,
+                            is_generated=is_generated,
+                            application=application)
     user.credentials.add(new_password)
     return user
 
 
-def reset_password(user, new_password, application, vccs_url=None, vccs=None):
+def reset_password(user: User, new_password: str,
+                   application: str, is_generated: bool = False,
+                   vccs_url: Optional[str] = None,
+                   vccs: Optional[vccs_client.VCCSClient] = None) -> Union[User, bool]:
     """
     :param user: User object
     :param new_password: plaintext new password
@@ -136,14 +140,7 @@ def reset_password(user, new_password, application, vccs_url=None, vccs=None):
     :param vccs_url: URL to VCCS authentication backend
     :param vccs: Instantiated vccs client
 
-    :type user: User | DashboardLegacyUser
-    :type new_password: six.string_types
-    :type application: six.string_types
-    :type vccs_url: six.string_types
-    :type vccs: vccs_client.VCCSClient
-
     :return: User object | Boolean
-    :rtype: User | False
     """
     if vccs is None:
         vccs = get_vccs_client(vccs_url)
@@ -162,12 +159,19 @@ def reset_password(user, new_password, application, vccs_url=None, vccs=None):
     logger.info('Added password credential {} for user {}'.format(new_factor.credential_id, user))
 
     # Add new password to user
-    new_password = Password(credential_id=credential_id, salt=new_factor.salt, application=application)
+    new_password = Password(credential_id=credential_id,
+                            salt=new_factor.salt,
+                            is_generated=is_generated,
+                            application=application)
     user.credentials.add(new_password)
     return user
 
 
-def change_password(user, new_password, old_password, application, vccs_url=None, vccs=None):
+def change_password(user: User,
+                    new_password: str, old_password: str,
+                    application: str, is_generated: bool = False,
+                    vccs_url: Optional[str] = None,
+                    vccs: Optional[vccs_client.VCCSClient] = None) -> Union[User, bool]:
     """
     :param user: User object
     :param new_password: plaintext new password
@@ -215,7 +219,10 @@ def change_password(user, new_password, old_password, application, vccs_url=None
     logger.info('Revoked credential {} for user {}'.format(revoke_factor.credential_id, user))
 
     # Add new password to user
-    new_password = Password(credential_id=credential_id, salt=new_factor.salt, application=application)
+    new_password = Password(credential_id=credential_id,
+                            salt=new_factor.salt,
+                            is_generated=is_generated,
+                            application=application)
     user.credentials.add(new_password)
     return user
 
