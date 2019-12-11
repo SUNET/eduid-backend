@@ -233,9 +233,11 @@ def set_new_pw(code: str, password: str) -> dict:
 
     hashed = b64encode(hash_password(password)).decode('utf8')
     if hashed == session.reset_password.generated_password_hash:
+        state.generated_password = True
         current_app.logger.info('Generated password used')
         current_app.stats.count(name='reset_password_generated_password_used')
     else:
+        state.generated_password = False
         current_app.logger.info('Custom password used')
         current_app.stats.count(name='reset_password_custom_password_used')
 
@@ -347,9 +349,11 @@ def set_new_pw_extra_security(phone_code: str, code: str, password: str) -> dict
 
     hashed = b64encode(hash_password(password)).decode('utf8')
     if hashed == session.reset_password.generated_password_hash:
+        state.generated_password = True
         current_app.logger.info('Generated password used')
         current_app.stats.count(name='reset_password_generated_password_used')
     else:
+        state.generated_password = False
         current_app.logger.info('Custom password used')
         current_app.stats.count(name='reset_password_custom_password_used')
 
