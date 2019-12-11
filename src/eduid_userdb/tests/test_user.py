@@ -30,6 +30,7 @@ class TestUser(TestCase):
                                       u'credential_id': '54735b588a7d2a2c4ec3e7d0',
                                       u'salt': u'$NDNv1H1$315d7$32$32$',
                                       u'created_by': u'dashboard',
+                                      u'is_generated': False,
                                       }],
                       u'norEduPersonNIN': [u'197801012345'],
                       u'subject': u'physical person',
@@ -55,6 +56,7 @@ class TestUser(TestCase):
                       u'passwords': [{u'created_ts': datetime.datetime(2015, 2, 11, 13, 58, 42, 327000),
                                       u'id': ObjectId('54db60128a7d2a26e8690cda'),
                                       u'salt': u'$NDNv1H1$db011fc$32$32$',
+                                      u'is_generated': False,
                                       u'source': u'dashboard'},
                                      {'version': 'U2F_V2',
                                       'app_id': 'unit test',
@@ -157,6 +159,7 @@ class TestUser(TestCase):
                               u'credential_id': str(ObjectId()),
                               u'salt': u'salt',
                               u'created_by': u'dashboard',
+                              u'is_generated': False,
                               }]
         user = User(data)
         self.assertEqual(user.surname, data['surname'])

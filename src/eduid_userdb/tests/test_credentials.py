@@ -19,6 +19,7 @@ __author__ = 'lundberg'
 _one_dict = {
     'credential_id': '111111111111111111111111',
     'salt': 'firstPasswordElement',
+    'is_generated': False,
 }
 _two_dict = {
     'credential_id': '222222222222222222222222',
@@ -29,6 +30,7 @@ _three_dict = {
     'credential_id': '333333333333333333333333',
     'salt': 'thirdPasswordElement',
     'source': 'test',
+    'is_generated': True,
 }
 _four_dict = {
     'version': 'U2F_V2',
@@ -106,3 +108,8 @@ class TestCredentialList(TestCase):
         with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
             self.one.remove(ObjectId('55002741d00690878ae9b603'))
 
+    def test_generated(self):
+        match = self.three.find('222222222222222222222222')
+        self.assertFalse(match.is_generated)
+        match = self.three.find('333333333333333333333333')
+        self.assertTrue(match.is_generated)
