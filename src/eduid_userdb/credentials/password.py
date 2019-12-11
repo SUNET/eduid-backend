@@ -35,9 +35,8 @@
 from __future__ import absolute_import
 
 import copy
-
+from typing import Optional, Union
 from bson.objectid import ObjectId
-from six import string_types
 
 from eduid_userdb.credentials import Credential
 from eduid_userdb.exceptions import UserHasUnknownData, UserDBValueError
@@ -47,8 +46,14 @@ __author__ = 'lundberg'
 
 class Password(Credential):
 
-    def __init__(self, credential_id=None, salt=None, application=None, created_ts=None, data=None,
-                 raise_on_unknown=True):
+    def __init__(self,
+                 credential_id: Optional[ObjectId] = None,
+                 salt: Optional[str] = None,
+                 is_generated: bool = False,
+                 application: Optional[str] = None,
+                 created_ts: Optional[Union[str, bool]] = None,
+                 data: Optional[dict] = None,
+                 raise_on_unknown: bool = True):
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
 
@@ -57,6 +62,7 @@ class Password(Credential):
                 created_ts = True
             data = dict(id = credential_id,
                         salt = salt,
+                        is_generated = is_generated,
                         created_by = application,
                         created_ts = created_ts,
                         )
@@ -66,6 +72,7 @@ class Password(Credential):
         Credential.__init__(self, data)
         if 'id' in data:  # TODO: Load and save all users in the database to replace id with credential_id
             data['credential_id'] = data.pop('id')
+        self.is_generated = data.pop('is_generated', False)
         self.credential_id = data.pop('credential_id')
         self.salt = data.pop('salt')
 
@@ -77,54 +84,62 @@ class Password(Credential):
             self._data.update(data)
 
     @property
-    def key(self):
+    def key(self) -> str:
         """
         Return the element that is used as key.
         """
         return self.credential_id
 
     @property
-    def credential_id(self):
+    def credential_id(self) -> str:
         """
         This is a reference to the ObjectId in the authentication private database.
-
-        :return: Unique ID of password.
-        :rtype: string_types
         """
         return self._data['credential_id']
 
     @credential_id.setter
-    def credential_id(self, value):
+    def credential_id(self, value: Union[ObjectId, str]):
         """
         :param value: Reference to the password credential in the authn backend db.
-        :type value: string_types
         """
         if isinstance(value, ObjectId):
             # backwards compatibility
             value = str(value)
-        if not isinstance(value, string_types):
+        if not isinstance(value, str):
             raise UserDBValueError("Invalid 'credential_id': {!r}".format(value))
         self._data['credential_id'] = value
 
     @property
-    def salt(self):
+    def salt(self) -> str:
         """
-        This is a reference to the ObjectId in the authentication private database.
-
-        :return: Password salt.
-        :rtype: str
+        Password salt.
         """
         return self._data['salt']
 
     @salt.setter
-    def salt(self, value):
+    def salt(self, value: str):
         """
         :param value: Password salt.
-        :type value: str
         """
-        if not isinstance(value, string_types):
-            raise UserDBValueError("Invalid 'salt': {!r}".format(value))
+        if not isinstance(value, str):
+            raise UserDBValueError(f"Invalid 'salt': {value}")
         self._data['salt'] = value
+
+    @property
+    def is_generated(self) -> bool:
+        """
+        Whether the password was generated or custom
+        """
+        return self._data['is_generated']
+
+    @is_generated.setter
+    def is_generated(self, value: bool):
+        """
+        :param value: Whether the password was generated
+        """
+        if not isinstance(value, bool):
+            raise UserDBValueError(f"Invalid 'is_generated': {value}")
+        self._data['is_generated'] = value
 
 
 def password_from_dict(data, raise_on_unknown=True):

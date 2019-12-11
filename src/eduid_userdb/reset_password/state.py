@@ -34,7 +34,6 @@ import bson
 import copy
 import datetime
 from typing import cast, Union, Optional, Dict, Mapping
-from six import string_types
 
 from eduid_userdb.element import _set_something_ts
 from eduid_userdb.exceptions import UserHasUnknownData, UserDBValueError
@@ -116,7 +115,7 @@ class ResetPasswordState(object):
         """
         Set the password reset method
         """
-        if value is None or isinstance(value, string_types):
+        if value is None or isinstance(value, str):
             self._data['method'] = value
 
     # -----------------------------------------------------------------
@@ -230,7 +229,7 @@ class ResetPasswordEmailState(ResetPasswordState):
         """
         :param value: e-mail address.
         """
-        if not isinstance(value, string_types):
+        if not isinstance(value, str):
             raise UserDBValueError(f"Invalid 'email_address': {value}")
         self._data['email_address'] = str(value.lower())
 
@@ -313,7 +312,7 @@ class ResetPasswordEmailAndPhoneState(ResetPasswordEmailState):
         """
         if value is None:
             return
-        if not isinstance(value, string_types):
+        if not isinstance(value, str):
             raise UserDBValueError(f"Invalid 'phone_number': {value}")
         self._data['phone_number'] = value
 
