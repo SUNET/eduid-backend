@@ -1,28 +1,51 @@
 # -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-
+#
+# Copyright (c) 2019 SUNET
+# All rights reserved.
+#
+#   Redistribution and use in source and binary forms, with or
+#   without modification, are permitted provided that the following
+#   conditions are met:
+#
+#     1. Redistributions of source code must retain the above copyright
+#        notice, this list of conditions and the following disclaimer.
+#     2. Redistributions in binary form must reproduce the above
+#        copyright notice, this list of conditions and the following
+#        disclaimer in the documentation and/or other materials provided
+#        with the distribution.
+#     3. Neither the name of the NORDUnet nor the names of its
+#        contributors may be used to endorse or promote products derived
+#        from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+# COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+#
 import bson
 import copy
 import datetime
+from typing import cast, Union, Optional, Dict, Mapping
 from six import string_types
 
 from eduid_userdb.element import _set_something_ts
 from eduid_userdb.exceptions import UserHasUnknownData, UserDBValueError
-from eduid_userdb.security.element import CodeElement
-from eduid_userdb.deprecation import deprecated
-
-__author__ = 'lundberg'
+from eduid_userdb.reset_password.element import CodeElement
 
 
-# @deprecated("Remove once the password reset views are served from their own webapp")
-class PasswordResetState(object):
-
-    @deprecated("Remove once the password reset views are served from their own webapp")
-    def __init__(self, data, raise_on_unknown=True):
+class ResetPasswordState(object):
+    def __init__(self, data: dict, raise_on_unknown: bool = True):
 
         self._data_in = copy.deepcopy(data)  # to not modify callers data
-        self._data = dict()
+        self._data: Dict = dict()
 
         # things without setters
         # _id
@@ -42,7 +65,7 @@ class PasswordResetState(object):
         self._data['extra_security'] = self._data_in.pop('extra_security', None)
 
         # generated password
-        self._data['generated_password'] = self._data_in.pop('generated_password', None)
+        self._data['generated_password'] = self._data_in.pop('generated_password', False)
 
         # meta
         self.created_ts = self._data_in.pop('created_ts', None)
@@ -60,136 +83,117 @@ class PasswordResetState(object):
         return '<eduID {!s}: {!s}>'.format(self.__class__.__name__, self.eppn)
 
     @property
-    def id(self):
+    def id(self) -> bson.ObjectId:
         """
         Get state id
-
-        :rtype: bson.ObjectId
         """
         return self._data['_id']
 
     @property
-    def reference(self):
+    def reference(self) -> str:
         """
         Audit reference to help cross reference audit log and events
-
-        :rtype: six.string_types
         """
-        return '{}'.format(self.id)
+        return f'{self.id}'
 
     @property
-    def eppn(self):
+    def eppn(self) -> str:
         """
         Get the user's eppn
-
-        :rtype: six.string_types
         """
         return self._data['eduPersonPrincipalName']
 
     # -----------------------------------------------------------------
     @property
-    def method(self):
+    def method(self) -> str:
         """
         Get the password reset method
-
-        :rtype: six.string_types
         """
         return self._data['method']
 
     @method.setter
-    def method(self, value):
+    def method(self, value: str):
         """
         Set the password reset method
-
-        :rtype: six.string_types
         """
         if value is None or isinstance(value, string_types):
             self._data['method'] = value
 
     # -----------------------------------------------------------------
     @property
-    def created_ts(self):
+    def created_ts(self) -> datetime.datetime:
         """
         :return: Timestamp of element creation.
-        :rtype: datetime.datetime
         """
-        return self._data.get('created_ts')
+        return cast(datetime.datetime, self._data.get('created_ts'))
 
     @created_ts.setter
-    def created_ts(self, value):
+    def created_ts(self, value: Optional[Union[datetime.datetime, bool]]):
         """
         :param value: Timestamp of element creation.
                       Value None is ignored, True is short for datetime.utcnow().
-        :type value: datetime.datetime | True | None
         """
         _set_something_ts(self._data, 'created_ts', value)
 
     # -----------------------------------------------------------------
     @property
-    def modified_ts(self):
+    def modified_ts(self) -> Optional[Union[datetime.datetime, bool]]:
         """
         :return: Timestamp of last modification in the database.
                  None if User has never been written to the database.
-        :rtype: datetime.datetime | None
         """
         return self._data.get('modified_ts')
 
     @modified_ts.setter
-    def modified_ts(self, value):
+    def modified_ts(self, value: Optional[Union[datetime.datetime, bool]]):
         """
         :param value: Timestamp of modification.
                       Value None is ignored, True is short for datetime.utcnow().
-        :type value: datetime.datetime | True | None
         """
         _set_something_ts(self._data, 'modified_ts', value, allow_update=True)
 
     @property
-    def extra_security(self):
+    def extra_security(self) -> dict:
         """
         Get the extra security alternatives
-
-        :rtype: dict
         """
         return self._data['extra_security']
 
     @extra_security.setter
-    def extra_security(self, value):
+    def extra_security(self, value: dict):
         """
         :param value: dict of extra security alternatives
-        :type value: dict
         """
         if value is None or isinstance(value, dict):
             self._data['extra_security'] = value
 
     @property
-    def generated_password(self):
+    def generated_password(self) -> Optional[bool]:
         """
-        Get the generated password
-
-        :rtype: string | None
+        Get whether the password was generated
         """
         return self._data['generated_password']
 
     @generated_password.setter
-    def generated_password(self, value):
+    def generated_password(self, value: bool):
         """
-        :param value: generated password
-        :type value: string
+        :param value: is generated password
         """
-        if value is None or isinstance(value, string_types):
+        if value is None or isinstance(value, bool):
             self._data['generated_password'] = value
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
         res = copy.copy(self._data)  # avoid caller messing with our _data
         return res
 
 
-# @deprecated("Remove once the password reset views are served from their own webapp")
-class PasswordResetEmailState(PasswordResetState):
-
-    @deprecated("Remove once the password reset views are served from their own webapp")
-    def __init__(self, eppn=None, email_address=None, email_code=None, created_ts=None, data=None,
-                 raise_on_unknown=True):
+class ResetPasswordEmailState(ResetPasswordState):
+    def __init__(self, eppn: Optional[str] = None,
+                 email_address: Optional[str] = None,
+                 email_code: Optional[str] = None,
+                 created_ts: Optional[Union[bool, datetime.datetime]] = None,
+                 data: Optional[Mapping] = None,
+                 raise_on_unknown: bool = True):
         if data is None:
             if created_ts is None:
                 created_ts = True
@@ -199,15 +203,15 @@ class PasswordResetEmailState(PasswordResetState):
                         created_ts=created_ts,
                         )
 
-        self._data_in = copy.deepcopy(data)  # to not modify callers data
+        self._data_in = copy.deepcopy(cast(dict, data))  # to not modify callers data
         self._data = dict()
 
         # email_address
-        email_address = self._data_in.pop('email_address')
+        email_address = cast(str, self._data_in.pop('email_address'))
         # email_code
-        email_code = self._data_in.pop('email_code')
+        email_code = cast(str, self._data_in.pop('email_code'))
 
-        PasswordResetState.__init__(self, self._data_in, raise_on_unknown)
+        ResetPasswordState.__init__(self, self._data_in, raise_on_unknown)
 
         # things with setters
         self.method = 'email'
@@ -215,57 +219,52 @@ class PasswordResetEmailState(PasswordResetState):
         self.email_code = CodeElement.parse(application='security', code_or_element=email_code)
 
     @property
-    def email_address(self):
+    def email_address(self) -> str:
         """
         This is the e-mail address.
-
-        :return: E-mail address.
-        :rtype: str
         """
         return self._data['email_address']
 
     @email_address.setter
-    def email_address(self, value):
+    def email_address(self, value: str):
         """
         :param value: e-mail address.
-        :type value: str | unicode
         """
         if not isinstance(value, string_types):
-            raise UserDBValueError("Invalid 'email_address': {!r}".format(value))
+            raise UserDBValueError(f"Invalid 'email_address': {value}")
         self._data['email_address'] = str(value.lower())
 
     @property
-    def email_code(self):
+    def email_code(self) -> CodeElement:
         """
         This is the code sent out with email
-
-        :return: Code element
-        :rtype: CodeElement
         """
         return self._data['email_code']
 
     @email_code.setter
-    def email_code(self, value):
+    def email_code(self, value: CodeElement):
         """
         :param value: Code element
-        :type value: CodeElement
         """
         if not isinstance(value, CodeElement):
-            raise UserDBValueError("Invalid 'email_code': {!r}".format(value))
+            raise UserDBValueError(f"Invalid 'email_code': {value}")
         self._data['email_code'] = value
 
     def to_dict(self):
-        res = super(PasswordResetEmailState, self).to_dict()
+        res = super(ResetPasswordEmailState, self).to_dict()
         res['email_code'] = self.email_code.to_dict()
         return res
 
 
-# @deprecated("Remove once the password reset views are served from their own webapp")
-class PasswordResetEmailAndPhoneState(PasswordResetEmailState):
-
-    @deprecated("Remove once the password reset views are served from their own webapp")
-    def __init__(self, eppn=None, email_address=None, email_code=None, phone_number=None,
-                 phone_code=None, created_ts=None, data=None, raise_on_unknown=True):
+class ResetPasswordEmailAndPhoneState(ResetPasswordEmailState):
+    def __init__(self, eppn: Optional[str] = None,
+                 email_address: Optional[str] = None,
+                 email_code: Optional[str] = None,
+                 phone_number: Optional[str] = None,
+                 phone_code: Optional[str] = None,
+                 created_ts: Optional[Union[datetime.datetime, bool]] = None,
+                 data: Optional[Mapping] = None,
+                 raise_on_unknown: bool = True):
         if data is None:
             if created_ts is None:
                 created_ts = True
@@ -277,15 +276,15 @@ class PasswordResetEmailAndPhoneState(PasswordResetEmailState):
                         created_ts=created_ts,
                         )
 
-        self._data_in = copy.deepcopy(data)  # to not modify callers data
+        self._data_in = copy.deepcopy(cast(dict, data))  # to not modify callers data
         self._data = dict()
 
         # phone_number
-        phone_number = self._data_in.pop('phone_number', None)
+        phone_number = cast(str, self._data_in.pop('phone_number'))
         # phone_code
-        phone_code = self._data_in.pop('phone_code', None)
+        phone_code = cast(str, self._data_in.pop('phone_code'))
 
-        PasswordResetEmailState.__init__(self, data=self._data_in, raise_on_unknown=raise_on_unknown)
+        ResetPasswordEmailState.__init__(self, data=self._data_in, raise_on_unknown=raise_on_unknown)
 
         # things with setters
         self.method = 'email_and_phone'
@@ -293,46 +292,42 @@ class PasswordResetEmailAndPhoneState(PasswordResetEmailState):
         self.phone_code = CodeElement.parse(application='security', code_or_element=phone_code)
 
     @classmethod
-    def from_email_state(cls, email_state, phone_number, phone_code):
+    def from_email_state(cls, email_state: ResetPasswordEmailState,
+                         phone_number: str, phone_code: str) -> ResetPasswordState:
         data = email_state.to_dict()
         data['phone_number'] = phone_number
         data['phone_code'] = phone_code
         return cls(data=data)
 
     @property
-    def phone_number(self):
+    def phone_number(self) -> str:
         """
-        :rtype: six.string_types
+        The phone number
         """
         return self._data['phone_number']
 
     @phone_number.setter
-    def phone_number(self, value):
+    def phone_number(self, value: str):
         """
         :param value: phone number
-        :rtype: six.string_types
         """
         if value is None:
             return
         if not isinstance(value, string_types):
-            raise UserDBValueError("Invalid 'phone_number': {!r}".format(value))
+            raise UserDBValueError(f"Invalid 'phone_number': {value}")
         self._data['phone_number'] = value
 
     @property
-    def phone_code(self):
+    def phone_code(self) -> CodeElement:
         """
         This is the code sent out with sms
-
-        :return: Code element
-        :rtype: CodeElement
         """
         return self._data['phone_code']
 
     @phone_code.setter
-    def phone_code(self, value):
+    def phone_code(self, value: CodeElement):
         """
         :param value: Code element
-        :type value: CodeElement
         """
         if value is None:
             return
@@ -340,9 +335,8 @@ class PasswordResetEmailAndPhoneState(PasswordResetEmailState):
             raise UserDBValueError("Invalid 'phone_code': {!r}".format(value))
         self._data['phone_code'] = value
 
-    def to_dict(self):
-        res = super(PasswordResetEmailAndPhoneState, self).to_dict()
+    def to_dict(self) -> dict:
+        res = super(ResetPasswordEmailAndPhoneState, self).to_dict()
         if self._data.get('phone_code'):
             res['phone_code'] = self.phone_code.to_dict()
         return res
-
