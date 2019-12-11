@@ -32,7 +32,7 @@
 #
 import math
 import os
-from typing import Union, Optional
+from typing import Union, Optional, List
 
 import bcrypt
 from flask import url_for
@@ -176,7 +176,7 @@ def send_mail(subject: str, to_addresses: List[str], text_template: str, html_te
 
 def generate_suggested_password() -> str:
     """
-    The suggested password is saved in session to avoid form hijacking
+    The suggested password is hashed and saved in session to avoid form hijacking
     """
     password_length = current_app.config.password_length
 
@@ -273,7 +273,8 @@ def reset_user_password(state: ResetPasswordState, password: str):
                 current_app.logger.debug('NIN {nin.number} unverified')
 
     reset_password_user = reset_password(reset_password_user, new_password=password,
-                                   application='security', vccs_url=vccs_url)
+                                         is_generated=state.generated_password,
+                                         application='security', vccs_url=vccs_url)
     reset_password_user.terminated = False
     save_and_sync_user(reset_password_user)
     current_app.stats.count(name='security_password_reset', value=1)
