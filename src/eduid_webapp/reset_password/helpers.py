@@ -41,10 +41,10 @@ from flask_babel import gettext as _
 
 from eduid_userdb.exceptions import UserHasNotCompletedSignup
 from eduid_userdb.exceptions import DocumentDoesNotExist
-from eduid_userdb.security import SecurityUser
-from eduid_userdb.security import PasswordResetState
-from eduid_userdb.security import PasswordResetEmailState
-from eduid_userdb.security import PasswordResetEmailAndPhoneState
+from eduid_userdb.reset_password import ResetPasswordUser
+from eduid_userdb.reset_password import ResetPasswordState
+from eduid_userdb.reset_password import ResetPasswordEmailState
+from eduid_userdb.reset_password import ResetPasswordEmailAndPhoneState
 from eduid_userdb.logs import MailAddressProofing
 from eduid_userdb.logs import PhoneNumberProofing
 from eduid_common.api.utils import save_and_sync_user
@@ -78,7 +78,7 @@ class BadCode(Exception):
         self.msg = msg
 
 
-def get_pwreset_state(email_code: str) -> PasswordResetState:
+def get_pwreset_state(email_code: str) -> ResetPasswordState:
     """
     get the password reset state for the provided code
 
@@ -97,11 +97,11 @@ def get_pwreset_state(email_code: str) -> PasswordResetState:
         current_app.logger.info(f'State expired: {email_code}')
         raise BadCode('resetpw.expired-email-code')
 
-    if isinstance(state, PasswordResetEmailAndPhoneState) and state.phone_code.is_expired(sms_expiration_time):
+    if isinstance(state, ResetPasswordEmailAndPhoneState) and state.phone_code.is_expired(sms_expiration_time):
         current_app.logger.info(f'Phone code expired for state: {email_code}')
         # Revert the state to EmailState to allow the user to choose extra security again
         current_app.password_reset_state_db.remove_state(state)
-        state = PasswordResetEmailState(eppn=state.eppn, email_address=state.email_address,
+        state = ResetPasswordEmailState(eppn=state.eppn, email_address=state.email_address,
                                         email_code=state.email_code)
         current_app.password_reset_state_db.save(state)
         raise BadCode('resetpw.expired-sms-code')
@@ -123,7 +123,7 @@ def send_password_reset_mail(email_address: str):
         current_app.logger.info(f"Found no user with the following "
                                  "address: {email_address}.")
         return None
-    state = PasswordResetEmailState(eppn=user.eppn,
+    state = ResetPasswordEmailState(eppn=user.eppn,
                                     email_address=email_address,
                                     email_code=get_unique_hash())
     current_app.password_reset_state_db.save(state)
@@ -198,22 +198,22 @@ def decode_salt(salt: str):
     raise NotImplementedError('Unknown hashing scheme')
 
 
-def extra_security_used(state: PasswordResetState) -> bool:
+def extra_security_used(state: ResetPasswordState) -> bool:
     """
     Check if any extra security method was used
 
     :param state: Password reset state
-    :type state: PasswordResetState
+    :type state: ResetPasswordState
     :return: True|False
     :rtype: bool
     """
-    if isinstance(state, PasswordResetEmailAndPhoneState):
+    if isinstance(state, ResetPasswordEmailAndPhoneState):
         return state.email_code.is_verified and state.phone_code.is_verified
 
     return False
 
 
-def reset_user_password(state: PasswordResetState, password: str):
+def reset_user_password(state: ResetPasswordState, password: str):
     """
     :param state: Password reset state
     :param password: Plain text password
@@ -221,34 +221,34 @@ def reset_user_password(state: PasswordResetState, password: str):
     vccs_url = current_app.config.vccs_url
 
     user = current_app.central_userdb.get_user_by_eppn(state.eppn, raise_on_missing=False)
-    security_user = SecurityUser.from_user(user, private_userdb=current_app.private_userdb)
+    reset_password_user = ResetPasswordUser.from_user(user, private_userdb=current_app.private_userdb)
 
     # If no extra security is all verified information (except email addresses) is set to not verified
     if not extra_security_used(state):
         current_app.logger.info(f'No extra security used by user {state.eppn}')
         # Phone numbers
-        verified_phone_numbers = security_user.phone_numbers.verified.to_list()
+        verified_phone_numbers = reset_password_user.phone_numbers.verified.to_list()
         if verified_phone_numbers:
             current_app.logger.info(f'Unverifying phone numbers for user {state.eppn}')
-            security_user.phone_numbers.primary.is_primary = False
+            reset_password_user.phone_numbers.primary.is_primary = False
             for phone_number in verified_phone_numbers:
                 phone_number.is_verified = False
                 current_app.logger.debug(f'Phone number {phone_number.number} unverified')
         # NINs
-        verified_nins = security_user.nins.verified.to_list()
+        verified_nins = reset_password_user.nins.verified.to_list()
         if verified_nins:
             current_app.logger.info('Unverifying nins for user {state.eppn}')
-            security_user.nins.primary.is_primary = False
+            reset_password_user.nins.primary.is_primary = False
             for nin in verified_nins:
                 nin.is_verified = False
                 current_app.logger.debug('NIN {nin.number} unverified')
 
-    security_user = reset_password(security_user, new_password=password,
+    reset_password_user = reset_password(reset_password_user, new_password=password,
                                    application='security', vccs_url=vccs_url)
-    security_user.terminated = False
-    save_and_sync_user(security_user)
+    reset_password_user.terminated = False
+    save_and_sync_user(reset_password_user)
     current_app.stats.count(name='security_password_reset', value=1)
-    current_app.logger.info('Reset password successful for user {security_user.eppn}')
+    current_app.logger.info('Reset password successful for user {reset_password_user.eppn}')
 
 
 def get_extra_security_alternatives(eppn: str) -> dict:
@@ -281,7 +281,7 @@ def mask_alternatives(alternatives: dict) -> dict:
     return alternatives
 
 
-def verify_email_address(state: PasswordResetEmailState) -> bool:
+def verify_email_address(state: ResetPasswordEmailState) -> bool:
     """
     :param state: Password reset state
     """
@@ -305,8 +305,8 @@ def verify_email_address(state: PasswordResetEmailState) -> bool:
     return False
 
 
-def send_verify_phone_code(state: PasswordResetEmailState, phone_number: str):
-    state = PasswordResetEmailAndPhoneState.from_email_state(state,
+def send_verify_phone_code(state: ResetPasswordEmailState, phone_number: str):
+    state = ResetPasswordEmailAndPhoneState.from_email_state(state,
                                             phone_number=phone_number,
                                             phone_code=get_short_hash())
     current_app.password_reset_state_db.save(state)
@@ -340,7 +340,7 @@ def send_sms(phone_number: str, text_template: str,
     current_app.msg_relay.sendsms(phone_number, message, reference)
 
 
-def verify_phone_number(state: PasswordResetEmailAndPhoneState) -> bool:
+def verify_phone_number(state: ResetPasswordEmailAndPhoneState) -> bool:
     """
     :param state: Password reset state
     """

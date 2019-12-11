@@ -34,7 +34,7 @@
 from typing import cast
 from flask import current_app
 
-from eduid_userdb.security import SecurityUserDB, PasswordResetStateDB
+from eduid_userdb.reset_password import ResetPasswordUserDB, ResetPasswordStateDB
 from eduid_userdb.logs import ProofingLog
 from eduid_common.api.app import get_app_config
 from eduid_common.api import mail_relay
@@ -56,8 +56,8 @@ class ResetPasswordApp(AuthnApp):
         # Init app config
         self.config = ResetPasswordConfig(**config)
         # Init dbs
-        self.private_userdb = SecurityUserDB(self.config.mongo_uri)
-        self.password_reset_state_db = PasswordResetStateDB(self.config.mongo_uri)
+        self.private_userdb = ResetPasswordUserDB(self.config.mongo_uri)
+        self.password_reset_state_db = ResetPasswordStateDB(self.config.mongo_uri)
         self.proofing_log = ProofingLog(self.config.mongo_uri)
         # Init celery
         msg.init_relay(self)

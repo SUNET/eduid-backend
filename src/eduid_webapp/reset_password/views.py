@@ -85,8 +85,6 @@ from eduid_common.api.exceptions import MailTaskFailed, MsgTaskFailed
 from eduid_common.api.schemas.base import FluxStandardAction
 from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
 from eduid_common.session import session
-from eduid_userdb.security.state import PasswordResetState
-from eduid_userdb.security.state import PasswordResetEmailState, PasswordResetEmailAndPhoneState
 from eduid_userdb.exceptions import DocumentDoesNotExist
 from eduid_webapp.reset_password.schemas import ResetPasswordInitSchema
 from eduid_webapp.reset_password.schemas import ResetPasswordEmailCodeSchema
