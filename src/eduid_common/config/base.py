@@ -36,13 +36,10 @@ Configuration (file) handling for eduID IdP.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 import os
+from dataclasses import dataclass, field, fields
 from logging import Logger
-from importlib import import_module
-from typing import Optional, List, Tuple, Dict, Any, Callable
-
-
+from typing import Optional, List, Dict, Any, Mapping
 
 
 @dataclass
@@ -82,6 +79,13 @@ class CommonConfig:
     audit: bool = False
     transaction_audit: bool = False
     validation_url: str = ''
+
+    @classmethod
+    def filter_config(cls, config: Mapping):
+        # Only try to load the key, value pairs that config class cls expects
+        field_names = set(f.name for f in fields(cls))
+        filtered_config = {k: v for k, v in config.items() if k in field_names}
+        return filtered_config
 
     def __post_init__(self):
         """
@@ -271,7 +275,7 @@ class BaseConfig(CommonConfig):
         """
         Initialize configuration with values from etcd (or with test values)
         """
-        config : Dict[str, Any] = {
+        config: Dict[str, Any] = {
                 'debug': debug,
                 }
         if test_config:
@@ -291,7 +295,9 @@ class BaseConfig(CommonConfig):
             proper_config = parser.read_configuration(silent=True)
             config.update(proper_config)
 
-        return cls(**config)
+        # Make sure we don't try to load config keys that are not expected as that will result in a crash
+        filtered_config = cls.filter_config(config)
+        return cls(**filtered_config)
 
 
 @dataclass

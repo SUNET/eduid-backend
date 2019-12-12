@@ -70,10 +70,7 @@ class EduIDApp(Flask):
             warnings.warn("config argument should be set to an app class config object",
                           DeprecationWarning)
             return
-        # Only try to load the key, value pairs that FlaskConfig expects
-        field_names = set(f.name for f in fields(FlaskConfig))
-        filtered_config = {k: v for k, v in config.items() if k in field_names}
-        # XXX: try except
+        filtered_config = FlaskConfig.filter_config(config)
         self.config = FlaskConfig(**filtered_config)
 
         if DEBUG:
