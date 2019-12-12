@@ -8,6 +8,7 @@ from eduid_am.testing import AMTestCase
 from eduid_userdb.proofing import ProofingUser
 from eduid_userdb.personal_data import PersonalDataUser
 from eduid_userdb.security import SecurityUser
+from eduid_userdb.reset_password import ResetPasswordUser
 
 import eduid_am.ams
 from eduid_am.fetcher_registry import AFRegistry
@@ -858,6 +859,7 @@ class AttributeFetcherSecurityTests(AMTestCase):
                 '$set': {
                     'passwords': [{
                         'credential_id': u'112345678901234567890123',
+                        'is_generated': False,
                         'salt': '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$',
                     }],
                     'nins': [{
@@ -898,6 +900,7 @@ class AttributeFetcherSecurityTests(AMTestCase):
                 '$set': {
                     'passwords': [{
                         'credential_id': u'112345678901234567890123',
+                        'is_generated': False,
                         'salt': '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$',
                     }],
                     'nins': [{
@@ -914,6 +917,94 @@ class AttributeFetcherSecurityTests(AMTestCase):
                 '$unset': {
                     'terminated': None
                 }
+            }
+        )
+
+
+class AttributeFetcherResetPasswordTests(AMTestCase):
+
+    def setUp(self):
+        am_settings = {
+            'want_mongo_uri': True
+        }
+        super(AttributeFetcherResetPasswordTests, self).setUp(am_settings=am_settings)
+        self.user_data = deepcopy(USER_DATA)
+        self.af_registry = AFRegistry(self.am_settings) 
+        self.fetcher = self.af_registry['eduid_reset_password']
+
+        self.maxDiff = None
+
+    def tearDown(self):
+        for fetcher in self.af_registry:
+            self.af_registry[fetcher].private_db._drop_whole_collection()
+        super(AttributeFetcherResetPasswordTests, self).tearDown()
+
+    def test_invalid_user(self):
+        with self.assertRaises(UserDoesNotExist):
+            self.fetcher.fetch_attrs(bson.ObjectId('0' * 24))
+
+    def test_existing_user(self):
+        reset_password_user = ResetPasswordUser(data=self.user_data)
+        self.fetcher.private_db.save(reset_password_user)
+
+        self.assertDictEqual(
+            self.fetcher.fetch_attrs(reset_password_user.user_id),
+            {
+                '$set': {
+                    'passwords': [{
+                        'credential_id': u'112345678901234567890123',
+                        'is_generated': False,
+                        'salt': '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$',
+                    }],
+                    'nins': [{
+                        'number': '123456781235',
+                        'primary': True,
+                        'verified': True
+                    }],
+                    'phone': [{
+                        'number': '+46700011336',
+                        'primary': True,
+                        'verified': True
+                    }]
+                },
+            }
+        )
+
+    def test_malicious_attributes(self):
+        self.user_data.update({
+            'malicious': 'hacker',
+        })
+
+        # Write bad entry into database
+        user_id = self.fetcher.private_db._coll.insert(self.user_data)
+
+        with self.assertRaises(UserHasUnknownData):
+            self.fetcher.fetch_attrs(user_id)
+
+    def test_fillup_attributes(self):
+        reset_password_user = ResetPasswordUser(data=self.user_data)
+        self.fetcher.private_db.save(reset_password_user)
+
+        self.assertDictEqual(
+            self.fetcher.fetch_attrs(reset_password_user.user_id),
+            {
+                '$set': {
+                    'passwords': [{
+                        'credential_id': u'112345678901234567890123',
+                        'is_generated': False,
+                        'salt': '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$',
+                    }],
+                    'nins': [{
+                        'number': '123456781235',
+                        'primary': True,
+                        'verified': True
+                    }],
+                    'phone': [{
+                        'number': '+46700011336',
+                        'primary': True,
+                        'verified': True
+                    }]
+                },
             }
         )
 

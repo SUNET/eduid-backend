@@ -15,6 +15,7 @@ from eduid_userdb.proofing import EidasProofingUserDB, OrcidProofingUserDB
 from eduid_userdb.proofing import LookupMobileProofingUserDB
 from eduid_userdb.personal_data import PersonalDataUserDB
 from eduid_userdb.security import SecurityUserDB
+from eduid_userdb.reset_password import ResetPasswordUserDB
 from eduid_userdb.actions.tou import ToUUserDB
 
 
@@ -144,6 +145,38 @@ class eduid_security(AttributeFetcher):
     whitelist_unset_attrs = [
         'passwords',
         'terminated',
+        'norEduPersonNIN',  # For AL1 downgrade on password reset
+        'nins',             # For AL1 downgrade on password reset
+        'phone', # For AL1 downgrade on password reset
+    ]
+    get_user_db = lambda cls, uri: SecurityUserDB(uri)
+
+
+class eduid_reset_password(AttributeFetcher):
+
+    whitelist_set_attrs = [
+        'passwords',
+        'nins',             # For AL1 downgrade on password reset
+        'phone', # For AL1 downgrade on password reset
+    ]
+    whitelist_unset_attrs = [
+        'passwords',
+        'norEduPersonNIN',  # For AL1 downgrade on password reset
+        'nins',             # For AL1 downgrade on password reset
+        'phone', # For AL1 downgrade on password reset
+    ]
+    get_user_db = lambda cls, uri: ResetPasswordUserDB(uri)
+
+
+class eduid_reset_password(AttributeFetcher):
+
+    whitelist_set_attrs = [
+        'passwords',
+        'nins',             # For AL1 downgrade on password reset
+        'phone', # For AL1 downgrade on password reset
+    ]
+    whitelist_unset_attrs = [
+        'passwords',
         'norEduPersonNIN',  # For AL1 downgrade on password reset
         'nins',             # For AL1 downgrade on password reset
         'phone', # For AL1 downgrade on password reset
