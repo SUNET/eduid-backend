@@ -347,7 +347,7 @@ class FlaskConfig(BaseConfig):
     session_cookie_samesite: Optional[str] = None
     # the lifetime of a permanent session as datetime.timedelta object.
     # Starting with Flask 0.8 this can also be an integer representing seconds.
-    permanent_session_lifetime: int = 2678400  # 31 days
+    permanent_session_lifetime: int = 14400  # 4 hours
     session_refresh_each_request: bool = True
     use_x_sendfile: bool = False
     # Default cache control max age to use with send_static_file() (the default
