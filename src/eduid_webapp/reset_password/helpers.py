@@ -50,6 +50,7 @@ from eduid_userdb.logs import PhoneNumberProofing
 from eduid_common.api.utils import save_and_sync_user
 from eduid_common.api.utils import get_unique_hash
 from eduid_common.api.utils import get_short_hash
+from eduid_common.api.helpers import send_mail
 from eduid_common.authn.utils import generate_password
 from eduid_common.authn.vccs import reset_password
 from eduid_webapp.reset_password.app import current_reset_password_app as current_app
@@ -139,39 +140,9 @@ def send_password_reset_mail(email_address: str):
     }
     subject = _('Reset password')
     send_mail(subject, to_addresses, text_template,
-              html_template, context, state.reference)
+              html_template, current_app, context, state.reference)
     current_app.logger.info(f'Sent password reset email to user {state.eppn}')
     current_app.logger.debug(f'Mail addresses: {to_addresses}')
-
-
-def send_mail(subject: str, to_addresses: List[str], text_template: str, html_template: str,
-              context: Optional[dict] = None, reference: Optional[str] = None):
-    """
-    :param subject: subject text
-    :param to_addresses: email addresses for the to field
-    :param text_template: text message as a jinja template
-    :param html_template: html message as a jinja template
-    :param context: template context
-    :param reference: Audit reference to help cross reference audit log and events
-    """
-    site_name = current_app.config.eduid_site_name
-    site_url = current_app.config.eduid_site_url
-
-    default_context = {
-        "site_url": site_url,
-        "site_name": site_name,
-    }
-    if not context:
-        context = {}
-    context.update(default_context)
-
-    current_app.logger.debug(u'subject: {}'.format(subject))
-    current_app.logger.debug(u'to addresses: {}'.format(to_addresses))
-    text = render_template(text_template, **context)
-    current_app.logger.debug(u'rendered text: {}'.format(text))
-    html = render_template(html_template, **context)
-    current_app.logger.debug(u'rendered html: {}'.format(html))
-    current_app.mail_relay.sendmail(subject, to_addresses, text, html, reference)
 
 
 def generate_suggested_password() -> str:
