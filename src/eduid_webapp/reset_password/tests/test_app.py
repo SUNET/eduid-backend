@@ -45,6 +45,7 @@ from eduid_common.authn.testing import TestVCCSClient
 from eduid_webapp.reset_password.app import init_reset_password_app
 from eduid_webapp.reset_password.settings.common import ResetPasswordConfig
 from eduid_webapp.reset_password.helpers import hash_password
+from eduid_webapp.reset_password.helpers import generate_salt
 from eduid_webapp.reset_password.helpers import generate_suggested_password
 from eduid_webapp.reset_password.helpers import get_extra_security_alternatives
 from eduid_webapp.reset_password.helpers import send_verify_phone_code
@@ -180,8 +181,10 @@ class ResetPasswordTests(EduidAPITestCase):
 
             with c.session_transaction() as session:
                 new_password = generate_suggested_password()
-                hashed = b64encode(hash_password(new_password)).decode('utf8')
+                salt = generate_salt()
+                hashed = b64encode(hash_password(new_password, salt)).decode('utf8')
                 session.reset_password.generated_password_hash = hashed
+                session.reset_password.generated_password_salt = salt
                 url = url_for('reset_password.set_new_pw', _external=True)
                 data = {
                     'code': state.email_code.code,
@@ -222,8 +225,10 @@ class ResetPasswordTests(EduidAPITestCase):
 
             with c.session_transaction() as session:
                 new_password = generate_suggested_password()
-                hashed = b64encode(hash_password(new_password)).decode('utf8')
+                salt = generate_salt()
+                hashed = b64encode(hash_password(new_password, salt)).decode('utf8')
                 session.reset_password.generated_password_hash = hashed
+                session.reset_password.generated_password_salt = salt
                 url = url_for('reset_password.set_new_pw', _external=True)
                 data = {
                     'code': state.email_code.code,
@@ -302,8 +307,10 @@ class ResetPasswordTests(EduidAPITestCase):
 
             with c.session_transaction() as session:
                 new_password = generate_suggested_password()
-                hashed = b64encode(hash_password(new_password)).decode('utf8')
+                salt = generate_salt()
+                hashed = b64encode(hash_password(new_password, salt)).decode('utf8')
                 session.reset_password.generated_password_hash = hashed
+                session.reset_password.generated_password_salt = salt
                 url = url_for('reset_password.set_new_pw_extra_security', _external=True)
                 state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
                 data = {
@@ -355,8 +362,10 @@ class ResetPasswordTests(EduidAPITestCase):
 
             with c.session_transaction() as session:
                 new_password = generate_suggested_password()
-                hashed = b64encode(hash_password(new_password)).decode('utf8')
+                salt = generate_salt()
+                hashed = b64encode(hash_password(new_password, salt)).decode('utf8')
                 session.reset_password.generated_password_hash = hashed
+                session.reset_password.generated_password_salt = salt
                 url = url_for('reset_password.set_new_pw_extra_security', _external=True)
                 state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
                 data = {

@@ -41,7 +41,7 @@ from eduid_common.api.schemas.validators import validate_email
 __author__ = 'eperez'
 
 
-class ResetPasswordInitSchema(Schema):
+class ResetPasswordInitSchema(CSRFRequestMixin):
 
     email = fields.String(required=True)
 

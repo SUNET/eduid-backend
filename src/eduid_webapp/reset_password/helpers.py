@@ -157,8 +157,7 @@ def generate_suggested_password() -> str:
     return password
 
 
-def hash_password(password: str,
-                  salt: str = None,
+def hash_password(password: str, salt: str,
                   strip_whitespace: bool = True) -> bytes:
     """
     :param password: string, password as plaintext
@@ -166,13 +165,6 @@ def hash_password(password: str,
                  (if None, one will be generated.)
     :param strip_whitespace: boolean, Remove all whitespace from input
     """
-    if salt is None:
-        salt_length = current_app.config.password_salt_length
-        key_length = current_app.config.password_hash_length
-        rounds = current_app.config.password_generation_rounds
-        random = os.urandom(salt_length)
-        random_str = random.hex()
-        salt = f"$NDNv1H1${random_str}${key_length}${rounds}$"
 
     if not salt.startswith('$NDNv1H1$'):
         raise ValueError('Invalid salt (not NDNv1H1)')
@@ -185,6 +177,18 @@ def hash_password(password: str,
     T1 = bytes(f"{len(password)}{password}", 'utf-8')
 
     return bcrypt.kdf(T1, salt, key_length, rounds)
+
+
+def generate_salt() -> str:
+    """
+    Function to generate a NDNv1H1 salt.
+    """
+    salt_length = current_app.config.password_salt_length
+    key_length = current_app.config.password_hash_length
+    rounds = current_app.config.password_generation_rounds
+    random = os.urandom(salt_length)
+    random_str = random.hex()
+    return f"$NDNv1H1${random_str}${key_length}${rounds}$"
 
 
 def decode_salt(salt: str):
