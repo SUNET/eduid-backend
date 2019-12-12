@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from typing import Type
 
-from flask import current_app
+from flask import Flask, current_app
 
 from eduid_userdb.user import User
 from eduid_userdb.nin import Nin
@@ -131,3 +131,34 @@ def verify_nin_for_user(user, proofing_state, proofing_log_entry):
         current_app.logger.info('Request sync for user {!s}'.format(user))
         result = current_app.am_relay.request_user_sync(proofing_user)
         current_app.logger.info('Sync result for user {!s}: {!s}'.format(proofing_user, result))
+
+
+def send_mail(subject: str, to_addresses: List[str], text_template: str, html_template: str,
+              app: Flask, context: Optional[dict] = None, reference: Optional[str] = None):
+    """
+    :param subject: subject text
+    :param to_addresses: email addresses for the to field
+    :param text_template: text message as a jinja template
+    :param html_template: html message as a jinja template
+    :param app: Flask current app
+    :param context: template context
+    :param reference: Audit reference to help cross reference audit log and events
+    """
+    site_name = app.config.eduid_site_name
+    site_url = app.config.eduid_site_url
+
+    default_context = {
+        "site_url": site_url,
+        "site_name": site_name,
+    }
+    if not context:
+        context = {}
+    context.update(default_context)
+
+    app.logger.debug(f'subject: {subject}')
+    app.logger.debug(f'to addresses: {to_addresses}')
+    text = render_template(text_template, **context)
+    app.logger.debug(f'rendered text: {text}')
+    html = render_template(html_template, **context)
+    app.logger.debug(f'rendered html: {html}')
+    app.mail_relay.sendmail(subject, to_addresses, text, html, reference)
