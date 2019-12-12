@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
-from typing import Type
+from typing import Type, List, Optional
 
 from flask import Flask, current_app
+from flask import render_template
 
 from eduid_userdb.user import User
 from eduid_userdb.nin import Nin
