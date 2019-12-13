@@ -2,7 +2,7 @@
 
 import logging
 from functools import wraps
-from typing import Optional
+from typing import Optional, Mapping
 
 from nacl import secret, encoding, exceptions
 from string import Template
@@ -46,7 +46,7 @@ def init_secret_box(key_name: Optional[str] = None, secret_key: Optional[bytes] 
     return secret.SecretBox(secret_key)
 
 
-def decrypt_config(config_dict: dict) -> dict:
+def decrypt_config(config_dict: Mapping) -> Mapping:
     """
     :param config_dict: Configuration dictionary
     :return: Configuration dictionary
