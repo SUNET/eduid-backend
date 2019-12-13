@@ -38,8 +38,10 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass, field, fields
-from logging import Logger
+import logging
 from typing import Optional, List, Dict, Any, Mapping
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -194,7 +196,7 @@ class BaseConfig(CommonConfig):
     log_backup_count: int = 10  # 10 x 1 MB
     log_format: str = '%(asctime)s | %(levelname)s | %(hostname)s | %(name)s | %(module)s | %(eppn)s | %(message)s'
     log_type: List[str] = field(default_factory=lambda:['stream'])
-    logger : Optional[Logger] = None
+    logger : Optional[logging.Logger] = None
     # Redis config
     # The Redis host to use for session storage.
     redis_host: Optional[str] = None
@@ -297,6 +299,11 @@ class BaseConfig(CommonConfig):
 
         # Make sure we don't try to load config keys that are not expected as that will result in a crash
         filtered_config = cls.filter_config(config)
+        config_keys = set(config.keys())
+        filtered_keys = set(filtered_config.keys())
+        if config_keys != filtered_keys:
+            logger.warning(f'Keys removed before config loading: {config_keys - filtered_keys}')
+
         return cls(**filtered_config)
 
 
