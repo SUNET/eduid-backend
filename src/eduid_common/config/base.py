@@ -83,7 +83,7 @@ class CommonConfig:
     validation_url: str = ''
 
     @classmethod
-    def filter_config(cls, config: Mapping):
+    def filter_config(cls, config: Mapping) -> Mapping:
         # Only try to load the key, value pairs that config class cls expects
         field_names = set(f.name for f in fields(cls))
         filtered_config = {k: v for k, v in config.items() if k in field_names}
