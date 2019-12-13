@@ -52,6 +52,7 @@ def decrypt_config(config_dict: dict) -> dict:
     :return: Configuration dictionary
     """
     boxes: dict = {}
+    new_config_dict: dict = {}
     for key, value in config_dict.items():
         if key.lower().endswith('_encrypted'):
             decrypted = False
@@ -69,8 +70,7 @@ def decrypt_config(config_dict: dict) -> dict:
                     encrypted_value = bytes(encrypted_value, 'ascii')
                     decrypted_value = boxes[key_name].decrypt(encrypted_value,
                                                               encoder=encoding.URLSafeBase64Encoder).decode('utf-8')
-                    config_dict[key[:-10]] = decrypted_value
-                    del config_dict[key]
+                    new_config_dict[key[:-10]] = decrypted_value
                     decrypted = True
                     break  # Decryption successful, do not try any more keys
                 except exceptions.CryptoError as e:
@@ -78,7 +78,9 @@ def decrypt_config(config_dict: dict) -> dict:
                     continue  # Try next key
             if not decrypted:
                 logging.error('Failed to decrypt {}:{}'.format(key, value))
-    return config_dict
+        else:
+            new_config_dict[key] = value
+    return new_config_dict
 
 
 def interpolate(f):
