@@ -93,6 +93,9 @@ class EtcdTemporaryInstance(object):
     def port(self):
         return self._port
 
+    def clear(self, key):
+        self._conn.delete(key=key, recursive=True, dir=True)
+
     def shutdown(self):
         if self._process:
             self._process.terminate()
