@@ -36,13 +36,12 @@ Configuration (file) handling for eduID IdP.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 import os
-from logging import Logger
-from importlib import import_module
-from typing import Optional, List, Tuple, Dict, Any, Callable
+from dataclasses import dataclass, field, fields
+import logging
+from typing import Optional, List, Dict, Any, Mapping
 
-
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -82,6 +81,13 @@ class CommonConfig:
     audit: bool = False
     transaction_audit: bool = False
     validation_url: str = ''
+
+    @classmethod
+    def filter_config(cls, config: Mapping) -> Mapping:
+        # Only try to load the key, value pairs that config class cls expects
+        field_names = set(f.name for f in fields(cls))
+        filtered_config = {k: v for k, v in config.items() if k in field_names}
+        return filtered_config
 
     def __post_init__(self):
         """
@@ -178,6 +184,7 @@ class BaseConfig(CommonConfig):
     eduid_site_name: str = 'eduID'
     eduid_site_url: str = 'https://www.eduid.se'
     eduid_static_url: str = 'https://www.eduid.se/static/'
+    safe_relay_domain: str = 'eduid.se'
     # environment=(dev|staging|pro)
     environment: str = 'dev'
     development: bool = False
@@ -189,7 +196,7 @@ class BaseConfig(CommonConfig):
     log_backup_count: int = 10  # 10 x 1 MB
     log_format: str = '%(asctime)s | %(levelname)s | %(hostname)s | %(name)s | %(module)s | %(eppn)s | %(message)s'
     log_type: List[str] = field(default_factory=lambda:['stream'])
-    logger : Optional[Logger] = None
+    logger : Optional[logging.Logger] = None
     # Redis config
     # The Redis host to use for session storage.
     redis_host: Optional[str] = None
@@ -230,7 +237,6 @@ class BaseConfig(CommonConfig):
     dashboard_url: str = ''
     reset_passwd_url: str = ''
     default_finish_url: str = ''
-    safe_relay_domain: str = ''
     faq_link: str = ''
     students_link: str = ''
     staff_link: str = ''
@@ -271,7 +277,7 @@ class BaseConfig(CommonConfig):
         """
         Initialize configuration with values from etcd (or with test values)
         """
-        config : Dict[str, Any] = {
+        config: Dict[str, Any] = {
                 'debug': debug,
                 }
         if test_config:
@@ -291,7 +297,14 @@ class BaseConfig(CommonConfig):
             proper_config = parser.read_configuration(silent=True)
             config.update(proper_config)
 
-        return cls(**config)
+        # Make sure we don't try to load config keys that are not expected as that will result in a crash
+        filtered_config = cls.filter_config(config)
+        config_keys = set(config.keys())
+        filtered_keys = set(filtered_config.keys())
+        if config_keys != filtered_keys:
+            logger.warning(f'Keys removed before config loading: {config_keys - filtered_keys}')
+
+        return cls(**filtered_config)
 
 
 @dataclass
@@ -347,7 +360,7 @@ class FlaskConfig(BaseConfig):
     session_cookie_samesite: Optional[str] = None
     # the lifetime of a permanent session as datetime.timedelta object.
     # Starting with Flask 0.8 this can also be an integer representing seconds.
-    permanent_session_lifetime: int = 2678400  # 31 days
+    permanent_session_lifetime: int = 14400  # 4 hours
     session_refresh_each_request: bool = True
     use_x_sendfile: bool = False
     # Default cache control max age to use with send_static_file() (the default
