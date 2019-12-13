@@ -168,22 +168,6 @@ class eduid_reset_password(AttributeFetcher):
     get_user_db = lambda cls, uri: ResetPasswordUserDB(uri)
 
 
-class eduid_reset_password(AttributeFetcher):
-
-    whitelist_set_attrs = [
-        'passwords',
-        'nins',             # For AL1 downgrade on password reset
-        'phone', # For AL1 downgrade on password reset
-    ]
-    whitelist_unset_attrs = [
-        'passwords',
-        'norEduPersonNIN',  # For AL1 downgrade on password reset
-        'nins',             # For AL1 downgrade on password reset
-        'phone', # For AL1 downgrade on password reset
-    ]
-    get_user_db = lambda cls, uri: SecurityUserDB(uri)
-
-
 class eduid_orcid(AttributeFetcher):
 
     whitelist_set_attrs = [
