@@ -154,7 +154,8 @@ def complete_registration(signup_user):
     password_id = ObjectId()
     (password, salt) = generate_password(str(password_id), signup_user)
 
-    credential = Password(credential_id=password_id, salt=salt, application='signup')
+    credential = Password(credential_id=password_id, salt=salt,
+                          is_generated=True, application='signup')
     signup_user.passwords.add(credential)
     # Record the acceptance of the terms of use
     record_tou(signup_user, 'signup')
