@@ -70,19 +70,25 @@ def get_authn_ctx(session_info):
 
 
 def get_authn_request(saml2_config: SPConfig, session, came_from, selected_idp,
-                      force_authn=False):
-    args = {
+                      force_authn=False, sign_alg=None, digest_alg=None):
+    kwargs = {
         "force_authn": str(force_authn).lower(),
     }
-    logger.debug(f'Authn request args: {args}')
+    # Authn algorithms
+    if sign_alg:
+        kwargs['sign_alg'] = sign_alg
+    if digest_alg:
+        kwargs['digest_alg'] = digest_alg
+    logger.debug(f'Authn request args: {kwargs}')
 
     client = Saml2Client(saml2_config)
+
     try:
         (session_id, info) = client.prepare_for_authenticate(
             entityid=selected_idp,
             relay_state=came_from,
             binding=BINDING_HTTP_REDIRECT,
-            **args
+            **kwargs
         )
     except TypeError:
         logger.error('Unable to know which IdP to use')
