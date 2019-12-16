@@ -86,7 +86,7 @@ def init_reset_password_app(name: str, config: dict) -> ResetPasswordApp:
     app = ResetPasswordApp(name, config)
 
     # Register views
-    from eduid_webapp.reset_password.views import reset_password_views
+    from eduid_webapp.reset_password.views.reset_password import reset_password_views
     app.register_blueprint(reset_password_views, url_prefix=app.config.application_root)
 
     app.logger.info('{!s} initialized'.format(name))
