@@ -42,6 +42,7 @@ class AttributeFetcherTests(AMTestCase):
                 ],
                 'passwords': [{
                     'credential_id': '112345678901234567890123',
+                    'is_generated': False,
                     'salt': '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$'
                 }]
             }
@@ -94,6 +95,7 @@ class AttributeFetcherTests(AMTestCase):
                         'email': 'john@example.com'}],
                     'passwords': [{
                         'credential_id': u'123',
+                        'is_generated': False,
                         'salt': u'456',
                     }]
                 }
