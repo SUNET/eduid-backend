@@ -172,3 +172,7 @@ class IdPConfig(BaseConfig):
     shared_session_ttl: int = 300
     http_headers: str = "Content-Security-Policy:default-src 'self'; script-src 'self' 'unsafe-inline', X-Frame-Options:DENY"
     privacy_link: str = "http://html.eduid.docker/privacy.html"
+    # List in order of preference
+    supported_digest_algorithms: List[str] = field(default_factory=list)
+    # List in order of preference
+    supported_signing_algorithms: List[str] = field(default_factory=list)
