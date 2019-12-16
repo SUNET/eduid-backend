@@ -73,6 +73,19 @@ class VCCSTestCase(MongoTestCase):
         self.assertFalse(result2)
         result3 = self._check_credentials('wxyz') 
         self.assertTrue(result3)
+        self.assertFalse(result3.is_generated)
+
+    def test_add_password_generated(self):
+        added = vccs_module.add_password(self.user, new_password='wxyz', is_generated=True,
+                                         application='test', vccs=self.vccs_client)
+        self.assertTrue(added)
+        result1 = self._check_credentials('abcd') 
+        self.assertTrue(result1)
+        result2 = self._check_credentials('fghi') 
+        self.assertFalse(result2)
+        result3 = self._check_credentials('wxyz') 
+        self.assertTrue(result3)
+        self.assertTrue(result3.is_generated)
 
     def test_change_password(self):
         added = vccs_module.change_password(self.user, new_password='wxyz', old_password='abcd', application='test',
@@ -84,6 +97,20 @@ class VCCSTestCase(MongoTestCase):
         self.assertFalse(result2)
         result3 = self._check_credentials('wxyz') 
         self.assertTrue(result3)
+        self.assertFalse(result3.is_generated)
+
+    def test_change_password_generated(self):
+        added = vccs_module.change_password(self.user, new_password='wxyz', old_password='abcd',
+                                            application='test', is_generated=True,
+                                            vccs=self.vccs_client)
+        self.assertTrue(added)
+        result1 = self._check_credentials('abcd') 
+        self.assertFalse(result1)
+        result2 = self._check_credentials('fghi') 
+        self.assertFalse(result2)
+        result3 = self._check_credentials('wxyz') 
+        self.assertTrue(result3)
+        self.assertTrue(result3.is_generated)
 
     def test_change_password_bad_old_password(self):
         added = vccs_module.change_password(self.user, new_password='wxyz', old_password='fghi', application='test',
@@ -105,6 +132,19 @@ class VCCSTestCase(MongoTestCase):
         self.assertFalse(result2)
         result3 = self._check_credentials('wxyz')
         self.assertTrue(result3)
+        self.assertFalse(result3.is_generated)
+
+    def test_reset_password_generated(self):
+        added = vccs_module.reset_password(self.user, new_password='wxyz', application='test',
+                                           is_generated=True, vccs=self.vccs_client)
+        self.assertTrue(added)
+        result1 = self._check_credentials('abcd')
+        self.assertFalse(result1)
+        result2 = self._check_credentials('fghi')
+        self.assertFalse(result2)
+        result3 = self._check_credentials('wxyz')
+        self.assertTrue(result3)
+        self.assertTrue(result3.is_generated)
 
     def test_change_password_error_adding(self):
         from eduid_common.authn.testing import TestVCCSClient
