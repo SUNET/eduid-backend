@@ -74,11 +74,11 @@ class ResetPasswordWithCodeSchema(CSRFRequestMixin):
     def validate_password(self, value):
         # Set a new error message
         try:
-            self.validate_password(value)
+            self._validate_password(value)
         except ValidationError:
             raise ValidationError(_('Please use a stronger password'))
 
-    def validate_password(self, password):
+    def _validate_password(self, password):
         """
         :param password: New password
         :type password: string_types

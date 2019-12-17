@@ -197,8 +197,8 @@ def decode_salt(salt: str):
     """
     _, version, salt, desired_key_length, rounds, _ = salt.split('$')
     if version == 'NDNv1H1':
-        salt = bytes().fromhex(salt)
-        return salt, int(desired_key_length), int(rounds)
+        bsalt = bytes().fromhex(salt)
+        return bsalt, int(desired_key_length), int(rounds)
     raise NotImplementedError('Unknown hashing scheme')
 
 
