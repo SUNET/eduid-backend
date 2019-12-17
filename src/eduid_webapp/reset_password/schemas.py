@@ -30,7 +30,9 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+import math
 
+import zxcvbn
 from flask_babel import gettext as _
 from marshmallow import fields, Schema, validates, validates_schema, validate, ValidationError
 
@@ -97,8 +99,8 @@ class ResetPasswordWithCodeSchema(CSRFRequestMixin):
 
         # Check password complexity with zxcvbn
         from eduid_webapp.reset_password.app import current_reset_password_app
-        min_entropy = current_reset_password_app.config.min_entropy
-        result = zxcvbn(password)
+        min_entropy = current_reset_password_app.config.password_entropy
+        result = zxcvbn.zxcvbn(password)
         if math.log(result.get('guesses', 1), 2) < min_entropy:
             raise ValidationError('The password complexity is too weak.')
 
