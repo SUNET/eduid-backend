@@ -339,6 +339,104 @@ class ResetPasswordTests(EduidAPITestCase):
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('eduid_common.api.msg.MsgRelay.sendsms')
+    def test_post_reset_password_secure_email_timeout(self, mock_sendsms, mock_request_user_sync,
+                                                      mock_sendmail, mock_get_vccs_client):
+        mock_request_user_sync.side_effect = self.request_user_sync
+        mock_sendmail.return_value = True
+        mock_get_vccs_client.return_value = TestVCCSClient()
+        mock_sendsms.return_value = True
+        with self.app.test_client() as c:
+            data = {
+                'email': self.test_user_email
+            }
+            response = c.post('/', data=json.dumps(data),
+                              content_type=self.content_type_json)
+            self.assertEqual(response.status_code, 200)
+
+            state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+            alternatives = get_extra_security_alternatives(state.eppn)
+            state.extra_security = alternatives
+            state.email_code.is_verified = True
+            self.app.password_reset_state_db.save(state)
+            phone_number = state.extra_security['phone_numbers'][0]
+            send_verify_phone_code(state, phone_number)
+
+            self.app.config.email_code_timeout = 0
+
+            with c.session_transaction() as session:
+                new_password = generate_suggested_password()
+                salt = generate_salt()
+                hashed = b64encode(hash_password(new_password, salt)).decode('utf8')
+                session.reset_password.generated_password_hash = hashed
+                session.reset_password.generated_password_salt = salt
+                url = url_for('reset_password.set_new_pw_extra_security', _external=True)
+                state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+                data = {
+                    'code': state.email_code.code,
+                    'phone_code': state.phone_code.code,
+                    'password': new_password
+                }
+
+            response = c.post(url, data=json.dumps(data),
+                              content_type=self.content_type_json)
+
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_NEW_PASSWORD_SECURE_FAIL')
+            self.assertEqual(response.json['payload']['message'], 'resetpw.expired-email-code')
+
+    @patch('eduid_common.authn.vccs.get_vccs_client')
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid_common.api.msg.MsgRelay.sendsms')
+    def test_post_reset_password_secure_phone_timeout(self, mock_sendsms, mock_request_user_sync,
+                                                      mock_sendmail, mock_get_vccs_client):
+        mock_request_user_sync.side_effect = self.request_user_sync
+        mock_sendmail.return_value = True
+        mock_get_vccs_client.return_value = TestVCCSClient()
+        mock_sendsms.return_value = True
+        with self.app.test_client() as c:
+            data = {
+                'email': self.test_user_email
+            }
+            response = c.post('/', data=json.dumps(data),
+                              content_type=self.content_type_json)
+            self.assertEqual(response.status_code, 200)
+
+            state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+            alternatives = get_extra_security_alternatives(state.eppn)
+            state.extra_security = alternatives
+            state.email_code.is_verified = True
+            self.app.password_reset_state_db.save(state)
+            phone_number = state.extra_security['phone_numbers'][0]
+            send_verify_phone_code(state, phone_number)
+
+            self.app.config.phone_code_timeout = 0
+
+            with c.session_transaction() as session:
+                new_password = generate_suggested_password()
+                salt = generate_salt()
+                hashed = b64encode(hash_password(new_password, salt)).decode('utf8')
+                session.reset_password.generated_password_hash = hashed
+                session.reset_password.generated_password_salt = salt
+                url = url_for('reset_password.set_new_pw_extra_security', _external=True)
+                state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+                data = {
+                    'code': state.email_code.code,
+                    'phone_code': state.phone_code.code,
+                    'password': new_password
+                }
+
+            response = c.post(url, data=json.dumps(data),
+                              content_type=self.content_type_json)
+
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_NEW_PASSWORD_SECURE_FAIL')
+            self.assertEqual(response.json['payload']['message'], 'resetpw.expired-sms-code')
+
+    @patch('eduid_common.authn.vccs.get_vccs_client')
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid_common.api.msg.MsgRelay.sendsms')
     def test_post_reset_password_secure_custom(self, mock_sendsms, mock_request_user_sync, mock_sendmail, mock_get_vccs_client):
         mock_request_user_sync.side_effect = self.request_user_sync
         mock_sendmail.return_value = True
