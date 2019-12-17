@@ -160,10 +160,9 @@ def generate_suggested_password() -> str:
 def hash_password(password: str, salt: str,
                   strip_whitespace: bool = True) -> bytes:
     """
-    :param password: string, password as plaintext
-    :param salt: string or None, NDNv1H1 salt to be used for pre-hashing
-                 (if None, one will be generated.)
-    :param strip_whitespace: boolean, Remove all whitespace from input
+    :param password: password as plaintext
+    :param salt: NDNv1H1 salt to be used for pre-hashing
+    :param strip_whitespace: Whether to remove all whitespace from input
     """
 
     if not salt.startswith('$NDNv1H1$'):
