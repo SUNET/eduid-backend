@@ -95,7 +95,9 @@ def _authn(action, force_authn=False):
     idp = list(idps.keys())[0]
     idp = request.args.get('idp', idp)
     authn_request = get_authn_request(current_app.saml2_config, session,
-                                      relay_state, idp, force_authn=force_authn)
+                                      relay_state, idp, force_authn=force_authn,
+                                      sign_alg=current_app.config.authn_sign_alg,
+                                      digest_alg=current_app.config.authn_digest_alg)
     schedule_action(action)
     current_app.logger.info('Redirecting the user to the IdP for ' + action)
     return redirect(get_location(authn_request))
@@ -125,14 +127,6 @@ def assertion_consumer_service():
     except BadSAMLResponse as e:
         current_app.logger.error(e)
         raise Forbidden(f'Bad SAML response: {e}')
-
-
-
-
-
-
-
-
 
 
 def _get_name_id(session):

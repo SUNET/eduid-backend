@@ -3,7 +3,7 @@ blinker
 coverage==3.6
 cryptography>=2.0.3
 eduid-am>=0.6.2b2
-eduid-common>=0.4.2b3
+eduid-common>=0.4.5
 eduid_lookup_mobile>=0.0.6b3
 eduid-msg>=0.10.3b0
 eduid-userdb>=0.4.6b15
@@ -17,7 +17,7 @@ oic==0.8.3
 Pillow>=3.0.0
 pynacl>=1.0.1
 pyOpenSSL>=17.3.0
-pysaml2==4.6.1
+pysaml2==4.9.0
 python-etcd>=0.4.3
 python-u2flib-server>=5.0.0
 qrcode>=5.1
