@@ -279,13 +279,12 @@ def reset_user_password(user: User, state: ResetPasswordState, password: str):
     current_app.logger.info('Reset password successful for user {reset_password_user}')
 
 
-def get_extra_security_alternatives(eppn: str) -> dict:
+def get_extra_security_alternatives(user: User) -> dict:
     """
-    :param eppn: Users unique eppn
+    :param user: The user
     :return: Dict of alternatives
     """
     alternatives = {}
-    user = current_app.central_userdb.get_user_by_eppn(eppn, raise_on_missing=True)
 
     if user.phone_numbers.verified.count:
         verified_phone_numbers = [item.number for item in user.phone_numbers.verified.to_list()]

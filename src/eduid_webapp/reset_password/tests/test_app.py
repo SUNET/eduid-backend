@@ -303,8 +303,9 @@ class ResetPasswordTests(EduidAPITestCase):
                               content_type=self.content_type_json)
             self.assertEqual(response.status_code, 200)
 
+            user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
             state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
-            alternatives = get_extra_security_alternatives(state.eppn)
+            alternatives = get_extra_security_alternatives(user)
             state.extra_security = alternatives
             state.email_code.is_verified = True
             self.app.password_reset_state_db.save(state)
@@ -356,8 +357,9 @@ class ResetPasswordTests(EduidAPITestCase):
                               content_type=self.content_type_json)
             self.assertEqual(response.status_code, 200)
 
+            user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
             state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
-            alternatives = get_extra_security_alternatives(state.eppn)
+            alternatives = get_extra_security_alternatives(user)
             state.extra_security = alternatives
             state.email_code.is_verified = True
             self.app.password_reset_state_db.save(state)
@@ -402,8 +404,9 @@ class ResetPasswordTests(EduidAPITestCase):
                               content_type=self.content_type_json)
             self.assertEqual(response.status_code, 200)
 
+            user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
             state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
-            alternatives = get_extra_security_alternatives(state.eppn)
+            alternatives = get_extra_security_alternatives(user)
             state.extra_security = alternatives
             state.email_code.is_verified = True
             self.app.password_reset_state_db.save(state)
@@ -447,8 +450,9 @@ class ResetPasswordTests(EduidAPITestCase):
                               content_type=self.content_type_json)
             self.assertEqual(response.status_code, 200)
 
+            user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
             state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
-            alternatives = get_extra_security_alternatives(state.eppn)
+            alternatives = get_extra_security_alternatives(user)
             state.extra_security = alternatives
             state.email_code.is_verified = True
             self.app.password_reset_state_db.save(state)

@@ -184,7 +184,7 @@ def config_reset_pw(code: str) -> dict:
     verified_phones = user.phone_numbers.verified.to_list()
 
     try:
-        alternatives = get_extra_security_alternatives(state.eppn)
+        alternatives = get_extra_security_alternatives(user)
         state.extra_security = alternatives
         current_app.password_reset_state_db.save(state)
     except DocumentDoesNotExist:
