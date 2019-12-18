@@ -33,6 +33,7 @@
 import math
 import os
 from typing import Union, Optional, List
+from enum import Enum, unique
 
 import bcrypt
 from flask import url_for
@@ -47,6 +48,7 @@ from eduid_userdb.reset_password import ResetPasswordEmailState
 from eduid_userdb.reset_password import ResetPasswordEmailAndPhoneState
 from eduid_userdb.logs import MailAddressProofing
 from eduid_userdb.logs import PhoneNumberProofing
+from eduid_common.api.exceptions import MailTaskFailed
 from eduid_common.api.utils import save_and_sync_user
 from eduid_common.api.utils import get_unique_hash
 from eduid_common.api.utils import get_short_hash
@@ -56,18 +58,43 @@ from eduid_common.authn.vccs import reset_password
 from eduid_webapp.reset_password.app import current_reset_password_app as current_app
 
 
-def success_message(message: Union[str, bytes]) -> dict:
-    return {
-        '_status': 'ok',
-        'message': str(message)
-    }
+@unique
+class Msg(Enum):
+    """
+    Messages sent to the front end with information on the results of the
+    attempted operations on the back end.
+    """
+    # The user has sent a code that corresponds to no known password reset
+    # request
+    unknown_code = 'resetpw.unknown-code'
+    # The user has sent an SMS'ed code that corresponds to no known password
+    # reset request
+    unkown_phone_code = 'resetpw.phone-code-unknown'
+    # The user has sent a code that has expired
+    expired_email_code = 'resetpw.expired-email-code'
+    # The user has sent an SMS'ed code that has expired
+    expired_sms_code = 'resetpw.expired-sms-code'
+    # There was some problem sending the email with the code.
+    send_pw_failure = 'resetpw.send-pw-fail'
+    # A new code has been generated and sent by email successfully
+    send_pw_success = 'resetpw.send-pw-success'
+    # The password has been successfully resetted
+    pw_resetted = 'resetpw.pw-resetted'
+    # There was some problem sending the SMS with the (extra security) code.
+    send_sms_failure = 'resetpw.sms-failed'
+    # A new (extra security) code has been generated and sent by SMS
+    # successfully
+    send_sms_success = 'resetpw.sms-success'
+    # The phone number has not been verified. Should not happen.
+    phone_invalid = 'resetpw.phone-invalid'
+    # No user was found corresponding to the password reset state. Should not
+    # happen.
+    user_not_found = 'resetpw.user-not-found'
+    # The email address has not been verified. Should not happen.
+    email_not_validated = 'resetpw.email-not-validated'
+    #
+    invalid_user = 'resetpw.incomplete-user'
 
-
-def error_message(message: Union[str, bytes]) -> dict:
-    return {
-        '_status': 'error',
-        'message': str(message)
-    }
 
 
 class BadCode(Exception):
@@ -76,6 +103,20 @@ class BadCode(Exception):
     """
     def __init__(self, msg: str):
         self.msg = msg
+
+
+def success_message(message: Msg) -> dict:
+    return {
+        '_status': 'ok',
+        'message': str(message.value)
+    }
+
+
+def error_message(message: Msg) -> dict:
+    return {
+        '_status': 'error',
+        'message': str(message.value)
+    }
 
 
 def get_pwreset_state(email_code: str) -> ResetPasswordState:
@@ -90,12 +131,12 @@ def get_pwreset_state(email_code: str) -> ResetPasswordState:
         state = current_app.password_reset_state_db.get_state_by_email_code(email_code)
         current_app.logger.debug(f'Found state using email_code {email_code}: {state}')
     except DocumentDoesNotExist:
-        current_app.logger.info('State not found: {email_code}')
-        raise BadCode('resetpw.unknown-code')
+        current_app.logger.info(f'State not found: {email_code}')
+        raise BadCode(Msg.unknown_code)
 
     if state.email_code.is_expired(mail_expiration_time):
         current_app.logger.info(f'State expired: {email_code}')
-        raise BadCode('resetpw.expired-email-code')
+        raise BadCode(Msg.expired_email_code)
 
     if isinstance(state, ResetPasswordEmailAndPhoneState) and state.phone_code.is_expired(sms_expiration_time):
         current_app.logger.info(f'Phone code expired for state: {email_code}')
@@ -104,7 +145,7 @@ def get_pwreset_state(email_code: str) -> ResetPasswordState:
         state = ResetPasswordEmailState(eppn=state.eppn, email_address=state.email_address,
                                         email_code=state.email_code)
         current_app.password_reset_state_db.save(state)
-        raise BadCode('resetpw.expired-sms-code')
+        raise BadCode(Msg.expired_sms_code)
 
     return state
 
