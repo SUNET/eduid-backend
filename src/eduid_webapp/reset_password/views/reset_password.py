@@ -93,13 +93,13 @@ from eduid_webapp.reset_password.schemas import ResetPasswordWithPhoneCodeSchema
 from eduid_webapp.reset_password.schemas import ResetPasswordExtraSecSchema
 from eduid_webapp.reset_password.helpers import Msg, error_message, success_message
 from eduid_webapp.reset_password.helpers import send_password_reset_mail
-from eduid_webapp.reset_password.helpers import get_pwreset_state, BadCode, hash_password
+from eduid_webapp.reset_password.helpers import get_pwreset_state, BadCode
+from eduid_webapp.reset_password.helpers import hash_password, check_password
 from eduid_webapp.reset_password.helpers import generate_suggested_password, reset_user_password
 from eduid_webapp.reset_password.helpers import get_extra_security_alternatives, mask_alternatives
 from eduid_webapp.reset_password.helpers import verify_email_address
 from eduid_webapp.reset_password.helpers import verify_phone_number
 from eduid_webapp.reset_password.helpers import send_verify_phone_code
-from eduid_webapp.reset_password.helpers import generate_salt
 from eduid_webapp.reset_password.app import current_reset_password_app as current_app
 
 
@@ -178,10 +178,7 @@ def config_reset_pw(code: str) -> dict:
     verify_email_address(state)
 
     new_password = generate_suggested_password()
-    salt = generate_salt()
-    hashed = b64encode(hash_password(new_password, salt)).decode('utf8')
-    session.reset_password.generated_password_hash = hashed
-    session.reset_password.generated_password_salt = salt
+    session.reset_password.generated_password_hash = hash_password(new_password)
 
     user = current_app.central_userdb.get_user_by_eppn(state.eppn)
     verified_phones = user.phone_numbers.verified.to_list()
@@ -234,9 +231,8 @@ def set_new_pw(code: str, password: str) -> dict:
     except BadCode as e:
         return error_message(e.msg)
 
-    salt = session.reset_password.generated_password_salt
-    hashed = b64encode(hash_password(password, salt)).decode('utf8')
-    if hashed == session.reset_password.generated_password_hash:
+    hashed = session.reset_password.generated_password_hash
+    if check_password(password, hashed):
         state.generated_password = True
         current_app.logger.info('Generated password used')
         current_app.stats.count(name='reset_password_generated_password_used')
@@ -359,9 +355,8 @@ def set_new_pw_extra_security(phone_code: str, code: str, password: str) -> dict
         current_app.logger.info(f'Could not verify phone code for {user}')
         return error_message(Msg.unkown_phone_code)
 
-    salt = session.reset_password.generated_password_salt
-    hashed = b64encode(hash_password(password, salt)).decode('utf8')
-    if hashed == session.reset_password.generated_password_hash:
+    hashed = session.reset_password.generated_password_hash
+    if check_password(password, hashed):
         state.generated_password = True
         current_app.logger.info('Generated password used')
         current_app.stats.count(name='reset_password_generated_password_used')

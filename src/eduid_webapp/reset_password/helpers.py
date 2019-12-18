@@ -32,8 +32,9 @@
 #
 import math
 import os
-from typing import Union, Optional, List
+from base64 import b64encode, b64decode
 from enum import Enum, unique
+from typing import Union, Optional, List
 
 import bcrypt
 from flask import url_for
@@ -206,48 +207,22 @@ def generate_suggested_password() -> str:
     return password
 
 
-def hash_password(password: str, salt: str,
-                  strip_whitespace: bool = True) -> bytes:
+def hash_password(password: str) -> str:
     """
+    Return a hash of the provided password
+
     :param password: password as plaintext
-    :param salt: NDNv1H1 salt to be used for pre-hashing
-    :param strip_whitespace: Whether to remove all whitespace from input
     """
-
-    if not salt.startswith('$NDNv1H1$'):
-        raise ValueError('Invalid salt (not NDNv1H1)')
-
-    salt, key_length, rounds = decode_salt(salt)
-
-    if strip_whitespace:
-        password = ''.join(password.split())
-
-    T1 = bytes(f"{len(password)}{password}", 'utf-8')
-
-    return bcrypt.kdf(T1, salt, key_length, rounds)
+    password = ''.join(password.split())
+    return bcrypt.hashpw(password, bcrypt.gensalt())
 
 
-def generate_salt() -> str:
+def check_password(password: str, hashed: str) -> bool:
     """
-    Function to generate a NDNv1H1 salt.
+    Check that the provided password corresponds to the provided hash
     """
-    salt_length = current_app.config.password_salt_length
-    key_length = current_app.config.password_hash_length
-    rounds = current_app.config.password_generation_rounds
-    random = os.urandom(salt_length)
-    random_str = random.hex()
-    return f"$NDNv1H1${random_str}${key_length}${rounds}$"
-
-
-def decode_salt(salt: str):
-    """
-    Function to decode a NDNv1H1 salt.
-    """
-    _, version, salt, desired_key_length, rounds, _ = salt.split('$')
-    if version == 'NDNv1H1':
-        bsalt = bytes().fromhex(salt)
-        return bsalt, int(desired_key_length), int(rounds)
-    raise NotImplementedError('Unknown hashing scheme')
+    password = ''.join(password.split())
+    return bcrypt.checkpw(password, hashed)
 
 
 def extra_security_used(state: ResetPasswordState) -> bool:
