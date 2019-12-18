@@ -91,7 +91,7 @@ from eduid_webapp.reset_password.schemas import ResetPasswordEmailCodeSchema
 from eduid_webapp.reset_password.schemas import ResetPasswordWithCodeSchema
 from eduid_webapp.reset_password.schemas import ResetPasswordWithPhoneCodeSchema
 from eduid_webapp.reset_password.schemas import ResetPasswordExtraSecSchema
-from eduid_webapp.reset_password.helpers import Msg, error_message, success_message
+from eduid_webapp.reset_password.helpers import ResetPwMsg, error_message, success_message
 from eduid_webapp.reset_password.helpers import send_password_reset_mail
 from eduid_webapp.reset_password.helpers import get_pwreset_state, BadCode
 from eduid_webapp.reset_password.helpers import hash_password, check_password
@@ -135,7 +135,7 @@ def init_reset_pw(email: str) -> dict:
         current_app.logger.error(f'Sending password reset e-mail for {email} failed: {error}')
         return error_message(error.msg)
 
-    return success_message(Msg.send_pw_success)
+    return success_message(ResetPwMsg.send_pw_success)
 
 
 @reset_password_views.route('/config/', methods=['POST'])
@@ -189,7 +189,7 @@ def config_reset_pw(code: str) -> dict:
         current_app.password_reset_state_db.save(state)
     except DocumentDoesNotExist:
         current_app.logger.error(f'User {user} not found')
-        return error_message(Msg.user_not_found)
+        return error_message(ResetPwMsg.user_not_found)
 
     return {
             'csrf_token': session.get_csrf_token(),
@@ -247,7 +247,7 @@ def set_new_pw(code: str, password: str) -> dict:
     reset_user_password(user, state, password)
     current_app.logger.info(f'Password reset done, removing state for {user}')
     current_app.password_reset_state_db.remove_state(state)
-    return success_message(Msg.pw_resetted)
+    return success_message(ResetPwMsg.pw_resetted)
 
 
 @reset_password_views.route('/extra-security/', methods=['POST'])
@@ -294,7 +294,7 @@ def choose_extra_security(code: str, phone_index: int) -> dict:
     if not state.email_code.is_verified:
         current_app.logger.info(f'User with eppn {state.eppn} has not '
                                  'verified their email address')
-        return error_message(Msg.email_not_validated)
+        return error_message(ResetPwMsg.email_not_validated)
 
     phone_number = state.extra_security['phone_numbers'][phone_index]
     current_app.logger.info(f'Trying to send password reset sms to user with '
@@ -303,10 +303,10 @@ def choose_extra_security(code: str, phone_index: int) -> dict:
         send_verify_phone_code(state, phone_number)
     except MsgTaskFailed as e:
         current_app.logger.error(f'Sending sms failed: {e}')
-        return error_message(Msg.send_sms_failure)
+        return error_message(ResetPwMsg.send_sms_failure)
 
     current_app.stats.count(name='reset_password_extra_security_phone')
-    return success_message(Msg.send_sms_success)
+    return success_message(ResetPwMsg.send_sms_success)
 
 
 @reset_password_views.route('/new-password-secure/', methods=['POST'])
@@ -347,13 +347,13 @@ def set_new_pw_extra_security(phone_code: str, code: str, password: str) -> dict
     if phone_code == state.phone_code.code:
         if not verify_phone_number(state):
             current_app.logger.info(f'Could not verify phone code for {user}')
-            return error_message(Msg.phone_invalid)
+            return error_message(ResetPwMsg.phone_invalid)
 
         current_app.logger.info(f'Phone code verified for user {user}')
         current_app.stats.count(name='reset_password_extra_security_phone_success')
     else:
         current_app.logger.info(f'Could not verify phone code for {user}')
-        return error_message(Msg.unkown_phone_code)
+        return error_message(ResetPwMsg.unkown_phone_code)
 
     hashed = session.reset_password.generated_password_hash
     if check_password(password, hashed):
@@ -369,4 +369,4 @@ def set_new_pw_extra_security(phone_code: str, code: str, password: str) -> dict
     reset_user_password(user, state, password)
     current_app.logger.info(f'Password reset done, removing state for {user}')
     current_app.password_reset_state_db.remove_state(state)
-    return success_message(Msg.pw_resetted)
+    return success_message(ResetPwMsg.pw_resetted)

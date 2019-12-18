@@ -61,7 +61,7 @@ from eduid_webapp.reset_password.app import current_reset_password_app as curren
 
 
 @unique
-class Msg(Enum):
+class ResetPwMsg(Enum):
     """
     Messages sent to the front end with information on the results of the
     attempted operations on the back end.
@@ -107,14 +107,14 @@ class BadCode(Exception):
         self.msg = msg
 
 
-def success_message(message: Msg) -> dict:
+def success_message(message: ResetPwMsg) -> dict:
     return {
         '_status': 'ok',
         'message': str(message.value)
     }
 
 
-def error_message(message: Msg) -> dict:
+def error_message(message: ResetPwMsg) -> dict:
     return {
         '_status': 'error',
         'message': str(message.value)
@@ -134,11 +134,11 @@ def get_pwreset_state(email_code: str) -> ResetPasswordState:
         current_app.logger.debug(f'Found state using email_code {email_code}: {state}')
     except DocumentDoesNotExist:
         current_app.logger.info(f'State not found: {email_code}')
-        raise BadCode(Msg.unknown_code)
+        raise BadCode(ResetPwMsg.unknown_code)
 
     if state.email_code.is_expired(mail_expiration_time):
         current_app.logger.info(f'State expired: {email_code}')
-        raise BadCode(Msg.expired_email_code)
+        raise BadCode(ResetPwMsg.expired_email_code)
 
     if isinstance(state, ResetPasswordEmailAndPhoneState) and state.phone_code.is_expired(sms_expiration_time):
         current_app.logger.info(f'Phone code expired for state: {email_code}')
@@ -147,7 +147,7 @@ def get_pwreset_state(email_code: str) -> ResetPasswordState:
         state = ResetPasswordEmailState(eppn=state.eppn, email_address=state.email_address,
                                         email_code=state.email_code)
         current_app.password_reset_state_db.save(state)
-        raise BadCode(Msg.expired_sms_code)
+        raise BadCode(ResetPwMsg.expired_sms_code)
 
     return state
 
@@ -162,11 +162,11 @@ def send_password_reset_mail(email_address: str):
         # Old bug where incomplete signup users where written to the central db
         current_app.logger.info(f"Cannot reset a password with the following "
                                 f"email address: {email_address}: incomplete user")
-        raise BadCode(Msg.invalid_user)
+        raise BadCode(ResetPwMsg.invalid_user)
     except DocumentDoesNotExist:
         current_app.logger.info(f"Cannot reset a password with the following "
                                 f"unknown email address: {email_address}.")
-        raise BadCode(Msg.user_not_found)
+        raise BadCode(ResetPwMsg.user_not_found)
 
     state = ResetPasswordEmailState(eppn=user.eppn,
                                     email_address=email_address,
@@ -189,7 +189,7 @@ def send_password_reset_mail(email_address: str):
                   html_template, current_app, context, state.reference)
     except MailTaskFailed as error:
         current_app.logger.error(f'Sending password reset e-mail for {email} failed: {error}')
-        raise BadCode(Msg.send_pw_failure)
+        raise BadCode(ResetPwMsg.send_pw_failure)
 
     current_app.logger.info(f'Sent password reset email to user {user}')
     current_app.logger.debug(f'Mail addresses: {to_addresses}')
