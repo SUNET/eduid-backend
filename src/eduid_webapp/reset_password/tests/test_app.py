@@ -107,6 +107,19 @@ class ResetPasswordTests(EduidAPITestCase):
             self.assertEqual(state.email_address, 'johnsmith@example.com')
 
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
+    def test_post_unknown_email_address(self, mock_sendmail):
+        mock_sendmail.return_value = True
+        with self.app.test_client() as c:
+            data = {
+                'email': 'unknown@unplaced.un'
+            }
+            response = c.post('/', data=json.dumps(data),
+                              content_type=self.content_type_json)
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_FAIL')
+            self.assertEqual(response.json['payload']['message'], 'resetpw.user-not-found')
+
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     def test_post_reset_code(self, mock_sendmail):
         mock_sendmail.return_value = True
         with self.app.test_client() as c:

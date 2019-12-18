@@ -155,15 +155,17 @@ def send_password_reset_mail(email_address: str):
     :param email_address: User input for password reset
     """
     try:
-        user = current_app.central_userdb.get_user_by_mail(email_address,
-                                                        raise_on_missing=False)
+        user = current_app.central_userdb.get_user_by_mail(email_address)
     except UserHasNotCompletedSignup:
         # Old bug where incomplete signup users where written to the central db
-        user = None
-    if not user:
-        current_app.logger.info(f"Found no user with the following "
-                                 "address: {email_address}.")
-        return None
+        current_app.logger.info(f"Cannot reset a password with the following "
+                                f"email address: {email_address}: incomplete user")
+        raise BadCode(Msg.invalid_user)
+    except DocumentDoesNotExist:
+        current_app.logger.info(f"Cannot reset a password with the following "
+                                f"unknown email address: {email_address}.")
+        raise BadCode(Msg.user_not_found)
+
     state = ResetPasswordEmailState(eppn=user.eppn,
                                     email_address=email_address,
                                     email_code=get_unique_hash())
@@ -180,9 +182,14 @@ def send_password_reset_mail(email_address: str):
         'password_reset_timeout': pwreset_timeout
     }
     subject = _('Reset password')
-    send_mail(subject, to_addresses, text_template,
-              html_template, current_app, context, state.reference)
-    current_app.logger.info(f'Sent password reset email to user {state.eppn}')
+    try:
+        send_mail(subject, to_addresses, text_template,
+                  html_template, current_app, context, state.reference)
+    except MailTaskFailed as error:
+        current_app.logger.error(f'Sending password reset e-mail for {email} failed: {error}')
+        raise BadCode(Msg.send_pw_failure)
+
+    current_app.logger.info(f'Sent password reset email to user {user}')
     current_app.logger.debug(f'Mail addresses: {to_addresses}')
 
 
