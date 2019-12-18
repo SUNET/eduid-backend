@@ -191,7 +191,7 @@ def config_reset_pw(code: str) -> dict:
         state.extra_security = alternatives
         current_app.password_reset_state_db.save(state)
     except DocumentDoesNotExist:
-        current_app.logger.error(f'User {state.eppn} not found')
+        current_app.logger.error(f'User {user} not found')
         return error_message(Msg.user_not_found)
 
     return {
@@ -245,9 +245,11 @@ def set_new_pw(code: str, password: str) -> dict:
         current_app.logger.info('Custom password used')
         current_app.stats.count(name='reset_password_custom_password_used')
 
-    current_app.logger.info(f'Resetting password for user {state.eppn}')
-    reset_user_password(state, password)
-    current_app.logger.info(f'Password reset done, removing state for user {state.eppn}')
+    user = current_app.central_userdb.get_user_by_eppn(state.eppn,
+                                                       raise_on_missing=False)
+    current_app.logger.info(f'Resetting password for user {user}')
+    reset_user_password(user, state, password)
+    current_app.logger.info(f'Password reset done, removing state for {user}')
     current_app.password_reset_state_db.remove_state(state)
     return success_message(Msg.pw_resetted)
 
@@ -289,15 +291,18 @@ def choose_extra_security(code: str, phone_index: int) -> dict:
     except BadCode as e:
         return error_message(e.msg)
 
-    current_app.logger.info(f'Password reset: choose_extra_security for {state.eppn}')
+    current_app.logger.info(f'Password reset: choose_extra_security for '
+                            f'user with eppn {state.eppn}')
 
     # Check that the email code has been validated
     if not state.email_code.is_verified:
-        current_app.logger.info(f'User {state.eppn} has not verified their email address')
+        current_app.logger.info(f'User with eppn {state.eppn} has not '
+                                 'verified their email address')
         return error_message(Msg.email_not_validated)
 
     phone_number = state.extra_security['phone_numbers'][phone_index]
-    current_app.logger.info(f'Trying to send password reset sms to user {state.eppn}')
+    current_app.logger.info(f'Trying to send password reset sms to user with '
+                            f'eppn {state.eppn}')
     try:
         send_verify_phone_code(state, phone_number)
     except MsgTaskFailed as e:
@@ -340,15 +345,18 @@ def set_new_pw_extra_security(phone_code: str, code: str, password: str) -> dict
     except BadCode as e:
         return error_message(e.msg)
 
+    user = current_app.central_userdb.get_user_by_eppn(state.eppn,
+                                                       raise_on_missing=False)
+
     if phone_code == state.phone_code.code:
         if not verify_phone_number(state):
-            current_app.logger.info(f'Could not verify phone code for {state.eppn}')
+            current_app.logger.info(f'Could not verify phone code for {user}')
             return error_message(Msg.phone_invalid)
 
-        current_app.logger.info(f'Phone code verified for user {state.eppn}')
+        current_app.logger.info(f'Phone code verified for user {user}')
         current_app.stats.count(name='reset_password_extra_security_phone_success')
     else:
-        current_app.logger.info(f'Could not verify phone code for {state.eppn}')
+        current_app.logger.info(f'Could not verify phone code for {user}')
         return error_message(Msg.unkown_phone_code)
 
     salt = session.reset_password.generated_password_salt
@@ -362,8 +370,8 @@ def set_new_pw_extra_security(phone_code: str, code: str, password: str) -> dict
         current_app.logger.info('Custom password used')
         current_app.stats.count(name='reset_password_custom_password_used')
 
-    current_app.logger.info(f'Resetting password for user {state.eppn}')
-    reset_user_password(state, password)
-    current_app.logger.info(f'Password reset done, removing state for user {state.eppn}')
+    current_app.logger.info(f'Resetting password for user {user}')
+    reset_user_password(user, state, password)
+    current_app.logger.info(f'Password reset done, removing state for {user}')
     current_app.password_reset_state_db.remove_state(state)
     return success_message(Msg.pw_resetted)

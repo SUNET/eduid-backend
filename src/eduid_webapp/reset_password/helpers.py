@@ -264,23 +264,23 @@ def extra_security_used(state: ResetPasswordState) -> bool:
     return False
 
 
-def reset_user_password(state: ResetPasswordState, password: str):
+def reset_user_password(user: User, state: ResetPasswordState, password: str):
     """
+    :param user: the user
     :param state: Password reset state
     :param password: Plain text password
     """
     vccs_url = current_app.config.vccs_url
 
-    user = current_app.central_userdb.get_user_by_eppn(state.eppn, raise_on_missing=False)
     reset_password_user = ResetPasswordUser.from_user(user, private_userdb=current_app.private_userdb)
 
     # If no extra security is all verified information (except email addresses) is set to not verified
     if not extra_security_used(state):
-        current_app.logger.info(f'No extra security used by user {state.eppn}')
+        current_app.logger.info(f'No extra security used by user {user}')
         # Phone numbers
         verified_phone_numbers = reset_password_user.phone_numbers.verified.to_list()
         if verified_phone_numbers:
-            current_app.logger.info(f'Unverifying phone numbers for user {state.eppn}')
+            current_app.logger.info(f'Unverifying phone numbers for user {user}')
             reset_password_user.phone_numbers.primary.is_primary = False
             for phone_number in verified_phone_numbers:
                 phone_number.is_verified = False
@@ -288,7 +288,7 @@ def reset_user_password(state: ResetPasswordState, password: str):
         # NINs
         verified_nins = reset_password_user.nins.verified.to_list()
         if verified_nins:
-            current_app.logger.info('Unverifying nins for user {state.eppn}')
+            current_app.logger.info('Unverifying nins for user {user}')
             reset_password_user.nins.primary.is_primary = False
             for nin in verified_nins:
                 nin.is_verified = False
@@ -300,7 +300,7 @@ def reset_user_password(state: ResetPasswordState, password: str):
     reset_password_user.terminated = False
     save_and_sync_user(reset_password_user)
     current_app.stats.count(name='security_password_reset', value=1)
-    current_app.logger.info('Reset password successful for user {reset_password_user.eppn}')
+    current_app.logger.info('Reset password successful for user {reset_password_user}')
 
 
 def get_extra_security_alternatives(eppn: str) -> dict:
@@ -340,7 +340,7 @@ def verify_email_address(state: ResetPasswordEmailState) -> bool:
     user = current_app.central_userdb.get_user_by_eppn(state.eppn,
                                                        raise_on_missing=False)
     if not user:
-        current_app.logger.error(f'Could not find user {state.eppn}')
+        current_app.logger.error(f'Could not find user {user}')
         return False
 
     proofing_element = MailAddressProofing(user, created_by='security',
@@ -351,7 +351,7 @@ def verify_email_address(state: ResetPasswordEmailState) -> bool:
     if current_app.proofing_log.save(proofing_element):
         state.email_code.is_verified = True
         current_app.password_reset_state_db.save(state)
-        current_app.logger.info(f'Email code marked as used for {state.eppn}')
+        current_app.logger.info(f'Email code marked as used for {user}')
         return True
 
     return False
@@ -367,7 +367,7 @@ def send_verify_phone_code(state: ResetPasswordEmailState, phone_number: str):
         'verification_code': state.phone_code.code
     }
     send_sms(state.phone_number, template, context, state.reference)
-    current_app.logger.info(f'Sent password reset sms to user {state.eppn}')
+    current_app.logger.info(f'Sent password reset sms to user with eppn: {state.eppn}')
     current_app.logger.debug(f'Phone number: {state.phone_number}')
 
 
@@ -400,7 +400,7 @@ def verify_phone_number(state: ResetPasswordEmailAndPhoneState) -> bool:
     user = current_app.central_userdb.get_user_by_eppn(state.eppn,
                                                        raise_on_missing=False)
     if not user:
-        current_app.logger.error(f'Could not find user {state.eppn}')
+        current_app.logger.error(f'Could not find user {user}')
         return False
 
     proofing_element = PhoneNumberProofing(user, created_by='security',
@@ -410,7 +410,7 @@ def verify_phone_number(state: ResetPasswordEmailAndPhoneState) -> bool:
     if current_app.proofing_log.save(proofing_element):
         state.phone_code.is_verified = True
         current_app.password_reset_state_db.save(state)
-        current_app.logger.info('Phone code marked as used for {state.eppn}')
+        current_app.logger.info(f'Phone code marked as used for {user}')
         return True
 
     return False
