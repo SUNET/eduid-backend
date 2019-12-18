@@ -250,7 +250,7 @@ def reset_user_password(user: User, state: ResetPasswordState, password: str):
 
     reset_password_user = ResetPasswordUser.from_user(user, private_userdb=current_app.private_userdb)
 
-    # If no extra security is all verified information (except email addresses) is set to not verified
+    # If no extra security is used, all verified information (except email addresses) is set to not verified
     if not extra_security_used(state):
         current_app.logger.info(f'No extra security used by user {user}')
         # Phone numbers

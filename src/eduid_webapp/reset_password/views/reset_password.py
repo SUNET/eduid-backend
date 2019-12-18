@@ -169,7 +169,7 @@ def config_reset_pw(code: str) -> dict:
     * The code has expired;
     * No valid user corresponds to the eppn stored in the state.
     """
-    current_app.logger.info(f'Configuring password reset frm for {code}')
+    current_app.logger.info(f'Configuring password reset form for {code}')
     try:
         state = get_pwreset_state(code)
     except BadCode as e:
