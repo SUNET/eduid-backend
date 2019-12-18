@@ -103,7 +103,7 @@ class BadCode(Exception):
     """
     Exception to signal that the password reset code received is not valid.
     """
-    def __init__(self, msg: str):
+    def __init__(self, msg: ResetPwMsg):
         self.msg = msg
 
 
@@ -188,7 +188,8 @@ def send_password_reset_mail(email_address: str):
         send_mail(subject, to_addresses, text_template,
                   html_template, current_app, context, state.reference)
     except MailTaskFailed as error:
-        current_app.logger.error(f'Sending password reset e-mail for {email} failed: {error}')
+        current_app.logger.error(f'Sending password reset e-mail for '
+                                 f'{email_address} failed: {error}')
         raise BadCode(ResetPwMsg.send_pw_failure)
 
     current_app.logger.info(f'Sent password reset email to user {user}')
