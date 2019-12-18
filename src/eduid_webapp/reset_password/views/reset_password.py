@@ -181,15 +181,9 @@ def config_reset_pw(code: str) -> dict:
     session.reset_password.generated_password_hash = hash_password(new_password)
 
     user = current_app.central_userdb.get_user_by_eppn(state.eppn)
-    verified_phones = user.phone_numbers.verified.to_list()
-
-    try:
-        alternatives = get_extra_security_alternatives(user)
-        state.extra_security = alternatives
-        current_app.password_reset_state_db.save(state)
-    except DocumentDoesNotExist:
-        current_app.logger.error(f'User {user} not found')
-        return error_message(ResetPwMsg.user_not_found)
+    alternatives = get_extra_security_alternatives(user)
+    state.extra_security = alternatives
+    current_app.password_reset_state_db.save(state)
 
     return {
             'csrf_token': session.get_csrf_token(),
