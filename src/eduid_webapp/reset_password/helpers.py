@@ -265,11 +265,11 @@ def reset_user_password(user: User, state: ResetPasswordState, password: str):
         # NINs
         verified_nins = reset_password_user.nins.verified.to_list()
         if verified_nins:
-            current_app.logger.info('Unverifying nins for user {user}')
+            current_app.logger.info(f'Unverifying nins for user {user}')
             reset_password_user.nins.primary.is_primary = False
             for nin in verified_nins:
                 nin.is_verified = False
-                current_app.logger.debug('NIN {nin.number} unverified')
+                current_app.logger.debug(f'NIN {nin.number} unverified')
 
     reset_password_user = reset_password(reset_password_user, new_password=password,
                                          is_generated=state.generated_password,
@@ -277,7 +277,7 @@ def reset_user_password(user: User, state: ResetPasswordState, password: str):
     reset_password_user.terminated = False
     save_and_sync_user(reset_password_user)
     current_app.stats.count(name='security_password_reset', value=1)
-    current_app.logger.info('Reset password successful for user {reset_password_user}')
+    current_app.logger.info(f'Reset password successful for user {reset_password_user}')
 
 
 def get_extra_security_alternatives(user: User) -> dict:

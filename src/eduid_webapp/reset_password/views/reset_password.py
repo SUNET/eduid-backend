@@ -293,7 +293,7 @@ def choose_extra_security(code: str, phone_index: int) -> dict:
     # Check that the email code has been validated
     if not state.email_code.is_verified:
         current_app.logger.info(f'User with eppn {state.eppn} has not '
-                                 'verified their email address')
+                                f'verified their email address')
         return error_message(ResetPwMsg.email_not_validated)
 
     phone_number = state.extra_security['phone_numbers'][phone_index]
