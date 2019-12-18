@@ -79,7 +79,6 @@ class TimestampedNS(SessionNSBase):
 @dataclass
 class ResetPasswordNS(SessionNSBase):
     generated_password_hash: Optional[str] = None
-    generated_password_salt: Optional[str] = None
 
 
 @dataclass()
