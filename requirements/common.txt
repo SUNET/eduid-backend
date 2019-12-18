@@ -4,14 +4,14 @@ pynacl>=1.0.1
 python-etcd>=0.4.3
 Pillow>=3.0.0
 eduid-userdb>=0.4.6b15
-eduid-common[webapp]>=0.4.2b3
+eduid-common[webapp]>=0.4.5
 eduid-am>=0.6.3b7
 eduid-msg>=0.10.3b7
 marshmallow>=2.15.1,==2.*
 Babel>=2.6.0
 flask-babel>=0.11.2
 oic>=0.8.3
-pysaml2>=4.6.2,==4.*
+pysaml2>=4.9.0,==4.*
 zxcvbn>=4.4.27,==4.*
 bleach>=2.1.4
 html5lib>=1.0.1

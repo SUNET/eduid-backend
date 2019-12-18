@@ -33,7 +33,7 @@
 #
 
 from dataclasses import dataclass, field
-from typing import Dict
+from typing import Dict, Optional
 
 from eduid_common.config.base import FlaskConfig
 
@@ -44,7 +44,7 @@ class AuthnConfig(FlaskConfig):
     Configuration for the authn app
     """
     server_name: str = 'authn'
-    required_loa: Dict[str, str] = field(default_factory = lambda: {
+    required_loa: Dict[str, str] = field(default_factory=lambda: {
         'personal': 'http://www.swamid.se/policy/assurance/al1',
         'helpdesk': 'http://www.swamid.se/policy/assurance/al2',
         'admin': 'http://www.swamid.se/policy/assurance/al3',
@@ -53,3 +53,5 @@ class AuthnConfig(FlaskConfig):
     signup_authn_success_redirect_url: str = "https://dashboard.eduid.se"
     signup_authn_failure_redirect_url: str = "https://dashboard.eduid.se"
     unsolicited_response_redirect_url: str = "https://dashboard.eduid.se"
+    authn_sign_alg: Optional[str] = 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256'
+    authn_digest_alg: Optional[str] = 'http://www.w3.org/2001/04/xmlenc#sha256'
