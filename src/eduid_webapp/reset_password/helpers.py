@@ -48,6 +48,7 @@ from eduid_userdb.reset_password import ResetPasswordEmailState
 from eduid_userdb.reset_password import ResetPasswordEmailAndPhoneState
 from eduid_userdb.logs import MailAddressProofing
 from eduid_userdb.logs import PhoneNumberProofing
+from eduid_userdb.user import User
 from eduid_common.api.exceptions import MailTaskFailed
 from eduid_common.api.utils import save_and_sync_user
 from eduid_common.api.utils import get_unique_hash
