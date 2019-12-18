@@ -30,19 +30,81 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+import math
 
-from marshmallow import fields
+import zxcvbn
+from flask_babel import gettext as _
+from marshmallow import fields, Schema, validates, validates_schema, validate, ValidationError
 
 from eduid_common.api.schemas.base import EduidSchema, FluxStandardAction
 from eduid_common.api.schemas.csrf import CSRFResponseMixin, CSRFRequestMixin
-from eduid_common.api.schemas.validators import validate_nin
+from eduid_common.api.schemas.validators import validate_email
 
 __author__ = 'eperez'
 
 
-class ResetPasswordRequestSchema(EduidSchema, CSRFRequestMixin):
-    pass
+class ResetPasswordInitSchema(CSRFRequestMixin):
+
+    email = fields.String(required=True)
+
+    @validates('email')
+    def validate_email_field(self, value):
+        # Set a new error message
+        try:
+            validate_email(value)
+        except ValidationError:
+            raise ValidationError(_('Invalid email address'))
 
 
-class ResetPasswordResponseSchema(EduidSchema, CSRFResponseMixin):
-    pass
+class ResetPasswordEmailCodeSchema(CSRFRequestMixin):
+
+    code = fields.String(required=True)
+
+
+class ResetPasswordExtraSecSchema(CSRFRequestMixin):
+
+    code = fields.String(required=True)
+    phone_index = fields.Integer(required=True)
+
+
+class ResetPasswordWithCodeSchema(CSRFRequestMixin):
+    
+    code = fields.String(required=True)
+    password = fields.String(required=True)
+
+    @validates('password')
+    def validate_password(self, value):
+        # Set a new error message
+        try:
+            self._validate_password(value)
+        except ValidationError:
+            raise ValidationError(_('Please use a stronger password'))
+
+    def _validate_password(self, password):
+        """
+        :param password: New password
+        :type password: string_types
+
+        :return: True|ValidationError
+        :rtype: Boolean|ValidationError
+
+        Checks the complexity of the password
+        """
+        # Remove whitespace
+        password = ''.join(password.split())
+
+        # Reject blank passwords
+        if not password:
+            raise ValidationError('The password complexity is too weak.')
+
+        # Check password complexity with zxcvbn
+        from eduid_webapp.reset_password.app import current_reset_password_app
+        min_entropy = current_reset_password_app.config.password_entropy
+        result = zxcvbn.zxcvbn(password)
+        if math.log(result.get('guesses', 1), 2) < min_entropy:
+            raise ValidationError('The password complexity is too weak.')
+
+
+class ResetPasswordWithPhoneCodeSchema(ResetPasswordWithCodeSchema):
+    
+    phone_code = fields.String(required=True)

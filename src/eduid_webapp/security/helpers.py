@@ -7,8 +7,10 @@ from typing import Optional, List
 from flask import render_template, url_for
 from flask_babel import gettext as _
 
-from eduid_common.session import session
+from eduid_common.api.decorators import deprecated
 from eduid_common.api.utils import get_unique_hash, get_short_hash, save_and_sync_user
+from eduid_common.api.helpers import send_mail
+from eduid_common.session import session
 from eduid_common.authn.vccs import reset_password
 from eduid_common.authn.utils import generate_password
 from eduid_userdb.security import SecurityUser, PasswordResetEmailState, PasswordResetEmailAndPhoneState
@@ -81,6 +83,7 @@ def remove_nin_from_user(security_user, nin):
         current_app.logger.info("NIN: {}".format(nin))
 
 
+@deprecated("Remove once the password reset views are served from their own webapp")
 def generate_suggested_password():
     """
     The suggested password is saved in session to avoid form hijacking
@@ -93,36 +96,7 @@ def generate_suggested_password():
     return password
 
 
-def send_mail(subject: str, to_addresses: List[str], text_template: str, html_template: str,
-              context: Optional[dict] = None, reference: Optional[str] = None):
-    """
-    :param subject: subject text
-    :param to_addresses: email addresses for the to field
-    :param text_template: text message as a jinja template
-    :param html_template: html message as a jinja template
-    :param context: template context
-    :param reference: Audit reference to help cross reference audit log and events
-    """
-    site_name = current_app.config.eduid_site_name
-    site_url = current_app.config.eduid_site_url
-
-    default_context = {
-        "site_url": site_url,
-        "site_name": site_name,
-    }
-    if not context:
-        context = {}
-    context.update(default_context)
-
-    current_app.logger.debug(u'subject: {}'.format(subject))
-    current_app.logger.debug(u'to addresses: {}'.format(to_addresses))
-    text = render_template(text_template, **context)
-    current_app.logger.debug(u'rendered text: {}'.format(text))
-    html = render_template(html_template, **context)
-    current_app.logger.debug(u'rendered html: {}'.format(html))
-    current_app.mail_relay.sendmail(subject, to_addresses, text, html, reference)
-
-
+@deprecated("Remove once the password reset views are served from their own webapp")
 def send_sms(phone_number: str, text_template: str, context: Optional[dict] = None, reference: Optional[str] = None):
     """
     :param phone_number: the recipient of the sms
@@ -156,10 +130,11 @@ def send_termination_mail(user):
     text_template = "termination_email.txt.jinja2"
     html_template = "termination_email.html.jinja2"
     to_addresses = [address.email for address in user.mail_addresses.verified.to_list()]
-    send_mail(subject, to_addresses, text_template, html_template)
+    send_mail(subject, to_addresses, text_template, html_template, current_app)
     current_app.logger.info("Sent termination email to user.")
 
 
+@deprecated("Remove once the password reset views are served from their own webapp")
 def send_password_reset_mail(email_address):
     """
     :param email_address: User input for password reset
@@ -188,11 +163,12 @@ def send_password_reset_mail(email_address):
         'password_reset_timeout': password_reset_timeout
     }
     subject = _('Reset password')
-    send_mail(subject, to_addresses, text_template, html_template, context, state.reference)
+    send_mail(subject, to_addresses, text_template, html_template, current_app, context, state.reference)
     current_app.logger.info('Sent password reset email to user {}'.format(state.eppn))
     current_app.logger.debug('Mail address: {}'.format(to_addresses))
 
 
+@deprecated("Remove once the password reset views are served from their own webapp")
 def verify_email_address(state):
     """
     :param state: Password reset state
@@ -217,6 +193,7 @@ def verify_email_address(state):
     return False
 
 
+@deprecated("Remove once the password reset views are served from their own webapp")
 def send_verify_phone_code(state, phone_number):
     state = PasswordResetEmailAndPhoneState.from_email_state(state, phone_number=phone_number,
                                                              phone_code=get_short_hash())
@@ -230,6 +207,7 @@ def send_verify_phone_code(state, phone_number):
     current_app.logger.debug('Phone number: {}'.format(state.phone_number))
 
 
+@deprecated("Remove once the password reset views are served from their own webapp")
 def verify_phone_number(state):
     """
     :param state: Password reset state
@@ -254,6 +232,7 @@ def verify_phone_number(state):
     return False
 
 
+@deprecated("Remove once the password reset views are served from their own webapp")
 def extra_security_used(state):
     """
     Check if any extra security method was used
@@ -269,6 +248,7 @@ def extra_security_used(state):
     return False
 
 
+@deprecated("Remove once the password reset views are served from their own webapp")
 def reset_user_password(state, password):
     """
     :param state: Password reset state
@@ -310,6 +290,7 @@ def reset_user_password(state, password):
     current_app.logger.info('Reset password successful for user {}'.format(security_user.eppn))
 
 
+@deprecated("Remove once the password reset views are served from their own webapp")
 def get_extra_security_alternatives(eppn):
     """
     :param eppn: Users unique eppn
@@ -326,6 +307,7 @@ def get_extra_security_alternatives(eppn):
     return alternatives
 
 
+@deprecated("Remove once the password reset views are served from their own webapp")
 def mask_alternatives(alternatives):
     """
     :param alternatives: Extra security alternatives collected from user
@@ -344,6 +326,7 @@ def mask_alternatives(alternatives):
     return alternatives
 
 
+@deprecated("Remove once the password reset views are served from their own webapp")
 def get_zxcvbn_terms(eppn):
     """
     :param eppn: User eppn

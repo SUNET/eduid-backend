@@ -34,10 +34,13 @@
 from typing import cast
 from flask import current_app
 
-from eduid_userdb.security import PasswordResetStateDB
+from eduid_userdb.reset_password import ResetPasswordUserDB, ResetPasswordStateDB
+from eduid_userdb.logs import ProofingLog
 from eduid_common.api.app import get_app_config
 from eduid_common.api import mail_relay
 from eduid_common.api import am, msg
+from eduid_common.api import mail_relay
+from eduid_common.api import translation
 from eduid_common.authn.middleware import AuthnApp
 from eduid_webapp.reset_password.settings.common import ResetPasswordConfig
 
@@ -53,10 +56,14 @@ class ResetPasswordApp(AuthnApp):
         # Init app config
         self.config = ResetPasswordConfig(**config)
         # Init dbs
-        self.private_userdb = PasswordResetStateDB(self.config.mongo_uri)
+        self.private_userdb = ResetPasswordUserDB(self.config.mongo_uri)
+        self.password_reset_state_db = ResetPasswordStateDB(self.config.mongo_uri)
+        self.proofing_log = ProofingLog(self.config.mongo_uri)
         # Init celery
         msg.init_relay(self)
         am.init_relay(self, 'eduid_reset_password')
+        mail_relay.init_relay(self)
+        translation.init_babel(self)
         # Initiate external modules
 
 
@@ -79,7 +86,7 @@ def init_reset_password_app(name: str, config: dict) -> ResetPasswordApp:
     app = ResetPasswordApp(name, config)
 
     # Register views
-    from eduid_webapp.reset_password.views import reset_password_views
+    from eduid_webapp.reset_password.views.reset_password import reset_password_views
     app.register_blueprint(reset_password_views, url_prefix=app.config.application_root)
 
     app.logger.info('{!s} initialized'.format(name))

@@ -45,3 +45,15 @@ class ResetPasswordConfig(FlaskConfig):
     Configuration for the reset_password app
     """
     app_name: str = "reset_password"
+    email_code_timeout: int = 7200
+    phone_code_timeout: int = 600
+    password_entropy: int = 25
+    password_length: int = 12
+    # Number of bytes of salt to generate (recommended min 16).
+    password_salt_length: int = 32
+    # Length of H1 hash to produce (recommended min 32).
+    password_hash_length: int = 32
+    # bcrypt pbkdf number of rounds.
+    # For number of rounds, it is recommended that a measurement is made to achieve
+    # a cost of at least 100 ms on current hardware.
+    password_generation_rounds: int = 2 ** 5
