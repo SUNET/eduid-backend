@@ -30,26 +30,41 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-
 from typing import cast
 
-from flask import current_app
+from flask import current_app, Flask
 
 from eduid_common.api import am
 from eduid_common.api import mail_relay
 from eduid_common.api import translation
-from eduid_common.api.app import EduIDApp
-from eduid_common.api.app import eduid_init_app
+from eduid_common.api.app import EduIDBaseApp
+from eduid_common.api.app import get_app_config
 from eduid_userdb.logs import ProofingLog
 from eduid_userdb.signup import SignupUserDB
 from eduid_webapp.signup.settings.common import SignupConfig
 
 
-class SignupApp(EduIDApp):
+class SignupApp(EduIDBaseApp):
 
-    def __init__(self, *args, **kwargs):
-        super(SignupApp, self).__init__(*args, **kwargs)
-        self.config: SignupConfig = cast(SignupConfig, self.config)
+    def __init__(self, name, config, *args, **kwargs):
+
+        Flask.__init__(self, name, **kwargs)
+
+        final_config = get_app_config(name, config)
+        filtered_config = SignupConfig.filter_config(final_config)
+        self.config = SignupConfig(**filtered_config)
+
+        super(SignupApp, self).__init__(name, *args, **kwargs)
+
+        from eduid_webapp.signup.views import signup_views
+        self.register_blueprint(signup_views)
+
+        self = am.init_relay(self, 'eduid_signup')
+        self = mail_relay.init_relay(self)
+        self = translation.init_babel(self)
+
+        self.private_userdb = SignupUserDB(self.config.mongo_uri, 'eduid_signup')
+        self.proofing_log = ProofingLog(self.config.mongo_uri)
 
 
 current_signup_app: SignupApp = cast(SignupApp, current_app)
@@ -79,20 +94,8 @@ def signup_init_app(name, config):
     :rtype: flask.Flask
     """
 
-    app = eduid_init_app(name, config,
-                         config_class=SignupConfig,
-                         app_class=SignupApp)
+    app = SignupApp(name, config)
 
-    from eduid_webapp.signup.views import signup_views
-    app.register_blueprint(signup_views)
-
-    app = am.init_relay(app, 'eduid_signup')
-    app = mail_relay.init_relay(app)
-    app = translation.init_babel(app)
-
-    app.private_userdb = SignupUserDB(app.config.mongo_uri, 'eduid_signup')
-    app.proofing_log = ProofingLog(app.config.mongo_uri)
-
-    app.logger.info('Init {} app...'.format(name))
+    app.logger.info(f'Init {name} app...')
 
     return app
