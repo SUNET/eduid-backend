@@ -30,28 +30,41 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-
-from __future__ import absolute_import
-
 from typing import cast
 
-from flask import current_app
+from flask import current_app, Flask
 
-from eduid_common.api.app import eduid_init_app
+from eduid_common.api.app import get_app_config
 from eduid_common.api import am
 from eduid_common.api import msg
-from eduid_common.authn.middleware import AuthnApp
+from eduid_common.authn.middleware import AuthnBaseApp
 from eduid_userdb.proofing import PhoneProofingUserDB
 from eduid_userdb.proofing import PhoneProofingStateDB
 from eduid_userdb.logs import ProofingLog
 from eduid_webapp.phone.settings.common import PhoneConfig
 
 
-class PhoneApp(AuthnApp):
+class PhoneApp(AuthnBaseApp):
 
-    def __init__(self, *args, **kwargs):
-        super(PhoneApp, self).__init__(*args, **kwargs)
-        self.config: PhoneConfig = cast(PhoneConfig, self.config)
+    def __init__(self, name, config, *args, **kwargs):
+
+        Flask.__init__(self, name, **kwargs)
+
+        final_config = get_app_config(name, config)
+        filtered_config = PhoneConfig.filter_config(final_config)
+        self.config = PhoneConfig(**filtered_config)
+
+        super(PhoneApp, self).__init__(name, *args, **kwargs)
+
+        from eduid_webapp.phone.views import phone_views
+        self.register_blueprint(phone_views)
+
+        self = am.init_relay(self, 'eduid_phone')
+        self = msg.init_relay(self)
+
+        self.private_userdb = PhoneProofingUserDB(self.config.mongo_uri)
+        self.proofing_statedb = PhoneProofingStateDB(self.config.mongo_uri)
+        self.proofing_log = ProofingLog(self.config.mongo_uri)
 
 
 current_phone_app: PhoneApp = cast(PhoneApp, current_app)
@@ -78,20 +91,8 @@ def phone_init_app(name, config):
     :rtype: flask.Flask
     """
 
-    app = eduid_init_app(name, config,
-                         config_class=PhoneConfig,
-                         app_class=PhoneApp)
+    app = PhoneApp(name, config)
 
-    from eduid_webapp.phone.views import phone_views
-    app.register_blueprint(phone_views)
-
-    app = am.init_relay(app, 'eduid_phone')
-    app = msg.init_relay(app)
-
-    app.private_userdb = PhoneProofingUserDB(app.config.mongo_uri)
-    app.proofing_statedb = PhoneProofingStateDB(app.config.mongo_uri)
-    app.proofing_log = ProofingLog(app.config.mongo_uri)
-
-    app.logger.info('Init {} app...'.format(name))
+    app.logger.info(f'Init {name} app...')
 
     return app
