@@ -35,12 +35,12 @@ import types
 from importlib import import_module
 from typing import cast
 
-from flask import current_app
+from flask import current_app, Flask
 from flask import render_template, templating
 
 from eduid_common.api import am
-from eduid_common.api.app import EduIDApp
-from eduid_common.api.app import eduid_init_app
+from eduid_common.api.app import EduIDBaseApp
+from eduid_common.api.app import get_app_config
 from eduid_userdb.actions import ActionDB
 from eduid_webapp.actions.settings.common import ActionsConfig
 
@@ -73,11 +73,30 @@ def _get_tous(app, version=None):
     return tous
 
 
-class ActionsApp(EduIDApp):
+class ActionsApp(EduIDBaseApp):
 
-    def __init__(self, *args, **kwargs):
-        super(ActionsApp, self).__init__(*args, **kwargs)
-        self.config: ActionsConfig = cast(ActionsConfig, self.config)
+    def __init__(self, name, config, *args, **kwargs):
+
+        Flask.__init__(self, name, **kwargs)
+
+        final_config = get_app_config(name, config)
+        filtered_config = ActionsConfig.filter_config(final_config)
+        self.config = ActionsConfig(**filtered_config)
+
+        super(ActionsApp, self).__init__(name, *args, **kwargs)
+
+        from eduid_webapp.actions.views import actions_views
+        self.register_blueprint(actions_views)
+
+        self = am.init_relay(self, f'eduid_{name}')
+
+        self.actions_db = ActionDB(self.config.mongo_uri)
+
+        self.plugins = PluginsRegistry(self)
+        for plugin in self.plugins.values():
+            plugin.includeme(self)
+
+        self.get_tous = types.MethodType(_get_tous, self)
 
 current_actions_app: ActionsApp = cast(ActionsApp, current_app)
 
@@ -105,23 +124,8 @@ def actions_init_app(name, config):
     :rtype: flask.Flask
     """
 
-    app = eduid_init_app(name, config,
-                         config_class=ActionsConfig,
-                         app_class=ActionsApp)
+    app = ActionsApp(name, config)
 
-    from eduid_webapp.actions.views import actions_views
-    app.register_blueprint(actions_views)
-
-    app = am.init_relay(app, 'eduid_actions')
-
-    app.actions_db = ActionDB(app.config.mongo_uri)
-
-    app.plugins = PluginsRegistry(app)
-    for plugin in app.plugins.values():
-        plugin.includeme(app)
-
-    app.get_tous = types.MethodType(_get_tous, app)
-
-    app.logger.info('Init {} app...'.format(name))
+    app.logger.info(f'Init {name} app...')
 
     return app

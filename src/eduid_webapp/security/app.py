@@ -56,8 +56,8 @@ class SecurityApp(AuthnBaseApp):
 
         Flask.__init__(self, name, **kwargs)
 
-        self.config = get_app_config(name, config)
-        filtered_config = SecurityConfig.filter_config(config)
+        final_config = get_app_config(name, config)
+        filtered_config = SecurityConfig.filter_config(final_config)
         self.config = SecurityConfig(**filtered_config)
 
         super(SecurityApp, self).__init__(name, *args, **kwargs)
@@ -74,7 +74,7 @@ class SecurityApp(AuthnBaseApp):
         # Register view path that should not be authorized
         self = no_authn_views(self, ['/reset-password.*'])
 
-        self = am.init_relay(self, 'eduid_security')
+        self = am.init_relay(self, f'eduid_{name}')
         self = msg.init_relay(self)
         self = mail_relay.init_relay(self)
         self = translation.init_babel(self)
@@ -110,6 +110,6 @@ def security_init_app(name, config):
     """
     app = SecurityApp(name, config)
 
-    app.logger.info('Init {} app...'.format(name))
+    app.logger.info(f'Init {name} app...')
 
     return app
