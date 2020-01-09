@@ -2,11 +2,11 @@
 
 from __future__ import absolute_import
 
-from flask import current_app
+from flask import current_app, Flask
 
 from eduid_common.api import am, msg
 from eduid_common.api.app import get_app_config
-from eduid_common.authn.middleware import AuthnApp
+from eduid_common.authn.middleware import AuthnBaseApp
 from eduid_userdb.logs import ProofingLog
 from eduid_userdb.proofing import LetterProofingStateDB, LetterProofingUserDB
 from eduid_webapp.letter_proofing.ekopost import Ekopost
@@ -15,14 +15,23 @@ from eduid_webapp.letter_proofing.settings.common import LetterProofingConfig
 __author__ = 'lundberg'
 
 
-class LetterProofingApp(AuthnApp):
+class LetterProofingApp(AuthnBaseApp):
 
-    def __init__(self, name, config):
-        # Init config for common setup
-        config = get_app_config(name, config)
-        super(LetterProofingApp, self).__init__(name, config)
+    def __init__(self, name, config, *args, **kwargs):
+
+        Flask.__init__(self, name, **kwargs)
+
         # Init app config
-        self.config = LetterProofingConfig(**config)
+        final_config = get_app_config(name, config)
+        filtered_config = LetterProofingConfig.filter_config(final_config)
+        self.config = LetterProofingConfig(**filtered_config)
+
+        super(LetterProofingApp, self).__init__(name, *args, **kwargs)
+
+        # Register views
+        from eduid_webapp.letter_proofing.views import letter_proofing_views
+        self.register_blueprint(letter_proofing_views)
+
         # Init dbs
         self.private_userdb = LetterProofingUserDB(self.config.mongo_uri)
         self.proofing_statedb = LetterProofingStateDB(self.config.mongo_uri)
@@ -52,9 +61,6 @@ def init_letter_proofing_app(name, config=None) -> LetterProofingApp:
     """
     app = LetterProofingApp(name, config)
 
-    # Register views
-    from eduid_webapp.letter_proofing.views import letter_proofing_views
-    app.register_blueprint(letter_proofing_views)
+    app.logger.info(f'Init {name} app...')
 
-    app.logger.info('{!s} initialized'.format(name))
     return app
