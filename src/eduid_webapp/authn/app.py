@@ -31,19 +31,30 @@
 #
 from typing import cast
 
-from flask import current_app
+from flask import current_app, Flask
 
-from eduid_common.api.app import EduIDApp
-from eduid_common.api.app import eduid_init_app
+from eduid_common.api.app import EduIDBaseApp
+from eduid_common.api.app import get_app_config
 from eduid_common.authn.utils import get_saml2_config
 from eduid_webapp.authn.settings.common import AuthnConfig
 
 
-class AuthnApp(EduIDApp):
+class AuthnApp(EduIDBaseApp):
 
-    def __init__(self, *args, **kwargs):
-        super(AuthnApp, self).__init__(*args, **kwargs)
-        self.config: AuthnConfig = cast(AuthnConfig, self.config)
+    def __init__(self, name, config, *args, **kwargs):
+
+        Flask.__init__(self, name, **kwargs)
+
+        final_config = get_app_config(name, config)
+        filtered_config = AuthnConfig.filter_config(final_config)
+        self.config = AuthnConfig(**filtered_config)
+
+        super(AuthnApp, self).__init__(name, *args, **kwargs)
+
+        self.saml2_config = get_saml2_config(self.config.saml2_settings_module)
+
+        from eduid_webapp.authn.views import authn_views
+        self.register_blueprint(authn_views)
 
 
 def get_current_app() -> AuthnApp:
@@ -75,14 +86,8 @@ def authn_init_app(name, config):
     :return: the flask app
     :rtype: flask.Flask
     """
-    app = eduid_init_app(name, config,
-                         config_class=AuthnConfig,
-                         app_class=AuthnApp)
-    app.saml2_config = get_saml2_config(app.config.saml2_settings_module)
+    app = AuthnApp(name, config)
 
-    from eduid_webapp.authn.views import authn_views
-    app.register_blueprint(authn_views)
-
-    app.logger.info('Init {} app...'.format(name))
+    app.logger.info(f'Init {name} app...')
 
     return app
