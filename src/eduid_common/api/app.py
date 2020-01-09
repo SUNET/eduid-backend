@@ -62,9 +62,46 @@ if DEBUG:
     stderr.writelines('----- WARNING! EDUID_APP_DEBUG is enabled -----\n')
 
 
+class EduIDBaseApp(Flask):
+
+    def __init__(self, name: str, init_central_userdb: bool = True, **kwargs):
+
+        if DEBUG:
+            init_app_debug(self)
+
+        # Check that SECRET_KEY is set
+        if not self.config.secret_key:
+            raise BadConfiguration('SECRET_KEY is missing')
+
+        # App setup
+        self.wsgi_app = ProxyFix(self.wsgi_app)  # type: ignore
+        self.request_class = Request
+        self.url_map.strict_slashes = False
+
+        # Set app url prefix to APPLICATION_ROOT
+        self.wsgi_app = PrefixMiddleware(self.wsgi_app, prefix=self.config.application_root,  # type: ignore
+                                         server_name=self.config.server_name)
+
+        # Initialize shared features
+        init_logging(self)
+        init_exception_handlers(self)
+        init_sentry(self)
+        init_template_functions(self)
+        init_app_stats(self)
+        self.session_interface = SessionFactory(asdict(self.config))
+
+        if init_central_userdb:
+            self.central_userdb = UserDB(self.config.mongo_uri, 'eduid_am')
+
+        # Set up generic health check views
+        init_status_views(self)
+
+
 class EduIDApp(Flask):
 
     def __init__(self, name: str, config: Mapping = None, init_central_userdb: bool = True, **kwargs):
+        warnings.warn("Remove class once all apps extend EduIDBaseApp",
+                      DeprecationWarning)
         super(EduIDApp, self).__init__(name, **kwargs)
         if config is None:
             warnings.warn("config argument should be set to an app class config object",
