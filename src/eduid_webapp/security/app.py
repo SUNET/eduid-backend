@@ -35,14 +35,14 @@ from __future__ import absolute_import
 
 from typing import cast
 
-from flask import current_app
+from flask import Flask, current_app
 
-from eduid_common.api.app import eduid_init_app
+from eduid_common.api.app import get_app_config
 from eduid_common.api import msg
 from eduid_common.api import am
 from eduid_common.api import mail_relay
 from eduid_common.api import translation
-from eduid_common.authn.middleware import AuthnApp
+from eduid_common.authn.middleware import AuthnBaseApp
 from eduid_common.authn.utils import no_authn_views
 from eduid_userdb.security import SecurityUserDB, PasswordResetStateDB
 from eduid_userdb.authninfo import AuthnInfoDB
@@ -50,11 +50,39 @@ from eduid_userdb.logs import ProofingLog
 from eduid_webapp.security.settings.common import SecurityConfig
 
 
-class SecurityApp(AuthnApp):
+class SecurityApp(AuthnBaseApp):
 
-    def __init__(self, *args, **kwargs):
-        super(SecurityApp, self).__init__(*args, **kwargs)
-        self.config: SecurityConfig = cast(SecurityConfig, self.config)
+    def __init__(self, name, config, *args, **kwargs):
+
+        Flask.__init__(self, name, **kwargs)
+
+        self.config = get_app_config(name, config)
+        filtered_config = SecurityConfig.filter_config(config)
+        self.config = SecurityConfig(**filtered_config)
+
+        super(SecurityApp, self).__init__(name, *args, **kwargs)
+
+        from eduid_webapp.security.views.security import security_views
+        from eduid_webapp.security.views.u2f import u2f_views
+        from eduid_webapp.security.views.webauthn import webauthn_views
+        from eduid_webapp.security.views.reset_password import reset_password_views
+        self.register_blueprint(security_views)
+        self.register_blueprint(u2f_views)
+        self.register_blueprint(webauthn_views)
+        self.register_blueprint(reset_password_views)
+
+        # Register view path that should not be authorized
+        self = no_authn_views(self, ['/reset-password.*'])
+
+        self = am.init_relay(self, 'eduid_security')
+        self = msg.init_relay(self)
+        self = mail_relay.init_relay(self)
+        self = translation.init_babel(self)
+
+        self.private_userdb = SecurityUserDB(self.config.mongo_uri)
+        self.authninfo_db = AuthnInfoDB(self.config.mongo_uri)
+        self.password_reset_state_db = PasswordResetStateDB(self.config.mongo_uri)
+        self.proofing_log = ProofingLog(self.config.mongo_uri)
 
 
 current_security_app: SecurityApp = cast(SecurityApp, current_app)
@@ -80,32 +108,7 @@ def security_init_app(name, config):
     :return: the flask app
     :rtype: flask.Flask
     """
-
-    app = eduid_init_app(name, config,
-                         config_class=SecurityConfig,
-                         app_class=SecurityApp)
-
-    from eduid_webapp.security.views.security import security_views
-    from eduid_webapp.security.views.u2f import u2f_views
-    from eduid_webapp.security.views.webauthn import webauthn_views
-    from eduid_webapp.security.views.reset_password import reset_password_views
-    app.register_blueprint(security_views)
-    app.register_blueprint(u2f_views)
-    app.register_blueprint(webauthn_views)
-    app.register_blueprint(reset_password_views)
-
-    # Register view path that should not be authorized
-    app = no_authn_views(app, ['/reset-password.*'])
-
-    app = am.init_relay(app, 'eduid_security')
-    app = msg.init_relay(app)
-    app = mail_relay.init_relay(app)
-    app = translation.init_babel(app)
-
-    app.private_userdb = SecurityUserDB(app.config.mongo_uri)
-    app.authninfo_db = AuthnInfoDB(app.config.mongo_uri)
-    app.password_reset_state_db = PasswordResetStateDB(app.config.mongo_uri)
-    app.proofing_log = ProofingLog(app.config.mongo_uri)
+    app = SecurityApp(name, config)
 
     app.logger.info('Init {} app...'.format(name))
 
