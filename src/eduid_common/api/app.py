@@ -37,7 +37,7 @@ import importlib.util
 import os
 import warnings
 from dataclasses import fields, asdict
-from typing import Type, Optional, Mapping
+from typing import cast, Type, Optional, Mapping
 
 from eduid_userdb import UserDB
 from flask import Flask
@@ -67,12 +67,26 @@ class EduIDBaseApp(Flask):
     Base class for eduID apps, initializing common features and facilities.
     """
 
-    def __init__(self, name: str, init_central_userdb: bool = True, **kwargs):
+    def __init__(self, name: str,
+                 config_class: Type[FlaskConfig],
+                 config: dict,
+                 init_central_userdb: bool = True,
+                 **kwargs):
         """
         :param name: name of the app
+        :param config_class: the dataclass with configuration settings
+        :param config: a dict with configuration settings, used in tests to
+                       override defaults.
         :param init_central_userdb: whether the app requires access to the
                                     central user db.
         """
+        self.config: FlaskConfig  # type: ignore
+
+        super(EduIDBaseApp, self).__init__(name, **kwargs)
+
+        final_config = get_app_config(name, config)
+        filtered_config = config_class.filter_config(final_config)
+        self.config = config_class(**filtered_config)
 
         if DEBUG:
             init_app_debug(self)
@@ -87,8 +101,8 @@ class EduIDBaseApp(Flask):
         self.url_map.strict_slashes = False
 
         # Set app url prefix to APPLICATION_ROOT
-        self.wsgi_app = PrefixMiddleware(self.wsgi_app,
-                                         prefix=self.config.application_root,  # type: ignore
+        self.wsgi_app = PrefixMiddleware(self.wsgi_app,  # type: ignore
+                                         prefix=self.config.application_root,
                                          server_name=self.config.server_name)
 
         # Initialize shared features
@@ -187,7 +201,7 @@ class EduIDApp(Flask):
                                          server_name=self.config.server_name)
 
         # Initialize shared features
-        init_logging(self)
+        init_logging(self)  # type: ignore
         init_exception_handlers(self)
         init_sentry(self)
         init_template_functions(self)
@@ -198,7 +212,7 @@ class EduIDApp(Flask):
             self.central_userdb = UserDB(self.config.mongo_uri, 'eduid_am')
 
         # Set up generic health check views
-        init_status_views(self)
+        init_status_views(self)  # type: ignore
 
     def init_config(self, config_class, config):
         warnings.warn("init_config is deprecated. The configuration is now loaded when instantiating the class.",
@@ -253,7 +267,7 @@ def eduid_init_app_no_db(name: str, config: dict,
     app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix=app.config.application_root,  # type: ignore
                                     server_name=app.config.server_name)
     # Initialize shared features
-    app = init_logging(app)
+    app = init_logging(app)  # type: ignore
     app = init_exception_handlers(app)
     app = init_sentry(app)
     app = init_template_functions(app)
@@ -271,5 +285,5 @@ def eduid_init_app(name: str, config: dict,
     app = eduid_init_app_no_db(name, config=config, config_class=config_class, app_class=app_class)
     app.central_userdb = UserDB(app.config.mongo_uri, 'eduid_am')
     # Set up generic health check views
-    app = init_status_views(app)
+    app = init_status_views(app)  # type: ignore
     return app

@@ -6,7 +6,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from eduid_common.api.app import EduIDApp
+    from eduid_common.api.app import EduIDBaseApp
 
 import logging
 import logging.config
@@ -108,7 +108,7 @@ def merge_config(base_config: dict, new_config: dict) -> dict:
     return base_config
 
 
-def init_logging(app: EduIDApp) -> EduIDApp:
+def init_logging(app: EduIDBaseApp) -> EduIDBaseApp:
     """
     Init logging using dictConfig.
 
