@@ -2,7 +2,7 @@
 
 from typing import Optional, List, Dict, Any
 
-from eduid_common.api.app import EduIDApp
+from eduid_common.api.app import EduIDBaseApp
 from eduid_common.api.app import eduid_init_app
 from eduid_common.api.logging import merge_config
 from eduid_common.api.testing import EduidAPITestCase
@@ -25,7 +25,7 @@ class LoggingTest(EduidAPITestCase):
         Called from the parent class, so we can provide the appropiate flask
         app for this test case.
         """
-        return eduid_init_app('test_app', config, app_class=EduIDApp)
+        return eduid_init_app('test_app', config, app_class=EduIDBaseApp)
 
     def update_config(self, config):
         return config

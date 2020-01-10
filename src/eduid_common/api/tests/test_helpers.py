@@ -15,7 +15,7 @@ from eduid_userdb.userdb import UserDB
 from mock import patch
 
 from eduid_common.api.am import init_relay
-from eduid_common.api.app import EduIDApp
+from eduid_common.api.app import EduIDBaseApp
 from eduid_common.api.helpers import add_nin_to_user, verify_nin_for_user, set_user_names_from_offical_address
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.config.base import FlaskConfig
@@ -43,7 +43,7 @@ class NinHelpersTest(EduidAPITestCase):
         super(NinHelpersTest, self).setUp()
 
     def load_app(self, config):
-        app = EduIDApp('test_app')
+        app = EduIDBaseApp('test_app')
         app.config = FlaskConfig(**config)
         app = init_relay(app, 'testing')
         app.central_userdb = UserDB(app.config.mongo_uri, 'eduid_am')

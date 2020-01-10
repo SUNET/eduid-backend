@@ -8,7 +8,7 @@ from eduid_userdb.user import User
 from eduid_userdb.nin import Nin
 from eduid_userdb.proofing import ProofingUser
 from eduid_userdb.proofing.state import NinProofingState
-from eduid_common.api.app import EduIDApp
+from eduid_common.api.app import EduIDBaseApp
 
 __author__ = 'lundberg'
 
@@ -136,7 +136,7 @@ def verify_nin_for_user(user, proofing_state, proofing_log_entry):
 
 
 def send_mail(subject: str, to_addresses: List[str], text_template: str, html_template: str,
-              app: EduIDApp, context: Optional[dict] = None, reference: Optional[str] = None):
+              app: EduIDBaseApp, context: Optional[dict] = None, reference: Optional[str] = None):
     """
     :param subject: subject text
     :param to_addresses: email addresses for the to field

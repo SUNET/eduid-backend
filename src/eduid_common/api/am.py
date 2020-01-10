@@ -3,7 +3,7 @@
 import eduid_am
 from flask import current_app
 
-from eduid_common.api.app import EduIDApp
+from eduid_common.api.app import EduIDBaseApp
 from eduid_common.api.exceptions import AmTaskFailed
 from eduid_common.config.base import CeleryConfig
 from eduid_userdb import User
@@ -12,7 +12,7 @@ from eduid_userdb.exceptions import LockedIdentityViolation
 __author__ = 'lundberg'
 
 
-def init_relay(app: EduIDApp, application_name: str) -> EduIDApp:
+def init_relay(app: EduIDBaseApp, application_name: str) -> EduIDBaseApp:
     """
     :param app: Flask app
     :param application_name: Name to help am find the entry point for the am plugin
