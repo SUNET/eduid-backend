@@ -36,7 +36,7 @@ from __future__ import absolute_import
 from typing import cast
 import operator
 
-from flask import current_app, Flask
+from flask import current_app
 from jinja2.exceptions import UndefinedError
 
 from eduid_common.api.app import get_app_config
@@ -48,15 +48,9 @@ from eduid_webapp.support.settings.common import SupportConfig
 
 class SupportApp(AuthnBaseApp):
 
-    def __init__(self, name, config, *args, **kwargs):
+    def __init__(self, name, config, **kwargs):
 
-        Flask.__init__(self, name, **kwargs)
-
-        final_config = get_app_config(name, config)
-        filtered_config = SupportConfig.filter_config(final_config)
-        self.config = SupportConfig(**filtered_config)
-
-        super(SupportApp, self).__init__(name, *args, **kwargs)
+        super(SupportApp, self).__init__(name, SupportConfig, config, **kwargs)
 
         if self.config.token_service_url_logout is None:
             self.config.token_service_url_logout = urlappend(self.config.token_service_url, 'logout')

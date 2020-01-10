@@ -42,20 +42,14 @@ from eduid_webapp.jsconfig.settings.common import JSConfigConfig
 
 class JSConfigApp(EduIDBaseApp):
 
-    def __init__(self, name, config, *args, **kwargs):
-
-        Flask.__init__(self, name,
-                       host_matching=True,
-                       static_folder=None,
-                       subdomain_matching=True,
-                       **kwargs)
-
-        final_config = get_app_config(name, config)
-        filtered_config = JSConfigConfig.filter_config(final_config)
-        self.config = JSConfigConfig(**filtered_config)
+    def __init__(self, name, config, **kwargs):
 
         kwargs['init_central_userdb'] = False
-        super(JSConfigApp, self).__init__(name, *args, **kwargs)
+        kwargs['host_matching'] = True
+        kwargs['static_folder'] = None
+        kwargs['subdomain_matching'] = True
+
+        super(JSConfigApp, self).__init__(name, JSConfigConfig, config, **kwargs)
 
         if not self.testing:
             self.url_map.host_matching = False

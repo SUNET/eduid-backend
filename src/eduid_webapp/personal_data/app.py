@@ -33,7 +33,7 @@
 #
 from typing import cast
 
-from flask import current_app, Flask
+from flask import current_app
 
 from eduid_common.api.app import get_app_config
 from eduid_common.api import am
@@ -44,15 +44,9 @@ from eduid_userdb.personal_data import PersonalDataUserDB
 
 class PersonalDataApp(AuthnBaseApp):
 
-    def __init__(self, name, config, *args, **kwargs):
+    def __init__(self, name, config, **kwargs):
 
-        Flask.__init__(self, name, **kwargs)
-
-        final_config = get_app_config(name, config)
-        filtered_config = FlaskConfig.filter_config(final_config)
-        self.config = FlaskConfig(**filtered_config)
-
-        super(PersonalDataApp, self).__init__(name, *args, **kwargs)
+        super(PersonalDataApp, self).__init__(name, FlaskConfig, config, **kwargs)
 
         from eduid_webapp.personal_data.views import pd_views
         self.register_blueprint(pd_views)

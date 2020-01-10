@@ -30,7 +30,7 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from flask import current_app, Flask
+from flask import current_app
 
 from eduid_common.api import am, msg
 from eduid_common.api.app import get_app_config
@@ -45,16 +45,10 @@ __author__ = 'lundberg'
 
 class LetterProofingApp(AuthnBaseApp):
 
-    def __init__(self, name, config, *args, **kwargs):
+    def __init__(self, name, config, **kwargs):
 
-        Flask.__init__(self, name, **kwargs)
-
-        # Init app config
-        final_config = get_app_config(name, config)
-        filtered_config = LetterProofingConfig.filter_config(final_config)
-        self.config = LetterProofingConfig(**filtered_config)
-
-        super(LetterProofingApp, self).__init__(name, *args, **kwargs)
+        super(LetterProofingApp, self).__init__(name, LetterProofingConfig,
+                                                config, **kwargs)
 
         # Register views
         from eduid_webapp.letter_proofing.views import letter_proofing_views

@@ -32,7 +32,7 @@
 #
 from typing import cast
 
-from flask import current_app, Flask
+from flask import current_app
 
 from eduid_userdb.proofing import OrcidProofingStateDB, OrcidProofingUserDB
 from eduid_userdb.logs import ProofingLog
@@ -48,15 +48,9 @@ __author__ = 'lundberg'
 
 class OrcidApp(AuthnBaseApp):
 
-    def __init__(self, name, config, *args, **kwargs):
+    def __init__(self, name, config, **kwargs):
 
-        Flask.__init__(self, name, **kwargs)
-
-        final_config = get_app_config(name, config)
-        filtered_config = OrcidConfig.filter_config(final_config)
-        self.config = OrcidConfig(**filtered_config)
-
-        super(OrcidApp, self).__init__(name, *args, **kwargs)
+        super(OrcidApp, self).__init__(name, OrcidConfig, config, **kwargs)
 
         # Register views
         from eduid_webapp.orcid.views import orcid_views

@@ -35,7 +35,7 @@ import types
 from importlib import import_module
 from typing import cast
 
-from flask import current_app, Flask
+from flask import current_app
 from flask import render_template, templating
 
 from eduid_common.api import am
@@ -75,15 +75,9 @@ def _get_tous(app, version=None):
 
 class ActionsApp(EduIDBaseApp):
 
-    def __init__(self, name, config, *args, **kwargs):
+    def __init__(self, name, config, **kwargs):
 
-        Flask.__init__(self, name, **kwargs)
-
-        final_config = get_app_config(name, config)
-        filtered_config = ActionsConfig.filter_config(final_config)
-        self.config = ActionsConfig(**filtered_config)
-
-        super(ActionsApp, self).__init__(name, *args, **kwargs)
+        super(ActionsApp, self).__init__(name, ActionsConfig, config, **kwargs)
 
         from eduid_webapp.actions.views import actions_views
         self.register_blueprint(actions_views)

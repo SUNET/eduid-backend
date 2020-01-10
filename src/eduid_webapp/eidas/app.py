@@ -4,7 +4,7 @@ from __future__ import absolute_import
 
 from typing import cast, Optional, Dict
 
-from flask import current_app, Flask
+from flask import current_app
 
 from eduid_common.authn.utils import get_saml2_config, no_authn_views
 from eduid_common.api.app import get_app_config
@@ -19,18 +19,12 @@ __author__ = 'lundberg'
 
 class EidasApp(AuthnBaseApp):
 
-    def __init__(self, name, config, *args, **kwargs):
+    def __init__(self, name, config, **kwargs):
 
         # Load acs actions on app init
         from . import acs_actions
 
-        Flask.__init__(self, name, **kwargs)
-
-        final_config = get_app_config(name, config)
-        filtered_config = EidasConfig.filter_config(final_config)
-        self.config = EidasConfig(**filtered_config)
-
-        super(EidasApp, self).__init__(name, *args, **kwargs)
+        super(EidasApp, self).__init__(name, EidasConfig, config, **kwargs)
         self.config: EidasConfig = cast(EidasConfig, self.config)
 
         self.saml2_config = get_saml2_config(self.config.saml2_settings_module)

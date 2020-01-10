@@ -32,7 +32,7 @@
 #
 from typing import cast
 
-from flask import Flask, current_app
+from flask import current_app
 
 from eduid_common.api.app import get_app_config
 from eduid_common.api import mail_relay
@@ -47,15 +47,9 @@ from eduid_webapp.email.settings.common import EmailConfig
 
 class EmailApp(AuthnBaseApp):
 
-    def __init__(self, name, config, *args, **kwargs):
+    def __init__(self, name, config, **kwargs):
 
-        Flask.__init__(self, name, **kwargs)
-
-        final_config = get_app_config(name, config)
-        filtered_config = EmailConfig.filter_config(final_config)
-        self.config = EmailConfig(**filtered_config)
-
-        super(EmailApp, self).__init__(name, *args, **kwargs)
+        super(EmailApp, self).__init__(name, EmailConfig, config, **kwargs)
         self.config: EmailConfig = cast(EmailConfig, self.config)
 
         from eduid_webapp.email.views import email_views

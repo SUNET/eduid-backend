@@ -32,7 +32,7 @@
 #
 from typing import cast
 
-from flask import current_app, Flask
+from flask import current_app
 
 from eduid_common.api.app import get_app_config
 from eduid_common.api import am
@@ -46,15 +46,9 @@ from eduid_webapp.phone.settings.common import PhoneConfig
 
 class PhoneApp(AuthnBaseApp):
 
-    def __init__(self, name, config, *args, **kwargs):
+    def __init__(self, name, config, **kwargs):
 
-        Flask.__init__(self, name, **kwargs)
-
-        final_config = get_app_config(name, config)
-        filtered_config = PhoneConfig.filter_config(final_config)
-        self.config = PhoneConfig(**filtered_config)
-
-        super(PhoneApp, self).__init__(name, *args, **kwargs)
+        super(PhoneApp, self).__init__(name, PhoneConfig, config, **kwargs)
 
         from eduid_webapp.phone.views import phone_views
         self.register_blueprint(phone_views)

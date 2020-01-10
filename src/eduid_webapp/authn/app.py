@@ -31,7 +31,7 @@
 #
 from typing import cast
 
-from flask import current_app, Flask
+from flask import current_app
 
 from eduid_common.api.app import EduIDBaseApp
 from eduid_common.api.app import get_app_config
@@ -41,15 +41,9 @@ from eduid_webapp.authn.settings.common import AuthnConfig
 
 class AuthnApp(EduIDBaseApp):
 
-    def __init__(self, name, config, *args, **kwargs):
+    def __init__(self, name, config, **kwargs):
 
-        Flask.__init__(self, name, **kwargs)
-
-        final_config = get_app_config(name, config)
-        filtered_config = AuthnConfig.filter_config(final_config)
-        self.config = AuthnConfig(**filtered_config)
-
-        super(AuthnApp, self).__init__(name, *args, **kwargs)
+        super(AuthnApp, self).__init__(name, AuthnConfig, config, **kwargs)
 
         self.saml2_config = get_saml2_config(self.config.saml2_settings_module)
 

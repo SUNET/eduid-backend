@@ -32,7 +32,7 @@
 #
 from typing import cast
 
-from flask import current_app, Flask
+from flask import current_app
 
 from eduid_common.api.app import get_app_config
 from eduid_common.api import am, msg, mail_relay, translation, oidc
@@ -47,15 +47,9 @@ __author__ = 'lundberg'
 
 class OIDCProofingApp(AuthnBaseApp):
 
-    def __init__(self, name, config, *args, **kwargs):
+    def __init__(self, name, config, **kwargs):
 
-        Flask.__init__(self, name, **kwargs)
-
-        final_config = get_app_config(name, config)
-        filtered_config = OIDCProofingConfig.filter_config(final_config)
-        self.config = OIDCProofingConfig(**filtered_config)
-
-        super(OIDCProofingApp, self).__init__(name, *args, **kwargs)
+        super(OIDCProofingApp, self).__init__(name, OIDCProofingConfig, config, **kwargs)
 
         from eduid_webapp.oidc_proofing.views import oidc_proofing_views
         self.register_blueprint(oidc_proofing_views)

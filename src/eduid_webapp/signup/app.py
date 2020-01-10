@@ -32,7 +32,7 @@
 #
 from typing import cast
 
-from flask import current_app, Flask
+from flask import current_app
 
 from eduid_common.api import am
 from eduid_common.api import mail_relay
@@ -46,15 +46,9 @@ from eduid_webapp.signup.settings.common import SignupConfig
 
 class SignupApp(EduIDBaseApp):
 
-    def __init__(self, name, config, *args, **kwargs):
+    def __init__(self, name, config, **kwargs):
 
-        Flask.__init__(self, name, **kwargs)
-
-        final_config = get_app_config(name, config)
-        filtered_config = SignupConfig.filter_config(final_config)
-        self.config = SignupConfig(**filtered_config)
-
-        super(SignupApp, self).__init__(name, *args, **kwargs)
+        super(SignupApp, self).__init__(name, SignupConfig, config, **kwargs)
 
         from eduid_webapp.signup.views import signup_views
         self.register_blueprint(signup_views)

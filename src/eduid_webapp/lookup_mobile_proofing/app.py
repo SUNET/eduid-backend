@@ -32,7 +32,7 @@
 #
 from typing import cast
 
-from flask import current_app, Flask
+from flask import current_app
 
 from eduid_common.api.app import get_app_config
 from eduid_common.api import am, msg
@@ -47,16 +47,10 @@ __author__ = 'lundberg'
 
 class MobileProofingApp(AuthnBaseApp):
 
-    def __init__(self, name, config, *args, **kwargs):
+    def __init__(self, name, config, **kwargs):
 
-        Flask.__init__(self, name, **kwargs)
-
-        # Init app config
-        final_config = get_app_config(name, config)
-        filtered_config = MobileProofingConfig.filter_config(final_config)
-        self.config = MobileProofingConfig(**filtered_config)
-
-        super(MobileProofingApp, self).__init__(name, *args, **kwargs)
+        super(MobileProofingApp, self).__init__(name, MobileProofingConfig,
+                                                config, **kwargs)
         self.config: MobileProofingConfig = cast(MobileProofingConfig, self.config)
         # Register views
         from eduid_webapp.lookup_mobile_proofing.views import mobile_proofing_views

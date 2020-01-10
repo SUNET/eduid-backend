@@ -32,7 +32,7 @@
 #
 
 from typing import cast
-from flask import current_app, Flask
+from flask import current_app
 
 from eduid_userdb.reset_password import ResetPasswordUserDB, ResetPasswordStateDB
 from eduid_userdb.logs import ProofingLog
@@ -50,16 +50,9 @@ __author__ = 'eperez'
 
 class ResetPasswordApp(AuthnBaseApp):
 
-    def __init__(self, name, config, *args, **kwargs):
+    def __init__(self, name, config, **kwargs):
 
-        Flask.__init__(self, name, **kwargs)
-
-        # Init config for common setup
-        final_config = get_app_config(name, config)
-        filtered_config = ResetPasswordConfig.filter_config(final_config)
-        self.config = ResetPasswordConfig(**filtered_config)
-
-        super(ResetPasswordApp, self).__init__(name, config)
+        super(ResetPasswordApp, self).__init__(name, ResetPasswordConfig, config, **kwargs)
 
         # Register views
         from eduid_webapp.reset_password.views.reset_password import reset_password_views

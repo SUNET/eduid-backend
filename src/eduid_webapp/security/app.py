@@ -32,7 +32,7 @@
 #
 from typing import cast
 
-from flask import Flask, current_app
+from flask import current_app
 
 from eduid_common.api.app import get_app_config
 from eduid_common.api import msg
@@ -49,15 +49,9 @@ from eduid_webapp.security.settings.common import SecurityConfig
 
 class SecurityApp(AuthnBaseApp):
 
-    def __init__(self, name, config, *args, **kwargs):
+    def __init__(self, name, config, **kwargs):
 
-        Flask.__init__(self, name, **kwargs)
-
-        final_config = get_app_config(name, config)
-        filtered_config = SecurityConfig.filter_config(final_config)
-        self.config = SecurityConfig(**filtered_config)
-
-        super(SecurityApp, self).__init__(name, *args, **kwargs)
+        super(SecurityApp, self).__init__(name, SecurityConfig, config, **kwargs)
 
         from eduid_webapp.security.views.security import security_views
         from eduid_webapp.security.views.u2f import u2f_views
