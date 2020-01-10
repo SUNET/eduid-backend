@@ -63,8 +63,16 @@ if DEBUG:
 
 
 class EduIDBaseApp(Flask):
+    """
+    Base class for eduID apps, initializing common features and facilities.
+    """
 
     def __init__(self, name: str, init_central_userdb: bool = True, **kwargs):
+        """
+        :param name: name of the app
+        :param init_central_userdb: whether the app requires access to the
+                                    central user db.
+        """
 
         if DEBUG:
             init_app_debug(self)
@@ -79,7 +87,8 @@ class EduIDBaseApp(Flask):
         self.url_map.strict_slashes = False
 
         # Set app url prefix to APPLICATION_ROOT
-        self.wsgi_app = PrefixMiddleware(self.wsgi_app, prefix=self.config.application_root,  # type: ignore
+        self.wsgi_app = PrefixMiddleware(self.wsgi_app,
+                                         prefix=self.config.application_root,  # type: ignore
                                          server_name=self.config.server_name)
 
         # Initialize shared features
@@ -95,6 +104,57 @@ class EduIDBaseApp(Flask):
 
         # Set up generic health check views
         init_status_views(self)
+
+
+def get_app_config(name: str, config: Optional[dict] = None) -> dict:
+    """
+    Get configuration for flask app.
+
+    If config is not provided, retrieve configuration values from etcd.
+    If there is an env var LOCAL_CFG_FILE pointing to a file with configuration
+    keys, load them as well.
+    """
+    if config is None:
+        config = {}
+    # Do not use config from etcd if a config dict is supplied
+    if not config:
+        # Init etcd config parsers
+        common_parser = EtcdConfigParser('/eduid/webapp/common/')
+        app_etcd_namespace = os.environ.get('EDUID_CONFIG_NS', '/eduid/webapp/{!s}/'.format(name))
+        app_parser = EtcdConfigParser(app_etcd_namespace)
+        # Load optional project wide settings
+        common_config = common_parser.read_configuration(silent=False)
+        if common_config:
+            config.update(common_config)
+        # Load optional app specific settings
+        app_config = app_parser.read_configuration(silent=False)
+        if app_config:
+            config.update(app_config)
+
+    # Load optional app specific secrets
+    secrets_path = os.environ.get('LOCAL_CFG_FILE')
+    if secrets_path is not None and os.path.exists(secrets_path):
+        spec = importlib.util.spec_from_file_location("secret.settings", secrets_path)
+        secret_settings_module = importlib.util.module_from_spec(spec)
+        for secret in dir(secret_settings_module):
+            if not secret.startswith('_'):
+                config[secret.lower()] = getattr(secret_settings_module, secret)
+    return config
+
+
+def init_status_views(app: EduIDBaseApp) -> EduIDBaseApp:
+    """
+    Register status views for any app, and configure them as public.
+    """
+    from eduid_common.api.views.status import status_views
+    app.register_blueprint(status_views)
+    # Register status paths for unauthorized requests
+    status_paths = ['/status/healthy', '/status/sanity-check']
+    app = no_authn_views(app, status_paths)
+    return app
+
+# XXX All the code below is deprecated and shold be removed as soon as the apps
+# in eduid-webapp extend from EduIDBaseApp rather than EduIDApp
 
 
 class EduIDApp(Flask):
@@ -148,51 +208,6 @@ class EduIDApp(Flask):
 
 # Avoid circular dependency
 from eduid_common.authn.middleware import AuthnApp as AuthnAppMiddleware  # TODO: Should maybe be a mixin?
-
-
-def get_app_config(name: str, config: Optional[dict] = None):
-    """
-    Get configuration for flask app.
-
-    If config is not provided, retrieve configuration values from etcd.
-    If there is an env var LOCAL_CFG_FILE pointing to a file with configuration
-    keys, load them as well.
-    """
-    if config is None:
-        config = {}
-    # Do not use config from etcd if a config dict is supplied
-    if not config:
-        # Init etcd config parsers
-        common_parser = EtcdConfigParser('/eduid/webapp/common/')
-        app_etcd_namespace = os.environ.get('EDUID_CONFIG_NS', '/eduid/webapp/{!s}/'.format(name))
-        app_parser = EtcdConfigParser(app_etcd_namespace)
-        # Load optional project wide settings
-        common_config = common_parser.read_configuration(silent=False)
-        if common_config:
-            config.update(common_config)
-        # Load optional app specific settings
-        app_config = app_parser.read_configuration(silent=False)
-        if app_config:
-            config.update(app_config)
-
-    # Load optional app specific secrets
-    secrets_path = os.environ.get('LOCAL_CFG_FILE')
-    if secrets_path is not None and os.path.exists(secrets_path):
-        spec = importlib.util.spec_from_file_location("secret.settings", secrets_path)
-        secret_settings_module = importlib.util.module_from_spec(spec)
-        for secret in dir(secret_settings_module):
-            if not secret.startswith('_'):
-                config[secret.lower()] = getattr(secret_settings_module, secret)
-    return config
-
-
-def init_status_views(app):
-    from eduid_common.api.views.status import status_views
-    app.register_blueprint(status_views)
-    # Register status paths for unauthorized requests
-    status_paths = ['/status/healthy', '/status/sanity-check']
-    app = no_authn_views(app, status_paths)
-    return app
 
 
 def eduid_init_app_no_db(name: str, config: dict,
