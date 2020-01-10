@@ -40,7 +40,6 @@ from urllib.parse import urlparse, urlunparse, urlencode, parse_qs
 from werkzeug.wrappers import Response
 from werkzeug.wsgi import get_current_url
 
-from eduid_common.api.app import EduIDApp
 from eduid_common.api.app import EduIDBaseApp
 from eduid_common.api.utils import urlappend
 from eduid_common.config.base import FlaskConfig
@@ -57,57 +56,37 @@ class AuthnBaseApp(EduIDBaseApp):
     """
     def __call__(self, environ: dict, start_response: Callable) -> Response:
         app = super(AuthnBaseApp, self)
-        return get_wsgi_response(app, self.config, environ, start_response)
-
-
-class AuthnApp(EduIDApp):
-    """
-    WSGI middleware that checks whether the request is authenticated,
-    and in case it isn't, redirects to the authn service.
-    """
-    def __call__(self, environ, start_response):
-        warnings.warn("Remove class once all apps extend AuthnBaseApp",
-                      DeprecationWarning)
-        app = super(AuthnApp, self)
-        return get_wsgi_response(app, self.config, environ, start_response)
-
-
-def get_wsgi_response(app, config, environ, start_response):
-    warnings.warn("This is deprecated together with AuthnApp, and once AuthnApp "
-                  "is removed, the code in this function should be moved to the "
-                  "__call__ method of AuthnBaseApp",
-                  DeprecationWarning)
-    next_url = get_current_url(environ)
-    next_path = list(urlparse(next_url))[2]
-    whitelist = config.no_authn_urls
-    no_context_logger.debug('No auth whitelist: {}'.format(whitelist))
-    for regex in whitelist:
-        m = re.match(regex, next_path)
-        if m is not None:
-            no_context_logger.debug('{} matched whitelist'.format(next_path))
-            return app.__call__(environ, start_response)
-
-    with app.request_context(environ):
-        try:
-            if session.get('user_eppn') and session.get('user_is_logged_in'):
+        next_url = get_current_url(environ)
+        next_path = list(urlparse(next_url))[2]
+        whitelist = self.config.no_authn_urls
+        no_context_logger.debug('No auth whitelist: {}'.format(whitelist))
+        for regex in whitelist:
+            m = re.match(regex, next_path)
+            if m is not None:
+                no_context_logger.debug('{} matched whitelist'.format(next_path))
                 return app.__call__(environ, start_response)
-        except NoSessionDataFoundException:
-            current_app.logger.info('Caught a NoSessionDataFoundException - forcing the user to authenticate')
-            del environ['HTTP_COOKIE']  # Force relogin
-            # If HTTP_COOKIE is not removed app.request_context(environ) below
-            # will try to look up the Session data in the backend
 
-    ts_url = urlappend(config.token_service_url, 'login')
+        with app.request_context(environ):
+            try:
+                if session.get('user_eppn') and session.get('user_is_logged_in'):
+                    return app.__call__(environ, start_response)
+            except NoSessionDataFoundException:
+                current_app.logger.info('Caught a NoSessionDataFoundException - forcing the user to authenticate')
+                del environ['HTTP_COOKIE']  # Force relogin
+                # If HTTP_COOKIE is not removed app.request_context(environ) below
+                # will try to look up the Session data in the backend
 
-    params = {'next': next_url}
+        ts_url = urlappend(self.config.token_service_url, 'login')
 
-    url_parts = list(urlparse(ts_url))
-    query = parse_qs(url_parts[4])
-    query.update(params)
+        params = {'next': next_url}
 
-    url_parts[4] = urlencode(query)
-    location = urlunparse(url_parts)
+        url_parts = list(urlparse(ts_url))
+        query = parse_qs(url_parts[4])
+        query.update(params)
 
-    headers = [ ('Location', location) ]
-    start_response('302 Found', headers)
-    return []
+        url_parts[4] = urlencode(query)
+        location = urlunparse(url_parts)
+
+        headers = [ ('Location', location) ]
+        start_response('302 Found', headers)
+        return []
