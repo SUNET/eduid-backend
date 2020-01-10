@@ -129,9 +129,7 @@ class InputsTests(EduidAPITestCase):
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        app = EduIDBaseApp('test.localhost')
-        app.request_class = Request
-        app.config = FlaskConfig(**config)
+        app = EduIDBaseApp('test.localhost', config)
         app.register_blueprint(test_views)
         app.central_userdb = UserDB(app.config.mongo_uri, 'eduid_am')
         app.session_interface = SessionFactory(app.config)

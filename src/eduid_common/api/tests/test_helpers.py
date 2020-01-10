@@ -43,12 +43,7 @@ class NinHelpersTest(EduidAPITestCase):
         super(NinHelpersTest, self).setUp()
 
     def load_app(self, config):
-        app = EduIDBaseApp('test_app')
-        app.config = FlaskConfig(**config)
-        app = init_relay(app, 'testing')
-        app.central_userdb = UserDB(app.config.mongo_uri, 'eduid_am')
-        app.private_userdb = UserDB(app.config.mongo_uri, 'test_proofing_userdb')
-        app.proofing_log = ProofingLog(app.config.mongo_uri, 'test_proofing_log')
+        app = EduIDBaseApp('test_app', config)
         return app
 
     def update_config(self, config):

@@ -82,8 +82,7 @@ class UnAuthnTests(EduidAPITestCase):
         Called from the parent class, so we can provide the appropiate flask
         app for this test case.
         """
-        return eduid_init_app('testing', config, app_class=EduIDBaseApp,
-                              config_class=FlaskConfig)
+        return EduIDBaseApp('testing', config)
 
     def update_config(self, config):
         config.update({
