@@ -41,7 +41,7 @@ from eduid_webapp.authn.settings.common import AuthnConfig
 
 class AuthnApp(EduIDBaseApp):
 
-    def __init__(self, name, config, **kwargs):
+    def __init__(self, name: str, config: dict, **kwargs):
 
         super(AuthnApp, self).__init__(name, AuthnConfig, config, **kwargs)
 
@@ -59,26 +59,14 @@ def get_current_app() -> AuthnApp:
 current_authn_app = get_current_app()
 
 
-def authn_init_app(name, config):
+def authn_init_app(name: str, config: dict) -> AuthnApp:
     """
     Create an instance of an authentication app.
 
-    First, it will load the configuration from the file system, according to
-    the logic in `eduid_common.config.parsers.INIConfigParser`, and update
-    it with any settings given in the `config` param.
-    
-    Then, the app instance will be updated with common stuff by `eduid_init_app`,
-    and finally all needed blueprints will be registered with it.
-    
     :param name: The name of the instance, it will affect the configuration file
                  loaded from the filesystem.
-    :type name: str
     :param config: any additional configuration settings. Specially useful
                    in test cases
-    :type config: dict
-
-    :return: the flask app
-    :rtype: flask.Flask
     """
     app = AuthnApp(name, config)
 

@@ -44,7 +44,7 @@ from eduid_userdb.personal_data import PersonalDataUserDB
 
 class PersonalDataApp(AuthnBaseApp):
 
-    def __init__(self, name, config, **kwargs):
+    def __init__(self, name: str, config: dict, **kwargs):
 
         super(PersonalDataApp, self).__init__(name, FlaskConfig, config, **kwargs)
 
@@ -59,25 +59,13 @@ class PersonalDataApp(AuthnBaseApp):
 current_pdata_app: PersonalDataApp = cast(PersonalDataApp, current_app)
 
 
-def pd_init_app(name, config):
+def pd_init_app(name: str, config: dict) -> PersonalDataApp:
     """
     Create an instance of an eduid personal data app.
 
-    First, it will load the configuration from personal_data.settings.common
-    then any settings given in the `config` param.
-
-    Then, the app instance will be updated with common stuff by `eduid_init_app`,
-    all needed blueprints will be registered with it,
-    and finally the app is configured with the necessary db connections.
-
     :param name: The name of the instance, it will affect the configuration loaded.
-    :type name: str
     :param config: any additional configuration settings. Specially useful
                    in test cases
-    :type config: dict
-
-    :return: the flask app
-    :rtype: flask.Flask
     """
 
     app = PersonalDataApp(name, config)

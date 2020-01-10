@@ -46,7 +46,7 @@ from eduid_webapp.phone.settings.common import PhoneConfig
 
 class PhoneApp(AuthnBaseApp):
 
-    def __init__(self, name, config, **kwargs):
+    def __init__(self, name: str, config: dict, **kwargs):
 
         super(PhoneApp, self).__init__(name, PhoneConfig, config, **kwargs)
 
@@ -64,25 +64,13 @@ class PhoneApp(AuthnBaseApp):
 current_phone_app: PhoneApp = cast(PhoneApp, current_app)
 
 
-def phone_init_app(name, config):
+def phone_init_app(name: str, config: dict) -> PhoneApp:
     """
     Create an instance of an eduid phone app.
 
-    First, it will load the configuration from phone.settings.common
-    then any settings given in the `config` param.
-
-    Then, the app instance will be updated with common stuff by `eduid_init_app`,
-    all needed blueprints will be registered with it,
-    and finally the app is configured with the necessary db connections.
-
     :param name: The name of the instance, it will affect the configuration loaded.
-    :type name: str
     :param config: any additional configuration settings. Specially useful
                    in test cases
-    :type config: dict
-
-    :return: the flask app
-    :rtype: flask.Flask
     """
 
     app = PhoneApp(name, config)

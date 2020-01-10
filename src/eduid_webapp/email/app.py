@@ -47,7 +47,7 @@ from eduid_webapp.email.settings.common import EmailConfig
 
 class EmailApp(AuthnBaseApp):
 
-    def __init__(self, name, config, **kwargs):
+    def __init__(self, name: str, config: dict, **kwargs):
 
         super(EmailApp, self).__init__(name, EmailConfig, config, **kwargs)
         self.config: EmailConfig = cast(EmailConfig, self.config)
@@ -67,25 +67,13 @@ class EmailApp(AuthnBaseApp):
 current_email_app: EmailApp = cast(EmailApp, current_app)
 
 
-def email_init_app(name, config):
+def email_init_app(name: str, config: dict) -> EmailApp:
     """
     Create an instance of an eduid email app.
 
-    First, it will load the configuration from email.settings.common
-    then any settings given in the `config` param.
-
-    Then, the app instance will be updated with common stuff by `eduid_init_app`,
-    all needed blueprints will be registered with it,
-    and finally the app is configured with the necessary db connections.
-
     :param name: The name of the instance, it will affect the configuration loaded.
-    :type name: str
     :param config: any additional configuration settings. Specially useful
                    in test cases
-    :type config: dict
-
-    :return: the flask app
-    :rtype: flask.Flask
     """
 
     app = EmailApp(name, config)

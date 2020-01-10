@@ -46,7 +46,7 @@ from eduid_webapp.signup.settings.common import SignupConfig
 
 class SignupApp(EduIDBaseApp):
 
-    def __init__(self, name, config, **kwargs):
+    def __init__(self, name: str, config: dict, **kwargs):
 
         super(SignupApp, self).__init__(name, SignupConfig, config, **kwargs)
 
@@ -64,28 +64,16 @@ class SignupApp(EduIDBaseApp):
 current_signup_app: SignupApp = cast(SignupApp, current_app)
 
 
-def signup_init_app(name, config):
+def signup_init_app(name: str, config: dict) -> SignupApp:
     """
     Create an instance of an eduid signup app.
 
-    First, it will load the configuration from signup.settings.common
-    then any settings given in the `config` param.
-
-    Then, the app instance will be updated with common stuff by `eduid_init_app`,
-    all needed blueprints will be registered with it,
-    and finally the app is configured with the necessary db connections.
-
-    Note that we use UnAuthnApp as the class for the Flask app,
+    Note that we use EduIDBaseApp as the class for the Flask app,
     since obviously the signup app is used unauthenticated.
 
     :param name: The name of the instance, it will affect the configuration loaded.
-    :type name: str
     :param config: any additional configuration settings. Specially useful
                    in test cases
-    :type config: dict
-
-    :return: the flask app
-    :rtype: flask.Flask
     """
 
     app = SignupApp(name, config)

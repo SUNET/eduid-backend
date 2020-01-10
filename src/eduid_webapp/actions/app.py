@@ -75,7 +75,7 @@ def _get_tous(app, version=None):
 
 class ActionsApp(EduIDBaseApp):
 
-    def __init__(self, name, config, **kwargs):
+    def __init__(self, name: str, config: dict, **kwargs):
 
         super(ActionsApp, self).__init__(name, ActionsConfig, config, **kwargs)
 
@@ -94,28 +94,16 @@ class ActionsApp(EduIDBaseApp):
 
 current_actions_app: ActionsApp = cast(ActionsApp, current_app)
 
-def actions_init_app(name, config):
+def actions_init_app(name: str, config: dict) -> ActionsApp:
     """
     Create an instance of an eduid actions app.
 
-    First, it will load the configuration from actions.settings.common
-    then any settings given in the `config` param.
-
-    Then, the app instance will be updated with common stuff by `eduid_init_app`,
-    all needed blueprints will be registered with it,
-    and finally the app is configured with the necessary db connections.
-
-    Note that we use UnAuthnApp as the class for the Flask app,
+    Note that we use EduIDBaseApp as the class for the Flask app,
     since the actions app is used unauthenticated.
 
     :param name: The name of the instance, it will affect the configuration loaded.
-    :type name: str
     :param config: any additional configuration settings. Specially useful
                    in test cases
-    :type config: dict
-
-    :return: the flask app
-    :rtype: flask.Flask
     """
 
     app = ActionsApp(name, config)

@@ -45,7 +45,7 @@ __author__ = 'lundberg'
 
 class LetterProofingApp(AuthnBaseApp):
 
-    def __init__(self, name, config, **kwargs):
+    def __init__(self, name: str, config: dict, **kwargs):
 
         super(LetterProofingApp, self).__init__(name, LetterProofingConfig,
                                                 config, **kwargs)
@@ -73,13 +73,11 @@ def get_current_app() -> LetterProofingApp:
 current_letterp_app = get_current_app()
 
 
-def init_letter_proofing_app(name, config=None) -> LetterProofingApp:
+def init_letter_proofing_app(name: str, config: dict) -> LetterProofingApp:
     """
     :param name: The name of the instance, it will affect the configuration loaded.
     :param config: any additional configuration settings. Specially useful
                    in test cases
-
-    :return: the flask app
     """
     app = LetterProofingApp(name, config)
 

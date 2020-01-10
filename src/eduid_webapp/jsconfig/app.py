@@ -42,7 +42,7 @@ from eduid_webapp.jsconfig.settings.common import JSConfigConfig
 
 class JSConfigApp(EduIDBaseApp):
 
-    def __init__(self, name, config, **kwargs):
+    def __init__(self, name: str, config: dict, **kwargs):
 
         kwargs['init_central_userdb'] = False
         kwargs['host_matching'] = True
@@ -72,11 +72,9 @@ def jsconfig_init_app(name: str, config: dict) -> JSConfigApp:
     """
     Create an instance of an eduid jsconfig data app.
 
-    First, it will load the configuration from jsconfig.settings.common
-    then any settings given in the `config` param.
-
-    Then, the app instance will be updated with common stuff by `eduid_init_app`,
-    all needed blueprints will be registered with it.
+    :param name: The name of the instance, it will affect the configuration loaded.
+    :param config: any additional configuration settings. Specially useful
+                   in test cases
     """
 
     app = JSConfigApp(name, config)

@@ -47,7 +47,7 @@ __author__ = 'lundberg'
 
 class MobileProofingApp(AuthnBaseApp):
 
-    def __init__(self, name, config, **kwargs):
+    def __init__(self, name: str, config: dict, **kwargs):
 
         super(MobileProofingApp, self).__init__(name, MobileProofingConfig,
                                                 config, **kwargs)
@@ -69,17 +69,11 @@ class MobileProofingApp(AuthnBaseApp):
 current_mobilep_app: MobileProofingApp = cast(MobileProofingApp, current_app)
 
 
-def init_lookup_mobile_proofing_app(name, config=None):
+def init_lookup_mobile_proofing_app(name: str, config: dict) -> MobileProofingApp:
     """
     :param name: The name of the instance, it will affect the configuration loaded.
     :param config: any additional configuration settings. Specially useful
                    in test cases
-
-    :type name: str
-    :type config: dict
-
-    :return: the flask app
-    :rtype: flask.Flask
     """
 
     app = MobileProofingApp(name, config)

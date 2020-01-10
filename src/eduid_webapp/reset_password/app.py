@@ -50,7 +50,7 @@ __author__ = 'eperez'
 
 class ResetPasswordApp(AuthnBaseApp):
 
-    def __init__(self, name, config, **kwargs):
+    def __init__(self, name: str, config: dict, **kwargs):
 
         super(ResetPasswordApp, self).__init__(name, ResetPasswordConfig, config, **kwargs)
 
@@ -87,7 +87,6 @@ def init_reset_password_app(name: str, config: dict) -> ResetPasswordApp:
     :param config: any additional configuration settings. Specially useful
                    in test cases
 
-    :return: the flask app
     """
     app = ResetPasswordApp(name, config)
 

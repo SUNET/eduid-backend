@@ -19,7 +19,7 @@ __author__ = 'lundberg'
 
 class EidasApp(AuthnBaseApp):
 
-    def __init__(self, name, config, **kwargs):
+    def __init__(self, name: str, config: dict, **kwargs):
 
         # Load acs actions on app init
         from . import acs_actions
@@ -46,14 +46,13 @@ class EidasApp(AuthnBaseApp):
         self = msg.init_relay(self)
 
 
-def init_eidas_app(name: str, config: Optional[Dict] = None):
+def init_eidas_app(name: str, config: dict) -> EidasApp:
     """
+    Create an instance of an eidas app.
+
     :param name: The name of the instance, it will affect the configuration loaded.
     :param config: any additional configuration settings. Specially useful
                    in test cases
-
-    :return: the flask app
-    :rtype: flask.Flask
     """
     app = EidasApp(name, config)
 

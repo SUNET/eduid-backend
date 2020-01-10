@@ -48,7 +48,7 @@ __author__ = 'lundberg'
 
 class OrcidApp(AuthnBaseApp):
 
-    def __init__(self, name, config, **kwargs):
+    def __init__(self, name: str, config: dict, **kwargs):
 
         super(OrcidApp, self).__init__(name, OrcidConfig, config, **kwargs)
 
@@ -71,17 +71,11 @@ class OrcidApp(AuthnBaseApp):
 current_orcid_app: OrcidApp = cast(OrcidApp, current_app)
 
 
-def init_orcid_app(name, config=None):
+def init_orcid_app(name: str, config: dict) -> OrcidApp:
     """
     :param name: The name of the instance, it will affect the configuration loaded.
     :param config: any additional configuration settings. Specially useful
                    in test cases
-
-    :type name: str
-    :type config: dict
-
-    :return: the flask app
-    :rtype: flask.Flask
     """
 
     app = OrcidApp(name, config)

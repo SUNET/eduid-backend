@@ -47,7 +47,7 @@ __author__ = 'lundberg'
 
 class OIDCProofingApp(AuthnBaseApp):
 
-    def __init__(self, name, config, **kwargs):
+    def __init__(self, name: str, config: dict, **kwargs):
 
         super(OIDCProofingApp, self).__init__(name, OIDCProofingConfig, config, **kwargs)
 
@@ -77,25 +77,13 @@ class OIDCProofingApp(AuthnBaseApp):
 current_oidcp_app: OIDCProofingApp = cast(OIDCProofingApp, current_app)
 
 
-def init_oidc_proofing_app(name, config):
+def init_oidc_proofing_app(name: str, config: dict) -> OIDCProofingApp:
     """
     Create an instance of an oidc proofing app.
-
-    First, it will load the configuration from oidc_proofing.settings.common then any settings
-    given in the `config` param.
-
-    Then, the app instance will be updated with common stuff by `eduid_init_app`,
-    and finally all needed blueprints will be registered with it.
 
     :param name: The name of the instance, it will affect the configuration loaded.
     :param config: any additional configuration settings. Specially useful
                    in test cases
-
-    :type name: str
-    :type config: dict
-
-    :return: the flask app
-    :rtype: flask.Flask
     """
 
     app = OIDCProofingApp(name, config)
