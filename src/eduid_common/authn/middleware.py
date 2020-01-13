@@ -55,7 +55,6 @@ class AuthnBaseApp(EduIDBaseApp):
     and in case it isn't, redirects to the authn service.
     """
     def __call__(self, environ: dict, start_response: Callable) -> Response:
-        app = super(AuthnBaseApp, self)
         next_url = get_current_url(environ)
         next_path = list(urlparse(next_url))[2]
         whitelist = self.config.no_authn_urls
@@ -64,16 +63,16 @@ class AuthnBaseApp(EduIDBaseApp):
             m = re.match(regex, next_path)
             if m is not None:
                 no_context_logger.debug('{} matched whitelist'.format(next_path))
-                return app.__call__(environ, start_response)
+                return super(AuthnBaseApp, self).__call__(environ, start_response)
 
-        with app.request_context(environ):
+        with self.request_context(environ):
             try:
                 if session.get('user_eppn') and session.get('user_is_logged_in'):
-                    return app.__call__(environ, start_response)
+                    return super(AuthnBaseApp, self).__call__(environ, start_response)
             except NoSessionDataFoundException:
                 current_app.logger.info('Caught a NoSessionDataFoundException - forcing the user to authenticate')
                 del environ['HTTP_COOKIE']  # Force relogin
-                # If HTTP_COOKIE is not removed app.request_context(environ) below
+                # If HTTP_COOKIE is not removed self.request_context(environ) below
                 # will try to look up the Session data in the backend
 
         ts_url = urlappend(self.config.token_service_url, 'login')
