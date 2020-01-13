@@ -34,7 +34,7 @@ from contextlib import contextmanager
 
 from werkzeug.exceptions import NotFound
 
-from eduid_common.api.app import EduIDBaseApp
+from eduid_common.authn.middleware import AuthnBaseApp
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.config.base import FlaskConfig
 
@@ -46,7 +46,7 @@ class AuthnTests(EduidAPITestCase):
         Called from the parent class, so we can provide the appropiate flask
         app for this test case.
         """
-        return EduIDBaseApp('testing', FlaskConfig, config)
+        return AuthnBaseApp('testing', FlaskConfig, config)
 
     def update_config(self, config):
         config.update({
@@ -81,7 +81,7 @@ class UnAuthnTests(EduidAPITestCase):
         Called from the parent class, so we can provide the appropiate flask
         app for this test case.
         """
-        return EduIDBaseApp('testing', FlaskConfig, config)
+        return AuthnBaseApp('testing', FlaskConfig, config)
 
     def update_config(self, config):
         config.update({

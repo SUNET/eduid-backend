@@ -4,7 +4,7 @@ from typing import Optional, List, Dict, Any
 
 from flask import request
 
-from eduid_common.api.app import EduIDBaseApp
+from eduid_common.authn.middleware import AuthnBaseApp
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.authn.utils import no_authn_views
 from eduid_common.config.base import FlaskConfig
@@ -15,7 +15,7 @@ __author__ = 'lundberg'
 
 
 def session_init_app(name, config):
-    app = EduIDApp(name, FaskConfig, config, init_central_userdb=False)
+    app = AuthnBaseApp(name, FlaskConfig, config, init_central_userdb=False)
     app = no_authn_views(app, ['/unauthenticated'])
 
     @app.route('/authenticated')
