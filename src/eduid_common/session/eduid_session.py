@@ -5,7 +5,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from eduid_common.api.app import EduIDApp
+    from eduid_common.api.app import EduIDBaseApp
 
 import os
 import binascii
@@ -33,7 +33,7 @@ class EduidSession(SessionMixin, MutableMapping):
     to store the session data in redis.
     """
 
-    def __init__(self, app: EduIDApp, base_session: RedisEncryptedSession, new: bool = False):
+    def __init__(self, app: EduIDBaseApp, base_session: RedisEncryptedSession, new: bool = False):
         """
         :param app: the flask app
         :param base_session: The underlying session object

@@ -37,7 +37,7 @@ import importlib.util
 import os
 import warnings
 from dataclasses import fields, asdict
-from typing import Type, Optional, Mapping
+from typing import cast, Type, Optional, Mapping
 
 from eduid_userdb import UserDB
 from flask import Flask
@@ -62,16 +62,31 @@ if DEBUG:
     stderr.writelines('----- WARNING! EDUID_APP_DEBUG is enabled -----\n')
 
 
-class EduIDApp(Flask):
+class EduIDBaseApp(Flask):
+    """
+    Base class for eduID apps, initializing common features and facilities.
+    """
 
-    def __init__(self, name: str, config: Mapping = None, init_central_userdb: bool = True, **kwargs):
-        super(EduIDApp, self).__init__(name, **kwargs)
-        if config is None:
-            warnings.warn("config argument should be set to an app class config object",
-                          DeprecationWarning)
-            return
-        filtered_config = FlaskConfig.filter_config(config)
-        self.config = FlaskConfig(**filtered_config)
+    def __init__(self, name: str,
+                 config_class: Type[FlaskConfig],
+                 config: dict,
+                 init_central_userdb: bool = True,
+                 **kwargs):
+        """
+        :param name: name of the app
+        :param config_class: the dataclass with configuration settings
+        :param config: a dict with configuration settings, used in tests to
+                       override defaults.
+        :param init_central_userdb: whether the app requires access to the
+                                    central user db.
+        """
+        self.config: FlaskConfig  # type: ignore
+
+        super(EduIDBaseApp, self).__init__(name, **kwargs)
+
+        final_config = get_app_config(name, config)
+        filtered_config = config_class.filter_config(final_config)
+        self.config = config_class(**filtered_config)
 
         if DEBUG:
             init_app_debug(self)
@@ -86,7 +101,8 @@ class EduIDApp(Flask):
         self.url_map.strict_slashes = False
 
         # Set app url prefix to APPLICATION_ROOT
-        self.wsgi_app = PrefixMiddleware(self.wsgi_app, prefix=self.config.application_root,  # type: ignore
+        self.wsgi_app = PrefixMiddleware(self.wsgi_app,  # type: ignore
+                                         prefix=self.config.application_root,
                                          server_name=self.config.server_name)
 
         # Initialize shared features
@@ -103,17 +119,8 @@ class EduIDApp(Flask):
         # Set up generic health check views
         init_status_views(self)
 
-    def init_config(self, config_class, config):
-        warnings.warn("init_config is deprecated. The configuration is now loaded when instantiating the class.",
-                      DeprecationWarning)
-        self.config: FlaskConfig = config_class(**config)
 
-
-# Avoid circular dependency
-from eduid_common.authn.middleware import AuthnApp as AuthnAppMiddleware  # TODO: Should maybe be a mixin?
-
-
-def get_app_config(name: str, config: Optional[dict] = None):
+def get_app_config(name: str, config: Optional[dict] = None) -> dict:
     """
     Get configuration for flask app.
 
@@ -149,13 +156,72 @@ def get_app_config(name: str, config: Optional[dict] = None):
     return config
 
 
-def init_status_views(app):
+def init_status_views(app: EduIDBaseApp) -> EduIDBaseApp:
+    """
+    Register status views for any app, and configure them as public.
+    """
     from eduid_common.api.views.status import status_views
     app.register_blueprint(status_views)
     # Register status paths for unauthorized requests
     status_paths = ['/status/healthy', '/status/sanity-check']
     app = no_authn_views(app, status_paths)
     return app
+
+# XXX All the code below is deprecated and shold be removed as soon as the apps
+# in eduid-webapp extend from EduIDBaseApp rather than EduIDApp
+
+
+class EduIDApp(Flask):
+
+    def __init__(self, name: str, config: Mapping = None, init_central_userdb: bool = True, **kwargs):
+        warnings.warn("Remove class once all apps extend EduIDBaseApp",
+                      DeprecationWarning)
+        super(EduIDApp, self).__init__(name, **kwargs)
+        if config is None:
+            warnings.warn("config argument should be set to an app class config object",
+                          DeprecationWarning)
+            return
+        filtered_config = FlaskConfig.filter_config(config)
+        self.config = FlaskConfig(**filtered_config)
+
+        if DEBUG:
+            init_app_debug(self)
+
+        # Check that SECRET_KEY is set
+        if not self.config.secret_key:
+            raise BadConfiguration('SECRET_KEY is missing')
+
+        # App setup
+        self.wsgi_app = ProxyFix(self.wsgi_app)  # type: ignore
+        self.request_class = Request
+        self.url_map.strict_slashes = False
+
+        # Set app url prefix to APPLICATION_ROOT
+        self.wsgi_app = PrefixMiddleware(self.wsgi_app, prefix=self.config.application_root,  # type: ignore
+                                         server_name=self.config.server_name)
+
+        # Initialize shared features
+        init_logging(self)  # type: ignore
+        init_exception_handlers(self)
+        init_sentry(self)
+        init_template_functions(self)
+        init_app_stats(self)
+        self.session_interface = SessionFactory(asdict(self.config))
+
+        if init_central_userdb:
+            self.central_userdb = UserDB(self.config.mongo_uri, 'eduid_am')
+
+        # Set up generic health check views
+        init_status_views(self)  # type: ignore
+
+    def init_config(self, config_class, config):
+        warnings.warn("init_config is deprecated. The configuration is now loaded when instantiating the class.",
+                      DeprecationWarning)
+        self.config: FlaskConfig = config_class(**config)
+
+
+# Avoid circular dependency
+from eduid_common.authn.middleware import AuthnApp as AuthnAppMiddleware  # TODO: Should maybe be a mixin?
 
 
 def eduid_init_app_no_db(name: str, config: dict,
@@ -201,7 +267,7 @@ def eduid_init_app_no_db(name: str, config: dict,
     app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix=app.config.application_root,  # type: ignore
                                     server_name=app.config.server_name)
     # Initialize shared features
-    app = init_logging(app)
+    app = init_logging(app)  # type: ignore
     app = init_exception_handlers(app)
     app = init_sentry(app)
     app = init_template_functions(app)
@@ -219,5 +285,5 @@ def eduid_init_app(name: str, config: dict,
     app = eduid_init_app_no_db(name, config=config, config_class=config_class, app_class=app_class)
     app.central_userdb = UserDB(app.config.mongo_uri, 'eduid_am')
     # Set up generic health check views
-    app = init_status_views(app)
+    app = init_status_views(app)  # type: ignore
     return app
