@@ -4,9 +4,10 @@ from typing import Optional, List, Dict, Any
 
 from flask import request
 
-from eduid_common.api.app import eduid_init_app_no_db
+from eduid_common.api.app import EduIDBaseApp
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.authn.utils import no_authn_views
+from eduid_common.config.base import FlaskConfig
 from eduid_common.session import session
 from eduid_common.session.namespaces import LoginApplication
 
@@ -14,7 +15,7 @@ __author__ = 'lundberg'
 
 
 def session_init_app(name, config):
-    app = eduid_init_app_no_db(name, config)
+    app = EduIDApp(name, FaskConfig, config, init_central_userdb=False)
     app = no_authn_views(app, ['/unauthenticated'])
 
     @app.route('/authenticated')
