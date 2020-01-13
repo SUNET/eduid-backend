@@ -41,7 +41,7 @@ from flask import request
 from marshmallow import fields, ValidationError
 from werkzeug.http import dump_cookie
 
-from eduid_common.api.app import EduIDApp
+from eduid_common.api.app import EduIDBaseApp
 from eduid_common.api.decorators import UnmarshalWith
 from eduid_common.api.request import Request
 from eduid_common.api.schemas.base import EduidSchema
@@ -129,9 +129,7 @@ class InputsTests(EduidAPITestCase):
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        app = EduIDApp('test.localhost')
-        app.request_class = Request
-        app.config = FlaskConfig(**config)
+        app = EduIDBaseApp('test.localhost', FlaskConfig, config)
         app.register_blueprint(test_views)
         app.central_userdb = UserDB(app.config.mongo_uri, 'eduid_am')
         app.session_interface = SessionFactory(app.config)

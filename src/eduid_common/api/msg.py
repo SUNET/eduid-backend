@@ -5,7 +5,7 @@ from typing import Optional, List
 from flask import current_app
 
 import eduid_msg
-from eduid_common.api.app import EduIDApp
+from eduid_common.api.app import EduIDBaseApp
 from eduid_common.api.exceptions import MsgTaskFailed
 from eduid_common.config.base import CeleryConfig
 
@@ -24,7 +24,7 @@ LANGUAGE_MAPPING = {
 }
 
 
-def init_relay(app: EduIDApp) -> EduIDApp:
+def init_relay(app: EduIDBaseApp) -> EduIDBaseApp:
     app.msg_relay = MsgRelay(app.config.celery_config)
     return app
 
