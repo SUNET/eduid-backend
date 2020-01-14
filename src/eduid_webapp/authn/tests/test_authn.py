@@ -47,6 +47,7 @@ from saml2.s_utils import deflate_and_base64_encode
 from eduid_common.session import session
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.authn.cache import OutstandingQueriesCache
+from eduid_common.authn.middleware import AuthnBaseApp
 from eduid_common.authn.utils import get_location, no_authn_views
 from eduid_common.authn.eduid_saml2 import get_authn_request
 from eduid_common.authn.tests.responses import (auth_response,
@@ -54,7 +55,7 @@ from eduid_common.authn.tests.responses import (auth_response,
                                                 logout_request)
 from eduid_webapp.authn.settings.common import AuthnConfig
 from eduid_webapp.authn.app import authn_init_app
-from eduid_common.api.app import eduid_init_app
+from eduid_webapp.authn.app import AuthnApp
 
 from six.moves.urllib_parse import quote_plus
 
@@ -347,7 +348,7 @@ class UnAuthnAPITestCase(EduidAPITestCase):
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        return eduid_init_app('testing', config, config_class=AuthnConfig)
+        return AuthnBaseApp('testing', AuthnConfig, config)
 
     def test_no_cookie(self):
         with self.app.test_client() as c:
@@ -376,6 +377,10 @@ class NoAuthnAPITestCase(EduidAPITestCase):
         def test():
             return 'OK'
 
+        @test_views.route('/test2')
+        def test2():
+            return 'OK'
+
         @test_views.route('/test3')
         def test3():
             return 'OK'
@@ -400,7 +405,7 @@ class NoAuthnAPITestCase(EduidAPITestCase):
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        return eduid_init_app('testing', config, config_class=AuthnConfig)
+        return AuthnBaseApp('testing', AuthnConfig, config)
 
     def test_no_authn(self):
         with self.app.test_client() as c:
