@@ -36,7 +36,6 @@ from typing import Optional
 
 import bcrypt
 from flask import url_for
-from flask import session
 from flask import render_template
 from flask_babel import gettext as _
 
@@ -56,6 +55,7 @@ from eduid_common.api.utils import get_short_hash
 from eduid_common.api.helpers import send_mail
 from eduid_common.authn.utils import generate_password
 from eduid_common.authn.vccs import reset_password
+from eduid_common.session import session
 from eduid_webapp.reset_password.app import current_reset_password_app as current_app
 
 
