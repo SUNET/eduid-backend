@@ -11,7 +11,7 @@ marshmallow>=2.15.1,==2.*
 Babel>=2.6.0
 flask-babel>=0.11.2
 oic>=0.8.3
-pysaml2>=4.9.0,==4.*
+pysaml2>=5.0.0,==5.*
 zxcvbn>=4.4.27,==4.*
 bleach>=2.1.4
 html5lib>=1.0.1
