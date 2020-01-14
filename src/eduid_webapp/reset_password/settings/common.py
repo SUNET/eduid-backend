@@ -57,3 +57,9 @@ class ResetPasswordConfig(FlaskConfig):
     # For number of rounds, it is recommended that a measurement is made to achieve
     # a cost of at least 100 ms on current hardware.
     password_generation_rounds: int = 2 ** 5
+    # timeout for phone verification token, in hours
+    phone_verification_timeout: int = 24
+    # timeout for reauthentication prior to changing password
+    chpass_timeout: int = 600
+    # VCCS URL
+    vccs_url: str = ''
