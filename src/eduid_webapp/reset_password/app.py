@@ -60,7 +60,7 @@ class ResetPasswordApp(AuthnBaseApp):
         self.register_blueprint(reset_password_views)
 
         # Register view path that should not be authorized
-        self = no_authn_views(self, ['/reset.*'])
+        self = no_authn_views(self, [r'^(?!/chpass).*$'])
 
         # Init celery
         msg.init_relay(self)

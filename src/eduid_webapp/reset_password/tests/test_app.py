@@ -81,7 +81,7 @@ class ResetPasswordTests(EduidAPITestCase):
             'email_code_timeout': 7200,
             'phone_code_timeout': 600,
             'password_entropy': 25,
-            'no_authn_urls': ["^/"]
+            'no_authn_urls': [r'^(?!/chpass).*$']
         })
         return ResetPasswordConfig(**config)
 
@@ -716,7 +716,7 @@ class ChangePasswordTests(EduidAPITestCase):
 
             passwd = json.loads(response2.data)
             self.assertEqual(passwd['type'],
-                             "GET_CHANGE_PASSWORD_SUGGESTED_PASSWORD_SUCCESS")
+                             "GET_CHANGE_PASSWORD_CHPASS_SUGGESTED_PASSWORD_SUCCESS")
 
     def test_change_passwd_no_data(self):
         response = self.browser.post('/change-password')
@@ -848,7 +848,7 @@ class ChangePasswordTests(EduidAPITestCase):
                                 response2 = client.get('/suggested-password')
                                 passwd = json.loads(response2.data)
                                 self.assertEqual(passwd['type'],
-                                                 'GET_CHANGE_PASSWORD_SUGGESTED_PASSWORD_SUCCESS')
+                                                 'GET_CHANGE_PASSWORD_CHPASS_SUGGESTED_PASSWORD_SUCCESS')
                                 password = passwd['payload']['suggested_password']
                                 sess.reset_password.generated_password_hash = hash_password(password)
                                 sess.persist()
@@ -881,10 +881,10 @@ class ChangePasswordTests(EduidAPITestCase):
                         with patch('eduid_common.authn.vccs.vccs_client.VCCSClient.revoke_credentials', return_value=True):
                             with patch('eduid_common.authn.vccs.vccs_client.VCCSClient.authenticate', return_value=True):
                                 sess['reauthn-for-chpass'] = int(time.time())
-                                response2 = client.get('/suggested-password')
+                                response2 = client.get('/chpass/suggested-password')
                                 passwd = json.loads(response2.data)
                                 self.assertEqual(passwd['type'],
-                                                 'GET_CHANGE_PASSWORD_SUGGESTED_PASSWORD_SUCCESS')
+                                                 'GET_CHANGE_PASSWORD_CHPASS_SUGGESTED_PASSWORD_SUCCESS')
                                 password = passwd['payload']['suggested_password']
                                 sess.reset_password.generated_password_hash = hash_password(password)
                                 sess.persist()
@@ -893,7 +893,7 @@ class ChangePasswordTests(EduidAPITestCase):
                                         'new_password': 'another-password',
                                         'old_password': '5678'
                                         }
-                                response3 = client.post('/change-password', data=json.dumps(data),
+                                response3 = client.post('/chpass/change-password', data=json.dumps(data),
                                                         content_type=self.content_type_json)
 
         self.assertEqual(response3.status_code, 200)
@@ -917,10 +917,10 @@ class ChangePasswordTests(EduidAPITestCase):
                         with patch('eduid_common.authn.vccs.vccs_client.VCCSClient.revoke_credentials', return_value=True):
                             with patch('eduid_common.authn.vccs.vccs_client.VCCSClient.authenticate', return_value=True):
                                 sess['reauthn-for-chpass'] = int(time.time())
-                                response2 = client.get('/suggested-password')
+                                response2 = client.get('/chpass/suggested-password')
                                 passwd = json.loads(response2.data)
                                 self.assertEqual(passwd['type'],
-                                                 'GET_CHANGE_PASSWORD_SUGGESTED_PASSWORD_SUCCESS')
+                                                 'GET_CHANGE_PASSWORD_CHPASS_SUGGESTED_PASSWORD_SUCCESS')
                                 password = passwd['payload']['suggested_password']
                                 sess.reset_password.generated_password_hash = hash_password(password)
                                 sess.persist()
@@ -929,7 +929,7 @@ class ChangePasswordTests(EduidAPITestCase):
                                         'new_password': password,
                                         'old_password': '5678'
                                         }
-                                response3 = client.post('/change-password', data=json.dumps(data),
+                                response3 = client.post('/chpass/change-password', data=json.dumps(data),
                                                         content_type=self.content_type_json)
 
         self.assertEqual(response3.status_code, 200)
@@ -953,10 +953,10 @@ class ChangePasswordTests(EduidAPITestCase):
                         with patch('eduid_common.authn.vccs.vccs_client.VCCSClient.revoke_credentials', return_value=True):
                             with patch('eduid_common.authn.vccs.vccs_client.VCCSClient.authenticate', return_value=False):
                                 sess['reauthn-for-chpass'] = int(time.time())
-                                response2 = client.get('/suggested-password')
+                                response2 = client.get('/chpass/suggested-password')
                                 passwd = json.loads(response2.data)
                                 self.assertEqual(passwd['type'],
-                                                 'GET_CHANGE_PASSWORD_SUGGESTED_PASSWORD_SUCCESS')
+                                                 'GET_CHANGE_PASSWORD_CHPASS_SUGGESTED_PASSWORD_SUCCESS')
                                 password = passwd['payload']['suggested_password']
                                 sess.reset_password.generated_password_hash = hash_password(password)
                                 sess.persist()
@@ -965,7 +965,7 @@ class ChangePasswordTests(EduidAPITestCase):
                                         'new_password': password,
                                         'old_password': '5678'
                                         }
-                                response3 = client.post('/change-password', data=json.dumps(data),
+                                response3 = client.post('/chpass/change-password', data=json.dumps(data),
                                                         content_type=self.content_type_json)
 
         self.assertEqual(response3.status_code, 200)

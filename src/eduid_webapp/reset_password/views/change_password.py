@@ -40,7 +40,7 @@ from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
 from eduid_common.api.utils import save_and_sync_user
 from eduid_common.authn.vccs import add_credentials
 from eduid_common.session import session
-from eduid_common.api.schemas.password import CredentialList
+from eduid_webapp.security.schemas import CredentialList
 from eduid_webapp.reset_password.helpers import compile_credential_list
 from eduid_webapp.reset_password.helpers import generate_suggested_password
 from eduid_webapp.reset_password.helpers import hash_password, check_password
@@ -51,7 +51,7 @@ from eduid_webapp.reset_password.schemas import SuggestedPassword, SuggestedPass
 from eduid_webapp.reset_password.helpers import error_message
 from eduid_webapp.reset_password.app import current_reset_password_app as current_app
 
-change_password_views = Blueprint('change_password', __name__, url_prefix='')
+change_password_views = Blueprint('change_password', __name__, url_prefix='/chpass')
 
 
 @change_password_views.route('/suggested-password', methods=['GET'])
