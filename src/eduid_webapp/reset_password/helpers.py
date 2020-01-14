@@ -226,10 +226,12 @@ def hash_password(password: str) -> str:
     return bcrypt.hashpw(password, bcrypt.gensalt())
 
 
-def check_password(password: str, hashed: str) -> bool:
+def check_password(password: str, hashed: Optional[str]) -> bool:
     """
     Check that the provided password corresponds to the provided hash
     """
+    if hashed is None:
+        return False
     password = ''.join(password.split())
     return bcrypt.checkpw(password, hashed)
 
