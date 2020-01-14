@@ -31,13 +31,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import math
-import os
-from base64 import b64encode, b64decode
 from enum import Enum, unique
-from typing import Union, Optional, List
+from typing import Optional
 
 import bcrypt
 from flask import url_for
+from flask import session
 from flask import render_template
 from flask_babel import gettext as _
 
@@ -106,11 +105,11 @@ class ResetPwMsg(Enum):
     out_of_sync = 'user-out-of-sync'
 
 
-
 class BadCode(Exception):
     """
     Exception to signal that the password reset code received is not valid.
     """
+
     def __init__(self, msg: ResetPwMsg):
         self.msg = msg
 
