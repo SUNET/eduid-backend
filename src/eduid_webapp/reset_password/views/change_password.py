@@ -30,10 +30,6 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-
-from __future__ import absolute_import
-
-from base64 import b64encode
 from datetime import datetime
 
 from flask import Blueprint
@@ -55,7 +51,7 @@ from eduid_webapp.reset_password.schemas import SuggestedPassword, SuggestedPass
 from eduid_webapp.reset_password.helpers import error_message
 from eduid_webapp.reset_password.app import current_reset_password_app as current_app
 
-change_password_views = Blueprint('change_password', __name__, url_prefix='', template_folder='templates')
+change_password_views = Blueprint('change_password', __name__, url_prefix='')
 
 
 @change_password_views.route('/suggested-password', methods=['GET'])
