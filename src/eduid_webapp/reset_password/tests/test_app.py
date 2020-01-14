@@ -712,7 +712,7 @@ class ChangePasswordTests(EduidAPITestCase):
         self.assertEqual(response.status_code, 302)  # Redirect to token service
         with self.session_cookie(self.browser, eppn) as client:
 
-            response2 = client.get('/suggested-password')
+            response2 = client.get('/chpass/suggested-password')
 
             passwd = json.loads(response2.data)
             self.assertEqual(passwd['type'],
@@ -724,11 +724,11 @@ class ChangePasswordTests(EduidAPITestCase):
 
         eppn = self.test_user_data['eduPersonPrincipalName']
         with self.session_cookie(self.browser, eppn) as client:
-            response2 = client.post('/change-password')
+            response2 = client.post('/chpass/change-password')
 
             sec_data = json.loads(response2.data)
             self.assertEqual(sec_data['type'],
-                             "POST_CHANGE_PASSWORD_CHANGE_PASSWORD_FAIL")
+                             "POST_CHANGE_PASSWORD_CHPASS_CHANGE_PASSWORD_FAIL")
 
     def test_change_passwd_no_reauthn(self):
         eppn = self.test_user_data['eduPersonPrincipalName']
@@ -740,14 +740,14 @@ class ChangePasswordTests(EduidAPITestCase):
                             'new_password': '1234',
                             'old_password': '5678'
                             }
-                response2 = client.post('/change-password', data=json.dumps(data),
+                response2 = client.post('/chpass/change-password', data=json.dumps(data),
                                         content_type=self.content_type_json)
 
                 self.assertEqual(response2.status_code, 200)
 
                 sec_data = json.loads(response2.data)
                 self.assertEqual(sec_data['type'],
-                                 "POST_CHANGE_PASSWORD_CHANGE_PASSWORD_FAIL")
+                                 "POST_CHANGE_PASSWORD_CHPASS_CHANGE_PASSWORD_FAIL")
 
     def test_change_passwd_stale(self):
         eppn = self.test_user_data['eduPersonPrincipalName']
@@ -760,14 +760,14 @@ class ChangePasswordTests(EduidAPITestCase):
                             'new_password': '1234',
                             'old_password': '5678'
                             }
-                response2 = client.post('/change-password', data=json.dumps(data),
+                response2 = client.post('/chpass/change-password', data=json.dumps(data),
                                         content_type=self.content_type_json)
 
                 self.assertEqual(response2.status_code, 200)
 
                 sec_data = json.loads(response2.data)
                 self.assertEqual(sec_data['type'],
-                                 "POST_CHANGE_PASSWORD_CHANGE_PASSWORD_FAIL")
+                                 "POST_CHANGE_PASSWORD_CHPASS_CHANGE_PASSWORD_FAIL")
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def test_change_passwd_no_csrf(self, mock_request_user_sync):
@@ -775,21 +775,21 @@ class ChangePasswordTests(EduidAPITestCase):
         eppn = self.test_user_data['eduPersonPrincipalName']
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction() as sess:
-                with patch('eduid_webapp.reset_password.views.change_password.add_credentials',
+                with patch('eduid_webapp.reset_password.views.change_password.change_password',
                            return_value=True):
                     sess['reauthn-for-chpass'] = int(time.time())
                     data = {
                             'new_password': '1234',
                             'old_password': '5678'
                             }
-                    response2 = client.post('/change-password', data=json.dumps(data),
+                    response2 = client.post('/chpass/change-password', data=json.dumps(data),
                                             content_type=self.content_type_json)
 
                     self.assertEqual(response2.status_code, 200)
 
                     sec_data = json.loads(response2.data)
                     self.assertEqual(sec_data['type'],
-                                     "POST_CHANGE_PASSWORD_CHANGE_PASSWORD_FAIL")
+                                     "POST_CHANGE_PASSWORD_CHPASS_CHANGE_PASSWORD_FAIL")
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def test_change_passwd_wrong_csrf(self, mock_request_user_sync):
@@ -797,19 +797,19 @@ class ChangePasswordTests(EduidAPITestCase):
         eppn = self.test_user_data['eduPersonPrincipalName']
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction() as sess:
-                with patch('eduid_webapp.reset_password.views.change_password.add_credentials', return_value=True):
+                with patch('eduid_webapp.reset_password.views.change_password.change_password', return_value=True):
                     sess['reauthn-for-chpass'] = int(time.time())
                     data = {
                             'csrf_token': '0000',
                             'new_password': '1234',
                             'old_password': '5678'
                             }
-                    response2 = client.post('/change-password', data=json.dumps(data),
+                    response2 = client.post('/chpass/change-password', data=json.dumps(data),
                                             content_type=self.content_type_json)
 
                     sec_data = json.loads(response2.data)
                     self.assertEqual(sec_data['type'],
-                                     "POST_CHANGE_PASSWORD_CHANGE_PASSWORD_FAIL")
+                                     "POST_CHANGE_PASSWORD_CHPASS_CHANGE_PASSWORD_FAIL")
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def test_change_passwd(self, mock_request_user_sync):
@@ -817,7 +817,7 @@ class ChangePasswordTests(EduidAPITestCase):
         eppn = self.test_user_data['eduPersonPrincipalName']
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction() as sess:
-                with patch('eduid_webapp.reset_password.views.change_password.add_credentials', return_value=True):
+                with patch('eduid_webapp.reset_password.views.change_password.change_password', return_value=True):
                     sess['reauthn-for-chpass'] = int(time.time())
                     with self.app.test_request_context():
                         data = {
@@ -825,14 +825,14 @@ class ChangePasswordTests(EduidAPITestCase):
                                 'new_password': '1234',
                                 'old_password': '5678'
                                 }
-                    response2 = client.post('/change-password', data=json.dumps(data),
+                    response2 = client.post('/chpass/change-password', data=json.dumps(data),
                                             content_type=self.content_type_json)
 
                     self.assertEqual(response2.status_code, 200)
 
                     sec_data = json.loads(response2.data)
                     self.assertEqual(sec_data['type'],
-                                     "POST_CHANGE_PASSWORD_CHANGE_PASSWORD_SUCCESS")
+                                     "POST_CHANGE_PASSWORD_CHPASS_CHANGE_PASSWORD_SUCCESS")
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def test_get_suggested_and_change(self, mock_request_user_sync):
@@ -845,7 +845,7 @@ class ChangePasswordTests(EduidAPITestCase):
                         with patch('eduid_common.authn.vccs.vccs_client.VCCSClient.revoke_credentials', return_value=True):
                             with patch('eduid_common.authn.vccs.vccs_client.VCCSClient.authenticate', return_value=True):
                                 sess['reauthn-for-chpass'] = int(time.time())
-                                response2 = client.get('/suggested-password')
+                                response2 = client.get('/chpass/suggested-password')
                                 passwd = json.loads(response2.data)
                                 self.assertEqual(passwd['type'],
                                                  'GET_CHANGE_PASSWORD_CHPASS_SUGGESTED_PASSWORD_SUCCESS')
@@ -857,14 +857,14 @@ class ChangePasswordTests(EduidAPITestCase):
                                         'new_password': password,
                                         'old_password': '5678'
                                         }
-                                response3 = client.post('/change-password', data=json.dumps(data),
+                                response3 = client.post('/chpass/change-password', data=json.dumps(data),
                                                         content_type=self.content_type_json)
 
         self.assertEqual(response3.status_code, 200)
 
         sec_data = json.loads(response3.data)
         self.assertEqual(sec_data['type'],
-                         "POST_CHANGE_PASSWORD_CHANGE_PASSWORD_SUCCESS")
+                         "POST_CHANGE_PASSWORD_CHPASS_CHANGE_PASSWORD_SUCCESS")
 
         # check that the password is marked as generated
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
@@ -900,7 +900,7 @@ class ChangePasswordTests(EduidAPITestCase):
 
         sec_data = json.loads(response3.data)
         self.assertEqual(sec_data['type'],
-                         "POST_CHANGE_PASSWORD_CHANGE_PASSWORD_SUCCESS")
+                         "POST_CHANGE_PASSWORD_CHPASS_CHANGE_PASSWORD_SUCCESS")
 
         # check that the password is marked as generated
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
@@ -936,7 +936,7 @@ class ChangePasswordTests(EduidAPITestCase):
 
         sec_data = json.loads(response3.data)
         self.assertEqual(sec_data['type'],
-                         "POST_CHANGE_PASSWORD_CHANGE_PASSWORD_FAIL")
+                         "POST_CHANGE_PASSWORD_CHPASS_CHANGE_PASSWORD_FAIL")
 
         # check that the password is marked as generated
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
@@ -972,7 +972,7 @@ class ChangePasswordTests(EduidAPITestCase):
 
         sec_data = json.loads(response3.data)
         self.assertEqual(sec_data['type'],
-                         "POST_CHANGE_PASSWORD_CHANGE_PASSWORD_FAIL")
+                         "POST_CHANGE_PASSWORD_CHPASS_CHANGE_PASSWORD_FAIL")
 
         # check that the password is marked as generated
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)

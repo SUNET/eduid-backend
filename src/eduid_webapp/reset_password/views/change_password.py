@@ -38,7 +38,7 @@ from eduid_userdb.exceptions import UserOutOfSync
 from eduid_userdb.reset_password import ResetPasswordUser
 from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
 from eduid_common.api.utils import save_and_sync_user
-from eduid_common.authn.vccs import add_credentials
+from eduid_common.authn.vccs import change_password
 from eduid_common.session import session
 from eduid_webapp.security.schemas import CredentialList
 from eduid_webapp.reset_password.helpers import compile_credential_list
@@ -77,12 +77,12 @@ def get_suggested(user):
 @MarshalWith(ChpassResponseSchema)
 @UnmarshalWith(ChangePasswordSchema)
 @require_user
-def change_password(user, old_password, new_password):
+def change_password_view(user, old_password, new_password):
     """
     View to change the password
     """
     resetpw_user = ResetPasswordUser.from_user(user, current_app.private_userdb)
-    authn_ts = session.get('reauthn', None)
+    authn_ts = session.get('reauthn-for-chpass', None)
     if authn_ts is None:
         return error_message(ResetPwMsg.no_reauthn)
 
@@ -101,8 +101,8 @@ def change_password(user, old_password, new_password):
         current_app.stats.count(name='change_password_custom_password_used')
 
     vccs_url = current_app.config.vccs_url
-    added = add_credentials(vccs_url, old_password, new_password, resetpw_user,
-                                   is_generated=is_generated, source='security')
+    added = change_password(resetpw_user, new_password, old_password,
+                            'security', is_generated, vccs_url)
 
     if not added:
         current_app.logger.debug(f'Problem verifying the old credentials for {user}')

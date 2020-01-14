@@ -34,8 +34,10 @@
 from typing import cast
 from flask import current_app
 
+from eduid_userdb.authninfo import AuthnInfoDB
 from eduid_userdb.reset_password import ResetPasswordUserDB, ResetPasswordStateDB
 from eduid_userdb.logs import ProofingLog
+from eduid_common.api import translation
 from eduid_common.api.app import get_app_config
 from eduid_common.api import mail_relay
 from eduid_common.api import am, msg
@@ -66,11 +68,13 @@ class ResetPasswordApp(AuthnBaseApp):
         msg.init_relay(self)
         am.init_relay(self, 'eduid_reset_password')
         mail_relay.init_relay(self)
+        translation.init_babel(self)
 
         # Init dbs
         self.private_userdb = ResetPasswordUserDB(self.config.mongo_uri)
         self.password_reset_state_db = ResetPasswordStateDB(self.config.mongo_uri)
         self.proofing_log = ProofingLog(self.config.mongo_uri)
+        self.authninfo_db = AuthnInfoDB(self.config.mongo_uri)
 
 
 current_reset_password_app: ResetPasswordApp = cast(ResetPasswordApp, current_app)
