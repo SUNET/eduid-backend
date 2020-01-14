@@ -55,6 +55,8 @@ class ResetPasswordApp(AuthnBaseApp):
 
         # Register views
         from eduid_webapp.reset_password.views.reset_password import reset_password_views
+        from eduid_webapp.reset_password.views.change_password import change_password_views
+        self.register_blueprint(change_password_views)
         self.register_blueprint(reset_password_views)
 
         # Register view path that should not be authorized
