@@ -267,7 +267,7 @@ class BaseConfig(CommonConfig):
     fido2_rp_id: str = ''
     u2f_app_id: str = ''
     stats_host: str = ''
-    stats_port: int = 0
+    stats_port: int = 8125
     sentry_dsn: Optional[str] = None
     status_cache_seconds: int = 10
 
