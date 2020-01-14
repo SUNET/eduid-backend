@@ -106,5 +106,29 @@ class ResetPasswordWithCodeSchema(CSRFRequestMixin):
 
 
 class ResetPasswordWithPhoneCodeSchema(ResetPasswordWithCodeSchema):
-    
     phone_code = fields.String(required=True)
+
+
+class ChpassCredentialList(EduidSchema, CSRFResponseMixin):
+    credentials = fields.Nested(CredentialSchema, many=True)
+    next_url = fields.String(required=True)
+
+
+class ChpassResponseSchema(FluxStandardAction):
+    payload = fields.Nested(ChpassCredentialList)
+
+
+class ChangePasswordSchema(EduidSchema, CSRFRequestMixin):
+
+    old_password = fields.String(required=True)
+    new_password = fields.String(required=True)
+
+
+class SuggestedPassword(EduidSchema, CSRFResponseMixin):
+
+    suggested_password = fields.String(required=True)
+
+
+class SuggestedPasswordResponseSchema(FluxStandardAction):
+
+    payload = SuggestedPassword()
