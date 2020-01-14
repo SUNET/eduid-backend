@@ -30,7 +30,6 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-
 from typing import cast
 
 from flask import current_app
@@ -38,61 +37,47 @@ from flask import current_app
 from eduid_common.api import am
 from eduid_common.api import mail_relay
 from eduid_common.api import translation
-from eduid_common.api.app import EduIDApp
-from eduid_common.api.app import eduid_init_app
+from eduid_common.api.app import EduIDBaseApp
+from eduid_common.api.app import get_app_config
 from eduid_userdb.logs import ProofingLog
 from eduid_userdb.signup import SignupUserDB
 from eduid_webapp.signup.settings.common import SignupConfig
 
 
-class SignupApp(EduIDApp):
+class SignupApp(EduIDBaseApp):
 
-    def __init__(self, *args, **kwargs):
-        super(SignupApp, self).__init__(*args, **kwargs)
-        self.config: SignupConfig = cast(SignupConfig, self.config)
+    def __init__(self, name: str, config: dict, **kwargs):
+
+        super(SignupApp, self).__init__(name, SignupConfig, config, **kwargs)
+
+        from eduid_webapp.signup.views import signup_views
+        self.register_blueprint(signup_views)
+
+        self = am.init_relay(self, 'eduid_signup')
+        self = mail_relay.init_relay(self)
+        self = translation.init_babel(self)
+
+        self.private_userdb = SignupUserDB(self.config.mongo_uri, 'eduid_signup')
+        self.proofing_log = ProofingLog(self.config.mongo_uri)
 
 
 current_signup_app: SignupApp = cast(SignupApp, current_app)
 
 
-def signup_init_app(name, config):
+def signup_init_app(name: str, config: dict) -> SignupApp:
     """
     Create an instance of an eduid signup app.
 
-    First, it will load the configuration from signup.settings.common
-    then any settings given in the `config` param.
-
-    Then, the app instance will be updated with common stuff by `eduid_init_app`,
-    all needed blueprints will be registered with it,
-    and finally the app is configured with the necessary db connections.
-
-    Note that we use UnAuthnApp as the class for the Flask app,
+    Note that we use EduIDBaseApp as the class for the Flask app,
     since obviously the signup app is used unauthenticated.
 
     :param name: The name of the instance, it will affect the configuration loaded.
-    :type name: str
     :param config: any additional configuration settings. Specially useful
                    in test cases
-    :type config: dict
-
-    :return: the flask app
-    :rtype: flask.Flask
     """
 
-    app = eduid_init_app(name, config,
-                         config_class=SignupConfig,
-                         app_class=SignupApp)
+    app = SignupApp(name, config)
 
-    from eduid_webapp.signup.views import signup_views
-    app.register_blueprint(signup_views)
-
-    app = am.init_relay(app, 'eduid_signup')
-    app = mail_relay.init_relay(app)
-    app = translation.init_babel(app)
-
-    app.private_userdb = SignupUserDB(app.config.mongo_uri, 'eduid_signup')
-    app.proofing_log = ProofingLog(app.config.mongo_uri)
-
-    app.logger.info('Init {} app...'.format(name))
+    app.logger.info(f'Init {name} app...')
 
     return app

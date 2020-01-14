@@ -33,17 +33,22 @@ from typing import cast
 
 from flask import current_app
 
-from eduid_common.api.app import EduIDApp
-from eduid_common.api.app import eduid_init_app
+from eduid_common.api.app import EduIDBaseApp
+from eduid_common.api.app import get_app_config
 from eduid_common.authn.utils import get_saml2_config
 from eduid_webapp.authn.settings.common import AuthnConfig
 
 
-class AuthnApp(EduIDApp):
+class AuthnApp(EduIDBaseApp):
 
-    def __init__(self, *args, **kwargs):
-        super(AuthnApp, self).__init__(*args, **kwargs)
-        self.config: AuthnConfig = cast(AuthnConfig, self.config)
+    def __init__(self, name: str, config: dict, **kwargs):
+
+        super(AuthnApp, self).__init__(name, AuthnConfig, config, **kwargs)
+
+        self.saml2_config = get_saml2_config(self.config.saml2_settings_module)
+
+        from eduid_webapp.authn.views import authn_views
+        self.register_blueprint(authn_views)
 
 
 def get_current_app() -> AuthnApp:
@@ -54,35 +59,17 @@ def get_current_app() -> AuthnApp:
 current_authn_app = get_current_app()
 
 
-def authn_init_app(name, config):
+def authn_init_app(name: str, config: dict) -> AuthnApp:
     """
     Create an instance of an authentication app.
 
-    First, it will load the configuration from the file system, according to
-    the logic in `eduid_common.config.parsers.INIConfigParser`, and update
-    it with any settings given in the `config` param.
-    
-    Then, the app instance will be updated with common stuff by `eduid_init_app`,
-    and finally all needed blueprints will be registered with it.
-    
     :param name: The name of the instance, it will affect the configuration file
                  loaded from the filesystem.
-    :type name: str
     :param config: any additional configuration settings. Specially useful
                    in test cases
-    :type config: dict
-
-    :return: the flask app
-    :rtype: flask.Flask
     """
-    app = eduid_init_app(name, config,
-                         config_class=AuthnConfig,
-                         app_class=AuthnApp)
-    app.saml2_config = get_saml2_config(app.config.saml2_settings_module)
+    app = AuthnApp(name, config)
 
-    from eduid_webapp.authn.views import authn_views
-    app.register_blueprint(authn_views)
-
-    app.logger.info('Init {} app...'.format(name))
+    app.logger.info(f'Init {name} app...')
 
     return app

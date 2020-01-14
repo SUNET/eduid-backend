@@ -30,64 +30,53 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-
-from __future__ import absolute_import
-
 from typing import cast
 
-from eduid_common.api.app import eduid_init_app
+from flask import current_app
+
+from eduid_common.api.app import get_app_config
 from eduid_common.api import mail_relay
 from eduid_common.api import am
 from eduid_common.api import translation
-from eduid_common.authn.middleware import AuthnApp
+from eduid_common.authn.middleware import AuthnBaseApp
 from eduid_userdb.proofing import EmailProofingUserDB
 from eduid_userdb.proofing import EmailProofingStateDB
 from eduid_userdb.logs import ProofingLog
 from eduid_webapp.email.settings.common import EmailConfig
 
 
-class EmailApp(AuthnApp):
+class EmailApp(AuthnBaseApp):
 
-    def __init__(self, *args, **kwargs):
-        super(EmailApp, self).__init__(*args, **kwargs)
+    def __init__(self, name: str, config: dict, **kwargs):
+
+        super(EmailApp, self).__init__(name, EmailConfig, config, **kwargs)
         self.config: EmailConfig = cast(EmailConfig, self.config)
 
+        from eduid_webapp.email.views import email_views
+        self.register_blueprint(email_views)
 
-def email_init_app(name, config):
+        self = am.init_relay(self, 'eduid_email')
+        self = mail_relay.init_relay(self)
+        self = translation.init_babel(self)
+
+        self.private_userdb = EmailProofingUserDB(self.config.mongo_uri)
+        self.proofing_statedb = EmailProofingStateDB(self.config.mongo_uri)
+        self.proofing_log = ProofingLog(self.config.mongo_uri)
+
+
+current_email_app: EmailApp = cast(EmailApp, current_app)
+
+
+def email_init_app(name: str, config: dict) -> EmailApp:
     """
     Create an instance of an eduid email app.
 
-    First, it will load the configuration from email.settings.common
-    then any settings given in the `config` param.
-
-    Then, the app instance will be updated with common stuff by `eduid_init_app`,
-    all needed blueprints will be registered with it,
-    and finally the app is configured with the necessary db connections.
-
     :param name: The name of the instance, it will affect the configuration loaded.
-    :type name: str
     :param config: any additional configuration settings. Specially useful
                    in test cases
-    :type config: dict
-
-    :return: the flask app
-    :rtype: flask.Flask
     """
 
-    app = eduid_init_app(name, config,
-                         config_class=EmailConfig,
-                         app_class=EmailApp)
-
-    from eduid_webapp.email.views import email_views
-    app.register_blueprint(email_views)
-
-    app = am.init_relay(app, 'eduid_email')
-    app = mail_relay.init_relay(app)
-    app = translation.init_babel(app)
-
-    app.private_userdb = EmailProofingUserDB(app.config.mongo_uri)
-    app.proofing_statedb = EmailProofingStateDB(app.config.mongo_uri)
-    app.proofing_log = ProofingLog(app.config.mongo_uri)
+    app = EmailApp(name, config)
 
     app.logger.info('Init {} app...'.format(name))
 

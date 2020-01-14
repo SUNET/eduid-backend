@@ -39,18 +39,36 @@ import operator
 from flask import current_app
 from jinja2.exceptions import UndefinedError
 
-from eduid_common.api.app import eduid_init_app
+from eduid_common.api.app import get_app_config
 from eduid_common.api.utils import urlappend
-from eduid_common.authn.middleware import AuthnApp
+from eduid_common.authn.middleware import AuthnBaseApp
 from eduid_userdb.support import db
 from eduid_webapp.support.settings.common import SupportConfig
 
 
-class SupportApp(AuthnApp):
+class SupportApp(AuthnBaseApp):
 
-    def __init__(self, *args, **kwargs):
-        super(SupportApp, self).__init__(*args, **kwargs)
-        self.config: SupportConfig = cast(SupportConfig, self.config)
+    def __init__(self, name: str, config: dict, **kwargs):
+
+        super(SupportApp, self).__init__(name, SupportConfig, config, **kwargs)
+
+        if self.config.token_service_url_logout is None:
+            self.config.token_service_url_logout = urlappend(self.config.token_service_url, 'logout')
+
+        from eduid_webapp.support.views import support_views
+        self.register_blueprint(support_views)
+
+        self.support_user_db = db.SupportUserDB(self.config.mongo_uri)
+        self.support_authn_db = db.SupportAuthnInfoDB(self.config.mongo_uri)
+        self.support_proofing_log_db = db.SupportProofingLogDB(self.config.mongo_uri)
+        self.support_signup_db = db.SupportSignupUserDB(self.config.mongo_uri)
+        self.support_actions_db = db.SupportActionsDB(self.config.mongo_uri)
+        self.support_letter_proofing_db = db.SupportLetterProofingDB(self.config.mongo_uri)
+        self.support_oidc_proofing_db = db.SupportOidcProofingDB(self.config.mongo_uri)
+        self.support_email_proofing_db = db.SupportEmailProofingDB(self.config.mongo_uri)
+        self.support_phone_proofing_db = db.SupportPhoneProofingDB(self.config.mongo_uri)
+
+        self = register_template_funcs(self)
 
 
 current_support_app: SupportApp = cast(SupportApp, current_app)
@@ -84,48 +102,17 @@ def register_template_funcs(app):
     return app
 
 
-def support_init_app(name, config):
+def support_init_app(name: str, config: dict) -> SupportApp:
     """
     Create an instance of an eduid support app.
 
-    First, it will load the configuration from support.settings.common
-    then any settings given in the `config` param.
-
-    Then, the app instance will be updated with common stuff by `eduid_init_app`,
-    and finally all needed blueprints will be registered with it.
-
     :param name: The name of the instance, it will affect the configuration loaded.
-    :type name: str
     :param config: any additional configuration settings. Specially useful
                    in test cases
-    :type config: dict
-
-    :return: the flask app
-    :rtype: flask.Flask
     """
 
-    app = eduid_init_app(name, config,
-                         config_class=SupportConfig,
-                         app_class=SupportApp)
+    app = SupportApp(name, config)
 
-    if app.config.token_service_url_logout is None:
-        app.config.token_service_url_logout = urlappend(app.config.token_service_url, 'logout')
-
-    from eduid_webapp.support.views import support_views
-    app.register_blueprint(support_views)
-
-    app.support_user_db = db.SupportUserDB(app.config.mongo_uri)
-    app.support_authn_db = db.SupportAuthnInfoDB(app.config.mongo_uri)
-    app.support_proofing_log_db = db.SupportProofingLogDB(app.config.mongo_uri)
-    app.support_signup_db = db.SupportSignupUserDB(app.config.mongo_uri)
-    app.support_actions_db = db.SupportActionsDB(app.config.mongo_uri)
-    app.support_letter_proofing_db = db.SupportLetterProofingDB(app.config.mongo_uri)
-    app.support_oidc_proofing_db = db.SupportOidcProofingDB(app.config.mongo_uri)
-    app.support_email_proofing_db = db.SupportEmailProofingDB(app.config.mongo_uri)
-    app.support_phone_proofing_db = db.SupportPhoneProofingDB(app.config.mongo_uri)
-
-    app = register_template_funcs(app)
-
-    app.logger.info('Init {} app...'.format(name))
+    app.logger.info(f'Init {name} app...')
 
     return app

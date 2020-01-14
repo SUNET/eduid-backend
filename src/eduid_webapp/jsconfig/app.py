@@ -32,20 +32,37 @@
 #
 from typing import cast
 
-from flask import current_app
+from flask import current_app, Flask
 
-from eduid_common.api.app import EduIDApp
-from eduid_common.api.app import eduid_init_app_no_db
+from eduid_common.api.app import EduIDBaseApp
+from eduid_common.api.app import get_app_config
 from eduid_common.authn.utils import no_authn_views
 from eduid_webapp.jsconfig.settings.common import JSConfigConfig
 
 
-class JSConfigApp(EduIDApp):
+class JSConfigApp(EduIDBaseApp):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, name: str, config: dict, **kwargs):
+
+        kwargs['init_central_userdb'] = False
+        kwargs['host_matching'] = True
+        kwargs['static_folder'] = None
         kwargs['subdomain_matching'] = True
-        super(JSConfigApp, self).__init__(*args, **kwargs)
-        self.config: JSConfigConfig = cast(JSConfigConfig, self.config)
+
+        super(JSConfigApp, self).__init__(name, JSConfigConfig, config, **kwargs)
+
+        if not self.testing:
+            self.url_map.host_matching = False
+
+        from eduid_webapp.jsconfig.views import jsconfig_views
+        self.register_blueprint(jsconfig_views)
+
+        # Register view path that should not be authorized
+        no_auth_paths = [
+            '/get-bundle',
+            '/signup/config'
+        ]
+        self = no_authn_views(self, no_auth_paths)
 
 
 current_jsconfig_app: JSConfigApp = cast(JSConfigApp, current_app)
@@ -55,33 +72,13 @@ def jsconfig_init_app(name: str, config: dict) -> JSConfigApp:
     """
     Create an instance of an eduid jsconfig data app.
 
-    First, it will load the configuration from jsconfig.settings.common
-    then any settings given in the `config` param.
-
-    Then, the app instance will be updated with common stuff by `eduid_init_app`,
-    all needed blueprints will be registered with it.
+    :param name: The name of the instance, it will affect the configuration loaded.
+    :param config: any additional configuration settings. Specially useful
+                   in test cases
     """
 
-    app = eduid_init_app_no_db(name, config,
-                               config_class=JSConfigConfig,
-                               app_class=JSConfigApp,
-                               app_args={
-                                   'host_matching': True,
-                                   'static_folder': None,
-                                   'subdomain_matching': True,
-                                   })
+    app = JSConfigApp(name, config)
 
-    if not app.testing:
-        app.url_map.host_matching = False
-    from eduid_webapp.jsconfig.views import jsconfig_views
-    app.register_blueprint(jsconfig_views)
+    app.logger.info(f'Init {name} app...')
 
-    # Register view path that should not be authorized
-    no_auth_paths = [
-        '/get-bundle',
-        '/signup/config'
-    ]
-    app = no_authn_views(app, no_auth_paths)
-
-    app.logger.info('Init {} app...'.format(name))
     return app

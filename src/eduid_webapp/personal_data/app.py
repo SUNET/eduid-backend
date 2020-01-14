@@ -31,62 +31,45 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-
-from __future__ import absolute_import
-
 from typing import cast
 
 from flask import current_app
 
-from eduid_common.api.app import eduid_init_app
+from eduid_common.api.app import get_app_config
 from eduid_common.api import am
-from eduid_common.authn.middleware import AuthnApp
+from eduid_common.authn.middleware import AuthnBaseApp
 from eduid_common.config.base import FlaskConfig
 from eduid_userdb.personal_data import PersonalDataUserDB
 
 
-class PersonalDataApp(AuthnApp):
+class PersonalDataApp(AuthnBaseApp):
 
-    def __init__(self, *args, **kwargs):
-        super(PersonalDataApp, self).__init__(*args, **kwargs)
-        self.config: FlaskConfig = cast(FlaskConfig, self.config)
+    def __init__(self, name: str, config: dict, **kwargs):
+
+        super(PersonalDataApp, self).__init__(name, FlaskConfig, config, **kwargs)
+
+        from eduid_webapp.personal_data.views import pd_views
+        self.register_blueprint(pd_views)
+
+        self = am.init_relay(self, 'eduid_personal_data')
+
+        self.private_userdb = PersonalDataUserDB(self.config.mongo_uri)
 
 
 current_pdata_app: PersonalDataApp = cast(PersonalDataApp, current_app)
 
 
-def pd_init_app(name, config):
+def pd_init_app(name: str, config: dict) -> PersonalDataApp:
     """
     Create an instance of an eduid personal data app.
 
-    First, it will load the configuration from personal_data.settings.common
-    then any settings given in the `config` param.
-
-    Then, the app instance will be updated with common stuff by `eduid_init_app`,
-    all needed blueprints will be registered with it,
-    and finally the app is configured with the necessary db connections.
-
     :param name: The name of the instance, it will affect the configuration loaded.
-    :type name: str
     :param config: any additional configuration settings. Specially useful
                    in test cases
-    :type config: dict
-
-    :return: the flask app
-    :rtype: flask.Flask
     """
 
-    app = eduid_init_app(name, config,
-                         config_class=FlaskConfig,
-                         app_class=PersonalDataApp)
+    app = PersonalDataApp(name, config)
 
-    from eduid_webapp.personal_data.views import pd_views
-    app.register_blueprint(pd_views)
-
-    app = am.init_relay(app, 'eduid_personal_data')
-
-    app.private_userdb = PersonalDataUserDB(app.config.mongo_uri)
-
-    app.logger.info('Init {} app...'.format(name))
+    app.logger.info(f'Init {name} app...')
 
     return app

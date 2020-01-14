@@ -39,8 +39,8 @@ from flask import current_app
 from flask import render_template, templating
 
 from eduid_common.api import am
-from eduid_common.api.app import EduIDApp
-from eduid_common.api.app import eduid_init_app
+from eduid_common.api.app import EduIDBaseApp
+from eduid_common.api.app import get_app_config
 from eduid_userdb.actions import ActionDB
 from eduid_webapp.actions.settings.common import ActionsConfig
 
@@ -73,55 +73,41 @@ def _get_tous(app, version=None):
     return tous
 
 
-class ActionsApp(EduIDApp):
+class ActionsApp(EduIDBaseApp):
 
-    def __init__(self, *args, **kwargs):
-        super(ActionsApp, self).__init__(*args, **kwargs)
-        self.config: ActionsConfig = cast(ActionsConfig, self.config)
+    def __init__(self, name: str, config: dict, **kwargs):
+
+        super(ActionsApp, self).__init__(name, ActionsConfig, config, **kwargs)
+
+        from eduid_webapp.actions.views import actions_views
+        self.register_blueprint(actions_views)
+
+        self = am.init_relay(self, f'eduid_{name}')
+
+        self.actions_db = ActionDB(self.config.mongo_uri)
+
+        self.plugins = PluginsRegistry(self)
+        for plugin in self.plugins.values():
+            plugin.includeme(self)
+
+        self.get_tous = types.MethodType(_get_tous, self)
 
 current_actions_app: ActionsApp = cast(ActionsApp, current_app)
 
-def actions_init_app(name, config):
+def actions_init_app(name: str, config: dict) -> ActionsApp:
     """
     Create an instance of an eduid actions app.
 
-    First, it will load the configuration from actions.settings.common
-    then any settings given in the `config` param.
-
-    Then, the app instance will be updated with common stuff by `eduid_init_app`,
-    all needed blueprints will be registered with it,
-    and finally the app is configured with the necessary db connections.
-
-    Note that we use UnAuthnApp as the class for the Flask app,
+    Note that we use EduIDBaseApp as the class for the Flask app,
     since the actions app is used unauthenticated.
 
     :param name: The name of the instance, it will affect the configuration loaded.
-    :type name: str
     :param config: any additional configuration settings. Specially useful
                    in test cases
-    :type config: dict
-
-    :return: the flask app
-    :rtype: flask.Flask
     """
 
-    app = eduid_init_app(name, config,
-                         config_class=ActionsConfig,
-                         app_class=ActionsApp)
+    app = ActionsApp(name, config)
 
-    from eduid_webapp.actions.views import actions_views
-    app.register_blueprint(actions_views)
-
-    app = am.init_relay(app, 'eduid_actions')
-
-    app.actions_db = ActionDB(app.config.mongo_uri)
-
-    app.plugins = PluginsRegistry(app)
-    for plugin in app.plugins.values():
-        plugin.includeme(app)
-
-    app.get_tous = types.MethodType(_get_tous, app)
-
-    app.logger.info('Init {} app...'.format(name))
+    app.logger.info(f'Init {name} app...')
 
     return app
