@@ -59,6 +59,7 @@ class FrontConfig:
     # TODO: Remove after new design end
     static_faq_url: str = ''
     reset_passwd_url: str = ''
+    password_service_url: str = ''
     dashboard_url: str = ''
     personal_data_url: str = '/personal-data/user'
     emails_url: str = '/services/email/'
