@@ -299,6 +299,12 @@ def get_extra_security_alternatives(user: User) -> dict:
     if user.phone_numbers.verified.count:
         verified_phone_numbers = [item.number for item in user.phone_numbers.verified.to_list()]
         alternatives['phone_numbers'] = verified_phone_numbers
+
+    tokens = user.credentials.filter(U2F).to_list()
+    tokens += user.credentials.filter(Webauthn).to_list()
+    if tokens:
+        alternatives['tokens'] = [item.name for item in tokens]
+
     return alternatives
 
 
