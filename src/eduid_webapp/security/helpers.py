@@ -13,6 +13,7 @@ from eduid_common.api.helpers import send_mail
 from eduid_common.session import session
 from eduid_common.authn.vccs import reset_password
 from eduid_common.authn.utils import generate_password
+from eduid_userdb.credentials import U2F, Webauthn
 from eduid_userdb.security import SecurityUser, PasswordResetEmailState, PasswordResetEmailAndPhoneState
 from eduid_userdb.logs import MailAddressProofing, PhoneNumberProofing
 from eduid_userdb.exceptions import UserHasNotCompletedSignup
@@ -304,6 +305,12 @@ def get_extra_security_alternatives(eppn):
     if user.phone_numbers.verified.count:
         verified_phone_numbers = [item.number for item in user.phone_numbers.verified.to_list()]
         alternatives['phone_numbers'] = verified_phone_numbers
+
+    tokens = user.credentials.filter(U2F).to_list()
+    tokens += user.credentials.filter(Webauthn).to_list()
+    if tokens:
+        alternatives['tokens'] = [item.description for item in tokens]
+
     return alternatives
 
 
