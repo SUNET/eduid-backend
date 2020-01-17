@@ -51,7 +51,7 @@ from eduid_webapp.reset_password.schemas import SuggestedPassword, SuggestedPass
 from eduid_webapp.reset_password.helpers import error_message
 from eduid_webapp.reset_password.app import current_reset_password_app as current_app
 
-change_password_views = Blueprint('change_password', __name__, url_prefix='/chpass')
+change_password_views = Blueprint('change_password', __name__, url_prefix='')
 
 
 @change_password_views.route('/suggested-password', methods=['GET'])

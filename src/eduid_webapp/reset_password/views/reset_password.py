@@ -103,7 +103,7 @@ from eduid_webapp.reset_password.helpers import send_verify_phone_code
 from eduid_webapp.reset_password.app import current_reset_password_app as current_app
 
 
-reset_password_views = Blueprint('reset_password', __name__, url_prefix='', template_folder='templates')
+reset_password_views = Blueprint('reset_password', __name__, url_prefix='/reset', template_folder='templates')
 
 
 @reset_password_views.route('/', methods=['POST'])
