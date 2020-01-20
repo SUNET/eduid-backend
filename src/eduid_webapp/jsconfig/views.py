@@ -38,7 +38,6 @@ from flask import Blueprint, abort, render_template, request
 
 from eduid_common.api.decorators import MarshalWith
 from eduid_common.api.schemas.base import FluxStandardAction
-from eduid_common.api.utils import urlappend
 from eduid_common.config.exceptions import BadConfiguration
 from eduid_common.config.parsers.etcd import EtcdConfigParser, etcd
 from eduid_common.session import session
@@ -164,17 +163,15 @@ def get_login_config() -> dict:
 
 @jsconfig_views.route('/get-bundle', methods=['GET'], subdomain="dashboard")
 def get_dashboard_bundle():
-    static_path = current_app.config.static_path
-    bundle = current_app.config.dashboard_bundle_path
-    version = current_app.config.dashboard_bundle_version
-
+    context = {
+        'bundle': current_app.config.dashboard_bundle_path,
+        'version': current_app.config.dashboard_bundle_version,
+    }
     feature_cookie = request.cookies.get(current_app.config.dashboard_bundle_feature_cookie)
     if feature_cookie and feature_cookie in current_app.config.dashboard_bundle_feature_version:
-        version = current_app.config.dashboard_bundle_feature_version[feature_cookie]
+        context['version'] = current_app.config.dashboard_bundle_feature_version[feature_cookie]
     try:
-        version_url = urlappend(static_path, version)
-        bundle_url = urlappend(version_url, bundle)
-        return render_template('load_bundle.jinja2', bundle_url=bundle_url)
+        return render_template('load_bundle.jinja2', context=context)
     except AttributeError as e:
         current_app.logger.error(f'Template rendering failed: {e}')
         abort(500)
@@ -182,17 +179,15 @@ def get_dashboard_bundle():
 
 @jsconfig_views.route('/get-bundle', methods=['GET'], subdomain="signup")
 def get_signup_bundle():
-    static_path = current_app.config.static_path
-    bundle = current_app.config.signup_bundle_path
-    version = current_app.config.signup_bundle_version
-
+    context = {
+        'bundle': current_app.config.signup_bundle_path,
+        'version': current_app.config.signup_bundle_version,
+    }
     feature_cookie = request.cookies.get(current_app.config.signup_bundle_feature_cookie)
     if feature_cookie and feature_cookie in current_app.config.signup_bundle_feature_version:
-        version = current_app.config.signup_bundle_feature_version[feature_cookie]
+        context['version'] = current_app.config.signup_bundle_feature_version[feature_cookie]
     try:
-        version_url = urlappend(static_path, version)
-        bundle_url = urlappend(version_url, bundle)
-        return render_template('load_bundle.jinja2', bundle_url=bundle_url)
+        return render_template('load_bundle.jinja2', context=context)
     except AttributeError as e:
         current_app.logger.error(f'Template rendering failed: {e}')
         abort(500)
@@ -200,17 +195,15 @@ def get_signup_bundle():
 
 @jsconfig_views.route('/get-bundle', methods=['GET'], subdomain="login")
 def get_login_bundle():
-    static_path = current_app.config.static_path
-    bundle = current_app.config.login_bundle_path
-    version = current_app.config.login_bundle_version
-
+    context = {
+        'bundle': current_app.config.login_bundle_path,
+        'version': current_app.config.login_bundle_version,
+    }
     feature_cookie = request.cookies.get(current_app.config.login_bundle_feature_cookie)
     if feature_cookie and feature_cookie in current_app.config.login_bundle_feature_version:
-        version = current_app.config.login_bundle_feature_version[feature_cookie]
+        context['version'] = current_app.config.login_bundle_feature_version[feature_cookie]
     try:
-        version_url = urlappend(static_path, version)
-        bundle_url = urlappend(version_url, bundle)
-        return render_template('load_bundle.jinja2', bundle_url=bundle_url)
+        return render_template('load_bundle.jinja2', context=context)
     except AttributeError as e:
         current_app.logger.error(f'Template rendering failed: {e}')
         abort(500)
