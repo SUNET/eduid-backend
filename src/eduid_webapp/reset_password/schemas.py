@@ -39,6 +39,7 @@ from marshmallow import fields, Schema, validates, validates_schema, validate, V
 from eduid_common.api.schemas.base import EduidSchema, FluxStandardAction
 from eduid_common.api.schemas.csrf import CSRFResponseMixin, CSRFRequestMixin
 from eduid_common.api.schemas.validators import validate_email
+from eduid_webapp.security.schemas import CredentialSchema
 
 __author__ = 'eperez'
 
@@ -106,5 +107,29 @@ class ResetPasswordWithCodeSchema(CSRFRequestMixin):
 
 
 class ResetPasswordWithPhoneCodeSchema(ResetPasswordWithCodeSchema):
-    
     phone_code = fields.String(required=True)
+
+
+class ChpassCredentialList(EduidSchema, CSRFResponseMixin):
+    credentials = fields.Nested(CredentialSchema, many=True)
+    next_url = fields.String(required=True)
+
+
+class ChpassResponseSchema(FluxStandardAction):
+    payload = fields.Nested(ChpassCredentialList)
+
+
+class ChangePasswordSchema(EduidSchema, CSRFRequestMixin):
+
+    old_password = fields.String(required=True)
+    new_password = fields.String(required=True)
+
+
+class SuggestedPassword(EduidSchema, CSRFResponseMixin):
+
+    suggested_password = fields.String(required=True)
+
+
+class SuggestedPasswordResponseSchema(FluxStandardAction):
+
+    payload = SuggestedPassword()

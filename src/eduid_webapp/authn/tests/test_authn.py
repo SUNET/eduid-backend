@@ -88,7 +88,7 @@ class AuthnAPITestBase(EduidAPITestCase):
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        return authn_init_app('test.localhost', config)
+        return authn_init_app('testing', config)
 
     def add_outstanding_query(self, came_from):
         """

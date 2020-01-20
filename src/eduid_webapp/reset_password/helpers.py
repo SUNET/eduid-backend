@@ -31,10 +31,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import math
-import os
-from base64 import b64encode, b64decode
 from enum import Enum, unique
-from typing import Union, Optional, List
+from typing import Optional
 
 import bcrypt
 from flask import url_for
@@ -57,6 +55,7 @@ from eduid_common.api.utils import get_short_hash
 from eduid_common.api.helpers import send_mail
 from eduid_common.authn.utils import generate_password
 from eduid_common.authn.vccs import reset_password
+from eduid_common.session import session
 from eduid_webapp.reset_password.app import current_reset_password_app as current_app
 
 
@@ -94,15 +93,23 @@ class ResetPwMsg(Enum):
     user_not_found = 'resetpw.user-not-found'
     # The email address has not been verified. Should not happen.
     email_not_validated = 'resetpw.email-not-validated'
-    #
+    # User has not completed signup
     invalid_user = 'resetpw.incomplete-user'
-
+    # Trying to change password without 1st reauthenticating
+    no_reauthn = 'chpass.no_reauthn'
+    # Expired reauthn, need to reauthn again
+    stale_reauthn = 'chpass.stale_reauthn'
+    # The old password sent is not recognized
+    unrecognized_pw = 'chpass.unable-to-verify-old-password'
+    # The user is out of sync with the db, user needs to reload
+    out_of_sync = 'user-out-of-sync'
 
 
 class BadCode(Exception):
     """
     Exception to signal that the password reset code received is not valid.
     """
+
     def __init__(self, msg: ResetPwMsg):
         self.msg = msg
 
@@ -218,10 +225,12 @@ def hash_password(password: str) -> str:
     return bcrypt.hashpw(password, bcrypt.gensalt())
 
 
-def check_password(password: str, hashed: str) -> bool:
+def check_password(password: str, hashed: Optional[str]) -> bool:
     """
     Check that the provided password corresponds to the provided hash
     """
+    if hashed is None:
+        return False
     password = ''.join(password.split())
     return bcrypt.checkpw(password, hashed)
 
@@ -390,3 +399,25 @@ def verify_phone_number(state: ResetPasswordEmailAndPhoneState) -> bool:
         return True
 
     return False
+
+
+def compile_credential_list(user: ResetPasswordUser) -> list:
+    """
+    :return: List of augmented credentials
+    """
+    credentials = []
+    authn_info = current_app.authninfo_db.get_authn_info(user)
+    credentials_used = session.get('eduidIdPCredentialsUsed', list())
+    # In the development environment credentials_used gets set to None
+    if credentials_used is None:
+        credentials_used = []
+    for credential in user.credentials.to_list():
+        credential_dict = credential.to_dict()
+        credential_dict['key'] = credential.key
+        if credential.key in credentials_used:
+            credential_dict['used_for_login'] = True
+        if credential.is_verified:
+            credential_dict['verified'] = True
+        credential_dict.update(authn_info[credential.key])
+        credentials.append(credential_dict)
+    return credentials

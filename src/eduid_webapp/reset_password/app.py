@@ -34,13 +34,14 @@
 from typing import cast
 from flask import current_app
 
+from eduid_userdb.authninfo import AuthnInfoDB
 from eduid_userdb.reset_password import ResetPasswordUserDB, ResetPasswordStateDB
 from eduid_userdb.logs import ProofingLog
+from eduid_common.api import translation
 from eduid_common.api.app import get_app_config
 from eduid_common.api import mail_relay
 from eduid_common.api import am, msg
 from eduid_common.api import mail_relay
-from eduid_common.api import translation
 from eduid_common.authn.middleware import AuthnBaseApp
 from eduid_common.authn.utils import no_authn_views
 from eduid_webapp.reset_password.settings.common import ResetPasswordConfig
@@ -56,10 +57,12 @@ class ResetPasswordApp(AuthnBaseApp):
 
         # Register views
         from eduid_webapp.reset_password.views.reset_password import reset_password_views
-        self.register_blueprint(reset_password_views, url_prefix=self.config.application_root)
+        from eduid_webapp.reset_password.views.change_password import change_password_views
+        self.register_blueprint(change_password_views)
+        self.register_blueprint(reset_password_views)
 
         # Register view path that should not be authorized
-        self = no_authn_views(self, ['/reset-password.*'])
+        self = no_authn_views(self, [r'/reset.*'])
 
         # Init celery
         msg.init_relay(self)
@@ -71,14 +74,10 @@ class ResetPasswordApp(AuthnBaseApp):
         self.private_userdb = ResetPasswordUserDB(self.config.mongo_uri)
         self.password_reset_state_db = ResetPasswordStateDB(self.config.mongo_uri)
         self.proofing_log = ProofingLog(self.config.mongo_uri)
+        self.authninfo_db = AuthnInfoDB(self.config.mongo_uri)
 
 
-def get_current_app() -> ResetPasswordApp:
-    """Teach pycharm about ResetPasswordApp"""
-    return current_app  # type: ignore
-
-
-current_reset_password_app = get_current_app()
+current_reset_password_app: ResetPasswordApp = cast(ResetPasswordApp, current_app)
 
 
 def init_reset_password_app(name: str, config: dict) -> ResetPasswordApp:
