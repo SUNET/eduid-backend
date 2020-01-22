@@ -184,10 +184,11 @@ def send_password_reset_mail(email_address: str):
     to_addresses = [address.email for address in user.mail_addresses.verified.to_list()]
 
     pwreset_timeout = current_app.config.email_code_timeout // 60 // 60  # seconds to hours
+    # We must send the user to an url that does not correspond to a flask view,
+    # but to a js bundle (i.e. a flask view in a *different* app)
+    resetpw_link = f"{current_app.config.password_reset_link}code/{state.email_code.code}"
     context = {
-        'reset_password_link': url_for('reset_password.set_new_pw',
-                                       email_code=state.email_code.code,
-                                       _external=True),
+        'reset_password_link': resetpw_link,
         'password_reset_timeout': pwreset_timeout
     }
     subject = _('Reset password')
