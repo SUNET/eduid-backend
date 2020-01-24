@@ -156,6 +156,7 @@ def get_login_config() -> dict:
     config = get_etcd_config()
     return {
             'csrf_token': session.get_csrf_token(),
+            'password_service_url': config.password_service_url,
             'password_entropy': config.password_entropy,
             'password_length': config.password_length,
             }
