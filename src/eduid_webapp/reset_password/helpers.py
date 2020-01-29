@@ -41,6 +41,7 @@ from flask_babel import gettext as _
 
 from eduid_userdb.exceptions import UserHasNotCompletedSignup
 from eduid_userdb.exceptions import DocumentDoesNotExist
+from eduid_userdb.credentials import U2F, Webauthn
 from eduid_userdb.reset_password import ResetPasswordUser
 from eduid_userdb.reset_password import ResetPasswordState
 from eduid_userdb.reset_password import ResetPasswordEmailState
@@ -298,13 +299,13 @@ def get_extra_security_alternatives(user: User) -> dict:
     alternatives = {}
 
     if user.phone_numbers.verified.count:
-        verified_phone_numbers = [item.number for item in user.phone_numbers.verified.to_list()]
+        verified_phone_numbers = [{'number': item.number} for item in user.phone_numbers.verified.to_list()]
         alternatives['phone_numbers'] = verified_phone_numbers
 
     tokens = user.credentials.filter(U2F).to_list()
     tokens += user.credentials.filter(Webauthn).to_list()
     if tokens:
-        alternatives['tokens'] = [item.name for item in tokens]
+        alternatives['tokens'] = [{'description': item.description} for item in tokens]
 
     return alternatives
 
@@ -318,8 +319,9 @@ def mask_alternatives(alternatives: dict) -> dict:
         # Phone numbers
         masked_phone_numbers = []
         for phone_number in alternatives.get('phone_numbers', []):
-            masked_number = '{}{}'.format('X'*(len(phone_number)-2), phone_number[len(phone_number)-2:])
-            masked_phone_numbers.append(masked_number)
+            number = phone_number['number']
+            masked_number = '{}{}'.format('X'*(len(number)-2), number[len(number)-2:])
+            masked_phone_numbers.append({'number': masked_number})
 
         alternatives['phone_numbers'] = masked_phone_numbers
     return alternatives
