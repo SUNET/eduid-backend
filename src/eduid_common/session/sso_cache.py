@@ -266,7 +266,7 @@ class SSOSessionCacheMem(SSOSessionCache):
     def update_session(self, username: str, data: Mapping[str, Any]) -> None:
         # TODO: This is completely broken - we add a new state rather than updating the old one
         _sid = self._create_session_id()
-        self.logger.debug('Updating data by adding it using new session id {}. FIXME.'.format(_sid))
+        self.logger.debug(f'Updating data by adding it using new session id {repr(_sid)}. FIXME.')
         self.lid2data.update(_sid, {'username': username,
                                     'data': data,
                                     })
@@ -349,7 +349,7 @@ class SSOSessionCacheMDB(SSOSessionCache):
     def update_session(self, username: str, data: Mapping[str, Any]) -> None:
         # TODO: This is completely broken - we add a new state rather than updating the old one
         _sid = self._create_session_id()
-        self.logger.debug('Updating data by adding it using new session id {}. FIXME.'.format(_sid))
+        self.logger.debug(f'Updating data by adding it using new session id {repr(_sid)}. FIXME.')
         _test_doc = {'session_id': _sid,
                      'username': username,
                      }
