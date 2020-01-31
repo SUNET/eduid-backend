@@ -38,10 +38,10 @@ such as rate limiting.
 """
 
 import datetime
-from typing import Optional
+from typing import Optional, Dict
 
 import vccs_client
-from eduid_userdb.credentials import Password
+from eduid_userdb.credentials import Password, Credential
 from eduid_userdb.exceptions import UserHasNotCompletedSignup
 from eduid_userdb.idp import IdPUser
 from eduid_userdb import MongoDB
@@ -61,33 +61,21 @@ class AuthnData(object):
         self.timestamp = timestamp
 
     @property
-    def user(self):
-        """
-        :rtype: IdPUser
-        """
+    def user(self) -> IdPUser:
         return self._user
 
     @user.setter
-    def user(self, value):
-        """
-        :type value: IdPUser
-        """
+    def user(self, value: IdPUser):
         if not isinstance(value, IdPUser):
             raise ValueError('Invalid user (expect IdPUser, got {})'.format(type(value)))
         self._user = value
 
     @property
-    def credential(self):
-        """
-        :rtype: Password | U2F
-        """
+    def credential(self) -> Credential:
         return self._credential
 
     @credential.setter
-    def credential(self, value):
-        """
-        :type value: Password | U2F
-        """
+    def credential(self, value: Credential):
         # isinstance is broken here with Python2:
         #   ValueError: Invalid/unknown credential (got <class 'eduid_userdb.u2f.U2F'>)
         #if not isinstance(value, Password) or isinstance(value, U2F):
@@ -96,22 +84,16 @@ class AuthnData(object):
         self._credential = value
 
     @property
-    def timestamp(self):
-        """
-        :rtype: datetime.datetime
-        """
+    def timestamp(self) -> datetime.datetime:
         return self._timestamp
 
     @timestamp.setter
-    def timestamp(self, value):
-        """
-        :type value: datetime.datetime
-        """
+    def timestamp(self, value: datetime.datetime):
         if not isinstance(value, datetime.datetime):
             raise ValueError('Invalid timestamp (expect datetime, got {})'.format(type(value)))
         self._timestamp = value.replace(tzinfo = None)  # thanks for not having timezone.utc, Python2
 
-    def to_session_dict(self):
+    def to_session_dict(self) -> Dict:
         return {'cred_id': self.credential.key,
                 'authn_ts': self.timestamp,
                 }
