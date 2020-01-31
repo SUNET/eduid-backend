@@ -9,23 +9,23 @@
 # Author : Fredrik Thulin <fredrik@thulin.net>
 #          Roland Hedberg
 #
+import datetime
 import logging
 import time
 import uuid
-import datetime
-from hashlib import sha1
+from abc import ABC
 from collections import deque
-from binascii import unhexlify
+from threading import Lock
+from typing import Any, Deque, Dict, List, Mapping, NewType, Optional, Union, overload, cast, Tuple
 
-from typing import NewType, List, Deque, AnyStr
-
-import six
-
-from eduid_common.session.redis_session import SessionManager, RedisEncryptedSession
-from eduid_common.config.idp import IdPConfig
 from eduid_userdb import MongoDB
 
 _SHA1_HEXENCODED_SIZE = 160 // 8 * 2
+
+# A distinct type for session ids
+SSOSessionId = NewType('SSOSessionId', bytes)
+
+
 
 
 class NoOpLock(object):
@@ -33,11 +33,11 @@ class NoOpLock(object):
     A No-op lock class, to avoid a lot of "if self.lock:" in code using locks.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         pass
 
     # noinspection PyUnusedLocal
-    def acquire(self, _block = True):
+    def acquire(self, _block: bool = True) -> bool:
         """
         Fake acquiring a lock.
 
@@ -45,7 +45,7 @@ class NoOpLock(object):
         """
         return True
 
-    def release(self):
+    def release(self) -> None:
         """
         Fake releasing a lock.
         """
@@ -67,17 +67,17 @@ class ExpiringCacheMem:
     :param lock: threading.Lock compatible locking instance
     """
 
-    def __init__(self, name, logger, ttl, lock = None):
+    def __init__(self, name: str, logger: logging.Logger, ttl: int, lock: Optional[Lock] = None):
         self.logger = logger
         self.ttl = ttl
         self.name = name
-        self._data: dict = {}
-        self._ages: Deque = deque()
+        self._data: Dict[SSOSessionId, Any] = {}
+        self._ages: Deque[Tuple[float, SSOSessionId]] = deque()
         self.lock = lock
         if self.lock is None:
-            self.lock = NoOpLock()
+            self.lock = cast(Lock, NoOpLock())  # intentionally lie to mypy
 
-    def add(self, key, info, now = None):
+    def add(self, key: SSOSessionId, info: Any, now: Optional[int] = None) -> None:
         """
         Add entry to the cache.
 
@@ -86,7 +86,6 @@ class ExpiringCacheMem:
         :param key: Lookup key for entry
         :param info: Value to be stored for 'key'
         :param now: Current time - do not use unless testing!
-        :return: None
         """
         self._data[key] = info
         # record when this entry shall be purged
@@ -96,14 +95,13 @@ class ExpiringCacheMem:
         self._ages.append((_now, key))
         self._purge_expired(_now - self.ttl)
 
-    def _purge_expired(self, timestamp):
+    def _purge_expired(self, timestamp: int) -> None:
         """
         Purge expired records.
 
         :param timestamp: Purge any entrys older than this (integer)
-        :return: None
         """
-        if not self.lock.acquire(False):
+        if not self.lock or not self.lock.acquire(False):
             # if we don't get the lock, don't worry about it and just skip purging
             return None
         try:
@@ -123,7 +121,7 @@ class ExpiringCacheMem:
         finally:
             self.lock.release()
 
-    def get(self, key):
+    def get(self, key: SSOSessionId) -> Optional[Mapping[str, Any]]:
         """
         Fetch data from cache based on `key'.
 
@@ -132,7 +130,7 @@ class ExpiringCacheMem:
         """
         return self._data.get(key)
 
-    def update(self, key, info):
+    def update(self, key: SSOSessionId, info: Any) -> None:
         """
         Update an entry in the cache.
 
@@ -142,7 +140,7 @@ class ExpiringCacheMem:
         """
         self._data[key] = info
 
-    def delete(self, key):
+    def delete(self, key: SSOSessionId) -> bool:
         """
         Delete an item from the cache.
 
@@ -155,42 +153,39 @@ class ExpiringCacheMem:
         except KeyError:
             self.logger.debug('Failed deleting key {!r} from {!s} cache (entry did not exist)'.format(
                 key, self.name))
+        return False
 
-    def items(self):
+    def items(self) -> Any:
         """
         Return all items from cache.
         """
         return self._data
 
 
-# A distinct type for session ids
-SSOSessionId = NewType('SSOSessionId', bytes)
-
-
-class SSOSessionCache(object):
+class SSOSessionCache(ABC):
     """
     This cache holds all SSO sessions, meaning information about what users
     have a valid session with the IdP in order to not be authenticated again
     (until the SSO session expires).
     """
 
-    def __init__(self, logger, ttl, lock = None):
+    def __init__(self, logger: logging.Logger, ttl: int, lock: Optional[Lock] = None):
         self.logger = logger
         self._ttl = ttl
         self._lock = lock
         if self._lock is None:
-            self._lock = NoOpLock()
+            self._lock = cast(Lock, NoOpLock())  # intentionally lie to mypy
 
-    def remove_session(self, sid: SSOSessionId):
+    def remove_session(self, sid: SSOSessionId) -> Union[int, bool]:
         """
         Remove entrys when SLO is executed.
 
         :param sid: Session identifier as string
-        :return: True on success
+        :return: False on failure
         """
         raise NotImplementedError()
 
-    def add_session(self, username, data) -> SSOSessionId:
+    def add_session(self, username: str, data: Mapping[str, Any]) -> SSOSessionId:
         """
         Add a new SSO session to the cache.
 
@@ -204,17 +199,16 @@ class SSOSessionCache(object):
         """
         raise NotImplementedError()
 
-    def update_session(self, username, data):
+    def update_session(self, username: str, data: Mapping[str, Any]) -> None:
         """
         Update a SSO session in the cache.
 
         :param username: Username as string
         :param data: opaque, should be SSOSession converted to dict()
-        :return: Unique session identifier
         """
         raise NotImplementedError()
 
-    def get_session(self, sid: SSOSessionId):
+    def get_session(self, sid: SSOSessionId) -> Optional[Dict[Any, Any]]:
         """
         Lookup an SSO session using the session id (same `sid' previously used with add_session).
 
@@ -223,7 +217,7 @@ class SSOSessionCache(object):
         """
         raise NotImplementedError()
 
-    def get_sessions_for_user(self, username) -> List[SSOSessionId]:
+    def get_sessions_for_user(self, username: str) -> List[SSOSessionId]:
         """
         Lookup all SSO sessions for a given username. Used in SLO with SOAP binding.
 
@@ -242,6 +236,7 @@ class SSOSessionCache(object):
         return SSOSessionId(str(uuid.uuid4()).encode('utf-8'))
 
 
+
 class SSOSessionCacheMem(SSOSessionCache):
     """
     This cache holds all SSO sessions, meaning information about what users
@@ -252,15 +247,15 @@ class SSOSessionCacheMem(SSOSessionCache):
     only for a (small) single IdP.
     """
 
-    def __init__(self, logger, ttl, lock = None):
+    def __init__(self, logger: logging.Logger, ttl: int, lock: Optional[Lock] = None):
         SSOSessionCache.__init__(self, logger, ttl, lock)
         self.lid2data = ExpiringCacheMem('SSOSession.uid2user', self.logger, self._ttl, lock = self._lock)
 
-    def remove_session(self, sid: SSOSessionId):
+    def remove_session(self, sid: SSOSessionId) -> Any:
         self.logger.debug('Purging SSO session {!r}, data : {!s}'.format(sid, self.lid2data.get(sid)))
         return self.lid2data.delete(sid)
 
-    def add_session(self, username, data) -> SSOSessionId:
+    def add_session(self, username: str, data: Mapping[str, Any]) -> SSOSessionId:
         _sid = self._create_session_id()
         self.lid2data.add(_sid, {'username': username,
                                  'data': data,
@@ -268,7 +263,7 @@ class SSOSessionCacheMem(SSOSessionCache):
         self.logger.debug('Added SSO session {!r}, data : {!s}'.format(_sid, self.lid2data.get(_sid)))
         return _sid
 
-    def update_session(self, username, data):
+    def update_session(self, username: str, data: Mapping[str, Any]) -> None:
         # TODO: This is completely broken - we add a new state rather than updating the old one
         _sid = self._create_session_id()
         self.logger.debug('Updating data by adding it using new session id {}. FIXME.'.format(_sid))
@@ -276,16 +271,18 @@ class SSOSessionCacheMem(SSOSessionCache):
                                     'data': data,
                                     })
 
-    def get_session(self, sid: SSOSessionId):
+    def get_session(self, sid: SSOSessionId) -> Optional[Dict[str, Any]]:
         try:
             this = self.lid2data.get(sid)
-            if this:
-                return this['data']
         except KeyError:
             self.logger.debug('Failed looking up SSO session with session id={!r}'.format(sid))
             raise
+        if not this:
+            return None
+        assert isinstance(this['data'], dict)  # please mypy
+        return this['data']
 
-    def get_sessions_for_user(self, username) -> List[SSOSessionId]:
+    def get_sessions_for_user(self, username: str) -> List[SSOSessionId]:
         res = []
         for _key, _val in self.lid2data.items():
             # Traversing all of lid2data could be a bit slow, but any non-trivial
@@ -298,13 +295,6 @@ class SSOSessionCacheMem(SSOSessionCache):
         return res
 
 
-class SSOSessionDB(MongoDB):
-    """
-    MongoDB interface using eduid_userdb
-    """
-    pass
-
-
 class SSOSessionCacheMDB(SSOSessionCache):
     """
     This is a MongoDB version of SSOSessionCache().
@@ -314,13 +304,14 @@ class SSOSessionCacheMDB(SSOSessionCache):
     `expiration_freq' seconds.
     """
 
-    def __init__(self, uri, logger, ttl, lock = None, expiration_freq = 60, conn = None, db_name = 'eduid_idp',
-                 **kwargs):
+    def __init__(self, uri: str, logger: logging.Logger, ttl: int, lock: Optional[Lock] = None,
+                 expiration_freq: int = 60, conn: Any = None, db_name: str = 'eduid_idp',
+                 **kwargs: Any):
         SSOSessionCache.__init__(self, logger, ttl, lock)
         self._expiration_freq = expiration_freq
-        self._last_expire_at = None
+        self._last_expire_at: Optional[float] = None
 
-        self._db = SSOSessionDB(db_uri = uri, db_name = db_name)
+        self._db = MongoDB(db_uri = uri, db_name = db_name)
         self.sso_sessions = self._db.get_collection('sso_sessions')
         for retry in range(2, -1, -1):
             try:
@@ -334,15 +325,15 @@ class SSOSessionCacheMDB(SSOSessionCache):
                     raise
                 self.logger.error(f'Failed ensuring mongodb index, retrying ({retry})')
 
-    def remove_session(self, sid: SSOSessionId):
+    def remove_session(self, sid: SSOSessionId) -> Union[int, bool]:
         res = self.sso_sessions.remove({'session_id': sid}, w = 'majority')
         try:
-            return res['n']  # number of deleted records
+            return int(res['n'])  # number of deleted records
         except (KeyError, TypeError):
             self.logger.warning('Remove session {!r} failed, result: {!r}'.format(sid, res))
             return False
 
-    def add_session(self, username, data) -> SSOSessionId:
+    def add_session(self, username: str, data: Mapping[str, Any]) -> SSOSessionId:
         _ts = time.time()
         isodate = datetime.datetime.fromtimestamp(_ts, None)
         _sid = self._create_session_id()
@@ -355,7 +346,7 @@ class SSOSessionCacheMDB(SSOSessionCache):
         self.expire_old_sessions()
         return _sid
 
-    def update_session(self, username, data):
+    def update_session(self, username: str, data: Mapping[str, Any]) -> None:
         # TODO: This is completely broken - we add a new state rather than updating the old one
         _sid = self._create_session_id()
         self.logger.debug('Updating data by adding it using new session id {}. FIXME.'.format(_sid))
@@ -364,23 +355,25 @@ class SSOSessionCacheMDB(SSOSessionCache):
                      }
         self.sso_sessions.update(_test_doc, {'$set': {'data': data}})
 
-    def get_session(self, sid: SSOSessionId):
+    def get_session(self, sid: SSOSessionId) -> Optional[Dict[str, Any]]:
         try:
             res = self.sso_sessions.find_one({'session_id': sid})
-            if res:
-                return res['data']
         except KeyError:
             self.logger.debug('Failed looking up SSO session with id={!r}'.format(sid))
             raise
+        if not res:
+            return None
+        assert isinstance(res['data'], dict)  # please mypy
+        return res['data']
 
-    def get_sessions_for_user(self, username) -> List[SSOSessionId]:
+    def get_sessions_for_user(self, username: str) -> List[SSOSessionId]:
         res = []
         entrys = self.sso_sessions.find({'username': username})
         for this in entrys:
             res.append(this['session_id'])
         return res
 
-    def expire_old_sessions(self, force=False):
+    def expire_old_sessions(self, force: bool=False) -> bool:
         """
         Remove expired sessions from the MongoDB database.
 
