@@ -32,21 +32,22 @@
 # Author : Fredrik Thulin <fredrik@thulin.net>
 #
 
-import bson
 import copy
 import datetime
-from six import string_types
+from typing import Dict, Any
 
-from eduid_userdb.exceptions import UserHasUnknownData, UserIsRevoked, UserHasNotCompletedSignup
-from eduid_userdb.element import UserDBValueError
+import bson
 
-from eduid_userdb.mail import MailAddressList
-from eduid_userdb.phone import PhoneNumberList
 from eduid_userdb.credentials import CredentialList
-from eduid_userdb.nin import NinList
-from eduid_userdb.tou import ToUList
+from eduid_userdb.element import UserDBValueError
+from eduid_userdb.exceptions import UserHasUnknownData, UserIsRevoked, UserHasNotCompletedSignup
 from eduid_userdb.locked_identity import LockedIdentityList
+from eduid_userdb.mail import MailAddressList
+from eduid_userdb.nin import NinList
 from eduid_userdb.orcid import Orcid
+from eduid_userdb.phone import PhoneNumberList
+from eduid_userdb.profile import ProfileList
+from eduid_userdb.tou import ToUList
 
 VALID_SUBJECT_VALUES = ['physical person']
 
@@ -58,7 +59,7 @@ class User(object):
     :param data: MongoDB document representing a user
     :type  data: dict
     """
-    def __init__(self, data, raise_on_unknown = True):
+    def __init__(self, data: Dict[str, Any], raise_on_unknown: bool = True):
         self._data_in = copy.deepcopy(data)  # to not modify callers data
         self._data_orig = copy.deepcopy(data)  # to not modify callers data
         self._data = dict()
@@ -88,6 +89,7 @@ class User(object):
         self._parse_tous()
         self._parse_locked_identity()
         self._parse_orcid()
+        self._parse_profiles()
 
         self._credentials = CredentialList(self._data_in.pop('passwords', []))
         # generic (known) attributes
@@ -217,7 +219,7 @@ class User(object):
             # old-style list of verified nins
             old_nins = self._data_in.pop('norEduPersonNIN')
             for this in old_nins:
-                if isinstance(this, string_types):
+                if isinstance(this, str):
                     # XXX lookup NIN in eduid-dashboards verifications to make sure it is verified somehow?
                     _primary = not _nins
                     _nins.append({'number': this,
@@ -263,6 +265,15 @@ class User(object):
         _orcid = self._data_in.pop('orcid', None)
         if _orcid is not None:
             self._orcid = Orcid(data=_orcid)
+
+    def _parse_profiles(self):
+        """
+        Part of __init__().
+
+        Parse the Profile elements.
+        """
+        _profiles = self._data_in.pop('profiles', [])
+        self._profiles = ProfileList(_profiles)
 
     # -----------------------------------------------------------------
     @property
@@ -495,7 +506,7 @@ class User(object):
         if not isinstance(value, list):
             raise UserDBValueError("Unknown 'entitlements' value: {!r}".format(value))
         for this in value:
-            if not isinstance(this, string_types):
+            if not isinstance(this, str):
                 raise UserDBValueError("Unknown 'entitlements' element: {!r}".format(this))
         self._data['entitlements'] = value
 
@@ -565,6 +576,14 @@ class User(object):
             self._orcid = value
         else:
             raise UserDBValueError("Unknown 'orcid' value: {!r}".format(value))
+
+    # -----------------------------------------------------------------
+    @property
+    def profiles(self) -> ProfileList:
+        """
+        :return: Profiles for this user or empty list
+        """
+        return self._profiles
 
     # -----------------------------------------------------------------
     def to_dict(self, old_userdb_format=False):
