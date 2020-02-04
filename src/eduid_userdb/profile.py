@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import copy
 from datetime import datetime
-from typing import Union, Optional, Mapping, List
+from typing import Union, Optional, List, Dict, Any
 
 from eduid_userdb.element import Element, ElementList, DuplicateElementViolation
 from eduid_userdb.exceptions import UserDBValueError
@@ -15,8 +15,8 @@ __author__ = 'lundberg'
 class Profile(Element):
 
     def __init__(self, owner: Optional[str] = None, schema: Optional[str] = None,
-                 profile_data: Optional[Mapping] = None, application: Optional[str] = None,
-                 created_ts: Optional[Union[datetime, bool]] = None, data: Optional[Mapping] = None):
+                 profile_data: Optional[Dict[str, Any]] = None, application: Optional[str] = None,
+                 created_ts: Optional[Union[datetime, bool]] = None, data: Optional[Dict[str, Any]] = None):
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
 
@@ -36,7 +36,7 @@ class Profile(Element):
         self.profile_data = data.pop('profile_data', None)
 
     @classmethod
-    def from_dict(cls, data: Mapping) -> Profile:
+    def from_dict(cls, data: Dict[str, Any]) -> Profile:
         return cls(data=data)
 
     # -----------------------------------------------------------------
@@ -87,7 +87,7 @@ class Profile(Element):
 
     # -----------------------------------------------------------------
     @property
-    def profile_data(self) -> Mapping:
+    def profile_data(self) -> Dict[str, Any]:
         """
         This is the schema used for the external data
 
@@ -96,11 +96,11 @@ class Profile(Element):
         return self._data['profile_data']
 
     @profile_data.setter
-    def profile_data(self, value: Mapping) -> None:
+    def profile_data(self, value: Dict[str, Any]) -> None:
         """
         :param value: Opaque profile data
         """
-        if not isinstance(value, Mapping):
+        if not isinstance(value, dict):
             raise UserDBValueError(f"Invalid 'profile_data': {repr(value)}")
         self._data['profile_data'] = value
 
@@ -115,7 +115,7 @@ class ProfileList(ElementList):
 
     :param profiles: List of profiles
     """
-    def __init__(self, profiles: List[Union[Profile, Mapping]]):
+    def __init__(self, profiles: List[Union[Profile, Dict[str, Any]]]):
         super(ProfileList, self).__init__(elements=list())
 
         for this in profiles:
