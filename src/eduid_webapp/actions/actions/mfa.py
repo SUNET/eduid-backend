@@ -37,6 +37,7 @@ import base64
 from flask import request
 
 from eduid_common.session import session
+from eduid_common.authn import hwtokens
 from eduid_webapp.actions.action_abc import ActionPlugin
 from eduid_userdb.credentials import U2F, Webauthn
 from eduid_webapp.actions.app import current_actions_app as current_app
@@ -90,38 +91,7 @@ class Plugin(ActionPlugin):
         if not user:
             raise self.ActionError('mfa.user-not-found')
 
-        credentials = _get_user_credentials(user)
-        current_app.logger.debug('FIDO credentials for user {}:\n{}'.format(user, pprint.pformat(credentials)))
-
-        # CTAP1/U2F
-        # TODO: Only make U2F challenges for U2F tokens?
-        challenge = None
-        if current_app.config.generate_u2f_challenges is True:
-            u2f_tokens = [v['u2f'] for v in credentials.values()]
-            try:
-                challenge = begin_authentication(current_app.config.u2f_app_id, u2f_tokens)
-                current_app.logger.debug('U2F challenge:\n{}'.format(pprint.pformat(challenge)))
-            except ValueError:
-                # there is no U2F key registered for this user
-                pass
-
-        # CTAP2/Webauthn
-        # TODO: Only make Webauthn challenges for Webauthn tokens?
-        webauthn_credentials = [v['webauthn'] for v in credentials.values()]
-        fido2rp = RelyingParty(current_app.config.fido2_rp_id, 'eduID')
-        fido2server = _get_fido2server(credentials, fido2rp)
-        raw_fido2data, fido2state = fido2server.authenticate_begin(webauthn_credentials)
-        current_app.logger.debug('FIDO2 authentication data:\n{}'.format(pprint.pformat(raw_fido2data)))
-        fido2data = base64.urlsafe_b64encode(cbor.encode(raw_fido2data)).decode('ascii')
-        fido2data = fido2data.rstrip('=')
-
-        config = {'u2fdata': '{}', 'webauthn_options': fido2data}
-
-        # Save the challenge to be used when validating the signature in perform_action() below
-        if challenge is not None:
-            session[self.PACKAGE_NAME + '.u2f.challenge'] = challenge.json
-            config['u2fdata'] = json.dumps(challenge.data_for_client)
-            current_app.logger.debug(f'FIDO1/U2F challenge for user {user}: {challenge.data_for_client}')
+        config, fido2state = hwtokens.start_token_verification(user, self.PACKAGE_NAME)
 
         current_app.logger.debug(f'FIDO2/Webauthn state for user {user}: {fido2state}')
         session[self.PACKAGE_NAME + '.webauthn.state'] = json.dumps(fido2state)
@@ -187,77 +157,22 @@ class Plugin(ActionPlugin):
             challenge = session.get(self.PACKAGE_NAME + '.u2f.challenge')
             current_app.logger.debug('Challenge: {!r}'.format(challenge))
 
-            device, counter, touch = complete_authentication(challenge, token_response,
-                                                             current_app.config.u2f_valid_facets)
-            current_app.logger.debug('U2F authentication data: {}'.format({
-                'keyHandle': device['keyHandle'],
-                'touch': touch,
-                'counter': counter,
-            }))
+            breakpoint()
+            result = hwtokens.verify_u2f(user, challenge, token_response)
 
-            for this in user.credentials.filter(U2F).to_list():
-                if this.keyhandle == device['keyHandle']:
-                    current_app.logger.info('User {} logged in using U2F token {} (touch: {}, counter {})'.format(
-                        user, this, touch, counter))
-                    action.result = {'success': True,
-                                     'touch': touch,
-                                     'counter': counter,
-                                     RESULT_CREDENTIAL_KEY_NAME: this.key,
-                                     }
-                    current_app.actions_db.update_action(action)
-                    return action.result
+            if result is not None:
+                action.result = result
+                current_app.actions_db.update_action(action)
+                return result
+
         elif 'authenticatorData' in req_json:
             # CTAP2/Webauthn
-            req = {}
-            for this in ['credentialId', 'clientDataJSON', 'authenticatorData', 'signature']:
-                try:
-                    req_json[this] += ('=' * (len(req_json[this]) % 4))
-                    req[this] = base64.urlsafe_b64decode(req_json[this])
-                except:
-                    current_app.logger.error('Failed to find/b64decode Webauthn parameter {}: {}'.format(
-                        this, req_json.get(this)))
-                    raise self.ActionError('mfa.bad-token-response')  # XXX add bad-token-response to frontend
-            current_app.logger.debug('Webauthn request after decoding:\n{}'.format(pprint.pformat(req)))
-            client_data = ClientData(req['clientDataJSON'])
-            auth_data = AuthenticatorData(req['authenticatorData'])
+            try:
+                result = hwtokens.verify_webauthn(user, req_json, self.PACKAGE_NAME)
+            except hwtokens.VerificationProblem as exc:
+                raise self.ActionError(exc.msg)
 
-            credentials = _get_user_credentials(user)
-            fido2state = json.loads(session[self.PACKAGE_NAME + '.webauthn.state'])
-
-            rp_id = current_app.config.fido2_rp_id
-            fido2rp = RelyingParty(rp_id, 'eduID')
-            fido2server = _get_fido2server(credentials, fido2rp)
-            matching_credentials = [(v['webauthn'], k) for k,v in credentials.items()
-                                    if v['webauthn'].credential_id == req['credentialId']]
-
-            if not matching_credentials:
-                current_app.logger.error('Could not find webauthn credential {} on user {}'.format(
-                    req['credentialId'], user))
-                raise self.ActionError('mfa.unknown-token')
-
-            authn_cred = fido2server.authenticate_complete(
-                fido2state,
-                [mc[0] for mc in matching_credentials],
-                req['credentialId'],
-                client_data,
-                auth_data,
-                req['signature'],
-            )
-            current_app.logger.debug('Authenticated Webauthn credential: {}'.format(authn_cred))
-
-            cred_key = [mc[1] for mc in matching_credentials][0]
-
-            touch = auth_data.flags
-            counter = auth_data.counter
-            current_app.logger.info('User {} logged in using Webauthn token {} (touch: {}, counter {})'.format(
-                user, cred_key, touch, counter))
-            action.result = {'success': True,
-                             'touch': auth_data.is_user_present() or auth_data.is_user_verified(),
-                             'user_present': auth_data.is_user_present(),
-                             'user_verified': auth_data.is_user_verified(),
-                             'counter': counter,
-                             RESULT_CREDENTIAL_KEY_NAME: cred_key,
-                             }
+            action.result = result
             current_app.actions_db.update_action(action)
             return action.result
 
