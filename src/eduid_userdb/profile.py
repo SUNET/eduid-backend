@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-import copy
 from datetime import datetime
-from typing import Union, Optional, List, Dict, Any
+from typing import Union, Optional, List, Any, Mapping
 
 from eduid_userdb.element import Element, ElementList, DuplicateElementViolation
 from eduid_userdb.exceptions import UserDBValueError
@@ -14,30 +13,22 @@ __author__ = 'lundberg'
 
 class Profile(Element):
 
-    def __init__(self, owner: Optional[str] = None, schema: Optional[str] = None,
-                 profile_data: Optional[Dict[str, Any]] = None, application: Optional[str] = None,
-                 created_ts: Optional[Union[datetime, bool]] = None, data: Optional[Dict[str, Any]] = None):
-        data_in = data
-        data = copy.copy(data_in)  # to not modify callers data
+    def __init__(self, owner: str, schema: str, profile_data: Mapping[str, Any],
+                 created_by: Optional[str] = None, created_ts: Optional[Union[datetime, bool]] = None,
+                 modified_ts: Optional[Union[datetime, bool]] = None):
 
-        if data is None:
-            if created_ts is None:
-                created_ts = True
-            data = dict(owner=owner,
-                        schema=schema,
-                        profile_data=profile_data,
-                        created_by=application,
-                        created_ts=created_ts,
-                        )
+        if created_ts is None:
+            created_ts = True
+        data = dict(created_by=created_by, created_ts=created_ts, modified_ts=modified_ts)
+        super().__init__(data=data)
 
-        super(Profile, self).__init__(data=data)
-        self.owner = data.pop('owner', None)
-        self.schema = data.pop('schema', None)
-        self.profile_data = data.pop('profile_data', None)
+        self.owner = owner
+        self.schema = schema
+        self.profile_data = profile_data
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> Profile:
-        return cls(data=data)
+    def from_dict(cls, data: Mapping[str, Any]) -> Profile:
+        return cls(**data)
 
     # -----------------------------------------------------------------
     @property
@@ -87,7 +78,7 @@ class Profile(Element):
 
     # -----------------------------------------------------------------
     @property
-    def profile_data(self) -> Dict[str, Any]:
+    def profile_data(self) -> Mapping[str, Any]:
         """
         This is the schema used for the external data
 
@@ -96,11 +87,11 @@ class Profile(Element):
         return self._data['profile_data']
 
     @profile_data.setter
-    def profile_data(self, value: Dict[str, Any]) -> None:
+    def profile_data(self, value: Mapping[str, Any]) -> None:
         """
         :param value: Opaque profile data
         """
-        if not isinstance(value, dict):
+        if not isinstance(value, Mapping):
             raise UserDBValueError(f"Invalid 'profile_data': {repr(value)}")
         self._data['profile_data'] = value
 
@@ -115,17 +106,21 @@ class ProfileList(ElementList):
 
     :param profiles: List of profiles
     """
-    def __init__(self, profiles: List[Union[Profile, Dict[str, Any]]]):
-        super(ProfileList, self).__init__(elements=list())
+    def __init__(self, profiles: List[Profile]):
+        super().__init__(elements=list())
 
-        for this in profiles:
-            if isinstance(this, Profile):
-                profile = this
-            else:
-                profile = Profile.from_dict(this)
+        for profile in profiles:
+            if not isinstance(profile, Profile):
+                raise UserDBValueError(f"Instance not of type 'Profile': {repr(profile)}")
 
             if self.find(profile.key):
                 raise DuplicateElementViolation(f'Profile "{profile.key}" already in list')
 
             self.add(profile)
 
+    @classmethod
+    def from_list_of_dicts(cls, items: List[Mapping[str, Any]]) -> ProfileList:
+        profiles = list()
+        for item in items:
+            profiles.append(Profile.from_dict(data=item))
+        return cls(profiles=profiles)

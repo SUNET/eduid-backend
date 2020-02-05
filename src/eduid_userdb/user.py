@@ -273,7 +273,7 @@ class User(object):
         Parse the Profile elements.
         """
         _profiles = self._data_in.pop('profiles', [])
-        self._profiles = ProfileList(_profiles)
+        self._profiles = ProfileList.from_list_of_dicts(_profiles)
 
     # -----------------------------------------------------------------
     @property
