@@ -189,7 +189,11 @@ def config_reset_pw(code: str) -> dict:
             'csrf_token': session.get_csrf_token(),
             'suggested_password': new_password,
             'email_code': state.email_code.code,
+            'email_address': state.email_address,
             'extra_security': mask_alternatives(alternatives),
+            'password_entropy': current_app.config.password_entropy,
+            'password_length': current_app.config.password_length,
+            'password_service_url': current_app.config.password_service_url,
             }
 
 

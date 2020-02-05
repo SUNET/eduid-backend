@@ -299,7 +299,10 @@ def get_extra_security_alternatives(user: User) -> dict:
     alternatives = {}
 
     if user.phone_numbers.verified.count:
-        verified_phone_numbers = [{'number': item.number} for item in user.phone_numbers.verified.to_list()]
+        verified_phone_numbers = [
+                {'number': item.number,
+                 'index': n} 
+                for n, item in enumerate(user.phone_numbers.verified.to_list())]
         alternatives['phone_numbers'] = verified_phone_numbers
 
     tokens = user.credentials.filter(U2F).to_list()
@@ -321,7 +324,8 @@ def mask_alternatives(alternatives: dict) -> dict:
         for phone_number in alternatives.get('phone_numbers', []):
             number = phone_number['number']
             masked_number = '{}{}'.format('X'*(len(number)-2), number[len(number)-2:])
-            masked_phone_numbers.append({'number': masked_number})
+            masked_phone_numbers.append({'number': masked_number,
+                                         'index': phone_number['index']})
 
         alternatives['phone_numbers'] = masked_phone_numbers
     return alternatives
