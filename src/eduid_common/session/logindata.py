@@ -60,13 +60,13 @@ class SSOLoginData(SessionNSBase):
     FailCount: int = 0
 
     # saml request object
-    saml_req: IdP_SAMLRequest = field(init=False)
+    saml_req: IdP_SAMLRequest = field(init=False, repr=False)
 
     # query string
-    query_string: str = field(init=False)
+    query_string: str = field(init=False, repr=False)
 
-    mfa_action_creds: Dict[Credential, datetime] = field(default_factory=dict, init=False)
-    mfa_action_external: Optional[ExternalMfaData] = field(default=None, init=False)
+    mfa_action_creds: Dict[Credential, datetime] = field(default_factory=dict, init=False, repr=False)
+    mfa_action_external: Optional[ExternalMfaData] = field(default=None, init=False, repr=False)
 
     def __post_init__(self):
         self.key = escape(self.key, quote=True)
