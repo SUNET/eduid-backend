@@ -104,6 +104,9 @@ class ResetPwMsg(Enum):
     unrecognized_pw = 'chpass.unable-to-verify-old-password'
     # The user is out of sync with the db, user needs to reload
     out_of_sync = 'user-out-of-sync'
+    # the user has chosen extra security with a security key but has failed to
+    # produce evidence of it.
+    hwtoken_fail = 'security-key-fail'
 
 
 class BadCode(Exception):

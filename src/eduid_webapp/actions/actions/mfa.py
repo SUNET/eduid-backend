@@ -91,10 +91,7 @@ class Plugin(ActionPlugin):
         if not user:
             raise self.ActionError('mfa.user-not-found')
 
-        config, fido2state = hwtokens.start_token_verification(user, self.PACKAGE_NAME)
-
-        current_app.logger.debug(f'FIDO2/Webauthn state for user {user}: {fido2state}')
-        session[self.PACKAGE_NAME + '.webauthn.state'] = json.dumps(fido2state)
+        config = hwtokens.start_token_verification(user, self.PACKAGE_NAME)
 
         # Explicit check for boolean True
         if current_app.config.mfa_testing is True:
@@ -157,7 +154,6 @@ class Plugin(ActionPlugin):
             challenge = session.get(self.PACKAGE_NAME + '.u2f.challenge')
             current_app.logger.debug('Challenge: {!r}'.format(challenge))
 
-            breakpoint()
             result = hwtokens.verify_u2f(user, challenge, token_response)
 
             if result is not None:

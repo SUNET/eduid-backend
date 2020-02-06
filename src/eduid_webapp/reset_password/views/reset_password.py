@@ -90,7 +90,9 @@ from eduid_webapp.reset_password.schemas import ResetPasswordInitSchema
 from eduid_webapp.reset_password.schemas import ResetPasswordEmailCodeSchema
 from eduid_webapp.reset_password.schemas import ResetPasswordWithCodeSchema
 from eduid_webapp.reset_password.schemas import ResetPasswordWithPhoneCodeSchema
-from eduid_webapp.reset_password.schemas import ResetPasswordExtraSecSchema
+from eduid_webapp.reset_password.schemas import ResetPasswordWithSecTokenSchema
+from eduid_webapp.reset_password.schemas import ResetPasswordExtraSecPhoneSchema
+from eduid_webapp.reset_password.schemas import ResetPasswordExtraSecTokenSchema
 from eduid_webapp.reset_password.helpers import ResetPwMsg, error_message, success_message
 from eduid_webapp.reset_password.helpers import send_password_reset_mail
 from eduid_webapp.reset_password.helpers import get_pwreset_state, BadCode
@@ -101,6 +103,8 @@ from eduid_webapp.reset_password.helpers import verify_email_address
 from eduid_webapp.reset_password.helpers import verify_phone_number
 from eduid_webapp.reset_password.helpers import send_verify_phone_code
 from eduid_webapp.reset_password.app import current_reset_password_app as current_app
+
+SESSION_PREFIX = "eduid_webapp.reset_password.views"
 
 
 reset_password_views = Blueprint('reset_password', __name__, url_prefix='/reset', template_folder='templates')
@@ -248,10 +252,10 @@ def set_new_pw(code: str, password: str) -> dict:
     return success_message(ResetPwMsg.pw_resetted)
 
 
-@reset_password_views.route('/extra-security/', methods=['POST'])
-@UnmarshalWith(ResetPasswordExtraSecSchema)
+@reset_password_views.route('/extra-security-phone/', methods=['POST'])
+@UnmarshalWith(ResetPasswordExtraSecPhoneSchema)
 @MarshalWith(FluxStandardAction)
-def choose_extra_security(code: str, phone_index: int) -> dict:
+def choose_extra_security_phone(code: str, phone_index: int) -> dict:
     """
     View called when the user chooses extra security (she can do that when she
     has some verified phone number). It receives an emailed reset password code
@@ -298,7 +302,7 @@ def choose_extra_security(code: str, phone_index: int) -> dict:
     current_app.logger.info(f'Trying to send password reset sms to user with '
                             f'eppn {state.eppn}')
     try:
-        send_verify_phone_code(state, phone_number)
+        send_verify_phone_code(state, phone_number["number"])
     except MsgTaskFailed as e:
         current_app.logger.error(f'Sending sms failed: {e}')
         return error_message(ResetPwMsg.send_sms_failure)
@@ -307,10 +311,62 @@ def choose_extra_security(code: str, phone_index: int) -> dict:
     return success_message(ResetPwMsg.send_sms_success)
 
 
-@reset_password_views.route('/new-password-secure/', methods=['POST'])
+@reset_password_views.route('/extra-security-token/', methods=['POST'])
+@UnmarshalWith(ResetPasswordExtraSecTokenSchema)
+@MarshalWith(FluxStandardAction)
+def choose_extra_security_token(code: str, token_data: str) -> dict:
+    """
+    View called when the user chooses extra security with a hardware token.
+    It receives an emailed reset password code
+    and data about the hw key chosen, and returns info on the
+    result of the attempted operation.
+
+    Preconditions required for the call to succeed:
+    * A PasswordResetEmailState object in the password_reset_state_db
+      keyed by the received code.
+    * A flag in said state object indicating that the emailed code has already
+      been verifed.
+    * The user referenced in the state has a credential with the hw token
+      referenced in the request.
+
+    As side effects, this operation will:
+    * Copy the data in the PasswordResetEmailState to a new
+      PasswordResetEmailAndTokenState;
+    * Initiate (U2F or Webauthn) authentication workflow;
+    * Send data produced in the previous state to client.
+
+    This operation may fail due to:
+    * The code does not correspond to a valid state in the db;
+    * The code has expired;
+    * No valid user corresponds to the eppn stored in the state;
+    * The user does not have a credential that corresponds to
+      the data received
+    """
+    try:
+        state = get_pwreset_state(code)
+    except BadCode as e:
+        return error_message(e.msg)
+
+    current_app.logger.info(f'Password reset: choose_extra_security_token for '
+                            f'user with eppn {state.eppn}')
+
+    # Check that the email code has been validated
+    if not state.email_code.is_verified:
+        current_app.logger.info(f'User with eppn {state.eppn} has not '
+                                f'verified their email address')
+        return error_message(ResetPwMsg.email_not_validated)
+
+    config = hwtokens.start_token_verification(user, SESSION_PREFIX)
+    config['csrf_token'] = session.new_csrf_token()
+
+    current_app.stats.count(name='reset_password_extra_security_token')
+    return config
+
+
+@reset_password_views.route('/new-password-secure-phone/', methods=['POST'])
 @UnmarshalWith(ResetPasswordWithPhoneCodeSchema)
 @MarshalWith(FluxStandardAction)
-def set_new_pw_extra_security(phone_code: str, code: str, password: str) -> dict:
+def set_new_pw_extra_security_phone(phone_code: str, code: str, password: str) -> dict:
     """
     View that receives an emailed reset password code, an SMS'ed reset password
     code, and a password, and sets the password as credential for the user, with
@@ -339,18 +395,15 @@ def set_new_pw_extra_security(phone_code: str, code: str, password: str) -> dict
     except BadCode as e:
         return error_message(e.msg)
 
-    user = current_app.central_userdb.get_user_by_eppn(state.eppn,
-                                                       raise_on_missing=False)
-
     if phone_code == state.phone_code.code:
         if not verify_phone_number(state):
-            current_app.logger.info(f'Could not verify phone code for {user}')
+            current_app.logger.info(f'Could not verify phone code for {state.eppn}')
             return error_message(ResetPwMsg.phone_invalid)
 
-        current_app.logger.info(f'Phone code verified for user {user}')
+        current_app.logger.info(f'Phone code verified for {state.eppn}')
         current_app.stats.count(name='reset_password_extra_security_phone_success')
     else:
-        current_app.logger.info(f'Could not verify phone code for {user}')
+        current_app.logger.info(f'Could not verify phone code for {state.eppn}')
         return error_message(ResetPwMsg.unkown_phone_code)
 
     hashed = session.reset_password.generated_password_hash
@@ -363,8 +416,99 @@ def set_new_pw_extra_security(phone_code: str, code: str, password: str) -> dict
         current_app.logger.info('Custom password used')
         current_app.stats.count(name='reset_password_custom_password_used')
 
+    user = current_app.central_userdb.get_user_by_eppn(state.eppn,
+                                                       raise_on_missing=False)
+
     current_app.logger.info(f'Resetting password for user {user}')
     reset_user_password(user, state, password)
     current_app.logger.info(f'Password reset done, removing state for {user}')
     current_app.password_reset_state_db.remove_state(state)
     return success_message(ResetPwMsg.pw_resetted)
+
+
+@reset_password_views.route('/new-password-secure-token/', methods=['POST'])
+@UnmarshalWith(ResetPasswordWithSecTokenSchema)
+@MarshalWith(FluxStandardAction)
+def set_new_pw_extra_security_token(code: str, password: str) -> dict:
+    """
+    View that receives an emailed reset password code, hw token data,
+    and a password, and sets the password as credential for the user, with
+    extra security.
+
+    Preconditions required for the call to succeed:
+    * A PasswordResetEmailAndTokenState object in the password_reset_state_db
+      keyed by the received code.
+    * A flag in said state object indicating that the emailed code has already
+      been verifed.
+
+    As side effects, this view will:
+    * Compare the received password with the hash in the session to mark
+      it accordingly (as suggested or as custom);
+    * Revoke all password credentials the user had;
+
+    This operation may fail due to:
+    * The codes do not correspond to a valid state in the db;
+    * Any of the codes have expired;
+    * No valid user corresponds to the eppn stored in the state;
+    * Communication problems with the VCCS backend;
+    * Synchronization problems with the central user db.
+    """
+    try:
+        state = get_pwreset_state(code)
+    except BadCode as e:
+        return error_message(e.msg)
+
+    req_json = request.get_json()
+    if not req_json:
+        current_app.logger.error(f'No data in request to authn {state.eppn}')
+        raise self.ActionError('mfa.no-request-data')
+
+    hashed = session.reset_password.generated_password_hash
+    if check_password(password, hashed):
+        state.generated_password = True
+        current_app.logger.info('Generated password used')
+        current_app.stats.count(name='reset_password_generated_password_used')
+    else:
+        state.generated_password = False
+        current_app.logger.info('Custom password used')
+        current_app.stats.count(name='reset_password_custom_password_used')
+
+    user = current_app.central_userdb.get_user_by_eppn(state.eppn,
+                                                       raise_on_missing=False)
+
+    # Process POSTed data
+    success = False
+    if 'tokenResponse' in req_json:
+        # CTAP1/U2F
+        token_response = request.get_json().get('tokenResponse', '')
+        current_app.logger.debug(f'U2F token response: {token_response}')
+
+        challenge = session.get(SESSION_PREFIX + '.u2f.challenge')
+        current_app.logger.debug(f'Challenge: {challenge}')
+
+        result = hwtokens.verify_u2f(user, challenge, token_response)
+
+        if result is not None:
+            success = result['success']
+
+    elif not success and 'authenticatorData' in req_json:
+        # CTAP2/Webauthn
+        try:
+            result = hwtokens.verify_webauthn(user, req_json, self.PACKAGE_NAME)
+        except hwtokens.VerificationProblem:
+            pass
+        else:
+            success = result['success']
+
+    else:
+        current_app.logger.error(f'Neither U2F nor Webauthn data in request to authn {user}')
+        current_app.logger.debug(f'Request: {req_json}')
+
+    if success:
+        current_app.logger.info(f'Resetting password for user {user}')
+        reset_user_password(user, state, password)
+        current_app.logger.info(f'Password reset done, removing state for {user}')
+        current_app.password_reset_state_db.remove_state(state)
+        return success_message(ResetPwMsg.pw_resetted)
+
+    return success_message(ResetPwMsg.hwtoken_fail)
