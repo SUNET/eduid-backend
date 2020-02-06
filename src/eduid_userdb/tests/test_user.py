@@ -67,6 +67,17 @@ class TestUser(TestCase):
                                       'proofing_version': 'testing',
                                       }
                                      ],
+                      u'profiles': [{'created_by': 'test application',
+                                     'created_ts': datetime.datetime(2020, 2, 4, 17, 42, 33, 696751),
+                                     'owner': 'test owner 1',
+                                     'schema': 'test schema',
+                                     'profile_data':
+                                         {'a_string': 'I am a string',
+                                          'an_int': 3,
+                                          'a_list': ['eins', 2, 'drei'],
+                                          'a_map': {'some': 'data'}
+                                          }
+                                     }],
                       u'preferredLanguage': u'sv',
                       u'surname': u'\xf6ne',
                       u'subject': u'physical person'}
@@ -526,6 +537,12 @@ class TestUser(TestCase):
         self.assertIsInstance(new_user.orcid.id, string_types)
         self.assertIsInstance(new_user.orcid.oidc_authz, OidcAuthorization)
         self.assertIsInstance(new_user.orcid.oidc_authz.id_token, OidcIdToken)
+
+    def test_profiles(self):
+        self.assertIsNotNone(self.user1.profiles)
+        self.assertEqual(self.user1.profiles.count, 0)
+        self.assertIsNotNone(self.user2.profiles)
+        self.assertEqual(self.user2.profiles.count, 1)
 
     def test_user_verified_credentials(self):
         ver = [x for x in self.user2.credentials.to_list() if x.is_verified]
