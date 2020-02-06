@@ -36,9 +36,10 @@
 """
 User and user database module.
 """
+from bson import ObjectId
 from six import string_types
 import logging
-from typing import Optional
+from typing import Optional, Union
 
 from eduid_userdb import UserDB
 from .user import IdPUser
@@ -58,15 +59,15 @@ class IdPUserDb(object):
             userdb = UserDB(config['MONGO_URI'], db_name=config['USERDB_MONGO_DATABASE'], user_class=IdPUser)
         self.userdb = userdb
 
-    def lookup_user(self, username: Optional[str]) -> Optional[IdPUser]:
+    def lookup_user(self, username: Union[str, ObjectId]) -> Optional[IdPUser]:
         """
         Load IdPUser from userdb.
 
-        :param username: string
+        :param username: Either an e-mail address, an eppn or a user_id.
         :return: user found in database
         """
         _user = None
-        if isinstance(username, string_types):
+        if isinstance(username, str):
             if '@' in username:
                 _user = self.userdb.get_user_by_mail(username.lower(), raise_on_missing=False)
             if not _user:
