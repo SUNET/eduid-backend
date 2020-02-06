@@ -161,7 +161,10 @@ def start_token_verification(user: User, session_prefix: str) -> dict:
         config['u2fdata'] = json.dumps(challenge.data_for_client)
         current_app.logger.debug(f'FIDO1/U2F challenge for user {user}: {challenge.data_for_client}')
 
-    return config, fido2state
+    current_app.logger.debug(f'FIDO2/Webauthn state for user {user}: {fido2state}')
+    session[session_prefix + '.webauthn.state'] = json.dumps(fido2state)
+
+    return config
 
 
 def verify_u2f(user: User, challenge: bytes, token_response: str) -> Optional[dict]:
