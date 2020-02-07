@@ -37,7 +37,7 @@ import base64
 from flask import request
 
 from eduid_common.session import session
-from eduid_common.authn import hwtokens
+from eduid_common.authn import fido_tokens
 from eduid_webapp.actions.action_abc import ActionPlugin
 from eduid_userdb.credentials import U2F, Webauthn
 from eduid_webapp.actions.app import current_actions_app as current_app
@@ -91,7 +91,7 @@ class Plugin(ActionPlugin):
         if not user:
             raise self.ActionError('mfa.user-not-found')
 
-        config = hwtokens.start_token_verification(user, self.PACKAGE_NAME)
+        config = fido_tokens.start_token_verification(user, self.PACKAGE_NAME)
 
         # Explicit check for boolean True
         if current_app.config.mfa_testing is True:
@@ -154,7 +154,7 @@ class Plugin(ActionPlugin):
             challenge = session.get(self.PACKAGE_NAME + '.u2f.challenge')
             current_app.logger.debug('Challenge: {!r}'.format(challenge))
 
-            result = hwtokens.verify_u2f(user, challenge, token_response)
+            result = fido_tokens.verify_u2f(user, challenge, token_response)
 
             if result is not None:
                 action.result = result
@@ -164,8 +164,8 @@ class Plugin(ActionPlugin):
         elif 'authenticatorData' in req_json:
             # CTAP2/Webauthn
             try:
-                result = hwtokens.verify_webauthn(user, req_json, self.PACKAGE_NAME)
-            except hwtokens.VerificationProblem as exc:
+                result = fido_tokens.verify_webauthn(user, req_json, self.PACKAGE_NAME)
+            except fido_tokens.VerificationProblem as exc:
                 raise self.ActionError(exc.msg)
 
             action.result = result

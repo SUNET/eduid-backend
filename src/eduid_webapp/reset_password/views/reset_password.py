@@ -356,7 +356,7 @@ def choose_extra_security_token(code: str, token_data: str) -> dict:
                                 f'verified their email address')
         return error_message(ResetPwMsg.email_not_validated)
 
-    config = hwtokens.start_token_verification(user, SESSION_PREFIX)
+    config = fido_tokens.start_token_verification(user, SESSION_PREFIX)
     config['csrf_token'] = session.new_csrf_token()
 
     current_app.stats.count(name='reset_password_extra_security_token')
@@ -486,7 +486,7 @@ def set_new_pw_extra_security_token(code: str, password: str) -> dict:
         challenge = session.get(SESSION_PREFIX + '.u2f.challenge')
         current_app.logger.debug(f'Challenge: {challenge}')
 
-        result = hwtokens.verify_u2f(user, challenge, token_response)
+        result = fido_tokens.verify_u2f(user, challenge, token_response)
 
         if result is not None:
             success = result['success']
@@ -494,8 +494,8 @@ def set_new_pw_extra_security_token(code: str, password: str) -> dict:
     elif not success and 'authenticatorData' in req_json:
         # CTAP2/Webauthn
         try:
-            result = hwtokens.verify_webauthn(user, req_json, self.PACKAGE_NAME)
-        except hwtokens.VerificationProblem:
+            result = fido_tokens.verify_webauthn(user, req_json, self.PACKAGE_NAME)
+        except fido_tokens.VerificationProblem:
             pass
         else:
             success = result['success']
@@ -511,4 +511,4 @@ def set_new_pw_extra_security_token(code: str, password: str) -> dict:
         current_app.password_reset_state_db.remove_state(state)
         return success_message(ResetPwMsg.pw_resetted)
 
-    return success_message(ResetPwMsg.hwtoken_fail)
+    return success_message(ResetPwMsg.fido_token_fail)
