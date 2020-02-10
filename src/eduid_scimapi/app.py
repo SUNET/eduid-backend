@@ -1,5 +1,6 @@
 import sys
 from os import environ
+from typing import Any, Dict
 
 import falcon
 import yaml
@@ -11,7 +12,7 @@ from eduid_scimapi.resources.users import UsersResource
 
 # Read config
 config_path = environ.get('EDUID_AMPLUS_CONFIG')
-config = dict()
+config: Dict[str, Any] = dict()
 if config_path:
     try:
         with open(config_path) as f:

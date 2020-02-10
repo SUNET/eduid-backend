@@ -19,7 +19,7 @@ class Context(object):
 
 
         if self.config.get('LOGGING'):
-            logging.config.dictConfig(self.config.get('LOGGING'))
+            logging.config.dictConfig(self.config.get('LOGGING', {}))
             self.logger = logging.getLogger('eduid_scimapi')
         else:
             self.logger = logging.getLogger('eduid_scimapi')

@@ -17,7 +17,8 @@ script:
   - ". venv/bin/activate"
   - "pip install --upgrade setuptools pip wheel mypy"
   - "pip install --index-url https://pypi.sunet.se -r test_requirements.txt"
-  - "pytest src/eduid_scimapi"
+  - "pip freeze"
+  - "pytest"
   - "mypy --ignore-missing-imports src/eduid_scimapi"
   - "python setup.py sdist bdist_wheel --universal"
 

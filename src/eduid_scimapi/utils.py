@@ -32,10 +32,14 @@ def b64_encode(b: bytes) -> str:
 
 
 def b64_decode(data: AnyStr) -> bytes:
-    if not isinstance(data, bytes):
-        data = data.encode('utf-8')
-    data += b'=' * (len(data) % 4)
-    return base64.urlsafe_b64decode(data)
+    if isinstance(data, str):
+        _data = data.encode('utf-8')
+    elif isinstance(data, bytes):
+        _data = data
+    else:
+        raise ValueError('b64_decode needs either str or bytes')
+    _data += b'=' * (len(_data) % 4)
+    return base64.urlsafe_b64decode(_data)
 
 
 def filter_none(x: Union[Dict, List]) -> Union[Dict, List]:
