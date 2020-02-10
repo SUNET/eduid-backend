@@ -22,7 +22,7 @@ script:
   - "python setup.py sdist bdist_wheel --universal"
 
 extra_jobs:
-  - name: eduid-IdP-docker
+  - name: eduid-scimapi-docker
     builders:
       - docker
     docker_name: eduid/eduid-scimapi
