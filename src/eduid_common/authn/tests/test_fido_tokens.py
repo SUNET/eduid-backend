@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2020 SUNET
 # All rights reserved.
@@ -30,62 +31,153 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from __future__ import absolute_import
+
 
 import sys
-import logging
-import traceback
-from contextlib import contextmanager
+import json
+from dataclasses import dataclass, field
 from copy import deepcopy
-from typing import Optional, List, Dict, Any
+from typing import cast, Optional, List, Dict, Any
 
-from flask.testing import FlaskClient
+from flask import Blueprint, request, current_app
 
-from eduid_common.api.testing import APIMockedUserDB
-from eduid_common.api.testing_base import CommonTestCase
+from eduid_common.api.app import EduIDBaseApp
+from eduid_common.api.testing import EduidAPITestCase
+from eduid_common.api.app import eduid_init_app
+from eduid_common.authn.fido_tokens import start_token_verification
+from eduid_common.authn.fido_tokens import verify_webauthn
+from eduid_common.config.base import FlaskConfig
+from eduid_userdb.credentials import U2F, Webauthn
 from eduid_userdb import User
 from eduid_userdb.db import BaseDB
 from eduid_userdb.data_samples import (NEW_USER_EXAMPLE,
                                        NEW_UNVERIFIED_USER_EXAMPLE,
                                        NEW_COMPLETED_SIGNUP_USER_EXAMPLE)
 
-logger = logging.getLogger(__name__)
+
+@dataclass
+class TestFidoConfig(FlaskConfig):
+    mfa_testing: bool = True
+    generate_u2f_challenges: bool = True
+    u2f_app_id: str = 'https://eduid.se/u2f-app-id.json'
+    fido2_rp_id: str = 'eduid.se'
+    u2f_valid_facets: list = field(default_factory=lambda: ['https://dashboard.dev.eduid.se',
+                                                            'https://idp.dev.eduid.se'])
+
+views = Blueprint('testing', 'testing', url_prefix='')
+
+@views.route('/start', methods=["GET"])
+def start_verification():
+    user = current_app.central_userdb.get_user_by_eppn('hubba-bubba')
+    data = json.loads(request.query_string[17:])
+    result = verify_webauthn(user, data, 'testing')
+    return json.dumps(result)
 
 
-NEW_U2F_USER_EXAMPLE = deepcopy(NEW_USER_EXAMPLE)
-NEW_FIDO2_USER_EXAMPLE = deepcopy(NEW_USER_EXAMPLE)
+class TestFidoApp(EduIDBaseApp):
+
+    def __init__(self, name: str, config: dict, **kwargs):
+
+        super(TestFidoApp, self).__init__(name, TestFidoConfig, config, **kwargs)
+        self.config: TestFidoConfig = cast(TestFidoConfig, self.config)
+        self.register_blueprint(views)
+
+# current_app: TestFidoApp = cast(TestFidoApp, current_app)
 
 
-_standard_test_users = {
-    'hubba-bubba': NEW_USER_EXAMPLE,
-    'hubba-baar': NEW_UNVERIFIED_USER_EXAMPLE,
-    'hubba-fooo': NEW_COMPLETED_SIGNUP_USER_EXAMPLE,
-    'hubba-fooo': NEW_U2F_USER_EXAMPLE,
-    'hubba-fooo': NEW_FIDO2_USER_EXAMPLE,
+
+
+SAMPLE_WEBAUTHN_REQUEST = {
+        "credentialId": "i3KjBT0t5TPm693T9O0f4zyiwvdu9cY8BegCjiVvq_FS-ZmPcvXipFvHvD5CH6ZVRR3nsVsOla0Cad3fbtUA_Q",
+        "authenticatorData": "xoTb59PepEtaoOaf9D9NR21Ub_INOOK_T7nl1ndsHRQBAAADGA",
+        "clientDataJSON": "eyJjaGFsbGVuZ2UiOiJSeVdWd2dQcWpPZnRaQU0weFlLNkRFaTF0TUNBZXFtSXNjQmxHZWJrSDFBIiwib3JpZ2luIjoiaHR0cHM6Ly9pZHAuZWR1aWQuc2UiLCJ0eXBlIjoid2ViYXV0aG4uZ2V0In0=",
+        "signature": "MEUCIDEDIGx7r5jVlVRZ_4eiAjvIpE8lXcL4nHUqOWYyCWDCAiEAi9aJvxLyPCUMbbLjXBH1HwACaEl2_uoSV29kuv_2xSM",
+        "csrf_token": "9ac27726c26203b1d03c10029dc336d5fa3f5e68",
 }
 
 
-class FidoTokensTestCase(CommonTestCase):
-    """
-    Test case for basic fido tokens operations.
-    """
-    # This concept with a class variable is broken - doesn't provide isolation between tests.
-    # Do what we can and initialise it empty here, and then fill it in __init__.
-    MockedUserDB = APIMockedUserDB
+class FidoTokensTestCase(EduidAPITestCase):
 
-    def setUp(self, users: List[str]):
+    def setUp(self):
+        super(FidoTokensTestCase, self).setUp()
+        self.webauthn_credential = Webauthn(
+                    keyhandle='i3KjBT0t5TPm693T9O0f4zyiwvdu9cY8BegCjiVvq_FS-ZmPcvXipFvHvD5CH6ZVRR3nsVsOla0Cad3fbtUA_Q',
+                    credential_data='AAAAAAAAAAAAAAAAAAAAAABAi3KjBT0t5TPm693T9O0f4zyiwvdu9cY8BegCjiVvq_FS-ZmPcvXipFvHvD5CH6ZVRR3nsVsOla0Cad3fbtUA_aUBAgMmIAEhWCCiwDYGxl1LnRMqooWm0aRR9YbBG2LZ84BMNh_4rHkA9yJYIIujMrUOpGekbXjgMQ8M13ZsBD_cROSPB79eGz2Nw1ZE',
+                    app_id='https://eduid.se/u2f-app-id.json',
+                    attest_obj='bzJObWJYUmtibTl1WldkaGRIUlRkRzEwb0doaGRYUm9SR0YwWVZqRXhvVGI1OVBlcEV0YW9PYWY5RDlOUjIxVWJfSU5PT0tfVDdubDFuZHNIUlJCQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQVFJdHlvd1U5TGVVejV1dmQwX1R0SC1NOG9zTDNidlhHUEFYb0FvNGxiNnZ4VXZtWmozTDE0cVJieDd3LVFoLW1WVVVkNTdGYkRwV3RBbW5kMzI3VkFQMmxBUUlESmlBQklWZ2dvc0EyQnNaZFM1MFRLcUtGcHRHa1VmV0d3UnRpMmZPQVREWWYtS3g1QVBjaVdDQ0xveksxRHFSbnBHMTQ0REVQRE5kMmJBUV8zRVRrandlX1hoczlqY05XUkE=',
+                    description='neo 4',
+        )
+        self.u2f_credential = U2F(
+                  version='U2F_V2',
+                  keyhandle='V1vXqZcwBJD2RMIH2udd2F7R9NoSNlP7ZSPOtKHzS7n_rHFXcXbSpOoX__aUKyTR6jEC8Xv678WjXC5KEkvziA',
+                  public_key='BHVTWuo3_D7ruRBe2Tw-m2atT2IOm_qQWSDreWShu3t21ne9c-DPSUdym-H-t7FcjV7rj1dSc3WSwaOJpFmkKxQ',
+                  app_id='https://eduid.se/u2f-app-id.json',
+                  attest_cert='',
+                  description='unit test U2F token'
+                  )
+
+    def load_app(self, config):
         """
-        set up tests
+        Called from the parent class, so we can provide the appropriate flask
+        app for this test case.
         """
-        # test users
-        self.MockedUserDB.test_users = {}
-        for this in users:
-            self.MockedUserDB.test_users[this] = _standard_test_users.get(this)
+        return TestFidoApp('testing', config)
 
-        self.user = None
-        # Initialize some convenience variables on self based on the first user in `users'
-        self.test_user_data = _standard_test_users.get(users[0])
-        self.test_user = User(data=self.test_user_data)
+    def update_config(self, app_config):
+        app_config.update({
+            'available_languages': {'en': 'English','sv': 'Svenska'},
+            'celery_config': {
+                'result_backend': 'amqp',
+                'task_serializer': 'json',
+                'mongo_uri': app_config['mongo_uri'],
+            },
+        })
+        return TestFidoConfig(**app_config)
 
-        super(EduidAPITestCase, self).setUp(users=users)
 
+    def test_u2f_start_verification(self):
+        test_user = User(data=NEW_USER_EXAMPLE)
+        # Add a working U2F credential for this test
+        test_user.credentials.add(self.u2f_credential)
+        self.amdb.save(test_user, check_sync=False)
+
+        eppn = test_user.eppn
+
+        with self.session_cookie(self.browser, eppn) as client:
+            with client.session_transaction() as sess:
+                with self.app.test_request_context():
+                    config = start_token_verification(test_user, 'testing')
+                    self.assertEqual(json.loads(config['u2fdata'])["appId"], "https://eduid.se/u2f-app-id.json")
+
+
+    def test_webauthn_start_verification(self):
+        test_user = User(data=NEW_USER_EXAMPLE)
+        # Add a working U2F credential for this test
+        test_user.credentials.add(self.webauthn_credential)
+        self.amdb.save(test_user, check_sync=False)
+
+        eppn = test_user.eppn
+
+        with self.session_cookie(self.browser, eppn) as client:
+            with client.session_transaction() as sess:
+                with self.app.test_request_context():
+                    config = start_token_verification(test_user, 'testing')
+                    self.assertEqual(json.loads(config['u2fdata']), {})
+
+
+    def test_webauthn_verify(self):
+        test_user = User(data=NEW_USER_EXAMPLE)
+        # Add a working U2F credential for this test
+        test_user.credentials.add(self.webauthn_credential)
+        self.amdb.save(test_user, check_sync=False)
+
+        eppn = test_user.eppn
+
+        with self.app.test_request_context():
+            with self.session_cookie(self.browser, eppn) as client:
+                with client.session_transaction() as sess:
+                    fido2state = {'challenge': 'RyWVwgPqjOftZAM0xYK6DEi1tMCAeqmIscBlGebkH1A', 'user_verification': 'preferred'}
+                    sess['testing.webauthn.state'] = json.dumps(fido2state)
+                    sess.persist()
+                    resp = client.get('/start?webauthn_request=' + json.dumps(SAMPLE_WEBAUTHN_REQUEST))
+                    self.assertEqual(resp['success'], True)
