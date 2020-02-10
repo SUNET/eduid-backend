@@ -36,3 +36,5 @@ extra_jobs:
     pre_build_script: ~
     upstream:
       - eduid-docker-python3env
+      - eduid-scimapi
+
