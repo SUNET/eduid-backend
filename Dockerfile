@@ -17,6 +17,6 @@ RUN /opt/eduid/env/bin/pip install -r /opt/eduid/eduid-scimapi/requirements.txt
 
 EXPOSE "8000"
 
-WORKDIR "/ici_acme/src"
+WORKDIR "/opt/eduid/eduid-scimapi/src"
 ENV GUNICORN_CMD_ARGS="--bind=0.0.0.0:8000"
-CMD [ "/ici_acme/env/bin/gunicorn", "eduid_scimapi.app:api" ]
+CMD [ "/opt/eduid/env/bin/gunicorn", "eduid_scimapi.app:api" ]
