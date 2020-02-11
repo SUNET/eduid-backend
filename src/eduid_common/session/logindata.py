@@ -12,7 +12,7 @@ import pprint
 from datetime import datetime
 from html import escape, unescape
 from dataclasses import dataclass, field, asdict
-from typing import Dict, Optional
+from typing import Dict, Optional, Mapping
 from urllib.parse import urlencode
 
 from eduid_common.session.namespaces import SessionNSBase
@@ -69,7 +69,6 @@ class SSOLoginData(SessionNSBase):
     mfa_action_external: Optional[ExternalMfaData] = field(default=None, init=False, repr=False)
 
     def __post_init__(self):
-        # XXX BUG: this double-escapes data already escaped in from_dict()
         self.key = escape(self.key, quote=True)
         self.RelayState = escape(self.RelayState, quote=True)
         self.SAMLRequest = escape(self.SAMLRequest, quote=True)
@@ -82,19 +81,19 @@ class SSOLoginData(SessionNSBase):
 
     def to_dict(self):
         return {'key': unescape(self.key),
-                'SAMLRequest': self.saml_req.request,
+                'SAMLRequest': unescape(self.SAMLRequest),
                 'RelayState': unescape(self.RelayState),
-                'binding': self.saml_req.binding,
+                'binding': unescape(self.binding),
                 'FailCount': self.FailCount,
                 }
 
     @classmethod
-    def from_dict(cls, data):
-        key = escape(data['key'])
-        SAMLRequest = escape(data['SAMLRequest'])
-        RelayState = escape(data['RelayState'])
-        binding = escape(data['binding'])
-        FailCount = data['FailCount']
+    def from_dict(cls, data: Mapping[str, str]):
+        key = data['key']
+        SAMLRequest = data['SAMLRequest']
+        RelayState = data['RelayState']
+        binding = data['binding']
+        FailCount = int(data['FailCount'])
         return cls(key, SAMLRequest, binding, RelayState, FailCount)
 
     def __str__(self):
