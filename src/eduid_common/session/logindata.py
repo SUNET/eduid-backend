@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 #
 # Copyright (c) 2013, 2014, 2016 NORDUnet A/S. All rights reserved.
 # Copyright 2012 Roland Hedberg. All rights reserved.
@@ -12,7 +14,7 @@ import pprint
 from datetime import datetime
 from html import escape, unescape
 from dataclasses import dataclass, field, asdict
-from typing import Dict, Optional
+from typing import Dict, Optional, Mapping, Type
 from urllib.parse import urlencode
 
 from eduid_common.session.namespaces import SessionNSBase
@@ -69,7 +71,6 @@ class SSOLoginData(SessionNSBase):
     mfa_action_external: Optional[ExternalMfaData] = field(default=None, init=False, repr=False)
 
     def __post_init__(self):
-        # XXX BUG: this double-escapes data already escaped in from_dict()
         self.key = escape(self.key, quote=True)
         self.RelayState = escape(self.RelayState, quote=True)
         self.SAMLRequest = escape(self.SAMLRequest, quote=True)
@@ -80,29 +81,29 @@ class SSOLoginData(SessionNSBase):
         }
         self.query_string = urlencode(qs)
 
-    def to_dict(self):
-        return {'key': unescape(self.key),
-                'SAMLRequest': self.saml_req.request,
-                'RelayState': unescape(self.RelayState),
-                'binding': self.saml_req.binding,
-                'FailCount': self.FailCount,
+    def to_dict(self) -> Dict[str, str]:
+        return {'key': self.key,
+                'SAMLRequest': self.SAMLRequest,
+                'RelayState': self.RelayState,
+                'binding': self.binding,
+                'FailCount': str(self.FailCount),
                 }
 
     @classmethod
-    def from_dict(cls, data):
-        key = escape(data['key'])
-        SAMLRequest = escape(data['SAMLRequest'])
-        RelayState = escape(data['RelayState'])
-        binding = escape(data['binding'])
-        FailCount = data['FailCount']
+    def from_dict(cls: Type[SSOLoginData], data: Mapping[str, str]) -> SSOLoginData:
+        key = data['key']
+        SAMLRequest = data['SAMLRequest']
+        RelayState = data['RelayState']
+        binding = data['binding']
+        FailCount = int(data['FailCount'])
         return cls(key, SAMLRequest, binding, RelayState, FailCount)
 
-    def __str__(self):
+    def __str__(self) -> str:
         try:
             data = self.to_dict()
         except AttributeError:
             return f'<Unprintable SSOLoginData: key={self.key}>'
         if 'SAMLRequest' in data:
-            data['SAMLRequest length'] = len(data['SAMLRequest'])
+            data['SAMLRequest length'] = str(len(data['SAMLRequest']))
             del data['SAMLRequest']
         return pprint.pformat(data)
