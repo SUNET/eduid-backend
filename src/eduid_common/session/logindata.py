@@ -69,6 +69,7 @@ class SSOLoginData(SessionNSBase):
     mfa_action_external: Optional[ExternalMfaData] = field(default=None, init=False, repr=False)
 
     def __post_init__(self):
+        # XXX BUG: this double-escapes data already escaped in from_dict()
         self.key = escape(self.key, quote=True)
         self.RelayState = escape(self.RelayState, quote=True)
         self.SAMLRequest = escape(self.SAMLRequest, quote=True)
@@ -97,7 +98,10 @@ class SSOLoginData(SessionNSBase):
         return cls(key, SAMLRequest, binding, RelayState, FailCount)
 
     def __str__(self):
-        data = self.to_dict()
+        try:
+            data = self.to_dict()
+        except AttributeError:
+            return f'<Unprintable SSOLoginData: key={self.key}>'
         if 'SAMLRequest' in data:
             data['SAMLRequest length'] = len(data['SAMLRequest'])
             del data['SAMLRequest']
