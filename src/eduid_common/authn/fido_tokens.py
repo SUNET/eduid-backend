@@ -220,14 +220,18 @@ def verify_webauthn(user, request_dict: dict, session_prefix: str) -> dict:
             req['credentialId'], user))
         raise VerificationProblem('mfa.unknown-token')
 
-    authn_cred = fido2server.authenticate_complete(
-        fido2state,
-        [mc[0] for mc in matching_credentials],
-        req['credentialId'],
-        client_data,
-        auth_data,
-        req['signature'],
-    )
+    try:
+        authn_cred = fido2server.authenticate_complete(
+            fido2state,
+            [mc[0] for mc in matching_credentials],
+            req['credentialId'],
+            client_data,
+            auth_data,
+            req['signature'],
+        )
+    except Exception as e:
+        raise VerificationProblem('mfa.failed-verification')
+        
     current_app.logger.debug('Authenticated Webauthn credential: {}'.format(authn_cred))
 
     cred_key = [mc[1] for mc in matching_credentials][0]

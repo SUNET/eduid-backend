@@ -47,6 +47,7 @@ from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.api.app import eduid_init_app
 from eduid_common.authn.fido_tokens import start_token_verification
 from eduid_common.authn.fido_tokens import verify_webauthn
+from eduid_common.authn.fido_tokens import VerificationProblem
 from eduid_common.config.base import FlaskConfig
 from eduid_userdb.credentials import U2F, Webauthn
 from eduid_userdb import User
@@ -71,7 +72,13 @@ views = Blueprint('testing', 'testing', url_prefix='')
 def start_verification():
     user = current_app.central_userdb.get_user_by_eppn('hubba-bubba')
     data = json.loads(request.query_string[17:])
-    result = verify_webauthn(user, data, 'testing')
+    try:
+        result = verify_webauthn(user, data, 'testing')
+    except VerificationProblem:
+        result = {
+                'success': False,
+                'message': 'mfa.verification-problem'
+                }
     return json.dumps(result)
 
 
@@ -153,7 +160,6 @@ class FidoTokensTestCase(EduidAPITestCase):
                     config = start_token_verification(test_user, 'testing')
                     self.assertEqual(json.loads(config['u2fdata'])["appId"], "https://eduid.se/u2f-app-id.json")
 
-
     def test_webauthn_start_verification(self):
         test_user = User(data=NEW_USER_EXAMPLE)
         # Add a working U2F credential for this test
@@ -188,3 +194,66 @@ class FidoTokensTestCase(EduidAPITestCase):
                     resp = client.get('/start?webauthn_request=' + json.dumps(SAMPLE_WEBAUTHN_REQUEST))
                     resp_data = json.loads(resp.data)
                     self.assertEqual(resp_data['success'], True)
+
+    @patch('fido2.cose.ES256.verify')
+    def test_webauthn_verify_wrong_origin(self, mock_verify):
+        self.app.config.fido2_rp_id = 'wrong.rp.id'
+        mock_verify.return_value = True
+        test_user = User(data=NEW_USER_EXAMPLE)
+        # Add a working U2F credential for this test
+        test_user.credentials.add(self.webauthn_credential)
+        self.amdb.save(test_user, check_sync=False)
+
+        eppn = test_user.eppn
+
+        with self.app.test_request_context():
+            with self.session_cookie(self.browser, eppn) as client:
+                with client.session_transaction() as sess:
+                    fido2state = {'challenge': '3h_EAZpY25xDdSJCOMx1ABZEA5Odz3yejUI3AUNTQWc', 'user_verification': 'preferred'}
+                    sess['testing.webauthn.state'] = json.dumps(fido2state)
+                    sess.persist()
+                    resp = client.get('/start?webauthn_request=' + json.dumps(SAMPLE_WEBAUTHN_REQUEST))
+                    resp_data = json.loads(resp.data)
+                    self.assertEqual(resp_data['success'], False)
+
+    @patch('fido2.cose.ES256.verify')
+    def test_webauthn_verify_wrong_challenge(self, mock_verify):
+        mock_verify.return_value = True
+        test_user = User(data=NEW_USER_EXAMPLE)
+        # Add a working U2F credential for this test
+        test_user.credentials.add(self.webauthn_credential)
+        self.amdb.save(test_user, check_sync=False)
+
+        eppn = test_user.eppn
+
+        with self.app.test_request_context():
+            with self.session_cookie(self.browser, eppn) as client:
+                with client.session_transaction() as sess:
+                    fido2state = {'challenge': 'WRONG_CHALLENGE_COx1ABZEA5Odz3yejUI3AUNTQWc', 'user_verification': 'preferred'}
+                    sess['testing.webauthn.state'] = json.dumps(fido2state)
+                    sess.persist()
+                    resp = client.get('/start?webauthn_request=' + json.dumps(SAMPLE_WEBAUTHN_REQUEST))
+                    resp_data = json.loads(resp.data)
+                    self.assertEqual(resp_data['success'], False)
+
+    @patch('fido2.cose.ES256.verify')
+    def test_webauthn_verify_wrong_credential(self, mock_verify):
+        req = deepcopy(SAMPLE_WEBAUTHN_REQUEST)
+        req['credentialId'] = req['credentialId'].replace('0', '9')
+        mock_verify.return_value = True
+        test_user = User(data=NEW_USER_EXAMPLE)
+        # Add a working U2F credential for this test
+        test_user.credentials.add(self.webauthn_credential)
+        self.amdb.save(test_user, check_sync=False)
+
+        eppn = test_user.eppn
+
+        with self.app.test_request_context():
+            with self.session_cookie(self.browser, eppn) as client:
+                with client.session_transaction() as sess:
+                    fido2state = {'challenge': '3h_EAZpY25xDdSJCOMx1ABZEA5Odz3yejUI3AUNTQWc', 'user_verification': 'preferred'}
+                    sess['testing.webauthn.state'] = json.dumps(fido2state)
+                    sess.persist()
+                    resp = client.get('/start?webauthn_request=' + json.dumps(req))
+                    resp_data = json.loads(resp.data)
+                    self.assertEqual(resp_data['success'], False)
