@@ -144,7 +144,7 @@ def start_token_verification(user: User, session_prefix: str) -> dict:
                              f'\n{pprint.pformat(credentials_webauthn)}')
 
     webauthn_credentials = [v['webauthn'] for v in credentials_webauthn.values()]
-    fido2rp = RelyingParty(current_app.config.fido2_rp_id, 'eduID')
+    fido2rp = RelyingParty(current_app.config.fido2_rp_id, 'eduid.se')
     fido2server = _get_fido2server(credentials_webauthn, fido2rp)
     raw_fido2data, fido2state = fido2server.authenticate_begin(webauthn_credentials)
     current_app.logger.debug('FIDO2 authentication data:\n{pprint.pformat(raw_fido2data)}')

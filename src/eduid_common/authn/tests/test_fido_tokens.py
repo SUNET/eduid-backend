@@ -39,6 +39,7 @@ from dataclasses import dataclass, field
 from copy import deepcopy
 from typing import cast, Optional, List, Dict, Any
 
+from mock import patch
 from flask import Blueprint, request, current_app
 
 from eduid_common.api.app import EduIDBaseApp
@@ -60,7 +61,7 @@ class TestFidoConfig(FlaskConfig):
     mfa_testing: bool = True
     generate_u2f_challenges: bool = True
     u2f_app_id: str = 'https://eduid.se/u2f-app-id.json'
-    fido2_rp_id: str = 'eduid.se'
+    fido2_rp_id: str = 'idp.dev.eduid.se'
     u2f_valid_facets: list = field(default_factory=lambda: ['https://dashboard.dev.eduid.se',
                                                             'https://idp.dev.eduid.se'])
 
@@ -82,17 +83,20 @@ class TestFidoApp(EduIDBaseApp):
         self.config: TestFidoConfig = cast(TestFidoConfig, self.config)
         self.register_blueprint(views)
 
-# current_app: TestFidoApp = cast(TestFidoApp, current_app)
-
-
-
 
 SAMPLE_WEBAUTHN_REQUEST = {
-        "credentialId": "i3KjBT0t5TPm693T9O0f4zyiwvdu9cY8BegCjiVvq_FS-ZmPcvXipFvHvD5CH6ZVRR3nsVsOla0Cad3fbtUA_Q",
-        "authenticatorData": "xoTb59PepEtaoOaf9D9NR21Ub_INOOK_T7nl1ndsHRQBAAADGA",
-        "clientDataJSON": "eyJjaGFsbGVuZ2UiOiJSeVdWd2dQcWpPZnRaQU0weFlLNkRFaTF0TUNBZXFtSXNjQmxHZWJrSDFBIiwib3JpZ2luIjoiaHR0cHM6Ly9pZHAuZWR1aWQuc2UiLCJ0eXBlIjoid2ViYXV0aG4uZ2V0In0=",
-        "signature": "MEUCIDEDIGx7r5jVlVRZ_4eiAjvIpE8lXcL4nHUqOWYyCWDCAiEAi9aJvxLyPCUMbbLjXBH1HwACaEl2_uoSV29kuv_2xSM",
-        "csrf_token": "9ac27726c26203b1d03c10029dc336d5fa3f5e68",
+    #'authenticatorData': 'mZ9k6EPHoJxJZNA+UuvM0JVoutZHmqelg9kXe/DSefgBAAAA/w==',
+    'authenticatorData': 'EqW1xI3n-hgnNPFAHqXwTnBqgKgUMmBLDxB7n3apMPQAAAAAAA',
+    'clientDataJSON': 'eyJjaGFsbGVuZ2UiOiIzaF9FQVpwWTI1eERkU0pDT014MUFCWkVBNU9k'+\
+                      'ejN5ZWpVSTNBVU5UUVdjIiwib3JpZ2luIjoiaHR0cHM6Ly9pZHAuZGV2'+\
+                      'LmVkdWlkLnNlIiwidHlwZSI6IndlYmF1dGhuLmdldCJ9',
+    'credentialId': 'i3KjBT0t5TPm693T9O0f4zyiwvdu9cY8BegCjiVvq_FS-ZmPcvXipFvHvD'+\
+                    '5CH6ZVRR3nsVsOla0Cad3fbtUA_Q',
+    'signature': 'MEYCIQC5gM8inamJGUFKu3bNo4fT0jmJQuw33OSSXc242NCuiwIhAIWnVw2Sp'+\
+                 'ow72j6J92KaY2rLR6qSXEbLam09ZXbSkBnQ'  # this is a fake
+                                                        # signature, we mock
+                                                        # its verification
+                                                        # below
 }
 
 
@@ -103,9 +107,9 @@ class FidoTokensTestCase(EduidAPITestCase):
         self.webauthn_credential = Webauthn(
                     keyhandle='i3KjBT0t5TPm693T9O0f4zyiwvdu9cY8BegCjiVvq_FS-ZmPcvXipFvHvD5CH6ZVRR3nsVsOla0Cad3fbtUA_Q',
                     credential_data='AAAAAAAAAAAAAAAAAAAAAABAi3KjBT0t5TPm693T9O0f4zyiwvdu9cY8BegCjiVvq_FS-ZmPcvXipFvHvD5CH6ZVRR3nsVsOla0Cad3fbtUA_aUBAgMmIAEhWCCiwDYGxl1LnRMqooWm0aRR9YbBG2LZ84BMNh_4rHkA9yJYIIujMrUOpGekbXjgMQ8M13ZsBD_cROSPB79eGz2Nw1ZE',
-                    app_id='https://eduid.se/u2f-app-id.json',
+                    app_id='',
                     attest_obj='bzJObWJYUmtibTl1WldkaGRIUlRkRzEwb0doaGRYUm9SR0YwWVZqRXhvVGI1OVBlcEV0YW9PYWY5RDlOUjIxVWJfSU5PT0tfVDdubDFuZHNIUlJCQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQVFJdHlvd1U5TGVVejV1dmQwX1R0SC1NOG9zTDNidlhHUEFYb0FvNGxiNnZ4VXZtWmozTDE0cVJieDd3LVFoLW1WVVVkNTdGYkRwV3RBbW5kMzI3VkFQMmxBUUlESmlBQklWZ2dvc0EyQnNaZFM1MFRLcUtGcHRHa1VmV0d3UnRpMmZPQVREWWYtS3g1QVBjaVdDQ0xveksxRHFSbnBHMTQ0REVQRE5kMmJBUV8zRVRrandlX1hoczlqY05XUkE=',
-                    description='neo 4',
+                    description='unit test webauthn token',
         )
         self.u2f_credential = U2F(
                   version='U2F_V2',
@@ -165,7 +169,9 @@ class FidoTokensTestCase(EduidAPITestCase):
                     self.assertEqual(json.loads(config['u2fdata']), {})
 
 
-    def test_webauthn_verify(self):
+    @patch('fido2.cose.ES256.verify')
+    def test_webauthn_verify(self, mock_verify):
+        mock_verify.return_value = True
         test_user = User(data=NEW_USER_EXAMPLE)
         # Add a working U2F credential for this test
         test_user.credentials.add(self.webauthn_credential)
@@ -176,8 +182,9 @@ class FidoTokensTestCase(EduidAPITestCase):
         with self.app.test_request_context():
             with self.session_cookie(self.browser, eppn) as client:
                 with client.session_transaction() as sess:
-                    fido2state = {'challenge': 'RyWVwgPqjOftZAM0xYK6DEi1tMCAeqmIscBlGebkH1A', 'user_verification': 'preferred'}
+                    fido2state = {'challenge': '3h_EAZpY25xDdSJCOMx1ABZEA5Odz3yejUI3AUNTQWc', 'user_verification': 'preferred'}
                     sess['testing.webauthn.state'] = json.dumps(fido2state)
                     sess.persist()
                     resp = client.get('/start?webauthn_request=' + json.dumps(SAMPLE_WEBAUTHN_REQUEST))
-                    self.assertEqual(resp['success'], True)
+                    resp_data = json.loads(resp.data)
+                    self.assertEqual(resp_data['success'], True)
