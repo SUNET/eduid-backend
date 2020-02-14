@@ -32,12 +32,14 @@
 
 import logging
 import pprint
+from typing import Mapping
 from xml.etree.ElementTree import ParseError
 
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 from saml2.response import UnsolicitedResponse
 
+from eduid_common.session import EduidSession
 from .cache import IdentityCache, OutstandingQueriesCache
 from .utils import SPConfig, get_saml_attribute
 
@@ -99,8 +101,22 @@ def get_authn_request(saml2_config: SPConfig, session, came_from, selected_idp,
     return info
 
 
-def get_authn_response(saml2_config: SPConfig, session, raw_response):
+def get_authn_response(saml2_config: SPConfig, session: EduidSession, raw_response) -> Mapping:
+    """
+    Check a SAML response and return the 'session_info' pysaml2 dict.
 
+    Example session_info:
+
+    {'authn_info': [('urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport', [],
+                     '2019-06-17T00:00:01Z')],
+     'ava': {'eduPersonPrincipalName': ['eppn@eduid.se'],
+             'eduidIdPCredentialsUsed': ['...']},
+     'came_from': 'https://dashboard.eduid.se/profile/personaldata',
+     'issuer': 'https://login.idp.eduid.se/idp.xml',
+     'name_id': <saml2.saml.NameID object>,
+     'not_on_or_after': 156000000,
+     'session_index': 'id-foo'}
+    """
     client = Saml2Client(saml2_config,
                          identity_cache=IdentityCache(session))
 

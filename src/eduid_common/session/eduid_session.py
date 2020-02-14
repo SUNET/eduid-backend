@@ -137,7 +137,11 @@ class EduidSession(SessionMixin, MutableMapping):
     @property
     def sso_ticket(self) -> Optional[SSOLoginData]:
         if not self._sso_ticket:
-            self._sso_ticket = SSOLoginData.from_dict(self._session.get('_sso_ticket', {}))
+            try:
+                self._sso_ticket = SSOLoginData.from_dict(self._session.get('_sso_ticket', {}))
+            except Exception:
+                self.app.logger.exception('Failed parsing SSOLoginData')
+                self._sso_ticket = None
         return self._sso_ticket
 
     @sso_ticket.setter
