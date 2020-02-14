@@ -33,7 +33,7 @@
 import logging
 import re
 import warnings
-from typing import cast, Callable
+from typing import cast, Callable, Union
 
 from flask import current_app
 from urllib.parse import urlparse, urlunparse, urlencode, parse_qs
@@ -54,7 +54,7 @@ class AuthnBaseApp(EduIDBaseApp):
     WSGI middleware that checks whether the request is authenticated,
     and in case it isn't, redirects to the authn service.
     """
-    def __call__(self, environ: dict, start_response: Callable) -> Response:
+    def __call__(self, environ: dict, start_response: Callable) -> Union[Response, list]:
         next_url = get_current_url(environ)
         next_path = list(urlparse(next_url))[2]
         whitelist = self.config.no_authn_urls
