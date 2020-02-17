@@ -33,7 +33,7 @@ import json
 import pprint
 import base64
 from typing import Optional
-from flask import request, current_app
+from flask import current_app
 
 from eduid_common.session import session
 from eduid_userdb.user import User
@@ -99,7 +99,7 @@ def get_user_credentials(user: User) -> dict:
     Get U2F and Webauthn credentials for the user
     """
     res = _get_user_credentials_u2f(user)
-    res.extend(_get_user_credentials_webauthn(user))
+    res.update(_get_user_credentials_webauthn(user))
     return res
 
 
@@ -128,10 +128,10 @@ def start_token_verification(user: User, session_prefix: str) -> dict:
     # CTAP1/U2F
     # XXX : CHANGED to only make U2F challenges for U2F tokens
     challenge = None
-    if current_app.config.generate_u2f_challenges is True:
+    if current_app.config.generate_u2f_challenges is True:  # type: ignore
         u2f_tokens = [v['u2f'] for v in credentials_u2f.values()]
         try:
-            challenge = begin_authentication(current_app.config.u2f_app_id, u2f_tokens)
+            challenge = begin_authentication(current_app.config.u2f_app_id, u2f_tokens)  # type: ignore
             current_app.logger.debug(f'U2F challenge:\n{pprint.pformat(challenge)}')
         except ValueError:
             # there is no U2F key registered for this user
@@ -144,7 +144,7 @@ def start_token_verification(user: User, session_prefix: str) -> dict:
                              f'\n{pprint.pformat(credentials_webauthn)}')
 
     webauthn_credentials = [v['webauthn'] for v in credentials_webauthn.values()]
-    fido2rp = RelyingParty(current_app.config.fido2_rp_id, 'eduid.se')
+    fido2rp = RelyingParty(current_app.config.fido2_rp_id, 'eduid.se')  # type: ignore
     fido2server = _get_fido2server(credentials_webauthn, fido2rp)
     raw_fido2data, fido2state = fido2server.authenticate_begin(webauthn_credentials)
     current_app.logger.debug('FIDO2 authentication data:\n{pprint.pformat(raw_fido2data)}')
@@ -170,7 +170,7 @@ def verify_u2f(user: User, challenge: bytes, token_response: str) -> Optional[di
     verify received U2F data against the user's credentials
     """
     device, counter, touch = complete_authentication(challenge, token_response,
-                                                     current_app.config.u2f_valid_facets)
+                                                     current_app.config.u2f_valid_facets)  # type: ignore
     current_app.logger.debug('U2F authentication data: {}'.format({
         'keyHandle': device['keyHandle'],
         'touch': touch,
@@ -186,6 +186,7 @@ def verify_u2f(user: User, challenge: bytes, token_response: str) -> Optional[di
                     'counter': counter,
                     RESULT_CREDENTIAL_KEY_NAME: this.key,
                     }
+    return None
 
 
 def verify_webauthn(user, request_dict: dict, session_prefix: str) -> dict:
@@ -209,15 +210,14 @@ def verify_webauthn(user, request_dict: dict, session_prefix: str) -> dict:
     credentials = _get_user_credentials_webauthn(user)
     fido2state = json.loads(session[session_prefix + '.webauthn.state'])
 
-    rp_id = current_app.config.fido2_rp_id
+    rp_id = current_app.config.fido2_rp_id  # type: ignore
     fido2rp = RelyingParty(rp_id, 'eduID')
     fido2server = _get_fido2server(credentials, fido2rp)
     matching_credentials = [(v['webauthn'], k) for k, v in credentials.items()
                             if v['webauthn'].credential_id == req['credentialId']]
 
     if not matching_credentials:
-        current_app.logger.error('Could not find webauthn credential {} on user {}'.format(
-            req['credentialId'], user))
+        current_app.logger.error(f"Could not find webauthn credential {req['credentialId']!r} on user {user}")
         raise VerificationProblem('mfa.unknown-token')
 
     try:
@@ -229,9 +229,9 @@ def verify_webauthn(user, request_dict: dict, session_prefix: str) -> dict:
             auth_data,
             req['signature'],
         )
-    except Exception as e:
+    except Exception:
         raise VerificationProblem('mfa.failed-verification')
-        
+
     current_app.logger.debug('Authenticated Webauthn credential: {}'.format(authn_cred))
 
     cred_key = [mc[1] for mc in matching_credentials][0]

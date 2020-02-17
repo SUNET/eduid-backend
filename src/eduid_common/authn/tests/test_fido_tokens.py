@@ -150,7 +150,7 @@ class FidoTokensTestCase(EduidAPITestCase):
         eppn = test_user.eppn
 
         with self.session_cookie(self.browser, eppn) as client:
-            with client.session_transaction() as sess:
+            with client.session_transaction():
                 with self.app.test_request_context():
                     config = start_token_verification(test_user, 'testing')
                     self.assertEqual(json.loads(config['u2fdata'])["appId"], "https://eduid.se/u2f-app-id.json")
@@ -164,7 +164,7 @@ class FidoTokensTestCase(EduidAPITestCase):
         eppn = test_user.eppn
 
         with self.session_cookie(self.browser, eppn) as client:
-            with client.session_transaction() as sess:
+            with client.session_transaction():
                 with self.app.test_request_context():
                     config = start_token_verification(test_user, 'testing')
                     self.assertEqual(json.loads(config['u2fdata']), {})
