@@ -33,28 +33,23 @@
 
 
 
-import sys
 import json
 from dataclasses import dataclass, field
 from copy import deepcopy
-from typing import cast, Optional, List, Dict, Any
+from typing import cast
 
 from mock import patch
 from flask import Blueprint, request, current_app
 
 from eduid_common.api.app import EduIDBaseApp
 from eduid_common.api.testing import EduidAPITestCase
-from eduid_common.api.app import eduid_init_app
 from eduid_common.authn.fido_tokens import start_token_verification
 from eduid_common.authn.fido_tokens import verify_webauthn
 from eduid_common.authn.fido_tokens import VerificationProblem
 from eduid_common.config.base import FlaskConfig
 from eduid_userdb.credentials import U2F, Webauthn
 from eduid_userdb import User
-from eduid_userdb.db import BaseDB
-from eduid_userdb.data_samples import (NEW_USER_EXAMPLE,
-                                       NEW_UNVERIFIED_USER_EXAMPLE,
-                                       NEW_COMPLETED_SIGNUP_USER_EXAMPLE)
+from eduid_userdb.data_samples import NEW_USER_EXAMPLE
 
 
 @dataclass
