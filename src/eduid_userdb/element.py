@@ -33,11 +33,11 @@
 #
 import copy
 import datetime
-from typing import Optional, Union, List
+from typing import List, Optional, Union
 
 from six import string_types
 
-from eduid_userdb.exceptions import EduIDUserDBError, UserHasUnknownData, UserDBValueError
+from eduid_userdb.exceptions import EduIDUserDBError, UserDBValueError, UserHasUnknownData
 
 __author__ = 'ft'
 

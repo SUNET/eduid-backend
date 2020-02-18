@@ -34,8 +34,7 @@
 #
 
 import copy
-from abc import ABC
-from typing import Any, Dict, List, Type, TypeVar
+from typing import Any, Dict, List, Type
 
 from bson import ObjectId
 

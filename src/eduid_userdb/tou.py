@@ -35,7 +35,7 @@
 
 import copy
 import datetime
-from typing import Any, Dict, List, Optional, TypeVar
+from typing import Any, Dict, List, Optional
 
 from six import string_types
 
