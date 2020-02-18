@@ -8,7 +8,7 @@ import eduid_userdb.element
 import eduid_userdb.exceptions
 from eduid_userdb.credentials import Password
 from eduid_userdb.event import EventList
-from eduid_userdb.tou import ToUEvent
+from eduid_userdb.tou import ToUEvent, ToUList
 
 __author__ = 'ft'
 
@@ -84,12 +84,9 @@ class TestEventList(TestCase):
     def test_add_duplicate_key(self):
         data = deepcopy(_two_dict)
         data['version'] = 'other version'
-        data['created_ts'] = True
         dup = ToUEvent(data = data)
-        self.assertNotEqual(self.two.find(dup.key), dup)
-        # ensure a newer event with the same version replaces an older version
-        self.two.add(dup)
-        self.assertEqual(self.two.find(dup.key), dup)
+        with self.assertRaises(eduid_userdb.element.DuplicateElementViolation):
+            self.two.add(dup)
 
     def test_add_event(self):
         third = self.three.to_list()[-1]
@@ -158,3 +155,27 @@ class TestEventList(TestCase):
         self.assertIsInstance(event.modified_ts, datetime.datetime)
         self.assertEqual(event.modified_ts, datetime.datetime(2018, 9, 24, 1, 1, 1, 111111))
         self.assertNotEqual(event.modified_ts, event.created_ts)
+
+    def test_loading_duplicate_tou_events(self):
+        data = [
+                {
+                        "event_id" : bson.ObjectId("5699fdbed300e400155be719"),
+                        "version" : "2014-v1",
+                        "created_ts" : datetime.datetime.fromisoformat("2016-01-16T08:22:22.520"),
+                        "created_by" : "signup"
+                },
+                {
+                        "event_id" : bson.ObjectId("581c3084df7c670064b583d6"),
+                        "version" : "2016-v1",
+                        "created_ts" : datetime.datetime.fromisoformat("2016-11-04T06:53:56.217"),
+                        "created_by" : "eduid_tou_plugin"
+                },
+                {
+                        "event_id" : bson.ObjectId("581c308e70971c006488d7d7"),
+                        "version" : "2016-v1",
+                        "created_ts" : datetime.datetime.fromisoformat("2016-11-04T06:54:06.676"),
+                        "created_by" : "eduid_tou_plugin"
+                }
+        ]
+        el = ToUList(data)
+        self.assertEqual(el.count, 2)
