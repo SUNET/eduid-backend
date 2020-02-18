@@ -170,8 +170,7 @@ class EventList(ElementList):
 
     def __init__(self, events, raise_on_unknown=True, event_class: Type[Event]=Event):
         self._event_class = event_class
-        elements = []
-        ElementList.__init__(self, elements)
+        ElementList.__init__(self, elements=[])
 
         if not isinstance(events, list):
             raise UserDBValueError('events should be a list')

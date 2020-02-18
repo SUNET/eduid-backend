@@ -33,7 +33,7 @@
 #
 import copy
 import datetime
-from typing import Optional, Union
+from typing import Optional, Union, List
 
 from six import string_types
 
@@ -326,9 +326,8 @@ class ElementList(object):
     Provide methods to find, add and remove elements from the list.
 
     :param elements: List of elements
-    :type elements: [dict | Element]
     """
-    def __init__(self, elements):
+    def __init__(self, elements: List[Element]):
         for this in elements:
             if not isinstance(this, Element):
                 raise ValueError("Not an Element")
