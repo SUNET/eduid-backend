@@ -35,12 +35,12 @@
 
 import copy
 import datetime
-from typing import Optional, List
+from typing import Any, Dict, List, Optional, TypeVar
 
 from six import string_types
 
 from eduid_userdb.event import Event, EventList
-from eduid_userdb.exceptions import BadEvent, UserDBValueError, EduIDUserDBError
+from eduid_userdb.exceptions import BadEvent, EduIDUserDBError, UserDBValueError
 
 
 class ToUEvent(Event):
@@ -48,7 +48,7 @@ class ToUEvent(Event):
     A record of a user's acceptance of a particular version of the Terms of Use.
     """
     def __init__(self, version=None, application=None, created_ts=None, modified_ts=None, event_id=None,
-                 data=None, raise_on_unknown=True):
+                 data: Optional[Dict[str, Any]]=None, raise_on_unknown=True):
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
 
@@ -107,9 +107,21 @@ class ToUEvent(Event):
 class ToUList(EventList):
     """
     List of ToUEvents.
+
+    TODO: Add, find and remove ought to operate on element.key and not element.version.
+          has_accepted() is the interface to find an ToU event using a version number.
     """
-    def __init__(self, events, raise_on_unknown=True, event_class=ToUEvent):
-        EventList.__init__(self, events, raise_on_unknown=raise_on_unknown, event_class=event_class)
+    def __init__(self, events, raise_on_unknown=True):
+        EventList.__init__(self, events, raise_on_unknown=raise_on_unknown, event_class=ToUEvent)
+
+    def add(self, event: ToUEvent) -> None:
+        """ Add a ToUEvent to the list. """
+        existing = self.find(event.version)
+        if existing:
+            if event.created_ts >= existing.created_ts:
+                # Silently replace existing events with newer ones to flush out duplicate events in the database
+                self.remove(existing.version)
+        super().add(event)
 
     def find(self, version: str) -> Optional[ToUEvent]:
         """

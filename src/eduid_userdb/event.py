@@ -34,13 +34,20 @@
 #
 
 import copy
-from typing import Type
+from abc import ABC
+from typing import Any, Dict, List, Type, TypeVar
 
 from bson import ObjectId
-from six import string_types
 
-from eduid_userdb.element import Element, ElementList
+from eduid_userdb.element import DuplicateElementViolation, Element, ElementList
 from eduid_userdb.exceptions import BadEvent, EventHasUnknownData, UserDBValueError
+
+
+# Unique type for the events 'key' property. Not created with EventId = NewType('EventId', ObjectId)
+# because of a problem with mypy not deducing the type of bson.ObjectId:
+#   src/eduid_userdb/event.py:45: error: Argument 2 to NewType(...) must be subclassable (got "Any")
+class EventId(ObjectId):
+    pass
 
 
 class Event(Element):
@@ -88,63 +95,41 @@ class Event(Element):
 
     # -----------------------------------------------------------------
     @property
-    def key(self):
-        """
-        Return the element that is used as key for events in an ElementList.
-        """
-        return self.event_id
+    def key(self) -> EventId:
+        """ Return the element that is used as key for events in an ElementList. """
+        return EventId(self.event_id)
 
     # -----------------------------------------------------------------
     @property
-    def event_type(self):
-        """
-        This is the event type.
-
-        :return: Event type.
-        :rtype: str
-        """
+    def event_type(self) -> str:
+        """ This is the event type. """
         return self._data['event_type']
 
     @event_type.setter
-    def event_type(self, value):
-        """
-        :param value: event type.
-        :type value: str | unicode
-        """
+    def event_type(self, value: str):
         if value is None:
             return
-        if not isinstance(value, string_types):
+        if not isinstance(value, str):
             raise UserDBValueError("Invalid 'event_type': {!r}".format(value))
         self._data['event_type'] = str(value.lower())
 
     @property
-    def event_id(self):
-        """
-        This is a unique id for this event.
-
-        :return: Unique ID of event.
-        :rtype: bson.ObjectId
-        """
+    def event_id(self) -> EventId:
+        """ This is a unique id for this event. """
         return self._data['event_id']
 
     @event_id.setter
-    def event_id(self, value):
-        """
-        :param value: Unique ID of event.
-        :type value: bson.ObjectId
-        """
+    def event_id(self, value: EventId):
         if not isinstance(value, ObjectId):
             raise UserDBValueError("Invalid 'event_id': {!r}".format(value))
         self._data['event_id'] = value
 
     # -----------------------------------------------------------------
-    def to_dict(self, mixed_format=False):
+    def to_dict(self, mixed_format: bool=False) -> Dict[str, Any]:
         """
-        Convert Element to a dict, that can be used to reconstruct the
-        Element later.
+        Convert Element to a dict, that can be used to reconstruct the Element later.
 
         :param mixed_format: Tag each Event with the event_type. Used when list has multiple types of events.
-        :type mixed_format: bool
         """
         res = copy.copy(self._data)  # avoid caller messing with our _data
         if not mixed_format and 'event_type' in res:
@@ -179,54 +164,42 @@ class EventList(ElementList):
             if isinstance(this, self._event_class):
                 self.add(this)
             else:
+                event: Event
                 if 'event_type' in this:
                     event = event_from_dict(this, raise_on_unknown=raise_on_unknown)
                 else:
                     event = self._event_class(data=this)
                 self.add(event)
 
-    def add(self, event: Event) -> None:
-        """
-        Add an event to the list.
-
-        :param event: Event to add.
-        :type event: Event
-        """
+    def add(self, event) -> None:
+        """ Add an event to the list. """
         if not isinstance(event, self._event_class):
             raise UserDBValueError("Invalid event: {!r} (expected {!r})".format(event, self._event_class))
         existing = self.find(event.key)
         if existing:
-            if event.created_ts >= existing.created_ts:
-                # Silently replace existing events with newer ones to flush out duplicate events in the database
-                self.remove(existing.key)
+            if event.to_dict() == existing.to_dict():
+                # Silently accept duplicate identical events to clean out bad entrys from the database
+                return
+            raise DuplicateElementViolation("Event {!s} already in list".format(event.key))
         super(EventList, self).add(event)
 
-    def to_list_of_dicts(self, mixed_format=False):
+    def to_list_of_dicts(self, mixed_format: bool=False) -> List[Dict[str, Any]]:
         """
         Get the elements in a serialized format that can be stored in MongoDB.
 
         :param mixed_format: Tag each Event with the event_type. Used when list has multiple types of events.
-
-        :type mixed_format: bool
-
-        :return: List of dicts
-        :rtype: [dict]
         """
-        return [this.to_dict(mixed_format=mixed_format) for this in self._elements]
+        return [this.to_dict(mixed_format=mixed_format) for this in self._elements if isinstance(this, Event)]
 
 
-def event_from_dict(data, raise_on_unknown=True):
+def event_from_dict(data: Dict[str, Any], raise_on_unknown: bool=True):
     """
     Create an Event instance (probably really a subclass of Event) from a dict.
 
     :param data: Password parameters from database
     :param raise_on_unknown: Raise EventHasUnknownData if unrecognized data is encountered
-
-    :type data: dict
-    :type raise_on_unknown: bool
-    :rtype: Event
     """
-    if not 'event_type' in data:
+    if 'event_type' not in data:
         raise UserDBValueError('No event type specified')
     if data['event_type'] == 'tou_event':
         from eduid_userdb.tou import ToUEvent  # avoid cyclic dependency by importing this here
