@@ -84,9 +84,12 @@ class TestEventList(TestCase):
     def test_add_duplicate_key(self):
         data = deepcopy(_two_dict)
         data['version'] = 'other version'
+        data['created_ts'] = True
         dup = ToUEvent(data = data)
-        with self.assertRaises(eduid_userdb.element.DuplicateElementViolation):
-            self.two.add(dup)
+        self.assertNotEqual(self.two.find(dup.key), dup)
+        # ensure a newer event with the same version replaces an older version
+        self.two.add(dup)
+        self.assertEqual(self.two.find(dup.key), dup)
 
     def test_add_event(self):
         third = self.three.to_list()[-1]

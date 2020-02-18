@@ -35,7 +35,7 @@
 
 import copy
 import datetime
-from typing import Optional
+from typing import Optional, List
 
 from six import string_types
 
@@ -117,7 +117,7 @@ class ToUList(EventList):
 
         :param version: ToU version to find
         """
-        res = [this for this in self._elements if this.version == version]
+        res = [this for this in self.elements if this.version == version]
         if len(res) == 1:
             return res[0]
         if len(res) > 1:
@@ -137,7 +137,12 @@ class ToUList(EventList):
         # All users have implicitly accepted the first ToU version (info stored in another collection)
         if version in ['2014-v1', '2014-dev-v1']:
             return True
-        for this in self._elements:
+        for this in self.elements:
             if this.version == version and not this.is_expired(interval_seconds=reaccept_interval):
                 return True
         return False
+
+    @property
+    def elements(self) -> List[ToUEvent]:
+        """ Return typing friendly list of ToU events """
+        return [x for x in self._elements if isinstance(x, ToUEvent)]

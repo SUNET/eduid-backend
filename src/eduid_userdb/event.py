@@ -34,12 +34,13 @@
 #
 
 import copy
+from typing import Type
 
 from bson import ObjectId
 from six import string_types
 
-from eduid_userdb.element import Element, ElementList, DuplicateElementViolation
-from eduid_userdb.exceptions import UserDBValueError, BadEvent, EventHasUnknownData
+from eduid_userdb.element import Element, ElementList
+from eduid_userdb.exceptions import BadEvent, EventHasUnknownData, UserDBValueError
 
 
 class Event(Element):
@@ -167,10 +168,9 @@ class EventList(ElementList):
     :type event_class: object
     """
 
-    def __init__(self, events, raise_on_unknown=True, event_class=Event):
+    def __init__(self, events, raise_on_unknown=True, event_class: Type[Event]=Event):
         self._event_class = event_class
-        elements = []
-        ElementList.__init__(self, elements)
+        ElementList.__init__(self, elements=[])
 
         if not isinstance(events, list):
             raise UserDBValueError('events should be a list')
@@ -185,7 +185,7 @@ class EventList(ElementList):
                     event = self._event_class(data=this)
                 self.add(event)
 
-    def add(self, event):
+    def add(self, event: Event) -> None:
         """
         Add an event to the list.
 
@@ -196,10 +196,9 @@ class EventList(ElementList):
             raise UserDBValueError("Invalid event: {!r} (expected {!r})".format(event, self._event_class))
         existing = self.find(event.key)
         if existing:
-            if event.to_dict() == existing.to_dict():
-                # Silently accept duplicate identical events to clean out bad entrys from the database
-                return
-            raise DuplicateElementViolation("Event {!s} already in list".format(event.key))
+            if event.created_ts >= existing.created_ts:
+                # Silently replace existing events with newer ones to flush out duplicate events in the database
+                self.remove(existing.key)
         super(EventList, self).add(event)
 
     def to_list_of_dicts(self, mixed_format=False):
