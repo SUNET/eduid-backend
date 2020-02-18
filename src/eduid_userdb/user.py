@@ -62,7 +62,7 @@ class User(object):
     def __init__(self, data: Dict[str, Any], raise_on_unknown: bool = True):
         self._data_in = copy.deepcopy(data)  # to not modify callers data
         self._data_orig = copy.deepcopy(data)  # to not modify callers data
-        self._data = dict()
+        self._data: Dict[str, Any] = dict()
 
         self._parse_check_invalid_users()
 
