@@ -4,7 +4,7 @@ from typing import Mapping, Dict, Optional
 
 
 @dataclass
-class User(object):
+class ScimUser(object):
     user_id: str
     username: str
     external_id: str
@@ -38,16 +38,16 @@ class User(object):
 class UserStore(object):
 
     def __init__(self):
-        self._data: Dict[str, User] = {}
+        self._data: Dict[str, ScimUser] = {}
 
-    def add_user(self, user: User):
+    def add_user(self, user: ScimUser):
         self._data[user.user_id] = user
 
-    def get_user_by_username(self, username: str) -> Optional[User]:
+    def get_user_by_username(self, username: str) -> Optional[ScimUser]:
         for user in self._data.values():
             if user.username == username:
                 return user
         return None
 
-    def get_user_by_id(self, user_id: str) -> Optional[User]:
+    def get_user_by_id(self, user_id: str) -> Optional[ScimUser]:
         return self._data.get(user_id)

@@ -1,3 +1,4 @@
 falcon==1.4.*
 PyYAML==5.1
 gunicorn==19.9.0
+eduid-userdb

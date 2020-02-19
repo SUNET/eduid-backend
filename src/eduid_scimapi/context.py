@@ -4,7 +4,8 @@ import sys
 from typing import Mapping
 
 from eduid_scimapi.utils import urlappend
-from eduid_scimapi.user import UserStore
+from eduid_scimapi.scimuser import UserStore
+from eduid_userdb import UserDB
 
 
 class Context(object):
@@ -12,6 +13,9 @@ class Context(object):
     def __init__(self, config: Mapping):
         self.config = config
         self.users: UserStore = UserStore()
+
+        # TODO: make database parameters configurable
+        self.userdb = UserDB(db_uri='mongodb://eduid_mongodb', db_name='am')
 
         self.schema: str = self.config.get('SCHEMA', 'http')
         self.server_name: str = self.config.get('SERVER_NAME', 'localhost:8000')

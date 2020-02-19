@@ -11,7 +11,7 @@ from eduid_scimapi.middleware import HandleSCIM
 from eduid_scimapi.resources.users import UsersResource
 
 # Read config
-config_path = environ.get('EDUID_AMPLUS_CONFIG')
+config_path = environ.get('EDUID_SCIMAPI_CONFIG')
 config: Dict[str, Any] = dict()
 if config_path:
     try:
@@ -35,5 +35,7 @@ api.add_error_handler(exceptions.HTTPErrorDetail)
 
 api.add_route('/Users/', UsersResource(context=context))  # for POST
 api.add_route('/Users/{user_id}', UsersResource(context=context))  # for GET
+
+api.add_route('/Users/.search', UsersSearchResource(context=context))  # for POST
 
 context.logger.info('app running...')
