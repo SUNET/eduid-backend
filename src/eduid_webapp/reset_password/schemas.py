@@ -34,7 +34,7 @@ import math
 
 import zxcvbn
 from flask_babel import gettext as _
-from marshmallow import fields, Schema, validates, validates_schema, validate, ValidationError
+from marshmallow import fields, validates, ValidationError
 
 from eduid_common.api.schemas.base import EduidSchema, FluxStandardAction
 from eduid_common.api.schemas.csrf import CSRFResponseMixin, CSRFRequestMixin
@@ -68,18 +68,13 @@ class ResetPasswordExtraSecSchema(CSRFRequestMixin):
     phone_index = fields.Integer(required=True)
 
 
-class ResetPasswordWithCodeSchema(CSRFRequestMixin):
-    
-    code = fields.String(required=True)
-    password = fields.String(required=True)
+class ResetPasswordExtraSecTokenSchema(CSRFRequestMixin):
 
-    @validates('password')
-    def validate_password(self, value):
-        # Set a new error message
-        try:
-            self._validate_password(value)
-        except ValidationError:
-            raise ValidationError(_('Please use a stronger password'))
+    code = fields.String(required=True)
+    token_data = fields.String(required=True)
+
+
+class PasswordMixin(object):
 
     def _validate_password(self, password):
         """
@@ -106,6 +101,21 @@ class ResetPasswordWithCodeSchema(CSRFRequestMixin):
             raise ValidationError('The password complexity is too weak.')
 
 
+
+class ResetPasswordWithCodeSchema(CSRFRequestMixin, PasswordMixin):
+
+    code = fields.String(required=True)
+    password = fields.String(required=True)
+
+    @validates('password')
+    def validate_password(self, value):
+        # Set a new error message
+        try:
+            self._validate_password(value)
+        except ValidationError:
+            raise ValidationError(_('Please use a stronger password'))
+
+
 class ResetPasswordWithPhoneCodeSchema(ResetPasswordWithCodeSchema):
     phone_code = fields.String(required=True)
 
@@ -119,10 +129,18 @@ class ChpassResponseSchema(FluxStandardAction):
     payload = fields.Nested(ChpassCredentialList)
 
 
-class ChangePasswordSchema(EduidSchema, CSRFRequestMixin):
+class ChangePasswordSchema(EduidSchema, CSRFRequestMixin, PasswordMixin):
 
     old_password = fields.String(required=True)
     new_password = fields.String(required=True)
+
+    @validates('new_password')
+    def validate_password(self, value):
+        # Set a new error message
+        try:
+            self._validate_password(value)
+        except ValidationError:
+            raise ValidationError(_('Please use a stronger password'))
 
 
 class SuggestedPassword(EduidSchema, CSRFResponseMixin):

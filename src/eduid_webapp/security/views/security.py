@@ -31,11 +31,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from __future__ import absolute_import
-
+import json
 from datetime import datetime
 
-from flask import Blueprint, abort, url_for, redirect
+from flask import Blueprint, abort, url_for, redirect, request
 from six.moves.urllib_parse import urlparse, urlunparse, parse_qs, urlencode
 
 from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
@@ -56,6 +55,7 @@ from eduid_webapp.security.schemas import RedirectSchema, AccountTerminatedSchem
 from eduid_webapp.security.schemas import SecurityResponseSchema, CredentialList, CsrfSchema
 from eduid_webapp.security.schemas import SuggestedPassword, SuggestedPasswordResponseSchema
 from eduid_webapp.security.app import current_security_app as current_app
+from eduid_webapp.security.helpers import get_zxcvbn_terms
 
 security_views = Blueprint('security', __name__, url_prefix='', template_folder='templates')
 
@@ -102,13 +102,31 @@ def get_suggested(user):
 
 @security_views.route('/change-password', methods=['POST'])
 @MarshalWith(ChpassResponseSchema)
-@UnmarshalWith(ChangePasswordSchema)
 @require_user
-def change_password(user, old_password, new_password):
+def change_password(user):
     """
     View to change the password
     """
     security_user = SecurityUser.from_user(user, current_app.private_userdb)
+    min_entropy = current_app.config.password_entropy
+    schema = ChangePasswordSchema(
+        zxcvbn_terms=get_zxcvbn_terms(security_user.eppn),
+        min_entropy=int(min_entropy))
+
+    if not request.data:
+        return error_message('chpass.no-data')
+
+    form = schema.load(json.loads(request.data))
+    current_app.logger.debug(form)
+    if form.errors:
+        return error_message('chpass.weak-password')
+    else:
+        old_password = form.data.get('old_password')
+        new_password = form.data.get('new_password')
+
+    if session.get_csrf_token() != form.data['csrf_token']:
+        return error_message('csrf.try_again')
+
     authn_ts = session.get('reauthn-for-chpass', None)
     if authn_ts is None:
         return error_message('chpass.no_reauthn')
