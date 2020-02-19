@@ -13,7 +13,7 @@ RUN (cd /opt/eduid/eduid-scimapi; git describe; git log -n 1) > /revision.txt
 RUN rm -rf /opt/eduid/eduid-scimapi/.git
 RUN python3.7 -m venv /opt/eduid/env
 RUN /opt/eduid/env/bin/pip install -U pip wheel
-RUN /opt/eduid/env/bin/pip install -r /opt/eduid/eduid-scimapi/requirements.txt
+RUN /opt/eduid/env/bin/pip install --index-url https://pypi.sunet.se -r /opt/eduid/eduid-scimapi/requirements.txt
 
 EXPOSE "8000"
 
