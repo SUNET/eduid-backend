@@ -8,7 +8,7 @@ import yaml
 from eduid_scimapi import exceptions
 from eduid_scimapi.context import Context
 from eduid_scimapi.middleware import HandleSCIM
-from eduid_scimapi.resources.users import UsersResource
+from eduid_scimapi.resources.users import UsersResource, UsersSearchResource
 
 # Read config
 config_path = environ.get('EDUID_SCIMAPI_CONFIG')
