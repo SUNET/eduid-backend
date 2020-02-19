@@ -812,7 +812,7 @@ class ChangePasswordTests(EduidAPITestCase):
                                      "POST_CHANGE_PASSWORD_CHANGE_PASSWORD_FAIL")
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
-    def test_change_passwd(self, mock_request_user_sync):
+    def test_change_passwd_weak(self, mock_request_user_sync):
         mock_request_user_sync.side_effect = self.request_user_sync
         eppn = self.test_user_data['eduPersonPrincipalName']
         with self.session_cookie(self.browser, eppn) as client:
@@ -823,6 +823,29 @@ class ChangePasswordTests(EduidAPITestCase):
                         data = {
                                 'csrf_token': sess.get_csrf_token(),
                                 'new_password': '1234',
+                                'old_password': '5678'
+                                }
+                    response2 = client.post('/change-password', data=json.dumps(data),
+                                            content_type=self.content_type_json)
+
+                    self.assertEqual(response2.status_code, 200)
+
+                    sec_data = json.loads(response2.data)
+                    self.assertEqual(sec_data['type'],
+                                     "POST_CHANGE_PASSWORD_CHANGE_PASSWORD_FAIL")
+
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_change_passwd(self, mock_request_user_sync):
+        mock_request_user_sync.side_effect = self.request_user_sync
+        eppn = self.test_user_data['eduPersonPrincipalName']
+        with self.session_cookie(self.browser, eppn) as client:
+            with client.session_transaction() as sess:
+                with patch('eduid_webapp.reset_password.views.change_password.change_password', return_value=True):
+                    sess['reauthn-for-chpass'] = int(time.time())
+                    with self.app.test_request_context():
+                        data = {
+                                'csrf_token': sess.get_csrf_token(),
+                                'new_password': 'j7/E >pO9 ,$Sr O0;&',
                                 'old_password': '5678'
                                 }
                     response2 = client.post('/change-password', data=json.dumps(data),
