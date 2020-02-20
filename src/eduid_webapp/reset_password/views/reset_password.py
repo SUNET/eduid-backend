@@ -76,16 +76,12 @@ form will also result in resetting her password, but without unverifying any of
 her data.
 """
 
-from base64 import b64encode
-from flask import Blueprint, render_template
-from flask import request
-from flask_babel import gettext as _
+from flask import Blueprint
 
 from eduid_common.api.exceptions import MsgTaskFailed
 from eduid_common.api.schemas.base import FluxStandardAction
-from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
+from eduid_common.api.decorators import MarshalWith, UnmarshalWith
 from eduid_common.session import session
-from eduid_userdb.exceptions import DocumentDoesNotExist
 from eduid_webapp.reset_password.schemas import ResetPasswordInitSchema
 from eduid_webapp.reset_password.schemas import ResetPasswordEmailCodeSchema
 from eduid_webapp.reset_password.schemas import ResetPasswordWithCodeSchema
@@ -127,7 +123,7 @@ def init_reset_pw(email: str) -> dict:
       email address in the central userdb, and a freshly generated random hash
       as an identifier code for the created state);
     * Email the generated code to the received email address.
-    
+
     The operation can fail due to:
     * The email address does not correspond to any valid user in the central db;
     * There is some problem sending the email.
@@ -190,15 +186,15 @@ def config_reset_pw(code: str) -> dict:
     current_app.password_reset_state_db.save(state)
 
     return {
-            'csrf_token': session.get_csrf_token(),
-            'suggested_password': new_password,
-            'email_code': state.email_code.code,
-            'email_address': state.email_address,
-            'extra_security': mask_alternatives(alternatives),
-            'password_entropy': current_app.config.password_entropy,
-            'password_length': current_app.config.password_length,
-            'password_service_url': current_app.config.password_service_url,
-            }
+        'csrf_token': session.get_csrf_token(),
+        'suggested_password': new_password,
+        'email_code': state.email_code.code,
+        'email_address': state.email_address,
+        'extra_security': mask_alternatives(alternatives),
+        'password_entropy': current_app.config.password_entropy,
+        'password_length': current_app.config.password_length,
+        'password_service_url': current_app.config.password_service_url,
+    }
 
 
 @reset_password_views.route('/new-password/', methods=['POST'])

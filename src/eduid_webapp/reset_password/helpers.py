@@ -303,9 +303,8 @@ def get_extra_security_alternatives(user: User) -> dict:
 
     if user.phone_numbers.verified.count:
         verified_phone_numbers = [
-                {'number': item.number,
-                 'index': n} 
-                for n, item in enumerate(user.phone_numbers.verified.to_list())]
+            {'number': item.number, 'index': n}
+            for n, item in enumerate(user.phone_numbers.verified.to_list())]
         alternatives['phone_numbers'] = verified_phone_numbers
 
     tokens = user.credentials.filter(U2F).to_list()
@@ -326,7 +325,7 @@ def mask_alternatives(alternatives: dict) -> dict:
         masked_phone_numbers = []
         for phone_number in alternatives.get('phone_numbers', []):
             number = phone_number['number']
-            masked_number = '{}{}'.format('X'*(len(number)-2), number[len(number)-2:])
+            masked_number = '{}{}'.format('X' * (len(number) - 2), number[len(number) - 2:])
             masked_phone_numbers.append({'number': masked_number,
                                          'index': phone_number['index']})
 
@@ -360,8 +359,8 @@ def verify_email_address(state: ResetPasswordEmailState) -> bool:
 
 def send_verify_phone_code(state: ResetPasswordEmailState, phone_number: str):
     state = ResetPasswordEmailAndPhoneState.from_email_state(state,
-                                            phone_number=phone_number,
-                                            phone_code=get_short_hash())
+                                                             phone_number=phone_number,
+                                                             phone_code=get_short_hash())
     current_app.password_reset_state_db.save(state)
     template = 'reset_password_sms.txt.jinja2'
     context = {

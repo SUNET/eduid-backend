@@ -34,7 +34,7 @@ import math
 
 import zxcvbn
 from flask_babel import gettext as _
-from marshmallow import fields, Schema, validates, validates_schema, validate, ValidationError
+from marshmallow import fields, validates, ValidationError
 
 from eduid_common.api.schemas.base import EduidSchema, FluxStandardAction
 from eduid_common.api.schemas.csrf import CSRFResponseMixin, CSRFRequestMixin
@@ -75,7 +75,7 @@ class ResetPasswordExtraSecTokenSchema(CSRFRequestMixin):
 
 
 class ResetPasswordWithCodeSchema(CSRFRequestMixin):
-    
+
     code = fields.String(required=True)
     password = fields.String(required=True)
 
