@@ -31,16 +31,18 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 from datetime import datetime
+import json
 
-from flask import Blueprint
+from flask import Blueprint, request
 
 from eduid_userdb.exceptions import UserOutOfSync
 from eduid_userdb.reset_password import ResetPasswordUser
-from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
+from eduid_common.api.decorators import require_user, MarshalWith
 from eduid_common.api.utils import save_and_sync_user
 from eduid_common.authn.vccs import change_password
 from eduid_common.session import session
 from eduid_webapp.security.schemas import CredentialList
+from eduid_webapp.security.helpers import get_zxcvbn_terms
 from eduid_webapp.reset_password.helpers import compile_credential_list
 from eduid_webapp.reset_password.helpers import generate_suggested_password
 from eduid_webapp.reset_password.helpers import hash_password, check_password
@@ -67,21 +69,39 @@ def get_suggested(user):
     session.reset_password.generated_password_hash = hash_password(password)
 
     suggested = {
-            'suggested_password': password
-            }
+        'suggested_password': password
+    }
 
     return SuggestedPassword().dump(suggested).data
 
 
 @change_password_views.route('/change-password', methods=['POST'])
 @MarshalWith(ChpassResponseSchema)
-@UnmarshalWith(ChangePasswordSchema)
 @require_user
-def change_password_view(user, old_password, new_password):
+def change_password_view(user):
     """
     View to change the password
     """
     resetpw_user = ResetPasswordUser.from_user(user, current_app.private_userdb)
+    min_entropy = current_app.config.password_entropy
+    schema = ChangePasswordSchema(
+        zxcvbn_terms=get_zxcvbn_terms(resetpw_user.eppn),
+        min_entropy=int(min_entropy))
+
+    if not request.data:
+        return error_message('chpass.no-data')
+
+    form = schema.load(json.loads(request.data))
+    current_app.logger.debug(form)
+    if form.errors:
+        return error_message('chpass.weak-password')
+    else:
+        old_password = form.data.get('old_password')
+        new_password = form.data.get('new_password')
+
+    if session.get_csrf_token() != form.data['csrf_token']:
+        return error_message('csrf.try_again')
+
     authn_ts = session.get('reauthn-for-chpass', None)
     if authn_ts is None:
         return error_message(ResetPwMsg.no_reauthn)

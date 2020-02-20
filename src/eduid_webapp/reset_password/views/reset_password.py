@@ -75,13 +75,15 @@ supplemented with a text input for the SMS'ed code. In this case submitting the
 form will also result in resetting her password, but without unverifying any of
 her data.
 """
+import json
 
-from flask import Blueprint
+from flask import Blueprint, request
 
 from eduid_common.api.exceptions import MsgTaskFailed
 from eduid_common.api.schemas.base import FluxStandardAction
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith
 from eduid_common.session import session
+from eduid_webapp.security.helpers import get_zxcvbn_terms
 from eduid_webapp.reset_password.schemas import ResetPasswordInitSchema
 from eduid_webapp.reset_password.schemas import ResetPasswordEmailCodeSchema
 from eduid_webapp.reset_password.schemas import ResetPasswordWithCodeSchema
@@ -198,9 +200,9 @@ def config_reset_pw(code: str) -> dict:
 
 
 @reset_password_views.route('/new-password/', methods=['POST'])
-@UnmarshalWith(ResetPasswordWithCodeSchema)
+@UnmarshalWith()
 @MarshalWith(FluxStandardAction)
-def set_new_pw(code: str, password: str) -> dict:
+def set_new_pw() -> dict:
     """
     View that receives an emailed reset password code and a password, and sets
     the password as credential for the user, with no extra security.
@@ -229,6 +231,27 @@ def set_new_pw(code: str, password: str) -> dict:
     except BadCode as e:
         return error_message(e.msg)
 
+    resetpw_user = current_app.central_userdb.get_user_by_eppn(state.eppn)
+
+    min_entropy = current_app.config.password_entropy
+    schema = ResetPasswordWithCodeSchema(
+        zxcvbn_terms=get_zxcvbn_terms(resetpw_user.eppn),
+        min_entropy=int(min_entropy))
+
+    if not request.data:
+        return error_message('chpass.no-data')
+
+    form = schema.load(json.loads(request.data))
+    current_app.logger.debug(form)
+    if form.errors:
+        return error_message('chpass.weak-password')
+    else:
+        password = form.data.get('password')
+        code = form.data.get('code')
+
+    if session.get_csrf_token() != form.data['csrf_token']:
+        return error_message('csrf.try_again')
+
     hashed = session.reset_password.generated_password_hash
     if check_password(password, hashed):
         state.generated_password = True
@@ -239,11 +262,9 @@ def set_new_pw(code: str, password: str) -> dict:
         current_app.logger.info('Custom password used')
         current_app.stats.count(name='reset_password_custom_password_used')
 
-    user = current_app.central_userdb.get_user_by_eppn(state.eppn,
-                                                       raise_on_missing=False)
-    current_app.logger.info(f'Resetting password for user {user}')
-    reset_user_password(user, state, password)
-    current_app.logger.info(f'Password reset done, removing state for {user}')
+    current_app.logger.info(f'Resetting password for user {resetpw_user}')
+    reset_user_password(resetpw_user, state, password)
+    current_app.logger.info(f'Password reset done, removing state for {resetpw_user}')
     current_app.password_reset_state_db.remove_state(state)
     return success_message(ResetPwMsg.pw_resetted)
 
