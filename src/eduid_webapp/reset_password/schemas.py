@@ -62,16 +62,10 @@ class ResetPasswordEmailCodeSchema(CSRFRequestMixin):
     code = fields.String(required=True)
 
 
-class ResetPasswordExtraSecPhoneSchema(CSRFRequestMixin):
+class ResetPasswordExtraSecSchema(CSRFRequestMixin):
 
     code = fields.String(required=True)
     phone_index = fields.Integer(required=True)
-
-
-class ResetPasswordExtraSecTokenSchema(CSRFRequestMixin):
-
-    code = fields.String(required=True)
-    token_data = fields.String(required=True)
 
 
 class ResetPasswordWithCodeSchema(CSRFRequestMixin):
@@ -114,10 +108,6 @@ class ResetPasswordWithCodeSchema(CSRFRequestMixin):
 
 class ResetPasswordWithPhoneCodeSchema(ResetPasswordWithCodeSchema):
     phone_code = fields.String(required=True)
-
-
-class ResetPasswordWithSecTokenSchema(ResetPasswordWithCodeSchema):
-    pass
 
 
 class ChpassCredentialList(EduidSchema, CSRFResponseMixin):
