@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 
-version = '0.4.9'
+version = '0.4.10'
 
 requires = [
     'six >= 1.11.0',
@@ -26,6 +26,8 @@ webapp_requires = [
     'eduid-am >= 0.7.3',
     'statsd==3.2.1',
     'zxcvbn>=4.4.27,<5.0',
+    'python-u2flib-server>=5.0.0',
+    'fido2==0.6.0',
 ]
 webapp_extras = webapp_requires + []
 
