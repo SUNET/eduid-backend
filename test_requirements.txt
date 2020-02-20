@@ -13,5 +13,5 @@ pwgen==0.4
 mock==1.0.1
 pytest>=5.2.0
 pytest-cov>=2.7.1
-'python-u2flib-server>=5.0.0',
-'fido2==0.6.0',
+python-u2flib-server>=5.0.0,
+fido2==0.6.0,
