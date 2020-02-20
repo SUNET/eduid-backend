@@ -184,10 +184,11 @@ def send_password_reset_mail(email_address: str):
     to_addresses = [address.email for address in user.mail_addresses.verified.to_list()]
 
     pwreset_timeout = current_app.config.email_code_timeout // 60 // 60  # seconds to hours
+    # We must send the user to an url that does not correspond to a flask view,
+    # but to a js bundle (i.e. a flask view in a *different* app)
+    resetpw_link = f"{current_app.config.password_reset_link}code/{state.email_code.code}"
     context = {
-        'reset_password_link': url_for('reset_password.set_new_pw',
-                                       email_code=state.email_code.code,
-                                       _external=True),
+        'reset_password_link': resetpw_link,
         'password_reset_timeout': pwreset_timeout
     }
     subject = _('Reset password')
@@ -297,7 +298,9 @@ def get_extra_security_alternatives(user: User) -> dict:
     alternatives = {}
 
     if user.phone_numbers.verified.count:
-        verified_phone_numbers = [item.number for item in user.phone_numbers.verified.to_list()]
+        verified_phone_numbers = [
+            {'number': item.number, 'index': n}
+            for n, item in enumerate(user.phone_numbers.verified.to_list())]
         alternatives['phone_numbers'] = verified_phone_numbers
     return alternatives
 
@@ -311,8 +314,10 @@ def mask_alternatives(alternatives: dict) -> dict:
         # Phone numbers
         masked_phone_numbers = []
         for phone_number in alternatives.get('phone_numbers', []):
-            masked_number = '{}{}'.format('X'*(len(phone_number)-2), phone_number[len(phone_number)-2:])
-            masked_phone_numbers.append(masked_number)
+            number = phone_number['number']
+            masked_number = '{}{}'.format('X' * (len(number) - 2), number[len(number) - 2:])
+            masked_phone_numbers.append({'number': masked_number,
+                                         'index': phone_number['index']})
 
         alternatives['phone_numbers'] = masked_phone_numbers
     return alternatives
@@ -344,8 +349,8 @@ def verify_email_address(state: ResetPasswordEmailState) -> bool:
 
 def send_verify_phone_code(state: ResetPasswordEmailState, phone_number: str):
     state = ResetPasswordEmailAndPhoneState.from_email_state(state,
-                                            phone_number=phone_number,
-                                            phone_code=get_short_hash())
+                                                             phone_number=phone_number,
+                                                             phone_code=get_short_hash())
     current_app.password_reset_state_db.save(state)
     template = 'reset_password_sms.txt.jinja2'
     context = {
@@ -353,6 +358,7 @@ def send_verify_phone_code(state: ResetPasswordEmailState, phone_number: str):
     }
     send_sms(state.phone_number, template, context, state.reference)
     current_app.logger.info(f'Sent password reset sms to user with eppn: {state.eppn}')
+    current_app.logger.debug(f'Sent password reset sms with code: {state.phone_code.code}')
     current_app.logger.debug(f'Phone number: {state.phone_number}')
 
 
