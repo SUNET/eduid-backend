@@ -122,7 +122,7 @@ def change_password_view(user):
 
     vccs_url = current_app.config.vccs_url
     added = change_password(resetpw_user, new_password, old_password,
-                            'security', is_generated, vccs_url)
+                            'reset-password', is_generated, vccs_url)
 
     if not added:
         current_app.logger.debug(f'Problem verifying the old credentials for {user}')
@@ -144,6 +144,6 @@ def change_password_view(user):
         'next_url': next_url,
         'credentials': compile_credential_list(resetpw_user),
         'message': 'chpass.password-changed'
-        }
+    }
 
     return CredentialList().dump(credentials).data

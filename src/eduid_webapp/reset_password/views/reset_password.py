@@ -83,6 +83,7 @@ from eduid_common.api.exceptions import MsgTaskFailed
 from eduid_common.api.schemas.base import FluxStandardAction
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith
 from eduid_common.session import session
+from eduid_common.authn import fido_tokens
 from eduid_webapp.security.helpers import get_zxcvbn_terms
 from eduid_webapp.reset_password.schemas import ResetPasswordInitSchema
 from eduid_webapp.reset_password.schemas import ResetPasswordEmailCodeSchema
@@ -199,6 +200,45 @@ def config_reset_pw(code: str) -> dict:
     }
 
 
+class BadStateOrData(Exception):
+    def __init__(self, msg):
+        self.msg = msg
+
+
+def _get_state_and_data(SchemaClass):
+
+    if not request.data:
+        raise BadStateOrData('chpass.no-data')
+
+    data = json.loads(request.data)
+
+    if 'code' not in data:
+        raise BadStateOrData('chpass.no-code-in-data')
+
+    code = data['code']
+    try:
+        state = get_pwreset_state(code)
+    except BadCode as e:
+        raise BadStateOrData(e.msg)
+
+    resetpw_user = current_app.central_userdb.get_user_by_eppn(state.eppn)
+    min_entropy = current_app.config.password_entropy
+
+    schema = SchemaClass(
+        zxcvbn_terms=get_zxcvbn_terms(resetpw_user.eppn),
+        min_entropy=int(min_entropy))
+
+    form = schema.load(json.loads(request.data))
+    current_app.logger.debug(f"Reset password data: {form}")
+    if form.errors:
+        raise BadStateOrData('chpass.weak-password')
+
+    if session.get_csrf_token() != form.data['csrf_token']:
+        raise BadStateOrData('csrf.try_again')
+
+    return (resetpw_user, state, form.data)
+
+
 @reset_password_views.route('/new-password/', methods=['POST'])
 @UnmarshalWith()
 @MarshalWith(FluxStandardAction)
@@ -227,30 +267,11 @@ def set_new_pw() -> dict:
     * Synchronization problems with the central user db.
     """
     try:
-        state = get_pwreset_state(code)
-    except BadCode as e:
+        resetpw_user, state, data = _get_state_and_data(ResetPasswordWithCodeSchema)
+    except BadStateOrData as e:
         return error_message(e.msg)
 
-    resetpw_user = current_app.central_userdb.get_user_by_eppn(state.eppn)
-
-    min_entropy = current_app.config.password_entropy
-    schema = ResetPasswordWithCodeSchema(
-        zxcvbn_terms=get_zxcvbn_terms(resetpw_user.eppn),
-        min_entropy=int(min_entropy))
-
-    if not request.data:
-        return error_message('chpass.no-data')
-
-    form = schema.load(json.loads(request.data))
-    current_app.logger.debug(form)
-    if form.errors:
-        return error_message('chpass.weak-password')
-    else:
-        password = form.data.get('password')
-        code = form.data.get('code')
-
-    if session.get_csrf_token() != form.data['csrf_token']:
-        return error_message('csrf.try_again')
+    password = data.get('password')
 
     hashed = session.reset_password.generated_password_hash
     if check_password(password, hashed):
@@ -373,7 +394,8 @@ def choose_extra_security_token(code: str, token_data: str) -> dict:
                                 f'verified their email address')
         return error_message(ResetPwMsg.email_not_validated)
 
-    config = fido_tokens.start_token_verification(user, SESSION_PREFIX)
+    resetpw_user = current_app.central_userdb.get_user_by_eppn(state.eppn)
+    config = fido_tokens.start_token_verification(resetpw_user, SESSION_PREFIX)
     config['csrf_token'] = session.new_csrf_token()
 
     current_app.stats.count(name='reset_password_extra_security_token')
@@ -381,9 +403,8 @@ def choose_extra_security_token(code: str, token_data: str) -> dict:
 
 
 @reset_password_views.route('/new-password-secure-phone/', methods=['POST'])
-@UnmarshalWith(ResetPasswordWithPhoneCodeSchema)
 @MarshalWith(FluxStandardAction)
-def set_new_pw_extra_security_phone(phone_code: str, code: str, password: str) -> dict:
+def set_new_pw_extra_security_phone() -> dict:
     """
     View that receives an emailed reset password code, an SMS'ed reset password
     code, and a password, and sets the password as credential for the user, with
@@ -408,9 +429,12 @@ def set_new_pw_extra_security_phone(phone_code: str, code: str, password: str) -
     * Synchronization problems with the central user db.
     """
     try:
-        state = get_pwreset_state(code)
-    except BadCode as e:
+        resetpw_user, state, data = _get_state_and_data(ResetPasswordWithPhoneCodeSchema)
+    except BadStateOrData as e:
         return error_message(e.msg)
+
+    password = data.get('password')
+    phone_code = data.get('phone_code')
 
     if phone_code == state.phone_code.code:
         if not verify_phone_number(state):
@@ -444,9 +468,8 @@ def set_new_pw_extra_security_phone(phone_code: str, code: str, password: str) -
 
 
 @reset_password_views.route('/new-password-secure-token/', methods=['POST'])
-@UnmarshalWith(ResetPasswordWithSecTokenSchema)
 @MarshalWith(FluxStandardAction)
-def set_new_pw_extra_security_token(code: str, password: str) -> dict:
+def set_new_pw_extra_security_token() -> dict:
     """
     View that receives an emailed reset password code, hw token data,
     and a password, and sets the password as credential for the user, with
@@ -471,14 +494,16 @@ def set_new_pw_extra_security_token(code: str, password: str) -> dict:
     * Synchronization problems with the central user db.
     """
     try:
-        state = get_pwreset_state(code)
-    except BadCode as e:
+        resetpw_user, state, data = _get_state_and_data(ResetPasswordWithSecTokenSchema)
+    except BadStateOrData as e:
         return error_message(e.msg)
+
+    password = data.get('password')
 
     req_json = request.get_json()
     if not req_json:
         current_app.logger.error(f'No data in request to authn {state.eppn}')
-        raise self.ActionError('mfa.no-request-data')
+        return error_message('mfa.no-request-data')
 
     hashed = session.reset_password.generated_password_hash
     if check_password(password, hashed):
@@ -511,7 +536,7 @@ def set_new_pw_extra_security_token(code: str, password: str) -> dict:
     elif not success and 'authenticatorData' in req_json:
         # CTAP2/Webauthn
         try:
-            result = fido_tokens.verify_webauthn(user, req_json, self.PACKAGE_NAME)
+            result = fido_tokens.verify_webauthn(user, req_json, SESSION_PREFIX)
         except fido_tokens.VerificationProblem:
             pass
         else:
