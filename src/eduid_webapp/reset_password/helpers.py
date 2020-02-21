@@ -134,6 +134,10 @@ def get_pwreset_state(email_code: str) -> ResetPasswordState:
 
     raises BadCode in case of problems
     """
+    if current_app.config.environment != 'pro' and current_app.config.magic_code:
+        if email_code == current_app.config.magic_code:
+            email_code = session['resetpw_email_verification_code']
+
     mail_expiration_time = current_app.config.email_code_timeout
     sms_expiration_time = current_app.config.phone_code_timeout
     try:
@@ -175,10 +179,15 @@ def send_password_reset_mail(email_address: str):
                                 f"unknown email address: {email_address}.")
         raise BadCode(ResetPwMsg.user_not_found)
 
+    email_code = get_unique_hash()
     state = ResetPasswordEmailState(eppn=user.eppn,
                                     email_address=email_address,
-                                    email_code=get_unique_hash())
+                                    email_code=email_code)
     current_app.password_reset_state_db.save(state)
+
+    if current_app.config.environment != 'pro' and current_app.config.magic_code:
+        session['resetpw_email_verification_code'] = email_code
+
     text_template = 'reset_password_email.txt.jinja2'
     html_template = 'reset_password_email.html.jinja2'
     to_addresses = [address.email for address in user.mail_addresses.verified.to_list()]
