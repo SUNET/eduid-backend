@@ -135,7 +135,7 @@ def get_pwreset_state(email_code: str) -> ResetPasswordState:
 
     raises BadCode in case of problems
     """
-    if current_app.config.environment != 'pro' and current_app.config.magic_code:
+    if current_app.config.environment in ('staging', 'dev') and current_app.config.magic_code:
         if email_code == current_app.config.magic_code:
             email_code = session['resetpw_email_verification_code']
 
@@ -186,7 +186,7 @@ def send_password_reset_mail(email_address: str):
                                     email_code=email_code)
     current_app.password_reset_state_db.save(state)
 
-    if current_app.config.environment != 'pro' and current_app.config.magic_code:
+    if current_app.config.environment in ('staging', 'dev') and current_app.config.magic_code:
         session['resetpw_email_verification_code'] = email_code
 
     text_template = 'reset_password_email.txt.jinja2'
