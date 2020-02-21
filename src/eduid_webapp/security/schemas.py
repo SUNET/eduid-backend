@@ -38,7 +38,7 @@ from flask_babel import gettext as _
 from eduid_common.api.schemas.base import FluxStandardAction, EduidSchema
 from eduid_common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
 from eduid_common.api.schemas.u2f import U2FEnrollResponseSchema, U2FBindRequestSchema, U2FSignResponseSchema
-from eduid_common.api.schemas.u2f import U2FVerifyRequestSchema, U2FVerifyResponseSchema, U2FRegisteredKey
+from eduid_common.api.schemas.u2f import U2FVerifyRequestSchema, U2FVerifyResponseSchema
 from eduid_common.api.schemas.nin import NinSchema
 from eduid_common.api.schemas.password import PasswordSchema
 from eduid_common.api.schemas.validators import validate_email, validate_nin
@@ -94,10 +94,19 @@ class SuggestedPasswordResponseSchema(FluxStandardAction):
     payload = SuggestedPassword()
 
 
-class ChangePasswordSchema(EduidSchema, CSRFRequestMixin):
+class ChangePasswordSchema(PasswordSchema):
 
+    csrf_token = fields.String(required=True)
     old_password = fields.String(required=True)
     new_password = fields.String(required=True)
+
+    @validates('new_password')
+    def validate_custom_password(self, value):
+        # Set a new error message
+        try:
+            self.validate_password(value)
+        except ValidationError:
+            raise ValidationError('chpass.weak-pass')
 
 
 class AccountTerminatedSchema(FluxStandardAction):
@@ -106,7 +115,7 @@ class AccountTerminatedSchema(FluxStandardAction):
 
 # U2F schemas
 class ConvertRegisteredKeys(EduidSchema):
-     
+
     class U2FRegisteredKey(EduidSchema):
         version = fields.String(required=True)
         keyhandle = fields.String(required=True, dump_to='keyHandle')
