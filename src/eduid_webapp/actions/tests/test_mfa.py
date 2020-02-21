@@ -167,7 +167,7 @@ class MFAActionPluginTests(ActionsTestCase):
                     self.assertEqual(data['payload']['message'], "mfa.no-token-response")
                     self.assertEqual(len(self.app.actions_db.get_actions(self.user.eppn, 'mock-session')), 1)
 
-    @patch('eduid_webapp.actions.actions.mfa.complete_authentication')
+    @patch('eduid_common.authn.fido_tokens.complete_authentication')
     def test_action_wrong_keyhandle(self, mock_complete_authn):
         mock_complete_authn.return_value = ({'keyHandle': 'wrong-handle'}, 'dummy-touch', 'dummy-counter')
         with self.session_cookie(self.browser) as client:
@@ -182,7 +182,7 @@ class MFAActionPluginTests(ActionsTestCase):
                     self.assertEqual(data['payload']['message'], "mfa.unknown-token")
                     self.assertEqual(len(self.app.actions_db.get_actions(self.user.eppn, 'mock-session')), 1)
 
-    @patch('eduid_webapp.actions.actions.mfa.complete_authentication')
+    @patch('eduid_common.authn.fido_tokens.complete_authentication')
     def test_action_success(self, mock_complete_authn):
         mock_complete_authn.return_value = ({'keyHandle': 'test_key_handle'}, 'dummy-touch', 'dummy-counter')
         with self.session_cookie(self.browser) as client:
@@ -198,7 +198,7 @@ class MFAActionPluginTests(ActionsTestCase):
                     self.assertEqual(data['payload']['message'], "actions.action-completed")
                     self.assertEqual(len(self.app.actions_db.get_actions(self.user.eppn, 'mock-session')), 1)
 
-    @patch('eduid_webapp.actions.actions.mfa.complete_authentication')
+    @patch('eduid_common.authn.fido_tokens.complete_authentication')
     def test_action_webauthn_legacy_token(self, mock_complete_authn):
         #mock_complete_authn.return_value = ({'keyHandle': 'test_key_handle'},
         #        'dummy-touch', 'dummy-counter')
