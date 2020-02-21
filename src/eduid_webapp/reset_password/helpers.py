@@ -50,6 +50,7 @@ from eduid_userdb.logs import MailAddressProofing
 from eduid_userdb.logs import PhoneNumberProofing
 from eduid_userdb.user import User
 from eduid_common.api.exceptions import MailTaskFailed
+from eduid_common.api.utils import urlappend
 from eduid_common.api.utils import save_and_sync_user
 from eduid_common.api.utils import get_unique_hash
 from eduid_common.api.utils import get_short_hash
@@ -190,7 +191,7 @@ def send_password_reset_mail(email_address: str):
     pwreset_timeout = current_app.config.email_code_timeout // 60 // 60  # seconds to hours
     # We must send the user to an url that does not correspond to a flask view,
     # but to a js bundle (i.e. a flask view in a *different* app)
-    resetpw_link = f"{current_app.config.password_reset_link}code/{state.email_code.code}"
+    resetpw_link = urlappend(current_app.config.password_reset_link, f"code/{state.email_code.code}")
     context = {
         'reset_password_link': resetpw_link,
         'password_reset_timeout': pwreset_timeout
