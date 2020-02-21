@@ -64,5 +64,5 @@ class ResetPasswordConfig(FlaskConfig):
     # VCCS URL
     vccs_url: str = ''
     # URL to get the js app that can drive the process to reset the password
-    password_reset_link: str = 'http://login.eduid.docker:8080/reset-password/'
+    password_reset_link: str = 'http://login.eduid.se/reset-password/'
     password_service_url: str = '/services/reset-password/'
