@@ -47,6 +47,7 @@ worker_requires = [
     'PyNaCl >= 1.0.1',
     ]
 worker_extras = worker_requires + []
+api_extras = worker_extras
 
 # No dependecies flavor, let the importing application handle dependencies
 nodeps_requires = requires
@@ -84,6 +85,7 @@ setup(name='eduid-common',
           'webapp': webapp_extras,
           'idp': idp_extras,
           'worker': worker_extras,
+          'api': api_extras,
           'nodeps': []
       },
       entry_points="""
