@@ -62,3 +62,5 @@ class SecurityConfig(FlaskConfig):
     # password reset settings
     email_code_timeout: int = 7200  # seconds
     phone_code_timeout: int = 600  # seconds
+    # magic code for integration tests
+    magic_code: str = ''
