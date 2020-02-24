@@ -131,7 +131,7 @@ class ResetPasswordTests(EduidAPITestCase):
             self.assertEqual(response.status_code, 200)
             state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
             url = url_for('reset_password.config_reset_pw',
-                           _external=True)
+                          _external=True)
             data = {
                 'code': state.email_code.code
             }
@@ -143,8 +143,32 @@ class ResetPasswordTests(EduidAPITestCase):
             self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_CONFIG_SUCCESS')
 
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
-    def test_post_reset_wrong_code(self, mock_sendmail):
+    def test_post_reset_code_magic(self, mock_sendmail):
         mock_sendmail.return_value = True
+        self.app.config.environment = 'staging'
+        self.app.config.magic_code = 'magic-code'
+        with self.app.test_client() as c:
+            data = {
+                'email': self.test_user_email
+            }
+            response = c.post('/reset/', data=json.dumps(data),
+                              content_type=self.content_type_json)
+            self.assertEqual(response.status_code, 200)
+            url = url_for('reset_password.config_reset_pw',
+                          _external=True)
+            data = {
+                'code': 'magic-code'
+            }
+            response = c.post(url, data=json.dumps(data),
+                              content_type=self.content_type_json)
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_CONFIG_SUCCESS')
+
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
+    def test_post_reset_code_magic_proper_code(self, mock_sendmail):
+        mock_sendmail.return_value = True
+        self.app.config.environment = 'staging'
+        self.app.config.magic_code = 'magic-code'
         with self.app.test_client() as c:
             data = {
                 'email': self.test_user_email
@@ -154,7 +178,73 @@ class ResetPasswordTests(EduidAPITestCase):
             self.assertEqual(response.status_code, 200)
             state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
             url = url_for('reset_password.config_reset_pw',
-                           _external=True)
+                          _external=True)
+            data = {
+                'code': state.email_code.code
+            }
+            response = c.post(url, data=json.dumps(data),
+                              content_type=self.content_type_json)
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_CONFIG_SUCCESS')
+
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
+    def test_post_reset_code_magic_wrong(self, mock_sendmail):
+        mock_sendmail.return_value = True
+        self.app.config.environment = 'staging'
+        self.app.config.magic_code = 'magic-code'
+        with self.app.test_client() as c:
+            data = {
+                'email': self.test_user_email
+            }
+            response = c.post('/reset/', data=json.dumps(data),
+                              content_type=self.content_type_json)
+            self.assertEqual(response.status_code, 200)
+            url = url_for('reset_password.config_reset_pw',
+                          _external=True)
+            data = {
+                'code': 'wrong-magic-code'
+            }
+            response = c.post(url, data=json.dumps(data),
+                              content_type=self.content_type_json)
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_CONFIG_FAIL')
+            self.assertEqual(response.json['payload']['message'], 'resetpw.unknown-code')
+
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
+    def test_post_reset_code_no_magic_in_pro(self, mock_sendmail):
+        mock_sendmail.return_value = True
+        self.app.config.environment = 'pro'
+        self.app.config.magic_code = 'magic-code'
+        with self.app.test_client() as c:
+            data = {
+                'email': self.test_user_email
+            }
+            response = c.post('/reset/', data=json.dumps(data),
+                              content_type=self.content_type_json)
+            self.assertEqual(response.status_code, 200)
+            url = url_for('reset_password.config_reset_pw',
+                          _external=True)
+            data = {
+                'code': 'magic-code'
+            }
+            response = c.post(url, data=json.dumps(data),
+                              content_type=self.content_type_json)
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_CONFIG_FAIL')
+            self.assertEqual(response.json['payload']['message'], 'resetpw.unknown-code')
+
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
+    def test_post_reset_wrong_code(self, mock_sendmail):
+        mock_sendmail.return_value = True
+        with self.app.test_client() as c:
+            data = {
+                'email': self.test_user_email
+            }
+            response = c.post('/reset/', data=json.dumps(data),
+                              content_type=self.content_type_json)
+            self.assertEqual(response.status_code, 200)
+            url = url_for('reset_password.config_reset_pw',
+                          _external=True)
             data = {
                 'code': 'wrong-code'
             }
@@ -253,7 +343,6 @@ class ResetPasswordTests(EduidAPITestCase):
             response = c.post('/reset/', data=json.dumps(data),
                               content_type=self.content_type_json)
             self.assertEqual(response.status_code, 200)
-            state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
 
             # check that the user has verified data
             user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
@@ -435,6 +524,173 @@ class ResetPasswordTests(EduidAPITestCase):
 
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_PHONE_SUCCESS')
+
+    @patch('eduid_common.authn.vccs.get_vccs_client')
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid_common.api.msg.MsgRelay.sendsms')
+    def test_post_extra_sec_magic_code(self, mock_sendsms, mock_request_user_sync, mock_sendmail, mock_get_vccs_client):
+        mock_request_user_sync.side_effect = self.request_user_sync
+        mock_sendmail.return_value = True
+        mock_get_vccs_client.return_value = TestVCCSClient()
+        mock_sendsms.return_value = True
+        self.app.config.environment = 'staging'
+        self.app.config.magic_code = 'magic-code'
+        with self.app.test_client() as c:
+            data = {
+                'email': self.test_user_email
+            }
+            response = c.post('/reset/', data=json.dumps(data),
+                              content_type=self.content_type_json)
+            self.assertEqual(response.status_code, 200)
+            state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+
+            url = url_for('reset_password.config_reset_pw', _external=True)
+            data = {
+                'code': state.email_code.code
+            }
+            response = c.post(url, data=json.dumps(data),
+                              content_type=self.content_type_json)
+            self.assertEqual(response.status_code, 200)
+
+            url = url_for('reset_password.choose_extra_security_phone', _external=True)
+            data = {
+                'code': state.email_code.code,
+                'phone_index': '0'
+            }
+
+            response = c.post(url, data=json.dumps(data),
+                              content_type=self.content_type_json)
+
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_EXTRA_SECURITY_PHONE_SUCCESS')
+
+            new_password = generate_suggested_password()
+            url = url_for('reset_password.set_new_pw_extra_security_phone', _external=True)
+            state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+            data = {
+                'code': 'magic-code',
+                'phone_code': 'magic-code',
+                'password': new_password
+            }
+
+            response = c.post(url, data=json.dumps(data),
+                              content_type=self.content_type_json)
+
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_PHONE_SUCCESS')
+
+    @patch('eduid_common.authn.vccs.get_vccs_client')
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid_common.api.msg.MsgRelay.sendsms')
+    def test_post_reset_password_secure_with_wrong_magic_code(self, mock_sendsms, mock_request_user_sync, mock_sendmail, mock_get_vccs_client):
+        mock_request_user_sync.side_effect = self.request_user_sync
+        mock_sendmail.return_value = True
+        mock_get_vccs_client.return_value = TestVCCSClient()
+        mock_sendsms.return_value = True
+        self.app.config.environment = 'staging'
+        self.app.config.magic_code = 'magic-code'
+        with self.app.test_client() as c:
+            data = {
+                'email': self.test_user_email
+            }
+            response = c.post('/reset/', data=json.dumps(data),
+                              content_type=self.content_type_json)
+            self.assertEqual(response.status_code, 200)
+            state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+
+            url = url_for('reset_password.config_reset_pw', _external=True)
+            data = {
+                'code': state.email_code.code
+            }
+            response = c.post(url, data=json.dumps(data),
+                              content_type=self.content_type_json)
+            self.assertEqual(response.status_code, 200)
+
+            url = url_for('reset_password.choose_extra_security_phone', _external=True)
+            data = {
+                'code': state.email_code.code,
+                'phone_index': '0'
+            }
+
+            response = c.post(url, data=json.dumps(data),
+                              content_type=self.content_type_json)
+
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_EXTRA_SECURITY_PHONE_SUCCESS')
+
+            new_password = generate_suggested_password()
+            url = url_for('reset_password.set_new_pw_extra_security_phone', _external=True)
+            state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+            data = {
+                'code': 'magic-code',
+                'phone_code': 'wrong-magic-code',
+                'password': new_password
+            }
+
+            response = c.post(url, data=json.dumps(data),
+                              content_type=self.content_type_json)
+
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_PHONE_FAIL')
+            self.assertEquals(response.json['payload']['message'], 'resetpw.phone-code-unknown')
+
+    @patch('eduid_common.authn.vccs.get_vccs_client')
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid_common.api.msg.MsgRelay.sendsms')
+    def test_post_reset_password_secure_with_magic_code_in_pro(self, mock_sendsms, mock_request_user_sync, mock_sendmail, mock_get_vccs_client):
+        mock_request_user_sync.side_effect = self.request_user_sync
+        mock_sendmail.return_value = True
+        mock_get_vccs_client.return_value = TestVCCSClient()
+        mock_sendsms.return_value = True
+        self.app.config.environment = 'pro'
+        self.app.config.magic_code = 'magic-code'
+        with self.app.test_client() as c:
+            data = {
+                'email': self.test_user_email
+            }
+            response = c.post('/reset/', data=json.dumps(data),
+                              content_type=self.content_type_json)
+            self.assertEqual(response.status_code, 200)
+            state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+
+            url = url_for('reset_password.config_reset_pw', _external=True)
+            data = {
+                'code': state.email_code.code
+            }
+            response = c.post(url, data=json.dumps(data),
+                              content_type=self.content_type_json)
+            self.assertEqual(response.status_code, 200)
+
+            url = url_for('reset_password.choose_extra_security_phone', _external=True)
+            data = {
+                'code': state.email_code.code,
+                'phone_index': '0'
+            }
+
+            response = c.post(url, data=json.dumps(data),
+                              content_type=self.content_type_json)
+
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_EXTRA_SECURITY_PHONE_SUCCESS')
+
+            new_password = generate_suggested_password()
+            url = url_for('reset_password.set_new_pw_extra_security_phone', _external=True)
+            state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+            data = {
+                'code': state.email_code.code,
+                'phone_code': 'magic-code',
+                'password': new_password
+            }
+
+            response = c.post(url, data=json.dumps(data),
+                              content_type=self.content_type_json)
+
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_PHONE_FAIL')
+            self.assertEquals(response.json['payload']['message'], 'resetpw.phone-code-unknown')
 
     @patch('eduid_common.authn.vccs.get_vccs_client')
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
