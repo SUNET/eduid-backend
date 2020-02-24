@@ -197,6 +197,7 @@ def config_reset_pw(code: str) -> dict:
         'password_entropy': current_app.config.password_entropy,
         'password_length': current_app.config.password_length,
         'password_service_url': current_app.config.password_service_url,
+        'zxcvbn_terms': get_zxcvbn_terms(state.eppn),
     }
 
 
