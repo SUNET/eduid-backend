@@ -11,8 +11,8 @@ from eduid_userdb import UserDB
 
 class Context(object):
 
-    def __init__(self, config: Dict):
-        self.config = load_config(config)
+    def __init__(self, config: Dict, testing: bool=False):
+        self.config = load_config(config, testing=testing)
         self.users: UserStore = UserStore()
 
         # TODO: make database parameters configurable
