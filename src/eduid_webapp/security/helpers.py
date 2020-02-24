@@ -201,9 +201,14 @@ def verify_email_address(state):
 
 @deprecated("Remove once the password reset views are served from their own webapp")
 def send_verify_phone_code(state, phone_number):
+    phone_code = get_short_hash()
     state = PasswordResetEmailAndPhoneState.from_email_state(state, phone_number=phone_number,
-                                                             phone_code=get_short_hash())
+                                                             phone_code=phone_code)
     current_app.password_reset_state_db.save(state)
+
+    if current_app.config.environment in ('staging', 'dev') and current_app.config.magic_code:
+        session['resetpw_sms_verification_code'] = phone_code
+
     template = 'reset_password_sms.txt.jinja2'
     context = {
         'verification_code': state.phone_code.code

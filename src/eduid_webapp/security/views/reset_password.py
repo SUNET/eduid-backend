@@ -221,7 +221,14 @@ def extra_security_phone_number(state):
         form = ResetPasswordVerifyPhoneNumberSchema().load(request.form)
         if not form.errors and session.get_csrf_token() == form.data['csrf']:
             current_app.logger.info('Trying to verify phone code')
-            if form.data.get('phone_code', '') == state.phone_code.code:
+
+            phone_code = form.data.get('phone_code', '')
+
+            if current_app.config.environment in ('staging', 'dev') and current_app.config.magic_code:
+                if phone_code == current_app.config.magic_code:
+                    phone_code = session['resetpw_sms_verification_code']
+
+            if phone_code == state.phone_code.code:
                 if not verify_phone_number(state):
                     current_app.logger.info('Could not validated phone code for {}'.format(state.eppn))
                     view_context = {

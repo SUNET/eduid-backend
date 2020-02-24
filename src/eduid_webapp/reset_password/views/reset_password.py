@@ -340,6 +340,10 @@ def set_new_pw_extra_security_phone(phone_code: str, code: str, password: str) -
     user = current_app.central_userdb.get_user_by_eppn(state.eppn,
                                                        raise_on_missing=False)
 
+    if current_app.config.environment in ('staging', 'dev') and current_app.config.magic_code:
+        if phone_code == current_app.config.magic_code:
+            phone_code = session['resetpw_sms_verification_code']
+
     if phone_code == state.phone_code.code:
         if not verify_phone_number(state):
             current_app.logger.info(f'Could not verify phone code for {user}')
