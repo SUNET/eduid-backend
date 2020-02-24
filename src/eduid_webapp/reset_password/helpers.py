@@ -180,14 +180,13 @@ def send_password_reset_mail(email_address: str):
                                 f"unknown email address: {email_address}.")
         raise BadCode(ResetPwMsg.user_not_found)
 
-    email_code = get_unique_hash()
     state = ResetPasswordEmailState(eppn=user.eppn,
                                     email_address=email_address,
-                                    email_code=email_code)
+                                    email_code=get_unique_hash())
     current_app.password_reset_state_db.save(state)
 
     if current_app.config.environment in ('staging', 'dev') and current_app.config.magic_code:
-        session['resetpw_email_verification_code'] = email_code
+        session['resetpw_email_verification_code'] = state.email_code.code
 
     text_template = 'reset_password_email.txt.jinja2'
     html_template = 'reset_password_email.html.jinja2'
@@ -358,18 +357,17 @@ def verify_email_address(state: ResetPasswordEmailState) -> bool:
 
 
 def send_verify_phone_code(state: ResetPasswordEmailState, phone_number: str):
-    phone_code = get_short_hash()
     state = ResetPasswordEmailAndPhoneState.from_email_state(state,
                                                              phone_number=phone_number,
-                                                             phone_code=phone_code)
+                                                             phone_code=get_short_hash())
     current_app.password_reset_state_db.save(state)
 
     if current_app.config.environment in ('staging', 'dev') and current_app.config.magic_code:
-        session['resetpw_sms_verification_code'] = phone_code
+        session['resetpw_sms_verification_code'] = state.phone_code.code
 
     template = 'reset_password_sms.txt.jinja2'
     context = {
-        'verification_code': phone_code
+        'verification_code': state.phone_code.code
     }
     send_sms(state.phone_number, template, context, state.reference)
     current_app.logger.info(f'Sent password reset sms to user with eppn: {state.eppn}')
