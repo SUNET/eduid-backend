@@ -66,6 +66,10 @@ class BaseGraphDB(ABC):
     def __repr__(self) -> str:
         return f'<eduID {self.__class__.__name__}: {self._db.sanitized_uri}>'
 
+    @property
+    def db(self):
+        return self._db
+
     def db_setup(self):
         """Use this for setting up indices or constraints"""
         raise NotImplementedError()
