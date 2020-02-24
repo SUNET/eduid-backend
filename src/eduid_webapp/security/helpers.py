@@ -151,12 +151,15 @@ def send_password_reset_mail(email_address):
         current_app.logger.info("Found no user with the following address: {}.".format(email_address))
         return None
 
-    email_code = get_unique_hash()
-    state = PasswordResetEmailState(eppn=user.eppn, email_address=email_address, email_code=email_code)
+    state = PasswordResetEmailState(eppn=user.eppn, email_address=email_address, email_code=get_unique_hash())
     current_app.password_reset_state_db.save(state)
 
+    # Backdoor for the staging and dev environments where a magic code
+    # bypasses verification of the emailed code, to be used in automated integration tests.
+    # Here we store the real code in the session,
+    # to recover it in case the user sends the magic code.
     if current_app.config.environment in ('staging', 'dev') and current_app.config.magic_code:
-        session['resetpw_email_verification_code'] = email_code
+        session['resetpw_email_verification_code'] = state.email_code.code
 
     text_template = 'reset_password_email.txt.jinja2'
     html_template = 'reset_password_email.html.jinja2'
@@ -201,13 +204,16 @@ def verify_email_address(state):
 
 @deprecated("Remove once the password reset views are served from their own webapp")
 def send_verify_phone_code(state, phone_number):
-    phone_code = get_short_hash()
     state = PasswordResetEmailAndPhoneState.from_email_state(state, phone_number=phone_number,
-                                                             phone_code=phone_code)
+                                                             phone_code=get_short_hash())
     current_app.password_reset_state_db.save(state)
 
+    # Backdoor for the staging and dev environments where a magic code
+    # bypasses verification of the sms'ed code, to be used in automated integration tests.
+    # here we store the real code in the session,
+    # to recover it in case the user sends the magic code.
     if current_app.config.environment in ('staging', 'dev') and current_app.config.magic_code:
-        session['resetpw_sms_verification_code'] = phone_code
+        session['resetpw_sms_verification_code'] = state.phone_code.code
 
     template = 'reset_password_sms.txt.jinja2'
     context = {

@@ -341,7 +341,7 @@ def set_new_pw_extra_security_phone(phone_code: str, code: str, password: str) -
                                                        raise_on_missing=False)
 
     # Backdoor for the staging and dev environments where a magic code
-    # bypasses verification of the sms'ed code.
+    # bypasses verification of the sms'ed code, to be used in automated integration tests.
     # here we store the real code in the session,
     # to recover it in case the user sends the magic code.
     if current_app.config.environment in ('staging', 'dev') and current_app.config.magic_code:
