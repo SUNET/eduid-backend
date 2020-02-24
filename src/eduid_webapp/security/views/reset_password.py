@@ -122,7 +122,7 @@ def email_reset_code(state):
         current_app.logger.info('Redirecting user to extra security view')
         return redirect(url_for('reset_password.choose_extra_security', email_code=state.email_code.code))
 
-    current_app.logger.info('Could not validated email code for {}'.format(state.eppn))
+    current_app.logger.info('Could not validate email code for {}'.format(state.eppn))
     view_context = {
         'heading': _('Temporary technical problem'),
         'text': _('Please try again.'),
