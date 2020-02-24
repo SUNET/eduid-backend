@@ -150,8 +150,9 @@ class UsersSearchResource(BaseResource):
         user = None
         match = re.match('id eq "([a-z-]+)"', filter)
         if match:
-            eppn = match.group(0)
+            eppn = match.group(1)
             if eppn:
+                self.context.logger.debug(f'Searching for user with eppn {repr(eppn)}')
                 user = self.context.userdb.get_user_by_eppn(eppn)
 
         assert isinstance(user, User)
