@@ -32,6 +32,11 @@ def require_state(f):
         email_code = kwargs.pop('email_code')
         mail_expiration_time = current_app.config.email_code_timeout
         sms_expiration_time = current_app.config.phone_code_timeout
+
+        if current_app.config.environment in ('staging', 'dev') and current_app.config.magic_code:
+            if email_code == current_app.config.magic_code:
+                email_code = session['resetpw_email_verification_code']
+
         try:
             state = current_app.password_reset_state_db.get_state_by_email_code(email_code)
             current_app.logger.debug(f'Found state using email_code {email_code}: {state}')
