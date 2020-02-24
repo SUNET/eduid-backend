@@ -369,7 +369,7 @@ def send_verify_phone_code(state: ResetPasswordEmailState, phone_number: str):
 
     template = 'reset_password_sms.txt.jinja2'
     context = {
-        'verification_code': state.phone_code.code
+        'verification_code': phone_code
     }
     send_sms(state.phone_number, template, context, state.reference)
     current_app.logger.info(f'Sent password reset sms to user with eppn: {state.eppn}')
