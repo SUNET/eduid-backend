@@ -32,6 +32,14 @@ def require_state(f):
         email_code = kwargs.pop('email_code')
         mail_expiration_time = current_app.config.email_code_timeout
         sms_expiration_time = current_app.config.phone_code_timeout
+
+        # Backdoor for the staging and dev environments where a magic code
+        # bypasses verification of the emailed code, to be used in automated integration tests.
+        # Here we retrieve the real code from the session.
+        if current_app.config.environment in ('staging', 'dev') and current_app.config.magic_code:
+            if email_code == current_app.config.magic_code:
+                email_code = session['resetpw_email_verification_code']
+
         try:
             state = current_app.password_reset_state_db.get_state_by_email_code(email_code)
             current_app.logger.debug(f'Found state using email_code {email_code}: {state}')
@@ -117,7 +125,7 @@ def email_reset_code(state):
         current_app.logger.info('Redirecting user to extra security view')
         return redirect(url_for('reset_password.choose_extra_security', email_code=state.email_code.code))
 
-    current_app.logger.info('Could not validated email code for {}'.format(state.eppn))
+    current_app.logger.info('Could not validate email code for {}'.format(state.eppn))
     view_context = {
         'heading': _('Temporary technical problem'),
         'text': _('Please try again.'),
@@ -216,7 +224,17 @@ def extra_security_phone_number(state):
         form = ResetPasswordVerifyPhoneNumberSchema().load(request.form)
         if not form.errors and session.get_csrf_token() == form.data['csrf']:
             current_app.logger.info('Trying to verify phone code')
-            if form.data.get('phone_code', '') == state.phone_code.code:
+
+            phone_code = form.data.get('phone_code', '')
+
+            # Backdoor for the staging and dev environments where a magic code
+            # bypasses verification of the sms'd code, to be used in automated integration tests.
+            # Here we retrieve the real code from the session.
+            if current_app.config.environment in ('staging', 'dev') and current_app.config.magic_code:
+                if phone_code == current_app.config.magic_code:
+                    phone_code = session['resetpw_sms_verification_code']
+
+            if phone_code == state.phone_code.code:
                 if not verify_phone_number(state):
                     current_app.logger.info('Could not validated phone code for {}'.format(state.eppn))
                     view_context = {

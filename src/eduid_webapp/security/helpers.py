@@ -150,8 +150,17 @@ def send_password_reset_mail(email_address):
     if not user:
         current_app.logger.info("Found no user with the following address: {}.".format(email_address))
         return None
+
     state = PasswordResetEmailState(eppn=user.eppn, email_address=email_address, email_code=get_unique_hash())
     current_app.password_reset_state_db.save(state)
+
+    # Backdoor for the staging and dev environments where a magic code
+    # bypasses verification of the emailed code, to be used in automated integration tests.
+    # Here we store the real code in the session,
+    # to recover it in case the user sends the magic code.
+    if current_app.config.environment in ('staging', 'dev') and current_app.config.magic_code:
+        session['resetpw_email_verification_code'] = state.email_code.code
+
     text_template = 'reset_password_email.txt.jinja2'
     html_template = 'reset_password_email.html.jinja2'
     to_addresses = [address.email for address in user.mail_addresses.verified.to_list()]
@@ -198,6 +207,14 @@ def send_verify_phone_code(state, phone_number):
     state = PasswordResetEmailAndPhoneState.from_email_state(state, phone_number=phone_number,
                                                              phone_code=get_short_hash())
     current_app.password_reset_state_db.save(state)
+
+    # Backdoor for the staging and dev environments where a magic code
+    # bypasses verification of the sms'ed code, to be used in automated integration tests.
+    # here we store the real code in the session,
+    # to recover it in case the user sends the magic code.
+    if current_app.config.environment in ('staging', 'dev') and current_app.config.magic_code:
+        session['resetpw_sms_verification_code'] = state.phone_code.code
+
     template = 'reset_password_sms.txt.jinja2'
     context = {
         'verification_code': state.phone_code.code
