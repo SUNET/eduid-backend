@@ -1,21 +1,22 @@
 import logging
 import logging.config
 import sys
-from typing import Mapping
+from typing import Mapping, Dict
 
-from eduid_scimapi.utils import urlappend
+from eduid_scimapi.config import load_config
 from eduid_scimapi.scimuser import UserStore
+from eduid_scimapi.utils import urlappend
 from eduid_userdb import UserDB
 
 
 class Context(object):
 
-    def __init__(self, config: Mapping):
-        self.config = config
+    def __init__(self, config: Dict):
+        self.config = load_config(config)
         self.users: UserStore = UserStore()
 
         # TODO: make database parameters configurable
-        self.userdb = UserDB(db_uri='mongodb://eduid_mongodb', db_name='am')
+        self.userdb = UserDB(db_uri=self.config.mongo_uri, db_name='eduid_am')
 
         self.schema: str = self.config.get('SCHEMA', 'http')
         self.server_name: str = self.config.get('SERVER_NAME', 'localhost:8000')
