@@ -135,6 +135,9 @@ def get_pwreset_state(email_code: str) -> ResetPasswordState:
 
     raises BadCode in case of problems
     """
+    # Backdoor for the staging and dev environments where a magic code
+    # bypasses verification of the emailed code.
+    # here we retrieve the real code from the session.
     if current_app.config.environment in ('staging', 'dev') and current_app.config.magic_code:
         if email_code == current_app.config.magic_code:
             email_code = session['resetpw_email_verification_code']
@@ -185,6 +188,10 @@ def send_password_reset_mail(email_address: str):
                                     email_code=get_unique_hash())
     current_app.password_reset_state_db.save(state)
 
+    # Backdoor for the staging and dev environments where a magic code
+    # bypasses verification of the emailed code.
+    # here we store the real code in the session,
+    # to recover it in case the user sends the magic code.
     if current_app.config.environment in ('staging', 'dev') and current_app.config.magic_code:
         session['resetpw_email_verification_code'] = state.email_code.code
 
@@ -362,6 +369,10 @@ def send_verify_phone_code(state: ResetPasswordEmailState, phone_number: str):
                                                              phone_code=get_short_hash())
     current_app.password_reset_state_db.save(state)
 
+    # Backdoor for the staging and dev environments where a magic code
+    # bypasses verification of the sms'ed code.
+    # here we store the real code in the session,
+    # to recover it in case the user sends the magic code.
     if current_app.config.environment in ('staging', 'dev') and current_app.config.magic_code:
         session['resetpw_sms_verification_code'] = state.phone_code.code
 
