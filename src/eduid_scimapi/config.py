@@ -14,6 +14,9 @@ class ScimApiConfig(BaseConfig):
     Configuration for the SCIM API app
     """
     test: bool = True
+    schema: str = 'http'
+    server_name: str = 'localhost:8000'
+    application_root: str = '/'
 
 
 def load_config(config: Dict, name: str = 'scimapi', testing: bool=False) -> ScimApiConfig:
@@ -36,6 +39,7 @@ def load_config(config: Dict, name: str = 'scimapi', testing: bool=False) -> Sci
 
     cfg = ScimApiConfig(**config)
 
+    # Save config to a file in /dev/shm for introspection
     fd_int = os.open(f'/dev/shm/{name}_config.yaml', os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
     with open(fd_int, 'w') as fd:
         fd.write('---\n')

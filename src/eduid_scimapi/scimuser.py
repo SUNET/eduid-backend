@@ -15,7 +15,7 @@ class ScimUser(object):
 
     @property
     def etag(self):
-        return f'W\/"{self.version}"'
+        return f'W/"{self.version}"'
     
     def to_dict(self, location: str):
         res = {
@@ -30,7 +30,7 @@ class ScimUser(object):
                 'version': self.etag,
             },
             'name': self.name,
-            'userName': self.username,
+            #'userName': self.username,
         }
         return res
 
