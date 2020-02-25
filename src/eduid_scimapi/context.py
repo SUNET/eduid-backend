@@ -4,6 +4,7 @@ import sys
 from typing import Dict
 
 from eduid_scimapi.config import load_config
+from eduid_scimapi.scimuser import UserStore
 from eduid_scimapi.utils import urlappend
 from eduid_userdb import UserDB
 
