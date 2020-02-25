@@ -35,13 +35,11 @@ from enum import Enum, unique
 from typing import Optional
 
 import bcrypt
-from flask import url_for
 from flask import render_template
 from flask_babel import gettext as _
 
 from eduid_userdb.exceptions import UserHasNotCompletedSignup
 from eduid_userdb.exceptions import DocumentDoesNotExist
-from eduid_userdb.credentials import U2F, Webauthn
 from eduid_userdb.reset_password import ResetPasswordUser
 from eduid_userdb.reset_password import ResetPasswordState
 from eduid_userdb.reset_password import ResetPasswordEmailState
@@ -57,8 +55,12 @@ from eduid_common.api.utils import get_short_hash
 from eduid_common.api.helpers import send_mail
 from eduid_common.authn.utils import generate_password
 from eduid_common.authn.vccs import reset_password
+from eduid_common.authn import fido_tokens
 from eduid_common.session import session
 from eduid_webapp.reset_password.app import current_reset_password_app as current_app
+
+
+PACKAGE_NAME = 'eduid_webapp.reset_password.helpers'
 
 
 @unique
@@ -323,10 +325,10 @@ def get_extra_security_alternatives(user: User) -> dict:
             for n, item in enumerate(user.phone_numbers.verified.to_list())]
         alternatives['phone_numbers'] = verified_phone_numbers
 
-    tokens = user.credentials.filter(U2F).to_list()
-    tokens += user.credentials.filter(Webauthn).to_list()
+    tokens = fido_tokens.start_token_verification(user, PACKAGE_NAME)
+
     if tokens:
-        alternatives['tokens'] = [{'description': item.description} for item in tokens]
+        alternatives['tokens'] = tokens
 
     return alternatives
 

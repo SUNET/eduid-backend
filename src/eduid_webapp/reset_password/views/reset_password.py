@@ -241,7 +241,6 @@ def _get_state_and_data(SchemaClass):
 
 
 @reset_password_views.route('/new-password/', methods=['POST'])
-@UnmarshalWith()
 @MarshalWith(FluxStandardAction)
 def set_new_pw() -> dict:
     """
