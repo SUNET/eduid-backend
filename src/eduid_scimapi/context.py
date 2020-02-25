@@ -4,7 +4,7 @@ import sys
 from typing import Dict
 
 from eduid_scimapi.config import load_config
-from eduid_scimapi.scimuser import UserStore
+from eduid_scimapi.userdb import ScimApiUserDB
 from eduid_scimapi.utils import urlappend
 from eduid_userdb import UserDB
 
@@ -13,9 +13,11 @@ class Context(object):
 
     def __init__(self, config: Dict, testing: bool=False):
         self.config = load_config(config, testing=testing)
-        self.users: UserStore = UserStore()
 
-        self.userdb = UserDB(db_uri=self.config.mongo_uri, db_name='eduid_am')
+        if not testing:
+            # TODO: need temporary etcd and mongodb instances for running tests soon
+            self.eduid_userdb = UserDB(db_uri=self.config.mongo_uri, db_name='eduid_am')
+            self.userdb = ScimApiUserDB(db_uri=self.config.mongo_uri)
 
         if self.config.get('LOGGING'):
             logging.config.dictConfig(self.config.get('LOGGING', {}))

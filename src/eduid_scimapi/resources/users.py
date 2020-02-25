@@ -7,20 +7,20 @@ from falcon import Request, Response
 
 from eduid_scimapi.base import BaseResource
 from eduid_scimapi.exceptions import BadRequest
-from eduid_scimapi.scimuser import ScimUser
+from eduid_scimapi.userdb import ScimApiUser, Profile
 from eduid_userdb.user import User
 
 
 class UsersResource(BaseResource):
 
-    def on_get(self, req: Request, resp: Response, user_id):
-        self.context.logger.info(f'Fetching user {user_id}')
+    def on_get(self, req: Request, resp: Response, scim_id):
+        self.context.logger.info(f'Fetching user {scim_id}')
 
-        user = self.context.users.get_user_by_id(user_id)
+        user = self.context.userdb.get_user_by_scim_id(scim_id)
         if not user:
             raise BadRequest(detail='User not found')
 
-        location = self.url_for('Users', user.user_id)
+        location = self.url_for('Users', user.scim_id)
         resp.set_header('Location', location)
         resp.set_header('ETag', user.etag)
         resp.media = user.to_dict(location)
@@ -76,30 +76,19 @@ class UsersResource(BaseResource):
 
         if not req.media:
             raise BadRequest(detail='No data in user creation request')
-        username = req.media.get('userName')
-        if not username:
-            raise BadRequest(detail='No userName in user creation request')
+        external_id = req.media.get('externalId')
+        if not external_id:
+            raise BadRequest(detail='No externalId in user creation request')
 
-        if self.context.users.get_user_by_username(username):
-            raise BadRequest(detail='User already exists')
+        # TODO: figure out scope for this user
+        profile = Profile(external_id=external_id, data={})
+        user = ScimApiUser(profiles={'some_scope': profile})
+        self.context.userdb.save(user)
 
-        now = datetime.utcnow()
-
-        user = ScimUser(username=username,  # TODO: should probably be eduid eppn?
-                        external_id=username,
-                        user_id=str(uuid.uuid4()),
-                        name=req.media.get('name', {}),
-                        version=1,
-                        last_modified=now,
-                        created=now,
-                        )
-
-        self.context.users.add_user(user)
-
-        location = self.url_for('Users', user.user_id)
+        location = self.url_for('Users', user.scim_id)
         resp.set_header('Location', location)
         resp.set_header('ETag', user.etag)
-        resp.media = user.to_dict(location)
+        resp.media = user.to_dict(location, debug=self.context.config.debug)
 
 
 class UsersSearchResource(BaseResource):
@@ -149,30 +138,31 @@ class UsersSearchResource(BaseResource):
 
         user = None
         match = re.match('id eq "([a-z-]+)"', filter)
-        if match:
-            eppn = match.group(1)
-            if eppn:
-                self.context.logger.debug(f'Searching for user with eppn {repr(eppn)}')
-                user = self.context.userdb.get_user_by_eppn(eppn)
+        if not match:
+            raise BadRequest(detail='Unrecognised filter')
 
-        assert isinstance(user, User)
+        eppn = match.group(1)
+        if eppn:
+            self.context.logger.debug(f'Searching for user with eppn {repr(eppn)}')
+            user = self.context.userdb.get_user_by_eduid_eppn(eppn)
+            if not user:
+                eduid_user = self.context.eduid_userdb.get_user_by_eppn(eppn)
+                assert isinstance(eduid_user, User)
 
-        now = datetime.utcnow()
+                eduid_profile = Profile(external_id=eduid_user.eppn,
+                                        data={'display_name': eduid_user.display_name,
+                                              })
 
-        user = ScimUser(username=user.eppn,
-                        external_id='external_id',
-                        user_id=user.eppn,
-                        name={'displayName': user.display_name,
-                              },
-                        version=1,
-                        last_modified=now,
-                        created=now,
-                        )
+                # persist the scim_id for the search result by saving it as a ScimApiUser
+                user = ScimApiUser(profiles={'eduid': eduid_profile})
+                self.context.userdb.save(user)
 
-        self.context.users.add_user(user)
+        if not user:
+            # TODO: probably not the right way to signal this
+            raise BadRequest(detail='User not found')
 
-        location = self.url_for('Users', user.user_id)
+        location = self.url_for('Users', user.scim_id)
         resp.set_header('Location', location)
         resp.set_header('ETag', user.etag)
-        resp.media = user.to_dict(location)
+        resp.media = user.to_dict(location, debug=self.context.config.debug)
 
