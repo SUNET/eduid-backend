@@ -184,7 +184,7 @@ def config_reset_pw(code: str) -> dict:
     session.reset_password.generated_password_hash = hash_password(new_password)
 
     user = current_app.central_userdb.get_user_by_eppn(state.eppn)
-    alternatives = get_extra_security_alternatives(user)
+    alternatives = get_extra_security_alternatives(user, SESSION_PREFIX)
     state.extra_security = alternatives
     current_app.password_reset_state_db.save(state)
 

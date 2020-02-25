@@ -30,9 +30,6 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-import math
-
-import zxcvbn
 from flask_babel import gettext as _
 from marshmallow import fields, validates, ValidationError
 
@@ -82,10 +79,10 @@ class ResetPasswordWithCodeSchema(PasswordSchema):
     password = fields.String(required=True)
 
     @validates('password')
-    def validate_password(self, value):
+    def validate_pw(self, value):
         # Set a new error message
         try:
-            self._validate_password(value)
+            self.validate_password(value)
         except ValidationError:
             raise ValidationError('resetpw.weak-password')
 
@@ -96,7 +93,11 @@ class ResetPasswordWithPhoneCodeSchema(ResetPasswordWithCodeSchema):
 
 
 class ResetPasswordWithSecTokenSchema(ResetPasswordWithCodeSchema):
-    pass
+
+    credentialId = fields.String(required=True)
+    authenticatorData = fields.String(required=True)
+    clientDataJSON = fields.String(required=True)
+    signature = fields.String(required=True)
 
 
 class ChpassCredentialList(EduidSchema, CSRFResponseMixin):

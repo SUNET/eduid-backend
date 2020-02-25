@@ -60,9 +60,6 @@ from eduid_common.session import session
 from eduid_webapp.reset_password.app import current_reset_password_app as current_app
 
 
-PACKAGE_NAME = 'eduid_webapp.reset_password.helpers'
-
-
 @unique
 class ResetPwMsg(Enum):
     """
@@ -312,7 +309,7 @@ def reset_user_password(user: User, state: ResetPasswordState, password: str):
     current_app.logger.info(f'Reset password successful for user {reset_password_user}')
 
 
-def get_extra_security_alternatives(user: User) -> dict:
+def get_extra_security_alternatives(user: User, session_prefix: str) -> dict:
     """
     :param user: The user
     :return: Dict of alternatives
@@ -325,7 +322,7 @@ def get_extra_security_alternatives(user: User) -> dict:
             for n, item in enumerate(user.phone_numbers.verified.to_list())]
         alternatives['phone_numbers'] = verified_phone_numbers
 
-    tokens = fido_tokens.start_token_verification(user, PACKAGE_NAME)
+    tokens = fido_tokens.start_token_verification(user, session_prefix)
 
     if tokens:
         alternatives['tokens'] = tokens
