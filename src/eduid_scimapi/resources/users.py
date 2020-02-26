@@ -1,13 +1,11 @@
-import uuid
 import re
-from datetime import datetime
 from typing import Optional
 
 from falcon import Request, Response
 
 from eduid_scimapi.base import BaseResource
 from eduid_scimapi.exceptions import BadRequest
-from eduid_scimapi.userdb import ScimApiUser, Profile, NUTID_V1
+from eduid_scimapi.userdb import NUTID_V1, Profile, ScimApiUser
 from eduid_userdb.user import User
 
 
@@ -32,6 +30,8 @@ class UsersResource(BaseResource):
         if not user:
             raise BadRequest(detail='User not found')
 
+        # TODO: check that meta.version in the request matches the user object loaded from the database
+
         if NUTID_V1 in req.media:
             changed = False
             data = req.media[NUTID_V1]
@@ -43,6 +43,12 @@ class UsersResource(BaseResource):
                     self.context.logger.info(f'Updating user {user.external_id} eduid display name from '
                                              f'{repr(_old)} to {repr(_new)}')
                     user.profiles['eduid'].data['display_name'] = data['displayName']
+                    # As a PoC, update the eduid userdb with this display name
+                    eduid_user = self.context.eduid_userdb.get_user_by_eppn(user.profiles['eduid'].external_id)
+                    assert eduid_user is not None
+                    eduid_user.display_name = _new
+                    self.context.eduid_userdb.save(eduid_user)
+
             if changed:
                 self.context.userdb.save(user)
 
