@@ -119,6 +119,9 @@ class Neo4jTestCase(unittest.TestCase):
     """
     Base test case that sets up a temporary Neo4j instance
     """
+    neo4j_instance: Neo4jTemporaryInstance
+    neo4jdb: Neo4jDB
+
     @classmethod
     def setUpClass(cls) -> None:
         cls.neo4j_instance = Neo4jTemporaryInstance.get_instance()

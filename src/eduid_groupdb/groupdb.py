@@ -81,7 +81,7 @@ class GroupDB(BaseGraphDB):
                display_name=member.display_name)
 
     def _get_users_and_groups_by_role(self, scope: str, identifier: str, role: Role) -> List[Union[User, Group]]:
-        res = []
+        res: List[Union[User, Group]] = []
         q = f"""
             MATCH (g: Group {{scope: $scope, identifier: $identifier}})<-[r:{role.value}]-(m)
             RETURN r.display_name as display_name, r.created_ts as created_ts, r.modified_ts as modified_ts,
