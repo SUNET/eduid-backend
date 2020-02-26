@@ -56,7 +56,7 @@ class ScimApiUser(object):
         return None
 
     def to_dict(self, location: str, debug: bool = False) -> Mapping[str, Any]:
-        res = {
+        res: Dict[str, Any] = {
             'schemas': ['urn:ietf:params:scim:schemas:core:2.0:User'],
             'id': str(self.scim_id),
             'meta': {
