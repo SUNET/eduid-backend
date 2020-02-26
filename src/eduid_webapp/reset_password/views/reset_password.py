@@ -351,59 +351,6 @@ def choose_extra_security_phone(code: str, phone_index: int) -> dict:
     return success_message(ResetPwMsg.send_sms_success)
 
 
-@reset_password_views.route('/extra-security-token/', methods=['POST'])
-@UnmarshalWith(ResetPasswordExtraSecTokenSchema)
-@MarshalWith(FluxStandardAction)
-def choose_extra_security_token(code: str, token_data: str) -> dict:
-    """
-    View called when the user chooses extra security with a hardware token.
-    It receives an emailed reset password code
-    and data about the hw key chosen, and returns info on the
-    result of the attempted operation.
-
-    Preconditions required for the call to succeed:
-    * A PasswordResetEmailState object in the password_reset_state_db
-      keyed by the received code.
-    * A flag in said state object indicating that the emailed code has already
-      been verifed.
-    * The user referenced in the state has a credential with the hw token
-      referenced in the request.
-
-    As side effects, this operation will:
-    * Copy the data in the PasswordResetEmailState to a new
-      PasswordResetEmailAndTokenState;
-    * Initiate (U2F or Webauthn) authentication workflow;
-    * Send data produced in the previous state to client.
-
-    This operation may fail due to:
-    * The code does not correspond to a valid state in the db;
-    * The code has expired;
-    * No valid user corresponds to the eppn stored in the state;
-    * The user does not have a credential that corresponds to
-      the data received
-    """
-    try:
-        state = get_pwreset_state(code)
-    except BadCode as e:
-        return error_message(e.msg)
-
-    current_app.logger.info(f'Password reset: choose_extra_security_token for '
-                            f'user with eppn {state.eppn}')
-
-    # Check that the email code has been validated
-    if not state.email_code.is_verified:
-        current_app.logger.info(f'User with eppn {state.eppn} has not '
-                                f'verified their email address')
-        return error_message(ResetPwMsg.email_not_validated)
-
-    resetpw_user = current_app.central_userdb.get_user_by_eppn(state.eppn)
-    config = fido_tokens.start_token_verification(resetpw_user, SESSION_PREFIX)
-    config['csrf_token'] = session.new_csrf_token()
-
-    current_app.stats.count(name='reset_password_extra_security_token')
-    return config
-
-
 @reset_password_views.route('/new-password-secure-phone/', methods=['POST'])
 @MarshalWith(FluxStandardAction)
 def set_new_pw_extra_security_phone() -> dict:
