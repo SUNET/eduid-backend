@@ -50,6 +50,7 @@ class TestGroupDB(Neo4jTestCase):
         self.assertEqual(group.identifier, post_save_group.identifier)
         self.assertEqual(group.display_name, post_save_group.display_name)
         self.assertEqual(group.description, post_save_group.description)
+        self.assertIsNotNone(post_save_group.created_ts)
 
     def test_create_group_with_user_member(self):
         group = Group.from_mapping(self.group1)
@@ -119,3 +120,24 @@ class TestGroupDB(Neo4jTestCase):
         post_save_owner = post_save_group.owners[0]
         self.assertEqual(owner.identifier, post_save_owner.identifier)
         self.assertEqual(owner.display_name, post_save_owner.display_name)
+
+    def test_get_groups_for_user(self):
+        group = Group.from_mapping(self.group1)
+        member_group = Group.from_mapping(self.group2)
+        group.members.append(member_group)
+        member_user = User.from_mapping(self.user2)
+        group.members.append(member_user)
+        owner = User.from_mapping(self.user1)
+        group.owners.append(owner)
+
+        self.assertIn(member_group, group.group_members)
+        self.assertIn(member_user, group.user_members)
+        self.assertIn(owner, group.owners)
+        self.group_db.save(group)
+
+        groups = self.group_db.get_groups_for_user(member_user)
+        self.assertEqual(1, len(groups))
+        self.assertEqual(group.scope, groups[0].scope)
+        self.assertEqual(group.identifier, groups[0].identifier)
+        self.assertEqual(group.display_name, groups[0].display_name)
+        self.assertIsNotNone(groups[0].created_ts)

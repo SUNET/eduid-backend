@@ -7,7 +7,6 @@ from neo4j import Transaction
 from neo4j.exceptions import ClientError, CypherError
 
 from eduid_groupdb import BaseGraphDB, Group, User
-from eduid_groupdb.exceptions import UnsupportedMemberType
 
 __author__ = 'lundberg'
 
@@ -31,6 +30,7 @@ class GroupDB(BaseGraphDB):
             # Constraints for User nodes
             session.run('CREATE CONSTRAINT ON (n:User) ASSERT exists(n.identifier)')
             session.run('CREATE CONSTRAINT ON (n:User) ASSERT n.identifier IS UNIQUE')
+        logger.debug(f'{self} setup done.')
 
     @staticmethod
     def _create_or_update_group(tx: Transaction, group: Group) -> None:
@@ -58,10 +58,10 @@ class GroupDB(BaseGraphDB):
             MATCH (g:Group {{scope: $group_scope, identifier: $group_identifier}})
             MERGE (n:Group {{scope: $scope, identifier: $identifier}})-[r:{role.value}]->(g)
                 ON CREATE SET
-                          n.created_ts = timestamp(),
-                          n.display_name = $display_name,
-                          n.description = $description,
-                          r.created_ts = timestamp()
+                    n.created_ts = timestamp(),
+                    n.display_name = $display_name,
+                    n.description = $description,
+                    r.created_ts = timestamp()
                 ON MATCH SET r.modified_ts = timestamp()
             SET r.display_name = $display_name
             """
@@ -98,8 +98,8 @@ class GroupDB(BaseGraphDB):
 
     def get_group(self, scope: str, identifier: str) -> Group:
         q = """
-            MATCH (n: Group {scope: $scope, identifier: $identifier})
-            RETURN n as group
+            MATCH (g: Group {scope: $scope, identifier: $identifier})
+            RETURN g as group
             """
         with self.db.driver.session() as session:
             group_node = session.run(q, scope=scope, identifier=identifier).single().value()
@@ -111,6 +111,17 @@ class GroupDB(BaseGraphDB):
         group = Group.from_mapping(group_data)
         return group
 
+    def get_groups_for_user(self, user: User) -> List[Group]:
+        q = """
+            MATCH (User {identifier: $identifier})-[IN]->(g: Group)
+            RETURN g as group
+            """
+        res: List[Group] = []
+        with self.db.driver.session() as session:
+            for record in session.run(q, identifier=user.identifier):
+                res.append(Group.from_mapping(record.data()['group']))
+        return res
+
     def save(self, group: Group) -> None:
         with self.db.driver.session() as session:
             try:
@@ -118,7 +129,7 @@ class GroupDB(BaseGraphDB):
                 self._create_or_update_group(tx, group)
                 self._add_or_update_users_and_groups(tx, group)
                 tx.success = True
-            except (ClientError, CypherError, UnsupportedMemberType) as e:
+            except (ClientError, CypherError) as e:
                 logger.error(e)
             finally:
                 # If tx.success is not explicitly set to True close will perform a rollback
