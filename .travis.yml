@@ -1,0 +1,16 @@
+language: python
+python:
+  - "3.7"
+services:
+  - docker
+before_install:
+  - docker pull neo4j:enterprise
+# command to install dependencies
+install:
+  - pip install -U setuptools wheel mypy
+  - pip install --index-url https://pypi.sunet.se -r test_requirements.txt
+# command to run tests
+script:
+  - pip freeze
+  - pytest
+  - mypy --ignore-missing-imports src/eduid_groupdb
