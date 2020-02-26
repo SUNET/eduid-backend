@@ -487,7 +487,7 @@ class ResetPasswordTests(EduidAPITestCase):
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('eduid_common.api.msg.MsgRelay.sendsms')
-    def test_post_reset_password_secure(self, mock_sendsms, mock_request_user_sync, mock_sendmail, mock_get_vccs_client):
+    def test_post_reset_password_secure_phone(self, mock_sendsms, mock_request_user_sync, mock_sendmail, mock_get_vccs_client):
         mock_request_user_sync.side_effect = self.request_user_sync
         mock_sendmail.return_value = True
         mock_get_vccs_client.return_value = TestVCCSClient()
@@ -526,6 +526,53 @@ class ResetPasswordTests(EduidAPITestCase):
 
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_PHONE_SUCCESS')
+
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
+    @patch('eduid_common.authn.vccs.get_vccs_client')
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_post_reset_password_secure_token(self, mock_request_user_sync, mock_get_vccs_client, mock_sendmail):
+        mock_request_user_sync.side_effect = self.request_user_sync
+        mock_get_vccs_client.return_value = TestVCCSClient()
+        mock_sendmail.return_value = True
+        with self.app.test_client() as c:
+            data = {
+                'email': self.test_user_email
+            }
+            response = c.post('/reset/', data=json.dumps(data),
+                              content_type=self.content_type_json)
+            self.assertEqual(response.status_code, 200)
+
+            user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+            state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+            alternatives = get_extra_security_alternatives(user, 'dummy.session.prefix')
+            state.extra_security = alternatives
+            state.email_code.is_verified = True
+            self.app.password_reset_state_db.save(state)
+
+            with c.session_transaction() as session:
+                new_password = generate_suggested_password()
+                session.reset_password.generated_password_hash = hash_password(new_password)
+                url = url_for('reset_password.set_new_pw_extra_security_token', _external=True)
+                state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+                data = {
+                    'csrf_token': session.get_csrf_token(),
+                    'code': state.email_code.code,
+                    'password': new_password,
+                    'authenticatorData': 'mZ9k6EPHoJxJZNA+UuvM0JVoutZHmqelg9kXe/DSefgBAAAA/w==',
+                    'clientDataJSON': ('eyJjaGFsbGVuZ2UiOiIzaF9FQVpwWTI1eERkU0pDT014MUFCWkVBNU9k'
+                                       'ejN5ZWpVSTNBVU5UUVdjIiwib3JpZ2luIjoiaHR0cHM6Ly9pZHAuZGV2LmVkdWlkLnNlIiwidH'
+                                       'lwZSI6IndlYmF1dGhuLmdldCJ9'),
+                    'credentialId': ('V1vXqZcwBJD2RMIH2udd2F7R9NoSNlP7ZSPOtKHzS7n/rHFXcXbSpOoX//'
+                                     'aUKyTR6jEC8Xv678WjXC5KEkvziA=='),
+                    'signature': ('MEYCIQC5gM8inamJGUFKu3bNo4fT0jmJQuw33OSSXc242NCuiwIhAIWnVw2Sp'
+                                  'ow72j6J92KaY2rLR6qSXEbLam09ZXbSkBnQ')
+                }
+
+            response = c.post(url, data=json.dumps(data),
+                              content_type=self.content_type_json)
+
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_TOKEN_SUCCESS')
 
     @patch('eduid_common.authn.vccs.get_vccs_client')
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
