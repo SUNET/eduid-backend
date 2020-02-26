@@ -30,7 +30,6 @@ echo "Update:"
 echo ""
 echo "$update" | jq
 
-
 resp=$(curl -X PUT --data "${update}" \
      -H 'Content-Type: application/scim+json' \
      "${api}/Users/${scim_id}"
@@ -39,6 +38,6 @@ resp=$(curl -X PUT --data "${update}" \
 echo ""
 echo "Response:"
 echo ""
-echo "$response" | jq
+echo "$resp" | jq
 
 echo ""
