@@ -16,7 +16,7 @@ __author__ = 'ft'
 
 # schemas
 NUTID_V1 = 'https://scim.eduid.se/schema/nutid/v1'
-DEBUG_ALL_V1 = 'https://scim.eduid.se/schema/nutid/v1'
+DEBUG_ALL_V1 = 'https://scim.eduid.se/schema/debug-all-profiles/v1'
 
 
 logger = logging.getLogger(__name__)
