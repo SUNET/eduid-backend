@@ -116,10 +116,10 @@ class ChangePasswordSchema(PasswordSchema):
     new_password = fields.String(required=True)
 
     @validates('new_password')
-    def validate_password(self, value):
+    def validate_pw(self, value):
         # Set a new error message
         try:
-            self._validate_password(value)
+            self.validate_password(value)
         except ValidationError:
             raise ValidationError('chpass.weak-password')
 
