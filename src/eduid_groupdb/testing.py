@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from __future__ import annotations
 
 import atexit
 import random
@@ -6,10 +7,11 @@ import subprocess
 import time
 import unittest
 from os import environ
+from typing import Optional
 
 from neobolt.exceptions import ServiceUnavailable
 
-from src.eduid_groupdb.db import Neo4jDB
+from eduid_groupdb.db import Neo4jDB
 
 __author__ = 'lundberg'
 
@@ -25,10 +27,10 @@ class Neo4jTemporaryInstance(object):
     at the end of the program.
 
     """
-    _instance = None
-    _http_port = None
-    _https_port = None
-    _bolt_port = None
+    _instance: Optional[Neo4jTemporaryInstance] = None
+    _http_port: int
+    _https_port: int
+    _bolt_port: int
 
     DEFAULT_USERNAME = 'neo4j'
     DEFAULT_PASSWORD = 'testing'

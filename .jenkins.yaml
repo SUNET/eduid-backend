@@ -4,6 +4,8 @@ triggers:
   cron: "@weekly"
 slack:
   room: eduid-builds
+pre_build_script:
+  - "docker pull neo4j:enterprise"
 script:
   - "python3.7 -m venv venv"
   - ". venv/bin/activate"
