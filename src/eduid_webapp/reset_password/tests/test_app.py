@@ -35,17 +35,15 @@ from __future__ import absolute_import
 
 import json
 import time
-from base64 import b64encode
 
 from flask import url_for
 from mock import patch
 
-from eduid_common.api.exceptions import MsgTaskFailed
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.authn.testing import TestVCCSClient
 from eduid_webapp.reset_password.app import init_reset_password_app
 from eduid_webapp.reset_password.settings.common import ResetPasswordConfig
-from eduid_webapp.reset_password.helpers import hash_password, check_password
+from eduid_webapp.reset_password.helpers import hash_password
 from eduid_webapp.reset_password.helpers import generate_suggested_password
 from eduid_webapp.reset_password.helpers import get_extra_security_alternatives
 from eduid_webapp.reset_password.helpers import send_verify_phone_code
@@ -91,7 +89,7 @@ class ResetPasswordTests(EduidAPITestCase):
             self.app.central_userdb._drop_whole_collection()
 
     def test_app_starts(self):
-        self.assertEquals(self.app.config.app_name, "reset_password") 
+        self.assertEquals(self.app.config.app_name, "reset_password")
 
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     def test_post_email_address(self, mock_sendmail):
@@ -278,7 +276,7 @@ class ResetPasswordTests(EduidAPITestCase):
             response = c.post(url, data=json.dumps(data),
                               content_type=self.content_type_json)
             self.assertEqual(response.status_code, 200)
-            self.assertEquals(response.json['payload']['extra_security'], {})
+            self.assertEquals(response.json['payload']['extra_security']['phone_numbers'], [])
             self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_CONFIG_SUCCESS')
 
     @patch('eduid_common.authn.vccs.get_vccs_client')
@@ -309,6 +307,7 @@ class ResetPasswordTests(EduidAPITestCase):
                 session.reset_password.generated_password_hash = hash_password(new_password)
                 url = url_for('reset_password.set_new_pw', _external=True)
                 data = {
+                    'csrf_token': session.get_csrf_token(),
                     'code': state.email_code.code,
                     'password': new_password
                 }
@@ -356,6 +355,7 @@ class ResetPasswordTests(EduidAPITestCase):
                 session.reset_password.generated_password_hash = hash_password(new_password)
                 url = url_for('reset_password.set_new_pw', _external=True)
                 data = {
+                    'csrf_token': session.get_csrf_token(),
                     'code': 'wrong-code',
                     'password': new_password
                 }
@@ -395,6 +395,7 @@ class ResetPasswordTests(EduidAPITestCase):
                 session.reset_password.generated_password_hash = hash_password(new_password)
                 url = url_for('reset_password.set_new_pw', _external=True)
                 data = {
+                    'csrf_token': session.get_csrf_token(),
                     'code': state.email_code.code,
                     'password': 'cust0m-p4ssw0rd'
                 }
@@ -501,7 +502,7 @@ class ResetPasswordTests(EduidAPITestCase):
 
             user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
             state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
-            alternatives = get_extra_security_alternatives(user)
+            alternatives = get_extra_security_alternatives(user, 'dummy.session.prefix')
             state.extra_security = alternatives
             state.email_code.is_verified = True
             self.app.password_reset_state_db.save(state)
@@ -514,6 +515,7 @@ class ResetPasswordTests(EduidAPITestCase):
                 url = url_for('reset_password.set_new_pw_extra_security_phone', _external=True)
                 state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
                 data = {
+                    'csrf_token': session.get_csrf_token(),
                     'code': state.email_code.code,
                     'phone_code': state.phone_code.code,
                     'password': new_password
@@ -568,11 +570,13 @@ class ResetPasswordTests(EduidAPITestCase):
             new_password = generate_suggested_password()
             url = url_for('reset_password.set_new_pw_extra_security_phone', _external=True)
             state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
-            data = {
-                'code': 'magic-code',
-                'phone_code': 'magic-code',
-                'password': new_password
-            }
+            with c.session_transaction() as session:
+                data = {
+                    'csrf_token': session.get_csrf_token(),
+                    'code': 'magic-code',
+                    'phone_code': 'magic-code',
+                    'password': new_password
+                }
 
             response = c.post(url, data=json.dumps(data),
                               content_type=self.content_type_json)
@@ -623,11 +627,13 @@ class ResetPasswordTests(EduidAPITestCase):
             new_password = generate_suggested_password()
             url = url_for('reset_password.set_new_pw_extra_security_phone', _external=True)
             state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
-            data = {
-                'code': 'magic-code',
-                'phone_code': 'wrong-magic-code',
-                'password': new_password
-            }
+            with c.session_transaction() as session:
+                data = {
+                    'csrf_token': session.get_csrf_token(),
+                    'code': 'magic-code',
+                    'phone_code': 'wrong-magic-code',
+                    'password': new_password
+                }
 
             response = c.post(url, data=json.dumps(data),
                               content_type=self.content_type_json)
@@ -679,11 +685,13 @@ class ResetPasswordTests(EduidAPITestCase):
             new_password = generate_suggested_password()
             url = url_for('reset_password.set_new_pw_extra_security_phone', _external=True)
             state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
-            data = {
-                'code': state.email_code.code,
-                'phone_code': 'magic-code',
-                'password': new_password
-            }
+            with c.session_transaction() as session:
+                data = {
+                    'csrf_token': session.get_csrf_token(),
+                    'code': state.email_code.code,
+                    'phone_code': 'magic-code',
+                    'password': new_password
+                }
 
             response = c.post(url, data=json.dumps(data),
                               content_type=self.content_type_json)
@@ -711,7 +719,7 @@ class ResetPasswordTests(EduidAPITestCase):
 
             user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
             state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
-            alternatives = get_extra_security_alternatives(user)
+            alternatives = get_extra_security_alternatives(user, 'dummy.session.prefix')
             state.extra_security = alternatives
             state.email_code.is_verified = True
             self.app.password_reset_state_db.save(state)
@@ -724,6 +732,7 @@ class ResetPasswordTests(EduidAPITestCase):
                 url = url_for('reset_password.set_new_pw_extra_security_phone', _external=True)
                 state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
                 data = {
+                    'csrf_token': session.get_csrf_token(),
                     'code': 'wrong-code',
                     'phone_code': state.phone_code.code,
                     'password': new_password
@@ -754,7 +763,7 @@ class ResetPasswordTests(EduidAPITestCase):
 
             user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
             state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
-            alternatives = get_extra_security_alternatives(user)
+            alternatives = get_extra_security_alternatives(user, 'dummy.session.prefix')
             state.extra_security = alternatives
             state.email_code.is_verified = True
             self.app.password_reset_state_db.save(state)
@@ -767,6 +776,7 @@ class ResetPasswordTests(EduidAPITestCase):
                 url = url_for('reset_password.set_new_pw_extra_security_phone', _external=True)
                 state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
                 data = {
+                    'csrf_token': session.get_csrf_token(),
                     'code': state.phone_code.code,
                     'phone_code': 'wrong-code',
                     'password': new_password
@@ -798,7 +808,7 @@ class ResetPasswordTests(EduidAPITestCase):
 
             user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
             state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
-            alternatives = get_extra_security_alternatives(user)
+            alternatives = get_extra_security_alternatives(user, 'dummy.session.prefix')
             state.extra_security = alternatives
             state.email_code.is_verified = True
             self.app.password_reset_state_db.save(state)
@@ -813,6 +823,7 @@ class ResetPasswordTests(EduidAPITestCase):
                 url = url_for('reset_password.set_new_pw_extra_security_phone', _external=True)
                 state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
                 data = {
+                    'csrf_token': session.get_csrf_token(),
                     'code': state.email_code.code,
                     'phone_code': state.phone_code.code,
                     'password': new_password
@@ -845,7 +856,7 @@ class ResetPasswordTests(EduidAPITestCase):
 
             user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
             state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
-            alternatives = get_extra_security_alternatives(user)
+            alternatives = get_extra_security_alternatives(user, 'dummy.session.prefix')
             state.extra_security = alternatives
             state.email_code.is_verified = True
             self.app.password_reset_state_db.save(state)
@@ -860,6 +871,7 @@ class ResetPasswordTests(EduidAPITestCase):
                 url = url_for('reset_password.set_new_pw_extra_security_phone', _external=True)
                 state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
                 data = {
+                    'csrf_token': session.get_csrf_token(),
                     'code': state.email_code.code,
                     'phone_code': state.phone_code.code,
                     'password': new_password
@@ -891,7 +903,7 @@ class ResetPasswordTests(EduidAPITestCase):
 
             user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
             state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
-            alternatives = get_extra_security_alternatives(user)
+            alternatives = get_extra_security_alternatives(user, 'dummy.session.prefix')
             state.extra_security = alternatives
             state.email_code.is_verified = True
             self.app.password_reset_state_db.save(state)
@@ -904,6 +916,7 @@ class ResetPasswordTests(EduidAPITestCase):
                 url = url_for('reset_password.set_new_pw_extra_security_phone', _external=True)
                 state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
                 data = {
+                    'csrf_token': session.get_csrf_token(),
                     'code': state.email_code.code,
                     'phone_code': state.phone_code.code,
                     'password': 'other-password'
@@ -992,7 +1005,7 @@ class ChangePasswordTests(EduidAPITestCase):
                 with self.app.test_request_context():
                     data = {
                             'csrf_token': sess.get_csrf_token(),
-                            'new_password': '1234',
+                            'new_password': '0ieT/(.edW76',
                             'old_password': '5678'
                             }
                 response2 = client.post('/change-password', data=json.dumps(data),
@@ -1012,7 +1025,7 @@ class ChangePasswordTests(EduidAPITestCase):
                 with self.app.test_request_context():
                     data = {
                             'csrf_token': sess.get_csrf_token(),
-                            'new_password': '1234',
+                            'new_password': '0ieT/(.edW76',
                             'old_password': '5678'
                             }
                 response2 = client.post('/change-password', data=json.dumps(data),
@@ -1034,7 +1047,7 @@ class ChangePasswordTests(EduidAPITestCase):
                            return_value=True):
                     sess['reauthn-for-chpass'] = int(time.time())
                     data = {
-                            'new_password': '1234',
+                            'new_password': '0ieT/(.edW76',
                             'old_password': '5678'
                             }
                     response2 = client.post('/change-password', data=json.dumps(data),
@@ -1056,7 +1069,7 @@ class ChangePasswordTests(EduidAPITestCase):
                     sess['reauthn-for-chpass'] = int(time.time())
                     data = {
                             'csrf_token': '0000',
-                            'new_password': '1234',
+                            'new_password': '0ieT/(.edW76',
                             'old_password': '5678'
                             }
                     response2 = client.post('/change-password', data=json.dumps(data),
@@ -1077,7 +1090,7 @@ class ChangePasswordTests(EduidAPITestCase):
                     with self.app.test_request_context():
                         data = {
                                 'csrf_token': sess.get_csrf_token(),
-                                'new_password': '1234',
+                                'new_password': '0ieT/(.edW76',
                                 'old_password': '5678'
                                 }
                     response2 = client.post('/change-password', data=json.dumps(data),
@@ -1145,7 +1158,7 @@ class ChangePasswordTests(EduidAPITestCase):
                                 sess.persist()
                                 data = {
                                         'csrf_token': sess.get_csrf_token(),
-                                        'new_password': 'another-password',
+                                        'new_password': '0ieT/(.edW76',
                                         'old_password': '5678'
                                         }
                                 response3 = client.post('/change-password', data=json.dumps(data),
