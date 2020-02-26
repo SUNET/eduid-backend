@@ -89,18 +89,18 @@ def change_password_view(user):
         min_entropy=int(min_entropy))
 
     if not request.data:
-        return error_message('chpass.no-data')
+        return error_message(ResetPwMsg.chpass_no_data)
 
     form = schema.load(json.loads(request.data))
     current_app.logger.debug(form)
     if form.errors:
-        return error_message('chpass.weak-password')
+        return error_message(ResetPwMsg.chpass_no_data)
     else:
         old_password = form.data.get('old_password')
         new_password = form.data.get('new_password')
 
     if session.get_csrf_token() != form.data['csrf_token']:
-        return error_message('csrf.try_again')
+        return error_message(ResetPwMsg.csrf_try_again)
 
     authn_ts = session.get('reauthn-for-chpass', None)
     if authn_ts is None:

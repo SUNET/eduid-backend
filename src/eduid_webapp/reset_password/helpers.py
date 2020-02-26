@@ -107,6 +107,16 @@ class ResetPwMsg(Enum):
     # the user has chosen extra security with a security key but has failed to
     # produce evidence of it.
     hwtoken_fail = 'security-key-fail'
+    # invalid state, without a code
+    state_no_key = 'chpass.no-code-in-data'
+    # CSRF
+    csrf_try_again = 'csrf.try_again'
+    # The password chosen is too weak
+    chpass_weak = 'chpass.weak-password'
+    # Not enough data to change the password
+    chpass_no_data = 'chpass.no-data'
+    # No webauthn data in the request
+    mfa_no_data = 'mfa.no-request-data'
 
 
 class BadCode(Exception):

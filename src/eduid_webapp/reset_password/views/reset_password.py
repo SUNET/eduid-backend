@@ -209,12 +209,12 @@ class BadStateOrData(Exception):
 def _get_state_and_data(SchemaClass):
 
     if not request.data:
-        raise BadStateOrData('chpass.no-data')
+        raise BadStateOrData(ResetPwMsg.chpass_no_data)
 
     data = json.loads(request.data)
 
     if 'code' not in data:
-        raise BadStateOrData('chpass.no-code-in-data')
+        raise BadStateOrData(ResetPwMsg.state_no_key)
 
     code = data['code']
     try:
@@ -232,10 +232,10 @@ def _get_state_and_data(SchemaClass):
     form = schema.load(json.loads(request.data))
     current_app.logger.debug(f"Reset password data: {form}")
     if form.errors:
-        raise BadStateOrData('chpass.weak-password')
+        raise BadStateOrData(ResetPwMsg.chpass_weak)
 
     if session.get_csrf_token() != form.data['csrf_token']:
-        raise BadStateOrData('csrf.try_again')
+        raise BadStateOrData(ResetPwMsg.csrf_try_again)
 
     return (resetpw_user, state, form.data)
 
@@ -511,7 +511,7 @@ def set_new_pw_extra_security_token() -> dict:
     req_json = request.get_json()
     if not req_json:
         current_app.logger.error(f'No data in request to authn {state.eppn}')
-        return error_message('mfa.no-request-data')
+        return error_message(ResetPwMsg.mfa_no_data)
 
     hashed = session.reset_password.generated_password_hash
     if check_password(password, hashed):
