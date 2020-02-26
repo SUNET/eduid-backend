@@ -1,0 +1,6 @@
+echo "#######################################################"
+echo "# Update the API, scim_id and eduID eppn in scimapi_env"
+echo "#######################################################"
+#api='http://localhost:8000'
+#scim_id='f5a3b0d0-3caf-43b0-ab61-17dd97ed0556'
+#eduid_eppn='foo-bar@eduid.se'
