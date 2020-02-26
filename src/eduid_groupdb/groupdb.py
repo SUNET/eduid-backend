@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
-from enum import Enum
-from typing import Union
+import enum
+import logging
+from typing import Union, List
+
 from neo4j import Transaction
 from neo4j.exceptions import ClientError, CypherError
+
 from eduid_groupdb import BaseGraphDB, Group, User
 from eduid_groupdb.exceptions import UnsupportedMemberType
-import logging
 
 __author__ = 'lundberg'
 
@@ -13,6 +15,12 @@ logger = logging.getLogger(__name__)
 
 
 class GroupDB(BaseGraphDB):
+
+    @enum.unique
+    class Role(enum.Enum):
+        # Role to relationship type
+        MEMBER = 'IN'
+        OWNER = 'OWNS'
 
     def db_setup(self):
         with self.db.driver.session() as session:
@@ -23,8 +31,6 @@ class GroupDB(BaseGraphDB):
             # Constraints for User nodes
             session.run('CREATE CONSTRAINT ON (n:User) ASSERT exists(n.identifier)')
             session.run('CREATE CONSTRAINT ON (n:User) ASSERT n.identifier IS UNIQUE')
-            # Constraints for IN relationships
-            session.run('CREATE CONSTRAINT ON ()-[r:IN]-() ASSERT exists(r.role)')
 
     @staticmethod
     def _create_or_update_group(tx: Transaction, group: Group) -> None:
@@ -38,55 +44,79 @@ class GroupDB(BaseGraphDB):
         tx.run(q, scope=group.scope, identifier=group.identifier, display_name=group.display_name,
                description=group.description)
 
-    def _add_or_update_members(self, tx: Transaction, group: Group) -> None:
-        for member in group.members:
-            if isinstance(member, User):
-                self._add_user_to_group(tx, group=group, member=member)
-            elif isinstance(member, Group):
-                self._add_group_to_group(tx, group=group, member=member)
-            else:
-                raise UnsupportedMemberType(f'Type {type(member)} not supported as group member')
-
-    def _add_group_to_group(self, tx, group: Group, member: Group):
-        pass
+    def _add_or_update_users_and_groups(self, tx: Transaction, group: Group) -> None:
+        for user_member in group.user_members:
+            self._add_user_to_group(tx, group=group, member=user_member, role=self.Role.MEMBER)
+        for group_member in group.group_members:
+            self._add_group_to_group(tx, group=group, member=group_member, role=self.Role.MEMBER)
+        for user_owner in group.owners:
+            self._add_user_to_group(tx, group=group, member=user_owner, role=self.Role.OWNER)
 
     @staticmethod
-    def _add_user_to_group(tx, group: Group, member: User) -> None:
-        q = """
-            MATCH (g:Group {scope: $scope, identifier: $group_identifier})
-            MERGE (n:User {identifier: $identifier})-[r:IN]->(g)
-                ON CREATE SET r.created_ts = timestamp()
+    def _add_group_to_group(tx, group: Group, member: Group, role: Role):
+        q = f"""
+            MATCH (g:Group {{scope: $group_scope, identifier: $group_identifier}})
+            MERGE (n:Group {{scope: $scope, identifier: $identifier}})-[r:{role.value}]->(g)
+                ON CREATE SET
+                          n.created_ts = timestamp(),
+                          n.display_name = $display_name,
+                          n.description = $description,
+                          r.created_ts = timestamp()
                 ON MATCH SET r.modified_ts = timestamp()
-            SET r.role = $role
             SET r.display_name = $display_name
             """
-        tx.run(q, identifier=member.identifier, scope=group.scope, group_identifier=group.identifier,
-               role=member.role.value, display_name=member.display_name)
+        tx.run(q, group_scope=group.scope, group_identifier=group.identifier, identifier=member.identifier,
+               scope=member.scope, display_name=member.display_name, description=member.description)
 
-    def get_group(self, scope: str, identifier: str) -> Group:
-        q = """
-            MATCH (n: Group {scope: $scope, identifier: $identifier})                       
-            RETURN n
+    @staticmethod
+    def _add_user_to_group(tx, group: Group, member: User, role: Role) -> None:
+        q = f"""
+            MATCH (g:Group {{scope: $scope, identifier: $group_identifier}})
+            MERGE (n:User {{identifier: $identifier}})-[r:{role.value}]->(g)
+                ON CREATE SET r.created_ts = timestamp()
+                ON MATCH SET r.modified_ts = timestamp()
+            SET r.display_name = $display_name
             """
-        with self.db.driver.session() as session:
-            group_node = session.run(q, scope=scope, identifier=identifier).single().value()
-            print(group_node)
+        tx.run(q, scope=group.scope, group_identifier=group.identifier, identifier=member.identifier,
+               display_name=member.display_name)
 
-        q = """
-            OPTIONAL MATCH (n: Group {scope: $scope, identifier: $identifier})<-[r:IN]-(m)             
-            RETURN r.role as role, r.display_name as display_name, r.created_ts as created_ts,
-                r.modified_ts as modified_ts, m.identifier as identifier
+    def _get_users_and_groups_by_role(self, scope: str, identifier: str, role: Role) -> List[Union[User, Group]]:
+        res = []
+        q = f"""
+            MATCH (g: Group {{scope: $scope, identifier: $identifier}})<-[r:{role.value}]-(m)
+            RETURN r.display_name as display_name, r.created_ts as created_ts, r.modified_ts as modified_ts,
+                   m.identifier as identifier, m.scope as scope, m.description as description, labels(m) as labels
             """
         with self.db.driver.session() as session:
             for record in session.run(q, scope=scope, identifier=identifier):
-                print(User.from_dict(record.data()))
+                labels = record.get('labels', [])
+                if 'User' in labels:
+                    res.append(User.from_mapping(record.data()))
+                elif 'Group' in labels:
+                    res.append(Group.from_mapping(record.data()))
+        return res
+
+    def get_group(self, scope: str, identifier: str) -> Group:
+        q = """
+            MATCH (n: Group {scope: $scope, identifier: $identifier})
+            RETURN n as group
+            """
+        with self.db.driver.session() as session:
+            group_node = session.run(q, scope=scope, identifier=identifier).single().value()
+        group_data = dict(group_node.items())
+        group_data['members'] = self._get_users_and_groups_by_role(scope=scope, identifier=identifier,
+                                                                   role=self.Role.MEMBER)
+        group_data['owners'] = self._get_users_and_groups_by_role(scope=scope, identifier=identifier,
+                                                                  role=self.Role.OWNER)
+        group = Group.from_mapping(group_data)
+        return group
 
     def save(self, group: Group) -> None:
         with self.db.driver.session() as session:
             try:
                 tx = session.begin_transaction()
                 self._create_or_update_group(tx, group)
-                self._add_or_update_members(tx, group)
+                self._add_or_update_users_and_groups(tx, group)
                 tx.success = True
             except (ClientError, CypherError, UnsupportedMemberType) as e:
                 logger.error(e)
