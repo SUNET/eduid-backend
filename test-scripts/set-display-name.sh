@@ -30,8 +30,15 @@ echo "Update:"
 echo ""
 echo "$update" | jq
 
-curl -X PUT -v --data "${update}" \
+
+resp=$(curl -X PUT --data "${update}" \
      -H 'Content-Type: application/scim+json' \
      "${api}/Users/${scim_id}"
+       )
+
+echo ""
+echo "Response:"
+echo ""
+echo "$response" | jq
 
 echo ""
