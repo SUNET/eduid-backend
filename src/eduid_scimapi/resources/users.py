@@ -7,7 +7,7 @@ from falcon import Request, Response
 
 from eduid_scimapi.base import BaseResource
 from eduid_scimapi.exceptions import BadRequest
-from eduid_scimapi.userdb import ScimApiUser, Profile
+from eduid_scimapi.userdb import ScimApiUser, Profile, NUTID_V1
 from eduid_userdb.user import User
 
 
@@ -24,6 +24,33 @@ class UsersResource(BaseResource):
         resp.set_header('Location', location)
         resp.set_header('ETag', user.etag)
         resp.media = user.to_dict(location)
+
+    def on_put(self, req: Request, resp: Response, scim_id):
+        self.context.logger.info(f'Fetching user {scim_id}')
+
+        user = self.context.userdb.get_user_by_scim_id(scim_id)
+        if not user:
+            raise BadRequest(detail='User not found')
+
+        if NUTID_V1 in req.media:
+            changed = False
+            data = req.media[NUTID_V1]
+            if 'displayName' in data:
+                _old = user.profiles['eduid'].data.get('display_name')
+                _new = data['displayName']
+                if _old != _new:
+                    changed = True
+                    self.context.logger.info(f'Updating user {user.external_id} eduid display name from '
+                                             f'{repr(_old)} to {repr(_new)}')
+                    user.profiles['eduid'].data['display_name'] = data['displayName']
+            if changed:
+                self.context.userdb.save(user)
+
+        location = self.url_for('Users', user.scim_id)
+        resp.set_header('Location', location)
+        resp.set_header('ETag', user.etag)
+        resp.media = user.to_dict(location)
+
 
     def on_post(self, req: Request, resp: Response, user_id: Optional[str] = None):
         """

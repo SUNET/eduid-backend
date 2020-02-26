@@ -34,7 +34,7 @@ api.add_error_handler(falcon.HTTPUnsupportedMediaType, exceptions.unsupported_me
 api.add_error_handler(exceptions.HTTPErrorDetail)
 
 api.add_route('/Users/', UsersResource(context=context))  # for POST
-api.add_route('/Users/{scim_id}', UsersResource(context=context))  # for GET
+api.add_route('/Users/{scim_id}', UsersResource(context=context))  # for GET/PUT
 
 api.add_route('/Users/.search', UsersSearchResource(context=context))  # for POST
 
