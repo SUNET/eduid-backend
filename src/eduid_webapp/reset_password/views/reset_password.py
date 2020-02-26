@@ -232,6 +232,8 @@ def _get_state_and_data(SchemaClass):
     form = schema.load(json.loads(request.data))
     current_app.logger.debug(f"Reset password data: {form}")
     if form.errors:
+        if 'csrf_token' in form.errors:
+            raise BadStateOrData(ResetPwMsg.csrf_missing)
         raise BadStateOrData(ResetPwMsg.chpass_weak)
 
     if session.get_csrf_token() != form.data['csrf_token']:

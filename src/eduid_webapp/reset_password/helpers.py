@@ -111,6 +111,7 @@ class ResetPwMsg(Enum):
     state_no_key = 'chpass.no-code-in-data'
     # CSRF
     csrf_try_again = 'csrf.try_again'
+    csrf_missing = 'csrf.missing'
     # The password chosen is too weak
     chpass_weak = 'chpass.weak-password'
     # Not enough data to change the password
