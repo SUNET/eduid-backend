@@ -117,6 +117,8 @@ class ResetPwMsg(Enum):
     chpass_no_data = 'chpass.no-data'
     # No webauthn data in the request
     mfa_no_data = 'mfa.no-request-data'
+    # extra security with fido tokens failed - wrong token
+    fido_token_fail = 'resetpw.fido-token-fail'
 
 
 class BadCode(Exception):
