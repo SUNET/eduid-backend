@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-import copy
-from datetime import datetime
 import logging
 import uuid
-from dataclasses import dataclass, asdict, field
+from dataclasses import asdict, dataclass, field
+from datetime import datetime
 from typing import Any, Dict, Mapping, Optional, Type
 from uuid import UUID
 
@@ -18,10 +17,19 @@ __author__ = 'ft'
 logger = logging.getLogger(__name__)
 
 
+NUTID_V1 = 'https://scim.eduid.se/schema/nutid/v1'
+
 @dataclass()
 class Profile():
     external_id: str
     data: Dict[str, Any]
+
+    def to_schema_dict(self, schema: str) -> Mapping[str, Any]:
+        res = {}
+        if schema == NUTID_V1:
+            if 'display_name' in self.data:
+                res['displayName'] = self.data['display_name']
+        return res
 
 
 @dataclass
@@ -40,7 +48,8 @@ class ScimApiUser(object):
     @property
     def external_id(self) -> Optional[str]:
         if 'eduid' in self.profiles:
-            return self.profiles['eduid'].data.get('eppn')
+            _eppn = self.profiles['eduid'].external_id
+            return f'{_eppn}@eduid.se'
         return None
 
     def to_dict(self, location: str, debug: bool = False) -> Mapping[str, Any]:
@@ -57,11 +66,16 @@ class ScimApiUser(object):
         }
         if self.external_id:
             res['externalId'] = self.external_id
+        if 'eduid' in self.profiles:
+            res['schemas'] += [NUTID_V1]
+            res[NUTID_V1] = self.profiles['eduid'].to_schema_dict(NUTID_V1)
         if debug:
             profiles_dicts = {}
             for this in self.profiles.keys():
                 profiles_dicts[this] = asdict(self.profiles[this])
-            res['debug_all_profiles'] = profiles_dicts
+            _debug_schema = 'https://scim.eduid.se/schema/debug-all-profiles/v1'
+            res['schemas'] += [_debug_schema]
+            res[_debug_schema] = profiles_dicts
         return res
 
     @classmethod

@@ -137,13 +137,13 @@ class UsersSearchResource(BaseResource):
             raise BadRequest(detail='No filter in user search request')
 
         user = None
-        match = re.match('id eq "([a-z-]+)"', filter)
+        match = re.match('externalId eq "([a-z-]+)@eduid\.se"', filter)
         if not match:
             raise BadRequest(detail='Unrecognised filter')
 
         eppn = match.group(1)
         if eppn:
-            self.context.logger.debug(f'Searching for user with eppn {repr(eppn)}')
+            self.context.logger.debug(f'Searching for eduid user with eppn {repr(eppn)}')
             user = self.context.userdb.get_user_by_eduid_eppn(eppn)
             if not user:
                 eduid_user = self.context.eduid_userdb.get_user_by_eppn(eppn)
@@ -165,4 +165,3 @@ class UsersSearchResource(BaseResource):
         resp.set_header('Location', location)
         resp.set_header('ETag', user.etag)
         resp.media = user.to_dict(location, debug=self.context.config.debug)
-
