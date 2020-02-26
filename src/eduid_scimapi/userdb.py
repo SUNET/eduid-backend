@@ -14,10 +14,13 @@ from eduid_userdb.db import BaseDB
 __author__ = 'ft'
 
 
+# schemas
+NUTID_V1 = 'https://scim.eduid.se/schema/nutid/v1'
+DEBUG_ALL_V1 = 'https://scim.eduid.se/schema/nutid/v1'
+
+
 logger = logging.getLogger(__name__)
 
-
-NUTID_V1 = 'https://scim.eduid.se/schema/nutid/v1'
 
 @dataclass()
 class Profile():
@@ -73,9 +76,8 @@ class ScimApiUser(object):
             profiles_dicts = {}
             for this in self.profiles.keys():
                 profiles_dicts[this] = asdict(self.profiles[this])
-            _debug_schema = 'https://scim.eduid.se/schema/debug-all-profiles/v1'
-            res['schemas'] += [_debug_schema]
-            res[_debug_schema] = profiles_dicts
+            res['schemas'] += [DEBUG_ALL_V1]
+            res[DEBUG_ALL_V1] = profiles_dicts
         return res
 
     @classmethod
@@ -119,6 +121,12 @@ class ScimApiUserDB(BaseDB):
 
     def get_user_by_eduid_eppn(self, eppn: str) -> Optional[ScimApiUser]:
         return self.get_user_by_scoped_attribute('eduid', 'external_id', eppn)
+
+    def get_user_by_scim_id(self, scim_id: str) -> Optional[ScimApiUser]:
+        docs = self._get_document_by_attr('scim_id', scim_id, raise_on_missing=False)
+        if docs:
+            return ScimApiUser.from_user_doc(docs)
+        return None
 
     def get_user_by_scoped_attribute(self, scope: str, attr: str, value: Any) -> Optional[ScimApiUser]:
         docs = self._get_documents_by_filter(spec={f'profiles.{scope}.{attr}': value}, raise_on_missing=False)
