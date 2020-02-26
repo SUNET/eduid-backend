@@ -15,7 +15,6 @@ setup(
     version=version,
     packages=find_packages('src'),
     package_dir={'': 'src'},
-    namespace_packages=['eduid_groupdb'],
     zip_safe=False,
     include_package_data=True,
     install_requires=install_requires,
