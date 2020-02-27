@@ -39,8 +39,11 @@ import time
 from flask import url_for
 from mock import patch
 
+from eduid_userdb.credentials import Webauthn
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.authn.testing import TestVCCSClient
+from eduid_common.authn.tests.test_fido_tokens import SAMPLE_WEBAUTHN_REQUEST
+from eduid_common.authn.tests.test_fido_tokens import SAMPLE_WEBAUTHN_CREDENTIAL
 from eduid_webapp.reset_password.app import init_reset_password_app
 from eduid_webapp.reset_password.settings.common import ResetPasswordConfig
 from eduid_webapp.reset_password.helpers import hash_password
@@ -530,10 +533,12 @@ class ResetPasswordTests(EduidAPITestCase):
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     @patch('eduid_common.authn.vccs.get_vccs_client')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
-    def test_post_reset_password_secure_token(self, mock_request_user_sync, mock_get_vccs_client, mock_sendmail):
+    @patch('fido2.cose.ES256.verify')
+    def test_post_reset_password_secure_token(self, mock_verify, mock_request_user_sync, mock_get_vccs_client, mock_sendmail):
         mock_request_user_sync.side_effect = self.request_user_sync
         mock_get_vccs_client.return_value = TestVCCSClient()
         mock_sendmail.return_value = True
+        mock_verify.return_value = True
         with self.app.test_client() as c:
             data = {
                 'email': self.test_user_email
@@ -542,7 +547,10 @@ class ResetPasswordTests(EduidAPITestCase):
                               content_type=self.content_type_json)
             self.assertEqual(response.status_code, 200)
 
+            webauthn_credential = Webauthn(**SAMPLE_WEBAUTHN_CREDENTIAL)
             user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+            user.credentials.add(webauthn_credential)
+
             state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
             alternatives = get_extra_security_alternatives(user, 'dummy.session.prefix')
             state.extra_security = alternatives
@@ -550,23 +558,19 @@ class ResetPasswordTests(EduidAPITestCase):
             self.app.password_reset_state_db.save(state)
 
             with c.session_transaction() as session:
+                fido2state = {'challenge': '3h_EAZpY25xDdSJCOMx1ABZEA5Odz3yejUI3AUNTQWc', 'user_verification': 'preferred'}
+                session['eduid_webapp.reset_password.views.webauthn.state'] = json.dumps(fido2state)
                 new_password = generate_suggested_password()
                 session.reset_password.generated_password_hash = hash_password(new_password)
+                session.persist()
                 url = url_for('reset_password.set_new_pw_extra_security_token', _external=True)
                 state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
                 data = {
                     'csrf_token': session.get_csrf_token(),
                     'code': state.email_code.code,
                     'password': new_password,
-                    'authenticatorData': 'mZ9k6EPHoJxJZNA+UuvM0JVoutZHmqelg9kXe/DSefgBAAAA/w==',
-                    'clientDataJSON': ('eyJjaGFsbGVuZ2UiOiIzaF9FQVpwWTI1eERkU0pDT014MUFCWkVBNU9k'
-                                       'ejN5ZWpVSTNBVU5UUVdjIiwib3JpZ2luIjoiaHR0cHM6Ly9pZHAuZGV2LmVkdWlkLnNlIiwidH'
-                                       'lwZSI6IndlYmF1dGhuLmdldCJ9'),
-                    'credentialId': ('V1vXqZcwBJD2RMIH2udd2F7R9NoSNlP7ZSPOtKHzS7n/rHFXcXbSpOoX//'
-                                     'aUKyTR6jEC8Xv678WjXC5KEkvziA=='),
-                    'signature': ('MEYCIQC5gM8inamJGUFKu3bNo4fT0jmJQuw33OSSXc242NCuiwIhAIWnVw2Sp'
-                                  'ow72j6J92KaY2rLR6qSXEbLam09ZXbSkBnQ')
                 }
+                data.update(SAMPLE_WEBAUTHN_REQUEST)
 
             response = c.post(url, data=json.dumps(data),
                               content_type=self.content_type_json)
