@@ -35,7 +35,6 @@ from enum import Enum, unique
 from typing import Optional
 
 import bcrypt
-from flask import url_for
 from flask import render_template
 from flask_babel import gettext as _
 
