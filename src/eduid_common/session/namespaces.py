@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from abc import ABC, abstractmethod
+from abc import ABC
 from copy import deepcopy
 from datetime import datetime
 
@@ -79,11 +79,21 @@ class TimestampedNS(SessionNSBase):
 @dataclass
 class ResetPasswordNS(SessionNSBase):
     generated_password_hash: Optional[str] = None
+    resetpw_email_verification_code: Optional[str] = None
+    resetpw_sms_verification_code: Optional[str] = None
+    # XXX the keys below are not in use yet. They are set in eduid-common,
+    # in a way that the security app understands. Once the (reset|change)
+    # password views are removed from the security app, we will be able to
+    # start using them. The session key reauthn-for-chpass is in the same
+    # situation.
+    extrasec_u2f_challenge: Optional[str] = None
+    extrasec_webauthn_state: Optional[str] = None
 
 
 @dataclass()
 class Signup(TimestampedNS):
     """"""
+
 
 @dataclass()
 class Actions(TimestampedNS):
