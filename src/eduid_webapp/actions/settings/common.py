@@ -66,3 +66,4 @@ class ActionsConfig(FlaskConfig):
         "mfa"
         ])
     tou_version: str = '2017-v6'
+
