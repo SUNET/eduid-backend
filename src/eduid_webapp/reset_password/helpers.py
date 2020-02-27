@@ -103,6 +103,22 @@ class ResetPwMsg(Enum):
     unrecognized_pw = 'chpass.unable-to-verify-old-password'
     # The user is out of sync with the db, user needs to reload
     out_of_sync = 'user-out-of-sync'
+    # the user has chosen extra security with a security key but has failed to
+    # produce evidence of it.
+    hwtoken_fail = 'security-key-fail'
+    # invalid state, without a code
+    state_no_key = 'chpass.no-code-in-data'
+    # CSRF
+    csrf_try_again = 'csrf.try_again'
+    csrf_missing = 'csrf.missing'
+    # The password chosen is too weak
+    chpass_weak = 'chpass.weak-password'
+    # Not enough data to change the password
+    chpass_no_data = 'chpass.no-data'
+    # No webauthn data in the request
+    mfa_no_data = 'mfa.no-request-data'
+    # extra security with fido tokens failed - wrong token
+    fido_token_fail = 'resetpw.fido-token-fail'
 
 
 class BadCode(Exception):
