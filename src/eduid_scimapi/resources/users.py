@@ -5,7 +5,8 @@ from falcon import Request, Response
 
 from eduid_scimapi.base import BaseResource
 from eduid_scimapi.exceptions import BadRequest
-from eduid_scimapi.userdb import NUTID_V1, Profile, ScimApiUser
+from eduid_scimapi.user import ScimApiUser
+from eduid_scimapi.profile import NUTID_V1, Profile
 from eduid_userdb.user import User
 
 
