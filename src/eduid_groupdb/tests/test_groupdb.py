@@ -141,3 +141,48 @@ class TestGroupDB(Neo4jTestCase):
         self.assertEqual(group.identifier, groups[0].identifier)
         self.assertEqual(group.display_name, groups[0].display_name)
         self.assertIsNotNone(groups[0].created_ts)
+
+    def test_get_scoped_groups_for_user(self):
+        group1 = Group.from_mapping(self.group1)
+        group2 = Group.from_mapping(self.group2)
+        member_user = User.from_mapping(self.user1)
+        group1.members.append(member_user)
+        group2.members.append(member_user)
+
+        self.assertIn(member_user, group1.user_members)
+        self.group_db.save(group1)
+        self.assertIn(member_user, group2.user_members)
+        self.group_db.save(group2)
+
+        all_scope_groups = self.group_db.get_groups_for_user(member_user)
+        self.assertEqual(2, len(all_scope_groups))
+
+        groups = self.group_db.get_groups_for_user(member_user, scope='example.com')
+        self.assertEqual(1, len(groups))
+        self.assertEqual(group1.scope, groups[0].scope)
+        self.assertEqual(group1.identifier, groups[0].identifier)
+        self.assertEqual(group1.display_name, groups[0].display_name)
+        self.assertIsNotNone(groups[0].created_ts)
+
+    def test_remove_user_from_group(self):
+        group = Group.from_mapping(self.group1)
+        member_user1 = User.from_mapping(self.user1)
+        member_user2 = User.from_mapping(self.user2)
+        group.members.extend([member_user1, member_user2])
+
+        self.assertIn(member_user1, group.user_members)
+        self.assertIn(member_user2, group.user_members)
+        self.group_db.save(group)
+
+        post_save_group = self.group_db.get_group(scope='example.com', identifier='test1')
+        self.assertIn(member_user1, post_save_group.user_members)
+        self.assertIn(member_user2, post_save_group.user_members)
+
+        group.members.remove(member_user1)
+        self.assertNotIn(member_user1, group.user_members)
+        self.assertIn(member_user2, group.user_members)
+        self.group_db.save(group)
+
+        post_remove_group = self.group_db.get_group(scope='example.com', identifier='test1')
+        self.assertNotIn(member_user1, post_remove_group.user_members)
+        self.assertIn(member_user2, post_remove_group.user_members)

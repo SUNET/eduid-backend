@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import enum
 import logging
-from typing import Union, List
+from typing import Union, List, Optional
 
 from neo4j import Transaction
 from neo4j.exceptions import ClientError, CypherError
@@ -35,11 +35,11 @@ class GroupDB(BaseGraphDB):
     @staticmethod
     def _create_or_update_group(tx: Transaction, group: Group) -> None:
         q = """
-            MERGE (n:Group {scope: $scope, identifier: $identifier})
-                ON CREATE SET n.created_ts = timestamp()
-                ON MATCH SET n.modified_ts = timestamp()
-            SET n.display_name = $display_name
-            SET n.description = $description            
+            MERGE (g:Group {scope: $scope, identifier: $identifier})
+                ON CREATE SET g.created_ts = timestamp()
+                ON MATCH SET g.modified_ts = timestamp()
+            SET g.display_name = $display_name
+            SET g.description = $description
             """
         tx.run(q, scope=group.scope, identifier=group.identifier, display_name=group.display_name,
                description=group.description)
@@ -49,19 +49,73 @@ class GroupDB(BaseGraphDB):
             self._add_user_to_group(tx, group=group, member=user_member, role=self.Role.MEMBER)
         for group_member in group.group_members:
             self._add_group_to_group(tx, group=group, member=group_member, role=self.Role.MEMBER)
-        for user_owner in group.owners:
+        for user_owner in group.user_owners:
             self._add_user_to_group(tx, group=group, member=user_owner, role=self.Role.OWNER)
+        for group_owner in group.group_owners:
+            self._add_group_to_group(tx, group=group, member=group_owner, role=self.Role.OWNER)
+
+    def _remove_missing_users_and_groups(self, tx: Transaction, group: Group, role: Role) -> None:
+        """ Remove the relationship between group and member if the member no longer is in the groups member list"""
+
+        # Create lists of current members by type
+        group_list: List[Group] = []
+        user_list: List[User] = []
+        if role is self.Role.MEMBER:
+            group_list = group.group_members
+            user_list = group.user_members
+        elif role is self.Role.OWNER:
+            group_list = group.group_owners
+            user_list = group.user_owners
+
+        # Compare current members with members in the db and remove the excess members
+        q = f"""
+            MATCH (Group {{scope: $scope, identifier: $identifier}})<-[r:{role.value}]-(m)
+            RETURN m.scope as scope, m.identifier as identifier, labels(m) as labels
+            """
+        members_in_db = tx.run(q, scope=group.scope, identifier=group.identifier)
+        # NOTICE: tx.sync() will send the transaction up to and including this query so this
+        #         should probably be done first or last in the save transaction.
+        tx.sync()
+        for record in members_in_db:
+            if 'Group' in record['labels']:
+                member = Group(scope=record['scope'], identifier=record['identifier'])
+                if member not in group_list:
+                    self._remove_group_from_group(tx, group=group, member=member, role=role)
+            elif 'User' in record['labels']:
+                member = User(identifier=record['identifier'])
+                if member not in user_list:
+                    self._remove_user_from_group(tx, group=group, member=member, role=role)
+
+    @staticmethod
+    def _remove_group_from_group(tx: Transaction, group: Group, member: Group, role: Role):
+        q = f"""
+            MATCH (Group {{scope: $scope, identifier: $identifier}})<-[r:{role.value}]-(Group
+                    {{scope: $member_scope, identifier: $member_identifier}})
+            DELETE r
+            """
+        tx.run(q, scope=group.scope, identifier=group.identifier, member_scope=member.scope,
+               member_identifier=member.identifier)
+
+    @staticmethod
+    def _remove_user_from_group(tx: Transaction, group: Group, member: User, role: Role):
+        q = f"""
+            MATCH (Group {{scope: $scope, identifier: $identifier}})<-[r:{role.value}]-(User
+                    {{identifier: $member_identifier}})
+            DELETE r
+            """
+        tx.run(q, scope=group.scope, identifier=group.identifier, member_identifier=member.identifier)
 
     @staticmethod
     def _add_group_to_group(tx, group: Group, member: Group, role: Role):
         q = f"""
             MATCH (g:Group {{scope: $group_scope, identifier: $group_identifier}})
-            MERGE (n:Group {{scope: $scope, identifier: $identifier}})-[r:{role.value}]->(g)
+            MERGE (m:Group {{scope: $scope, identifier: $identifier}})
                 ON CREATE SET
-                    n.created_ts = timestamp(),
-                    n.display_name = $display_name,
-                    n.description = $description,
-                    r.created_ts = timestamp()
+                    m.created_ts = timestamp(),
+                    m.display_name = $display_name,
+                    m.description = $description
+            MERGE (m)-[r:{role.value}]->(g)
+                ON CREATE SET r.created_ts = timestamp()
                 ON MATCH SET r.modified_ts = timestamp()
             SET r.display_name = $display_name
             """
@@ -72,7 +126,8 @@ class GroupDB(BaseGraphDB):
     def _add_user_to_group(tx, group: Group, member: User, role: Role) -> None:
         q = f"""
             MATCH (g:Group {{scope: $scope, identifier: $group_identifier}})
-            MERGE (n:User {{identifier: $identifier}})-[r:{role.value}]->(g)
+            MERGE (m:User {{identifier: $identifier}})
+            MERGE (m)-[r:{role.value}]->(g)
                 ON CREATE SET r.created_ts = timestamp()
                 ON MATCH SET r.modified_ts = timestamp()
             SET r.display_name = $display_name
@@ -111,14 +166,30 @@ class GroupDB(BaseGraphDB):
         group = Group.from_mapping(group_data)
         return group
 
-    def get_groups_for_user(self, user: User) -> List[Group]:
+    def remove_group(self, scope: str, identifier: str) -> None:
         q = """
-            MATCH (User {identifier: $identifier})-[IN]->(g: Group)
+            MATCH (g: Group {scope: $scope, identifier: $identifier})
+            DETACH DELETE g
+            """
+        with self.db.driver.session() as session:
+            session.run(q, scope=scope, identifier=identifier)
+            session.sync()
+
+    def get_groups_for_user(self, user: User, scope: Optional[str] = None) -> List[Group]:
+        res: List[Group] = []
+        with_scope = ''
+
+        if scope:
+            with_scope = 'WHERE g.scope = $scope'
+
+        q = f"""
+            MATCH (User {{identifier: $identifier}})-[IN]->(g: Group)
+            {with_scope}
             RETURN g as group
             """
-        res: List[Group] = []
+
         with self.db.driver.session() as session:
-            for record in session.run(q, identifier=user.identifier):
+            for record in session.run(q, identifier=user.identifier, scope=scope):
                 res.append(Group.from_mapping(record.data()['group']))
         return res
 
@@ -126,6 +197,8 @@ class GroupDB(BaseGraphDB):
         with self.db.driver.session() as session:
             try:
                 tx = session.begin_transaction()
+                self._remove_missing_users_and_groups(tx, group, self.Role.OWNER)
+                self._remove_missing_users_and_groups(tx, group, self.Role.MEMBER)
                 self._create_or_update_group(tx, group)
                 self._add_or_update_users_and_groups(tx, group)
                 tx.success = True
