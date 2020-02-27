@@ -91,7 +91,7 @@ class ResetPasswordTests(EduidAPITestCase):
             self.app.central_userdb._drop_whole_collection()
 
     def test_app_starts(self):
-        self.assertEquals(self.app.config.app_name, "reset_password") 
+        self.assertEquals(self.app.config.app_name, "reset_password")
 
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     def test_post_email_address(self, mock_sendmail):
@@ -363,7 +363,6 @@ class ResetPasswordTests(EduidAPITestCase):
                               content_type=self.content_type_json)
 
             self.assertEqual(response.status_code, 200)
-            breakpoint()
             self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_NEW_PASSWORD_FAIL')
 
     @patch('eduid_common.authn.vccs.get_vccs_client')
@@ -1011,7 +1010,7 @@ class ChangePasswordTests(EduidAPITestCase):
             self.app.central_userdb._drop_whole_collection()
 
     def test_app_starts(self):
-        self.assertEquals(self.app.config.app_name, "reset_password") 
+        self.assertEquals(self.app.config.app_name, "reset_password")
 
     def test_get_suggested(self):
         eppn = self.test_user_data['eduPersonPrincipalName']
