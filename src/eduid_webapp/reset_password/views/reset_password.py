@@ -411,6 +411,9 @@ def set_new_pw_extra_security_phone() -> dict:
         current_app.logger.info('Custom password used')
         current_app.stats.count(name='reset_password_custom_password_used')
 
+    user = current_app.central_userdb.get_user_by_eppn(state.eppn,
+                                                       raise_on_missing=False)
+
     current_app.logger.info(f'Resetting password for user {user}')
     reset_user_password(user, state, password)
     current_app.logger.info(f'Password reset done, removing state for {user}')
