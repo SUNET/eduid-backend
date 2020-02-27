@@ -75,13 +75,15 @@ supplemented with a text input for the SMS'ed code. In this case submitting the
 form will also result in resetting her password, but without unverifying any of
 her data.
 """
+import json
 
-from flask import Blueprint
+from flask import Blueprint, request
 
 from eduid_common.api.exceptions import MsgTaskFailed
 from eduid_common.api.schemas.base import FluxStandardAction
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith
 from eduid_common.session import session
+from eduid_webapp.security.helpers import get_zxcvbn_terms
 from eduid_webapp.reset_password.schemas import ResetPasswordInitSchema
 from eduid_webapp.reset_password.schemas import ResetPasswordEmailCodeSchema
 from eduid_webapp.reset_password.schemas import ResetPasswordWithCodeSchema
@@ -192,13 +194,54 @@ def config_reset_pw(code: str) -> dict:
         'password_entropy': current_app.config.password_entropy,
         'password_length': current_app.config.password_length,
         'password_service_url': current_app.config.password_service_url,
+        'zxcvbn_terms': get_zxcvbn_terms(state.eppn),
     }
 
 
+class BadStateOrData(Exception):
+    def __init__(self, msg):
+        self.msg = msg
+
+
+def _get_state_and_data(SchemaClass):
+
+    if not request.data:
+        raise BadStateOrData(ResetPwMsg.chpass_no_data)
+
+    data = json.loads(request.data)
+
+    if 'code' not in data:
+        raise BadStateOrData(ResetPwMsg.state_no_key)
+
+    code = data['code']
+    try:
+        state = get_pwreset_state(code)
+    except BadCode as e:
+        raise BadStateOrData(e.msg)
+
+    resetpw_user = current_app.central_userdb.get_user_by_eppn(state.eppn)
+    min_entropy = current_app.config.password_entropy
+
+    schema = SchemaClass(
+        zxcvbn_terms=get_zxcvbn_terms(resetpw_user.eppn),
+        min_entropy=int(min_entropy))
+
+    form = schema.load(json.loads(request.data))
+    current_app.logger.debug(f"Reset password data: {form}")
+    if form.errors:
+        if 'csrf_token' in form.errors:
+            raise BadStateOrData(ResetPwMsg.csrf_missing)
+        raise BadStateOrData(ResetPwMsg.chpass_weak)
+
+    if session.get_csrf_token() != form.data['csrf_token']:
+        raise BadStateOrData(ResetPwMsg.csrf_try_again)
+
+    return (resetpw_user, state, form.data)
+
+
 @reset_password_views.route('/new-password/', methods=['POST'])
-@UnmarshalWith(ResetPasswordWithCodeSchema)
 @MarshalWith(FluxStandardAction)
-def set_new_pw(code: str, password: str) -> dict:
+def set_new_pw() -> dict:
     """
     View that receives an emailed reset password code and a password, and sets
     the password as credential for the user, with no extra security.
@@ -223,9 +266,11 @@ def set_new_pw(code: str, password: str) -> dict:
     * Synchronization problems with the central user db.
     """
     try:
-        state = get_pwreset_state(code)
-    except BadCode as e:
+        resetpw_user, state, data = _get_state_and_data(ResetPasswordWithCodeSchema)
+    except BadStateOrData as e:
         return error_message(e.msg)
+
+    password = data.get('password')
 
     hashed = session.reset_password.generated_password_hash
     if check_password(password, hashed):
@@ -237,11 +282,9 @@ def set_new_pw(code: str, password: str) -> dict:
         current_app.logger.info('Custom password used')
         current_app.stats.count(name='reset_password_custom_password_used')
 
-    user = current_app.central_userdb.get_user_by_eppn(state.eppn,
-                                                       raise_on_missing=False)
-    current_app.logger.info(f'Resetting password for user {user}')
-    reset_user_password(user, state, password)
-    current_app.logger.info(f'Password reset done, removing state for {user}')
+    current_app.logger.info(f'Resetting password for user {resetpw_user}')
+    reset_user_password(resetpw_user, state, password)
+    current_app.logger.info(f'Password reset done, removing state for {resetpw_user}')
     current_app.password_reset_state_db.remove_state(state)
     return success_message(ResetPwMsg.pw_resetted)
 
@@ -306,9 +349,8 @@ def choose_extra_security_phone(code: str, phone_index: int) -> dict:
 
 
 @reset_password_views.route('/new-password-secure-phone/', methods=['POST'])
-@UnmarshalWith(ResetPasswordWithPhoneCodeSchema)
 @MarshalWith(FluxStandardAction)
-def set_new_pw_extra_security_phone(phone_code: str, code: str, password: str) -> dict:
+def set_new_pw_extra_security_phone() -> dict:
     """
     View that receives an emailed reset password code, an SMS'ed reset password
     code, and a password, and sets the password as credential for the user, with
@@ -333,12 +375,12 @@ def set_new_pw_extra_security_phone(phone_code: str, code: str, password: str) -
     * Synchronization problems with the central user db.
     """
     try:
-        state = get_pwreset_state(code)
-    except BadCode as e:
+        resetpw_user, state, data = _get_state_and_data(ResetPasswordWithPhoneCodeSchema)
+    except BadStateOrData as e:
         return error_message(e.msg)
 
-    user = current_app.central_userdb.get_user_by_eppn(state.eppn,
-                                                       raise_on_missing=False)
+    password = data.get('password')
+    phone_code = data.get('phone_code')
 
     # Backdoor for the staging and dev environments where a magic code
     # bypasses verification of the sms'ed code, to be used in automated integration tests.
@@ -350,13 +392,13 @@ def set_new_pw_extra_security_phone(phone_code: str, code: str, password: str) -
 
     if phone_code == state.phone_code.code:
         if not verify_phone_number(state):
-            current_app.logger.info(f'Could not verify phone code for {user}')
+            current_app.logger.info(f'Could not verify phone code for {state.eppn}')
             return error_message(ResetPwMsg.phone_invalid)
 
-        current_app.logger.info(f'Phone code verified for user {user}')
+        current_app.logger.info(f'Phone code verified for {state.eppn}')
         current_app.stats.count(name='reset_password_extra_security_phone_success')
     else:
-        current_app.logger.info(f'Could not verify phone code for {user}')
+        current_app.logger.info(f'Could not verify phone code for {state.eppn}')
         return error_message(ResetPwMsg.unkown_phone_code)
 
     hashed = session.reset_password.generated_password_hash
@@ -368,6 +410,9 @@ def set_new_pw_extra_security_phone(phone_code: str, code: str, password: str) -
         state.generated_password = False
         current_app.logger.info('Custom password used')
         current_app.stats.count(name='reset_password_custom_password_used')
+
+    user = current_app.central_userdb.get_user_by_eppn(state.eppn,
+                                                       raise_on_missing=False)
 
     current_app.logger.info(f'Resetting password for user {user}')
     reset_user_password(user, state, password)

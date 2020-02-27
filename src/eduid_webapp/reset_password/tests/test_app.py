@@ -91,7 +91,7 @@ class ResetPasswordTests(EduidAPITestCase):
             self.app.central_userdb._drop_whole_collection()
 
     def test_app_starts(self):
-        self.assertEquals(self.app.config.app_name, "reset_password") 
+        self.assertEquals(self.app.config.app_name, "reset_password")
 
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     def test_post_email_address(self, mock_sendmail):
@@ -309,6 +309,7 @@ class ResetPasswordTests(EduidAPITestCase):
                 session.reset_password.generated_password_hash = hash_password(new_password)
                 url = url_for('reset_password.set_new_pw', _external=True)
                 data = {
+                    'csrf_token': session.get_csrf_token(),
                     'code': state.email_code.code,
                     'password': new_password
                 }
@@ -328,6 +329,41 @@ class ResetPasswordTests(EduidAPITestCase):
 
             # check that the password is marked as generated
             self.assertTrue(user.credentials.to_list()[0].is_generated)
+
+    @patch('eduid_common.authn.vccs.get_vccs_client')
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_post_reset_password_weak(self, mock_request_user_sync, mock_sendmail, mock_get_vccs_client):
+        mock_request_user_sync.side_effect = self.request_user_sync
+        mock_sendmail.return_value = True
+        mock_get_vccs_client.return_value = TestVCCSClient()
+        with self.app.test_client() as c:
+            data = {
+                'email': self.test_user_email
+            }
+            response = c.post('/reset/', data=json.dumps(data),
+                              content_type=self.content_type_json)
+            self.assertEqual(response.status_code, 200)
+            state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+
+            # check that the user has verified data
+            user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+            verified_phone_numbers = user.phone_numbers.verified.to_list()
+            self.assertEquals(len(verified_phone_numbers), 1)
+            verified_nins = user.nins.verified.to_list()
+            self.assertEquals(len(verified_nins), 2)
+
+            url = url_for('reset_password.set_new_pw', _external=True)
+            data = {
+                'code': state.email_code.code,
+                'password': 'pw'
+            }
+
+            response = c.post(url, data=json.dumps(data),
+                              content_type=self.content_type_json)
+
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_NEW_PASSWORD_FAIL')
 
     @patch('eduid_common.authn.vccs.get_vccs_client')
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
@@ -356,6 +392,7 @@ class ResetPasswordTests(EduidAPITestCase):
                 session.reset_password.generated_password_hash = hash_password(new_password)
                 url = url_for('reset_password.set_new_pw', _external=True)
                 data = {
+                    'csrf_token': session.get_csrf_token(),
                     'code': 'wrong-code',
                     'password': new_password
                 }
@@ -395,6 +432,7 @@ class ResetPasswordTests(EduidAPITestCase):
                 session.reset_password.generated_password_hash = hash_password(new_password)
                 url = url_for('reset_password.set_new_pw', _external=True)
                 data = {
+                    'csrf_token': session.get_csrf_token(),
                     'code': state.email_code.code,
                     'password': 'cust0m-p4ssw0rd'
                 }
@@ -514,6 +552,7 @@ class ResetPasswordTests(EduidAPITestCase):
                 url = url_for('reset_password.set_new_pw_extra_security_phone', _external=True)
                 state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
                 data = {
+                    'csrf_token': session.get_csrf_token(),
                     'code': state.email_code.code,
                     'phone_code': state.phone_code.code,
                     'password': new_password
@@ -568,11 +607,13 @@ class ResetPasswordTests(EduidAPITestCase):
             new_password = generate_suggested_password()
             url = url_for('reset_password.set_new_pw_extra_security_phone', _external=True)
             state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
-            data = {
-                'code': 'magic-code',
-                'phone_code': 'magic-code',
-                'password': new_password
-            }
+            with c.session_transaction() as session:
+                data = {
+                    'csrf_token': session.get_csrf_token(),
+                    'code': 'magic-code',
+                    'phone_code': 'magic-code',
+                    'password': new_password
+                }
 
             response = c.post(url, data=json.dumps(data),
                               content_type=self.content_type_json)
@@ -623,11 +664,13 @@ class ResetPasswordTests(EduidAPITestCase):
             new_password = generate_suggested_password()
             url = url_for('reset_password.set_new_pw_extra_security_phone', _external=True)
             state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
-            data = {
-                'code': 'magic-code',
-                'phone_code': 'wrong-magic-code',
-                'password': new_password
-            }
+            with c.session_transaction() as session:
+                data = {
+                    'csrf_token': session.get_csrf_token(),
+                    'code': 'magic-code',
+                    'phone_code': 'wrong-magic-code',
+                    'password': new_password
+                }
 
             response = c.post(url, data=json.dumps(data),
                               content_type=self.content_type_json)
@@ -679,11 +722,13 @@ class ResetPasswordTests(EduidAPITestCase):
             new_password = generate_suggested_password()
             url = url_for('reset_password.set_new_pw_extra_security_phone', _external=True)
             state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
-            data = {
-                'code': state.email_code.code,
-                'phone_code': 'magic-code',
-                'password': new_password
-            }
+            with c.session_transaction() as session:
+                data = {
+                    'csrf_token': session.get_csrf_token(),
+                    'code': state.email_code.code,
+                    'phone_code': 'magic-code',
+                    'password': new_password
+                }
 
             response = c.post(url, data=json.dumps(data),
                               content_type=self.content_type_json)
@@ -724,6 +769,7 @@ class ResetPasswordTests(EduidAPITestCase):
                 url = url_for('reset_password.set_new_pw_extra_security_phone', _external=True)
                 state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
                 data = {
+                    'csrf_token': session.get_csrf_token(),
                     'code': 'wrong-code',
                     'phone_code': state.phone_code.code,
                     'password': new_password
@@ -767,6 +813,7 @@ class ResetPasswordTests(EduidAPITestCase):
                 url = url_for('reset_password.set_new_pw_extra_security_phone', _external=True)
                 state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
                 data = {
+                    'csrf_token': session.get_csrf_token(),
                     'code': state.phone_code.code,
                     'phone_code': 'wrong-code',
                     'password': new_password
@@ -813,6 +860,7 @@ class ResetPasswordTests(EduidAPITestCase):
                 url = url_for('reset_password.set_new_pw_extra_security_phone', _external=True)
                 state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
                 data = {
+                    'csrf_token': session.get_csrf_token(),
                     'code': state.email_code.code,
                     'phone_code': state.phone_code.code,
                     'password': new_password
@@ -860,6 +908,7 @@ class ResetPasswordTests(EduidAPITestCase):
                 url = url_for('reset_password.set_new_pw_extra_security_phone', _external=True)
                 state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
                 data = {
+                    'csrf_token': session.get_csrf_token(),
                     'code': state.email_code.code,
                     'phone_code': state.phone_code.code,
                     'password': new_password
@@ -904,6 +953,7 @@ class ResetPasswordTests(EduidAPITestCase):
                 url = url_for('reset_password.set_new_pw_extra_security_phone', _external=True)
                 state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
                 data = {
+                    'csrf_token': session.get_csrf_token(),
                     'code': state.email_code.code,
                     'phone_code': state.phone_code.code,
                     'password': 'other-password'
@@ -960,7 +1010,7 @@ class ChangePasswordTests(EduidAPITestCase):
             self.app.central_userdb._drop_whole_collection()
 
     def test_app_starts(self):
-        self.assertEquals(self.app.config.app_name, "reset_password") 
+        self.assertEquals(self.app.config.app_name, "reset_password")
 
     def test_get_suggested(self):
         eppn = self.test_user_data['eduPersonPrincipalName']
@@ -983,7 +1033,7 @@ class ChangePasswordTests(EduidAPITestCase):
             response2 = client.post('/change-password')
 
             sec_data = json.loads(response2.data)
-            self.assertEqual(sec_data['type'],"POST_CHANGE_PASSWORD_CHANGE_PASSWORD_FAIL")
+            self.assertEqual(sec_data['type'], "POST_CHANGE_PASSWORD_CHANGE_PASSWORD_FAIL")
 
     def test_change_passwd_no_reauthn(self):
         eppn = self.test_user_data['eduPersonPrincipalName']
@@ -991,10 +1041,10 @@ class ChangePasswordTests(EduidAPITestCase):
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
                     data = {
-                            'csrf_token': sess.get_csrf_token(),
-                            'new_password': '1234',
-                            'old_password': '5678'
-                            }
+                        'csrf_token': sess.get_csrf_token(),
+                        'new_password': '0ieT/(.edW76',
+                        'old_password': '5678'
+                    }
                 response2 = client.post('/change-password', data=json.dumps(data),
                                         content_type=self.content_type_json)
 
@@ -1012,7 +1062,7 @@ class ChangePasswordTests(EduidAPITestCase):
                 with self.app.test_request_context():
                     data = {
                             'csrf_token': sess.get_csrf_token(),
-                            'new_password': '1234',
+                            'new_password': '0ieT/(.edW76',
                             'old_password': '5678'
                             }
                 response2 = client.post('/change-password', data=json.dumps(data),
@@ -1034,7 +1084,7 @@ class ChangePasswordTests(EduidAPITestCase):
                            return_value=True):
                     sess['reauthn-for-chpass'] = int(time.time())
                     data = {
-                            'new_password': '1234',
+                            'new_password': '0ieT/(.edW76',
                             'old_password': '5678'
                             }
                     response2 = client.post('/change-password', data=json.dumps(data),
@@ -1056,7 +1106,7 @@ class ChangePasswordTests(EduidAPITestCase):
                     sess['reauthn-for-chpass'] = int(time.time())
                     data = {
                             'csrf_token': '0000',
-                            'new_password': '1234',
+                            'new_password': '0ieT/(.edW76',
                             'old_password': '5678'
                             }
                     response2 = client.post('/change-password', data=json.dumps(data),
@@ -1077,7 +1127,7 @@ class ChangePasswordTests(EduidAPITestCase):
                     with self.app.test_request_context():
                         data = {
                                 'csrf_token': sess.get_csrf_token(),
-                                'new_password': '1234',
+                                'new_password': '0ieT/(.edW76',
                                 'old_password': '5678'
                                 }
                     response2 = client.post('/change-password', data=json.dumps(data),
@@ -1088,6 +1138,29 @@ class ChangePasswordTests(EduidAPITestCase):
                     sec_data = json.loads(response2.data)
                     self.assertEqual(sec_data['type'],
                                      "POST_CHANGE_PASSWORD_CHANGE_PASSWORD_SUCCESS")
+
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_change_passwd_weak(self, mock_request_user_sync):
+        mock_request_user_sync.side_effect = self.request_user_sync
+        eppn = self.test_user_data['eduPersonPrincipalName']
+        with self.session_cookie(self.browser, eppn) as client:
+            with client.session_transaction() as sess:
+                with patch('eduid_webapp.reset_password.views.change_password.change_password', return_value=True):
+                    sess['reauthn-for-chpass'] = int(time.time())
+                    with self.app.test_request_context():
+                        data = {
+                                'csrf_token': sess.get_csrf_token(),
+                                'new_password': '1234',
+                                'old_password': '5678'
+                                }
+                    response2 = client.post('/change-password', data=json.dumps(data),
+                                            content_type=self.content_type_json)
+
+                    self.assertEqual(response2.status_code, 200)
+
+                    sec_data = json.loads(response2.data)
+                    self.assertEqual(sec_data['type'],
+                                     "POST_CHANGE_PASSWORD_CHANGE_PASSWORD_FAIL")
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def test_get_suggested_and_change(self, mock_request_user_sync):
@@ -1145,7 +1218,7 @@ class ChangePasswordTests(EduidAPITestCase):
                                 sess.persist()
                                 data = {
                                         'csrf_token': sess.get_csrf_token(),
-                                        'new_password': 'another-password',
+                                        'new_password': '0ieT/(.edW76',
                                         'old_password': '5678'
                                         }
                                 response3 = client.post('/change-password', data=json.dumps(data),
