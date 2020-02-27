@@ -388,7 +388,7 @@ def set_new_pw_extra_security_phone() -> dict:
     # to recover it in case the user sends the magic code.
     if current_app.config.environment in ('staging', 'dev') and current_app.config.magic_code:
         if phone_code == current_app.config.magic_code:
-            phone_code = session.reset_password.resetpw_sms_verification_code
+            phone_code = session['resetpw_sms_verification_code']
 
     if phone_code == state.phone_code.code:
         if not verify_phone_number(state):
