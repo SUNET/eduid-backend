@@ -33,7 +33,7 @@ class ScimApiUser(object):
             return f'{_eppn}@eduid.se'
         return None
 
-    def to_dict(self, location: str, debug: bool = False) -> Mapping[str, Any]:
+    def to_scim_dict(self, location: str, debug: bool = False) -> Mapping[str, Any]:
         res: Dict[str, Any] = {
             'schemas': ['urn:ietf:params:scim:schemas:core:2.0:User'],
             'id': str(self.scim_id),
@@ -58,8 +58,14 @@ class ScimApiUser(object):
             res[DEBUG_ALL_V1] = profiles_dicts
         return res
 
+    def to_dict(self) -> Dict[str, Any]:
+        res = asdict(self)
+        res['scim_id'] = str(res['scim_id'])
+        res['_id'] = res.pop('user_id')
+        return res
+
     @classmethod
-    def from_user_doc(cls: Type[ScimApiUser], data: Mapping[str, Any]) -> ScimApiUser:
+    def from_dict(cls: Type[ScimApiUser], data: Mapping[str, Any]) -> ScimApiUser:
         this = dict(data)
         this['scim_id'] = uuid.UUID(this['scim_id'])
         this['user_id'] = this.pop('_id')

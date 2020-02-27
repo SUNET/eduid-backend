@@ -22,7 +22,7 @@ class UsersResource(BaseResource):
         location = self.url_for('Users', user.scim_id)
         resp.set_header('Location', location)
         resp.set_header('ETag', user.etag)
-        resp.media = user.to_dict(location)
+        resp.media = user.to_scim_dict(location)
 
     def on_put(self, req: Request, resp: Response, scim_id):
         self.context.logger.info(f'Fetching user {scim_id}')
@@ -56,7 +56,7 @@ class UsersResource(BaseResource):
         location = self.url_for('Users', user.scim_id)
         resp.set_header('Location', location)
         resp.set_header('ETag', user.etag)
-        resp.media = user.to_dict(location)
+        resp.media = user.to_scim_dict(location)
 
 
     def on_post(self, req: Request, resp: Response, user_id: Optional[str] = None):
@@ -122,7 +122,7 @@ class UsersResource(BaseResource):
         location = self.url_for('Users', user.scim_id)
         resp.set_header('Location', location)
         resp.set_header('ETag', user.etag)
-        resp.media = user.to_dict(location, debug=self.context.config.debug)
+        resp.media = user.to_scim_dict(location, debug=self.context.config.debug)
 
 
 class UsersSearchResource(BaseResource):
@@ -198,4 +198,4 @@ class UsersSearchResource(BaseResource):
         location = self.url_for('Users', user.scim_id)
         resp.set_header('Location', location)
         resp.set_header('ETag', user.etag)
-        resp.media = user.to_dict(location, debug=self.context.config.debug)
+        resp.media = user.to_scim_dict(location, debug=self.context.config.debug)
