@@ -33,6 +33,7 @@
 
 from __future__ import absolute_import
 
+from copy import copy
 import json
 import time
 
@@ -82,7 +83,10 @@ class ResetPasswordTests(EduidAPITestCase):
             'email_code_timeout': 7200,
             'phone_code_timeout': 600,
             'password_entropy': 25,
-            'no_authn_urls': [r'/reset.*']
+            'no_authn_urls': [r'/reset.*'],
+            'u2f_app_id': 'https://eduid.se/u2f-app-id.json',
+            'fido2_rp_id': 'idp.dev.eduid.se',
+            'u2f_valid_facets': ['https://dashboard.dev.eduid.se', 'https://idp.dev.eduid.se']
         })
         return ResetPasswordConfig(**config)
 
@@ -550,6 +554,7 @@ class ResetPasswordTests(EduidAPITestCase):
             webauthn_credential = Webauthn(**SAMPLE_WEBAUTHN_CREDENTIAL)
             user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
             user.credentials.add(webauthn_credential)
+            self.app.central_userdb.save(user, check_sync=False)
 
             state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
             alternatives = get_extra_security_alternatives(user, 'dummy.session.prefix')
@@ -577,6 +582,109 @@ class ResetPasswordTests(EduidAPITestCase):
 
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_TOKEN_SUCCESS')
+
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
+    @patch('eduid_common.authn.vccs.get_vccs_client')
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('fido2.cose.ES256.verify')
+    def test_post_reset_password_secure_token_wrong_credential(self, mock_verify, mock_request_user_sync, mock_get_vccs_client, mock_sendmail):
+        mock_request_user_sync.side_effect = self.request_user_sync
+        mock_get_vccs_client.return_value = TestVCCSClient()
+        mock_sendmail.return_value = True
+        mock_verify.return_value = True
+        with self.app.test_client() as c:
+            data = {
+                'email': self.test_user_email
+            }
+            response = c.post('/reset/', data=json.dumps(data),
+                              content_type=self.content_type_json)
+            self.assertEqual(response.status_code, 200)
+
+            credential_data = copy(SAMPLE_WEBAUTHN_CREDENTIAL)
+            credential_data['credential_data'] = 'AAAAAAAAAAAAAAAAAAAAAABAi3KjBT0t5TPm693T0O0f4zyiwvdu9cY8BegCjiVvq_FS-ZmPcvXipFvHvD5CH6ZVRR3nsVsOla0Cad3fbtUA_aUBAgMmIAEhWCCiwDYGxl1LnRMqooWm0aRR9YbBG2LZ84BMNh_4rHkA9yJYIIujMrUOpGekbXjgMQ8M13ZsBD_cROSPB79eGz2Nw1ZE'
+            webauthn_credential = Webauthn(**credential_data)
+            user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+            user.credentials.add(webauthn_credential)
+            self.app.central_userdb.save(user, check_sync=False)
+
+            state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+            alternatives = get_extra_security_alternatives(user, 'dummy.session.prefix')
+            state.extra_security = alternatives
+            state.email_code.is_verified = True
+            self.app.password_reset_state_db.save(state)
+
+            with c.session_transaction() as session:
+                fido2state = {'challenge': '3h_EAZpY25xDdSJCOMx1ABZEA5Odz3yejUI3AUNTQWc', 'user_verification': 'preferred'}
+                session['eduid_webapp.reset_password.views.webauthn.state'] = json.dumps(fido2state)
+                new_password = generate_suggested_password()
+                session.reset_password.generated_password_hash = hash_password(new_password)
+                session.persist()
+                url = url_for('reset_password.set_new_pw_extra_security_token', _external=True)
+                state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+                data = {
+                    'csrf_token': session.get_csrf_token(),
+                    'code': state.email_code.code,
+                    'password': new_password,
+                }
+                data.update(SAMPLE_WEBAUTHN_REQUEST)
+
+            response = c.post(url, data=json.dumps(data),
+                              content_type=self.content_type_json)
+
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_TOKEN_FAIL')
+            self.assertEqual(response.json['payload']['message'], 'resetpw.fido-token-fail')
+
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
+    @patch('eduid_common.authn.vccs.get_vccs_client')
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('fido2.cose.ES256.verify')
+    def test_post_reset_password_secure_token_wrong_request(self, mock_verify, mock_request_user_sync, mock_get_vccs_client, mock_sendmail):
+        mock_request_user_sync.side_effect = self.request_user_sync
+        mock_get_vccs_client.return_value = TestVCCSClient()
+        mock_sendmail.return_value = True
+        mock_verify.return_value = True
+        with self.app.test_client() as c:
+            data = {
+                'email': self.test_user_email
+            }
+            response = c.post('/reset/', data=json.dumps(data),
+                              content_type=self.content_type_json)
+            self.assertEqual(response.status_code, 200)
+
+            webauthn_credential = Webauthn(**SAMPLE_WEBAUTHN_CREDENTIAL)
+            user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+            user.credentials.add(webauthn_credential)
+            self.app.central_userdb.save(user, check_sync=False)
+
+            state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+            alternatives = get_extra_security_alternatives(user, 'dummy.session.prefix')
+            state.extra_security = alternatives
+            state.email_code.is_verified = True
+            self.app.password_reset_state_db.save(state)
+
+            with c.session_transaction() as session:
+                fido2state = {'challenge': '3h_EAZpY25xDdSJCOMx1ABZEA5Odz3yejUI3AUNTQWc', 'user_verification': 'preferred'}
+                session['eduid_webapp.reset_password.views.webauthn.state'] = json.dumps(fido2state)
+                new_password = generate_suggested_password()
+                session.reset_password.generated_password_hash = hash_password(new_password)
+                session.persist()
+                url = url_for('reset_password.set_new_pw_extra_security_token', _external=True)
+                state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+                data = {
+                    'csrf_token': session.get_csrf_token(),
+                    'code': state.email_code.code,
+                    'password': new_password,
+                }
+                data.update(SAMPLE_WEBAUTHN_REQUEST)
+                data['authenticatorData'] = 'Wrong-authenticatorData----UMmBLDxB7n3apMPQAAAAAAA'
+
+            response = c.post(url, data=json.dumps(data),
+                              content_type=self.content_type_json)
+
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_TOKEN_FAIL')
+            self.assertEqual(response.json['payload']['message'], 'resetpw.fido-token-fail')
 
     @patch('eduid_common.authn.vccs.get_vccs_client')
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')

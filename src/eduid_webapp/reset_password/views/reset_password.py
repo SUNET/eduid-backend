@@ -91,7 +91,6 @@ from eduid_webapp.reset_password.schemas import ResetPasswordWithCodeSchema
 from eduid_webapp.reset_password.schemas import ResetPasswordWithPhoneCodeSchema
 from eduid_webapp.reset_password.schemas import ResetPasswordWithSecTokenSchema
 from eduid_webapp.reset_password.schemas import ResetPasswordExtraSecPhoneSchema
-from eduid_webapp.reset_password.schemas import ResetPasswordExtraSecTokenSchema
 from eduid_webapp.reset_password.helpers import ResetPwMsg, error_message, success_message
 from eduid_webapp.reset_password.helpers import send_password_reset_mail
 from eduid_webapp.reset_password.helpers import get_pwreset_state, BadCode
@@ -510,4 +509,4 @@ def set_new_pw_extra_security_token() -> dict:
         current_app.password_reset_state_db.remove_state(state)
         return success_message(ResetPwMsg.pw_resetted)
 
-    return success_message(ResetPwMsg.fido_token_fail)
+    return error_message(ResetPwMsg.fido_token_fail)
