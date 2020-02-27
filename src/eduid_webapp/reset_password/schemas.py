@@ -66,12 +66,6 @@ class ResetPasswordExtraSecPhoneSchema(CSRFRequestMixin):
     phone_index = fields.Integer(required=True)
 
 
-class ResetPasswordExtraSecTokenSchema(CSRFRequestMixin):
-
-    code = fields.String(required=True)
-    token_data = fields.String(required=True)
-
-
 class ResetPasswordWithCodeSchema(PasswordSchema):
 
     csrf_token = fields.String(required=True)
