@@ -34,7 +34,7 @@
 Configuration (file) handling for the eduID reset_password app.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from eduid_common.config.base import FlaskConfig
 
@@ -68,3 +68,6 @@ class ResetPasswordConfig(FlaskConfig):
     password_service_url: str = '/services/reset-password/'
     # magic code for integration tests
     magic_code: str = ''
+    # webauthn stuff
+    generate_u2f_challenges: bool = False
+    u2f_valid_facets: list = field(default_factory=list)

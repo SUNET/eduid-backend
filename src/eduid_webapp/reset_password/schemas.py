@@ -66,12 +66,6 @@ class ResetPasswordExtraSecPhoneSchema(CSRFRequestMixin):
     phone_index = fields.Integer(required=True)
 
 
-class ResetPasswordExtraSecTokenSchema(CSRFRequestMixin):
-
-    code = fields.String(required=True)
-    token_data = fields.String(required=True)
-
-
 class ResetPasswordWithCodeSchema(PasswordSchema):
 
     csrf_token = fields.String(required=True)
@@ -90,6 +84,14 @@ class ResetPasswordWithCodeSchema(PasswordSchema):
 class ResetPasswordWithPhoneCodeSchema(ResetPasswordWithCodeSchema):
 
     phone_code = fields.String(required=True)
+
+
+class ResetPasswordWithSecTokenSchema(ResetPasswordWithCodeSchema):
+
+    credentialId = fields.String(required=True)
+    authenticatorData = fields.String(required=True)
+    clientDataJSON = fields.String(required=True)
+    signature = fields.String(required=True)
 
 
 class ChpassCredentialList(EduidSchema, CSRFResponseMixin):

@@ -55,6 +55,7 @@ from eduid_common.api.utils import get_short_hash
 from eduid_common.api.helpers import send_mail
 from eduid_common.authn.utils import generate_password
 from eduid_common.authn.vccs import reset_password
+from eduid_common.authn import fido_tokens
 from eduid_common.session import session
 from eduid_webapp.reset_password.app import current_reset_password_app as current_app
 
@@ -155,7 +156,7 @@ def get_pwreset_state(email_code: str) -> ResetPasswordState:
     # Here we retrieve the real code from the session.
     if current_app.config.environment in ('staging', 'dev') and current_app.config.magic_code:
         if email_code == current_app.config.magic_code:
-            email_code = session['resetpw_email_verification_code']
+            email_code = session.reset_password.resetpw_email_verification_code
 
     mail_expiration_time = current_app.config.email_code_timeout
     sms_expiration_time = current_app.config.phone_code_timeout
@@ -208,7 +209,7 @@ def send_password_reset_mail(email_address: str):
     # Here we store the real code in the session,
     # to recover it in case the user sends the magic code.
     if current_app.config.environment in ('staging', 'dev') and current_app.config.magic_code:
-        session['resetpw_email_verification_code'] = state.email_code.code
+        session.reset_password.resetpw_email_verification_code = state.email_code.code
 
     text_template = 'reset_password_email.txt.jinja2'
     html_template = 'reset_password_email.html.jinja2'
@@ -321,7 +322,7 @@ def reset_user_password(user: User, state: ResetPasswordState, password: str):
     current_app.logger.info(f'Reset password successful for user {reset_password_user}')
 
 
-def get_extra_security_alternatives(user: User) -> dict:
+def get_extra_security_alternatives(user: User, session_prefix: str) -> dict:
     """
     :param user: The user
     :return: Dict of alternatives
@@ -333,6 +334,12 @@ def get_extra_security_alternatives(user: User) -> dict:
             {'number': item.number, 'index': n}
             for n, item in enumerate(user.phone_numbers.verified.to_list())]
         alternatives['phone_numbers'] = verified_phone_numbers
+
+    tokens = fido_tokens.start_token_verification(user, session_prefix)
+
+    if tokens:
+        alternatives['tokens'] = tokens
+
     return alternatives
 
 
@@ -389,7 +396,7 @@ def send_verify_phone_code(state: ResetPasswordEmailState, phone_number: str):
     # Here we store the real code in the session,
     # to recover it in case the user sends the magic code.
     if current_app.config.environment in ('staging', 'dev') and current_app.config.magic_code:
-        session['resetpw_sms_verification_code'] = state.phone_code.code
+        session.reset_password.resetpw_sms_verification_code = state.phone_code.code
 
     template = 'reset_password_sms.txt.jinja2'
     context = {
