@@ -17,7 +17,9 @@ class User:
     created_ts: Optional[datetime] = None
     modified_ts: Optional[datetime] = None
 
-    def __eq__(self, other: Group):
+    def __eq__(self, other: object):
+        if not isinstance(other, User):
+            raise NotImplemented
         if self.identifier == other.identifier:
             return True
         return False
@@ -40,7 +42,9 @@ class Group:
     owners: List[Union[User, Group]] = field(default_factory=list)
     members: List[Union[User, Group]] = field(default_factory=list)
 
-    def __eq__(self, other: Group):
+    def __eq__(self, other: object):
+        if not isinstance(other, Group):
+            raise NotImplemented
         if (self.scope == other.scope) and (self.identifier == other.identifier):
             return True
         return False

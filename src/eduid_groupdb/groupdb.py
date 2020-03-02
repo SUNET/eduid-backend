@@ -79,13 +79,13 @@ class GroupDB(BaseGraphDB):
         tx.sync()
         for record in members_in_db:
             if 'Group' in record['labels']:
-                member = Group(scope=record['scope'], identifier=record['identifier'])
-                if member not in group_list:
-                    self._remove_group_from_group(tx, group=group, member=member, role=role)
+                group_member = Group(scope=record['scope'], identifier=record['identifier'])
+                if group_member not in group_list:
+                    self._remove_group_from_group(tx, group=group, member=group_member, role=role)
             elif 'User' in record['labels']:
-                member = User(identifier=record['identifier'])
-                if member not in user_list:
-                    self._remove_user_from_group(tx, group=group, member=member, role=role)
+                user_member = User(identifier=record['identifier'])
+                if user_member not in user_list:
+                    self._remove_user_from_group(tx, group=group, member=user_member, role=role)
 
     @staticmethod
     def _remove_group_from_group(tx: Transaction, group: Group, member: Group, role: Role):
