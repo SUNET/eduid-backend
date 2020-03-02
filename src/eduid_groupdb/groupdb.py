@@ -5,6 +5,7 @@ from typing import Union, List, Optional
 
 from neo4j import Transaction
 from neo4j.exceptions import ClientError, CypherError
+from neo4j.types.graph import Graph
 
 from eduid_groupdb import BaseGraphDB, Group, User
 
@@ -154,16 +155,39 @@ class GroupDB(BaseGraphDB):
     def get_group(self, scope: str, identifier: str) -> Group:
         q = """
             MATCH (g: Group {scope: $scope, identifier: $identifier})
-            RETURN g as group
+            OPTIONAL MATCH (g)<-[r]-(m)
+            RETURN *
             """
         with self.db.driver.session() as session:
-            group_node = session.run(q, scope=scope, identifier=identifier).single().value()
-        group_data = dict(group_node.items())
-        group_data['members'] = self._get_users_and_groups_by_role(scope=scope, identifier=identifier,
-                                                                   role=self.Role.MEMBER)
-        group_data['owners'] = self._get_users_and_groups_by_role(scope=scope, identifier=identifier,
-                                                                  role=self.Role.OWNER)
-        group = Group.from_mapping(group_data)
+            group_graph: Graph = session.run(q, scope=scope, identifier=identifier).graph()
+
+        if len(group_graph.relationships) == 0:
+            # Just a group with no owners or members
+            group_data = [node_data for node_data in group_graph.nodes][0]
+            return Group.from_mapping(group_data)
+        else:
+            # Grab the first relationships end node and create the group from that
+            group_data = [node_data.end_node for node_data in group_graph.relationships][0]
+            group = Group.from_mapping(group_data)
+
+            # Iterate over relationships and create owners and members
+            for rel in group_graph.relationships:
+                labels = rel.start_node.labels
+                # Merge node and relationship data
+                data = dict(rel.start_node.items())
+                data.update(dict(rel.items()))
+                is_owner = rel.type == self.Role.OWNER.value
+                is_member = rel.type == self.Role.MEMBER.value
+                # Instantiate and add owners
+                if is_owner and 'Group' in labels:
+                    group.owners.append(Group.from_mapping(data))
+                if is_owner and 'User' in labels:
+                    group.owners.append(User.from_mapping(data))
+                # Instantiate and add members
+                if is_member and 'Group' in labels:
+                    group.members.append(Group.from_mapping(data))
+                if is_member and 'User' in labels:
+                    group.members.append(User.from_mapping(data))
         return group
 
     def remove_group(self, scope: str, identifier: str) -> None:

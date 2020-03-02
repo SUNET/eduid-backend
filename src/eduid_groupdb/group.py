@@ -5,9 +5,9 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Optional, List, Union, Mapping, Type
 
-__author__ = 'lundberg'
-
 from eduid_groupdb.helpers import neo4j_ts_to_dt
+
+__author__ = 'lundberg'
 
 
 @dataclass()
@@ -37,7 +37,7 @@ class Group:
     description: Optional[str] = None
     created_ts: Optional[datetime] = None
     modified_ts: Optional[datetime] = None
-    owners: List[User] = field(default_factory=list)
+    owners: List[Union[User, Group]] = field(default_factory=list)
     members: List[Union[User, Group]] = field(default_factory=list)
 
     def __eq__(self, other: Group):
@@ -71,5 +71,3 @@ class Group:
         return cls(scope=data['scope'], identifier=data['identifier'], display_name=data['display_name'],
                    description=data['description'], created_ts=dt['created_ts'], modified_ts=dt['modified_ts'],
                    members=data.get('members', []), owners=data.get('owners', []))
-
-
