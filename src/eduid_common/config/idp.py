@@ -51,6 +51,12 @@ class IdPConfig(BaseConfig):
     # session cookie
     session_cookie_persistent: bool = True
     session_cookie_locking: str = 'explicit'
+    session_cookie_domain: Optional[str] = None
+    session_cookie_name: str = 'sessid'
+    session_cookie_secure: bool = False
+    session_cookie_path: str = '/'
+    session_cookie_httponly: bool = False
+    session_cookie_samesite: Optional[str] = 'Strict'
     # Logging
     log_level: str = 'INFO'
     # IdP specific
@@ -163,11 +169,6 @@ class IdPConfig(BaseConfig):
     shared_session_secret_key: Optional[str] = None
     secret_key: Optional[str] = None
     preferred_url_scheme: str = 'http'
-    session_cookie_domain: Optional[str] = None
-    session_cookie_name: str = 'sessid'
-    session_cookie_secure: bool = False
-    session_cookie_path: str = '/'
-    session_cookie_httponly: bool = False
     # TTL for shared sessions.
     shared_session_ttl: int = 300
     http_headers: str = "Content-Security-Policy:default-src 'self'; script-src 'self' 'unsafe-inline', X-Frame-Options:DENY"
