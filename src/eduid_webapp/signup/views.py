@@ -31,12 +31,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-import requests
-from flask import Blueprint, request, abort, render_template
+from flask import Blueprint, request
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith
 from eduid_common.api.schemas.base import FluxStandardAction
-from eduid_common.session import session
 from eduid_webapp.signup.helpers import check_email_status, remove_users_with_mail_address, complete_registration
 from eduid_webapp.signup.schemas import RegisterEmailSchema, AccountCreatedResponse, EmailSchema
 from eduid_webapp.signup.verifications import CodeDoesNotExist, AlreadyVerifiedException, ProofingLogFailure
@@ -55,21 +53,30 @@ def trycaptcha(email, recaptcha_response, tou_accepted):
     """
     if not tou_accepted:
         return {
-                '_status': 'error',
-                'message': 'signup.tou-not-accepted'
+            '_status': 'error',
+            'message': 'signup.tou-not-accepted'
         }
     config = current_app.config
-    remote_ip = request.remote_addr
-    recaptcha_public_key = config.recaptcha_public_key
+    recaptcha_verified = False
 
-    if recaptcha_public_key:
-        recaptcha_private_key = config.recaptcha_private_key
-        recaptcha_verified = verify_recaptcha(recaptcha_private_key,
-                                              recaptcha_response, remote_ip)
-    else:
-        # If recaptcha_public_key is not set recaptcha is disabled
-        recaptcha_verified = True
-        current_app.logger.info('CAPTCHA disabled')
+    # add a backdoor to bypass recaptcha checks for humanness,
+    # to be used in testing environments for automated integration tests.
+    if config.environment in ('staging', 'dev') and config.magic_code != '':
+        if "{config.magic_code}@" in email:
+            recaptcha_verified = True
+
+    # common path with no backdoor
+    if not recaptcha_verified:
+        remote_ip = request.remote_addr
+        recaptcha_public_key = config.recaptcha_public_key
+
+        if recaptcha_public_key:
+            recaptcha_private_key = config.recaptcha_private_key
+            recaptcha_verified = verify_recaptcha(recaptcha_private_key,
+                                                  recaptcha_response, remote_ip)
+        else:
+            recaptcha_verified = False
+            current_app.logger.info('Missing configuration for reCaptcha!')
 
     if recaptcha_verified:
         next = check_email_status(email)
@@ -93,8 +100,8 @@ def trycaptcha(email, recaptcha_response, tou_accepted):
                 'next': next
             }
     return {
-            '_status': 'error',
-            'message': 'signup.recaptcha-not-verified'
+        '_status': 'error',
+        'message': 'signup.recaptcha-not-verified'
     }
 
 
