@@ -335,10 +335,10 @@ def get_extra_security_alternatives(user: User, session_prefix: str) -> dict:
             for n, item in enumerate(user.phone_numbers.verified.to_list())]
         alternatives['phone_numbers'] = verified_phone_numbers
 
-    tokens = fido_tokens.start_token_verification(user, session_prefix)
+    credentials = fido_tokens.get_user_credentials(user)
 
-    if tokens:
-        alternatives['tokens'] = tokens
+    if credentials:
+        alternatives['tokens'] = fido_tokens.start_token_verification(user, session_prefix)
 
     return alternatives
 
