@@ -127,6 +127,9 @@ class SignupTests(EduidAPITestCase):
             data = json.loads(response.data)
             self.assertEqual(data['error'], True)
             self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_FAIL')
+            self.assertIn('email', data['payload']['error'])
+            self.assertIn('csrf_token', data['payload']['error'])
+            self.assertIn('recaptcha_response', data['payload']['error'])
 
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     def test_captcha_new_magic_code(self, mock_sendmail):
@@ -264,6 +267,8 @@ class SignupTests(EduidAPITestCase):
 
                 data = json.loads(response.data)
                 self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_FAIL')
+                self.assertIn('email', data['payload']['error'])
+                self.assertNotIn('recaptcha_response', data['payload']['error'])
 
     def test_captcha_no_tou(self):
         email = 'dummy+magic-code@example.com'
@@ -281,6 +286,7 @@ class SignupTests(EduidAPITestCase):
 
                 data = json.loads(response.data)
                 self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_FAIL')
+                self.assertEqual(data['payload']['message'], 'signup.tou-not-accepted')
 
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     def test_resend_email(self, mock_sendmail):
