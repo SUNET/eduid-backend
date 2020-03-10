@@ -283,7 +283,7 @@ class ResetPasswordTests(EduidAPITestCase):
             response = c.post(url, data=json.dumps(data),
                               content_type=self.content_type_json)
             self.assertEqual(response.status_code, 200)
-            self.assertEquals(response.json['payload']['extra_security']['phone_numbers'], [])
+            self.assertEquals(response.json['payload']['extra_security'], {})
             self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_CONFIG_SUCCESS')
 
     @patch('eduid_common.authn.vccs.get_vccs_client')
