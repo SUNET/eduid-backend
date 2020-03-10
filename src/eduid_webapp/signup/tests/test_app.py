@@ -121,7 +121,6 @@ class SignupTests(EduidAPITestCase):
         yield client
 
     def test_captcha_no_data_fail(self):
-        email = 'dummy@example.com'
         with self.session_cookie(self.browser) as client:
             response = client.post('/trycaptcha')
             self.assertEqual(response.status_code, 200)
@@ -191,6 +190,7 @@ class SignupTests(EduidAPITestCase):
 
                 data = json.loads(response.data)
                 self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_FAIL')
+                self.assertEqual(data['payload']['message'], 'signup.recaptcha-not-verified')
 
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     def test_captcha_resend(self, mock_sendmail):
