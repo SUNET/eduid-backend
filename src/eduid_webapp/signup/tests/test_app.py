@@ -170,6 +170,7 @@ class SignupTests(EduidAPITestCase):
 
                 data = json.loads(response.data)
                 self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_FAIL')
+                self.assertEqual(data['payload']['message'], 'signup.recaptcha-not-verified')
 
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     def test_captcha_new_magic_code_wrong(self, mock_sendmail):
