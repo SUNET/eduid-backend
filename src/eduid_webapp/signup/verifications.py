@@ -42,6 +42,7 @@ from eduid_userdb import MailAddress
 from eduid_userdb.signup import SignupUser
 from eduid_userdb.proofing import EmailProofingElement
 from eduid_userdb.logs import MailAddressProofing
+from eduid_common.session import session
 from eduid_webapp.signup.helpers import generate_eppn
 from eduid_webapp.signup.app import current_signup_app as current_app
 
@@ -129,6 +130,15 @@ def send_verification_mail(email):
         signup_user.pending_mail_address.verification_code = code
         current_app.logger.info("User {}/{} updated with new e-mail confirmation code".format(signup_user, email))
 
+    # keep the verification code in the session if the backdoor
+    # for the selenium integration tests is configured,
+    # i.e., if the configuration key environment is in ('dev', 'staging') and
+    # the configuration key magic_code is not the empty string.
+    if current_app.config.environment in ('dev', 'staging') and current_app.config.magic_code != '':
+        if f"{current_app.config.magic_code}@" in email:
+            current_app.logger.info(f"Using BACKDOOR with email {email}")
+            session.signup.email_verification_code = code
+
     # Send verification mail
     subject = _("eduid-signup verification email")
 
@@ -179,6 +189,15 @@ def verify_email_code(code):
     :return: Signup user object
     :rtype: SignupUser
     """
+
+    # Backdoor for the selenium integration tests.
+    # If the backdoor is configured, and we receive the magic code,
+    # here we recover the real code from the session to complete signup.
+    if current_app.config.environment in ('dev', 'staging') and current_app.config.magic_code != '':
+        if current_app.config.magic_code == code:
+            current_app.logger.info(f"Using BACKDOOR with magic code {code}")
+            code = session.signup.email_verification_code
+
     current_app.logger.info("Trying to verify code {}".format(code))
 
     signup_db = current_app.private_userdb

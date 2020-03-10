@@ -145,8 +145,8 @@ class SignupTests(EduidAPITestCase):
                         'tou_accepted': True,
                         'csrf_token': sess.get_csrf_token()
                     }
-                response = client.post('/trycaptcha', data=json.dumps(data),
-                                       content_type=self.content_type_json)
+                    response = client.post('/trycaptcha', data=json.dumps(data),
+                                           content_type=self.content_type_json)
 
                 data = json.loads(response.data)
                 self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_SUCCESS')
@@ -158,6 +158,28 @@ class SignupTests(EduidAPITestCase):
 
         self.app.config.environment = 'pro'
         email = 'dummy+magic-code@example.com'
+        with self.session_cookie(self.browser) as client:
+            with client.session_transaction() as sess:
+                with self.app.test_request_context():
+                    data = {
+                        'email': email,
+                        'recaptcha_response': 'dummy',
+                        'tou_accepted': True,
+                        'csrf_token': sess.get_csrf_token()
+                    }
+                    response = client.post('/trycaptcha', data=json.dumps(data),
+                                           content_type=self.content_type_json)
+
+                data = json.loads(response.data)
+                self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_FAIL')
+                self.assertEqual(data['payload']['message'], 'signup.recaptcha-not-verified')
+
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
+    def test_captcha_new_magic_no_code(self, mock_sendmail):
+        mock_sendmail.return_value = True
+
+        self.app.config.magic_code = ''
+        email = 'dummy+magic-code-wrong@example.com'
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
@@ -200,6 +222,39 @@ class SignupTests(EduidAPITestCase):
         mock_sendmail.return_value = True
 
         email = 'dummy+magic-code@example.com'
+        with self.session_cookie(self.browser) as client:
+            with client.session_transaction() as sess:
+                with self.app.test_request_context():
+                    data = {
+                        'email': email,
+                        'recaptcha_response': 'dummy',
+                        'tou_accepted': True,
+                        'csrf_token': sess.get_csrf_token()
+                        }
+                response = client.post('/trycaptcha', data=json.dumps(data),
+                                       content_type=self.content_type_json)
+
+        with self.session_cookie(self.browser) as client:
+            with client.session_transaction() as sess:
+                with self.app.test_request_context():
+                    data = {
+                        'email': email,
+                        'recaptcha_response': 'dummy',
+                        'tou_accepted': True,
+                        'csrf_token': sess.get_csrf_token()
+                        }
+                response = client.post('/trycaptcha', data=json.dumps(data),
+                                       content_type=self.content_type_json)
+
+                data = json.loads(response.data)
+                self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_SUCCESS')
+                self.assertEqual(data['payload']['next'], 'resend-code')
+
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
+    def test_captcha_resend_no_magic(self, mock_sendmail):
+        mock_sendmail.return_value = True
+
+        email = 'dummy@example.com'
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
@@ -327,6 +382,105 @@ class SignupTests(EduidAPITestCase):
                             'GET_SIGNUP_VERIFY_LINK_SUCCESS')
                     self.assertEqual(data['payload']['status'],
                             'verified')
+
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('vccs_client.VCCSClient.add_credentials')
+    def test_verify_code_with_magic(self, mock_add_credentials, mock_request_user_sync, mock_sendmail):
+        mock_add_credentials.return_value = True
+        mock_request_user_sync.return_value = True
+        mock_sendmail.return_value = True
+        with self.session_cookie(self.browser) as client:
+            with client.session_transaction() as sess:
+                with self.app.test_request_context():
+                    email = 'dummy+magic-code@example.com'
+                    send_verification_mail(email)
+                    # send_veridfication_mail does not persist the session by itself (relies on the request cycle)
+                    # so at this point the code has been lost from the session
+                    signup_user = self.app.private_userdb.get_user_by_pending_mail_address(email)
+                    sess.signup.email_verification_code = signup_user.pending_mail_address.verification_code
+                    sess.persist()
+
+                    response = client.get('/verify-link/magic-code')
+
+                    data = json.loads(response.data)
+                    self.assertEqual(data['type'], 'GET_SIGNUP_VERIFY_LINK_SUCCESS')
+                    self.assertEqual(data['payload']['status'], 'verified')
+
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('vccs_client.VCCSClient.add_credentials')
+    def test_verify_code_with_no_magic_in_pro(self, mock_add_credentials, mock_request_user_sync, mock_sendmail):
+        mock_add_credentials.return_value = True
+        mock_request_user_sync.return_value = True
+        mock_sendmail.return_value = True
+        self.app.config.environment = 'pro'
+        with self.session_cookie(self.browser) as client:
+            with client.session_transaction() as sess:
+                with self.app.test_request_context():
+                    email = 'dummy+magic-code@example.com'
+                    send_verification_mail(email)
+                    # send_veridfication_mail does not persist the session by itself (relies on the request cycle)
+                    # so at this point the code has been lost from the session
+                    signup_user = self.app.private_userdb.get_user_by_pending_mail_address(email)
+                    sess.signup.email_verification_code = signup_user.pending_mail_address.verification_code
+                    sess.persist()
+
+                    response = client.get('/verify-link/magic-code')
+
+                    data = json.loads(response.data)
+                    self.assertEqual(data['type'], 'GET_SIGNUP_VERIFY_LINK_FAIL')
+                    self.assertEqual(data['payload']['status'], 'unknown-code')
+
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('vccs_client.VCCSClient.add_credentials')
+    def test_verify_code_with_magic_wrong_code(self, mock_add_credentials, mock_request_user_sync, mock_sendmail):
+        mock_add_credentials.return_value = True
+        mock_request_user_sync.return_value = True
+        mock_sendmail.return_value = True
+        self.app.config.environment = 'pro'
+        with self.session_cookie(self.browser) as client:
+            with client.session_transaction() as sess:
+                with self.app.test_request_context():
+                    email = 'dummy+magic-code-wrong@example.com'
+                    send_verification_mail(email)
+                    # send_veridfication_mail does not persist the session by itself (relies on the request cycle)
+                    # so at this point the code has been lost from the session
+                    signup_user = self.app.private_userdb.get_user_by_pending_mail_address(email)
+                    sess.signup.email_verification_code = signup_user.pending_mail_address.verification_code
+                    sess.persist()
+
+                    response = client.get('/verify-link/magic-code')
+
+                    data = json.loads(response.data)
+                    self.assertEqual(data['type'], 'GET_SIGNUP_VERIFY_LINK_FAIL')
+                    self.assertEqual(data['payload']['status'], 'unknown-code')
+
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('vccs_client.VCCSClient.add_credentials')
+    def test_verify_code_with_no_magic_configured(self, mock_add_credentials, mock_request_user_sync, mock_sendmail):
+        mock_add_credentials.return_value = True
+        mock_request_user_sync.return_value = True
+        mock_sendmail.return_value = True
+        self.app.config.magic_code = ''
+        with self.session_cookie(self.browser) as client:
+            with client.session_transaction() as sess:
+                with self.app.test_request_context():
+                    email = 'dummy+magic-code@example.com'
+                    send_verification_mail(email)
+                    # send_veridfication_mail does not persist the session by itself (relies on the request cycle)
+                    # so at this point the code has been lost from the session
+                    signup_user = self.app.private_userdb.get_user_by_pending_mail_address(email)
+                    sess.signup.email_verification_code = signup_user.pending_mail_address.verification_code
+                    sess.persist()
+
+                    response = client.get('/verify-link/magic-code')
+
+                    data = json.loads(response.data)
+                    self.assertEqual(data['type'], 'GET_SIGNUP_VERIFY_LINK_FAIL')
+                    self.assertEqual(data['payload']['status'], 'unknown-code')
 
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
