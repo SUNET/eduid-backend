@@ -62,7 +62,7 @@ def trycaptcha(email, recaptcha_response, tou_accepted):
     # add a backdoor to bypass recaptcha checks for humanness,
     # to be used in testing environments for automated integration tests.
     if config.environment in ('staging', 'dev') and config.magic_code != '':
-        if "{config.magic_code}@" in email:
+        if f"{config.magic_code}@" in email:
             recaptcha_verified = True
 
     # common path with no backdoor

@@ -226,6 +226,12 @@ class SignupTests(EduidAPITestCase):
 
     def test_captcha_used(self):
         email = 'johnsmith+magic-code@example.com'
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
+        user.mail_addresses.primary.email = email
+        self.app.central_userdb.save(user)
+        data = user.to_dict()
+        self.app.private_userdb.save(self.app.private_userdb.UserClass(data=data),
+                                     check_sync=False)
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
@@ -240,11 +246,9 @@ class SignupTests(EduidAPITestCase):
 
                 data = json.loads(response.data)
                 self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_FAIL')
-                breakpoint()
                 self.assertEqual(data['payload']['next'], 'address-used')
 
     def test_captcha_no_email(self):
-        email = 'dummy+magic-code@example.com'
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
