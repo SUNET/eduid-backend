@@ -280,8 +280,7 @@ class SignupTests(EduidAPITestCase):
                                        content_type=self.content_type_json)
 
                 data = json.loads(response.data)
-                self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_SUCCESS')
-                self.assertEqual(data['payload']['next'], 'resend-code')
+                self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_FAIL')
 
     def test_captcha_used(self):
         email = 'johnsmith+magic-code@example.com'
