@@ -97,7 +97,7 @@ class SignupTests(EduidAPITestCase):
             'tou_version': '2018-v1',
             'tou_url': 'https://localhost/get-tous',
             'default_finish_url': 'https://www.eduid.se/',
-            'recaptcha_public_key': '',  # disable recaptcha verification
+            'recaptcha_public_key': 'XXXX',
             'recaptcha_private_key': 'XXXX',
             'students_link': 'https://www.eduid.se/index.html',
             'technicians_link': 'https://www.eduid.se/tekniker.html',
@@ -108,6 +108,8 @@ class SignupTests(EduidAPITestCase):
                 'task_serializer': 'json',
                 'mongo_uri': app_config['mongo_uri'],
             },
+            'environment': 'dev',
+            'magic_code': 'magic-code'
         })
         return SignupConfig(**app_config)
 
@@ -119,19 +121,21 @@ class SignupTests(EduidAPITestCase):
         yield client
 
     def test_captcha_no_data_fail(self):
-        email = 'dummy@example.com'
         with self.session_cookie(self.browser) as client:
             response = client.post('/trycaptcha')
             self.assertEqual(response.status_code, 200)
             data = json.loads(response.data)
             self.assertEqual(data['error'], True)
             self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_FAIL')
+            self.assertIn('email', data['payload']['error'])
+            self.assertIn('csrf_token', data['payload']['error'])
+            self.assertIn('recaptcha_response', data['payload']['error'])
 
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
-    def test_captcha_new(self, mock_sendmail):
+    def test_captcha_new_magic_code(self, mock_sendmail):
         mock_sendmail.return_value = True
 
-        email = 'dummy@example.com'
+        email = 'dummy+magic-code@example.com'
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
@@ -140,7 +144,7 @@ class SignupTests(EduidAPITestCase):
                         'recaptcha_response': 'dummy',
                         'tou_accepted': True,
                         'csrf_token': sess.get_csrf_token()
-                        }
+                    }
                 response = client.post('/trycaptcha', data=json.dumps(data),
                                        content_type=self.content_type_json)
 
@@ -149,10 +153,53 @@ class SignupTests(EduidAPITestCase):
                 self.assertEqual(data['payload']['next'], 'new')
 
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
+    def test_captcha_new_magic_code_pro(self, mock_sendmail):
+        mock_sendmail.return_value = True
+
+        self.app.config.environment = 'pro'
+        email = 'dummy+magic-code@example.com'
+        with self.session_cookie(self.browser) as client:
+            with client.session_transaction() as sess:
+                with self.app.test_request_context():
+                    data = {
+                        'email': email,
+                        'recaptcha_response': 'dummy',
+                        'tou_accepted': True,
+                        'csrf_token': sess.get_csrf_token()
+                    }
+                response = client.post('/trycaptcha', data=json.dumps(data),
+                                       content_type=self.content_type_json)
+
+                data = json.loads(response.data)
+                self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_FAIL')
+                self.assertEqual(data['payload']['message'], 'signup.recaptcha-not-verified')
+
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
+    def test_captcha_new_magic_code_wrong(self, mock_sendmail):
+        mock_sendmail.return_value = True
+
+        email = 'dummy+magic-code-wrong@example.com'
+        with self.session_cookie(self.browser) as client:
+            with client.session_transaction() as sess:
+                with self.app.test_request_context():
+                    data = {
+                        'email': email,
+                        'recaptcha_response': 'dummy',
+                        'tou_accepted': True,
+                        'csrf_token': sess.get_csrf_token()
+                    }
+                response = client.post('/trycaptcha', data=json.dumps(data),
+                                       content_type=self.content_type_json)
+
+                data = json.loads(response.data)
+                self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_FAIL')
+                self.assertEqual(data['payload']['message'], 'signup.recaptcha-not-verified')
+
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     def test_captcha_resend(self, mock_sendmail):
         mock_sendmail.return_value = True
 
-        email = 'dummy@example.com'
+        email = 'dummy+magic-code@example.com'
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
@@ -182,7 +229,13 @@ class SignupTests(EduidAPITestCase):
                 self.assertEqual(data['payload']['next'], 'resend-code')
 
     def test_captcha_used(self):
-        email = 'johnsmith@example.com'
+        email = 'johnsmith+magic-code@example.com'
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
+        user.mail_addresses.primary.email = email
+        self.app.central_userdb.save(user)
+        data = user.to_dict()
+        self.app.private_userdb.save(self.app.private_userdb.UserClass(data=data),
+                                     check_sync=False)
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
@@ -200,7 +253,6 @@ class SignupTests(EduidAPITestCase):
                 self.assertEqual(data['payload']['next'], 'address-used')
 
     def test_captcha_no_email(self):
-        email = 'dummy@example.com'
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
@@ -215,9 +267,11 @@ class SignupTests(EduidAPITestCase):
 
                 data = json.loads(response.data)
                 self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_FAIL')
+                self.assertIn('email', data['payload']['error'])
+                self.assertNotIn('recaptcha_response', data['payload']['error'])
 
     def test_captcha_no_tou(self):
-        email = 'dummy@example.com'
+        email = 'dummy+magic-code@example.com'
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
@@ -232,6 +286,7 @@ class SignupTests(EduidAPITestCase):
 
                 data = json.loads(response.data)
                 self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_FAIL')
+                self.assertEqual(data['payload']['message'], 'signup.tou-not-accepted')
 
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     def test_resend_email(self, mock_sendmail):
