@@ -38,6 +38,7 @@ def require_state(f):
         # Here we retrieve the real code from the session.
         if current_app.config.environment in ('staging', 'dev') and current_app.config.magic_code:
             if email_code == current_app.config.magic_code:
+                current_app.logger.info('Opening BACKDOOR to bypass verification of emailed code!')
                 email_code = session['resetpw_email_verification_code']
 
         try:
@@ -232,6 +233,7 @@ def extra_security_phone_number(state):
             # Here we retrieve the real code from the session.
             if current_app.config.environment in ('staging', 'dev') and current_app.config.magic_code:
                 if phone_code == current_app.config.magic_code:
+                    current_app.logger.info('Using BACKDOOR to bypass verification of emailed code!')
                     phone_code = session['resetpw_sms_verification_code']
 
             if phone_code == state.phone_code.code:
