@@ -1,7 +1,7 @@
 import logging
+from datetime import datetime
 from typing import Any, Optional
 
-import yaml
 from bson import ObjectId
 
 from eduid_scimapi.user import ScimApiUser
@@ -24,8 +24,9 @@ class ScimApiUserDB(BaseDB):
         test_doc = {'_id': user.user_id,
                     'version': user.version,
                     }
-        # update the version number
+        # update the version number and last_modified timestamp
         user_dict['version'] = ObjectId()
+        user_dict['last_modified'] = datetime.utcnow()
         result = self._coll.replace_one(test_doc, user_dict, upsert=False)
         if result.modified_count == 0:
             db_user = self._coll.find_one({'_id': user.user_id})
@@ -33,8 +34,9 @@ class ScimApiUserDB(BaseDB):
                 logger.debug(f'{self} FAILED Updating user {user} in {self._coll_name}')
                 raise RuntimeError('User out of sync, please retry')
             self._coll.insert_one(user_dict)
-        # put the new version number in the user object after a successful update
+        # put the new version number and last_modified in the user object after a successful update
         user.version = user_dict['version']
+        user.last_modified = user_dict['last_modified']
         logger.debug(f'{self} Updated user {user} in {self._coll_name}')
         import pprint
         extra_debug = pprint.pformat(user_dict, width=120)
