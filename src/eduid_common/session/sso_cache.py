@@ -16,7 +16,7 @@ import uuid
 from abc import ABC
 from collections import deque
 from threading import Lock
-from typing import Any, Deque, Dict, List, Mapping, NewType, Optional, Union, overload, cast, Tuple
+from typing import Any, Deque, Dict, List, Mapping, NewType, Optional, Union, cast, Tuple
 
 from eduid_userdb import MongoDB
 
@@ -24,8 +24,6 @@ _SHA1_HEXENCODED_SIZE = 160 // 8 * 2
 
 # A distinct type for session ids
 SSOSessionId = NewType('SSOSessionId', bytes)
-
-
 
 
 class NoOpLock(object):
@@ -236,7 +234,6 @@ class SSOSessionCache(ABC):
         return SSOSessionId(str(uuid.uuid4()).encode('utf-8'))
 
 
-
 class SSOSessionCacheMem(SSOSessionCache):
     """
     This cache holds all SSO sessions, meaning information about what users
@@ -373,7 +370,7 @@ class SSOSessionCacheMDB(SSOSessionCache):
             res.append(this['session_id'])
         return res
 
-    def expire_old_sessions(self, force: bool=False) -> bool:
+    def expire_old_sessions(self, force: bool = False) -> bool:
         """
         Remove expired sessions from the MongoDB database.
 

@@ -50,7 +50,7 @@ class AuthnTests(EduidAPITestCase):
 
     def update_config(self, config):
         config.update({
-            'available_languages': {'en': 'English','sv': 'Svenska'},
+            'available_languages': {'en': 'English', 'sv': 'Svenska'},
             'development': 'DEBUG',
             'application_root': '/',
             'no_authn_urls': [],

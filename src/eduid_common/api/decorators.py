@@ -10,9 +10,7 @@ from functools import wraps
 from flask import abort, current_app, request, jsonify
 from marshmallow.exceptions import ValidationError
 from eduid_common.session import session
-from eduid_userdb.exceptions import UserDoesNotExist, MultipleUsersReturned
 from eduid_common.api.utils import get_user
-from eduid_common.api.schemas.base import FluxStandardAction
 from eduid_common.api.schemas.models import FluxResponseStatus, FluxSuccessResponse, FluxFailResponse
 
 __author__ = 'lundberg'
@@ -209,7 +207,7 @@ def deprecated(reason):
 class Deprecated(object):
     """
     Mark deprecated functions with this decorator.
-    
+
     Attention! Use it as the closest one to the function you decorate.
 
     :param message: The deprecation message

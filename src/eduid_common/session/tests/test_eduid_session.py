@@ -2,8 +2,6 @@
 
 from typing import Optional, List, Dict, Any
 
-from flask import request
-
 from eduid_common.authn.middleware import AuthnBaseApp
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.authn.utils import no_authn_views
@@ -51,7 +49,6 @@ def session_init_app(name, config):
 
 
 class EduidSessionTests(EduidAPITestCase):
-
 
     def setUp(self, users: Optional[List[str]] = None,
               copy_user_to_private: bool = False,

@@ -32,7 +32,7 @@ class TestSession(TestCase):
         self.conn = FakeRedisConn()
         try:
             # Detect too old Python (like on CI) and skip tests
-            _x = derive_key('unittest', 'session', 'test', 16)
+            derive_key('unittest', 'session', 'test', 16)
         except AttributeError:
             self.skipTest('Python hashlib does not contain pbkdf2')
 
@@ -51,7 +51,7 @@ class TestSession(TestCase):
         # The ValueError is caught in the SessionFactory and triggers
         # the creation of a new, empty session.
         with self.assertRaises(ValueError):
-            session1 = self._get_session(token=None, data=None)
+            self._get_session(token=None, data=None)
 
     def test_clear_session(self):
         """ Test creating a session, clearing it and verifying it is gone """

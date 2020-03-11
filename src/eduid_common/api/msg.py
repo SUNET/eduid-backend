@@ -155,6 +155,3 @@ class MsgRelay(object):
         except Exception as e:
             rtask.forget()
             raise MsgTaskFailed(f'ping task failed: {repr(e)}')
-
-
-

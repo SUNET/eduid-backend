@@ -24,7 +24,6 @@ def auth_response(session_id, uid):
 
     sp_baseurl = 'http://test.localhost:6544/'
 
-
     saml_response_tpl = """<?xml version='1.0' encoding='UTF-8'?>
 <samlp:Response xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion"
                 xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol"

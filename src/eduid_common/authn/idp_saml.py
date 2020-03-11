@@ -73,7 +73,7 @@ class IdP_SAMLRequest(object):
 
     @property
     def binding(self):
-         return self._binding
+        return self._binding
 
     def verify_signature(self, sig_alg: str, signature: str) -> bool:
         info = {'SigAlg': sig_alg,

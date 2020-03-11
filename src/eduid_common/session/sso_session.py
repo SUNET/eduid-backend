@@ -31,7 +31,7 @@
 #
 # Author : Fredrik Thulin <fredrik@thulin.net>
 #
-from typing import Optional, Dict
+from typing import Optional
 
 import time
 from eduid_common.session.logindata import ExternalMfaData

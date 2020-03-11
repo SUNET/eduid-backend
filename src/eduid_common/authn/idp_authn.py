@@ -55,6 +55,7 @@ class AuthnData(object):
 
     Returned from functions performing authentication.
     """
+
     def __init__(self, user, credential, timestamp):
         self.user = user
         self.credential = credential
@@ -78,7 +79,7 @@ class AuthnData(object):
     def credential(self, value: Credential):
         # isinstance is broken here with Python2:
         #   ValueError: Invalid/unknown credential (got <class 'eduid_userdb.u2f.U2F'>)
-        #if not isinstance(value, Password) or isinstance(value, U2F):
+        # if not isinstance(value, Password) or isinstance(value, U2F):
         if not hasattr(value, 'key'):
             raise ValueError('Invalid/unknown credential (got {})'.format(type(value)))
         self._credential = value

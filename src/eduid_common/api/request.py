@@ -44,9 +44,6 @@ of the Flask application::
     >>> app = Flask('name')
     >>> app.request_class =  Request
 """
-import six
-from bleach import clean
-from six.moves.urllib_parse import unquote, quote
 
 from werkzeug._compat import iteritems, itervalues
 from werkzeug.utils import cached_property
@@ -55,7 +52,7 @@ from werkzeug.datastructures import ImmutableTypeConversionDict
 from werkzeug.datastructures import EnvironHeaders
 
 from flask import Request as BaseRequest
-from flask import abort, current_app, request
+from flask import abort, current_app
 
 from eduid_common.api.sanitation import Sanitizer, SanitationProblem
 
@@ -70,7 +67,7 @@ class SanitationMixin(Sanitizer):
         logger = current_app.logger
         try:
             return super(SanitationMixin, self).sanitize_input(untrusted_text, logger,
-                                                        strip_characters=strip_characters)
+                                                               strip_characters=strip_characters)
         except SanitationProblem:
             abort(400)
 
@@ -263,7 +260,7 @@ class Request(BaseRequest, SanitationMixin):
     """
     Request objects with sanitized inputs
     """
-    
+
     parameter_storage_class = SanitizedImmutableMultiDict
     dict_storage_class = SanitizedTypeConversionDict
 

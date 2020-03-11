@@ -85,7 +85,7 @@ def check_password(vccs_url, password, user, vccs=None):
             password,
             credential_id=str(user_password.key),
             salt=user_password.salt,
-            )
+        )
         try:
             if vccs.authenticate(str(user.user_id), [factor]):
                 return user_password
@@ -268,12 +268,12 @@ def add_credentials(vccs_url, old_password, new_password, user, source='dashboar
     if user.credentials.filter(Password).count > 0 and old_password_supplied:
         # Find the old credential to revoke
         checked_password = check_password(vccs_url, old_password, user, vccs=vccs)
-        del old_password # don't need it anymore, try to forget it
+        del old_password  # don't need it anymore, try to forget it
         if not checked_password:
             return False
         old_factor = vccs_client.VCCSRevokeFactor(str(checked_password.credential_id), 'changing password',
                                                   reference=source,
-        )
+                                                  )
 
     if not vccs.add_credentials(str(user.user_id), [new_factor]):
         logger.warning("Failed adding password credential {!r} for user {!r}".format(new_factor.credential_id, user))
@@ -295,8 +295,7 @@ def add_credentials(vccs_url, old_password, new_password, user, source='dashboar
                                                         'reset password',
                                                         reference=source))
             logger.debug("Revoking old credential (password reset) "
-                         "{!s} (user {!s})".format(
-                          password.credential_id, user))
+                         "{!s} (user {!s})".format(password.credential_id, user))
             user.credentials.remove(password.credential_id)
         if revoked:
             try:

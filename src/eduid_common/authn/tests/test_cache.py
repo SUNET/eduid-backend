@@ -31,7 +31,7 @@
 #
 import unittest
 
-from eduid_common.authn.cache import SessionCacheAdapter, OutstandingQueriesCache, IdentityCache, StateCache
+from eduid_common.authn.cache import SessionCacheAdapter, OutstandingQueriesCache, IdentityCache
 
 
 class SessionCacheAdapterTests(unittest.TestCase):

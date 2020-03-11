@@ -57,6 +57,7 @@ __author__ = 'lundberg'
 def dont_validate(value):
     raise ValidationError('Problem with {!r}'.format(value))
 
+
 class NonValidatingSchema(EduidSchema, CSRFRequestMixin):
     test_data = fields.String(required=True, validate=dont_validate)
 
@@ -72,6 +73,7 @@ def _make_response(data):
     response = make_response(html, 200)
     response.headers['Content-Type'] = "text/html; charset=utf8"
     return response
+
 
 @test_views.route('/test-get-param', methods=['GET'])
 def get_param_view():
@@ -97,10 +99,12 @@ def cookie_view():
     cookie = request.cookies.get('test-cookie')
     return _make_response(cookie)
 
+
 @test_views.route('/test-empty-session')
 def empty_session_view():
     cookie = request.cookies.get('sessid')
     return _make_response(cookie)
+
 
 @test_views.route('/test-header')
 def header_view():
@@ -184,7 +188,7 @@ class InputsTests(EduidAPITestCase):
         """"""
         url = '/test-post-param'
         with self.app.test_request_context(url, method='POST',
-                data={'test-param': '<script>alert("ho")</script>'}):
+                                           data={'test-param': '<script>alert("ho")</script>'}):
 
             response = self.app.dispatch_request()
             self.assertNotIn(b'<script>', response.data)
@@ -192,7 +196,7 @@ class InputsTests(EduidAPITestCase):
     def test_post_param_script_percent_encoded(self):
         url = '/test-post-param'
         with self.app.test_request_context(url, method='POST',
-                data={'test-param': '%3Cscript%3Ealert%28%22ho%22%29%3C%2Fscript%3E'}):
+                                           data={'test-param': '%3Cscript%3Ealert%28%22ho%22%29%3C%2Fscript%3E'}):
 
             response = self.app.dispatch_request()
             self.assertNotIn(b'<script>', response.data)
@@ -200,7 +204,7 @@ class InputsTests(EduidAPITestCase):
     def test_post_param_script_percent_encoded_twice(self):
         url = '/test-post-param'
         with self.app.test_request_context(url, method='POST',
-                data={'test-param': b'%253Cscript%253Ealert%2528%2522ho%2522%2529%253C%252Fscript%253E'}):
+                                           data={'test-param': b'%253Cscript%253Ealert%2528%2522ho%2522%2529%253C%252Fscript%253E'}):
 
             response = self.app.dispatch_request()
             unquoted_response = unquote(response.data.decode('ascii'))
@@ -211,13 +215,13 @@ class InputsTests(EduidAPITestCase):
         """"""
         url = '/test-post-json'
         with self.app.test_request_context(url, method='POST',
-                content_type='application/json',
-                headers={
-                    "X-Requested-With": "XMLHttpRequest",
-                    "Host": "test.localhost",
-                    "Origin": "http://test.localhost",
-                },
-                data='{"test_data": "<script>alert(42)</script>", "csrf_token": "failing-token"}'):
+                                           content_type='application/json',
+                                           headers={
+                                               "X-Requested-With": "XMLHttpRequest",
+                                               "Host": "test.localhost",
+                                               "Origin": "http://test.localhost",
+                                           },
+                                           data='{"test_data": "<script>alert(42)</script>", "csrf_token": "failing-token"}'):
 
             response = self.app.dispatch_request()
             self.assertNotIn(b'<script>', response.data)
@@ -254,7 +258,7 @@ class InputsTests(EduidAPITestCase):
         """"""
         url = '/test-values'
         with self.app.test_request_context(url, method='POST',
-                data={'test-param': '<script>alert("ho")</script>'}):
+                                           data={'test-param': '<script>alert("ho")</script>'}):
 
             response = self.app.dispatch_request()
             self.assertNotIn(b'<script>', response.data)

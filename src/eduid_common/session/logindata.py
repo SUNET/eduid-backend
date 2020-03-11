@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import pprint
 from datetime import datetime
-from html import escape, unescape
+from html import escape
 from dataclasses import dataclass, field, asdict
 from typing import Dict, Optional, Mapping, Type
 from urllib.parse import urlencode

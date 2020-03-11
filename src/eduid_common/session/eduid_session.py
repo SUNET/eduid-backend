@@ -1,12 +1,4 @@
 
-# From https://stackoverflow.com/a/39757388
-# The TYPE_CHECKING constant is always False at runtime, so the import won't be evaluated, but mypy
-# (and other type-checking tools) will evaluate the contents of that block.
-from __future__ import annotations
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from eduid_common.api.app import EduIDBaseApp
-
 import os
 import binascii
 import json
@@ -24,6 +16,13 @@ from eduid_common.session.namespaces import SessionNSBase, Common, MfaAction
 from eduid_common.session.namespaces import Signup, Actions
 from eduid_common.session.namespaces import ResetPasswordNS
 from eduid_common.session.logindata import SSOLoginData
+
+# From https://stackoverflow.com/a/39757388
+# The TYPE_CHECKING constant is always False at runtime, so the import won't be evaluated, but mypy
+# (and other type-checking tools) will evaluate the contents of that block.
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from eduid_common.api.app import EduIDBaseApp
 
 
 class EduidSession(SessionMixin, MutableMapping):

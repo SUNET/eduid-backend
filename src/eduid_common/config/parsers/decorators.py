@@ -129,7 +129,7 @@ def interpolate_config(config_dict: dict, sub_dict: Optional[dict] = None) -> di
         sub_dict = config_dict
     # XXX case insensitive substitution - transitioning to lc config
     ci_config_dict = {}
-    for k,v in config_dict.items():
+    for k, v in config_dict.items():
         ci_config_dict[k] = v
         ci_config_dict[k.upper()] = v
     for key, value in sub_dict.items():

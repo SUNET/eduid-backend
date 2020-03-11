@@ -88,7 +88,7 @@ def get_saml_attribute(session_info, attr_name):
     :type attr_name: string()
     :rtype: [string()]
     """
-    if not 'ava' in session_info:
+    if 'ava' not in session_info:
         raise ValueError('SAML attributes (ava) not found in session_info')
 
     attributes = session_info['ava']
