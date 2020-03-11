@@ -63,6 +63,7 @@ def trycaptcha(email, recaptcha_response, tou_accepted):
     # to be used in testing environments for automated integration tests.
     if config.environment in ('staging', 'dev') and config.magic_code != '':
         if f"{config.magic_code}@" in email:
+            current_app.logger.info('Using BACKDOOR to verify reCaptcha!')
             recaptcha_verified = True
 
     # common path with no backdoor
