@@ -13,7 +13,8 @@ from pymongo.errors import PyMongoError
 from pymongo.results import DeleteResult
 from pymongo.uri_parser import parse_uri
 
-from eduid_userdb.exceptions import DocumentDoesNotExist, MultipleDocumentsReturned, MongoConnectionError
+from eduid_userdb.exceptions import DocumentDoesNotExist, MultipleDocumentsReturned
+from eduid_userdb.exceptions import MongoConnectionError, EduIDUserDBError
 
 
 class MongoDB(object):
@@ -256,6 +257,9 @@ class BaseDB(object):
         :param raise_on_missing:  If True, raise exception if no matching user object can be found.
         :return: A document dict
         """
+        if value is None:
+            raise EduIDUserDBError(f'Missing value to filter users by {attr}')
+
         docs = list(self._coll.find({attr: value}))
         doc_count = len(docs)
         if doc_count == 0:
