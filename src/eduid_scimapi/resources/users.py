@@ -36,6 +36,8 @@ class UsersResource(BaseResource):
         self.context.logger.debug(f'Extra debug: user {scim_id} as dict:\n{user.to_dict()}')
 
         if NUTID_V1 in req.media:
+            if not user.external_id:
+                self.context.logger.warning(f'User {user} has no external id, skipping NUTID update')
             changed = False
             data = req.media[NUTID_V1]
             if 'profiles' in data:
@@ -59,6 +61,7 @@ class UsersResource(BaseResource):
                             assert eduid_user is not None
                             eduid_user.display_name = _new
                             self.context.eduid_userdb.save(eduid_user)
+                    assert user.external_id  # please mypy
                     if profile not in user.profiles:
                         user.profiles[profile] = Profile(user.external_id, profile_data)
                     if user.profiles[profile].data != profile_data:
