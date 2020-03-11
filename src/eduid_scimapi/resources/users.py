@@ -49,7 +49,7 @@ class UsersResource(BaseResource):
                             self.context.logger.info(f'No displayName in profile: {profile_data}')
                             continue
 
-                        _old = user.profiles['eduid'].data.get('display_name')
+                        _old = user.profiles['eduid'].data.get('displayName')
                         _new = profile_data['displayName']
                         if _old != _new:
                             changed = True
