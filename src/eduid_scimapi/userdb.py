@@ -1,7 +1,7 @@
 import logging
-from dataclasses import asdict
 from typing import Any, Optional
 
+import yaml
 from bson import ObjectId
 
 from eduid_scimapi.user import ScimApiUser
@@ -37,7 +37,7 @@ class ScimApiUserDB(BaseDB):
         user.version = user_dict['version']
         logger.debug(f'{self} Updated user {user} in {self._coll_name}')
         import pprint
-        extra_debug = pprint.pformat(user_dict)
+        extra_debug = pprint.pformat(user_dict, width=120)
         logger.debug(f'Extra debug:\n{extra_debug}')
 
         return result.acknowledged

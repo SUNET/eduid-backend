@@ -1,45 +1,57 @@
 ## Setup
 
-- Set the API path in the file `scimapi_env`
-- Get your eppn in the eduid dashboard (hubba-bubba in this example), and enter it in the
-  `scimapi_env` file, suffixed by @eduid.se
-- Run `find.sh` to find your SCIM UUID
+- Get your eppn in the eduid dashboard (hubba-bubba in this example), and suffix it with `@eduid.se`
+- Create a YAML file called for example `test.yaml`, with initial contents like this
+ (with the path to the API being `http://scimapi.eduid.docker:8000` in this example):
 
 ```
-  $ ./find.sh
+---
+  'http://scimapi.eduid.docker:8000':
+    'users':
+      'search':
+         - 'hubba-bubba@eduid.se'
+```
+
+- Run `scim-util.py test.yaml` to find your SCIM UUID. Note that scim-util.py requires Python 3.7.
+
+```
+  $ ./scim-util.py test.yaml
   ...
-  Response:
+  2020-03-11 11:08:46,131: scim-util: INFO User search result:
   {
     ...
     "id": "d4aa1c10-7120-452b-a109-adf9030b9ef3",
     "externalId": "hubba-bubba@eduid.se",
-    "https://scim.eduid.se/schema/nutid/v1": {
-      "displayName": "Your Name"
-    }
   }
 ```
 
-- Enter your SCIM UUID (d4aa1c10-7120-452b-a109-adf9030b9ef3) in the `scimapi_env` file
-
-The `scimapi_env` file should now contain the following:
+- Add a PUT operation to the `test.yaml` file like this:
 
 ```
-  api='https://api.example.org'
-  scim_id='d4aa1c10-7120-452b-a109-adf9030b9ef3'
-  eduid_eppn='hubba-bubba@eduid.se'
+---
+  'http://scimapi.eduid.docker:8000':
+    'users':
+      'search':
+         - 'hubba-bubba@eduid.se'
+      'put':
+        'd4aa1c10-7120-452b-a109-adf9030b9ef3':
+          'profiles':
+            'eduid':
+              'displayName': 'Kalle Anka'
+            'testkommun.se':
+              'displayName': 'K. Anka'
 ```
 
-- Use set-display-name.sh to change your display name:
+- Run `scim-util.py test.yaml` again to change your eduID display name:
 
 ```
-  $ ./set-display-name.sh "Kalle Anka"
+  $ ./scim-util.py test.yaml
   ...
-  Response:
-
-  {
-    ...
-    "https://scim.eduid.se/schema/nutid/v1": {
-      "displayName": "Kalle Anka"
-    }
+  2020-03-11 11:11:59,025: scim-util: INFO Update result:
+  {'https://scim.eduid.se/schema/nutid/v1':
+     {'eduid':         {'displayName': 'Kalle Anka'},
+      'testkommun.se': {'displayName': 'K. Anka'}
+     },
+  ...
   }
 ```

@@ -47,9 +47,12 @@ class ScimApiUser(object):
         }
         if self.external_id:
             res['externalId'] = self.external_id
-        if 'eduid' in self.profiles:
+        if self.profiles:
             res['schemas'] += [NUTID_V1]
-            res[NUTID_V1] = self.profiles['eduid'].to_schema_dict(NUTID_V1)
+            if NUTID_V1 not in res:
+                res[NUTID_V1] = {}
+            for prof in self.profiles.keys():
+                res[NUTID_V1][prof] = self.profiles[prof].to_schema_dict(NUTID_V1)
         if debug:
             profiles_dicts = {}
             for this in self.profiles.keys():

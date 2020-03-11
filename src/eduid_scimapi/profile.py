@@ -17,6 +17,5 @@ class Profile():
     def to_schema_dict(self, schema: str) -> Mapping[str, Any]:
         res = {}
         if schema == NUTID_V1:
-            if 'display_name' in self.data:
-                res['displayName'] = self.data['display_name']
+            res = self.data
         return res
