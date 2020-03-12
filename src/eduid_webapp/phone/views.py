@@ -42,6 +42,7 @@ from eduid_userdb.proofing import ProofingUser
 from eduid_userdb.exceptions import DocumentDoesNotExist
 from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
 from eduid_common.api.utils import save_and_sync_user
+from eduid_common.session import session
 from eduid_webapp.phone.schemas import PhoneListPayload, SimplePhoneSchema, PhoneSchema, PhoneResponseSchema
 from eduid_webapp.phone.schemas import VerificationCodeSchema
 from eduid_webapp.phone.verifications import send_verification_code, verify_phone_number
@@ -167,6 +168,13 @@ def verify(user, code, number):
 
     Returns a listing of  all phones for the logged in user.
     """
+    # This code is to use the backdoor that allows selenium integration tests
+    # to verify phone numbers using a magic code
+    if current_app.config.environment in ('staging', 'dev') and current_app.config.magic_code != '':
+        if code == current_app.config.magic_code:
+            current_app.logger.debug('Using the BACKDOOR to verify phone numbers in the phone app')
+            code = session.phone.verification_code
+
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     current_app.logger.debug('Trying to save phone number {} as verified'.format(number))
 
