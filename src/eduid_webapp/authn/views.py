@@ -222,7 +222,7 @@ def logout_service():
     next_page = request.form.get('RelayState', next_page)
     next_page = verify_relay_state(next_page, logout_redirect_url)
 
-    if 'SAMLResponse' in request.form: # we started the logout
+    if 'SAMLResponse' in request.form:  # we started the logout
         current_app.logger.debug('Receiving a logout response from the IdP')
         response = client.parse_logout_request_response(
             request.form['SAMLResponse'],

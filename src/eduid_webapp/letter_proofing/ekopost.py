@@ -109,8 +109,8 @@ class Ekopost(object):
         response = self.ekopost_api.\
             campaigns(campaign_id).\
             envelopes.POST(
-            data=envelope_data,
-            headers={'Content-Type': 'application/json'})
+                data=envelope_data,
+                headers={'Content-Type': 'application/json'})
 
         if response.status_code == 200:
             return response.json()

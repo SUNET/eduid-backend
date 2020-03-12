@@ -40,7 +40,6 @@ from flask import render_template, templating
 
 from eduid_common.api import am
 from eduid_common.api.app import EduIDBaseApp
-from eduid_common.api.app import get_app_config
 from eduid_userdb.actions import ActionDB
 from eduid_webapp.actions.settings.common import ActionsConfig
 
@@ -92,7 +91,9 @@ class ActionsApp(EduIDBaseApp):
 
         self.get_tous = types.MethodType(_get_tous, self)
 
+
 current_actions_app: ActionsApp = cast(ActionsApp, current_app)
+
 
 def actions_init_app(name: str, config: dict) -> ActionsApp:
     """

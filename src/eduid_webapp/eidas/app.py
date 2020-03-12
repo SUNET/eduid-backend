@@ -2,12 +2,9 @@
 
 from __future__ import absolute_import
 
-from typing import cast, Optional, Dict
-
-from flask import current_app
+from typing import cast
 
 from eduid_common.authn.utils import get_saml2_config, no_authn_views
-from eduid_common.api.app import get_app_config
 from eduid_common.api import am, msg
 from eduid_common.authn.middleware import AuthnBaseApp
 from eduid_userdb.proofing.db import EidasProofingUserDB

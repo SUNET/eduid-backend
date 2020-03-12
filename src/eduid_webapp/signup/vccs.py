@@ -23,7 +23,7 @@ def generate_password(credential_id, user):
                      no_capitalize = True, no_symbols = True)
     factor = vccs_client.VCCSPasswordFactor(password, credential_id)
     current_app.logger.info("Adding VCCS password factor for user {}, "
-                             "credential_id {!r}".format(user, credential_id))
+                            "credential_id {!r}".format(user, credential_id))
 
     vccs = vccs_client.VCCSClient(base_url = config.vccs_url)
     try:

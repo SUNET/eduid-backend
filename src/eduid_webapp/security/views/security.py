@@ -79,7 +79,7 @@ def get_credentials(user):
 
     credentials = {
         'credentials': compile_credential_list(user)
-        }
+    }
 
     return CredentialList().dump(credentials).data
 
@@ -94,8 +94,8 @@ def get_suggested(user):
     current_app.logger.debug('Triying to get the credentials '
                              'for user {}'.format(user))
     suggested = {
-            'suggested_password': generate_suggested_password()
-            }
+        'suggested_password': generate_suggested_password()
+    }
 
     return SuggestedPassword().dump(suggested).data
 
@@ -160,7 +160,7 @@ def change_password(user):
         'next_url': next_url,
         'credentials': compile_credential_list(security_user),
         'message': 'chpass.password-changed'
-        }
+    }
 
     return CredentialList().dump(credentials).data
 
@@ -226,7 +226,7 @@ def account_terminated(user):
     # This fixes the problem with loading users for a password reset as users without passwords triggers
     # the UserHasNotCompletedSignup check in eduid-userdb.
     # TODO: Needs a decision on how to handle unusable user passwords
-    #for p in security_user.credentials.filter(Password).to_list():
+    # for p in security_user.credentials.filter(Password).to_list():
     #    security_user.passwords.remove(p.key)
 
     # flag account as terminated

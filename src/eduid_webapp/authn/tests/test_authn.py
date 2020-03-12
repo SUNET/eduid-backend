@@ -36,9 +36,7 @@ import time
 from datetime import datetime
 import json
 import base64
-from hashlib import sha256
 
-from nacl import secret, utils, encoding
 from werkzeug.exceptions import NotFound
 from werkzeug.http import dump_cookie
 from flask import Blueprint
@@ -55,7 +53,6 @@ from eduid_common.authn.tests.responses import (auth_response,
                                                 logout_request)
 from eduid_webapp.authn.settings.common import AuthnConfig
 from eduid_webapp.authn.app import authn_init_app
-from eduid_webapp.authn.app import AuthnApp
 
 from six.moves.urllib_parse import quote_plus
 
@@ -80,7 +77,7 @@ class AuthnAPITestBase(EduidAPITestCase):
             'signup_authn_success_redirect_url': 'http://test.localhost/success',
             'signup_authn_failure_redirect_url': 'http://test.localhost/failure',
             'safe_relay_domain': 'test.localhost'
-            })
+        })
         return AuthnConfig(**app_config)
 
     def load_app(self, config):
@@ -340,7 +337,7 @@ class UnAuthnAPITestCase(EduidAPITestCase):
         app_config.update({
             'token_service_url': 'http://login',
             'saml2_settings_module': saml_config,
-            })
+        })
         return AuthnConfig(**app_config)
 
     def load_app(self, config):
@@ -357,8 +354,6 @@ class UnAuthnAPITestCase(EduidAPITestCase):
             self.assertTrue(resp.location.startswith(self.app.config.token_service_url))
 
     def test_cookie(self):
-        token = ('a7MPUEQQLAEEQEAQDGJOXKAMFM467EUW6HCETFI4VP5JCU3CDVJDQZSHMXAOSC'
-                 'U25WPZA66NY5ZVAA4RPCVMHBQBJSVGYQPPLZNIBTP3Y')
         sessid = ('fb1f42420b0109020203325d750185673df252de388932a3957f522a6c43a'
                   'a47')
         self.redis_instance.conn.set(sessid, json.dumps({'v1': {'id': '0'}}))
@@ -397,7 +392,7 @@ class NoAuthnAPITestCase(EduidAPITestCase):
             'token_service_url': 'http://login',
             'saml2_settings_module': saml_config,
             'no_authn_urls': ['^/test$'],
-            })
+        })
         return AuthnConfig(**app_config)
 
     def load_app(self, config):
@@ -438,7 +433,6 @@ class LogoutRequestTests(AuthnAPITestBase):
 
     def test_logout_nologgedin(self):
         eppn = 'hubba-bubba'
-        csrft = 'csrf token'
         with self.app.test_request_context('/logout', method='GET'):
             # user_eppn is set in the IdP
             session['user_eppn'] = eppn
@@ -467,7 +461,7 @@ class LogoutRequestTests(AuthnAPITestBase):
         with self.app.test_request_context('/saml2-ls', method='POST',
                                            headers={'Cookie': cookie},
                                            data={'SAMLResponse': deflate_and_base64_encode(
-                                            logout_response(session_id)
+                                               logout_response(session_id)
                                            ),
                                                'RelayState': '/testing-relay-state',
                                            }):

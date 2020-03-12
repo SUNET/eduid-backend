@@ -67,7 +67,7 @@ class PersonalDataSubSchema(EduidSchema, CSRFResponseMixin):
     surname = fields.String(required=True)
     display_name = fields.String(required=True)
     language = fields.String(required=True,
-            validate=validate_language)
+                             validate=validate_language)
 
 
 class PersonalDataResponseSchema(FluxStandardAction):
@@ -101,7 +101,7 @@ class AllDataResponseSubSchema(EduidSchema, CSRFResponseMixin):
     surname = fields.String(required=True)
     display_name = fields.String(required=True)
     language = fields.String(required=True,
-            validate=validate_language)
+                             validate=validate_language)
     nins = fields.Nested(NinSchema, many=True)
     emails = fields.Nested(EmailSchema, many=True)
     phones = fields.Nested(PhoneSchema, many=True)

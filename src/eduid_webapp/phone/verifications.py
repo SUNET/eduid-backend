@@ -44,7 +44,7 @@ from eduid_webapp.phone.app import current_phone_app as current_app
 
 def new_proofing_state(phone, user):
     old_state = current_app.proofing_statedb.get_state_by_eppn_and_mobile(
-                       user.eppn, phone, raise_on_missing=False)
+        user.eppn, phone, raise_on_missing=False)
     if old_state is not None:
         now = int(time.time())
         if int(old_state.modified_ts.timestamp()) > now - current_app.config.throttle_resend_seconds:
@@ -52,7 +52,7 @@ def new_proofing_state(phone, user):
         current_app.logger.debug('removing old proofing state: {!r}.'.format(old_state.to_dict()))
         current_app.proofing_statedb.remove_state(old_state)
 
-    verification = PhoneProofingElement(phone=phone, verification_code=get_short_hash(),  application='phone')
+    verification = PhoneProofingElement(phone=phone, verification_code=get_short_hash(), application='phone')
     proofing_state = PhoneProofingState(id=None, modified_ts=None, eppn=user.eppn, verification=verification)
     # XXX This should be an atomic transaction together with saving
     # the user and sending the letter.
@@ -73,7 +73,7 @@ def send_verification_code(user, phone):
     current_app.logger.info('Sent verification sms to user {} with phone number {}.'.format(user, phone))
     return True
 
-    
+
 def verify_phone_number(state, proofing_user):
     """
     :param proofing_user: ProofingUser

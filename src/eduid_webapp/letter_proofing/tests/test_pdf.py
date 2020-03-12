@@ -112,15 +112,15 @@ class CreatePDFTest(EduidAPITestCase):
     def test_create_pdf(self):
 
         recipient = OrderedDict([
-                (u'Name', OrderedDict([
-                    (u'GivenNameMarking', u'20'), (u'GivenName', u'Testaren Test'),
-                    (u'MiddleName', u'Tester'), (u'Surname', u'Testsson')])),
-                (u'OfficialAddress', OrderedDict([(u'Address2', u'\xd6RGATAN 79 LGH 10'),
-                                                  (u'Address1', u'LGH 4321'),
-                                                  (u'CareOf', u'TESTAREN & TESTSSON'),
-                                                  (u'PostalCode', u'12345'),
-                                                  (u'City', u'LANDET')]))
-            ])
+            (u'Name', OrderedDict([
+                (u'GivenNameMarking', u'20'), (u'GivenName', u'Testaren Test'),
+                (u'MiddleName', u'Tester'), (u'Surname', u'Testsson')])),
+            (u'OfficialAddress', OrderedDict([(u'Address2', u'\xd6RGATAN 79 LGH 10'),
+                                              (u'Address1', u'LGH 4321'),
+                                              (u'CareOf', u'TESTAREN & TESTSSON'),
+                                              (u'PostalCode', u'12345'),
+                                              (u'City', u'LANDET')]))
+        ])
 
         with self.app.app_context():
             pdf_document = pdf.create_pdf(recipient, verification_code='bogus code',

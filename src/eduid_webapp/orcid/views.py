@@ -8,7 +8,7 @@ from flask import Blueprint, request, redirect, url_for
 from oic.oic.message import AuthorizationResponse, ClaimsRequest, Claims
 
 from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
-from eduid_common.api.utils import get_unique_hash, urlappend, save_and_sync_user
+from eduid_common.api.utils import get_unique_hash, save_and_sync_user
 from eduid_common.api.schemas.csrf import CSRFRequest
 from eduid_userdb.proofing import ProofingUser, OrcidProofingState
 from eduid_userdb.orcid import Orcid, OidcAuthorization, OidcIdToken
@@ -171,4 +171,3 @@ def remove_orcid(user):
     save_and_sync_user(proofing_user)
     current_app.logger.info('ORCID data removed for user')
     return proofing_user.to_dict()
-

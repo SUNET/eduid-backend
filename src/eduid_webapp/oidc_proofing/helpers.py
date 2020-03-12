@@ -136,12 +136,12 @@ def send_new_verification_method_mail(user):
     }
 
     text = render_template(
-            'redo_verification.txt.jinja2',
-            **context
+        'redo_verification.txt.jinja2',
+        **context
     )
     html = render_template(
-            'redo_verification.html.jinja2',
-            **context
+        'redo_verification.html.jinja2',
+        **context
     )
 
     current_app.mail_relay.sendmail(subject, [email_address], text, html)

@@ -45,19 +45,19 @@ class ActionError(Exception):
     the failure.
     The message will be sent to the front end and should be
     translatable by it.
-    
+
     The rm kwarg indicates to the actions app whether it should
     remove the action record from the db when encountering
     this exception.
 
     Example code, in the plugin::
-    
+
       if test_some_condition(*args, **kwargs):
           follow_success_code_path(*args2, **kwargs2)
       else:
           msg = 'actionX.errorY'
           raise self.ActionError(msg, rm=boolean_value)
-    
+
     Example code, in the actions app (obj is an action object,
     an instance of a class that extends ActionPlugin,
     defined in a plugin, and actions_db is an instance of
@@ -87,10 +87,10 @@ class ActionPlugin(object):
     """
     Abstract class to be extended by the different plugins for the
     actions app.
-    
+
     ==DEPRECATED==
     ==============
-    
+
     The derived classes in the plugins are set as the objects to which
     the entry point ``eduid_actions.action`` in those plugins point at.
 
@@ -100,18 +100,18 @@ class ActionPlugin(object):
     For example, if we have a plugin ``eduid_action.tou``,
     that defines a class ``ToUPlugin`` (subclass of ``ActionPlugin``) in
     its ``__init__.py``, we would have as entry point in its ``setup.py``::
-        
+
       entry_points='''
         [eduid_actions.action]
             tou = eduid_action.tou:ToUPlugin
       ''',
-    
+
     //DEPRECATED==
     ==============
-    
+
     The derived classes are placed in ``eduid_webapp.actions.actions``, in
     their own modules named with the appropriate action name.
-    
+
     During the initialization of the actions app, if it receives a
     configuration parameter ``ACTIONS_PLUGINS`` containing the action name,
     the plugin will be registered and the app will be able to deal with the

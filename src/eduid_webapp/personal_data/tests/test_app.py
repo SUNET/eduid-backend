@@ -53,7 +53,7 @@ class PersonalDataTests(EduidAPITestCase):
 
     def update_config(self, app_config):
         app_config.update({
-            'available_languages': {'en': 'English','sv': 'Svenska'},
+            'available_languages': {'en': 'English', 'sv': 'Svenska'},
             'msg_broker_url': 'amqp://dummy',
             'am_broker_url': 'amqp://dummy',
             'celery_config': {
@@ -88,7 +88,7 @@ class PersonalDataTests(EduidAPITestCase):
 
             user_data = json.loads(response2.data)
             self.assertEqual(user_data['type'],
-                    'GET_PERSONAL_DATA_ALL_USER_DATA_SUCCESS')
+                             'GET_PERSONAL_DATA_ALL_USER_DATA_SUCCESS')
             self.assertEqual(user_data['payload']['given_name'], 'John')
             self.assertEqual(user_data['payload']['surname'], 'Smith')
             self.assertEqual(user_data['payload']['display_name'], 'John Smith')
@@ -119,7 +119,7 @@ class PersonalDataTests(EduidAPITestCase):
                         'display_name': 'Peter Johnson',
                         'language': 'en',
                         'csrf_token': sess.get_csrf_token()
-                        }
+                    }
                 response = client.post('/user', data=json.dumps(data),
                                        content_type=self.content_type_json)
                 resp_data = json.loads(response.data)
@@ -132,7 +132,7 @@ class PersonalDataTests(EduidAPITestCase):
     def test_post_user_bad_csrf(self):
         eppn = self.test_user_data['eduPersonPrincipalName']
         with self.session_cookie(self.browser, eppn) as client:
-            with client.session_transaction() as sess:
+            with client.session_transaction():
 
                 data = {
                     'given_name': 'Peter',
@@ -140,7 +140,7 @@ class PersonalDataTests(EduidAPITestCase):
                     'display_name': 'Peter Johnson',
                     'language': 'en',
                     'csrf_token': 'bad_csrf'
-                    }
+                }
                 response = client.post('/user', data=json.dumps(data),
                                        content_type=self.content_type_json)
                 resp_data = json.loads(response.data)

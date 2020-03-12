@@ -44,7 +44,7 @@ from eduid_userdb.logs import MailAddressProofing
 
 def new_proofing_state(email, user):
     old_state = current_app.proofing_statedb.get_state_by_eppn_and_email(
-            user.eppn, email, raise_on_missing=False)
+        user.eppn, email, raise_on_missing=False)
 
     if old_state is not None:
         now = int(time.time())
@@ -84,12 +84,12 @@ def send_verification_code(email, user):
     }
 
     text = render_template(
-            "verification_email.txt.jinja2",
-            **context
+        "verification_email.txt.jinja2",
+        **context
     )
     html = render_template(
-            "verification_email.html.jinja2",
-            **context
+        "verification_email.html.jinja2",
+        **context
     )
 
     current_app.mail_relay.sendmail(subject, [email], text, html, reference=state.reference)

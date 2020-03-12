@@ -3,21 +3,17 @@ from __future__ import absolute_import
 
 import json
 import base64
-import unittest
 
 from mock import patch
 from fido2 import cbor
 from fido2.client import ClientData
 from fido2.ctap2 import AttestationObject
-from fido2.server import Fido2Server, RelyingParty
 
 from eduid_userdb.credentials import Webauthn, U2F
-from eduid_userdb.security import SecurityUser
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_webapp.security.app import security_init_app
 from eduid_webapp.security.settings.common import SecurityConfig
 from eduid_webapp.security.views.webauthn import get_webauthn_server
-from eduid_webapp.security.views.webauthn import urlsafe_b64decode
 
 __author__ = 'eperez'
 
@@ -28,7 +24,7 @@ __author__ = 'eperez'
 REGISTRATION_DATA = {
     'publicKey': {'attestation': 'none',
                   'authenticatorSelection': {'requireResidentKey': False,
-                                              'userVerification': 'discouraged'},
+                                             'userVerification': 'discouraged'},
                   'challenge': b')\x03\x00S\x8b\xe1X\xbb^R\x88\x9e\xe7\x8a\x03}'
                                b's\x8d\\\x80@\xfa\x18(\xa2O\xbfN\x84\x19R\\',
                   'excludeCredentials': [],
@@ -36,8 +32,8 @@ REGISTRATION_DATA = {
                   'rp': {'id': 'localhost', 'name': 'Demo server'},
                   'timeout': 30000,
                   'user': {'displayName': 'John Smith',
-                              'id': b'012345678901234567890123',
-                              'name': 'John'}}}
+                           'id': b'012345678901234567890123',
+                           'name': 'John'}}}
 
 
 STATE = {'challenge': 'KQMAU4vhWLteUoie54oDfXONXIBA-hgook-_ToQZUlw', 'user_verification': 'discouraged'}
@@ -74,7 +70,7 @@ CREDENTIAL_ID = ('31f8974379e65869f9b7caaf28f0e44eead0fdd883e9c545404e351824a6c4
 REGISTRATION_DATA_2 = {
     'publicKey': {'attestation': 'none',
                   'authenticatorSelection': {'requireResidentKey': False,
-                                              'userVerification': 'discouraged'},
+                                             'userVerification': 'discouraged'},
                   'challenge': b"y\xe2*'\x8c\xea\xabF\xf0\xb8'k\x8c\x9ec\xd1"
                                b'ia\x1c\x9a\xd8\xfc5\xed\x0b@Q0\x9b\xe1u\r',
                   'excludeCredentials': [{'id': b'1\xf8\x97Cy\xe6Xi'
@@ -84,13 +80,13 @@ REGISTRATION_DATA_2 = {
                                                 b'N\xf5\xb9\xd6\x99\xfb\xc4\xd6'
                                                 b'\xba\xb0Q\x17\xa1<\xc8\x18'
                                                 b'u\xb72\xe0\x00X\x02qU\xce\xd0G',
-                                        'type': 'public-key'}],
+                                          'type': 'public-key'}],
                   'pubKeyCredParams': [{'alg': -7, 'type': 'public-key'}],
                   'rp': {'id': 'localhost', 'name': 'Demo server'},
                   'timeout': 30000,
                   'user': {'displayName': 'John Smith',
-                              'id': b'012345678901234567890123',
-                              'name': 'John'}}}
+                           'id': b'012345678901234567890123',
+                           'name': 'John'}}}
 
 STATE_2 = {'challenge': 'eeIqJ4zqq0bwuCdrjJ5j0WlhHJrY_DXtC0BRMJvhdQ0', 'user_verification': 'discouraged'}
 
@@ -145,7 +141,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
         return SecurityConfig(**app_config)
 
     def _add_token_to_user(self, registration_data, state):
-        data = registration_data + (b'=' * (len(registration_data) % 4)) 
+        data = registration_data + (b'=' * (len(registration_data) % 4))
         data = base64.urlsafe_b64decode(data)
         data = cbor.decode(data)
         client_data = ClientData(data['clientDataJSON'])
@@ -163,7 +159,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
             attest_obj = base64.b64encode(attestation).decode('ascii'),
             description = 'ctap1 token',
             application = 'test_security'
-            )
+        )
         self.test_user.credentials.add(credential)
         self.app.central_userdb.save(self.test_user, check_sync=False)
         return credential
@@ -187,9 +183,9 @@ class SecurityWebauthnTests(EduidAPITestCase):
             self._add_u2f_token_to_user(eppn)
 
         if other == 'ctap1':
-            user_token = self._add_token_to_user(REGISTERING_DATA, STATE)
+            _ = self._add_token_to_user(REGISTERING_DATA, STATE)
         elif other == 'ctap2':
-            user_token = self._add_token_to_user(REGISTERING_DATA_2, STATE_2)
+            _ = self._add_token_to_user(REGISTERING_DATA_2, STATE_2)
 
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction() as sess:
@@ -197,7 +193,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
                     data = {
                         'csrf_token': sess.get_csrf_token(),
                         'authenticator': authenticator
-                        }
+                    }
                 response2 = client.post('/webauthn/register/begin',
                                         data=json.dumps(data),
                                         content_type=self.content_type_json)
@@ -263,7 +259,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
                         'clientDataJSON': cdata.decode('ascii'),
                         'credentialId': cred_id,
                         'description': 'dummy description'
-                        }
+                    }
                 response2 = client.post('/webauthn/register/complete',
                                         data=json.dumps(data),
                                         content_type=self.content_type_json)
@@ -340,7 +336,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
             self._add_u2f_token_to_user(eppn)
 
         user_token = self._add_token_to_user(reg_data, state)
-        user_token2 = self._add_token_to_user(reg_data2, state2)
+        _ = self._add_token_to_user(reg_data2, state2)
 
         response = self.browser.post('/webauthn/remove', data={})
         self.assertEqual(response.status_code, 302)  # Redirect to token service

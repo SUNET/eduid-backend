@@ -44,13 +44,13 @@ class FrontConfig:
     debug: bool = False
     csrf_token: str = ''
     available_languages: Dict[str, str] = field(default_factory=lambda: {
-            'en': 'English',
-            'sv': 'Svenska',
-            })
+        'en': 'English',
+        'sv': 'Svenska',
+    })
     tous: Dict[str, str] = field(default_factory=lambda: {
-            'en': '',
-            'sv': ''
-            })
+        'en': '',
+        'sv': ''
+    })
     # URLs
     # TODO: Remove after new design
     static_staff_url: str = ''

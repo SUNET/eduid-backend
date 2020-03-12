@@ -38,7 +38,6 @@ from eduid_common.api import am
 from eduid_common.api import mail_relay
 from eduid_common.api import translation
 from eduid_common.api.app import EduIDBaseApp
-from eduid_common.api.app import get_app_config
 from eduid_userdb.logs import ProofingLog
 from eduid_userdb.signup import SignupUserDB
 from eduid_webapp.signup.settings.common import SignupConfig

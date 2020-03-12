@@ -85,7 +85,7 @@ def login_action(session_info, user):
     relay_state = verify_relay_state(request.form.get('RelayState', '/'))
     current_app.logger.debug('Redirecting to the RelayState: ' + relay_state)
     response = redirect(location=relay_state)
-    #session.set_cookie(response)  #XXX: Is the explicit set_cookie needed?
+    # session.set_cookie(response)  #XXX: Is the explicit set_cookie needed?
     current_app.logger.info('Redirecting user {} to {!r}'.format(user, relay_state))
     return response
 

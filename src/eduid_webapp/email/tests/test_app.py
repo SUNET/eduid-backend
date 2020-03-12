@@ -56,7 +56,7 @@ class EmailTests(EduidAPITestCase):
 
     def update_config(self, app_config):
         app_config.update({
-            'available_languages': {'en': 'English','sv': 'Svenska'},
+            'available_languages': {'en': 'English', 'sv': 'Svenska'},
             'msg_broker_url': 'amqp://dummy',
             'am_broker_url': 'amqp://dummy',
             'email_verify_redirect_url': '/profile/',
@@ -90,7 +90,7 @@ class EmailTests(EduidAPITestCase):
 
     def test_post_email_error_no_data(self):
         response = self.browser.post('/new')
-        self.assertEqual(response.status_code, 302) # Redirect to token service
+        self.assertEqual(response.status_code, 302)  # Redirect to token service
 
         eppn = self.test_user_data['eduPersonPrincipalName']
         with self.session_cookie(self.browser, eppn) as client:
@@ -124,7 +124,7 @@ class EmailTests(EduidAPITestCase):
                         'csrf_token': sess.get_csrf_token()
                     }
 
-                response2 = client.post('/new', data=json.dumps(data),  content_type=self.content_type_json)
+                response2 = client.post('/new', data=json.dumps(data), content_type=self.content_type_json)
 
                 self.assertEqual(response2.status_code, 200)
 
@@ -162,7 +162,7 @@ class EmailTests(EduidAPITestCase):
                         'csrf_token': sess.get_csrf_token()
                     }
 
-                response2 = client.post('/new', data=json.dumps(data),  content_type=self.content_type_json)
+                response2 = client.post('/new', data=json.dumps(data), content_type=self.content_type_json)
                 self.assertEqual(response2.status_code, 200)
                 new_email_data = json.loads(response2.data)
 
@@ -180,7 +180,7 @@ class EmailTests(EduidAPITestCase):
         eppn = self.test_user_data['eduPersonPrincipalName']
 
         with self.session_cookie(self.browser, eppn) as client:
-            with client.session_transaction() as sess:
+            with client.session_transaction():
 
                 data = {
                     'email': 'john-smith@example.com',

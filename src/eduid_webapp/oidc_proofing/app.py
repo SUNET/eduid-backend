@@ -34,7 +34,6 @@ from typing import cast
 
 from flask import current_app
 
-from eduid_common.api.app import get_app_config
 from eduid_common.api import am, msg, mail_relay, translation, oidc
 from eduid_common.authn.utils import no_authn_views
 from eduid_common.authn.middleware import AuthnBaseApp

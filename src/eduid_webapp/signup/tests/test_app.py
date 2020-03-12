@@ -34,9 +34,6 @@
 import json
 from contextlib import contextmanager
 from mock import patch, Mock
-from flask import Response
-from werkzeug.exceptions import InternalServerError
-from requests import Response as RequestsResponse
 
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_webapp.signup.app import signup_init_app

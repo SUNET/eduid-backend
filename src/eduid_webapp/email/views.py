@@ -41,7 +41,6 @@ from eduid_userdb.mail import MailAddress
 from eduid_userdb.proofing import ProofingUser
 from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
 from eduid_common.api.utils import save_and_sync_user
-from eduid_common.api.utils import urlappend
 from eduid_webapp.email.schemas import EmailListPayload, AddEmailSchema
 from eduid_webapp.email.schemas import ChangeEmailSchema, EmailResponseSchema
 from eduid_webapp.email.schemas import VerificationCodeSchema
@@ -79,7 +78,7 @@ def post_email(user, email, verified, primary):
     except DuplicateElementViolation:
         return {
             '_status': 'error',
-            'message':  'emails.duplicated'
+            'message': 'emails.duplicated'
         }
 
     try:
@@ -99,9 +98,9 @@ def post_email(user, email, verified, primary):
     current_app.stats.count(name='email_send_verification_code', value=1)
 
     emails = {
-            'emails': proofing_user.mail_addresses.to_list_of_dicts(),
-            'message': 'emails.save-success'
-            }
+        'emails': proofing_user.mail_addresses.to_list_of_dicts(),
+        'message': 'emails.save-success'
+    }
     return EmailListPayload().dump(emails).data
 
 
@@ -147,9 +146,9 @@ def post_primary(user, email):
     current_app.stats.count(name='email_set_primary', value=1)
 
     emails = {
-            'emails': proofing_user.mail_addresses.to_list_of_dicts(),
-            'message': 'emails.primary-success'
-            }
+        'emails': proofing_user.mail_addresses.to_list_of_dicts(),
+        'message': 'emails.primary-success'
+    }
     return EmailListPayload().dump(emails).data
 
 
@@ -309,9 +308,9 @@ def post_remove(user, email):
     current_app.stats.count(name='email_remove_success', value=1)
 
     emails = {
-            'emails': proofing_user.mail_addresses.to_list_of_dicts(),
-            'message': 'emails.removal-success'
-            }
+        'emails': proofing_user.mail_addresses.to_list_of_dicts(),
+        'message': 'emails.removal-success'
+    }
     return EmailListPayload().dump(emails).data
 
 
@@ -343,7 +342,7 @@ def resend_code(user, email):
     current_app.stats.count(name='email_resend_code', value=1)
 
     emails = {
-            'emails': user.mail_addresses.to_list_of_dicts(),
-            'message': 'emails.code-sent'
-            }
+        'emails': user.mail_addresses.to_list_of_dicts(),
+        'message': 'emails.code-sent'
+    }
     return EmailListPayload().dump(emails).data

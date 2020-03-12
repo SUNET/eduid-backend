@@ -42,7 +42,6 @@ from eduid_userdb.actions.tou import ToUUserDB, ToUUser
 from eduid_userdb.tou import ToUEvent
 from eduid_webapp.actions.action_abc import ActionPlugin
 from eduid_webapp.actions.app import current_actions_app as current_app
-from eduid_common.api.exceptions import AmTaskFailed
 
 
 class Plugin(ActionPlugin):

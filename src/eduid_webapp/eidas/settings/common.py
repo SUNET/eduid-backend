@@ -36,7 +36,7 @@ Configuration (file) handling for the eduID eidas app.
 """
 
 from dataclasses import dataclass, field
-from typing import Optional, Dict
+from typing import Dict
 
 from eduid_common.config.base import FlaskConfig
 

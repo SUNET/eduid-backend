@@ -36,11 +36,8 @@ from flask import current_app
 
 from eduid_userdb.proofing import OrcidProofingStateDB, OrcidProofingUserDB
 from eduid_userdb.logs import ProofingLog
-from eduid_common.api.app import get_app_config
 from eduid_common.api import am, oidc
 from eduid_common.authn.middleware import AuthnBaseApp
-from eduid_common.authn.utils import no_authn_views
-from eduid_common.api.debug import init_app_debug
 from eduid_webapp.orcid.settings.common import OrcidConfig
 
 __author__ = 'lundberg'

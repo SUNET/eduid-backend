@@ -39,7 +39,6 @@ import operator
 from flask import current_app
 from jinja2.exceptions import UndefinedError
 
-from eduid_common.api.app import get_app_config
 from eduid_common.api.utils import urlappend
 from eduid_common.authn.middleware import AuthnBaseApp
 from eduid_userdb.support import db
