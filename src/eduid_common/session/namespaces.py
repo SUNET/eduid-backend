@@ -98,3 +98,13 @@ class Signup(TimestampedNS):
 @dataclass()
 class Actions(TimestampedNS):
     session: Optional[str] = None
+
+
+@dataclass()
+class Phone(TimestampedNS):
+    verification_code: Optional[str] = None
+
+
+@dataclass()
+class Email(TimestampedNS):
+    verification_code: Optional[str] = None
