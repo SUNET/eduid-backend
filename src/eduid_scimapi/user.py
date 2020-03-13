@@ -8,7 +8,8 @@ from uuid import UUID
 
 from bson import ObjectId
 
-from eduid_scimapi.profile import DEBUG_ALL_V1, NUTID_V1, Profile
+from eduid_scimapi.scimbase import SCIMSchema
+from eduid_scimapi.profile import Profile
 
 __author__ = 'ft'
 
@@ -48,17 +49,17 @@ class ScimApiUser(object):
         if self.external_id:
             res['externalId'] = self.external_id
         if self.profiles:
-            res['schemas'] += [NUTID_V1]
-            if NUTID_V1 not in res:
-                res[NUTID_V1] = {}
+            res['schemas'] += [SCIMSchema.NUTID_V1.value]
+            if SCIMSchema.NUTID_V1.value not in res:
+                res[SCIMSchema.NUTID_V1.value] = {}
             for prof in self.profiles.keys():
-                res[NUTID_V1][prof] = self.profiles[prof].to_schema_dict(NUTID_V1)
+                res[SCIMSchema.NUTID_V1.value][prof] = self.profiles[prof].to_schema_dict(SCIMSchema.NUTID_V1.value)
         if debug:
             profiles_dicts = {}
             for this in self.profiles.keys():
                 profiles_dicts[this] = asdict(self.profiles[this])
-            res['schemas'] += [DEBUG_ALL_V1]
-            res[DEBUG_ALL_V1] = profiles_dicts
+            res['schemas'] += [SCIMSchema.DEBUG_ALL_V1.value]
+            res[SCIMSchema.DEBUG_ALL_V1.value] = profiles_dicts
         return res
 
     def to_dict(self) -> Dict[str, Any]:

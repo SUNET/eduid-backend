@@ -4,7 +4,7 @@ from datetime import datetime
 
 from bson import ObjectId
 
-from eduid_scimapi.profile import NUTID_V1
+from eduid_scimapi.scimbase import SCIMSchema
 from eduid_scimapi.user import ScimApiUser
 
 
@@ -40,11 +40,11 @@ class MyTestCase(unittest.TestCase):
         location = 'http://localhost:12345/User'
         scim = user.to_scim_dict(location=location)
         expected = {
-            'schemas': ['urn:ietf:params:scim:schemas:core:2.0:User', NUTID_V1],
+            'schemas': ['urn:ietf:params:scim:schemas:core:2.0:User', SCIMSchema.NUTID_V1.value],
             'externalId': 'hubba-bubba@eduid.se',
             'id': '9784e1bf-231b-4eb8-b315-52eb46dd7c4b',
 
-            NUTID_V1: {'eduid': {'display_name': 'Test'}},
+            SCIMSchema.NUTID_V1.value: {'eduid': {'display_name': 'Test'}},
 
             'meta': {'created': '2020-02-25T15:52:59.745000',
                      'lastModified': '2020-02-25T15:52:59.745000',
