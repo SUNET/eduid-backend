@@ -32,8 +32,7 @@
 
 import logging
 import re
-import warnings
-from typing import cast, Callable, Union
+from typing import Callable, Union
 
 from flask import current_app
 from urllib.parse import urlparse, urlunparse, urlencode, parse_qs

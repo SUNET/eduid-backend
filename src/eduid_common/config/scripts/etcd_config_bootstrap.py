@@ -35,7 +35,7 @@ def load_yaml(file_path):
                 print('Loading configuration from {!s}'.format(file_path))
             return yaml.safe_load(f)
     except IOError as e:
-        sys.stderr.writelines(str(e)+'\n')
+        sys.stderr.writelines(str(e) + '\n')
         sys.exit(1)
 
 

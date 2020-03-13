@@ -35,9 +35,8 @@ it with all attributes common to all eduID services.
 """
 import importlib.util
 import os
-import warnings
-from dataclasses import fields, asdict
-from typing import cast, Type, Optional, Mapping
+from dataclasses import asdict
+from typing import Type, Optional
 
 from eduid_userdb import UserDB
 from flask import Flask
@@ -49,7 +48,7 @@ from eduid_common.api.exceptions import init_exception_handlers, init_sentry
 from eduid_common.api.logging import init_logging
 from eduid_common.api.middleware import PrefixMiddleware
 from eduid_common.api.request import Request
-from eduid_common.api.utils import init_template_functions, urlappend
+from eduid_common.api.utils import init_template_functions
 from eduid_common.authn.utils import no_authn_views
 from eduid_common.config.base import FlaskConfig
 from eduid_common.config.exceptions import BadConfiguration

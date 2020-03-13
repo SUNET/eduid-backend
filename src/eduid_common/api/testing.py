@@ -45,7 +45,6 @@ from flask.testing import FlaskClient
 from eduid_common.session.testing import RedisTemporaryInstance
 from eduid_common.api.testing_base import CommonTestCase
 from eduid_common.session import EduidSession
-from eduid_common.config.base import FlaskConfig
 from eduid_userdb import User
 from eduid_userdb.db import BaseDB
 from eduid_userdb.data_samples import (NEW_USER_EXAMPLE,
@@ -177,7 +176,7 @@ class EduidAPITestCase(CommonTestCase):
         except Exception as exc:
             sys.stderr.write("Exception in tearDown: {!s}\n{!r}\n".format(exc, exc))
             traceback.print_exc()
-            #time.sleep(5)
+            # time.sleep(5)
         super(CommonTestCase, self).tearDown()
         # XXX reset redis
 

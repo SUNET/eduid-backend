@@ -35,9 +35,7 @@ Configuration (file) handling for eduID IdP.
 """
 
 from dataclasses import dataclass, field
-import os
-from importlib import import_module
-from typing import Optional, List, Tuple, Dict, Any
+from typing import Optional, List, Tuple
 
 from .base import BaseConfig
 
@@ -114,7 +112,7 @@ class IdPConfig(BaseConfig):
     verify_request_signatures: bool = False
     # Get list of usernames valid for use with the /status URL.
     # If this list is ['*'], all usernames are allowed for /status.
-    status_test_usernames: List[str] =  field(default_factory=list)
+    status_test_usernames: List[str] = field(default_factory=list)
     # URL (string) for use in simple templating of login.html.
     signup_link: str = '#'
     # URL (string) for use in simple templating of forbidden.html.

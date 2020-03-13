@@ -39,9 +39,7 @@ from typing import Optional, List, Dict, Any
 
 from eduid_common.config.testing import EtcdTemporaryInstance
 from eduid_common.config.workers import AmConfig
-from eduid_userdb import User
 from eduid_userdb.testing import MongoTestCase
-from eduid_userdb.data_samples import NEW_USER_EXAMPLE, NEW_UNVERIFIED_USER_EXAMPLE, NEW_COMPLETED_SIGNUP_USER_EXAMPLE
 
 logger = logging.getLogger(__name__)
 
@@ -62,13 +60,13 @@ class CommonTestCase(MongoTestCase):
 
         # setup AM
         celery_settings = {
-                'broker_transport': 'memory',
-                'broker_url': 'memory://',
-                'task_eager_propagates': True,
-                'task_always_eager': True,
-                'result_backend': 'cache',
-                'cache_backend': 'memory',
-                }
+            'broker_transport': 'memory',
+            'broker_url': 'memory://',
+            'task_eager_propagates': True,
+            'task_always_eager': True,
+            'result_backend': 'cache',
+            'cache_backend': 'memory',
+        }
         # Be sure to NOT tell AttributeManager about the temporary mongodb instance.
         # If we do, one or more plugins may open DB connections that never gets closed.
         mongo_uri = None

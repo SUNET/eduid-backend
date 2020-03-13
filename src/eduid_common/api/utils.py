@@ -40,7 +40,7 @@ def update_modified_ts(user):
         current_app.logger.debug("User {!s} has no id, setting modified_ts to None".format(user))
         user.modified_ts = None
         return
-    
+
     private_user = current_app.private_userdb.get_user_by_id(userid, raise_on_missing=False)
     if private_user is None:
         current_app.logger.debug("User {!s} not found in {!s}, "

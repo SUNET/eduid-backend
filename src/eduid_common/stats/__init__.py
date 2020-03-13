@@ -25,7 +25,8 @@ class NoOpStats(AppStats):
     Having this no-op class initialized in case there is no statsd_server
     configured allows us to not check if request.stats is set everywhere.
     """
-    def __init__(self, logger = None, prefix=None):
+
+    def __init__(self, logger=None, prefix=None):
         self.logger = logger
         self.prefix = prefix
 

@@ -2,7 +2,6 @@
 
 from __future__ import absolute_import
 
-import six
 import unittest
 from mock import patch
 from nacl import secret, encoding
@@ -60,11 +59,11 @@ class TestEtcdParser(unittest.TestCase):
             }
         }
         test_key = {
-                'my_bool': True,
-                'my_string': 'A value',
-                'my_list': ['One', 'Two', 3],
-                'my_dict': {'A': 'B'}
-            }
+            'my_bool': True,
+            'my_string': 'A value',
+            'my_list': ['One', 'Two', 3],
+            'my_dict': {'A': 'B'}
+        }
 
         self.parser.write_configuration(config)
         read_config = self.parser.read_configuration()
@@ -97,7 +96,7 @@ class TestEtcdParser(unittest.TestCase):
 
     @patch('eduid_common.config.parsers.decorators.read_secret_key')
     def test_decrypt(self, mock_read_secret_key):
-        mock_read_secret_key.return_value = bytes(b'A'*secret.SecretBox.KEY_SIZE)
+        mock_read_secret_key.return_value = bytes(b'A' * secret.SecretBox.KEY_SIZE)
 
         box = secret.SecretBox(decorators.read_secret_key('test'))
 
@@ -114,7 +113,7 @@ class TestEtcdParser(unittest.TestCase):
 
     @patch('eduid_common.config.parsers.decorators.read_secret_key')
     def test_decrypt_non_ascii(self, mock_read_secret_key):
-        mock_read_secret_key.return_value = bytes(b'A'*secret.SecretBox.KEY_SIZE)
+        mock_read_secret_key.return_value = bytes(b'A' * secret.SecretBox.KEY_SIZE)
 
         box = secret.SecretBox(decorators.read_secret_key('test'))
 
@@ -135,10 +134,10 @@ class TestEtcdParser(unittest.TestCase):
     @patch('eduid_common.config.parsers.decorators.read_secret_key')
     def test_decrypt_multi_key(self, mock_read_secret_key):
 
-        mock_read_secret_key.return_value = bytes(b'A'*secret.SecretBox.KEY_SIZE)
+        mock_read_secret_key.return_value = bytes(b'A' * secret.SecretBox.KEY_SIZE)
 
         box = secret.SecretBox(decorators.read_secret_key('test'))
-        box2 = secret.SecretBox(bytes(b'B'*secret.SecretBox.KEY_SIZE))
+        box2 = secret.SecretBox(bytes(b'B' * secret.SecretBox.KEY_SIZE))
 
         secret_value = [{
             'key_name': 'not_test',
@@ -245,7 +244,7 @@ class TestEtcdParser(unittest.TestCase):
 
     @patch('eduid_common.config.parsers.decorators.read_secret_key')
     def test_decrypt_interpolate(self, mock_read_secret_key):
-        mock_read_secret_key.return_value = bytes(b'A'*secret.SecretBox.KEY_SIZE)
+        mock_read_secret_key.return_value = bytes(b'A' * secret.SecretBox.KEY_SIZE)
 
         box = secret.SecretBox(decorators.read_secret_key('test'))
 

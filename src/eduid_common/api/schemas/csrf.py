@@ -81,4 +81,3 @@ class CSRFResponse(FluxStandardAction):
         if not out_data.get('payload'):
             out_data['payload'] = {'csrf_token': None}
         return out_data
-

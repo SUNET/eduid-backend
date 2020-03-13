@@ -57,21 +57,21 @@ class VCCSTestCase(MongoTestCase):
         return vccs_module.check_password('dummy', creds, self.user, self.vccs_client)
 
     def test_check_good_credentials(self):
-        result = self._check_credentials('abcd') 
+        result = self._check_credentials('abcd')
         self.assertTrue(result)
 
     def test_check_bad_credentials(self):
-        result = self._check_credentials('fghi') 
+        result = self._check_credentials('fghi')
         self.assertFalse(result)
 
     def test_add_password(self):
         added = vccs_module.add_password(self.user, new_password='wxyz', application='test', vccs=self.vccs_client)
         self.assertTrue(added)
-        result1 = self._check_credentials('abcd') 
+        result1 = self._check_credentials('abcd')
         self.assertTrue(result1)
-        result2 = self._check_credentials('fghi') 
+        result2 = self._check_credentials('fghi')
         self.assertFalse(result2)
-        result3 = self._check_credentials('wxyz') 
+        result3 = self._check_credentials('wxyz')
         self.assertTrue(result3)
         self.assertFalse(result3.is_generated)
 
@@ -79,11 +79,11 @@ class VCCSTestCase(MongoTestCase):
         added = vccs_module.add_password(self.user, new_password='wxyz', is_generated=True,
                                          application='test', vccs=self.vccs_client)
         self.assertTrue(added)
-        result1 = self._check_credentials('abcd') 
+        result1 = self._check_credentials('abcd')
         self.assertTrue(result1)
-        result2 = self._check_credentials('fghi') 
+        result2 = self._check_credentials('fghi')
         self.assertFalse(result2)
-        result3 = self._check_credentials('wxyz') 
+        result3 = self._check_credentials('wxyz')
         self.assertTrue(result3)
         self.assertTrue(result3.is_generated)
 
@@ -91,11 +91,11 @@ class VCCSTestCase(MongoTestCase):
         added = vccs_module.change_password(self.user, new_password='wxyz', old_password='abcd', application='test',
                                             vccs=self.vccs_client)
         self.assertTrue(added)
-        result1 = self._check_credentials('abcd') 
+        result1 = self._check_credentials('abcd')
         self.assertFalse(result1)
-        result2 = self._check_credentials('fghi') 
+        result2 = self._check_credentials('fghi')
         self.assertFalse(result2)
-        result3 = self._check_credentials('wxyz') 
+        result3 = self._check_credentials('wxyz')
         self.assertTrue(result3)
         self.assertFalse(result3.is_generated)
 
@@ -104,11 +104,11 @@ class VCCSTestCase(MongoTestCase):
                                             application='test', is_generated=True,
                                             vccs=self.vccs_client)
         self.assertTrue(added)
-        result1 = self._check_credentials('abcd') 
+        result1 = self._check_credentials('abcd')
         self.assertFalse(result1)
-        result2 = self._check_credentials('fghi') 
+        result2 = self._check_credentials('fghi')
         self.assertFalse(result2)
-        result3 = self._check_credentials('wxyz') 
+        result3 = self._check_credentials('wxyz')
         self.assertTrue(result3)
         self.assertTrue(result3.is_generated)
 
@@ -116,11 +116,11 @@ class VCCSTestCase(MongoTestCase):
         added = vccs_module.change_password(self.user, new_password='wxyz', old_password='fghi', application='test',
                                             vccs=self.vccs_client)
         self.assertFalse(added)
-        result1 = self._check_credentials('abcd') 
+        result1 = self._check_credentials('abcd')
         self.assertTrue(result1)
-        result2 = self._check_credentials('fghi') 
+        result2 = self._check_credentials('fghi')
         self.assertFalse(result2)
-        result3 = self._check_credentials('wxyz') 
+        result3 = self._check_credentials('wxyz')
         self.assertFalse(result3)
 
     def test_reset_password(self):
@@ -153,11 +153,11 @@ class VCCSTestCase(MongoTestCase):
             added = vccs_module.change_password(self.user, new_password='wxyz', old_password='abcd', application='test',
                                                 vccs=self.vccs_client)
             self.assertFalse(added)
-            result1 = self._check_credentials('abcd') 
+            result1 = self._check_credentials('abcd')
             self.assertTrue(result1)
-            result2 = self._check_credentials('fghi') 
+            result2 = self._check_credentials('fghi')
             self.assertFalse(result2)
-            result3 = self._check_credentials('wxyz') 
+            result3 = self._check_credentials('wxyz')
             self.assertFalse(result3)
 
     def test_reset_password_error_revoking(self):
@@ -171,9 +171,9 @@ class VCCSTestCase(MongoTestCase):
             added = vccs_module.reset_password(self.user, new_password='wxyz', application='test',
                                                vccs=self.vccs_client)
             self.assertTrue(added)
-            result1 = self._check_credentials('abcd') 
+            result1 = self._check_credentials('abcd')
             self.assertFalse(result1)
-            result2 = self._check_credentials('fghi') 
+            result2 = self._check_credentials('fghi')
             self.assertFalse(result2)
-            result3 = self._check_credentials('wxyz') 
+            result3 = self._check_credentials('wxyz')
             self.assertTrue(result3)

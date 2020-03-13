@@ -47,7 +47,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class CeleryConfig:
     """
-    Celery configuration 
+    Celery configuration
     """
     accept_content: List[str] = field(default_factory=lambda: ["application/json"])
     broker_url: str = ''
@@ -61,9 +61,9 @@ class CeleryConfig:
     broker_transport: str = ''
     broker_transport_options: dict = field(default_factory=lambda: {"fanout_prefix": True})
     task_routes: dict = field(default_factory=lambda: {
-      'eduid_am.*': {'queue': 'am'},
-      'eduid_msg.*': {'queue': 'msg'},
-      'eduid_letter_proofing.*': {'queue': 'letter_proofing'}})
+        'eduid_am.*': {'queue': 'am'},
+        'eduid_msg.*': {'queue': 'msg'},
+        'eduid_letter_proofing.*': {'queue': 'letter_proofing'}})
     mongo_uri: Optional[str] = None
 
 
@@ -158,14 +158,14 @@ class CommonConfig:
         get a dict with the default values for all configuration keys
         """
         return {key: val for key, val in cls.__dict__.items()
-                  if isinstance(key, str) and not key.startswith('_') and not callable(val)}
+                if isinstance(key, str) and not key.startswith('_') and not callable(val)}
 
     def to_dict(self) -> dict:
         """
         get a dict with all configured values
         """
         return {key: val for key, val in self.__dict__.items()
-                  if isinstance(key, str) and not key.startswith('_') and not callable(val)}
+                if isinstance(key, str) and not key.startswith('_') and not callable(val)}
 
 
 @dataclass
@@ -195,8 +195,8 @@ class BaseConfig(CommonConfig):
     log_max_bytes: int = 1000000  # 1 MB
     log_backup_count: int = 10  # 10 x 1 MB
     log_format: str = '%(asctime)s | %(levelname)s | %(hostname)s | %(name)s | %(module)s | %(eppn)s | %(message)s'
-    log_type: List[str] = field(default_factory=lambda:['stream'])
-    logger : Optional[logging.Logger] = None
+    log_type: List[str] = field(default_factory=lambda: ['stream'])
+    logger: Optional[logging.Logger] = None
     # Redis config
     # The Redis host to use for session storage.
     redis_host: Optional[str] = None
@@ -227,11 +227,11 @@ class BaseConfig(CommonConfig):
     available_languages: Dict[str, str] = field(default_factory=lambda: {
         'en': 'English',
         'sv': 'Svenska'
-        })
+    })
     supported_languages: Dict[str, str] = field(default_factory=lambda: {
         'en': 'English',
         'sv': 'Svenska'
-        })
+    })
     mail_default_from: str = 'no-reply@eduid.se'
     static_url: str = ''
     dashboard_url: str = ''
@@ -255,12 +255,12 @@ class BaseConfig(CommonConfig):
     no_authn_urls: list = field(default_factory=lambda: [
         "^/status/healthy$",
         "^/status/sanity-check$"
-        ])
+    ])
     # The plugins for pre-authentication actions that need to be loaded
     action_plugins: list = field(default_factory=lambda: [
         "tou",
         "mfa"
-        ])
+    ])
     # The current version of the terms of use agreement.
     tou_version: str = '2017-v6'
     current_tou_version: str = '2017-v6'  # backwards compat
@@ -278,8 +278,8 @@ class BaseConfig(CommonConfig):
         Initialize configuration with values from etcd (or with test values)
         """
         config: Dict[str, Any] = {
-                'debug': debug,
-                }
+            'debug': debug,
+        }
         if test_config:
             # Load init time settings
             config.update(test_config)
@@ -317,7 +317,7 @@ class FlaskConfig(BaseConfig):
     # What environment the app is running in.
     # This is set by the FLASK_ENV environment variable and may not
     # behave as expected if set in code
-    env : str = 'production'
+    env: str = 'production'
     testing: bool = False
     # explicitly enable or disable the propagation of exceptions.
     # If not set or explicitly set to None this is implicitly true if either

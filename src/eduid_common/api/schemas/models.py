@@ -2,7 +2,6 @@
 
 from dataclasses import dataclass
 
-from eduid_common.session import session
 from eduid_common.api.utils import get_flux_type
 
 __author__ = 'lundberg'

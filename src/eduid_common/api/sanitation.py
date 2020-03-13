@@ -33,7 +33,7 @@ import six
 from bleach import clean
 from six.moves.urllib_parse import unquote, quote
 
-from flask import current_app, request
+from flask import request
 
 
 class SanitationProblem(Exception):
@@ -83,7 +83,7 @@ class Sanitizer(object):
 
         except UnicodeDecodeError:
             logger.warn('A malicious user tried to crash the application '
-                                    'by sending non-unicode input in a GET request')
+                        'by sending non-unicode input in a GET request')
             raise SanitationProblem('Non-unicode input')
 
     def _sanitize_input(self, untrusted_text, logger, strip_characters=False,
@@ -140,7 +140,7 @@ class Sanitizer(object):
 
             if decoded_text != cleaned_text:
                 logger.warn('Some potential harmful characters were '
-                                        'removed from untrusted user input.')
+                            'removed from untrusted user input.')
 
             if decoded_text != untrusted_text:
                 # Note that at least '&' and '=' needs to be unencoded when using PySAML2
