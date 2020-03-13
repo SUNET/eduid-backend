@@ -161,8 +161,8 @@ def verify(user, code, email):
     """
     """
     # Use backdoor for the selenium integration tests
-    if current_app.config.environment in ('staging', 'dev') and current_app.config.magic_coode != '':
-        if code == current_app.config.magic_coode:
+    if current_app.config.environment in ('staging', 'dev') and current_app.config.magic_code != '':
+        if code == current_app.config.magic_code:
             current_app.logger.debug('Using the BACKDOOR to verify email addresses in the email app')
             code = session.email.verification_code
 
