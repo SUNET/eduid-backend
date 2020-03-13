@@ -45,6 +45,28 @@ def session_init_app(name, config):
         session.mfa_action.authn_context = 'http://id.elegnamnden.se/loa/1.0/loa3'
         return 'Hello, World!'
 
+    @app.route('/reset-password')
+    def reset_password():
+        session.reset_password.generated_password_hash = 'password-hash'
+        session.reset_password.resetpw_email_verification_code = 'email-code'
+        session.reset_password.resetpw_sms_verification_code = 'sms-code'
+        return 'Hello, World!'
+
+    @app.route('/signup')
+    def signup():
+        session.signup.email_verification_code = 'email-verification-code'
+        return 'Hello, World!'
+
+    @app.route('/phone')
+    def phone():
+        session.phone.verification_code = 'phone-verification-code'
+        return 'Hello, World!'
+
+    @app.route('/email')
+    def email():
+        session.email.verification_code = 'email-verification-code'
+        return 'Hello, World!'
+
     return app
 
 
@@ -122,6 +144,36 @@ class EduidSessionTests(EduidAPITestCase):
                 self.assertEqual(sess.mfa_action.issuer, 'https://issuer-entity-id.example.com')
                 self.assertEqual(sess.mfa_action.authn_instant, '2019-03-21T16:26:17Z')
                 self.assertEqual(sess.mfa_action.authn_context, 'http://id.elegnamnden.se/loa/1.0/loa3')
+
+    def test_session_reset_password(self):
+        with self.session_cookie(self.browser, self.test_user_eppn) as browser:
+            response = browser.get('/reset-password')
+            self.assertEqual(response.status_code, 200)
+            with browser.session_transaction() as sess:
+                self.assertEqual(sess.reset_password.generated_password_hash, 'password-hash')
+                self.assertEqual(sess.reset_password.resetpw_email_verification_code, 'email-code')
+                self.assertEqual(sess.reset_password.resetpw_sms_verification_code, 'sms-code')
+
+    def test_session_signup(self):
+        with self.session_cookie(self.browser, self.test_user_eppn) as browser:
+            response = browser.get('/signup')
+            self.assertEqual(response.status_code, 200)
+            with browser.session_transaction() as sess:
+                self.assertEqual(sess.signup.email_verification_code, 'email-verification-code')
+
+    def test_session_phone(self):
+        with self.session_cookie(self.browser, self.test_user_eppn) as browser:
+            response = browser.get('/phone')
+            self.assertEqual(response.status_code, 200)
+            with browser.session_transaction() as sess:
+                self.assertEqual(sess.phone.verification_code, 'phone-verification-code')
+
+    def test_session_email(self):
+        with self.session_cookie(self.browser, self.test_user_eppn) as browser:
+            response = browser.get('/email')
+            self.assertEqual(response.status_code, 200)
+            with browser.session_transaction() as sess:
+                self.assertEqual(sess.email.verification_code, 'email-verification-code')
 
     def test_clear_session_mfa_action(self):
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
