@@ -5,8 +5,8 @@ from falcon import Request, Response
 
 from eduid_scimapi.base import BaseResource
 from eduid_scimapi.exceptions import BadRequest
-from eduid_scimapi.user import ScimApiUser
 from eduid_scimapi.profile import NUTID_V1, Profile
+from eduid_scimapi.user import ScimApiUser
 from eduid_userdb.user import User
 
 
@@ -33,22 +33,44 @@ class UsersResource(BaseResource):
 
         # TODO: check that meta.version in the request matches the user object loaded from the database
 
+        self.context.logger.debug(f'Extra debug: user {scim_id} as dict:\n{user.to_dict()}')
+
         if NUTID_V1 in req.media:
+            if not user.external_id:
+                self.context.logger.warning(f'User {user} has no external id, skipping NUTID update')
             changed = False
             data = req.media[NUTID_V1]
-            if 'displayName' in data:
-                _old = user.profiles['eduid'].data.get('display_name')
-                _new = data['displayName']
-                if _old != _new:
-                    changed = True
-                    self.context.logger.info(f'Updating user {user.external_id} eduid display name from '
-                                             f'{repr(_old)} to {repr(_new)}')
-                    user.profiles['eduid'].data['display_name'] = data['displayName']
-                    # As a PoC, update the eduid userdb with this display name
-                    eduid_user = self.context.eduid_userdb.get_user_by_eppn(user.profiles['eduid'].external_id)
-                    assert eduid_user is not None
-                    eduid_user.display_name = _new
-                    self.context.eduid_userdb.save(eduid_user)
+            if 'profiles' in data:
+                for profile in data['profiles'].keys():
+                    profile_data = data['profiles'][profile]
+                    if profile == 'eduid':
+                        self.context.logger.info('Special-processing profile "eduid"')
+                        if 'displayName' not in profile_data:
+                            self.context.logger.info(f'No displayName in profile: {profile_data}')
+                            continue
+
+                        _old = user.profiles['eduid'].data.get('displayName')
+                        _new = profile_data['displayName']
+                        if _old != _new:
+                            changed = True
+                            self.context.logger.info(f'Updating user {user.external_id} eduid display name from '
+                                                     f'{repr(_old)} to {repr(_new)}')
+                            user.profiles['eduid'].data['display_name'] = _new
+                            # As a PoC, update the eduid userdb with this display name
+                            eduid_user = self.context.eduid_userdb.get_user_by_eppn(user.profiles['eduid'].external_id)
+                            assert eduid_user is not None
+                            eduid_user.display_name = _new
+                            self.context.eduid_userdb.save(eduid_user)
+                    assert user.external_id  # please mypy
+                    if profile not in user.profiles:
+                        user.profiles[profile] = Profile(user.external_id, profile_data)
+                    if user.profiles[profile].data != profile_data:
+                        self.context.logger.info(f'Updating user {user.external_id} profile {profile} with data:\n'
+                                            f'{profile_data}')
+                        user.profiles[profile].data = profile_data
+                        changed = True
+                    else:
+                        self.context.logger.info(f'User {user.external_id} profile {profile} not changed')
 
             if changed:
                 self.context.userdb.save(user)
