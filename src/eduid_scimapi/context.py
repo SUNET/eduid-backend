@@ -3,15 +3,15 @@ import logging.config
 import sys
 from typing import Dict
 
+from eduid_userdb import UserDB
+
 from eduid_scimapi.config import load_config
 from eduid_scimapi.userdb import ScimApiUserDB
 from eduid_scimapi.utils import urlappend
-from eduid_userdb import UserDB
 
 
 class Context(object):
-
-    def __init__(self, config: Dict, testing: bool=False):
+    def __init__(self, config: Dict, testing: bool = False):
         self.config = load_config(config, testing=testing)
 
         if not testing:

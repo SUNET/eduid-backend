@@ -3,16 +3,16 @@ from typing import Optional
 
 from falcon import Request, Response
 
-from eduid_scimapi.resources.base import BaseResource
-from eduid_scimapi.exceptions import BadRequest
-from eduid_scimapi.scimbase import SCIMSchema
-from eduid_scimapi.profile import Profile
-from eduid_scimapi.user import ScimApiUser
 from eduid_userdb.user import User
+
+from eduid_scimapi.exceptions import BadRequest
+from eduid_scimapi.profile import Profile
+from eduid_scimapi.resources.base import BaseResource
+from eduid_scimapi.scimbase import SCIMSchema
+from eduid_scimapi.user import ScimApiUser
 
 
 class UsersResource(BaseResource):
-
     def on_get(self, req: Request, resp: Response, scim_id):
         self.context.logger.info(f'Fetching user {scim_id}')
 
@@ -54,8 +54,10 @@ class UsersResource(BaseResource):
                         _new = profile_data['displayName']
                         if _old != _new:
                             changed = True
-                            self.context.logger.info(f'Updating user {user.external_id} eduid display name from '
-                                                     f'{repr(_old)} to {repr(_new)}')
+                            self.context.logger.info(
+                                f'Updating user {user.external_id} eduid display name from '
+                                f'{repr(_old)} to {repr(_new)}'
+                            )
                             user.profiles['eduid'].data['display_name'] = _new
                             # As a PoC, update the eduid userdb with this display name
                             eduid_user = self.context.eduid_userdb.get_user_by_eppn(user.profiles['eduid'].external_id)
@@ -66,8 +68,9 @@ class UsersResource(BaseResource):
                     if profile not in user.profiles:
                         user.profiles[profile] = Profile(user.external_id, profile_data)
                     if user.profiles[profile].data != profile_data:
-                        self.context.logger.info(f'Updating user {user.external_id} profile {profile} with data:\n'
-                                            f'{profile_data}')
+                        self.context.logger.info(
+                            f'Updating user {user.external_id} profile {profile} with data:\n' f'{profile_data}'
+                        )
                         user.profiles[profile].data = profile_data
                         changed = True
                     else:
@@ -148,7 +151,6 @@ class UsersResource(BaseResource):
 
 
 class UsersSearchResource(BaseResource):
-
     def on_post(self, req: Request, resp: Response):
         """
            POST /Users/.search
@@ -205,9 +207,7 @@ class UsersSearchResource(BaseResource):
                 eduid_user = self.context.eduid_userdb.get_user_by_eppn(eppn)
                 assert isinstance(eduid_user, User)
 
-                eduid_profile = Profile(external_id=eduid_user.eppn,
-                                        data={'display_name': eduid_user.display_name,
-                                              })
+                eduid_profile = Profile(external_id=eduid_user.eppn, data={'display_name': eduid_user.display_name,})
 
                 # persist the scim_id for the search result by saving it as a ScimApiUser
                 user = ScimApiUser(profiles={'eduid': eduid_profile})

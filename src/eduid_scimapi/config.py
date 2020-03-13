@@ -13,13 +13,14 @@ class ScimApiConfig(BaseConfig):
     """
     Configuration for the SCIM API app
     """
+
     test: bool = True
     schema: str = 'http'
     server_name: str = 'localhost:8000'
     application_root: str = '/'
 
 
-def load_config(config: Dict, name: str = 'scimapi', testing: bool=False) -> ScimApiConfig:
+def load_config(config: Dict, name: str = 'scimapi', testing: bool = False) -> ScimApiConfig:
     try:
         # Init etcd config parsers
         common_parser = EtcdConfigParser('/eduid/api/common/')

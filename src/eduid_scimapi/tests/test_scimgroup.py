@@ -12,12 +12,12 @@ from eduid_scimapi.tests.test_scimbase import TestScimBase
 
 
 class TestSCIMGroup(TestScimBase):
-
     def test_group(self) -> None:
         schema = class_schema(Group)
         group = Group(id=uuid4(), schemas=[SCIMSchema.CORE_20_GROUP], meta=self.meta, display_name='Test Group')
-        group.members.extend([GroupMember(id=uuid4(), display_name='Member 1'),
-                              GroupMember(id=uuid4(), display_name='Member 2')])
+        group.members.extend(
+            [GroupMember(id=uuid4(), display_name='Member 1'), GroupMember(id=uuid4(), display_name='Member 2')]
+        )
         group_dump = schema().dump(group)
         loaded_group = schema().load(group_dump)
         self.assertEqual(group, loaded_group)

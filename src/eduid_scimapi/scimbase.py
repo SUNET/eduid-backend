@@ -8,16 +8,14 @@ from uuid import UUID, uuid4
 
 from bson import ObjectId
 from bson.errors import InvalidId
-from marshmallow import fields, ValidationError, missing
-from marshmallow_enum import EnumField
-
+from marshmallow import ValidationError, fields, missing
 from marshmallow_dataclass import NewType, class_schema
+from marshmallow_enum import EnumField
 
 __author__ = 'lundberg'
 
 
 class ObjectIdField(fields.Field):
-
     def _deserialize(self, value, attr, data, **kwargs):
         try:
             return ObjectId(value)
@@ -51,8 +49,9 @@ class Meta:
     last_modified: datetime = field(metadata={'data_key': 'lastModified', 'required': True})
     resource_type: SCIMResourceType = field(metadata={'data_key': 'resourceType', 'by_value': True, 'required': True})
     created: datetime = field(default_factory=datetime.utcnow, metadata={'required': True})
-    version: ObjectId = field(default_factory=ObjectId,
-                              metadata={'marshmallow_field': ObjectIdField(), 'required': True})
+    version: ObjectId = field(
+        default_factory=ObjectId, metadata={'marshmallow_field': ObjectIdField(), 'required': True}
+    )
 
 
 @dataclass

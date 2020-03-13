@@ -8,8 +8,8 @@ from uuid import UUID
 
 from bson import ObjectId
 
-from eduid_scimapi.scimbase import SCIMSchema
 from eduid_scimapi.profile import Profile
+from eduid_scimapi.scimbase import SCIMSchema
 
 __author__ = 'ft'
 
@@ -74,7 +74,7 @@ class ScimApiUser(object):
         this['scim_id'] = uuid.UUID(this['scim_id'])
         this['user_id'] = this.pop('_id')
         parsed_profiles = {}
-        for k,v in this['profiles'].items():
+        for k, v in this['profiles'].items():
             parsed_profiles[k] = Profile(**v)
         this['profiles'] = parsed_profiles
         return cls(**this)

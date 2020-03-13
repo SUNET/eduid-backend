@@ -3,7 +3,6 @@ from eduid_scimapi.utils import urlappend
 
 
 class BaseResource(object):
-
     def __init__(self, context: Context):
         self.context = context
 
