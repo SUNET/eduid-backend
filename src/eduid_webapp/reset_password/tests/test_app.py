@@ -491,6 +491,95 @@ class ResetPasswordTests(EduidAPITestCase):
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('eduid_common.api.msg.MsgRelay.sendsms')
+    def test_post_choose_extra_sec_throttled(self, mock_sendsms, mock_request_user_sync, mock_sendmail, mock_get_vccs_client):
+        mock_request_user_sync.side_effect = self.request_user_sync
+        mock_sendmail.return_value = True
+        mock_get_vccs_client.return_value = TestVCCSClient()
+        mock_sendsms.return_value = True
+
+        self.app.config.throttle_sms_seconds = 300
+
+        with self.app.test_client() as c:
+            data = {
+                'email': self.test_user_email
+            }
+            response = c.post('/reset/', data=json.dumps(data),
+                              content_type=self.content_type_json)
+            self.assertEqual(response.status_code, 200)
+            state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+
+            url = url_for('reset_password.config_reset_pw', _external=True)
+            data = {
+                'code': state.email_code.code
+            }
+            response = c.post(url, data=json.dumps(data),
+                              content_type=self.content_type_json)
+            self.assertEqual(response.status_code, 200)
+
+            url = url_for('reset_password.choose_extra_security_phone', _external=True)
+            data = {
+                'code': state.email_code.code,
+                'phone_index': '0'
+            }
+
+            c.post(url, data=json.dumps(data),
+                   content_type=self.content_type_json)
+
+            response = c.post(url, data=json.dumps(data),
+                              content_type=self.content_type_json)
+
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_EXTRA_SECURITY_PHONE_FAIL')
+            self.assertEqual(response.json['payload']['message'], 'resetpw.sms-throttled')
+
+    @patch('eduid_common.authn.vccs.get_vccs_client')
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid_common.api.msg.MsgRelay.sendsms')
+    def test_post_choose_extra_sec_not_throttled(self, mock_sendsms, mock_request_user_sync, mock_sendmail, mock_get_vccs_client):
+        mock_request_user_sync.side_effect = self.request_user_sync
+        mock_sendmail.return_value = True
+        mock_get_vccs_client.return_value = TestVCCSClient()
+        mock_sendsms.return_value = True
+
+        self.app.config.throttle_sms_seconds = 0
+
+        with self.app.test_client() as c:
+            data = {
+                'email': self.test_user_email
+            }
+            response = c.post('/reset/', data=json.dumps(data),
+                              content_type=self.content_type_json)
+            self.assertEqual(response.status_code, 200)
+            state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+
+            url = url_for('reset_password.config_reset_pw', _external=True)
+            data = {
+                'code': state.email_code.code
+            }
+            response = c.post(url, data=json.dumps(data),
+                              content_type=self.content_type_json)
+            self.assertEqual(response.status_code, 200)
+
+            url = url_for('reset_password.choose_extra_security_phone', _external=True)
+            data = {
+                'code': state.email_code.code,
+                'phone_index': '0'
+            }
+
+            c.post(url, data=json.dumps(data),
+                   content_type=self.content_type_json)
+
+            response = c.post(url, data=json.dumps(data),
+                              content_type=self.content_type_json)
+
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_EXTRA_SECURITY_PHONE_SUCCESS')
+
+    @patch('eduid_common.authn.vccs.get_vccs_client')
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid_common.api.msg.MsgRelay.sendsms')
     def test_post_choose_extra_sec_wrong_code(self, mock_sendsms, mock_request_user_sync, mock_sendmail, mock_get_vccs_client):
         mock_request_user_sync.side_effect = self.request_user_sync
         mock_sendmail.return_value = True

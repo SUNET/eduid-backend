@@ -76,9 +76,11 @@ form will also result in resetting her password, but without unverifying any of
 her data.
 """
 import json
+import time
 
 from flask import Blueprint, request
 
+from eduid_userdb.reset_password import ResetPasswordEmailAndPhoneState
 from eduid_common.api.exceptions import MsgTaskFailed
 from eduid_common.api.schemas.base import FluxStandardAction
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith
@@ -327,6 +329,12 @@ def choose_extra_security_phone(code: str, phone_index: int) -> dict:
         state = get_pwreset_state(code)
     except BadCode as e:
         return error_message(e.msg)
+
+    if isinstance(state, ResetPasswordEmailAndPhoneState):
+        now = int(time.time())
+        if int(state.modified_ts.timestamp()) > now - current_app.config.throttle_sms_seconds:
+            current_app.logger.info(f'Throttling reset password SMSs for: {state.eppn}')
+            return error_message(ResetPwMsg.send_sms_throttled)
 
     current_app.logger.info(f'Password reset: choose_extra_security for '
                             f'user with eppn {state.eppn}')

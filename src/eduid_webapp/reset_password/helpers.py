@@ -83,6 +83,8 @@ class ResetPwMsg(Enum):
     # The password has been successfully resetted
     pw_resetted = 'resetpw.pw-resetted'
     # There was some problem sending the SMS with the (extra security) code.
+    send_sms_throttled = 'resetpw.sms-throttled'
+    # Sending the SMS with the (extra security) code has been throttled.
     send_sms_failure = 'resetpw.sms-failed'
     # A new (extra security) code has been generated and sent by SMS
     # successfully
