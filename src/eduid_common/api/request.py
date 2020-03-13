@@ -45,16 +45,13 @@ of the Flask application::
     >>> app.request_class =  Request
 """
 
-from werkzeug._compat import iteritems, itervalues
-from werkzeug.utils import cached_property
-from werkzeug.datastructures import ImmutableMultiDict
-from werkzeug.datastructures import ImmutableTypeConversionDict
-from werkzeug.datastructures import EnvironHeaders
-
 from flask import Request as BaseRequest
 from flask import abort, current_app
+from werkzeug._compat import iteritems, itervalues
+from werkzeug.datastructures import EnvironHeaders, ImmutableMultiDict, ImmutableTypeConversionDict
+from werkzeug.utils import cached_property
 
-from eduid_common.api.sanitation import Sanitizer, SanitationProblem
+from eduid_common.api.sanitation import SanitationProblem, Sanitizer
 
 
 class SanitationMixin(Sanitizer):
@@ -66,8 +63,9 @@ class SanitationMixin(Sanitizer):
     def sanitize_input(self, untrusted_text, strip_characters=False):
         logger = current_app.logger
         try:
-            return super(SanitationMixin, self).sanitize_input(untrusted_text, logger,
-                                                               strip_characters=strip_characters)
+            return super(SanitationMixin, self).sanitize_input(
+                untrusted_text, logger, strip_characters=strip_characters
+            )
         except SanitationProblem:
             abort(400)
 
@@ -209,15 +207,13 @@ class SanitizedTypeConversionDict(ImmutableTypeConversionDict, SanitationMixin):
         """
         sanitized values
         """
-        return [self.sanitize_input(v) for v in
-                ImmutableTypeConversionDict.values(self)]
+        return [self.sanitize_input(v) for v in ImmutableTypeConversionDict.values(self)]
 
     def items(self):
         """
         Sanitized items
         """
-        return [(v[0], self.sanitize_input(v[1])) for v in
-                ImmutableTypeConversionDict.items(self)]
+        return [(v[0], self.sanitize_input(v[1])) for v in ImmutableTypeConversionDict.items(self)]
 
     def pop(self, key):
         """

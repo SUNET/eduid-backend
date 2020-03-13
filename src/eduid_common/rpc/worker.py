@@ -3,11 +3,11 @@
 from __future__ import absolute_import
 
 import os
-from typing import Type, Dict, Any
+from typing import Any, Dict, Type
 
+from eduid_common.config.base import BaseConfig, CommonConfig
 from eduid_common.config.exceptions import BadConfiguration
 from eduid_common.config.parsers.etcd import EtcdConfigParser
-from eduid_common.config.base import CommonConfig, BaseConfig
 
 
 def get_worker_config(name: str, config_class: Type[CommonConfig] = BaseConfig) -> CommonConfig:

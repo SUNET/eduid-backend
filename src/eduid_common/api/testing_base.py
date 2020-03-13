@@ -33,13 +33,14 @@
 
 from __future__ import absolute_import
 
-import os
 import logging
-from typing import Optional, List, Dict, Any
+import os
+from typing import Any, Dict, List, Optional
+
+from eduid_userdb.testing import MongoTestCase
 
 from eduid_common.config.testing import EtcdTemporaryInstance
 from eduid_common.config.workers import AmConfig
-from eduid_userdb.testing import MongoTestCase
 
 logger = logging.getLogger(__name__)
 
@@ -49,10 +50,12 @@ class CommonTestCase(MongoTestCase):
     Base Test case for eduID webapps and celery workers
     """
 
-    def setUp(self, users: Optional[List[str]] = None,
-              copy_user_to_private: bool = False,
-              am_settings: Optional[Dict[str, Any]] = None
-              ):
+    def setUp(
+        self,
+        users: Optional[List[str]] = None,
+        copy_user_to_private: bool = False,
+        am_settings: Optional[Dict[str, Any]] = None,
+    ):
         """
         set up tests
         """

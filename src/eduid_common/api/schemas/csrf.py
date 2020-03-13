@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import absolute_import
+
+from flask import current_app, request
+from marshmallow import Schema, ValidationError, fields, post_load, pre_dump, validates
 from six.moves.urllib.parse import urlsplit
 
-from marshmallow import Schema, fields, validates, pre_dump, post_load, ValidationError
-from flask import request, current_app
-from eduid_common.session import session
 from eduid_common.api.schemas.base import EduidSchema, FluxStandardAction
+from eduid_common.session import session
 
 __author__ = 'lundberg'
 
@@ -33,8 +34,7 @@ class CSRFRequestMixin(Schema):
             raise ValidationError('CSRF cannot check target')
         target = target.split(':')[0]
         if origin != target:
-            raise ValidationError('CSRF cross origin request, origin: {}, '
-                                  'target: {}'.format(origin, target))
+            raise ValidationError('CSRF cross origin request, origin: {}, ' 'target: {}'.format(origin, target))
         if session.get_csrf_token() != value:
             raise ValidationError('CSRF failed to validate')
 
@@ -62,7 +62,6 @@ class CSRFResponseMixin(Schema):
 
 
 class CSRFRequest(EduidSchema):
-
     class RequestPayload(EduidSchema, CSRFRequestMixin):
         pass
 
@@ -70,7 +69,6 @@ class CSRFRequest(EduidSchema):
 
 
 class CSRFResponse(FluxStandardAction):
-
     class ResponsePayload(EduidSchema, CSRFResponseMixin):
         pass
 

@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 import warnings
-from typing import Optional, List
+from typing import List, Optional
 
 from flask import current_app
 
 import eduid_msg
+
 from eduid_common.api.app import EduIDBaseApp
 from eduid_common.api.exceptions import MsgTaskFailed
 from eduid_common.config.base import CeleryConfig
@@ -30,11 +31,11 @@ def init_relay(app: EduIDBaseApp) -> EduIDBaseApp:
 
 
 class MsgRelay(object):
-
     def __init__(self, settings: CeleryConfig):
         eduid_msg.init_app(settings)
         # these have to be imported _after_ eduid_am.init_app()
         from eduid_msg.tasks import get_postal_address, get_relations_to, send_message, sendsms, pong
+
         self._get_postal_address = get_postal_address
         self._get_relations_to = get_relations_to
         self._send_message = send_message
@@ -96,8 +97,15 @@ class MsgRelay(object):
             rtask.forget()
             raise MsgTaskFailed(f'get_relations_to task failed: {e}')
 
-    def phone_validator(self, reference: str, targetphone: str, code: str, language: str,
-                        template_name: str = 'mobile-validator', timeout: int = 4) -> None:
+    def phone_validator(
+        self,
+        reference: str,
+        targetphone: str,
+        code: str,
+        language: str,
+        template_name: str = 'mobile-validator',
+        timeout: int = 4,
+    ) -> None:
         """
             The template keywords are:
                 * sitename: (eduID by default)
@@ -105,10 +113,7 @@ class MsgRelay(object):
                 * code: the verification code
                 * phonenumber: the phone number to verify
         """
-        warnings.warn(
-            "This function will be removed. Use sendsms instead.",
-            DeprecationWarning
-        )
+        warnings.warn("This function will be removed. Use sendsms instead.", DeprecationWarning)
         current_app.logger.info('Trying to send phone validation SMS with reference: {}'.format(reference))
         content = {
             'sitename': current_app.config.get('EDUID_SITE_NAME'),
@@ -122,10 +127,13 @@ class MsgRelay(object):
         rtask = self._send_message.apply_async(args=['sms', reference, content, targetphone, template, lang])
         try:
             res = rtask.get(timeout=timeout)
-            current_app.logger.debug(f"SENT mobile validator message code: {code} phone number: {targetphone} with "
-                                     f"reference {reference}")
-            current_app.logger.debug(f"Extra debug: Send message result: {repr(res)},"
-                                     f" parameters:\n{repr(['sms', reference, content, targetphone, template, lang])}")
+            current_app.logger.debug(
+                f"SENT mobile validator message code: {code} phone number: {targetphone} with " f"reference {reference}"
+            )
+            current_app.logger.debug(
+                f"Extra debug: Send message result: {repr(res)},"
+                f" parameters:\n{repr(['sms', reference, content, targetphone, template, lang])}"
+            )
         except Exception as e:
             rtask.forget()
             raise MsgTaskFailed(f'phone_validator task failed: {e}')

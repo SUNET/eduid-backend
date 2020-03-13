@@ -5,7 +5,6 @@ __author__ = 'lundberg'
 
 # Copied from https://stackoverflow.com/questions/18967441/add-a-prefix-to-all-flask-routes/36033627#36033627
 class PrefixMiddleware(object):
-
     def __init__(self, app, prefix='', server_name=''):
         self.app = app
         if prefix is None:
@@ -22,7 +21,7 @@ class PrefixMiddleware(object):
             environ['SCRIPT_NAME'] = self.prefix
             return self.app(environ, start_response)
         elif environ.get('PATH_INFO', '').startswith(self.prefix):
-            environ['PATH_INFO'] = environ['PATH_INFO'][len(self.prefix):]
+            environ['PATH_INFO'] = environ['PATH_INFO'][len(self.prefix) :]
             environ['SCRIPT_NAME'] = self.prefix
             return self.app(environ, start_response)
         else:

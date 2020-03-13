@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
-from typing import Type, List, Optional
+from typing import List, Optional, Type
 
-from flask import current_app
-from flask import render_template
+from flask import current_app, render_template
 
-from eduid_userdb.user import User
 from eduid_userdb.nin import Nin
 from eduid_userdb.proofing import ProofingUser
 from eduid_userdb.proofing.state import NinProofingState
+from eduid_userdb.user import User
+
 from eduid_common.api.app import EduIDBaseApp
 
 __author__ = 'lundberg'
@@ -33,13 +33,17 @@ def set_user_names_from_offical_address(proofing_user, proofing_log_entry):
     if not proofing_user.display_name:
         if given_name_marking:
             given_name_marking = int((int(given_name_marking) / 10) - 1)  # ex. "20" -> 1 (second given name)
-            proofing_user.display_name = u'{} {}'.format(name['GivenName'].split()[given_name_marking],
-                                                         proofing_user.surname)
+            proofing_user.display_name = u'{} {}'.format(
+                name['GivenName'].split()[given_name_marking], proofing_user.surname
+            )
         else:
             proofing_user.display_name = u'{} {}'.format(proofing_user.given_name, proofing_user.surname)
     current_app.logger.info(u'User names set from official address')
-    current_app.logger.debug(u'{} resulted in given_name: {}, surname: {} and display_name: {}'.format(
-        name, proofing_user.given_name, proofing_user.surname, proofing_user.display_name))
+    current_app.logger.debug(
+        u'{} resulted in given_name: {}, surname: {} and display_name: {}'.format(
+            name, proofing_user.given_name, proofing_user.surname, proofing_user.display_name
+        )
+    )
     return proofing_user
 
 
@@ -59,8 +63,9 @@ def number_match_proofing(user, proofing_state, number):
     if proofing_state.nin.number == number:
         return True
     current_app.logger.error('Self asserted NIN does not match for user {}'.format(user))
-    current_app.logger.debug('Self asserted NIN: {}. NIN from vetting provider {}'.format(
-        proofing_state.nin.number, number))
+    current_app.logger.debug(
+        'Self asserted NIN: {}. NIN from vetting provider {}'.format(proofing_state.nin.number, number)
+    )
     return False
 
 
@@ -71,9 +76,13 @@ def add_nin_to_user(user: User, proofing_state: NinProofingState, user_class: Ty
     if not proofing_user.nins.find(proofing_state.nin.number):
         current_app.logger.info('Adding NIN for user {}'.format(user))
         current_app.logger.debug('Self asserted NIN: {}'.format(proofing_state.nin.number))
-        nin_element = Nin(number=proofing_state.nin.number, application=proofing_state.nin.created_by,
-                          verified=proofing_state.nin.is_verified, created_ts=proofing_state.nin.created_ts,
-                          primary=False)
+        nin_element = Nin(
+            number=proofing_state.nin.number,
+            application=proofing_state.nin.created_by,
+            verified=proofing_state.nin.is_verified,
+            created_ts=proofing_state.nin.created_ts,
+            primary=False,
+        )
         proofing_user.nins.add(nin_element)
         proofing_user.modified_ts = True
         # Save user to private db
@@ -99,8 +108,13 @@ def verify_nin_for_user(user, proofing_state, proofing_log_entry):
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     nin_element = proofing_user.nins.find(proofing_state.nin.number)
     if not nin_element:
-        nin_element = Nin(number=proofing_state.nin.number, application=proofing_state.nin.created_by,
-                          created_ts=proofing_state.nin.created_ts, verified=False, primary=False)
+        nin_element = Nin(
+            number=proofing_state.nin.number,
+            application=proofing_state.nin.created_by,
+            created_ts=proofing_state.nin.created_ts,
+            verified=False,
+            primary=False,
+        )
         proofing_user.nins.add(nin_element)
 
     # Check if the NIN is already verified
@@ -135,8 +149,15 @@ def verify_nin_for_user(user, proofing_state, proofing_log_entry):
         current_app.logger.info('Sync result for user {!s}: {!s}'.format(proofing_user, result))
 
 
-def send_mail(subject: str, to_addresses: List[str], text_template: str, html_template: str,
-              app: EduIDBaseApp, context: Optional[dict] = None, reference: Optional[str] = None):
+def send_mail(
+    subject: str,
+    to_addresses: List[str],
+    text_template: str,
+    html_template: str,
+    app: EduIDBaseApp,
+    context: Optional[dict] = None,
+    reference: Optional[str] = None,
+):
     """
     :param subject: subject text
     :param to_addresses: email addresses for the to field

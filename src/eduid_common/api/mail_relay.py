@@ -35,22 +35,31 @@ from email.mime.text import MIMEText
 from typing import List, Optional
 
 from flask import current_app
+
 import eduid_msg
+
 from eduid_common.api.exceptions import MailTaskFailed
 
 
 class MailRelay(object):
-
     def __init__(self, settings):
         self.settings = settings
         eduid_msg.init_app(settings)
         # this import has to happen _after_ init_app
         from eduid_msg.tasks import sendmail, pong
+
         self._sendmail = sendmail
         self._pong = pong
 
-    def sendmail(self, subject: str, recipients: List[str], text: Optional[str] = None, html: Optional[str] = None,
-                 reference: Optional[str] = None, timeout: int = 4):
+    def sendmail(
+        self,
+        subject: str,
+        recipients: List[str],
+        text: Optional[str] = None,
+        html: Optional[str] = None,
+        reference: Optional[str] = None,
+        timeout: int = 4,
+    ):
         """
         :param subject: Message subject
         :param recipients: List of recipients

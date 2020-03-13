@@ -35,7 +35,7 @@ Configuration (file) handling for eduID IdP.
 """
 
 from dataclasses import dataclass, field
-from typing import Optional, List, Tuple
+from typing import List, Optional, Tuple
 
 from .base import BaseConfig
 
@@ -45,6 +45,7 @@ class IdPConfig(BaseConfig):
     """
     Configuration for the IdP
     """
+
     app_name: str = 'idp'
     # session cookie
     session_cookie_persistent: bool = True
@@ -162,7 +163,7 @@ class IdPConfig(BaseConfig):
     tou_reaccept_interval: int = 94608000
     # Name of cookie used to persist session information in the users browser.
     shared_session_cookie_name: str = 'sessid'
-    session_cookie_timeout: int = 60      # in minutes
+    session_cookie_timeout: int = 60  # in minutes
     # Key to decrypt shared sessions.
     shared_session_secret_key: Optional[str] = None
     secret_key: Optional[str] = None
@@ -175,4 +176,5 @@ class IdPConfig(BaseConfig):
     supported_digest_algorithms: List[str] = field(default_factory=lambda: ['http://www.w3.org/2001/04/xmlenc#sha256'])
     # List in order of preference
     supported_signing_algorithms: List[str] = field(
-        default_factory=lambda: ['http://www.w3.org/2001/04/xmldsig-more#rsa-sha256'])
+        default_factory=lambda: ['http://www.w3.org/2001/04/xmldsig-more#rsa-sha256']
+    )

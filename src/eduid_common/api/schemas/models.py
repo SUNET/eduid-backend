@@ -14,7 +14,6 @@ class FluxResponseStatus:
 
 
 class FluxResponse(object):
-
     def __init__(self, req, suffix, payload=None, error=None, meta=None):
         self.flux_type = get_flux_type(req, suffix)
         self.payload = payload
@@ -43,7 +42,6 @@ class FluxResponse(object):
 
 
 class FluxSuccessResponse(FluxResponse):
-
     def __init__(self, req, payload, meta=None):
         FluxResponse.__init__(self, req, 'success', payload, meta=meta)
 

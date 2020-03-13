@@ -29,17 +29,18 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+import logging
 from typing import Optional, Union
 
 from bson import ObjectId
-from eduid_userdb.user import User
-from eduid_userdb.dashboard import DashboardLegacyUser, DashboardUser
-from eduid_userdb.credentials import Password
-from eduid_common.api.decorators import deprecated
 
 import vccs_client
+from eduid_userdb.credentials import Password
+from eduid_userdb.dashboard import DashboardLegacyUser, DashboardUser
+from eduid_userdb.user import User
 
-import logging
+from eduid_common.api.decorators import deprecated
+
 logger = logging.getLogger(__name__)
 
 
@@ -52,9 +53,7 @@ def get_vccs_client(vccs_url):
     :return: vccs client
     :rtype: VCCSClient
     """
-    return vccs_client.VCCSClient(
-        base_url=vccs_url,
-    )
+    return vccs_client.VCCSClient(base_url=vccs_url,)
 
 
 def check_password(vccs_url, password, user, vccs=None):
@@ -82,9 +81,7 @@ def check_password(vccs_url, password, user, vccs=None):
 
     for user_password in user.credentials.filter(Password).to_list():
         factor = vccs_client.VCCSPasswordFactor(
-            password,
-            credential_id=str(user_password.key),
-            salt=user_password.salt,
+            password, credential_id=str(user_password.key), salt=user_password.salt,
         )
         try:
             if vccs.authenticate(str(user.user_id), [factor]):
@@ -94,10 +91,14 @@ def check_password(vccs_url, password, user, vccs=None):
     return False
 
 
-def add_password(user: User, new_password: str,
-                 application: str, is_generated: bool = False,
-                 vccs_url: Optional[str] = None,
-                 vccs: Optional[vccs_client.VCCSClient] = None) -> Union[User, bool]:
+def add_password(
+    user: User,
+    new_password: str,
+    application: str,
+    is_generated: bool = False,
+    vccs_url: Optional[str] = None,
+    vccs: Optional[vccs_client.VCCSClient] = None,
+) -> Union[User, bool]:
     """
     :param user: User object
     :param new_password: plaintext new password
@@ -121,18 +122,21 @@ def add_password(user: User, new_password: str,
     logger.info('Added password credential {} for user {}'.format(new_factor.credential_id, user))
 
     # Add new password to user
-    new_password = Password(credential_id=credential_id,
-                            salt=new_factor.salt,
-                            is_generated=is_generated,
-                            application=application)
+    new_password = Password(
+        credential_id=credential_id, salt=new_factor.salt, is_generated=is_generated, application=application
+    )
     user.credentials.add(new_password)
     return user
 
 
-def reset_password(user: User, new_password: str,
-                   application: str, is_generated: bool = False,
-                   vccs_url: Optional[str] = None,
-                   vccs: Optional[vccs_client.VCCSClient] = None) -> Union[User, bool]:
+def reset_password(
+    user: User,
+    new_password: str,
+    application: str,
+    is_generated: bool = False,
+    vccs_url: Optional[str] = None,
+    vccs: Optional[vccs_client.VCCSClient] = None,
+) -> Union[User, bool]:
     """
     :param user: User object
     :param new_password: plaintext new password
@@ -159,19 +163,22 @@ def reset_password(user: User, new_password: str,
     logger.info('Added password credential {} for user {}'.format(new_factor.credential_id, user))
 
     # Add new password to user
-    new_password = Password(credential_id=credential_id,
-                            salt=new_factor.salt,
-                            is_generated=is_generated,
-                            application=application)
+    new_password = Password(
+        credential_id=credential_id, salt=new_factor.salt, is_generated=is_generated, application=application
+    )
     user.credentials.add(new_password)
     return user
 
 
-def change_password(user: User,
-                    new_password: str, old_password: str,
-                    application: str, is_generated: bool = False,
-                    vccs_url: Optional[str] = None,
-                    vccs: Optional[vccs_client.VCCSClient] = None) -> Union[User, bool]:
+def change_password(
+    user: User,
+    new_password: str,
+    old_password: str,
+    application: str,
+    is_generated: bool = False,
+    vccs_url: Optional[str] = None,
+    vccs: Optional[vccs_client.VCCSClient] = None,
+) -> Union[User, bool]:
     """
     :param user: User object
     :param new_password: plaintext new password
@@ -204,8 +211,9 @@ def change_password(user: User,
     if not checked_password:
         logger.error('Old password did not match for user {}'.format(user))
         return False
-    revoke_factor = vccs_client.VCCSRevokeFactor(str(checked_password.credential_id), 'changing password',
-                                                 reference=application)
+    revoke_factor = vccs_client.VCCSRevokeFactor(
+        str(checked_password.credential_id), 'changing password', reference=application
+    )
 
     # Add the new password
     if not vccs.add_credentials(str(user.user_id), [new_factor]):
@@ -219,10 +227,9 @@ def change_password(user: User,
     logger.info('Revoked credential {} for user {}'.format(revoke_factor.credential_id, user))
 
     # Add new password to user
-    new_password = Password(credential_id=credential_id,
-                            salt=new_factor.salt,
-                            is_generated=is_generated,
-                            application=application)
+    new_password = Password(
+        credential_id=credential_id, salt=new_factor.salt, is_generated=is_generated, application=application
+    )
     user.credentials.add(new_password)
     return user
 
@@ -271,31 +278,30 @@ def add_credentials(vccs_url, old_password, new_password, user, source='dashboar
         del old_password  # don't need it anymore, try to forget it
         if not checked_password:
             return False
-        old_factor = vccs_client.VCCSRevokeFactor(str(checked_password.credential_id), 'changing password',
-                                                  reference=source,
-                                                  )
+        old_factor = vccs_client.VCCSRevokeFactor(
+            str(checked_password.credential_id), 'changing password', reference=source,
+        )
 
     if not vccs.add_credentials(str(user.user_id), [new_factor]):
         logger.warning("Failed adding password credential {!r} for user {!r}".format(new_factor.credential_id, user))
         return False  # something failed
-    logger.debug("Added password credential {!s} for user {!s}".format(
-        new_factor.credential_id, user))
+    logger.debug("Added password credential {!s} for user {!s}".format(new_factor.credential_id, user))
 
     if old_factor:
         vccs.revoke_credentials(str(user.user_id), [old_factor])
         user.credentials.remove(checked_password.credential_id)
-        logger.debug("Revoked old credential {!s} (user {!s})".format(
-            old_factor.credential_id, user))
+        logger.debug("Revoked old credential {!s} (user {!s})".format(old_factor.credential_id, user))
 
     if not old_password_supplied:
         # XXX: Revoke all current credentials on password reset for now
         revoked = []
         for password in user.credentials.filter(Password).to_list():
-            revoked.append(vccs_client.VCCSRevokeFactor(str(password.credential_id),
-                                                        'reset password',
-                                                        reference=source))
-            logger.debug("Revoking old credential (password reset) "
-                         "{!s} (user {!s})".format(password.credential_id, user))
+            revoked.append(
+                vccs_client.VCCSRevokeFactor(str(password.credential_id), 'reset password', reference=source)
+            )
+            logger.debug(
+                "Revoking old credential (password reset) " "{!s} (user {!s})".format(password.credential_id, user)
+            )
             user.credentials.remove(password.credential_id)
         if revoked:
             try:
@@ -304,8 +310,7 @@ def add_credentials(vccs_url, old_password, new_password, user, source='dashboar
                 # Password already revoked
                 # TODO: vccs backend should be changed to return something more informative than
                 # TODO: VCCSClientHTTPError when the credential is already revoked or just return success.
-                logger.warning("VCCS failed to revoke all passwords for "
-                               "user {!s}".format(user))
+                logger.warning("VCCS failed to revoke all passwords for " "user {!s}".format(user))
 
     new_password = Password(credential_id=credential_id, salt=new_factor.salt, application=source)
     user.credentials.add(new_password)
@@ -360,13 +365,8 @@ def revoke_all_credentials(vccs_url, user, source='dashboard', vccs=None):
     to_revoke = []
     for password in user.credentials.filter(Password).to_list():
         credential_id = str(password.credential_id)
-        factor = vccs_client.VCCSRevokeFactor(
-            credential_id,
-            'subscriber requested termination',
-            reference=source
-        )
-        logger.debug("Revoked old credential (account termination)"
-                     " {!s} (user {!s})".format(credential_id, user))
+        factor = vccs_client.VCCSRevokeFactor(credential_id, 'subscriber requested termination', reference=source)
+        logger.debug("Revoked old credential (account termination)" " {!s} (user {!s})".format(credential_id, user))
         to_revoke.append(factor)
     userid = str(user.user_id)
     vccs.revoke_credentials(userid, to_revoke)

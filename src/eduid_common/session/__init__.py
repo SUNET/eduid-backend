@@ -32,6 +32,7 @@
 #
 
 from flask import session as flask_session
+
 from eduid_common.session.eduid_session import EduidSession
 
 

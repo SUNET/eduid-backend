@@ -38,9 +38,9 @@ class NoOpStats(AppStats):
 
 
 class Statsd(AppStats):
-
     def __init__(self, host, port, prefix=None):
         import statsd
+
         self.client = statsd.StatsClient(host, port, prefix=prefix)
 
     def count(self, name, value=1):

@@ -31,11 +31,10 @@
 #
 import unittest
 
-from eduid_common.authn.cache import SessionCacheAdapter, OutstandingQueriesCache, IdentityCache
+from eduid_common.authn.cache import IdentityCache, OutstandingQueriesCache, SessionCacheAdapter
 
 
 class SessionCacheAdapterTests(unittest.TestCase):
-
     def test_init(self):
         fake_session_dict = {
             'user': 'someone@example.com',
@@ -59,9 +58,9 @@ class SessionCacheAdapterTests(unittest.TestCase):
         }
         psca = SessionCacheAdapter(fake_session_dict, 'saml2')
 
-        psca._set_objects({
-            'onekey': 'onevalue',
-        })
+        psca._set_objects(
+            {'onekey': 'onevalue',}
+        )
 
         self.assertEqual(psca._get_objects(), {'onekey': 'onevalue'})
 
@@ -81,7 +80,6 @@ class SessionCacheAdapterTests(unittest.TestCase):
 
 
 class OutstandingQueriesCacheTests(unittest.TestCase):
-
     def test_init(self):
         fake_session_dict = {
             'user': 'someone@example.com',
@@ -96,8 +94,7 @@ class OutstandingQueriesCacheTests(unittest.TestCase):
         oqc._db['user'] = 'someone@example.com'
         oqc._db.sync()
 
-        self.assertEqual(oqc.outstanding_queries(), {'user':
-                                                     'someone@example.com'})
+        self.assertEqual(oqc.outstanding_queries(), {'user': 'someone@example.com'})
 
     def test_set(self):
         oqc = OutstandingQueriesCache({})
@@ -116,7 +113,6 @@ class OutstandingQueriesCacheTests(unittest.TestCase):
 
 
 class IdentityCacheTests(unittest.TestCase):
-
     def test_init(self):
         ic = IdentityCache({})
 

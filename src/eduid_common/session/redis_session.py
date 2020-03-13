@@ -79,20 +79,21 @@ in an NCName.
 
 from __future__ import unicode_literals
 
-import six
+import base64
+import collections
+import hashlib
 import hmac
 import json
-import hashlib
-import collections
-import redis
-import redis.sentinel
+import logging
+
+import nacl.encoding
 import nacl.secret
 import nacl.utils
-import nacl.encoding
-import base64
+import redis
+import redis.sentinel
+import six
 from saml2.saml import NameID
 
-import logging
 logger = logging.getLogger(__name__)
 
 # Prepend an 'a' so we always have a valid NCName,
@@ -134,9 +135,18 @@ class RedisEncryptedSession(collections.MutableMapping):
     Session objects that keep their data in a redis db.
     """
 
-    def __init__(self, conn, token=None, session_id=None,
-                 data=None, secret='', ttl=None,
-                 whitelist=None, raise_on_unknown=False, debug=False):
+    def __init__(
+        self,
+        conn,
+        token=None,
+        session_id=None,
+        data=None,
+        secret='',
+        ttl=None,
+        whitelist=None,
+        raise_on_unknown=False,
+        debug=False,
+    ):
         """
         Retrive or create a session for the given token or data.
 
@@ -288,8 +298,9 @@ class RedisEncryptedSession(collections.MutableMapping):
         """
         data = self.sign_data(self._data)
         if self.debug:
-            logger.debug('Committing session {} to the cache with ttl {} ({} bytes)'.format(self.session_id,
-                                                                                            self.ttl, len(data)))
+            logger.debug(
+                'Committing session {} to the cache with ttl {} ({} bytes)'.format(self.session_id, self.ttl, len(data))
+            )
         self.conn.setex(self.session_id, self.ttl, data)
 
     def encode_token(self, session_id: bytes) -> str:
@@ -325,7 +336,7 @@ class RedisEncryptedSession(collections.MutableMapping):
         # session id.
         if not token.startswith(TOKEN_PREFIX):
             raise ValueError('Invalid token string {!r}'.format(token))
-        val = token.strip(b'"')[len(TOKEN_PREFIX):]
+        val = token.strip(b'"')[len(TOKEN_PREFIX) :]
         # Split the token into it's two parts - the session_id and the HMAC signature of it
         # (the last byte is ignored - it is padding to make b32encode not put an = at the end)
         _decoded = base64.b32decode(val)
@@ -345,9 +356,11 @@ class RedisEncryptedSession(collections.MutableMapping):
         nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
         # Version data to make it easier to know how to decode it on reading
         data_json = json.dumps(data_dict, cls=NameIDEncoder)
-        versioned = {'v2': bytes(self.nacl_box.encrypt(data_json.encode('ascii'), nonce,
-                                                       encoder=nacl.encoding.Base64Encoder)).decode('ascii')
-                     }
+        versioned = {
+            'v2': bytes(
+                self.nacl_box.encrypt(data_json.encode('ascii'), nonce, encoder=nacl.encoding.Base64Encoder)
+            ).decode('ascii')
+        }
         return json.dumps(versioned)
 
     def verify_data(self, data_str):
@@ -362,8 +375,7 @@ class RedisEncryptedSession(collections.MutableMapping):
             data_str = data_str.decode('utf8')
         versioned = json.loads(data_str)
         if 'v2' in versioned:
-            _data = self.nacl_box.decrypt(versioned['v2'],
-                                          encoder=nacl.encoding.Base64Encoder)
+            _data = self.nacl_box.decrypt(versioned['v2'], encoder=nacl.encoding.Base64Encoder)
             if isinstance(_data, six.binary_type):
                 _data = _data.decode('utf8')
             decrypted = json.loads(_data)
@@ -399,8 +411,7 @@ class SessionManager(object):
     session objects.
     """
 
-    def __init__(self, cfg, ttl=600,
-                 secret=None, whitelist=None, raise_on_unknown=False):
+    def __init__(self, cfg, ttl=600, secret=None, whitelist=None, raise_on_unknown=False):
         """
         Constructor for SessionManager
 
@@ -442,12 +453,17 @@ class SessionManager(object):
         :rtype: RedisEncryptedSession
         """
         conn = redis.StrictRedis(connection_pool=self.pool)
-        return RedisEncryptedSession(conn, token=token, session_id=session_id, data=data,
-                                     secret=self.secret, ttl=self.ttl,
-                                     whitelist=self.whitelist,
-                                     raise_on_unknown=self.raise_on_unknown,
-                                     debug=debug
-                                     )
+        return RedisEncryptedSession(
+            conn,
+            token=token,
+            session_id=session_id,
+            data=data,
+            secret=self.secret,
+            ttl=self.ttl,
+            whitelist=self.whitelist,
+            raise_on_unknown=self.raise_on_unknown,
+            debug=debug,
+        )
 
 
 def derive_key(app_key, session_key, usage, size):
@@ -477,9 +493,7 @@ def derive_key(app_key, session_key, usage, size):
         usage = usage.encode('ascii')
     if isinstance(session_key, six.text_type):
         session_key = session_key.encode('utf8')
-    return hashlib.pbkdf2_hmac('sha256', app_key.encode('ascii'),
-                               usage + session_key,
-                               3, dklen=size)
+    return hashlib.pbkdf2_hmac('sha256', app_key.encode('ascii'), usage + session_key, 3, dklen=size)
 
 
 def sign_session_id(session_id: bytes, signing_key: bytes) -> bytes:

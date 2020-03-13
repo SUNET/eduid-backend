@@ -38,13 +38,14 @@ such as rate limiting.
 """
 
 import datetime
-from typing import Optional, Dict
+from typing import Dict, Optional
 
 import vccs_client
-from eduid_userdb.credentials import Password, Credential
+from eduid_userdb import MongoDB
+from eduid_userdb.credentials import Credential, Password
 from eduid_userdb.exceptions import UserHasNotCompletedSignup
 from eduid_userdb.idp import IdPUser
-from eduid_userdb import MongoDB
+
 from eduid_common.api import exceptions
 from eduid_common.authn import get_vccs_client
 
@@ -92,12 +93,13 @@ class AuthnData(object):
     def timestamp(self, value: datetime.datetime):
         if not isinstance(value, datetime.datetime):
             raise ValueError('Invalid timestamp (expect datetime, got {})'.format(type(value)))
-        self._timestamp = value.replace(tzinfo = None)  # thanks for not having timezone.utc, Python2
+        self._timestamp = value.replace(tzinfo=None)  # thanks for not having timezone.utc, Python2
 
     def to_session_dict(self) -> Dict:
-        return {'cred_id': self.credential.key,
-                'authn_ts': self.timestamp,
-                }
+        return {
+            'cred_id': self.credential.key,
+            'authn_ts': self.timestamp,
+        }
 
 
 class IdPAuthn(object):
@@ -118,7 +120,7 @@ class IdPAuthn(object):
             self.auth_client = get_vccs_client(config.vccs_url)
         self.authn_store = authn_store
         if self.authn_store is None and config.mongo_uri:
-            self.authn_store = AuthnInfoStoreMDB(uri = config.mongo_uri, logger = logger)
+            self.authn_store = AuthnInfoStoreMDB(uri=config.mongo_uri, logger=logger)
 
     def password_authn(self, data: dict) -> Optional[AuthnData]:
         """
@@ -168,8 +170,11 @@ class IdPAuthn(object):
         if self.authn_store:  # requires optional configuration
             authn_info = self.authn_store.get_user_authn_info(user)
             if authn_info.failures_this_month() > self.config.max_authn_failures_per_month:
-                self.logger.info("User {!r} AuthN failures this month {!r} > {!r}".format(
-                    user, authn_info.failures_this_month(), self.config.max_authn_failures_per_month))
+                self.logger.info(
+                    "User {!r} AuthN failures this month {!r} > {!r}".format(
+                        user, authn_info.failures_this_month(), self.config.max_authn_failures_per_month
+                    )
+                )
                 raise exceptions.EduidTooManyRequests("Too Many Requests")
 
             # Optimize list of credentials to try based on which credentials the
@@ -178,9 +183,9 @@ class IdPAuthn(object):
             last_creds = authn_info.last_used_credentials()
             sorted_creds = sorted(pw_credentials, key=lambda x: x.credential_id not in last_creds)
             if sorted_creds != pw_credentials:
-                self.logger.debug("Re-sorted list of credentials into\n{}\nbased on last-used {!r}".format(
-                    sorted_creds,
-                    last_creds))
+                self.logger.debug(
+                    "Re-sorted list of credentials into\n{}\nbased on last-used {!r}".format(sorted_creds, last_creds)
+                )
                 pw_credentials = sorted_creds
 
         return self._authn_passwords(user, password, pw_credentials)
@@ -203,11 +208,11 @@ class IdPAuthn(object):
             try:
                 factor = vccs_client.VCCSPasswordFactor(password, str(cred.credential_id), str(cred.salt))
             except ValueError as exc:
-                self.logger.info("User {} password factor {!s} unusable: {!r}".format(
-                    user, cred.credential_id, exc))
+                self.logger.info("User {} password factor {!s} unusable: {!r}".format(user, cred.credential_id, exc))
                 continue
-            self.logger.debug("Password-authenticating {}/{!r} with VCCS: {!r}".format(
-                user, str(cred.credential_id), factor))
+            self.logger.debug(
+                "Password-authenticating {}/{!r} with VCCS: {!r}".format(user, str(cred.credential_id), factor)
+            )
             user_id = str(user.user_id)
             try:
                 if self.auth_client.authenticate(user_id, [factor]):
@@ -243,8 +248,8 @@ class IdPAuthn(object):
             # Can't disallow this while there is a short-path from signup to dashboard unforch...
             self.logger.debug('Allowing never-used credential {!r}'.format(cred))
             return False
-        now = datetime.datetime.utcnow().replace(tzinfo = None)  # thanks for not having timezone.utc, Python2
-        delta = now - last_used.replace(tzinfo = None)
+        now = datetime.datetime.utcnow().replace(tzinfo=None)  # thanks for not having timezone.utc, Python2
+        delta = now - last_used.replace(tzinfo=None)
         self.logger.debug("Credential {} last used {!r} days ago".format(cred.key, delta.days))
         return delta.days >= int(365 * 1.5)
 
@@ -274,6 +279,7 @@ class AuthnInfoStore(object):
     """
     Abstract AuthnInfoStore.
     """
+
     def __init__(self, logger):
         self.logger = logger
 
@@ -283,13 +289,11 @@ class AuthnInfoStoreMDB(AuthnInfoStore):
     This is a MongoDB version of AuthnInfoStore().
     """
 
-    def __init__(self, uri, logger, db_name = 'eduid_idp_authninfo',
-                 collection_name = 'authn_info',
-                 **kwargs):
+    def __init__(self, uri, logger, db_name='eduid_idp_authninfo', collection_name='authn_info', **kwargs):
         AuthnInfoStore.__init__(self, logger)
 
         logger.debug("Setting up AuthnInfoStoreMDB")
-        self._db = MongoDB(db_uri = uri, db_name = db_name)
+        self._db = MongoDB(db_uri=uri, db_name=db_name)
         self.collection = self._db.get_collection(collection_name)
 
     def credential_success(self, cred_ids, ts=None):
@@ -313,12 +317,7 @@ class AuthnInfoStoreMDB(AuthnInfoStore):
         # return meaningful data for multi=True, so it is not possible to figure out
         # which entrys were actually updated :(
         for this in cred_ids:
-            self.collection.save(
-                {
-                    '_id': this,
-                    'success_ts': ts,
-                },
-            )
+            self.collection.save({'_id': this, 'success_ts': ts,},)
         return None
 
     def update_user(self, user_id, success, failure, ts=None):
@@ -352,21 +351,21 @@ class AuthnInfoStoreMDB(AuthnInfoStore):
             ts = datetime.datetime.utcnow()
         this_month = (ts.year * 100) + ts.month  # format year-month as integer (e.g. 201402)
         self.collection.find_and_modify(
-            query = {
-                '_id': user_id,
-            }, update = {
-                '$set': {
-                    'success_ts': ts,
-                    'last_credential_ids': success,
-                },
+            query={'_id': user_id,},
+            update={
+                '$set': {'success_ts': ts, 'last_credential_ids': success,},
                 '$inc': {
                     'fail_count.' + str(this_month): len(failure),
-                    'success_count.' + str(this_month): len(success)
+                    'success_count.' + str(this_month): len(success),
                 },
-            }, upsert = True, new = True, multi = False)
+            },
+            upsert=True,
+            new=True,
+            multi=False,
+        )
         return None
 
-    def unlock_user(self, user_id, fail_count = 0, ts=None):
+    def unlock_user(self, user_id, fail_count=0, ts=None):
         """
         Set the fail count for a specific user and month.
 
@@ -386,13 +385,12 @@ class AuthnInfoStoreMDB(AuthnInfoStore):
             ts = datetime.datetime.utcnow()
         this_month = (ts.year * 100) + ts.month  # format year-month as integer (e.g. 201402)
         self.collection.find_and_modify(
-            query = {
-                '_id': user_id,
-            }, update = {
-                '$set': {
-                    'fail_count.' + str(this_month): fail_count,
-                },
-            }, upsert = True, new = True, multi = False)
+            query={'_id': user_id,},
+            update={'$set': {'fail_count.' + str(this_month): fail_count,},},
+            upsert=True,
+            new=True,
+            multi=False,
+        )
         return None
 
     def get_user_authn_info(self, user):

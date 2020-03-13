@@ -35,7 +35,6 @@ Level of assurance related code.
 
 from .eduid_saml2 import get_authn_ctx
 
-
 AVAILABLE_LOA_LEVEL = [
     'http://www.swamid.se/policy/assurance/al1',
     'http://www.swamid.se/policy/assurance/al2',

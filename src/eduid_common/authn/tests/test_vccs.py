@@ -31,14 +31,15 @@
 #
 
 from mock import patch
+
 from eduid_userdb.actions.chpass import ChpassUser
 from eduid_userdb.testing import MongoTestCase
-from eduid_common.authn.testing import TestVCCSClient
+
 from eduid_common.authn import vccs as vccs_module
+from eduid_common.authn.testing import TestVCCSClient
 
 
 class VCCSTestCase(MongoTestCase):
-
     def setUp(self):
         super(VCCSTestCase, self).setUp()
         self.vccs_client = TestVCCSClient()
@@ -76,8 +77,9 @@ class VCCSTestCase(MongoTestCase):
         self.assertFalse(result3.is_generated)
 
     def test_add_password_generated(self):
-        added = vccs_module.add_password(self.user, new_password='wxyz', is_generated=True,
-                                         application='test', vccs=self.vccs_client)
+        added = vccs_module.add_password(
+            self.user, new_password='wxyz', is_generated=True, application='test', vccs=self.vccs_client
+        )
         self.assertTrue(added)
         result1 = self._check_credentials('abcd')
         self.assertTrue(result1)
@@ -88,8 +90,9 @@ class VCCSTestCase(MongoTestCase):
         self.assertTrue(result3.is_generated)
 
     def test_change_password(self):
-        added = vccs_module.change_password(self.user, new_password='wxyz', old_password='abcd', application='test',
-                                            vccs=self.vccs_client)
+        added = vccs_module.change_password(
+            self.user, new_password='wxyz', old_password='abcd', application='test', vccs=self.vccs_client
+        )
         self.assertTrue(added)
         result1 = self._check_credentials('abcd')
         self.assertFalse(result1)
@@ -100,9 +103,14 @@ class VCCSTestCase(MongoTestCase):
         self.assertFalse(result3.is_generated)
 
     def test_change_password_generated(self):
-        added = vccs_module.change_password(self.user, new_password='wxyz', old_password='abcd',
-                                            application='test', is_generated=True,
-                                            vccs=self.vccs_client)
+        added = vccs_module.change_password(
+            self.user,
+            new_password='wxyz',
+            old_password='abcd',
+            application='test',
+            is_generated=True,
+            vccs=self.vccs_client,
+        )
         self.assertTrue(added)
         result1 = self._check_credentials('abcd')
         self.assertFalse(result1)
@@ -113,8 +121,9 @@ class VCCSTestCase(MongoTestCase):
         self.assertTrue(result3.is_generated)
 
     def test_change_password_bad_old_password(self):
-        added = vccs_module.change_password(self.user, new_password='wxyz', old_password='fghi', application='test',
-                                            vccs=self.vccs_client)
+        added = vccs_module.change_password(
+            self.user, new_password='wxyz', old_password='fghi', application='test', vccs=self.vccs_client
+        )
         self.assertFalse(added)
         result1 = self._check_credentials('abcd')
         self.assertTrue(result1)
@@ -135,8 +144,9 @@ class VCCSTestCase(MongoTestCase):
         self.assertFalse(result3.is_generated)
 
     def test_reset_password_generated(self):
-        added = vccs_module.reset_password(self.user, new_password='wxyz', application='test',
-                                           is_generated=True, vccs=self.vccs_client)
+        added = vccs_module.reset_password(
+            self.user, new_password='wxyz', application='test', is_generated=True, vccs=self.vccs_client
+        )
         self.assertTrue(added)
         result1 = self._check_credentials('abcd')
         self.assertFalse(result1)
@@ -148,10 +158,12 @@ class VCCSTestCase(MongoTestCase):
 
     def test_change_password_error_adding(self):
         from eduid_common.authn.testing import TestVCCSClient
+
         with patch.object(TestVCCSClient, 'add_credentials'):
             TestVCCSClient.add_credentials.return_value = False
-            added = vccs_module.change_password(self.user, new_password='wxyz', old_password='abcd', application='test',
-                                                vccs=self.vccs_client)
+            added = vccs_module.change_password(
+                self.user, new_password='wxyz', old_password='abcd', application='test', vccs=self.vccs_client
+            )
             self.assertFalse(added)
             result1 = self._check_credentials('abcd')
             self.assertTrue(result1)
@@ -168,8 +180,9 @@ class VCCSTestCase(MongoTestCase):
             raise VCCSClientHTTPError('dummy', 500)
 
         with patch.object(TestVCCSClient, 'revoke_credentials', mock_revoke_creds):
-            added = vccs_module.reset_password(self.user, new_password='wxyz', application='test',
-                                               vccs=self.vccs_client)
+            added = vccs_module.reset_password(
+                self.user, new_password='wxyz', application='test', vccs=self.vccs_client
+            )
             self.assertTrue(added)
             result1 = self._check_credentials('abcd')
             self.assertFalse(result1)

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from flask import jsonify, current_app
+from flask import current_app, jsonify
 
 __author__ = 'lundberg'
 
@@ -25,8 +25,9 @@ class ApiException(Exception):
         self.payload = payload
 
     def __repr__(self):
-        return u'ApiException (message={!s}, status_code={!s}, payload={!r})'.format(self.message, self.status_code,
-                                                                                     self.payload)
+        return u'ApiException (message={!s}, status_code={!s}, payload={!r})'.format(
+            self.message, self.status_code, self.payload
+        )
 
     def __unicode__(self):
         return self.__str__()
@@ -88,6 +89,7 @@ def init_sentry(app):
     if app.config.get('SENTRY_DSN'):
         try:
             from raven.contrib.flask import Sentry
+
             sentry = Sentry(dsn=app.config.get('SENTRY_DSN'))
             sentry.init_app(app)
         except ImportError:

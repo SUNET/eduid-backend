@@ -8,13 +8,13 @@
 #   eduid-common/src/eduid_common/config/scripts/etcd_config_bootstrap.py
 #
 
-import sys
+import argparse
+import json
 import os
+import sys
+
 import etcd
 import yaml
-import json
-import argparse
-
 
 __author__ = 'lundberg'
 
@@ -206,6 +206,7 @@ def main():
     except etcd.EtcdConnectionFailed as e:
         sys.stderr.writelines(str(e) + '\n')
         sys.exit(1)
+
 
 if __name__ == '__main__':
     main()

@@ -34,13 +34,12 @@ from contextlib import contextmanager
 
 from werkzeug.exceptions import NotFound
 
-from eduid_common.authn.middleware import AuthnBaseApp
 from eduid_common.api.testing import EduidAPITestCase
+from eduid_common.authn.middleware import AuthnBaseApp
 from eduid_common.config.base import FlaskConfig
 
 
 class AuthnTests(EduidAPITestCase):
-
     def load_app(self, config):
         """
         Called from the parent class, so we can provide the appropiate flask
@@ -49,20 +48,22 @@ class AuthnTests(EduidAPITestCase):
         return AuthnBaseApp('testing', FlaskConfig, config)
 
     def update_config(self, config):
-        config.update({
-            'available_languages': {'en': 'English', 'sv': 'Svenska'},
-            'development': 'DEBUG',
-            'application_root': '/',
-            'no_authn_urls': [],
-            'log_level': 'DEBUG',
-            'am_broker_url': 'amqp://eduid:eduid_pw@rabbitmq/am',
-            'msg_broker_url': 'amqp://eduid:eduid_pw@rabbitmq/msg',
-            'celery_config': {
-                'result_backend': 'amqp',
-                'task_serializer': 'json',
-                'mongo_uri': config['mongo_uri'],
-            },
-        })
+        config.update(
+            {
+                'available_languages': {'en': 'English', 'sv': 'Svenska'},
+                'development': 'DEBUG',
+                'application_root': '/',
+                'no_authn_urls': [],
+                'log_level': 'DEBUG',
+                'am_broker_url': 'amqp://eduid:eduid_pw@rabbitmq/am',
+                'msg_broker_url': 'amqp://eduid:eduid_pw@rabbitmq/msg',
+                'celery_config': {
+                    'result_backend': 'amqp',
+                    'task_serializer': 'json',
+                    'mongo_uri': config['mongo_uri'],
+                },
+            }
+        )
         return config
 
     def test_get_view(self):
@@ -75,7 +76,6 @@ class AuthnTests(EduidAPITestCase):
 
 
 class UnAuthnTests(EduidAPITestCase):
-
     def load_app(self, config):
         """
         Called from the parent class, so we can provide the appropiate flask
@@ -84,19 +84,21 @@ class UnAuthnTests(EduidAPITestCase):
         return AuthnBaseApp('testing', FlaskConfig, config)
 
     def update_config(self, config):
-        config.update({
-            'available_languages': {'en': 'English','sv': 'Svenska'},
-            'development': 'DEBUG',
-            'application_root': '/',
-            'log_level': 'DEBUG',
-            'am_broker_url': 'amqp://eduid:eduid_pw@rabbitmq/am',
-            'msg_broker_url': 'amqp://eduid:eduid_pw@rabbitmq/msg',
-            'celery_config': {
-                'result_backend': 'amqp',
-                'task_serializer': 'json',
-                'mongo_uri': config['mongo_uri'],
-            },
-        })
+        config.update(
+            {
+                'available_languages': {'en': 'English', 'sv': 'Svenska'},
+                'development': 'DEBUG',
+                'application_root': '/',
+                'log_level': 'DEBUG',
+                'am_broker_url': 'amqp://eduid:eduid_pw@rabbitmq/am',
+                'msg_broker_url': 'amqp://eduid:eduid_pw@rabbitmq/msg',
+                'celery_config': {
+                    'result_backend': 'amqp',
+                    'task_serializer': 'json',
+                    'mongo_uri': config['mongo_uri'],
+                },
+            }
+        )
         return config
 
     @contextmanager

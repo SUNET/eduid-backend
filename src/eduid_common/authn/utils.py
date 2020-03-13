@@ -33,16 +33,16 @@
 
 from __future__ import absolute_import
 
-import sys
-import os.path
-import six
 import importlib.util
 import logging
+import os.path
+import sys
 import time
 
+import six
 from pwgen import pwgen
-from saml2.config import SPConfig
 from saml2 import server
+from saml2.config import SPConfig
 
 from eduid_common.api.utils import urlappend
 
@@ -136,6 +136,7 @@ def check_previous_identification(session_ns):
     :return: The eppn in case the check is successful, None otherwise
     """
     from eduid_common.session import session
+
     eppn = session.common.eppn
     if eppn is None:
         eppn = session.get('user_eppn', None)
@@ -148,8 +149,7 @@ def check_previous_identification(session_ns):
     now = int(time.time())
     ts = timestamp.timestamp()
     if (ts < now - 300) or (ts > now + 900):
-        logger.debug('Auth token timestamp {} out of bounds ({} seconds from {})'.format(
-            timestamp, ts - now, now))
+        logger.debug('Auth token timestamp {} out of bounds ({} seconds from {})'.format(timestamp, ts - now, now))
         return None
     return eppn
 
@@ -173,6 +173,7 @@ def maybe_xml_to_string(message, logger=None):
     message = str(message)
     try:
         from defusedxml import ElementTree as DefusedElementTree
+
         parser = DefusedElementTree.DefusedXMLParser()
         xml = DefusedElementTree.XML(message, parser)
         return DefusedElementTree.tostring(xml)

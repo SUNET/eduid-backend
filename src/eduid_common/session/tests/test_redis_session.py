@@ -1,19 +1,18 @@
-from unittest import TestCase
-
 import time
+from unittest import TestCase
 
 from eduid_common.session.redis_session import RedisEncryptedSession, derive_key
 
 
 class FakeRedisConn(object):
-
     def __init__(self):
         self._data = {}
 
     def setex(self, key, ttl, data):
-        self._data[key] = {'expire': int(time.time()) + ttl,
-                           'data': data,
-                           }
+        self._data[key] = {
+            'expire': int(time.time()) + ttl,
+            'data': data,
+        }
 
     def get(self, key):
         res = self._data.get(key)
@@ -27,7 +26,6 @@ class FakeRedisConn(object):
 
 
 class TestSession(TestCase):
-
     def setUp(self):
         self.conn = FakeRedisConn()
         try:
@@ -77,9 +75,14 @@ class TestSession(TestCase):
             session = self._get_session(data={'foo': 'bar'})
             self.assertRegexpMatches(session.token, '^[a-z][a-zA-Z0-9.]+$')
 
-    def _get_session(self, token=None, data=None, secret='s3cr3t', ttl=10,
-                     whitelist=None, raise_on_unknown=False):
-        session = RedisEncryptedSession(self.conn, token=token, data=data,
-                                        secret=secret, ttl=ttl, whitelist=whitelist,
-                                        raise_on_unknown=raise_on_unknown)
+    def _get_session(self, token=None, data=None, secret='s3cr3t', ttl=10, whitelist=None, raise_on_unknown=False):
+        session = RedisEncryptedSession(
+            self.conn,
+            token=token,
+            data=data,
+            secret=secret,
+            ttl=ttl,
+            whitelist=whitelist,
+            raise_on_unknown=raise_on_unknown,
+        )
         return session

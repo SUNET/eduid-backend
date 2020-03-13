@@ -33,23 +33,22 @@
 
 from __future__ import absolute_import
 
-import sys
 import logging
+import sys
 import traceback
 from contextlib import contextmanager
 from copy import deepcopy
-from typing import Optional, List, Dict, Any
+from typing import Any, Dict, List, Optional
 
 from flask.testing import FlaskClient
 
-from eduid_common.session.testing import RedisTemporaryInstance
+from eduid_userdb import User
+from eduid_userdb.data_samples import NEW_COMPLETED_SIGNUP_USER_EXAMPLE, NEW_UNVERIFIED_USER_EXAMPLE, NEW_USER_EXAMPLE
+from eduid_userdb.db import BaseDB
+
 from eduid_common.api.testing_base import CommonTestCase
 from eduid_common.session import EduidSession
-from eduid_userdb import User
-from eduid_userdb.db import BaseDB
-from eduid_userdb.data_samples import (NEW_USER_EXAMPLE,
-                                       NEW_UNVERIFIED_USER_EXAMPLE,
-                                       NEW_COMPLETED_SIGNUP_USER_EXAMPLE)
+from eduid_common.session.testing import RedisTemporaryInstance
 
 logger = logging.getLogger(__name__)
 
@@ -108,14 +107,17 @@ class EduidAPITestCase(CommonTestCase):
 
     See the `load_app` and `update_config` methods below before subclassing.
     """
+
     # This concept with a class variable is broken - doesn't provide isolation between tests.
     # Do what we can and initialise it empty here, and then fill it in __init__.
     MockedUserDB = APIMockedUserDB
 
-    def setUp(self, users: Optional[List[str]] = None,
-              copy_user_to_private: bool = False,
-              am_settings: Optional[Dict[str, Any]] = None
-              ):
+    def setUp(
+        self,
+        users: Optional[List[str]] = None,
+        copy_user_to_private: bool = False,
+        am_settings: Optional[Dict[str, Any]] = None,
+    ):
         """
         set up tests
         """
@@ -131,8 +133,7 @@ class EduidAPITestCase(CommonTestCase):
         self.test_user_data = _standard_test_users.get(users[0])
         self.test_user = User(data=self.test_user_data)
 
-        super(EduidAPITestCase, self).setUp(users=users,
-                                            am_settings=am_settings)
+        super(EduidAPITestCase, self).setUp(users=users, am_settings=am_settings)
         # Set up Redis for shared sessions
         self.redis_instance = RedisTemporaryInstance.get_instance()
         # settings
@@ -161,8 +162,7 @@ class EduidAPITestCase(CommonTestCase):
 
         if copy_user_to_private:
             data = self.test_user.to_dict()
-            self.app.private_userdb.save(self.app.private_userdb.UserClass(data=data),
-                                         check_sync=False)
+            self.app.private_userdb.save(self.app.private_userdb.UserClass(data=data), check_sync=False)
 
     def tearDown(self):
         try:
@@ -187,8 +187,9 @@ class EduidAPITestCase(CommonTestCase):
         This is so we can set  the test configuration in environment variables
         before the flask app loads its config from a file.
         """
-        msg = ('Classes extending EduidAPITestCase must provide a method '
-               'where they import the flask app and return it.')
+        msg = (
+            'Classes extending EduidAPITestCase must provide a method ' 'where they import the flask app and return it.'
+        )
         raise NotImplementedError(msg)
 
     def update_config(self, config):
@@ -248,12 +249,11 @@ class CSRFTestClient(FlaskClient):
         This could also be done with updating FlaskClient.environ_base with the below header keys but
         that makes it harder to override per call to post.
         """
-        test_host = '{}://{}'.format(self.application.config.preferred_url_scheme,
-                                     self.application.config.server_name)
+        test_host = '{}://{}'.format(self.application.config.preferred_url_scheme, self.application.config.server_name)
         csrf_headers = {
             'X-Requested-With': 'XMLHttpRequest',
             'Referer': test_host,
-            'X-Forwarded-Host': self.application.config.server_name
+            'X-Forwarded-Host': self.application.config.server_name,
         }
         if kw.pop('custom_csrf_headers', True):
             if 'headers' in kw:

@@ -1,15 +1,16 @@
-import six
 import logging
 from dataclasses import dataclass
-from typing import Mapping, NewType, Optional, AnyStr, List
 from hashlib import sha1
+from typing import AnyStr, List, Mapping, NewType, Optional
 
-from eduid_common.authn import utils
 import saml2.server
+import six
 from saml2.s_utils import UnknownPrincipal, UnknownSystemEntity, UnravelError, UnsupportedBinding
 from saml2.saml import Issuer
 from saml2.samlp import RequestedAuthnContext
 from saml2.sigver import verify_redirect_signature
+
+from eduid_common.authn import utils
 
 ResponseArgs = NewType('ResponseArgs', dict)
 
@@ -44,9 +45,7 @@ class AuthnInfo(object):
 
 
 class IdP_SAMLRequest(object):
-
-    def __init__(self, request: str, binding: str, idp: saml2.server.Server, logger: logging.Logger,
-                 debug: bool):
+    def __init__(self, request: str, binding: str, idp: saml2.server.Server, logger: logging.Logger, debug: bool):
         self._request = request
         self._binding = binding
         self._idp = idp
@@ -76,10 +75,11 @@ class IdP_SAMLRequest(object):
         return self._binding
 
     def verify_signature(self, sig_alg: str, signature: str) -> bool:
-        info = {'SigAlg': sig_alg,
-                'Signature': signature,
-                'SAMLRequest': self.request,
-                }
+        info = {
+            'SigAlg': sig_alg,
+            'Signature': signature,
+            'SAMLRequest': self.request,
+        }
         _certs = self._idp.metadata.certs(self.sp_entity_id, 'any', 'signing')
         verified_ok = False
         # Make sure at least one certificate verifies the signature
@@ -164,11 +164,10 @@ class IdP_SAMLRequest(object):
             resp_args['destination'] = destination
         except UnknownPrincipal as excp:
             self._logger.info(f'{key}: Unknown service provider: {excp}')
-            raise bad_request("Don't know the SP that referred you here", logger = self._logger)
+            raise bad_request("Don't know the SP that referred you here", logger=self._logger)
         except UnsupportedBinding as excp:
             self._logger.info(f'{key}: Unsupported SAML binding: {excp}')
-            raise bad_request("Don't know how to reply to the SP that referred you here",
-                              logger = self._logger)
+            raise bad_request("Don't know how to reply to the SP that referred you here", logger=self._logger)
         except UnknownSystemEntity as exc:
             # TODO: Validate refactoring didn't move this exception handling to the wrong place.
             #       Used to be in an exception handler in _redirect_or_post around perform_login().
@@ -179,12 +178,10 @@ class IdP_SAMLRequest(object):
 
     def make_saml_response(self, attributes: Mapping, userid: str, response_authn: AuthnInfo, resp_args: ResponseArgs):
         # Create pysaml2 dict with the authn information
-        authn = dict(class_ref = response_authn.class_ref,
-                     authn_instant = response_authn.instant,
-                     )
-        saml_response = self._idp.create_authn_response(attributes, userid = userid,
-                                                        authn = authn, sign_response = True,
-                                                        **resp_args)
+        authn = dict(class_ref=response_authn.class_ref, authn_instant=response_authn.instant,)
+        saml_response = self._idp.create_authn_response(
+            attributes, userid=userid, authn=authn, sign_response=True, **resp_args
+        )
         return saml_response
 
     def apply_binding(self, resp_args: ResponseArgs, relay_state: str, saml_response: str):
@@ -193,8 +190,10 @@ class IdP_SAMLRequest(object):
         """
         binding_out = resp_args.get('binding_out')
         destination = resp_args.get('destination')
-        self._logger.debug('Applying binding_out {!r}, destination {!r}, relay_state {!r}'.format(
-            binding_out, destination, relay_state))
-        http_args = self._idp.apply_binding(binding_out, str(saml_response), destination,
-                                            relay_state, response = True)
+        self._logger.debug(
+            'Applying binding_out {!r}, destination {!r}, relay_state {!r}'.format(
+                binding_out, destination, relay_state
+            )
+        )
+        http_args = self._idp.apply_binding(binding_out, str(saml_response), destination, relay_state, response=True)
         return http_args

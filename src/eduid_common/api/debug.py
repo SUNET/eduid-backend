@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
+import pprint
+import sys
 import warnings
 from dataclasses import asdict
-
-import sys
-import pprint
 from urllib import parse
+
 from flask import url_for
 
 __author__ = 'lundberg'
@@ -49,10 +49,7 @@ def dump_config(app):
         config_items = asdict(app.config).items()
     except TypeError:
         config_items = app.config.items()
-        warnings.warn(
-            f'{app.name} is using old dict config',
-            DeprecationWarning
-        )
+        warnings.warn(f'{app.name} is using old dict config', DeprecationWarning)
     for key, value in sorted(config_items):
         pprint.pprint((key, value), stream=sys.stderr)
 

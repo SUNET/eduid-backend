@@ -35,9 +35,11 @@
 import logging
 from typing import List, Optional
 
-from eduid_common.authn.idp_saml import AuthnInfo
+from eduid_userdb.credentials import METHOD_SWAMID_AL2_MFA, METHOD_SWAMID_AL2_MFA_HI, Credential
 from eduid_userdb.idp import IdPUser
-from eduid_userdb.credentials import Credential, METHOD_SWAMID_AL2_MFA, METHOD_SWAMID_AL2_MFA_HI
+
+from eduid_common.authn.idp_saml import AuthnInfo
+
 
 """
 Assurance Level functionality.
@@ -65,7 +67,6 @@ class MissingAuthentication(AssuranceException):
 
 
 class AuthnState(object):
-
     def __init__(self, user, sso_session, logger):
         """
 
@@ -124,9 +125,11 @@ class AuthnState(object):
             self.is_swamid_al2 = True
 
     def __str__(self):
-        return (f'<AuthnState: creds={len(self._creds)}, pw={self.password_used}, fido={self.fido_used}, '
-                f'external_mfa={self.external_mfa_used}, nin is al2={self.is_swamid_al2}, '
-                f'mfa is (al2={self.swamid_al2_used}, al2_hi={self.swamid_al2_hi_used})>')
+        return (
+            f'<AuthnState: creds={len(self._creds)}, pw={self.password_used}, fido={self.fido_used}, '
+            f'external_mfa={self.external_mfa_used}, nin is al2={self.is_swamid_al2}, '
+            f'mfa is (al2={self.swamid_al2_used}, al2_hi={self.swamid_al2_hi_used})>'
+        )
 
     @property
     def is_singlefactor(self):
@@ -152,12 +155,13 @@ def response_authn(req_authn_ctx: Optional[str], user: IdPUser, sso_session, log
     authn = AuthnState(user, sso_session, logger)
     logger.info(f'Authn for {user} will be evaluated based on: {authn}')
 
-    cc = {'REFEDS_MFA': 'https://refeds.org/profile/mfa',
-          'REFEDS_SFA': 'https://refeds.org/profile/sfa',
-          'FIDO_U2F': 'https://www.swamid.se/specs/id-fido-u2f-ce-transports',
-          'EDUID_MFA': 'https://eduid.se/specs/mfa',
-          'PASSWORD_PT': 'urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport',
-          }
+    cc = {
+        'REFEDS_MFA': 'https://refeds.org/profile/mfa',
+        'REFEDS_SFA': 'https://refeds.org/profile/sfa',
+        'FIDO_U2F': 'https://www.swamid.se/specs/id-fido-u2f-ce-transports',
+        'EDUID_MFA': 'https://eduid.se/specs/mfa',
+        'PASSWORD_PT': 'urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport',
+    }
 
     SWAMID_AL1 = 'http://www.swamid.se/policy/assurance/al1'
     SWAMID_AL2 = 'http://www.swamid.se/policy/assurance/al2'
