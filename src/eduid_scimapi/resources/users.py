@@ -5,7 +5,8 @@ from falcon import Request, Response
 
 from eduid_scimapi.resources.base import BaseResource
 from eduid_scimapi.exceptions import BadRequest
-from eduid_scimapi.profile import NUTID_V1, Profile
+from eduid_scimapi.scimbase import SCIMSchema
+from eduid_scimapi.profile import Profile
 from eduid_scimapi.user import ScimApiUser
 from eduid_userdb.user import User
 
@@ -35,11 +36,11 @@ class UsersResource(BaseResource):
 
         self.context.logger.debug(f'Extra debug: user {scim_id} as dict:\n{user.to_dict()}')
 
-        if NUTID_V1 in req.media:
+        if SCIMSchema.NUTID_V1.value in req.media:
             if not user.external_id:
                 self.context.logger.warning(f'User {user} has no external id, skipping NUTID update')
             changed = False
-            data = req.media[NUTID_V1]
+            data = req.media[SCIMSchema.NUTID_V1.value]
             if 'profiles' in data:
                 for profile in data['profiles'].keys():
                     profile_data = data['profiles'][profile]
@@ -79,7 +80,6 @@ class UsersResource(BaseResource):
         resp.set_header('Location', location)
         resp.set_header('ETag', user.etag)
         resp.media = user.to_scim_dict(location)
-
 
     def on_post(self, req: Request, resp: Response, user_id: Optional[str] = None):
         """
