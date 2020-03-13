@@ -31,19 +31,20 @@
 #
 
 import json
+import logging
 
 from bson import ObjectId
+
 import vccs_client
 from eduid_userdb.credentials import Password
 from eduid_userdb.dashboard import DashboardLegacyUser, DashboardUser
+
 from eduid_common.authn import get_vccs_client
 
-import logging
 logger = logging.getLogger()
 
 
 class FakeVCCSClient(vccs_client.VCCSClient):
-
     def __init__(self, fake_response=None):
         self.fake_response = fake_response
 
@@ -54,24 +55,15 @@ class FakeVCCSClient(vccs_client.VCCSClient):
         fake_response = {}
         if _service == 'add_creds':
             fake_response = {
-                'add_creds_response': {
-                    'version': 1,
-                    'success': True,
-                },
+                'add_creds_response': {'version': 1, 'success': True,},
             }
         elif _service == 'authenticate':
             fake_response = {
-                'auth_response': {
-                    'version': 1,
-                    'authenticated': True,
-                },
+                'auth_response': {'version': 1, 'authenticated': True,},
             }
         elif _service == 'revoke_creds':
             fake_response = {
-                'revoke_creds_response': {
-                    'version': 1,
-                    'success': True,
-                },
+                'revoke_creds_response': {'version': 1, 'success': True,},
             }
         return json.dumps(fake_response)
 
@@ -84,23 +76,25 @@ class TestVCCSClient(object):
     It is used as a singleton, so we can manipulate it in the tests
     before the real functions (check_password, add_credentials) use it.
     """
+
     def __init__(self):
         self.factors = {}
 
     def authenticate(self, user_id, factors):
         found = False
         if user_id not in self.factors:
-            logger.debug('User {!r} not found in TestVCCSClient credential store:\n{}'.format(
-                user_id, self.factors))
+            logger.debug('User {!r} not found in TestVCCSClient credential store:\n{}'.format(user_id, self.factors))
             return False
         for factor in factors:
-            logger.debug('Trying to authenticate user {} with factor {} (id {})'.format(
-                user_id, factor, factor.credential_id))
+            logger.debug(
+                'Trying to authenticate user {} with factor {} (id {})'.format(user_id, factor, factor.credential_id)
+            )
             fdict = factor.to_dict('auth')
             for stored_factor in self.factors[user_id]:
                 if factor.credential_id != stored_factor.credential_id:
-                    logger.debug('No match for id of stored factor {} (id {})'.format(
-                        stored_factor, stored_factor.credential_id))
+                    logger.debug(
+                        'No match for id of stored factor {} (id {})'.format(stored_factor, stored_factor.credential_id)
+                    )
                     continue
                 logger.debug('Found matching credential_id: {}'.format(stored_factor))
                 try:
@@ -136,8 +130,7 @@ class TestVCCSClient(object):
                         break
 
 
-def provision_credentials(vccs_url, new_password, user,
-                          vccs=None, source='dashboard'):
+def provision_credentials(vccs_url, new_password, user, vccs=None, source='dashboard'):
     """
     This function should be used by tests only
     Provision new password to a user.
@@ -157,16 +150,12 @@ def provision_credentials(vccs_url, new_password, user,
     if isinstance(user, DashboardLegacyUser):
         user = DashboardUser(data=user._mongo_doc)
 
-    new_factor = vccs_client.VCCSPasswordFactor(new_password,
-                                                credential_id=str(password_id))
+    new_factor = vccs_client.VCCSPasswordFactor(new_password, credential_id=str(password_id))
 
     if not vccs.add_credentials(str(user.user_id), [new_factor]):
         return False  # something failed
 
-    new_password = Password(credential_id = password_id,
-                            salt = new_factor.salt,
-                            application = source,
-                            )
+    new_password = Password(credential_id=password_id, salt=new_factor.salt, application=source,)
     user.credentials.add(new_password)
 
     return user

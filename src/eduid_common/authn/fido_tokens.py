@@ -29,29 +29,28 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+import base64
 import json
 import pprint
-import base64
 from typing import Optional
-from flask import current_app
-
-from eduid_common.session import session
-from eduid_userdb.user import User
-from eduid_userdb.credentials import U2F, Webauthn
-
-from u2flib_server.u2f import begin_authentication, complete_authentication
 
 from fido2 import cbor
-from fido2.server import RelyingParty, Fido2Server, U2FFido2Server
 from fido2.client import ClientData
 from fido2.ctap2 import AttestedCredentialData, AuthenticatorData
+from fido2.server import Fido2Server, RelyingParty, U2FFido2Server
 from fido2.utils import websafe_decode
+from flask import current_app
+from u2flib_server.u2f import begin_authentication, complete_authentication
+
+from eduid_userdb.credentials import U2F, Webauthn
+from eduid_userdb.user import User
+
+from eduid_common.session import session
 
 RESULT_CREDENTIAL_KEY_NAME = 'cred_key'
 
 
 class VerificationProblem(Exception):
-
     def __init__(self, msg: str):
         self.msg = msg
 
@@ -62,15 +61,12 @@ def _get_user_credentials_u2f(user: User) -> dict:
     """
     res = {}
     for this in user.credentials.filter(U2F).to_list():
-        acd = AttestedCredentialData.from_ctap1(websafe_decode(this.keyhandle),
-                                                websafe_decode(this.public_key))
-        res[this.key] = {'u2f': {'version': this.version,
-                                 'keyHandle': this.keyhandle,
-                                 'publicKey': this.public_key,
-                                 },
-                         'webauthn': acd,
-                         'app_id': this.app_id,
-                         }
+        acd = AttestedCredentialData.from_ctap1(websafe_decode(this.keyhandle), websafe_decode(this.public_key))
+        res[this.key] = {
+            'u2f': {'version': this.version, 'keyHandle': this.keyhandle, 'publicKey': this.public_key,},
+            'webauthn': acd,
+            'app_id': this.app_id,
+        }
     return res
 
 
@@ -84,13 +80,11 @@ def _get_user_credentials_webauthn(user: User) -> dict:
         cred_data = base64.urlsafe_b64decode(this.credential_data.encode('ascii'))
         credential_data, rest = AttestedCredentialData.unpack_from(cred_data)
         version = 'webauthn'
-        res[this.key] = {'u2f': {'version': version,
-                                 'keyHandle': keyhandle,
-                                 'publicKey': credential_data.public_key,
-                                 },
-                         'webauthn': credential_data,
-                         'app_id': '',
-                         }
+        res[this.key] = {
+            'u2f': {'version': version, 'keyHandle': keyhandle, 'publicKey': credential_data.public_key,},
+            'webauthn': credential_data,
+            'app_id': '',
+        }
     return res
 
 
@@ -122,8 +116,7 @@ def start_token_verification(user: User, session_prefix: str) -> dict:
     Begin authentication process based on the hardware tokens registered by the user.
     """
     credentials_u2f = _get_user_credentials_u2f(user)
-    current_app.logger.debug(f'U2F credentials for user {user}:'
-                             f'\n{pprint.pformat(credentials_u2f)}')
+    current_app.logger.debug(f'U2F credentials for user {user}:' f'\n{pprint.pformat(credentials_u2f)}')
 
     # CTAP1/U2F
     # XXX : CHANGED to only make U2F challenges for U2F tokens
@@ -140,8 +133,7 @@ def start_token_verification(user: User, session_prefix: str) -> dict:
     # CTAP2/Webauthn
     # XXX: CHANGED to only make Webauthn challenges for Webauthn tokens?
     credentials_webauthn = _get_user_credentials_webauthn(user)
-    current_app.logger.debug(f'Webauthn credentials for user {user}:'
-                             f'\n{pprint.pformat(credentials_webauthn)}')
+    current_app.logger.debug(f'Webauthn credentials for user {user}:' f'\n{pprint.pformat(credentials_webauthn)}')
 
     webauthn_credentials = [v['webauthn'] for v in credentials_webauthn.values()]
     fido2rp = RelyingParty(current_app.config.fido2_rp_id, 'eduid.se')  # type: ignore
@@ -169,23 +161,24 @@ def verify_u2f(user: User, challenge: bytes, token_response: str) -> Optional[di
     """
     verify received U2F data against the user's credentials
     """
-    device, counter, touch = complete_authentication(challenge, token_response,
-                                                     current_app.config.u2f_valid_facets)  # type: ignore
-    current_app.logger.debug('U2F authentication data: {}'.format({
-        'keyHandle': device['keyHandle'],
-        'touch': touch,
-        'counter': counter,
-    }))
+    device, counter, touch = complete_authentication(
+        challenge, token_response, current_app.config.u2f_valid_facets
+    )  # type: ignore
+    current_app.logger.debug(
+        'U2F authentication data: {}'.format({'keyHandle': device['keyHandle'], 'touch': touch, 'counter': counter,})
+    )
 
     for this in user.credentials.filter(U2F).to_list():
         if this.keyhandle == device['keyHandle']:
-            current_app.logger.info(f'User {user} logged in using U2F token '
-                                    f'{this} (touch: {touch}, counter {counter})')
-            return {'success': True,
-                    'touch': touch,
-                    'counter': counter,
-                    RESULT_CREDENTIAL_KEY_NAME: this.key,
-                    }
+            current_app.logger.info(
+                f'User {user} logged in using U2F token ' f'{this} (touch: {touch}, counter {counter})'
+            )
+            return {
+                'success': True,
+                'touch': touch,
+                'counter': counter,
+                RESULT_CREDENTIAL_KEY_NAME: this.key,
+            }
     return None
 
 
@@ -196,12 +189,14 @@ def verify_webauthn(user, request_dict: dict, session_prefix: str) -> dict:
     req = {}
     for this in ['credentialId', 'clientDataJSON', 'authenticatorData', 'signature']:
         try:
-            request_dict[this] += ('=' * (len(request_dict[this]) % 4))
+            request_dict[this] += '=' * (len(request_dict[this]) % 4)
             req[this] = base64.urlsafe_b64decode(request_dict[this])
         except Exception as exc:
-            current_app.logger.error(f'Failed to find/b64decode Webauthn '
-                                     f'parameter {this}: {request_dict.get(this)}'
-                                     f'and the exception is {exc}')
+            current_app.logger.error(
+                f'Failed to find/b64decode Webauthn '
+                f'parameter {this}: {request_dict.get(this)}'
+                f'and the exception is {exc}'
+            )
             raise VerificationProblem('mfa.bad-token-response')  # XXX add bad-token-response to frontend
 
     current_app.logger.debug(f'Webauthn request after decoding:\n{pprint.pformat(req)}')
@@ -214,8 +209,9 @@ def verify_webauthn(user, request_dict: dict, session_prefix: str) -> dict:
     rp_id = current_app.config.fido2_rp_id  # type: ignore
     fido2rp = RelyingParty(rp_id, 'eduID')
     fido2server = _get_fido2server(credentials, fido2rp)
-    matching_credentials = [(v['webauthn'], k) for k, v in credentials.items()
-                            if v['webauthn'].credential_id == req['credentialId']]
+    matching_credentials = [
+        (v['webauthn'], k) for k, v in credentials.items() if v['webauthn'].credential_id == req['credentialId']
+    ]
 
     if not matching_credentials:
         current_app.logger.error(f"Could not find webauthn credential {req['credentialId']!r} on user {user}")
@@ -239,12 +235,14 @@ def verify_webauthn(user, request_dict: dict, session_prefix: str) -> dict:
 
     touch = auth_data.flags
     counter = auth_data.counter
-    current_app.logger.info(f'User {user} logged in using Webauthn token '
-                            f'{cred_key} (touch: {touch}, counter {counter})')
-    return {'success': True,
-            'touch': auth_data.is_user_present() or auth_data.is_user_verified(),
-            'user_present': auth_data.is_user_present(),
-            'user_verified': auth_data.is_user_verified(),
-            'counter': counter,
-            RESULT_CREDENTIAL_KEY_NAME: cred_key,
-            }
+    current_app.logger.info(
+        f'User {user} logged in using Webauthn token ' f'{cred_key} (touch: {touch}, counter {counter})'
+    )
+    return {
+        'success': True,
+        'touch': auth_data.is_user_present() or auth_data.is_user_verified(),
+        'user_present': auth_data.is_user_present(),
+        'user_verified': auth_data.is_user_verified(),
+        'counter': counter,
+        RESULT_CREDENTIAL_KEY_NAME: cred_key,
+    }

@@ -16,7 +16,7 @@ import uuid
 from abc import ABC
 from collections import deque
 from threading import Lock
-from typing import Any, Deque, Dict, List, Mapping, NewType, Optional, Union, cast, Tuple
+from typing import Any, Deque, Dict, List, Mapping, NewType, Optional, Tuple, Union, cast
 
 from eduid_userdb import MongoDB
 
@@ -113,8 +113,11 @@ class ExpiringCacheMem:
                     # entry not expired - reinsert in queue and end purging
                     self._ages.appendleft((_exp_ts, _exp_key))
                     break
-                self.logger.debug('Purged {!s} cache entry {!s} seconds over limit : {!s}'.format(
-                    self.name, timestamp - _exp_ts, _exp_key))
+                self.logger.debug(
+                    'Purged {!s} cache entry {!s} seconds over limit : {!s}'.format(
+                        self.name, timestamp - _exp_ts, _exp_key
+                    )
+                )
                 self.delete(_exp_key)
         finally:
             self.lock.release()
@@ -149,8 +152,7 @@ class ExpiringCacheMem:
             del self._data[key]
             return True
         except KeyError:
-            self.logger.debug('Failed deleting key {!r} from {!s} cache (entry did not exist)'.format(
-                key, self.name))
+            self.logger.debug('Failed deleting key {!r} from {!s} cache (entry did not exist)'.format(key, self.name))
         return False
 
     def items(self) -> Any:
@@ -246,7 +248,7 @@ class SSOSessionCacheMem(SSOSessionCache):
 
     def __init__(self, logger: logging.Logger, ttl: int, lock: Optional[Lock] = None):
         SSOSessionCache.__init__(self, logger, ttl, lock)
-        self.lid2data = ExpiringCacheMem('SSOSession.uid2user', self.logger, self._ttl, lock = self._lock)
+        self.lid2data = ExpiringCacheMem('SSOSession.uid2user', self.logger, self._ttl, lock=self._lock)
 
     def remove_session(self, sid: SSOSessionId) -> Any:
         self.logger.debug('Purging SSO session {!r}, data : {!s}'.format(sid, self.lid2data.get(sid)))
@@ -254,9 +256,7 @@ class SSOSessionCacheMem(SSOSessionCache):
 
     def add_session(self, username: str, data: Mapping[str, Any]) -> SSOSessionId:
         _sid = self._create_session_id()
-        self.lid2data.add(_sid, {'username': username,
-                                 'data': data,
-                                 })
+        self.lid2data.add(_sid, {'username': username, 'data': data,})
         self.logger.debug('Added SSO session {!r}, data : {!s}'.format(_sid, self.lid2data.get(_sid)))
         return _sid
 
@@ -264,9 +264,7 @@ class SSOSessionCacheMem(SSOSessionCache):
         # TODO: This is completely broken - we add a new state rather than updating the old one
         _sid = self._create_session_id()
         self.logger.debug(f'Updating data by adding it using new session id {repr(_sid)}. FIXME.')
-        self.lid2data.update(_sid, {'username': username,
-                                    'data': data,
-                                    })
+        self.lid2data.update(_sid, {'username': username, 'data': data,})
 
     def get_session(self, sid: SSOSessionId) -> Optional[Dict[str, Any]]:
         try:
@@ -301,20 +299,28 @@ class SSOSessionCacheMDB(SSOSessionCache):
     `expiration_freq' seconds.
     """
 
-    def __init__(self, uri: str, logger: logging.Logger, ttl: int, lock: Optional[Lock] = None,
-                 expiration_freq: int = 60, conn: Any = None, db_name: str = 'eduid_idp',
-                 **kwargs: Any):
+    def __init__(
+        self,
+        uri: str,
+        logger: logging.Logger,
+        ttl: int,
+        lock: Optional[Lock] = None,
+        expiration_freq: int = 60,
+        conn: Any = None,
+        db_name: str = 'eduid_idp',
+        **kwargs: Any,
+    ):
         SSOSessionCache.__init__(self, logger, ttl, lock)
         self._expiration_freq = expiration_freq
         self._last_expire_at: Optional[float] = None
 
-        self._db = MongoDB(db_uri = uri, db_name = db_name)
+        self._db = MongoDB(db_uri=uri, db_name=db_name)
         self.sso_sessions = self._db.get_collection('sso_sessions')
         for retry in range(2, -1, -1):
             try:
-                self.sso_sessions.ensure_index('created_ts', name = 'created_ts_idx', unique = False)
-                self.sso_sessions.ensure_index('session_id', name = 'session_id_idx', unique = True)
-                self.sso_sessions.ensure_index('username', name = 'username_idx', unique = False)
+                self.sso_sessions.ensure_index('created_ts', name='created_ts_idx', unique=False)
+                self.sso_sessions.ensure_index('session_id', name='session_id_idx', unique=True)
+                self.sso_sessions.ensure_index('username', name='username_idx', unique=False)
                 break
             except Exception as e:
                 if not retry:
@@ -323,7 +329,7 @@ class SSOSessionCacheMDB(SSOSessionCache):
                 self.logger.error(f'Failed ensuring mongodb index, retrying ({retry})')
 
     def remove_session(self, sid: SSOSessionId) -> Union[int, bool]:
-        res = self.sso_sessions.remove({'session_id': sid}, w = 'majority')
+        res = self.sso_sessions.remove({'session_id': sid}, w='majority')
         try:
             return int(res['n'])  # number of deleted records
         except (KeyError, TypeError):
@@ -334,11 +340,12 @@ class SSOSessionCacheMDB(SSOSessionCache):
         _ts = time.time()
         isodate = datetime.datetime.fromtimestamp(_ts, None)
         _sid = self._create_session_id()
-        _doc = {'session_id': _sid,
-                'username': username,
-                'data': data,
-                'created_ts': isodate,
-                }
+        _doc = {
+            'session_id': _sid,
+            'username': username,
+            'data': data,
+            'created_ts': isodate,
+        }
         self.sso_sessions.insert(_doc)
         self.expire_old_sessions()
         return _sid
@@ -347,9 +354,10 @@ class SSOSessionCacheMDB(SSOSessionCache):
         # TODO: This is completely broken - we add a new state rather than updating the old one
         _sid = self._create_session_id()
         self.logger.debug(f'Updating data by adding it using new session id {repr(_sid)}. FIXME.')
-        _test_doc = {'session_id': _sid,
-                     'username': username,
-                     }
+        _test_doc = {
+            'session_id': _sid,
+            'username': username,
+        }
         self.sso_sessions.update(_test_doc, {'$set': {'data': data}})
 
     def get_session(self, sid: SSOSessionId) -> Optional[Dict[str, Any]]:

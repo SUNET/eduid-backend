@@ -30,15 +30,14 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from dataclasses import dataclass, replace, field
-from datetime import timedelta, datetime
+import sys
+from dataclasses import dataclass, field, replace
+from datetime import datetime, timedelta
 from os import environ
 from typing import Dict, Mapping, Optional
 
 import redis
-import sys
-from flask import Blueprint, current_app
-from flask import jsonify
+from flask import Blueprint, current_app, jsonify
 
 from eduid_common.session.redis_session import get_redis_pool
 
@@ -172,8 +171,9 @@ def cached_json_response(key, data):
     if SIMPLE_CACHE.get(key) is not None:
         if now < SIMPLE_CACHE[key].expire_time:
             if current_app.debug:
-                current_app.logger.debug(f'Returned cached response for {key}'
-                                         f' {now} < {SIMPLE_CACHE[key].expire_time}')
+                current_app.logger.debug(
+                    f'Returned cached response for {key}' f' {now} < {SIMPLE_CACHE[key].expire_time}'
+                )
             response = jsonify(SIMPLE_CACHE[key].data)
             response.headers.add('Expires', SIMPLE_CACHE[key].expire_time.strftime("%a, %d %b %Y %H:%M:%S UTC"))
             response.headers.add('Cache-Control', f'public,max-age={cache_for_seconds}')

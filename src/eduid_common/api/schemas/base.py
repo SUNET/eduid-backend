@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from marshmallow import Schema, fields, validates_schema, ValidationError
+from marshmallow import Schema, ValidationError, fields, validates_schema
 
 __author__ = 'lundberg'
 

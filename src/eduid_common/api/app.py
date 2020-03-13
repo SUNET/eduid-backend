@@ -36,12 +36,13 @@ it with all attributes common to all eduID services.
 import importlib.util
 import os
 from dataclasses import asdict
-from typing import Type, Optional
+from sys import stderr
+from typing import Optional, Type
+
+from flask import Flask
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from eduid_userdb import UserDB
-from flask import Flask
-from sys import stderr
-from werkzeug.middleware.proxy_fix import ProxyFix
 
 from eduid_common.api.debug import init_app_debug
 from eduid_common.api.exceptions import init_exception_handlers, init_sentry
@@ -66,11 +67,9 @@ class EduIDBaseApp(Flask):
     Base class for eduID apps, initializing common features and facilities.
     """
 
-    def __init__(self, name: str,
-                 config_class: Type[FlaskConfig],
-                 config: dict,
-                 init_central_userdb: bool = True,
-                 **kwargs):
+    def __init__(
+        self, name: str, config_class: Type[FlaskConfig], config: dict, init_central_userdb: bool = True, **kwargs
+    ):
         """
         :param name: name of the app
         :param config_class: the dataclass with configuration settings
@@ -100,9 +99,11 @@ class EduIDBaseApp(Flask):
         self.url_map.strict_slashes = False
 
         # Set app url prefix to APPLICATION_ROOT
-        self.wsgi_app = PrefixMiddleware(self.wsgi_app,  # type: ignore
-                                         prefix=self.config.application_root,
-                                         server_name=self.config.server_name)
+        self.wsgi_app = PrefixMiddleware(
+            self.wsgi_app,  # type: ignore
+            prefix=self.config.application_root,
+            server_name=self.config.server_name,
+        )
 
         # Initialize shared features
         init_logging(self)
@@ -160,6 +161,7 @@ def init_status_views(app: EduIDBaseApp) -> EduIDBaseApp:
     Register status views for any app, and configure them as public.
     """
     from eduid_common.api.views.status import status_views
+
     app.register_blueprint(status_views)
     # Register status paths for unauthorized requests
     status_paths = ['/status/healthy', '/status/sanity-check']

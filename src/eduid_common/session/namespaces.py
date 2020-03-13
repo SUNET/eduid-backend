@@ -2,18 +2,15 @@
 
 from abc import ABC
 from copy import deepcopy
+from dataclasses import asdict, dataclass
 from datetime import datetime
-
-from dataclasses import dataclass, asdict
-
-from typing import Optional
 from enum import Enum, unique
+from typing import Optional
 
 __author__ = 'ft'
 
 
 class SessionNSBase(ABC):
-
     def to_dict(self):
         return asdict(self)
 

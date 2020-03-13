@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from typing import Optional, List, Dict, Any
+from typing import Any, Dict, List, Optional
 
-from eduid_common.authn.middleware import AuthnBaseApp
 from eduid_common.api.testing import EduidAPITestCase
+from eduid_common.authn.middleware import AuthnBaseApp
 from eduid_common.authn.utils import no_authn_views
 from eduid_common.config.base import FlaskConfig
 from eduid_common.session import session
@@ -71,11 +71,12 @@ def session_init_app(name, config):
 
 
 class EduidSessionTests(EduidAPITestCase):
-
-    def setUp(self, users: Optional[List[str]] = None,
-              copy_user_to_private: bool = False,
-              am_settings: Optional[Dict[str, Any]] = None
-              ):
+    def setUp(
+        self,
+        users: Optional[List[str]] = None,
+        copy_user_to_private: bool = False,
+        am_settings: Optional[Dict[str, Any]] = None,
+    ):
         self.test_user_eppn = 'hubba-bubba'
         super().setUp(users=users, copy_user_to_private=copy_user_to_private, am_settings=am_settings)
 
@@ -87,11 +88,9 @@ class EduidSessionTests(EduidAPITestCase):
         return session_init_app('testing', config)
 
     def update_config(self, config):
-        config.update({
-            'debug': True,
-            'log_level': 'DEBUG',
-            'no_authn_urls': [],
-        })
+        config.update(
+            {'debug': True, 'log_level': 'DEBUG', 'no_authn_urls': [],}
+        )
         return config
 
     def test_session_authenticated(self):

@@ -39,9 +39,9 @@ from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 from saml2.response import UnsolicitedResponse
 
-from eduid_common.session import EduidSession
 from .cache import IdentityCache, OutstandingQueriesCache
 from .utils import SPConfig, get_saml_attribute
+from eduid_common.session import EduidSession
 
 logger = logging.getLogger(__name__)
 
@@ -71,8 +71,9 @@ def get_authn_ctx(session_info):
         return None
 
 
-def get_authn_request(saml2_config: SPConfig, session, came_from, selected_idp,
-                      force_authn=False, sign_alg=None, digest_alg=None):
+def get_authn_request(
+    saml2_config: SPConfig, session, came_from, selected_idp, force_authn=False, sign_alg=None, digest_alg=None
+):
     kwargs = {
         "force_authn": str(force_authn).lower(),
     }
@@ -87,10 +88,7 @@ def get_authn_request(saml2_config: SPConfig, session, came_from, selected_idp,
 
     try:
         (session_id, info) = client.prepare_for_authenticate(
-            entityid=selected_idp,
-            relay_state=came_from,
-            binding=BINDING_HTTP_REDIRECT,
-            **kwargs
+            entityid=selected_idp, relay_state=came_from, binding=BINDING_HTTP_REDIRECT, **kwargs
         )
     except TypeError:
         logger.error('Unable to know which IdP to use')
@@ -117,29 +115,28 @@ def get_authn_response(saml2_config: SPConfig, session: EduidSession, raw_respon
      'not_on_or_after': 156000000,
      'session_index': 'id-foo'}
     """
-    client = Saml2Client(saml2_config,
-                         identity_cache=IdentityCache(session))
+    client = Saml2Client(saml2_config, identity_cache=IdentityCache(session))
 
     oq_cache = OutstandingQueriesCache(session)
     outstanding_queries = oq_cache.outstanding_queries()
 
     try:
         # process the authentication response
-        response = client.parse_authn_request_response(raw_response,
-                                                       BINDING_HTTP_POST,
-                                                       outstanding_queries)
+        response = client.parse_authn_request_response(raw_response, BINDING_HTTP_POST, outstanding_queries)
     except AssertionError:
         logger.error('SAML response is not verified')
         raise BadSAMLResponse(
             """SAML response is not verified. May be caused by the response
             was not issued at a reasonable time or the SAML status is not ok.
-            Check the IDP datetime setup""")
+            Check the IDP datetime setup"""
+        )
     except ParseError as e:
         logger.error('SAML response is not correctly formatted: {!r}'.format(e))
         raise BadSAMLResponse(
             """SAML response is not correctly formatted and therefore the
             XML document could not be parsed.
-            """)
+            """
+        )
     except UnsolicitedResponse as e:
         logger.exception('Unsolicited SAML response')
         # Extra debug to try and find the cause for some of these that seem to be incorrect
@@ -150,8 +147,7 @@ def get_authn_response(saml2_config: SPConfig, session: EduidSession, raw_respon
 
     if response is None:
         logger.error('SAML response is None')
-        raise BadSAMLResponse(
-            "SAML response has errors. Please check the logs")
+        raise BadSAMLResponse("SAML response has errors. Please check the logs")
 
     session_id = response.session_id()
     oq_cache.delete(session_id)
@@ -190,7 +186,7 @@ def authenticate(app, session_info):
     strip_suffix = app.config.get('SAML2_STRIP_SAML_USER_SUFFIX', '')
     if strip_suffix:
         if saml_user.endswith(strip_suffix):
-            saml_user = saml_user[:-len(strip_suffix)]
+            saml_user = saml_user[: -len(strip_suffix)]
 
     logger.debug('Looking for user with eduPersonPrincipalName == {!r}'.format(saml_user))
     try:

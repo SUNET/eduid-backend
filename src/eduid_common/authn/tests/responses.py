@@ -90,14 +90,16 @@ def auth_response(session_id, uid):
     </saml:Assertion>
 </samlp:Response>"""
 
-    return saml_response_tpl.format(**{
-        'uid': uid,
-        'session_id': session_id,
-        'timestamp': timestamp.strftime('%Y-%m-%dT%H:%M:%SZ'),
-        'tomorrow': tomorrow.strftime('%Y-%m-%dT%H:%M:%SZ'),
-        'yesterday': yesterday.strftime('%Y-%m-%dT%H:%M:%SZ'),
-        'sp_url': sp_baseurl,
-    })
+    return saml_response_tpl.format(
+        **{
+            'uid': uid,
+            'session_id': session_id,
+            'timestamp': timestamp.strftime('%Y-%m-%dT%H:%M:%SZ'),
+            'tomorrow': tomorrow.strftime('%Y-%m-%dT%H:%M:%SZ'),
+            'yesterday': yesterday.strftime('%Y-%m-%dT%H:%M:%SZ'),
+            'sp_url': sp_baseurl,
+        }
+    )
 
 
 def logout_response(session_id):
@@ -117,8 +119,7 @@ def logout_response(session_id):
         <samlp:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Success" />
     </samlp:Status>
 </samlp:LogoutResponse>""".format(
-        now=timestamp.strftime('%Y-%m-%dT%H:%M:%SZ'),
-        session_id=session_id
+        now=timestamp.strftime('%Y-%m-%dT%H:%M:%SZ'), session_id=session_id
     )
 
     return saml_logout_response
@@ -142,8 +143,6 @@ def logout_request(session_id, idp=None):
                  >{session_id}</saml:NameID>
     <samlp:SessionIndex>{session_id}</samlp:SessionIndex>
 </samlp:LogoutRequest>""".format(
-        now=timestamp.strftime('%Y-%m-%dT%H:%M:%SZ'),
-        session_id=session_id,
-        idp=idp
+        now=timestamp.strftime('%Y-%m-%dT%H:%M:%SZ'), session_id=session_id, idp=idp
     )
     return saml_logout_request

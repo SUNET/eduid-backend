@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 
 import math
-from zxcvbn import zxcvbn
+
 from marshmallow import Schema, ValidationError
+from zxcvbn import zxcvbn
 
 __author__ = 'lundberg'
 
 
 class PasswordSchema(Schema):
-
     class Meta:
         zxcvbn_terms = None
         min_entropy = None

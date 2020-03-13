@@ -2,16 +2,18 @@
 
 from __future__ import absolute_import
 
-import warnings
 import inspect
+import warnings
+from functools import wraps
+
+from flask import abort, current_app, jsonify, request
+from marshmallow.exceptions import ValidationError
 from six import string_types
 from werkzeug.wrappers import Response as WerkzeugResponse
-from functools import wraps
-from flask import abort, current_app, request, jsonify
-from marshmallow.exceptions import ValidationError
-from eduid_common.session import session
+
+from eduid_common.api.schemas.models import FluxFailResponse, FluxResponseStatus, FluxSuccessResponse
 from eduid_common.api.utils import get_user
-from eduid_common.api.schemas.models import FluxResponseStatus, FluxSuccessResponse, FluxFailResponse
+from eduid_common.session import session
 
 __author__ = 'lundberg'
 
@@ -27,6 +29,7 @@ def require_eppn(f):
             kwargs['eppn'] = eppn
             return f(*args, **kwargs)
         abort(401)
+
     return require_eppn_decorator
 
 
@@ -36,6 +39,7 @@ def require_user(f):
         user = get_user()
         kwargs['user'] = user
         return f(*args, **kwargs)
+
     return require_user_decorator
 
 
@@ -49,10 +53,12 @@ def require_support_personnel(f):
         if user.eppn in current_app.config['SUPPORT_PERSONNEL']:
             kwargs['support_user'] = user
             return f(*args, **kwargs)
-        current_app.logger.warning('{!s} not in support personnel whitelist: {!s}'.format(
-            user, current_app.config['SUPPORT_PERSONNEL']))
+        current_app.logger.warning(
+            '{!s} not in support personnel whitelist: {!s}'.format(user, current_app.config['SUPPORT_PERSONNEL'])
+        )
         # Anything else is considered as an unauthorized request
         abort(403)
+
     return require_support_decorator
 
 
@@ -74,7 +80,6 @@ def can_verify_identity(f):
 
 
 class MarshalWith(object):
-
     def __init__(self, schema):
         self.schema = schema
 
@@ -103,11 +108,11 @@ class MarshalWith(object):
             # Handle success responses
             response_data = FluxSuccessResponse(request, payload=ret)
             return jsonify(self.schema().dump(response_data.to_dict()).data)
+
         return marshal_decorator
 
 
 class UnmarshalWith(object):
-
     def __init__(self, schema):
         self.schema = schema
 
@@ -122,10 +127,11 @@ class UnmarshalWith(object):
                 kwargs.update(unmarshal_result.data)
                 return f(*args, **kwargs)
             except ValidationError as e:
-                response_data = FluxFailResponse(request,
-                                                 payload={'error': e.normalized_messages(),
-                                                          'csrf_token': session.get_csrf_token()})
+                response_data = FluxFailResponse(
+                    request, payload={'error': e.normalized_messages(), 'csrf_token': session.get_csrf_token()}
+                )
                 return jsonify(response_data.to_dict())
+
         return unmarshal_decorator
 
 
@@ -158,9 +164,7 @@ def deprecated(reason):
             def new_func1(*args, **kwargs):
                 warnings.simplefilter('always', DeprecationWarning)
                 warnings.warn(
-                    fmt1.format(name=func1.__name__, reason=reason),
-                    category=DeprecationWarning,
-                    stacklevel=2
+                    fmt1.format(name=func1.__name__, reason=reason), category=DeprecationWarning, stacklevel=2
                 )
                 warnings.simplefilter('default', DeprecationWarning)
                 return func1(*args, **kwargs)
@@ -189,11 +193,7 @@ def deprecated(reason):
         @wraps(func2)
         def new_func2(*args, **kwargs):
             warnings.simplefilter('always', DeprecationWarning)
-            warnings.warn(
-                fmt2.format(name=func2.__name__),
-                category=DeprecationWarning,
-                stacklevel=2
-            )
+            warnings.warn(fmt2.format(name=func2.__name__), category=DeprecationWarning, stacklevel=2)
             warnings.simplefilter('default', DeprecationWarning)
             return func2(*args, **kwargs)
 

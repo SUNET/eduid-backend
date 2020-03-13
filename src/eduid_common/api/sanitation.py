@@ -31,9 +31,8 @@
 #
 import six
 from bleach import clean
-from six.moves.urllib_parse import unquote, quote
-
 from flask import request
+from six.moves.urllib_parse import quote, unquote
 
 
 class SanitationProblem(Exception):
@@ -45,8 +44,7 @@ class Sanitizer(object):
     Sanitize user inputs.
     """
 
-    def sanitize_input(self, untrusted_text, logger,
-                       content_type=None, strip_characters=False):
+    def sanitize_input(self, untrusted_text, logger, content_type=None, strip_characters=False):
         """
         Sanitize user input by escaping or removing potentially
         harmful input using a whitelist-based approach with
@@ -76,18 +74,21 @@ class Sanitizer(object):
             else:
                 use_percent_encoding = False
 
-            return self._sanitize_input(untrusted_text, logger,
-                                        strip_characters=strip_characters,
-                                        content_type=content_type,
-                                        percent_encoded=use_percent_encoding)
+            return self._sanitize_input(
+                untrusted_text,
+                logger,
+                strip_characters=strip_characters,
+                content_type=content_type,
+                percent_encoded=use_percent_encoding,
+            )
 
         except UnicodeDecodeError:
-            logger.warn('A malicious user tried to crash the application '
-                        'by sending non-unicode input in a GET request')
+            logger.warn(
+                'A malicious user tried to crash the application ' 'by sending non-unicode input in a GET request'
+            )
             raise SanitationProblem('Non-unicode input')
 
-    def _sanitize_input(self, untrusted_text, logger, strip_characters=False,
-                        content_type=None, percent_encoded=False):
+    def _sanitize_input(self, untrusted_text, logger, strip_characters=False, content_type=None, percent_encoded=False):
         """
         :param untrusted_text: User input to sanitize
         :param strip_characters: Set to True to remove instead of escaping
@@ -139,8 +140,7 @@ class Sanitizer(object):
             cleaned_text = self._safe_clean(decoded_text, logger, strip_characters)
 
             if decoded_text != cleaned_text:
-                logger.warn('Some potential harmful characters were '
-                            'removed from untrusted user input.')
+                logger.warn('Some potential harmful characters were ' 'removed from untrusted user input.')
 
             if decoded_text != untrusted_text:
                 # Note that at least '&' and '=' needs to be unencoded when using PySAML2
@@ -154,8 +154,7 @@ class Sanitizer(object):
         cleaned_text = self._safe_clean(untrusted_text, logger, strip_characters)
 
         if untrusted_text != cleaned_text:
-            logger.warn('Some potential harmful characters were '
-                        'removed from untrusted user input.')
+            logger.warn('Some potential harmful characters were ' 'removed from untrusted user input.')
 
         return cleaned_text
 
@@ -174,7 +173,9 @@ class Sanitizer(object):
         try:
             return clean(untrusted_text, strip=strip_characters)
         except KeyError:
-            logger.warn('A malicious user tried to crash the application by '
-                        'sending illegal UTF-8 in an URI or other untrusted '
-                        'user input.')
+            logger.warn(
+                'A malicious user tried to crash the application by '
+                'sending illegal UTF-8 in an URI or other untrusted '
+                'user input.'
+            )
             raise SanitationProblem('Illegal UTF-8')

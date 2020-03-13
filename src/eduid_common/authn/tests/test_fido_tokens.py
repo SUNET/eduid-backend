@@ -33,22 +33,21 @@
 
 
 import json
-from dataclasses import dataclass, field
 from copy import deepcopy
+from dataclasses import dataclass, field
 from typing import cast
 
+from flask import Blueprint, current_app, request
 from mock import patch
-from flask import Blueprint, request, current_app
+
+from eduid_userdb import User
+from eduid_userdb.credentials import U2F, Webauthn
+from eduid_userdb.data_samples import NEW_USER_EXAMPLE
 
 from eduid_common.api.app import EduIDBaseApp
 from eduid_common.api.testing import EduidAPITestCase
-from eduid_common.authn.fido_tokens import start_token_verification
-from eduid_common.authn.fido_tokens import verify_webauthn
-from eduid_common.authn.fido_tokens import VerificationProblem
+from eduid_common.authn.fido_tokens import VerificationProblem, start_token_verification, verify_webauthn
 from eduid_common.config.base import FlaskConfig
-from eduid_userdb.credentials import U2F, Webauthn
-from eduid_userdb import User
-from eduid_userdb.data_samples import NEW_USER_EXAMPLE
 
 
 @dataclass
@@ -57,8 +56,9 @@ class TestFidoConfig(FlaskConfig):
     generate_u2f_challenges: bool = True
     u2f_app_id: str = 'https://eduid.se/u2f-app-id.json'
     fido2_rp_id: str = 'idp.dev.eduid.se'
-    u2f_valid_facets: list = field(default_factory=lambda: ['https://dashboard.dev.eduid.se',
-                                                            'https://idp.dev.eduid.se'])
+    u2f_valid_facets: list = field(
+        default_factory=lambda: ['https://dashboard.dev.eduid.se', 'https://idp.dev.eduid.se']
+    )
 
 
 views = Blueprint('testing', 'testing', url_prefix='')
@@ -71,15 +71,11 @@ def start_verification():
     try:
         result = verify_webauthn(user, data, 'testing')
     except VerificationProblem:
-        result = {
-            'success': False,
-            'message': 'mfa.verification-problem'
-        }
+        result = {'success': False, 'message': 'mfa.verification-problem'}
     return json.dumps(result)
 
 
 class TestFidoApp(EduIDBaseApp):
-
     def __init__(self, name: str, config: dict, **kwargs):
 
         super(TestFidoApp, self).__init__(name, TestFidoConfig, config, **kwargs)
@@ -92,7 +88,7 @@ SAMPLE_WEBAUTHN_REQUEST = {
     'clientDataJSON': 'eyJjaGFsbGVuZ2UiOiIzaF9FQVpwWTI1eERkU0pDT014MUFCWkVBNU9kejN5ZWpVSTNBVU5UUVdjIiwib3JpZ2luIjoiaHR0cHM6Ly9pZHAuZGV2LmVkdWlkLnNlIiwidHlwZSI6IndlYmF1dGhuLmdldCJ9',
     'credentialId': 'i3KjBT0t5TPm693T9O0f4zyiwvdu9cY8BegCjiVvq_FS-ZmPcvXipFvHvD5CH6ZVRR3nsVsOla0Cad3fbtUA_Q',
     #  This is a fake signature, we mock its verification below
-    'signature': 'MEYCIQC5gM8inamJGUFKu3bNo4fT0jmJQuw33OSSXc242NCuiwIhAIWnVw2Spow72j6J92KaY2rLR6qSXEbLam09ZXbSkBnQ'
+    'signature': 'MEYCIQC5gM8inamJGUFKu3bNo4fT0jmJQuw33OSSXc242NCuiwIhAIWnVw2Spow72j6J92KaY2rLR6qSXEbLam09ZXbSkBnQ',
 }
 
 
@@ -110,12 +106,11 @@ SAMPLE_U2F_CREDENTIAL = {
     'public_key': 'BHVTWuo3_D7ruRBe2Tw-m2atT2IOm_qQWSDreWShu3t21ne9c-DPSUdym-H-t7FcjV7rj1dSc3WSwaOJpFmkKxQ',
     'app_id': 'https://eduid.se/u2f-app-id.json',
     'attest_cert': '',
-    'description': 'unit test U2F token'
+    'description': 'unit test U2F token',
 }
 
 
 class FidoTokensTestCase(EduidAPITestCase):
-
     def setUp(self):
         super(FidoTokensTestCase, self).setUp()
         self.webauthn_credential = Webauthn(**SAMPLE_WEBAUTHN_CREDENTIAL)
@@ -129,14 +124,16 @@ class FidoTokensTestCase(EduidAPITestCase):
         return TestFidoApp('testing', config)
 
     def update_config(self, app_config):
-        app_config.update({
-            'available_languages': {'en': 'English', 'sv': 'Svenska'},
-            'celery_config': {
-                'result_backend': 'amqp',
-                'task_serializer': 'json',
-                'mongo_uri': app_config['mongo_uri'],
-            },
-        })
+        app_config.update(
+            {
+                'available_languages': {'en': 'English', 'sv': 'Svenska'},
+                'celery_config': {
+                    'result_backend': 'amqp',
+                    'task_serializer': 'json',
+                    'mongo_uri': app_config['mongo_uri'],
+                },
+            }
+        )
         return TestFidoConfig(**app_config)
 
     def test_u2f_start_verification(self):
@@ -180,7 +177,10 @@ class FidoTokensTestCase(EduidAPITestCase):
         with self.app.test_request_context():
             with self.session_cookie(self.browser, eppn) as client:
                 with client.session_transaction() as sess:
-                    fido2state = {'challenge': '3h_EAZpY25xDdSJCOMx1ABZEA5Odz3yejUI3AUNTQWc', 'user_verification': 'preferred'}
+                    fido2state = {
+                        'challenge': '3h_EAZpY25xDdSJCOMx1ABZEA5Odz3yejUI3AUNTQWc',
+                        'user_verification': 'preferred',
+                    }
                     sess['testing.webauthn.state'] = json.dumps(fido2state)
                     sess.persist()
                     resp = client.get('/start?webauthn_request=' + json.dumps(SAMPLE_WEBAUTHN_REQUEST))
@@ -201,7 +201,10 @@ class FidoTokensTestCase(EduidAPITestCase):
         with self.app.test_request_context():
             with self.session_cookie(self.browser, eppn) as client:
                 with client.session_transaction() as sess:
-                    fido2state = {'challenge': '3h_EAZpY25xDdSJCOMx1ABZEA5Odz3yejUI3AUNTQWc', 'user_verification': 'preferred'}
+                    fido2state = {
+                        'challenge': '3h_EAZpY25xDdSJCOMx1ABZEA5Odz3yejUI3AUNTQWc',
+                        'user_verification': 'preferred',
+                    }
                     sess['testing.webauthn.state'] = json.dumps(fido2state)
                     sess.persist()
                     resp = client.get('/start?webauthn_request=' + json.dumps(SAMPLE_WEBAUTHN_REQUEST))
@@ -221,7 +224,10 @@ class FidoTokensTestCase(EduidAPITestCase):
         with self.app.test_request_context():
             with self.session_cookie(self.browser, eppn) as client:
                 with client.session_transaction() as sess:
-                    fido2state = {'challenge': 'WRONG_CHALLENGE_COx1ABZEA5Odz3yejUI3AUNTQWc', 'user_verification': 'preferred'}
+                    fido2state = {
+                        'challenge': 'WRONG_CHALLENGE_COx1ABZEA5Odz3yejUI3AUNTQWc',
+                        'user_verification': 'preferred',
+                    }
                     sess['testing.webauthn.state'] = json.dumps(fido2state)
                     sess.persist()
                     resp = client.get('/start?webauthn_request=' + json.dumps(SAMPLE_WEBAUTHN_REQUEST))
@@ -243,7 +249,10 @@ class FidoTokensTestCase(EduidAPITestCase):
         with self.app.test_request_context():
             with self.session_cookie(self.browser, eppn) as client:
                 with client.session_transaction() as sess:
-                    fido2state = {'challenge': '3h_EAZpY25xDdSJCOMx1ABZEA5Odz3yejUI3AUNTQWc', 'user_verification': 'preferred'}
+                    fido2state = {
+                        'challenge': '3h_EAZpY25xDdSJCOMx1ABZEA5Odz3yejUI3AUNTQWc',
+                        'user_verification': 'preferred',
+                    }
                     sess['testing.webauthn.state'] = json.dumps(fido2state)
                     sess.persist()
                     resp = client.get('/start?webauthn_request=' + json.dumps(req))

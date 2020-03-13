@@ -33,10 +33,10 @@
 
 from __future__ import absolute_import
 
-import time
 import atexit
 import random
 import subprocess
+import time
 
 import etcd
 
@@ -48,6 +48,7 @@ class EtcdTemporaryInstance(object):
     at the end of the program.
 
     """
+
     _instance = None
 
     @classmethod
@@ -59,14 +60,23 @@ class EtcdTemporaryInstance(object):
 
     def __init__(self):
         self._port = random.randint(40000, 50000)
-        self._process = subprocess.Popen(['docker', 'run', '--rm',
-                                          '-p', '{!s}:2379'.format(self._port),
-                                          'docker.sunet.se/library/etcd:v3.3.12',
-                                          'etcd',
-                                          '--advertise-client-urls', 'http://0.0.0.0:2379',
-                                          '--listen-client-urls', 'http://0.0.0.0:2379'],
-                                         stdout=open('/tmp/etcd-temp.log', 'wb'),
-                                         stderr=subprocess.STDOUT)
+        self._process = subprocess.Popen(
+            [
+                'docker',
+                'run',
+                '--rm',
+                '-p',
+                '{!s}:2379'.format(self._port),
+                'docker.sunet.se/library/etcd:v3.3.12',
+                'etcd',
+                '--advertise-client-urls',
+                'http://0.0.0.0:2379',
+                '--listen-client-urls',
+                'http://0.0.0.0:2379',
+            ],
+            stdout=open('/tmp/etcd-temp.log', 'wb'),
+            stderr=subprocess.STDOUT,
+        )
 
         for i in range(10):
             time.sleep(0.2)

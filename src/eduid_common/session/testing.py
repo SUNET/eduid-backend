@@ -33,12 +33,12 @@
 
 from __future__ import absolute_import
 
-import time
-import shutil
 import atexit
 import random
-import tempfile
+import shutil
 import subprocess
+import tempfile
+import time
 
 import redis
 
@@ -50,6 +50,7 @@ class RedisTemporaryInstance(object):
     at the end of the program.
 
     """
+
     _instance = None
 
     @classmethod
@@ -62,14 +63,22 @@ class RedisTemporaryInstance(object):
     def __init__(self):
         self._tmpdir = tempfile.mkdtemp()
         self._port = random.randint(40000, 65535)
-        self._process = subprocess.Popen(['docker', 'run', '--rm',
-                                          '-p', '{!s}:6379'.format(self._port),
-                                          '-v', '{!s}:/data'.format(self._tmpdir),
-                                          '-e', 'extra_args=--daemonize no --bind 0.0.0.0',
-                                          'docker.sunet.se/eduid/redis:latest',
-                                          ],
-                                         stdout=open('/tmp/redis-temp.log', 'wb'),
-                                         stderr=subprocess.STDOUT)
+        self._process = subprocess.Popen(
+            [
+                'docker',
+                'run',
+                '--rm',
+                '-p',
+                '{!s}:6379'.format(self._port),
+                '-v',
+                '{!s}:/data'.format(self._tmpdir),
+                '-e',
+                'extra_args=--daemonize no --bind 0.0.0.0',
+                'docker.sunet.se/eduid/redis:latest',
+            ],
+            stdout=open('/tmp/redis-temp.log', 'wb'),
+            stderr=subprocess.STDOUT,
+        )
         interval = 0.2
         for i in range(10):
             time.sleep(interval)

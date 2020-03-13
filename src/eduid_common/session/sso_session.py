@@ -31,12 +31,13 @@
 #
 # Author : Fredrik Thulin <fredrik@thulin.net>
 #
+import time
 from typing import Optional
 
-import time
-from eduid_common.session.logindata import ExternalMfaData
 from eduid_userdb.idp import IdPUser
+
 from eduid_common.authn.idp_authn import AuthnData
+from eduid_common.session.logindata import ExternalMfaData
 
 
 class SSOSession(object):
@@ -62,16 +63,16 @@ class SSOSession(object):
     :type ts: int
     """
 
-    def __init__(self, user_id, authn_request_id,
-                 authn_credentials = None, ts=None, external_mfa=None):
+    def __init__(self, user_id, authn_request_id, authn_credentials=None, ts=None, external_mfa=None):
         if ts is None:
             ts = int(time.time())
-        self._data = {'user_id': user_id,
-                      'authn_request_id': authn_request_id,
-                      'authn_credentials': [],
-                      'authn_timestamp': ts,
-                      'external_mfa': None,
-                      }
+        self._data = {
+            'user_id': user_id,
+            'authn_request_id': authn_request_id,
+            'authn_credentials': [],
+            'authn_timestamp': ts,
+            'external_mfa': None,
+        }
         if authn_credentials is not None:
             for x in authn_credentials:
                 if isinstance(x, dict):
@@ -90,10 +91,10 @@ class SSOSession(object):
 
     def __repr__(self):
         return '<{cl} instance at {addr}: uid={uid!s}, ts={ts!s}>'.format(
-            cl = self.__class__.__name__,
-            addr = hex(id(self)),
-            uid = str(self._data['user_id']),
-            ts = self._data['authn_timestamp'],
+            cl=self.__class__.__name__,
+            addr=hex(id(self)),
+            uid=str(self._data['user_id']),
+            ts=self._data['authn_timestamp'],
         )
 
     def to_dict(self):
@@ -217,9 +218,10 @@ def from_dict(data):
     :type data: dict
     :rtype: SSOSession
     """
-    return SSOSession(user_id = data['user_id'],
-                      authn_request_id = data['authn_request_id'],
-                      authn_credentials = data.get('authn_credentials'),
-                      ts = data['authn_timestamp'],
-                      external_mfa = data.get('external_mfa'),
-                      )
+    return SSOSession(
+        user_id=data['user_id'],
+        authn_request_id=data['authn_request_id'],
+        authn_credentials=data.get('authn_credentials'),
+        ts=data['authn_timestamp'],
+        external_mfa=data.get('external_mfa'),
+    )

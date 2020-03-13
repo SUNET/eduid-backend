@@ -1,22 +1,24 @@
 # -*- coding: utf-8 -*-
 
-# From https://stackoverflow.com/a/39757388
+
 # The TYPE_CHECKING constant is always False at runtime, so the import won't be evaluated, but mypy
 # (and other type-checking tools) will evaluate the contents of that block.
 from __future__ import annotations
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from eduid_common.api.app import EduIDBaseApp
 
 import logging
 import logging.config
+import time
 from os import environ
 from pprint import PrettyPrinter
 
-import time
+# From https://stackoverflow.com/a/39757388
+from typing import TYPE_CHECKING
 
 from eduid_common.config.exceptions import BadConfiguration
 from eduid_common.session import session
+
+if TYPE_CHECKING:
+    from eduid_common.api.app import EduIDBaseApp
 
 
 __author__ = 'lundberg'
@@ -47,7 +49,6 @@ class EduidFormatter(logging.Formatter):
 
 
 class AppFilter(logging.Filter):
-
     def __init__(self, app_name):
         logging.Filter.__init__(self)
         self.app_name = app_name
@@ -60,7 +61,6 @@ class AppFilter(logging.Filter):
 
 
 class UserFilter(logging.Filter):
-
     def __init__(self):
         logging.Filter.__init__(self)
 
@@ -72,7 +72,6 @@ class UserFilter(logging.Filter):
 
 
 class RequireDebugTrue(logging.Filter):
-
     def __init__(self, app_debug):
         logging.Filter.__init__(self)
         self.app_debug = app_debug
@@ -82,7 +81,6 @@ class RequireDebugTrue(logging.Filter):
 
 
 class RequireDebugFalse(logging.Filter):
-
     def __init__(self, app_debug):
         logging.Filter.__init__(self)
         self.app_debug = app_debug
@@ -135,19 +133,11 @@ def init_logging(app: EduIDBaseApp) -> EduIDBaseApp:
         # Local variables
         'local_context': local_context,
         'formatters': {
-            'default': {
-                '()': 'eduid_common.api.logging.EduidFormatter',
-                'fmt': 'cfg://local_context.format'
-            },
+            'default': {'()': 'eduid_common.api.logging.EduidFormatter', 'fmt': 'cfg://local_context.format'},
         },
         'filters': {
-            'app_filter': {
-                '()': 'eduid_common.api.logging.AppFilter',
-                'app_name': 'cfg://local_context.app_name',
-            },
-            'user_filter': {
-                '()': 'eduid_common.api.logging.UserFilter',
-            },
+            'app_filter': {'()': 'eduid_common.api.logging.AppFilter', 'app_name': 'cfg://local_context.app_name',},
+            'user_filter': {'()': 'eduid_common.api.logging.UserFilter',},
             'require_debug_true': {
                 '()': 'eduid_common.api.logging.RequireDebugTrue',
                 'app_debug': 'cfg://local_context.app_debug',
@@ -155,20 +145,17 @@ def init_logging(app: EduIDBaseApp) -> EduIDBaseApp:
             'require_debug_false': {
                 '()': 'eduid_common.api.logging.RequireDebugFalse',
                 'app_debug': 'cfg://local_context.app_debug',
-            }
+            },
         },
         'handlers': {
             'console': {
                 'class': 'logging.StreamHandler',
                 'level': 'cfg://local_context.level',
                 'formatter': 'default',
-                'filters': ['app_filter', 'user_filter']
+                'filters': ['app_filter', 'user_filter'],
             },
         },
-        'root': {
-            'handlers': ['console'],
-            'level': 'cfg://local_context.level',
-        },
+        'root': {'handlers': ['console'], 'level': 'cfg://local_context.level',},
     }
     logging_config = merge_config(base_config, settings_config)
     logging.config.dictConfig(logging_config)

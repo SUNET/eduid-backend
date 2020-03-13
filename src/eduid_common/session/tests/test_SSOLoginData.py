@@ -39,18 +39,19 @@ from eduid_common.session.logindata import SSOLoginData
 
 
 class TestSSOLoginData(unittest.TestCase):
-
     @unittest.skip('We ought to remove this FailCount thingy')
     def test_FailCount(self):
-        data = {'SAMLRequest': '4711',
-                }
+        data = {
+            'SAMLRequest': '4711',
+        }
         ticket = SSOLoginData('key', 'req_info', data, 'binding')
         ticket.FailCount = 9
         self.assertEqual(ticket.FailCount, 9)
 
     @unittest.skip('We ought to remove this FailCount thingy')
     def test_SAMLRequest(self):
-        data = {'SAMLRequest': '4711',
-                }
+        data = {
+            'SAMLRequest': '4711',
+        }
         ticket = SSOLoginData('key', 'req_info', data, 'binding')
         self.assertEqual(ticket.SAMLRequest, '4711')

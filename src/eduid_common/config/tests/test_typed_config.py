@@ -6,43 +6,28 @@ import os
 import unittest
 from copy import deepcopy
 
-from eduid_common.config.testing import EtcdTemporaryInstance
-from eduid_common.config.parsers.etcd import EtcdConfigParser
-from eduid_common.config.idp import IdPConfig
 from eduid_common.config.base import FlaskConfig
+from eduid_common.config.idp import IdPConfig
+from eduid_common.config.parsers.etcd import EtcdConfigParser
+from eduid_common.config.testing import EtcdTemporaryInstance
 
 
 class TestTypedIdPConfig(unittest.TestCase):
-
     def setUp(self):
         self.etcd_instance = EtcdTemporaryInstance.get_instance()
 
         self.common_ns = '/eduid/webapp/common/'
         self.idp_ns = '/eduid/webapp/idp/'
-        self.common_parser = EtcdConfigParser(namespace=self.common_ns, host=self.etcd_instance.host,
-                                              port=self.etcd_instance.port)
-        self.idp_parser = EtcdConfigParser(namespace=self.idp_ns, host=self.etcd_instance.host,
-                                           port=self.etcd_instance.port)
+        self.common_parser = EtcdConfigParser(
+            namespace=self.common_ns, host=self.etcd_instance.host, port=self.etcd_instance.port
+        )
+        self.idp_parser = EtcdConfigParser(
+            namespace=self.idp_ns, host=self.etcd_instance.host, port=self.etcd_instance.port
+        )
 
-        self.common_config = {
-            'eduid': {
-                'webapp': {
-                    'common': {
-                        'devel_mode': True
-                    }
-                }
-            }
-        }
+        self.common_config = {'eduid': {'webapp': {'common': {'devel_mode': True}}}}
 
-        self.idp_config = {
-            'eduid': {
-                'webapp': {
-                    'idp': {
-                        'signup_link': 'dummy'
-                    }
-                }
-            }
-        }
+        self.idp_config = {'eduid': {'webapp': {'idp': {'signup_link': 'dummy'}}}}
         self.common_parser.write_configuration(self.common_config)
         self.idp_parser.write_configuration(self.idp_config)
         os.environ['EDUID_CONFIG_COMMON_NS'] = '/eduid/webapp/common/'
@@ -90,35 +75,22 @@ class TestTypedIdPConfig(unittest.TestCase):
 
 
 class TestTypedFlaskConfig(unittest.TestCase):
-
     def setUp(self):
         self.etcd_instance = EtcdTemporaryInstance.get_instance()
 
         self.common_ns = '/eduid/webapp/common/'
         self.authn_ns = '/eduid/webapp/authn/'
-        self.common_parser = EtcdConfigParser(namespace=self.common_ns, host=self.etcd_instance.host, port=self.etcd_instance.port)
-        self.authn_parser = EtcdConfigParser(namespace=self.authn_ns, host=self.etcd_instance.host, port=self.etcd_instance.port)
+        self.common_parser = EtcdConfigParser(
+            namespace=self.common_ns, host=self.etcd_instance.host, port=self.etcd_instance.port
+        )
+        self.authn_parser = EtcdConfigParser(
+            namespace=self.authn_ns, host=self.etcd_instance.host, port=self.etcd_instance.port
+        )
 
-        self.common_config = {
-            'eduid': {
-                'webapp': {
-                    'common': {
-                        'devel_mode': True,
-                        'preferred_url_scheme': 'https'
-                    }
-                }
-            }
-        }
+        self.common_config = {'eduid': {'webapp': {'common': {'devel_mode': True, 'preferred_url_scheme': 'https'}}}}
 
         self.authn_config = {
-            'eduid': {
-                'webapp': {
-                    'authn': {
-                        'safe_relay_domain': 'eduid.se',
-                        'application_root': '/services/authn'
-                    }
-                }
-            }
+            'eduid': {'webapp': {'authn': {'safe_relay_domain': 'eduid.se', 'application_root': '/services/authn'}}}
         }
         self.common_parser.write_configuration(self.common_config)
         self.authn_parser.write_configuration(self.authn_config)

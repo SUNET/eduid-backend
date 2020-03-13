@@ -36,10 +36,10 @@ Configuration (file) handling for eduID IdP.
 
 from __future__ import annotations
 
+import logging
 import os
 from dataclasses import dataclass, field, fields
-import logging
-from typing import Optional, List, Dict, Any, Mapping
+from typing import Any, Dict, List, Mapping, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +49,7 @@ class CeleryConfig:
     """
     Celery configuration
     """
+
     accept_content: List[str] = field(default_factory=lambda: ["application/json"])
     broker_url: str = ''
     result_backend: str = 'cache'
@@ -60,10 +61,13 @@ class CeleryConfig:
     # backwards incompatible setting that the documentation says will be the default in the future
     broker_transport: str = ''
     broker_transport_options: dict = field(default_factory=lambda: {"fanout_prefix": True})
-    task_routes: dict = field(default_factory=lambda: {
-        'eduid_am.*': {'queue': 'am'},
-        'eduid_msg.*': {'queue': 'msg'},
-        'eduid_letter_proofing.*': {'queue': 'letter_proofing'}})
+    task_routes: dict = field(
+        default_factory=lambda: {
+            'eduid_am.*': {'queue': 'am'},
+            'eduid_msg.*': {'queue': 'msg'},
+            'eduid_letter_proofing.*': {'queue': 'letter_proofing'},
+        }
+    )
     mongo_uri: Optional[str] = None
 
 
@@ -72,6 +76,7 @@ class CommonConfig:
     """
     Configuration common to all web apps and celery workers
     """
+
     devel_mode: bool = False
     # mongo uri
     mongo_uri: Optional[str] = None
@@ -157,15 +162,21 @@ class CommonConfig:
         """
         get a dict with the default values for all configuration keys
         """
-        return {key: val for key, val in cls.__dict__.items()
-                if isinstance(key, str) and not key.startswith('_') and not callable(val)}
+        return {
+            key: val
+            for key, val in cls.__dict__.items()
+            if isinstance(key, str) and not key.startswith('_') and not callable(val)
+        }
 
     def to_dict(self) -> dict:
         """
         get a dict with all configured values
         """
-        return {key: val for key, val in self.__dict__.items()
-                if isinstance(key, str) and not key.startswith('_') and not callable(val)}
+        return {
+            key: val
+            for key, val in self.__dict__.items()
+            if isinstance(key, str) and not key.startswith('_') and not callable(val)
+        }
 
 
 @dataclass
@@ -175,6 +186,7 @@ class BaseConfig(CommonConfig):
     "eduid/webapp/common" namespace in etcd - excluding Flask's own
     configuration
     """
+
     debug: bool = False
     # These below are configuration keys used in the webapps, common to most
     # or at least to several of them.
@@ -224,14 +236,8 @@ class BaseConfig(CommonConfig):
     msg_broker_url: str = ''
     teleadress_client_user: str = ''
     teleadress_client_password: str = ''
-    available_languages: Dict[str, str] = field(default_factory=lambda: {
-        'en': 'English',
-        'sv': 'Svenska'
-    })
-    supported_languages: Dict[str, str] = field(default_factory=lambda: {
-        'en': 'English',
-        'sv': 'Svenska'
-    })
+    available_languages: Dict[str, str] = field(default_factory=lambda: {'en': 'English', 'sv': 'Svenska'})
+    supported_languages: Dict[str, str] = field(default_factory=lambda: {'en': 'English', 'sv': 'Svenska'})
     mail_default_from: str = 'no-reply@eduid.se'
     static_url: str = ''
     dashboard_url: str = ''
@@ -252,15 +258,9 @@ class BaseConfig(CommonConfig):
     # for these URLs will be served, rather than redirected to the authn service.
     # The list is a list of regex that are matched against the path of the
     # requested URL ex. ^/test$.
-    no_authn_urls: list = field(default_factory=lambda: [
-        "^/status/healthy$",
-        "^/status/sanity-check$"
-    ])
+    no_authn_urls: list = field(default_factory=lambda: ["^/status/healthy$", "^/status/sanity-check$"])
     # The plugins for pre-authentication actions that need to be loaded
-    action_plugins: list = field(default_factory=lambda: [
-        "tou",
-        "mfa"
-    ])
+    action_plugins: list = field(default_factory=lambda: ["tou", "mfa"])
     # The current version of the terms of use agreement.
     tou_version: str = '2017-v6'
     current_tou_version: str = '2017-v6'  # backwards compat
@@ -272,8 +272,7 @@ class BaseConfig(CommonConfig):
     status_cache_seconds: int = 10
 
     @classmethod
-    def init_config(cls, superns: str = 'webapp',
-                    test_config: Optional[dict] = None, debug: bool = True) -> BaseConfig:
+    def init_config(cls, superns: str = 'webapp', test_config: Optional[dict] = None, debug: bool = True) -> BaseConfig:
         """
         Initialize configuration with values from etcd (or with test values)
         """
@@ -314,6 +313,7 @@ class FlaskConfig(BaseConfig):
     with the default values provided by flask.
     See the flask documentation for the semantics of each key.
     """
+
     # What environment the app is running in.
     # This is set by the FLASK_ENV environment variable and may not
     # behave as expected if set in code

@@ -2,10 +2,11 @@
 
 from __future__ import absolute_import
 
-import os
-import etcd
 import json
 import logging
+import os
+
+import etcd
 
 from eduid_common.config.parsers.decorators import decrypt, interpolate
 from eduid_common.config.parsers.exceptions import ParserException
@@ -14,7 +15,6 @@ __author__ = 'lundberg'
 
 
 class EtcdConfigParser(object):
-
     def __init__(self, namespace, host=None, port=None):
         """
         :param namespace: etcd namespace to read or write, ex. /eduid/webapp/common/
@@ -166,6 +166,7 @@ class EtcdConfigParser(object):
         # import here since most users of this module do not write config to files and
         # thus might not need a yaml dependency
         import yaml
+
         with open(file_path) as f:
             config = yaml.safe_load(f)
             if not config:

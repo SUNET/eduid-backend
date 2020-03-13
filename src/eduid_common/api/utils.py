@@ -2,15 +2,15 @@
 
 import re
 from typing import Optional
+from urllib.parse import urlparse
 from uuid import uuid4
 
 import six
 from flask import current_app
-from urllib.parse import urlparse
+
+from eduid_userdb.exceptions import EduIDUserDBError, MultipleUsersReturned, UserDBValueError, UserDoesNotExist
 
 from eduid_common.api.exceptions import ApiException
-from eduid_userdb.exceptions import UserDBValueError, EduIDUserDBError
-from eduid_userdb.exceptions import UserDoesNotExist, MultipleUsersReturned
 
 
 def get_unique_hash():
@@ -43,20 +43,25 @@ def update_modified_ts(user):
 
     private_user = current_app.private_userdb.get_user_by_id(userid, raise_on_missing=False)
     if private_user is None:
-        current_app.logger.debug("User {!s} not found in {!s}, "
-                                 "setting modified_ts to None".format(user, current_app.private_userdb))
+        current_app.logger.debug(
+            "User {!s} not found in {!s}, " "setting modified_ts to None".format(user, current_app.private_userdb)
+        )
         user.modified_ts = None
         return
 
     if private_user.modified_ts is None:
         private_user.modified_ts = True  # use current time
-        current_app.logger.debug("Updating user {!s} with new modified_ts: {!s}".format(
-            private_user, private_user.modified_ts))
-        current_app.private_userdb.save(private_user, check_sync = False)
+        current_app.logger.debug(
+            "Updating user {!s} with new modified_ts: {!s}".format(private_user, private_user.modified_ts)
+        )
+        current_app.private_userdb.save(private_user, check_sync=False)
 
     user.modified_ts = private_user.modified_ts
-    current_app.logger.debug("Updating {!s} with modified_ts from central userdb user {!s}: {!s}".format(
-        user, private_user, private_user.modified_ts))
+    current_app.logger.debug(
+        "Updating {!s} with modified_ts from central userdb user {!s}: {!s}".format(
+            user, private_user, private_user.modified_ts
+        )
+    )
 
 
 def get_user():
@@ -65,6 +70,7 @@ def get_user():
     :rtype: eduid_userdb.user.User
     """
     from eduid_common.session import session
+
     eppn = session.get('user_eppn', None)
     if not eppn:
         raise ApiException('Not authorized', status_code=401)
@@ -158,7 +164,6 @@ def get_static_url_for(f: str, version: Optional[str] = None) -> str:
 
 
 def init_template_functions(app):
-
     @app.template_global()
     def static_url_for(f: str, version: Optional[str] = None) -> str:
         return get_static_url_for(f, version)
@@ -166,8 +171,7 @@ def init_template_functions(app):
     return app
 
 
-def verify_relay_state(relay_state, safe_default='/', logger=None,
-                       url_scheme=None, safe_domain=None):
+def verify_relay_state(relay_state, safe_default='/', logger=None, url_scheme=None, safe_domain=None):
     """
     Make sure the URL provided in relay_state is safe and does
     not provide an open redirect.
@@ -214,6 +218,5 @@ def verify_relay_state(relay_state, safe_default='/', logger=None,
             return relay_state
 
     # Unsafe relay state found
-    logger.warning('Caught unsafe relay state: {}. '
-                   'Using safe relay state: {}.'.format(relay_state, safe_default))
+    logger.warning('Caught unsafe relay state: {}. ' 'Using safe relay state: {}.'.format(relay_state, safe_default))
     return safe_default

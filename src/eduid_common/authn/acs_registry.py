@@ -60,12 +60,15 @@ def acs_action(action_key):
     :param action_key: the key for the given action
     :type action_key: str
     """
+
     def outer(func):
         _actions[action_key] = func
 
         def inner(*args, **kwargs):
             return func(*args, **kwargs)
+
         return inner
+
     return outer
 
 
