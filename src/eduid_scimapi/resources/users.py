@@ -3,7 +3,7 @@ from typing import Optional
 
 from falcon import Request, Response
 
-from eduid_scimapi.base import BaseResource
+from eduid_scimapi.resources.base import BaseResource
 from eduid_scimapi.exceptions import BadRequest
 from eduid_scimapi.profile import NUTID_V1, Profile
 from eduid_scimapi.user import ScimApiUser
