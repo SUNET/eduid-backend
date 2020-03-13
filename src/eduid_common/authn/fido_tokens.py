@@ -162,8 +162,8 @@ def verify_u2f(user: User, challenge: bytes, token_response: str) -> Optional[di
     verify received U2F data against the user's credentials
     """
     device, counter, touch = complete_authentication(
-        challenge, token_response, current_app.config.u2f_valid_facets
-    )  # type: ignore
+        challenge, token_response, current_app.config.u2f_valid_facets  # type: ignore
+    )
     current_app.logger.debug(
         'U2F authentication data: {}'.format({'keyHandle': device['keyHandle'], 'touch': touch, 'counter': counter,})
     )

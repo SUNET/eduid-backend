@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
 
-
-# The TYPE_CHECKING constant is always False at runtime, so the import won't be evaluated, but mypy
-# (and other type-checking tools) will evaluate the contents of that block.
 from __future__ import annotations
 
 import logging
@@ -10,13 +7,14 @@ import logging.config
 import time
 from os import environ
 from pprint import PrettyPrinter
-
-# From https://stackoverflow.com/a/39757388
 from typing import TYPE_CHECKING
 
 from eduid_common.config.exceptions import BadConfiguration
 from eduid_common.session import session
 
+# From https://stackoverflow.com/a/39757388
+# The TYPE_CHECKING constant is always False at runtime, so the import won't be evaluated, but mypy
+# (and other type-checking tools) will evaluate the contents of that block.
 if TYPE_CHECKING:
     from eduid_common.api.app import EduIDBaseApp
 

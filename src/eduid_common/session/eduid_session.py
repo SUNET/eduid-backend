@@ -1,6 +1,3 @@
-# From https://stackoverflow.com/a/39757388
-# The TYPE_CHECKING constant is always False at runtime, so the import won't be evaluated, but mypy
-# (and other type-checking tools) will evaluate the contents of that block.
 from __future__ import annotations
 
 import binascii
@@ -28,6 +25,9 @@ from eduid_common.session.namespaces import (
 )
 from eduid_common.session.redis_session import RedisEncryptedSession, SessionManager
 
+# From https://stackoverflow.com/a/39757388
+# The TYPE_CHECKING constant is always False at runtime, so the import won't be evaluated, but mypy
+# (and other type-checking tools) will evaluate the contents of that block.
 if TYPE_CHECKING:
     from eduid_common.api.app import EduIDBaseApp
 

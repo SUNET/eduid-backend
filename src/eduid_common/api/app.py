@@ -99,10 +99,8 @@ class EduIDBaseApp(Flask):
         self.url_map.strict_slashes = False
 
         # Set app url prefix to APPLICATION_ROOT
-        self.wsgi_app = PrefixMiddleware(
-            self.wsgi_app,  # type: ignore
-            prefix=self.config.application_root,
-            server_name=self.config.server_name,
+        self.wsgi_app = PrefixMiddleware(  # type: ignore
+            self.wsgi_app, prefix=self.config.application_root, server_name=self.config.server_name,
         )
 
         # Initialize shared features
