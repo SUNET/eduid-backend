@@ -39,6 +39,7 @@ from eduid_userdb.element import PrimaryElementViolation, DuplicateElementViolat
 from eduid_userdb.exceptions import UserOutOfSync, DocumentDoesNotExist
 from eduid_userdb.mail import MailAddress
 from eduid_userdb.proofing import ProofingUser
+from eduid_common.session import session
 from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
 from eduid_common.api.utils import save_and_sync_user
 from eduid_webapp.email.schemas import EmailListPayload, AddEmailSchema
@@ -159,6 +160,12 @@ def post_primary(user, email):
 def verify(user, code, email):
     """
     """
+    # Use backdoor for the selenium integration tests
+    if current_app.config.environment in ('staging', 'dev') and current_app.config.magic_code != '':
+        if code == current_app.config.magic_code:
+            current_app.logger.debug('Using the BACKDOOR to verify email addresses in the email app')
+            code = session.email.verification_code
+
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     current_app.logger.debug('Trying to save email address {} as verified'.format(email))
 
