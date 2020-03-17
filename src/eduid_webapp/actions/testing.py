@@ -193,7 +193,7 @@ class ActionsTestCase(EduidAPITestCase):
         session['user_is_logged_in'] = True
         if action_type is not None:
             session['current_plugin'] = action_type
-        if idp_session is  not None:
+        if idp_session is not None:
             session.actions.session = idp_session
         session.persist()
 

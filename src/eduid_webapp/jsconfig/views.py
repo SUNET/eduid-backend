@@ -43,7 +43,6 @@ from eduid_common.config.parsers.etcd import EtcdConfigParser, etcd
 from eduid_common.session import session
 from eduid_webapp.jsconfig.app import current_jsconfig_app as current_app
 from eduid_webapp.jsconfig.settings.front import FrontConfig
-from eduid_webapp.jsconfig.settings.common import JSConfigConfig
 
 
 jsconfig_views = Blueprint('jsconfig',
@@ -60,7 +59,7 @@ def get_etcd_config(namespace: Optional[str] = None) -> FrontConfig:
         namespace = '/eduid/webapp/jsapps/'
     parser = EtcdConfigParser(namespace)
     config = parser.read_configuration(silent=False)
-    config = {k.lower(): v for k,v in config.items()}
+    config = {k.lower(): v for k, v in config.items()}
     return FrontConfig(**config)
 
 
@@ -84,7 +83,7 @@ def get_dashboard_config() -> dict:
     # possibilitate migration of the front app - preferably to lower case.
     config_dict = asdict(config)
     config_upper = {}
-    for k,v in config_dict.items():
+    for k, v in config_dict.items():
         config_upper[k.upper()] = v
     config_dict.update(config_upper)
     return config_dict
@@ -139,7 +138,7 @@ def get_signup_config() -> dict:
     # possibilitate migration of the front app - preferably to lower case.
     config_dict = asdict(config)
     config_upper = {}
-    for k,v in config_dict.items():
+    for k, v in config_dict.items():
         config_upper[k.upper()] = v
     config_dict.update(config_upper)
     return config_dict
@@ -155,11 +154,11 @@ def get_login_config() -> dict:
 
     config = get_etcd_config()
     return {
-            'csrf_token': session.get_csrf_token(),
-            'password_service_url': config.password_service_url,
-            'password_entropy': config.password_entropy,
-            'password_length': config.password_length,
-            }
+        'csrf_token': session.get_csrf_token(),
+        'password_service_url': config.password_service_url,
+        'password_entropy': config.password_entropy,
+        'password_length': config.password_length,
+    }
 
 
 @jsconfig_views.route('/get-bundle', methods=['GET'], subdomain="dashboard")

@@ -122,10 +122,10 @@ class SecurityTests(EduidAPITestCase):
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
                     data = {
-                            'csrf_token': sess.get_csrf_token(),
-                            'new_password': 'j7/E >pO9 ,$Sr',
-                            'old_password': '5678'
-                            }
+                        'csrf_token': sess.get_csrf_token(),
+                        'new_password': 'j7/E >pO9 ,$Sr',
+                        'old_password': '5678'
+                    }
                 response2 = client.post('/change-password', data=json.dumps(data),
                                         content_type=self.content_type_json)
 
@@ -143,10 +143,10 @@ class SecurityTests(EduidAPITestCase):
                 sess['reauthn-for-chpass'] = True
                 with self.app.test_request_context():
                     data = {
-                            'csrf_token': sess.get_csrf_token(),
-                            'new_password': 'j7/E >pO9 ,$Sr O0;&',
-                            'old_password': '5678'
-                            }
+                        'csrf_token': sess.get_csrf_token(),
+                        'new_password': 'j7/E >pO9 ,$Sr O0;&',
+                        'old_password': '5678'
+                    }
                 response2 = client.post('/change-password', data=json.dumps(data),
                                         content_type=self.content_type_json)
 
@@ -166,9 +166,9 @@ class SecurityTests(EduidAPITestCase):
                            return_value=True):
                     sess['reauthn-for-chpass'] = int(time.time())
                     data = {
-                            'new_password': 'j7/E >pO9 ,$Sr O0;&',
-                            'old_password': '5678'
-                            }
+                        'new_password': 'j7/E >pO9 ,$Sr O0;&',
+                        'old_password': '5678'
+                    }
                     response2 = client.post('/change-password', data=json.dumps(data),
                                             content_type=self.content_type_json)
 
@@ -188,10 +188,10 @@ class SecurityTests(EduidAPITestCase):
                 with patch('eduid_webapp.security.views.security.add_credentials', return_value=True):
                     sess['reauthn-for-chpass'] = int(time.time())
                     data = {
-                            'csrf_token': '0000',
-                            'new_password': 'j7/E >pO9 ,$Sr O0;&',
-                            'old_password': '5678'
-                            }
+                        'csrf_token': '0000',
+                        'new_password': 'j7/E >pO9 ,$Sr O0;&',
+                        'old_password': '5678'
+                    }
                     response2 = client.post('/change-password', data=json.dumps(data),
                                             content_type=self.content_type_json)
 
@@ -210,10 +210,10 @@ class SecurityTests(EduidAPITestCase):
                     sess['reauthn-for-chpass'] = int(time.time())
                     with self.app.test_request_context():
                         data = {
-                                'csrf_token': sess.get_csrf_token(),
-                                'new_password': '1234',
-                                'old_password': '5678'
-                                }
+                            'csrf_token': sess.get_csrf_token(),
+                            'new_password': '1234',
+                            'old_password': '5678'
+                        }
                     response2 = client.post('/change-password', data=json.dumps(data),
                                             content_type=self.content_type_json)
 
@@ -234,10 +234,10 @@ class SecurityTests(EduidAPITestCase):
                     sess['reauthn-for-chpass'] = int(time.time())
                     with self.app.test_request_context():
                         data = {
-                                'csrf_token': sess.get_csrf_token(),
-                                'new_password': 'j7/E >pO9 ,$Sr O0;&',
-                                'old_password': '5678'
-                                }
+                            'csrf_token': sess.get_csrf_token(),
+                            'new_password': 'j7/E >pO9 ,$Sr O0;&',
+                            'old_password': '5678'
+                        }
                     response2 = client.post('/change-password', data=json.dumps(data),
                                             content_type=self.content_type_json)
 
@@ -264,8 +264,8 @@ class SecurityTests(EduidAPITestCase):
         eppn = self.test_user_data['eduPersonPrincipalName']
         with self.session_cookie(self.browser, eppn) as client:
             data = {
-                    'csrf_token': '1234',
-                    }
+                'csrf_token': '1234',
+            }
             response2 = client.post('/terminate-account', data=json.dumps(data),
                                     content_type=self.content_type_json)
 
@@ -279,8 +279,8 @@ class SecurityTests(EduidAPITestCase):
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
                     data = {
-                            'csrf_token': sess.get_csrf_token(),
-                            }
+                        'csrf_token': sess.get_csrf_token(),
+                    }
                 response2 = client.post('/terminate-account', data=json.dumps(data),
                                         content_type=self.content_type_json)
 
@@ -301,7 +301,7 @@ class SecurityTests(EduidAPITestCase):
         eppn = self.test_user_data['eduPersonPrincipalName']
         with self.session_cookie(self.browser, eppn) as client:
             response2 = client.get('/account-terminated')
-            
+
             self.assertEqual(response2.status_code, 400)
 
     def test_account_terminated_stale(self):
@@ -355,7 +355,7 @@ class SecurityTests(EduidAPITestCase):
                     data = {
                         'nin': self.test_user_nin,
                         'csrf_token': sess.get_csrf_token()
-                        }
+                    }
                     response = client.post('/remove-nin', data=json.dumps(data), content_type=self.content_type_json)
 
                     rdata = json.loads(response.data)
@@ -381,12 +381,12 @@ class SecurityTests(EduidAPITestCase):
         self.assertEqual(user.nins.verified.count, 1)
 
         with self.session_cookie(self.browser, self.test_user_eppn) as client:
-            with client.session_transaction() as sess:
+            with client.session_transaction():
                 with self.app.test_request_context():
                     data = {
                         'nin': self.test_user_nin,
                         'csrf_token': 'bad_csrf'
-                        }
+                    }
                     response = client.post('/remove-nin', data=json.dumps(data), content_type=self.content_type_json)
 
                     rdata = json.loads(response.data)
@@ -466,7 +466,7 @@ class SecurityTests(EduidAPITestCase):
                     data = {
                         'nin': self.test_user_nin,
                         'csrf_token': sess.get_csrf_token()
-                        }
+                    }
                     response = client.post('/add-nin', data=json.dumps(data), content_type=self.content_type_json)
 
                     rdata = json.loads(response.data)
@@ -491,7 +491,7 @@ class SecurityTests(EduidAPITestCase):
                     data = {
                         'nin': self.test_user_nin,
                         'csrf_token': sess.get_csrf_token()
-                        }
+                    }
                     response = client.post('/add-nin', data=json.dumps(data), content_type=self.content_type_json)
 
                     rdata = json.loads(response.data)
@@ -512,12 +512,12 @@ class SecurityTests(EduidAPITestCase):
         self.assertEqual(user.nins.verified.count, 2)
 
         with self.session_cookie(self.browser, self.test_user_eppn) as client:
-            with client.session_transaction() as sess:
+            with client.session_transaction():
                 with self.app.test_request_context():
                     data = {
                         'nin': self.test_user_nin,
                         'csrf_token': 'bad csrf'
-                        }
+                    }
                     response = client.post('/add-nin', data=json.dumps(data), content_type=self.content_type_json)
 
                     rdata = json.loads(response.data)
@@ -547,7 +547,7 @@ class SecurityTests(EduidAPITestCase):
                     data = {
                         'nin': '123456789',
                         'csrf_token': sess.get_csrf_token()
-                        }
+                    }
                     response = client.post('/add-nin', data=json.dumps(data), content_type=self.content_type_json)
 
                     rdata = json.loads(response.data)

@@ -29,12 +29,9 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from typing import cast
-
 from flask import current_app
 
 from eduid_common.api.app import EduIDBaseApp
-from eduid_common.api.app import get_app_config
 from eduid_common.authn.utils import get_saml2_config
 from eduid_webapp.authn.settings.common import AuthnConfig
 

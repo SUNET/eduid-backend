@@ -33,17 +33,14 @@
 
 import os
 import json
-from datetime import datetime, timedelta
 
 from mock import patch
-import flask.testing
 
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.config.parsers.etcd import EtcdConfigParser
 
 from eduid_webapp.jsconfig.app import jsconfig_init_app
 from eduid_webapp.jsconfig.settings.common import JSConfigConfig
-from eduid_webapp.jsconfig.settings.front import FrontConfig
 
 
 class JSConfigTests(EduidAPITestCase):
@@ -71,7 +68,6 @@ class JSConfigTests(EduidAPITestCase):
         os.environ['EDUID_CONFIG_NS'] = '/eduid/webapp/jsapps/'
         os.environ['ETCD_HOST'] = self.etcd_instance.host
         os.environ['ETCD_PORT'] = str(self.etcd_instance.port)
-        
 
     def load_app(self, config):
         """
@@ -117,14 +113,14 @@ class JSConfigTests(EduidAPITestCase):
         class MockResponse:
             status_code = 200
             headers = {'mock-header': 'dummy-value'}
+
             def json(self):
                 return {
-                        'payload': {
-                            'test-version-1': '1st Dummy TOU',
-                            'test-version-2': '2st Dummy TOU',
-                            }
-                        }
-
+                    'payload': {
+                        'test-version-1': '1st Dummy TOU',
+                        'test-version-2': '2st Dummy TOU',
+                    }
+                }
 
         mock_request_get.return_value = MockResponse()
 

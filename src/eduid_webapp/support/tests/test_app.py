@@ -68,4 +68,3 @@ class SupportAppTests(EduidAPITestCase):
         with self.session_cookie(self.client, self.test_user_eppn) as client:
             response = client.get('/')
         self.assertEqual(response.status_code, 200)  # Authenticated request
-

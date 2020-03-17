@@ -23,8 +23,6 @@ from eduid_webapp.security.helpers import compile_credential_list
 from eduid_webapp.security.schemas import WebauthnRegisterRequestSchema
 from eduid_webapp.security.schemas import WebauthnRegisterBeginSchema
 from eduid_webapp.security.schemas import SecurityResponseSchema, RemoveWebauthnTokenRequestSchema
-from eduid_webapp.security.schemas import VerifyWithWebauthnTokenRequestSchema
-from eduid_webapp.security.schemas import VerifyWithWebauthnTokenResponseSchema
 from eduid_webapp.security.app import current_security_app as current_app
 
 
@@ -67,14 +65,14 @@ def registration_begin(user, authenticator):
     if user.given_name is None or user.surname is None or user.display_name is None:
         return {'_status': 'error', 'message': 'security.webauthn-missing-pdata'}
     registration_data, state = server.register_begin(
-            {
-                'id': str(user.eppn).encode('ascii'),
-                'name': "{} {}".format(user.given_name, user.surname),
-                'displayName': user.display_name
-            }, credentials=creds,
-            user_verification=USER_VERIFICATION.DISCOURAGED,
-            authenticator_attachment=authenticator,
-            )
+        {
+            'id': str(user.eppn).encode('ascii'),
+            'name': "{} {}".format(user.given_name, user.surname),
+            'displayName': user.display_name
+        }, credentials=creds,
+        user_verification=USER_VERIFICATION.DISCOURAGED,
+        authenticator_attachment=authenticator,
+    )
     session['_webauthn_state_'] = state
 
     current_app.logger.info('User {} has started registration of a webauthn token'.format(user))
@@ -116,7 +114,7 @@ def registration_complete(user, credential_id, attestation_object, client_data, 
         attest_obj = base64.b64encode(attestation_object.encode('utf-8')).decode('ascii'),
         description = description,
         application = 'security'
-        )
+    )
 
     security_user.credentials.add(credential)
     save_and_sync_user(security_user)

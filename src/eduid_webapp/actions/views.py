@@ -93,8 +93,8 @@ def get_config():
     except plugin_obj.ActionError as exc:
         return {
             '_status': 'error',
-            'message':  exc.args[0]
-            }
+            'message': exc.args[0]
+        }
 
 
 @actions_views.route('/get-actions', methods=['GET'])
@@ -106,8 +106,7 @@ def get_actions():
                            'url': actions['idp_url'],
                            'payload': {
                                'csrf_token': session.new_csrf_token()
-                               }
-                           })
+                           }})
     action_type = session['current_plugin']
     plugin_obj = current_app.plugins[action_type]()
     old_format = 'user_oid' in session['current_action']
@@ -120,7 +119,7 @@ def get_actions():
                            'url': url,
                            'payload': {
                                'csrf_token': session.new_csrf_token()
-                               }})
+                           }})
     except plugin_obj.ActionError as exc:
         _aborted(action, exc)
         abort(500)
@@ -144,7 +143,7 @@ def redirect_action():
     path = url_for('actions.authn')
     return_url = urlunsplit((scheme, netloc, path, query_string, fragment))
     # TODO: Look in ret to figure out if we need to add a query string with a user message
-    ret = _do_action()
+    _ = _do_action()
     return redirect(return_url)
 
 
@@ -195,6 +194,6 @@ def _aborted(action, exc):
         current_app.logger.info(msg + str(aid))
         current_app.actions_db.remove_action_by_id(aid)
     return {
-            '_status': 'error',
-            'message': exc.args[0]
-            }
+        '_status': 'error',
+        'message': exc.args[0]
+    }

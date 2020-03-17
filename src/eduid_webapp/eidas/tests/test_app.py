@@ -13,10 +13,8 @@ from mock import patch
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.authn.cache import OutstandingQueriesCache
 from eduid_webapp.eidas.settings.common import EidasConfig
-from eduid_userdb import User
 from eduid_userdb.credentials import U2F, Webauthn
 from eduid_userdb.credentials.fido import FidoCredential
-from eduid_userdb.data_samples import NEW_UNVERIFIED_USER_EXAMPLE
 
 from eduid_webapp.eidas.app import init_eidas_app
 
@@ -88,7 +86,7 @@ class EidasTests(EduidAPITestCase):
 </samlp:Response>"""
         self.saml_response_tpl_fail = """<?xml version="1.0" encoding="UTF-8"?>
 <saml2p:Response xmlns:saml2p="urn:oasis:names:tc:SAML:2.0:protocol" Destination="{sp_url}saml2-acs" ID="_ebad01e547857fa54927b020dba1edb1" InResponseTo="{session_id}" IssueInstant="{timestamp}" Version="2.0">
-  <saml2:Issuer xmlns:saml2="urn:oasis:names:tc:SAML:2.0:assertion">https://idp.example.com/simplesaml/saml2/idp/metadata.php</saml2:Issuer>  
+  <saml2:Issuer xmlns:saml2="urn:oasis:names:tc:SAML:2.0:assertion">https://idp.example.com/simplesaml/saml2/idp/metadata.php</saml2:Issuer>
   <saml2p:Status>
     <saml2p:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Requester">
       <saml2p:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:AuthnFailed" />
@@ -99,7 +97,7 @@ class EidasTests(EduidAPITestCase):
         self.saml_response_tpl_cancel = """
         <?xml version="1.0" encoding="UTF-8"?>
 <saml2p:Response xmlns:saml2p="urn:oasis:names:tc:SAML:2.0:protocol" Destination="{sp_url}saml2-acs" ID="_ebad01e547857fa54927b020dba1edb1" InResponseTo="{session_id}" IssueInstant="{timestamp}" Version="2.0">
-  <saml2:Issuer xmlns:saml2="urn:oasis:names:tc:SAML:2.0:assertion">https://idp.example.com/simplesaml/saml2/idp/metadata.php</saml2:Issuer>  
+  <saml2:Issuer xmlns:saml2="urn:oasis:names:tc:SAML:2.0:assertion">https://idp.example.com/simplesaml/saml2/idp/metadata.php</saml2:Issuer>
   <saml2p:Status>
     <saml2p:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Requester">
       <saml2p:StatusCode Value="http://id.elegnamnden.se/status/1.0/cancel" />
@@ -146,7 +144,7 @@ class EidasTests(EduidAPITestCase):
             },
             'authn_sign_alg': 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256',
             'authn_digest_alg': 'http://www.w3.org/2001/04/xmlenc#sha256'
-            })
+        })
         return EidasConfig(**app_config)
 
     def add_token_to_user(self, eppn, credential_id, token_type):
@@ -660,4 +658,3 @@ class EidasTests(EduidAPITestCase):
                 self.assertEqual(user.nins.primary.number, '190102031234')
 
                 self.assertEqual(self.app.proofing_log.db_count(), 1)
-

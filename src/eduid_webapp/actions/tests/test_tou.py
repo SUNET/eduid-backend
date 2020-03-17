@@ -172,7 +172,7 @@ class ToUActionPluginTests(ActionsTestCase):
 
         user = self.app.central_userdb.get_user_by_eppn(self.user.eppn)
         four_years = timedelta(days=1460)
-        self.tou_accepted(user, TOU_ACTION['params']['version'], created_ts=datetime.utcnow()-four_years)
+        self.tou_accepted(user, TOU_ACTION['params']['version'], created_ts=datetime.utcnow() - four_years)
         user = self.app.central_userdb.get_user_by_eppn(self.user.eppn)
 
         self.assertFalse(user.tou.has_accepted(TOU_ACTION['params']['version'],
@@ -202,8 +202,8 @@ class ToUActionPluginTests(ActionsTestCase):
 
         user = self.app.central_userdb.get_user_by_eppn(self.user.eppn)
         four_years = timedelta(days=1460)
-        self.tou_accepted(user, TOU_ACTION['params']['version'], created_ts=datetime.utcnow()-four_years,
-                          modified_ts=datetime.utcnow()-four_years)
+        self.tou_accepted(user, TOU_ACTION['params']['version'], created_ts=datetime.utcnow() - four_years,
+                          modified_ts=datetime.utcnow() - four_years)
         user = self.app.central_userdb.get_user_by_eppn(self.user.eppn)
 
         self.assertFalse(user.tou.has_accepted(TOU_ACTION['params']['version'],

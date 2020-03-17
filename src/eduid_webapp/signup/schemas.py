@@ -45,6 +45,7 @@ class EmailSchema(EduidSchema, CSRFRequestMixin):
 
     email = fields.Email(required=True, validate=[validate_email])
 
+
 class RegisterEmailSchema(EmailSchema):
 
     recaptcha_response = fields.String(required=True)

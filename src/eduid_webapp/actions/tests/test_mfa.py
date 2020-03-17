@@ -49,13 +49,13 @@ from fido2.server import Fido2Server
 __author__ = 'ft'
 
 MFA_ACTION = {
-        '_id': ObjectId('234567890123456789012301'),
-        'eppn': MOCKED_USER_STANDARD['eduPersonPrincipalName'],
-        'action': 'mfa',
-        'session': 'mock-session',
-        'preference': 1,
-        'params': {}
-        }
+    '_id': ObjectId('234567890123456789012301'),
+    'eppn': MOCKED_USER_STANDARD['eduPersonPrincipalName'],
+    'action': 'mfa',
+    'session': 'mock-session',
+    'preference': 1,
+    'params': {}
+}
 
 
 def add_actions(context, user, ticket):
@@ -74,6 +74,7 @@ def add_actions(context, user, ticket):
     action_d['_id'] = str(action_d['_id'])
     session['current_action'] = action_d
     session.persist()
+
 
 class MockTicket:
     def __init__(self, key):
@@ -123,7 +124,7 @@ class MFAActionPluginTests(ActionsTestCase):
         with self.app.test_request_context('/get-actions'):
             mock_idp_app = MockIdPContext(self.app.actions_db)
             add_actions(mock_idp_app, self.user,
-                    MockTicket('mock-session'))
+                        MockTicket('mock-session'))
             self.authenticate(idp_session='wrong-session')
             response = self.app.dispatch_request()
             data = json.loads(response)
@@ -200,7 +201,7 @@ class MFAActionPluginTests(ActionsTestCase):
 
     @patch('eduid_common.authn.fido_tokens.complete_authentication')
     def test_action_webauthn_legacy_token(self, mock_complete_authn):
-        #mock_complete_authn.return_value = ({'keyHandle': 'test_key_handle'},
+        # mock_complete_authn.return_value = ({'keyHandle': 'test_key_handle'},
         #        'dummy-touch', 'dummy-counter')
         #
         # Add a working U2F credential for this test
@@ -225,12 +226,12 @@ class MFAActionPluginTests(ActionsTestCase):
 
                 data = json.dumps({'csrf_token': csrf_token,
                                    'authenticatorData': 'mZ9k6EPHoJxJZNA+UuvM0JVoutZHmqelg9kXe/DSefgBAAAA/w==',
-                                   'clientDataJSON': 'eyJjaGFsbGVuZ2UiOiIzaF9FQVpwWTI1eERkU0pDT014MUFCWkVBNU9k'+\
-                                   'ejN5ZWpVSTNBVU5UUVdjIiwib3JpZ2luIjoiaHR0cHM6Ly9pZHAuZGV2LmVkdWlkLnNlIiwidH'+\
+                                   'clientDataJSON': 'eyJjaGFsbGVuZ2UiOiIzaF9FQVpwWTI1eERkU0pDT014MUFCWkVBNU9k' +
+                                   'ejN5ZWpVSTNBVU5UUVdjIiwib3JpZ2luIjoiaHR0cHM6Ly9pZHAuZGV2LmVkdWlkLnNlIiwidH' +
                                    'lwZSI6IndlYmF1dGhuLmdldCJ9',
-                                   'credentialId': 'V1vXqZcwBJD2RMIH2udd2F7R9NoSNlP7ZSPOtKHzS7n/rHFXcXbSpOoX//'+\
+                                   'credentialId': 'V1vXqZcwBJD2RMIH2udd2F7R9NoSNlP7ZSPOtKHzS7n/rHFXcXbSpOoX//' +
                                                    'aUKyTR6jEC8Xv678WjXC5KEkvziA==',
-                                   'signature': 'MEYCIQC5gM8inamJGUFKu3bNo4fT0jmJQuw33OSSXc242NCuiwIhAIWnVw2Sp'+\
+                                   'signature': 'MEYCIQC5gM8inamJGUFKu3bNo4fT0jmJQuw33OSSXc242NCuiwIhAIWnVw2Sp' +
                                                 'ow72j6J92KaY2rLR6qSXEbLam09ZXbSkBnQ'}
                                   )
 

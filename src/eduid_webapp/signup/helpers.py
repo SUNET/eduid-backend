@@ -148,7 +148,7 @@ def complete_registration(signup_user):
     :rtype: dict
     """
     current_app.logger.info("Completing registration for user "
-                    "{}".format(signup_user))
+                            "{}".format(signup_user))
 
     context = {}
     password_id = ObjectId()
@@ -200,11 +200,11 @@ def record_tou(user, source):
     created_ts = datetime.datetime.utcnow()
     tou_version = current_app.config.tou_version
     current_app.logger.info('Recording ToU acceptance {!r} (version {})'
-                 ' for user {} (source: {})'.format(
-                     event_id, tou_version, user, source))
+                            ' for user {} (source: {})'.format(
+                                event_id, tou_version, user, source))
     user.tou.add(ToUEvent(
         version = tou_version,
         application = source,
         created_ts = created_ts,
         event_id = event_id
-        ))
+    ))

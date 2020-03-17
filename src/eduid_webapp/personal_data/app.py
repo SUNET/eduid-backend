@@ -35,7 +35,6 @@ from typing import cast
 
 from flask import current_app
 
-from eduid_common.api.app import get_app_config
 from eduid_common.api import am
 from eduid_common.authn.middleware import AuthnBaseApp
 from eduid_common.config.base import FlaskConfig

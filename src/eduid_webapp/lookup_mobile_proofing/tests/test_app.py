@@ -20,7 +20,7 @@ class LookupMobileProofingTests(EduidAPITestCase):
     def setUp(self):
         self.test_user_eppn = 'hubba-baar'
         self.test_user_nin = '199001023456'
-        fifteen_years_ago = datetime.now() - timedelta(days=15*365)
+        fifteen_years_ago = datetime.now() - timedelta(days=15 * 365)
         self.test_user_nin_underage = '{}01023456'.format(fifteen_years_ago.year)
         self.mock_address = OrderedDict([
             (u'Name', OrderedDict([

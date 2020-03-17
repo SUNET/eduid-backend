@@ -49,7 +49,7 @@ from eduid_webapp.signup.app import current_signup_app as current_app
 
 def verify_recaptcha(secret_key, captcha_response, user_ip, retries=3):
     """
-    Verify the recaptcha response received from the client 
+    Verify the recaptcha response received from the client
     against the recaptcha API.
 
     :param secret_key: Recaptcha secret key
@@ -80,7 +80,7 @@ def verify_recaptcha(secret_key, captcha_response, user_ip, retries=3):
             verify_rs = verify_rs.json()
             if verify_rs.get('success', False) is True:
                 current_app.logger.info("Valid CAPTCHA response from "
-                                             "{}".format(user_ip))
+                                        "{}".format(user_ip))
                 return True
         except requests.exceptions.RequestException as e:
             if not retries:
@@ -150,12 +150,12 @@ def send_verification_mail(email):
     }
 
     text = render_template(
-            "verification_email.txt.jinja2",
-            **context
+        "verification_email.txt.jinja2",
+        **context
     )
     html = render_template(
-            "verification_email.html.jinja2",
-            **context
+        "verification_email.html.jinja2",
+        **context
     )
 
     current_app.mail_relay.sendmail(subject, [email], text, html, reference=signup_user.proofing_reference)

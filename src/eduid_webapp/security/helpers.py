@@ -2,7 +2,7 @@
 
 from __future__ import absolute_import
 
-from typing import Optional, List
+from typing import Optional
 
 from flask import render_template, url_for
 from flask_babel import gettext as _
@@ -91,7 +91,7 @@ def generate_suggested_password():
     password_length = current_app.config.password_length
 
     password = generate_password(length=password_length)
-    password = ' '.join([password[i*4: i*4+4] for i in range(0, int(len(password)/4))])
+    password = ' '.join([password[i * 4: i * 4 + 4] for i in range(0, int(len(password) / 4))])
 
     return password
 
@@ -338,7 +338,7 @@ def mask_alternatives(alternatives):
         # Phone numbers
         masked_phone_numbers = []
         for phone_number in alternatives.get('phone_numbers', []):
-            masked_number = '{}{}'.format('X'*(len(phone_number)-2), phone_number[len(phone_number)-2:])
+            masked_number = '{}{}'.format('X' * (len(phone_number) - 2), phone_number[len(phone_number) - 2:])
             masked_phone_numbers.append(masked_number)
 
         alternatives['phone_numbers'] = masked_phone_numbers

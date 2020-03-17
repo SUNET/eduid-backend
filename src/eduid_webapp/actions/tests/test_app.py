@@ -32,10 +32,8 @@
 
 import json
 import time
-from hashlib import sha256
 from datetime import datetime
-from nacl import secret, utils, encoding
-from werkzeug.exceptions import InternalServerError, Forbidden
+from werkzeug.exceptions import InternalServerError
 
 from eduid_webapp.actions.testing import ActionsTestCase
 
@@ -92,7 +90,7 @@ class ActionsTests(ActionsTestCase):
             self.prepare_session(client, action_error=True)
             with self.app.test_request_context('/get-actions'):
                 try:
-                    response = client.get('/get-actions')
+                    _ = client.get('/get-actions')
                 except InternalServerError:
                     pass
 

@@ -36,7 +36,7 @@ Configuration (file) handling for the eduID actions app.
 """
 
 from dataclasses import dataclass, field
-from typing import Optional, Mapping
+from typing import Mapping
 
 from eduid_common.config.base import FlaskConfig
 
@@ -64,6 +64,5 @@ class ActionsConfig(FlaskConfig):
     action_plugins: list = field(default_factory=lambda: [
         "tou",
         "mfa"
-        ])
+    ])
     tou_version: str = '2017-v6'
-    

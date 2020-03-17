@@ -42,10 +42,10 @@ SAML_CONFIG = {
             'want_response_signed': False,
             # # This is commented to be compatible with simplesamlphp
             # # attributes that this project need to identify a user
-            #'required_attributes': ['uid'],
+            # 'required_attributes': ['uid'],
             #
             # # attributes that may be useful to have but not required
-            #'optional_attributes': ['eduPersonAffiliation'],
+            # 'optional_attributes': ['eduPersonAffiliation'],
 
             # in this section the list of IdPs we talk to are defined
             'idp': {
@@ -79,7 +79,7 @@ SAML_CONFIG = {
     'cert_file': path.join("%s%s" % (SAML2DIR, "/certs"), 'server.crt'),  # public part
     'encryption_keypairs': [
         {
-            'key_file':  path.join("%s%s" % (SAML2DIR, "/certs"), 'server.key'),  # private part
+            'key_file': path.join("%s%s" % (SAML2DIR, "/certs"), 'server.key'),  # private part
             'cert_file': path.join("%s%s" % (SAML2DIR, "/certs"), 'server.crt'),  # public part
         }
     ],

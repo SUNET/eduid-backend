@@ -15,7 +15,7 @@ from eduid_userdb.security import SecurityUser
 from eduid_common.session import session
 from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
 from eduid_common.api.utils import save_and_sync_user
-from eduid_common.api.schemas.u2f import U2FEnrollResponseSchema, U2FSignResponseSchema, U2FBindRequestSchema
+from eduid_common.api.schemas.u2f import U2FEnrollResponseSchema, U2FSignResponseSchema
 from eduid_webapp.security.schemas import EnrollU2FTokenResponseSchema, BindU2FRequestSchema
 from eduid_webapp.security.schemas import SignWithU2FTokenResponseSchema, VerifyWithU2FTokenRequestSchema
 from eduid_webapp.security.schemas import VerifyWithU2FTokenResponseSchema, ModifyU2FTokenRequestSchema

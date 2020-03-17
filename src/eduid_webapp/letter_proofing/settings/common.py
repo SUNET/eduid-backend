@@ -37,9 +37,6 @@ from dataclasses import dataclass
 from eduid_common.config.base import FlaskConfig
 
 
-
-
-
 @dataclass
 class LetterProofingConfig(FlaskConfig):
     """

@@ -54,7 +54,7 @@ class PhoneTests(EduidAPITestCase):
 
     def update_config(self, app_config):
         app_config.update({
-            'available_languages': {'en': 'English','sv': 'Svenska'},
+            'available_languages': {'en': 'English', 'sv': 'Svenska'},
             'msg_broker_url': 'amqp://dummy',
             'am_broker_url': 'amqp://dummy',
             'celery_config': {
@@ -88,7 +88,7 @@ class PhoneTests(EduidAPITestCase):
 
     def test_post_phone_error_no_data(self):
         response = self.browser.post('/new')
-        self.assertEqual(response.status_code, 302) # Redirect to token service
+        self.assertEqual(response.status_code, 302)  # Redirect to token service
 
         eppn = self.test_user_data['eduPersonPrincipalName']
         with self.session_cookie(self.browser, eppn) as client:
@@ -112,7 +112,7 @@ class PhoneTests(EduidAPITestCase):
 
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction() as sess:
-                with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True) as send_verification_code_mock:
+                with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True):
                     with self.app.test_request_context():
                         data = {
                             'number': '+34670123456',
@@ -145,7 +145,7 @@ class PhoneTests(EduidAPITestCase):
 
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction() as sess:
-                with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True) as send_verification_code_mock:
+                with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True):
                     with self.app.test_request_context():
                         data = {
                             'number': '0701234565',
@@ -177,8 +177,8 @@ class PhoneTests(EduidAPITestCase):
         eppn = self.test_user_data['eduPersonPrincipalName']
 
         with self.session_cookie(self.browser, eppn) as client:
-            with client.session_transaction() as sess:
-                with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True) as send_verification_code_mock:
+            with client.session_transaction():
+                with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True):
 
                     data = {
                         'number': '+34670123456',
@@ -322,7 +322,7 @@ class PhoneTests(EduidAPITestCase):
 
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction() as sess:
-                with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True) as send_verification_code_mock:
+                with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True):
 
                     with self.app.test_request_context():
                         data = {
@@ -335,7 +335,7 @@ class PhoneTests(EduidAPITestCase):
                     client.post('/new', data=json.dumps(data),
                                 content_type=self.content_type_json)
             with client.session_transaction() as sess:
-                with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True) as send_verification_code_mock:
+                with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True):
                     with self.app.test_request_context():
                         data = {
                             'number': u'+34609123321',
@@ -379,7 +379,7 @@ class PhoneTests(EduidAPITestCase):
 
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction() as sess:
-                with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True) as send_verification_code_mock:
+                with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True):
 
                     with self.app.test_request_context():
                         data = {
@@ -412,7 +412,7 @@ class PhoneTests(EduidAPITestCase):
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction() as sess:
                 with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator',
-                           return_value=True) as send_verification_code_mock:
+                           return_value=True):
 
                     # Request a code
                     with self.app.test_request_context():
@@ -459,7 +459,7 @@ class PhoneTests(EduidAPITestCase):
 
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction() as sess:
-                with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True) as send_verification_code_mock:
+                with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True):
 
                     with self.app.test_request_context():
                         data = {
@@ -473,7 +473,7 @@ class PhoneTests(EduidAPITestCase):
                                 content_type=self.content_type_json)
 
             with client.session_transaction() as sess:
-                with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True) as send_verification_code_mock:
+                with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True):
                     with self.app.test_request_context():
                         data = {
                             'number': u'+34609123321',
@@ -505,7 +505,7 @@ class PhoneTests(EduidAPITestCase):
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction() as sess:
                 with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator',
-                           return_value=True) as send_verification_code_mock:
+                           return_value=True):
                     with self.app.test_request_context():
                         data = {
                             'number': u'+34609123321',
@@ -519,7 +519,7 @@ class PhoneTests(EduidAPITestCase):
 
             with client.session_transaction() as sess:
                 with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator',
-                           return_value=True) as send_verification_code_mock:
+                           return_value=True):
                     with self.app.test_request_context():
                         data = {
                             'number': u'+34609123321',
@@ -548,7 +548,7 @@ class PhoneTests(EduidAPITestCase):
 
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction() as sess:
-                with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True) as send_verification_code_mock:
+                with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True):
                     with self.app.test_request_context():
                         data = {
                             'number': '0701234565',
@@ -573,7 +573,7 @@ class PhoneTests(EduidAPITestCase):
                 self.request_user_sync(user)
 
                 with client.session_transaction() as sess2:
-                    with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True) as send_verification_code_mock:
+                    with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True):
                         data2 = {
                             'number': '0701234565',
                             'verified': False,
@@ -604,7 +604,7 @@ class PhoneTests(EduidAPITestCase):
 
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction() as sess:
-                with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True) as send_verification_code_mock:
+                with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True):
                     with self.app.test_request_context():
                         data = {
                             'number': '+46701234565',  # e164 format
@@ -629,7 +629,7 @@ class PhoneTests(EduidAPITestCase):
                 self.request_user_sync(user)
 
                 with client.session_transaction() as sess2:
-                    with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True) as send_verification_code_mock:
+                    with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True):
                         data2 = {
                             'number': '0701234565',  # National format
                             'verified': False,
@@ -660,7 +660,7 @@ class PhoneTests(EduidAPITestCase):
 
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction() as sess:
-                with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True) as send_verification_code_mock:
+                with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True):
                     with self.app.test_request_context():
                         data = {
                             'number': '0701234565',  # National format
@@ -685,7 +685,7 @@ class PhoneTests(EduidAPITestCase):
                 self.request_user_sync(user)
 
                 with client.session_transaction() as sess2:
-                    with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True) as send_verification_code_mock:
+                    with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True):
                         data2 = {
                             'number': '+46701234565',  # e164 format
                             'verified': False,
@@ -716,7 +716,7 @@ class PhoneTests(EduidAPITestCase):
 
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction() as sess:
-                with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True) as send_verification_code_mock:
+                with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True):
                     with self.app.test_request_context():
                         data = {
                             'number': '0711234565',  # National format
@@ -749,7 +749,7 @@ class PhoneTests(EduidAPITestCase):
 
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction() as sess:
-                with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True) as send_verification_code_mock:
+                with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True):
                     with self.app.test_request_context():
                         data = {
                             'number': '00711234565',  # National format

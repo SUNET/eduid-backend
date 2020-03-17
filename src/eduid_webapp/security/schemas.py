@@ -170,6 +170,7 @@ class RemoveU2FTokenRequestSchema(EduidSchema, CSRFRequestMixin):
 
 # webauthn schemas
 
+
 class WebauthnOptionsResponseSchema(FluxStandardAction):
 
     class WebauthnOptionsResponsePayload(EduidSchema, CSRFResponseMixin):
@@ -181,6 +182,7 @@ class WebauthnOptionsResponseSchema(FluxStandardAction):
 class WebauthnRegisterBeginSchema(EduidSchema, CSRFRequestMixin):
 
     authenticator = fields.String(required=True)
+
 
 class WebauthnRegisterRequestSchema(EduidSchema, CSRFRequestMixin):
 

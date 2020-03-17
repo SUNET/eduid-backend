@@ -31,8 +31,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-import json
-import pprint
 import base64
 from flask import request
 
@@ -42,16 +40,9 @@ from eduid_webapp.actions.action_abc import ActionPlugin
 from eduid_userdb.credentials import U2F, Webauthn
 from eduid_webapp.actions.app import current_actions_app as current_app
 
-from u2flib_server.u2f import begin_authentication, complete_authentication
-
-from fido2 import cbor
-from fido2.server import RelyingParty, Fido2Server, U2FFido2Server
-from fido2.client import ClientData
-from fido2.ctap2 import AttestedCredentialData, AuthenticatorData
+from fido2.server import Fido2Server, U2FFido2Server
+from fido2.ctap2 import AttestedCredentialData
 from fido2.utils import websafe_decode
-
-from . import RESULT_CREDENTIAL_KEY_NAME
-
 
 __author__ = 'ft'
 
@@ -205,6 +196,7 @@ def _get_user_credentials(user):
                          'app_id': '',
                          }
     return res
+
 
 def _get_fido2server(credentials, fido2rp):
     # See if any of the credentials is a legacy U2F credential with an app-id

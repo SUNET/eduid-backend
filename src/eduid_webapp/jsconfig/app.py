@@ -32,10 +32,9 @@
 #
 from typing import cast
 
-from flask import current_app, Flask
+from flask import current_app
 
 from eduid_common.api.app import EduIDBaseApp
-from eduid_common.api.app import get_app_config
 from eduid_common.authn.utils import no_authn_views
 from eduid_webapp.jsconfig.settings.common import JSConfigConfig
 

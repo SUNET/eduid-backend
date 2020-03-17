@@ -102,9 +102,9 @@ def post_phone(user, number, verified, primary):
     current_app.stats.count(name='mobile_send_verification_code', value=1)
 
     phones = {
-            'phones': proofing_user.phone_numbers.to_list_of_dicts(),
-            'message': 'phones.save-success'
-            }
+        'phones': proofing_user.phone_numbers.to_list_of_dicts(),
+        'message': 'phones.save-success'
+    }
     return PhoneListPayload().dump(phones).data
 
 
@@ -150,9 +150,9 @@ def post_primary(user, number):
     current_app.stats.count(name='mobile_set_primary', value=1)
 
     phones = {
-            'phones': proofing_user.phone_numbers.to_list_of_dicts(),
-            'message': 'phones.primary-success'
-            }
+        'phones': proofing_user.phone_numbers.to_list_of_dicts(),
+        'message': 'phones.primary-success'
+    }
     return PhoneListPayload().dump(phones).data
 
 
@@ -195,9 +195,9 @@ def verify(user, code, number):
             current_app.logger.info('Phone number successfully verified')
             current_app.logger.debug('Phone number: {}'.format(number))
             phones = {
-                    'phones': proofing_user.phone_numbers.to_list_of_dicts(),
-                    'message': 'phones.verification-success'
-                    }
+                'phones': proofing_user.phone_numbers.to_list_of_dicts(),
+                'message': 'phones.verification-success'
+            }
             return PhoneListPayload().dump(phones).data
         except UserOutOfSync:
             current_app.logger.info('Could not confirm phone number, data out of sync')
@@ -259,9 +259,9 @@ def post_remove(user, number):
     current_app.stats.count(name='mobile_remove_success', value=1)
 
     phones = {
-            'phones': proofing_user.phone_numbers.to_list_of_dicts(),
-            'message': 'phones.removal-success'
-            }
+        'phones': proofing_user.phone_numbers.to_list_of_dicts(),
+        'message': 'phones.removal-success'
+    }
     return PhoneListPayload().dump(phones).data
 
 
@@ -272,7 +272,7 @@ def post_remove(user, number):
 def resend_code(user, number):
     """
     view to resend a new verification code for one of the (unverified)
-    phone numbers of the logged in user. 
+    phone numbers of the logged in user.
 
     Returns a listing of  all phones for the logged in user.
     """
@@ -298,7 +298,7 @@ def resend_code(user, number):
     current_app.stats.count(name='mobile_resend_code', value=1)
 
     phones = {
-            'phones': user.phone_numbers.to_list_of_dicts(),
-            'message': 'phones.code-sent'
-            }
+        'phones': user.phone_numbers.to_list_of_dicts(),
+        'message': 'phones.code-sent'
+    }
     return PhoneListPayload().dump(phones).data

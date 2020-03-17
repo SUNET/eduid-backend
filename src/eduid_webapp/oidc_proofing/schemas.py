@@ -28,4 +28,3 @@ class FrejaResponseSchema(FluxStandardAction):
         iaRequestData = fields.String(required=True)
 
     payload = fields.Nested(FrejaResponsePayload)
-

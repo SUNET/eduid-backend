@@ -2,7 +2,6 @@
 
 from __future__ import absolute_import
 
-from os import devnull
 import json
 from datetime import datetime
 from collections import OrderedDict
@@ -12,7 +11,6 @@ from eduid_userdb.locked_identity import LockedIdentityNin
 from eduid_userdb.nin import Nin
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_webapp.letter_proofing.app import init_letter_proofing_app
-from eduid_webapp.letter_proofing.ekopost import Ekopost
 from eduid_webapp.letter_proofing.settings.common import LetterProofingConfig
 
 __author__ = 'lundberg'

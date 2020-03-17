@@ -7,7 +7,6 @@ from mock import patch
 from u2flib_server.model import DeviceRegistration, RegisteredKey
 
 from eduid_userdb.credentials import U2F
-from eduid_userdb.security import SecurityUser
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_webapp.security.app import security_init_app
 from eduid_webapp.security.settings.common import SecurityConfig
@@ -77,7 +76,7 @@ class SecurityU2FTests(EduidAPITestCase):
         self.assertEqual(response.status_code, 302)  # Redirect to token service
 
         eppn = self.test_user_data['eduPersonPrincipalName']
-        user_token = self.add_token_to_user(eppn)
+        _ = self.add_token_to_user(eppn)
 
         with self.session_cookie(self.browser, eppn) as client:
             response2 = client.get('/u2f/enroll')
@@ -136,7 +135,7 @@ class SecurityU2FTests(EduidAPITestCase):
 
     def test_sign(self):
         eppn = self.test_user_data['eduPersonPrincipalName']
-        user_token = self.add_token_to_user(eppn)
+        _ = self.add_token_to_user(eppn)
 
         response = self.browser.get('/u2f/sign')
         self.assertEqual(response.status_code, 302)  # Redirect to token service
@@ -161,7 +160,7 @@ class SecurityU2FTests(EduidAPITestCase):
     @patch('u2flib_server.model.U2fSignRequest.complete')
     def test_verify(self, mock_u2f_sign_complete):
         eppn = self.test_user_data['eduPersonPrincipalName']
-        user_token = self.add_token_to_user(eppn)
+        _ = self.add_token_to_user(eppn)
         device = RegisteredKey({u'keyHandle': u'keyHandle', u'version': u'version', u'appId': u'appId'})
         mock_u2f_sign_complete.return_value = device, 1, 0  # device, signature counter, user presence (touch)
 

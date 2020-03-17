@@ -1218,10 +1218,10 @@ class ChangePasswordTests(EduidAPITestCase):
                 sess['reauthn-for-chpass'] = True
                 with self.app.test_request_context():
                     data = {
-                            'csrf_token': sess.get_csrf_token(),
-                            'new_password': '0ieT/(.edW76',
-                            'old_password': '5678'
-                            }
+                        'csrf_token': sess.get_csrf_token(),
+                        'new_password': '0ieT/(.edW76',
+                        'old_password': '5678'
+                    }
                 response2 = client.post('/change-password', data=json.dumps(data),
                                         content_type=self.content_type_json)
 
@@ -1241,9 +1241,9 @@ class ChangePasswordTests(EduidAPITestCase):
                            return_value=True):
                     sess['reauthn-for-chpass'] = int(time.time())
                     data = {
-                            'new_password': '0ieT/(.edW76',
-                            'old_password': '5678'
-                            }
+                        'new_password': '0ieT/(.edW76',
+                        'old_password': '5678'
+                    }
                     response2 = client.post('/change-password', data=json.dumps(data),
                                             content_type=self.content_type_json)
 
@@ -1262,10 +1262,10 @@ class ChangePasswordTests(EduidAPITestCase):
                 with patch('eduid_webapp.reset_password.views.change_password.change_password', return_value=True):
                     sess['reauthn-for-chpass'] = int(time.time())
                     data = {
-                            'csrf_token': '0000',
-                            'new_password': '0ieT/(.edW76',
-                            'old_password': '5678'
-                            }
+                        'csrf_token': '0000',
+                        'new_password': '0ieT/(.edW76',
+                        'old_password': '5678'
+                    }
                     response2 = client.post('/change-password', data=json.dumps(data),
                                             content_type=self.content_type_json)
 
@@ -1283,10 +1283,10 @@ class ChangePasswordTests(EduidAPITestCase):
                     sess['reauthn-for-chpass'] = int(time.time())
                     with self.app.test_request_context():
                         data = {
-                                'csrf_token': sess.get_csrf_token(),
-                                'new_password': '0ieT/(.edW76',
-                                'old_password': '5678'
-                                }
+                            'csrf_token': sess.get_csrf_token(),
+                            'new_password': '0ieT/(.edW76',
+                            'old_password': '5678'
+                        }
                     response2 = client.post('/change-password', data=json.dumps(data),
                                             content_type=self.content_type_json)
 
@@ -1306,10 +1306,10 @@ class ChangePasswordTests(EduidAPITestCase):
                     sess['reauthn-for-chpass'] = int(time.time())
                     with self.app.test_request_context():
                         data = {
-                                'csrf_token': sess.get_csrf_token(),
-                                'new_password': '1234',
-                                'old_password': '5678'
-                                }
+                            'csrf_token': sess.get_csrf_token(),
+                            'new_password': '1234',
+                            'old_password': '5678'
+                        }
                     response2 = client.post('/change-password', data=json.dumps(data),
                                             content_type=self.content_type_json)
 
@@ -1338,10 +1338,10 @@ class ChangePasswordTests(EduidAPITestCase):
                                 sess.reset_password.generated_password_hash = hash_password(password)
                                 sess.persist()
                                 data = {
-                                        'csrf_token': sess.get_csrf_token(),
-                                        'new_password': password,
-                                        'old_password': '5678'
-                                        }
+                                    'csrf_token': sess.get_csrf_token(),
+                                    'new_password': password,
+                                    'old_password': '5678'
+                                }
                                 response3 = client.post('/change-password', data=json.dumps(data),
                                                         content_type=self.content_type_json)
 
@@ -1374,10 +1374,10 @@ class ChangePasswordTests(EduidAPITestCase):
                                 sess.reset_password.generated_password_hash = hash_password(password)
                                 sess.persist()
                                 data = {
-                                        'csrf_token': sess.get_csrf_token(),
-                                        'new_password': '0ieT/(.edW76',
-                                        'old_password': '5678'
-                                        }
+                                    'csrf_token': sess.get_csrf_token(),
+                                    'new_password': '0ieT/(.edW76',
+                                    'old_password': '5678'
+                                }
                                 response3 = client.post('/change-password', data=json.dumps(data),
                                                         content_type=self.content_type_json)
 
@@ -1410,10 +1410,10 @@ class ChangePasswordTests(EduidAPITestCase):
                                 sess.reset_password.generated_password_hash = hash_password(password)
                                 sess.persist()
                                 data = {
-                                        'csrf_token': 'wrong-csrf-token',
-                                        'new_password': password,
-                                        'old_password': '5678'
-                                        }
+                                    'csrf_token': 'wrong-csrf-token',
+                                    'new_password': password,
+                                    'old_password': '5678'
+                                }
                                 response3 = client.post('/change-password', data=json.dumps(data),
                                                         content_type=self.content_type_json)
 
@@ -1446,10 +1446,10 @@ class ChangePasswordTests(EduidAPITestCase):
                                 sess.reset_password.generated_password_hash = hash_password(password)
                                 sess.persist()
                                 data = {
-                                        'csrf_token': sess.get_csrf_token(),
-                                        'new_password': password,
-                                        'old_password': '5678'
-                                        }
+                                    'csrf_token': sess.get_csrf_token(),
+                                    'new_password': password,
+                                    'old_password': '5678'
+                                }
                                 response3 = client.post('/change-password', data=json.dumps(data),
                                                         content_type=self.content_type_json)
 

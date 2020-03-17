@@ -127,16 +127,16 @@ def verify_link(code):
         user = verify_email_code(code)
     except CodeDoesNotExist:
         return {
-                '_status': 'error',
-                'status': 'unknown-code',
-                'message': 'signup.unknown-code'
-                }
+            '_status': 'error',
+            'status': 'unknown-code',
+            'message': 'signup.unknown-code'
+        }
     except AlreadyVerifiedException:
         return {
-                '_status': 'error',
-                'status': 'already-verified',
-                'message': 'signup.already-verified'
-                }
+            '_status': 'error',
+            'status': 'already-verified',
+            'message': 'signup.already-verified'
+        }
     except ProofingLogFailure:
         return {
             '_status': 'error',
