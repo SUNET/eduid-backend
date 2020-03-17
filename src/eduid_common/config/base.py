@@ -276,7 +276,7 @@ class BaseConfig(CommonConfig):
 
     @classmethod
     def init_config(cls, ns: Optional[str] = None, app_name: Optional[str] = None, test_config: Optional[dict] = None,
-                    debug: bool = False) -> BaseConfig:
+                    debug: bool = False):
         """
         Initialize configuration with values from etcd (or with test values)
         """
