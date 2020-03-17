@@ -35,14 +35,14 @@ it with all attributes common to all eduID services.
 """
 import importlib.util
 import os
+import warnings
 from dataclasses import asdict
-from sys import stderr
 from typing import Optional, Type
 
-from flask import Flask
-from werkzeug.middleware.proxy_fix import ProxyFix
-
 from eduid_userdb import UserDB
+from flask import Flask
+from sys import stderr
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from eduid_common.api.debug import init_app_debug
 from eduid_common.api.exceptions import init_exception_handlers, init_sentry
