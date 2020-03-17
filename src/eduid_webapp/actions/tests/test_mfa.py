@@ -93,6 +93,7 @@ class MFAActionPluginTests(ActionsTestCase):
         self.app.central_userdb.save(self.user, check_sync=False)
 
     def update_actions_config(self, config):
+        config['environment'] = 'dev'
         config['action_plugins'] = ['mfa']
         config['mfa_testing'] = False
         config['u2f_app_id'] = 'https://example.com'
@@ -110,7 +111,7 @@ class MFAActionPluginTests(ActionsTestCase):
             response = self.app.dispatch_request()
             data = json.loads(response)
             self.assertEqual(data['action'], True)
-            self.assertEqual(data['url'], 'http://example.com/bundles/eduid_action.mfa-bundle.dev.js')
+            self.assertEqual('http://example.com/bundles/eduid_action.mfa-bundle.dev.js', data['url'])
             self.assertEqual(len(self.app.actions_db.get_actions(self.user.eppn, 'mock-session')), 1)
 
     def test_get_mfa_action_wrong_session(self):
