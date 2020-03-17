@@ -51,7 +51,7 @@ from eduid_common.config.base import FlaskConfig
 
 
 @dataclass
-class TestFidoConfig(FlaskConfig):
+class MockFidoConfig(FlaskConfig):
     mfa_testing: bool = True
     generate_u2f_challenges: bool = True
     u2f_app_id: str = 'https://eduid.se/u2f-app-id.json'
@@ -75,11 +75,11 @@ def start_verification():
     return json.dumps(result)
 
 
-class TestFidoApp(EduIDBaseApp):
+class MockFidoApp(EduIDBaseApp):
     def __init__(self, name: str, config: dict, **kwargs):
 
-        super(TestFidoApp, self).__init__(name, TestFidoConfig, config, **kwargs)
-        self.config: TestFidoConfig = cast(TestFidoConfig, self.config)
+        super(MockFidoApp, self).__init__(name, MockFidoConfig, config, **kwargs)
+        self.config: MockFidoConfig = cast(MockFidoConfig, self.config)
         self.register_blueprint(views)
 
 
@@ -121,7 +121,7 @@ class FidoTokensTestCase(EduidAPITestCase):
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        return TestFidoApp('testing', config)
+        return MockFidoApp('testing', config)
 
     def update_config(self, app_config):
         app_config.update(
@@ -134,7 +134,7 @@ class FidoTokensTestCase(EduidAPITestCase):
                 },
             }
         )
-        return TestFidoConfig(**app_config)
+        return MockFidoConfig(**app_config)
 
     def test_u2f_start_verification(self):
         test_user = User(data=NEW_USER_EXAMPLE)
