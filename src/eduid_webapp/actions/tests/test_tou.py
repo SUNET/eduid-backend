@@ -92,6 +92,7 @@ class ToUActionPluginTests(ActionsTestCase):
         super(ToUActionPluginTests, self).tearDown()
 
     def update_actions_config(self, config):
+        config['environment'] = 'dev'
         config['action_plugins'] = ['tou']
         return config
 
@@ -121,7 +122,7 @@ class ToUActionPluginTests(ActionsTestCase):
             response = self.app.dispatch_request()
             data = json.loads(response)
             self.assertEqual(data['action'], True)
-            self.assertEqual(data['url'], 'http://example.com/bundles/eduid_action.tou-bundle.dev.js')
+            self.assertEqual('http://example.com/bundles/eduid_action.tou-bundle.dev.js', data['url'])
 
     def test_get_config(self):
         mock_idp_app = MockIdPContext(self.app.actions_db, tou_version='test-version')
