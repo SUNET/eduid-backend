@@ -36,6 +36,7 @@ idp_requires = [
     'redis >= 2.10.5',
     'vccs_client >= 0.4.2',
     'PyNaCl >= 1.0.1',
+    'PyYAML >= 3.11',
     'statsd==3.2.1',
     'bleach>=2.0.0',
     'Flask>=0.12.2,==0.12.*',
@@ -47,6 +48,7 @@ idp_extras = idp_requires + []
 worker_requires = [
     'python-etcd >= 0.4.5',
     'PyNaCl >= 1.0.1',
+    'PyYAML >= 3.11',
     ]
 worker_extras = worker_requires + []
 api_extras = worker_extras
