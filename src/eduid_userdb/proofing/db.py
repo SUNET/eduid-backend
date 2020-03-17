@@ -37,15 +37,15 @@ from typing import ClassVar, Optional, Type, TypeVar
 
 from eduid_userdb.db import BaseDB
 from eduid_userdb.exceptions import DocumentOutOfSync, MultipleDocumentsReturned
-from eduid_userdb.proofing import (
+from eduid_userdb.proofing.state import (
     EmailProofingState,
     LetterProofingState,
     OidcProofingState,
     OrcidProofingState,
     PhoneProofingState,
-    ProofingUser,
+    ProofingState,
 )
-from eduid_userdb.proofing.state import ProofingState
+from eduid_userdb.proofing.user import ProofingUser
 from eduid_userdb.userdb import UserDB
 
 logger = logging.getLogger(__name__)
