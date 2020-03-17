@@ -34,21 +34,22 @@
 
 from __future__ import annotations
 
-import bson
 import copy
 import datetime
+from dataclasses import asdict, dataclass
+from typing import Iterable, Mapping, MutableMapping, Optional, Set
 
-from dataclasses import dataclass, asdict
-
-from typing import Optional, Mapping, MutableMapping, Iterable, Set
+import bson
 
 from eduid_userdb.exceptions import UserDBValueError
-from eduid_userdb.proofing.element import NinProofingElement, SentLetterElement
-from eduid_userdb.proofing.element import EmailProofingElement, PhoneProofingElement
-
+from eduid_userdb.proofing.element import (
+    EmailProofingElement,
+    NinProofingElement,
+    PhoneProofingElement,
+    SentLetterElement,
+)
 
 __author__ = 'lundberg'
-
 
 
 @dataclass()

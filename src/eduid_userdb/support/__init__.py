@@ -2,9 +2,16 @@
 
 from __future__ import absolute_import
 
-from eduid_userdb.support.user import SupportUser, SupportSignupUser
-from eduid_userdb.support.db import SupportActionsDB, SupportAuthnInfoDB, SupportEmailProofingDB
-from eduid_userdb.support.db import SupportLetterProofingDB, SupportOidcProofingDB, SupportPhoneProofingDB
-from eduid_userdb.support.db import SupportProofingDB, SupportProofingLogDB
+from eduid_userdb.support.db import (
+    SupportActionsDB,
+    SupportAuthnInfoDB,
+    SupportEmailProofingDB,
+    SupportLetterProofingDB,
+    SupportOidcProofingDB,
+    SupportPhoneProofingDB,
+    SupportProofingDB,
+    SupportProofingLogDB,
+)
+from eduid_userdb.support.user import SupportSignupUser, SupportUser
 
 __author__ = 'lundberg'

@@ -5,7 +5,7 @@ from typing import Type
 from bson import ObjectId
 
 from eduid_userdb.signup import SignupUserDB
-from eduid_userdb.support import SupportUser, SupportSignupUser, models
+from eduid_userdb.support import SupportSignupUser, SupportUser, models
 from eduid_userdb.support.models import GenericFilterDict
 from eduid_userdb.userdb import BaseDB, UserDB
 

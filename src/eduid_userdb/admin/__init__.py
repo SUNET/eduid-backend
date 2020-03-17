@@ -1,28 +1,27 @@
 # Helper code for tools accessing the raw userdb - things like database fixup scripts.
 
-import os
-import sys
-import bson
-import time
-import pprint
-import datetime
 import argparse
+import datetime
+import os
+import pprint
+import sys
+import time
+from copy import deepcopy
 
+import bson
 import bson.json_util
-
 from pymongo import MongoClient, ReadPreference
 from pymongo.errors import PyMongoError
 from six import string_types
-from copy import deepcopy
 
-
-volunteers = {'ft:staging': 'vofaz-tajod',
-              'ft:prod': 'takaj-sosup',
-              'lundberg:staging': 'tovuk-zizih',
-              'lundberg:prod': 'rubom-lujov',
-              'john:staging': 'faraf-livok',
-              'john:prod': 'hofij-zanok',
-              }
+volunteers = {
+    'ft:staging': 'vofaz-tajod',
+    'ft:prod': 'takaj-sosup',
+    'lundberg:staging': 'tovuk-zizih',
+    'lundberg:prod': 'rubom-lujov',
+    'john:staging': 'faraf-livok',
+    'john:prod': 'hofij-zanok',
+}
 usual_suspects = volunteers.values()
 
 
@@ -35,9 +34,10 @@ class RawDb(object):
     *with backups* of the data before and after modification, and an easily searchable
     log detailing all the changes.
     """
+
     def __init__(self, myname=None, backupbase='/root/raw_db_changes'):
         self._client = get_client()
-        self._start_time = datetime.datetime.fromtimestamp(int(time.time())).isoformat(sep = '_').replace(':', '')
+        self._start_time = datetime.datetime.fromtimestamp(int(time.time())).isoformat(sep='_').replace(':', '')
         self._myname = myname
         self._backupbase = backupbase
         self._file_num = 0
@@ -62,8 +62,10 @@ class RawDb(object):
             for doc in self._client[db][collection].find(search_filter):
                 yield RawData(doc, db, collection)
         except PyMongoError as exc:
-            sys.stderr.write('{}\n\nFailed reading from mongodb ({}.{}) - '
-                             'try sourcing the file /root/.mongo_credentials first?\n'.format(exc, db, collection))
+            sys.stderr.write(
+                '{}\n\nFailed reading from mongodb ({}.{}) - '
+                'try sourcing the file /root/.mongo_credentials first?\n'.format(exc, db, collection)
+            )
             sys.exit(1)
 
     def save_with_backup(self, raw, dry_run=True):
@@ -77,8 +79,10 @@ class RawDb(object):
             sys.exit(1)
 
         if not os.path.isdir(self._backupbase):
-            sys.stderr.write('\n\nBackup basedir {} not found, '
-                             'running in a container without the volume mounted?\n'.format(self._backupbase))
+            sys.stderr.write(
+                '\n\nBackup basedir {} not found, '
+                'running in a container without the volume mounted?\n'.format(self._backupbase)
+            )
             sys.exit(1)
 
         if raw.doc['_id'] != raw.before['_id']:
@@ -94,8 +98,11 @@ class RawDb(object):
         else:
             if 'eduPersonPrincipalName' in raw.doc or 'eduPersonPrincipalName' in raw.before:
                 if raw.doc.get('eduPersonPrincipalName') != raw.before.get('eduPersonPrincipalName'):
-                    sys.stderr.write('REFUSING to update eduPersonPrincipalName ({} -> {})'.format(
-                        raw.before.get('eduPersonPrincipalName'), raw.doc.get('eduPersonPrincipalName')))
+                    sys.stderr.write(
+                        'REFUSING to update eduPersonPrincipalName ({} -> {})'.format(
+                            raw.before.get('eduPersonPrincipalName'), raw.doc.get('eduPersonPrincipalName')
+                        )
+                    )
                     sys.exit(1)
 
         dbcoll = '{}.{}'.format(raw.db, raw.collection)
@@ -126,6 +133,7 @@ class RawDb(object):
         Write a file with one line per change between the before-doc and current doc.
         The format is intended to be easy to grep through.
         """
+
         def safe_encode(k, v):
             try:
                 return bson.json_util.dumps({k: v})
@@ -143,9 +151,9 @@ class RawDb(object):
                 if k not in raw.before:
                     continue
                 if raw.doc[k] != raw.before[k]:
-                    fd.write('MOD: BEFORE={} AFTER={}\n'.format(safe_encode(k, raw.before[k]),
-                                                                safe_encode(k, raw.doc[k]),
-                                                                ))
+                    fd.write(
+                        'MOD: BEFORE={} AFTER={}\n'.format(safe_encode(k, raw.before[k]), safe_encode(k, raw.doc[k]),)
+                    )
 
             fd.write('DB_RESULT: {}\n'.format(res))
         return res
@@ -184,8 +192,10 @@ class RawDb(object):
             sys.exit(1)
 
         if not os.path.isdir(self._backupbase):
-            sys.stderr.write('\n\nBackup basedir {} not found, running in a container '
-                             'without the volume mounted?\n'.format(self._backupbase))
+            sys.stderr.write(
+                '\n\nBackup basedir {} not found, running in a container '
+                'without the volume mounted?\n'.format(self._backupbase)
+            )
             sys.exit(1)
 
         backup_dir = os.path.join(self.backupdir, dbcoll, _id)
@@ -218,6 +228,7 @@ class RawData(object):
     :type db: string_types
     :type collection: string_types
     """
+
     def __init__(self, doc, db, collection):
         self._before = deepcopy(doc)
         self._db = db
@@ -303,16 +314,10 @@ def get_argparser(description=None, eppn=False):
     :rtype: argparse.ArgumentParser
     """
     parser = argparse.ArgumentParser(description=description)
-    parser.add_argument('--debug',
-                        dest='debug',
-                        action='store_true', default=False,
-                        help='Enable debug operation'
-                        )
-    parser.add_argument('--force',
-                        dest='force',
-                        action='store_true', default=False,
-                        help='Actually make changes in the database'
-                        )
+    parser.add_argument('--debug', dest='debug', action='store_true', default=False, help='Enable debug operation')
+    parser.add_argument(
+        '--force', dest='force', action='store_true', default=False, help='Actually make changes in the database'
+    )
 
     if eppn is True:
         parser.add_argument('eppn', metavar='STR', type=str, help='eduPersonPrincipalName to operate on')

@@ -2,9 +2,9 @@
 
 from unittest import TestCase
 
-import eduid_userdb.exceptions
 import eduid_userdb.element
-from eduid_userdb.orcid import Orcid, OidcAuthorization, OidcIdToken
+import eduid_userdb.exceptions
+from eduid_userdb.orcid import OidcAuthorization, OidcIdToken, Orcid
 
 __author__ = 'lundberg'
 
@@ -13,9 +13,7 @@ token_response = {
     "expires_in": 631138518,
     "id_token": {
         "at_hash": "hVBHwPjPNgJH5f87ez8h0w",
-        "aud": [
-            "APP_ID"
-        ],
+        "aud": ["APP_ID"],
         "auth_time": 1526389879,
         "exp": 1526392540,
         "family_name": "Testsson",
@@ -24,26 +22,32 @@ token_response = {
         "iss": "https://op.example.org",
         "jti": "4a721a4b-301a-492b-950a-1b4a83d30149",
         "sub": "subject_identifier",
-        "nonce": "a_nonce_token"
+        "nonce": "a_nonce_token",
     },
     "name": "Testarn Testsson",
     "orcid": "user_orcid",
     "refresh_token": "a110e7d2-4968-42d4-a91d-f379b55a0e60",
     "scope": "openid",
-    "token_type": "bearer"
+    "token_type": "bearer",
 }
 
 
 class TestOrcid(TestCase):
-
     def test_id_token(self):
         id_token_data = token_response['id_token']
         id_token_data['created_ts'] = True
         id_token_data['created_by'] = 'test'
         id_token_1 = OidcIdToken(data=id_token_data, raise_on_unknown=False)
-        id_token_2 = OidcIdToken(iss=id_token_data['iss'], sub=id_token_data['sub'], aud=id_token_data['aud'],
-                                 exp=id_token_data['exp'], iat=id_token_data['iat'], nonce=id_token_data['nonce'],
-                                 auth_time=id_token_data['auth_time'], application='test')
+        id_token_2 = OidcIdToken(
+            iss=id_token_data['iss'],
+            sub=id_token_data['sub'],
+            aud=id_token_data['aud'],
+            exp=id_token_data['exp'],
+            iat=id_token_data['iat'],
+            nonce=id_token_data['nonce'],
+            auth_time=id_token_data['auth_time'],
+            application='test',
+        )
 
         self.assertIsInstance(id_token_1, OidcIdToken)
         self.assertIsInstance(id_token_1.to_dict(), dict)
@@ -71,11 +75,15 @@ class TestOrcid(TestCase):
         token_response['created_ts'] = True
         token_response['created_by'] = 'test'
         oidc_authz_1 = OidcAuthorization(data=token_response, raise_on_unknown=False)
-        oidc_authz_2 = OidcAuthorization(access_token=token_response['access_token'],
-                                         token_type=token_response['token_type'], id_token=id_token,
-                                         expires_in=token_response['expires_in'],
-                                         refresh_token=token_response['refresh_token'], application='test',
-                                         created_ts=True)
+        oidc_authz_2 = OidcAuthorization(
+            access_token=token_response['access_token'],
+            token_type=token_response['token_type'],
+            id_token=id_token,
+            expires_in=token_response['expires_in'],
+            refresh_token=token_response['refresh_token'],
+            application='test',
+            created_ts=True,
+        )
 
         self.assertIsInstance(oidc_authz_1, OidcAuthorization)
         self.assertIsInstance(oidc_authz_1.to_dict(), dict)
@@ -102,8 +110,9 @@ class TestOrcid(TestCase):
         token_response['created_ts'] = True
         token_response['created_by'] = 'test'
         oidc_authz = OidcAuthorization(data=token_response, raise_on_unknown=False)
-        orcid_1 = Orcid(id='https://op.example.org/user_orcid', oidc_authz=oidc_authz, application='test',
-                        verified=True)
+        orcid_1 = Orcid(
+            id='https://op.example.org/user_orcid', oidc_authz=oidc_authz, application='test', verified=True
+        )
         orcid_2 = Orcid(data=orcid_1.to_dict())
 
         self.assertIsInstance(orcid_1, Orcid)

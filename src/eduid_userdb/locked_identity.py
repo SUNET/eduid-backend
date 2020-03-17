@@ -3,8 +3,7 @@
 from six import string_types
 
 from eduid_userdb.element import Element, ElementList
-from eduid_userdb.exceptions import UserDBValueError, EduIDUserDBError
-
+from eduid_userdb.exceptions import EduIDUserDBError, UserDBValueError
 
 __author__ = 'lundberg'
 
@@ -63,11 +62,7 @@ class LockedIdentityNin(LockedIdentityElement):
     """
 
     def __init__(self, number, created_by, created_ts):
-        data = {
-            'created_by': created_by,
-            'created_ts': created_ts,
-            'identity_type': 'nin'
-        }
+        data = {'created_by': created_by, 'created_ts': created_ts, 'identity_type': 'nin'}
         LockedIdentityElement.__init__(self, data)
         self.number = number
 
@@ -100,6 +95,7 @@ class LockedIdentityList(ElementList):
     :param locked_identities: List of LockedIdentityElements
     :type locked_identities: [dict | Element]
     """
+
     def __init__(self, locked_identities):
         elements = []
         for item in locked_identities:
@@ -107,8 +103,11 @@ class LockedIdentityList(ElementList):
                 elements.append(item)
             else:
                 if item['identity_type'] == 'nin':
-                    elements.append(LockedIdentityNin(number=item['number'], created_by=item['created_by'],
-                                                      created_ts=item['created_ts']))
+                    elements.append(
+                        LockedIdentityNin(
+                            number=item['number'], created_by=item['created_by'], created_ts=item['created_ts']
+                        )
+                    )
         ElementList.__init__(self, elements)
 
     def remove(self, key):

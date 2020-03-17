@@ -36,13 +36,14 @@
 """
 User and user database module.
 """
-from bson import ObjectId
-from six import string_types
 import logging
 from typing import Optional, Union
 
-from eduid_userdb import UserDB
+from bson import ObjectId
+from six import string_types
+
 from .user import IdPUser
+from eduid_userdb import UserDB
 
 
 class IdPUserDb(object):

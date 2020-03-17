@@ -29,9 +29,8 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from eduid_userdb.userdb import UserDB
 from eduid_userdb.signup import SignupUser
-
+from eduid_userdb.userdb import UserDB
 
 __author__ = 'ft'
 
@@ -44,8 +43,8 @@ class SignupUserDB(UserDB):
         UserDB.__init__(self, db_uri, db_name, collection)
 
     def get_user_by_mail_verification_code(self, code):
-        return self._get_user_by_attr('pending_mail_address.verification_code', code, raise_on_missing = False)
+        return self._get_user_by_attr('pending_mail_address.verification_code', code, raise_on_missing=False)
 
     def get_user_by_pending_mail_address(self, mail):
         mail = mail.lower()
-        return self._get_user_by_attr('pending_mail_address.email', mail, raise_on_missing = False)
+        return self._get_user_by_attr('pending_mail_address.email', mail, raise_on_missing=False)

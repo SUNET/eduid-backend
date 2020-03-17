@@ -1,17 +1,19 @@
-from eduid_userdb.data_samples import (NEW_USER_EXAMPLE,
-                                      NEW_SIGNUP_USER_EXAMPLE,
-                                      NEW_COMPLETED_SIGNUP_USER_EXAMPLE,
-                                      NEW_DASHBOARD_USER_EXAMPLE)
-from eduid_userdb.data_samples import OLD_USER_EXAMPLE, OLD_VERIFICATIONS_EXAMPLE
+from unittest import TestCase
+
 from eduid_userdb import User
+from eduid_userdb.data_samples import (
+    NEW_COMPLETED_SIGNUP_USER_EXAMPLE,
+    NEW_DASHBOARD_USER_EXAMPLE,
+    NEW_SIGNUP_USER_EXAMPLE,
+    NEW_USER_EXAMPLE,
+    OLD_USER_EXAMPLE,
+    OLD_VERIFICATIONS_EXAMPLE,
+)
 from eduid_userdb.signup import SignupUser
 from eduid_userdb.support import models
 
-from unittest import TestCase
-
 
 class TestSupportUsers(TestCase):
-
     def test_old_support_user(self):
         user = models.SupportUserFilter(User(data=OLD_USER_EXAMPLE).to_dict())
         self.assertNotIn('_id', user)
@@ -51,18 +53,10 @@ class TestSupportUsers(TestCase):
     def test_support_user_authn_info(self):
         raw_data = {
             '_id': '5c5b027c20d6b6000db13187',
-            'fail_count': {
-                '201902': 1,
-                '201903': 0
-            },
-            'last_credential_ids': [
-                '5c5b02c420d6b6000db1318a'
-            ],
-            'success_count': {
-                '201902': 77,
-                '201903': 17
-            },
-            'success_ts': '2019-03-04T16:00:35.466Z'
+            'fail_count': {'201902': 1, '201903': 0},
+            'last_credential_ids': ['5c5b02c420d6b6000db1318a'],
+            'success_count': {'201902': 77, '201903': 17},
+            'success_ts': '2019-03-04T16:00:35.466Z',
         }
 
         user_authn_info = models.UserAuthnInfo(raw_data)

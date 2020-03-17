@@ -38,7 +38,7 @@ from pymongo import ReturnDocument
 
 import eduid_userdb.exceptions
 from eduid_userdb.db import BaseDB
-from eduid_userdb.exceptions import DocumentDoesNotExist, UserDoesNotExist, MultipleUsersReturned, EduIDUserDBError
+from eduid_userdb.exceptions import DocumentDoesNotExist, EduIDUserDBError, MultipleUsersReturned, UserDoesNotExist
 from eduid_userdb.user import User
 
 logger = logging.getLogger(__name__)
@@ -56,6 +56,7 @@ class UserDB(BaseDB):
     :type db_name: str or unicode
     :type collection: str or unicode
     """
+
     UserClass: Type[User] = User
 
     def __init__(self, db_uri, db_name, collection='userdb', user_class=None):
@@ -76,11 +77,9 @@ class UserDB(BaseDB):
         self.exceptions = eduid_userdb.exceptions
 
     def __repr__(self):
-        return '<eduID {!s}: {!s} {!r} (returning {!s})>'.format(self.__class__.__name__,
-                                                                 self._db.sanitized_uri,
-                                                                 self._coll_name,
-                                                                 self.UserClass.__name__,
-                                                                 )
+        return '<eduID {!s}: {!s} {!r} (returning {!s})>'.format(
+            self.__class__.__name__, self._db.sanitized_uri, self._coll_name, self.UserClass.__name__,
+        )
 
     def get_user_by_id(self, user_id, raise_on_missing=True):
         """
@@ -137,8 +136,7 @@ class UserDB(BaseDB):
 
         return self.UserClass(data=users[0])
 
-    def get_user_by_mail(self, email, raise_on_missing=True, return_list=False,
-                         include_unconfirmed=False):
+    def get_user_by_mail(self, email, raise_on_missing=True, return_list=False, include_unconfirmed=False):
         """
         Return the user object in the central eduID UserDB having
         an email address matching `email'. Unless include_unconfirmed=True, the
@@ -161,16 +159,10 @@ class UserDB(BaseDB):
         elemmatch = {'email': email, 'verified': True}
         if include_unconfirmed:
             elemmatch = {'email': email}
-        filter = {'$or': [
-            {'mail': email},
-            {'mailAliases': {'$elemMatch': elemmatch}}
-        ]}
-        return self._get_user_by_filter(filter,
-                                        raise_on_missing=raise_on_missing,
-                                        return_list=return_list)
+        filter = {'$or': [{'mail': email}, {'mailAliases': {'$elemMatch': elemmatch}}]}
+        return self._get_user_by_filter(filter, raise_on_missing=raise_on_missing, return_list=return_list)
 
-    def get_user_by_nin(self, nin, raise_on_missing=True, return_list=False,
-                        include_unconfirmed=False):
+    def get_user_by_nin(self, nin, raise_on_missing=True, return_list=False, include_unconfirmed=False):
         """
         Return the user object in the central eduID UserDB having
         a NIN matching `nin'. Unless include_unconfirmed=True, the
@@ -195,12 +187,9 @@ class UserDB(BaseDB):
             newmatch = {'number': nin}
         new_filter = {'nins': {'$elemMatch': newmatch}}
         filter = {'$or': [old_filter, new_filter]}
-        return self._get_user_by_filter(filter,
-                                        raise_on_missing=raise_on_missing,
-                                        return_list=return_list)
+        return self._get_user_by_filter(filter, raise_on_missing=raise_on_missing, return_list=return_list)
 
-    def get_user_by_phone(self, phone, raise_on_missing=True, return_list=False,
-                          include_unconfirmed=False):
+    def get_user_by_phone(self, phone, raise_on_missing=True, return_list=False, include_unconfirmed=False):
         """
         Return the user object in the central eduID UserDB having
         a phone number matching `phone'. Unless include_unconfirmed=True, the
@@ -228,9 +217,7 @@ class UserDB(BaseDB):
             newmatch = {'number': phone}
         new_filter = {'phone': {'$elemMatch': newmatch}}
         filter = {'$or': [old_filter, new_filter]}
-        return self._get_user_by_filter(filter,
-                                        raise_on_missing=raise_on_missing,
-                                        return_list=return_list)
+        return self._get_user_by_filter(filter, raise_on_missing=raise_on_missing, return_list=return_list)
 
     def get_user_by_eppn(self, eppn, raise_on_missing=True):
         """
@@ -263,8 +250,7 @@ class UserDB(BaseDB):
         :raise self.MultipleUsersReturned: More than one user matches the search criteria
         """
         user = None
-        logger.debug("{!s} Looking in {!r} for user with {!r} = {!r}".format(
-            self, self._coll_name, attr, value))
+        logger.debug("{!s} Looking in {!r} for user with {!r} = {!r}".format(self, self._coll_name, attr, value))
         try:
             doc = self._get_document_by_attr(attr, value, raise_on_missing)
             if doc is not None:
@@ -298,30 +284,42 @@ class UserDB(BaseDB):
         if modified is None:
             # profile has never been modified through the dashboard.
             # possibly just created in signup.
-            result = self._coll.replace_one({'_id': user.user_id}, user.to_dict(old_userdb_format=old_format),
-                                            upsert=True)
-            logger.debug("{!s} Inserted new user {!r} into {!r} (old_format={!r}): {!r})".format(
-                self, user, self._coll_name, old_format, result))
+            result = self._coll.replace_one(
+                {'_id': user.user_id}, user.to_dict(old_userdb_format=old_format), upsert=True
+            )
+            logger.debug(
+                "{!s} Inserted new user {!r} into {!r} (old_format={!r}): {!r})".format(
+                    self, user, self._coll_name, old_format, result
+                )
+            )
             import pprint
+
             extra_debug = pprint.pformat(user.to_dict(old_userdb_format=old_format))
             logger.debug(f"Extra debug:\n{extra_debug}")
         else:
             test_doc = {'_id': user.user_id}
             if check_sync:
                 test_doc['modified_ts'] = modified
-            result = self._coll.replace_one(test_doc, user.to_dict(old_userdb_format=old_format),
-                                            upsert=(not check_sync))
+            result = self._coll.replace_one(
+                test_doc, user.to_dict(old_userdb_format=old_format), upsert=(not check_sync)
+            )
             if check_sync and result.modified_count == 0:
                 db_ts = None
                 db_user = self._coll.find_one({'_id': user.user_id})
                 if db_user:
                     db_ts = db_user['modified_ts']
-                logger.debug(f"{self} FAILED Updating user {user} (ts {modified}) in {self._coll_name}"
-                             f" (old_format={old_format}). ts in db = {db_ts}")
+                logger.debug(
+                    f"{self} FAILED Updating user {user} (ts {modified}) in {self._coll_name}"
+                    f" (old_format={old_format}). ts in db = {db_ts}"
+                )
                 raise eduid_userdb.exceptions.UserOutOfSync('Stale user object can\'t be saved')
-            logger.debug("{!s} Updated user {!r} (ts {!s}) in {!r} (old_format={!r}): {!r}".format(
-                self, user, modified, self._coll_name, old_format, result))
+            logger.debug(
+                "{!s} Updated user {!r} (ts {!s}) in {!r} (old_format={!r}): {!r}".format(
+                    self, user, modified, self._coll_name, old_format, result
+                )
+            )
             import pprint
+
             extra_debug = pprint.pformat(user.to_dict(old_userdb_format=old_format))
             logger.debug(f"Extra debug:\n{extra_debug}")
         return result.acknowledged
@@ -358,8 +356,9 @@ class UserDB(BaseDB):
         This update method should only be used in the eduid Attribute Manager when
         merging updates from applications into the central eduID userdb.
         """
-        logger.debug("{!s} updating user {!r} in {!r} with operations:\n{!s}".format(
-            self, obj_id, self._coll_name, operations))
+        logger.debug(
+            "{!s} updating user {!r} in {!r} with operations:\n{!s}".format(self, obj_id, self._coll_name, operations)
+        )
 
         query_filter = {'_id': obj_id}
 
@@ -371,9 +370,10 @@ class UserDB(BaseDB):
             error_msg = f'Invalid update operator: {bad_operators}'
             logger.error(error_msg)
             raise eduid_userdb.exceptions.EduIDDBError(error_msg)
-        
-        updated_doc = self._coll.find_one_and_update(filter=query_filter, update=operations,
-                                                     return_document=ReturnDocument.AFTER, upsert=True)
+
+        updated_doc = self._coll.find_one_and_update(
+            filter=query_filter, update=operations, return_document=ReturnDocument.AFTER, upsert=True
+        )
         logger.debug(f'Updated/inserted document: {updated_doc}')
 
     def get_identity_proofing(self, user):

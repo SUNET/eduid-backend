@@ -33,10 +33,11 @@
 # Author : Enrique Perez <enrique@cazalla.net>
 #
 
-import bson
 import copy
 
-from eduid_userdb.exceptions import ActionMissingData, ActionHasUnknownData
+import bson
+
+from eduid_userdb.exceptions import ActionHasUnknownData, ActionMissingData
 
 
 class Action(object):
@@ -70,20 +71,34 @@ class Action(object):
     :type raise_on_unknown: bool
     :type old_format: bool
     """
-    def __init__(self, action_id = None, eppn = None, user_oid = None, action_type = None,
-                 preference = None, session = None, params = None, result = None, data = None,
-                 raise_on_unknown = True, old_format=False):
+
+    def __init__(
+        self,
+        action_id=None,
+        eppn=None,
+        user_oid=None,
+        action_type=None,
+        preference=None,
+        session=None,
+        params=None,
+        result=None,
+        data=None,
+        raise_on_unknown=True,
+        old_format=False,
+    ):
         self.old_format = old_format
         self._data_in = copy.deepcopy(data)  # to not modify callers data
         self._data = dict()
 
         if self._data_in is None:
-            self._data_in = dict(_id = action_id,
-                                 action = action_type,
-                                 preference = preference,
-                                 session = session or '',
-                                 params = params or {},
-                                 result = result)
+            self._data_in = dict(
+                _id=action_id,
+                action=action_type,
+                preference=preference,
+                session=session or '',
+                params=params or {},
+                result=result,
+            )
             if old_format:
                 self._data_in['user_oid'] = user_oid
             else:
@@ -116,9 +131,9 @@ class Action(object):
 
         if len(self._data_in) > 0:
             if raise_on_unknown:
-                raise ActionHasUnknownData('Action {!s} unknown data: {!r}'.format(
-                    self.action_id, self._data_in.keys()
-                ))
+                raise ActionHasUnknownData(
+                    'Action {!s} unknown data: {!r}'.format(self.action_id, self._data_in.keys())
+                )
             # Just keep everything that is left as-is
             self._data.update(self._data_in)
 
@@ -132,11 +147,9 @@ class Action(object):
         """
         key = 'user_oid' if self.old_format else 'eppn'
         if self._data_in.get(key) is None:
-            raise ActionMissingData('Action {!s} has no key {}'.format(
-                self._data_in.get('_id'), key))
+            raise ActionMissingData('Action {!s} has no key {}'.format(self._data_in.get('_id'), key))
         if self._data_in.get('action') is None:
-            raise ActionMissingData('Action {!s} has no key action'.format(
-                self._data_in.get('_id')))
+            raise ActionMissingData('Action {!s} has no key action'.format(self._data_in.get('_id')))
 
     def __repr__(self):
         sess_str = ''
@@ -146,13 +159,9 @@ class Action(object):
         if self.result:
             res_str = ', result={}'.format(self.result)
         key = 'user_id' if self.old_format else 'eppn'
-        return '<eduID {!s}: {}: {} for user {}{}{}>'.format(self.__class__.__name__,
-                                                             self.action_id,
-                                                             self.action_type,
-                                                             getattr(self, key),
-                                                             sess_str,
-                                                             res_str
-                                                             )
+        return '<eduID {!s}: {}: {} for user {}{}{}>'.format(
+            self.__class__.__name__, self.action_id, self.action_type, getattr(self, key), sess_str, res_str
+        )
 
     __str__ = __repr__
 

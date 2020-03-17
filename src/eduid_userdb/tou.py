@@ -47,23 +47,33 @@ class ToUEvent(Event):
     """
     A record of a user's acceptance of a particular version of the Terms of Use.
     """
-    def __init__(self, version=None, application=None, created_ts=None, modified_ts=None, event_id=None,
-                 data: Optional[Dict[str, Any]]=None, raise_on_unknown=True):
+
+    def __init__(
+        self,
+        version=None,
+        application=None,
+        created_ts=None,
+        modified_ts=None,
+        event_id=None,
+        data: Optional[Dict[str, Any]] = None,
+        raise_on_unknown=True,
+    ):
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
 
         if data is None:
-            data = dict(version=version,
-                        created_by=application,
-                        created_ts=created_ts,
-                        modified_ts=modified_ts,
-                        event_type='tou_event',
-                        event_id=event_id,
-                        )
+            data = dict(
+                version=version,
+                created_by=application,
+                created_ts=created_ts,
+                modified_ts=modified_ts,
+                event_type='tou_event',
+                event_id=event_id,
+            )
         for required in ['created_by', 'created_ts']:
             if required not in data or not data.get(required):
                 raise BadEvent('missing required data for event: {!s}'.format(required))
-        Event.__init__(self, data=data, raise_on_unknown=raise_on_unknown, ignore_data = ['version'])
+        Event.__init__(self, data=data, raise_on_unknown=raise_on_unknown, ignore_data=['version'])
         self.version = data.pop('version')
 
     # -----------------------------------------------------------------
@@ -111,6 +121,7 @@ class ToUList(EventList):
     TODO: Add, find and remove ought to operate on element.key and not element.version.
           has_accepted() is the interface to find an ToU event using a version number.
     """
+
     def __init__(self, events, raise_on_unknown=True):
         EventList.__init__(self, events, raise_on_unknown=raise_on_unknown, event_class=ToUEvent)
 

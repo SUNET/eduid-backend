@@ -12,5 +12,5 @@ __license__ = 'BSD'
 __authors__ = ['Fredrik Thulin']
 
 # convenience imports (order matters)
-from eduid_userdb.dashboard.user import DashboardUser, DashboardLegacyUser
-from eduid_userdb.dashboard.userdb import DashboardUserDB, DashboardOldUserDB, UserDBWrapper
+from eduid_userdb.dashboard.user import DashboardLegacyUser, DashboardUser
+from eduid_userdb.dashboard.userdb import DashboardOldUserDB, DashboardUserDB, UserDBWrapper

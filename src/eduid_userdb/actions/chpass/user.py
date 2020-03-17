@@ -32,12 +32,13 @@
 
 __author__ = 'eperez'
 
-import bson
 from copy import deepcopy
+
+import bson
 
 from eduid_userdb import User
 from eduid_userdb.credentials import CredentialList
-from eduid_userdb.exceptions import UserMissingData, UserHasUnknownData
+from eduid_userdb.exceptions import UserHasUnknownData, UserMissingData
 
 
 class ChpassUser(User):
@@ -56,20 +57,18 @@ class ChpassUser(User):
     :type raise_on_unknown: bool
     """
 
-    def __init__(self, userid = None, passwords = None, data = None,
-                                         raise_on_unknown = True):
+    def __init__(self, userid=None, passwords=None, data=None, raise_on_unknown=True):
         """
         """
         if data is None:
             data = {'_id': userid, 'passwords': passwords}
 
         if '_id' not in data or data['_id'] is None:
-            raise UserMissingData('Attempting to record passwords '
-                                  'for an unidentified user.')
+            raise UserMissingData('Attempting to record passwords ' 'for an unidentified user.')
         if 'passwords' not in data or data['passwords'] is None:
-            raise UserMissingData('Attempting to record '
-                                  'an unknown password for '
-                                  'the user with id ' + str(data['_id']))
+            raise UserMissingData(
+                'Attempting to record ' 'an unknown password for ' 'the user with id ' + str(data['_id'])
+            )
 
         self._data_in = deepcopy(data)
         self._data = dict()
@@ -86,12 +85,10 @@ class ChpassUser(User):
 
         if len(self._data_in) > 0:
             if raise_on_unknown:
-                raise UserHasUnknownData('User {!s} unknown data: {!r}'.format(
-                    self.user_id, self._data_in.keys()
-                ))
+                raise UserHasUnknownData('User {!s} unknown data: {!r}'.format(self.user_id, self._data_in.keys()))
             # Just keep everything that is left as-is
             self._data.update(self._data_in)
-    
+
     @classmethod
     def from_central_user(cls, user):
         '''
@@ -100,11 +97,7 @@ class ChpassUser(User):
         :param user: user from central db
         :type user: eduid_userdb.user.User
         '''
-        data = {
-                '_id': user.user_id,
-                'passwords': user.credentials.to_list_of_dicts(),
-                'modified_ts': user.modified_ts
-            }
+        data = {'_id': user.user_id, 'passwords': user.credentials.to_list_of_dicts(), 'modified_ts': user.modified_ts}
         return cls(data=data)
 
     # -----------------------------------------------------------------
@@ -119,7 +112,5 @@ class ChpassUser(User):
         :rtype: dict
         """
         res = deepcopy(self._data)  # avoid caller messing up our private _data
-        res['passwords'] = self.credentials.to_list_of_dicts(
-                old_userdb_format=old_userdb_format)
+        res['passwords'] = self.credentials.to_list_of_dicts(old_userdb_format=old_userdb_format)
         return res
-

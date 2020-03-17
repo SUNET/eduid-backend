@@ -1,11 +1,10 @@
-from eduid_userdb.testing import MOCKED_USER_STANDARD
-from eduid_userdb.dashboard import DashboardLegacyUser as User
-
 from unittest import TestCase
+
+from eduid_userdb.dashboard import DashboardLegacyUser as User
+from eduid_userdb.testing import MOCKED_USER_STANDARD
 
 
 class TestUser(TestCase):
-
     def test_verify_mail_and_set_as_primary(self):
         user = User(MOCKED_USER_STANDARD)
 
@@ -16,12 +15,7 @@ class TestUser(TestCase):
 
         # Remove the existing aliases and add one unverified
         user.set_mail_aliases([])
-        user.set_mail_aliases(
-            [{
-            'email': 'testmail@example.com',
-            'verified': False,
-            }]
-        )
+        user.set_mail_aliases([{'email': 'testmail@example.com', 'verified': False,}])
 
         # Verify the only existing mail alias and since it
         # is the only existing mail address, set it as primary.

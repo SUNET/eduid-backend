@@ -29,28 +29,30 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-import bson
 from datetime import datetime
 
+import bson
+
 import eduid_userdb
-from eduid_userdb.testing import MongoTestCase
 from eduid_userdb import User
-from eduid_userdb.reset_password import ResetPasswordState
-from eduid_userdb.reset_password import ResetPasswordEmailState
-from eduid_userdb.reset_password import ResetPasswordEmailAndPhoneState
-from eduid_userdb.reset_password import ResetPasswordStateDB
+from eduid_userdb.reset_password import (
+    ResetPasswordEmailAndPhoneState,
+    ResetPasswordEmailState,
+    ResetPasswordState,
+    ResetPasswordStateDB,
+)
+from eduid_userdb.testing import MongoTestCase
 
 
 class TestResetPasswordStateDB(MongoTestCase):
-
     def setUp(self):
         super(TestResetPasswordStateDB, self).setUp(None, None)
         self.resetpw_db = ResetPasswordStateDB(self.tmp_db.uri, 'eduid_reset_password')
 
     def test_email_state(self):
-        email_state = ResetPasswordEmailState(eppn="hubba-bubba",
-                                              email_address="johnsmith@example.com",
-                                              email_code="dummy-code")
+        email_state = ResetPasswordEmailState(
+            eppn="hubba-bubba", email_address="johnsmith@example.com", email_code="dummy-code"
+        )
 
         self.resetpw_db.save(email_state)
 
@@ -63,9 +65,9 @@ class TestResetPasswordStateDB(MongoTestCase):
         self.assertFalse(state.email_code.is_expired(1))
 
     def test_email_state_get_by_code(self):
-        email_state = ResetPasswordEmailState(eppn="hubba-bubba",
-                                              email_address="johnsmith@example.com",
-                                              email_code="dummy-code")
+        email_state = ResetPasswordEmailState(
+            eppn="hubba-bubba", email_address="johnsmith@example.com", email_code="dummy-code"
+        )
 
         self.resetpw_db.save(email_state)
 
@@ -76,9 +78,9 @@ class TestResetPasswordStateDB(MongoTestCase):
         self.assertEquals(state.generated_password, False)
 
     def test_email_state_generated_pw(self):
-        email_state = ResetPasswordEmailState(eppn="hubba-bubba",
-                                              email_address="johnsmith@example.com",
-                                              email_code="dummy-code")
+        email_state = ResetPasswordEmailState(
+            eppn="hubba-bubba", email_address="johnsmith@example.com", email_code="dummy-code"
+        )
 
         email_state.generated_password = True
         self.resetpw_db.save(email_state)
@@ -88,15 +90,11 @@ class TestResetPasswordStateDB(MongoTestCase):
         self.assertEquals(state.generated_password, True)
 
     def test_email_state_extra_security(self):
-        email_state = ResetPasswordEmailState(eppn="hubba-bubba",
-                                              email_address="johnsmith@example.com",
-                                              email_code="dummy-code")
+        email_state = ResetPasswordEmailState(
+            eppn="hubba-bubba", email_address="johnsmith@example.com", email_code="dummy-code"
+        )
 
-        email_state.extra_security = {'phone_numbers': [
-                                        {'number': '+99999999999',
-                                         'primary': True,
-                                         'verified': True}
-                                            ]}
+        email_state.extra_security = {'phone_numbers': [{'number': '+99999999999', 'primary': True, 'verified': True}]}
         self.resetpw_db.save(email_state)
 
         state = self.resetpw_db.get_state_by_eppn("hubba-bubba")
@@ -104,11 +102,13 @@ class TestResetPasswordStateDB(MongoTestCase):
         self.assertEquals(state.extra_security['phone_numbers'][0]['number'], '+99999999999')
 
     def test_email_and_phone_state(self):
-        email_state = ResetPasswordEmailAndPhoneState(eppn="hubba-bubba",
-                                                      email_address="johnsmith@example.com",
-                                                      email_code="dummy-code",
-                                                      phone_number="+99999999999",
-                                                      phone_code="dummy-phone-code")
+        email_state = ResetPasswordEmailAndPhoneState(
+            eppn="hubba-bubba",
+            email_address="johnsmith@example.com",
+            email_code="dummy-code",
+            phone_number="+99999999999",
+            phone_code="dummy-phone-code",
+        )
 
         self.resetpw_db.save(email_state)
 

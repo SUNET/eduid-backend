@@ -2,22 +2,22 @@
 
 from __future__ import absolute_import
 
-import bson
 import copy
 import datetime
+
+import bson
 from six import string_types
 
-from eduid_userdb.element import _set_something_ts
-from eduid_userdb.exceptions import UserHasUnknownData, UserDBValueError
-from eduid_userdb.security.element import CodeElement
 from eduid_userdb.deprecation import deprecated
+from eduid_userdb.element import _set_something_ts
+from eduid_userdb.exceptions import UserDBValueError, UserHasUnknownData
+from eduid_userdb.security.element import CodeElement
 
 __author__ = 'lundberg'
 
 
 # @deprecated("Remove once the password reset views are served from their own webapp")
 class PasswordResetState(object):
-
     @deprecated("Remove once the password reset views are served from their own webapp")
     def __init__(self, data, raise_on_unknown=True):
 
@@ -35,7 +35,7 @@ class PasswordResetState(object):
         # eppn
         self._data['eduPersonPrincipalName'] = self._data_in.pop('eduPersonPrincipalName')
 
-        #method
+        # method
         self._data['method'] = self._data_in.pop('method', None)
 
         # extra security alternatives
@@ -50,9 +50,7 @@ class PasswordResetState(object):
 
         if len(self._data_in) > 0:
             if raise_on_unknown:
-                raise UserHasUnknownData('Unknown data: {!r}'.format(
-                    self._data_in.keys()
-                ))
+                raise UserHasUnknownData('Unknown data: {!r}'.format(self._data_in.keys()))
             # Just keep everything that is left as-is
             self._data.update(self._data_in)
 
@@ -186,18 +184,16 @@ class PasswordResetState(object):
 
 # @deprecated("Remove once the password reset views are served from their own webapp")
 class PasswordResetEmailState(PasswordResetState):
-
     @deprecated("Remove once the password reset views are served from their own webapp")
-    def __init__(self, eppn=None, email_address=None, email_code=None, created_ts=None, data=None,
-                 raise_on_unknown=True):
+    def __init__(
+        self, eppn=None, email_address=None, email_code=None, created_ts=None, data=None, raise_on_unknown=True
+    ):
         if data is None:
             if created_ts is None:
                 created_ts = True
-            data = dict(eduPersonPrincipalName=eppn,
-                        email_address=email_address,
-                        email_code=email_code,
-                        created_ts=created_ts,
-                        )
+            data = dict(
+                eduPersonPrincipalName=eppn, email_address=email_address, email_code=email_code, created_ts=created_ts,
+            )
 
         self._data_in = copy.deepcopy(data)  # to not modify callers data
         self._data = dict()
@@ -262,20 +258,29 @@ class PasswordResetEmailState(PasswordResetState):
 
 # @deprecated("Remove once the password reset views are served from their own webapp")
 class PasswordResetEmailAndPhoneState(PasswordResetEmailState):
-
     @deprecated("Remove once the password reset views are served from their own webapp")
-    def __init__(self, eppn=None, email_address=None, email_code=None, phone_number=None,
-                 phone_code=None, created_ts=None, data=None, raise_on_unknown=True):
+    def __init__(
+        self,
+        eppn=None,
+        email_address=None,
+        email_code=None,
+        phone_number=None,
+        phone_code=None,
+        created_ts=None,
+        data=None,
+        raise_on_unknown=True,
+    ):
         if data is None:
             if created_ts is None:
                 created_ts = True
-            data = dict(eduPersonPrincipalName=eppn,
-                        email_address=email_address,
-                        email_code=email_code,
-                        phone_number=phone_number,
-                        phone_code=phone_code,
-                        created_ts=created_ts,
-                        )
+            data = dict(
+                eduPersonPrincipalName=eppn,
+                email_address=email_address,
+                email_code=email_code,
+                phone_number=phone_number,
+                phone_code=phone_code,
+                created_ts=created_ts,
+            )
 
         self._data_in = copy.deepcopy(data)  # to not modify callers data
         self._data = dict()
@@ -345,4 +350,3 @@ class PasswordResetEmailAndPhoneState(PasswordResetEmailState):
         if self._data.get('phone_code'):
             res['phone_code'] = self.phone_code.to_dict()
         return res
-

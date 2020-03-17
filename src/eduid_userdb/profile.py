@@ -3,19 +3,24 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Union, Optional, List, Any, Mapping
+from typing import Any, List, Mapping, Optional, Union
 
-from eduid_userdb.element import Element, ElementList, DuplicateElementViolation
+from eduid_userdb.element import DuplicateElementViolation, Element, ElementList
 from eduid_userdb.exceptions import UserDBValueError
 
 __author__ = 'lundberg'
 
 
 class Profile(Element):
-
-    def __init__(self, owner: str, schema: str, profile_data: Mapping[str, Any],
-                 created_by: Optional[str] = None, created_ts: Optional[Union[datetime, bool]] = None,
-                 modified_ts: Optional[Union[datetime, bool]] = None):
+    def __init__(
+        self,
+        owner: str,
+        schema: str,
+        profile_data: Mapping[str, Any],
+        created_by: Optional[str] = None,
+        created_ts: Optional[Union[datetime, bool]] = None,
+        modified_ts: Optional[Union[datetime, bool]] = None,
+    ):
 
         if created_ts is None:
             created_ts = True
@@ -84,6 +89,7 @@ class ProfileList(ElementList):
     maintaining some governing principles, such as ensuring there is only one
     owner with the same name.
     """
+
     def __init__(self, profiles: List[Profile]):
         super().__init__(elements=list())
 

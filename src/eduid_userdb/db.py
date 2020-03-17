@@ -1,27 +1,29 @@
 from __future__ import absolute_import
 
 import copy
+import logging
 import warnings
-from typing import Optional, Mapping, Union, List, Any
+from typing import Any, List, Mapping, Optional, Union
 
 import pymongo
-import logging
-
 from bson import ObjectId
 from pymongo.cursor import Cursor
 from pymongo.errors import PyMongoError
 from pymongo.results import DeleteResult
 from pymongo.uri_parser import parse_uri
 
-from eduid_userdb.exceptions import DocumentDoesNotExist, MultipleDocumentsReturned
-from eduid_userdb.exceptions import MongoConnectionError, EduIDUserDBError
+from eduid_userdb.exceptions import (
+    DocumentDoesNotExist,
+    EduIDUserDBError,
+    MongoConnectionError,
+    MultipleDocumentsReturned,
+)
 
 
 class MongoDB(object):
     """Simple wrapper to get pymongo real objects from the settings uri"""
 
-    def __init__(self, db_uri, db_name=None,
-                 connection_factory=None, **kwargs):
+    def __init__(self, db_uri, db_name=None, connection_factory=None, **kwargs):
 
         if db_uri is None:
             raise ValueError('db_uri not supplied')
@@ -44,7 +46,7 @@ class MongoDB(object):
         elif connection_factory == pymongo.MongoReplicaSetClient:
             warnings.warn(
                 f'{__name__} initialized with connection_factory {connection_factory} use pymongo.MongoClient instead.',
-                DeprecationWarning
+                DeprecationWarning,
             )
 
         if 'replicaSet' in _options and _options['replicaSet'] is not None:
@@ -59,17 +61,14 @@ class MongoDB(object):
         self._db_uri = _format_mongodb_uri(self._parsed_uri)
 
         try:
-            self._connection = connection_factory(
-                host=self._db_uri,
-                tz_aware=True,
-                **kwargs)
+            self._connection = connection_factory(host=self._db_uri, tz_aware=True, **kwargs)
         except PyMongoError as e:
             raise MongoConnectionError('Error connecting to mongodb {!r}: {}'.format(self, e))
 
     def __repr__(self):
-        return '<eduID {!s}: {!s} {!s}>'.format(self.__class__.__name__,
-                                                getattr(self, '_db_uri', None),
-                                                getattr(self, '_database_name', None))
+        return '<eduID {!s}: {!s} {!s}>'.format(
+            self.__class__.__name__, getattr(self, '_db_uri', None), getattr(self, '_database_name', None)
+        )
 
     @property
     def sanitized_uri(self):
@@ -113,10 +112,7 @@ class MongoDB(object):
         if username and password:
             db.authenticate(username, password)
         elif self._parsed_uri.get("username", None):
-            db.authenticate(
-                self._parsed_uri.get("username", None),
-                self._parsed_uri.get("password", None)
-            )
+            db.authenticate(self._parsed_uri.get("username", None), self._parsed_uri.get("password", None))
         return db
 
     def get_collection(self, collection, database_name=None, username=None, password=None):
@@ -204,11 +200,12 @@ def _format_mongodb_uri(parsed_uri):
     db_name = parsed_uri.get('database') or ''
 
     res = "mongodb://{user_pass!s}{nodelist!s}/{db_name!s}{options!s}".format(
-        user_pass = user_pass,
-        nodelist = nodelist,
-        db_name = db_name,
+        user_pass=user_pass,
+        nodelist=nodelist,
+        db_name=db_name,
         # collection is ignored
-        options = options)
+        options=options,
+    )
     return res
 
 
@@ -222,12 +219,10 @@ class BaseDB(object):
         self._db = MongoDB(db_uri, db_name=db_name)
         self._coll = self._db.get_collection(collection)
         if safe_writes:
-            self._coll = self._coll.with_options(write_concern = pymongo.WriteConcern(w = 'majority'))
+            self._coll = self._coll.with_options(write_concern=pymongo.WriteConcern(w='majority'))
 
     def __repr__(self):
-        return '<eduID {!s}: {!s} {!r}>'.format(self.__class__.__name__,
-                                                self._db.sanitized_uri,
-                                                self._coll_name)
+        return '<eduID {!s}: {!s} {!r}>'.format(self.__class__.__name__, self._db.sanitized_uri, self._coll_name)
 
     def _drop_whole_collection(self):
         """
@@ -288,8 +283,9 @@ class BaseDB(object):
             return []
         return docs
 
-    def _get_documents_by_filter(self, spec: dict, fields: Optional[dict] = None,
-                                 raise_on_missing: bool = True) -> List[Mapping]:
+    def _get_documents_by_filter(
+        self, spec: dict, fields: Optional[dict] = None, raise_on_missing: bool = True
+    ) -> List[Mapping]:
         """
         Locate a documents in the db using a custom search filter.
 
@@ -356,4 +352,3 @@ class BaseDB(object):
 
     def close(self):
         self._db.close()
-

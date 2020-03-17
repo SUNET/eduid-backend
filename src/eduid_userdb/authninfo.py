@@ -2,11 +2,12 @@
 
 from __future__ import absolute_import
 
-from bson import ObjectId
 import logging
 
+from bson import ObjectId
+
+from eduid_userdb.credentials import U2F, Password, Webauthn
 from eduid_userdb.userdb import BaseDB
-from eduid_userdb.credentials import Password, U2F, Webauthn
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +15,6 @@ __author__ = 'eperez'
 
 
 class AuthnInfoDB(BaseDB):
-
     def __init__(self, db_uri, db_name='eduid_idp_authninfo', collection='authn_info'):
         super(AuthnInfoDB, self).__init__(db_uri, db_name, collection)
 
@@ -38,14 +38,13 @@ class AuthnInfoDB(BaseDB):
                 data_type = 'security.webauthn_credential_type'
 
             auth_entry = self._coll.find_one(credential.key)
-            logger.debug("get_authn_info {!s}: cred id: {!r} auth entry: {!r}".format(
-                user, credential.key, auth_entry))
+            logger.debug("get_authn_info {!s}: cred id: {!r} auth entry: {!r}".format(user, credential.key, auth_entry))
             if auth_entry:
                 success_ts = auth_entry['success_ts'].isoformat()
 
             authninfo[credential.key] = {
                 'credential_type': data_type,
                 'created_ts': created_ts,
-                'success_ts': success_ts
+                'success_ts': success_ts,
             }
         return authninfo

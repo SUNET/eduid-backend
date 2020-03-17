@@ -36,36 +36,35 @@ from __future__ import absolute_import
 
 import copy
 from typing import Optional, Union
+
 from bson.objectid import ObjectId
 
 from eduid_userdb.credentials import Credential
-from eduid_userdb.exceptions import UserHasUnknownData, UserDBValueError
+from eduid_userdb.exceptions import UserDBValueError, UserHasUnknownData
 
 __author__ = 'lundberg'
 
 
 class Password(Credential):
-
-    def __init__(self,
-                 credential_id: Optional[ObjectId] = None,
-                 salt: Optional[str] = None,
-                 is_generated: bool = False,
-                 application: Optional[str] = None,
-                 created_ts: Optional[Union[str, bool]] = None,
-                 data: Optional[dict] = None,
-                 raise_on_unknown: bool = True):
+    def __init__(
+        self,
+        credential_id: Optional[ObjectId] = None,
+        salt: Optional[str] = None,
+        is_generated: bool = False,
+        application: Optional[str] = None,
+        created_ts: Optional[Union[str, bool]] = None,
+        data: Optional[dict] = None,
+        raise_on_unknown: bool = True,
+    ):
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
 
         if data is None:
             if created_ts is None:
                 created_ts = True
-            data = dict(id = credential_id,
-                        salt = salt,
-                        is_generated = is_generated,
-                        created_by = application,
-                        created_ts = created_ts,
-                        )
+            data = dict(
+                id=credential_id, salt=salt, is_generated=is_generated, created_by=application, created_ts=created_ts,
+            )
 
         if 'source' in data:  # TODO: Load and save all users in the database to replace source with created_by
             data['created_by'] = data.pop('source')

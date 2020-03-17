@@ -33,13 +33,18 @@
 import datetime
 import logging
 from operator import itemgetter
-from typing import Optional, Type, TypeVar, ClassVar
+from typing import ClassVar, Optional, Type, TypeVar
 
 from eduid_userdb.db import BaseDB
-from eduid_userdb.exceptions import DocumentOutOfSync
-from eduid_userdb.exceptions import MultipleDocumentsReturned
-from eduid_userdb.proofing import PhoneProofingState, OrcidProofingState
-from eduid_userdb.proofing import ProofingUser, LetterProofingState, OidcProofingState, EmailProofingState
+from eduid_userdb.exceptions import DocumentOutOfSync, MultipleDocumentsReturned
+from eduid_userdb.proofing import (
+    EmailProofingState,
+    LetterProofingState,
+    OidcProofingState,
+    OrcidProofingState,
+    PhoneProofingState,
+    ProofingUser,
+)
 from eduid_userdb.proofing.state import ProofingState
 from eduid_userdb.userdb import UserDB
 
@@ -116,8 +121,7 @@ class ProofingStateDB(BaseDB):
         if modified is None:
             # document has never been modified
             result = self._coll.insert(state.to_dict())
-            logging.debug("{} Inserted new state {} into {}): {})".format(
-                self, state, self._coll_name, result))
+            logging.debug("{} Inserted new state {} into {}): {})".format(self, state, self._coll_name, result))
         else:
             test_doc = {'eduPersonPrincipalName': state.eppn}
             if check_sync:
@@ -128,12 +132,15 @@ class ProofingStateDB(BaseDB):
                 db_state = self._coll.find_one({'eduPersonPrincipalName': state.eppn})
                 if db_state:
                     db_ts = db_state['modified_ts']
-                logging.error("{} FAILED Updating state {} (ts {}) in {}). "
-                              "ts in db = {!s}".format(self, state, modified, self._coll_name, db_ts))
+                logging.error(
+                    "{} FAILED Updating state {} (ts {}) in {}). "
+                    "ts in db = {!s}".format(self, state, modified, self._coll_name, db_ts)
+                )
                 raise DocumentOutOfSync('Stale state object can\'t be saved')
 
-            logging.debug("{!s} Updated state {} (ts {}) in {}): {}".format(
-                self, state, modified, self._coll_name, result))
+            logging.debug(
+                "{!s} Updated state {} (ts {}) in {}): {}".format(self, state, modified, self._coll_name, result)
+            )
 
     def remove_state(self, state):
         """
@@ -157,8 +164,9 @@ class EmailProofingStateDB(ProofingStateDB):
     def __init__(self, db_uri, db_name='eduid_email'):
         ProofingStateDB.__init__(self, db_uri, db_name)
 
-    def get_state_by_eppn_and_email(self, eppn: str, email: str,
-                                    raise_on_missing: bool = True) -> Optional[EmailProofingState]:
+    def get_state_by_eppn_and_email(
+        self, eppn: str, email: str, raise_on_missing: bool = True
+    ) -> Optional[EmailProofingState]:
         """
         Locate a state in the db given the eppn of the user and the
         email to be verified.
@@ -176,8 +184,7 @@ class EmailProofingStateDB(ProofingStateDB):
 
         :type state: ProofingStateClass
         """
-        self.remove_document({'eduPersonPrincipalName': state.eppn,
-                              'verification.email': state.verification.email})
+        self.remove_document({'eduPersonPrincipalName': state.eppn, 'verification.email': state.verification.email})
 
 
 class PhoneProofingStateDB(ProofingStateDB):
@@ -204,8 +211,7 @@ class PhoneProofingStateDB(ProofingStateDB):
         :raise self.MultipleDocumentsReturned: More than one user
                                                matches the search criteria
         """
-        spec = {'eduPersonPrincipalName': eppn,
-                'verification.number': number}
+        spec = {'eduPersonPrincipalName': eppn, 'verification.number': number}
         return self.get_latest_state_by_spec(spec, raise_on_missing)
 
     def remove_state(self, state):
@@ -214,12 +220,10 @@ class PhoneProofingStateDB(ProofingStateDB):
 
         :type state: ProofingStateClass
         """
-        self.remove_document({'eduPersonPrincipalName': state.eppn,
-                              'verification.number': state.verification.number})
+        self.remove_document({'eduPersonPrincipalName': state.eppn, 'verification.number': state.verification.number})
 
 
 class OidcStateDB(ProofingStateDB):
-
     def get_state_by_oidc_state(self, oidc_state, raise_on_missing=True):
         """
         Locate a state in the db given the user's OIDC state.
@@ -267,42 +271,35 @@ class ProofingUserDB(UserDB):
 
 
 class LetterProofingUserDB(ProofingUserDB):
-
     def __init__(self, db_uri, db_name='eduid_idproofing_letter'):
         ProofingUserDB.__init__(self, db_uri, db_name)
 
 
 class OidcProofingUserDB(ProofingUserDB):
-
     def __init__(self, db_uri, db_name='eduid_oidc_proofing'):
         ProofingUserDB.__init__(self, db_uri, db_name)
 
 
 class PhoneProofingUserDB(ProofingUserDB):
-
     def __init__(self, db_uri, db_name='eduid_phone'):
         ProofingUserDB.__init__(self, db_uri, db_name)
 
 
 class EmailProofingUserDB(ProofingUserDB):
-
     def __init__(self, db_uri, db_name='eduid_email'):
         ProofingUserDB.__init__(self, db_uri, db_name)
 
 
 class LookupMobileProofingUserDB(ProofingUserDB):
-
     def __init__(self, db_uri, db_name='eduid_lookup_mobile_proofing'):
         ProofingUserDB.__init__(self, db_uri, db_name)
 
 
 class OrcidProofingUserDB(ProofingUserDB):
-
     def __init__(self, db_uri, db_name='eduid_orcid'):
         ProofingUserDB.__init__(self, db_uri, db_name)
 
 
 class EidasProofingUserDB(ProofingUserDB):
-
     def __init__(self, db_uri, db_name='eduid_eidas'):
         ProofingUserDB.__init__(self, db_uri, db_name)

@@ -3,9 +3,11 @@
 from __future__ import absolute_import
 
 import copy
+
 from six import string_types
-from eduid_userdb.exceptions import UserDBValueError, UserHasUnknownData
+
 from eduid_userdb.element import Element, VerifiedElement
+from eduid_userdb.exceptions import UserDBValueError, UserHasUnknownData
 
 __author__ = 'lundberg'
 
@@ -15,27 +17,43 @@ class OidcIdToken(Element):
     OpenID Connect ID token data
     """
 
-    def __init__(self, iss=None, sub=None, aud=None, exp=None, iat=None, nonce=None, auth_time=None, acr=None, amr=None,
-                 azp=None, application=None, created_ts=None, data=None, raise_on_unknown=True):
+    def __init__(
+        self,
+        iss=None,
+        sub=None,
+        aud=None,
+        exp=None,
+        iat=None,
+        nonce=None,
+        auth_time=None,
+        acr=None,
+        amr=None,
+        azp=None,
+        application=None,
+        created_ts=None,
+        data=None,
+        raise_on_unknown=True,
+    ):
         data_in = data
         data = copy.deepcopy(data_in)  # to not modify callers data
 
         if data is None:
             if created_ts is None:
                 created_ts = True
-            data = dict(iss=iss,
-                        sub=sub,
-                        aud=aud,
-                        exp=exp,
-                        iat=iat,
-                        nonce=nonce,
-                        auth_time=auth_time,
-                        acr=acr,
-                        amr=amr,
-                        azp=azp,
-                        created_by=application,
-                        created_ts=created_ts,
-                        )
+            data = dict(
+                iss=iss,
+                sub=sub,
+                aud=aud,
+                exp=exp,
+                iat=iat,
+                nonce=nonce,
+                auth_time=auth_time,
+                acr=acr,
+                amr=amr,
+                azp=azp,
+                created_by=application,
+                created_ts=created_ts,
+            )
         Element.__init__(self, data)
         self.iss = data.pop('iss')
         self.sub = data.pop('sub')
@@ -279,22 +297,34 @@ class OidcAuthorization(Element):
     """
     OpenID Connect Authorization data
     """
-    def __init__(self, access_token=None, token_type=None, id_token=None, expires_in=None, refresh_token=None,
-                 application=None, created_ts=None, data=None, raise_on_unknown=True):
+
+    def __init__(
+        self,
+        access_token=None,
+        token_type=None,
+        id_token=None,
+        expires_in=None,
+        refresh_token=None,
+        application=None,
+        created_ts=None,
+        data=None,
+        raise_on_unknown=True,
+    ):
         data_in = data
         data = copy.deepcopy(data_in)  # to not modify callers data
 
         if data is None:
             if created_ts is None:
                 created_ts = True
-            data = dict(access_token=access_token,
-                        token_type=token_type,
-                        id_token=id_token,
-                        expires_in=expires_in,
-                        refresh_token=refresh_token,
-                        created_by=application,
-                        created_ts=created_ts,
-                        )
+            data = dict(
+                access_token=access_token,
+                token_type=token_type,
+                id_token=id_token,
+                expires_in=expires_in,
+                refresh_token=refresh_token,
+                created_by=application,
+                created_ts=created_ts,
+            )
 
         Element.__init__(self, data)
         self.access_token = data.pop('access_token')
@@ -450,23 +480,36 @@ class Orcid(VerifiedElement):
     :type data: dict
     :type raise_on_unknown: bool
     """
-    def __init__(self, id=None, name=None, given_name=None, family_name=None, oidc_authz=None, application=None,
-                 verified=False, created_ts=None, data=None, raise_on_unknown=True):
+
+    def __init__(
+        self,
+        id=None,
+        name=None,
+        given_name=None,
+        family_name=None,
+        oidc_authz=None,
+        application=None,
+        verified=False,
+        created_ts=None,
+        data=None,
+        raise_on_unknown=True,
+    ):
         data_in = data
         data = copy.deepcopy(data_in)  # to not modify callers data
 
         if data is None:
             if created_ts is None:
                 created_ts = True
-            data = dict(id=id,
-                        name=name,
-                        given_name=given_name,
-                        family_name=family_name,
-                        oidc_authz=oidc_authz,
-                        created_by=application,
-                        created_ts=created_ts,
-                        verified=verified,
-                        )
+            data = dict(
+                id=id,
+                name=name,
+                given_name=given_name,
+                family_name=family_name,
+                oidc_authz=oidc_authz,
+                created_by=application,
+                created_ts=created_ts,
+                verified=verified,
+            )
 
         VerifiedElement.__init__(self, data)
         self.id = data.pop('id')

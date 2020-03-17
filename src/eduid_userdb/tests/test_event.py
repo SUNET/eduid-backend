@@ -12,36 +12,35 @@ from eduid_userdb.tou import ToUEvent, ToUList
 
 __author__ = 'ft'
 
-_one_dict = \
-    {'id': bson.ObjectId(),  # Keep 'id' instead of event_id to test compatiblity code
-     'event_type': 'tou_event',
-     'version': '1',
-     'created_by': 'test',
-     'created_ts': datetime.datetime(2015, 9, 24, 1, 1, 1, 111111),
-     'modified_ts': datetime.datetime(2015, 9, 24, 1, 1, 1, 111111),
-     }
+_one_dict = {
+    'id': bson.ObjectId(),  # Keep 'id' instead of event_id to test compatiblity code
+    'event_type': 'tou_event',
+    'version': '1',
+    'created_by': 'test',
+    'created_ts': datetime.datetime(2015, 9, 24, 1, 1, 1, 111111),
+    'modified_ts': datetime.datetime(2015, 9, 24, 1, 1, 1, 111111),
+}
 
-_two_dict = \
-    {'event_id': bson.ObjectId(),
-     'event_type': 'tou_event',
-     'version': '2',
-     'created_by': 'test',
-     'created_ts': datetime.datetime(2015, 9, 24, 2, 2, 2, 222222),
-     'modified_ts': datetime.datetime(2018, 9, 25, 2, 2, 2, 222222),
-     }
+_two_dict = {
+    'event_id': bson.ObjectId(),
+    'event_type': 'tou_event',
+    'version': '2',
+    'created_by': 'test',
+    'created_ts': datetime.datetime(2015, 9, 24, 2, 2, 2, 222222),
+    'modified_ts': datetime.datetime(2018, 9, 25, 2, 2, 2, 222222),
+}
 
-_three_dict = \
-    {'event_id': bson.ObjectId(),
-     'event_type': 'tou_event',
-     'version': '3',
-     'created_by': 'test',
-     'created_ts': datetime.datetime(2015, 9, 24, 3, 3, 3, 333333),
-     'modified_ts': datetime.datetime(2015, 9, 24, 3, 3, 3, 333333),
-     }
+_three_dict = {
+    'event_id': bson.ObjectId(),
+    'event_type': 'tou_event',
+    'version': '3',
+    'created_by': 'test',
+    'created_ts': datetime.datetime(2015, 9, 24, 3, 3, 3, 333333),
+    'modified_ts': datetime.datetime(2015, 9, 24, 3, 3, 3, 333333),
+}
 
 
 class TestEventList(TestCase):
-
     def setUp(self):
         self.empty = EventList([])
         self.one = EventList([_one_dict])
@@ -84,7 +83,7 @@ class TestEventList(TestCase):
     def test_add_duplicate_key(self):
         data = deepcopy(_two_dict)
         data['version'] = 'other version'
-        dup = ToUEvent(data = data)
+        dup = ToUEvent(data=data)
         with self.assertRaises(eduid_userdb.element.DuplicateElementViolation):
             self.two.add(dup)
 
@@ -94,9 +93,10 @@ class TestEventList(TestCase):
         self.assertEqual(this.to_list_of_dicts(), self.three.to_list_of_dicts())
 
     def test_add_wrong_type(self):
-        pwdict = {'id': bson.ObjectId(),
-                  'salt': 'foo',
-                  }
+        pwdict = {
+            'id': bson.ObjectId(),
+            'salt': 'foo',
+        }
         new = Password(data=pwdict)
         with self.assertRaises(eduid_userdb.element.UserDBValueError):
             self.one.add(new)
@@ -110,9 +110,10 @@ class TestEventList(TestCase):
             self.one.remove('+46709999999')
 
     def test_unknown_event_type(self):
-        e1 = {'event_type': 'unknown_event',
-              'id': bson.ObjectId(),
-              }
+        e1 = {
+            'event_type': 'unknown_event',
+            'id': bson.ObjectId(),
+        }
         with self.assertRaises(eduid_userdb.exceptions.BadEvent) as cm:
             EventList([e1])
         exc = cm.exception
@@ -158,24 +159,24 @@ class TestEventList(TestCase):
 
     def test_loading_duplicate_tou_events(self):
         data = [
-                {
-                        "event_id" : bson.ObjectId("5699fdbed300e400155be719"),
-                        "version" : "2014-v1",
-                        "created_ts" : datetime.datetime.fromisoformat("2016-01-16T08:22:22.520"),
-                        "created_by" : "signup"
-                },
-                {
-                        "event_id" : bson.ObjectId("581c3084df7c670064b583d6"),
-                        "version" : "2016-v1",
-                        "created_ts" : datetime.datetime.fromisoformat("2016-11-04T06:53:56.217"),
-                        "created_by" : "eduid_tou_plugin"
-                },
-                {
-                        "event_id" : bson.ObjectId("581c308e70971c006488d7d7"),
-                        "version" : "2016-v1",
-                        "created_ts" : datetime.datetime.fromisoformat("2016-11-04T06:54:06.676"),
-                        "created_by" : "eduid_tou_plugin"
-                }
+            {
+                "event_id": bson.ObjectId("5699fdbed300e400155be719"),
+                "version": "2014-v1",
+                "created_ts": datetime.datetime.fromisoformat("2016-01-16T08:22:22.520"),
+                "created_by": "signup",
+            },
+            {
+                "event_id": bson.ObjectId("581c3084df7c670064b583d6"),
+                "version": "2016-v1",
+                "created_ts": datetime.datetime.fromisoformat("2016-11-04T06:53:56.217"),
+                "created_by": "eduid_tou_plugin",
+            },
+            {
+                "event_id": bson.ObjectId("581c308e70971c006488d7d7"),
+                "version": "2016-v1",
+                "created_ts": datetime.datetime.fromisoformat("2016-11-04T06:54:06.676"),
+                "created_by": "eduid_tou_plugin",
+            },
         ]
         el = ToUList(data)
         self.assertEqual(el.count, 2)

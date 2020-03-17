@@ -3,7 +3,7 @@
 from __future__ import absolute_import
 
 from copy import deepcopy
-from typing import Optional, List
+from typing import List, Optional
 
 __author__ = 'lundberg'
 

@@ -32,15 +32,16 @@
 #
 from __future__ import absolute_import
 
-from pymongo.errors import DuplicateKeyError
-from eduid_userdb.db import BaseDB
-from eduid_userdb.userdb import UserDB
-from eduid_userdb.exceptions import DocumentOutOfSync, MultipleDocumentsReturned
-from eduid_userdb.security import SecurityUser
-from eduid_userdb.security import PasswordResetEmailState, PasswordResetEmailAndPhoneState
-from eduid_userdb.deprecation import deprecated
-
 import logging
+
+from pymongo.errors import DuplicateKeyError
+
+from eduid_userdb.db import BaseDB
+from eduid_userdb.deprecation import deprecated
+from eduid_userdb.exceptions import DocumentOutOfSync, MultipleDocumentsReturned
+from eduid_userdb.security import PasswordResetEmailAndPhoneState, PasswordResetEmailState, SecurityUser
+from eduid_userdb.userdb import UserDB
+
 logger = logging.getLogger(__name__)
 
 __author__ = 'lundberg'
@@ -59,7 +60,6 @@ class SecurityUserDB(UserDB):
 
 # @deprecated("Remove once the password reset views are served from their own webapp")
 class PasswordResetStateDB(BaseDB):
-
     @deprecated("Remove once the password reset views are served from their own webapp")
     def __init__(self, db_uri, db_name='eduid_security', collection='password_reset_data'):
         super(PasswordResetStateDB, self).__init__(db_uri, db_name, collection=collection)
@@ -140,8 +140,7 @@ class PasswordResetStateDB(BaseDB):
                 self.remove_state(old_state)
 
             result = self._coll.insert(state.to_dict())
-            logging.debug("{!s} Inserted new state {!r} into {!r}): {!r})".format(
-                self, state, self._coll_name, result))
+            logging.debug("{!s} Inserted new state {!r} into {!r}): {!r})".format(self, state, self._coll_name, result))
 
         else:
             test_doc = {'eduPersonPrincipalName': state.eppn}
@@ -153,12 +152,17 @@ class PasswordResetStateDB(BaseDB):
                 db_state = self._coll.find_one({'eppn': state.eppn})
                 if db_state:
                     db_ts = db_state['modified_ts']
-                logging.debug("{!s} FAILED Updating state {!r} (ts {!s}) in {!r}). "
-                              "ts in db = {!s}".format(self, state, modified, self._coll_name, db_ts))
+                logging.debug(
+                    "{!s} FAILED Updating state {!r} (ts {!s}) in {!r}). "
+                    "ts in db = {!s}".format(self, state, modified, self._coll_name, db_ts)
+                )
                 raise DocumentOutOfSync('Stale state object can\'t be saved')
 
-            logging.debug("{!s} Updated state {!r} (ts {!s}) in {!r}): {!r}".format(
-                self, state, modified, self._coll_name, result))
+            logging.debug(
+                "{!s} Updated state {!r} (ts {!s}) in {!r}): {!r}".format(
+                    self, state, modified, self._coll_name, result
+                )
+            )
 
     def remove_state(self, state):
         """

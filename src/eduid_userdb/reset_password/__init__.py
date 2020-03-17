@@ -31,6 +31,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
+from eduid_userdb.reset_password.db import ResetPasswordStateDB, ResetPasswordUserDB
+from eduid_userdb.reset_password.state import (
+    ResetPasswordEmailAndPhoneState,
+    ResetPasswordEmailState,
+    ResetPasswordState,
+)
 from eduid_userdb.reset_password.user import ResetPasswordUser
-from eduid_userdb.reset_password.state import ResetPasswordState, ResetPasswordEmailState, ResetPasswordEmailAndPhoneState
-from eduid_userdb.reset_password.db import ResetPasswordUserDB, ResetPasswordStateDB

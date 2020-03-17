@@ -1,20 +1,26 @@
 # -*- coding: utf-8 -*-
 
-from unittest import TestCase
 from copy import deepcopy
+from unittest import TestCase
+
+from eduid_userdb.logs.db import ProofingLog
+from eduid_userdb.logs.element import (
+    LetterProofing,
+    MailAddressProofing,
+    PhoneNumberProofing,
+    ProofingLogElement,
+    SeLegProofing,
+    SeLegProofingFrejaEid,
+    TeleAdressProofing,
+    TeleAdressProofingRelation,
+)
 from eduid_userdb.testing import MOCKED_USER_STANDARD, MongoTemporaryInstance
 from eduid_userdb.user import User
-from eduid_userdb.logs.db import ProofingLog
-from eduid_userdb.logs.element import ProofingLogElement, TeleAdressProofing, TeleAdressProofingRelation
-from eduid_userdb.logs.element import LetterProofing, MailAddressProofing, PhoneNumberProofing, SeLegProofing
-from eduid_userdb.logs.element import SeLegProofingFrejaEid
-
 
 __author__ = 'lundberg'
 
 
 class TestProofingLog(TestCase):
-
     def setUp(self):
         self.tmp_db = MongoTemporaryInstance.get_instance()
         self.proofing_log_db = ProofingLog(db_uri=self.tmp_db.uri)
@@ -25,8 +31,9 @@ class TestProofingLog(TestCase):
 
     def test_id_proofing_data(self):
 
-        proofing_element = ProofingLogElement(self.user, created_by='test', proofing_method='test',
-                                              proofing_version='test')
+        proofing_element = ProofingLogElement(
+            self.user, created_by='test', proofing_method='test', proofing_version='test'
+        )
         self.proofing_log_db.save(proofing_element)
 
         result = list(self.proofing_log_db._coll.find({}))
@@ -44,7 +51,7 @@ class TestProofingLog(TestCase):
             'nin': 'some_nin',
             'mobile_number': 'some_mobile_number',
             'user_postal_address': {'response_data': {'some': 'data'}},
-            'proofing_version': 'test'
+            'proofing_version': 'test',
         }
         proofing_element = TeleAdressProofing(self.user, **data)
         for key, value in data.items():
@@ -72,7 +79,7 @@ class TestProofingLog(TestCase):
             'mobile_number_registered_to': 'registered_national_identity_number',
             'registered_relation': 'registered_relation_to_user',
             'registered_postal_address': {'response_data': {'some': 'data'}},
-            'proofing_version': 'test'
+            'proofing_version': 'test',
         }
         proofing_element = TeleAdressProofingRelation(self.user, **data)
         for key, value in data.items():
@@ -97,7 +104,7 @@ class TestProofingLog(TestCase):
             'nin': 'some_nin',
             'mobile_number': 'some_mobile_number',
             'user_postal_address': {'response_data': {'some': 'data'}},
-            'proofing_version': 'test'
+            'proofing_version': 'test',
         }
 
         data_relation = {
@@ -109,7 +116,7 @@ class TestProofingLog(TestCase):
             'mobile_number_registered_to': 'registered_national_identity_number',
             'registered_relation': 'registered_relation_to_user',
             'registered_postal_address': {'response_data': {'some': 'data'}},
-            'proofing_version': 'test'
+            'proofing_version': 'test',
         }
 
         # Make a copy of the original required keys
@@ -127,7 +134,7 @@ class TestProofingLog(TestCase):
             'letter_sent_to': {'name': {'some': 'data'}, 'address': {'some': 'data'}},
             'transaction_id': 'some transaction id',
             'user_postal_address': {'response_data': {'some': 'data'}},
-            'proofing_version': 'test'
+            'proofing_version': 'test',
         }
         proofing_element = LetterProofing(self.user, **data)
         for key, value in data.items():
@@ -151,7 +158,7 @@ class TestProofingLog(TestCase):
             'created_by': 'test',
             'mail_address': 'some_mail_address',
             'proofing_version': 'test',
-            'reference': 'reference id'
+            'reference': 'reference id',
         }
         proofing_element = MailAddressProofing(self.user, **data)
         for key, value in data.items():
@@ -173,7 +180,7 @@ class TestProofingLog(TestCase):
             'created_by': 'test',
             'phone_number': 'some_phone_number',
             'proofing_version': 'test',
-            'reference': 'reference id'
+            'reference': 'reference id',
         }
         proofing_element = PhoneNumberProofing(self.user, **data)
         for key, value in data.items():
@@ -253,7 +260,7 @@ class TestProofingLog(TestCase):
             'created_by': 'test',
             'phone_number': 'some_phone_number',
             'proofing_version': 'test',
-            'reference': 'reference id'
+            'reference': 'reference id',
         }
         proofing_element = PhoneNumberProofing(self.user, **data)
         proofing_element._data['phone_number'] = ''
@@ -265,7 +272,7 @@ class TestProofingLog(TestCase):
             'created_by': 'test',
             'phone_number': 'some_phone_number',
             'proofing_version': 'test',
-            'reference': 'reference id'
+            'reference': 'reference id',
         }
         proofing_element = PhoneNumberProofing(self.user, **data)
         del proofing_element._data['created_by']
@@ -277,7 +284,7 @@ class TestProofingLog(TestCase):
             'created_by': 'test',
             'phone_number': 'some_phone_number',
             'proofing_version': 'test',
-            'reference': 'reference id'
+            'reference': 'reference id',
         }
         proofing_element = PhoneNumberProofing(self.user, **data)
         proofing_element._data['phone_number'] = 0

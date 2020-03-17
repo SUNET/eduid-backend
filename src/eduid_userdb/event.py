@@ -56,8 +56,17 @@ class Event(Element):
     :type data: dict
     """
 
-    def __init__(self, application=None, created_ts=None, modified_ts=None, data=None, event_type=None, event_id=None,
-                 raise_on_unknown=True, ignore_data=None):
+    def __init__(
+        self,
+        application=None,
+        created_ts=None,
+        modified_ts=None,
+        data=None,
+        event_type=None,
+        event_id=None,
+        raise_on_unknown=True,
+        ignore_data=None,
+    ):
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
 
@@ -66,12 +75,13 @@ class Event(Element):
                 created_ts = True
             if modified_ts is None:
                 modified_ts = created_ts
-            data = dict(created_by=application,
-                        created_ts=created_ts,
-                        modified_ts=modified_ts,
-                        event_type=event_type,
-                        event_id=event_id,
-                        )
+            data = dict(
+                created_by=application,
+                created_ts=created_ts,
+                modified_ts=modified_ts,
+                event_type=event_type,
+                event_id=event_id,
+            )
         # modified_ts was not part of Event from the start, make sure it gets added and default to created_ts
         if 'modified_ts' not in data:
             data['modified_ts'] = data.get('created_ts', None)
@@ -86,9 +96,7 @@ class Event(Element):
         leftovers = [x for x in data.keys() if x not in ignore_data]
         if leftovers:
             if raise_on_unknown:
-                raise EventHasUnknownData('Event {!r} unknown data: {!r}'.format(
-                    self.event_id, leftovers,
-                ))
+                raise EventHasUnknownData('Event {!r} unknown data: {!r}'.format(self.event_id, leftovers,))
             # Just keep everything that is left as-is
             self._data.update(data)
 
@@ -124,7 +132,7 @@ class Event(Element):
         self._data['event_id'] = value
 
     # -----------------------------------------------------------------
-    def to_dict(self, mixed_format: bool=False) -> Dict[str, Any]:
+    def to_dict(self, mixed_format: bool = False) -> Dict[str, Any]:
         """
         Convert Element to a dict, that can be used to reconstruct the Element later.
 
@@ -152,7 +160,7 @@ class EventList(ElementList):
     :type event_class: object
     """
 
-    def __init__(self, events, raise_on_unknown=True, event_class: Type[Event]=Event):
+    def __init__(self, events, raise_on_unknown=True, event_class: Type[Event] = Event):
         self._event_class = event_class
         ElementList.__init__(self, elements=[])
 
@@ -182,7 +190,7 @@ class EventList(ElementList):
             raise DuplicateElementViolation("Event {!s} already in list".format(event.key))
         super(EventList, self).add(event)
 
-    def to_list_of_dicts(self, mixed_format: bool=False) -> List[Dict[str, Any]]:
+    def to_list_of_dicts(self, mixed_format: bool = False) -> List[Dict[str, Any]]:
         """
         Get the elements in a serialized format that can be stored in MongoDB.
 
@@ -191,7 +199,7 @@ class EventList(ElementList):
         return [this.to_dict(mixed_format=mixed_format) for this in self._elements if isinstance(this, Event)]
 
 
-def event_from_dict(data: Dict[str, Any], raise_on_unknown: bool=True):
+def event_from_dict(data: Dict[str, Any], raise_on_unknown: bool = True):
     """
     Create an Event instance (probably really a subclass of Event) from a dict.
 
@@ -202,5 +210,6 @@ def event_from_dict(data: Dict[str, Any], raise_on_unknown: bool=True):
         raise UserDBValueError('No event type specified')
     if data['event_type'] == 'tou_event':
         from eduid_userdb.tou import ToUEvent  # avoid cyclic dependency by importing this here
+
         return ToUEvent(data=data, raise_on_unknown=raise_on_unknown)
     raise BadEvent('Unknown event_type in data: {!s}'.format(data['event_type']))

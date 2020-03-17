@@ -33,5 +33,5 @@
 # Author : Fredrik Thulin <fredrik@thulin.net>
 #
 
-from .user import IdPUser
 from .db import IdPUserDb
+from .user import IdPUser

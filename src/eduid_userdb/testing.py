@@ -49,7 +49,7 @@ from datetime import date, timedelta
 import pymongo
 from bson import ObjectId
 
-from eduid_userdb import UserDB, User
+from eduid_userdb import User, UserDB
 from eduid_userdb.dashboard.user import DashboardUser
 
 logger = logging.getLogger(__name__)
@@ -58,8 +58,8 @@ logger = logging.getLogger(__name__)
 MONGO_URI_AM_TEST = 'mongodb://localhost:27017/eduid_userdb_test'
 MONGO_URI_TEST = 'mongodb://localhost:27017/eduid_dashboard_test'
 
-#eduid_userdb.db.DEFAULT_MONGODB_URI = MONGO_URI_AM_TEST
-#eduid_userdb.db.DEFAULT_MONGODB_NAME = 'eduid_userdb_test'
+# eduid_userdb.db.DEFAULT_MONGODB_URI = MONGO_URI_AM_TEST
+# eduid_userdb.db.DEFAULT_MONGODB_NAME = 'eduid_userdb_test'
 
 
 MOCKED_USER_STANDARD = {
@@ -67,45 +67,30 @@ MOCKED_USER_STANDARD = {
     'givenName': 'John',
     'surname': 'Smith',
     'displayName': 'John Smith',
-    'norEduPersonNIN': [{'number': '197801011234',
-                         'verified': True,
-                         'primary': True,
-                         }],
+    'norEduPersonNIN': [{'number': '197801011234', 'verified': True, 'primary': True,}],
     #'photo': 'https://pointing.to/your/photo',
     'preferredLanguage': 'en',
     'eduPersonPrincipalName': 'hubba-bubba',
     #'modified_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"),
     #'terminated': None,
-    'eduPersonEntitlement': [
-        'urn:mace:eduid.se:role:admin',
-        'urn:mace:eduid.se:role:student',
+    'eduPersonEntitlement': ['urn:mace:eduid.se:role:admin', 'urn:mace:eduid.se:role:student',],
+    'phone': [
+        {'number': '+34609609609', 'primary': True, 'verified': True},
+        {'number': '+34 6096096096', 'verified': False},
+        {'number': '+34607507507', 'verified': True},
     ],
-    'phone': [{
-        'number': '+34609609609',
-        'primary': True,
-        'verified': True
-    }, {
-        'number': '+34 6096096096',
-        'verified': False
-    }, {
-        'number': '+34607507507',
-        'verified': True
-    }],
     'mail': 'johnsmith@example.com',
-    'mailAliases': [{
-        'email': 'johnsmith@example.com',
-        'verified': True,
-    }, {
-        'email': 'johnsmith2@example.com',
-        'verified': True,
-    }, {
-        'email': 'johnsmith3@example.com',
-        'verified': False,
-    }],
-    'passwords': [{
-        'id': ObjectId('112345678901234567890123'),
-        'salt': '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$',
-    }],
+    'mailAliases': [
+        {'email': 'johnsmith@example.com', 'verified': True,},
+        {'email': 'johnsmith2@example.com', 'verified': True,},
+        {'email': 'johnsmith3@example.com', 'verified': False,},
+    ],
+    'passwords': [
+        {
+            'id': ObjectId('112345678901234567890123'),
+            'salt': '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$',
+        }
+    ],
     #'postalAddress': [{
     #    'type': 'home',
     #    'country': 'SE',
@@ -113,15 +98,16 @@ MOCKED_USER_STANDARD = {
     #    'postalCode': "123456",
     #    'locality': "Stockholm",
     #    'verified': True,
-    #}, {
+    # }, {
     #    'type': 'work',
     #    'country': 'ES',
     #    'address': "Calle Ancha, 49",
     #    'postalCode': "123456",
     #    'locality': "Punta Umbria",
     #    'verified': False,
-    #}],
+    # }],
 }
+
 
 class MockedUserDB(UserDB):
     """
@@ -146,6 +132,7 @@ class MockedUserDB(UserDB):
 
     def __init__(self, users=[]):
         import pprint
+
         for user in users:
             mail = user.get('mail', '')
             if mail in self.test_users:
@@ -174,6 +161,7 @@ class MongoTemporaryInstance(object):
     at the end of the program.
 
     """
+
     _instance = None
 
     @classmethod
@@ -186,12 +174,11 @@ class MongoTemporaryInstance(object):
     def __init__(self):
         self._port = random.randint(40000, 50000)
         logger.debug('Starting temporary mongodb instance on port {}'.format(self._port))
-        self._process = subprocess.Popen(['docker', 'run', '--rm',
-                                          '-p', '{!s}:27017'.format(self._port),
-                                          'docker.sunet.se/eduid/mongodb:latest',
-                                          ],
-                                         stdout=open('/tmp/mongodb-temp.log', 'wb'),
-                                         stderr=subprocess.STDOUT)
+        self._process = subprocess.Popen(
+            ['docker', 'run', '--rm', '-p', '{!s}:27017'.format(self._port), 'docker.sunet.se/eduid/mongodb:latest',],
+            stdout=open('/tmp/mongodb-temp.log', 'wb'),
+            stderr=subprocess.STDOUT,
+        )
         # XXX: wait for the instance to be ready
         #      Mongo is ready in a glance, we just wait to be able to open a
         #      Connection.
@@ -246,6 +233,7 @@ class MongoTestCase(unittest.TestCase):
     A test can access the connection using the attribute `conn`.
     A test can access the port using the attribute `port`
     """
+
     fixtures: list = []
 
     MockedUserDB = MockedUserDB
@@ -281,13 +269,14 @@ class MongoTestCase(unittest.TestCase):
 
         if init_am:
             self.am_settings = {
-                'CELERY': {'broker_transport': 'memory',
-                           'broker_url': 'memory://',
-                           'task_eager_propagates': True,
-                           'task_always_eager': True,
-                           'result_backend': 'cache',
-                           'cache_backend': 'memory',
-                           },
+                'CELERY': {
+                    'broker_transport': 'memory',
+                    'broker_url': 'memory://',
+                    'task_eager_propagates': True,
+                    'task_always_eager': True,
+                    'result_backend': 'cache',
+                    'cache_backend': 'memory',
+                },
                 # Be sure to NOT tell AttributeManager about the temporary mongodb instance.
                 # If we do, one or more plugins may open DB connections that never gets closed.
                 'MONGO_URI': None,
@@ -300,8 +289,10 @@ class MongoTestCase(unittest.TestCase):
                     self.am_settings['MONGO_URI'] = self.tmp_db.uri
             # initialize eduid_am without requiring config in etcd
             import eduid_am
+
             celery = eduid_am.init_app(self.am_settings['CELERY'])
             import eduid_am.worker
+
             eduid_am.worker.worker_config = self.am_settings
             logger.debug('Initialized AM with config:\n{!r}'.format(self.am_settings))
 
@@ -338,6 +329,6 @@ class MongoTestCase(unittest.TestCase):
         self.amdb.close()
         super(MongoTestCase, self).tearDown()
 
-    #def mongodb_uri(self, dbname):
+    # def mongodb_uri(self, dbname):
     #    self.assertIsNotNone(dbname)
     #    return self.tmp_db.uri + '/' + dbname

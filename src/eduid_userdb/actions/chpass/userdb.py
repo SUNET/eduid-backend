@@ -32,8 +32,8 @@
 
 __author__ = 'eperez'
 
-from eduid_userdb.userdb import UserDB
 from eduid_userdb.actions.chpass import ChpassUser
+from eduid_userdb.userdb import UserDB
 
 
 class ChpassUserDB(UserDB):
@@ -42,4 +42,3 @@ class ChpassUserDB(UserDB):
 
     def __init__(self, db_uri, db_name='eduid_actions', collection='chpass'):
         UserDB.__init__(self, db_uri, db_name, collection)
-

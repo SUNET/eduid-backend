@@ -30,13 +30,14 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-import bson
 import copy
 import datetime
-from typing import cast, Union, Optional, Dict, Mapping
+from typing import Dict, Mapping, Optional, Union, cast
+
+import bson
 
 from eduid_userdb.element import _set_something_ts
-from eduid_userdb.exceptions import UserHasUnknownData, UserDBValueError
+from eduid_userdb.exceptions import UserDBValueError, UserHasUnknownData
 from eduid_userdb.reset_password.element import CodeElement
 
 
@@ -57,7 +58,7 @@ class ResetPasswordState(object):
         # eppn
         self._data['eduPersonPrincipalName'] = self._data_in.pop('eduPersonPrincipalName')
 
-        #method
+        # method
         self._data['method'] = self._data_in.pop('method', None)
 
         # extra security alternatives
@@ -72,9 +73,7 @@ class ResetPasswordState(object):
 
         if len(self._data_in) > 0:
             if raise_on_unknown:
-                raise UserHasUnknownData('Unknown data: {!r}'.format(
-                    self._data_in.keys()
-                ))
+                raise UserHasUnknownData('Unknown data: {!r}'.format(self._data_in.keys()))
             # Just keep everything that is left as-is
             self._data.update(self._data_in)
 
@@ -187,20 +186,21 @@ class ResetPasswordState(object):
 
 
 class ResetPasswordEmailState(ResetPasswordState):
-    def __init__(self, eppn: Optional[str] = None,
-                 email_address: Optional[str] = None,
-                 email_code: Optional[str] = None,
-                 created_ts: Optional[Union[bool, datetime.datetime]] = None,
-                 data: Optional[Mapping] = None,
-                 raise_on_unknown: bool = True):
+    def __init__(
+        self,
+        eppn: Optional[str] = None,
+        email_address: Optional[str] = None,
+        email_code: Optional[str] = None,
+        created_ts: Optional[Union[bool, datetime.datetime]] = None,
+        data: Optional[Mapping] = None,
+        raise_on_unknown: bool = True,
+    ):
         if data is None:
             if created_ts is None:
                 created_ts = True
-            data = dict(eduPersonPrincipalName=eppn,
-                        email_address=email_address,
-                        email_code=email_code,
-                        created_ts=created_ts,
-                        )
+            data = dict(
+                eduPersonPrincipalName=eppn, email_address=email_address, email_code=email_code, created_ts=created_ts,
+            )
 
         self._data_in = copy.deepcopy(cast(dict, data))  # to not modify callers data
         self._data = dict()
@@ -256,24 +256,28 @@ class ResetPasswordEmailState(ResetPasswordState):
 
 
 class ResetPasswordEmailAndPhoneState(ResetPasswordEmailState):
-    def __init__(self, eppn: Optional[str] = None,
-                 email_address: Optional[str] = None,
-                 email_code: Optional[str] = None,
-                 phone_number: Optional[str] = None,
-                 phone_code: Optional[str] = None,
-                 created_ts: Optional[Union[datetime.datetime, bool]] = None,
-                 data: Optional[Mapping] = None,
-                 raise_on_unknown: bool = True):
+    def __init__(
+        self,
+        eppn: Optional[str] = None,
+        email_address: Optional[str] = None,
+        email_code: Optional[str] = None,
+        phone_number: Optional[str] = None,
+        phone_code: Optional[str] = None,
+        created_ts: Optional[Union[datetime.datetime, bool]] = None,
+        data: Optional[Mapping] = None,
+        raise_on_unknown: bool = True,
+    ):
         if data is None:
             if created_ts is None:
                 created_ts = True
-            data = dict(eduPersonPrincipalName=eppn,
-                        email_address=email_address,
-                        email_code=email_code,
-                        phone_number=phone_number,
-                        phone_code=phone_code,
-                        created_ts=created_ts,
-                        )
+            data = dict(
+                eduPersonPrincipalName=eppn,
+                email_address=email_address,
+                email_code=email_code,
+                phone_number=phone_number,
+                phone_code=phone_code,
+                created_ts=created_ts,
+            )
 
         self._data_in = copy.deepcopy(cast(dict, data))  # to not modify callers data
         self._data = dict()
@@ -291,8 +295,9 @@ class ResetPasswordEmailAndPhoneState(ResetPasswordEmailState):
         self.phone_code = CodeElement.parse(application='security', code_or_element=phone_code)
 
     @classmethod
-    def from_email_state(cls, email_state: ResetPasswordEmailState,
-                         phone_number: str, phone_code: str) -> ResetPasswordState:
+    def from_email_state(
+        cls, email_state: ResetPasswordEmailState, phone_number: str, phone_code: str
+    ) -> ResetPasswordState:
         data = email_state.to_dict()
         data['phone_number'] = phone_number
         data['phone_code'] = phone_code

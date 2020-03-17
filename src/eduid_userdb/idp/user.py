@@ -36,24 +36,25 @@
 """
 User and user database module.
 """
-import pprint
 import logging
+import pprint
 from typing import List
 
 from eduid_userdb import User
 
 # default list of SAML attributes to release
-_SAML_ATTRIBUTES = ['displayName',
-                    'eduPersonAssurance',
-                    'eduPersonEntitlement',
-                    'eduPersonPrincipalName',
-                    'eduPersonScopedAffiliation',
-                    'givenName',
-                    'mail',
-                    'norEduPersonNIN',
-                    'preferredLanguage',
-                    'sn',
-                    ]
+_SAML_ATTRIBUTES = [
+    'displayName',
+    'eduPersonAssurance',
+    'eduPersonEntitlement',
+    'eduPersonPrincipalName',
+    'eduPersonScopedAffiliation',
+    'givenName',
+    'mail',
+    'norEduPersonNIN',
+    'preferredLanguage',
+    'sn',
+]
 
 
 class IdPUser(User):
@@ -61,9 +62,9 @@ class IdPUser(User):
     Wrapper class for eduid_userdb.User adding functions useful in the IdP.
     """
 
-    def to_saml_attributes(self, config: dict,
-                           logger: logging.Logger,
-                           filter_attributes: List[str] = _SAML_ATTRIBUTES) -> dict:
+    def to_saml_attributes(
+        self, config: dict, logger: logging.Logger, filter_attributes: List[str] = _SAML_ATTRIBUTES
+    ) -> dict:
         """
         Return a dict of SAML attributes for a user.
 
@@ -76,7 +77,7 @@ class IdPUser(User):
 
         :return: SAML attributes
         """
-        attributes_in = self.to_dict(old_userdb_format = True)
+        attributes_in = self.to_dict(old_userdb_format=True)
         attributes = {}
         for approved in filter_attributes:
             if approved in attributes_in:
