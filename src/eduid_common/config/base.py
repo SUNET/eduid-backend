@@ -198,7 +198,7 @@ class BaseConfig(CommonConfig):
     eduid_static_url: str = 'https://www.eduid.se/static/'
     safe_relay_domain: str = 'eduid.se'
     # environment=(dev|staging|pro)
-    environment: str = 'dev'
+    environment: str = 'pro'
     development: bool = False
     # enable disable debug mode
     logging_config: dict = field(default_factory=dict)
