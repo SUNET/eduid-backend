@@ -37,12 +37,12 @@ from pymongo.errors import DuplicateKeyError
 
 from eduid_userdb.db import BaseDB
 from eduid_userdb.exceptions import DocumentOutOfSync, MultipleDocumentsReturned
-from eduid_userdb.reset_password import (
+from eduid_userdb.reset_password.state import (
     ResetPasswordEmailAndPhoneState,
     ResetPasswordEmailState,
     ResetPasswordState,
-    ResetPasswordUser,
 )
+from eduid_userdb.reset_password.user import ResetPasswordUser
 from eduid_userdb.user import User
 from eduid_userdb.userdb import UserDB
 
