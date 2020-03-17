@@ -71,3 +71,5 @@ class ResetPasswordConfig(FlaskConfig):
     # webauthn stuff
     generate_u2f_challenges: bool = False
     u2f_valid_facets: list = field(default_factory=list)
+    # Throttle sending SMSs for extra security resetting passwords
+    throttle_sms_seconds: int = 300
