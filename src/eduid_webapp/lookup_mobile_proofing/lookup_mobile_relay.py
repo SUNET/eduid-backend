@@ -13,11 +13,11 @@ class LookupMobileTaskFailed(Exception):
 
 
 class LookupMobileRelay(object):
-
     def __init__(self, config):
         eduid_lookup_mobile.init_app(config)
         # these have to be imported _after_ eduid_lookup_mobile.init_app()
         from eduid_lookup_mobile.tasks import find_mobiles_by_NIN, find_NIN_by_mobile
+
         self._find_mobiles_by_NIN = find_mobiles_by_NIN
         self._find_NIN_by_mobile = find_NIN_by_mobile
 

@@ -33,7 +33,9 @@
 from __future__ import absolute_import
 
 from flask import abort
+
 from eduid_common.session import session
+
 from eduid_webapp.actions.app import current_actions_app as current_app
 
 
@@ -41,15 +43,12 @@ def get_next_action(user):
     idp_session = session.actions.session
     action = current_app.actions_db.get_next_action(user.eppn, idp_session)
     if action is None:
-        current_app.logger.info("Finished pre-login actions "
-                                "for user: {}".format(user))
-        idp_url = '{}?key={}'.format(current_app.config.idp_url,
-                                     idp_session)
+        current_app.logger.info("Finished pre-login actions " "for user: {}".format(user))
+        idp_url = '{}?key={}'.format(current_app.config.idp_url, idp_session)
         return {'action': False, 'idp_url': idp_url}
 
     if action.action_type not in current_app.plugins:
-        current_app.logger.info("Missing plugin for action "
-                                "{}".format(action.action_type))
+        current_app.logger.info("Missing plugin for action " "{}".format(action.action_type))
         abort(500)
 
     action_dict = action.to_dict()

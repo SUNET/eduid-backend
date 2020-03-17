@@ -2,17 +2,19 @@
 
 from __future__ import absolute_import
 
-import time
-import json
 import binascii
-from jose import jws as jose
+import json
+import time
 from collections import OrderedDict
+
+from jose import jws as jose
 from mock import patch
 
-from eduid_userdb.nin import Nin
-from eduid_userdb.locked_identity import LockedIdentityNin
-from eduid_userdb.exceptions import DocumentDoesNotExist
 from eduid_common.api.testing import EduidAPITestCase
+from eduid_userdb.exceptions import DocumentDoesNotExist
+from eduid_userdb.locked_identity import LockedIdentityNin
+from eduid_userdb.nin import Nin
+
 from eduid_webapp.oidc_proofing.app import init_oidc_proofing_app
 from eduid_webapp.oidc_proofing.helpers import create_proofing_state, handle_freja_eid_userinfo
 from eduid_webapp.oidc_proofing.settings.common import OIDCProofingConfig
@@ -28,48 +30,37 @@ class OidcProofingTests(EduidAPITestCase):
         self.test_user_nin = '200001023456'
         self.test_user_wrong_nin = '190001021234'
 
-        self.mock_address = OrderedDict([
-            (u'Name', OrderedDict([
-                (u'GivenNameMarking', u'20'), (u'GivenName', u'Testaren Test'),
-                (u'Surname', u'Testsson')])),
-            (u'OfficialAddress', OrderedDict([(u'Address2', u'\xd6RGATAN 79 LGH 10'),
-                                              (u'PostalCode', u'12345'),
-                                              (u'City', u'LANDET')]))
-        ])
+        self.mock_address = OrderedDict(
+            [
+                (
+                    u'Name',
+                    OrderedDict(
+                        [(u'GivenNameMarking', u'20'), (u'GivenName', u'Testaren Test'), (u'Surname', u'Testsson')]
+                    ),
+                ),
+                (
+                    u'OfficialAddress',
+                    OrderedDict(
+                        [(u'Address2', u'\xd6RGATAN 79 LGH 10'), (u'PostalCode', u'12345'), (u'City', u'LANDET')]
+                    ),
+                ),
+            ]
+        )
 
         self.oidc_provider_config = {
             'authorization_endpoint': 'https://example.com/op/authentication',
             'claims_parameter_supported': True,
-            'grant_types_supported': [
-                'authorization_code',
-                'implicit'
-            ],
-            'id_token_signing_alg_values_supported': [
-                'RS256'
-            ],
+            'grant_types_supported': ['authorization_code', 'implicit'],
+            'id_token_signing_alg_values_supported': ['RS256'],
             'issuer': 'https://example.com/op/',
             'jwks_uri': 'https://example.com/op/jwks',
-            'response_modes_supported': [
-                'query',
-                'fragment'
-            ],
-            'response_types_supported': [
-                'code',
-                'code id_token',
-                'code token',
-                'code id_token token'
-            ],
-            'scopes_supported': [
-                'openid'
-            ],
-            'subject_types_supported': [
-                'pairwise'
-            ],
+            'response_modes_supported': ['query', 'fragment'],
+            'response_types_supported': ['code', 'code id_token', 'code token', 'code id_token token'],
+            'scopes_supported': ['openid'],
+            'subject_types_supported': ['pairwise'],
             'token_endpoint': 'https://example.com/op/token',
-            'token_endpoint_auth_methods_supported': [
-                'client_secret_basic'
-            ],
-            'userinfo_endpoint': 'https://example.com/op/userinfo'
+            'token_endpoint_auth_methods_supported': ['client_secret_basic'],
+            'userinfo_endpoint': 'https://example.com/op/userinfo',
         }
 
         class MockResponse(object):
@@ -91,52 +82,43 @@ class OidcProofingTests(EduidAPITestCase):
             return init_oidc_proofing_app('testing', config)
 
     def update_config(self, app_config):
-        app_config.update({
-            'msg_broker_url': 'amqp://dummy',
-            'am_broker_url': 'amqp://dummy',
-            'celery_config': {
-                'result_backend': 'amqp',
-                'task_serializer': 'json'
-            },
-            'provider_configuration_info': {
-                'issuer': 'https://example.com/op/'
-            },
-            'client_registration_info': {
-                'client_id': 'test_client',
-                'client_secret': 'secret'
-            },
-            'userinfo_endpoint_method': 'POST',
-            'freja_jws_algorithm': 'HS256',
-            'freja_jws_key_id': '0',
-            'freja_jwk_secret': '499602d2',  # in hex
-            'freja_iarp': 'TESTRP',
-            'freja_expire_time_hours': 336,
-            'freja_response_protocol': '1.0',
-            'seleg_expire_time_hours': 336,
-        })
+        app_config.update(
+            {
+                'msg_broker_url': 'amqp://dummy',
+                'am_broker_url': 'amqp://dummy',
+                'celery_config': {'result_backend': 'amqp', 'task_serializer': 'json'},
+                'provider_configuration_info': {'issuer': 'https://example.com/op/'},
+                'client_registration_info': {'client_id': 'test_client', 'client_secret': 'secret'},
+                'userinfo_endpoint_method': 'POST',
+                'freja_jws_algorithm': 'HS256',
+                'freja_jws_key_id': '0',
+                'freja_jwk_secret': '499602d2',  # in hex
+                'freja_iarp': 'TESTRP',
+                'freja_expire_time_hours': 336,
+                'freja_response_protocol': '1.0',
+                'seleg_expire_time_hours': 336,
+            }
+        )
         return OIDCProofingConfig(**app_config)
 
     @patch('oic.oic.Client.parse_response')
     @patch('oic.oic.Client.do_user_info_request')
     @patch('oic.oic.Client.do_access_token_request')
-    def mock_authorization_response(self, qrdata, proofing_state, userinfo, mock_token_request, mock_userinfo_request,
-                                    mock_auth_response):
+    def mock_authorization_response(
+        self, qrdata, proofing_state, userinfo, mock_token_request, mock_userinfo_request, mock_auth_response
+    ):
         mock_auth_response.return_value = {
             'id_token': 'id_token',
             'code': 'code',
             'state': proofing_state.state,
         }
-        mock_token_request.return_value = {
-            'id_token': {
-                'nonce': qrdata['nonce'],
-                'sub': 'sub'
-            }
-        }
+        mock_token_request.return_value = {'id_token': {'nonce': qrdata['nonce'], 'sub': 'sub'}}
         userinfo['sub'] = 'sub'
         mock_userinfo_request.return_value = userinfo
         headers = {'Authorization': 'Bearer {}'.format(qrdata['token'])}
-        return self.browser.get('/authorization-response?id_token=id_token&state={}'.format(proofing_state.state),
-                                headers=headers)
+        return self.browser.get(
+            '/authorization-response?id_token=id_token&state={}'.format(proofing_state.state), headers=headers
+        )
 
     def test_authenticate(self):
         response = self.browser.get('/proofing')
@@ -168,7 +150,7 @@ class OidcProofingTests(EduidAPITestCase):
         expected = {
             'iarp': 'TESTRP',
             'opaque': '1' + json.dumps({'nonce': proofing_state.nonce, 'token': proofing_state.token}),
-            'proto': u'1.0'
+            'proto': u'1.0',
         }
         claims = json.loads(request_data.decode('ascii'))
         self.assertIn('exp', claims)
@@ -225,8 +207,8 @@ class OidcProofingTests(EduidAPITestCase):
             'metadata': {
                 'score': 100,
                 'opaque': '1' + json.dumps({'nonce': proofing_state.nonce, 'token': proofing_state.token}),
-                'ra_app': 'App id for vetting app'
-            }
+                'ra_app': 'App id for vetting app',
+            },
         }
         self.mock_authorization_response(qrdata, proofing_state, userinfo)
 
@@ -272,8 +254,8 @@ class OidcProofingTests(EduidAPITestCase):
             'metadata': {
                 'score': 0,
                 'opaque': '1' + json.dumps({'nonce': proofing_state.nonce, 'token': proofing_state.token}),
-                'ra_app': 'App id for vetting app'
-            }
+                'ra_app': 'App id for vetting app',
+            },
         }
         self.mock_authorization_response(qrdata, proofing_state, userinfo)
 
@@ -319,8 +301,8 @@ class OidcProofingTests(EduidAPITestCase):
             'metadata': {
                 'score': 100,
                 'opaque': '1' + json.dumps({'nonce': proofing_state.nonce, 'token': proofing_state.token}),
-                'ra_app': 'App id for vetting app'
-            }
+                'ra_app': 'App id for vetting app',
+            },
         }
         self.mock_authorization_response(qrdata, proofing_state, userinfo)
 
@@ -334,8 +316,9 @@ class OidcProofingTests(EduidAPITestCase):
     @patch('eduid_webapp.oidc_proofing.helpers.do_authn_request')
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
-    def test_seleg_flow_previously_added_wrong_nin(self, mock_request_user_sync, mock_get_postal_address,
-                                                   mock_oidc_call):
+    def test_seleg_flow_previously_added_wrong_nin(
+        self, mock_request_user_sync, mock_get_postal_address, mock_oidc_call
+    ):
         mock_oidc_call.return_value = True
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -369,8 +352,8 @@ class OidcProofingTests(EduidAPITestCase):
             'metadata': {
                 'score': 100,
                 'opaque': '1' + json.dumps({'nonce': proofing_state.nonce, 'token': proofing_state.token}),
-                'ra_app': 'App id for vetting app'
-            }
+                'ra_app': 'App id for vetting app',
+            },
         }
         self.mock_authorization_response(qrdata, proofing_state, userinfo)
 
@@ -478,8 +461,9 @@ class OidcProofingTests(EduidAPITestCase):
     @patch('eduid_webapp.oidc_proofing.helpers.do_authn_request')
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
-    def test_freja_flow_previously_added_wrong_nin(self, mock_request_user_sync, mock_get_postal_address,
-                                                   mock_oidc_call):
+    def test_freja_flow_previously_added_wrong_nin(
+        self, mock_request_user_sync, mock_get_postal_address, mock_oidc_call
+    ):
         mock_oidc_call.return_value = True
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.side_effect = self.request_user_sync

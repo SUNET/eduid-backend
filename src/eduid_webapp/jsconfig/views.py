@@ -30,8 +30,8 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from typing import cast, Dict, Optional
 from dataclasses import asdict
+from typing import Dict, Optional, cast
 
 import requests
 from flask import Blueprint, abort, render_template, request
@@ -41,14 +41,11 @@ from eduid_common.api.schemas.base import FluxStandardAction
 from eduid_common.config.exceptions import BadConfiguration
 from eduid_common.config.parsers.etcd import EtcdConfigParser, etcd
 from eduid_common.session import session
+
 from eduid_webapp.jsconfig.app import current_jsconfig_app as current_app
 from eduid_webapp.jsconfig.settings.front import FrontConfig
 
-
-jsconfig_views = Blueprint('jsconfig',
-                           __name__,
-                           url_prefix='',
-                           template_folder='templates')
+jsconfig_views = Blueprint('jsconfig', __name__, url_prefix='', template_folder='templates')
 
 
 CACHE = {}

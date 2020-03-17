@@ -34,6 +34,7 @@
 from __future__ import absolute_import
 
 from dataclasses import dataclass
+
 from eduid_common.config.base import FlaskConfig
 
 
@@ -42,4 +43,5 @@ class MobileProofingConfig(FlaskConfig):
     """
     Configuration for the lookup mobile proofing app
     """
+
     lookup_mobile_broker_url: str = ''

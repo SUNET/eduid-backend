@@ -34,23 +34,24 @@ from typing import cast
 
 from flask import current_app
 
-from eduid_userdb.proofing import OrcidProofingStateDB, OrcidProofingUserDB
-from eduid_userdb.logs import ProofingLog
 from eduid_common.api import am, oidc
 from eduid_common.authn.middleware import AuthnBaseApp
+from eduid_userdb.logs import ProofingLog
+from eduid_userdb.proofing import OrcidProofingStateDB, OrcidProofingUserDB
+
 from eduid_webapp.orcid.settings.common import OrcidConfig
 
 __author__ = 'lundberg'
 
 
 class OrcidApp(AuthnBaseApp):
-
     def __init__(self, name: str, config: dict, **kwargs):
 
         super(OrcidApp, self).__init__(name, OrcidConfig, config, **kwargs)
 
         # Register views
         from eduid_webapp.orcid.views import orcid_views
+
         self.register_blueprint(orcid_views)
 
         # Init dbs

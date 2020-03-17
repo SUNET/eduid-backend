@@ -36,11 +36,11 @@ from flask import current_app
 
 from eduid_common.api.app import EduIDBaseApp
 from eduid_common.authn.utils import no_authn_views
+
 from eduid_webapp.jsconfig.settings.common import JSConfigConfig
 
 
 class JSConfigApp(EduIDBaseApp):
-
     def __init__(self, name: str, config: dict, **kwargs):
 
         kwargs['init_central_userdb'] = False
@@ -54,13 +54,11 @@ class JSConfigApp(EduIDBaseApp):
             self.url_map.host_matching = False
 
         from eduid_webapp.jsconfig.views import jsconfig_views
+
         self.register_blueprint(jsconfig_views)
 
         # Register view path that should not be authorized
-        no_auth_paths = [
-            '/get-bundle',
-            '/signup/config'
-        ]
+        no_auth_paths = ['/get-bundle', '/signup/config']
         self = no_authn_views(self, no_auth_paths)
 
 

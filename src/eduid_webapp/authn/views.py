@@ -30,8 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from flask import Blueprint
-from flask import request, redirect, abort, make_response
+from flask import Blueprint, abort, make_response, redirect, request
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 from saml2.ident import decode
@@ -42,12 +41,17 @@ from werkzeug.exceptions import Forbidden
 from eduid_common.api.utils import verify_relay_state
 from eduid_common.authn.acs_registry import get_action, schedule_action
 from eduid_common.authn.cache import IdentityCache, StateCache
-from eduid_common.authn.eduid_saml2 import authenticate
-from eduid_common.authn.eduid_saml2 import get_authn_request, get_authn_response, BadSAMLResponse, UnsolicitedResponse
+from eduid_common.authn.eduid_saml2 import (
+    BadSAMLResponse,
+    UnsolicitedResponse,
+    authenticate,
+    get_authn_request,
+    get_authn_response,
+)
 from eduid_common.authn.loa import get_loa
-from eduid_common.authn.utils import check_previous_identification
-from eduid_common.authn.utils import get_location
+from eduid_common.authn.utils import check_previous_identification, get_location
 from eduid_common.session import session
+
 from eduid_webapp.authn import acs_actions  # acs_action needs to be imported to be loaded
 from eduid_webapp.authn.app import current_authn_app as current_app
 
@@ -94,10 +98,15 @@ def _authn(action, force_authn=False):
     assert len(idps) == 1
     idp = list(idps.keys())[0]
     idp = request.args.get('idp', idp)
-    authn_request = get_authn_request(current_app.saml2_config, session,
-                                      relay_state, idp, force_authn=force_authn,
-                                      sign_alg=current_app.config.authn_sign_alg,
-                                      digest_alg=current_app.config.authn_digest_alg)
+    authn_request = get_authn_request(
+        current_app.saml2_config,
+        session,
+        relay_state,
+        idp,
+        force_authn=force_authn,
+        sign_alg=current_app.config.authn_sign_alg,
+        digest_alg=current_app.config.authn_digest_alg,
+    )
     schedule_action(action)
     current_app.logger.info('Redirecting the user to the IdP for ' + action)
     return redirect(get_location(authn_request))
@@ -162,17 +171,13 @@ def logout():
     state = StateCache(session)
     identity = IdentityCache(session)
 
-    client = Saml2Client(current_app.saml2_config,
-                         state_cache=state,
-                         identity_cache=identity)
+    client = Saml2Client(current_app.saml2_config, state_cache=state, identity_cache=identity)
 
     # The user doesn't have a SAML2 NameID in the session
     # after a token login from Signup into Dashboard.
     subject_id = _get_name_id(session)
     if subject_id is None:
-        current_app.logger.warning(
-            'The session does not contain '
-            'the subject id for user {}'.format(user))
+        current_app.logger.warning('The session does not contain ' 'the subject id for user {}'.format(user))
         session.clear()
         location = current_app.config.saml2_logout_redirect_url
 
@@ -191,8 +196,9 @@ def logout():
                 abort(500)
         headers_tuple = loresponse[1]['headers']
         location = headers_tuple[0][1]
-        current_app.logger.info('Redirecting to {!r} to continue the logout process '
-                                'for user {}'.format(location, user))
+        current_app.logger.info(
+            'Redirecting to {!r} to continue the logout process ' 'for user {}'.format(location, user)
+        )
 
     state.sync()
     return redirect(location)
@@ -212,9 +218,7 @@ def logout_service():
 
     state = StateCache(session)
     identity = IdentityCache(session)
-    client = Saml2Client(current_app.saml2_config,
-                         state_cache=state,
-                         identity_cache=identity)
+    client = Saml2Client(current_app.saml2_config, state_cache=state, identity_cache=identity)
 
     logout_redirect_url = current_app.config.saml2_logout_redirect_url
     next_page = session.get('next', logout_redirect_url)
@@ -224,10 +228,7 @@ def logout_service():
 
     if 'SAMLResponse' in request.form:  # we started the logout
         current_app.logger.debug('Receiving a logout response from the IdP')
-        response = client.parse_logout_request_response(
-            request.form['SAMLResponse'],
-            BINDING_HTTP_REDIRECT
-        )
+        response = client.parse_logout_request_response(request.form['SAMLResponse'], BINDING_HTTP_REDIRECT)
         state.sync()
         if response and response.status_ok():
             session.clear()
@@ -243,18 +244,13 @@ def logout_service():
         if subject_id is None:
             current_app.logger.warning(
                 'The session does not contain the subject id for user {0} '
-                'Performing local logout'.format(
-                    session['eduPersonPrincipalName']
-                )
+                'Performing local logout'.format(session['eduPersonPrincipalName'])
             )
             session.clear()
             return redirect(next_page)
         else:
             http_info = client.handle_logout_request(
-                request.form['SAMLRequest'],
-                subject_id,
-                BINDING_HTTP_REDIRECT,
-                relay_state=request.form['RelayState']
+                request.form['SAMLRequest'], subject_id, BINDING_HTTP_REDIRECT, relay_state=request.form['RelayState']
             )
             state.sync()
             location = get_location(http_info)
@@ -291,8 +287,9 @@ def signup_authn():
             session['eduPersonAssurance'] = loa
 
             response = redirect(location_on_success)
-            current_app.logger.info('Successful authentication, redirecting user {} to {}'.format(user,
-                                                                                                  location_on_success))
+            current_app.logger.info(
+                'Successful authentication, redirecting user {} to {}'.format(user, location_on_success)
+            )
             return response
 
     current_app.logger.info('Signup authn failed, redirecting user to {}'.format(location_on_fail))

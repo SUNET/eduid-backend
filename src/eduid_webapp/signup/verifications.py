@@ -31,20 +31,21 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from uuid import uuid4
 import time
-import requests
+from uuid import uuid4
 
+import requests
 from flask import render_template
 from flask_babel import gettext as _
 
-from eduid_userdb import MailAddress
-from eduid_userdb.signup import SignupUser
-from eduid_userdb.proofing import EmailProofingElement
-from eduid_userdb.logs import MailAddressProofing
 from eduid_common.session import session
-from eduid_webapp.signup.helpers import generate_eppn
+from eduid_userdb import MailAddress
+from eduid_userdb.logs import MailAddressProofing
+from eduid_userdb.proofing import EmailProofingElement
+from eduid_userdb.signup import SignupUser
+
 from eduid_webapp.signup.app import current_signup_app as current_app
+from eduid_webapp.signup.helpers import generate_eppn
 
 
 def verify_recaptcha(secret_key, captcha_response, user_ip, retries=3):
@@ -66,11 +67,7 @@ def verify_recaptcha(secret_key, captcha_response, user_ip, retries=3):
     :rtype: bool
     """
     url = 'https://www.google.com/recaptcha/api/siteverify'
-    params = {
-        'secret': secret_key,
-        'response': captcha_response,
-        'remoteip': user_ip
-    }
+    params = {'secret': secret_key, 'response': captcha_response, 'remoteip': user_ip}
     while retries:
         retries -= 1
         try:
@@ -79,21 +76,19 @@ def verify_recaptcha(secret_key, captcha_response, user_ip, retries=3):
             current_app.logger.debug("CAPTCHA response: {}".format(verify_rs))
             verify_rs = verify_rs.json()
             if verify_rs.get('success', False) is True:
-                current_app.logger.info("Valid CAPTCHA response from "
-                                        "{}".format(user_ip))
+                current_app.logger.info("Valid CAPTCHA response from " "{}".format(user_ip))
                 return True
         except requests.exceptions.RequestException as e:
             if not retries:
-                current_app.logger.error('Caught RequestException while '
-                                         'sending CAPTCHA, giving up.')
+                current_app.logger.error('Caught RequestException while ' 'sending CAPTCHA, giving up.')
                 raise e
-            current_app.logger.warning('Caught RequestException while '
-                                       'sending CAPTCHA, trying again.')
+            current_app.logger.warning('Caught RequestException while ' 'sending CAPTCHA, trying again.')
             current_app.logger.warning(e)
             time.sleep(0.5)
 
-    current_app.logger.info("Invalid CAPTCHA response from {}: {}".format(
-        user_ip, verify_rs.get('error-codes', 'Unspecified error')))
+    current_app.logger.info(
+        "Invalid CAPTCHA response from {}: {}".format(user_ip, verify_rs.get('error-codes', 'Unspecified error'))
+    )
     return False
 
 
@@ -149,14 +144,8 @@ def send_verification_mail(email):
         "site_url": current_app.config.eduid_site_url,
     }
 
-    text = render_template(
-        "verification_email.txt.jinja2",
-        **context
-    )
-    html = render_template(
-        "verification_email.html.jinja2",
-        **context
-    )
+    text = render_template("verification_email.txt.jinja2", **context)
+    html = render_template("verification_email.html.jinja2", **context)
 
     current_app.mail_relay.sendmail(subject, [email], text, html, reference=signup_user.proofing_reference)
     current_app.logger.info("Sent email address verification mail for user {} to address {}".format(signup_user, email))
@@ -222,9 +211,13 @@ def verify_email_code(code):
         current_app.logger.debug("Code {} already verified ({})".format(code, mail_address))
         raise AlreadyVerifiedException()
 
-    mail_address_proofing = MailAddressProofing(signup_user, created_by='signup', mail_address=mail_address.email,
-                                                reference=signup_user.proofing_reference,
-                                                proofing_version='2013v1')
+    mail_address_proofing = MailAddressProofing(
+        signup_user,
+        created_by='signup',
+        mail_address=mail_address.email,
+        reference=signup_user.proofing_reference,
+        proofing_version='2013v1',
+    )
     if current_app.proofing_log.save(mail_address_proofing):
         mail_address.is_verified = True
         mail_address.verified_ts = True

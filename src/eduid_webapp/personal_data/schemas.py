@@ -32,13 +32,14 @@
 #
 
 from marshmallow import fields
-from eduid_common.api.schemas.base import FluxStandardAction, EduidSchema
+
+from eduid_common.api.schemas.base import EduidSchema, FluxStandardAction
+from eduid_common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
 from eduid_common.api.schemas.nin import NinSchema
 from eduid_common.api.schemas.orcid import OrcidSchema
-from eduid_common.api.schemas.csrf import CSRFResponseMixin, CSRFRequestMixin
-from eduid_webapp.personal_data.validators import validate_language
-from eduid_webapp.personal_data.validators import validate_nonempty
+
 from eduid_webapp.email.schemas import EmailSchema
+from eduid_webapp.personal_data.validators import validate_language, validate_nonempty
 from eduid_webapp.phone.schemas import PhoneSchema
 
 __author__ = 'eperez'
@@ -49,8 +50,7 @@ class PersonalDataRequestSchema(EduidSchema, CSRFRequestMixin):
     given_name = fields.String(required=True, validate=validate_nonempty)
     surname = fields.String(required=True, validate=validate_nonempty)
     display_name = fields.String(required=True, validate=validate_nonempty)
-    language = fields.String(required=True, default='en',
-                             validate=validate_language)
+    language = fields.String(required=True, default='en', validate=validate_language)
 
 
 class PersonalDataSchema(EduidSchema, CSRFResponseMixin):
@@ -66,8 +66,7 @@ class PersonalDataSubSchema(EduidSchema, CSRFResponseMixin):
     given_name = fields.String(required=True)
     surname = fields.String(required=True)
     display_name = fields.String(required=True)
-    language = fields.String(required=True,
-                             validate=validate_language)
+    language = fields.String(required=True, validate=validate_language)
 
 
 class PersonalDataResponseSchema(FluxStandardAction):
@@ -76,7 +75,6 @@ class PersonalDataResponseSchema(FluxStandardAction):
 
 
 class NinsResponseSchema(FluxStandardAction):
-
     class NinResponsePayload(EmailSchema, CSRFResponseMixin):
         nins = fields.Nested(NinSchema, many=True)
 
@@ -100,8 +98,7 @@ class AllDataResponseSubSchema(EduidSchema, CSRFResponseMixin):
     given_name = fields.String(required=True)
     surname = fields.String(required=True)
     display_name = fields.String(required=True)
-    language = fields.String(required=True,
-                             validate=validate_language)
+    language = fields.String(required=True, validate=validate_language)
     nins = fields.Nested(NinSchema, many=True)
     emails = fields.Nested(EmailSchema, many=True)
     phones = fields.Nested(PhoneSchema, many=True)

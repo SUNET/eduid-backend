@@ -32,6 +32,7 @@
 #
 
 from marshmallow import ValidationError
+
 from eduid_common.api.utils import get_user
 
 

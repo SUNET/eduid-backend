@@ -32,23 +32,22 @@
 #
 
 from typing import cast
+
 from flask import current_app
 
-from eduid_userdb.authninfo import AuthnInfoDB
-from eduid_userdb.reset_password import ResetPasswordUserDB, ResetPasswordStateDB
-from eduid_userdb.logs import ProofingLog
-from eduid_common.api import translation
-from eduid_common.api import mail_relay
-from eduid_common.api import am, msg
+from eduid_common.api import am, mail_relay, msg, translation
 from eduid_common.authn.middleware import AuthnBaseApp
 from eduid_common.authn.utils import no_authn_views
+from eduid_userdb.authninfo import AuthnInfoDB
+from eduid_userdb.logs import ProofingLog
+from eduid_userdb.reset_password import ResetPasswordStateDB, ResetPasswordUserDB
+
 from eduid_webapp.reset_password.settings.common import ResetPasswordConfig
 
 __author__ = 'eperez'
 
 
 class ResetPasswordApp(AuthnBaseApp):
-
     def __init__(self, name: str, config: dict, **kwargs):
 
         super(ResetPasswordApp, self).__init__(name, ResetPasswordConfig, config, **kwargs)
@@ -56,6 +55,7 @@ class ResetPasswordApp(AuthnBaseApp):
         # Register views
         from eduid_webapp.reset_password.views.reset_password import reset_password_views
         from eduid_webapp.reset_password.views.change_password import change_password_views
+
         self.register_blueprint(change_password_views)
         self.register_blueprint(reset_password_views)
 

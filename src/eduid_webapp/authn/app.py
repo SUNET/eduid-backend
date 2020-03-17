@@ -33,11 +33,11 @@ from flask import current_app
 
 from eduid_common.api.app import EduIDBaseApp
 from eduid_common.authn.utils import get_saml2_config
+
 from eduid_webapp.authn.settings.common import AuthnConfig
 
 
 class AuthnApp(EduIDBaseApp):
-
     def __init__(self, name: str, config: dict, **kwargs):
 
         super(AuthnApp, self).__init__(name, AuthnConfig, config, **kwargs)
@@ -45,6 +45,7 @@ class AuthnApp(EduIDBaseApp):
         self.saml2_config = get_saml2_config(self.config.saml2_settings_module)
 
         from eduid_webapp.authn.views import authn_views
+
         self.register_blueprint(authn_views)
 
 

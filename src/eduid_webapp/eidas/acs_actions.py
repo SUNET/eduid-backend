@@ -3,22 +3,24 @@
 from __future__ import absolute_import
 
 import base64
-from six.moves.urllib_parse import urlsplit, urlunsplit
-from flask import current_app, redirect, request
 
-from eduid_common.session import session
+from flask import current_app, redirect, request
+from six.moves.urllib_parse import urlsplit, urlunsplit
+
+from eduid_common.api.decorators import require_user
+from eduid_common.api.exceptions import AmTaskFailed, MsgTaskFailed
+from eduid_common.api.helpers import verify_nin_for_user
+from eduid_common.api.utils import save_and_sync_user, urlappend, verify_relay_state
 from eduid_common.authn.acs_registry import acs_action
 from eduid_common.authn.eduid_saml2 import get_authn_ctx
 from eduid_common.authn.utils import get_saml_attribute
-from eduid_common.api.decorators import require_user
-from eduid_common.api.utils import urlappend, save_and_sync_user, verify_relay_state
-from eduid_common.api.helpers import verify_nin_for_user
-from eduid_common.api.exceptions import AmTaskFailed, MsgTaskFailed
-from eduid_userdb.proofing.user import ProofingUser
-from eduid_userdb.proofing.state import NinProofingState, NinProofingElement
+from eduid_common.session import session
+
 # TODO: Import FidoCredential in eduid_userdb.credential.__init__
 from eduid_userdb.credentials.fido import FidoCredential
-from eduid_userdb.logs import SwedenConnectProofing, MFATokenProofing
+from eduid_userdb.logs import MFATokenProofing, SwedenConnectProofing
+from eduid_userdb.proofing.state import NinProofingElement, NinProofingState
+from eduid_userdb.proofing.user import ProofingUser
 
 from eduid_webapp.eidas.helpers import is_required_loa, is_valid_reauthn, redirect_with_msg
 
@@ -51,7 +53,8 @@ def token_verify_action(session_info, user):
 
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     token_to_verify = proofing_user.credentials.filter(FidoCredential).find(
-        session['verify_token_action_credential_id'])
+        session['verify_token_action_credential_id']
+    )
 
     # Check (again) if token was used to authenticate this session
     if token_to_verify.key not in session['eduidIdPCredentialsUsed']:
@@ -63,7 +66,8 @@ def token_verify_action(session_info, user):
         user = current_app.central_userdb.get_user_by_eppn(user.eppn)
         proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
         token_to_verify = proofing_user.credentials.filter(FidoCredential).find(
-            session['verify_token_action_credential_id'])
+            session['verify_token_action_credential_id']
+        )
 
     # Check that a verified NIN is equal to the asserted attribute personalIdentityNumber
     asserted_nin = get_saml_attribute(session_info, 'personalIdentityNumber')[0]
@@ -84,9 +88,16 @@ def token_verify_action(session_info, user):
         current_app.logger.error('Navet lookup failed: {}'.format(e))
         current_app.stats.count('navet_error')
         return redirect_with_msg(redirect_url, ':ERROR:error_navet_task')
-    proofing_log_entry = MFATokenProofing(user=proofing_user, created_by='eduid-eidas', nin=user_nin.number,
-                                          issuer=issuer, authn_context_class=authn_context, key_id=token_to_verify.key,
-                                          user_postal_address=user_address, proofing_version='2018v1')
+    proofing_log_entry = MFATokenProofing(
+        user=proofing_user,
+        created_by='eduid-eidas',
+        nin=user_nin.number,
+        issuer=issuer,
+        authn_context_class=authn_context,
+        key_id=token_to_verify.key,
+        user_postal_address=user_address,
+        proofing_version='2018v1',
+    )
 
     # Set token as verified
     token_to_verify.is_verified = True
@@ -136,8 +147,9 @@ def nin_verify_action(session_info, user):
 
     if proofing_user.nins.verified.count != 0:
         current_app.logger.error('User already has a verified NIN')
-        current_app.logger.debug('Primary NIN: {}. Asserted NIN: {}'.format(proofing_user.nins.primary.number,
-                                                                            asserted_nin))
+        current_app.logger.debug(
+            'Primary NIN: {}. Asserted NIN: {}'.format(proofing_user.nins.primary.number, asserted_nin)
+        )
         return redirect_with_msg(redirect_url, ':ERROR:eidas.nin_already_verified')
 
     # Create a proofing log
@@ -150,9 +162,15 @@ def nin_verify_action(session_info, user):
         current_app.stats.count('navet_error')
         return redirect_with_msg(redirect_url, ':ERROR:error_navet_task')
 
-    proofing_log_entry = SwedenConnectProofing(user=proofing_user, created_by='eduid-eidas', nin=asserted_nin,
-                                               issuer=issuer, authn_context_class=authn_context,
-                                               user_postal_address=user_address, proofing_version='2018v1')
+    proofing_log_entry = SwedenConnectProofing(
+        user=proofing_user,
+        created_by='eduid-eidas',
+        nin=asserted_nin,
+        issuer=issuer,
+        authn_context_class=authn_context,
+        user_postal_address=user_address,
+        proofing_version='2018v1',
+    )
 
     # Verify NIN for user
     try:

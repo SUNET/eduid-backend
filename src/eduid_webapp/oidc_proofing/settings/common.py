@@ -35,6 +35,7 @@ from __future__ import absolute_import
 
 from dataclasses import dataclass, field
 from typing import Dict
+
 from eduid_common.config.base import FlaskConfig
 
 
@@ -43,19 +44,21 @@ class OIDCProofingConfig(FlaskConfig):
     """
     Configuration for the oidc proofing app
     """
+
     # OIDC
-    client_registration_info: Dict[str, str] = field(default_factory = lambda: {
-        'client_id': 'can_not_be_empty_string',
-        'client_secret': ''
-    })
-    provider_configuration_info: Dict[str, str] = field(default_factory = lambda: {
-        'issuer': 'can_not_be_empty_string',
-        'authorization_endpoint': '',
-        'jwks_uri': '',
-        'response_types_supported': '',
-        'subject_types_supported': '',
-        'id_token_signing_alg_values_supported': '',
-    })
+    client_registration_info: Dict[str, str] = field(
+        default_factory=lambda: {'client_id': 'can_not_be_empty_string', 'client_secret': ''}
+    )
+    provider_configuration_info: Dict[str, str] = field(
+        default_factory=lambda: {
+            'issuer': 'can_not_be_empty_string',
+            'authorization_endpoint': '',
+            'jwks_uri': '',
+            'response_types_supported': '',
+            'subject_types_supported': '',
+            'id_token_signing_alg_values_supported': '',
+        }
+    )
     userinfo_endpoint_method: str = 'POST'
     # Freja config
     freja_jws_algorithm: str = 'HS256'

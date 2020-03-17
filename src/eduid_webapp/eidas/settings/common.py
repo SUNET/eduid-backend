@@ -46,30 +46,35 @@ class EidasConfig(FlaskConfig):
     """
     Configuration for the eidas app
     """
+
     action_url: str = ''
     token_verify_redirect_url: str = '/profile/security'
     nin_verify_redirect_url: str = '/profile/nins'
 
     # Federation config
-    authentication_context_map: Dict[str, str] = field(default_factory = lambda: {
-        'loa1': 'http://id.elegnamnden.se/loa/1.0/loa1',
-        'loa2': 'http://id.elegnamnden.se/loa/1.0/loa2',
-        'loa3': 'http://id.elegnamnden.se/loa/1.0/loa3',
-        'uncertified-loa3': 'http://id.swedenconnect.se/loa/1.0/uncertified-loa3',
-        'loa4': 'http://id.elegnamnden.se/loa/1.0/loa4',
-        'eidas-low': 'http://id.elegnamnden.se/loa/1.0/eidas-low',
-        'eidas-sub': 'http://id.elegnamnden.se/loa/1.0/eidas-sub',
-        'eidas-high': 'http://id.elegnamnden.se/loa/1.0/eidas-high',
-        'eidas-nf-low': 'http://id.elegnamnden.se/loa/1.0/eidas-nf-low',
-        'eidas-nf-sub': 'http://id.elegnamnden.se/loa/1.0/eidas-nf-sub',
-        'eidas-nf-high': 'http://id.elegnamnden.se/loa/1.0/eidas-nf-high'
-    })
+    authentication_context_map: Dict[str, str] = field(
+        default_factory=lambda: {
+            'loa1': 'http://id.elegnamnden.se/loa/1.0/loa1',
+            'loa2': 'http://id.elegnamnden.se/loa/1.0/loa2',
+            'loa3': 'http://id.elegnamnden.se/loa/1.0/loa3',
+            'uncertified-loa3': 'http://id.swedenconnect.se/loa/1.0/uncertified-loa3',
+            'loa4': 'http://id.elegnamnden.se/loa/1.0/loa4',
+            'eidas-low': 'http://id.elegnamnden.se/loa/1.0/eidas-low',
+            'eidas-sub': 'http://id.elegnamnden.se/loa/1.0/eidas-sub',
+            'eidas-high': 'http://id.elegnamnden.se/loa/1.0/eidas-high',
+            'eidas-nf-low': 'http://id.elegnamnden.se/loa/1.0/eidas-nf-low',
+            'eidas-nf-sub': 'http://id.elegnamnden.se/loa/1.0/eidas-nf-sub',
+            'eidas-nf-high': 'http://id.elegnamnden.se/loa/1.0/eidas-nf-high',
+        }
+    )
 
-# Authn algorithms
+    # Authn algorithms
     authn_sign_alg: str = 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256'
     authn_digest_alg: str = 'http://www.w3.org/2001/04/xmlenc#sha256'
 
-# Staging nin map
-    staging_nin_map: Dict[str, str] = field(default_factory = lambda: {
-        #  'test nin': 'user nin'
-    })
+    # Staging nin map
+    staging_nin_map: Dict[str, str] = field(
+        default_factory=lambda: {
+            #  'test nin': 'user nin'
+        }
+    )

@@ -34,23 +34,24 @@ from typing import cast
 
 from flask import current_app
 
-from eduid_common.api import am, msg, mail_relay, translation, oidc
-from eduid_common.authn.utils import no_authn_views
+from eduid_common.api import am, mail_relay, msg, oidc, translation
 from eduid_common.authn.middleware import AuthnBaseApp
-from eduid_userdb.proofing import OidcProofingStateDB, OidcProofingUserDB
+from eduid_common.authn.utils import no_authn_views
 from eduid_userdb.logs import ProofingLog
+from eduid_userdb.proofing import OidcProofingStateDB, OidcProofingUserDB
+
 from eduid_webapp.oidc_proofing.settings.common import OIDCProofingConfig
 
 __author__ = 'lundberg'
 
 
 class OIDCProofingApp(AuthnBaseApp):
-
     def __init__(self, name: str, config: dict, **kwargs):
 
         super(OIDCProofingApp, self).__init__(name, OIDCProofingConfig, config, **kwargs)
 
         from eduid_webapp.oidc_proofing.views import oidc_proofing_views
+
         self.register_blueprint(oidc_proofing_views)
 
         # Register view path that should not be authorized

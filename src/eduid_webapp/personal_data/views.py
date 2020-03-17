@@ -35,16 +35,20 @@ from __future__ import absolute_import
 
 from flask import Blueprint
 
-from eduid_userdb.exceptions import UserOutOfSync
-from eduid_userdb.personal_data import PersonalDataUser
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid_common.api.utils import save_and_sync_user
-from eduid_webapp.personal_data.schemas import PersonalDataResponseSchema
-from eduid_webapp.personal_data.schemas import PersonalDataRequestSchema
-from eduid_webapp.personal_data.schemas import PersonalDataSchema
-from eduid_webapp.personal_data.schemas import NinsResponseSchema
-from eduid_webapp.personal_data.schemas import AllDataResponseSchema, AllDataSchema
+from eduid_userdb.exceptions import UserOutOfSync
+from eduid_userdb.personal_data import PersonalDataUser
+
 from eduid_webapp.personal_data.app import current_pdata_app as current_app
+from eduid_webapp.personal_data.schemas import (
+    AllDataResponseSchema,
+    AllDataSchema,
+    NinsResponseSchema,
+    PersonalDataRequestSchema,
+    PersonalDataResponseSchema,
+    PersonalDataSchema,
+)
 
 pd_views = Blueprint('personal_data', __name__, url_prefix='')
 
@@ -65,7 +69,7 @@ def get_user(user):
         'given_name': user.given_name,
         'surname': user.surname,
         'display_name': user.display_name,
-        'language': user.language
+        'language': user.language,
     }
 
     return PersonalDataRequestSchema().dump(data).data
@@ -86,10 +90,7 @@ def post_user(user, given_name, surname, display_name, language):
     try:
         save_and_sync_user(personal_data_user)
     except UserOutOfSync:
-        return {
-            '_status': 'error',
-            'message': 'user-out-of-sync'
-        }
+        return {'_status': 'error', 'message': 'user-out-of-sync'}
     current_app.stats.count(name='personal_data_saved', value=1)
     current_app.logger.info('Saved personal data for user {}'.format(personal_data_user))
 
@@ -103,8 +104,6 @@ def post_user(user, given_name, surname, display_name, language):
 @require_user
 def get_nins(user):
 
-    data = {
-        'nins': user.nins.to_list_of_dicts()
-    }
+    data = {'nins': user.nins.to_list_of_dicts()}
 
     return data

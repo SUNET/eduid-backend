@@ -36,6 +36,7 @@ from eduid_common.api import am, msg
 from eduid_common.authn.middleware import AuthnBaseApp
 from eduid_userdb.logs import ProofingLog
 from eduid_userdb.proofing import LetterProofingStateDB, LetterProofingUserDB
+
 from eduid_webapp.letter_proofing.ekopost import Ekopost
 from eduid_webapp.letter_proofing.settings.common import LetterProofingConfig
 
@@ -43,14 +44,13 @@ __author__ = 'lundberg'
 
 
 class LetterProofingApp(AuthnBaseApp):
-
     def __init__(self, name: str, config: dict, **kwargs):
 
-        super(LetterProofingApp, self).__init__(name, LetterProofingConfig,
-                                                config, **kwargs)
+        super(LetterProofingApp, self).__init__(name, LetterProofingConfig, config, **kwargs)
 
         # Register views
         from eduid_webapp.letter_proofing.views import letter_proofing_views
+
         self.register_blueprint(letter_proofing_views)
 
         # Init dbs

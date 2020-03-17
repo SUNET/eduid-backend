@@ -34,20 +34,17 @@ from typing import cast
 
 from flask import current_app
 
-from eduid_common.api import msg
-from eduid_common.api import am
-from eduid_common.api import mail_relay
-from eduid_common.api import translation
+from eduid_common.api import am, mail_relay, msg, translation
 from eduid_common.authn.middleware import AuthnBaseApp
 from eduid_common.authn.utils import no_authn_views
-from eduid_userdb.security import SecurityUserDB, PasswordResetStateDB
 from eduid_userdb.authninfo import AuthnInfoDB
 from eduid_userdb.logs import ProofingLog
+from eduid_userdb.security import PasswordResetStateDB, SecurityUserDB
+
 from eduid_webapp.security.settings.common import SecurityConfig
 
 
 class SecurityApp(AuthnBaseApp):
-
     def __init__(self, name: str, config: dict, **kwargs):
 
         super(SecurityApp, self).__init__(name, SecurityConfig, config, **kwargs)
@@ -56,6 +53,7 @@ class SecurityApp(AuthnBaseApp):
         from eduid_webapp.security.views.u2f import u2f_views
         from eduid_webapp.security.views.webauthn import webauthn_views
         from eduid_webapp.security.views.reset_password import reset_password_views
+
         self.register_blueprint(security_views)
         self.register_blueprint(u2f_views)
         self.register_blueprint(webauthn_views)

@@ -44,6 +44,7 @@ class JSConfigConfig(FlaskConfig):
     """
     Configuration for the jsconfig app
     """
+
     dashboard_bundle_path: str = 'front-build/dashboard-bundle.dev.js'
     dashboard_bundle_version: str = 'dev'
     # Dashboard feature toggle settings

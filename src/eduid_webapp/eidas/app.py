@@ -4,18 +4,18 @@ from __future__ import absolute_import
 
 from typing import cast
 
-from eduid_common.authn.utils import get_saml2_config, no_authn_views
 from eduid_common.api import am, msg
 from eduid_common.authn.middleware import AuthnBaseApp
-from eduid_userdb.proofing.db import EidasProofingUserDB
+from eduid_common.authn.utils import get_saml2_config, no_authn_views
 from eduid_userdb.logs.db import ProofingLog
+from eduid_userdb.proofing.db import EidasProofingUserDB
+
 from eduid_webapp.eidas.settings.common import EidasConfig
 
 __author__ = 'lundberg'
 
 
 class EidasApp(AuthnBaseApp):
-
     def __init__(self, name: str, config: dict, **kwargs):
 
         # Load acs actions on app init
@@ -29,6 +29,7 @@ class EidasApp(AuthnBaseApp):
 
         # Register views
         from eduid_webapp.eidas.views import eidas_views
+
         self.register_blueprint(eidas_views)
 
         # Register view path that should not be authorized

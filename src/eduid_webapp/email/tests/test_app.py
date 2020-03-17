@@ -33,17 +33,17 @@
 import json
 from datetime import datetime, timedelta
 
+from mock import patch
+
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_userdb.mail import MailAddress
 from eduid_userdb.proofing import EmailProofingElement, EmailProofingState
-from mock import patch
 
 from eduid_webapp.email.app import email_init_app
 from eduid_webapp.email.settings.common import EmailConfig
 
 
 class EmailTests(EduidAPITestCase):
-
     def setUp(self):
         super(EmailTests, self).setUp(copy_user_to_private=True)
 
@@ -55,19 +55,21 @@ class EmailTests(EduidAPITestCase):
         return email_init_app('emails', config)
 
     def update_config(self, app_config):
-        app_config.update({
-            'available_languages': {'en': 'English', 'sv': 'Svenska'},
-            'msg_broker_url': 'amqp://dummy',
-            'am_broker_url': 'amqp://dummy',
-            'email_verify_redirect_url': '/profile/',
-            'celery_config': {
-                'result_backend': 'amqp',
-                'task_serializer': 'json',
-                'mongo_uri': app_config['mongo_uri'],
-            },
-            'email_verification_timeout': 86400,
-            'throttle_resend_seconds': 300,
-        })
+        app_config.update(
+            {
+                'available_languages': {'en': 'English', 'sv': 'Svenska'},
+                'msg_broker_url': 'amqp://dummy',
+                'am_broker_url': 'amqp://dummy',
+                'email_verify_redirect_url': '/profile/',
+                'celery_config': {
+                    'result_backend': 'amqp',
+                    'task_serializer': 'json',
+                    'mongo_uri': app_config['mongo_uri'],
+                },
+                'email_verification_timeout': 86400,
+                'throttle_resend_seconds': 300,
+            }
+        )
         return EmailConfig(**app_config)
 
     def test_get_all_emails(self):
@@ -121,7 +123,7 @@ class EmailTests(EduidAPITestCase):
                         'email': 'johnsmith3@example.com',
                         'verified': False,
                         'primary': False,
-                        'csrf_token': sess.get_csrf_token()
+                        'csrf_token': sess.get_csrf_token(),
                     }
 
                 response2 = client.post('/new', data=json.dumps(data), content_type=self.content_type_json)
@@ -155,12 +157,7 @@ class EmailTests(EduidAPITestCase):
             with client.session_transaction() as sess:
 
                 with self.app.test_request_context():
-                    data = {
-                        'email': email,
-                        'verified': False,
-                        'primary': False,
-                        'csrf_token': sess.get_csrf_token()
-                    }
+                    data = {'email': email, 'verified': False, 'primary': False, 'csrf_token': sess.get_csrf_token()}
 
                 response2 = client.post('/new', data=json.dumps(data), content_type=self.content_type_json)
                 self.assertEqual(response2.status_code, 200)
@@ -186,11 +183,10 @@ class EmailTests(EduidAPITestCase):
                     'email': 'john-smith@example.com',
                     'verified': False,
                     'primary': False,
-                    'csrf_token': 'bad_csrf'
+                    'csrf_token': 'bad_csrf',
                 }
 
-                response2 = client.post('/new', data=json.dumps(data),
-                                        content_type=self.content_type_json)
+                response2 = client.post('/new', data=json.dumps(data), content_type=self.content_type_json)
 
                 self.assertEqual(response2.status_code, 200)
 
@@ -212,13 +208,9 @@ class EmailTests(EduidAPITestCase):
             with client.session_transaction() as sess:
 
                 with self.app.test_request_context():
-                    data = {
-                        'email': 'johnsmith@example.com',
-                        'csrf_token': sess.get_csrf_token()
-                    }
+                    data = {'email': 'johnsmith@example.com', 'csrf_token': sess.get_csrf_token()}
 
-                response2 = client.post('/primary', data=json.dumps(data),
-                                        content_type=self.content_type_json)
+                response2 = client.post('/primary', data=json.dumps(data), content_type=self.content_type_json)
 
                 self.assertEqual(response2.status_code, 200)
 
@@ -236,13 +228,9 @@ class EmailTests(EduidAPITestCase):
             with client.session_transaction() as sess:
 
                 with self.app.test_request_context():
-                    data = {
-                        'email': 'johnsmith3@example.com',
-                        'csrf_token': sess.get_csrf_token()
-                    }
+                    data = {'email': 'johnsmith3@example.com', 'csrf_token': sess.get_csrf_token()}
 
-                response2 = client.post('/primary', data=json.dumps(data),
-                                        content_type=self.content_type_json)
+                response2 = client.post('/primary', data=json.dumps(data), content_type=self.content_type_json)
 
                 self.assertEqual(response2.status_code, 200)
 
@@ -261,13 +249,9 @@ class EmailTests(EduidAPITestCase):
             with client.session_transaction() as sess:
 
                 with self.app.test_request_context():
-                    data = {
-                        'email': 'johnsmith2@example.com',
-                        'csrf_token': sess.get_csrf_token()
-                    }
+                    data = {'email': 'johnsmith2@example.com', 'csrf_token': sess.get_csrf_token()}
 
-                response2 = client.post('/primary', data=json.dumps(data),
-                                        content_type=self.content_type_json)
+                response2 = client.post('/primary', data=json.dumps(data), content_type=self.content_type_json)
 
             self.assertEqual(response2.status_code, 200)
 
@@ -289,13 +273,9 @@ class EmailTests(EduidAPITestCase):
             with client.session_transaction() as sess:
 
                 with self.app.test_request_context():
-                    data = {
-                        'email': 'johnsmith2@example.com',
-                        'csrf_token': sess.get_csrf_token()
-                    }
+                    data = {'email': 'johnsmith2@example.com', 'csrf_token': sess.get_csrf_token()}
 
-                response2 = client.post('/remove', data=json.dumps(data),
-                                        content_type=self.content_type_json)
+                response2 = client.post('/remove', data=json.dumps(data), content_type=self.content_type_json)
 
                 self.assertEqual(response2.status_code, 200)
 
@@ -335,13 +315,9 @@ class EmailTests(EduidAPITestCase):
             with client.session_transaction() as sess:
 
                 with self.app.test_request_context():
-                    data = {
-                        'email': 'verified@example.com',
-                        'csrf_token': sess.get_csrf_token()
-                    }
+                    data = {'email': 'verified@example.com', 'csrf_token': sess.get_csrf_token()}
 
-                response2 = client.post('/remove', data=json.dumps(data),
-                                        content_type=self.content_type_json)
+                response2 = client.post('/remove', data=json.dumps(data), content_type=self.content_type_json)
 
                 self.assertEqual(response2.status_code, 200)
 
@@ -387,13 +363,9 @@ class EmailTests(EduidAPITestCase):
             with client.session_transaction() as sess:
 
                 with self.app.test_request_context():
-                    data = {
-                        'email': 'verified@example.com',
-                        'csrf_token': sess.get_csrf_token()
-                    }
+                    data = {'email': 'verified@example.com', 'csrf_token': sess.get_csrf_token()}
 
-                response2 = client.post('/remove', data=json.dumps(data),
-                                        content_type=self.content_type_json)
+                response2 = client.post('/remove', data=json.dumps(data), content_type=self.content_type_json)
 
                 self.assertEqual(response2.status_code, 200)
 
@@ -419,13 +391,9 @@ class EmailTests(EduidAPITestCase):
             with client.session_transaction() as sess:
 
                 with self.app.test_request_context():
-                    data = {
-                        'email': 'johnsmith3@example.com',
-                        'csrf_token': sess.get_csrf_token()
-                    }
+                    data = {'email': 'johnsmith3@example.com', 'csrf_token': sess.get_csrf_token()}
 
-                response2 = client.post('/remove', data=json.dumps(data),
-                                        content_type=self.content_type_json)
+                response2 = client.post('/remove', data=json.dumps(data), content_type=self.content_type_json)
 
                 self.assertEqual(response2.status_code, 200)
 
@@ -449,13 +417,9 @@ class EmailTests(EduidAPITestCase):
             with client.session_transaction() as sess:
 
                 with self.app.test_request_context():
-                    data = {
-                        'email': 'johnsmith@example.com',
-                        'csrf_token': sess.get_csrf_token()
-                    }
+                    data = {'email': 'johnsmith@example.com', 'csrf_token': sess.get_csrf_token()}
 
-                response2 = client.post('/resend-code', data=json.dumps(data),
-                                        content_type=self.content_type_json)
+                response2 = client.post('/resend-code', data=json.dumps(data), content_type=self.content_type_json)
 
                 self.assertEqual(response2.status_code, 200)
 
@@ -480,14 +444,10 @@ class EmailTests(EduidAPITestCase):
             with client.session_transaction() as sess:
 
                 with self.app.test_request_context():
-                    data = {
-                        'email': 'johnsmith@example.com',
-                        'csrf_token': sess.get_csrf_token()
-                    }
+                    data = {'email': 'johnsmith@example.com', 'csrf_token': sess.get_csrf_token()}
 
                 # Request a code
-                response2 = client.post('/resend-code', data=json.dumps(data),
-                                        content_type=self.content_type_json)
+                response2 = client.post('/resend-code', data=json.dumps(data), content_type=self.content_type_json)
 
                 self.assertEqual(response2.status_code, 200)
 
@@ -499,8 +459,7 @@ class EmailTests(EduidAPITestCase):
 
                 # Request a new code
                 data['csrf_token'] = resend_code_email_data['payload']['csrf_token']
-                response2 = client.post('/resend-code', data=json.dumps(data),
-                                        content_type=self.content_type_json)
+                response2 = client.post('/resend-code', data=json.dumps(data), content_type=self.content_type_json)
 
                 self.assertEqual(response2.status_code, 200)
 
@@ -524,13 +483,9 @@ class EmailTests(EduidAPITestCase):
             with client.session_transaction() as sess:
 
                 with self.app.test_request_context():
-                    data = {
-                        'email': 'johnsmith3@example.com',
-                        'csrf_token': sess.get_csrf_token()
-                    }
+                    data = {'email': 'johnsmith3@example.com', 'csrf_token': sess.get_csrf_token()}
 
-                response2 = client.post('/resend-code', data=json.dumps(data),
-                                        content_type=self.content_type_json)
+                response2 = client.post('/resend-code', data=json.dumps(data), content_type=self.content_type_json)
 
                 self.assertEqual(response2.status_code, 200)
 
@@ -560,21 +515,15 @@ class EmailTests(EduidAPITestCase):
                         'email': u'john-smith3@example.com',
                         'verified': False,
                         'primary': False,
-                        'csrf_token': sess.get_csrf_token()
+                        'csrf_token': sess.get_csrf_token(),
                     }
 
-                client.post('/new', data=json.dumps(data),
-                            content_type=self.content_type_json)
+                client.post('/new', data=json.dumps(data), content_type=self.content_type_json)
 
             with client.session_transaction() as sess:
-                data = {
-                    'email': u'john-smith3@example.com',
-                    'code': u'432123425',
-                    'csrf_token': sess.get_csrf_token()
-                }
+                data = {'email': u'john-smith3@example.com', 'code': u'432123425', 'csrf_token': sess.get_csrf_token()}
 
-                response2 = client.post('/verify', data=json.dumps(data),
-                                        content_type=self.content_type_json)
+                response2 = client.post('/verify', data=json.dumps(data), content_type=self.content_type_json)
 
                 verify_email_data = json.loads(response2.data)
                 self.assertEqual(verify_email_data['type'], 'POST_EMAIL_VERIFY_SUCCESS')
@@ -605,21 +554,15 @@ class EmailTests(EduidAPITestCase):
                         'email': u'john-smith3@example.com',
                         'verified': False,
                         'primary': False,
-                        'csrf_token': sess.get_csrf_token()
+                        'csrf_token': sess.get_csrf_token(),
                     }
 
-                client.post('/new', data=json.dumps(data),
-                            content_type=self.content_type_json)
+                client.post('/new', data=json.dumps(data), content_type=self.content_type_json)
 
             with client.session_transaction() as sess:
-                data = {
-                    'email': u'john-smith3@example.com',
-                    'code': u'432123425',
-                    'csrf_token': sess.get_csrf_token()
-                }
+                data = {'email': u'john-smith3@example.com', 'code': u'432123425', 'csrf_token': sess.get_csrf_token()}
 
-                response2 = client.post('/verify', data=json.dumps(data),
-                                        content_type=self.content_type_json)
+                response2 = client.post('/verify', data=json.dumps(data), content_type=self.content_type_json)
 
                 verify_email_data = json.loads(response2.data)
                 self.assertEqual(verify_email_data['type'], 'POST_EMAIL_VERIFY_FAIL')
@@ -643,24 +586,17 @@ class EmailTests(EduidAPITestCase):
             with self.session_cookie(self.browser, eppn) as client:
                 with client.session_transaction() as sess:
                     email = 'john-smith3+magic-code@example.com'
-                    data = {
-                        'email': email,
-                        'verified': False,
-                        'primary': False,
-                        'csrf_token': sess.get_csrf_token()
-                    }
+                    data = {'email': email, 'verified': False, 'primary': False, 'csrf_token': sess.get_csrf_token()}
 
-                    response = client.post('/new', data=json.dumps(data),
-                                           content_type=self.content_type_json)
+                    response = client.post('/new', data=json.dumps(data), content_type=self.content_type_json)
 
                     data = {
                         'email': email,
                         'code': 'magic-code',
-                        'csrf_token': json.loads(response.data)['payload']['csrf_token']
+                        'csrf_token': json.loads(response.data)['payload']['csrf_token'],
                     }
 
-                    response2 = client.post('/verify', data=json.dumps(data),
-                                            content_type=self.content_type_json)
+                    response2 = client.post('/verify', data=json.dumps(data), content_type=self.content_type_json)
 
                     verify_email_data = json.loads(response2.data)
                     self.assertEqual(verify_email_data['type'], 'POST_EMAIL_VERIFY_SUCCESS')
@@ -687,24 +623,17 @@ class EmailTests(EduidAPITestCase):
             with self.session_cookie(self.browser, eppn) as client:
                 with client.session_transaction() as sess:
                     email = 'john-smith3+magic-code@example.com'
-                    data = {
-                        'email': email,
-                        'verified': False,
-                        'primary': False,
-                        'csrf_token': sess.get_csrf_token()
-                    }
+                    data = {'email': email, 'verified': False, 'primary': False, 'csrf_token': sess.get_csrf_token()}
 
-                    response = client.post('/new', data=json.dumps(data),
-                                           content_type=self.content_type_json)
+                    response = client.post('/new', data=json.dumps(data), content_type=self.content_type_json)
 
                     data = {
                         'email': email,
                         'code': 'magic-code',
-                        'csrf_token': json.loads(response.data)['payload']['csrf_token']
+                        'csrf_token': json.loads(response.data)['payload']['csrf_token'],
                     }
 
-                    response2 = client.post('/verify', data=json.dumps(data),
-                                            content_type=self.content_type_json)
+                    response2 = client.post('/verify', data=json.dumps(data), content_type=self.content_type_json)
 
                     verify_email_data = json.loads(response2.data)
                     self.assertEqual(verify_email_data['type'], 'POST_EMAIL_VERIFY_FAIL')
@@ -727,23 +656,18 @@ class EmailTests(EduidAPITestCase):
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
-                    data = {
-                        'email': email,
-                        'verified': False,
-                        'primary': False,
-                        'csrf_token': sess.get_csrf_token()
-                    }
+                    data = {'email': email, 'verified': False, 'primary': False, 'csrf_token': sess.get_csrf_token()}
 
-                client.post('/new', data=json.dumps(data),
-                            content_type=self.content_type_json)
+                client.post('/new', data=json.dumps(data), content_type=self.content_type_json)
 
             with client.session_transaction():
                 code = 'wrong-code'
                 response2 = client.get('/verify?code={}&email={}'.format(code, email))
 
                 self.assertEqual(response2.status_code, 302)
-                self.assertEqual(response2.location,
-                                 'http://test.localhost/profile/?msg=%3AERROR%3Aemails.code_invalid_or_expired')
+                self.assertEqual(
+                    response2.location, 'http://test.localhost/profile/?msg=%3AERROR%3Aemails.code_invalid_or_expired'
+                )
 
                 user = self.app.private_userdb.get_user_by_eppn(eppn)
                 mail_address_element = user.mail_addresses.find(email)
@@ -772,24 +696,17 @@ class EmailTests(EduidAPITestCase):
             with self.session_cookie(self.browser, eppn) as client:
                 with client.session_transaction() as sess:
                     email = 'john-smith3+magic-code@example.com'
-                    data = {
-                        'email': email,
-                        'verified': False,
-                        'primary': False,
-                        'csrf_token': sess.get_csrf_token()
-                    }
+                    data = {'email': email, 'verified': False, 'primary': False, 'csrf_token': sess.get_csrf_token()}
 
-                    response = client.post('/new', data=json.dumps(data),
-                                           content_type=self.content_type_json)
+                    response = client.post('/new', data=json.dumps(data), content_type=self.content_type_json)
 
                     data = {
                         'email': email,
                         'code': 'magic-code',
-                        'csrf_token': json.loads(response.data)['payload']['csrf_token']
+                        'csrf_token': json.loads(response.data)['payload']['csrf_token'],
                     }
 
-                    response2 = client.post('/verify', data=json.dumps(data),
-                                            content_type=self.content_type_json)
+                    response2 = client.post('/verify', data=json.dumps(data), content_type=self.content_type_json)
 
                     verify_email_data = json.loads(response2.data)
                     self.assertEqual(verify_email_data['type'], 'POST_EMAIL_VERIFY_FAIL')
@@ -815,21 +732,19 @@ class EmailTests(EduidAPITestCase):
                         'email': u'john-smith3@example.com',
                         'verified': False,
                         'primary': False,
-                        'csrf_token': sess.get_csrf_token()
+                        'csrf_token': sess.get_csrf_token(),
                     }
 
-                client.post('/new', data=json.dumps(data),
-                            content_type=self.content_type_json)
+                client.post('/new', data=json.dumps(data), content_type=self.content_type_json)
 
             with client.session_transaction() as sess:
                 data = {
                     'email': u'john-smith3@example.com',
                     'code': u'not_right_code',
-                    'csrf_token': sess.get_csrf_token()
+                    'csrf_token': sess.get_csrf_token(),
                 }
 
-                response2 = client.post('/verify', data=json.dumps(data),
-                                        content_type=self.content_type_json)
+                response2 = client.post('/verify', data=json.dumps(data), content_type=self.content_type_json)
 
                 verify_email_data = json.loads(response2.data)
                 self.assertEqual(verify_email_data['type'], 'POST_EMAIL_VERIFY_FAIL')
@@ -853,23 +768,16 @@ class EmailTests(EduidAPITestCase):
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
-                    data = {
-                        'email': email,
-                        'verified': False,
-                        'primary': False,
-                        'csrf_token': sess.get_csrf_token()
-                    }
+                    data = {'email': email, 'verified': False, 'primary': False, 'csrf_token': sess.get_csrf_token()}
 
-                client.post('/new', data=json.dumps(data),
-                            content_type=self.content_type_json)
+                client.post('/new', data=json.dumps(data), content_type=self.content_type_json)
 
             with client.session_transaction():
                 code = '432123425'
                 response2 = client.get('/verify?code={}&email={}'.format(code, email))
 
                 self.assertEqual(response2.status_code, 302)
-                self.assertEqual(response2.location,
-                                 'http://test.localhost/profile/?msg=emails.verification-success')
+                self.assertEqual(response2.location, 'http://test.localhost/profile/?msg=emails.verification-success')
 
                 user = self.app.private_userdb.get_user_by_eppn(eppn)
                 mail_address_element = user.mail_addresses.find(email)
@@ -897,23 +805,18 @@ class EmailTests(EduidAPITestCase):
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
-                    data = {
-                        'email': email,
-                        'verified': False,
-                        'primary': False,
-                        'csrf_token': sess.get_csrf_token()
-                    }
+                    data = {'email': email, 'verified': False, 'primary': False, 'csrf_token': sess.get_csrf_token()}
 
-                client.post('/new', data=json.dumps(data),
-                            content_type=self.content_type_json)
+                client.post('/new', data=json.dumps(data), content_type=self.content_type_json)
 
             with client.session_transaction():
                 code = 'not_right_code'
                 response2 = client.get('/verify?code={}&email={}'.format(code, email))
 
                 self.assertEqual(response2.status_code, 302)
-                self.assertEqual(response2.location,
-                                 'http://test.localhost/profile/?msg=%3AERROR%3Aemails.code_invalid_or_expired')
+                self.assertEqual(
+                    response2.location, 'http://test.localhost/profile/?msg=%3AERROR%3Aemails.code_invalid_or_expired'
+                )
 
                 user = self.app.private_userdb.get_user_by_eppn(eppn)
                 mail_address_element = user.mail_addresses.find(email)

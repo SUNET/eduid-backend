@@ -33,12 +33,14 @@
 
 import json
 from contextlib import contextmanager
-from mock import patch, Mock
+
+from mock import Mock, patch
 
 from eduid_common.api.testing import EduidAPITestCase
+
 from eduid_webapp.signup.app import signup_init_app
-from eduid_webapp.signup.verifications import send_verification_mail
 from eduid_webapp.signup.settings.common import SignupConfig
+from eduid_webapp.signup.verifications import send_verification_mail
 
 
 def mock_response(status_code=200, content=None, json_data=None, headers=dict(), raise_for_status=None):
@@ -60,15 +62,11 @@ def mock_response(status_code=200, content=None, json_data=None, headers=dict(),
     mock_resp.headers = headers
     # add json data if provided
     if json_data:
-        mock_resp.json = Mock(
-            return_value=json_data
-        )
+        mock_resp.json = Mock(return_value=json_data)
     return mock_resp
 
 
-
 class SignupTests(EduidAPITestCase):
-
     def setUp(self):
         super(SignupTests, self).setUp(copy_user_to_private=True)
 
@@ -80,34 +78,36 @@ class SignupTests(EduidAPITestCase):
         return signup_init_app('signup', config)
 
     def update_config(self, app_config):
-        app_config.update({
-            'available_languages': {'en': 'English', 'sv': 'Svenska'},
-            'signup_authn_url': '/services/authn/signup-authn',
-            'signup_url': 'https://localhost/',
-            'development': 'DEBUG',
-            'application_root': '/',
-            'log_level': 'DEBUG',
-            'am_broker_url': 'amqp://eduid:eduid_pw@rabbitmq/am',
-            'msg_broker_url': 'amqp://eduid:eduid_pw@rabbitmq/msg',
-            'password_length': '10',
-            'vccs_url': 'http://turq:13085/',
-            'tou_version': '2018-v1',
-            'tou_url': 'https://localhost/get-tous',
-            'default_finish_url': 'https://www.eduid.se/',
-            'recaptcha_public_key': 'XXXX',
-            'recaptcha_private_key': 'XXXX',
-            'students_link': 'https://www.eduid.se/index.html',
-            'technicians_link': 'https://www.eduid.se/tekniker.html',
-            'staff_link': 'https://www.eduid.se/personal.html',
-            'faq_link': 'https://www.eduid.se/faq.html',
-            'celery_config': {
-                'result_backend': 'amqp',
-                'task_serializer': 'json',
-                'mongo_uri': app_config['mongo_uri'],
-            },
-            'environment': 'dev',
-            'magic_code': 'magic-code'
-        })
+        app_config.update(
+            {
+                'available_languages': {'en': 'English', 'sv': 'Svenska'},
+                'signup_authn_url': '/services/authn/signup-authn',
+                'signup_url': 'https://localhost/',
+                'development': 'DEBUG',
+                'application_root': '/',
+                'log_level': 'DEBUG',
+                'am_broker_url': 'amqp://eduid:eduid_pw@rabbitmq/am',
+                'msg_broker_url': 'amqp://eduid:eduid_pw@rabbitmq/msg',
+                'password_length': '10',
+                'vccs_url': 'http://turq:13085/',
+                'tou_version': '2018-v1',
+                'tou_url': 'https://localhost/get-tous',
+                'default_finish_url': 'https://www.eduid.se/',
+                'recaptcha_public_key': 'XXXX',
+                'recaptcha_private_key': 'XXXX',
+                'students_link': 'https://www.eduid.se/index.html',
+                'technicians_link': 'https://www.eduid.se/tekniker.html',
+                'staff_link': 'https://www.eduid.se/personal.html',
+                'faq_link': 'https://www.eduid.se/faq.html',
+                'celery_config': {
+                    'result_backend': 'amqp',
+                    'task_serializer': 'json',
+                    'mongo_uri': app_config['mongo_uri'],
+                },
+                'environment': 'dev',
+                'magic_code': 'magic-code',
+            }
+        )
         return SignupConfig(**app_config)
 
     @contextmanager
@@ -140,10 +140,9 @@ class SignupTests(EduidAPITestCase):
                         'email': email,
                         'recaptcha_response': 'dummy',
                         'tou_accepted': True,
-                        'csrf_token': sess.get_csrf_token()
+                        'csrf_token': sess.get_csrf_token(),
                     }
-                    response = client.post('/trycaptcha', data=json.dumps(data),
-                                           content_type=self.content_type_json)
+                    response = client.post('/trycaptcha', data=json.dumps(data), content_type=self.content_type_json)
 
                 data = json.loads(response.data)
                 self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_SUCCESS')
@@ -162,10 +161,9 @@ class SignupTests(EduidAPITestCase):
                         'email': email,
                         'recaptcha_response': 'dummy',
                         'tou_accepted': True,
-                        'csrf_token': sess.get_csrf_token()
+                        'csrf_token': sess.get_csrf_token(),
                     }
-                    response = client.post('/trycaptcha', data=json.dumps(data),
-                                           content_type=self.content_type_json)
+                    response = client.post('/trycaptcha', data=json.dumps(data), content_type=self.content_type_json)
 
                 data = json.loads(response.data)
                 self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_FAIL')
@@ -184,10 +182,9 @@ class SignupTests(EduidAPITestCase):
                         'email': email,
                         'recaptcha_response': 'dummy',
                         'tou_accepted': True,
-                        'csrf_token': sess.get_csrf_token()
+                        'csrf_token': sess.get_csrf_token(),
                     }
-                response = client.post('/trycaptcha', data=json.dumps(data),
-                                       content_type=self.content_type_json)
+                response = client.post('/trycaptcha', data=json.dumps(data), content_type=self.content_type_json)
 
                 data = json.loads(response.data)
                 self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_FAIL')
@@ -205,10 +202,9 @@ class SignupTests(EduidAPITestCase):
                         'email': email,
                         'recaptcha_response': 'dummy',
                         'tou_accepted': True,
-                        'csrf_token': sess.get_csrf_token()
+                        'csrf_token': sess.get_csrf_token(),
                     }
-                response = client.post('/trycaptcha', data=json.dumps(data),
-                                       content_type=self.content_type_json)
+                response = client.post('/trycaptcha', data=json.dumps(data), content_type=self.content_type_json)
 
                 data = json.loads(response.data)
                 self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_FAIL')
@@ -226,10 +222,9 @@ class SignupTests(EduidAPITestCase):
                         'email': email,
                         'recaptcha_response': 'dummy',
                         'tou_accepted': True,
-                        'csrf_token': sess.get_csrf_token()
-                        }
-                response = client.post('/trycaptcha', data=json.dumps(data),
-                                       content_type=self.content_type_json)
+                        'csrf_token': sess.get_csrf_token(),
+                    }
+                response = client.post('/trycaptcha', data=json.dumps(data), content_type=self.content_type_json)
 
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
@@ -238,10 +233,9 @@ class SignupTests(EduidAPITestCase):
                         'email': email,
                         'recaptcha_response': 'dummy',
                         'tou_accepted': True,
-                        'csrf_token': sess.get_csrf_token()
-                        }
-                response = client.post('/trycaptcha', data=json.dumps(data),
-                                       content_type=self.content_type_json)
+                        'csrf_token': sess.get_csrf_token(),
+                    }
+                response = client.post('/trycaptcha', data=json.dumps(data), content_type=self.content_type_json)
 
                 data = json.loads(response.data)
                 self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_SUCCESS')
@@ -259,10 +253,9 @@ class SignupTests(EduidAPITestCase):
                         'email': email,
                         'recaptcha_response': 'dummy',
                         'tou_accepted': True,
-                        'csrf_token': sess.get_csrf_token()
-                        }
-                response = client.post('/trycaptcha', data=json.dumps(data),
-                                       content_type=self.content_type_json)
+                        'csrf_token': sess.get_csrf_token(),
+                    }
+                response = client.post('/trycaptcha', data=json.dumps(data), content_type=self.content_type_json)
 
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
@@ -271,10 +264,9 @@ class SignupTests(EduidAPITestCase):
                         'email': email,
                         'recaptcha_response': 'dummy',
                         'tou_accepted': True,
-                        'csrf_token': sess.get_csrf_token()
-                        }
-                response = client.post('/trycaptcha', data=json.dumps(data),
-                                       content_type=self.content_type_json)
+                        'csrf_token': sess.get_csrf_token(),
+                    }
+                response = client.post('/trycaptcha', data=json.dumps(data), content_type=self.content_type_json)
 
                 data = json.loads(response.data)
                 self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_FAIL')
@@ -285,8 +277,7 @@ class SignupTests(EduidAPITestCase):
         user.mail_addresses.primary.email = email
         self.app.central_userdb.save(user)
         data = user.to_dict()
-        self.app.private_userdb.save(self.app.private_userdb.UserClass(data=data),
-                                     check_sync=False)
+        self.app.private_userdb.save(self.app.private_userdb.UserClass(data=data), check_sync=False)
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
@@ -294,10 +285,9 @@ class SignupTests(EduidAPITestCase):
                         'email': email,
                         'recaptcha_response': 'dummy',
                         'tou_accepted': True,
-                        'csrf_token': sess.get_csrf_token()
-                        }
-                response = client.post('/trycaptcha', data=json.dumps(data),
-                                       content_type=self.content_type_json)
+                        'csrf_token': sess.get_csrf_token(),
+                    }
+                response = client.post('/trycaptcha', data=json.dumps(data), content_type=self.content_type_json)
 
                 data = json.loads(response.data)
                 self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_FAIL')
@@ -311,10 +301,9 @@ class SignupTests(EduidAPITestCase):
                         'email': '',
                         'recaptcha_response': 'dummy',
                         'tou_accepted': True,
-                        'csrf_token': sess.get_csrf_token()
-                        }
-                response = client.post('/trycaptcha', data=json.dumps(data),
-                                       content_type=self.content_type_json)
+                        'csrf_token': sess.get_csrf_token(),
+                    }
+                response = client.post('/trycaptcha', data=json.dumps(data), content_type=self.content_type_json)
 
                 data = json.loads(response.data)
                 self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_FAIL')
@@ -330,10 +319,9 @@ class SignupTests(EduidAPITestCase):
                         'email': email,
                         'recaptcha_response': 'dummy',
                         'tou_accepted': False,
-                        'csrf_token': sess.get_csrf_token()
-                        }
-                response = client.post('/trycaptcha', data=json.dumps(data),
-                                       content_type=self.content_type_json)
+                        'csrf_token': sess.get_csrf_token(),
+                    }
+                response = client.post('/trycaptcha', data=json.dumps(data), content_type=self.content_type_json)
 
                 data = json.loads(response.data)
                 self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_FAIL')
@@ -347,16 +335,13 @@ class SignupTests(EduidAPITestCase):
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
-                    data = {
-                        'email': email,
-                        'csrf_token': sess.get_csrf_token()
-                        }
-                response = client.post('/resend-verification', data=json.dumps(data),
-                                       content_type=self.content_type_json)
+                    data = {'email': email, 'csrf_token': sess.get_csrf_token()}
+                response = client.post(
+                    '/resend-verification', data=json.dumps(data), content_type=self.content_type_json
+                )
 
                 data = json.loads(response.data)
-                self.assertEqual(data['type'],
-                        'POST_SIGNUP_RESEND_VERIFICATION_SUCCESS')
+                self.assertEqual(data['type'], 'POST_SIGNUP_RESEND_VERIFICATION_SUCCESS')
 
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
@@ -374,10 +359,8 @@ class SignupTests(EduidAPITestCase):
                     response = client.get('/verify-link/' + signup_user.pending_mail_address.verification_code)
 
                     data = json.loads(response.data)
-                    self.assertEqual(data['type'],
-                            'GET_SIGNUP_VERIFY_LINK_SUCCESS')
-                    self.assertEqual(data['payload']['status'],
-                            'verified')
+                    self.assertEqual(data['type'], 'GET_SIGNUP_VERIFY_LINK_SUCCESS')
+                    self.assertEqual(data['payload']['status'], 'verified')
 
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
@@ -494,10 +477,8 @@ class SignupTests(EduidAPITestCase):
                     response = client.get('/verify-link/' + 'dummy')
 
                     data = json.loads(response.data)
-                    self.assertEqual(data['type'],
-                            'GET_SIGNUP_VERIFY_LINK_FAIL')
-                    self.assertEqual(data['payload']['status'],
-                            'unknown-code')
+                    self.assertEqual(data['type'], 'GET_SIGNUP_VERIFY_LINK_FAIL')
+                    self.assertEqual(data['payload']['status'], 'unknown-code')
 
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
@@ -516,10 +497,8 @@ class SignupTests(EduidAPITestCase):
                     response = client.get('/verify-link/' + signup_user.pending_mail_address.verification_code)
 
                     data = json.loads(response.data)
-                    self.assertEqual(data['type'],
-                            'GET_SIGNUP_VERIFY_LINK_FAIL')
-                    self.assertEqual(data['payload']['status'],
-                            'already-verified')
+                    self.assertEqual(data['type'], 'GET_SIGNUP_VERIFY_LINK_FAIL')
+                    self.assertEqual(data['payload']['status'], 'already-verified')
 
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
@@ -538,15 +517,13 @@ class SignupTests(EduidAPITestCase):
                         'email': email,
                         'recaptcha_response': 'dummy',
                         'tou_accepted': True,
-                        'csrf_token': sess.get_csrf_token()
-                        }
-                    client.post('/trycaptcha', data=json.dumps(data),
-                                       content_type=self.content_type_json)
+                        'csrf_token': sess.get_csrf_token(),
+                    }
+                    client.post('/trycaptcha', data=json.dumps(data), content_type=self.content_type_json)
 
                     send_verification_mail(email)
                     signup_user = self.app.private_userdb.get_user_by_pending_mail_address(email)
                     response = client.get('/verify-link/' + signup_user.pending_mail_address.verification_code)
 
                     data = json.loads(response.data)
-                    self.assertEqual(data['type'],
-                            'GET_SIGNUP_VERIFY_LINK_SUCCESS')
+                    self.assertEqual(data['type'], 'GET_SIGNUP_VERIFY_LINK_SUCCESS')

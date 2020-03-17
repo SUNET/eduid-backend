@@ -41,16 +41,13 @@ class FrontConfig:
 
     This is sent to the client, so care must be taken to avoid setting sectrets here.
     """
+
     debug: bool = False
     csrf_token: str = ''
-    available_languages: Dict[str, str] = field(default_factory=lambda: {
-        'en': 'English',
-        'sv': 'Svenska',
-    })
-    tous: Dict[str, str] = field(default_factory=lambda: {
-        'en': '',
-        'sv': ''
-    })
+    available_languages: Dict[str, str] = field(
+        default_factory=lambda: {'en': 'English', 'sv': 'Svenska',}
+    )
+    tous: Dict[str, str] = field(default_factory=lambda: {'en': '', 'sv': ''})
     # URLs
     # TODO: Remove after new design
     static_staff_url: str = ''
@@ -77,10 +74,7 @@ class FrontConfig:
     password_length: int = 12
     password_entropy: int = 25
     chpass_timeout: int = 600
-    proofing_methods: list = field(default_factory=lambda: ['letter',
-                                                            'lookup_mobile',
-                                                            'oidc',
-                                                            'eidas'])
+    proofing_methods: list = field(default_factory=lambda: ['letter', 'lookup_mobile', 'oidc', 'eidas'])
     default_country_code: int = 46
     signup_authn_url: str = '/services/authn/signup-authn'
     # This key is for signup.eduid.docker:8080

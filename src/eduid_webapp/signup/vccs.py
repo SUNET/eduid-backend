@@ -1,9 +1,8 @@
-from pwgen import pwgen
 from re import findall
 
-from eduid_webapp.signup.app import current_signup_app as current_app
-
 import vccs_client
+from eduid_webapp.signup.app import current_signup_app as current_app
+from pwgen import pwgen
 
 
 def generate_password(credential_id, user):
@@ -19,21 +18,19 @@ def generate_password(credential_id, user):
     """
     user_id = str(user.user_id)
     config = current_app.config
-    password = pwgen(int(config.password_length),
-                     no_capitalize = True, no_symbols = True)
+    password = pwgen(int(config.password_length), no_capitalize=True, no_symbols=True)
     factor = vccs_client.VCCSPasswordFactor(password, credential_id)
-    current_app.logger.info("Adding VCCS password factor for user {}, "
-                            "credential_id {!r}".format(user, credential_id))
+    current_app.logger.info(
+        "Adding VCCS password factor for user {}, " "credential_id {!r}".format(user, credential_id)
+    )
 
-    vccs = vccs_client.VCCSClient(base_url = config.vccs_url)
+    vccs = vccs_client.VCCSClient(base_url=config.vccs_url)
     try:
         result = vccs.add_credentials(user_id, [factor])
     except vccs_client.VCCSClientHTTPError as e:
-        current_app.logger.error('There was an error adding credentials for user {} '
-                                 ': {!r}'.format(user, e))
+        current_app.logger.error('There was an error adding credentials for user {} ' ': {!r}'.format(user, e))
         raise e
-    current_app.logger.debug("VCCS password (id {!r}) creation result: "
-                             "{!r}".format(credential_id, result))
+    current_app.logger.debug("VCCS password (id {!r}) creation result: " "{!r}".format(credential_id, result))
 
     return _human_readable(password), factor.salt
 

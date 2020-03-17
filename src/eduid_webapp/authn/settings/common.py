@@ -43,12 +43,15 @@ class AuthnConfig(FlaskConfig):
     """
     Configuration for the authn app
     """
+
     server_name: str = 'authn'
-    required_loa: Dict[str, str] = field(default_factory=lambda: {
-        'personal': 'http://www.swamid.se/policy/assurance/al1',
-        'helpdesk': 'http://www.swamid.se/policy/assurance/al2',
-        'admin': 'http://www.swamid.se/policy/assurance/al3',
-    })
+    required_loa: Dict[str, str] = field(
+        default_factory=lambda: {
+            'personal': 'http://www.swamid.se/policy/assurance/al1',
+            'helpdesk': 'http://www.swamid.se/policy/assurance/al2',
+            'admin': 'http://www.swamid.se/policy/assurance/al3',
+        }
+    )
     available_loa: str = 'http://www.swamid.se/policy/assurance/al1'
     signup_authn_success_redirect_url: str = "https://dashboard.eduid.se"
     signup_authn_failure_redirect_url: str = "https://dashboard.eduid.se"

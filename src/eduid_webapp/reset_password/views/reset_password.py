@@ -80,29 +80,40 @@ import time
 
 from flask import Blueprint, request
 
-from eduid_userdb.reset_password import ResetPasswordEmailAndPhoneState
+from eduid_common.api.decorators import MarshalWith, UnmarshalWith
 from eduid_common.api.exceptions import MsgTaskFailed
 from eduid_common.api.schemas.base import FluxStandardAction
-from eduid_common.api.decorators import MarshalWith, UnmarshalWith
-from eduid_common.session import session
 from eduid_common.authn import fido_tokens
-from eduid_webapp.security.helpers import get_zxcvbn_terms
-from eduid_webapp.reset_password.schemas import ResetPasswordInitSchema
-from eduid_webapp.reset_password.schemas import ResetPasswordEmailCodeSchema
-from eduid_webapp.reset_password.schemas import ResetPasswordWithCodeSchema
-from eduid_webapp.reset_password.schemas import ResetPasswordWithPhoneCodeSchema
-from eduid_webapp.reset_password.schemas import ResetPasswordWithSecTokenSchema
-from eduid_webapp.reset_password.schemas import ResetPasswordExtraSecPhoneSchema
-from eduid_webapp.reset_password.helpers import ResetPwMsg, error_message, success_message
-from eduid_webapp.reset_password.helpers import send_password_reset_mail
-from eduid_webapp.reset_password.helpers import get_pwreset_state, BadCode
-from eduid_webapp.reset_password.helpers import hash_password, check_password
-from eduid_webapp.reset_password.helpers import generate_suggested_password, reset_user_password
-from eduid_webapp.reset_password.helpers import get_extra_security_alternatives, mask_alternatives
-from eduid_webapp.reset_password.helpers import verify_email_address
-from eduid_webapp.reset_password.helpers import verify_phone_number
-from eduid_webapp.reset_password.helpers import send_verify_phone_code
+from eduid_common.session import session
+from eduid_userdb.reset_password import ResetPasswordEmailAndPhoneState
+
 from eduid_webapp.reset_password.app import current_reset_password_app as current_app
+from eduid_webapp.reset_password.helpers import (
+    BadCode,
+    ResetPwMsg,
+    check_password,
+    error_message,
+    generate_suggested_password,
+    get_extra_security_alternatives,
+    get_pwreset_state,
+    hash_password,
+    mask_alternatives,
+    reset_user_password,
+    send_password_reset_mail,
+    send_verify_phone_code,
+    success_message,
+    verify_email_address,
+    verify_phone_number,
+)
+from eduid_webapp.reset_password.schemas import (
+    ResetPasswordEmailCodeSchema,
+    ResetPasswordExtraSecPhoneSchema,
+    ResetPasswordInitSchema,
+    ResetPasswordWithCodeSchema,
+    ResetPasswordWithPhoneCodeSchema,
+    ResetPasswordWithSecTokenSchema,
+)
+from eduid_webapp.security.helpers import get_zxcvbn_terms
 
 SESSION_PREFIX = "eduid_webapp.reset_password.views"
 
@@ -226,9 +237,7 @@ def _get_state_and_data(SchemaClass):
     resetpw_user = current_app.central_userdb.get_user_by_eppn(state.eppn)
     min_entropy = current_app.config.password_entropy
 
-    schema = SchemaClass(
-        zxcvbn_terms=get_zxcvbn_terms(resetpw_user.eppn),
-        min_entropy=int(min_entropy))
+    schema = SchemaClass(zxcvbn_terms=get_zxcvbn_terms(resetpw_user.eppn), min_entropy=int(min_entropy))
 
     form = schema.load(json.loads(request.data))
     current_app.logger.debug(f"Reset password data: {form}")
@@ -336,18 +345,15 @@ def choose_extra_security_phone(code: str, phone_index: int) -> dict:
             current_app.logger.info(f'Throttling reset password SMSs for: {state.eppn}')
             return error_message(ResetPwMsg.send_sms_throttled)
 
-    current_app.logger.info(f'Password reset: choose_extra_security for '
-                            f'user with eppn {state.eppn}')
+    current_app.logger.info(f'Password reset: choose_extra_security for ' f'user with eppn {state.eppn}')
 
     # Check that the email code has been validated
     if not state.email_code.is_verified:
-        current_app.logger.info(f'User with eppn {state.eppn} has not '
-                                f'verified their email address')
+        current_app.logger.info(f'User with eppn {state.eppn} has not ' f'verified their email address')
         return error_message(ResetPwMsg.email_not_validated)
 
     phone_number = state.extra_security['phone_numbers'][phone_index]
-    current_app.logger.info(f'Trying to send password reset sms to user with '
-                            f'eppn {state.eppn}')
+    current_app.logger.info(f'Trying to send password reset sms to user with ' f'eppn {state.eppn}')
     try:
         send_verify_phone_code(state, phone_number["number"])
     except MsgTaskFailed as e:
@@ -422,8 +428,7 @@ def set_new_pw_extra_security_phone() -> dict:
         current_app.logger.info('Custom password used')
         current_app.stats.count(name='reset_password_custom_password_used')
 
-    user = current_app.central_userdb.get_user_by_eppn(state.eppn,
-                                                       raise_on_missing=False)
+    user = current_app.central_userdb.get_user_by_eppn(state.eppn, raise_on_missing=False)
 
     current_app.logger.info(f'Resetting password for user {user}')
     reset_user_password(user, state, password)
@@ -480,8 +485,7 @@ def set_new_pw_extra_security_token() -> dict:
         current_app.logger.info('Custom password used')
         current_app.stats.count(name='reset_password_custom_password_used')
 
-    user = current_app.central_userdb.get_user_by_eppn(state.eppn,
-                                                       raise_on_missing=False)
+    user = current_app.central_userdb.get_user_by_eppn(state.eppn, raise_on_missing=False)
 
     # Process POSTed data
     success = False

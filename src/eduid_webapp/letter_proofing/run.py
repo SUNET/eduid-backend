@@ -31,6 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 from __future__ import absolute_import
+
 from eduid_webapp.letter_proofing.app import init_letter_proofing_app
 
 name = 'letter_proofing'

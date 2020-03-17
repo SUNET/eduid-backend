@@ -2,9 +2,10 @@
 
 from __future__ import absolute_import
 
-import json
 import base64
+import json
 from datetime import datetime
+
 from hammock import Hammock
 
 __author__ = 'john'
@@ -73,11 +74,7 @@ class Ekopost(object):
                             should be printed and distributed.
         :param cost_center: The internal cost center.
         """
-        campaign_data = json.dumps({
-            'name': name,
-            'output_date': output_date,
-            'cost_center': cost_center
-        })
+        campaign_data = json.dumps({'name': name, 'output_date': output_date, 'cost_center': cost_center})
 
         response = self.ekopost_api.campaigns.POST(data=campaign_data, headers={'Content-Type': 'application/json'})
 
@@ -99,18 +96,11 @@ class Ekopost(object):
                      on both front and back.
         :param color: Print in color (CMYK) or set to false for black and white.
         """
-        envelope_data = json.dumps({
-            'name': name,
-            'postage': postage,
-            'plex': plex,
-            'color': color
-        })
+        envelope_data = json.dumps({'name': name, 'postage': postage, 'plex': plex, 'color': color})
 
-        response = self.ekopost_api.\
-            campaigns(campaign_id).\
-            envelopes.POST(
-                data=envelope_data,
-                headers={'Content-Type': 'application/json'})
+        response = self.ekopost_api.campaigns(campaign_id).envelopes.POST(
+            data=envelope_data, headers={'Content-Type': 'application/json'}
+        )
 
         if response.status_code == 200:
             return response.json()
@@ -127,20 +117,22 @@ class Ekopost(object):
         :param mime: The document's mime type
         :param content_type: Content type, which can be either 'document' or 'attachment'
         """
-        content_data = json.dumps({
-            'campaign_id': campaign_id,
-            'envelope_id': envelope_id,
-            'data': base64.b64encode(data).decode('utf-8'),  # Needs to be unicode for json
-            'mime': mime,
-            'length': len(data),
-            'type': content_type
-        })
+        content_data = json.dumps(
+            {
+                'campaign_id': campaign_id,
+                'envelope_id': envelope_id,
+                'data': base64.b64encode(data).decode('utf-8'),  # Needs to be unicode for json
+                'mime': mime,
+                'length': len(data),
+                'type': content_type,
+            }
+        )
 
-        response = self.ekopost_api.\
-            campaigns(campaign_id).\
-            envelopes(envelope_id).\
-            content.POST(data=content_data,
-                         headers={'Content-Type': 'application/json'})
+        response = (
+            self.ekopost_api.campaigns(campaign_id)
+            .envelopes(envelope_id)
+            .content.POST(data=content_data, headers={'Content-Type': 'application/json'})
+        )
 
         if response.status_code == 200:
             return response.json()
@@ -153,10 +145,11 @@ class Ekopost(object):
         :param campaign_id: Unique id of a campaign within which the envelope exists
         :param envelope_id: Unique id of the envelope that should be closed
         """
-        response = self.ekopost_api.\
-            campaigns(campaign_id).\
-            envelopes(envelope_id).\
-            close.POST(headers={'Content-Type': 'application/json'})
+        response = (
+            self.ekopost_api.campaigns(campaign_id)
+            .envelopes(envelope_id)
+            .close.POST(headers={'Content-Type': 'application/json'})
+        )
 
         if response.status_code == 200:
             return response.json()
@@ -170,9 +163,7 @@ class Ekopost(object):
 
         :param campaign_id: Unique id of a campaign that should be closed
         """
-        response = self.ekopost_api.\
-            campaigns(campaign_id).\
-            close.POST(headers={'Content-Type': 'application/json'})
+        response = self.ekopost_api.campaigns(campaign_id).close.POST(headers={'Content-Type': 'application/json'})
 
         if response.status_code == 200:
             return response.json()

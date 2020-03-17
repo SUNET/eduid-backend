@@ -32,7 +32,6 @@
 
 from eduid_webapp.authn.app import authn_init_app
 
-
 name = 'authn'
 app = authn_init_app(name, {})
 

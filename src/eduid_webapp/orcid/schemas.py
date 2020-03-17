@@ -10,7 +10,6 @@ __author__ = 'lundberg'
 
 
 class OrcidResponseSchema(FluxStandardAction):
-
     class OrcidResponsePayload(EduidSchema, CSRFResponseMixin):
         orcid = fields.Nested(OrcidSchema)
 

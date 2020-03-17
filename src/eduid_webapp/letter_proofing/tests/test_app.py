@@ -3,13 +3,15 @@
 from __future__ import absolute_import
 
 import json
-from datetime import datetime
 from collections import OrderedDict
-from mock import patch, Mock
+from datetime import datetime
 
+from mock import Mock, patch
+
+from eduid_common.api.testing import EduidAPITestCase
 from eduid_userdb.locked_identity import LockedIdentityNin
 from eduid_userdb.nin import Nin
-from eduid_common.api.testing import EduidAPITestCase
+
 from eduid_webapp.letter_proofing.app import init_letter_proofing_app
 from eduid_webapp.letter_proofing.settings.common import LetterProofingConfig
 
@@ -23,14 +25,22 @@ class LetterProofingTests(EduidAPITestCase):
         self.test_user_eppn = 'hubba-baar'
         self.test_user_nin = '200001023456'
         self.test_user_wrong_nin = '190001021234'
-        self.mock_address = OrderedDict([
-            (u'Name', OrderedDict([
-                (u'GivenNameMarking', u'20'), (u'GivenName', u'Testaren Test'),
-                (u'Surname', u'Testsson')])),
-            (u'OfficialAddress', OrderedDict([(u'Address2', u'\xd6RGATAN 79 LGH 10'),
-                                              (u'PostalCode', u'12345'),
-                                              (u'City', u'LANDET')]))
-        ])
+        self.mock_address = OrderedDict(
+            [
+                (
+                    u'Name',
+                    OrderedDict(
+                        [(u'GivenNameMarking', u'20'), (u'GivenName', u'Testaren Test'), (u'Surname', u'Testsson')]
+                    ),
+                ),
+                (
+                    u'OfficialAddress',
+                    OrderedDict(
+                        [(u'Address2', u'\xd6RGATAN 79 LGH 10'), (u'PostalCode', u'12345'), (u'City', u'LANDET')]
+                    ),
+                ),
+            ]
+        )
         super(LetterProofingTests, self).setUp(users=['hubba-baar'])
 
     @staticmethod
@@ -53,9 +63,7 @@ class LetterProofingTests(EduidAPITestCase):
         mock_resp.headers = headers
         # add json data if provided
         if json_data:
-            mock_resp.json = Mock(
-                return_value=json_data
-            )
+            mock_resp.json = Mock(return_value=json_data)
         return mock_resp
 
     def load_app(self, config):
@@ -66,20 +74,22 @@ class LetterProofingTests(EduidAPITestCase):
         return init_letter_proofing_app('testing', config)
 
     def update_config(self, app_config):
-        app_config.update({
-            # 'ekopost_debug_pdf': devnull,
-            'ekopost_api_uri': 'http://localhost',
-            'ekopost_api_user': 'ekopost_user',
-            'ekopost_api_pw': 'secret',
-            'letter_wait_time_hours': 336,
-            'msg_broker_url': 'amqp://dummy',
-            'am_broker_url': 'amqp://dummy',
-            'celery_config': {
-                'result_backend': 'amqp',
-                'task_serializer': 'json',
-                'mongo_uri': app_config['mongo_uri']
-            },
-        })
+        app_config.update(
+            {
+                # 'ekopost_debug_pdf': devnull,
+                'ekopost_api_uri': 'http://localhost',
+                'ekopost_api_user': 'ekopost_user',
+                'ekopost_api_pw': 'secret',
+                'letter_wait_time_hours': 336,
+                'msg_broker_url': 'amqp://dummy',
+                'am_broker_url': 'amqp://dummy',
+                'celery_config': {
+                    'result_backend': 'amqp',
+                    'task_serializer': 'json',
+                    'mongo_uri': app_config['mongo_uri'],
+                },
+            }
+        )
         return LetterProofingConfig(**app_config)
 
     # Helper methods
@@ -113,6 +123,7 @@ class LetterProofingTests(EduidAPITestCase):
             response = client.post('/verify-code', data=json.dumps(data), content_type=self.content_type_json)
         self.assertEqual(response.status_code, 200)
         return json.loads(response.data)
+
     # End helper methods
 
     def test_authenticate(self):
@@ -172,8 +183,9 @@ class LetterProofingTests(EduidAPITestCase):
         json_data = self.send_letter(self.test_user_nin, csrf_token)
         with self.app.test_request_context():
             with self.app.app_context():
-                proofing_state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn,
-                                                                             raise_on_missing=False)
+                proofing_state = self.app.proofing_statedb.get_state_by_eppn(
+                    self.test_user_eppn, raise_on_missing=False
+                )
         csrf_token = json_data['payload']['csrf_token']
         json_data = self.verify_code(proofing_state.nin.verification_code, csrf_token)
         self.assertTrue(json_data['payload']['success'])
@@ -191,8 +203,9 @@ class LetterProofingTests(EduidAPITestCase):
         self.send_letter(self.test_user_nin, csrf_token)
         with self.app.test_request_context():
             with self.app.app_context():
-                proofing_state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn,
-                                                                             raise_on_missing=False)
+                proofing_state = self.app.proofing_statedb.get_state_by_eppn(
+                    self.test_user_eppn, raise_on_missing=False
+                )
         json_data = self.verify_code(proofing_state.nin.verification_code, 'bad_csrf')
         self.assertEqual(json_data['type'], 'POST_LETTER_PROOFING_VERIFY_CODE_FAIL')
         self.assertEqual(json_data['payload']['error']['csrf_token'], ['CSRF failed to validate'])

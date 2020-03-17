@@ -35,11 +35,18 @@ from flask import Blueprint, request
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith
 from eduid_common.api.schemas.base import FluxStandardAction
-from eduid_webapp.signup.helpers import check_email_status, remove_users_with_mail_address, complete_registration
-from eduid_webapp.signup.schemas import RegisterEmailSchema, AccountCreatedResponse, EmailSchema
-from eduid_webapp.signup.verifications import CodeDoesNotExist, AlreadyVerifiedException, ProofingLogFailure
-from eduid_webapp.signup.verifications import verify_recaptcha, send_verification_mail, verify_email_code
+
 from eduid_webapp.signup.app import current_signup_app as current_app
+from eduid_webapp.signup.helpers import check_email_status, complete_registration, remove_users_with_mail_address
+from eduid_webapp.signup.schemas import AccountCreatedResponse, EmailSchema, RegisterEmailSchema
+from eduid_webapp.signup.verifications import (
+    AlreadyVerifiedException,
+    CodeDoesNotExist,
+    ProofingLogFailure,
+    send_verification_mail,
+    verify_email_code,
+    verify_recaptcha,
+)
 
 signup_views = Blueprint('signup', __name__, url_prefix='', template_folder='templates')
 
@@ -52,10 +59,7 @@ def trycaptcha(email, recaptcha_response, tou_accepted):
     Kantara requires a check for humanness even at level AL1.
     """
     if not tou_accepted:
-        return {
-            '_status': 'error',
-            'message': 'signup.tou-not-accepted'
-        }
+        return {'_status': 'error', 'message': 'signup.tou-not-accepted'}
     config = current_app.config
     recaptcha_verified = False
 
@@ -73,8 +77,7 @@ def trycaptcha(email, recaptcha_response, tou_accepted):
 
         if recaptcha_public_key:
             recaptcha_private_key = config.recaptcha_private_key
-            recaptcha_verified = verify_recaptcha(recaptcha_private_key,
-                                                  recaptcha_response, remote_ip)
+            recaptcha_verified = verify_recaptcha(recaptcha_private_key, recaptcha_response, remote_ip)
         else:
             recaptcha_verified = False
             current_app.logger.info('Missing configuration for reCaptcha!')
@@ -85,25 +88,13 @@ def trycaptcha(email, recaptcha_response, tou_accepted):
             # Workaround for failed earlier sync of user to userdb: Remove any signup_user with this e-mail address.
             remove_users_with_mail_address(email)
             send_verification_mail(email)
-            return {
-                'message': 'signup.registering-new',
-                'next': next
-            }
+            return {'message': 'signup.registering-new', 'next': next}
         elif next == 'resend-code':
-            return {
-                'next': next
-            }
+            return {'next': next}
         elif next == 'address-used':
             current_app.stats.count(name='address_used_error')
-            return {
-                '_status': 'error',
-                'message': 'signup.registering-address-used',
-                'next': next
-            }
-    return {
-        '_status': 'error',
-        'message': 'signup.recaptcha-not-verified'
-    }
+            return {'_status': 'error', 'message': 'signup.registering-address-used', 'next': next}
+    return {'_status': 'error', 'message': 'signup.recaptcha-not-verified'}
 
 
 @signup_views.route('/resend-verification', methods=['POST'])
@@ -126,20 +117,9 @@ def verify_link(code):
     try:
         user = verify_email_code(code)
     except CodeDoesNotExist:
-        return {
-            '_status': 'error',
-            'status': 'unknown-code',
-            'message': 'signup.unknown-code'
-        }
+        return {'_status': 'error', 'status': 'unknown-code', 'message': 'signup.unknown-code'}
     except AlreadyVerifiedException:
-        return {
-            '_status': 'error',
-            'status': 'already-verified',
-            'message': 'signup.already-verified'
-        }
+        return {'_status': 'error', 'status': 'already-verified', 'message': 'signup.already-verified'}
     except ProofingLogFailure:
-        return {
-            '_status': 'error',
-            'message': 'Temporary technical problems'
-        }
+        return {'_status': 'error', 'message': 'Temporary technical problems'}
     return complete_registration(user)

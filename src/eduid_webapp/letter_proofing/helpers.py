@@ -4,9 +4,10 @@ from __future__ import absolute_import
 
 from datetime import datetime, timedelta
 
-from eduid_userdb.proofing import LetterProofingState, NinProofingElement
 from eduid_common.api.utils import get_short_hash
+from eduid_userdb.proofing import LetterProofingState, NinProofingElement
 from eduid_userdb.proofing.element import SentLetterElement
+
 from eduid_webapp.letter_proofing import pdf
 from eduid_webapp.letter_proofing.app import current_letterp_app as current_app
 
@@ -58,12 +59,13 @@ def check_state(state):
 
 
 def create_proofing_state(eppn: str, nin: str) -> LetterProofingState:
-    nin = NinProofingElement(number=nin,
-                             application='eduid-idproofing-letter',
-                             created_ts=True,
-                             verified=False,
-                             verification_code=get_short_hash()
-                             )
+    nin = NinProofingElement(
+        number=nin,
+        application='eduid-idproofing-letter',
+        created_ts=True,
+        verified=False,
+        verification_code=get_short_hash(),
+    )
     proofing_letter = SentLetterElement(data={})
     return LetterProofingState(id=None, modified_ts=None, eppn=eppn, nin=nin, proofing_letter=proofing_letter)
 
@@ -99,10 +101,12 @@ def send_letter(user, proofing_state):
     :rtype: str|unicode
     """
     # Create the letter as a PDF-document and send it to our letter sender service
-    pdf_letter = pdf.create_pdf(proofing_state.proofing_letter.address,
-                                proofing_state.nin.verification_code,
-                                proofing_state.nin.created_ts,
-                                user.mail_addresses.primary.email)
+    pdf_letter = pdf.create_pdf(
+        proofing_state.proofing_letter.address,
+        proofing_state.nin.verification_code,
+        proofing_state.nin.created_ts,
+        user.mail_addresses.primary.email,
+    )
     if current_app.config.ekopost_debug_pdf:
         # Write PDF to file instead of actually sending it if EKOPOST_DEBUG_PDF is set
         with open(current_app.config.ekopost_debug_pdf, 'wb') as fd:
