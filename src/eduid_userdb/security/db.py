@@ -39,7 +39,8 @@ from pymongo.errors import DuplicateKeyError
 from eduid_userdb.db import BaseDB
 from eduid_userdb.deprecation import deprecated
 from eduid_userdb.exceptions import DocumentOutOfSync, MultipleDocumentsReturned
-from eduid_userdb.security import PasswordResetEmailAndPhoneState, PasswordResetEmailState, SecurityUser
+from eduid_userdb.security.state import PasswordResetEmailAndPhoneState, PasswordResetEmailState
+from eduid_userdb.security.user import SecurityUser
 from eduid_userdb.userdb import UserDB
 
 logger = logging.getLogger(__name__)
