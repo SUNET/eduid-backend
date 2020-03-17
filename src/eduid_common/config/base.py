@@ -36,10 +36,13 @@ Configuration (file) handling for eduID IdP.
 
 from __future__ import annotations
 
+import importlib.util
 import logging
 import os
 from dataclasses import dataclass, field, fields
 from typing import Any, Dict, List, Mapping, Optional
+
+import yaml
 
 logger = logging.getLogger(__name__)
 
@@ -272,7 +275,8 @@ class BaseConfig(CommonConfig):
     status_cache_seconds: int = 10
 
     @classmethod
-    def init_config(cls, superns: str = 'webapp', test_config: Optional[dict] = None, debug: bool = True) -> BaseConfig:
+    def init_config(cls, ns: Optional[str] = None, app_name: Optional[str] = None, test_config: Optional[dict] = None,
+                    debug: bool = False) -> BaseConfig:
         """
         Initialize configuration with values from etcd (or with test values)
         """
@@ -282,19 +286,29 @@ class BaseConfig(CommonConfig):
         if test_config:
             # Load init time settings
             config.update(test_config)
-        else:
-            from eduid_common.config.parsers.etcd import EtcdConfigParser
+            return cls(**config)
 
-            common_namespace = os.environ.get('EDUID_CONFIG_COMMON_NS', f'/eduid/{superns}/common/')
-            common_parser = EtcdConfigParser(common_namespace)
-            common_config = common_parser.read_configuration(silent=True)
-            config.update(common_config)
+        from eduid_common.config.parsers.etcd import EtcdConfigParser
 
-            namespace = os.environ.get('EDUID_CONFIG_NS', f'/eduid/{superns}/{cls.app_name}/')
-            parser = EtcdConfigParser(namespace)
-            # Load optional app specific settings
-            proper_config = parser.read_configuration(silent=True)
-            config.update(proper_config)
+        common_namespace = os.environ.get('EDUID_CONFIG_COMMON_NS', f'/eduid/{ns}/common/')
+        common_parser = EtcdConfigParser(common_namespace)
+        common_config = common_parser.read_configuration(silent=True)
+        config.update(common_config)
+
+        namespace = os.environ.get('EDUID_CONFIG_NS', f'/eduid/{ns}/{app_name}/')
+        parser = EtcdConfigParser(namespace)
+        # Load optional app specific settings
+        app_config = parser.read_configuration(silent=True)
+        config.update(app_config)
+
+        # Load optional app specific secrets
+        secrets_path = os.environ.get('LOCAL_CFG_FILE')
+        if secrets_path is not None and os.path.exists(secrets_path):
+            spec = importlib.util.spec_from_file_location("secret.settings", secrets_path)
+            secret_settings_module = importlib.util.module_from_spec(spec)
+            for secret in dir(secret_settings_module):
+                if not secret.startswith('_'):
+                    config[secret.lower()] = getattr(secret_settings_module, secret)
 
         # Make sure we don't try to load config keys that are not expected as that will result in a crash
         filtered_config = cls.filter_config(config)
@@ -302,6 +316,12 @@ class BaseConfig(CommonConfig):
         filtered_keys = set(filtered_config.keys())
         if config_keys != filtered_keys:
             logger.warning(f'Keys removed before config loading: {config_keys - filtered_keys}')
+
+        # Save config to a file in /dev/shm for introspection
+        fd_int = os.open(f'/dev/shm/{app_name}_config.yaml', os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with open(fd_int, 'w') as fd:
+            fd.write('---\n')
+            yaml.safe_dump(filtered_config, fd)
 
         return cls(**filtered_config)
 

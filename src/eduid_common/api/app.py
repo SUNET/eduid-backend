@@ -82,9 +82,7 @@ class EduIDBaseApp(Flask):
 
         super(EduIDBaseApp, self).__init__(name, **kwargs)
 
-        final_config = get_app_config(name, config)
-        filtered_config = config_class.filter_config(final_config)
-        self.config = config_class(**filtered_config)
+        self.config = config_class.init_config(ns='webapp', app_name=name, test_config=config)
 
         if DEBUG:
             init_app_debug(self)
@@ -126,6 +124,11 @@ def get_app_config(name: str, config: Optional[dict] = None) -> dict:
     If there is an env var LOCAL_CFG_FILE pointing to a file with configuration
     keys, load them as well.
     """
+    warnings.warn(
+        "This function will be removed in a future version of eduid_common. "
+        "Use 'BaseConfig.init_config()' instead.",
+        DeprecationWarning, stacklevel=2
+    )
     if config is None:
         config = {}
     # Do not use config from etcd if a config dict is supplied
