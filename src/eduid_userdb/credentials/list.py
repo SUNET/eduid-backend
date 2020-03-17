@@ -2,7 +2,9 @@ from __future__ import absolute_import
 
 from bson import ObjectId
 
-from eduid_userdb.credentials import Credential, password_from_dict, u2f_from_dict, webauthn_from_dict
+from eduid_userdb.credentials.base import Credential
+from eduid_userdb.credentials.fido import u2f_from_dict, webauthn_from_dict
+from eduid_userdb.credentials.password import password_from_dict
 from eduid_userdb.element import DuplicateElementViolation, ElementList
 from eduid_userdb.exceptions import UserHasUnknownData
 
