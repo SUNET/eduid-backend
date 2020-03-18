@@ -3,19 +3,17 @@ import logging.config
 import sys
 from typing import Dict, Optional
 
-from eduid_userdb import UserDB
-
 from neobolt.addressing import AddressError
 
-from eduid_scimapi.config import ScimApiConfig
-from eduid_scimapi.userdb import ScimApiUserDB
-from eduid_scimapi.groupdb import ScimApiGroupDB
-from eduid_scimapi.utils import urlappend
 from eduid_userdb import UserDB
+
+from eduid_scimapi.config import ScimApiConfig
+from eduid_scimapi.groupdb import ScimApiGroupDB
+from eduid_scimapi.userdb import ScimApiUserDB
+from eduid_scimapi.utils import urlappend
 
 
 class Context(object):
-
     def __init__(self, config: ScimApiConfig):
         self.config = config
 

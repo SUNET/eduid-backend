@@ -2,10 +2,10 @@
 import unittest
 from os import environ
 
+from eduid_common.config.testing import EtcdTemporaryInstance
 from eduid_userdb import MongoDB
 from eduid_userdb.testing import MongoTemporaryInstance
 
-from eduid_common.config.testing import EtcdTemporaryInstance
 from eduid_groupdb import Neo4jDB
 from eduid_groupdb.testing import Neo4jTemporaryInstance
 
@@ -16,6 +16,7 @@ class ScimApiTestCase(unittest.TestCase):
     """
     Base test case that sets up a temporary Neo4j instance
     """
+
     mongodb_instance: MongoTemporaryInstance
     mongo_uri: str
 
@@ -29,8 +30,10 @@ class ScimApiTestCase(unittest.TestCase):
         cls.mongodb_instance = MongoTemporaryInstance.get_instance()
         cls.mongo_uri = cls.mongodb_instance.uri
         cls.neo4j_instance = Neo4jTemporaryInstance.get_instance()
-        cls.neo4j_uri = f'bolt://{cls.neo4j_instance.DEFAULT_USERNAME}:{cls.neo4j_instance.DEFAULT_PASSWORD}' \
-                        f'@localhost:{cls.neo4j_instance.bolt_port}'
+        cls.neo4j_uri = (
+            f'bolt://{cls.neo4j_instance.DEFAULT_USERNAME}:{cls.neo4j_instance.DEFAULT_PASSWORD}'
+            f'@localhost:{cls.neo4j_instance.bolt_port}'
+        )
         cls.etcd_instance = EtcdTemporaryInstance.get_instance()
         environ.update({'ETCD_PORT': str(cls.etcd_instance.port)})
 
