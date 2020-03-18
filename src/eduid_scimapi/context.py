@@ -1,34 +1,43 @@
 import logging
 import logging.config
 import sys
-from typing import Dict
+from typing import Dict, Optional
 
-from eduid_scimapi.config import load_config
+from neobolt.addressing import AddressError
+
+from eduid_scimapi.config import ScimApiConfig
 from eduid_scimapi.userdb import ScimApiUserDB
+from eduid_scimapi.groupdb import ScimApiGroupDB
 from eduid_scimapi.utils import urlappend
 from eduid_userdb import UserDB
 
 
 class Context(object):
 
-    def __init__(self, config: Dict, testing: bool=False):
-        self.config = load_config(config, testing=testing)
+    def __init__(self, config: ScimApiConfig):
+        self.config = config
 
-        if not testing:
-            # TODO: need temporary etcd and mongodb instances for running tests soon
-            self.eduid_userdb = UserDB(db_uri=self.config.mongo_uri, db_name='eduid_am')
-            self.userdb = ScimApiUserDB(db_uri=self.config.mongo_uri)
-
-        if self.config.get('LOGGING'):
-            logging.config.dictConfig(self.config.get('LOGGING', {}))
+        # Setup logging
+        if self.config.logging_config:
+            logging.config.dictConfig(self.config.logging_config)
             self.logger = logging.getLogger('eduid_scimapi')
         else:
             self.logger = logging.getLogger('eduid_scimapi')
             sh = logging.StreamHandler(sys.stdout)
-            formatter = logging.Formatter('%(asctime)s - %(name)s - %(module)s - %(levelname)s - %(message)s')
+            formatter = logging.Formatter(self.config.log_format)
             sh.setFormatter(formatter)
             self.logger.addHandler(sh)
-            self.logger.setLevel(logging.DEBUG)
+            self.logger.setLevel(self.config.log_level)
+
+        # Setup databases
+        self.eduid_userdb = UserDB(db_uri=self.config.mongo_uri, db_name='eduid_am')
+        self.userdb = ScimApiUserDB(db_uri=self.config.mongo_uri)
+        try:
+            self.groupdb = ScimApiGroupDB(db_uri=self.config.neo4j_uri, config=self.config.neo4j_config)
+        except AddressError as e:
+            self.groupdb = None
+            # Temporarily don't care about neo4jdb
+            self.logger.info(f'Starting without neo4jdb: {e}')
 
     @property
     def base_url(self) -> str:
