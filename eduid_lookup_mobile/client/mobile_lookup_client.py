@@ -1,11 +1,10 @@
-
-from suds.client import Client
-from suds.plugin import MessagePlugin
-
 from eduid_common.config.workers import MobConfig
+
 from eduid_lookup_mobile.decorators import TransactionAudit
 from eduid_lookup_mobile.development.development_search_result import _get_devel_search_result
-from eduid_lookup_mobile.utilities import format_NIN, format_mobile_number
+from eduid_lookup_mobile.utilities import format_mobile_number, format_NIN
+from suds.client import Client
+from suds.plugin import MessagePlugin
 
 DEFAULT_CLIENT_URL = 'http://api.teleadress.se/WSDL/nnapiwebservice.wsdl'
 DEFAULT_CLIENT_PORT = 'NNAPIWebServiceSoap'
@@ -13,7 +12,6 @@ DEFAULT_CLIENT_PERSON_CLASS = 'ns7:FindPersonClass'
 
 
 class LogPlugin(MessagePlugin):
-
     def sending(self, context):
         print(str(context.envelope))
 
@@ -22,7 +20,6 @@ class LogPlugin(MessagePlugin):
 
 
 class MobileLookupClient(object):
-
     def __init__(self, logger, config: MobConfig) -> None:
         self.conf = config
 
@@ -66,8 +63,11 @@ class MobileLookupClient(object):
             result = self.client.service.Find(param)
 
         if result._error_code != 0:
-            self.logger.debug("Error code: {err_code}, error message: {err_message}".format(
-                err_code=result._error_code, err_message=(result._error_text.encode('utf-8'))))
+            self.logger.debug(
+                "Error code: {err_code}, error message: {err_message}".format(
+                    err_code=result._error_code, err_message=(result._error_text.encode('utf-8'))
+                )
+            )
             return None
 
         # Check if the search got a hit

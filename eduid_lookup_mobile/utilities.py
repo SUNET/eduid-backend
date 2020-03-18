@@ -1,7 +1,8 @@
 __author__ = 'mathiashedstrom'
 
-import phonenumbers
 import re
+
+import phonenumbers
 
 
 def format_NIN(nin):

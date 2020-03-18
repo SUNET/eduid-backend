@@ -2,12 +2,12 @@
 __author__ = 'lundberg'
 
 from eduid_common.config.workers import MsgConfig
-from eduid_lookup_mobile.testing import LookupMobileMongoTestCase
+
 from eduid_lookup_mobile.decorators import TransactionAudit
+from eduid_lookup_mobile.testing import LookupMobileMongoTestCase
 
 
 class TestTransactionAudit(LookupMobileMongoTestCase):
-
     def setUp(self):
         super(TestTransactionAudit, self).setUp()
         # need to set self.mongo_uri and db for the TransactionAudit decorator
@@ -20,6 +20,7 @@ class TestTransactionAudit(LookupMobileMongoTestCase):
         @TransactionAudit()
         def find_mobiles_by_NIN(self, national_identity_number, number_region=None):
             return ['list', 'of', 'mobile_numbers']
+
         find_mobiles_by_NIN(self, '200202025678')
         c = self.db['transaction_audit']
         result = c.find()
@@ -32,6 +33,7 @@ class TestTransactionAudit(LookupMobileMongoTestCase):
         @TransactionAudit()
         def find_NIN_by_mobile(self, mobile_number):
             return '200202025678'
+
         find_NIN_by_mobile(self, '+46700011222')
         c = self.db['transaction_audit']
         result = c.find()
@@ -45,6 +47,7 @@ class TestTransactionAudit(LookupMobileMongoTestCase):
         @TransactionAudit()
         def find_mobiles_by_NIN(self, national_identity_number, number_region=None):
             return []
+
         find_mobiles_by_NIN(self, '200202025678')
         c = self.db['transaction_audit']
         result = c.find()
@@ -55,6 +58,7 @@ class TestTransactionAudit(LookupMobileMongoTestCase):
         @TransactionAudit()
         def find_NIN_by_mobile(self, mobile_number):
             return
+
         find_NIN_by_mobile(self, '+46700011222')
         c = self.db['transaction_audit']
         result = c.find()
@@ -70,6 +74,7 @@ class TestTransactionAudit(LookupMobileMongoTestCase):
         @TransactionAudit()
         def no_name(self):
             return {'baka': 'kaka'}
+
         no_name(self)
 
         result = c.find()
@@ -80,6 +85,7 @@ class TestTransactionAudit(LookupMobileMongoTestCase):
         @TransactionAudit()
         def no_name2(self):
             return {'baka': 'kaka'}
+
         no_name2(self)
         result = c.find()
         self.assertEqual(c.count_documents({}), 1)

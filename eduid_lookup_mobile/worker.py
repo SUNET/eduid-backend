@@ -1,9 +1,9 @@
 from __future__ import absolute_import
 
-from eduid_common.rpc.worker import get_worker_config
-from eduid_common.rpc.celery import init_celery
 from eduid_common.config.base import CommonConfig
 from eduid_common.config.workers import MobConfig
+from eduid_common.rpc.celery import init_celery
+from eduid_common.rpc.worker import get_worker_config
 
 import eduid_lookup_mobile.common as common
 
