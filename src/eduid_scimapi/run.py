@@ -11,4 +11,4 @@ if DEBUG:
     stderr.writelines('----- WARNING! EDUID_APP_DEBUG is enabled -----\n')
 
 name = 'scimapi'
-api = init_api(name, {}, debug=DEBUG)
+api = init_api(name, {}, debug=bool(DEBUG))

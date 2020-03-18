@@ -35,7 +35,7 @@ class Context(object):
         try:
             self.groupdb = ScimApiGroupDB(db_uri=self.config.neo4j_uri, config=self.config.neo4j_config)
         except AddressError as e:
-            self.groupdb = None
+            self.groupdb = None  # type: ignore
             # Temporarily don't care about neo4jdb
             self.logger.info(f'Starting without neo4jdb: {e}')
 

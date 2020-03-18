@@ -17,12 +17,12 @@ class ScimApiTestCase(unittest.TestCase):
     Base test case that sets up a temporary Neo4j instance
     """
     mongodb_instance: MongoTemporaryInstance
-    mongodb: MongoDB
+    mongo_uri: str
 
     etcd_instance: EtcdTemporaryInstance
 
     neo4j_instance: Neo4jTemporaryInstance
-    neo4jdb: Neo4jDB
+    neo4j_uri: str
 
     @classmethod
     def setUpClass(cls) -> None:
