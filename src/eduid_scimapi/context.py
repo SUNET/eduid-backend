@@ -3,6 +3,8 @@ import logging.config
 import sys
 from typing import Dict, Optional
 
+from eduid_userdb import UserDB
+
 from neobolt.addressing import AddressError
 
 from eduid_scimapi.config import ScimApiConfig

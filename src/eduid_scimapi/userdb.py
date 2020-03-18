@@ -4,8 +4,9 @@ from typing import Any, Optional
 
 from bson import ObjectId
 
-from eduid_scimapi.user import ScimApiUser
 from eduid_userdb.db import BaseDB
+
+from eduid_scimapi.user import ScimApiUser
 
 __author__ = 'ft'
 
@@ -14,16 +15,16 @@ logger = logging.getLogger(__name__)
 
 
 class ScimApiUserDB(BaseDB):
-
     def __init__(self, db_uri, db_name='eduid_scimapi', collection='profiles'):
         super().__init__(db_uri, db_name, collection)
 
     def save(self, user: ScimApiUser) -> bool:
         user_dict = user.to_dict()
 
-        test_doc = {'_id': user.user_id,
-                    'version': user.version,
-                    }
+        test_doc = {
+            '_id': user.user_id,
+            'version': user.version,
+        }
         # update the version number and last_modified timestamp
         user_dict['version'] = ObjectId()
         user_dict['last_modified'] = datetime.utcnow()
@@ -39,6 +40,7 @@ class ScimApiUserDB(BaseDB):
         user.last_modified = user_dict['last_modified']
         logger.debug(f'{self} Updated user {user} in {self._coll_name}')
         import pprint
+
         extra_debug = pprint.pformat(user_dict, width=120)
         logger.debug(f'Extra debug:\n{extra_debug}')
 

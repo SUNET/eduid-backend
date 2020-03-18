@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 
 import argparse
+import json
 import logging
 import sys
-from typing import NewType, cast, Any, Mapping, Optional, Dict, Callable
 from pprint import pformat
+from typing import Any, Callable, Dict, Mapping, NewType, Optional, cast
 
 import requests
 import yaml
@@ -53,9 +54,9 @@ def search_user(api: str, external_id: str) -> Optional[Dict[str, Any]]:
         'count': 1
     }
 
-    logger.debug(f'Sending user search query:\n{pformat(query)}')
+    logger.debug(f'Sending user search query:\n{pformat(json.dumps(query, sort_keys=True, indent=4))}')
     res = scim_request(requests.post, f'{api}/Users/.search', json=query)
-    logger.info(f'User search result:\n{pformat(res, width=120)}\n')
+    logger.info(f'User search result:\n{json.dumps(res, sort_keys=True, indent=4)}\n')
     return res
 
 
@@ -79,9 +80,9 @@ def put_user(api: str, scim_id: str, profiles: Mapping[str, Any]) -> None:
 
     scim[NUTID_V1]['profiles'] = profiles
 
-    logger.info(f'Updating profiles for SCIM user resource {scim_id}:\n{pformat(scim, width=120)}\n')
+    logger.info(f'Updating profiles for SCIM user resource {scim_id}:\n{json.dumps(scim, sort_keys=True, indent=4)}\n')
     res = scim_request(requests.put, f'{api}/Users/{scim_id}', json=scim)
-    logger.info(f'Update result:\n{pformat(res, width=120)}')
+    logger.info(f'Update result:\n{json.dumps(res, sort_keys=True, indent=4)}')
     return None
 
 

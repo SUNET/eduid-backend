@@ -9,6 +9,7 @@ class ScimApiConfig(BaseConfig):
     """
     Configuration for the SCIM API app
     """
+
     test: bool = True
     schema: str = 'http'
     server_name: str = 'localhost:8000'

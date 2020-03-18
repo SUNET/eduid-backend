@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 SCIM_ERROR = 'urn:ietf:params:scim:api:messages:2.0:Error'
 
+
 @dataclass
 class ErrorDetail(object):
     type: str
@@ -41,8 +42,9 @@ def method_not_allowed_handler(ex: falcon.HTTPMethodNotAllowed, req: falcon.Requ
     return e.handle(e, req, resp, params)
 
 
-def unsupported_media_type_handler(ex: falcon.HTTPUnsupportedMediaType, req: falcon.Request, resp: falcon.Response,
-                                   params):
+def unsupported_media_type_handler(
+    ex: falcon.HTTPUnsupportedMediaType, req: falcon.Request, resp: falcon.Response, params
+):
     e = UnsupportedMediaTypeMalformed(detail=ex.description)
     return e.handle(e, req, resp, params)
 
@@ -57,11 +59,12 @@ def unexpected_error_handler(ex: Exception, req: falcon.Request, resp: falcon.Re
 
 
 class HTTPErrorDetail(falcon.HTTPError):
-
     def __init__(self, **kwargs):
         typ = kwargs.pop('type')
         detail = kwargs.pop('detail', None)
-        self._error_detail: Optional[ErrorDetail] = ErrorDetail(type=typ, detail=detail,)
+        self._error_detail: Optional[ErrorDetail] = ErrorDetail(
+            type=typ, detail=detail,
+        )
         self._extra_headers: Optional[Dict] = None
         super().__init__(**kwargs)
 

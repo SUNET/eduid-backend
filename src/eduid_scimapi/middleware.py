@@ -5,7 +5,6 @@ from eduid_scimapi.exceptions import UnsupportedMediaTypeMalformed
 
 
 class HandleSCIM(object):
-
     def __init__(self, context: Context):
         self.context = context
 

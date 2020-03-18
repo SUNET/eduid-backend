@@ -6,16 +6,19 @@ from uuid import uuid4
 from bson import ObjectId
 from marshmallow_dataclass import class_schema
 
-from eduid_scimapi.scimbase import Meta, SCIMResourceType, Base, SCIMSchema
+from eduid_scimapi.scimbase import Base, Meta, SCIMResourceType, SCIMSchema
 
 __author__ = 'lundberg'
 
 
 class TestScimBase(TestCase):
-
     def setUp(self) -> None:
-        self.meta = Meta(location='http://example.org/group/some-id', resource_type=SCIMResourceType.group,
-                         last_modified=datetime.utcnow(), version=ObjectId())
+        self.meta = Meta(
+            location='http://example.org/group/some-id',
+            resource_type=SCIMResourceType.group,
+            last_modified=datetime.utcnow(),
+            version=ObjectId(),
+        )
         self.base = Base(id=uuid4(), schemas=[SCIMSchema.CORE_20_USER, SCIMSchema.CORE_20_GROUP], meta=self.meta)
 
     def test_meta(self) -> None:

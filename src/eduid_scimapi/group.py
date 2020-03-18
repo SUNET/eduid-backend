@@ -2,9 +2,9 @@ from dataclasses import dataclass, field
 from typing import List
 from uuid import UUID
 
-__author__ = 'lundberg'
-
 from eduid_scimapi.scimbase import Base
+
+__author__ = 'lundberg'
 
 
 @dataclass
