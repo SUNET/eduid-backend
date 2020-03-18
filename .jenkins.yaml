@@ -12,6 +12,11 @@ clean_workspace: true
 publish_over_ssh:
   - pypi.sunet.se
 
+pre_build_script:
+  - "docker pull neo4j:enterprise"
+  - "docker pull docker.sunet.se/library/etcd:v3.3.12"
+  - "docker pull docker.sunet.se/eduid/mongodb:latest"
+
 script:
   - "python3.7 -m venv venv"
   - ". venv/bin/activate"

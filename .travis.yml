@@ -5,6 +5,7 @@ services:
   - docker
 before_install:
   - docker pull docker.sunet.se/eduid/mongodb:latest
+  - docker pull neo4j:enterprise
 # command to install dependencies
 install:
   - pip install -U setuptools wheel mypy
