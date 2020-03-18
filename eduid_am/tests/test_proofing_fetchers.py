@@ -1,17 +1,18 @@
 # -*- coding: utf-8 -*-
 
-import bson
 from copy import deepcopy
 
+import bson
+
 from eduid_userdb.exceptions import UserDoesNotExist, UserHasUnknownData
-from eduid_am.testing import AMTestCase
-from eduid_userdb.proofing import ProofingUser
 from eduid_userdb.personal_data import PersonalDataUser
-from eduid_userdb.security import SecurityUser
+from eduid_userdb.proofing import ProofingUser
 from eduid_userdb.reset_password import ResetPasswordUser
+from eduid_userdb.security import SecurityUser
 
 import eduid_am.ams
 from eduid_am.fetcher_registry import AFRegistry
+from eduid_am.testing import AMTestCase
 
 USER_DATA = {
     'givenName': 'Testaren',
@@ -19,58 +20,46 @@ USER_DATA = {
     'displayName': 'John',
     'preferredLanguage': 'sv',
     'eduPersonPrincipalName': 'test-test',
-    'mailAliases': [{
-        'email': 'john@example.com',
-        'verified': True,
-    }],
-    'mobile': [{
-        'verified': True,
-        'mobile': '+46700011336',
-        'primary': True
-    }],
-    'passwords': [{
-        'credential_id': '112345678901234567890123',
-        'salt': '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$',
-    }],
-    'nins': [
-        {'number': '123456781235', 'primary': True, 'verified': True}
+    'mailAliases': [{'email': 'john@example.com', 'verified': True,}],
+    'mobile': [{'verified': True, 'mobile': '+46700011336', 'primary': True}],
+    'passwords': [
+        {
+            'credential_id': '112345678901234567890123',
+            'salt': '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$',
+        }
     ],
+    'nins': [{'number': '123456781235', 'primary': True, 'verified': True}],
     'orcid': {
         'oidc_authz': {
             'token_type': 'bearer',
             'refresh_token': 'a_refresh_token',
             'access_token': 'an_access_token',
             'id_token': {
-                    'nonce': 'a_nonce',
-                    'sub': 'sub_id',
-                    'iss': 'https://issuer.example.org',
-                    'created_by' : 'orcid',
-                    'exp': 1526890816,
-                    'auth_time' : 1526890214,
-                    'iat': 1526890216,
-                    'aud': [
-                            'APP-YIAD0N1L4B3Z3W9Q'
-                    ]
+                'nonce': 'a_nonce',
+                'sub': 'sub_id',
+                'iss': 'https://issuer.example.org',
+                'created_by': 'orcid',
+                'exp': 1526890816,
+                'auth_time': 1526890214,
+                'iat': 1526890216,
+                'aud': ['APP-YIAD0N1L4B3Z3W9Q'],
             },
             'expires_in': 631138518,
-            'created_by': 'orcid'
+            'created_by': 'orcid',
         },
         'given_name': 'Testaren',
         'family_name': 'Testsson',
         'name': None,
         'id': 'orcid_unique_id',
         'verified': True,
-        'created_by': 'orcid'
-    }
+        'created_by': 'orcid',
+    },
 }
 
 
 class AttributeFetcherOldToNewUsersTests(AMTestCase):
-
     def setUp(self):
-        am_settings = {
-            'want_mongo_uri': True
-        }
+        am_settings = {'want_mongo_uri': True}
         super(AttributeFetcherOldToNewUsersTests, self).setUp(am_settings=am_settings)
         self.user_data = deepcopy(USER_DATA)
         self.af_registry = AFRegistry(self.am_settings)
@@ -104,23 +93,20 @@ class AttributeFetcherOldToNewUsersTests(AMTestCase):
 
             actual_update = fetcher.fetch_attrs(proofing_user.user_id)
             expected_update = {
-                    '$set': {
-                        "givenName": u"Testaren",
-                        "surname": u"Testsson",
-                        "displayName": u"John",
-                        'nins': [{'number': '123456781235', 'verified': True, 'primary': True}],
-                    },
-                }
+                '$set': {
+                    "givenName": u"Testaren",
+                    "surname": u"Testsson",
+                    "displayName": u"John",
+                    'nins': [{'number': '123456781235', 'verified': True, 'primary': True}],
+                },
+            }
 
-            self.assertDictEqual(
-                actual_update,
-                expected_update
-            )
+            self.assertDictEqual(actual_update, expected_update)
 
     def test_malicious_attributes(self):
-        self.user_data.update({
-            'malicious': 'hacker',
-        })
+        self.user_data.update(
+            {'malicious': 'hacker',}
+        )
 
         for fetcher in self.af_registry.values():
             # Write bad entry into database
@@ -145,39 +131,34 @@ class AttributeFetcherOldToNewUsersTests(AMTestCase):
                 },
             }
 
-            self.assertDictEqual(
-                actual_update,
-                expected_update
-            )
+            self.assertDictEqual(actual_update, expected_update)
 
     def test_append_attributes_letter_proofing_data(self):
         self.maxDiff = None
-        self.user_data.update({
-            "letter_proofing_data": [
-                {
-                    "verification_code": u"secret code",
-                    "verified": True,
-                    "verified_by": u"eduid-idproofing-letter",
-                    "created_ts": u'ts',
-                    "official_address": {
-                        "OfficialAddress": {
-                            "PostalCode": u"12345",
-                            "City": u"LANDET",
-                            "Address2": u"ÖRGATAN 79 LGH 10"
+        self.user_data.update(
+            {
+                "letter_proofing_data": [
+                    {
+                        "verification_code": u"secret code",
+                        "verified": True,
+                        "verified_by": u"eduid-idproofing-letter",
+                        "created_ts": u'ts',
+                        "official_address": {
+                            "OfficialAddress": {
+                                "PostalCode": u"12345",
+                                "City": u"LANDET",
+                                "Address2": u"ÖRGATAN 79 LGH 10",
+                            },
+                            "Name": {"Surname": u"Testsson", "GivenName": u"Testaren Test", "GivenNameMarking": u"20"},
                         },
-                        "Name": {
-                            "Surname": u"Testsson",
-                            "GivenName": u"Testaren Test",
-                            "GivenNameMarking": u"20"
-                        }
-                    },
-                    "number": u"123456781235",
-                    "created_by": u"eduid-idproofing-letter",
-                    "verified_ts": u'ts',
-                    "transaction_id": u"debug mode transaction id"
-                }
-            ],
-        })
+                        "number": u"123456781235",
+                        "created_by": u"eduid-idproofing-letter",
+                        "verified_ts": u'ts',
+                        "transaction_id": u"debug mode transaction id",
+                    }
+                ],
+            }
+        )
         proofing_user = ProofingUser(data=self.user_data)
         fetcher = self.af_registry['eduid_letter_proofing']
         fetcher.private_db.save(proofing_user)
@@ -199,34 +180,28 @@ class AttributeFetcherOldToNewUsersTests(AMTestCase):
                             u"OfficialAddress": {
                                 u"PostalCode": u"12345",
                                 u"City": u"LANDET",
-                                u"Address2": u"ÖRGATAN 79 LGH 10"
+                                u"Address2": u"ÖRGATAN 79 LGH 10",
                             },
                             u"Name": {
                                 u"Surname": u"Testsson",
                                 u"GivenName": u"Testaren Test",
-                                u"GivenNameMarking": u"20"
-                            }
+                                u"GivenNameMarking": u"20",
+                            },
                         },
                         u"number": u"123456781235",
                         u"created_by": u"eduid-idproofing-letter",
                         u"verified_ts": u'ts',
-                        u"transaction_id": u"debug mode transaction id"
+                        u"transaction_id": u"debug mode transaction id",
                     }
-                ]
+                ],
             },
         }
-        self.assertDictEqual(
-            actual_update,
-            expected_update
-        )
+        self.assertDictEqual(actual_update, expected_update)
 
         actual_update = fetcher.fetch_attrs(proofing_user.user_id)
 
         # Don't repeat the letter_proofing_data
-        self.assertDictEqual(
-            actual_update,
-            expected_update
-        )
+        self.assertDictEqual(actual_update, expected_update)
 
         # Adding a new letter_proofing_data
         self.user_data['letter_proofing_data'].append(
@@ -236,21 +211,13 @@ class AttributeFetcherOldToNewUsersTests(AMTestCase):
                 "verified_by": "eduid-idproofing-letter",
                 "created_ts": 'ts',
                 "official_address": {
-                    "OfficialAddress": {
-                        "PostalCode": "12345",
-                        "City": "LANDET",
-                        "Address2": "ÖRGATAN 79 LGH 10"
-                    },
-                    "Name": {
-                        "Surname": "Testsson",
-                        "GivenName": "Testaren Test",
-                        "GivenNameMarking": "20"
-                    }
+                    "OfficialAddress": {"PostalCode": "12345", "City": "LANDET", "Address2": "ÖRGATAN 79 LGH 10"},
+                    "Name": {"Surname": "Testsson", "GivenName": "Testaren Test", "GivenNameMarking": "20"},
                 },
                 "number": "123456781235",
                 "created_by": "eduid-idproofing-letter",
                 "verified_ts": 'ts',
-                "transaction_id": "debug mode transaction id"
+                "transaction_id": "debug mode transaction id",
             }
         )
         proofing_user = ProofingUser(data=self.user_data)
@@ -273,18 +240,18 @@ class AttributeFetcherOldToNewUsersTests(AMTestCase):
                             u"OfficialAddress": {
                                 u"PostalCode": u"12345",
                                 u"City": u"LANDET",
-                                u"Address2": u"ÖRGATAN 79 LGH 10"
+                                u"Address2": u"ÖRGATAN 79 LGH 10",
                             },
                             u"Name": {
                                 u"Surname": u"Testsson",
                                 u"GivenName": u"Testaren Test",
-                                u"GivenNameMarking": u"20"
-                            }
+                                u"GivenNameMarking": u"20",
+                            },
                         },
                         u"number": u"123456781235",
                         u"created_by": u"eduid-idproofing-letter",
                         u"verified_ts": u'ts',
-                        u"transaction_id": u"debug mode transaction id"
+                        u"transaction_id": u"debug mode transaction id",
                     },
                     {
                         u"verification_code": u"secret code 2",
@@ -295,27 +262,24 @@ class AttributeFetcherOldToNewUsersTests(AMTestCase):
                             u"OfficialAddress": {
                                 u"PostalCode": u"12345",
                                 u"City": u"LANDET",
-                                u"Address2": u"ÖRGATAN 79 LGH 10"
+                                u"Address2": u"ÖRGATAN 79 LGH 10",
                             },
                             u"Name": {
                                 u"Surname": u"Testsson",
                                 u"GivenName": u"Testaren Test",
-                                u"GivenNameMarking": u"20"
-                            }
+                                u"GivenNameMarking": u"20",
+                            },
                         },
                         u"number": u"123456781235",
                         u"created_by": u"eduid-idproofing-letter",
                         u"verified_ts": u'ts',
-                        u"transaction_id": u"debug mode transaction id"
+                        u"transaction_id": u"debug mode transaction id",
                     },
-                ]
+                ],
             },
         }
 
-        self.assertDictEqual(
-            actual_update,
-            expected_update
-        )
+        self.assertDictEqual(actual_update, expected_update)
 
     def convert_and_remove_norEduPersonNIN(self):
         self.user_data.update({'norEduPersonNIN': '123456781235'})
@@ -326,26 +290,16 @@ class AttributeFetcherOldToNewUsersTests(AMTestCase):
 
             actual_update = fetcher.fetch_attrs(proofing_user.user_id)
             expected_update = {
-                '$set': {
-                    'nins': [{'number': '123456781235', 'verified': True, 'primary': True}],
-                },
-                '$unset': {
-                    'norEduPersonNIN': None
-                }
+                '$set': {'nins': [{'number': '123456781235', 'verified': True, 'primary': True}],},
+                '$unset': {'norEduPersonNIN': None},
             }
 
-            self.assertDictEqual(
-                actual_update,
-                expected_update
-            )
+            self.assertDictEqual(actual_update, expected_update)
 
 
 class AttributeFetcherNINProofingTests(AMTestCase):
-
     def setUp(self):
-        am_settings = {
-            'want_mongo_uri': True
-        }
+        am_settings = {'want_mongo_uri': True}
         super(AttributeFetcherNINProofingTests, self).setUp(am_settings=am_settings)
         self.user_data = deepcopy(USER_DATA)
         self.af_registry = AFRegistry(self.am_settings)
@@ -385,17 +339,15 @@ class AttributeFetcherNINProofingTests(AMTestCase):
                         "givenName": u"Testaren",
                         "surname": u"Testsson",
                         "displayName": u"John",
-                        'nins': [
-                            {'number': '123456781235', 'primary': True, 'verified': True}
-                        ]
+                        'nins': [{'number': '123456781235', 'primary': True, 'verified': True}],
                     },
-                }
+                },
             )
 
     def test_malicious_attributes(self):
-        self.user_data.update({
-            'malicious': 'hacker',
-        })
+        self.user_data.update(
+            {'malicious': 'hacker',}
+        )
 
         for fetcher in self.af_registry.values():
             # Write bad entry into database
@@ -419,87 +371,79 @@ class AttributeFetcherNINProofingTests(AMTestCase):
                         "displayName": u"John",
                         'nins': [{'number': '123456781235', 'verified': True, 'primary': True}],
                     },
-                }
+                },
             )
 
     def test_append_attributes_letter_proofing_data(self):
         self.maxDiff = None
-        self.user_data.update({
-            "letter_proofing_data": [
-                {
-                    "verification_code": u"secret code",
-                    "verified": True,
-                    "verified_by": u"eduid-idproofing-letter",
-                    "created_ts": u'ts',
-                    "official_address": {
-                        "OfficialAddress": {
-                            "PostalCode": u"12345",
-                            "City": u"LANDET",
-                            "Address2": u"ÖRGATAN 79 LGH 10"
+        self.user_data.update(
+            {
+                "letter_proofing_data": [
+                    {
+                        "verification_code": u"secret code",
+                        "verified": True,
+                        "verified_by": u"eduid-idproofing-letter",
+                        "created_ts": u'ts',
+                        "official_address": {
+                            "OfficialAddress": {
+                                "PostalCode": u"12345",
+                                "City": u"LANDET",
+                                "Address2": u"ÖRGATAN 79 LGH 10",
+                            },
+                            "Name": {"Surname": u"Testsson", "GivenName": u"Testaren Test", "GivenNameMarking": u"20"},
                         },
-                        "Name": {
-                            "Surname": u"Testsson",
-                            "GivenName": u"Testaren Test",
-                            "GivenNameMarking": u"20"
-                        }
-                    },
-                    "number": u"123456781235",
-                    "created_by": u"eduid-idproofing-letter",
-                    "verified_ts": u'ts',
-                    "transaction_id": u"debug mode transaction id"
-                }
-            ],
-        })
+                        "number": u"123456781235",
+                        "created_by": u"eduid-idproofing-letter",
+                        "verified_ts": u'ts',
+                        "transaction_id": u"debug mode transaction id",
+                    }
+                ],
+            }
+        )
         proofing_user = ProofingUser(data=self.user_data)
         fetcher = self.af_registry['eduid_letter_proofing']
         fetcher.private_db.save(proofing_user)
 
         actual_update = fetcher.fetch_attrs(proofing_user.user_id)
         expected_update = {
-                    '$set': {
-                        "givenName": u"Testaren",
-                        "surname": u"Testsson",
-                        "displayName": u"John",
-                        'nins': [{'number': '123456781235', 'verified': True, 'primary': True}],
-                        "letter_proofing_data": [
-                            {
-                                u"verification_code": u"secret code",
-                                u"verified": True,
-                                u"verified_by": u"eduid-idproofing-letter",
-                                u"created_ts": u'ts',
-                                u"official_address": {
-                                    u"OfficialAddress": {
-                                        u"PostalCode": u"12345",
-                                        u"City": u"LANDET",
-                                        u"Address2": u"ÖRGATAN 79 LGH 10"
-                                    },
-                                    u"Name": {
-                                        u"Surname": u"Testsson",
-                                        u"GivenName": u"Testaren Test",
-                                        u"GivenNameMarking": u"20"
-                                    }
-                                },
-                                u"number": u"123456781235",
-                                u"created_by": u"eduid-idproofing-letter",
-                                u"verified_ts": u'ts',
-                                u"transaction_id": u"debug mode transaction id"
-                            }
-                        ]
-                    },
-                }
+            '$set': {
+                "givenName": u"Testaren",
+                "surname": u"Testsson",
+                "displayName": u"John",
+                'nins': [{'number': '123456781235', 'verified': True, 'primary': True}],
+                "letter_proofing_data": [
+                    {
+                        u"verification_code": u"secret code",
+                        u"verified": True,
+                        u"verified_by": u"eduid-idproofing-letter",
+                        u"created_ts": u'ts',
+                        u"official_address": {
+                            u"OfficialAddress": {
+                                u"PostalCode": u"12345",
+                                u"City": u"LANDET",
+                                u"Address2": u"ÖRGATAN 79 LGH 10",
+                            },
+                            u"Name": {
+                                u"Surname": u"Testsson",
+                                u"GivenName": u"Testaren Test",
+                                u"GivenNameMarking": u"20",
+                            },
+                        },
+                        u"number": u"123456781235",
+                        u"created_by": u"eduid-idproofing-letter",
+                        u"verified_ts": u'ts',
+                        u"transaction_id": u"debug mode transaction id",
+                    }
+                ],
+            },
+        }
 
-        self.assertDictEqual(
-            actual_update,
-            expected_update
-        )
+        self.assertDictEqual(actual_update, expected_update)
 
         actual_update = fetcher.fetch_attrs(proofing_user.user_id)
 
         # Don't repeat the letter_proofing_data
-        self.assertDictEqual(
-            actual_update,
-            expected_update
-        )
+        self.assertDictEqual(actual_update, expected_update)
 
         # Adding a new letter_proofing_data
         self.user_data['letter_proofing_data'].append(
@@ -509,21 +453,13 @@ class AttributeFetcherNINProofingTests(AMTestCase):
                 "verified_by": "eduid-idproofing-letter",
                 "created_ts": 'ts',
                 "official_address": {
-                    "OfficialAddress": {
-                        "PostalCode": "12345",
-                        "City": "LANDET",
-                        "Address2": "ÖRGATAN 79 LGH 10"
-                    },
-                    "Name": {
-                        "Surname": "Testsson",
-                        "GivenName": "Testaren Test",
-                        "GivenNameMarking": "20"
-                    }
+                    "OfficialAddress": {"PostalCode": "12345", "City": "LANDET", "Address2": "ÖRGATAN 79 LGH 10"},
+                    "Name": {"Surname": "Testsson", "GivenName": "Testaren Test", "GivenNameMarking": "20"},
                 },
                 "number": "123456781235",
                 "created_by": "eduid-idproofing-letter",
                 "verified_ts": 'ts',
-                "transaction_id": "debug mode transaction id"
+                "transaction_id": "debug mode transaction id",
             }
         )
         proofing_user = ProofingUser(data=self.user_data)
@@ -546,18 +482,18 @@ class AttributeFetcherNINProofingTests(AMTestCase):
                             u"OfficialAddress": {
                                 u"PostalCode": u"12345",
                                 u"City": u"LANDET",
-                                u"Address2": u"ÖRGATAN 79 LGH 10"
+                                u"Address2": u"ÖRGATAN 79 LGH 10",
                             },
                             u"Name": {
                                 u"Surname": u"Testsson",
                                 u"GivenName": u"Testaren Test",
-                                u"GivenNameMarking": u"20"
-                            }
+                                u"GivenNameMarking": u"20",
+                            },
                         },
                         u"number": u"123456781235",
                         u"created_by": u"eduid-idproofing-letter",
                         u"verified_ts": u'ts',
-                        u"transaction_id": u"debug mode transaction id"
+                        u"transaction_id": u"debug mode transaction id",
                     },
                     {
                         "verification_code": u"secret code",
@@ -568,39 +504,33 @@ class AttributeFetcherNINProofingTests(AMTestCase):
                             u"OfficialAddress": {
                                 u"PostalCode": u"12345",
                                 u"City": u"LANDET",
-                                u"Address2": u"ÖRGATAN 79 LGH 10"
+                                u"Address2": u"ÖRGATAN 79 LGH 10",
                             },
                             u"Name": {
                                 u"Surname": u"Testsson",
                                 u"GivenName": u"Testaren Test",
-                                u"GivenNameMarking": u"20"
-                            }
+                                u"GivenNameMarking": u"20",
+                            },
                         },
                         u"number": u"123456781235",
                         u"created_by": u"eduid-idproofing-letter",
                         u"verified_ts": u'ts',
-                        u"transaction_id": u"debug mode transaction id"
-                    }
-                ]
+                        u"transaction_id": u"debug mode transaction id",
+                    },
+                ],
             },
         }
 
-        self.assertDictEqual(
-            actual_update,
-            expected_update
-        )
+        self.assertDictEqual(actual_update, expected_update)
 
 
 class AttributeFetcherEmailProofingTests(AMTestCase):
-
     def setUp(self):
-        am_settings = {
-            'want_mongo_uri': True
-        }
+        am_settings = {'want_mongo_uri': True}
         super(AttributeFetcherEmailProofingTests, self).setUp(am_settings=am_settings)
         self.user_data = deepcopy(USER_DATA)
-        self.af_registry = AFRegistry(self.am_settings) 
-        #for userdoc in self.amdb._get_all_docs():
+        self.af_registry = AFRegistry(self.am_settings)
+        # for userdoc in self.amdb._get_all_docs():
         #    proofing_user = ProofingUser(data=userdoc)
         #    for context in self.plugin_contexts:
         #        context.private_db.save(proofing_user, check_sync=False)
@@ -625,21 +555,13 @@ class AttributeFetcherEmailProofingTests(AMTestCase):
 
         self.assertDictEqual(
             fetcher.fetch_attrs(proofing_user.user_id),
-            {
-                '$set': {
-                    'mailAliases': [{
-                        'email': 'john@example.com',
-                        'verified': True,
-                        'primary': True,
-                    }],
-                },
-            }
+            {'$set': {'mailAliases': [{'email': 'john@example.com', 'verified': True, 'primary': True,}],},},
         )
 
     def test_malicious_attributes(self):
-        self.user_data.update({
-            'malicious': 'hacker',
-        })
+        self.user_data.update(
+            {'malicious': 'hacker',}
+        )
 
         fetcher = self.af_registry['eduid_email']
         # Write bad entry into database
@@ -655,20 +577,14 @@ class AttributeFetcherEmailProofingTests(AMTestCase):
             'preferredLanguage': 'sv',
             'eduPersonPrincipalName': 'test-test',
             'displayName': 'John',
-            'mailAliases': [{
-                'email': 'john@example.com',
-                'verified': True,
-                'primary': True
-            }],
-            'mobile': [{
-                'verified': True,
-                'mobile': '+46700011336',
-                'primary': True
-            }],
-            'passwords': [{
-                'id': bson.ObjectId('112345678901234567890123'),
-                'salt': '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$',
-            }],
+            'mailAliases': [{'email': 'john@example.com', 'verified': True, 'primary': True}],
+            'mobile': [{'verified': True, 'mobile': '+46700011336', 'primary': True}],
+            'passwords': [
+                {
+                    'id': bson.ObjectId('112345678901234567890123'),
+                    'salt': '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$',
+                }
+            ],
             'nins': [{'number': '123456781235', 'verified': True, 'primary': True}],
         }
 
@@ -678,27 +594,16 @@ class AttributeFetcherEmailProofingTests(AMTestCase):
 
         self.assertDictEqual(
             fetcher.fetch_attrs(proofing_user.user_id),
-            {
-                '$set': {
-                    'mailAliases': [{
-                        'email': 'john@example.com',
-                        'verified': True,
-                        'primary': True
-                    }],
-                },
-            }
+            {'$set': {'mailAliases': [{'email': 'john@example.com', 'verified': True, 'primary': True}],},},
         )
 
 
 class AttributeFetcherPhoneProofingTests(AMTestCase):
-
     def setUp(self):
-        am_settings = {
-            'want_mongo_uri': True
-        }
+        am_settings = {'want_mongo_uri': True}
         super(AttributeFetcherPhoneProofingTests, self).setUp(am_settings=am_settings)
         self.user_data = deepcopy(USER_DATA)
-        self.af_registry = AFRegistry(self.am_settings) 
+        self.af_registry = AFRegistry(self.am_settings)
         self.fetcher = self.af_registry['eduid_phone']
         for userdoc in self.amdb._get_all_docs():
             proofing_user = ProofingUser(data=userdoc)
@@ -721,21 +626,13 @@ class AttributeFetcherPhoneProofingTests(AMTestCase):
 
         self.assertDictEqual(
             self.fetcher.fetch_attrs(proofing_user.user_id),
-            {
-                '$set': {
-                    'phone': [{
-                        'verified': True,
-                        'number': '+46700011336',
-                        'primary': True
-                    }],
-                },
-            }
+            {'$set': {'phone': [{'verified': True, 'number': '+46700011336', 'primary': True}],},},
         )
 
     def test_malicious_attributes(self):
-        self.user_data.update({
-            'malicious': 'hacker',
-        })
+        self.user_data.update(
+            {'malicious': 'hacker',}
+        )
 
         # Write bad entry into database
         user_id = self.fetcher.private_db._coll.insert(self.user_data)
@@ -749,27 +646,16 @@ class AttributeFetcherPhoneProofingTests(AMTestCase):
 
         self.assertDictEqual(
             self.fetcher.fetch_attrs(proofing_user.user_id),
-            {
-                '$set': {
-                    'phone': [{
-                        'verified': True,
-                        'number': '+46700011336',
-                        'primary': True
-                    }],
-                },
-            }
+            {'$set': {'phone': [{'verified': True, 'number': '+46700011336', 'primary': True}],},},
         )
 
 
 class AttributeFetcherPersonalDataTests(AMTestCase):
-
     def setUp(self):
-        am_settings = {
-            'want_mongo_uri': True
-        }
+        am_settings = {'want_mongo_uri': True}
         super(AttributeFetcherPersonalDataTests, self).setUp(am_settings=am_settings)
         self.user_data = deepcopy(USER_DATA)
-        self.af_registry = AFRegistry(self.am_settings) 
+        self.af_registry = AFRegistry(self.am_settings)
         self.fetcher = self.af_registry['eduid_personal_data']
 
         self.maxDiff = None
@@ -796,13 +682,13 @@ class AttributeFetcherPersonalDataTests(AMTestCase):
                     'displayName': u'John',
                     'preferredLanguage': u'sv',
                 },
-            }
+            },
         )
 
     def test_malicious_attributes(self):
-        self.user_data.update({
-            'malicious': 'hacker',
-        })
+        self.user_data.update(
+            {'malicious': 'hacker',}
+        )
 
         # Write bad entry into database
         user_id = self.fetcher.private_db._coll.insert(self.user_data)
@@ -823,19 +709,16 @@ class AttributeFetcherPersonalDataTests(AMTestCase):
                     'displayName': 'John',
                     'preferredLanguage': 'sv',
                 },
-            }
+            },
         )
 
 
 class AttributeFetcherSecurityTests(AMTestCase):
-
     def setUp(self):
-        am_settings = {
-            'want_mongo_uri': True
-        }
+        am_settings = {'want_mongo_uri': True}
         super(AttributeFetcherSecurityTests, self).setUp(am_settings=am_settings)
         self.user_data = deepcopy(USER_DATA)
-        self.af_registry = AFRegistry(self.am_settings) 
+        self.af_registry = AFRegistry(self.am_settings)
         self.fetcher = self.af_registry['eduid_security']
 
         self.maxDiff = None
@@ -857,32 +740,24 @@ class AttributeFetcherSecurityTests(AMTestCase):
             self.fetcher.fetch_attrs(security_user.user_id),
             {
                 '$set': {
-                    'passwords': [{
-                        'credential_id': u'112345678901234567890123',
-                        'is_generated': False,
-                        'salt': '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$',
-                    }],
-                    'nins': [{
-                        'number': '123456781235',
-                        'primary': True,
-                        'verified': True
-                    }],
-                    'phone': [{
-                        'number': '+46700011336',
-                        'primary': True,
-                        'verified': True
-                    }]
+                    'passwords': [
+                        {
+                            'credential_id': u'112345678901234567890123',
+                            'is_generated': False,
+                            'salt': '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$',
+                        }
+                    ],
+                    'nins': [{'number': '123456781235', 'primary': True, 'verified': True}],
+                    'phone': [{'number': '+46700011336', 'primary': True, 'verified': True}],
                 },
-                '$unset': {
-                    'terminated': None
-                }
-            }
+                '$unset': {'terminated': None},
+            },
         )
 
     def test_malicious_attributes(self):
-        self.user_data.update({
-            'malicious': 'hacker',
-        })
+        self.user_data.update(
+            {'malicious': 'hacker',}
+        )
 
         # Write bad entry into database
         user_id = self.fetcher.private_db._coll.insert(self.user_data)
@@ -898,38 +773,27 @@ class AttributeFetcherSecurityTests(AMTestCase):
             self.fetcher.fetch_attrs(security_user.user_id),
             {
                 '$set': {
-                    'passwords': [{
-                        'credential_id': u'112345678901234567890123',
-                        'is_generated': False,
-                        'salt': '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$',
-                    }],
-                    'nins': [{
-                        'number': '123456781235',
-                        'primary': True,
-                        'verified': True
-                    }],
-                    'phone': [{
-                        'number': '+46700011336',
-                        'primary': True,
-                        'verified': True
-                    }]
+                    'passwords': [
+                        {
+                            'credential_id': u'112345678901234567890123',
+                            'is_generated': False,
+                            'salt': '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$',
+                        }
+                    ],
+                    'nins': [{'number': '123456781235', 'primary': True, 'verified': True}],
+                    'phone': [{'number': '+46700011336', 'primary': True, 'verified': True}],
                 },
-                '$unset': {
-                    'terminated': None
-                }
-            }
+                '$unset': {'terminated': None},
+            },
         )
 
 
 class AttributeFetcherResetPasswordTests(AMTestCase):
-
     def setUp(self):
-        am_settings = {
-            'want_mongo_uri': True
-        }
+        am_settings = {'want_mongo_uri': True}
         super(AttributeFetcherResetPasswordTests, self).setUp(am_settings=am_settings)
         self.user_data = deepcopy(USER_DATA)
-        self.af_registry = AFRegistry(self.am_settings) 
+        self.af_registry = AFRegistry(self.am_settings)
         self.fetcher = self.af_registry['eduid_reset_password']
 
         self.maxDiff = None
@@ -951,29 +815,23 @@ class AttributeFetcherResetPasswordTests(AMTestCase):
             self.fetcher.fetch_attrs(reset_password_user.user_id),
             {
                 '$set': {
-                    'passwords': [{
-                        'credential_id': u'112345678901234567890123',
-                        'is_generated': False,
-                        'salt': '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$',
-                    }],
-                    'nins': [{
-                        'number': '123456781235',
-                        'primary': True,
-                        'verified': True
-                    }],
-                    'phone': [{
-                        'number': '+46700011336',
-                        'primary': True,
-                        'verified': True
-                    }]
+                    'passwords': [
+                        {
+                            'credential_id': u'112345678901234567890123',
+                            'is_generated': False,
+                            'salt': '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$',
+                        }
+                    ],
+                    'nins': [{'number': '123456781235', 'primary': True, 'verified': True}],
+                    'phone': [{'number': '+46700011336', 'primary': True, 'verified': True}],
                 },
-            }
+            },
         )
 
     def test_malicious_attributes(self):
-        self.user_data.update({
-            'malicious': 'hacker',
-        })
+        self.user_data.update(
+            {'malicious': 'hacker',}
+        )
 
         # Write bad entry into database
         user_id = self.fetcher.private_db._coll.insert(self.user_data)
@@ -989,35 +847,26 @@ class AttributeFetcherResetPasswordTests(AMTestCase):
             self.fetcher.fetch_attrs(reset_password_user.user_id),
             {
                 '$set': {
-                    'passwords': [{
-                        'credential_id': u'112345678901234567890123',
-                        'is_generated': False,
-                        'salt': '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$',
-                    }],
-                    'nins': [{
-                        'number': '123456781235',
-                        'primary': True,
-                        'verified': True
-                    }],
-                    'phone': [{
-                        'number': '+46700011336',
-                        'primary': True,
-                        'verified': True
-                    }]
+                    'passwords': [
+                        {
+                            'credential_id': u'112345678901234567890123',
+                            'is_generated': False,
+                            'salt': '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$',
+                        }
+                    ],
+                    'nins': [{'number': '123456781235', 'primary': True, 'verified': True}],
+                    'phone': [{'number': '+46700011336', 'primary': True, 'verified': True}],
                 },
-            }
+            },
         )
 
 
 class AttributeFetcherOrcidTests(AMTestCase):
-
     def setUp(self):
-        am_settings = {
-            'want_mongo_uri': True
-        }
+        am_settings = {'want_mongo_uri': True}
         super(AttributeFetcherOrcidTests, self).setUp(am_settings=am_settings)
         self.user_data = deepcopy(USER_DATA)
-        self.af_registry = AFRegistry(self.am_settings) 
+        self.af_registry = AFRegistry(self.am_settings)
         self.fetcher = self.af_registry['eduid_orcid']
 
         self.maxDiff = None
@@ -1045,35 +894,33 @@ class AttributeFetcherOrcidTests(AMTestCase):
                             'refresh_token': 'a_refresh_token',
                             'access_token': 'an_access_token',
                             'id_token': {
-                                    'nonce': 'a_nonce',
-                                    'sub': 'sub_id',
-                                    'iss': 'https://issuer.example.org',
-                                    'created_by': 'orcid',
-                                    'exp': 1526890816,
-                                    'auth_time': 1526890214,
-                                    'iat': 1526890216,
-                                    'aud': [
-                                            'APP-YIAD0N1L4B3Z3W9Q'
-                                    ]
+                                'nonce': 'a_nonce',
+                                'sub': 'sub_id',
+                                'iss': 'https://issuer.example.org',
+                                'created_by': 'orcid',
+                                'exp': 1526890816,
+                                'auth_time': 1526890214,
+                                'iat': 1526890216,
+                                'aud': ['APP-YIAD0N1L4B3Z3W9Q'],
                             },
                             'expires_in': 631138518,
-                            'created_by': 'orcid'
+                            'created_by': 'orcid',
                         },
                         'given_name': 'Testaren',
                         'family_name': 'Testsson',
                         'name': None,
                         'verified': True,
                         'id': 'orcid_unique_id',
-                        'created_by': 'orcid'
+                        'created_by': 'orcid',
                     }
                 },
-            }
+            },
         )
 
     def test_malicious_attributes(self):
-        self.user_data.update({
-            'malicious': 'hacker',
-        })
+        self.user_data.update(
+            {'malicious': 'hacker',}
+        )
 
         # Write bad entry into database
         user_id = self.fetcher.private_db._coll.insert(self.user_data)
@@ -1086,11 +933,4 @@ class AttributeFetcherOrcidTests(AMTestCase):
         proofing_user.orcid = None
         self.fetcher.private_db.save(proofing_user)
 
-        self.assertDictEqual(
-            self.fetcher.fetch_attrs(proofing_user.user_id),
-            {
-                '$unset': {
-                    'orcid': None
-                }
-            }
-        )
+        self.assertDictEqual(self.fetcher.fetch_attrs(proofing_user.user_id), {'$unset': {'orcid': None}})

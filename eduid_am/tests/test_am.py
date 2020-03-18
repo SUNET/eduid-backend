@@ -2,10 +2,11 @@ from __future__ import absolute_import
 
 from bson import ObjectId
 
-from eduid_common.config.workers import AmConfig
 import eduid_userdb
-from eduid_am.ams.common import AttributeFetcher
+from eduid_common.config.workers import AmConfig
 from eduid_userdb.exceptions import UserDoesNotExist
+
+from eduid_am.ams.common import AttributeFetcher
 from eduid_am.testing import AMTestCase
 
 __author__ = 'leifj'
@@ -31,6 +32,7 @@ class AmTestUserDb(eduid_userdb.UserDB):
     """
     UserDB for the 'test' plugin below.
     """
+
     UserClass = AmTestUser
 
 
@@ -62,9 +64,7 @@ class FakeAttributeFetcher(AttributeFetcher):
         res = user.to_dict(old_userdb_format=True)
         res['eduPersonPrincipalName'] = "{!s}@eduid.se".format(user.uid)
         del res['uid']
-        attributes = {
-            '$set': res
-        }
+        attributes = {'$set': res}
         return attributes
 
 
@@ -72,6 +72,7 @@ class BadAttributeFetcher(FakeAttributeFetcher):
     """
     Returns a bad operations dict.
     """
+
     def fetch_attrs(self, user_id):
         res = super().fetch_attrs(user_id)
         res['notanoperator'] = 'test'
@@ -102,13 +103,12 @@ class MessageTest(AMTestCase):
         with self.assertRaises(eduid_userdb.exceptions.UserDoesNotExist):
             self.amdb.get_user_by_id(_id)
 
-        userdoc = {'_id': _id,
-                   'eduPersonPrincipalName': 'foo-bar',
-                   'uid': 'vlindeman',
-                   'passwords': [{'id': ObjectId('112345678901234567890123'),
-                                  'salt': '$NDNv1H1$9c81...545$32$32$',
-                                  }],
-                   }
+        userdoc = {
+            '_id': _id,
+            'eduPersonPrincipalName': 'foo-bar',
+            'uid': 'vlindeman',
+            'passwords': [{'id': ObjectId('112345678901234567890123'), 'salt': '$NDNv1H1$9c81...545$32$32$',}],
+        }
         test_user = AmTestUser(userdoc)
         # Save the user in the eduid_am_test database
         self.private_db.save(test_user)
@@ -118,6 +118,7 @@ class MessageTest(AMTestCase):
         # have instantiated AttributeManagers without the right config if the import is
         # done prior to the Celery app configuration.
         from eduid_am.tasks import update_attributes
+
         update_attributes.delay(app_name='test', user_id=str(_id))
 
         # verify the user has been propagated to the amdb
@@ -132,13 +133,12 @@ class MessageTest(AMTestCase):
         """
         _id = ObjectId()
 
-        userdoc = {'_id': _id,
-                   'eduPersonPrincipalName': 'foo-bar',
-                   'uid': 'vlindeman',
-                   'passwords': [{'id': ObjectId('112345678901234567890123'),
-                                  'salt': '$NDNv1H1$9c81...545$32$32$',
-                                  }],
-                   }
+        userdoc = {
+            '_id': _id,
+            'eduPersonPrincipalName': 'foo-bar',
+            'uid': 'vlindeman',
+            'passwords': [{'id': ObjectId('112345678901234567890123'), 'salt': '$NDNv1H1$9c81...545$32$32$',}],
+        }
         test_user = AmTestUser(userdoc)
         # Save the user in the private database
         self.private_db.save(test_user)
@@ -156,6 +156,7 @@ class MessageTest(AMTestCase):
         # have instantiated AttributeManagers without the right config if the import is
         # done prior to the Celery app configuration.
         from eduid_am.tasks import update_attributes
+
         update_attributes.delay(app_name='test', user_id=str(_id))
 
         # verify the user has been propagated to the amdb
@@ -165,13 +166,12 @@ class MessageTest(AMTestCase):
     def test_bad_operator(self):
         _id = ObjectId()
 
-        userdoc = {'_id': _id,
-                   'eduPersonPrincipalName': 'foo-bar',
-                   'uid': 'vlindeman',
-                   'passwords': [{'id': ObjectId('112345678901234567890123'),
-                                  'salt': '$NDNv1H1$9c81...545$32$32$',
-                                  }],
-                   }
+        userdoc = {
+            '_id': _id,
+            'eduPersonPrincipalName': 'foo-bar',
+            'uid': 'vlindeman',
+            'passwords': [{'id': ObjectId('112345678901234567890123'), 'salt': '$NDNv1H1$9c81...545$32$32$',}],
+        }
         test_user = AmTestUser(userdoc)
         # Save the user in the private database
         self.private_db.save(test_user)
@@ -189,5 +189,6 @@ class MessageTest(AMTestCase):
         # have instantiated AttributeManagers without the right config if the import is
         # done prior to the Celery app configuration.
         from eduid_am.tasks import update_attributes
+
         with self.assertRaises(eduid_userdb.exceptions.EduIDDBError):
             update_attributes.delay(app_name='bad', user_id=str(_id))

@@ -32,17 +32,17 @@
 __author__ = 'eperez'
 
 from abc import ABC, abstractmethod
-from typing import List
 from dataclasses import dataclass
+from typing import List
 
 import bson
 import pymongo.errors
-from eduid_userdb.exceptions import UserDoesNotExist
-from eduid_userdb.actions.tou import ToUUserDB
-from eduid_userdb.userdb import UserDB
-from eduid_common.config.workers import AmConfig
-
 from celery.utils.log import get_task_logger
+
+from eduid_common.config.workers import AmConfig
+from eduid_userdb.actions.tou import ToUUserDB
+from eduid_userdb.exceptions import UserDoesNotExist
+from eduid_userdb.userdb import UserDB
 
 logger = get_task_logger(__name__)
 

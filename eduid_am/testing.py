@@ -49,7 +49,7 @@ import pymongo
 from bson import ObjectId
 
 from eduid_common.api.testing_base import CommonTestCase
-from eduid_userdb import UserDB, User
+from eduid_userdb import User, UserDB
 from eduid_userdb.dashboard.user import DashboardUser
 
 logger = logging.getLogger(__name__)
@@ -66,8 +66,10 @@ class AMTestCase(CommonTestCase):
         """
         super(AMTestCase, self).setUp(am_settings=am_settings)
         import eduid_am
+
         celery = eduid_am.init_app(self.am_settings.celery)
         import eduid_am.worker
+
         eduid_am.worker.worker_config = self.am_settings
         logger.debug('Initialized AM with config:\n{!r}'.format(self.am_settings))
 

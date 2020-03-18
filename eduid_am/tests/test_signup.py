@@ -1,29 +1,27 @@
-import bson
 from copy import deepcopy
 from datetime import date, timedelta
 
-from eduid_userdb.signup import SignupUser
-from eduid_userdb.exceptions import UserDoesNotExist, UserHasUnknownData
-from eduid_userdb.testing import MOCKED_USER_STANDARD as M
-from eduid_am.testing import AMTestCase
+import bson
+
 from eduid_common.config.workers import AmConfig
+from eduid_userdb.exceptions import UserDoesNotExist, UserHasUnknownData
+from eduid_userdb.signup import SignupUser
+from eduid_userdb.testing import MOCKED_USER_STANDARD as M
+
 from eduid_am.ams import eduid_signup
+from eduid_am.testing import AMTestCase
 from eduid_am.tests.test_proofing_fetchers import USER_DATA
 
 
 class AttributeFetcherTests(AMTestCase):
-
     def setUp(self):
-        am_settings = {
-            'want_mongo_uri': True,
-            'new_user_date': '2001-01-01'
-        }
+        am_settings = {'want_mongo_uri': True, 'new_user_date': '2001-01-01'}
         super(AttributeFetcherTests, self).setUp(am_settings=am_settings)
 
         self.fetcher = eduid_signup(self.am_settings)
 
         for userdoc in self.amdb._get_all_docs():
-            signup_user = SignupUser(data = userdoc)
+            signup_user = SignupUser(data=userdoc)
             self.fetcher.private_db.save(signup_user, check_sync=False)
 
     def test_invalid_user(self):
@@ -38,13 +36,15 @@ class AttributeFetcherTests(AMTestCase):
                 'mailAliases': [
                     {'email': 'johnsmith@example.com', 'primary': True, 'verified': True},
                     {'email': 'johnsmith2@example.com', 'primary': False, 'verified': True},
-                    {'email': 'johnsmith3@example.com', 'primary': False, 'verified': False}
+                    {'email': 'johnsmith3@example.com', 'primary': False, 'verified': False},
                 ],
-                'passwords': [{
-                    'credential_id': '112345678901234567890123',
-                    'is_generated': False,
-                    'salt': '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$'
-                }]
+                'passwords': [
+                    {
+                        'credential_id': '112345678901234567890123',
+                        'is_generated': False,
+                        'salt': '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$',
+                    }
+                ],
             }
         }
 
@@ -73,14 +73,8 @@ class AttributeFetcherTests(AMTestCase):
     def test_user_finished_and_removed(self):
         user_data = deepcopy(USER_DATA)
         user_data['mail'] = 'john@example.com'
-        user_data['mailAliases'] = [{
-                    'email': 'john@example.com',
-                    'verified': True,
-                }]
-        user_data['passwords'] = [{
-                'id': '123',
-                'salt': '456',
-            }]
+        user_data['mailAliases'] = [{'email': 'john@example.com', 'verified': True,}]
+        user_data['passwords'] = [{'id': '123', 'salt': '456',}]
         user = SignupUser(data=user_data)
         self.fetcher.private_db.save(user)
         attrs = self.fetcher.fetch_attrs(user.user_id)
@@ -89,31 +83,18 @@ class AttributeFetcherTests(AMTestCase):
             {
                 '$set': {
                     'eduPersonPrincipalName': 'test-test',
-                    'mailAliases': [{
-                        'verified': True,
-                        'primary': True,
-                        'email': 'john@example.com'}],
-                    'passwords': [{
-                        'credential_id': u'123',
-                        'is_generated': False,
-                        'salt': u'456',
-                    }]
+                    'mailAliases': [{'verified': True, 'primary': True, 'email': 'john@example.com'}],
+                    'passwords': [{'credential_id': u'123', 'is_generated': False, 'salt': u'456',}],
                 }
-            }
+            },
         )
 
     def test_malicious_attributes(self):
         user_data = deepcopy(USER_DATA)
         user_data['foo'] = 'bar'
         user_data['mail'] = 'john@example.com'
-        user_data['mailAliases'] = [{
-                    'email': 'john@example.com',
-                    'verified': True,
-                }]
-        user_data['passwords'] = [{
-                'id': '123',
-                'salt': '456',
-            }]
+        user_data['mailAliases'] = [{'email': 'john@example.com', 'verified': True,}]
+        user_data['passwords'] = [{'id': '123', 'salt': '456',}]
         with self.assertRaises(UserHasUnknownData):
             user = SignupUser(data=user_data)
             self.fetcher.private_db.save(user, raise_on_unknown=False)
