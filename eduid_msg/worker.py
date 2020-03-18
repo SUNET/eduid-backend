@@ -1,7 +1,7 @@
-from eduid_common.rpc.worker import get_worker_config
-from eduid_common.rpc.celery import init_celery
 from eduid_common.config.base import CommonConfig
 from eduid_common.config.workers import MsgConfig
+from eduid_common.rpc.celery import init_celery
+from eduid_common.rpc.worker import get_worker_config
 
 import eduid_msg.common as common
 

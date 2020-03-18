@@ -7,6 +7,7 @@ See the file LICENSE.txt for full license statement.
 from __future__ import absolute_import
 
 from eduid_common.rpc.celery import init_celery as _init_celery
+
 import eduid_msg.common as common
 
 
@@ -20,6 +21,7 @@ def get_message_relay(celery_app):
     Function that return a celery task list.
     """
     import eduid_msg.tasks
+
     return celery_app.tasks['eduid_msg.tasks.send_message']
 
 
@@ -28,5 +30,5 @@ def get_mail_relay(celery_app):
     Function that return a celery task list.
     """
     import eduid_msg.tasks
-    return celery_app.tasks['eduid_msg.tasks.sendmail']
 
+    return celery_app.tasks['eduid_msg.tasks.sendmail']

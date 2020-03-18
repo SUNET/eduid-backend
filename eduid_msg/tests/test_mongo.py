@@ -1,7 +1,7 @@
 from eduid_msg.testing import MsgMongoTestCase
 
-class MessageTest(MsgMongoTestCase):
 
+class MessageTest(MsgMongoTestCase):
     def setUp(self):
         super(MessageTest, self).setUp()
 
@@ -10,4 +10,4 @@ class MessageTest(MsgMongoTestCase):
         c = db['test']
         id = c.insert_one({'baka': 'kaka'}).inserted_id
         doc = c.find_one({'_id': id})
-        assert(doc['baka'] == 'kaka')
+        assert doc['baka'] == 'kaka'

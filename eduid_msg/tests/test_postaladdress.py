@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 __author__ = 'lundberg'
 
-import pkg_resources
-from unittest import TestCase
-from mock import MagicMock
-from eduid_msg import utils
 import json
+from unittest import TestCase
+
+import pkg_resources
+from mock import MagicMock
+
+from eduid_msg import utils
 
 
 class TestPostalAddress(TestCase):
@@ -55,6 +57,5 @@ class TestPostalAddress(TestCase):
         response = self.navet.personpost.navetnotification.POST(self.request)
         if response.status_code == 200:
             result = utils.navet_get_relations(response.json())
-            self.assertEqual(result['Relations']['Relation'][0]['RelationId']['NationalIdentityNumber'],
-                              '196910199287')
+            self.assertEqual(result['Relations']['Relation'][0]['RelationId']['NationalIdentityNumber'], '196910199287')
             self.assertEqual(result['Relations']['Relation'][0]['RelationType'], 'M')

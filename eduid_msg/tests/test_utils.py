@@ -8,10 +8,7 @@ from eduid_msg.utils import load_template
 class TestUtils(TestCase):
     def setUp(self):
         self.template_dir = pkg_resources.resource_filename(__name__, 'data')
-        self.msg_dict = {
-            'name': 'Godiskungen',
-            'admin': 'Testadmin'
-        }
+        self.msg_dict = {'name': 'Godiskungen', 'admin': 'Testadmin'}
 
     def test_load_template_missing(self):
         with self.assertRaises(RuntimeError):
