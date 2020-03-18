@@ -8,7 +8,7 @@ from eduid_scimapi.scimbase import SCIMSchema
 from eduid_scimapi.user import ScimApiUser
 
 
-class MyTestCase(unittest.TestCase):
+class TestScimUser(unittest.TestCase):
 
     def setUp(self) -> None:
         self.user_doc1 = {
