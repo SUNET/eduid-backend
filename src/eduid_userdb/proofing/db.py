@@ -120,8 +120,8 @@ class ProofingStateDB(BaseDB):
         state.modified_ts = datetime.datetime.utcnow()  # update to current time
         if modified is None:
             # document has never been modified
-            result = self._coll.insert(state.to_dict())
-            logging.debug("{} Inserted new state {} into {}): {})".format(self, state, self._coll_name, result))
+            result = self._coll.insert_one(state.to_dict())
+            logging.debug(f"{self} Inserted new state {state} into {self._coll_name}): {result.inserted_id})")
         else:
             test_doc = {'eduPersonPrincipalName': state.eppn}
             if check_sync:
