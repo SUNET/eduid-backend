@@ -110,7 +110,8 @@ class AttributeFetcherOldToNewUsersTests(AMTestCase):
 
         for fetcher in self.af_registry.values():
             # Write bad entry into database
-            user_id = fetcher.private_db._coll.insert(self.user_data)
+            result = fetcher.private_db._coll.insert_one(self.user_data)
+            user_id = result.inserted_id
 
             with self.assertRaises(UserHasUnknownData):
                 fetcher.fetch_attrs(user_id)
@@ -351,7 +352,8 @@ class AttributeFetcherNINProofingTests(AMTestCase):
 
         for fetcher in self.af_registry.values():
             # Write bad entry into database
-            user_id = fetcher.private_db._coll.insert(self.user_data)
+            result = fetcher.private_db._coll.insert_one(self.user_data)
+            user_id = result.inserted_id
 
             with self.assertRaises(UserHasUnknownData):
                 fetcher.fetch_attrs(user_id)
@@ -565,7 +567,8 @@ class AttributeFetcherEmailProofingTests(AMTestCase):
 
         fetcher = self.af_registry['eduid_email']
         # Write bad entry into database
-        user_id = fetcher.private_db._coll.insert(self.user_data)
+        result = fetcher.private_db._coll.insert_one(self.user_data)
+        user_id = result.inserted_id
 
         with self.assertRaises(UserHasUnknownData):
             fetcher.fetch_attrs(user_id)
@@ -635,7 +638,8 @@ class AttributeFetcherPhoneProofingTests(AMTestCase):
         )
 
         # Write bad entry into database
-        user_id = self.fetcher.private_db._coll.insert(self.user_data)
+        result = self.fetcher.private_db._coll.insert_one(self.user_data)
+        user_id = result.inserted_id
 
         with self.assertRaises(UserHasUnknownData):
             self.fetcher.fetch_attrs(user_id)
@@ -691,7 +695,8 @@ class AttributeFetcherPersonalDataTests(AMTestCase):
         )
 
         # Write bad entry into database
-        user_id = self.fetcher.private_db._coll.insert(self.user_data)
+        result = self.fetcher.private_db._coll.insert_one(self.user_data)
+        user_id = result.inserted_id
 
         with self.assertRaises(UserHasUnknownData):
             self.fetcher.fetch_attrs(user_id)
@@ -760,7 +765,8 @@ class AttributeFetcherSecurityTests(AMTestCase):
         )
 
         # Write bad entry into database
-        user_id = self.fetcher.private_db._coll.insert(self.user_data)
+        result = self.fetcher.private_db._coll.insert_one(self.user_data)
+        user_id = result.inserted_id
 
         with self.assertRaises(UserHasUnknownData):
             self.fetcher.fetch_attrs(user_id)
@@ -834,7 +840,8 @@ class AttributeFetcherResetPasswordTests(AMTestCase):
         )
 
         # Write bad entry into database
-        user_id = self.fetcher.private_db._coll.insert(self.user_data)
+        result = self.fetcher.private_db._coll.insert_one(self.user_data)
+        user_id = result.inserted_id
 
         with self.assertRaises(UserHasUnknownData):
             self.fetcher.fetch_attrs(user_id)
@@ -923,7 +930,8 @@ class AttributeFetcherOrcidTests(AMTestCase):
         )
 
         # Write bad entry into database
-        user_id = self.fetcher.private_db._coll.insert(self.user_data)
+        result = self.fetcher.private_db._coll.insert_one(self.user_data)
+        user_id = result.inserted_id
 
         with self.assertRaises(UserHasUnknownData):
             self.fetcher.fetch_attrs(user_id)
