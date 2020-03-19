@@ -39,6 +39,7 @@ import vccs_client
 from eduid_userdb.credentials import Password
 from eduid_userdb.dashboard import DashboardLegacyUser, DashboardUser
 
+from eduid_common.api.decorators import deprecated
 from eduid_common.authn import get_vccs_client
 
 logger = logging.getLogger()
@@ -77,6 +78,7 @@ class TestVCCSClient(object):
     before the real functions (check_password, add_credentials) use it.
     """
 
+    @deprecated("Remove once eduid-webapp is using MockVCCSClient (just below this)")
     def __init__(self):
         self.factors = {}
 
