@@ -126,8 +126,8 @@ class ProofingStateDB(BaseDB):
             test_doc = {'eduPersonPrincipalName': state.eppn}
             if check_sync:
                 test_doc['modified_ts'] = modified
-            result = self._coll.update(test_doc, state.to_dict(), upsert=(not check_sync))
-            if check_sync and result['n'] == 0:
+            result = self._coll.replace_one(test_doc, state.to_dict(), upsert=(not check_sync))
+            if check_sync and result.matched_count == 0:
                 db_ts = None
                 db_state = self._coll.find_one({'eduPersonPrincipalName': state.eppn})
                 if db_state:

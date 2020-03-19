@@ -119,8 +119,8 @@ class RawDb(object):
             res = 'DRY_RUN'
         else:
             if len(raw.doc):
-                db_res = self._client[raw.db][raw.collection].update({'_id': raw.doc['_id']}, raw.doc)
-                res = 'UPDATE {}'.format(db_res)
+                db_res = self._client[raw.db][raw.collection].replace_one({'_id': raw.doc['_id']}, raw.doc)
+                res = f'UPDATE {db_res}'
             else:
                 db_res = self._client[raw.db][raw.collection].remove({'_id': raw.before['_id']})
                 res = 'REMOVE {}'.format(db_res)
