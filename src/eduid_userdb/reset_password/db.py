@@ -130,8 +130,8 @@ class ResetPasswordStateDB(BaseDB):
             if old_state:
                 self.remove_state(old_state)
 
-            result = self._coll.insert(state.to_dict())
-            logging.debug(f"{self} Inserted new state {state} into " f"{self._coll_name}): {result})")
+            result = self._coll.insert_one(state.to_dict())
+            logging.debug(f"{self} Inserted new state {state} into {self._coll_name}): {result.inserted_id})")
 
         else:
             test_doc: Dict[str, Any] = {'eduPersonPrincipalName': state.eppn}
