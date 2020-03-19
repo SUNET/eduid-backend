@@ -468,3 +468,32 @@ def compile_credential_list(user: ResetPasswordUser) -> list:
         credential_dict.update(authn_info[credential.key])
         credentials.append(credential_dict)
     return credentials
+
+
+def get_zxcvbn_terms(eppn):
+    """
+    :param eppn: User eppn
+    :type eppn: six.string_types
+    :return: List of user info
+    :rtype: list
+
+    Combine known data that is bad for a password to a list for zxcvbn.
+    """
+    user = current_app.central_userdb.get_user_by_eppn(eppn, raise_on_missing=True)
+    user_input = list()
+
+    # Personal info
+    if user.display_name:
+        for part in user.display_name.split():
+            user_input.append(''.join(part.split()))
+    if user.given_name:
+        user_input.append(user.given_name)
+    if user.surname:
+        user_input.append(user.surname)
+
+    # Mail addresses
+    if user.mail_addresses.count:
+        for item in user.mail_addresses.to_list():
+            user_input.append(item.email.split('@')[0])
+
+    return user_input

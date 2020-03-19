@@ -96,6 +96,7 @@ from eduid_webapp.reset_password.helpers import (
     generate_suggested_password,
     get_extra_security_alternatives,
     get_pwreset_state,
+    get_zxcvbn_terms,
     hash_password,
     mask_alternatives,
     reset_user_password,
@@ -113,7 +114,6 @@ from eduid_webapp.reset_password.schemas import (
     ResetPasswordWithPhoneCodeSchema,
     ResetPasswordWithSecTokenSchema,
 )
-from eduid_webapp.security.helpers import get_zxcvbn_terms
 
 SESSION_PREFIX = "eduid_webapp.reset_password.views"
 
