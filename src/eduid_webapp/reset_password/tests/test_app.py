@@ -97,7 +97,7 @@ class ResetPasswordTests(EduidAPITestCase):
             self.app.central_userdb._drop_whole_collection()
 
     def test_app_starts(self):
-        self.assertEquals(self.app.config.app_name, "reset_password")
+        self.assertEqual(self.app.config.app_name, "reset_password")
 
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     def test_post_email_address(self, mock_sendmail):
@@ -131,7 +131,7 @@ class ResetPasswordTests(EduidAPITestCase):
             data = {'code': state.email_code.code}
             response = c.post(url, data=json.dumps(data), content_type=self.content_type_json)
             self.assertEqual(response.status_code, 200)
-            self.assertEquals(response.json['payload']['extra_security']['phone_numbers'][0]['number'], 'XXXXXXXXXX09')
+            self.assertEqual(response.json['payload']['extra_security']['phone_numbers'][0]['number'], 'XXXXXXXXXX09')
             self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_CONFIG_SUCCESS')
 
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
@@ -208,7 +208,7 @@ class ResetPasswordTests(EduidAPITestCase):
             data = {'code': 'wrong-code'}
             response = c.post(url, data=json.dumps(data), content_type=self.content_type_json)
             self.assertEqual(response.status_code, 200)
-            self.assertEquals(response.json['payload']['message'], 'resetpw.unknown-code')
+            self.assertEqual(response.json['payload']['message'], 'resetpw.unknown-code')
             self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_CONFIG_FAIL')
 
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
@@ -229,7 +229,7 @@ class ResetPasswordTests(EduidAPITestCase):
             data = {'code': state.email_code.code}
             response = c.post(url, data=json.dumps(data), content_type=self.content_type_json)
             self.assertEqual(response.status_code, 200)
-            self.assertEquals(response.json['payload']['extra_security'], {})
+            self.assertEqual(response.json['payload']['extra_security'], {})
             self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_CONFIG_SUCCESS')
 
     @patch('eduid_common.authn.vccs.get_vccs_client')
@@ -248,9 +248,9 @@ class ResetPasswordTests(EduidAPITestCase):
             # check that the user has verified data
             user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
             verified_phone_numbers = user.phone_numbers.verified.to_list()
-            self.assertEquals(len(verified_phone_numbers), 1)
+            self.assertEqual(len(verified_phone_numbers), 1)
             verified_nins = user.nins.verified.to_list()
-            self.assertEquals(len(verified_nins), 2)
+            self.assertEqual(len(verified_nins), 2)
 
             with c.session_transaction() as session:
                 new_password = generate_suggested_password()
@@ -266,9 +266,9 @@ class ResetPasswordTests(EduidAPITestCase):
             # check that the user no longer has verified data
             user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
             verified_phone_numbers = user.phone_numbers.verified.to_list()
-            self.assertEquals(len(verified_phone_numbers), 0)
+            self.assertEqual(len(verified_phone_numbers), 0)
             verified_nins = user.nins.verified.to_list()
-            self.assertEquals(len(verified_nins), 0)
+            self.assertEqual(len(verified_nins), 0)
 
             # check that the password is marked as generated
             self.assertTrue(user.credentials.to_list()[0].is_generated)
@@ -289,9 +289,9 @@ class ResetPasswordTests(EduidAPITestCase):
             # check that the user has verified data
             user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
             verified_phone_numbers = user.phone_numbers.verified.to_list()
-            self.assertEquals(len(verified_phone_numbers), 1)
+            self.assertEqual(len(verified_phone_numbers), 1)
             verified_nins = user.nins.verified.to_list()
-            self.assertEquals(len(verified_nins), 2)
+            self.assertEqual(len(verified_nins), 2)
 
             url = url_for('reset_password.set_new_pw', _external=True)
             data = {'code': state.email_code.code, 'password': 'pw'}
@@ -316,9 +316,9 @@ class ResetPasswordTests(EduidAPITestCase):
             # check that the user has verified data
             user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
             verified_phone_numbers = user.phone_numbers.verified.to_list()
-            self.assertEquals(len(verified_phone_numbers), 1)
+            self.assertEqual(len(verified_phone_numbers), 1)
             verified_nins = user.nins.verified.to_list()
-            self.assertEquals(len(verified_nins), 2)
+            self.assertEqual(len(verified_nins), 2)
 
             with c.session_transaction() as session:
                 new_password = generate_suggested_password()
@@ -335,9 +335,9 @@ class ResetPasswordTests(EduidAPITestCase):
             # check that the user still has verified data
             user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
             verified_phone_numbers = user.phone_numbers.verified.to_list()
-            self.assertEquals(len(verified_phone_numbers), 1)
+            self.assertEqual(len(verified_phone_numbers), 1)
             verified_nins = user.nins.verified.to_list()
-            self.assertEquals(len(verified_nins), 2)
+            self.assertEqual(len(verified_nins), 2)
 
     @patch('eduid_common.authn.vccs.get_vccs_client')
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
@@ -789,7 +789,7 @@ class ResetPasswordTests(EduidAPITestCase):
 
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_PHONE_FAIL')
-            self.assertEquals(response.json['payload']['message'], 'resetpw.phone-code-unknown')
+            self.assertEqual(response.json['payload']['message'], 'resetpw.phone-code-unknown')
 
     @patch('eduid_common.authn.vccs.get_vccs_client')
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
@@ -838,7 +838,7 @@ class ResetPasswordTests(EduidAPITestCase):
 
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_PHONE_FAIL')
-            self.assertEquals(response.json['payload']['message'], 'resetpw.phone-code-unknown')
+            self.assertEqual(response.json['payload']['message'], 'resetpw.phone-code-unknown')
 
     @patch('eduid_common.authn.vccs.get_vccs_client')
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
@@ -1100,7 +1100,7 @@ class ChangePasswordTests(EduidAPITestCase):
             self.app.central_userdb._drop_whole_collection()
 
     def test_app_starts(self):
-        self.assertEquals(self.app.config.app_name, "reset_password")
+        self.assertEqual(self.app.config.app_name, "reset_password")
 
     def test_get_suggested(self):
         eppn = self.test_user_data['eduPersonPrincipalName']
