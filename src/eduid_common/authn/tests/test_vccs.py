@@ -36,13 +36,13 @@ from eduid_userdb.actions.chpass import ChpassUser
 from eduid_userdb.testing import MongoTestCase
 
 from eduid_common.authn import vccs as vccs_module
-from eduid_common.authn.testing import TestVCCSClient
+from eduid_common.authn.testing import MockVCCSClient
 
 
 class VCCSTestCase(MongoTestCase):
     def setUp(self):
         super(VCCSTestCase, self).setUp()
-        self.vccs_client = TestVCCSClient()
+        self.vccs_client = MockVCCSClient()
         self.central_user = self.amdb.get_user_by_mail('johnsmith@example.com')
         self.user = ChpassUser.from_central_user(self.central_user)
         # Start with no credentials
@@ -157,10 +157,10 @@ class VCCSTestCase(MongoTestCase):
         self.assertTrue(result3.is_generated)
 
     def test_change_password_error_adding(self):
-        from eduid_common.authn.testing import TestVCCSClient
+        from eduid_common.authn.testing import MockVCCSClient
 
-        with patch.object(TestVCCSClient, 'add_credentials'):
-            TestVCCSClient.add_credentials.return_value = False
+        with patch.object(MockVCCSClient, 'add_credentials'):
+            MockVCCSClient.add_credentials.return_value = False
             added = vccs_module.change_password(
                 self.user, new_password='wxyz', old_password='abcd', application='test', vccs=self.vccs_client
             )
@@ -173,13 +173,13 @@ class VCCSTestCase(MongoTestCase):
             self.assertFalse(result3)
 
     def test_reset_password_error_revoking(self):
-        from eduid_common.authn.testing import TestVCCSClient
+        from eduid_common.authn.testing import MockVCCSClient
         from vccs_client import VCCSClientHTTPError
 
         def mock_revoke_creds(*args):
             raise VCCSClientHTTPError('dummy', 500)
 
-        with patch.object(TestVCCSClient, 'revoke_credentials', mock_revoke_creds):
+        with patch.object(MockVCCSClient, 'revoke_credentials', mock_revoke_creds):
             added = vccs_module.reset_password(
                 self.user, new_password='wxyz', application='test', vccs=self.vccs_client
             )

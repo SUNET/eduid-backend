@@ -130,6 +130,10 @@ class TestVCCSClient(object):
                         break
 
 
+# new name to import from dependent packages, so we can remove the deprecated TestVCCSClient
+MockVCCSClient = TestVCCSClient
+
+
 def provision_credentials(vccs_url, new_password, user, vccs=None, source='dashboard'):
     """
     This function should be used by tests only
