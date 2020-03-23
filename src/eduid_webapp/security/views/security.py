@@ -35,12 +35,17 @@ import json
 from datetime import datetime
 
 from flask import Blueprint, abort, redirect, request, url_for
+from saml2.client import Saml2Client
+from saml2.ident import decode
+from saml2.response import LogoutResponse
 from six.moves.urllib_parse import parse_qs, urlencode, urlparse, urlunparse
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid_common.api.exceptions import AmTaskFailed, MsgTaskFailed
 from eduid_common.api.helpers import add_nin_to_user
 from eduid_common.api.utils import save_and_sync_user, urlappend
+from eduid_common.api.utils import verify_relay_state
+from eduid_common.authn.cache import IdentityCache, StateCache
 from eduid_common.authn.vccs import add_credentials, revoke_all_credentials
 from eduid_common.session import session
 from eduid_userdb.exceptions import UserOutOfSync
@@ -249,13 +254,43 @@ def account_terminated(user):
         current_app.logger.error(f'Failed to send account termination mail: {e}')
         current_app.logger.error('Account will be terminated successfully anyway.')
 
-    session.invalidate()
-    current_app.logger.info('Invalidated session for user')
+    current_app.logger.debug('Logging out (terminated) user {user}')
+    state = StateCache(session)
+    identity = IdentityCache(session)
 
+    client = Saml2Client(current_app.saml2_config, state_cache=state, identity_cache=identity)
     site_url = current_app.config.eduid_site_url
-    current_app.logger.info('Redirection user to user {}'.format(site_url))
-    # TODO: Add a account termination completed view to redirect to
-    return redirect(site_url)
+
+    try:
+        subject_id = decode(session['_saml2_session_name_id'])
+    except KeyError:
+        current_app.logger.warning('The session does not contain the subject id for user {user}')
+        session.invalidate()
+        current_app.logger.info(f'Redirection user to user {site_url}')
+        # TODO: Add a account termination completed view to redirect to
+        return redirect(site_url)
+
+    session.invalidate()
+    current_app.logger.info(f'Invalidated session for {user}')
+
+    logouts = client.global_logout(subject_id)
+    loresponse = list(logouts.values())[0]
+    # loresponse is a dict for REDIRECT binding, and LogoutResponse for SOAP binding
+    if isinstance(loresponse, LogoutResponse):
+        if loresponse.status_ok():
+            location = verify_relay_state(request.form.get('RelayState', site_url), site_url)
+            return redirect(location)
+        else:
+            abort(500)
+
+    headers_tuple = loresponse[1]['headers']
+    location = headers_tuple[0][1]
+    current_app.logger.info(
+        f'Redirecting to {location} to finish account termination and logout for user {user}'
+    )
+    state.sync()
+    return redirect(location)
+
 
 
 @security_views.route('/remove-nin', methods=['POST'])
