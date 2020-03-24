@@ -12,5 +12,6 @@ def mock_get_attribute_manager(celery):
     am = MagicMock()
     return am
 
+
 # Mocked celery for am that we don't need here
 mock_celery = MagicMock()

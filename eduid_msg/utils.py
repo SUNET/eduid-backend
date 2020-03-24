@@ -34,7 +34,7 @@ def navet_get_name(navet_data: dict) -> Optional[OrderedDict]:
     person = navet_get_person(navet_data)
     if person is not None:
         try:
-            return OrderedDict([(u'Name', person['Name']), ])
+            return OrderedDict([(u'Name', person['Name']),])
         except KeyError:
             pass
     return None
@@ -48,7 +48,7 @@ def navet_get_official_address(navet_data: dict) -> Optional[OrderedDict]:
     person = navet_get_person(navet_data)
     if person is not None:
         try:
-            return OrderedDict([(u'OfficialAddress', person['PostalAddresses']['OfficialAddress']), ])
+            return OrderedDict([(u'OfficialAddress', person['PostalAddresses']['OfficialAddress']),])
         except KeyError:
             pass
     return None
@@ -62,10 +62,9 @@ def navet_get_name_and_official_address(navet_data: dict) -> Optional[OrderedDic
     person = navet_get_person(navet_data)
     if person is not None:
         try:
-            return OrderedDict([
-                (u'Name', person['Name']),
-                (u'OfficialAddress', person['PostalAddresses']['OfficialAddress']),
-            ])
+            return OrderedDict(
+                [(u'Name', person['Name']), (u'OfficialAddress', person['PostalAddresses']['OfficialAddress']),]
+            )
         except KeyError:
             pass
     return None
@@ -79,7 +78,7 @@ def navet_get_relations(navet_data: dict) -> Optional[OrderedDict]:
     person = navet_get_person(navet_data)
     if person is not None:
         try:
-            return OrderedDict([('Relations', {'Relation': person['Relations']}), ])
+            return OrderedDict([('Relations', {'Relation': person['Relations']}),])
         except KeyError:
             pass
     return None

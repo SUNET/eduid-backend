@@ -1,6 +1,7 @@
-from eduid_userdb.db import MongoDB
-from inspect import isclass
 from datetime import datetime
+from inspect import isclass
+
+from eduid_userdb.db import MongoDB
 
 
 class TransactionAudit(object):
@@ -21,11 +22,14 @@ class TransactionAudit(object):
             ret = f(*args, **kwargs)
             if not isclass(ret):  # we can't save class objects in mongodb
                 date = datetime.utcnow()
-                doc = {'function': f.__name__,
-                       'data': self._filter(f.__name__, ret, *args, **kwargs),
-                       'created_at': date}
+                doc = {
+                    'function': f.__name__,
+                    'data': self._filter(f.__name__, ret, *args, **kwargs),
+                    'created_at': date,
+                }
                 self.collection.insert_one(doc)
             return ret
+
         if self._conn is None or not self._conn.is_healthy():
             self._conn = MongoDB(self.db_uri)
             db = self._conn.get_database(self.db_name)
@@ -46,8 +50,13 @@ class TransactionAudit(object):
         if func == '_get_navet_data':
             return {'identity_number': args[1]}
         elif func == 'send_message':
-            return {'type': args[1], 'recipient': args[4], 'transaction_id': data, 'audit_reference': args[2],
-                    'template': args[5]}
+            return {
+                'type': args[1],
+                'recipient': args[4],
+                'transaction_id': data,
+                'audit_reference': args[2],
+                'template': args[5],
+            }
         elif func == 'sendmail':
             return {'type': 'mail', 'recipient': args[1], 'send_errors': data, 'audit_reference': args[3]}
         elif func == 'sendsms':

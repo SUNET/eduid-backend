@@ -4,21 +4,22 @@ import json
 import smtplib
 from collections import OrderedDict
 from datetime import datetime, timedelta
-from typing import Optional, Union, List
+from time import time
+from typing import List, Optional, Union
 
 from celery import Task
 from celery.task import periodic_task, task
 from celery.utils.log import get_task_logger
-from hammock import Hammock
-from time import time
+
+from eduid_userdb.exceptions import ConnectionError
 
 from eduid_msg.cache import CacheMDB
 from eduid_msg.common import celery
 from eduid_msg.decorators import TransactionAudit
-from eduid_msg.exceptions import NavetException, NavetAPIException
+from eduid_msg.exceptions import NavetAPIException, NavetException
 from eduid_msg.utils import load_template, navet_get_name_and_official_address, navet_get_relations
 from eduid_msg.worker import worker_config
-from eduid_userdb.exceptions import ConnectionError
+from hammock import Hammock
 
 if celery is None:
     raise RuntimeError('Must call eduid_msg.init_app before importing tasks')
@@ -27,22 +28,18 @@ if celery is None:
 DEFAULT_MONGODB_HOST = 'localhost'
 DEFAULT_MONGODB_PORT = 27017
 DEFAULT_MONGODB_NAME = 'eduid_msg'
-DEFAULT_MONGODB_URI = 'mongodb://%s:%d/%s' % (DEFAULT_MONGODB_HOST,
-                                              DEFAULT_MONGODB_PORT,
-                                              DEFAULT_MONGODB_NAME)
+DEFAULT_MONGODB_URI = 'mongodb://%s:%d/%s' % (DEFAULT_MONGODB_HOST, DEFAULT_MONGODB_PORT, DEFAULT_MONGODB_NAME)
 
 TRANSACTION_AUDIT_DB = 'eduid_msg'
 TRANSACTION_AUDIT_COLLECTION = 'transaction_audit'
 
 DEFAULT_MM_API_HOST = 'eduid-mm-service.docker'
 DEFAULT_MM_API_PORT = 8080
-DEFAULT_MM_API_URI = 'http://{0}:{1}'.format(DEFAULT_MM_API_HOST,
-                                             DEFAULT_MM_API_PORT)
+DEFAULT_MM_API_URI = 'http://{0}:{1}'.format(DEFAULT_MM_API_HOST, DEFAULT_MM_API_PORT)
 
 DEFAULT_NAVET_API_HOST = 'eduid-navet-service.docker'
 DEFAULT_NAVET_API_PORT = 8080
-DEFAULT_NAVET_API_URI = 'http://{0}:{1}'.format(DEFAULT_NAVET_API_HOST,
-                                                DEFAULT_NAVET_API_PORT)
+DEFAULT_NAVET_API_URI = 'http://{0}:{1}'.format(DEFAULT_NAVET_API_HOST, DEFAULT_NAVET_API_PORT)
 
 
 logger = get_task_logger(__name__)
@@ -54,6 +51,7 @@ class MessageRelay(Task):
     """
     Singleton that stores reusable objects.
     """
+
     abstract = True
     _sms = None
     _sms_sender = None
@@ -121,9 +119,9 @@ class MessageRelay(Task):
     def cache(self, cache_name, ttl=7200):
         global _CACHE
         if cache_name not in _CACHE:
-            _CACHE[cache_name] = CacheMDB(self._config.mongo_uri,
-                                          self._config.mongo_dbname,
-                                          cache_name, ttl=ttl, expiration_freq=120)
+            _CACHE[cache_name] = CacheMDB(
+                self._config.mongo_uri, self._config.mongo_dbname, cache_name, ttl=ttl, expiration_freq=120
+            )
         return _CACHE[cache_name]
 
     @staticmethod
@@ -189,24 +187,30 @@ class MessageRelay(Task):
         if conf.devel_mode is True:
             logger.debug(f"Faking that NIN {identity_number} is reachable")
             return {
-                'AccountStatus': {
-                    'Type': 'Secure',
-                    'ServiceSupplier': 'devel_mode'
-                },
-                'SenderAccepted': 'devel_mode'
+                'AccountStatus': {'Type': 'Secure', 'ServiceSupplier': 'devel_mode'},
+                'SenderAccepted': 'devel_mode',
             }
         data = json.dumps({'identity_number': identity_number})
         response = self.mm_api.user.reachable.POST(data=data)
         if response.status_code == 200:
             return response.json()
-        error = 'MM API is_reachable response: {0} {1}'.format(response.status_code,
-                                                               response.json().get('message', 'No message'))
+        error = 'MM API is_reachable response: {0} {1}'.format(
+            response.status_code, response.json().get('message', 'No message')
+        )
         logger.error(error)
         raise RuntimeError(error)
 
     @TransactionAudit(MONGODB_URI)
-    def send_message(self, message_type: str, reference: str, message_dict: dict, recipient: str, template: str,
-                     language: str, subject: Optional[str] = None) -> Optional[str]:
+    def send_message(
+        self,
+        message_type: str,
+        reference: str,
+        message_dict: dict,
+        recipient: str,
+        template: str,
+        language: str,
+        subject: Optional[str] = None,
+    ) -> Optional[str]:
         """
         :param message_type: Message notification type (sms or mm)
         :param reference: Unique reference id
@@ -227,8 +231,10 @@ class MessageRelay(Task):
 
         # Only log the message if devel_mode is enabled
         if conf.devel_mode is True:
-            logger.debug(f"\nType: {message_type}\nReference: {reference}\nRecipient: {recipient}"
-                         f"\nLang: {language}\nSubject: {subject}\nMessage:\n {msg}")
+            logger.debug(
+                f"\nType: {message_type}\nReference: {reference}\nRecipient: {recipient}"
+                f"\nLang: {language}\nSubject: {subject}\nMessage:\n {msg}"
+            )
             return 'devel_mode'
 
         if message_type == 'sms':
@@ -262,13 +268,15 @@ class MessageRelay(Task):
         return status
 
     def _send_mm_message(self, recipient: str, subject: str, content_type: str, language: str, message: str) -> str:
-        data = json.dumps({
-            'recipient': recipient,
-            'subject': subject,
-            'content_type': content_type,
-            'language': language,
-            'message': message
-        })
+        data = json.dumps(
+            {
+                'recipient': recipient,
+                'subject': subject,
+                'content_type': content_type,
+                'language': language,
+                'message': message,
+            }
+        )
         response = self.mm_api.message.send.POST(data=data)
         logger.debug(f"_send_mm_message response for recipient '{recipient}': '{repr(response)}'")
         if response.status_code == 200:
@@ -298,14 +306,22 @@ class MessageRelay(Task):
         """
         Return a OrderedDict just as we would get from navet.
         """
-        result = OrderedDict([
-            (u'Name', OrderedDict([
-                (u'GivenNameMarking', u'20'), (u'GivenName', u'Testaren Test'),
-                (u'Surname', u'Testsson')])),
-            (u'OfficialAddress', OrderedDict([(u'Address2', u'\xd6RGATAN 79 LGH 10'),
-                                              (u'PostalCode', u'12345'),
-                                              (u'City', u'LANDET')]))
-        ])
+        result = OrderedDict(
+            [
+                (
+                    u'Name',
+                    OrderedDict(
+                        [(u'GivenNameMarking', u'20'), (u'GivenName', u'Testaren Test'), (u'Surname', u'Testsson')]
+                    ),
+                ),
+                (
+                    u'OfficialAddress',
+                    OrderedDict(
+                        [(u'Address2', u'\xd6RGATAN 79 LGH 10'), (u'PostalCode', u'12345'), (u'City', u'LANDET')]
+                    ),
+                ),
+            ]
+        )
         return result
 
     def get_relations(self, identity_number: str) -> Optional[OrderedDict]:
@@ -329,18 +345,32 @@ class MessageRelay(Task):
         """
         Return a OrderedDict just as we would get from navet.
         """
-        result = \
-            OrderedDict([(u'Relations', {u'Relation':
-                         [{u'RelationType': u'VF', u'RelationId': {u'NationalIdentityNumber': u'200202025678'},
-                           u'RelationStartDate': u'20020202'},
-                          {u'RelationType': u'VF', u'RelationId': {u'NationalIdentityNumber': u'200101014567'},
-                           u'RelationStartDate': u'20010101'},
-                          {u'RelationType': u'FA', u'RelationId': {u'NationalIdentityNumber': u'194004048989'}},
-                          {u'RelationType': u'MO', u'RelationId': {u'NationalIdentityNumber': u'195010106543'}},
-                          {u'RelationType': u'B', u'RelationId': {u'NationalIdentityNumber': u'200202025678'}},
-                          {u'RelationType': u'B', u'RelationId': {u'NationalIdentityNumber': u'200101014567'}},
-                          {u'RelationType': u'M', u'RelationId': {u'NationalIdentityNumber': u'197512125432'}}]}
-                          )])
+        result = OrderedDict(
+            [
+                (
+                    u'Relations',
+                    {
+                        u'Relation': [
+                            {
+                                u'RelationType': u'VF',
+                                u'RelationId': {u'NationalIdentityNumber': u'200202025678'},
+                                u'RelationStartDate': u'20020202',
+                            },
+                            {
+                                u'RelationType': u'VF',
+                                u'RelationId': {u'NationalIdentityNumber': u'200101014567'},
+                                u'RelationStartDate': u'20010101',
+                            },
+                            {u'RelationType': u'FA', u'RelationId': {u'NationalIdentityNumber': u'194004048989'}},
+                            {u'RelationType': u'MO', u'RelationId': {u'NationalIdentityNumber': u'195010106543'}},
+                            {u'RelationType': u'B', u'RelationId': {u'NationalIdentityNumber': u'200202025678'}},
+                            {u'RelationType': u'B', u'RelationId': {u'NationalIdentityNumber': u'200101014567'}},
+                            {u'RelationType': u'M', u'RelationId': {u'NationalIdentityNumber': u'197512125432'}},
+                        ]
+                    },
+                )
+            ]
+        )
         return result
 
     @TransactionAudit(MONGODB_URI)
@@ -379,8 +409,9 @@ class MessageRelay(Task):
         return False
 
     @TransactionAudit(MONGODB_URI)
-    def sendmail(self, sender: str, recipients: list, message: str, reference: str,
-                 max_retry_seconds: Optional[int] = None) -> dict:
+    def sendmail(
+        self, sender: str, recipients: list, message: str, reference: str, max_retry_seconds: Optional[int] = None
+    ) -> dict:
         """
         Send mail
 
@@ -397,8 +428,10 @@ class MessageRelay(Task):
         conf = self._config
         if conf.devel_mode is True:
             logger.debug('sendmail task:')
-            logger.debug(f"\nType: email\nReference: {reference}\nSender: {sender}\nRecipients: {recipients}\n"
-                         f"Message:\n{message}")
+            logger.debug(
+                f"\nType: email\nReference: {reference}\nSender: {sender}\nRecipients: {recipients}\n"
+                f"Message:\n{message}"
+            )
             return {'devel_mode': True}
 
         return self.smtp.sendmail(sender, recipients, message)
@@ -451,8 +484,16 @@ def is_reachable(self, identity_number: str) -> bool:
 
 
 @task(bind=True, base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT)
-def send_message(self: MessageRelay, message_type: str, reference: str, message_dict: dict, recipient: str,
-                 template: str, language: str, subject: Optional[str] = None) -> str:
+def send_message(
+    self: MessageRelay,
+    message_type: str,
+    reference: str,
+    message_dict: dict,
+    recipient: str,
+    template: str,
+    language: str,
+    subject: Optional[str] = None,
+) -> str:
     """
     :param self: base class
     :param message_type: Message notification type (sms or mm)
@@ -473,8 +514,14 @@ def send_message(self: MessageRelay, message_type: str, reference: str, message_
 
 
 @task(bind=True, base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT)
-def sendmail(self: MessageRelay, sender: str, recipients: list, message: str, reference: str,
-             max_retry_seconds: Optional[int] = None) -> dict:
+def sendmail(
+    self: MessageRelay,
+    sender: str,
+    recipients: list,
+    message: str,
+    reference: str,
+    max_retry_seconds: Optional[int] = None,
+) -> dict:
     """
     :param self: base class
     :param sender: the From of the email
@@ -493,8 +540,9 @@ def sendmail(self: MessageRelay, sender: str, recipients: list, message: str, re
 
 
 @task(bind=True, base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT)
-def sendsms(self: MessageRelay, recipient: str, message: str, reference: str,
-            max_retry_seconds: Optional[int] = None) -> str:
+def sendsms(
+    self: MessageRelay, recipient: str, message: str, reference: str, max_retry_seconds: Optional[int] = None
+) -> str:
     """
     :param self: base class
     :param recipient: the recipient of the sms
@@ -563,8 +611,10 @@ def get_relations_to(self: MessageRelay, identity_number: str, relative_nin: str
         #
         # (I wonder what other types of Relations than Relation that NAVET can come up with...)
         import pprint
-        logger.debug(f"Looking for relations between {identity_number} and {relative_nin} in: "
-                     f"{pprint.pformat(relations)}")
+
+        logger.debug(
+            f"Looking for relations between {identity_number} and {relative_nin} in: " f"{pprint.pformat(relations)}"
+        )
         for d in relations['Relations']['Relation']:
             if d.get('RelationId', {}).get("NationalIdentityNumber") == relative_nin:
                 if 'RelationType' in d:

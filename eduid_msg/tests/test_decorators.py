@@ -1,8 +1,8 @@
 # -*- encoding: utf-8 -*-
 from __future__ import absolute_import
 
-from eduid_msg.testing import MsgMongoTestCase
 from eduid_msg.decorators import TransactionAudit
+from eduid_msg.testing import MsgMongoTestCase
 
 
 class TestTransactionAudit(MsgMongoTestCase):
@@ -14,6 +14,7 @@ class TestTransactionAudit(MsgMongoTestCase):
         @TransactionAudit(self.msg_settings.get('MONGO_URI'), db_name='test')
         def no_name():
             return {'baka': 'kaka'}
+
         no_name()
         db = self.tmp_db.conn['test']
         c = db['transaction_audit']
@@ -24,6 +25,7 @@ class TestTransactionAudit(MsgMongoTestCase):
         @TransactionAudit(self.msg_settings.get('MONGO_URI'), db_name='test')
         def _get_navet_data(arg1, arg2):
             return {'baka', 'kaka'}
+
         _get_navet_data('dummy', '1111')
         result = c.find_one({'data': {'identity_number': '1111'}})
         self.assertEqual(result['data']['identity_number'], '1111')
@@ -31,6 +33,7 @@ class TestTransactionAudit(MsgMongoTestCase):
         @TransactionAudit(self.msg_settings.get('MONGO_URI'), db_name='test')
         def send_message(_self, message_type, reference, message_dict, recipient, template, language, subject=None):
             return 'kaka'
+
         send_message('dummy', 'mm', 'reference', 'dummy', '2222', 'template', 'lang')
         result = c.find_one({'data.transaction_id': 'kaka'})
         self.assertEqual(result['data']['recipient'], '2222')
@@ -52,15 +55,18 @@ class TestTransactionAudit(MsgMongoTestCase):
         @TransactionAudit(self.msg_settings.get('MONGO_URI'), db_name='test')
         def no_name():
             return {'baka': 'kaka'}
+
         no_name()
 
         result = c.find({})
         self.assertEqual(c.count_documents({}), 0)
 
         TransactionAudit.enable()
+
         @TransactionAudit(self.msg_settings.get('MONGO_URI'), db_name='test')
         def no_name2():
             return {'baka': 'kaka'}
+
         no_name2()
         result = c.find({})
         self.assertEqual(c.count_documents({}), 1)

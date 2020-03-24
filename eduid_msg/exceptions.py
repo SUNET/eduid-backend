@@ -1,10 +1,8 @@
-
 class MessageException(Exception):
     pass
 
 
 class NavetException(Exception):
-
     def __init__(self, message):
         self.message = message
 

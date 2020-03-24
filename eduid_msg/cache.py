@@ -1,6 +1,7 @@
-from eduid_userdb.db import MongoDB
 from datetime import datetime
 from time import time
+
+from eduid_userdb.db import MongoDB
 
 
 class CacheMDB(object):
@@ -18,9 +19,7 @@ class CacheMDB(object):
 
     def add_cache_item(self, identifier, data):
         date = datetime.fromtimestamp(time(), None)
-        doc = {'identifier': identifier,
-               'data': data,
-               'created_at': date}
+        doc = {'identifier': identifier, 'data': data, 'created_at': date}
         self.collection.insert_one(doc)
         self.expire_cache_items()
         return True
@@ -38,8 +37,9 @@ class CacheMDB(object):
 
     def update_cache_item(self, identifier, data):
         date = datetime.fromtimestamp(time(), None)
-        return self.collection.update({'identifier': identifier}, {'$set': {'data': data, 'updated_at': date}}, w=1,
-                                      getLastError=True)
+        return self.collection.update(
+            {'identifier': identifier}, {'$set': {'data': data, 'updated_at': date}}, w=1, getLastError=True
+        )
 
     def remove_cache_item(self, identifier):
         return self.collection.delete_one({'identifier': identifier})
