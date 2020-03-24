@@ -35,13 +35,22 @@ import pprint
 from typing import Mapping
 from xml.etree.ElementTree import ParseError
 
+from flask import abort, redirect, request
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
+from saml2.ident import decode
 from saml2.response import UnsolicitedResponse
+from saml2.response import LogoutResponse
+from werkzeug.wrappers import Response
 
+from eduid_userdb.user import User
 from .cache import IdentityCache, OutstandingQueriesCache
+from .cache import StateCache
 from .utils import SPConfig, get_saml_attribute
+from eduid_common.api.app import EduIDBaseApp
+from eduid_common.api.utils import verify_relay_state
 from eduid_common.session import EduidSession
+from eduid_common.session import session
 
 logger = logging.getLogger(__name__)
 
@@ -198,3 +207,46 @@ def authenticate(app, session_info):
     else:
         return user
     return None
+
+
+def saml_logout(current_app: EduIDBaseApp,
+                user: User,
+                location: str) -> Response:
+    """
+    SAML Logout Request initiator.
+    This function initiates the SAML2 Logout request
+    using the pysaml2 library to create the LogoutRequest.
+    """
+    state = StateCache(session)
+    identity = IdentityCache(session)
+
+    client = Saml2Client(current_app.saml2_config, state_cache=state, identity_cache=identity)
+
+    try:
+        subject_id = decode(session['_saml2_session_name_id'])
+    except KeyError:
+        current_app.logger.warning('The session does not contain the subject id for user {user}')
+        session.invalidate()
+        current_app.logger.info(f'Redirection user to user {location}')
+        return redirect(location)
+
+    session.invalidate()
+    current_app.logger.info(f'Invalidated session for {user}')
+
+    logouts = client.global_logout(subject_id)
+    loresponse = list(logouts.values())[0]
+    # loresponse is a dict for REDIRECT binding, and LogoutResponse for SOAP binding
+    if isinstance(loresponse, LogoutResponse):
+        if loresponse.status_ok():
+            location = verify_relay_state(request.form.get('RelayState', location), location)
+            return redirect(location)
+        else:
+            abort(500)
+
+    headers_tuple = loresponse[1]['headers']
+    location = headers_tuple[0][1]
+    current_app.logger.info(
+        f'Redirecting to {location} to finish account termination and logout for user {user}'
+    )
+    state.sync()
+    return redirect(location)
