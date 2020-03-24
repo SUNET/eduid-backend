@@ -30,13 +30,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
+import logging
 from copy import deepcopy
+
 from bson import ObjectId
+
 from eduid_userdb.actions.db import ActionDB
 from eduid_userdb.testing import MongoTestCase
 
-
-import logging
 logger = logging.getLogger(__name__)
 
 USERID3 = '333333333333333333333333'
@@ -46,46 +47,39 @@ EPPN4 = 'hussa-sussa'
 
 
 DUMMY_ACTION = {
-        '_id': ObjectId('111111111111111111111111'),
-        'eppn': EPPN3,
-        'action': 'dummy',
-        'preference': 200, 
-        'params': {
-            }
-        }
+    '_id': ObjectId('111111111111111111111111'),
+    'eppn': EPPN3,
+    'action': 'dummy',
+    'preference': 200,
+    'params': {},
+}
 
 TOU_ACTION = {
-        '_id': ObjectId('222222222222222222222222'),
-        'eppn': EPPN3,  # same eppn as DUMMY_ACTION
-        'action': 'tou',
-        'preference': 100,
-        'params': {
-            'version': 'test-version'
-            }
-        }
+    '_id': ObjectId('222222222222222222222222'),
+    'eppn': EPPN3,  # same eppn as DUMMY_ACTION
+    'action': 'tou',
+    'preference': 100,
+    'params': {'version': 'test-version'},
+}
 
 DUMMY_ACTION_USERID = {
-        '_id': ObjectId('111111111111111111111111'),
-        'user_oid': ObjectId(USERID3),
-        'action': 'dummy',
-        'preference': 200, 
-        'params': {
-            }
-        }
+    '_id': ObjectId('111111111111111111111111'),
+    'user_oid': ObjectId(USERID3),
+    'action': 'dummy',
+    'preference': 200,
+    'params': {},
+}
 
 TOU_ACTION_USERID = {
-        '_id': ObjectId('222222222222222222222222'),
-        'user_oid': ObjectId(USERID3),  # same user_oid as DUMMY_ACTION
-        'action': 'tou',
-        'preference': 100,
-        'params': {
-            'version': 'test-version'
-            }
-        }
+    '_id': ObjectId('222222222222222222222222'),
+    'user_oid': ObjectId(USERID3),  # same user_oid as DUMMY_ACTION
+    'action': 'tou',
+    'preference': 100,
+    'params': {'version': 'test-version'},
+}
 
 
 class TestActionsDB(MongoTestCase):
-
     def setUp(self):
         super(TestActionsDB, self).setUp(None, None)
         self.actionsdb = ActionDB(self.tmp_db.uri)
@@ -109,9 +103,9 @@ class TestActionsDB(MongoTestCase):
         self.assertTrue(self.actionsdb.has_actions(eppn_or_userid=EPPN3, session='xzf'))
         self.assertTrue(self.actionsdb.has_actions(eppn_or_userid=EPPN3, params={'version': 'test-version'}))
         self.assertFalse(self.actionsdb.has_actions(eppn_or_userid=EPPN3, params={'version': 'WRONG'}))
-        self.assertTrue(self.actionsdb.has_actions(eppn_or_userid=EPPN3,
-                                                   action_type='tou',
-                                                   params={'version': 'test-version'}))
+        self.assertTrue(
+            self.actionsdb.has_actions(eppn_or_userid=EPPN3, action_type='tou', params={'version': 'test-version'})
+        )
 
     def test_update_action_with_result(self):
         action = self.actionsdb.get_next_action(EPPN3)
@@ -122,7 +116,6 @@ class TestActionsDB(MongoTestCase):
 
 
 class TestActionsDBUserid(MongoTestCase):
-
     def setUp(self):
         super(TestActionsDBUserid, self).setUp(None, None)
         self.actionsdb = ActionDB(self.tmp_db.uri)
@@ -146,9 +139,9 @@ class TestActionsDBUserid(MongoTestCase):
         self.assertTrue(self.actionsdb.has_actions(eppn_or_userid=USERID3, session='xzf'))
         self.assertTrue(self.actionsdb.has_actions(eppn_or_userid=USERID3, params={'version': 'test-version'}))
         self.assertFalse(self.actionsdb.has_actions(eppn_or_userid=USERID3, params={'version': 'WRONG'}))
-        self.assertTrue(self.actionsdb.has_actions(eppn_or_userid=USERID3,
-                                                   action_type='tou',
-                                                   params={'version': 'test-version'}))
+        self.assertTrue(
+            self.actionsdb.has_actions(eppn_or_userid=USERID3, action_type='tou', params={'version': 'test-version'})
+        )
 
     def test_update_action_with_result_userid(self):
         action = self.actionsdb.get_next_action(USERID3)
@@ -156,4 +149,3 @@ class TestActionsDBUserid(MongoTestCase):
         self.actionsdb.update_action(action)
         # Saving a result on the action should make get_next_action advance to the next one
         next_action = self.actionsdb.get_next_action(USERID3)
-

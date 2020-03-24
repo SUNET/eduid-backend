@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import logging
-from typing import Union, Optional, List, Tuple, Dict, Any
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from bson import ObjectId
 from bson.errors import InvalidId
@@ -57,28 +57,31 @@ class ActionDB(BaseDB):
         logger.debug("{!s} connected to database".format(self))
 
     def __repr__(self):
-        return '<eduID {!s}: {!s} {!r} (returning {!s})>'.format(self.__class__.__name__,
-                                                                 self._db.sanitized_uri,
-                                                                 self._coll_name,
-                                                                 self.ActionClass.__name__)
+        return '<eduID {!s}: {!s} {!r} (returning {!s})>'.format(
+            self.__class__.__name__, self._db.sanitized_uri, self._coll_name, self.ActionClass.__name__
+        )
 
-    def _read_actions_from_db(self, eppn_or_userid: Union[str, ObjectId], session: Optional[str],
-                              filter_: Optional[dict] = None, match_no_session: bool = True) -> Tuple[bool, Cursor]:
+    def _read_actions_from_db(
+        self,
+        eppn_or_userid: Union[str, ObjectId],
+        session: Optional[str],
+        filter_: Optional[dict] = None,
+        match_no_session: bool = True,
+    ) -> Tuple[bool, Cursor]:
         old_format = True
         try:
             query = {'user_oid': ObjectId(str(eppn_or_userid))}
         except InvalidId:
             old_format = False
             query = {'eppn': eppn_or_userid}
-        query['$or'] = [{'session': {'$exists': False}},
-                        {'session': session}
-                        ]
+        query['$or'] = [{'session': {'$exists': False}}, {'session': session}]
         if filter_ is not None:
             query.update(filter_)
         return old_format, self._coll.find(query).sort('preference')
 
-    def get_actions(self, eppn_or_userid: Union[str, ObjectId], session: Optional[str],
-                    action_type: Optional[str] = None) -> List[Action]:
+    def get_actions(
+        self, eppn_or_userid: Union[str, ObjectId], session: Optional[str], action_type: Optional[str] = None
+    ) -> List[Action]:
         """
         Check in the db (not in the cache) whether there are actions
         with whatever attributes you feed to the method.
@@ -100,8 +103,13 @@ class ActionDB(BaseDB):
                 res.append(Action(data=this, old_format=old_format))
         return res
 
-    def has_actions(self, eppn_or_userid: Union[str, ObjectId], session: Optional[str] = None,
-                    action_type: Optional[str] = None, params: Optional[dict] = None) -> bool:
+    def has_actions(
+        self,
+        eppn_or_userid: Union[str, ObjectId],
+        session: Optional[str] = None,
+        action_type: Optional[str] = None,
+        params: Optional[dict] = None,
+    ) -> bool:
         """
         Check in the db (not in the cache) whether there are actions
         with whatever attributes you feed to the method.
@@ -145,9 +153,15 @@ class ActionDB(BaseDB):
             return Action(data=this, old_format=old_format)
         return None
 
-    def add_action(self, eppn_or_userid: Optional[Union[str, ObjectId]] = None, action_type: Optional[str] = None,
-                   preference: int = 100, session: Optional[str] = None, params: Optional[dict] = None,
-                   data: Optional[dict] = None) -> Action:
+    def add_action(
+        self,
+        eppn_or_userid: Optional[Union[str, ObjectId]] = None,
+        action_type: Optional[str] = None,
+        preference: int = 100,
+        session: Optional[str] = None,
+        params: Optional[dict] = None,
+        data: Optional[dict] = None,
+    ) -> Action:
         """
         Add an action to the DB.
 
@@ -160,9 +174,10 @@ class ActionDB(BaseDB):
         :returns: Added action
         """
         if data is None:
-            data = {'action': action_type,
-                    'preference': preference,
-                    }
+            data = {
+                'action': action_type,
+                'preference': preference,
+            }
             if isinstance(eppn_or_userid, ObjectId):
                 data['user_oid'] = eppn_or_userid
             else:

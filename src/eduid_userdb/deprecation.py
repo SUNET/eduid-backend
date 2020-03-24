@@ -30,10 +30,12 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-import warnings
 import inspect
-from six import string_types
+import warnings
 from functools import wraps
+
+from six import string_types
+
 
 # https://stackoverflow.com/questions/2536307/how-do-i-deprecate-python-functions/40301488#40301488
 def deprecated(reason):
@@ -64,9 +66,7 @@ def deprecated(reason):
             def new_func1(*args, **kwargs):
                 warnings.simplefilter('always', DeprecationWarning)
                 warnings.warn(
-                    fmt1.format(name=func1.__name__, reason=reason),
-                    category=DeprecationWarning,
-                    stacklevel=2
+                    fmt1.format(name=func1.__name__, reason=reason), category=DeprecationWarning, stacklevel=2
                 )
                 warnings.simplefilter('default', DeprecationWarning)
                 return func1(*args, **kwargs)
@@ -95,11 +95,7 @@ def deprecated(reason):
         @wraps(func2)
         def new_func2(*args, **kwargs):
             warnings.simplefilter('always', DeprecationWarning)
-            warnings.warn(
-                fmt2.format(name=func2.__name__),
-                category=DeprecationWarning,
-                stacklevel=2
-            )
+            warnings.warn(fmt2.format(name=func2.__name__), category=DeprecationWarning, stacklevel=2)
             warnings.simplefilter('default', DeprecationWarning)
             return func2(*args, **kwargs)
 
@@ -107,4 +103,3 @@ def deprecated(reason):
 
     else:
         raise TypeError(repr(type(reason)))
-

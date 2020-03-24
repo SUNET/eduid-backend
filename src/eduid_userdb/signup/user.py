@@ -33,12 +33,13 @@
 __author__ = 'ft'
 
 import copy
+
 import bson
 import six
 
 from eduid_userdb import User
-from eduid_userdb.proofing import EmailProofingElement
 from eduid_userdb.exceptions import UserIsRevoked
+from eduid_userdb.proofing import EmailProofingElement
 
 
 class SignupUser(User):
@@ -46,17 +47,14 @@ class SignupUser(User):
     Subclass of eduid_userdb.User with eduid Signup application specific data.
     """
 
-    def __init__(self, userid = None, eppn = None, subject = 'physical person', data = None):
+    def __init__(self, userid=None, eppn=None, subject='physical person', data=None):
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
 
         if data is None:
             if userid is None:
                 userid = bson.ObjectId()
-            data = dict(_id = userid,
-                        eduPersonPrincipalName = eppn,
-                        subject = subject,
-                        )
+            data = dict(_id=userid, eduPersonPrincipalName=eppn, subject=subject,)
         _social_network = data.pop('social_network', None)
         _social_network_id = data.pop('social_network_id', None)
         _pending_mail_address = data.pop('pending_mail_address', None)
@@ -65,7 +63,7 @@ class SignupUser(User):
             _pending_mail_address = EmailProofingElement(data=_pending_mail_address)
         self._pending_mail_address = None
 
-        User.__init__(self, data = data)
+        User.__init__(self, data=data)
 
         # now self._data exists so we can call our setters
         self.social_network = _social_network
@@ -81,8 +79,11 @@ class SignupUser(User):
         Check users that can't be loaded for some known reason.
         """
         if 'revoked_ts' in self._data_in:
-            raise UserIsRevoked('User {!s}/{!s} was revoked at {!s}'.format(
-                self._data_in.get('_id'), self._data_in.get('eduPersonPrincipalName'), self._data_in['revoked_ts']))
+            raise UserIsRevoked(
+                'User {!s}/{!s} was revoked at {!s}'.format(
+                    self._data_in.get('_id'), self._data_in.get('eduPersonPrincipalName'), self._data_in['revoked_ts']
+                )
+            )
 
     def to_dict(self, old_userdb_format=False):
         res = User.to_dict(self, old_userdb_format=old_userdb_format)

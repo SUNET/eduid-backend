@@ -1,44 +1,44 @@
+import copy
+import datetime
 from unittest import TestCase
 
 import bson
-import copy
-import datetime
 
-import eduid_userdb.exceptions
 import eduid_userdb.element
+import eduid_userdb.exceptions
+from eduid_userdb.actions.tou import ToUUser
 from eduid_userdb.data_samples import NEW_USER_EXAMPLE
 from eduid_userdb.event import Event, EventList
+from eduid_userdb.exceptions import UserHasUnknownData, UserMissingData
 from eduid_userdb.tou import ToUEvent, ToUList
-from eduid_userdb.actions.tou import ToUUser
-from eduid_userdb.exceptions import UserMissingData, UserHasUnknownData
 
 __author__ = 'ft'
 
-_one_dict = \
-    {'event_id': bson.ObjectId(),
-     'event_type': 'tou_event',
-     'version': '1',
-     'created_by': 'test',
-     'created_ts': datetime.datetime(2015, 9, 24, 1, 1, 1, 111111),
-     }
+_one_dict = {
+    'event_id': bson.ObjectId(),
+    'event_type': 'tou_event',
+    'version': '1',
+    'created_by': 'test',
+    'created_ts': datetime.datetime(2015, 9, 24, 1, 1, 1, 111111),
+}
 
-_two_dict = \
-    {'event_id': bson.ObjectId(),
-     'event_type': 'tou_event',
-     'version': '2',
-     'created_by': 'test',
-     'created_ts': datetime.datetime(2015, 9, 24, 2, 2, 2, 222222),
-     'modified_ts': datetime.datetime(2018, 9, 25, 2, 2, 2, 222222),
-     }
+_two_dict = {
+    'event_id': bson.ObjectId(),
+    'event_type': 'tou_event',
+    'version': '2',
+    'created_by': 'test',
+    'created_ts': datetime.datetime(2015, 9, 24, 2, 2, 2, 222222),
+    'modified_ts': datetime.datetime(2018, 9, 25, 2, 2, 2, 222222),
+}
 
-_three_dict = \
-    {'event_id': bson.ObjectId(),
-     'event_type': 'tou_event',
-     'version': '3',
-     'created_by': 'test',
-     'created_ts': datetime.datetime(2015, 9, 24, 3, 3, 3, 333333),
-     'modified_ts': datetime.datetime(2015, 9, 24, 3, 3, 3, 333333),
-     }
+_three_dict = {
+    'event_id': bson.ObjectId(),
+    'event_type': 'tou_event',
+    'version': '3',
+    'created_by': 'test',
+    'created_ts': datetime.datetime(2015, 9, 24, 3, 3, 3, 333333),
+    'modified_ts': datetime.datetime(2015, 9, 24, 3, 3, 3, 333333),
+}
 
 
 class TestToUEvent(TestCase):
@@ -67,8 +67,9 @@ class TestToUEvent(TestCase):
         for this in [self.one, self.two, self.three]:
             this_dict = this.to_list_of_dicts(mixed_format=True)
             eventlist_again = EventList(this_dict)
-            self.assertEqual(eventlist_again.to_list_of_dicts(mixed_format=True),
-                             this.to_list_of_dicts(mixed_format=True))
+            self.assertEqual(
+                eventlist_again.to_list_of_dicts(mixed_format=True), this.to_list_of_dicts(mixed_format=True)
+            )
 
     def test_unknown_input_data(self):
         one = copy.deepcopy(_one_dict)
@@ -79,7 +80,7 @@ class TestToUEvent(TestCase):
     def test_unknown_input_data_allowed(self):
         one = copy.deepcopy(_one_dict)
         one['foo'] = 'bar'
-        addr = ToUEvent(data = one, raise_on_unknown = False)
+        addr = ToUEvent(data=one, raise_on_unknown=False)
         out = addr.to_dict()
         self.assertIn('foo', out)
         self.assertEqual(out['foo'], one['foo'])
@@ -96,22 +97,18 @@ class TestToUEvent(TestCase):
         Test that ToUEvent require created_ts, although Event does not.
         """
         with self.assertRaises(eduid_userdb.exceptions.BadEvent):
-            ToUEvent(application='unit test',
-                     created_ts=None,
-                     version='foo',
-                     event_id=bson.ObjectId(),
-                     )
+            ToUEvent(
+                application='unit test', created_ts=None, version='foo', event_id=bson.ObjectId(),
+            )
 
     def test_created_ts_is_required2(self):
         """
         Test bad 'version'.
         """
         with self.assertRaises(eduid_userdb.exceptions.BadEvent):
-            ToUEvent(application='unit test',
-                     created_ts=True,
-                     version=False,
-                     event_id=bson.ObjectId(),
-                     )
+            ToUEvent(
+                application='unit test', created_ts=True, version=False, event_id=bson.ObjectId(),
+            )
 
     def test_modify_created_ts(self):
         this = self.three.to_list()[-1]
@@ -146,10 +143,9 @@ EPPN = 'hubba-bubba'
 
 
 class TestTouUser(TestCase):
-
     def test_proper_user(self):
         one = copy.deepcopy(_one_dict)
-        tou = ToUEvent(data = one, raise_on_unknown = False)
+        tou = ToUEvent(data=one, raise_on_unknown=False)
         userdata = copy.deepcopy(NEW_USER_EXAMPLE)
         userdata['tou'] = [tou]
         user = ToUUser(data=userdata)
@@ -157,13 +153,13 @@ class TestTouUser(TestCase):
 
     def test_missing_eppn(self):
         one = copy.deepcopy(_one_dict)
-        tou = ToUEvent(data = one, raise_on_unknown = False)
+        tou = ToUEvent(data=one, raise_on_unknown=False)
         with self.assertRaises(UserMissingData):
             user = ToUUser(tou=[tou], userid=USERID)
 
     def test_missing_userid(self):
         one = copy.deepcopy(_one_dict)
-        tou = ToUEvent(data = one, raise_on_unknown = False)
+        tou = ToUEvent(data=one, raise_on_unknown=False)
         with self.assertRaises(UserMissingData):
             user = ToUUser(tou=[tou], eppn=EPPN)
 
@@ -173,7 +169,7 @@ class TestTouUser(TestCase):
 
     def test_unknown_data(self):
         one = copy.deepcopy(_one_dict)
-        tou = ToUEvent(data = one, raise_on_unknown = False)
+        tou = ToUEvent(data=one, raise_on_unknown=False)
         userdata = copy.deepcopy(NEW_USER_EXAMPLE)
         userdata['tou'] = [tou]
         userdata['foo'] = 'bar'
@@ -182,7 +178,7 @@ class TestTouUser(TestCase):
 
     def test_unknown_data_dont_raise(self):
         one = copy.deepcopy(_one_dict)
-        tou = ToUEvent(data = one, raise_on_unknown = False)
+        tou = ToUEvent(data=one, raise_on_unknown=False)
         userdata = copy.deepcopy(NEW_USER_EXAMPLE)
         userdata['tou'] = [tou]
         userdata['foo'] = 'bar'

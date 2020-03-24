@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
-from eduid_userdb.db import BaseDB
 import logging
+
+from eduid_userdb.db import BaseDB
 
 __author__ = 'lundberg'
 
@@ -9,7 +10,6 @@ logger = logging.getLogger(__name__)
 
 
 class LogDB(BaseDB):
-
     def __init__(self, db_uri, collection):
         db_name = 'eduid_logs'
         # Make sure writes reach a majority of replicas
@@ -32,6 +32,5 @@ class LogDB(BaseDB):
 
 
 class ProofingLog(LogDB):
-
     def __init__(self, db_uri, collection='proofing_log'):
         LogDB.__init__(self, db_uri, collection)

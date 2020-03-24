@@ -30,18 +30,22 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from typing import Optional, Mapping, Dict, Any
+import logging
+from typing import Any, Dict, Mapping, Optional
 
 from pymongo.errors import DuplicateKeyError
+
 from eduid_userdb.db import BaseDB
+from eduid_userdb.exceptions import DocumentOutOfSync, MultipleDocumentsReturned
+from eduid_userdb.reset_password.state import (
+    ResetPasswordEmailAndPhoneState,
+    ResetPasswordEmailState,
+    ResetPasswordState,
+)
+from eduid_userdb.reset_password.user import ResetPasswordUser
 from eduid_userdb.user import User
 from eduid_userdb.userdb import UserDB
-from eduid_userdb.exceptions import DocumentOutOfSync, MultipleDocumentsReturned
-from eduid_userdb.reset_password import ResetPasswordUser
-from eduid_userdb.reset_password import ResetPasswordState
-from eduid_userdb.reset_password import ResetPasswordEmailState, ResetPasswordEmailAndPhoneState
 
-import logging
 logger = logging.getLogger(__name__)
 
 
@@ -49,28 +53,18 @@ class ResetPasswordUserDB(UserDB):
 
     UserClass = ResetPasswordUser
 
-    def __init__(self, db_uri: str,
-                 db_name: str = 'eduid_reset_password',
-                 collection: str = 'profiles'):
-        super(ResetPasswordUserDB, self).__init__(db_uri, db_name,
-                                                  collection=collection)
+    def __init__(self, db_uri: str, db_name: str = 'eduid_reset_password', collection: str = 'profiles'):
+        super(ResetPasswordUserDB, self).__init__(db_uri, db_name, collection=collection)
 
-    def save(self, user: User, check_sync: bool = True,
-             old_format: bool = False) -> bool:
-        return super(ResetPasswordUserDB, self).save(user, check_sync=check_sync,
-                                                     old_format=old_format)
+    def save(self, user: User, check_sync: bool = True, old_format: bool = False) -> bool:
+        return super(ResetPasswordUserDB, self).save(user, check_sync=check_sync, old_format=old_format)
 
 
 class ResetPasswordStateDB(BaseDB):
+    def __init__(self, db_uri: str, db_name: str = 'eduid_reset_password', collection: str = 'password_reset_data'):
+        super(ResetPasswordStateDB, self).__init__(db_uri, db_name, collection=collection)
 
-    def __init__(self, db_uri: str,
-                 db_name: str = 'eduid_reset_password',
-                 collection: str = 'password_reset_data'):
-        super(ResetPasswordStateDB, self).__init__(db_uri, db_name,
-                                                   collection=collection)
-
-    def get_state_by_email_code(self, email_code: str,
-                                raise_on_missing: bool = True):
+    def get_state_by_email_code(self, email_code: str, raise_on_missing: bool = True):
         """
         Locate a state in the db given the state's email code.
 
@@ -84,15 +78,13 @@ class ResetPasswordStateDB(BaseDB):
                                                the search criteria
         """
         spec = {'email_code.code': email_code}
-        states = list(self._get_documents_by_filter(spec,
-                                            raise_on_missing=raise_on_missing))
+        states = list(self._get_documents_by_filter(spec, raise_on_missing=raise_on_missing))
 
         if len(states) == 0:
             return None
 
         if len(states) > 1:
-            raise MultipleDocumentsReturned(f"Multiple matching users for "
-                                            f"filter {filter}")
+            raise MultipleDocumentsReturned(f"Multiple matching users for " f"filter {filter}")
 
         return self.init_state(states[0])
 
@@ -109,8 +101,7 @@ class ResetPasswordStateDB(BaseDB):
         :raise self.MultipleDocumentsReturned: More than one document matches
                                                the search criteria
         """
-        state = self._get_document_by_attr('eduPersonPrincipalName', eppn,
-                                           raise_on_missing)
+        state = self._get_document_by_attr('eduPersonPrincipalName', eppn, raise_on_missing)
         if state:
             return self.init_state(state)
 
@@ -135,33 +126,31 @@ class ResetPasswordStateDB(BaseDB):
         if modified is None:
             # document has never been modified
             # Remove old reset password state
-            old_state = self.get_state_by_eppn(state.eppn,
-                                               raise_on_missing=False)
+            old_state = self.get_state_by_eppn(state.eppn, raise_on_missing=False)
             if old_state:
                 self.remove_state(old_state)
 
             result = self._coll.insert(state.to_dict())
-            logging.debug(f"{self} Inserted new state {state} into "
-                          f"{self._coll_name}): {result})")
+            logging.debug(f"{self} Inserted new state {state} into " f"{self._coll_name}): {result})")
 
         else:
             test_doc: Dict[str, Any] = {'eduPersonPrincipalName': state.eppn}
             if check_sync:
                 test_doc['modified_ts'] = modified
-            result = self._coll.update(test_doc, state.to_dict(),
-                                       upsert=(not check_sync))
+            result = self._coll.update(test_doc, state.to_dict(), upsert=(not check_sync))
             if check_sync and result['n'] == 0:
                 db_ts = None
                 db_state = self._coll.find_one({'eppn': state.eppn})
                 if db_state:
                     db_ts = db_state['modified_ts']
-                logging.debug(f"{self} FAILED Updating state {state} "
-                              f"(ts {modified}) in {self._coll_name}). "
-                              f"ts in db = {db_ts}")
+                logging.debug(
+                    f"{self} FAILED Updating state {state} "
+                    f"(ts {modified}) in {self._coll_name}). "
+                    f"ts in db = {db_ts}"
+                )
                 raise DocumentOutOfSync("Stale state object can't be saved")
 
-            logging.debug(f"{self} Updated state {state} (ts {modified}) in "
-                          f"{self._coll_name}): {result}")
+            logging.debug(f"{self} Updated state {state} (ts {modified}) in " f"{self._coll_name}): {result}")
 
     def remove_state(self, state: ResetPasswordState):
         """

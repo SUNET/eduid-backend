@@ -1,43 +1,42 @@
+import copy
+import datetime
 from unittest import TestCase
 
 import bson
-import copy
-import datetime
 
-import eduid_userdb.exceptions
 import eduid_userdb.element
-from eduid_userdb.phone import PhoneNumber, PhoneNumberList
+import eduid_userdb.exceptions
 from eduid_userdb.credentials import Password
+from eduid_userdb.phone import PhoneNumber, PhoneNumberList
 
 __author__ = 'ft'
 
-_one_dict = \
-    {'number': '+46700000001',
-     'primary': True,
-     'verified': True,
-     }
+_one_dict = {
+    'number': '+46700000001',
+    'primary': True,
+    'verified': True,
+}
 
-_two_dict = \
-    {'number': '+46700000002',
-     'primary': False,
-     'verified': True,
-     }
+_two_dict = {
+    'number': '+46700000002',
+    'primary': False,
+    'verified': True,
+}
 
-_three_dict = \
-    {'number': '+46700000003',
-     'primary': False,
-     'verified': False,
-     }
+_three_dict = {
+    'number': '+46700000003',
+    'primary': False,
+    'verified': False,
+}
 
-_four_dict = \
-    {'number': '+46700000004',
-     'primary': False,
-     'verified': False,
-     }
+_four_dict = {
+    'number': '+46700000004',
+    'primary': False,
+    'verified': False,
+}
 
 
 class TestPhoneNumberList(TestCase):
-
     def setUp(self):
         self.empty = PhoneNumberList([])
         self.one = PhoneNumberList([_one_dict])
@@ -83,17 +82,15 @@ class TestPhoneNumberList(TestCase):
         self.assertEqual(this.to_list_of_dicts(), self.three.to_list_of_dicts())
 
     def test_add_another_primary(self):
-        new = eduid_userdb.phone.phone_from_dict({'number': '+46700000009',
-                                                  'verified': True,
-                                                  'primary': True,
-                                                  })
+        new = eduid_userdb.phone.phone_from_dict({'number': '+46700000009', 'verified': True, 'primary': True,})
         with self.assertRaises(eduid_userdb.element.PrimaryElementViolation):
             self.one.add(new)
 
     def test_add_wrong_type(self):
-        pwdict = {'id': bson.ObjectId(),
-                  'salt': 'foo',
-                  }
+        pwdict = {
+            'id': bson.ObjectId(),
+            'salt': 'foo',
+        }
         new = Password(data=pwdict)
         with self.assertRaises(eduid_userdb.element.UserDBValueError):
             self.one.add(new)
@@ -235,7 +232,7 @@ class TestPhoneNumber(TestCase):
     def test_unknown_input_data_allowed(self):
         one = copy.deepcopy(_one_dict)
         one['foo'] = 'bar'
-        addr = PhoneNumber(data=one, raise_on_unknown = False)
+        addr = PhoneNumber(data=one, raise_on_unknown=False)
         out = addr.to_dict()
         self.assertIn('foo', out)
         self.assertEqual(out['foo'], one['foo'])
@@ -321,4 +318,3 @@ class TestPhoneNumber(TestCase):
             this.created_ts = None
         with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
             this.created_ts = True
-

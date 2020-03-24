@@ -29,15 +29,14 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+import logging
 from typing import Type
 
-from eduid_userdb import UserDB, User
-from eduid_userdb.dashboard import DashboardLegacyUser
-from eduid_userdb.dashboard import DashboardUser
+from eduid_userdb import User, UserDB
+from eduid_userdb.dashboard import DashboardLegacyUser, DashboardUser
 
 __author__ = 'ft'
 
-import logging
 logger = logging.getLogger('eduiddashboard')
 
 
@@ -66,9 +65,7 @@ class UserDBWrapper(UserDB):
         return self.get_user_by_mail(email)
 
     def get_user_by_nin(self, nin):
-        users = self._get_users({
-            'norEduPersonNIN': {'$in': [nin]},
-        })
+        users = self._get_users({'norEduPersonNIN': {'$in': [nin]},})
         if users.count() == 0:
             raise self.exceptions.UserDoesNotExist('No user matching NIN {!r}'.format(nin))
         if users.count() > 1:
@@ -91,8 +88,7 @@ class UserDBWrapper(UserDB):
         :raise self.UserDoesNotExist: No user matching the search criteria
         :raise self.MultipleUsersReturned: More than one user matched the search criteria
         """
-        logger.debug("Looking in {!r} using filter {!r}, returning fields {!r}".format(
-            self._coll, filter, fields))
+        logger.debug("Looking in {!r} using filter {!r}, returning fields {!r}".format(self._coll, filter, fields))
         users = self._get_users(filter, fields)
 
         if users.count() == 0:
@@ -142,7 +138,7 @@ class UserDBWrapper(UserDB):
 
     def save(self, user, check_sync=True, old_format=True):
         if isinstance(user, DashboardLegacyUser):
-            user = User(data = user._mongo_doc)
+            user = User(data=user._mongo_doc)
         UserDB.save(self, user, check_sync, old_format)
 
     def get_identity_proofing(self, user):
@@ -164,4 +160,3 @@ class UserDBWrapper(UserDB):
                 return al2_urn
 
         return al1_urn
-

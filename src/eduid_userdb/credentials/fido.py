@@ -36,9 +36,11 @@ from __future__ import absolute_import
 
 import copy
 from hashlib import sha256
+
 from six import string_types
+
 from eduid_userdb.credentials import Credential
-from eduid_userdb.exceptions import UserHasUnknownData, UserDBValueError
+from eduid_userdb.exceptions import UserDBValueError, UserHasUnknownData
 
 __author__ = 'ft'
 
@@ -121,25 +123,35 @@ class U2F(FidoCredential):
     U2F token authentication credential
     """
 
-    def __init__(self,
-                 version=None, keyhandle=None, public_key=None, app_id=None, attest_cert=None,
-                 description=None, application=None, created_ts=None, data=None,
-                 raise_on_unknown=True):
+    def __init__(
+        self,
+        version=None,
+        keyhandle=None,
+        public_key=None,
+        app_id=None,
+        attest_cert=None,
+        description=None,
+        application=None,
+        created_ts=None,
+        data=None,
+        raise_on_unknown=True,
+    ):
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
 
         if data is None:
             if created_ts is None:
                 created_ts = True
-            data = dict(version = version,
-                        keyhandle = keyhandle,
-                        public_key = public_key,
-                        app_id = app_id,
-                        attest_cert = attest_cert,
-                        description = description,
-                        created_by = application,
-                        created_ts = created_ts,
-                        )
+            data = dict(
+                version=version,
+                keyhandle=keyhandle,
+                public_key=public_key,
+                app_id=app_id,
+                attest_cert=attest_cert,
+                description=description,
+                created_by=application,
+                created_ts=created_ts,
+            )
 
         FidoCredential.__init__(self, data)
         self.version = data.pop('version')
@@ -149,21 +161,16 @@ class U2F(FidoCredential):
         leftovers = data.keys()
         if leftovers:
             if raise_on_unknown:
-                raise UserHasUnknownData('U2F {!r} unknown data: {!r}'.format(
-                    self.key, leftovers,
-                ))
+                raise UserHasUnknownData('U2F {!r} unknown data: {!r}'.format(self.key, leftovers,))
             # Just keep everything that is left as-is
             self._data.update(data)
-
 
     @property
     def key(self):
         """
         Return the element that is used as key.
         """
-        return 'sha256:' + sha256(self.keyhandle.encode('utf-8') +
-                                  self.public_key.encode('utf-8')
-                                  ).hexdigest()
+        return 'sha256:' + sha256(self.keyhandle.encode('utf-8') + self.public_key.encode('utf-8')).hexdigest()
 
     @property
     def version(self):
@@ -248,24 +255,33 @@ class Webauthn(FidoCredential):
     Webauthn token authentication credential
     """
 
-    def __init__(self,
-                 keyhandle=None, credential_data=None, app_id=None, attest_obj=None,
-                 description=None, application=None, created_ts=None, data=None,
-                 raise_on_unknown=True):
+    def __init__(
+        self,
+        keyhandle=None,
+        credential_data=None,
+        app_id=None,
+        attest_obj=None,
+        description=None,
+        application=None,
+        created_ts=None,
+        data=None,
+        raise_on_unknown=True,
+    ):
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
 
         if data is None:
             if created_ts is None:
                 created_ts = True
-            data = dict(keyhandle = keyhandle,
-                        credential_data = credential_data,
-                        app_id = app_id,
-                        attest_obj = attest_obj,
-                        description = description,
-                        created_by = application,
-                        created_ts = created_ts,
-                        )
+            data = dict(
+                keyhandle=keyhandle,
+                credential_data=credential_data,
+                app_id=app_id,
+                attest_obj=attest_obj,
+                description=description,
+                created_by=application,
+                created_ts=created_ts,
+            )
 
         FidoCredential.__init__(self, data)
         self.attest_obj = data.pop('attest_obj', '')
@@ -274,21 +290,16 @@ class Webauthn(FidoCredential):
         leftovers = data.keys()
         if leftovers:
             if raise_on_unknown:
-                raise UserHasUnknownData('Webauthn {!r} unknown data: {!r}'.format(
-                    self.key, leftovers,
-                ))
+                raise UserHasUnknownData('Webauthn {!r} unknown data: {!r}'.format(self.key, leftovers,))
             # Just keep everything that is left as-is
             self._data.update(data)
-
 
     @property
     def key(self):
         """
         Return the element that is used as key.
         """
-        return 'sha256:' + sha256(self.keyhandle.encode('utf-8') +
-                                  self.credential_data.encode('utf-8')
-                                  ).hexdigest()
+        return 'sha256:' + sha256(self.keyhandle.encode('utf-8') + self.credential_data.encode('utf-8')).hexdigest()
 
     @property
     def attest_obj(self):

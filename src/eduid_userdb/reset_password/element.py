@@ -40,23 +40,19 @@ from eduid_userdb.exceptions import UserDBValueError
 
 
 class CodeElement(Element):
+    def __init__(self, application: str, code: str, verified: bool, created_ts: Union[datetime, bool]):
 
-    def __init__(self, application: str, code: str, verified: bool,
-                 created_ts: Union[datetime, bool]):
-
-        data = dict(created_by=application,
-                    created_ts=created_ts,
-                    )
+        data = dict(created_by=application, created_ts=created_ts,)
         super().__init__(data)
 
         self.code = code
         self.is_verified = verified
 
-
     @property
     def key(self) -> str:
         """Get element key."""
         return self.code
+
     # -----------------------------------------------------------------
 
     @property
@@ -67,6 +63,7 @@ class CodeElement(Element):
     @code.setter
     def code(self, value: str):
         self._data['code'] = value
+
     # -----------------------------------------------------------------
 
     @property
@@ -79,6 +76,7 @@ class CodeElement(Element):
         if not isinstance(value, bool):
             raise UserDBValueError("Invalid 'verified': {!r}".format(value))
         self._data['verified'] = value
+
     # -----------------------------------------------------------------
 
     def is_expired(self, timeout_seconds: int) -> bool:
@@ -93,7 +91,9 @@ class CodeElement(Element):
         return expiry_date < now
 
     @classmethod
-    def parse(cls: Type[CodeElement], code_or_element: Union[Mapping, CodeElement, str], application: str) -> CodeElement:
+    def parse(
+        cls: Type[CodeElement], code_or_element: Union[Mapping, CodeElement, str], application: str
+    ) -> CodeElement:
         if isinstance(code_or_element, str):
             return cls(application=application, code=code_or_element, created_ts=True, verified=False)
         if isinstance(code_or_element, dict):
@@ -101,12 +101,12 @@ class CodeElement(Element):
             for this in data.keys():
                 if this not in ['application', 'code', 'created_by', 'created_ts', 'verified']:
                     raise ValueError(f'Unknown data {this} for CodeElement.parse from mapping')
-            return cls(application=data.get('created_by', application),
-                       code=data['code'],
-                       created_ts=data.get('created_ts', True),
-                       verified=data.get('verified', False),
-                       )
+            return cls(
+                application=data.get('created_by', application),
+                code=data['code'],
+                created_ts=data.get('created_ts', True),
+                verified=data.get('verified', False),
+            )
         if isinstance(code_or_element, CodeElement):
             return code_or_element
         raise ValueError(f'Can\'t create CodeElement from input: {code_or_element}')
-

@@ -1,37 +1,36 @@
+import copy
+import datetime
 from unittest import TestCase
 
 import bson
-import copy
-import datetime
 
-import eduid_userdb.exceptions
 import eduid_userdb.element
-from eduid_userdb.mail import MailAddress, MailAddressList
+import eduid_userdb.exceptions
 from eduid_userdb.credentials import Password
+from eduid_userdb.mail import MailAddress, MailAddressList
 
 __author__ = 'ft'
 
-_one_dict = \
-    {'email': 'ft@one.example.org',
-     'primary': True,
-     'verified': True,
-     }
+_one_dict = {
+    'email': 'ft@one.example.org',
+    'primary': True,
+    'verified': True,
+}
 
-_two_dict = \
-    {'email': 'ft@two.example.org',
-     'primary': False,
-     'verified': True,
-     }
+_two_dict = {
+    'email': 'ft@two.example.org',
+    'primary': False,
+    'verified': True,
+}
 
-_three_dict = \
-    {'email': 'ft@three.example.org',
-     'primary': False,
-     'verified': False,
-     }
+_three_dict = {
+    'email': 'ft@three.example.org',
+    'primary': False,
+    'verified': False,
+}
 
 
 class TestMailAddressList(TestCase):
-
     def setUp(self):
         self.empty = MailAddressList([])
         self.one = MailAddressList([_one_dict])
@@ -76,17 +75,17 @@ class TestMailAddressList(TestCase):
         self.assertEqual(this.to_list_of_dicts(), self.three.to_list_of_dicts())
 
     def test_add_another_primary(self):
-        new = eduid_userdb.mail.address_from_dict({'email': 'ft@primary.example.org',
-                                                   'verified': True,
-                                                   'primary': True,
-                                                   })
+        new = eduid_userdb.mail.address_from_dict(
+            {'email': 'ft@primary.example.org', 'verified': True, 'primary': True,}
+        )
         with self.assertRaises(eduid_userdb.element.PrimaryElementViolation):
             self.one.add(new)
 
     def test_add_wrong_type(self):
-        pwdict = {'id': bson.ObjectId(),
-                  'salt': 'foo',
-                  }
+        pwdict = {
+            'id': bson.ObjectId(),
+            'salt': 'foo',
+        }
         new = Password(data=pwdict)
         with self.assertRaises(eduid_userdb.element.UserDBValueError):
             self.one.add(new)
@@ -152,7 +151,6 @@ class TestMailAddressList(TestCase):
 
 
 class TestMailAddress(TestCase):
-
     def setUp(self):
         self.empty = MailAddressList([])
         self.one = MailAddressList([_one_dict])
@@ -193,7 +191,7 @@ class TestMailAddress(TestCase):
     def test_unknown_input_data_allowed(self):
         one = copy.deepcopy(_one_dict)
         one['foo'] = 'bar'
-        addr = MailAddress(data=one, raise_on_unknown = False)
+        addr = MailAddress(data=one, raise_on_unknown=False)
         out = addr.to_dict()
         self.assertIn('foo', out)
         self.assertEqual(out['foo'], one['foo'])
@@ -279,4 +277,3 @@ class TestMailAddress(TestCase):
             this.created_ts = None
         with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
             this.created_ts = True
-

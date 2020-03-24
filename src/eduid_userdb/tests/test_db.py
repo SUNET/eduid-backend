@@ -1,12 +1,10 @@
-import eduid_userdb.db as db
-
 from unittest import TestCase
 
+import eduid_userdb.db as db
 from eduid_userdb.testing import MongoTestCase
 
 
 class DummyDatabase(object):
-
     def __init__(self, name):
         self.name = name
         self.is_authenticated = False
@@ -16,7 +14,6 @@ class DummyDatabase(object):
 
 
 class DummyConnection(object):
-
     def __init__(self, *args, **kwargs):
         self.args = args
         self.kwargs = kwargs
@@ -26,7 +23,6 @@ class DummyConnection(object):
 
 
 class TestMongoDB(TestCase):
-
     def test_full_uri(self):
         # full specified uri
         uri = 'mongodb://db.example.com:1111/testdb'
@@ -68,8 +64,10 @@ class TestMongoDB(TestCase):
         uri = 'mongodb://john:s3cr3t@db.example.com,db2.example.com:27017,db3.example.com:1234/?replicaSet=rs9'
         mdb = db.MongoDB(uri, db_name='testdb', connection_factory=DummyConnection)
         self.assertEqual(mdb.sanitized_uri, 'mongodb://john:secret@db.example.com/testdb?replicaset=rs9')
-        self.assertEqual(mdb._db_uri, 'mongodb://john:s3cr3t@db.example.com,db2.example.com,db3.example.com:1234'
-                                      '/testdb?replicaset=rs9')
+        self.assertEqual(
+            mdb._db_uri,
+            'mongodb://john:s3cr3t@db.example.com,db2.example.com,db3.example.com:1234' '/testdb?replicaset=rs9',
+        )
 
     def test_uri_with_options(self):
         uri = 'mongodb://john:s3cr3t@db.example.com:27017/?ssl=true&replicaSet=rs9'
@@ -78,6 +76,5 @@ class TestMongoDB(TestCase):
 
 
 class TestDB(MongoTestCase):
-
     def test_db_count(self):
         self.assertEqual(self.amdb.db_count(), len(list(self.MockedUserDB().all_userdocs())))

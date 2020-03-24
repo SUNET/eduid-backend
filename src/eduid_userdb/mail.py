@@ -33,7 +33,9 @@
 #
 
 import copy
+
 from six import string_types
+
 from eduid_userdb.element import PrimaryElement, PrimaryElementList
 from eduid_userdb.exceptions import UserDBValueError
 
@@ -48,27 +50,31 @@ class MailAddress(PrimaryElement):
     :type data: dict
     :type raise_on_unknown: bool
     """
-    def __init__(self, email=None, application=None, verified=False, created_ts=None, primary=None,
-                 data=None, raise_on_unknown=True):
+
+    def __init__(
+        self,
+        email=None,
+        application=None,
+        verified=False,
+        created_ts=None,
+        primary=None,
+        data=None,
+        raise_on_unknown=True,
+    ):
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
 
         if data is None:
             if created_ts is None:
                 created_ts = True
-            data = dict(email = email,
-                        created_by = application,
-                        created_ts = created_ts,
-                        verified = verified,
-                        primary = primary,
-                        )
+            data = dict(email=email, created_by=application, created_ts=created_ts, verified=verified, primary=primary,)
         if 'added_timestamp' in data:
             # old userdb-style creation timestamp
             data['created_ts'] = data.pop('added_timestamp')
         # CSRF tokens were accidentally put in the database some time ago
         if 'csrf' in data:
             del data['csrf']
-        PrimaryElement.__init__(self, data, raise_on_unknown, ignore_data = ['email'])
+        PrimaryElement.__init__(self, data, raise_on_unknown, ignore_data=['email'])
         self.email = data.pop('email')
 
     # -----------------------------------------------------------------
@@ -130,7 +136,8 @@ class MailAddressList(PrimaryElementList):
     :param addresses: List of e-mail addresses
     :type addresses: [dict | MailAddress]
     """
-    def __init__(self, addresses, raise_on_unknown = True):
+
+    def __init__(self, addresses, raise_on_unknown=True):
         elements = []
 
         for this in addresses:
@@ -181,7 +188,7 @@ class MailAddressList(PrimaryElementList):
         return PrimaryElementList.find(self, email)
 
 
-def address_from_dict(data, raise_on_unknown = True):
+def address_from_dict(data, raise_on_unknown=True):
     """
     Create a MailAddress instance from a dict.
 
@@ -192,7 +199,7 @@ def address_from_dict(data, raise_on_unknown = True):
     :type raise_on_unknown: bool
     :rtype: MailAddress
     """
-    return MailAddress(data = data, raise_on_unknown = raise_on_unknown)
+    return MailAddress(data=data, raise_on_unknown=raise_on_unknown)
 
 
 def new(email, application, verified=False, created_ts=None):

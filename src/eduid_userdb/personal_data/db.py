@@ -32,10 +32,11 @@
 #
 from __future__ import absolute_import
 
-from eduid_userdb.userdb import UserDB
-from eduid_userdb.personal_data import PersonalDataUser
-
 import logging
+
+from eduid_userdb.personal_data.user import PersonalDataUser
+from eduid_userdb.userdb import UserDB
+
 logger = logging.getLogger(__name__)
 
 __author__ = 'lundberg'

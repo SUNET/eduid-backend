@@ -33,7 +33,9 @@
 #
 
 import copy
+
 from six import string_types
+
 from eduid_userdb.element import PrimaryElement, PrimaryElementList
 from eduid_userdb.exceptions import UserDBValueError
 
@@ -48,20 +50,26 @@ class PhoneNumber(PrimaryElement):
     :type data: dict
     :type raise_on_unknown: bool
     """
-    def __init__(self, number=None, application=None, verified=False, created_ts=None,
-                 primary=False, data=None, raise_on_unknown = True):
+
+    def __init__(
+        self,
+        number=None,
+        application=None,
+        verified=False,
+        created_ts=None,
+        primary=False,
+        data=None,
+        raise_on_unknown=True,
+    ):
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
 
         if data is None:
             if created_ts is None:
                 created_ts = True
-            data = dict(number = number,
-                        created_by = application,
-                        created_ts = created_ts,
-                        verified = verified,
-                        primary = primary,
-                        )
+            data = dict(
+                number=number, created_by=application, created_ts=created_ts, verified=verified, primary=primary,
+            )
         if 'added_timestamp' in data:
             # old userdb-style creation timestamp
             data['created_ts'] = data.pop('added_timestamp')
@@ -74,7 +82,7 @@ class PhoneNumber(PrimaryElement):
         if 'csrf' in data:
             del data['csrf']
 
-        PrimaryElement.__init__(self, data, raise_on_unknown, ignore_data = ['number'])
+        PrimaryElement.__init__(self, data, raise_on_unknown, ignore_data=['number'])
         self.number = data.pop('number')
 
     # -----------------------------------------------------------------
@@ -137,7 +145,8 @@ class PhoneNumberList(PrimaryElementList):
     :param phones: List of phone number records
     :type phones: [dict | PhoneNumber]
     """
-    def __init__(self, phones, raise_on_unknown = True):
+
+    def __init__(self, phones, raise_on_unknown=True):
         elements = []
 
         for this in phones:
@@ -177,7 +186,7 @@ class PhoneNumberList(PrimaryElementList):
         PrimaryElementList.primary.fset(self, phone)
 
 
-def phone_from_dict(data, raise_on_unknown = True):
+def phone_from_dict(data, raise_on_unknown=True):
     """
     Create a PhoneNumber instance from a dict.
 

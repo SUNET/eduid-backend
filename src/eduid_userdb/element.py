@@ -46,6 +46,7 @@ class ElementError(EduIDUserDBError):
     """
     Base exception class for PrimaryElement errors.
     """
+
     pass
 
 
@@ -53,6 +54,7 @@ class DuplicateElementViolation(ElementError):
     """
     Raised when some operation would result in duplicate elements in a list.
     """
+
     pass
 
 
@@ -60,6 +62,7 @@ class PrimaryElementError(ElementError):
     """
     Base exception class for PrimaryElement errors.
     """
+
     pass
 
 
@@ -68,6 +71,7 @@ class PrimaryElementViolation(PrimaryElementError):
     Raised when some operation would result in more or less than one 'primary'
     element in an PrimaryElementList.
     """
+
     pass
 
 
@@ -87,6 +91,7 @@ class Element(object):
         created_by
         created_ts
     """
+
     def __init__(self, data):
         if not isinstance(data, dict):
             raise UserDBValueError("Invalid 'data', not dict ({!r})".format(type(data)))
@@ -158,9 +163,10 @@ class Element(object):
                       Value None is ignored, True is short for datetime.utcnow().
         """
         _set_something_ts(self._data, 'modified_ts', value, allow_update=True)
+
     # -----------------------------------------------------------------
 
-    def to_dict(self, old_userdb_format = False):
+    def to_dict(self, old_userdb_format=False):
         """
         Convert Element to a dict, that can be used to reconstruct the
         Element later.
@@ -260,7 +266,8 @@ class PrimaryElement(VerifiedElement):
     :type data: dict
     :type raise_on_unknown: bool
     """
-    def __init__(self, data, raise_on_unknown = True, ignore_data = None):
+
+    def __init__(self, data, raise_on_unknown=True, ignore_data=None):
         VerifiedElement.__init__(self, data)
 
         self.is_primary = data.pop('primary', False)
@@ -269,10 +276,7 @@ class PrimaryElement(VerifiedElement):
         leftovers = [x for x in data.keys() if x not in ignore_data]
         if leftovers:
             if raise_on_unknown:
-                raise UserHasUnknownData('{!s} has unknown data: {!r}'.format(
-                    self.__class__.__name__,
-                    leftovers,
-                ))
+                raise UserHasUnknownData('{!s} has unknown data: {!r}'.format(self.__class__.__name__, leftovers,))
             # Just keep everything that is left as-is
             self._data.update(data)
 
@@ -327,6 +331,7 @@ class ElementList(object):
 
     :param elements: List of elements
     """
+
     def __init__(self, elements: List[Element]):
         for this in elements:
             if not isinstance(this, Element):
@@ -428,6 +433,7 @@ class PrimaryElementList(ElementList):
     :param elements: List of elements
     :type elements: [dict | Element]
     """
+
     def __init__(self, elements):
         self._get_primary(elements)
         ElementList.__init__(self, elements)
@@ -546,9 +552,9 @@ class PrimaryElementList(ElementList):
 
         res = [x for x in verified if x.is_primary is True]
         if len(res) != 1:
-            raise PrimaryElementViolation("{!s} contains {!s}/{!s} primary elements".format(
-                self.__class__.__name__,
-                len(res), len(elements)))
+            raise PrimaryElementViolation(
+                "{!s} contains {!s}/{!s} primary elements".format(self.__class__.__name__, len(res), len(elements))
+            )
         return res[0]
 
     @property

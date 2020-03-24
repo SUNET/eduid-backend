@@ -32,12 +32,11 @@
 #
 
 import copy
+
 from six import string_types
 
-from eduid_userdb.element import VerifiedElement, Element
-from eduid_userdb.element import _set_something_by, _set_something_ts
+from eduid_userdb.element import Element, VerifiedElement, _set_something_by, _set_something_ts
 from eduid_userdb.exceptions import UserDBValueError
-
 
 __author__ = 'lundberg'
 
@@ -60,22 +59,31 @@ class ProofingElement(VerifiedElement):
 
     :type data: dict
     """
-    def __init__(self, application=None, created_ts=None,
-                 verified=False, verified_by=None, verified_ts=None,
-                 verification_code=None, data=None):
+
+    def __init__(
+        self,
+        application=None,
+        created_ts=None,
+        verified=False,
+        verified_by=None,
+        verified_ts=None,
+        verification_code=None,
+        data=None,
+    ):
 
         data_in = copy.copy(data)  # to not modify callers data
 
         if data_in is None:
             if created_ts is None:
                 created_ts = True
-            data_in = dict(created_by=application,
-                           created_ts=created_ts,
-                           verified=verified,
-                           verified_by=verified_by,
-                           verified_ts=verified_ts,
-                           verification_code=verification_code,
-                           )
+            data_in = dict(
+                created_by=application,
+                created_ts=created_ts,
+                verified=verified,
+                verified_by=verified_by,
+                verified_ts=verified_ts,
+                verification_code=verification_code,
+            )
         verification_code = data_in.pop('verification_code', None)
         VerifiedElement.__init__(self, data_in)
         self.verification_code = verification_code
@@ -119,16 +127,22 @@ class NinProofingElement(ProofingElement):
 
     :type data: dict
     """
-    def __init__(self, number=None, application=None, created_ts=None,
-                 verified=False, verification_code=None, data=None):
+
+    def __init__(
+        self, number=None, application=None, created_ts=None, verified=False, verification_code=None, data=None
+    ):
 
         data = copy.copy(data)
         if number is None:
             number = data.pop('number')
 
-        super(NinProofingElement, self).__init__(application=application,
-                                                   created_ts=created_ts, verified=verified,
-                                                   verification_code=verification_code, data=data)
+        super(NinProofingElement, self).__init__(
+            application=application,
+            created_ts=created_ts,
+            verified=verified,
+            verification_code=verification_code,
+            data=data,
+        )
         self.number = number
 
     @property
@@ -175,16 +189,22 @@ class EmailProofingElement(ProofingElement):
 
     :type data: dict
     """
-    def __init__(self, email=None, application=None, created_ts=None,
-                 verified=False, verification_code=None, data=None):
+
+    def __init__(
+        self, email=None, application=None, created_ts=None, verified=False, verification_code=None, data=None
+    ):
 
         data = copy.copy(data)
         if email is None:
             email = data.pop('email')
 
-        super(EmailProofingElement, self).__init__(application=application,
-                                                   created_ts=created_ts, verified=verified,
-                                                   verification_code=verification_code, data=data)
+        super(EmailProofingElement, self).__init__(
+            application=application,
+            created_ts=created_ts,
+            verified=verified,
+            verification_code=verification_code,
+            data=data,
+        )
         self.email = email
 
     @property
@@ -231,16 +251,22 @@ class PhoneProofingElement(ProofingElement):
 
     :type data: dict
     """
-    def __init__(self, phone=None, application=None, created_ts=None,
-                 verified=False, verification_code=None, data=None):
+
+    def __init__(
+        self, phone=None, application=None, created_ts=None, verified=False, verification_code=None, data=None
+    ):
 
         data = copy.copy(data)
         if not phone:
             phone = data.pop('number')
 
-        super(PhoneProofingElement, self).__init__(application=application,
-                                                   created_ts=created_ts, verified=verified,
-                                                   verification_code=verification_code, data=data)
+        super(PhoneProofingElement, self).__init__(
+            application=application,
+            created_ts=created_ts,
+            verified=verified,
+            verification_code=verification_code,
+            data=data,
+        )
         self.number = phone
 
     @property
@@ -280,6 +306,7 @@ class SentLetterElement(Element):
     created_by
     created_ts
     """
+
     def __init__(self, data):
         super(SentLetterElement, self).__init__(data)
 

@@ -34,13 +34,13 @@
 
 import copy
 import datetime
-from typing import Dict, Any
+from typing import Any, Dict
 
 import bson
 
 from eduid_userdb.credentials import CredentialList
 from eduid_userdb.element import UserDBValueError
-from eduid_userdb.exceptions import UserHasUnknownData, UserIsRevoked, UserHasNotCompletedSignup
+from eduid_userdb.exceptions import UserHasNotCompletedSignup, UserHasUnknownData, UserIsRevoked
 from eduid_userdb.locked_identity import LockedIdentityList
 from eduid_userdb.mail import MailAddressList
 from eduid_userdb.nin import NinList
@@ -59,6 +59,7 @@ class User(object):
     :param data: MongoDB document representing a user
     :type  data: dict
     """
+
     def __init__(self, data: Dict[str, Any], raise_on_unknown: bool = True):
         self._data_in = copy.deepcopy(data)  # to not modify callers data
         self._data_orig = copy.deepcopy(data)  # to not modify callers data
@@ -116,21 +117,20 @@ class User(object):
 
         if len(self._data_in) > 0:
             if raise_on_unknown:
-                raise UserHasUnknownData('User {!s}/{!s} unknown data: {!r}'.format(
-                    self.user_id, self.eppn, self._data_in.keys()
-                ))
+                raise UserHasUnknownData(
+                    'User {!s}/{!s} unknown data: {!r}'.format(self.user_id, self.eppn, self._data_in.keys())
+                )
             # Just keep everything that is left as-is
             self._data.update(self._data_in)
 
     def __repr__(self):
-        return '<eduID {!s}: {!s}/{!s}>'.format(self.__class__.__name__,
-                                                self.eppn,
-                                                self.user_id,
-                                                )
+        return '<eduID {!s}: {!s}/{!s}>'.format(self.__class__.__name__, self.eppn, self.user_id,)
 
     def __eq__(self, other):
         if self.__class__ is not other.__class__:
-            raise TypeError('Trying to compare objects of different class {!r} - {!r} '.format(self.__class__, other.__class__))
+            raise TypeError(
+                'Trying to compare objects of different class {!r} - {!r} '.format(self.__class__, other.__class__)
+            )
         return self._data == other._data
 
     def _parse_check_invalid_users(self):
@@ -140,11 +140,17 @@ class User(object):
         Check users that can't be loaded for some known reason.
         """
         if 'revoked_ts' in self._data_in:
-            raise UserIsRevoked('User {!s}/{!s} was revoked at {!s}'.format(
-                self._data_in.get('_id'), self._data_in.get('eduPersonPrincipalName'), self._data_in['revoked_ts']))
+            raise UserIsRevoked(
+                'User {!s}/{!s} was revoked at {!s}'.format(
+                    self._data_in.get('_id'), self._data_in.get('eduPersonPrincipalName'), self._data_in['revoked_ts']
+                )
+            )
         if 'passwords' not in self._data_in:
-            raise UserHasNotCompletedSignup('User {!s}/{!s} is incomplete'.format(
-                self._data_in.get('_id'), self._data_in.get('eduPersonPrincipalName')))
+            raise UserHasNotCompletedSignup(
+                'User {!s}/{!s} is incomplete'.format(
+                    self._data_in.get('_id'), self._data_in.get('eduPersonPrincipalName')
+                )
+            )
 
     def _parse_mail_addresses(self):
         """
@@ -222,15 +228,17 @@ class User(object):
                 if isinstance(this, str):
                     # XXX lookup NIN in eduid-dashboards verifications to make sure it is verified somehow?
                     _primary = not _nins
-                    _nins.append({'number': this,
-                                  'primary': _primary,
-                                  'verified': True,
-                                  })
+                    _nins.append(
+                        {'number': this, 'primary': _primary, 'verified': True,}
+                    )
                 elif isinstance(this, dict):
-                    _nins.append({'number': this.pop('number'),
-                                  'primary': this.pop('primary'),
-                                  'verified': this.pop('verified'),
-                                  })
+                    _nins.append(
+                        {
+                            'number': this.pop('number'),
+                            'primary': this.pop('primary'),
+                            'verified': this.pop('verified'),
+                        }
+                    )
                     if len(this):
                         raise UserDBValueError('Old-style NIN-as-dict has unknown data')
                 else:
@@ -609,8 +617,17 @@ class User(object):
         if 'eduPersonEntitlement' not in res:
             res['eduPersonEntitlement'] = res.pop('entitlements', [])
         # Remove these values if they have a value that evaluates to False
-        for _remove in ['displayName', 'givenName', 'surname', 'preferredLanguage', 'phone',
-                        'orcid', 'eduPersonEntitlement', 'locked_identity', 'nins']:
+        for _remove in [
+            'displayName',
+            'givenName',
+            'surname',
+            'preferredLanguage',
+            'phone',
+            'orcid',
+            'eduPersonEntitlement',
+            'locked_identity',
+            'nins',
+        ]:
             if _remove in res and not res[_remove]:
                 del res[_remove]
         if old_userdb_format:
@@ -655,4 +672,4 @@ class User(object):
             user_dict.pop('modified_ts', None)
         else:
             user_dict['modified_ts'] = private_user.modified_ts
-        return cls(data = user_dict)
+        return cls(data=user_dict)

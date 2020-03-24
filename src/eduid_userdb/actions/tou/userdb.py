@@ -32,8 +32,8 @@
 
 __author__ = 'ft'
 
-from eduid_userdb.userdb import UserDB
 from eduid_userdb.actions.tou import ToUUser
+from eduid_userdb.userdb import UserDB
 
 
 class ToUUserDB(UserDB):
@@ -42,4 +42,3 @@ class ToUUserDB(UserDB):
 
     def __init__(self, db_uri, db_name='eduid_actions', collection='tou'):
         UserDB.__init__(self, db_uri, db_name, collection)
-

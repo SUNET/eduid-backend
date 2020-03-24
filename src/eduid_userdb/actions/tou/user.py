@@ -56,22 +56,21 @@ class ToUUser(User):
     :type raise_on_unknown: bool
     """
 
-    def __init__(self, userid = None, eppn = None, tou = None, data = None,
-                                         raise_on_unknown = True):
+    def __init__(self, userid=None, eppn=None, tou=None, data=None, raise_on_unknown=True):
         """
         """
         if data is None:
             data = {'_id': userid, 'eduPersonPrincipalName': eppn, 'tou': tou}
 
         if '_id' not in data or data['_id'] is None:
-            raise UserMissingData('Attempting to record a ToU acceptance '
-                                  'for an unidentified user.')
+            raise UserMissingData('Attempting to record a ToU acceptance ' 'for an unidentified user.')
         if 'eduPersonPrincipalName' not in data or data['eduPersonPrincipalName'] is None:
-            raise UserMissingData('Attempting to record a ToU acceptance '
-                                  'for a user without eppn.')
+            raise UserMissingData('Attempting to record a ToU acceptance ' 'for a user without eppn.')
         if 'tou' not in data or data['tou'] is None:
-            raise UserMissingData('Attempting to record the acceptance of '
-                                  'an unknown version of the ToU for '
-                                  'the user with eppn ' + str(data['eduPersonPrincipalName']))
+            raise UserMissingData(
+                'Attempting to record the acceptance of '
+                'an unknown version of the ToU for '
+                'the user with eppn ' + str(data['eduPersonPrincipalName'])
+            )
 
         User.__init__(self, data, raise_on_unknown=raise_on_unknown)

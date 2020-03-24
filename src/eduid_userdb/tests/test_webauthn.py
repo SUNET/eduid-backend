@@ -1,11 +1,10 @@
-from unittest import TestCase
-
 import copy
 import datetime
-import eduid_userdb.exceptions
-import eduid_userdb.element
-
 from hashlib import sha256
+from unittest import TestCase
+
+import eduid_userdb.element
+import eduid_userdb.exceptions
 from eduid_userdb.credentials import CredentialList, Webauthn
 
 __author__ = 'lundberg'
@@ -29,14 +28,12 @@ _three_dict = {
     'attest_obj': 'foo',
 }
 
+
 def _keyid(key):
-    return 'sha256:' + sha256(key['keyhandle'].encode('utf-8') +
-                              key['credential_data'].encode('utf-8')
-                              ).hexdigest()
+    return 'sha256:' + sha256(key['keyhandle'].encode('utf-8') + key['credential_data'].encode('utf-8')).hexdigest()
 
 
 class TestWebauthn(TestCase):
-
     def setUp(self):
         self.empty = CredentialList([])
         self.one = CredentialList([_one_dict])
@@ -48,10 +45,16 @@ class TestWebauthn(TestCase):
         Test that the 'key' property (used by CredentialList) works for the credential.
         """
         this = self.one.find(_keyid(_one_dict))
-        self.assertEqual(this.key, _keyid({'keyhandle': this.keyhandle,
-                                           'attestation_object': this.attest_obj,
-                                           'credential_data': this.credential_data,
-                                           }))
+        self.assertEqual(
+            this.key,
+            _keyid(
+                {
+                    'keyhandle': this.keyhandle,
+                    'attestation_object': this.attest_obj,
+                    'credential_data': this.credential_data,
+                }
+            ),
+        )
 
     def test_setting_invalid_keyhandle(self):
         this = self.one.find(_keyid(_one_dict))
@@ -122,7 +125,6 @@ class TestWebauthn(TestCase):
         self.assertEqual(this.proofing_method, None)
         with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
             this.proofing_method = False
-
 
     def test_proofing_version(self):
         this = self.three.find(_keyid(_three_dict))

@@ -34,14 +34,14 @@
 #
 
 import copy
+import logging
 from datetime import datetime
 
-from eduid_userdb.exceptions import UserOutOfSync, UserDBValueError
+import bson
 
 from eduid_userdb import User
+from eduid_userdb.exceptions import UserDBValueError, UserOutOfSync
 
-import bson
-import logging
 log = logging.getLogger('eduiddashboard')
 
 
@@ -50,19 +50,16 @@ class DashboardUser(User):
     Subclass of eduid_userdb.User with eduid Dashboard application specific data.
     """
 
-    def __init__(self, userid = None, eppn = None, subject = 'physical person', data = None):
+    def __init__(self, userid=None, eppn=None, subject='physical person', data=None):
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
 
         if data is None:
             if userid is None:
                 userid = bson.ObjectId()
-            data = dict(_id = userid,
-                        eduPersonPrincipalName = eppn,
-                        subject = subject,
-                        )
+            data = dict(_id=userid, eduPersonPrincipalName=eppn, subject=subject,)
 
-        User.__init__(self, data = data)
+        User.__init__(self, data=data)
 
     def add_letter_proofing_data(self, data):
         """
@@ -134,7 +131,7 @@ class DashboardLegacyUser(object):
         # The user will not be parsed by the code in eduid-dashboard-amp if
         # we put postalAddress in profiles documents.
         if 'postalAddress' in self._mongo_doc:
-            del(self._mongo_doc['postalAddress'])
+            del self._mongo_doc['postalAddress']
         modified = self.get_modified_ts()
         self.set_modified_ts(datetime.utcnow())
         if update_doc is None:
@@ -145,8 +142,7 @@ class DashboardLegacyUser(object):
         result = request.db.profiles.update(test_doc, update_doc, upsert=(not check_sync))
         if result['n'] == 0:
             if check_sync:
-                raise UserOutOfSync('The user data has been modified '
-                                    'since you started editing it.')
+                raise UserOutOfSync('The user data has been modified ' 'since you started editing it.')
             log.info("Tried saving user {!s} (test_doc {!s}) but failed (no check_sync)".format(self, test_doc))
         request.context.propagate_user_changes(self)
 
@@ -217,13 +213,12 @@ class DashboardLegacyUser(object):
                     log.debug("Using modified_ts from profiles user {!s}: {!s}".format(self, self.get_modified_ts()))
                 except KeyError:
                     self._mongo_doc['modified_ts'] = datetime.utcnow()
-                    log.debug("Updating user {!s} in profiles {!s} with new modified_ts: {!s}".format(
-                        self, profiles, self.get_modified_ts()))
-                    profiles.update(
-                        {
-                            '_id': userid,
-                        },
-                        self._mongo_doc)
+                    log.debug(
+                        "Updating user {!s} in profiles {!s} with new modified_ts: {!s}".format(
+                            self, profiles, self.get_modified_ts()
+                        )
+                    )
+                    profiles.update({'_id': userid,}, self._mongo_doc)
 
     def set_modified_ts(self, ts):
         '''

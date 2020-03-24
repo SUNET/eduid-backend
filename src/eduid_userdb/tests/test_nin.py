@@ -1,38 +1,36 @@
+import copy
+import datetime
 from unittest import TestCase
 
 import bson
-import copy
-import datetime
 
-import eduid_userdb.exceptions
 import eduid_userdb.element
-from eduid_userdb.nin import Nin, NinList
+import eduid_userdb.exceptions
 from eduid_userdb.credentials import Password
-
+from eduid_userdb.nin import Nin, NinList
 
 __author__ = 'ft'
 
-_one_dict = \
-    {'number': '197801011234',
-     'primary': True,
-     'verified': True,
-     }
+_one_dict = {
+    'number': '197801011234',
+    'primary': True,
+    'verified': True,
+}
 
-_two_dict = \
-    {'number': '197802022345',
-     'primary': False,
-     'verified': True,
-     }
+_two_dict = {
+    'number': '197802022345',
+    'primary': False,
+    'verified': True,
+}
 
-_three_dict = \
-    {'number': '197803033456',
-     'primary': False,
-     'verified': False,
-     }
+_three_dict = {
+    'number': '197803033456',
+    'primary': False,
+    'verified': False,
+}
 
 
 class TestNinList(TestCase):
-
     def setUp(self):
         self.empty = NinList([])
         self.one = NinList([_one_dict])
@@ -77,17 +75,15 @@ class TestNinList(TestCase):
         self.assertEqual(this.to_list_of_dicts(), self.three.to_list_of_dicts())
 
     def test_add_another_primary(self):
-        new = eduid_userdb.nin.nin_from_dict({'number': '+46700000009',
-                                              'verified': True,
-                                              'primary': True,
-                                              })
+        new = eduid_userdb.nin.nin_from_dict({'number': '+46700000009', 'verified': True, 'primary': True,})
         with self.assertRaises(eduid_userdb.element.PrimaryElementViolation):
             self.one.add(new)
 
     def test_add_wrong_type(self):
-        pwdict = {'id': bson.ObjectId(),
-                  'salt': 'foo',
-                  }
+        pwdict = {
+            'id': bson.ObjectId(),
+            'salt': 'foo',
+        }
         new = Password(data=pwdict)
         with self.assertRaises(eduid_userdb.element.UserDBValueError):
             self.one.add(new)
@@ -153,7 +149,6 @@ class TestNinList(TestCase):
 
 
 class TestNin(TestCase):
-
     def setUp(self):
         self.empty = NinList([])
         self.one = NinList([_one_dict])
@@ -189,12 +184,12 @@ class TestNin(TestCase):
         one = copy.deepcopy(_one_dict)
         one['foo'] = 'bar'
         with self.assertRaises(eduid_userdb.exceptions.UserHasUnknownData):
-            Nin(data = one)
+            Nin(data=one)
 
     def test_unknown_input_data_allowed(self):
         one = copy.deepcopy(_one_dict)
         one['foo'] = 'bar'
-        addr = Nin(data = one, raise_on_unknown = False)
+        addr = Nin(data=one, raise_on_unknown=False)
         out = addr.to_dict()
         self.assertIn('foo', out)
         self.assertEqual(out['foo'], one['foo'])
@@ -280,4 +275,3 @@ class TestNin(TestCase):
             this.created_ts = None
         with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
             this.created_ts = True
-
