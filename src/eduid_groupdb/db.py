@@ -2,10 +2,10 @@
 from __future__ import annotations
 
 from abc import ABC
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
 from urllib.parse import urlparse
 
-from neo4j import GraphDatabase, Driver, basic_auth
+from neo4j import Driver, GraphDatabase, basic_auth
 
 __author__ = 'lundberg'
 

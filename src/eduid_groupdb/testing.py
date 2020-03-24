@@ -27,6 +27,7 @@ class Neo4jTemporaryInstance(object):
     at the end of the program.
 
     """
+
     _instance: Optional[Neo4jTemporaryInstance] = None
     _http_port: int
     _https_port: int
@@ -49,16 +50,28 @@ class Neo4jTemporaryInstance(object):
         self._docker_exc = 'docker'
         self._docker_name = 'neo4j-{!s}'.format(self.bolt_port)
         try:
-            self._process = subprocess.Popen([self._docker_exc, 'run', '--rm', '--name',
-                                              f'{self._docker_name}',
-                                              '-p', f'{self.http_port}:7474',
-                                              '-p', f'{self.https_port}:7473',
-                                              '-p', f'{self.bolt_port}:7687',
-                                              '-e', f'NEO4J_AUTH={self.DEFAULT_USERNAME}/{self.DEFAULT_PASSWORD}',
-                                              '-e', 'NEO4J_ACCEPT_LICENSE_AGREEMENT=yes',
-                                              f'neo4j:{neo4j_version}'],
-                                             stdout=open('/tmp/neo4j-temp.log', 'wb'),
-                                             stderr=subprocess.STDOUT)
+            self._process = subprocess.Popen(
+                [
+                    self._docker_exc,
+                    'run',
+                    '--rm',
+                    '--name',
+                    f'{self._docker_name}',
+                    '-p',
+                    f'{self.http_port}:7474',
+                    '-p',
+                    f'{self.https_port}:7473',
+                    '-p',
+                    f'{self.bolt_port}:7687',
+                    '-e',
+                    f'NEO4J_AUTH={self.DEFAULT_USERNAME}/{self.DEFAULT_PASSWORD}',
+                    '-e',
+                    'NEO4J_ACCEPT_LICENSE_AGREEMENT=yes',
+                    f'neo4j:{neo4j_version}',
+                ],
+                stdout=open('/tmp/neo4j-temp.log', 'wb'),
+                stderr=subprocess.STDOUT,
+            )
         except OSError:
             assert False, "No docker executable found"
 
@@ -121,6 +134,7 @@ class Neo4jTestCase(unittest.TestCase):
     """
     Base test case that sets up a temporary Neo4j instance
     """
+
     neo4j_instance: Neo4jTemporaryInstance
     neo4jdb: Neo4jDB
 

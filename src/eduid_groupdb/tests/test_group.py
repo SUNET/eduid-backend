@@ -8,28 +8,21 @@ __author__ = 'lundberg'
 
 
 class TestGroup(TestCase):
-
     def setUp(self) -> None:
         self.group1: Dict[str, Union[str, list]] = {
             'scope': 'example.com',
             'identifier': 'test1',
             'display_name': 'Test Group 1',
-            'description': 'A test group'
+            'description': 'A test group',
         }
         self.group2: Dict[str, Union[str, list]] = {
             'scope': 'another-example.com',
             'identifier': 'test2',
             'display_name': 'Test Group 2',
-            'description': 'Another test group'
+            'description': 'Another test group',
         }
-        self.user1: Dict[str, str] = {
-            'identifier': 'user1',
-            'display_name': 'Test Testsson'
-        }
-        self.user2: Dict[str, str] = {
-            'identifier': 'user2',
-            'display_name': 'Namn Namnsson'
-        }
+        self.user1: Dict[str, str] = {'identifier': 'user1', 'display_name': 'Test Testsson'}
+        self.user2: Dict[str, str] = {'identifier': 'user2', 'display_name': 'Namn Namnsson'}
 
     def test_init_group(self):
         group = Group(**self.group1)
@@ -59,4 +52,3 @@ class TestGroup(TestCase):
         self.assertIn(user, group.members)
         self.assertIn(user, group.user_members)
         self.assertIn(owner, group.owners)
-

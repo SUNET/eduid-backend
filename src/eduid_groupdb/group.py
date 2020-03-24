@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Optional, List, Union, Mapping, Type
+from typing import List, Mapping, Optional, Type, Union
 
 from bson import ObjectId
 
@@ -29,8 +29,12 @@ class User:
     @classmethod
     def from_mapping(cls, data: Mapping) -> User:
         dt = neo4j_ts_to_dt(data)
-        return cls(identifier=data['identifier'], display_name=data['display_name'],
-                   created_ts=dt['created_ts'], modified_ts=dt['modified_ts'])
+        return cls(
+            identifier=data['identifier'],
+            display_name=data['display_name'],
+            created_ts=dt['created_ts'],
+            modified_ts=dt['modified_ts'],
+        )
 
 
 @dataclass()
@@ -78,6 +82,14 @@ class Group:
         version = data.get('version')
         if version is not None:
             version = ObjectId(version)
-        return cls(scope=data['scope'], identifier=data['identifier'], version=version,
-                   display_name=data['display_name'], description=data['description'], created_ts=dt['created_ts'],
-                   modified_ts=dt['modified_ts'], members=data.get('members', []), owners=data.get('owners', []))
+        return cls(
+            scope=data['scope'],
+            identifier=data['identifier'],
+            version=version,
+            display_name=data['display_name'],
+            description=data['description'],
+            created_ts=dt['created_ts'],
+            modified_ts=dt['modified_ts'],
+            members=data.get('members', []),
+            owners=data.get('owners', []),
+        )

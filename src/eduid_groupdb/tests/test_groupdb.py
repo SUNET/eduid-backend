@@ -4,7 +4,7 @@ from typing import Dict, Union
 from bson import ObjectId
 from neo4j import basic_auth
 
-from eduid_groupdb import GroupDB, Group, User
+from eduid_groupdb import Group, GroupDB, User
 from eduid_groupdb.exceptions import VersionMismatch
 from eduid_groupdb.testing import Neo4jTestCase
 
@@ -12,12 +12,8 @@ __author__ = 'lundberg'
 
 
 class TestGroupDB(Neo4jTestCase):
-
     def setUp(self) -> None:
-        self.db_config = {
-            'encrypted': False,
-            'auth': basic_auth('neo4j', 'testing')
-        }
+        self.db_config = {'encrypted': False, 'auth': basic_auth('neo4j', 'testing')}
         self.group_db = GroupDB(db_uri=self.neo4jdb.db_uri, config=self.db_config)
         self.group1: Dict[str, Union[str, list, None]] = {
             'scope': 'example.com',
@@ -31,16 +27,10 @@ class TestGroupDB(Neo4jTestCase):
             'identifier': 'test2',
             'version': None,
             'display_name': 'Test Group 2',
-            'description': 'Another test group'
+            'description': 'Another test group',
         }
-        self.user1: Dict[str, str] = {
-            'identifier': 'user1',
-            'display_name': 'Test Testsson'
-        }
-        self.user2: Dict[str, str] = {
-            'identifier': 'user2',
-            'display_name': 'Namn Namnsson'
-        }
+        self.user1: Dict[str, str] = {'identifier': 'user1', 'display_name': 'Test Testsson'}
+        self.user2: Dict[str, str] = {'identifier': 'user2', 'display_name': 'Namn Namnsson'}
 
     def test_create_group(self):
         group = Group.from_mapping(self.group1)

@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 import enum
 import logging
-from typing import Union, List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 from bson import ObjectId
-from neo4j import Transaction, Record
-from neo4j.exceptions import ClientError, CypherError, ConstraintError
+from neo4j import Record, Transaction
+from neo4j.exceptions import ClientError, ConstraintError, CypherError
 from neo4j.types.graph import Graph
 
 from eduid_groupdb import BaseGraphDB, Group, User
@@ -17,7 +17,6 @@ logger = logging.getLogger(__name__)
 
 
 class GroupDB(BaseGraphDB):
-
     @enum.unique
     class Role(enum.Enum):
         # Role to relationship type
@@ -62,12 +61,20 @@ class GroupDB(BaseGraphDB):
         else:
             version = str(group.version)
         new_version = str(ObjectId())
-        res = tx.run(q, scope=group.scope, identifier=group.identifier, version=version,
-                     display_name=group.display_name, description=group.description, new_version=new_version).single()
+        res = tx.run(
+            q,
+            scope=group.scope,
+            identifier=group.identifier,
+            version=version,
+            display_name=group.display_name,
+            description=group.description,
+            new_version=new_version,
+        ).single()
         return Group.from_mapping(res.data()['group'])
 
-    def _add_or_update_users_and_groups(self, tx: Transaction, group: Group) -> Tuple[List[Union[User, Group]],
-                                                                                      List[Union[User, Group]]]:
+    def _add_or_update_users_and_groups(
+        self, tx: Transaction, group: Group
+    ) -> Tuple[List[Union[User, Group]], List[Union[User, Group]]]:
         members: List[Union[User, Group]] = []
         owners: List[Union[User, Group]] = []
 
@@ -124,8 +131,13 @@ class GroupDB(BaseGraphDB):
                     {{scope: $member_scope, identifier: $member_identifier}})
             DELETE r
             """
-        tx.run(q, scope=group.scope, identifier=group.identifier, member_scope=member.scope,
-               member_identifier=member.identifier)
+        tx.run(
+            q,
+            scope=group.scope,
+            identifier=group.identifier,
+            member_scope=member.scope,
+            member_identifier=member.identifier,
+        )
 
     @staticmethod
     def _remove_user_from_group(tx: Transaction, group: Group, member: User, role: Role):
@@ -155,9 +167,16 @@ class GroupDB(BaseGraphDB):
             """
         # Need a version if the group is created
         version = str(ObjectId())
-        return tx.run(q, group_scope=group.scope, group_identifier=group.identifier, identifier=member.identifier,
-                      scope=member.scope, version=version, display_name=member.display_name,
-                      description=member.description).single()
+        return tx.run(
+            q,
+            group_scope=group.scope,
+            group_identifier=group.identifier,
+            identifier=member.identifier,
+            scope=member.scope,
+            version=version,
+            display_name=member.display_name,
+            description=member.description,
+        ).single()
 
     @staticmethod
     def _add_user_to_group(tx, group: Group, member: User, role: Role) -> Record:
@@ -171,8 +190,13 @@ class GroupDB(BaseGraphDB):
             RETURN r.display_name as display_name, r.created_ts as created_ts, r.modified_ts as modified_ts,
                    m.identifier as identifier
             """
-        return tx.run(q, scope=group.scope, group_identifier=group.identifier, identifier=member.identifier,
-                      display_name=member.display_name).single()
+        return tx.run(
+            q,
+            scope=group.scope,
+            group_identifier=group.identifier,
+            identifier=member.identifier,
+            display_name=member.display_name,
+        ).single()
 
     def _get_users_and_groups_by_role(self, scope: str, identifier: str, role: Role) -> List[Union[User, Group]]:
         res: List[Union[User, Group]] = []
