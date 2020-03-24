@@ -38,8 +38,9 @@ from bson import ObjectId
 from flask import request
 
 from eduid_userdb.actions import Action
-from eduid_userdb.actions.tou import ToUUserDB, ToUUser
+from eduid_userdb.actions.tou import ToUUser, ToUUserDB
 from eduid_userdb.tou import ToUEvent
+
 from eduid_webapp.actions.action_abc import ActionPlugin
 from eduid_webapp.actions.app import current_actions_app as current_app
 
@@ -55,6 +56,7 @@ class Plugin(ActionPlugin):
 
         # This import has to happen _after_ eduid_am has been initialized
         from eduid_am.tasks import update_attributes_keep_result
+
         self._update_attributes = update_attributes_keep_result
 
     @classmethod
@@ -69,7 +71,7 @@ class Plugin(ActionPlugin):
         return {
             'version': action.params['version'],
             'tous': tous,
-            'available_languages': current_app.config.available_languages
+            'available_languages': current_app.config.available_languages,
         }
 
     def perform_step(self, action: Action):
@@ -89,13 +91,15 @@ class Plugin(ActionPlugin):
             existing_tou.modified_ts = datetime.utcnow()
         else:
             current_app.logger.info('ToU version {} accepted by user {}'.format(version, user))
-            user.tou.add(ToUEvent(
-                version=version,
-                application='eduid_tou_plugin',
-                created_ts=datetime.utcnow(),
-                modified_ts=datetime.utcnow(),
-                event_id=ObjectId()
-            ))
+            user.tou.add(
+                ToUEvent(
+                    version=version,
+                    application='eduid_tou_plugin',
+                    created_ts=datetime.utcnow(),
+                    modified_ts=datetime.utcnow(),
+                    event_id=ObjectId(),
+                )
+            )
 
         current_app.tou_db.save(user, check_sync=False)
         current_app.logger.debug("Asking for sync of {} by Attribute Manager".format(user))

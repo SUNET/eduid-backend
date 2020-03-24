@@ -44,6 +44,7 @@ class ResetPasswordConfig(FlaskConfig):
     """
     Configuration for the reset_password app
     """
+
     app_name: str = "reset_password"
     email_code_timeout: int = 7200
     phone_code_timeout: int = 600

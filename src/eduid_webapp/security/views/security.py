@@ -34,10 +34,10 @@
 import json
 from datetime import datetime
 
-from flask import Blueprint, abort, url_for, redirect, request
-from six.moves.urllib_parse import urlparse, urlunparse, parse_qs, urlencode
+from flask import Blueprint, abort, redirect, request, url_for
+from six.moves.urllib_parse import parse_qs, urlencode, urlparse, urlunparse
 
-from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
+from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid_common.api.exceptions import AmTaskFailed, MsgTaskFailed
 from eduid_common.api.helpers import add_nin_to_user
 from eduid_common.api.utils import save_and_sync_user, urlappend
@@ -47,24 +47,35 @@ from eduid_userdb.exceptions import UserOutOfSync
 from eduid_userdb.proofing import NinProofingElement
 from eduid_userdb.proofing.state import NinProofingState
 from eduid_userdb.security import SecurityUser
-from eduid_webapp.security.helpers import compile_credential_list, remove_nin_from_user
-from eduid_webapp.security.helpers import send_termination_mail, generate_suggested_password
-from eduid_webapp.security.schemas import ChangePasswordSchema, RedirectResponseSchema
-from eduid_webapp.security.schemas import NINRequestSchema, NINResponseSchema
-from eduid_webapp.security.schemas import RedirectSchema, AccountTerminatedSchema, ChpassResponseSchema
-from eduid_webapp.security.schemas import SecurityResponseSchema, CredentialList, CsrfSchema
-from eduid_webapp.security.schemas import SuggestedPassword, SuggestedPasswordResponseSchema
+
 from eduid_webapp.security.app import current_security_app as current_app
-from eduid_webapp.security.helpers import get_zxcvbn_terms
+from eduid_webapp.security.helpers import (
+    compile_credential_list,
+    generate_suggested_password,
+    get_zxcvbn_terms,
+    remove_nin_from_user,
+    send_termination_mail,
+)
+from eduid_webapp.security.schemas import (
+    AccountTerminatedSchema,
+    ChangePasswordSchema,
+    ChpassResponseSchema,
+    CredentialList,
+    CsrfSchema,
+    NINRequestSchema,
+    NINResponseSchema,
+    RedirectResponseSchema,
+    RedirectSchema,
+    SecurityResponseSchema,
+    SuggestedPassword,
+    SuggestedPasswordResponseSchema,
+)
 
 security_views = Blueprint('security', __name__, url_prefix='', template_folder='templates')
 
 
 def error_message(message):
-    return {
-        '_status': 'error',
-        'message': str(message)
-    }
+    return {'_status': 'error', 'message': str(message)}
 
 
 @security_views.route('/credentials', methods=['GET'])
@@ -74,12 +85,9 @@ def get_credentials(user):
     """
     View to get credentials for the logged user.
     """
-    current_app.logger.debug('Trying to get the credentials '
-                             'for user {}'.format(user))
+    current_app.logger.debug('Trying to get the credentials ' 'for user {}'.format(user))
 
-    credentials = {
-        'credentials': compile_credential_list(user)
-    }
+    credentials = {'credentials': compile_credential_list(user)}
 
     return CredentialList().dump(credentials).data
 
@@ -91,11 +99,8 @@ def get_suggested(user):
     """
     View to get a suggested  password for the logged user.
     """
-    current_app.logger.debug('Triying to get the credentials '
-                             'for user {}'.format(user))
-    suggested = {
-        'suggested_password': generate_suggested_password()
-    }
+    current_app.logger.debug('Triying to get the credentials ' 'for user {}'.format(user))
+    suggested = {'suggested_password': generate_suggested_password()}
 
     return SuggestedPassword().dump(suggested).data
 
@@ -109,9 +114,7 @@ def change_password(user):
     """
     security_user = SecurityUser.from_user(user, current_app.private_userdb)
     min_entropy = current_app.config.password_entropy
-    schema = ChangePasswordSchema(
-        zxcvbn_terms=get_zxcvbn_terms(security_user.eppn),
-        min_entropy=int(min_entropy))
+    schema = ChangePasswordSchema(zxcvbn_terms=get_zxcvbn_terms(security_user.eppn), min_entropy=int(min_entropy))
 
     if not request.data:
         return error_message('chpass.no-data')
@@ -159,7 +162,7 @@ def change_password(user):
     credentials = {
         'next_url': next_url,
         'credentials': compile_credential_list(security_user),
-        'message': 'chpass.password-changed'
+        'message': 'chpass.password-changed',
     }
 
     return CredentialList().dump(credentials).data
@@ -271,9 +274,7 @@ def remove_nin(user, nin):
 
     try:
         remove_nin_from_user(security_user, nin)
-        return {'success': True,
-                'message': 'nins.success_removal',
-                'nins': security_user.nins.to_list_of_dicts()}
+        return {'success': True, 'message': 'nins.success_removal', 'nins': security_user.nins.to_list_of_dicts()}
     except AmTaskFailed as e:
         current_app.logger.error('Removing nin from user failed')
         current_app.logger.debug(f'NIN: {nin}')
@@ -297,12 +298,11 @@ def add_nin(user, nin):
 
     try:
         nin_element = NinProofingElement(number=nin, application='security', verified=False)
-        proofing_state = NinProofingState.from_dict({'eduPersonPrincipalName': security_user.eppn,
-                                                     'nin': nin_element.to_dict()})
+        proofing_state = NinProofingState.from_dict(
+            {'eduPersonPrincipalName': security_user.eppn, 'nin': nin_element.to_dict()}
+        )
         add_nin_to_user(user, proofing_state, user_class=SecurityUser)
-        return {'success': True,
-                'message': 'nins.successfully_added',
-                'nins': security_user.nins.to_list_of_dicts()}
+        return {'success': True, 'message': 'nins.successfully_added', 'nins': security_user.nins.to_list_of_dicts()}
     except AmTaskFailed as e:
         current_app.logger.error('Adding nin to user failed')
         current_app.logger.debug(f'NIN: {nin}')

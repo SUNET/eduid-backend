@@ -4,15 +4,15 @@ from __future__ import absolute_import
 
 from flask import Blueprint
 
-from eduid_common.api.decorators import require_user, can_verify_identity, MarshalWith, UnmarshalWith
-from eduid_common.api.helpers import add_nin_to_user, verify_nin_for_user
+from eduid_common.api.decorators import MarshalWith, UnmarshalWith, can_verify_identity, require_user
 from eduid_common.api.exceptions import AmTaskFailed, MsgTaskFailed
+from eduid_common.api.helpers import add_nin_to_user, verify_nin_for_user
 from eduid_userdb.logs import LetterProofing
-from eduid_webapp.letter_proofing import pdf
-from eduid_webapp.letter_proofing import schemas
-from eduid_webapp.letter_proofing.ekopost import EkopostException
-from eduid_webapp.letter_proofing.helpers import create_proofing_state, check_state, get_address, send_letter
+
+from eduid_webapp.letter_proofing import pdf, schemas
 from eduid_webapp.letter_proofing.app import current_letterp_app as current_app
+from eduid_webapp.letter_proofing.ekopost import EkopostException
+from eduid_webapp.letter_proofing.helpers import check_state, create_proofing_state, get_address, send_letter
 
 __author__ = 'lundberg'
 
@@ -120,10 +120,15 @@ def verify_code(user, code):
         current_app.stats.count('navet_error')
         return {'_status': 'error', 'message': 'error_navet_task'}
 
-    proofing_log_entry = LetterProofing(user, created_by='eduid_letter_proofing', nin=proofing_state.nin.number,
-                                        letter_sent_to=proofing_state.proofing_letter.address,
-                                        transaction_id=proofing_state.proofing_letter.transaction_id,
-                                        user_postal_address=official_address, proofing_version='2016v1')
+    proofing_log_entry = LetterProofing(
+        user,
+        created_by='eduid_letter_proofing',
+        nin=proofing_state.nin.number,
+        letter_sent_to=proofing_state.proofing_letter.address,
+        transaction_id=proofing_state.proofing_letter.transaction_id,
+        user_postal_address=official_address,
+        proofing_version='2016v1',
+    )
     try:
         # Verify nin for user
         verify_nin_for_user(user, proofing_state, proofing_log_entry)
@@ -131,9 +136,7 @@ def verify_code(user, code):
         # Remove proofing state
         current_app.proofing_statedb.remove_state(proofing_state)
         current_app.stats.count(name='nin_verified')
-        return {'success': True,
-                'message': 'letter.verification_success',
-                'nins': user.nins.to_list_of_dicts()}
+        return {'success': True, 'message': 'letter.verification_success', 'nins': user.nins.to_list_of_dicts()}
     except AmTaskFailed as e:
         current_app.logger.error('Verifying nin for user {} failed'.format(user))
         current_app.logger.error('{}'.format(e))

@@ -34,22 +34,21 @@ from typing import cast
 
 from flask import current_app
 
-from eduid_common.api import am
-from eduid_common.api import msg
+from eduid_common.api import am, msg
 from eduid_common.authn.middleware import AuthnBaseApp
-from eduid_userdb.proofing import PhoneProofingUserDB
-from eduid_userdb.proofing import PhoneProofingStateDB
 from eduid_userdb.logs import ProofingLog
+from eduid_userdb.proofing import PhoneProofingStateDB, PhoneProofingUserDB
+
 from eduid_webapp.phone.settings.common import PhoneConfig
 
 
 class PhoneApp(AuthnBaseApp):
-
     def __init__(self, name: str, config: dict, **kwargs):
 
         super(PhoneApp, self).__init__(name, PhoneConfig, config, **kwargs)
 
         from eduid_webapp.phone.views import phone_views
+
         self.register_blueprint(phone_views)
 
         self = am.init_relay(self, 'eduid_phone')

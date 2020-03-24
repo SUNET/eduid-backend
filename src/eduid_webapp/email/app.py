@@ -34,24 +34,22 @@ from typing import cast
 
 from flask import current_app
 
-from eduid_common.api import mail_relay
-from eduid_common.api import am
-from eduid_common.api import translation
+from eduid_common.api import am, mail_relay, translation
 from eduid_common.authn.middleware import AuthnBaseApp
-from eduid_userdb.proofing import EmailProofingUserDB
-from eduid_userdb.proofing import EmailProofingStateDB
 from eduid_userdb.logs import ProofingLog
+from eduid_userdb.proofing import EmailProofingStateDB, EmailProofingUserDB
+
 from eduid_webapp.email.settings.common import EmailConfig
 
 
 class EmailApp(AuthnBaseApp):
-
     def __init__(self, name: str, config: dict, **kwargs):
 
         super(EmailApp, self).__init__(name, EmailConfig, config, **kwargs)
         self.config: EmailConfig = cast(EmailConfig, self.config)
 
         from eduid_webapp.email.views import email_views
+
         self.register_blueprint(email_views)
 
         self = am.init_relay(self, 'eduid_email')

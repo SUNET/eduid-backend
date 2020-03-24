@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
-from flask import Blueprint, request, render_template
+from flask import Blueprint, render_template, request
+
 from eduid_common.api.decorators import require_support_personnel
-from eduid_userdb.support.models import SupportUserFilter, SupportSignupUserFilter
-from eduid_userdb.exceptions import UserHasUnknownData, UserDoesNotExist, UserHasNotCompletedSignup
-from eduid_webapp.support.helpers import get_credentials_aux_data
+from eduid_userdb.exceptions import UserDoesNotExist, UserHasNotCompletedSignup, UserHasUnknownData
+from eduid_userdb.support.models import SupportSignupUserFilter, SupportUserFilter
+
 from eduid_webapp.support.app import current_support_app as current_app
+from eduid_webapp.support.helpers import get_credentials_aux_data
 
 support_views = Blueprint('support', __name__, url_prefix='', template_folder='templates')
 
@@ -25,17 +27,22 @@ def index(support_user):
 
         if len(lookup_users) == 0:
             # If no users where found in the central database look in signup database
-            lookup_users = current_app.support_signup_db.get_user_by_mail(search_query, raise_on_missing=False,
-                                                                          return_list=True, include_unconfirmed=True)
+            lookup_users = current_app.support_signup_db.get_user_by_mail(
+                search_query, raise_on_missing=False, return_list=True, include_unconfirmed=True
+            )
             if len(lookup_users) == 0:
                 user = current_app.support_signup_db.get_user_by_pending_mail_address(search_query)
                 if user:
                     lookup_users = [user]
             if len(lookup_users) == 0:
-                current_app.logger.warn('Support personnel: {!r} searched for {!r} without any match found'
-                                        .format(support_user, search_query))
-                return render_template('index.html', support_user=support_user,
-                                       error="No users matched the search query")
+                current_app.logger.warn(
+                    'Support personnel: {!r} searched for {!r} without any match found'.format(
+                        support_user, search_query
+                    )
+                )
+                return render_template(
+                    'index.html', support_user=support_user, error="No users matched the search query"
+                )
 
         current_app.logger.info('Support personnel {} searched for {}'.format(support_user, search_query))
         for user in lookup_users:

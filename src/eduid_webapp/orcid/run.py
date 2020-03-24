@@ -31,6 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 from __future__ import absolute_import
+
 from eduid_webapp.orcid.app import init_orcid_app
 
 name = 'orcid'

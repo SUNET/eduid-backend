@@ -31,6 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 from __future__ import absolute_import
+
 from eduid_webapp.reset_password.app import init_reset_password_app
 
 name = 'reset_password'

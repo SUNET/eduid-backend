@@ -36,12 +36,12 @@ import json
 from mock import patch
 
 from eduid_common.api.testing import EduidAPITestCase
+
 from eduid_webapp.phone.app import phone_init_app
 from eduid_webapp.phone.settings.common import PhoneConfig
 
 
 class PhoneTests(EduidAPITestCase):
-
     def setUp(self):
         super(PhoneTests, self).setUp(copy_user_to_private=True)
 
@@ -53,18 +53,17 @@ class PhoneTests(EduidAPITestCase):
         return phone_init_app('testing', config)
 
     def update_config(self, app_config):
-        app_config.update({
-            'available_languages': {'en': 'English', 'sv': 'Svenska'},
-            'msg_broker_url': 'amqp://dummy',
-            'am_broker_url': 'amqp://dummy',
-            'celery_config': {
-                'result_backend': 'amqp',
-                'task_serializer': 'json'
-            },
-            'phone_verification_timeout': 7200,
-            'default_country_code': '46',
-            'throttle_resend_seconds': 300,
-        })
+        app_config.update(
+            {
+                'available_languages': {'en': 'English', 'sv': 'Svenska'},
+                'msg_broker_url': 'amqp://dummy',
+                'am_broker_url': 'amqp://dummy',
+                'celery_config': {'result_backend': 'amqp', 'task_serializer': 'json'},
+                'phone_verification_timeout': 7200,
+                'default_country_code': '46',
+                'throttle_resend_seconds': 300,
+            }
+        )
         return PhoneConfig(**app_config)
 
     def test_get_all_phone(self):
@@ -118,11 +117,10 @@ class PhoneTests(EduidAPITestCase):
                             'number': '+34670123456',
                             'verified': False,
                             'primary': False,
-                            'csrf_token': sess.get_csrf_token()
+                            'csrf_token': sess.get_csrf_token(),
                         }
 
-                        response2 = client.post('/new', data=json.dumps(data),
-                                                content_type=self.content_type_json)
+                        response2 = client.post('/new', data=json.dumps(data), content_type=self.content_type_json)
 
                         self.assertEqual(response2.status_code, 200)
 
@@ -151,11 +149,10 @@ class PhoneTests(EduidAPITestCase):
                             'number': '0701234565',
                             'verified': False,
                             'primary': False,
-                            'csrf_token': sess.get_csrf_token()
+                            'csrf_token': sess.get_csrf_token(),
                         }
 
-                        response2 = client.post('/new', data=json.dumps(data),
-                                                content_type=self.content_type_json)
+                        response2 = client.post('/new', data=json.dumps(data), content_type=self.content_type_json)
 
                         self.assertEqual(response2.status_code, 200)
 
@@ -180,15 +177,9 @@ class PhoneTests(EduidAPITestCase):
             with client.session_transaction():
                 with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True):
 
-                    data = {
-                        'number': '+34670123456',
-                        'verified': False,
-                        'primary': False,
-                        'csrf_token': 'bad_csrf'
-                    }
+                    data = {'number': '+34670123456', 'verified': False, 'primary': False, 'csrf_token': 'bad_csrf'}
 
-                    response2 = client.post('/new', data=json.dumps(data),
-                                            content_type=self.content_type_json)
+                    response2 = client.post('/new', data=json.dumps(data), content_type=self.content_type_json)
 
                     self.assertEqual(response2.status_code, 200)
 
@@ -210,13 +201,9 @@ class PhoneTests(EduidAPITestCase):
             with client.session_transaction() as sess:
 
                 with self.app.test_request_context():
-                    data = {
-                        'number': '+34609609609',
-                        'csrf_token': sess.get_csrf_token()
-                    }
+                    data = {'number': '+34609609609', 'csrf_token': sess.get_csrf_token()}
 
-                response2 = client.post('/primary', data=json.dumps(data),
-                                        content_type=self.content_type_json)
+                response2 = client.post('/primary', data=json.dumps(data), content_type=self.content_type_json)
 
                 self.assertEqual(response2.status_code, 200)
 
@@ -244,8 +231,7 @@ class PhoneTests(EduidAPITestCase):
                 'number': '+34609609609',
             }
 
-            response2 = client.post('/primary', data=json.dumps(data),
-                                    content_type=self.content_type_json)
+            response2 = client.post('/primary', data=json.dumps(data), content_type=self.content_type_json)
 
             self.assertEqual(response2.status_code, 200)
 
@@ -266,13 +252,9 @@ class PhoneTests(EduidAPITestCase):
             with client.session_transaction() as sess:
 
                 with self.app.test_request_context():
-                    data = {
-                        'number': '+34609609609',
-                        'csrf_token': sess.get_csrf_token()
-                    }
+                    data = {'number': '+34609609609', 'csrf_token': sess.get_csrf_token()}
 
-                response2 = client.post('/remove', data=json.dumps(data),
-                                        content_type=self.content_type_json)
+                response2 = client.post('/remove', data=json.dumps(data), content_type=self.content_type_json)
 
                 self.assertEqual(response2.status_code, 200)
 
@@ -294,13 +276,9 @@ class PhoneTests(EduidAPITestCase):
             with client.session_transaction() as sess:
 
                 with self.app.test_request_context():
-                    data = {
-                        'number': '+34 6096096096',
-                        'csrf_token': sess.get_csrf_token()
-                    }
+                    data = {'number': '+34 6096096096', 'csrf_token': sess.get_csrf_token()}
 
-                response2 = client.post('/remove', data=json.dumps(data),
-                                        content_type=self.content_type_json)
+                response2 = client.post('/remove', data=json.dumps(data), content_type=self.content_type_json)
 
                 self.assertEqual(response2.status_code, 200)
 
@@ -329,35 +307,25 @@ class PhoneTests(EduidAPITestCase):
                             'number': u'+34609123321',
                             'verified': False,
                             'primary': False,
-                            'csrf_token': sess.get_csrf_token()
+                            'csrf_token': sess.get_csrf_token(),
                         }
 
-                    client.post('/new', data=json.dumps(data),
-                                content_type=self.content_type_json)
+                    client.post('/new', data=json.dumps(data), content_type=self.content_type_json)
             with client.session_transaction() as sess:
                 with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True):
                     with self.app.test_request_context():
-                        data = {
-                            'number': u'+34609123321',
-                            'code': u'12345',
-                            'csrf_token': sess.get_csrf_token()
-                        }
+                        data = {'number': u'+34609123321', 'code': u'12345', 'csrf_token': sess.get_csrf_token()}
 
-                    response2 = client.post('/verify', data=json.dumps(data),
-                                            content_type=self.content_type_json)
+                    response2 = client.post('/verify', data=json.dumps(data), content_type=self.content_type_json)
                     verify_phone_data = json.loads(response2.data)
                     self.assertEqual('POST_PHONE_VERIFY_SUCCESS', verify_phone_data['type'])
 
             with client.session_transaction() as sess:
 
                 with self.app.test_request_context():
-                    data = {
-                        'number': '+34609609609',
-                        'csrf_token': sess.get_csrf_token()
-                    }
+                    data = {'number': '+34609609609', 'csrf_token': sess.get_csrf_token()}
 
-                response2 = client.post('/remove', data=json.dumps(data),
-                                        content_type=self.content_type_json)
+                response2 = client.post('/remove', data=json.dumps(data), content_type=self.content_type_json)
 
                 self.assertEqual(response2.status_code, 200)
 
@@ -382,13 +350,9 @@ class PhoneTests(EduidAPITestCase):
                 with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True):
 
                     with self.app.test_request_context():
-                        data = {
-                            'number': '+34609609609',
-                            'csrf_token': sess.get_csrf_token()
-                        }
+                        data = {'number': '+34609609609', 'csrf_token': sess.get_csrf_token()}
 
-                    response2 = client.post('/resend-code', data=json.dumps(data),
-                                            content_type=self.content_type_json)
+                    response2 = client.post('/resend-code', data=json.dumps(data), content_type=self.content_type_json)
 
                     self.assertEqual(response2.status_code, 200)
 
@@ -411,18 +375,13 @@ class PhoneTests(EduidAPITestCase):
 
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction() as sess:
-                with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator',
-                           return_value=True):
+                with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True):
 
                     # Request a code
                     with self.app.test_request_context():
-                        data = {
-                            'number': '+34609609609',
-                            'csrf_token': sess.get_csrf_token()
-                        }
+                        data = {'number': '+34609609609', 'csrf_token': sess.get_csrf_token()}
 
-                    response2 = client.post('/resend-code', data=json.dumps(data),
-                                            content_type=self.content_type_json)
+                    response2 = client.post('/resend-code', data=json.dumps(data), content_type=self.content_type_json)
 
                     self.assertEqual(response2.status_code, 200)
 
@@ -434,8 +393,7 @@ class PhoneTests(EduidAPITestCase):
 
                     # Request a new code
                     data['csrf_token'] = phone_data['payload']['csrf_token']
-                    response2 = client.post('/resend-code', data=json.dumps(data),
-                                            content_type=self.content_type_json)
+                    response2 = client.post('/resend-code', data=json.dumps(data), content_type=self.content_type_json)
 
                     self.assertEqual(response2.status_code, 200)
 
@@ -466,23 +424,17 @@ class PhoneTests(EduidAPITestCase):
                             'number': u'+34609123321',
                             'verified': False,
                             'primary': False,
-                            'csrf_token': sess.get_csrf_token()
+                            'csrf_token': sess.get_csrf_token(),
                         }
 
-                    client.post('/new', data=json.dumps(data),
-                                content_type=self.content_type_json)
+                    client.post('/new', data=json.dumps(data), content_type=self.content_type_json)
 
             with client.session_transaction() as sess:
                 with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True):
                     with self.app.test_request_context():
-                        data = {
-                            'number': u'+34609123321',
-                            'code': u'12345',
-                            'csrf_token': sess.get_csrf_token()
-                        }
+                        data = {'number': u'+34609123321', 'code': u'12345', 'csrf_token': sess.get_csrf_token()}
 
-                    response2 = client.post('/verify', data=json.dumps(data),
-                                            content_type=self.content_type_json)
+                    response2 = client.post('/verify', data=json.dumps(data), content_type=self.content_type_json)
 
                     verify_phone_data = json.loads(response2.data)
                     self.assertEqual('POST_PHONE_VERIFY_SUCCESS', verify_phone_data['type'])
@@ -512,20 +464,18 @@ class PhoneTests(EduidAPITestCase):
                             'number': '+34609123321',
                             'verified': False,
                             'primary': False,
-                            'csrf_token': sess.get_csrf_token()
+                            'csrf_token': sess.get_csrf_token(),
                         }
 
-                        response = client.post('/new', data=json.dumps(data),
-                                               content_type=self.content_type_json)
+                        response = client.post('/new', data=json.dumps(data), content_type=self.content_type_json)
 
                         data = {
                             'number': '+34609123321',
                             'code': 'magic-code',
-                            'csrf_token': json.loads(response.data)['payload']['csrf_token']
+                            'csrf_token': json.loads(response.data)['payload']['csrf_token'],
                         }
 
-                        response2 = client.post('/verify', data=json.dumps(data),
-                                                content_type=self.content_type_json)
+                        response2 = client.post('/verify', data=json.dumps(data), content_type=self.content_type_json)
 
                     verify_phone_data = json.loads(response2.data)
                     self.assertEqual('POST_PHONE_VERIFY_SUCCESS', verify_phone_data['type'])
@@ -555,20 +505,18 @@ class PhoneTests(EduidAPITestCase):
                             'number': '+34609123321',
                             'verified': False,
                             'primary': False,
-                            'csrf_token': sess.get_csrf_token()
+                            'csrf_token': sess.get_csrf_token(),
                         }
 
-                        response = client.post('/new', data=json.dumps(data),
-                                               content_type=self.content_type_json)
+                        response = client.post('/new', data=json.dumps(data), content_type=self.content_type_json)
 
                         data = {
                             'number': '+34609123321',
                             'code': 'magic-code',
-                            'csrf_token': json.loads(response.data)['payload']['csrf_token']
+                            'csrf_token': json.loads(response.data)['payload']['csrf_token'],
                         }
 
-                        response2 = client.post('/verify', data=json.dumps(data),
-                                                content_type=self.content_type_json)
+                        response2 = client.post('/verify', data=json.dumps(data), content_type=self.content_type_json)
 
                     verify_phone_data = json.loads(response2.data)
                     self.assertEqual('POST_PHONE_VERIFY_FAIL', verify_phone_data['type'])
@@ -595,20 +543,18 @@ class PhoneTests(EduidAPITestCase):
                             'number': '+34609123321',
                             'verified': False,
                             'primary': False,
-                            'csrf_token': sess.get_csrf_token()
+                            'csrf_token': sess.get_csrf_token(),
                         }
 
-                        response = client.post('/new', data=json.dumps(data),
-                                               content_type=self.content_type_json)
+                        response = client.post('/new', data=json.dumps(data), content_type=self.content_type_json)
 
                         data = {
                             'number': '+34609123321',
                             'code': 'magic-code-wrong',
-                            'csrf_token': json.loads(response.data)['payload']['csrf_token']
+                            'csrf_token': json.loads(response.data)['payload']['csrf_token'],
                         }
 
-                        response2 = client.post('/verify', data=json.dumps(data),
-                                                content_type=self.content_type_json)
+                        response2 = client.post('/verify', data=json.dumps(data), content_type=self.content_type_json)
 
                     verify_phone_data = json.loads(response2.data)
                     self.assertEqual('POST_PHONE_VERIFY_FAIL', verify_phone_data['type'])
@@ -627,31 +573,23 @@ class PhoneTests(EduidAPITestCase):
 
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction() as sess:
-                with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator',
-                           return_value=True):
+                with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True):
                     with self.app.test_request_context():
                         data = {
                             'number': u'+34609123321',
                             'verified': False,
                             'primary': False,
-                            'csrf_token': sess.get_csrf_token()
+                            'csrf_token': sess.get_csrf_token(),
                         }
 
-                    client.post('/new', data=json.dumps(data),
-                                content_type=self.content_type_json)
+                    client.post('/new', data=json.dumps(data), content_type=self.content_type_json)
 
             with client.session_transaction() as sess:
-                with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator',
-                           return_value=True):
+                with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True):
                     with self.app.test_request_context():
-                        data = {
-                            'number': u'+34609123321',
-                            'code': u'wrong_code',
-                            'csrf_token': sess.get_csrf_token()
-                        }
+                        data = {'number': u'+34609123321', 'code': u'wrong_code', 'csrf_token': sess.get_csrf_token()}
 
-                    response2 = client.post('/verify', data=json.dumps(data),
-                                            content_type=self.content_type_json)
+                    response2 = client.post('/verify', data=json.dumps(data), content_type=self.content_type_json)
 
                     verify_phone_data = json.loads(response2.data)
                     self.assertEqual(verify_phone_data['type'], 'POST_PHONE_VERIFY_FAIL')
@@ -677,11 +615,10 @@ class PhoneTests(EduidAPITestCase):
                             'number': '0701234565',
                             'verified': False,
                             'primary': False,
-                            'csrf_token': sess.get_csrf_token()
+                            'csrf_token': sess.get_csrf_token(),
                         }
 
-                        response2 = client.post('/new', data=json.dumps(data),
-                                                content_type=self.content_type_json)
+                        response2 = client.post('/new', data=json.dumps(data), content_type=self.content_type_json)
 
                         self.assertEqual(response2.status_code, 200)
 
@@ -696,16 +633,17 @@ class PhoneTests(EduidAPITestCase):
                 self.request_user_sync(user)
 
                 with client.session_transaction() as sess2:
-                    with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True):
+                    with patch(
+                        'eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True
+                    ):
                         data2 = {
                             'number': '0701234565',
                             'verified': False,
                             'primary': False,
-                            'csrf_token': sess2.get_csrf_token()
+                            'csrf_token': sess2.get_csrf_token(),
                         }
 
-                        response3 = client.post('/new', data=json.dumps(data2),
-                                                content_type=self.content_type_json)
+                        response3 = client.post('/new', data=json.dumps(data2), content_type=self.content_type_json)
 
                         self.assertEqual(response3.status_code, 200)
 
@@ -733,11 +671,10 @@ class PhoneTests(EduidAPITestCase):
                             'number': '+46701234565',  # e164 format
                             'verified': False,
                             'primary': False,
-                            'csrf_token': sess.get_csrf_token()
+                            'csrf_token': sess.get_csrf_token(),
                         }
 
-                        response2 = client.post('/new', data=json.dumps(data),
-                                                content_type=self.content_type_json)
+                        response2 = client.post('/new', data=json.dumps(data), content_type=self.content_type_json)
 
                         self.assertEqual(response2.status_code, 200)
 
@@ -752,16 +689,17 @@ class PhoneTests(EduidAPITestCase):
                 self.request_user_sync(user)
 
                 with client.session_transaction() as sess2:
-                    with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True):
+                    with patch(
+                        'eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True
+                    ):
                         data2 = {
                             'number': '0701234565',  # National format
                             'verified': False,
                             'primary': False,
-                            'csrf_token': sess2.get_csrf_token()
+                            'csrf_token': sess2.get_csrf_token(),
                         }
 
-                        response3 = client.post('/new', data=json.dumps(data2),
-                                                content_type=self.content_type_json)
+                        response3 = client.post('/new', data=json.dumps(data2), content_type=self.content_type_json)
 
                         self.assertEqual(response3.status_code, 200)
 
@@ -789,11 +727,10 @@ class PhoneTests(EduidAPITestCase):
                             'number': '0701234565',  # National format
                             'verified': False,
                             'primary': False,
-                            'csrf_token': sess.get_csrf_token()
+                            'csrf_token': sess.get_csrf_token(),
                         }
 
-                        response2 = client.post('/new', data=json.dumps(data),
-                                                content_type=self.content_type_json)
+                        response2 = client.post('/new', data=json.dumps(data), content_type=self.content_type_json)
 
                         self.assertEqual(response2.status_code, 200)
 
@@ -808,16 +745,17 @@ class PhoneTests(EduidAPITestCase):
                 self.request_user_sync(user)
 
                 with client.session_transaction() as sess2:
-                    with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True):
+                    with patch(
+                        'eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True
+                    ):
                         data2 = {
                             'number': '+46701234565',  # e164 format
                             'verified': False,
                             'primary': False,
-                            'csrf_token': sess2.get_csrf_token()
+                            'csrf_token': sess2.get_csrf_token(),
                         }
 
-                        response3 = client.post('/new', data=json.dumps(data2),
-                                                content_type=self.content_type_json)
+                        response3 = client.post('/new', data=json.dumps(data2), content_type=self.content_type_json)
 
                         self.assertEqual(response3.status_code, 200)
 
@@ -845,19 +783,19 @@ class PhoneTests(EduidAPITestCase):
                             'number': '0711234565',  # National format
                             'verified': False,
                             'primary': False,
-                            'csrf_token': sess.get_csrf_token()
+                            'csrf_token': sess.get_csrf_token(),
                         }
 
-                        response2 = client.post('/new', data=json.dumps(data),
-                                                content_type=self.content_type_json)
+                        response2 = client.post('/new', data=json.dumps(data), content_type=self.content_type_json)
 
                         self.assertEqual(response2.status_code, 200)
 
                         new_phone_data = json.loads(response2.data)
 
                         self.assertEqual('POST_PHONE_NEW_FAIL', new_phone_data['type'])
-                        self.assertEqual(['phone.swedish_mobile_format'],
-                                         new_phone_data['payload']['error'].get('number'))
+                        self.assertEqual(
+                            ['phone.swedish_mobile_format'], new_phone_data['payload']['error'].get('number')
+                        )
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('eduid_webapp.phone.verifications.get_short_hash')
@@ -878,16 +816,14 @@ class PhoneTests(EduidAPITestCase):
                             'number': '00711234565',  # National format
                             'verified': False,
                             'primary': False,
-                            'csrf_token': sess.get_csrf_token()
+                            'csrf_token': sess.get_csrf_token(),
                         }
 
-                        response2 = client.post('/new', data=json.dumps(data),
-                                                content_type=self.content_type_json)
+                        response2 = client.post('/new', data=json.dumps(data), content_type=self.content_type_json)
 
                         self.assertEqual(response2.status_code, 200)
 
                         new_phone_data = json.loads(response2.data)
 
                         self.assertEqual('POST_PHONE_NEW_FAIL', new_phone_data['type'])
-                        self.assertEqual(['phone.e164_format'],
-                                         new_phone_data['payload']['error'].get('_schema'))
+                        self.assertEqual(['phone.e164_format'], new_phone_data['payload']['error'].get('_schema'))

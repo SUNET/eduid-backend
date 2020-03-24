@@ -8,16 +8,17 @@ from flask import render_template, url_for
 from flask_babel import gettext as _
 
 from eduid_common.api.decorators import deprecated
-from eduid_common.api.utils import get_unique_hash, get_short_hash, save_and_sync_user
 from eduid_common.api.helpers import send_mail
-from eduid_common.session import session
-from eduid_common.authn.vccs import reset_password
+from eduid_common.api.utils import get_short_hash, get_unique_hash, save_and_sync_user
 from eduid_common.authn.utils import generate_password
-from eduid_userdb.security import SecurityUser, PasswordResetEmailState, PasswordResetEmailAndPhoneState
-from eduid_userdb.logs import MailAddressProofing, PhoneNumberProofing
+from eduid_common.authn.vccs import reset_password
+from eduid_common.session import session
 from eduid_userdb.exceptions import UserHasNotCompletedSignup
-from eduid_webapp.security.schemas import ConvertRegisteredKeys
+from eduid_userdb.logs import MailAddressProofing, PhoneNumberProofing
+from eduid_userdb.security import PasswordResetEmailAndPhoneState, PasswordResetEmailState, SecurityUser
+
 from eduid_webapp.security.app import current_security_app as current_app
+from eduid_webapp.security.schemas import ConvertRegisteredKeys
 
 __author__ = 'lundberg'
 
@@ -91,7 +92,7 @@ def generate_suggested_password():
     password_length = current_app.config.password_length
 
     password = generate_password(length=password_length)
-    password = ' '.join([password[i * 4: i * 4 + 4] for i in range(0, int(len(password) / 4))])
+    password = ' '.join([password[i * 4 : i * 4 + 4] for i in range(0, int(len(password) / 4))])
 
     return password
 
@@ -168,9 +169,10 @@ def send_password_reset_mail(email_address):
 
     password_reset_timeout = current_app.config.email_code_timeout // 60 // 60  # seconds to hours
     context = {
-        'reset_password_link': url_for('reset_password.email_reset_code', email_code=state.email_code.code,
-                                       _external=True),
-        'password_reset_timeout': password_reset_timeout
+        'reset_password_link': url_for(
+            'reset_password.email_reset_code', email_code=state.email_code.code, _external=True
+        ),
+        'password_reset_timeout': password_reset_timeout,
     }
     subject = _('Reset password')
     send_mail(subject, to_addresses, text_template, html_template, current_app, context, state.reference)
@@ -192,8 +194,13 @@ def verify_email_address(state):
         current_app.logger.error('Could not find user {}'.format(state.eppn))
         return False
 
-    proofing_element = MailAddressProofing(user, created_by='security', mail_address=state.email_address,
-                                           reference=state.reference, proofing_version='2013v1')
+    proofing_element = MailAddressProofing(
+        user,
+        created_by='security',
+        mail_address=state.email_address,
+        reference=state.reference,
+        proofing_version='2013v1',
+    )
     if current_app.proofing_log.save(proofing_element):
         state.email_code.is_verified = True
         current_app.password_reset_state_db.save(state)
@@ -205,8 +212,9 @@ def verify_email_address(state):
 
 @deprecated("Remove once the password reset views are served from their own webapp")
 def send_verify_phone_code(state, phone_number):
-    state = PasswordResetEmailAndPhoneState.from_email_state(state, phone_number=phone_number,
-                                                             phone_code=get_short_hash())
+    state = PasswordResetEmailAndPhoneState.from_email_state(
+        state, phone_number=phone_number, phone_code=get_short_hash()
+    )
     current_app.password_reset_state_db.save(state)
 
     # Backdoor for the staging and dev environments where a magic code
@@ -218,9 +226,7 @@ def send_verify_phone_code(state, phone_number):
         session['resetpw_sms_verification_code'] = state.phone_code.code
 
     template = 'reset_password_sms.txt.jinja2'
-    context = {
-        'verification_code': state.phone_code.code
-    }
+    context = {'verification_code': state.phone_code.code}
     send_sms(state.phone_number, template, context, state.reference)
     current_app.logger.info('Sent password reset sms to user {}'.format(state.eppn))
     current_app.logger.debug('Phone number: {}'.format(state.phone_number))
@@ -240,8 +246,13 @@ def verify_phone_number(state):
         current_app.logger.error('Could not find user {}'.format(state.eppn))
         return False
 
-    proofing_element = PhoneNumberProofing(user, created_by='security', phone_number=state.phone_number,
-                                           reference=state.reference, proofing_version='2013v1')
+    proofing_element = PhoneNumberProofing(
+        user,
+        created_by='security',
+        phone_number=state.phone_number,
+        reference=state.reference,
+        proofing_version='2013v1',
+    )
     if current_app.proofing_log.save(proofing_element):
         state.phone_code.is_verified = True
         current_app.password_reset_state_db.save(state)
@@ -338,7 +349,7 @@ def mask_alternatives(alternatives):
         # Phone numbers
         masked_phone_numbers = []
         for phone_number in alternatives.get('phone_numbers', []):
-            masked_number = '{}{}'.format('X' * (len(phone_number) - 2), phone_number[len(phone_number) - 2:])
+            masked_number = '{}{}'.format('X' * (len(phone_number) - 2), phone_number[len(phone_number) - 2 :])
             masked_phone_numbers.append(masked_number)
 
         alternatives['phone_numbers'] = masked_phone_numbers

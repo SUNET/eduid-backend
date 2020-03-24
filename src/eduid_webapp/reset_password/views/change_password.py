@@ -30,28 +30,35 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from datetime import datetime
 import json
+from datetime import datetime
 
 from flask import Blueprint, request
 
-from eduid_userdb.exceptions import UserOutOfSync
-from eduid_userdb.reset_password import ResetPasswordUser
-from eduid_common.api.decorators import require_user, MarshalWith
+from eduid_common.api.decorators import MarshalWith, require_user
 from eduid_common.api.utils import save_and_sync_user
 from eduid_common.authn.vccs import change_password
 from eduid_common.session import session
-from eduid_webapp.security.schemas import CredentialList
-from eduid_webapp.security.helpers import get_zxcvbn_terms
-from eduid_webapp.reset_password.helpers import compile_credential_list
-from eduid_webapp.reset_password.helpers import generate_suggested_password
-from eduid_webapp.reset_password.helpers import hash_password, check_password
-from eduid_webapp.reset_password.helpers import ResetPwMsg
-from eduid_webapp.reset_password.schemas import ChangePasswordSchema
-from eduid_webapp.reset_password.schemas import ChpassResponseSchema
-from eduid_webapp.reset_password.schemas import SuggestedPassword, SuggestedPasswordResponseSchema
-from eduid_webapp.reset_password.helpers import error_message
+from eduid_userdb.exceptions import UserOutOfSync
+from eduid_userdb.reset_password import ResetPasswordUser
+
 from eduid_webapp.reset_password.app import current_reset_password_app as current_app
+from eduid_webapp.reset_password.helpers import (
+    ResetPwMsg,
+    check_password,
+    compile_credential_list,
+    error_message,
+    generate_suggested_password,
+    hash_password,
+)
+from eduid_webapp.reset_password.schemas import (
+    ChangePasswordSchema,
+    ChpassResponseSchema,
+    SuggestedPassword,
+    SuggestedPasswordResponseSchema,
+)
+from eduid_webapp.security.helpers import get_zxcvbn_terms
+from eduid_webapp.security.schemas import CredentialList
 
 change_password_views = Blueprint('change_password', __name__, url_prefix='')
 
@@ -68,9 +75,7 @@ def get_suggested(user):
 
     session.reset_password.generated_password_hash = hash_password(password)
 
-    suggested = {
-        'suggested_password': password
-    }
+    suggested = {'suggested_password': password}
 
     return SuggestedPassword().dump(suggested).data
 
@@ -84,9 +89,7 @@ def change_password_view(user):
     """
     resetpw_user = ResetPasswordUser.from_user(user, current_app.private_userdb)
     min_entropy = current_app.config.password_entropy
-    schema = ChangePasswordSchema(
-        zxcvbn_terms=get_zxcvbn_terms(resetpw_user.eppn),
-        min_entropy=int(min_entropy))
+    schema = ChangePasswordSchema(zxcvbn_terms=get_zxcvbn_terms(resetpw_user.eppn), min_entropy=int(min_entropy))
 
     if not request.data:
         return error_message(ResetPwMsg.chpass_no_data)
@@ -121,8 +124,7 @@ def change_password_view(user):
         current_app.stats.count(name='change_password_custom_password_used')
 
     vccs_url = current_app.config.vccs_url
-    added = change_password(resetpw_user, new_password, old_password,
-                            'reset-password', is_generated, vccs_url)
+    added = change_password(resetpw_user, new_password, old_password, 'reset-password', is_generated, vccs_url)
 
     if not added:
         current_app.logger.debug(f'Problem verifying the old credentials for {user}')
@@ -143,7 +145,7 @@ def change_password_view(user):
     credentials = {
         'next_url': next_url,
         'credentials': compile_credential_list(resetpw_user),
-        'message': 'chpass.password-changed'
+        'message': 'chpass.password-changed',
     }
 
     return CredentialList().dump(credentials).data

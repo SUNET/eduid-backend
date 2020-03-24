@@ -30,12 +30,13 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 from abc import ABCMeta, abstractmethod
-from flask import request
 
-from eduid_webapp.actions.app import current_actions_app as current_app
+from flask import request
 
 from eduid_common.api.utils import get_static_url_for, urlappend
 from eduid_userdb.actions.action import Action
+
+from eduid_webapp.actions.app import current_actions_app as current_app
 
 
 class ActionError(Exception):

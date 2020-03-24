@@ -34,22 +34,21 @@ from typing import cast
 
 from flask import current_app
 
-from eduid_common.api import am
-from eduid_common.api import mail_relay
-from eduid_common.api import translation
+from eduid_common.api import am, mail_relay, translation
 from eduid_common.api.app import EduIDBaseApp
 from eduid_userdb.logs import ProofingLog
 from eduid_userdb.signup import SignupUserDB
+
 from eduid_webapp.signup.settings.common import SignupConfig
 
 
 class SignupApp(EduIDBaseApp):
-
     def __init__(self, name: str, config: dict, **kwargs):
 
         super(SignupApp, self).__init__(name, SignupConfig, config, **kwargs)
 
         from eduid_webapp.signup.views import signup_views
+
         self.register_blueprint(signup_views)
 
         self = am.init_relay(self, 'eduid_signup')

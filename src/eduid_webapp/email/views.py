@@ -31,20 +31,25 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 from __future__ import absolute_import
+
+from flask import Blueprint, abort, current_app, redirect, request
 from six.moves.urllib_parse import urlencode, urlsplit, urlunsplit
 
-from flask import Blueprint, request, current_app, redirect, abort
-
-from eduid_userdb.element import PrimaryElementViolation, DuplicateElementViolation
-from eduid_userdb.exceptions import UserOutOfSync, DocumentDoesNotExist
+from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
+from eduid_common.api.utils import save_and_sync_user
+from eduid_common.session import session
+from eduid_userdb.element import DuplicateElementViolation, PrimaryElementViolation
+from eduid_userdb.exceptions import DocumentDoesNotExist, UserOutOfSync
 from eduid_userdb.mail import MailAddress
 from eduid_userdb.proofing import ProofingUser
-from eduid_common.session import session
-from eduid_common.api.decorators import require_user, MarshalWith, UnmarshalWith
-from eduid_common.api.utils import save_and_sync_user
-from eduid_webapp.email.schemas import EmailListPayload, AddEmailSchema
-from eduid_webapp.email.schemas import ChangeEmailSchema, EmailResponseSchema
-from eduid_webapp.email.schemas import VerificationCodeSchema
+
+from eduid_webapp.email.schemas import (
+    AddEmailSchema,
+    ChangeEmailSchema,
+    EmailListPayload,
+    EmailResponseSchema,
+    VerificationCodeSchema,
+)
 from eduid_webapp.email.verifications import send_verification_code, verify_mail_address
 
 email_views = Blueprint('email', __name__, url_prefix='', template_folder='templates')
@@ -54,10 +59,7 @@ email_views = Blueprint('email', __name__, url_prefix='', template_folder='templ
 @MarshalWith(EmailResponseSchema)
 @require_user
 def get_all_emails(user):
-    emails = {
-        'emails': user.mail_addresses.to_list_of_dicts(),
-        'message': 'emails.get-success'
-    }
+    emails = {'emails': user.mail_addresses.to_list_of_dicts(), 'message': 'emails.get-success'}
 
     return EmailListPayload().dump(emails).data
 
@@ -68,40 +70,27 @@ def get_all_emails(user):
 @require_user
 def post_email(user, email, verified, primary):
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
-    current_app.logger.debug('Trying to save unconfirmed email {!r} '
-                             'for user {}'.format(email, proofing_user))
+    current_app.logger.debug('Trying to save unconfirmed email {!r} ' 'for user {}'.format(email, proofing_user))
 
-    new_mail = MailAddress(email=email, application='email',
-                           verified=False, primary=False)
+    new_mail = MailAddress(email=email, application='email', verified=False, primary=False)
 
     try:
         proofing_user.mail_addresses.add(new_mail)
     except DuplicateElementViolation:
-        return {
-            '_status': 'error',
-            'message': 'emails.duplicated'
-        }
+        return {'_status': 'error', 'message': 'emails.duplicated'}
 
     try:
         save_and_sync_user(proofing_user)
     except UserOutOfSync:
-        current_app.logger.debug('Couldnt save email {} for user {}, '
-                                 'data out of sync'.format(email, proofing_user))
-        return {
-            '_status': 'error',
-            'message': 'user-out-of-sync'
-        }
-    current_app.logger.info('Saved unconfirmed email {!r} '
-                            'for user {}'.format(email, proofing_user))
+        current_app.logger.debug('Couldnt save email {} for user {}, ' 'data out of sync'.format(email, proofing_user))
+        return {'_status': 'error', 'message': 'user-out-of-sync'}
+    current_app.logger.info('Saved unconfirmed email {!r} ' 'for user {}'.format(email, proofing_user))
     current_app.stats.count(name='email_save_unconfirmed_email', value=1)
 
     send_verification_code(email, proofing_user)
     current_app.stats.count(name='email_send_verification_code', value=1)
 
-    emails = {
-        'emails': proofing_user.mail_addresses.to_list_of_dicts(),
-        'message': 'emails.save-success'
-    }
+    emails = {'emails': proofing_user.mail_addresses.to_list_of_dicts(), 'message': 'emails.save-success'}
     return EmailListPayload().dump(emails).data
 
 
@@ -111,45 +100,34 @@ def post_email(user, email, verified, primary):
 @require_user
 def post_primary(user, email):
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
-    current_app.logger.debug('Trying to save email address {!r} as primary '
-                             'for user {}'.format(email, proofing_user))
+    current_app.logger.debug('Trying to save email address {!r} as primary ' 'for user {}'.format(email, proofing_user))
 
     try:
         mail = proofing_user.mail_addresses.find(email)
     except IndexError:
-        current_app.logger.debug('Couldnt save email {!r} as primary for user'
-                                 ' {}, data out of sync'.format(email, proofing_user))
-        return {
-            '_status': 'error',
-            'message': 'user-out-of-sync'
-        }
+        current_app.logger.debug(
+            'Couldnt save email {!r} as primary for user' ' {}, data out of sync'.format(email, proofing_user)
+        )
+        return {'_status': 'error', 'message': 'user-out-of-sync'}
 
     if not mail.is_verified:
-        current_app.logger.debug('Couldnt save email {!r} as primary for user'
-                                 ' {}, email unconfirmed'.format(email, proofing_user))
-        return {
-            '_status': 'error',
-            'message': 'emails.unconfirmed_address_not_primary'
-        }
+        current_app.logger.debug(
+            'Couldnt save email {!r} as primary for user' ' {}, email unconfirmed'.format(email, proofing_user)
+        )
+        return {'_status': 'error', 'message': 'emails.unconfirmed_address_not_primary'}
 
     proofing_user.mail_addresses.primary = mail.email
     try:
         save_and_sync_user(proofing_user)
     except UserOutOfSync:
-        current_app.logger.debug('Couldnt save email {!r} as primary for user'
-                                 ' {}, data out of sync'.format(email, proofing_user))
-        return {
-            '_status': 'error',
-            'message': 'user-out-of-sync'
-        }
-    current_app.logger.info('Email address {!r} made primary '
-                            'for user {}'.format(email, proofing_user))
+        current_app.logger.debug(
+            'Couldnt save email {!r} as primary for user' ' {}, data out of sync'.format(email, proofing_user)
+        )
+        return {'_status': 'error', 'message': 'user-out-of-sync'}
+    current_app.logger.info('Email address {!r} made primary ' 'for user {}'.format(email, proofing_user))
     current_app.stats.count(name='email_set_primary', value=1)
 
-    emails = {
-        'emails': proofing_user.mail_addresses.to_list_of_dicts(),
-        'message': 'emails.primary-success'
-    }
+    emails = {'emails': proofing_user.mail_addresses.to_list_of_dicts(), 'message': 'emails.primary-success'}
     return EmailListPayload().dump(emails).data
 
 
@@ -177,16 +155,10 @@ def verify(user, code, email):
             current_app.logger.info("Verification code is expired. Removing the state")
             current_app.logger.debug("Proofing state: {}".format(state))
             current_app.proofing_statedb.remove_state(state)
-            return {
-                '_status': 'error',
-                'message': 'emails.code_invalid_or_expired'
-            }
+            return {'_status': 'error', 'message': 'emails.code_invalid_or_expired'}
     except DocumentDoesNotExist:
         current_app.logger.info('Could not find proofing state for email {}'.format(email))
-        return {
-            '_status': 'error',
-            'message': 'emails.unknown_email'
-        }
+        return {'_status': 'error', 'message': 'emails.unknown_email'}
 
     if code == state.verification.verification_code:
         try:
@@ -195,22 +167,16 @@ def verify(user, code, email):
             current_app.logger.debug('Email address: {}'.format(email))
             emails = {
                 'emails': proofing_user.mail_addresses.to_list_of_dicts(),
-                'message': 'emails.verification-success'
+                'message': 'emails.verification-success',
             }
             return EmailListPayload().dump(emails).data
         except UserOutOfSync:
             current_app.logger.info('Could not confirm email, data out of sync')
             current_app.logger.debug('Mail address: {}'.format(email))
-            return {
-                '_status': 'error',
-                'message': 'user-out-of-sync'
-            }
+            return {'_status': 'error', 'message': 'user-out-of-sync'}
     current_app.logger.info("Invalid verification code")
     current_app.logger.debug("Email address: {}".format(state.verification.email))
-    return {
-        '_status': 'error',
-        'message': 'emails.code_invalid_or_expired'
-    }
+    return {'_status': 'error', 'message': 'emails.code_invalid_or_expired'}
 
 
 @email_views.route('/verify', methods=['GET'])
@@ -271,8 +237,7 @@ def verify_link(user):
 @require_user
 def post_remove(user, email):
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
-    current_app.logger.debug('Trying to remove email address {!r} '
-                             'from user {}'.format(email, proofing_user))
+    current_app.logger.debug('Trying to remove email address {!r} ' 'from user {}'.format(email, proofing_user))
 
     emails = proofing_user.mail_addresses.to_list()
     verified_emails = proofing_user.mail_addresses.verified.to_list()
@@ -280,18 +245,12 @@ def post_remove(user, email):
     # Do not let the user remove all mail addresses
     if len(emails) == 1:
         current_app.logger.debug('Cannot remove the last address: {}'.format(email))
-        return {
-            '_status': 'error',
-            'message': 'emails.cannot_remove_unique'
-        }
+        return {'_status': 'error', 'message': 'emails.cannot_remove_unique'}
 
     # Do not let the user remove all verified mail addresses
     if len(verified_emails) == 1 and verified_emails[0].email == email:
         current_app.logger.debug('Cannot remove last verified address: {}'.format(email))
-        return {
-            '_status': 'error',
-            'message': 'emails.cannot_remove_unique_verified'
-        }
+        return {'_status': 'error', 'message': 'emails.cannot_remove_unique_verified'}
 
     try:
         proofing_user.mail_addresses.remove(email)
@@ -306,18 +265,12 @@ def post_remove(user, email):
         save_and_sync_user(proofing_user)
     except UserOutOfSync:
         current_app.logger.debug('Could not remove email {} for user, data out of sync'.format(email))
-        return {
-            '_status': 'error',
-            'message': 'user-out-of-sync'
-        }
+        return {'_status': 'error', 'message': 'user-out-of-sync'}
 
     current_app.logger.info('Email address {} removed'.format(email))
     current_app.stats.count(name='email_remove_success', value=1)
 
-    emails = {
-        'emails': proofing_user.mail_addresses.to_list_of_dicts(),
-        'message': 'emails.removal-success'
-    }
+    emails = {'emails': proofing_user.mail_addresses.to_list_of_dicts(), 'message': 'emails.removal-success'}
     return EmailListPayload().dump(emails).data
 
 
@@ -326,30 +279,20 @@ def post_remove(user, email):
 @MarshalWith(EmailResponseSchema)
 @require_user
 def resend_code(user, email):
-    current_app.logger.debug('Trying to send new verification code for email '
-                             'address {} for user {}'.format(email, user))
+    current_app.logger.debug(
+        'Trying to send new verification code for email ' 'address {} for user {}'.format(email, user)
+    )
 
     if not user.mail_addresses.find(email):
-        current_app.logger.debug('Unknown email {!r} in resend_code_action,'
-                                 ' user {}'.format(email, user))
-        return {
-            '_status': 'error',
-            'message': 'user-out-of-sync'
-        }
+        current_app.logger.debug('Unknown email {!r} in resend_code_action,' ' user {}'.format(email, user))
+        return {'_status': 'error', 'message': 'user-out-of-sync'}
 
     sent = send_verification_code(email, user)
     if not sent:
-        return {
-            '_status': 'error',
-            'message': 'still-valid-code'
-        }
+        return {'_status': 'error', 'message': 'still-valid-code'}
 
-    current_app.logger.debug('New verification code sent to '
-                             'address {} for user {}'.format(email, user))
+    current_app.logger.debug('New verification code sent to ' 'address {} for user {}'.format(email, user))
     current_app.stats.count(name='email_resend_code', value=1)
 
-    emails = {
-        'emails': user.mail_addresses.to_list_of_dicts(),
-        'message': 'emails.code-sent'
-    }
+    emails = {'emails': user.mail_addresses.to_list_of_dicts(), 'message': 'emails.code-sent'}
     return EmailListPayload().dump(emails).data

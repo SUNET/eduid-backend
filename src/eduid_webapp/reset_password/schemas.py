@@ -31,12 +31,13 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 from flask_babel import gettext as _
-from marshmallow import fields, validates, ValidationError
+from marshmallow import ValidationError, fields, validates
 
 from eduid_common.api.schemas.base import EduidSchema, FluxStandardAction
+from eduid_common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
 from eduid_common.api.schemas.password import PasswordSchema
-from eduid_common.api.schemas.csrf import CSRFResponseMixin, CSRFRequestMixin
 from eduid_common.api.schemas.validators import validate_email
+
 from eduid_webapp.security.schemas import CredentialSchema
 
 __author__ = 'eperez'

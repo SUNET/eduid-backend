@@ -33,14 +33,20 @@
 
 from __future__ import absolute_import
 
-from marshmallow import fields, Schema, validates, validates_schema, validate, ValidationError
 from flask_babel import gettext as _
-from eduid_common.api.schemas.base import FluxStandardAction, EduidSchema
+from marshmallow import Schema, ValidationError, fields, validate, validates, validates_schema
+
+from eduid_common.api.schemas.base import EduidSchema, FluxStandardAction
 from eduid_common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
-from eduid_common.api.schemas.u2f import U2FEnrollResponseSchema, U2FBindRequestSchema, U2FSignResponseSchema
-from eduid_common.api.schemas.u2f import U2FVerifyRequestSchema, U2FVerifyResponseSchema
 from eduid_common.api.schemas.nin import NinSchema
 from eduid_common.api.schemas.password import PasswordSchema
+from eduid_common.api.schemas.u2f import (
+    U2FBindRequestSchema,
+    U2FEnrollResponseSchema,
+    U2FSignResponseSchema,
+    U2FVerifyRequestSchema,
+    U2FVerifyResponseSchema,
+)
 from eduid_common.api.schemas.validators import validate_email, validate_nin
 
 
@@ -115,7 +121,6 @@ class AccountTerminatedSchema(FluxStandardAction):
 
 # U2F schemas
 class ConvertRegisteredKeys(EduidSchema):
-
     class U2FRegisteredKey(EduidSchema):
         version = fields.String(required=True)
         keyhandle = fields.String(required=True, dump_to='keyHandle')
@@ -126,7 +131,6 @@ class ConvertRegisteredKeys(EduidSchema):
 
 
 class EnrollU2FTokenResponseSchema(FluxStandardAction):
-
     class EnrollU2FTokenResponsePayload(U2FEnrollResponseSchema, CSRFResponseMixin):
         pass
 
@@ -139,7 +143,6 @@ class BindU2FRequestSchema(U2FBindRequestSchema, CSRFRequestMixin):
 
 
 class SignWithU2FTokenResponseSchema(FluxStandardAction):
-
     class Payload(U2FSignResponseSchema, CSRFResponseMixin):
         pass
 
@@ -151,7 +154,6 @@ class VerifyWithU2FTokenRequestSchema(U2FVerifyRequestSchema):
 
 
 class VerifyWithU2FTokenResponseSchema(FluxStandardAction):
-
     class Payload(U2FVerifyResponseSchema, CSRFResponseMixin):
         pass
 
@@ -168,11 +170,11 @@ class RemoveU2FTokenRequestSchema(EduidSchema, CSRFRequestMixin):
 
     credential_key = fields.String(required=True)
 
+
 # webauthn schemas
 
 
 class WebauthnOptionsResponseSchema(FluxStandardAction):
-
     class WebauthnOptionsResponsePayload(EduidSchema, CSRFResponseMixin):
         options = fields.String(required=True)
 
@@ -202,7 +204,6 @@ class VerifyWithWebauthnTokenRequestSchema(U2FVerifyRequestSchema):
 
 
 class VerifyWithWebauthnTokenResponseSchema(FluxStandardAction):
-
     class Payload(U2FVerifyResponseSchema, CSRFResponseMixin):
         pass
 
@@ -272,7 +273,6 @@ class NINRequestSchema(EduidSchema, CSRFRequestMixin):
 
 
 class NINResponseSchema(FluxStandardAction):
-
     class RemoveNINPayload(EduidSchema, CSRFResponseMixin):
         success = fields.Boolean(required=True)
         message = fields.String(required=False)

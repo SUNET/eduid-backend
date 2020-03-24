@@ -33,8 +33,8 @@
 
 from __future__ import absolute_import
 
-from typing import cast
 import operator
+from typing import cast
 
 from flask import current_app
 from jinja2.exceptions import UndefinedError
@@ -42,11 +42,11 @@ from jinja2.exceptions import UndefinedError
 from eduid_common.api.utils import urlappend
 from eduid_common.authn.middleware import AuthnBaseApp
 from eduid_userdb.support import db
+
 from eduid_webapp.support.settings.common import SupportConfig
 
 
 class SupportApp(AuthnBaseApp):
-
     def __init__(self, name: str, config: dict, **kwargs):
 
         super(SupportApp, self).__init__(name, SupportConfig, config, **kwargs)
@@ -55,6 +55,7 @@ class SupportApp(AuthnBaseApp):
             self.config.token_service_url_logout = urlappend(self.config.token_service_url, 'logout')
 
         from eduid_webapp.support.views import support_views
+
         self.register_blueprint(support_views)
 
         self.support_user_db = db.SupportUserDB(self.config.mongo_uri)
@@ -74,7 +75,6 @@ current_support_app: SupportApp = cast(SupportApp, current_app)
 
 
 def register_template_funcs(app):
-
     @app.template_filter('datetimeformat')
     def datetimeformat(value, format='%Y-%m-%d %H:%M %Z'):
         if not value:

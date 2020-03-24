@@ -5,20 +5,32 @@ from __future__ import absolute_import
 import json
 from functools import wraps
 
-from eduid_common.api.exceptions import MailTaskFailed, MsgTaskFailed
-from flask import Blueprint, request, render_template, url_for, redirect
+from flask import Blueprint, redirect, render_template, request, url_for
 from flask_babel import gettext as _
 
+from eduid_common.api.exceptions import MailTaskFailed, MsgTaskFailed
 from eduid_common.session import session
-from eduid_userdb.security.state import PasswordResetEmailState, PasswordResetEmailAndPhoneState
 from eduid_userdb.exceptions import DocumentDoesNotExist
-from eduid_webapp.security.schemas import ResetPasswordEmailSchema, ResetPasswordExtraSecuritySchema
-from eduid_webapp.security.schemas import ResetPasswordVerifyPhoneNumberSchema, ResetPasswordNewPasswordSchema
-from eduid_webapp.security.helpers import send_password_reset_mail, get_extra_security_alternatives, mask_alternatives
-from eduid_webapp.security.helpers import send_verify_phone_code, verify_email_address, verify_phone_number
-from eduid_webapp.security.helpers import generate_suggested_password, get_zxcvbn_terms, reset_user_password
-from eduid_webapp.security.app import current_security_app as current_app
+from eduid_userdb.security.state import PasswordResetEmailAndPhoneState, PasswordResetEmailState
 
+from eduid_webapp.security.app import current_security_app as current_app
+from eduid_webapp.security.helpers import (
+    generate_suggested_password,
+    get_extra_security_alternatives,
+    get_zxcvbn_terms,
+    mask_alternatives,
+    reset_user_password,
+    send_password_reset_mail,
+    send_verify_phone_code,
+    verify_email_address,
+    verify_phone_number,
+)
+from eduid_webapp.security.schemas import (
+    ResetPasswordEmailSchema,
+    ResetPasswordExtraSecuritySchema,
+    ResetPasswordNewPasswordSchema,
+    ResetPasswordVerifyPhoneNumberSchema,
+)
 
 __author__ = 'lundberg'
 
@@ -68,8 +80,9 @@ def require_state(f):
             current_app.logger.info('Phone code expired for state: {}'.format(email_code))
             # Revert the state to EmailState to allow the user to choose extra security again
             current_app.password_reset_state_db.remove_state(state)
-            state = PasswordResetEmailState(eppn=state.eppn, email_address=state.email_address,
-                                            email_code=state.email_code)
+            state = PasswordResetEmailState(
+                eppn=state.eppn, email_address=state.email_address, email_code=state.email_code
+            )
             current_app.password_reset_state_db.save(state)
             view_context = {
                 'heading': _('SMS code expired'),
@@ -81,6 +94,7 @@ def require_state(f):
 
         kwargs['state'] = state
         return f(*args, **kwargs)
+
     return require_state_decorator
 
 
@@ -261,11 +275,13 @@ def new_password(state):
     current_app.logger.info('Password reset: new_password {}'.format(request.method))
     view_context = {
         'heading': _('New password'),
-        'text': _('''
+        'text': _(
+            '''
             Please choose a new password for your eduID account. A strong password has been generated for you.
             You can accept the generated password by clicking "Change password" or you can opt to choose your
             own password by clicking "Custom Password".
-        '''),
+        '''
+        ),
         'action': url_for('reset_password.new_password', email_code=state.email_code.code),
         'csrf_token': session.get_csrf_token(),
         'active_pane': 'generated',
@@ -275,7 +291,8 @@ def new_password(state):
     if request.method == 'POST':
         min_entropy = current_app.config.password_entropy
         form = ResetPasswordNewPasswordSchema(
-            zxcvbn_terms=view_context['zxcvbn_terms'], min_entropy=int(min_entropy)).load(request.form)
+            zxcvbn_terms=view_context['zxcvbn_terms'], min_entropy=int(min_entropy)
+        ).load(request.form)
         current_app.logger.debug(form)
         if not form.errors and session.get_csrf_token() == form.data['csrf']:
             if form.data.get('use_generated_password'):

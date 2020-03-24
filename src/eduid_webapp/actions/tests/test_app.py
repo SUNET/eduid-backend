@@ -33,13 +33,13 @@
 import json
 import time
 from datetime import datetime
+
 from werkzeug.exceptions import InternalServerError
 
 from eduid_webapp.actions.testing import ActionsTestCase
 
 
 class ActionsTests(ActionsTestCase):
-
     def update_actions_config(self, config):
         config['tou_version'] = 'test-version'
         return config

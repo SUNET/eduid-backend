@@ -32,17 +32,18 @@
 #
 
 import base64
+
+from fido2.ctap2 import AttestedCredentialData
+from fido2.server import Fido2Server, U2FFido2Server
+from fido2.utils import websafe_decode
 from flask import request
 
-from eduid_common.session import session
 from eduid_common.authn import fido_tokens
-from eduid_webapp.actions.action_abc import ActionPlugin
+from eduid_common.session import session
 from eduid_userdb.credentials import U2F, Webauthn
-from eduid_webapp.actions.app import current_actions_app as current_app
 
-from fido2.server import Fido2Server, U2FFido2Server
-from fido2.ctap2 import AttestedCredentialData
-from fido2.utils import websafe_decode
+from eduid_webapp.actions.action_abc import ActionPlugin
+from eduid_webapp.actions.app import current_actions_app as current_app
 
 __author__ = 'ft'
 
@@ -55,13 +56,7 @@ class Plugin(ActionPlugin):
 
     @classmethod
     def includeme(cls, app):
-        mandatory_config_keys = [
-            'u2f_app_id',
-            'u2f_valid_facets',
-            'fido2_rp_id',
-            'eidas_url',
-            'mfa_authn_idp'
-        ]
+        mandatory_config_keys = ['u2f_app_id', 'u2f_valid_facets', 'fido2_rp_id', 'eidas_url', 'mfa_authn_idp']
 
         for item in mandatory_config_keys:
             if not getattr(app.config, item):
@@ -72,12 +67,10 @@ class Plugin(ActionPlugin):
     def get_config_for_bundle(self, action):
         if action.old_format:
             userid = action.user_id
-            user = current_app.central_userdb.get_user_by_id(
-                userid, raise_on_missing=False)
+            user = current_app.central_userdb.get_user_by_id(userid, raise_on_missing=False)
         else:
             eppn = action.eppn
-            user = current_app.central_userdb.get_user_by_eppn(
-                eppn, raise_on_missing=False)
+            user = current_app.central_userdb.get_user_by_eppn(eppn, raise_on_missing=False)
         current_app.logger.debug('Loaded User {} from db'.format(user))
         if not user:
             raise self.ActionError('mfa.user-not-found')
@@ -124,7 +117,7 @@ class Plugin(ActionPlugin):
                 'success': True,
                 'issuer': issuer,
                 'authn_instant': authn_instant,
-                'authn_context': authn_context
+                'authn_context': authn_context,
             }
             current_app.actions_db.update_action(action)
             # Clear mfa_action from session
@@ -174,27 +167,22 @@ class Plugin(ActionPlugin):
 def _get_user_credentials(user):
     res = {}
     for this in user.credentials.filter(U2F).to_list():
-        acd = AttestedCredentialData.from_ctap1(websafe_decode(this.keyhandle),
-                                                websafe_decode(this.public_key))
-        res[this.key] = {'u2f': {'version': this.version,
-                                 'keyHandle': this.keyhandle,
-                                 'publicKey': this.public_key,
-                                 },
-                         'webauthn': acd,
-                         'app_id': this.app_id,
-                         }
+        acd = AttestedCredentialData.from_ctap1(websafe_decode(this.keyhandle), websafe_decode(this.public_key))
+        res[this.key] = {
+            'u2f': {'version': this.version, 'keyHandle': this.keyhandle, 'publicKey': this.public_key,},
+            'webauthn': acd,
+            'app_id': this.app_id,
+        }
     for this in user.credentials.filter(Webauthn).to_list():
         keyhandle = this.keyhandle
         cred_data = base64.urlsafe_b64decode(this.credential_data.encode('ascii'))
         credential_data, rest = AttestedCredentialData.unpack_from(cred_data)
         version = 'webauthn'
-        res[this.key] = {'u2f': {'version': version,
-                                 'keyHandle': keyhandle,
-                                 'publicKey': credential_data.public_key,
-                                 },
-                         'webauthn': credential_data,
-                         'app_id': '',
-                         }
+        res[this.key] = {
+            'u2f': {'version': version, 'keyHandle': keyhandle, 'publicKey': credential_data.public_key,},
+            'webauthn': credential_data,
+            'app_id': '',
+        }
     return res
 
 

@@ -35,17 +35,16 @@ import types
 from importlib import import_module
 from typing import cast
 
-from flask import current_app
-from flask import render_template, templating
+from flask import current_app, render_template, templating
 
 from eduid_common.api import am
 from eduid_common.api.app import EduIDBaseApp
 from eduid_userdb.actions import ActionDB
+
 from eduid_webapp.actions.settings.common import ActionsConfig
 
 
 class PluginsRegistry(dict):
-
     def __init__(self, app):
         super(PluginsRegistry, self).__init__()
         for plugin_name in app.config.action_plugins:
@@ -73,12 +72,12 @@ def _get_tous(app, version=None):
 
 
 class ActionsApp(EduIDBaseApp):
-
     def __init__(self, name: str, config: dict, **kwargs):
 
         super(ActionsApp, self).__init__(name, ActionsConfig, config, **kwargs)
 
         from eduid_webapp.actions.views import actions_views
+
         self.register_blueprint(actions_views)
 
         self = am.init_relay(self, f'eduid_{name}')

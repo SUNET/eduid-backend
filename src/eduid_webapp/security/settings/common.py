@@ -34,8 +34,8 @@
 
 from __future__ import absolute_import
 
-from typing import List
 from dataclasses import dataclass, field
+from typing import List
 
 from eduid_common.config.base import FlaskConfig
 
@@ -45,6 +45,7 @@ class SecurityConfig(FlaskConfig):
     """
     Configuration for the security app
     """
+
     # timeout for phone verification token, in hours
     phone_verification_timeout: int = 24
     password_length: int = 12

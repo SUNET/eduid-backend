@@ -34,8 +34,8 @@
 
 from __future__ import absolute_import
 
-from typing import List
 from dataclasses import dataclass, field
+from typing import List
 
 from eduid_common.config.base import FlaskConfig
 
@@ -45,5 +45,6 @@ class SupportConfig(FlaskConfig):
     """
     Configuration for the support app
     """
+
     support_personnel: List[str] = field(default_factory=lambda: [''])
     token_service_url_logout: str = ''

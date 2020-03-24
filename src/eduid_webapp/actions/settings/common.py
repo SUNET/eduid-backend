@@ -46,6 +46,7 @@ class ActionsConfig(FlaskConfig):
     """
     Configuration for the actions app
     """
+
     app_name: str = 'actions'
 
     bundles_path: str = ''
@@ -61,8 +62,5 @@ class ActionsConfig(FlaskConfig):
     mfa_authn_idp: str = ''
     u2f_valid_facets: list = field(default_factory=list)
     # The plugins for pre-authentication actions that need to be loaded
-    action_plugins: list = field(default_factory=lambda: [
-        "tou",
-        "mfa"
-    ])
+    action_plugins: list = field(default_factory=lambda: ["tou", "mfa"])
     tou_version: str = '2017-v6'

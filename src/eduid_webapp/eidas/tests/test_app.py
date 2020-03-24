@@ -2,21 +2,22 @@
 
 from __future__ import absolute_import
 
-import os
-import six
-import datetime
 import base64
+import datetime
+import os
 import urllib
 from collections import OrderedDict
+
+import six
 from mock import patch
 
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.authn.cache import OutstandingQueriesCache
-from eduid_webapp.eidas.settings.common import EidasConfig
 from eduid_userdb.credentials import U2F, Webauthn
 from eduid_userdb.credentials.fido import FidoCredential
 
 from eduid_webapp.eidas.app import init_eidas_app
+from eduid_webapp.eidas.settings.common import EidasConfig
 
 __author__ = 'lundberg'
 
@@ -32,14 +33,22 @@ class EidasTests(EduidAPITestCase):
         self.test_user_nin = '197801011234'
         self.test_user_wrong_nin = '190001021234'
         self.test_idp = 'https://idp.example.com/simplesaml/saml2/idp/metadata.php'
-        self.mock_address = OrderedDict([
-            (u'Name', OrderedDict([
-                (u'GivenNameMarking', u'20'), (u'GivenName', u'Testaren Test'),
-                (u'Surname', u'Testsson')])),
-            (u'OfficialAddress', OrderedDict([(u'Address2', u'\xd6RGATAN 79 LGH 10'),
-                                              (u'PostalCode', u'12345'),
-                                              (u'City', u'LANDET')]))
-        ])
+        self.mock_address = OrderedDict(
+            [
+                (
+                    u'Name',
+                    OrderedDict(
+                        [(u'GivenNameMarking', u'20'), (u'GivenName', u'Testaren Test'), (u'Surname', u'Testsson')]
+                    ),
+                ),
+                (
+                    u'OfficialAddress',
+                    OrderedDict(
+                        [(u'Address2', u'\xd6RGATAN 79 LGH 10'), (u'PostalCode', u'12345'), (u'City', u'LANDET')]
+                    ),
+                ),
+            ]
+        )
 
         self.saml_response_tpl_success = """<?xml version='1.0' encoding='UTF-8'?>
 <samlp:Response xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Destination="{sp_url}saml2-acs" ID="id-88b9f586a2a3a639f9327485cc37c40a" InResponseTo="{session_id}" IssueInstant="{timestamp}" Version="2.0">
@@ -117,44 +126,56 @@ class EidasTests(EduidAPITestCase):
 
     def update_config(self, app_config):
         saml_config = os.path.join(HERE, 'saml2_settings.py')
-        app_config.update({
-            'token_verify_redirect_url': 'http://test.localhost/profile',
-            'nin_verify_redirect_url': 'http://test.localhost/profile',
-            'action_url': 'http://idp.test.localhost/action',
-            'msg_broker_url': 'amqp://dummy',
-            'am_broker_url': 'amqp://dummy',
-            'celery_config': {
-                'result_backend': 'amqp',
-                'task_serializer': 'json'
-            },
-            'saml2_settings_module': saml_config,
-            'safe_relay_domain': 'localhost',
-            'authentication_context_map': {
-                'loa1': 'http://id.elegnamnden.se/loa/1.0/loa1',
-                'loa2': 'http://id.elegnamnden.se/loa/1.0/loa2',
-                'loa3': 'http://id.elegnamnden.se/loa/1.0/loa3',
-                'uncertified-loa3': 'http://id.swedenconnect.se/loa/1.0/uncertified-loa3',
-                'loa4': 'http://id.elegnamnden.se/loa/1.0/loa4',
-                'eidas-low': 'http://id.elegnamnden.se/loa/1.0/eidas-low',
-                'eidas-sub': 'http://id.elegnamnden.se/loa/1.0/eidas-sub',
-                'eidas-high': 'http://id.elegnamnden.se/loa/1.0/eidas-high',
-                'eidas-nf-low': 'http://id.elegnamnden.se/loa/1.0/eidas-nf-low',
-                'eidas-nf-sub': 'http://id.elegnamnden.se/loa/1.0/eidas-nf-sub',
-                'eidas-nf-high': 'http://id.elegnamnden.se/loa/1.0/eidas-nf-high'
-            },
-            'authn_sign_alg': 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256',
-            'authn_digest_alg': 'http://www.w3.org/2001/04/xmlenc#sha256'
-        })
+        app_config.update(
+            {
+                'token_verify_redirect_url': 'http://test.localhost/profile',
+                'nin_verify_redirect_url': 'http://test.localhost/profile',
+                'action_url': 'http://idp.test.localhost/action',
+                'msg_broker_url': 'amqp://dummy',
+                'am_broker_url': 'amqp://dummy',
+                'celery_config': {'result_backend': 'amqp', 'task_serializer': 'json'},
+                'saml2_settings_module': saml_config,
+                'safe_relay_domain': 'localhost',
+                'authentication_context_map': {
+                    'loa1': 'http://id.elegnamnden.se/loa/1.0/loa1',
+                    'loa2': 'http://id.elegnamnden.se/loa/1.0/loa2',
+                    'loa3': 'http://id.elegnamnden.se/loa/1.0/loa3',
+                    'uncertified-loa3': 'http://id.swedenconnect.se/loa/1.0/uncertified-loa3',
+                    'loa4': 'http://id.elegnamnden.se/loa/1.0/loa4',
+                    'eidas-low': 'http://id.elegnamnden.se/loa/1.0/eidas-low',
+                    'eidas-sub': 'http://id.elegnamnden.se/loa/1.0/eidas-sub',
+                    'eidas-high': 'http://id.elegnamnden.se/loa/1.0/eidas-high',
+                    'eidas-nf-low': 'http://id.elegnamnden.se/loa/1.0/eidas-nf-low',
+                    'eidas-nf-sub': 'http://id.elegnamnden.se/loa/1.0/eidas-nf-sub',
+                    'eidas-nf-high': 'http://id.elegnamnden.se/loa/1.0/eidas-nf-high',
+                },
+                'authn_sign_alg': 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256',
+                'authn_digest_alg': 'http://www.w3.org/2001/04/xmlenc#sha256',
+            }
+        )
         return EidasConfig(**app_config)
 
     def add_token_to_user(self, eppn, credential_id, token_type):
         user = self.app.central_userdb.get_user_by_eppn(eppn)
         if token_type == 'u2f':
-            mfa_token = U2F(version='test', keyhandle=credential_id, public_key='test', app_id='test',
-                            attest_cert='test', description='test', application='test')
+            mfa_token = U2F(
+                version='test',
+                keyhandle=credential_id,
+                public_key='test',
+                app_id='test',
+                attest_cert='test',
+                description='test',
+                application='test',
+            )
         else:
-            mfa_token = Webauthn(keyhandle=credential_id, credential_data='test', app_id='test', attest_obj='test',
-                                 description='test', application='test')
+            mfa_token = Webauthn(
+                keyhandle=credential_id,
+                credential_data='test',
+                app_id='test',
+                attest_obj='test',
+                description='test',
+                application='test',
+            )
         user.credentials.add(mfa_token)
         self.request_user_sync(user)
         return mfa_token
@@ -171,14 +192,18 @@ class EidasTests(EduidAPITestCase):
 
         sp_baseurl = 'http://test.localhost:6544/'
 
-        resp = ' '.join(saml_response_tpl.format(**{
-            'asserted_nin': asserted_nin,
-            'session_id': session_id,
-            'timestamp': timestamp.strftime('%Y-%m-%dT%H:%M:%SZ'),
-            'tomorrow': tomorrow.strftime('%Y-%m-%dT%H:%M:%SZ'),
-            'yesterday': yesterday.strftime('%Y-%m-%dT%H:%M:%SZ'),
-            'sp_url': sp_baseurl,
-        }).split())
+        resp = ' '.join(
+            saml_response_tpl.format(
+                **{
+                    'asserted_nin': asserted_nin,
+                    'session_id': session_id,
+                    'timestamp': timestamp.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                    'tomorrow': tomorrow.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                    'yesterday': yesterday.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                    'sp_url': sp_baseurl,
+                }
+            ).split()
+        )
 
         if six.PY3:
             # Needs to be bytes
@@ -280,8 +305,9 @@ class EidasTests(EduidAPITestCase):
                 token = sess._session.token
                 if isinstance(token, six.binary_type):
                     token = token.decode('ascii')
-                authn_response = self.generate_auth_response(token, self.saml_response_tpl_success,
-                                                             self.test_user_wrong_nin)
+                authn_response = self.generate_auth_response(
+                    token, self.saml_response_tpl_success, self.test_user_wrong_nin
+                )
                 oq_cache = OutstandingQueriesCache(sess)
                 oq_cache.set(token, '/')
                 sess['post-authn-action'] = 'token-verify-action'
@@ -352,7 +378,9 @@ class EidasTests(EduidAPITestCase):
                 self.assertEqual(
                     response.location,
                     'http://test.localhost/reauthn?next=http://test.localhost/verify-token/{}?idp={}'.format(
-                        credential.key, self.test_idp))
+                        credential.key, self.test_idp
+                    ),
+                )
 
     def test_mfa_token_verify_no_mfa_token_in_session(self):
         credential = self.add_token_to_user(self.test_user_eppn, 'test', 'webauthn')
@@ -379,9 +407,12 @@ class EidasTests(EduidAPITestCase):
                 response = browser.post('/saml2-acs', data=data)
 
                 self.assertEqual(response.status_code, 302)
-                self.assertEqual(response.location,
-                                 '{}?msg=%3AERROR%3Aeidas.token_not_in_credentials_used'.format(
-                                     self.app.config.token_verify_redirect_url))
+                self.assertEqual(
+                    response.location,
+                    '{}?msg=%3AERROR%3Aeidas.token_not_in_credentials_used'.format(
+                        self.app.config.token_verify_redirect_url
+                    ),
+                )
 
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
@@ -399,8 +430,9 @@ class EidasTests(EduidAPITestCase):
                 token = sess._session.token
                 if isinstance(token, six.binary_type):
                     token = token.decode('ascii')
-                authn_response = self.generate_auth_response(token, self.saml_response_tpl_fail,
-                                                             self.test_user_wrong_nin)
+                authn_response = self.generate_auth_response(
+                    token, self.saml_response_tpl_fail, self.test_user_wrong_nin
+                )
                 oq_cache = OutstandingQueriesCache(sess)
                 oq_cache.set(token, '/')
                 sess['post-authn-action'] = 'token-verify-action'
@@ -436,8 +468,9 @@ class EidasTests(EduidAPITestCase):
                 token = sess._session.token
                 if isinstance(token, six.binary_type):
                     token = token.decode('ascii')
-                authn_response = self.generate_auth_response(token, self.saml_response_tpl_cancel,
-                                                             self.test_user_wrong_nin)
+                authn_response = self.generate_auth_response(
+                    token, self.saml_response_tpl_cancel, self.test_user_wrong_nin
+                )
                 oq_cache = OutstandingQueriesCache(sess)
                 oq_cache.set(token, '/')
                 sess['post-authn-action'] = 'token-verify-action'
@@ -473,8 +506,9 @@ class EidasTests(EduidAPITestCase):
                 token = sess._session.token
                 if isinstance(token, six.binary_type):
                     token = token.decode('ascii')
-                authn_response = self.generate_auth_response(token, self.saml_response_tpl_fail,
-                                                             self.test_user_wrong_nin)
+                authn_response = self.generate_auth_response(
+                    token, self.saml_response_tpl_fail, self.test_user_wrong_nin
+                )
                 oq_cache = OutstandingQueriesCache(sess)
                 oq_cache.set(token, '/')
                 sess['post-authn-action'] = 'token-verify-action'
@@ -509,8 +543,7 @@ class EidasTests(EduidAPITestCase):
                 token = sess._session.token
                 if isinstance(token, six.binary_type):
                     token = token.decode('ascii')
-                authn_response = self.generate_auth_response(token, self.saml_response_tpl_success,
-                                                             self.test_user_nin)
+                authn_response = self.generate_auth_response(token, self.saml_response_tpl_success, self.test_user_nin)
                 oq_cache = OutstandingQueriesCache(sess)
                 oq_cache.set(token, '/')
                 sess['post-authn-action'] = 'nin-verify-action'
@@ -555,9 +588,10 @@ class EidasTests(EduidAPITestCase):
                 response = browser.post('/saml2-acs', data=data)
 
                 self.assertEqual(response.status_code, 302)
-                self.assertEqual(response.location,
-                                 '{}?msg=%3AERROR%3Aeidas.nin_already_verified'.format(
-                                     self.app.config.nin_verify_redirect_url))
+                self.assertEqual(
+                    response.location,
+                    '{}?msg=%3AERROR%3Aeidas.nin_already_verified'.format(self.app.config.nin_verify_redirect_url),
+                )
 
     def test_mfa_authentication_verified_user(self):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
@@ -586,8 +620,9 @@ class EidasTests(EduidAPITestCase):
             response = browser.post('/saml2-acs', data=data)
 
             self.assertEqual(response.status_code, 302)
-            self.assertEqual(response.location,
-                             'http://idp.localhost/action/redirect-action?msg=actions.action-completed')
+            self.assertEqual(
+                response.location, 'http://idp.localhost/action/redirect-action?msg=actions.action-completed'
+            )
 
     def test_mfa_authentication_wrong_nin(self):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
@@ -606,8 +641,9 @@ class EidasTests(EduidAPITestCase):
                 token = sess._session.token
                 if isinstance(token, six.binary_type):
                     token = token.decode('ascii')
-                authn_response = self.generate_auth_response(token, self.saml_response_tpl_success,
-                                                             self.test_user_wrong_nin)
+                authn_response = self.generate_auth_response(
+                    token, self.saml_response_tpl_success, self.test_user_wrong_nin
+                )
                 oq_cache = OutstandingQueriesCache(sess)
                 oq_cache.set(token, relay_state)
                 sess['post-authn-action'] = 'mfa-authentication-action'
@@ -617,16 +653,13 @@ class EidasTests(EduidAPITestCase):
             response = browser.post('/saml2-acs', data=data)
 
             self.assertEqual(response.status_code, 302)
-            self.assertEqual(response.location,
-                             'http://idp.localhost/action?msg=%3AERROR%3Aeidas.nin_not_matching')
+            self.assertEqual(response.location, 'http://idp.localhost/action?msg=%3AERROR%3Aeidas.nin_not_matching')
 
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def test_nin_staging_remap_verify(self, mock_request_user_sync, mock_get_postal_address):
         self.app.config.environment = 'staging'
-        self.app.config.staging_nin_map = {
-            self.test_user_nin: '190102031234'
-        }
+        self.app.config.staging_nin_map = {self.test_user_nin: '190102031234'}
 
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -640,8 +673,7 @@ class EidasTests(EduidAPITestCase):
                 token = sess._session.token
                 if isinstance(token, six.binary_type):
                     token = token.decode('ascii')
-                authn_response = self.generate_auth_response(token, self.saml_response_tpl_success,
-                                                             self.test_user_nin)
+                authn_response = self.generate_auth_response(token, self.saml_response_tpl_success, self.test_user_nin)
                 oq_cache = OutstandingQueriesCache(sess)
                 oq_cache.set(token, '/')
                 sess['post-authn-action'] = 'nin-verify-action'

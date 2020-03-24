@@ -36,8 +36,9 @@ from flask import current_app
 
 from eduid_common.api import am, msg
 from eduid_common.authn.middleware import AuthnBaseApp
-from eduid_userdb.proofing import LookupMobileProofingUserDB
 from eduid_userdb.logs import ProofingLog
+from eduid_userdb.proofing import LookupMobileProofingUserDB
+
 from eduid_webapp.lookup_mobile_proofing import lookup_mobile_relay
 from eduid_webapp.lookup_mobile_proofing.settings.common import MobileProofingConfig
 
@@ -45,14 +46,13 @@ __author__ = 'lundberg'
 
 
 class MobileProofingApp(AuthnBaseApp):
-
     def __init__(self, name: str, config: dict, **kwargs):
 
-        super(MobileProofingApp, self).__init__(name, MobileProofingConfig,
-                                                config, **kwargs)
+        super(MobileProofingApp, self).__init__(name, MobileProofingConfig, config, **kwargs)
         self.config: MobileProofingConfig = cast(MobileProofingConfig, self.config)
         # Register views
         from eduid_webapp.lookup_mobile_proofing.views import mobile_proofing_views
+
         self.register_blueprint(mobile_proofing_views)
 
         # Init dbs

@@ -32,19 +32,20 @@
 #
 from __future__ import absolute_import
 
-import json
 import base64
+import json
+
 from bson import ObjectId
+from fido2.server import Fido2Server
 from mock import patch
+
 from eduid_common.session import session
 from eduid_userdb.credentials import U2F
-from eduid_userdb.testing import MOCKED_USER_STANDARD
-from eduid_webapp.actions.testing import MockIdPContext
-from eduid_webapp.actions.testing import ActionsTestCase
-from eduid_webapp.actions.actions.mfa import Plugin
 from eduid_userdb.exceptions import UserDoesNotExist
+from eduid_userdb.testing import MOCKED_USER_STANDARD
 
-from fido2.server import Fido2Server
+from eduid_webapp.actions.actions.mfa import Plugin
+from eduid_webapp.actions.testing import ActionsTestCase, MockIdPContext
 
 __author__ = 'ft'
 
@@ -54,7 +55,7 @@ MFA_ACTION = {
     'action': 'mfa',
     'session': 'mock-session',
     'preference': 1,
-    'params': {}
+    'params': {},
 }
 
 
@@ -63,12 +64,7 @@ def add_actions(context, user, ticket):
     This is a stripped down version of eduid_idp.mfa_action.add_actions
     that adds the action unconditionally.
     """
-    action = context.actions_db.add_action(
-        user.eppn,
-        action_type = 'mfa',
-        preference = 1,
-        session = ticket.key,
-        params = {})
+    action = context.actions_db.add_action(user.eppn, action_type='mfa', preference=1, session=ticket.key, params={})
     session['current_plugin'] = 'mfa'
     action_d = action.to_dict()
     action_d['_id'] = str(action_d['_id'])
@@ -83,16 +79,16 @@ class MockTicket:
 
 
 class MFAActionPluginTests(ActionsTestCase):
-
     def setUp(self):
         super(MFAActionPluginTests, self).setUp()
-        u2f = U2F(version='U2F_V2',
-                  app_id='https://dev.eduid.se/u2f-app-id.json',
-                  keyhandle='test_key_handle',
-                  public_key='test_public_key',
-                  attest_cert='test_attest_cert',
-                  description='test_description',
-                  )
+        u2f = U2F(
+            version='U2F_V2',
+            app_id='https://dev.eduid.se/u2f-app-id.json',
+            keyhandle='test_key_handle',
+            public_key='test_public_key',
+            attest_cert='test_attest_cert',
+            description='test_description',
+        )
         self.user.credentials.add(u2f)
         self.app.central_userdb.save(self.user, check_sync=False)
 
@@ -101,9 +97,7 @@ class MFAActionPluginTests(ActionsTestCase):
         config['action_plugins'] = ['mfa']
         config['mfa_testing'] = False
         config['u2f_app_id'] = 'https://example.com'
-        config['u2f_valid_facets'] = [
-            'https://dashboard.dev.eduid.se',
-            'https://idp.dev.eduid.se']
+        config['u2f_valid_facets'] = ['https://dashboard.dev.eduid.se', 'https://idp.dev.eduid.se']
         config['fido2_rp_id'] = 'idp.example.com'
         config['eidas_url'] = 'https://eidas.dev.eduid.se/mfa-authentication'
         config['mfa_authn_idp'] = 'https://eidas-idp.example.com'
@@ -124,8 +118,7 @@ class MFAActionPluginTests(ActionsTestCase):
         mock_idp_app = MockIdPContext(self.app.actions_db)
         with self.app.test_request_context('/get-actions'):
             mock_idp_app = MockIdPContext(self.app.actions_db)
-            add_actions(mock_idp_app, self.user,
-                        MockTicket('mock-session'))
+            add_actions(mock_idp_app, self.user, MockTicket('mock-session'))
             self.authenticate(idp_session='wrong-session')
             response = self.app.dispatch_request()
             data = json.loads(response)
@@ -177,8 +170,7 @@ class MFAActionPluginTests(ActionsTestCase):
             with self.app.test_request_context():
                 with client.session_transaction() as sess:
                     csrf_token = sess.get_csrf_token()
-                    data = json.dumps({'csrf_token': csrf_token,
-                                       'tokenResponse': 'dummy-response'})
+                    data = json.dumps({'csrf_token': csrf_token, 'tokenResponse': 'dummy-response'})
                     response = client.post('/post-action', data=data, content_type=self.content_type_json)
                     data = json.loads(response.data.decode('utf-8'))
                     self.assertEqual(data['payload']['message'], "mfa.unknown-token")
@@ -192,8 +184,7 @@ class MFAActionPluginTests(ActionsTestCase):
             with self.app.test_request_context():
                 with client.session_transaction() as sess:
                     csrf_token = sess.get_csrf_token()
-                    data = json.dumps({'csrf_token': csrf_token,
-                                       'tokenResponse': 'dummy-response'})
+                    data = json.dumps({'csrf_token': csrf_token, 'tokenResponse': 'dummy-response'})
                     response = client.post('/post-action', data=data, content_type=self.content_type_json)
                     self.assertEqual(response.status_code, 200)
                     data = json.loads(response.data)
@@ -206,13 +197,14 @@ class MFAActionPluginTests(ActionsTestCase):
         #        'dummy-touch', 'dummy-counter')
         #
         # Add a working U2F credential for this test
-        u2f = U2F(version='U2F_V2',
-                  keyhandle='V1vXqZcwBJD2RMIH2udd2F7R9NoSNlP7ZSPOtKHzS7n_rHFXcXbSpOoX__aUKyTR6jEC8Xv678WjXC5KEkvziA',
-                  public_key='BHVTWuo3_D7ruRBe2Tw-m2atT2IOm_qQWSDreWShu3t21ne9c-DPSUdym-H-t7FcjV7rj1dSc3WSwaOJpFmkKxQ',
-                  app_id='https://dev.eduid.se/u2f-app-id.json',
-                  attest_cert='',
-                  description='unit test U2F token'
-                  )
+        u2f = U2F(
+            version='U2F_V2',
+            keyhandle='V1vXqZcwBJD2RMIH2udd2F7R9NoSNlP7ZSPOtKHzS7n_rHFXcXbSpOoX__aUKyTR6jEC8Xv678WjXC5KEkvziA',
+            public_key='BHVTWuo3_D7ruRBe2Tw-m2atT2IOm_qQWSDreWShu3t21ne9c-DPSUdym-H-t7FcjV7rj1dSc3WSwaOJpFmkKxQ',
+            app_id='https://dev.eduid.se/u2f-app-id.json',
+            attest_cert='',
+            description='unit test U2F token',
+        )
         self.user.credentials.add(u2f)
         self.app.central_userdb.save(self.user, check_sync=False)
 
@@ -221,20 +213,24 @@ class MFAActionPluginTests(ActionsTestCase):
             with self.app.test_request_context():
                 with client.session_transaction() as sess:
                     fido2_state = Fido2Server._make_internal_state(
-                        base64.b64decode('3h/EAZpY25xDdSJCOMx1ABZEA5Odz3yejUI3AUNTQWc='), 'preferred')
+                        base64.b64decode('3h/EAZpY25xDdSJCOMx1ABZEA5Odz3yejUI3AUNTQWc='), 'preferred'
+                    )
                     sess['eduid_webapp.actions.actions.mfa.webauthn.state'] = json.dumps(fido2_state)
                     csrf_token = sess.get_csrf_token()
 
-                data = json.dumps({'csrf_token': csrf_token,
-                                   'authenticatorData': 'mZ9k6EPHoJxJZNA+UuvM0JVoutZHmqelg9kXe/DSefgBAAAA/w==',
-                                   'clientDataJSON': 'eyJjaGFsbGVuZ2UiOiIzaF9FQVpwWTI1eERkU0pDT014MUFCWkVBNU9k' +
-                                   'ejN5ZWpVSTNBVU5UUVdjIiwib3JpZ2luIjoiaHR0cHM6Ly9pZHAuZGV2LmVkdWlkLnNlIiwidH' +
-                                   'lwZSI6IndlYmF1dGhuLmdldCJ9',
-                                   'credentialId': 'V1vXqZcwBJD2RMIH2udd2F7R9NoSNlP7ZSPOtKHzS7n/rHFXcXbSpOoX//' +
-                                                   'aUKyTR6jEC8Xv678WjXC5KEkvziA==',
-                                   'signature': 'MEYCIQC5gM8inamJGUFKu3bNo4fT0jmJQuw33OSSXc242NCuiwIhAIWnVw2Sp' +
-                                                'ow72j6J92KaY2rLR6qSXEbLam09ZXbSkBnQ'}
-                                  )
+                data = json.dumps(
+                    {
+                        'csrf_token': csrf_token,
+                        'authenticatorData': 'mZ9k6EPHoJxJZNA+UuvM0JVoutZHmqelg9kXe/DSefgBAAAA/w==',
+                        'clientDataJSON': 'eyJjaGFsbGVuZ2UiOiIzaF9FQVpwWTI1eERkU0pDT014MUFCWkVBNU9k'
+                        + 'ejN5ZWpVSTNBVU5UUVdjIiwib3JpZ2luIjoiaHR0cHM6Ly9pZHAuZGV2LmVkdWlkLnNlIiwidH'
+                        + 'lwZSI6IndlYmF1dGhuLmdldCJ9',
+                        'credentialId': 'V1vXqZcwBJD2RMIH2udd2F7R9NoSNlP7ZSPOtKHzS7n/rHFXcXbSpOoX//'
+                        + 'aUKyTR6jEC8Xv678WjXC5KEkvziA==',
+                        'signature': 'MEYCIQC5gM8inamJGUFKu3bNo4fT0jmJQuw33OSSXc242NCuiwIhAIWnVw2Sp'
+                        + 'ow72j6J92KaY2rLR6qSXEbLam09ZXbSkBnQ',
+                    }
+                )
 
                 self.app.config.fido2_rp_id = 'idp.dev.eduid.se'
                 response = client.post('/post-action', data=data, content_type=self.content_type_json)

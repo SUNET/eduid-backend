@@ -31,6 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 from __future__ import absolute_import
+
 from eduid_webapp.lookup_mobile_proofing.app import init_lookup_mobile_proofing_app
 
 name = 'lookup_mobile_proofing'

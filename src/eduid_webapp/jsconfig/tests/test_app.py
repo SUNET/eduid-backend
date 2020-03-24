@@ -31,8 +31,8 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-import os
 import json
+import os
 
 from mock import patch
 
@@ -44,24 +44,17 @@ from eduid_webapp.jsconfig.settings.common import JSConfigConfig
 
 
 class JSConfigTests(EduidAPITestCase):
-
     def setUp(self):
         super(JSConfigTests, self).setUp(copy_user_to_private=False)
 
         self.jsconfig_ns = '/eduid/webapp/jsapps/'
-        self.jsconfig_parser = EtcdConfigParser(namespace=self.jsconfig_ns,
-                                                host=self.etcd_instance.host,
-                                                port=self.etcd_instance.port)
+        self.jsconfig_parser = EtcdConfigParser(
+            namespace=self.jsconfig_ns, host=self.etcd_instance.host, port=self.etcd_instance.port
+        )
 
         jsconfig_config = {
             'eduid': {
-                'webapp': {
-                    'jsapps': {
-                        'password_entropy': 12,
-                        'password_length': 10,
-                        'dashboard_url': 'dummy-url'
-                    }
-                }
+                'webapp': {'jsapps': {'password_entropy': 12, 'password_length': 10, 'dashboard_url': 'dummy-url'}}
             }
         }
         self.jsconfig_parser.write_configuration(jsconfig_config)
@@ -80,23 +73,24 @@ class JSConfigTests(EduidAPITestCase):
         return app
 
     def update_config(self, app_config):
-        app_config.update({
-            'server_name': 'example.com',
-            'tou_url': 'dummy-url',
-            'testing': True,
-            'dashboard_bundle_path': 'dummy-dashboard-bundle',
-            'dashboard_bundle_version': 'dummy-dashboard-version',
-            'signup_bundle_path': 'dummy-signup-bundle',
-            'signup_bundle_version': 'dummy-signup-version',
-            'login_bundle_path': 'dummy-login-bundle',
-            'login_bundle_version': 'dummy-login-version',
-        })
+        app_config.update(
+            {
+                'server_name': 'example.com',
+                'tou_url': 'dummy-url',
+                'testing': True,
+                'dashboard_bundle_path': 'dummy-dashboard-bundle',
+                'dashboard_bundle_version': 'dummy-dashboard-version',
+                'signup_bundle_path': 'dummy-signup-bundle',
+                'signup_bundle_version': 'dummy-signup-version',
+                'login_bundle_path': 'dummy-login-bundle',
+                'login_bundle_version': 'dummy-login-version',
+            }
+        )
         return JSConfigConfig(**app_config)
 
     def test_get_dashboard_config(self):
         eppn = self.test_user_data['eduPersonPrincipalName']
-        with self.session_cookie(self.browser, eppn, server_name='example.com',
-                                 subdomain='dashboard') as client:
+        with self.session_cookie(self.browser, eppn, server_name='example.com', subdomain='dashboard') as client:
             response = client.get('http://dashboard.example.com/config')
 
             self.assertEqual(response.status_code, 200)
@@ -109,24 +103,17 @@ class JSConfigTests(EduidAPITestCase):
 
     @patch('eduid_webapp.jsconfig.views.requests.get')
     def test_get_signup_config(self, mock_request_get):
-
         class MockResponse:
             status_code = 200
             headers = {'mock-header': 'dummy-value'}
 
             def json(self):
-                return {
-                    'payload': {
-                        'test-version-1': '1st Dummy TOU',
-                        'test-version-2': '2st Dummy TOU',
-                    }
-                }
+                return {'payload': {'test-version-1': '1st Dummy TOU', 'test-version-2': '2st Dummy TOU',}}
 
         mock_request_get.return_value = MockResponse()
 
         eppn = self.test_user_data['eduPersonPrincipalName']
-        with self.session_cookie(self.browser, eppn, server_name='example.com',
-                                 subdomain='signup') as client:
+        with self.session_cookie(self.browser, eppn, server_name='example.com', subdomain='signup') as client:
             response = client.get('http://signup.example.com/signup/config')
 
             self.assertEqual(response.status_code, 200)
@@ -141,8 +128,7 @@ class JSConfigTests(EduidAPITestCase):
     def test_get_login_config(self):
 
         eppn = self.test_user_data['eduPersonPrincipalName']
-        with self.session_cookie(self.browser, eppn, server_name='example.com',
-                                 subdomain='login') as client:
+        with self.session_cookie(self.browser, eppn, server_name='example.com', subdomain='login') as client:
             response = client.get('http://login.example.com/login/config')
 
             self.assertEqual(response.status_code, 200)
@@ -155,8 +141,7 @@ class JSConfigTests(EduidAPITestCase):
 
     def test_get_dashboard_bundle(self):
         eppn = self.test_user_data['eduPersonPrincipalName']
-        with self.session_cookie(self.browser, eppn, server_name='example.com',
-                                 subdomain='dashboard') as client:
+        with self.session_cookie(self.browser, eppn, server_name='example.com', subdomain='dashboard') as client:
             response = client.get('http://dashboard.example.com/get-bundle')
 
             self.assertEqual(response.status_code, 200)
@@ -170,6 +155,7 @@ class JSConfigTests(EduidAPITestCase):
         # production manner of distinguishing it (throught its subdomain) does
         # not work with the test client
         from eduid_webapp.jsconfig import views
+
         views.jsconfig_views.route('/get-signup-bundle', methods=['GET'])(views.get_signup_bundle)
         self.app.register_blueprint(views.jsconfig_views)
         eppn = self.test_user_data['eduPersonPrincipalName']
@@ -187,6 +173,7 @@ class JSConfigTests(EduidAPITestCase):
         # production manner of distinguishing it (throught its subdomain) does
         # not work with the test client
         from eduid_webapp.jsconfig import views
+
         views.jsconfig_views.route('/get-login-bundle', methods=['GET'])(views.get_login_bundle)
         self.app.register_blueprint(views.jsconfig_views)
         eppn = self.test_user_data['eduPersonPrincipalName']

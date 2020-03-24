@@ -42,12 +42,12 @@ from eduid_userdb.personal_data import PersonalDataUserDB
 
 
 class PersonalDataApp(AuthnBaseApp):
-
     def __init__(self, name: str, config: dict, **kwargs):
 
         super(PersonalDataApp, self).__init__(name, FlaskConfig, config, **kwargs)
 
         from eduid_webapp.personal_data.views import pd_views
+
         self.register_blueprint(pd_views)
 
         self = am.init_relay(self, 'eduid_personal_data')

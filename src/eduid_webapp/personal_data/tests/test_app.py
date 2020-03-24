@@ -32,15 +32,16 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import json
+
 from mock import patch
 
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.config.base import FlaskConfig
+
 from eduid_webapp.personal_data.app import pd_init_app
 
 
 class PersonalDataTests(EduidAPITestCase):
-
     def setUp(self):
         super(PersonalDataTests, self).setUp(copy_user_to_private=True)
 
@@ -52,15 +53,14 @@ class PersonalDataTests(EduidAPITestCase):
         return pd_init_app('testing', config)
 
     def update_config(self, app_config):
-        app_config.update({
-            'available_languages': {'en': 'English', 'sv': 'Svenska'},
-            'msg_broker_url': 'amqp://dummy',
-            'am_broker_url': 'amqp://dummy',
-            'celery_config': {
-                'result_backend': 'amqp',
-                'task_serializer': 'json'
-            },
-        })
+        app_config.update(
+            {
+                'available_languages': {'en': 'English', 'sv': 'Svenska'},
+                'msg_broker_url': 'amqp://dummy',
+                'am_broker_url': 'amqp://dummy',
+                'celery_config': {'result_backend': 'amqp', 'task_serializer': 'json'},
+            }
+        )
         return FlaskConfig(**app_config)
 
     def test_get_user(self):
@@ -87,8 +87,7 @@ class PersonalDataTests(EduidAPITestCase):
             response2 = client.get('/all-user-data')
 
             user_data = json.loads(response2.data)
-            self.assertEqual(user_data['type'],
-                             'GET_PERSONAL_DATA_ALL_USER_DATA_SUCCESS')
+            self.assertEqual(user_data['type'], 'GET_PERSONAL_DATA_ALL_USER_DATA_SUCCESS')
             self.assertEqual(user_data['payload']['given_name'], 'John')
             self.assertEqual(user_data['payload']['surname'], 'Smith')
             self.assertEqual(user_data['payload']['display_name'], 'John Smith')
@@ -118,10 +117,9 @@ class PersonalDataTests(EduidAPITestCase):
                         'surname': 'Johnson',
                         'display_name': 'Peter Johnson',
                         'language': 'en',
-                        'csrf_token': sess.get_csrf_token()
+                        'csrf_token': sess.get_csrf_token(),
                     }
-                response = client.post('/user', data=json.dumps(data),
-                                       content_type=self.content_type_json)
+                response = client.post('/user', data=json.dumps(data), content_type=self.content_type_json)
                 resp_data = json.loads(response.data)
                 self.assertEqual(resp_data['type'], 'POST_PERSONAL_DATA_USER_SUCCESS')
                 self.assertEqual(resp_data['payload']['surname'], 'Johnson')
@@ -139,10 +137,9 @@ class PersonalDataTests(EduidAPITestCase):
                     'surname': 'Johnson',
                     'display_name': 'Peter Johnson',
                     'language': 'en',
-                    'csrf_token': 'bad_csrf'
+                    'csrf_token': 'bad_csrf',
                 }
-                response = client.post('/user', data=json.dumps(data),
-                                       content_type=self.content_type_json)
+                response = client.post('/user', data=json.dumps(data), content_type=self.content_type_json)
                 resp_data = json.loads(response.data)
                 self.assertEqual(resp_data['type'], 'POST_PERSONAL_DATA_USER_FAIL')
                 self.assertEqual(resp_data['payload']['error']['csrf_token'], ['CSRF failed to validate'])

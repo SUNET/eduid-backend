@@ -32,6 +32,7 @@
 #
 
 from marshmallow import ValidationError
+
 from eduid_webapp.personal_data.app import current_pdata_app as current_app
 
 

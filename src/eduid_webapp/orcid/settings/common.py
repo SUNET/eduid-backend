@@ -35,6 +35,7 @@ from __future__ import absolute_import
 
 from dataclasses import dataclass, field
 from typing import Dict
+
 from eduid_common.config.base import FlaskConfig
 
 
@@ -43,13 +44,11 @@ class OrcidConfig(FlaskConfig):
     """
     Configuration for the orcid app
     """
+
     # OIDC
-    client_registration_info: Dict[str, str] = field(default_factory = lambda: {
-        'client_id': '',
-        'client_secret': ''
-    })
-    provider_configuration_info: Dict[str, str] = field(default_factory = lambda: {
-        'issuer': '',
-    })
+    client_registration_info: Dict[str, str] = field(default_factory=lambda: {'client_id': '', 'client_secret': ''})
+    provider_configuration_info: Dict[str, str] = field(
+        default_factory=lambda: {'issuer': '',}
+    )
     userinfo_endpoint_method: str = 'GET'
     orcid_verify_redirect_url: str = '/profile/accountlinking'

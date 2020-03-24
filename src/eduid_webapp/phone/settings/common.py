@@ -34,6 +34,7 @@
 from __future__ import absolute_import
 
 from dataclasses import dataclass
+
 from eduid_common.config.base import FlaskConfig
 
 
@@ -42,6 +43,7 @@ class PhoneConfig(FlaskConfig):
     """
     Configuration for the phone app
     """
+
     # timeout for phone verification token, in seconds
     phone_verification_timeout: int = 7200
     throttle_resend_seconds: int = 300

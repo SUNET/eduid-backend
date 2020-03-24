@@ -2,21 +2,26 @@
 
 from __future__ import absolute_import, unicode_literals
 
-from flask import Blueprint, current_app, url_for
-from flask import request, redirect, abort, make_response
+from flask import Blueprint, abort, current_app, make_response, redirect, request, url_for
 
-from eduid_common.session import session
-from eduid_common.api.decorators import require_user, MarshalWith
+from eduid_common.api.decorators import MarshalWith, require_user
 from eduid_common.api.schemas.csrf import CSRFResponse
-from eduid_common.api.utils import urlappend, get_unique_hash
+from eduid_common.api.utils import get_unique_hash, urlappend
 from eduid_common.authn.acs_registry import get_action, schedule_action
-from eduid_common.authn.utils import get_location
 from eduid_common.authn.eduid_saml2 import BadSAMLResponse
+from eduid_common.authn.utils import get_location
+from eduid_common.session import session
+
 # TODO: Import FidoCredential in credentials.__init__
 from eduid_userdb.credentials.fido import FidoCredential
 
-from eduid_webapp.eidas.helpers import create_authn_request, parse_authn_response, create_metadata, staging_nin_remap
-from eduid_webapp.eidas.helpers import redirect_with_msg
+from eduid_webapp.eidas.helpers import (
+    create_authn_request,
+    create_metadata,
+    parse_authn_response,
+    redirect_with_msg,
+    staging_nin_remap,
+)
 
 __author__ = 'lundberg'
 

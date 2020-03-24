@@ -37,19 +37,19 @@ from copy import deepcopy
 from datetime import datetime
 
 from bson import ObjectId
-from eduid_common.api.testing import EduidAPITestCase
-from eduid_common.session import session
 from mock import MagicMock
 
+from eduid_common.api.testing import EduidAPITestCase
+from eduid_common.session import session
 from eduid_userdb.testing import MOCKED_USER_STANDARD
 from eduid_userdb.userdb import User
+
 from eduid_webapp.actions.action_abc import ActionPlugin
 from eduid_webapp.actions.app import actions_init_app
 from eduid_webapp.actions.settings.common import ActionsConfig
 
 
 class MockIdPContext:
-
     class Config:
         def __init__(self, **kwargs):
             for key, val in kwargs.items():
@@ -72,7 +72,6 @@ class MockIdPContext:
 
 
 class TestingActionPlugin(ActionPlugin):
-
     def get_number_of_steps(self):
         return 1
 
@@ -101,8 +100,7 @@ DUMMY_ACTION = {
     'eppn': 'hubba-bubba',
     'action': 'dummy',
     'preference': 100,
-    'params': {
-    }
+    'params': {},
 }
 
 TEST_CONFIG = {
@@ -117,12 +115,11 @@ TEST_CONFIG = {
     'eduid_static_url': 'http://example.com',
     'bundles_path': '/bundles/',
     'debug': False,
-    'devel_mode': True
+    'devel_mode': True,
 }
 
 
 class ActionsTestCase(EduidAPITestCase):
-
     def setUp(self, users=None, copy_user_to_private=False, am_settings=None):
         super(ActionsTestCase, self).setUp(users=None, copy_user_to_private=False, am_settings=None)
         user_data = deepcopy(MOCKED_USER_STANDARD)
@@ -161,9 +158,21 @@ class ActionsTestCase(EduidAPITestCase):
             client.set_cookie(server_name, key=self.app.config.session_cookie_name, value=sess._session.token)
         yield client
 
-    def prepare_session(self, client, action_dict=None, rm_action=False, validation_error=False, action_error=False,
-                        total_steps=1, current_step=1, add_action=True, idp_session='dummy-session', set_plugin=True,
-                        plugin_name='dummy', plugin_class=TestingActionPlugin):
+    def prepare_session(
+        self,
+        client,
+        action_dict=None,
+        rm_action=False,
+        validation_error=False,
+        action_error=False,
+        total_steps=1,
+        current_step=1,
+        add_action=True,
+        idp_session='dummy-session',
+        set_plugin=True,
+        plugin_name='dummy',
+        plugin_class=TestingActionPlugin,
+    ):
         if action_dict is None:
             action_dict = deepcopy(DUMMY_ACTION)
         if action_error:
@@ -198,5 +207,4 @@ class ActionsTestCase(EduidAPITestCase):
         session.persist()
 
     def prepare(self, client, plugin_class, plugin_name, **kwargs):
-        self.prepare_session(client, plugin_name=plugin_name,
-                             plugin_class=plugin_class, **kwargs)
+        self.prepare_session(client, plugin_name=plugin_name, plugin_class=plugin_class, **kwargs)
