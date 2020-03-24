@@ -1,10 +1,11 @@
 from __future__ import absolute_import
 
-from eduid_userdb import UserDB
-from eduid_common.rpc.worker import get_worker_config
-from eduid_common.rpc.celery import init_celery
 from eduid_common.config.base import CommonConfig
 from eduid_common.config.workers import AmConfig
+from eduid_common.rpc.celery import init_celery
+from eduid_common.rpc.worker import get_worker_config
+from eduid_userdb import UserDB
+
 import eduid_am.common as common
 
 worker_config: AmConfig = AmConfig()
@@ -30,7 +31,7 @@ def setup_indexes(db_uri, db_name, collection):
         'eppn-index-v1': {'key': [('eduPersonPrincipalName', 1)], 'unique': True},
         'norEduPersonNIN-index-v2': {'key': [('norEduPersonNIN', 1)], 'unique': True, 'sparse': True},
         'mobile-index-v1': {'key': [('mobile.mobile', 1), ('mobile.verified', 1)]},
-        'mailAliases-index-v1': {'key': [('mailAliases.email', 1), ('mailAliases.verified', 1)]}
+        'mailAliases-index-v1': {'key': [('mailAliases.email', 1), ('mailAliases.verified', 1)]},
     }
     userdb = UserDB(db_uri, db_name=db_name, collection=collection)
     userdb.setup_indexes(indexes)

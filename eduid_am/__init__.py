@@ -7,6 +7,7 @@ See the file LICENSE.txt for full license statement.
 from __future__ import absolute_import
 
 from eduid_common.rpc.celery import init_celery
+
 import eduid_am.common as common
 
 
@@ -30,6 +31,7 @@ def get_attribute_manager(celery_app):
     # have instantiated AttributeManagers without the right config if the import is done prior
     # to the Celery app configuration.
     import eduid_am.tasks
+
     am = celery_app.tasks['eduid_am.tasks.update_attributes']
     assert isinstance(am, eduid_am.tasks.AttributeManager)  # a type hint for IDEs and analyzers
     return am

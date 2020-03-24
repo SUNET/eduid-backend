@@ -3,16 +3,15 @@ from __future__ import absolute_import
 import warnings
 
 import bson
-
 from celery import Task
 from celery.utils.log import get_task_logger
 
-from eduid_am.common import celery
-from eduid_am.fetcher_registry import AFRegistry
 from eduid_userdb import UserDB
-from eduid_userdb.exceptions import UserDoesNotExist, LockedIdentityViolation, ConnectionError
-from eduid_am.consistency_checks import unverify_duplicates, check_locked_identity
+from eduid_userdb.exceptions import ConnectionError, LockedIdentityViolation, UserDoesNotExist
 
+from eduid_am.common import celery
+from eduid_am.consistency_checks import check_locked_identity, unverify_duplicates
+from eduid_am.fetcher_registry import AFRegistry
 
 if celery is None:
     raise RuntimeError('Must call eduid_am.init_app before importing tasks')
@@ -28,6 +27,7 @@ class AttributeManager(Task):
 
     def __init__(self):
         from eduid_am.worker import worker_config
+
         self.worker_config = worker_config
         self.default_db_uri = worker_config.mongo_uri
         self.userdb = None
@@ -64,10 +64,7 @@ def update_attributes(self: AttributeManager, app_name: str, user_id: str) -> No
     :param app_name: calling application name, like 'eduid_signup'
     :param user_id: id for the user that has been updated by the calling application
     """
-    warnings.warn(
-        "This function will be removed. Use update_attributes_keep_result instead.",
-        DeprecationWarning
-    )
+    warnings.warn("This function will be removed. Use update_attributes_keep_result instead.", DeprecationWarning)
     _update_attributes(self, app_name, user_id)
 
 

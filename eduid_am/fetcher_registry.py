@@ -14,6 +14,7 @@ class AFRegistry(dict):
     that have (non pep8) names that coincide with those the different eduid_ apps,
     and reside in eduid_am.ams
     '''
+
     def __init__(self, config):
         self.conf = config
 

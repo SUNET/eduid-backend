@@ -3,8 +3,8 @@ from __future__ import absolute_import
 
 from celery.utils.log import get_task_logger
 
-from eduid_userdb.locked_identity import LockedIdentityNin, LockedIdentityList
-from eduid_userdb.exceptions import DocumentDoesNotExist, UserDBValueError, LockedIdentityViolation
+from eduid_userdb.exceptions import DocumentDoesNotExist, LockedIdentityViolation, UserDBValueError
+from eduid_userdb.locked_identity import LockedIdentityList, LockedIdentityNin
 
 __author__ = 'lundberg'
 
@@ -35,11 +35,7 @@ def unverify_duplicates(userdb, user_id, attributes):
         mail_count = unverify_mail_aliases(userdb, user_id, attributes['$set'].get('mailAliases'))
         phone_count = unverify_phones(userdb, user_id, attributes['$set'].get('phone'))
         nin_count = unverify_nins(userdb, user_id, attributes['$set'].get('nins'))
-    return {
-        'mail_count': mail_count,
-        'phone_count': phone_count,
-        'nin_count': nin_count
-    }
+    return {'mail_count': mail_count, 'phone_count': phone_count, 'nin_count': nin_count}
 
 
 def unverify_mail_aliases(userdb, user_id, mail_aliases):
@@ -207,8 +203,7 @@ def check_locked_identity(userdb, user_id, attributes, app_name):
     locked_nin = locked_identities.find('nin')
     # Create a new locked nin if it does not already exist
     if not locked_nin:
-        locked_nin = LockedIdentityNin(nin['number'], nin.get('created_by', app_name),
-                                       nin.get('created_ts', True))
+        locked_nin = LockedIdentityNin(nin['number'], nin.get('created_by', app_name), nin.get('created_ts', True))
         locked_identities.add(locked_nin)
 
     # Check nin to be set against locked nin
