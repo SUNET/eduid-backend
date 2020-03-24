@@ -7,5 +7,5 @@ class EduIDGroupDBError(Exception):
     pass
 
 
-class UnsupportedMemberType(EduIDGroupDBError):
+class VersionMismatch(EduIDGroupDBError):
     pass

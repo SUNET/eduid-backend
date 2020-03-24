@@ -5,6 +5,8 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Optional, List, Union, Mapping, Type
 
+from bson import ObjectId
+
 from eduid_groupdb.helpers import neo4j_ts_to_dt
 
 __author__ = 'lundberg'
@@ -19,7 +21,7 @@ class User:
 
     def __eq__(self, other: object):
         if not isinstance(other, User):
-            raise NotImplemented
+            raise NotImplemented('other instance must be of type User')
         if self.identifier == other.identifier:
             return True
         return False
@@ -35,6 +37,7 @@ class User:
 class Group:
     scope: str
     identifier: str
+    version: Optional[ObjectId] = None
     display_name: Optional[str] = None
     description: Optional[str] = None
     created_ts: Optional[datetime] = None
@@ -44,7 +47,7 @@ class Group:
 
     def __eq__(self, other: object):
         if not isinstance(other, Group):
-            raise NotImplemented
+            raise NotImplemented('other instance must be of type Group')
         if (self.scope == other.scope) and (self.identifier == other.identifier):
             return True
         return False
@@ -72,6 +75,9 @@ class Group:
     @classmethod
     def from_mapping(cls, data: Mapping) -> Group:
         dt = neo4j_ts_to_dt(data)
-        return cls(scope=data['scope'], identifier=data['identifier'], display_name=data['display_name'],
-                   description=data['description'], created_ts=dt['created_ts'], modified_ts=dt['modified_ts'],
-                   members=data.get('members', []), owners=data.get('owners', []))
+        version = data.get('version')
+        if version is not None:
+            version = ObjectId(version)
+        return cls(scope=data['scope'], identifier=data['identifier'], version=version,
+                   display_name=data['display_name'], description=data['description'], created_ts=dt['created_ts'],
+                   modified_ts=dt['modified_ts'], members=data.get('members', []), owners=data.get('owners', []))
