@@ -6,9 +6,10 @@ __author__ = 'lundberg'
 #  logging module at a later stage.
 #
 
-from eduid_userdb.db import MongoDB
-from inspect import isclass
 from datetime import datetime
+from inspect import isclass
+
+from eduid_userdb.db import MongoDB
 
 
 class TransactionAudit(object):
@@ -39,11 +40,14 @@ class TransactionAudit(object):
                     self.collection = db.get_collection(self.collection_name)
                 if not isclass(ret):  # we can't save class objects in mongodb
                     date = datetime.utcnow()
-                    doc = {'function': f.__name__,
-                           'data': self._filter(f.__name__, ret, *args, **kwargs),
-                           'created_at': date}
+                    doc = {
+                        'function': f.__name__,
+                        'data': self._filter(f.__name__, ret, *args, **kwargs),
+                        'created_at': date,
+                    }
                     self.collection.insert_one(doc)
             return ret
+
         return audit
 
     @classmethod

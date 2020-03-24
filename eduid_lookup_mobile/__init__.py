@@ -7,6 +7,7 @@ See the file LICENSE.txt for full license statement.
 from __future__ import absolute_import
 
 from eduid_common.rpc.celery import init_celery as _init_celery
+
 import eduid_lookup_mobile.common as common
 
 
