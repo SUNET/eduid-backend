@@ -139,7 +139,7 @@ class DashboardLegacyUser(object):
         test_doc = {'_id': self.get_id()}
         if check_sync and modified:
             test_doc['modified_ts'] = modified
-        result = request.db.profiles.update(test_doc, update_doc, upsert=(not check_sync))
+        result = request.db.profiles.update_one(test_doc, update_doc, upsert=(not check_sync))
         if result['n'] == 0:
             if check_sync:
                 raise UserOutOfSync('The user data has been modified ' 'since you started editing it.')
@@ -218,7 +218,7 @@ class DashboardLegacyUser(object):
                             self, profiles, self.get_modified_ts()
                         )
                     )
-                    profiles.update({'_id': userid,}, self._mongo_doc)
+                    profiles.replace_one({'_id': userid,}, self._mongo_doc)
 
     def set_modified_ts(self, ts):
         '''

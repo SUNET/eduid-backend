@@ -57,9 +57,9 @@ class TestResetPasswordStateDB(MongoTestCase):
         self.resetpw_db.save(email_state)
 
         state = self.resetpw_db.get_state_by_eppn("hubba-bubba")
-        self.assertEquals(state.email_address, "johnsmith@example.com")
-        self.assertEquals(state.email_code.code, "dummy-code")
-        self.assertEquals(state.method, "email")
+        self.assertEqual(state.email_address, "johnsmith@example.com")
+        self.assertEqual(state.email_code.code, "dummy-code")
+        self.assertEqual(state.method, "email")
 
         self.assertTrue(state.email_code.is_expired(0))
         self.assertFalse(state.email_code.is_expired(1))
@@ -72,10 +72,10 @@ class TestResetPasswordStateDB(MongoTestCase):
         self.resetpw_db.save(email_state)
 
         state = self.resetpw_db.get_state_by_email_code("dummy-code")
-        self.assertEquals(state.email_address, "johnsmith@example.com")
-        self.assertEquals(state.method, "email")
-        self.assertEquals(state.eppn, "hubba-bubba")
-        self.assertEquals(state.generated_password, False)
+        self.assertEqual(state.email_address, "johnsmith@example.com")
+        self.assertEqual(state.method, "email")
+        self.assertEqual(state.eppn, "hubba-bubba")
+        self.assertEqual(state.generated_password, False)
 
     def test_email_state_generated_pw(self):
         email_state = ResetPasswordEmailState(
@@ -86,8 +86,8 @@ class TestResetPasswordStateDB(MongoTestCase):
         self.resetpw_db.save(email_state)
 
         state = self.resetpw_db.get_state_by_eppn("hubba-bubba")
-        self.assertEquals(state.email_address, "johnsmith@example.com")
-        self.assertEquals(state.generated_password, True)
+        self.assertEqual(state.email_address, "johnsmith@example.com")
+        self.assertEqual(state.generated_password, True)
 
     def test_email_state_extra_security(self):
         email_state = ResetPasswordEmailState(
@@ -98,8 +98,8 @@ class TestResetPasswordStateDB(MongoTestCase):
         self.resetpw_db.save(email_state)
 
         state = self.resetpw_db.get_state_by_eppn("hubba-bubba")
-        self.assertEquals(state.email_address, "johnsmith@example.com")
-        self.assertEquals(state.extra_security['phone_numbers'][0]['number'], '+99999999999')
+        self.assertEqual(state.email_address, "johnsmith@example.com")
+        self.assertEqual(state.extra_security['phone_numbers'][0]['number'], '+99999999999')
 
     def test_email_and_phone_state(self):
         email_state = ResetPasswordEmailAndPhoneState(
@@ -113,8 +113,8 @@ class TestResetPasswordStateDB(MongoTestCase):
         self.resetpw_db.save(email_state)
 
         state = self.resetpw_db.get_state_by_eppn("hubba-bubba")
-        self.assertEquals(state.email_address, "johnsmith@example.com")
-        self.assertEquals(state.email_code.code, "dummy-code")
-        self.assertEquals(state.phone_number, "+99999999999")
-        self.assertEquals(state.phone_code.code, "dummy-phone-code")
-        self.assertEquals(state.method, "email_and_phone")
+        self.assertEqual(state.email_address, "johnsmith@example.com")
+        self.assertEqual(state.email_code.code, "dummy-code")
+        self.assertEqual(state.phone_number, "+99999999999")
+        self.assertEqual(state.phone_code.code, "dummy-phone-code")
+        self.assertEqual(state.method, "email_and_phone")
