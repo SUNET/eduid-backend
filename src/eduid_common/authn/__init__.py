@@ -48,8 +48,8 @@ def get_vccs_client(vccs_url):
         global _test_client
         if not _test_client:
             # Avoid circular imports
-            from eduid_common.authn.testing import TestVCCSClient
+            from eduid_common.authn.testing import MockVCCSClient
 
-            _test_client = TestVCCSClient()
+            _test_client = MockVCCSClient()
         return _test_client
     return vccs_client.VCCSClient(base_url=vccs_url,)

@@ -83,7 +83,7 @@ class Sanitizer(object):
             )
 
         except UnicodeDecodeError:
-            logger.warn(
+            logger.warning(
                 'A malicious user tried to crash the application ' 'by sending non-unicode input in a GET request'
             )
             raise SanitationProblem('Non-unicode input')
@@ -140,7 +140,7 @@ class Sanitizer(object):
             cleaned_text = self._safe_clean(decoded_text, logger, strip_characters)
 
             if decoded_text != cleaned_text:
-                logger.warn('Some potential harmful characters were ' 'removed from untrusted user input.')
+                logger.warning('Some potential harmful characters were removed from untrusted user input.')
 
             if decoded_text != untrusted_text:
                 # Note that at least '&' and '=' needs to be unencoded when using PySAML2
@@ -154,7 +154,7 @@ class Sanitizer(object):
         cleaned_text = self._safe_clean(untrusted_text, logger, strip_characters)
 
         if untrusted_text != cleaned_text:
-            logger.warn('Some potential harmful characters were ' 'removed from untrusted user input.')
+            logger.warning('Some potential harmful characters were removed from untrusted user input.')
 
         return cleaned_text
 
@@ -173,7 +173,7 @@ class Sanitizer(object):
         try:
             return clean(untrusted_text, strip=strip_characters)
         except KeyError:
-            logger.warn(
+            logger.warning(
                 'A malicious user tried to crash the application by '
                 'sending illegal UTF-8 in an URI or other untrusted '
                 'user input.'

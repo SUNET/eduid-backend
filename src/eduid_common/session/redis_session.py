@@ -80,7 +80,7 @@ in an NCName.
 from __future__ import unicode_literals
 
 import base64
-import collections
+import collections.abc
 import hashlib
 import hmac
 import json
@@ -130,7 +130,7 @@ class NoSessionDataFoundException(Exception):
     pass
 
 
-class RedisEncryptedSession(collections.MutableMapping):
+class RedisEncryptedSession(collections.abc.MutableMapping):
     """
     Session objects that keep their data in a redis db.
     """
