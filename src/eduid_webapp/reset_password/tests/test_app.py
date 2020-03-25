@@ -103,6 +103,27 @@ class ResetPasswordTests(EduidAPITestCase):
             terms = get_zxcvbn_terms(self.test_user_eppn)
             self.assertEqual(terms, ['John', 'Smith', 'John', 'Smith', 'johnsmith', 'johnsmith2'])
 
+    def test_get_zxcvbn_terms_no_given_name(self):
+        with self.app.test_request_context():
+            self.test_user.given_name = ''
+            self.app.central_userdb.save(self.test_user, check_sync=False)
+            terms = get_zxcvbn_terms(self.test_user_eppn)
+            self.assertEqual(terms, ['John', 'Smith', 'Smith', 'johnsmith', 'johnsmith2'])
+
+    def test_get_zxcvbn_terms_no_surname(self):
+        with self.app.test_request_context():
+            self.test_user.surname = ''
+            self.app.central_userdb.save(self.test_user, check_sync=False)
+            terms = get_zxcvbn_terms(self.test_user_eppn)
+            self.assertEqual(terms, ['John', 'Smith', 'John', 'johnsmith', 'johnsmith2'])
+
+    def test_get_zxcvbn_terms_no_display_name(self):
+        with self.app.test_request_context():
+            self.test_user.display_name = ''
+            self.app.central_userdb.save(self.test_user, check_sync=False)
+            terms = get_zxcvbn_terms(self.test_user_eppn)
+            self.assertEqual(terms, ['John', 'Smith', 'johnsmith', 'johnsmith2'])
+
     def test_get_zxcvbn_terms_nonexistent(self):
         with self.app.test_request_context():
             with self.assertRaises(UserDoesNotExist):
