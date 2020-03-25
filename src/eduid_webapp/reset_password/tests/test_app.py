@@ -44,6 +44,7 @@ from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.authn.testing import TestVCCSClient
 from eduid_common.authn.tests.test_fido_tokens import SAMPLE_WEBAUTHN_CREDENTIAL, SAMPLE_WEBAUTHN_REQUEST
 from eduid_userdb.credentials import Webauthn
+from eduid_userdb.exceptions import UserDoesNotExist
 
 from eduid_webapp.reset_password.app import init_reset_password_app
 from eduid_webapp.reset_password.helpers import (
@@ -51,6 +52,7 @@ from eduid_webapp.reset_password.helpers import (
     get_extra_security_alternatives,
     hash_password,
     send_verify_phone_code,
+    get_zxcvbn_terms,
 )
 from eduid_webapp.reset_password.settings.common import ResetPasswordConfig
 
@@ -95,6 +97,16 @@ class ResetPasswordTests(EduidAPITestCase):
         super(ResetPasswordTests, self).tearDown()
         with self.app.app_context():
             self.app.central_userdb._drop_whole_collection()
+
+    def test_get_zxcvbn_terms(self):
+        with self.app.test_request_context():
+            terms = get_zxcvbn_terms(self.test_user_eppn)
+            self.assertEqual(terms, ['John', 'Smith', 'John', 'Smith', 'johnsmith', 'johnsmith2'])
+
+    def test_get_zxcvbn_terms_nonexistent(self):
+        with self.app.test_request_context():
+            with self.assertRaises(UserDoesNotExist):
+                get_zxcvbn_terms('purra-porra')
 
     def test_app_starts(self):
         self.assertEqual(self.app.config.app_name, "reset_password")
