@@ -10,8 +10,8 @@ install_requires = [x for x in open(os.path.join(here, 'requirements.txt')).read
 testing_extras = [x for x in open(os.path.join(here, 'test_requirements.txt')).read().split('\n')
                   if len(x) > 0 and not x.startswith('-')]
 
-# Remove bson as a requirement if this package should be installed in an environment containing pymongo
-pymongo_compat_requires = [req for req in install_requires if 'bson' not in req]
+# Add bson as a requirement if this package should be installed in an environment without pymongo
+bson_requires = ['bson>=0.5.9']
 
 setup(
     name='eduid-groupdb',
@@ -23,7 +23,7 @@ setup(
     install_requires=install_requires,
     tests_require=testing_extras,
     extras_require={
-        'pymongo_compat': pymongo_compat_requires,
+        'bson': bson_requires,
     },
     url='https://github.com/SUNET/eduid-groupdb',
     license='BSD-2-Clause',
