@@ -35,7 +35,6 @@ from saml2 import BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 from saml2.ident import decode
 from saml2.metadata import entity_descriptor
-from saml2.response import LogoutResponse
 from werkzeug.exceptions import Forbidden
 
 from eduid_common.api.utils import verify_relay_state
@@ -171,7 +170,7 @@ def logout():
 
     current_app.logger.debug('Logout process started for user {}'.format(user))
 
-    return saml_logout(current_app, session, user, location)
+    return saml_logout(current_app, user, location)
 
 
 @authn_views.route('/saml2-ls', methods=['POST'])

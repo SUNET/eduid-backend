@@ -2,6 +2,7 @@
 from __future__ import absolute_import
 
 import json
+import os
 
 from mock import patch
 
@@ -14,6 +15,8 @@ from u2flib_server.model import DeviceRegistration, RegisteredKey
 
 __author__ = 'lundberg'
 
+HERE = os.path.abspath(os.path.dirname(__file__))
+
 
 class SecurityU2FTests(EduidAPITestCase):
     def load_app(self, config):
@@ -24,6 +27,7 @@ class SecurityU2FTests(EduidAPITestCase):
         return security_init_app('testing', config)
 
     def update_config(self, app_config):
+        saml_config = os.path.join(HERE, 'saml2_settings.py')
         app_config.update(
             {
                 'available_languages': {'en': 'English', 'sv': 'Svenska'},
@@ -34,6 +38,9 @@ class SecurityU2FTests(EduidAPITestCase):
                 'u2f_max_allowed_tokens': 2,
                 'u2f_facets': 'https://dashboard.eduid.se',
                 'u2f_max_description_length': 50,
+                'saml2_login_redirect_url': '/',
+                'saml2_logout_redirect_url': '/logged-out',
+                'saml2_settings_module': saml_config,
             }
         )
         return SecurityConfig(**app_config)

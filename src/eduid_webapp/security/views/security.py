@@ -253,7 +253,7 @@ def account_terminated(user):
     current_app.logger.debug('Logging out (terminated) user {user}')
     site_url = current_app.config.eduid_site_url
 
-    return saml_logout(current_app, session, user, site_url)
+    return saml_logout(current_app, user, site_url)
 
 
 @security_views.route('/remove-nin', methods=['POST'])
