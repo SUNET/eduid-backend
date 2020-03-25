@@ -160,13 +160,14 @@ def logout():
     """
     eppn = session.get('user_eppn')
 
+    next = request.args.get('next', '')
+    location = next or current_app.config.saml2_logout_redirect_url
+
     if eppn is None:
         current_app.logger.info('Session cookie has expired, no logout action needed')
-        location = current_app.config.saml2_logout_redirect_url
         return redirect(location)
 
     user = current_app.central_userdb.get_user_by_eppn(eppn)
-    location = current_app.config.saml2_logout_redirect_url
 
     current_app.logger.debug('Logout process started for user {}'.format(user))
 
