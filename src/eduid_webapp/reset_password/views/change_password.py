@@ -49,6 +49,7 @@ from eduid_webapp.reset_password.helpers import (
     compile_credential_list,
     error_message,
     generate_suggested_password,
+    get_zxcvbn_terms,
     hash_password,
 )
 from eduid_webapp.reset_password.schemas import (
@@ -57,7 +58,6 @@ from eduid_webapp.reset_password.schemas import (
     SuggestedPassword,
     SuggestedPasswordResponseSchema,
 )
-from eduid_webapp.security.helpers import get_zxcvbn_terms
 from eduid_webapp.security.schemas import CredentialList
 
 change_password_views = Blueprint('change_password', __name__, url_prefix='')
