@@ -34,7 +34,7 @@
 import json
 from datetime import datetime
 
-from flask import Blueprint, abort, request, url_for
+from flask import Blueprint, abort, request, url_for, redirect
 from six.moves.urllib_parse import parse_qs, urlencode, urlparse, urlunparse
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
@@ -250,10 +250,11 @@ def account_terminated(user):
         current_app.logger.error(f'Failed to send account termination mail: {e}')
         current_app.logger.error('Account will be terminated successfully anyway.')
 
-    current_app.logger.debug('Logging out (terminated) user {user}')
+    current_app.logger.debug(f'Logging out (terminated) user {user}')
+    # TODO: Add a account termination completed view to redirect to
     site_url = current_app.config.eduid_site_url
 
-    return saml_logout(current_app, user, site_url)
+    return redirect(f'/logout?next={site_url}')
 
 
 @security_views.route('/remove-nin', methods=['POST'])
