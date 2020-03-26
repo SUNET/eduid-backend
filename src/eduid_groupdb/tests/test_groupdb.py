@@ -45,6 +45,7 @@ class TestGroupDB(Neo4jTestCase):
         self.assertEqual(group.display_name, post_save_group.display_name)
         self.assertEqual(group.description, post_save_group.description)
         self.assertIsNotNone(post_save_group.created_ts)
+        self.assertIsNone(post_save_group.modified_ts)
 
         get_group = self.group_db.get_group(scope='example.com', identifier='test1')
         self.assertEqual(group.scope, get_group.scope)
@@ -53,6 +54,36 @@ class TestGroupDB(Neo4jTestCase):
         self.assertEqual(group.display_name, get_group.display_name)
         self.assertEqual(group.description, get_group.description)
         self.assertIsNotNone(get_group.created_ts)
+
+    def test_update_group(self):
+        group = Group.from_mapping(self.group1)
+        post_save_group = self.group_db.save(group)
+        with self.group_db.db.driver.session() as session:
+            count = session.run('MATCH (n:Group) RETURN count(n) as c').single().value()
+        self.assertEqual(1, count)
+
+        self.assertEqual(group.scope, post_save_group.scope)
+        self.assertEqual(group.identifier, post_save_group.identifier)
+        self.assertNotEqual(group.version, post_save_group.version)
+        self.assertEqual(group.display_name, post_save_group.display_name)
+        self.assertEqual(group.description, post_save_group.description)
+        self.assertIsNotNone(post_save_group.created_ts)
+        self.assertIsNone(post_save_group.modified_ts)
+
+        group.display_name = 'A new display name'
+        group.version = post_save_group.version
+        post_save_group2 = self.group_db.save(group)
+        with self.group_db.db.driver.session() as session:
+            count = session.run('MATCH (n:Group) RETURN count(n) as c').single().value()
+        self.assertEqual(1, count)
+
+        self.assertEqual(group.scope, post_save_group2.scope)
+        self.assertEqual(group.identifier, post_save_group2.identifier)
+        self.assertNotEqual(group.version, post_save_group2.version)
+        self.assertEqual(group.display_name, post_save_group2.display_name)
+        self.assertEqual(group.description, post_save_group2.description)
+        self.assertIsNotNone(post_save_group2.created_ts)
+        self.assertIsNotNone(post_save_group2.modified_ts)
 
     def test_get_non_existing_group(self):
         group = self.group_db.get_group(scope='example.com', identifier='test1')
