@@ -45,17 +45,30 @@ class SCIMResourceType(Enum):
 
 @dataclass
 class Meta:
-    location: str = field(metadata={'required': True})
-    last_modified: datetime = field(metadata={'data_key': 'lastModified', 'required': True})
-    resource_type: SCIMResourceType = field(metadata={'data_key': 'resourceType', 'by_value': True, 'required': True})
-    created: datetime = field(default_factory=datetime.utcnow, metadata={'required': True})
+    location: str = field(default='', metadata={'required': True})
+    last_modified: datetime = field(default='', metadata={'data_key': 'lastModified', 'required': True})
+    resource_type: SCIMResourceType = field(
+        default='', metadata={'data_key': 'resourceType', 'by_value': True, 'required': True}
+    )
+    created: datetime = field(default='', metadata={'required': True})
     version: ObjectId = field(
         default_factory=ObjectId, metadata={'marshmallow_field': ObjectIdField(), 'required': True}
     )
 
 
 @dataclass
-class Base:
-    id: UUID = field(metadata={'required': True})
-    meta: Meta = field(metadata={'required': True})
+class BaseResponse:
+    id: UUID = field(default='', metadata={'required': True})
+    meta: Meta = field(default='', metadata={'required': True})
+    schemas: List[SCIMSchemaValue] = field(default_factory=list, metadata={'required': True})
+
+
+@dataclass
+class BaseCreateRequest:
+    schemas: List[SCIMSchemaValue] = field(default_factory=list, metadata={'required': True})
+
+
+@dataclass
+class BaseUpdateRequest:
+    id: UUID = field(default='', metadata={'required': True})
     schemas: List[SCIMSchemaValue] = field(default_factory=list, metadata={'required': True})

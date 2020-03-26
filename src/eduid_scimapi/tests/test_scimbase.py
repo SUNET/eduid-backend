@@ -6,7 +6,7 @@ from uuid import uuid4
 from bson import ObjectId
 from marshmallow_dataclass import class_schema
 
-from eduid_scimapi.scimbase import Base, Meta, SCIMResourceType, SCIMSchema
+from eduid_scimapi.scimbase import BaseResponse, Meta, SCIMResourceType, SCIMSchema
 
 __author__ = 'lundberg'
 
@@ -19,7 +19,9 @@ class TestScimBase(TestCase):
             last_modified=datetime.utcnow(),
             version=ObjectId(),
         )
-        self.base = Base(id=uuid4(), schemas=[SCIMSchema.CORE_20_USER, SCIMSchema.CORE_20_GROUP], meta=self.meta)
+        self.base = BaseResponse(
+            id=uuid4(), schemas=[SCIMSchema.CORE_20_USER, SCIMSchema.CORE_20_GROUP], meta=self.meta
+        )
 
     def test_meta(self) -> None:
         schema = class_schema(Meta)
@@ -27,8 +29,8 @@ class TestScimBase(TestCase):
         loaded_meta = schema().load(meta_dump)
         self.assertEqual(self.meta, loaded_meta)
 
-    def test_base(self) -> None:
-        schema = class_schema(Base)
+    def test_base_response(self) -> None:
+        schema = class_schema(BaseResponse)
         base_dump = schema().dump(self.base)
         loaded_base = schema().load(base_dump)
         self.assertEqual(self.base, loaded_base)

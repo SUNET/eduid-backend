@@ -1,8 +1,8 @@
 from falcon import Request, Response
 
 from eduid_scimapi.context import Context
-from eduid_scimapi.resources.base import BaseResource
 from eduid_scimapi.exceptions import UnsupportedMediaTypeMalformed
+from eduid_scimapi.resources.base import BaseResource
 
 
 class HandleSCIM(object):
