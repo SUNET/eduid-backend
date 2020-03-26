@@ -2,7 +2,6 @@
 from __future__ import absolute_import
 
 import datetime
-import os
 
 from mock import patch
 
@@ -18,8 +17,6 @@ from eduid_webapp.security.settings.common import SecurityConfig
 
 __author__ = 'lundberg'
 
-HERE = os.path.abspath(os.path.dirname(__file__))
-
 
 class SecurityResetPasswordTests(EduidAPITestCase):
     def setUp(self):
@@ -34,7 +31,6 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         return security_init_app('testing', config)
 
     def update_config(self, app_config):
-        saml_config = os.path.join(HERE, 'saml2_settings.py')
         app_config.update(
             {
                 'available_languages': {'en': 'English', 'sv': 'Svenska'},
@@ -45,9 +41,6 @@ class SecurityResetPasswordTests(EduidAPITestCase):
                 'email_code_timeout': 7200,
                 'phone_code_timeout': 600,
                 'password_entropy': 25,
-                'saml2_login_redirect_url': '/',
-                'saml2_logout_redirect_url': '/logged-out',
-                'saml2_settings_module': saml_config,
             }
         )
         return SecurityConfig(**app_config)

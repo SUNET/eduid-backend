@@ -32,7 +32,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 import json
-import os
 import time
 
 from mock import patch
@@ -41,8 +40,6 @@ from eduid_common.api.testing import EduidAPITestCase
 
 from eduid_webapp.security.app import security_init_app
 from eduid_webapp.security.settings.common import SecurityConfig
-
-HERE = os.path.abspath(os.path.dirname(__file__))
 
 
 class SecurityTests(EduidAPITestCase):
@@ -60,7 +57,6 @@ class SecurityTests(EduidAPITestCase):
         return security_init_app('testing', config)
 
     def update_config(self, app_config):
-        saml_config = os.path.join(HERE, 'saml2_settings.py')
         app_config.update(
             {
                 'available_languages': {'en': 'English', 'sv': 'Svenska'},
@@ -72,9 +68,6 @@ class SecurityTests(EduidAPITestCase):
                 'chpass_timeout': 600,
                 'eduid_site_name': 'eduID',
                 'eduid_site_url': 'https://www.eduid.se/',
-                'saml2_login_redirect_url': '/',
-                'saml2_logout_redirect_url': '/logged-out',
-                'saml2_settings_module': saml_config,
             }
         )
         return SecurityConfig(**app_config)

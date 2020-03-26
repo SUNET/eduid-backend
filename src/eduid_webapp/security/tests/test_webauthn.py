@@ -3,7 +3,6 @@ from __future__ import absolute_import
 
 import base64
 import json
-import os
 
 from fido2 import cbor
 from fido2.client import ClientData
@@ -18,8 +17,6 @@ from eduid_webapp.security.settings.common import SecurityConfig
 from eduid_webapp.security.views.webauthn import get_webauthn_server
 
 __author__ = 'eperez'
-
-HERE = os.path.abspath(os.path.dirname(__file__))
 
 
 # CTAP1 test data
@@ -148,7 +145,6 @@ class SecurityWebauthnTests(EduidAPITestCase):
         return security_init_app('testing', config)
 
     def update_config(self, app_config):
-        saml_config = os.path.join(HERE, 'saml2_settings.py')
         app_config.update(
             {
                 'available_languages': {'en': 'English', 'sv': 'Svenska'},
@@ -157,9 +153,6 @@ class SecurityWebauthnTests(EduidAPITestCase):
                 'celery_config': {'result_backend': 'amqp', 'task_serializer': 'json'},
                 'webauthn_max_allowed_tokens': 10,
                 'fido2_rp_id': 'localhost',
-                'saml2_login_redirect_url': '/',
-                'saml2_logout_redirect_url': '/logged-out',
-                'saml2_settings_module': saml_config,
             }
         )
         return SecurityConfig(**app_config)

@@ -37,7 +37,6 @@ from flask import current_app
 from eduid_common.api import am, mail_relay, msg, translation
 from eduid_common.authn.middleware import AuthnBaseApp
 from eduid_common.authn.utils import no_authn_views
-from eduid_common.authn.utils import get_saml2_config
 from eduid_userdb.authninfo import AuthnInfoDB
 from eduid_userdb.logs import ProofingLog
 from eduid_userdb.security import PasswordResetStateDB, SecurityUserDB
@@ -49,8 +48,6 @@ class SecurityApp(AuthnBaseApp):
     def __init__(self, name: str, config: dict, **kwargs):
 
         super(SecurityApp, self).__init__(name, SecurityConfig, config, **kwargs)
-
-        self.saml2_config = get_saml2_config(self.config.saml2_settings_module)
 
         from eduid_webapp.security.views.security import security_views
         from eduid_webapp.security.views.u2f import u2f_views
