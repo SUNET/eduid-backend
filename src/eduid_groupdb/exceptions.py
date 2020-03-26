@@ -9,3 +9,15 @@ class EduIDGroupDBError(Exception):
 
 class VersionMismatch(EduIDGroupDBError):
     pass
+
+
+class MultipleReturnedError(EduIDGroupDBError):
+    pass
+
+
+class MultipleUsersReturned(MultipleReturnedError):
+    pass
+
+
+class MultipleGroupsReturned(MultipleReturnedError):
+    pass

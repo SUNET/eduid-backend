@@ -78,16 +78,16 @@ class GroupDB(BaseGraphDB):
         members: List[Union[User, Group]] = []
         owners: List[Union[User, Group]] = []
 
-        for user_member in group.user_members:
+        for user_member in group.member_users:
             res = self._add_user_to_group(tx, group=group, member=user_member, role=self.Role.MEMBER)
             members.append(User.from_mapping(res.data()))
-        for group_member in group.group_members:
+        for group_member in group.member_groups:
             res = self._add_group_to_group(tx, group=group, member=group_member, role=self.Role.MEMBER)
             members.append(Group.from_mapping(res.data()))
-        for user_owner in group.user_owners:
+        for user_owner in group.owner_users:
             res = self._add_user_to_group(tx, group=group, member=user_owner, role=self.Role.OWNER)
             owners.append(User.from_mapping(res.data()))
-        for group_owner in group.group_owners:
+        for group_owner in group.owner_groups:
             res = self._add_group_to_group(tx, group=group, member=group_owner, role=self.Role.OWNER)
             owners.append(Group.from_mapping(res.data()))
         return members, owners
@@ -99,11 +99,11 @@ class GroupDB(BaseGraphDB):
         group_list: List[Group] = []
         user_list: List[User] = []
         if role is self.Role.MEMBER:
-            group_list = group.group_members
-            user_list = group.user_members
+            group_list = group.member_groups
+            user_list = group.member_users
         elif role is self.Role.OWNER:
-            group_list = group.group_owners
-            user_list = group.user_owners
+            group_list = group.owner_groups
+            user_list = group.owner_users
 
         # Compare current members with members in the db and remove the excess members
         q = f"""
@@ -264,7 +264,6 @@ class GroupDB(BaseGraphDB):
             """
         with self.db.driver.session() as session:
             session.run(q, scope=scope, identifier=identifier)
-            session.sync()
 
     def get_groups_for_user(self, user: User, scope: Optional[str] = None) -> List[Group]:
         res: List[Group] = []
@@ -283,6 +282,15 @@ class GroupDB(BaseGraphDB):
             for record in session.run(q, identifier=user.identifier, scope=scope):
                 res.append(Group.from_mapping(record.data()['group']))
         return res
+
+    def group_exists(self, scope: str, identifier: str) -> bool:
+        q = """
+            MATCH (g: Group {scope: $scope, identifier: $identifier})             
+            RETURN count(*) as exists LIMIT 1
+            """
+        with self.db.driver.session() as session:
+            ret = session.run(q, scope=scope, identifier=identifier).single()['exists']
+        return bool(ret)
 
     def save(self, group: Group) -> Group:
         with self.db.driver.session() as session:

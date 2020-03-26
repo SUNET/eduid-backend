@@ -36,10 +36,10 @@ class TestGroup(TestCase):
         self.group1['members'] = [user]
         group = Group(**self.group1)
         self.assertIn(user, group.members)
-        self.assertIn(user, group.user_members)
-        self.assertEqual(0, len(group.group_members))
+        self.assertIn(user, group.member_users)
+        self.assertEqual(0, len(group.member_groups))
         group.members.append(Group(**self.group2))
-        self.assertEqual(1, len(group.group_members))
+        self.assertEqual(1, len(group.member_groups))
         group.members.append(User(**self.user2))
         self.assertEqual(3, len(group.members))
 
@@ -50,5 +50,34 @@ class TestGroup(TestCase):
         self.group1['owners'] = [owner]
         group = Group(**self.group1)
         self.assertIn(user, group.members)
-        self.assertIn(user, group.user_members)
+        self.assertIn(user, group.member_users)
         self.assertIn(owner, group.owners)
+
+    def test_get_users_and_groups(self):
+        member1 = User(**self.user1)
+        member2 = User(**self.user2)
+        member3 = Group(**self.group2)
+        owner1 = User(**self.user1)
+        owner2 = User(**self.user2)
+        owner3 = Group(**self.group2)
+
+        self.group1['members'] = [member1, member2, member3]
+        self.group1['owners'] = [owner1, owner2, owner3]
+        group = Group(**self.group1)
+
+        self.assertEqual(owner2, group.get_owner_user(identifier=owner2.identifier))
+        self.assertEqual(member2, group.get_member_user(identifier=member2.identifier))
+
+        self.assertEqual(owner3, group.get_owner_group(scope=owner3.scope, identifier=owner3.identifier))
+        self.assertEqual(member3, group.get_member_group(scope=member3.scope, identifier=member3.identifier))
+
+        self.assertIsNone(group.get_member_user(identifier='missing_identifier'))
+        self.assertIsNone(group.get_owner_user(identifier='missing_identifier'))
+
+        self.assertIsNone(group.get_member_group(scope='missing_scope', identifier=member3.identifier))
+        self.assertIsNone(group.get_member_group(scope=member3.scope, identifier='missing_identifier'))
+        self.assertIsNone(group.get_member_group(scope='missing_scope', identifier='missing_identifier'))
+
+        self.assertIsNone(group.get_owner_group(scope='missing_scope', identifier=owner3.identifier))
+        self.assertIsNone(group.get_owner_group(scope=owner3.scope, identifier='missing_identifier'))
+        self.assertIsNone(group.get_owner_group(scope='missing_scope', identifier='missing_identifier'))

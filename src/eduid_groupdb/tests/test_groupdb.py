@@ -89,6 +89,15 @@ class TestGroupDB(Neo4jTestCase):
         group = self.group_db.get_group(scope='example.com', identifier='test1')
         self.assertIsNone(group)
 
+    def test_group_exists(self):
+        group = Group.from_mapping(self.group1)
+        self.group_db.save(group)
+
+        self.assertTrue(self.group_db.group_exists(scope=group.scope, identifier=group.identifier))
+        self.assertFalse(self.group_db.group_exists(scope=group.scope, identifier='wrong-identifier'))
+        self.assertFalse(self.group_db.group_exists(scope='wrong_scope', identifier=group.identifier))
+        self.assertFalse(self.group_db.group_exists(scope='wrong_scope', identifier='wrong-identifier'))
+
     def test_save_with_wrong_group_version(self):
         group = Group.from_mapping(self.group1)
         self.group_db.save(group)
@@ -115,7 +124,7 @@ class TestGroupDB(Neo4jTestCase):
         self.assertEqual(1, user_count)
 
         post_save_group = self.group_db.get_group(scope='example.com', identifier='test1')
-        post_save_user = post_save_group.user_members[0]
+        post_save_user = post_save_group.member_users[0]
         self.assertEqual(user.identifier, post_save_user.identifier)
         self.assertEqual(user.display_name, post_save_user.display_name)
 
@@ -124,7 +133,7 @@ class TestGroupDB(Neo4jTestCase):
         member_group = Group.from_mapping(self.group2)
         group.members.append(member_group)
 
-        self.assertIn(member_group, group.group_members)
+        self.assertIn(member_group, group.member_groups)
         self.group_db.save(group)
 
         with self.group_db.db.driver.session() as session:
@@ -132,7 +141,7 @@ class TestGroupDB(Neo4jTestCase):
         self.assertEqual(2, count)
 
         post_save_group = self.group_db.get_group(scope='example.com', identifier='test1')
-        post_save_member_group = post_save_group.group_members[0]
+        post_save_member_group = post_save_group.member_groups[0]
         self.assertEqual(member_group.scope, post_save_member_group.scope)
         self.assertEqual(member_group.identifier, post_save_member_group.identifier)
         self.assertEqual(member_group.display_name, post_save_member_group.display_name)
@@ -147,8 +156,8 @@ class TestGroupDB(Neo4jTestCase):
         owner = User.from_mapping(self.user1)
         group.owners.append(owner)
 
-        self.assertIn(member_group, group.group_members)
-        self.assertIn(member_user, group.user_members)
+        self.assertIn(member_group, group.member_groups)
+        self.assertIn(member_user, group.member_users)
         self.assertIn(owner, group.owners)
         self.group_db.save(group)
 
@@ -157,13 +166,13 @@ class TestGroupDB(Neo4jTestCase):
         self.assertEqual(2, count)
 
         post_save_group = self.group_db.get_group(scope='example.com', identifier='test1')
-        post_save_member_group = post_save_group.group_members[0]
+        post_save_member_group = post_save_group.member_groups[0]
         self.assertEqual(member_group.scope, post_save_member_group.scope)
         self.assertEqual(member_group.identifier, post_save_member_group.identifier)
         self.assertEqual(member_group.display_name, post_save_member_group.display_name)
         self.assertEqual(member_group.description, post_save_member_group.description)
 
-        post_save_user = post_save_group.user_members[0]
+        post_save_user = post_save_group.member_users[0]
         self.assertEqual(member_user.identifier, post_save_user.identifier)
         self.assertEqual(member_user.display_name, post_save_user.display_name)
 
@@ -180,8 +189,8 @@ class TestGroupDB(Neo4jTestCase):
         owner = User.from_mapping(self.user1)
         group.owners.append(owner)
 
-        self.assertIn(member_group, group.group_members)
-        self.assertIn(member_user, group.user_members)
+        self.assertIn(member_group, group.member_groups)
+        self.assertIn(member_user, group.member_users)
         self.assertIn(owner, group.owners)
         self.group_db.save(group)
 
@@ -199,9 +208,9 @@ class TestGroupDB(Neo4jTestCase):
         group1.members.append(member_user)
         group2.members.append(member_user)
 
-        self.assertIn(member_user, group1.user_members)
+        self.assertIn(member_user, group1.member_users)
         self.group_db.save(group1)
-        self.assertIn(member_user, group2.user_members)
+        self.assertIn(member_user, group2.member_users)
         self.group_db.save(group2)
 
         all_scope_groups = self.group_db.get_groups_for_user(member_user)
@@ -220,22 +229,22 @@ class TestGroupDB(Neo4jTestCase):
         member_user2 = User.from_mapping(self.user2)
         group.members.extend([member_user1, member_user2])
 
-        self.assertIn(member_user1, group.user_members)
-        self.assertIn(member_user2, group.user_members)
+        self.assertIn(member_user1, group.member_users)
+        self.assertIn(member_user2, group.member_users)
         post_save_group = self.group_db.save(group)
 
-        self.assertIn(member_user1, post_save_group.user_members)
-        self.assertIn(member_user2, post_save_group.user_members)
+        self.assertIn(member_user1, post_save_group.member_users)
+        self.assertIn(member_user2, post_save_group.member_users)
 
         group.members.remove(member_user1)
-        self.assertNotIn(member_user1, group.user_members)
-        self.assertIn(member_user2, group.user_members)
+        self.assertNotIn(member_user1, group.member_users)
+        self.assertIn(member_user2, group.member_users)
         group.version = post_save_group.version
         post_remove_group = self.group_db.save(group)
 
-        self.assertNotIn(member_user1, post_remove_group.user_members)
-        self.assertIn(member_user2, post_remove_group.user_members)
+        self.assertNotIn(member_user1, post_remove_group.member_users)
+        self.assertIn(member_user2, post_remove_group.member_users)
 
         get_group = self.group_db.get_group(scope='example.com', identifier='test1')
-        self.assertNotIn(member_user1, get_group.user_members)
-        self.assertIn(member_user2, get_group.user_members)
+        self.assertNotIn(member_user1, get_group.member_users)
+        self.assertIn(member_user2, get_group.member_users)

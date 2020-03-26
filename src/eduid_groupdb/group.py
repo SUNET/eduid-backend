@@ -7,6 +7,7 @@ from typing import List, Mapping, Optional, Type, Union
 
 from bson import ObjectId
 
+from eduid_groupdb.exceptions import MultipleUsersReturned, MultipleGroupsReturned
 from eduid_groupdb.helpers import neo4j_ts_to_dt
 
 __author__ = 'lundberg'
@@ -60,21 +61,51 @@ class Group:
     def _filter_type(it: List[Union[User, Group]], member_type: Type[Union[User, Group]]):
         return [item for item in it if isinstance(item, member_type)]
 
+    @staticmethod
+    def _get_user(it: List[User], identifier: str) -> Optional[User]:
+        res = [user for user in it if user.identifier == identifier]
+        if not res:
+            return None
+        if len(res) != 1:
+            raise MultipleUsersReturned(f'More than one user with identifier {identifier} found')
+        return res[0]
+
+    @staticmethod
+    def _get_group(it: List[Group], scope: str, identifier: str) -> Optional[Group]:
+        res = [group for group in it if group.scope == scope and group.identifier == identifier]
+        if not res:
+            return None
+        if len(res) != 1:
+            raise MultipleGroupsReturned(f'More than one group with scope {scope} and identifier {identifier} found')
+        return res[0]
+
     @property
-    def user_members(self) -> List[User]:
+    def member_users(self) -> List[User]:
         return self._filter_type(it=self.members, member_type=User)
 
     @property
-    def group_members(self) -> List[Group]:
+    def member_groups(self) -> List[Group]:
         return self._filter_type(it=self.members, member_type=Group)
 
     @property
-    def user_owners(self) -> List[User]:
+    def owner_users(self) -> List[User]:
         return self._filter_type(it=self.owners, member_type=User)
 
     @property
-    def group_owners(self) -> List[Group]:
+    def owner_groups(self) -> List[Group]:
         return self._filter_type(it=self.owners, member_type=Group)
+
+    def get_member_user(self, identifier: str):
+        return self._get_user(self.member_users, identifier=identifier)
+
+    def get_owner_user(self, identifier: str):
+        return self._get_user(self.owner_users, identifier=identifier)
+
+    def get_member_group(self, scope: str, identifier: str):
+        return self._get_group(self.member_groups, scope=scope, identifier=identifier)
+
+    def get_owner_group(self, scope: str, identifier: str):
+        return self._get_group(self.owner_groups, scope=scope, identifier=identifier)
 
     @classmethod
     def from_mapping(cls, data: Mapping) -> Group:
