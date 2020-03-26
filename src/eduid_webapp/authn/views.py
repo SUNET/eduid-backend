@@ -35,7 +35,6 @@ from saml2 import BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 from saml2.ident import decode
 from saml2.metadata import entity_descriptor
-from saml2.response import LogoutResponse
 from werkzeug.exceptions import Forbidden
 
 from eduid_common.api.utils import verify_relay_state
@@ -47,6 +46,7 @@ from eduid_common.authn.eduid_saml2 import (
     authenticate,
     get_authn_request,
     get_authn_response,
+    saml_logout,
 )
 from eduid_common.authn.loa import get_loa
 from eduid_common.authn.utils import check_previous_identification, get_location
@@ -160,48 +160,18 @@ def logout():
     """
     eppn = session.get('user_eppn')
 
+    next = request.args.get('next', '')
+    location = next or current_app.config.saml2_logout_redirect_url
+
     if eppn is None:
         current_app.logger.info('Session cookie has expired, no logout action needed')
-        location = current_app.config.saml2_logout_redirect_url
         return redirect(location)
 
     user = current_app.central_userdb.get_user_by_eppn(eppn)
 
     current_app.logger.debug('Logout process started for user {}'.format(user))
-    state = StateCache(session)
-    identity = IdentityCache(session)
 
-    client = Saml2Client(current_app.saml2_config, state_cache=state, identity_cache=identity)
-
-    # The user doesn't have a SAML2 NameID in the session
-    # after a token login from Signup into Dashboard.
-    subject_id = _get_name_id(session)
-    if subject_id is None:
-        current_app.logger.warning('The session does not contain ' 'the subject id for user {}'.format(user))
-        session.clear()
-        location = current_app.config.saml2_logout_redirect_url
-
-    else:
-        logouts = client.global_logout(subject_id)
-        loresponse = list(logouts.values())[0]
-        # loresponse is a dict for REDIRECT binding, and LogoutResponse for SOAP binding
-        if isinstance(loresponse, LogoutResponse):
-            if loresponse.status_ok():
-                current_app.logger.debug('Performing local logout for {}'.format(user))
-                session.clear()
-                location = current_app.config.saml2_logout_redirect_url
-                location = verify_relay_state(request.form.get('RelayState', location), location)
-                return redirect(location)
-            else:
-                abort(500)
-        headers_tuple = loresponse[1]['headers']
-        location = headers_tuple[0][1]
-        current_app.logger.info(
-            'Redirecting to {!r} to continue the logout process ' 'for user {}'.format(location, user)
-        )
-
-    state.sync()
-    return redirect(location)
+    return saml_logout(current_app, user, location)
 
 
 @authn_views.route('/saml2-ls', methods=['POST'])

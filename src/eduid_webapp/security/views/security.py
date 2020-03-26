@@ -34,13 +34,14 @@
 import json
 from datetime import datetime
 
-from flask import Blueprint, abort, redirect, request, url_for
+from flask import Blueprint, abort, request, url_for, redirect
 from six.moves.urllib_parse import parse_qs, urlencode, urlparse, urlunparse
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid_common.api.exceptions import AmTaskFailed, MsgTaskFailed
 from eduid_common.api.helpers import add_nin_to_user
 from eduid_common.api.utils import save_and_sync_user, urlappend
+from eduid_common.authn.eduid_saml2 import saml_logout
 from eduid_common.authn.vccs import add_credentials, revoke_all_credentials
 from eduid_common.session import session
 from eduid_userdb.exceptions import UserOutOfSync
@@ -249,13 +250,8 @@ def account_terminated(user):
         current_app.logger.error(f'Failed to send account termination mail: {e}')
         current_app.logger.error('Account will be terminated successfully anyway.')
 
-    session.invalidate()
-    current_app.logger.info('Invalidated session for user')
-
-    site_url = current_app.config.eduid_site_url
-    current_app.logger.info('Redirection user to user {}'.format(site_url))
-    # TODO: Add a account termination completed view to redirect to
-    return redirect(site_url)
+    current_app.logger.debug(f'Logging out (terminated) user {user}')
+    return redirect(f'{current_app.config.logout_endpoint}?next={current_app.config.termination_redirect_url}')
 
 
 @security_views.route('/remove-nin', methods=['POST'])

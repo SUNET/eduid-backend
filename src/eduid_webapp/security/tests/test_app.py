@@ -307,7 +307,7 @@ class SecurityTests(EduidAPITestCase):
 
             response2 = client.get('/account-terminated')
             self.assertEqual(response2.status_code, 302)
-            self.assertEqual(response2.location, 'https://www.eduid.se/')
+            self.assertEqual(response2.location, 'http://test.localhost/services/authn/logout?next=https://eduid.se')
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def test_remove_nin(self, mock_request_user_sync):
