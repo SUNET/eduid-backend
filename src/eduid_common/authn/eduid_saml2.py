@@ -246,7 +246,7 @@ def saml_logout(current_app: EduIDBaseApp,
     headers_tuple = loresponse[1]['headers']
     location = headers_tuple[0][1]
     current_app.logger.info(
-        f'Redirecting to {location} to finish account termination and logout for user {user}'
+        f"Redirecting {user} to {location} after successful logout"
     )
     state.sync()
     return redirect(location)
