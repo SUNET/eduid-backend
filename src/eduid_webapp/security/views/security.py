@@ -251,10 +251,7 @@ def account_terminated(user):
         current_app.logger.error('Account will be terminated successfully anyway.')
 
     current_app.logger.debug(f'Logging out (terminated) user {user}')
-    # TODO: Add a account termination completed view to redirect to
-    site_url = current_app.config.eduid_site_url
-
-    return redirect(f'/logout?next={site_url}')
+    return redirect(f'{current_app.config.logout_endpoint}?next={current_app.config.termination_redirect_url}')
 
 
 @security_views.route('/remove-nin', methods=['POST'])

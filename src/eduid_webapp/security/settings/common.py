@@ -65,3 +65,7 @@ class SecurityConfig(FlaskConfig):
     phone_code_timeout: int = 600  # seconds
     # magic code for integration tests
     magic_code: str = ''
+    # for logging out when terminating an account
+    logout_endpoint: str = '/services/authn/logout'
+    # URL to send the user to after terminating the account
+    termination_redirect_url: str = 'https://eduid.se'
