@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import copy
 import logging
 import warnings
-from typing import Any, List, Mapping, Optional, Union
+from typing import Any, List, Mapping, Optional, Union, Dict
 
 import pymongo
 from bson import ObjectId
@@ -311,7 +311,7 @@ class BaseDB(object):
 
         :return: Document count
         """
-        args = {'filter': {}}
+        args: Dict[Any, Any] = {'filter': {}}
         if spec:
             args['filter'] = spec
         if limit:
