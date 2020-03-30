@@ -10,6 +10,7 @@ from eduid_scimapi.user import ScimApiUser
 
 class TestScimUser(unittest.TestCase):
     def setUp(self) -> None:
+        self.maxDiff = None
         self.user_doc1 = {
             "_id": ObjectId("5e5542db34a4cf8015e62ac8"),
             "scim_id": "9784e1bf-231b-4eb8-b315-52eb46dd7c4b",
@@ -35,13 +36,39 @@ class TestScimUser(unittest.TestCase):
             'schemas': ['urn:ietf:params:scim:schemas:core:2.0:User', SCIMSchema.NUTID_V1.value],
             'externalId': 'hubba-bubba@eduid.se',
             'id': '9784e1bf-231b-4eb8-b315-52eb46dd7c4b',
-            SCIMSchema.NUTID_V1.value: {'eduid': {'display_name': 'Test'}},
+            SCIMSchema.NUTID_V1.value: {'eduid': {'external_id': 'hubba-bubba', 'display_name': 'Test'}},
             'meta': {
                 'created': '2020-02-25T15:52:59.745000',
                 'lastModified': '2020-02-25T15:52:59.745000',
                 'location': location,
                 'resourceType': 'User',
                 'version': 'W/"5e5e6829f86abf66d341d4a2"',
+            },
+        }
+        self.assertEqual(scim, expected)
+
+    def test_to_scimuser_not_eduid(self):
+        user_doc2 = {
+            '_id': ObjectId('5e81c5f849ac2cd87580e500'),
+            'scim_id': 'a7851d21-eab9-4caa-ba5d-49653d65c452',
+            'version': ObjectId('5e81c5f849ac2cd87580e502'),
+            'created': datetime.fromisoformat('2020-03-30T10:12:08.528'),
+            'last_modified': datetime.fromisoformat('2020-03-30T10:12:08.531'),
+            'profiles': {'some_scope': {'external_id': 'elev@ekebyskolan.se', 'data': {}}},
+        }
+        user = ScimApiUser.from_dict(user_doc2)
+        location = 'http://localhost:12345/User'
+        scim = user.to_scim_dict(location=location)
+        expected = {
+            'schemas': ['urn:ietf:params:scim:schemas:core:2.0:User', SCIMSchema.NUTID_V1.value],
+            'id': 'a7851d21-eab9-4caa-ba5d-49653d65c452',
+            SCIMSchema.NUTID_V1.value: {'some_scope': {'external_id': 'elev@ekebyskolan.se'}},
+            'meta': {
+                'created': '2020-03-30T10:12:08.528000',
+                'lastModified': '2020-03-30T10:12:08.531000',
+                'location': location,
+                'resourceType': 'User',
+                'version': 'W/"5e81c5f849ac2cd87580e502"',
             },
         }
         self.assertEqual(scim, expected)
