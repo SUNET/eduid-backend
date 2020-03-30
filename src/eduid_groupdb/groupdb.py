@@ -265,6 +265,29 @@ class GroupDB(BaseGraphDB):
         with self.db.driver.session() as session:
             session.run(q, scope=scope, identifier=identifier)
 
+    def get_group_by_property(self, scope, key, value, skip=0, limit=100):
+        res: List[Group] = []
+        q = f"""
+            MATCH (g: Group {{scope: $scope}})
+            WHERE g.{key} = $value
+            RETURN g as group SKIP $skip LIMIT $limit
+            """
+        with self.db.driver.session() as session:
+            for record in session.run(q, scope=scope, value=value, skip=skip, limit=limit):
+                res.append(Group.from_mapping(record.data()['group']))
+        return res
+
+    def get_groups_for_scope(self, scope):
+        res: List[Group] = []
+        q = """
+            MATCH (g: Group {scope: $scope})
+            RETURN g as group
+            """
+        with self.db.driver.session() as session:
+            for record in session.run(q, scope=scope):
+                res.append(Group.from_mapping(record.data()['group']))
+        return res
+
     def get_groups_for_user(self, user: User, scope: Optional[str] = None) -> List[Group]:
         res: List[Group] = []
         with_scope = ''
