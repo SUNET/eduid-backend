@@ -1,5 +1,7 @@
 from unittest import TestCase
 
+from bson import ObjectId
+
 import eduid_userdb.db as db
 from eduid_userdb.testing import MongoTestCase
 
@@ -77,4 +79,11 @@ class TestMongoDB(TestCase):
 
 class TestDB(MongoTestCase):
     def test_db_count(self):
-        self.assertEqual(self.amdb.db_count(), len(list(self.MockedUserDB().all_userdocs())))
+        self.assertEqual(len(list(self.MockedUserDB().all_userdocs())), self.amdb.db_count())
+
+    def test_db_count_limit(self):
+        self.assertEqual(1, self.amdb.db_count(limit=1))
+        self.assertEqual(2, self.amdb.db_count(limit=2))
+
+    def test_db_count_spec(self):
+        self.assertEqual(1, self.amdb.db_count(spec={'_id': ObjectId('012345678901234567890123')}))

@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import copy
 import logging
 import warnings
-from typing import Any, List, Mapping, Optional, Union
+from typing import Any, List, Mapping, Optional, Union, Dict
 
 import pymongo
 from bson import ObjectId
@@ -305,15 +305,18 @@ class BaseDB(object):
             return []
         return docs
 
-    def db_count(self) -> int:
+    def db_count(self, spec: Optional[dict] = None, limit: Optional[int] = None) -> int:
         """
-        Return number of entries in the database.
+        Return number of entries in the collection.
 
-        Used in test cases.
-
-        :return: User count
+        :return: Document count
         """
-        return self._coll.count_documents({})
+        args: Dict[Any, Any] = {'filter': {}}
+        if spec:
+            args['filter'] = spec
+        if limit:
+            args['limit'] = limit
+        return self._coll.count_documents(**args)
 
     def remove_document(self, spec_or_id: Union[dict, ObjectId]) -> bool:
         """
