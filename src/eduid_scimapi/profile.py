@@ -15,4 +15,6 @@ class Profile:
         res = {}
         if schema == SCIMSchema.NUTID_V1.value:
             res = self.data
+        if self.external_id:
+            res['external_id'] = self.external_id
         return res
