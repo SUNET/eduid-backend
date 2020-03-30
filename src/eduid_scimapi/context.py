@@ -32,12 +32,12 @@ class Context(object):
         # Setup databases
         self.eduid_userdb = UserDB(db_uri=self.config.mongo_uri, db_name='eduid_am')
         self.userdb = ScimApiUserDB(db_uri=self.config.mongo_uri)
-        try:
+        if self.config.neo4j_uri:
             self.groupdb = ScimApiGroupDB(db_uri=self.config.neo4j_uri, config=self.config.neo4j_config)
-        except AddressError as e:
+        else:
             self.groupdb = None  # type: ignore
             # Temporarily don't care about neo4jdb
-            self.logger.info(f'Starting without neo4jdb: {e}')
+            self.logger.info(f'Starting without neo4jdb')
 
     @property
     def base_url(self) -> str:
