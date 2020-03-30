@@ -6,7 +6,7 @@ from eduid_scimapi import exceptions
 from eduid_scimapi.config import ScimApiConfig
 from eduid_scimapi.context import Context
 from eduid_scimapi.middleware import HandleSCIM
-from eduid_scimapi.resources.groups import GroupsResource
+from eduid_scimapi.resources.groups import GroupSearchResource, GroupsResource
 from eduid_scimapi.resources.users import UsersResource, UsersSearchResource
 
 
@@ -30,8 +30,9 @@ def init_api(name: str, test_config: Optional[Dict] = None, debug: bool = False)
     api.add_route('/Users/.search', UsersSearchResource(context=context))  # for POST
 
     # Groups
-    api.add_route('/Groups/', GroupsResource(context=context))  # for POST
-    api.add_route('/Groups/{scim_id}', GroupsResource(context=context))  # for GET/PUT
+    api.add_route('/Groups/', GroupsResource(context=context))
+    api.add_route('/Groups/{scim_id}', GroupsResource(context=context))
+    api.add_route('/Groups/.search', GroupSearchResource(context=context))
 
     context.logger.info('app running...')
     return api

@@ -3,7 +3,7 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import List
+from typing import Any, Dict, List
 from uuid import UUID, uuid4
 
 from bson import ObjectId
@@ -31,6 +31,8 @@ class ObjectIdField(fields.Field):
 class SCIMSchema(Enum):
     CORE_20_USER = 'urn:ietf:params:scim:schemas:core:2.0:User'
     CORE_20_GROUP = 'urn:ietf:params:scim:schemas:core:2.0:Group'
+    API_MESSAGES_20_SEARCH_REQUEST = 'urn:ietf:params:scim:api:messages:2.0:SearchRequest'
+    API_MESSAGES_20_LIST_RESPONSE = 'urn:ietf:params:scim:api:messages:2.0:ListResponse'
     NUTID_V1 = 'https://scim.eduid.se/schema/nutid/v1'
     DEBUG_ALL_V1 = 'https://scim.eduid.se/schema/debug-all-profiles/v1'
 
@@ -58,9 +60,9 @@ class Meta:
 
 @dataclass
 class BaseResponse:
+    schemas: List[SCIMSchemaValue] = field(default_factory=list, metadata={'required': True})
     id: UUID = field(default='', metadata={'required': True})
     meta: Meta = field(default='', metadata={'required': True})
-    schemas: List[SCIMSchemaValue] = field(default_factory=list, metadata={'required': True})
 
 
 @dataclass
@@ -70,5 +72,28 @@ class BaseCreateRequest:
 
 @dataclass
 class BaseUpdateRequest:
-    id: UUID = field(default='', metadata={'required': True})
     schemas: List[SCIMSchemaValue] = field(default_factory=list, metadata={'required': True})
+    id: UUID = field(default='', metadata={'required': True})
+
+
+@dataclass
+class SearchRequest:
+    schemas: List[SCIMSchemaValue] = field(
+        default_factory=lambda: [SCIMSchema.API_MESSAGES_20_SEARCH_REQUEST], metadata={'required': True}
+    )
+    filter: str = field(default='', metadata={'required': True})
+    start_index: int = field(default=1, metadata={'data_key': 'startIndex', 'required': False})
+    count: int = field(default=100, metadata={'required': False})
+
+
+@dataclass
+class ListResponse:
+    schemas: List[SCIMSchemaValue] = field(
+        default_factory=lambda: [SCIMSchema.API_MESSAGES_20_LIST_RESPONSE], metadata={'required': True}
+    )
+    resources: List[Dict[Any, Any]] = field(default_factory=list, metadata={'data_key': 'Resources', 'required': True})
+    total_results: int = field(default=0, metadata={'data_key': 'totalResults', 'required': True})
+
+
+SearchRequestSchema = class_schema(SearchRequest)
+ListResponseSchema = class_schema(ListResponse)
