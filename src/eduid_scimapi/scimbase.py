@@ -47,22 +47,19 @@ class SCIMResourceType(Enum):
 
 @dataclass
 class Meta:
-    location: str = field(default='', metadata={'required': True})
-    last_modified: datetime = field(default='', metadata={'data_key': 'lastModified', 'required': True})
-    resource_type: SCIMResourceType = field(
-        default='', metadata={'data_key': 'resourceType', 'by_value': True, 'required': True}
-    )
-    created: datetime = field(default='', metadata={'required': True})
-    version: ObjectId = field(
-        default_factory=ObjectId, metadata={'marshmallow_field': ObjectIdField(), 'required': True}
-    )
+    location: str = field(metadata={'required': True})
+    last_modified: datetime = field(metadata={'data_key': 'lastModified', 'required': True})
+    resource_type: SCIMResourceType = field(metadata={'data_key': 'resourceType', 'by_value': True, 'required': True})
+    created: datetime = field(metadata={'required': True})
+    version: ObjectId = field(metadata={'marshmallow_field': ObjectIdField(), 'required': True})
 
 
 @dataclass
 class BaseResponse:
     schemas: List[SCIMSchemaValue] = field(default_factory=list, metadata={'required': True})
-    id: UUID = field(default='', metadata={'required': True})
-    meta: Meta = field(default='', metadata={'required': True})
+    id: UUID = field(default_factory=uuid4, metadata={'required': True})
+    # meta must have a default to be used but can not instantiate a Meta class
+    meta: Meta = field(default='', metadata={'required': True})  # type: ignore
 
 
 @dataclass
@@ -73,7 +70,7 @@ class BaseCreateRequest:
 @dataclass
 class BaseUpdateRequest:
     schemas: List[SCIMSchemaValue] = field(default_factory=list, metadata={'required': True})
-    id: UUID = field(default='', metadata={'required': True})
+    id: UUID = field(default_factory=uuid4, metadata={'required': True})
 
 
 @dataclass
