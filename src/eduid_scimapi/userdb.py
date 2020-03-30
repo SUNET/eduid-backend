@@ -62,4 +62,4 @@ class ScimApiUserDB(BaseDB):
         return None
 
     def user_exists(self, scim_id: str) -> bool:
-        return bool(self.db_count({'scim_id': scim_id}, limit=1))
+        return bool(self.db_count(spec={'scim_id': scim_id}, limit=1))

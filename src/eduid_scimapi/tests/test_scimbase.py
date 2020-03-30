@@ -16,6 +16,7 @@ class TestScimBase(TestCase):
         self.meta = Meta(
             location='http://example.org/group/some-id',
             resource_type=SCIMResourceType.group,
+            created=datetime.utcnow(),
             last_modified=datetime.utcnow(),
             version=ObjectId(),
         )
