@@ -38,7 +38,7 @@ class TestScimUser(unittest.TestCase):
             'schemas': ['urn:ietf:params:scim:schemas:core:2.0:User', SCIMSchema.NUTID_V1.value],
             'externalId': 'hubba-bubba@eduid.se',
             'id': '9784e1bf-231b-4eb8-b315-52eb46dd7c4b',
-            SCIMSchema.NUTID_V1.value: {'student': {'attributes': {'displayName': 'Test'}, 'data': {}}},
+            SCIMSchema.NUTID_V1.value: {'profiles': {'student': {'attributes': {'displayName': 'Test'}, 'data': {}}}},
             'meta': {
                 'created': '2020-02-25T15:52:59.745000',
                 'lastModified': '2020-02-25T15:52:59.745000',
@@ -64,7 +64,7 @@ class TestScimUser(unittest.TestCase):
         expected = {
             'schemas': ['urn:ietf:params:scim:schemas:core:2.0:User', SCIMSchema.NUTID_V1.value],
             'id': 'a7851d21-eab9-4caa-ba5d-49653d65c452',
-            SCIMSchema.NUTID_V1.value: {'student': {'attributes': {}, 'data': {}}},
+            SCIMSchema.NUTID_V1.value: {'profiles': {'student': {'attributes': {}, 'data': {}}}},
             'meta': {
                 'created': '2020-03-30T10:12:08.528000',
                 'lastModified': '2020-03-30T10:12:08.531000',
