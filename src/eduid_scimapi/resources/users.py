@@ -184,6 +184,7 @@ class UsersSearchResource(BaseResource):
 
         if external_id.endswith('@eduid.se') or external_id.endswith('@dev.eduid.se'):
             eppn = external_id.split('@')[0]  # remove domain part
+            domain = external_id.split('@')[1]  # remove domain part
             self.context.logger.debug(f'Searching for eduid user with eppn {repr(eppn)}')
 
             eduid_user = self.context.eduid_userdb.get_user_by_eppn(eppn)
@@ -193,7 +194,7 @@ class UsersSearchResource(BaseResource):
 
             if not user:
                 # persist the scim_id for the search result by saving it as a ScimApiUser
-                user = ScimApiUser(external_id=external_id, profiles={'student': eduid_profile},)
+                user = ScimApiUser(external_id=external_id, profiles={domain: eduid_profile})
                 req.context['userdb'].save(user)
 
         if not user:
