@@ -1,5 +1,5 @@
 import re
-from typing import Optional
+from typing import Optional, Dict, Mapping, Any
 
 from falcon import Request, Response
 
@@ -16,19 +16,19 @@ class UsersResource(BaseResource):
     def on_get(self, req: Request, resp: Response, scim_id):
         self.context.logger.info(f'Fetching user {scim_id}')
 
-        user = self.context.userdb.get_user_by_scim_id(scim_id)
+        user = req.context['userdb'].get_user_by_scim_id(scim_id)
         if not user:
             raise BadRequest(detail='User not found')
 
         location = self.url_for('Users', user.scim_id)
         resp.set_header('Location', location)
         resp.set_header('ETag', user.etag)
-        resp.media = user.to_scim_dict(location)
+        resp.media = user.to_scim_dict(location, data_owner=req.context['data_owner'])
 
     def on_put(self, req: Request, resp: Response, scim_id):
         self.context.logger.info(f'Fetching user {scim_id}')
 
-        user = self.context.userdb.get_user_by_scim_id(scim_id)
+        user = req.context['userdb'].get_user_by_scim_id(scim_id)
         if not user:
             raise BadRequest(detail='User not found')
 
@@ -39,45 +39,27 @@ class UsersResource(BaseResource):
         if SCIMSchema.NUTID_V1.value in req.media:
             if not user.external_id:
                 self.context.logger.warning(f'User {user} has no external id, skipping NUTID update')
-            changed = False
-            data = req.media[SCIMSchema.NUTID_V1.value]
-            if 'profiles' in data:
-                for profile in data['profiles'].keys():
-                    profile_data = data['profiles'][profile]
-                    if profile == 'eduid':
-                        self.context.logger.info('Special-processing profile "eduid"')
-                        if 'displayName' not in profile_data:
-                            self.context.logger.info(f'No displayName in profile: {profile_data}')
-                            continue
+            parsed_profiles = _parse_nutid_profiles(req.media[SCIMSchema.NUTID_V1.value])
 
-                        _old = user.profiles['eduid'].data.get('displayName')
-                        _new = profile_data['displayName']
-                        if _old != _new:
-                            changed = True
-                            self.context.logger.info(
-                                f'Updating user {user.external_id} eduid display name from '
-                                f'{repr(_old)} to {repr(_new)}'
-                            )
-                            user.profiles['eduid'].data['display_name'] = _new
-                            # As a PoC, update the eduid userdb with this display name
-                            eduid_user = self.context.eduid_userdb.get_user_by_eppn(user.profiles['eduid'].external_id)
-                            assert eduid_user is not None
-                            eduid_user.display_name = _new
-                            self.context.eduid_userdb.save(eduid_user)
-                    assert user.external_id  # please mypy
-                    if profile not in user.profiles:
-                        user.profiles[profile] = Profile(user.external_id, profile_data)
-                    if user.profiles[profile].data != profile_data:
-                        self.context.logger.info(
-                            f'Updating user {user.external_id} profile {profile} with data:\n' f'{profile_data}'
-                        )
-                        user.profiles[profile].data = profile_data
-                        changed = True
-                    else:
-                        self.context.logger.info(f'User {user.external_id} profile {profile} not changed')
+            # Look for changes
+            changed = False
+            for this in parsed_profiles.keys():
+                if this not in user.profiles:
+                    self.context.logger.info(f'Adding profile {this}/{parsed_profiles[this]} to user')
+                    changed = True
+                if parsed_profiles[this] != user.profiles[this]:
+                    self.context.logger.info(f'Profile {this}/{parsed_profiles[this]} updated')
+                    changed = True
+                else:
+                    self.context.logger.info(f'Profile {this}/{parsed_profiles[this]} not changed')
+            for this in user.profiles.keys():
+                if this not in parsed_profiles:
+                    self.context.logger.info(f'Profile {this}/{parsed_profiles[this]} removed')
+                    changed = True
 
             if changed:
-                self.context.userdb.save(user)
+                user.profiles = parsed_profiles
+                req.context['userdb'].save(user)
 
         location = self.url_for('Users', user.scim_id)
         resp.set_header('Location', location)
@@ -139,15 +121,14 @@ class UsersResource(BaseResource):
         if not external_id:
             raise BadRequest(detail='No externalId in user creation request')
 
-        # TODO: figure out scope for this user
-        profile = Profile(external_id=external_id, data={})
-        user = ScimApiUser(profiles={'some_scope': profile})
-        self.context.userdb.save(user)
+        profiles = _parse_nutid_profiles(req.media[SCIMSchema.NUTID_V1.value])
+        user = ScimApiUser(external_id=external_id, profiles=profiles)
+        req.context['userdb'].save(user)
 
         location = self.url_for('Users', user.scim_id)
         resp.set_header('Location', location)
         resp.set_header('ETag', user.etag)
-        resp.media = user.to_scim_dict(location, debug=self.context.config.debug)
+        resp.media = user.to_scim_dict(location, debug=self.context.config.debug, data_owner=req.context['data_owner'])
 
 
 class UsersSearchResource(BaseResource):
@@ -194,24 +175,27 @@ class UsersSearchResource(BaseResource):
         if not filter:
             raise BadRequest(detail='No filter in user search request')
 
-        user = None
-        match = re.match('externalId eq "([a-z-]+)@eduid\.se"', filter)
+        match = re.match('externalId eq "(.+?)"', filter)
         if not match:
             raise BadRequest(detail='Unrecognised filter')
 
-        eppn = match.group(1)
-        if eppn:
+        external_id = match.group(1)
+        user = req.context['userdb'].get_user_by_external_id(external_id)
+
+        if external_id.endswith('@eduid.se') or external_id.endswith('@dev.eduid.se'):
+            eppn = external_id.split('@')[0]  # remove domain part
+            domain = external_id.split('@')[1]  # remove domain part
             self.context.logger.debug(f'Searching for eduid user with eppn {repr(eppn)}')
-            user = self.context.userdb.get_user_by_eduid_eppn(eppn)
+
+            eduid_user = self.context.eduid_userdb.get_user_by_eppn(eppn)
+            assert isinstance(eduid_user, User)
+
+            eduid_profile = Profile(attributes={'displayName': eduid_user.display_name,})
+
             if not user:
-                eduid_user = self.context.eduid_userdb.get_user_by_eppn(eppn)
-                assert isinstance(eduid_user, User)
-
-                eduid_profile = Profile(external_id=eduid_user.eppn, data={'display_name': eduid_user.display_name,})
-
                 # persist the scim_id for the search result by saving it as a ScimApiUser
-                user = ScimApiUser(profiles={'eduid': eduid_profile})
-                self.context.userdb.save(user)
+                user = ScimApiUser(external_id=external_id, profiles={domain: eduid_profile})
+                req.context['userdb'].save(user)
 
         if not user:
             # TODO: probably not the right way to signal this
@@ -220,4 +204,11 @@ class UsersSearchResource(BaseResource):
         location = self.url_for('Users', user.scim_id)
         resp.set_header('Location', location)
         resp.set_header('ETag', user.etag)
-        resp.media = user.to_scim_dict(location, debug=self.context.config.debug)
+        resp.media = user.to_scim_dict(location, debug=self.context.config.debug, data_owner=req.context['data_owner'])
+
+
+def _parse_nutid_profiles(data: Mapping[str, Any]) -> Dict[str, Profile]:
+    res: Dict[str, Profile] = {
+        key: Profile.from_dict(values) for key, values in data.items()
+    }
+    return res

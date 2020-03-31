@@ -14,15 +14,16 @@ class TestScimUser(unittest.TestCase):
         self.user_doc1 = {
             "_id": ObjectId("5e5542db34a4cf8015e62ac8"),
             "scim_id": "9784e1bf-231b-4eb8-b315-52eb46dd7c4b",
+            "external_id": "hubba-bubba@eduid.se",
             "version": ObjectId("5e5e6829f86abf66d341d4a2"),
             "created": datetime.fromisoformat("2020-02-25T15:52:59.745"),
             "last_modified": datetime.fromisoformat("2020-02-25T15:52:59.745"),
-            "profiles": {"eduid": {"external_id": "hubba-bubba", "data": {"display_name": "Test"}}},
+            "profiles": {"student": {"attributes": {"displayName": "Test"}}},
         }
 
     def test_load_old_user(self):
         user = ScimApiUser.from_dict(self.user_doc1)
-        self.assertEqual(user.profiles['eduid'].data['display_name'], 'Test')
+        self.assertEqual(user.profiles['student'].attributes['displayName'], 'Test')
 
         # test to-dict+from-dict consistency
         user2 = ScimApiUser.from_dict(user.to_dict())
@@ -36,7 +37,7 @@ class TestScimUser(unittest.TestCase):
             'schemas': ['urn:ietf:params:scim:schemas:core:2.0:User', SCIMSchema.NUTID_V1.value],
             'externalId': 'hubba-bubba@eduid.se',
             'id': '9784e1bf-231b-4eb8-b315-52eb46dd7c4b',
-            SCIMSchema.NUTID_V1.value: {'eduid': {'external_id': 'hubba-bubba', 'display_name': 'Test'}},
+            SCIMSchema.NUTID_V1.value: {'student': {'attributes': {'displayName': 'Test'}, 'data': {}}},
             'meta': {
                 'created': '2020-02-25T15:52:59.745000',
                 'lastModified': '2020-02-25T15:52:59.745000',
@@ -54,7 +55,7 @@ class TestScimUser(unittest.TestCase):
             'version': ObjectId('5e81c5f849ac2cd87580e502'),
             'created': datetime.fromisoformat('2020-03-30T10:12:08.528'),
             'last_modified': datetime.fromisoformat('2020-03-30T10:12:08.531'),
-            'profiles': {'some_scope': {'external_id': 'elev@ekebyskolan.se', 'data': {}}},
+            'profiles': {'student': {'data': {}}},
         }
         user = ScimApiUser.from_dict(user_doc2)
         location = 'http://localhost:12345/User'
@@ -62,7 +63,7 @@ class TestScimUser(unittest.TestCase):
         expected = {
             'schemas': ['urn:ietf:params:scim:schemas:core:2.0:User', SCIMSchema.NUTID_V1.value],
             'id': 'a7851d21-eab9-4caa-ba5d-49653d65c452',
-            SCIMSchema.NUTID_V1.value: {'some_scope': {'external_id': 'elev@ekebyskolan.se'}},
+            SCIMSchema.NUTID_V1.value: {'student': {'attributes': {}, 'data': {}}},
             'meta': {
                 'created': '2020-03-30T10:12:08.528000',
                 'lastModified': '2020-03-30T10:12:08.531000',

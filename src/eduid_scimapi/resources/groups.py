@@ -2,12 +2,12 @@ import re
 from typing import List, Optional
 from uuid import UUID
 
-from falcon import Request, Response
-from marshmallow.exceptions import ValidationError
-
 from eduid_groupdb import Group as DBGroup
 from eduid_groupdb import User as DBUser
 from eduid_groupdb.exceptions import MultipleReturnedError
+from falcon import Request, Response
+from marshmallow.exceptions import ValidationError
+
 from eduid_scimapi.exceptions import BadRequest, ServerInternal
 from eduid_scimapi.group import (
     Group,
@@ -199,7 +199,7 @@ class GroupsResource(BaseResource):
                         self.context.logger.error(f'Group {member.value} not found')
                         raise BadRequest(detail=f'Group {member.value} not found')
                 if 'Users' in member.ref:
-                    if not self.context.userdb.user_exists(scim_id=str(member.value)):
+                    if not req.context['userdb'].user_exists(scim_id=str(member.value)):
                         self.context.logger.error(f'User {member.value} not found')
                         raise BadRequest(detail=f'User {member.value} not found')
 

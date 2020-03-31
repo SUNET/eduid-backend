@@ -55,6 +55,12 @@ class ScimApiUserDB(BaseDB):
             return ScimApiUser.from_dict(docs)
         return None
 
+    def get_user_by_external_id(self, external_id: str) -> Optional[ScimApiUser]:
+        docs = self._get_document_by_attr('external_id', external_id, raise_on_missing=False)
+        if docs:
+            return ScimApiUser.from_dict(docs)
+        return None
+
     def get_user_by_scoped_attribute(self, scope: str, attr: str, value: Any) -> Optional[ScimApiUser]:
         docs = self._get_documents_by_filter(spec={f'profiles.{scope}.{attr}': value}, raise_on_missing=False)
         if len(docs) == 1:
