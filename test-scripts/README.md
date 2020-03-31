@@ -36,10 +36,12 @@
       'put':
         'd4aa1c10-7120-452b-a109-adf9030b9ef3':
           'profiles':
-            'eduid':
-              'displayName': 'Kalle Anka'
-            'testkommun.se':
-              'displayName': 'K. Anka'
+            'student':
+	      'attributes':
+                'displayName': 'Kalle Anka'
+	      'data':
+                'some-opaque-data': 17,
+
 ```
 
 - Run `scim-util.py test.yaml` again to change your eduID display name:
@@ -49,8 +51,13 @@
   ...
   2020-03-11 11:11:59,025: scim-util: INFO Update result:
   {'https://scim.eduid.se/schema/nutid/v1':
-     {'eduid':         {'displayName': 'Kalle Anka'},
-      'testkommun.se': {'displayName': 'K. Anka'}
+     {'student': {'attributes': {
+                    'displayName': 'Kalle Anka'},
+		 },
+		 {'data': {
+		    'some-opaque-data': 17
+		   }
+		 }
      },
   ...
   }

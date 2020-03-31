@@ -1,5 +1,5 @@
 import re
-from typing import Any, Dict, Mapping, Optional
+from typing import Optional
 
 from falcon import Request, Response
 
@@ -7,7 +7,7 @@ from eduid_userdb.user import User
 
 from eduid_scimapi.context import Context
 from eduid_scimapi.exceptions import BadRequest
-from eduid_scimapi.profile import Profile
+from eduid_scimapi.profile import Profile, parse_nutid_profiles
 from eduid_scimapi.resources.base import BaseResource
 from eduid_scimapi.scimbase import SCIMSchema
 from eduid_scimapi.user import ScimApiUser
@@ -42,7 +42,7 @@ class UsersResource(BaseResource):
         if SCIMSchema.NUTID_V1.value in req.media:
             if not user.external_id:
                 self.context.logger.warning(f'User {user} has no external id, skipping NUTID update')
-            parsed_profiles = _parse_nutid_profiles(req.media[SCIMSchema.NUTID_V1.value])
+            parsed_profiles = parse_nutid_profiles(req.media[SCIMSchema.NUTID_V1.value])
 
             # Look for changes
             changed = False
@@ -124,7 +124,7 @@ class UsersResource(BaseResource):
         if not external_id:
             raise BadRequest(detail='No externalId in user creation request')
 
-        profiles = _parse_nutid_profiles(req.media[SCIMSchema.NUTID_V1.value])
+        profiles = parse_nutid_profiles(req.media[SCIMSchema.NUTID_V1.value])
         user = ScimApiUser(external_id=external_id, profiles=profiles)
         req.context['userdb'].save(user)
 
@@ -215,10 +215,3 @@ def _add_eduid_PoC_profile(user: ScimApiUser, context: Context) -> None:
 
         eduid_profile = Profile(attributes={'displayName': eduid_user.display_name,})
         user.profiles[domain] = eduid_profile
-
-
-def _parse_nutid_profiles(data: Mapping[str, Any]) -> Dict[str, Profile]:
-    """ Parse the 'profiles' section of the NUTID v1 schema. """
-    profiles = data.get('profiles', {})
-    res: Dict[str, Profile] = {key: Profile.from_dict(values) for key, values in profiles.items()}
-    return res
