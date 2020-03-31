@@ -6,17 +6,24 @@ from uuid import uuid4
 
 from marshmallow_dataclass import class_schema
 
-from eduid_scimapi.group import Group, GroupMember
+from eduid_scimapi.group import GroupMember, GroupResponse
 from eduid_scimapi.scimbase import SCIMSchema
 from eduid_scimapi.tests.test_scimbase import TestScimBase
 
 
 class TestSCIMGroup(TestScimBase):
     def test_group(self) -> None:
-        schema = class_schema(Group)
-        group = Group(id=uuid4(), schemas=[SCIMSchema.CORE_20_GROUP], meta=self.meta, display_name='Test Group')
+        schema = class_schema(GroupResponse)
+        group = GroupResponse(id=uuid4(), schemas=[SCIMSchema.CORE_20_GROUP], meta=self.meta, display_name='Test Group')
+        member_1_id = uuid4()
+        member_2_id = uuid4()
         group.members.extend(
-            [GroupMember(id=uuid4(), display_name='Member 1'), GroupMember(id=uuid4(), display_name='Member 2')]
+            [
+                GroupMember(value=member_1_id, display='Member 1', ref=f'https://some_domain/path/Users/{member_1_id}'),
+                GroupMember(
+                    value=member_2_id, display='Member 2', ref=f'https://some_domain/path/Groups/{member_2_id}'
+                ),
+            ]
         )
         group_dump = schema().dump(group)
         loaded_group = schema().load(group_dump)

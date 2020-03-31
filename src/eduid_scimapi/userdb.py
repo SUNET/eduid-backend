@@ -60,3 +60,6 @@ class ScimApiUserDB(BaseDB):
         if len(docs) == 1:
             return ScimApiUser.from_dict(docs[0])
         return None
+
+    def user_exists(self, scim_id: str) -> bool:
+        return bool(self.db_count(spec={'scim_id': scim_id}, limit=1))

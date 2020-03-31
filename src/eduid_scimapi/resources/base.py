@@ -6,6 +6,9 @@ class BaseResource(object):
     def __init__(self, context: Context):
         self.context = context
 
+    def __str__(self):
+        return f'{self.__class__}'
+
     def url_for(self, *args) -> str:
         url = self.context.base_url
         for arg in args:
