@@ -67,7 +67,7 @@ class UsersResource(BaseResource):
         location = self.url_for('Users', user.scim_id)
         resp.set_header('Location', location)
         resp.set_header('ETag', user.etag)
-        resp.media = user.to_scim_dict(location)
+        resp.media = user.to_scim_dict(location, data_owner=req.context['data_owner'])
 
     def on_post(self, req: Request, resp: Response, user_id: Optional[str] = None):
         """

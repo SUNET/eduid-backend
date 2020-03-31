@@ -46,8 +46,12 @@ class ScimApiUser(object):
             res['schemas'] += [SCIMSchema.NUTID_V1.value]
             if SCIMSchema.NUTID_V1.value not in res:
                 res[SCIMSchema.NUTID_V1.value] = {}
+            if 'profiles' not in res[SCIMSchema.NUTID_V1.value]:
+                res[SCIMSchema.NUTID_V1.value]['profiles'] = {}
             for prof in self.profiles.keys():
-                res[SCIMSchema.NUTID_V1.value][prof] = self.profiles[prof].to_schema_dict(SCIMSchema.NUTID_V1.value)
+                res[SCIMSchema.NUTID_V1.value]['profiles'][prof] = self.profiles[prof].to_schema_dict(
+                    SCIMSchema.NUTID_V1.value
+                )
         if debug:
             profiles_dicts = {}
             for this in self.profiles.keys():
