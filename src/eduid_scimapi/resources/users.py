@@ -1,5 +1,5 @@
 import re
-from typing import Optional, Dict
+from typing import Optional, Dict, Mapping, Any
 
 from falcon import Request, Response
 
@@ -39,22 +39,26 @@ class UsersResource(BaseResource):
         if SCIMSchema.NUTID_V1.value in req.media:
             if not user.external_id:
                 self.context.logger.warning(f'User {user} has no external id, skipping NUTID update')
+            parsed_profiles = _parse_nutid_profiles(req.media[SCIMSchema.NUTID_V1.value])
+
+            # Look for changes
             changed = False
-            data = req.media[SCIMSchema.NUTID_V1.value]
-            if 'profiles' in data:
-                for profile in data['profiles'].keys():
-                    profile_data = data['profiles'][profile]
-                    if profile not in user.profiles:
-                        user.profiles[profile] = Profile.from_dict(profile_data)
-                    if user.profiles[profile].data == profile_data:
-                        self.context.logger.info(f'User {user.external_id} profile {profile} not changed')
-                        continue
-                    self.context.logger.info(
-                        f'Updating user {user.external_id} profile {profile} with data:\n' f'{profile_data}'
-                    )
-                    user.profiles[profile] = Profile.from_dict(profile_data)
+            for this in parsed_profiles.keys():
+                if this not in user.profiles:
+                    self.context.logger.info(f'Adding profile {this}/{parsed_profiles[this]} to user')
                     changed = True
+                if parsed_profiles[this] != user.profiles[this]:
+                    self.context.logger.info(f'Profile {this}/{parsed_profiles[this]} updated')
+                    changed = True
+                else:
+                    self.context.logger.info(f'Profile {this}/{parsed_profiles[this]} not changed')
+            for this in user.profiles.keys():
+                if this not in parsed_profiles:
+                    self.context.logger.info(f'Profile {this}/{parsed_profiles[this]} removed')
+                    changed = True
+
             if changed:
+                user.profiles = parsed_profiles
                 req.context['userdb'].save(user)
 
         location = self.url_for('Users', user.scim_id)
@@ -117,8 +121,7 @@ class UsersResource(BaseResource):
         if not external_id:
             raise BadRequest(detail='No externalId in user creation request')
 
-        # TODO: parse NUTID profiles
-        profiles: Dict[str, Profile] = {}
+        profiles = _parse_nutid_profiles(req.media[SCIMSchema.NUTID_V1.value])
         user = ScimApiUser(external_id=external_id, profiles=profiles)
         req.context['userdb'].save(user)
 
@@ -201,3 +204,10 @@ class UsersSearchResource(BaseResource):
         resp.set_header('Location', location)
         resp.set_header('ETag', user.etag)
         resp.media = user.to_scim_dict(location, debug=self.context.config.debug, data_owner=req.context['data_owner'])
+
+
+def _parse_nutid_profiles(data: Mapping[str, Any]) -> Dict[str, Profile]:
+    res: Dict[str, Profile] = {
+        key: Profile.from_dict(values) for key, values in data.items()
+    }
+    return res
