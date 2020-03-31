@@ -50,7 +50,7 @@ class UsersResource(BaseResource):
                 if this not in user.profiles:
                     self.context.logger.info(f'Adding profile {this}/{parsed_profiles[this]} to user')
                     changed = True
-                if parsed_profiles[this] != user.profiles[this]:
+                elif parsed_profiles[this] != user.profiles[this]:
                     self.context.logger.info(f'Profile {this}/{parsed_profiles[this]} updated')
                     changed = True
                 else:
