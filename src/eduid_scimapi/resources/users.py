@@ -204,9 +204,10 @@ class UsersSearchResource(BaseResource):
 
 def _add_eduid_PoC_profile(user: ScimApiUser, context: Context) -> None:
     """ PoC: Dynamically add an 'eduid.se' or 'dev.eduid.se' profile with data from eduid """
-    external_id = user.external_id
-    if external_id.endswith('@eduid.se') or external_id.endswith('@dev.eduid.se'):
-        eppn, domain = external_id.split('@')
+    if user.external_id is None:
+        return
+    if user.external_id.endswith('@eduid.se') or user.external_id.endswith('@dev.eduid.se'):
+        eppn, domain = user.external_id.split('@')
         context.logger.debug(f'Searching for eduid user with eppn {repr(eppn)}')
 
         eduid_user = context.eduid_userdb.get_user_by_eppn(eppn)
