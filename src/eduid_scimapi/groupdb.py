@@ -26,6 +26,7 @@ class ScimApiGroupDB(GroupDB):
 
     def update_group(self, scope: str, scim_group: SCIMGroup, db_group: Group) -> Group:
         changed = False
+        member_changed = False
         members = []
         logger.info(f'Updating members for group {db_group.identifier}')
         for member in scim_group.members:
@@ -39,7 +40,7 @@ class ScimApiGroupDB(GroupDB):
 
             # Add a new member
             if update_member is None:
-                changed = True
+                member_changed = True
                 if user:
                     update_member = User(identifier=str(member.value), display_name=member.display)
                 elif group:
@@ -47,7 +48,7 @@ class ScimApiGroupDB(GroupDB):
                 logger.debug(f'Added new member: {update_member}')
             # Update member attributes if they changed
             elif update_member.display_name != member.display:
-                changed = True
+                member_changed = True
                 logger.debug(
                     f'Changed display name for existing member: ' f'{update_member.display_name} -> {member.display}'
                 )
@@ -61,10 +62,14 @@ class ScimApiGroupDB(GroupDB):
             db_group.display_name = scim_group.display_name
 
         # Check if there where new, changed or removed members
-        if changed or set(db_group.members) != set(members):
+        if member_changed or set(db_group.members) != set(members):
+            changed = True
             logger.debug(f'Old members: {db_group.members}')
             logger.debug(f'New members: {members}')
             db_group.members = members
+
+        if changed:
+            logger.info(f'Group {db_group.scope} {db_group.identifier} changed. Saving.')
             db_group = self.save(db_group)
 
         return db_group
