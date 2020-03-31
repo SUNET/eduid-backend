@@ -2,12 +2,12 @@ import re
 from typing import List, Optional
 from uuid import UUID
 
-from falcon import Request, Response
-from marshmallow.exceptions import ValidationError
-
 from eduid_groupdb import Group as DBGroup
 from eduid_groupdb import User as DBUser
 from eduid_groupdb.exceptions import MultipleReturnedError
+from falcon import Request, Response
+from marshmallow.exceptions import ValidationError
+
 from eduid_scimapi.exceptions import BadRequest, ServerInternal
 from eduid_scimapi.group import (
     Group,

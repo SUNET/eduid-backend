@@ -1,4 +1,4 @@
-from dataclasses import dataclass, asdict, field
+from dataclasses import asdict, dataclass, field
 from typing import Any, Dict, Mapping
 
 from eduid_scimapi.scimbase import SCIMSchema
