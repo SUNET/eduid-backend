@@ -12,6 +12,10 @@ class HandleSCIM(object):
     def process_request(self, req: Request, resp: Response):
         self.context.logger.debug(f'process_request: {req.method} {req.path}')
 
+        # TODO: Use bearer tokens to authenticate request and choose the appropriate database
+        req.context['data_owner'] = 'eduid.se'
+        req.context['userdb'] = self.context.get_database(req.context['data_owner'])
+
         if req.method == 'POST':
             if req.content_type != 'application/scim+json':
                 raise UnsupportedMediaTypeMalformed(detail=f'{req.content_type} is an unsupported media type')

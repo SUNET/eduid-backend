@@ -31,7 +31,7 @@ class Context(object):
 
         # Setup databases
         self.eduid_userdb = UserDB(db_uri=self.config.mongo_uri, db_name='eduid_am')
-        self.userdb = ScimApiUserDB(db_uri=self.config.mongo_uri)
+        self._userdbs = {'eduid.se': ScimApiUserDB(db_uri=self.config.mongo_uri)}
         if self.config.neo4j_uri:
             self.groupdb = ScimApiGroupDB(db_uri=self.config.neo4j_uri, config=self.config.neo4j_config)
         else:
@@ -45,3 +45,6 @@ class Context(object):
         if self.config.application_root:
             return urlappend(base_url, self.config.application_root)
         return base_url
+
+    def get_database(self, data_owner: str) -> ScimApiUserDB:
+        return self._userdbs[data_owner]

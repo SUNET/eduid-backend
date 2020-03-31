@@ -16,19 +16,19 @@ class UsersResource(BaseResource):
     def on_get(self, req: Request, resp: Response, scim_id):
         self.context.logger.info(f'Fetching user {scim_id}')
 
-        user = self.context.userdb.get_user_by_scim_id(scim_id)
+        user = req.context['userdb'].get_user_by_scim_id(scim_id)
         if not user:
             raise BadRequest(detail='User not found')
 
         location = self.url_for('Users', user.scim_id)
         resp.set_header('Location', location)
         resp.set_header('ETag', user.etag)
-        resp.media = user.to_scim_dict(location)
+        resp.media = user.to_scim_dict(location, data_owner=req.context['data_owner'])
 
     def on_put(self, req: Request, resp: Response, scim_id):
         self.context.logger.info(f'Fetching user {scim_id}')
 
-        user = self.context.userdb.get_user_by_scim_id(scim_id)
+        user = req.context['userdb'].get_user_by_scim_id(scim_id)
         if not user:
             raise BadRequest(detail='User not found')
 
@@ -147,7 +147,7 @@ class UsersResource(BaseResource):
         location = self.url_for('Users', user.scim_id)
         resp.set_header('Location', location)
         resp.set_header('ETag', user.etag)
-        resp.media = user.to_scim_dict(location, debug=self.context.config.debug)
+        resp.media = user.to_scim_dict(location, debug=self.context.config.debug, data_owner=req.context['data_owner'])
 
 
 class UsersSearchResource(BaseResource):
@@ -220,4 +220,4 @@ class UsersSearchResource(BaseResource):
         location = self.url_for('Users', user.scim_id)
         resp.set_header('Location', location)
         resp.set_header('ETag', user.etag)
-        resp.media = user.to_scim_dict(location, debug=self.context.config.debug)
+        resp.media = user.to_scim_dict(location, debug=self.context.config.debug, data_owner=req.context['data_owner'])
