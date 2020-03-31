@@ -35,9 +35,7 @@ class TestGroupDB(Neo4jTestCase):
     def test_create_group(self):
         group = Group.from_mapping(self.group1)
         post_save_group = self.group_db.save(group)
-        with self.group_db.db.driver.session() as session:
-            count = session.run('MATCH (n:Group) RETURN count(n) as c').single().value()
-        self.assertEqual(1, count)
+        self.assertEqual(1, self.group_db.db.count_nodes(label='Group'))
 
         self.assertEqual(group.scope, post_save_group.scope)
         self.assertEqual(group.identifier, post_save_group.identifier)
@@ -58,9 +56,7 @@ class TestGroupDB(Neo4jTestCase):
     def test_update_group(self):
         group = Group.from_mapping(self.group1)
         post_save_group = self.group_db.save(group)
-        with self.group_db.db.driver.session() as session:
-            count = session.run('MATCH (n:Group) RETURN count(n) as c').single().value()
-        self.assertEqual(1, count)
+        self.assertEqual(1, self.group_db.db.count_nodes(label='Group'))
 
         self.assertEqual(group.scope, post_save_group.scope)
         self.assertEqual(group.identifier, post_save_group.identifier)
@@ -73,9 +69,7 @@ class TestGroupDB(Neo4jTestCase):
         group.display_name = 'A new display name'
         group.version = post_save_group.version
         post_save_group2 = self.group_db.save(group)
-        with self.group_db.db.driver.session() as session:
-            count = session.run('MATCH (n:Group) RETURN count(n) as c').single().value()
-        self.assertEqual(1, count)
+        self.assertEqual(1, self.group_db.db.count_nodes(label='Group'))
 
         self.assertEqual(group.scope, post_save_group2.scope)
         self.assertEqual(group.identifier, post_save_group2.identifier)
@@ -117,11 +111,8 @@ class TestGroupDB(Neo4jTestCase):
         self.assertIn(user, group.members)
         self.group_db.save(group)
 
-        with self.group_db.db.driver.session() as session:
-            group_count = session.run('MATCH (n:Group) RETURN count(n) as c').single().value()
-            user_count = session.run('MATCH (n:User) RETURN count(n) as c').single().value()
-        self.assertEqual(1, group_count)
-        self.assertEqual(1, user_count)
+        self.assertEqual(1, self.group_db.db.count_nodes(label='Group'))
+        self.assertEqual(1, self.group_db.db.count_nodes(label='User'))
 
         post_save_group = self.group_db.get_group(scope='example.com', identifier='test1')
         post_save_user = post_save_group.member_users[0]
@@ -136,9 +127,7 @@ class TestGroupDB(Neo4jTestCase):
         self.assertIn(member_group, group.member_groups)
         self.group_db.save(group)
 
-        with self.group_db.db.driver.session() as session:
-            count = session.run('MATCH (n:Group) RETURN count(n) as c').single().value()
-        self.assertEqual(2, count)
+        self.assertEqual(2, self.group_db.db.count_nodes(label='Group'))
 
         post_save_group = self.group_db.get_group(scope='example.com', identifier='test1')
         post_save_member_group = post_save_group.member_groups[0]
@@ -161,9 +150,7 @@ class TestGroupDB(Neo4jTestCase):
         self.assertIn(owner, group.owners)
         self.group_db.save(group)
 
-        with self.group_db.db.driver.session() as session:
-            count = session.run('MATCH (n:Group) RETURN count(n) as c').single().value()
-        self.assertEqual(2, count)
+        self.assertEqual(2, self.group_db.db.count_nodes(label='Group'))
 
         post_save_group = self.group_db.get_group(scope='example.com', identifier='test1')
         post_save_member_group = post_save_group.member_groups[0]

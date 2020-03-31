@@ -265,7 +265,7 @@ class GroupDB(BaseGraphDB):
         with self.db.driver.session() as session:
             session.run(q, scope=scope, identifier=identifier)
 
-    def get_group_by_property(self, scope, key, value, skip=0, limit=100):
+    def get_groups_by_property(self, scope, key, value, skip=0, limit=100):
         res: List[Group] = []
         q = f"""
             MATCH (g: Group {{scope: $scope}})
