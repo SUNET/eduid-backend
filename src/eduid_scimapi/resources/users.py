@@ -44,13 +44,13 @@ class UsersResource(BaseResource):
             if 'profiles' in data:
                 for profile in data['profiles'].keys():
                     profile_data = data['profiles'][profile]
-                    if profile == 'eduid':
-                        self.context.logger.info('Special-processing profile "eduid"')
+                    if profile in ['eduid.se', 'dev.eduid.se']:
+                        self.context.logger.info(f'Special-processing profile "{profile}"')
                         if 'displayName' not in profile_data:
                             self.context.logger.info(f'No displayName in profile: {profile_data}')
                             continue
 
-                        _old = user.profiles['eduid'].data.get('displayName')
+                        _old = user.profiles[profile].data.get('displayName')
                         _new = profile_data['displayName']
                         if _old != _new:
                             changed = True
@@ -58,9 +58,9 @@ class UsersResource(BaseResource):
                                 f'Updating user {user.external_id} eduid display name from '
                                 f'{repr(_old)} to {repr(_new)}'
                             )
-                            user.profiles['eduid'].data['display_name'] = _new
+                            user.profiles[profile].data['display_name'] = _new
                             # As a PoC, update the eduid userdb with this display name
-                            eduid_user = self.context.eduid_userdb.get_user_by_eppn(user.profiles['eduid'].external_id)
+                            eduid_user = self.context.eduid_userdb.get_user_by_eppn(user.profiles[profile].external_id)
                             assert eduid_user is not None
                             eduid_user.display_name = _new
                             self.context.eduid_userdb.save(eduid_user)
@@ -139,9 +139,9 @@ class UsersResource(BaseResource):
         if not external_id:
             raise BadRequest(detail='No externalId in user creation request')
 
-        # TODO: figure out scope for this user
-        profile = Profile(external_id=external_id, data={})
-        user = ScimApiUser(profiles={'some_scope': profile})
+        # TODO: parse NUTID profiles
+        profiles = {}
+        user = ScimApiUser(external_id=external_id, profiles=profiles)
         self.context.userdb.save(user)
 
         location = self.url_for('Users', user.scim_id)
@@ -194,24 +194,26 @@ class UsersSearchResource(BaseResource):
         if not filter:
             raise BadRequest(detail='No filter in user search request')
 
-        user = None
-        match = re.match('externalId eq "([a-z-]+)@eduid\.se"', filter)
+        match = re.match('externalId eq "(.+?)"', filter)
         if not match:
             raise BadRequest(detail='Unrecognised filter')
 
-        eppn = match.group(1)
-        if eppn:
+        external_id = match.group(1)
+        user = req.context['userdb'].get_user_by_external_id(external_id)
+
+        if external_id.endswith('@eduid.se') or external_id.endswith('@dev.eduid.se'):
+            eppn = external_id.split('@')[0]  # remove domain part
             self.context.logger.debug(f'Searching for eduid user with eppn {repr(eppn)}')
-            user = self.context.userdb.get_user_by_eduid_eppn(eppn)
+
+            eduid_user = self.context.eduid_userdb.get_user_by_eppn(eppn)
+            assert isinstance(eduid_user, User)
+
+            eduid_profile = Profile(attributes={'displayName': eduid_user.display_name,})
+
             if not user:
-                eduid_user = self.context.eduid_userdb.get_user_by_eppn(eppn)
-                assert isinstance(eduid_user, User)
-
-                eduid_profile = Profile(external_id=eduid_user.eppn, data={'display_name': eduid_user.display_name,})
-
                 # persist the scim_id for the search result by saving it as a ScimApiUser
-                user = ScimApiUser(profiles={'eduid': eduid_profile})
-                self.context.userdb.save(user)
+                user = ScimApiUser(external_id=external_id, profiles={'student': eduid_profile},)
+                req.context['userdb'].save(user)
 
         if not user:
             # TODO: probably not the right way to signal this

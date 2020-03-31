@@ -18,6 +18,7 @@ __author__ = 'ft'
 class ScimApiUser(object):
     user_id: ObjectId = field(default_factory=lambda: ObjectId())
     scim_id: UUID = field(default_factory=lambda: uuid.uuid4())
+    external_id: Optional[str] = None
     version: ObjectId = field(default_factory=lambda: ObjectId())
     created: datetime = field(default_factory=lambda: datetime.utcnow())
     last_modified: datetime = field(default_factory=lambda: datetime.utcnow())
@@ -26,13 +27,6 @@ class ScimApiUser(object):
     @property
     def etag(self):
         return f'W/"{self.version}"'
-
-    @property
-    def external_id(self) -> Optional[str]:
-        if 'eduid' in self.profiles:
-            _eppn = self.profiles['eduid'].external_id
-            return f'{_eppn}@eduid.se'
-        return None
 
     def to_scim_dict(self, location: str, debug: bool = False, data_owner: Optional[str] = None) -> Mapping[str, Any]:
         res: Dict[str, Any] = {
@@ -46,7 +40,7 @@ class ScimApiUser(object):
                 'version': self.etag,
             },
         }
-        if self.external_id:
+        if self.external_id is not None:
             res['externalId'] = self.external_id
         if self.profiles:
             res['schemas'] += [SCIMSchema.NUTID_V1.value]
