@@ -1,5 +1,5 @@
 import re
-from typing import Optional
+from typing import Optional, Dict
 
 from falcon import Request, Response
 
@@ -44,40 +44,18 @@ class UsersResource(BaseResource):
             if 'profiles' in data:
                 for profile in data['profiles'].keys():
                     profile_data = data['profiles'][profile]
-                    if profile in ['eduid.se', 'dev.eduid.se']:
-                        self.context.logger.info(f'Special-processing profile "{profile}"')
-                        if 'displayName' not in profile_data:
-                            self.context.logger.info(f'No displayName in profile: {profile_data}')
-                            continue
-
-                        _old = user.profiles[profile].data.get('displayName')
-                        _new = profile_data['displayName']
-                        if _old != _new:
-                            changed = True
-                            self.context.logger.info(
-                                f'Updating user {user.external_id} eduid display name from '
-                                f'{repr(_old)} to {repr(_new)}'
-                            )
-                            user.profiles[profile].data['display_name'] = _new
-                            # As a PoC, update the eduid userdb with this display name
-                            eduid_user = self.context.eduid_userdb.get_user_by_eppn(user.profiles[profile].external_id)
-                            assert eduid_user is not None
-                            eduid_user.display_name = _new
-                            self.context.eduid_userdb.save(eduid_user)
-                    assert user.external_id  # please mypy
                     if profile not in user.profiles:
-                        user.profiles[profile] = Profile(user.external_id, profile_data)
-                    if user.profiles[profile].data != profile_data:
-                        self.context.logger.info(
-                            f'Updating user {user.external_id} profile {profile} with data:\n' f'{profile_data}'
-                        )
-                        user.profiles[profile].data = profile_data
-                        changed = True
-                    else:
+                        user.profiles[profile] = Profile.from_dict(profile_data)
+                    if user.profiles[profile].data == profile_data:
                         self.context.logger.info(f'User {user.external_id} profile {profile} not changed')
-
+                        continue
+                    self.context.logger.info(
+                        f'Updating user {user.external_id} profile {profile} with data:\n' f'{profile_data}'
+                    )
+                    user.profiles[profile] = Profile.from_dict(profile_data)
+                    changed = True
             if changed:
-                self.context.userdb.save(user)
+                req.context['userdb'].save(user)
 
         location = self.url_for('Users', user.scim_id)
         resp.set_header('Location', location)
@@ -140,9 +118,9 @@ class UsersResource(BaseResource):
             raise BadRequest(detail='No externalId in user creation request')
 
         # TODO: parse NUTID profiles
-        profiles = {}
+        profiles: Dict[str, Profile] = {}
         user = ScimApiUser(external_id=external_id, profiles=profiles)
-        self.context.userdb.save(user)
+        req.context['userdb'].save(user)
 
         location = self.url_for('Users', user.scim_id)
         resp.set_header('Location', location)
