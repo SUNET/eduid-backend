@@ -168,15 +168,19 @@ class GroupsResource(BaseResource):
 
         """
         try:
-            group: GroupUpdateRequest = GroupUpdateRequestSchema().load(req.media)
-            self.context.logger.debug(group)
+            update_request: GroupUpdateRequest = GroupUpdateRequestSchema().load(req.media)
+            self.context.logger.debug(update_request)
+            # Please mypy as GroupUpdateRequest no longer inherit from Group
+            group = Group(display_name=update_request.display_name, members=update_request.members)
 
             self.context.logger.info(f"Fetching group {scim_id}")
             # TODO: Figure out scope
             scope = 'eduid.se'
 
             # Get group from db
-            db_group: DBGroup = self.context.groupdb.get_group_by_scim_id(scope=scope, identifier=str(group.id))
+            db_group: DBGroup = self.context.groupdb.get_group_by_scim_id(
+                scope=scope, identifier=str(update_request.id)
+            )
             self.context.logger.debug(f'Found group: {db_group}')
             if not db_group:
                 raise BadRequest(detail='Group not found')
@@ -291,7 +295,7 @@ class GroupSearchResource(BaseResource):
 
         display_name = match.group(1)
         self.context.logger.debug(f"Searching for group with display name {repr(display_name)}")
-        db_groups = self.context.groupdb.get_group_by_property(
+        db_groups = self.context.groupdb.get_groups_by_property(
             scope=scope, key='display_name', value=display_name, skip=query.start_index, limit=query.count
         )
 

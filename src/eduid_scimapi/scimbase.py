@@ -56,10 +56,9 @@ class Meta:
 
 @dataclass
 class BaseResponse:
+    id: UUID = field(metadata={'required': True})
+    meta: Meta = field(metadata={'required': True})
     schemas: List[SCIMSchemaValue] = field(default_factory=list, metadata={'required': True})
-    id: UUID = field(default_factory=uuid4, metadata={'required': True})
-    # meta must have a default to be used but can not instantiate a Meta class
-    meta: Meta = field(default='', metadata={'required': True})  # type: ignore
 
 
 @dataclass
@@ -69,8 +68,8 @@ class BaseCreateRequest:
 
 @dataclass
 class BaseUpdateRequest:
+    id: UUID = field(metadata={'required': True})
     schemas: List[SCIMSchemaValue] = field(default_factory=list, metadata={'required': True})
-    id: UUID = field(default_factory=uuid4, metadata={'required': True})
 
 
 @dataclass
