@@ -218,5 +218,7 @@ def _add_eduid_PoC_profile(user: ScimApiUser, context: Context) -> None:
 
 
 def _parse_nutid_profiles(data: Mapping[str, Any]) -> Dict[str, Profile]:
-    res: Dict[str, Profile] = {key: Profile.from_dict(values) for key, values in data.items()}
+    """ Parse the 'profiles' section of the NUTID v1 schema. """
+    profiles = data.get('profiles', {})
+    res: Dict[str, Profile] = {key: Profile.from_dict(values) for key, values in profiles.items()}
     return res
