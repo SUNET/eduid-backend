@@ -1,10 +1,11 @@
 import re
-from typing import Optional, Dict, Mapping, Any
+from typing import Any, Dict, Mapping, Optional
 
 from falcon import Request, Response
 
 from eduid_userdb.user import User
 
+from eduid_scimapi.context import Context
 from eduid_scimapi.exceptions import BadRequest
 from eduid_scimapi.profile import Profile
 from eduid_scimapi.resources.base import BaseResource
@@ -19,6 +20,8 @@ class UsersResource(BaseResource):
         user = req.context['userdb'].get_user_by_scim_id(scim_id)
         if not user:
             raise BadRequest(detail='User not found')
+
+        _add_eduid_PoC_profile(user, self.context)
 
         location = self.url_for('Users', user.scim_id)
         resp.set_header('Location', location)
@@ -182,20 +185,12 @@ class UsersSearchResource(BaseResource):
         external_id = match.group(1)
         user = req.context['userdb'].get_user_by_external_id(external_id)
 
-        if external_id.endswith('@eduid.se') or external_id.endswith('@dev.eduid.se'):
-            eppn = external_id.split('@')[0]  # remove domain part
-            domain = external_id.split('@')[1]  # remove domain part
-            self.context.logger.debug(f'Searching for eduid user with eppn {repr(eppn)}')
+        if not user:
+            # persist the scim_id for the search result by saving it as a ScimApiUser
+            user = ScimApiUser(external_id=external_id)
+            req.context['userdb'].save(user)
 
-            eduid_user = self.context.eduid_userdb.get_user_by_eppn(eppn)
-            assert isinstance(eduid_user, User)
-
-            eduid_profile = Profile(attributes={'displayName': eduid_user.display_name,})
-
-            if not user:
-                # persist the scim_id for the search result by saving it as a ScimApiUser
-                user = ScimApiUser(external_id=external_id, profiles={domain: eduid_profile})
-                req.context['userdb'].save(user)
+        _add_eduid_PoC_profile(user, self.context)
 
         if not user:
             # TODO: probably not the right way to signal this
@@ -207,8 +202,20 @@ class UsersSearchResource(BaseResource):
         resp.media = user.to_scim_dict(location, debug=self.context.config.debug, data_owner=req.context['data_owner'])
 
 
+def _add_eduid_PoC_profile(user: ScimApiUser, context: Context) -> None:
+    """ PoC: Dynamically add an 'eduid.se' or 'dev.eduid.se' profile with data from eduid """
+    external_id = user.external_id
+    if external_id.endswith('@eduid.se') or external_id.endswith('@dev.eduid.se'):
+        eppn, domain = external_id.split('@')
+        context.logger.debug(f'Searching for eduid user with eppn {repr(eppn)}')
+
+        eduid_user = context.eduid_userdb.get_user_by_eppn(eppn)
+        assert isinstance(eduid_user, User)
+
+        eduid_profile = Profile(attributes={'displayName': eduid_user.display_name,})
+        user.profiles[domain] = eduid_profile
+
+
 def _parse_nutid_profiles(data: Mapping[str, Any]) -> Dict[str, Profile]:
-    res: Dict[str, Profile] = {
-        key: Profile.from_dict(values) for key, values in data.items()
-    }
+    res: Dict[str, Profile] = {key: Profile.from_dict(values) for key, values in data.items()}
     return res

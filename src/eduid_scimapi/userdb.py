@@ -21,6 +21,12 @@ class ScimApiUserDB(BaseDB):
     def save(self, user: ScimApiUser) -> bool:
         user_dict = user.to_dict()
 
+        if 'profiles' in user_dict:
+            # don't save the special PoC eduid profiles in the database (bson does not allow dots in keys)
+            for eduid_domain in ['eduid.se', 'dev.eduid.se']:
+                if eduid_domain in user_dict['profiles']:
+                    del user_dict['profiles'][eduid_domain]
+
         test_doc = {
             '_id': user.user_id,
             'version': user.version,
