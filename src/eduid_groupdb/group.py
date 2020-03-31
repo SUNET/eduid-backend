@@ -27,6 +27,9 @@ class User:
             return True
         return False
 
+    def __hash__(self):
+        return hash(self.identifier)
+
     @classmethod
     def from_mapping(cls, data: Mapping) -> User:
         dt = neo4j_ts_to_dt(data)
@@ -56,6 +59,9 @@ class Group:
         if (self.scope == other.scope) and (self.identifier == other.identifier):
             return True
         return False
+
+    def __hash__(self):
+        return hash(f'{self.scope}-{self.identifier}')
 
     @staticmethod
     def _filter_type(it: List[Union[User, Group]], member_type: Type[Union[User, Group]]):
