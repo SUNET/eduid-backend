@@ -2,6 +2,7 @@ import unittest
 from dataclasses import asdict
 from datetime import datetime
 
+import bson
 from bson import ObjectId
 
 from eduid_scimapi.scimbase import SCIMSchema
@@ -73,6 +74,11 @@ class TestScimUser(unittest.TestCase):
             },
         }
         self.assertEqual(scim, expected)
+
+    def test_bson_serialization(self):
+        user = ScimApiUser.from_dict(self.user_doc1)
+        x = bson.encode(user.to_dict())
+        self.assertTrue(x)
 
 
 if __name__ == '__main__':
