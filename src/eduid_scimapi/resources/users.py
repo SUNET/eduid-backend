@@ -3,13 +3,14 @@ from typing import Any, Dict, Mapping, Optional
 
 from falcon import Request, Response
 
+from eduid_userdb.user import User
+
 from eduid_scimapi.context import Context
 from eduid_scimapi.exceptions import BadRequest
 from eduid_scimapi.profile import Profile
 from eduid_scimapi.resources.base import BaseResource
 from eduid_scimapi.scimbase import SCIMSchema
 from eduid_scimapi.user import ScimApiUser
-from eduid_userdb.user import User
 
 
 class UsersResource(BaseResource):
@@ -211,12 +212,10 @@ def _add_eduid_PoC_profile(user: ScimApiUser, context: Context) -> None:
         eduid_user = context.eduid_userdb.get_user_by_eppn(eppn)
         assert isinstance(eduid_user, User)
 
-        eduid_profile = Profile(attributes={'displayName': eduid_user.display_name, })
+        eduid_profile = Profile(attributes={'displayName': eduid_user.display_name,})
         user.profiles[domain] = eduid_profile
 
 
 def _parse_nutid_profiles(data: Mapping[str, Any]) -> Dict[str, Profile]:
-    res: Dict[str, Profile] = {
-        key: Profile.from_dict(values) for key, values in data.items()
-    }
+    res: Dict[str, Profile] = {key: Profile.from_dict(values) for key, values in data.items()}
     return res
