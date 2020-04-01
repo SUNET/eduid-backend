@@ -57,7 +57,7 @@ class UsersResource(BaseResource):
                     self.context.logger.info(f'Profile {this}/{parsed_profiles[this]} not changed')
             for this in user.profiles.keys():
                 if this not in parsed_profiles:
-                    self.context.logger.info(f'Profile {this}/{parsed_profiles[this]} removed')
+                    self.context.logger.info(f'Profile {this}/{user.profiles[this]} removed')
                     changed = True
 
             if changed:
