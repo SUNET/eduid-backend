@@ -36,6 +36,11 @@ class ScimAttributes(ResponseMicroService):
         # TODO: Implement real 'data owner' to database lookup
         self._userdbs = {'eduid.se': ScimApiUserDB(db_uri=self.config.mongo_uri)}
         self.converter = AttributeMapper(internal_attributes)
+        # Get the internal attribute name for the eduPersonPrincipalName that will be
+        # used to find users in the SCIM database
+        _int = self.converter.to_internal('saml', {'eduPersonPrincipalName': 'something'})
+        self.ext_id_attr = list(_int.keys())[0]
+        logger.debug(f'SCIM externalId internal attribute name: {self.ext_id_attr}')
 
 
     def process(
@@ -71,12 +76,15 @@ class ScimAttributes(ResponseMicroService):
         if not userdb:
             logger.error(f'Found no userdb for data owner {data_owner}')
             return None
-        if 'edupersonprincipalname' in data.attributes:
-            eppn = data.attributes['edupersonprincipalname'][0]
-            user = userdb.get_user_by_external_id(eppn)
+        _ext_ids = data.attributes.get(self.ext_id_attr, [])
+        if _ext_ids:
+            ext_id = _ext_ids[0]
+            user = userdb.get_user_by_external_id(ext_id)
             if user:
-                logger.info(f'Found SCIM user {user.scim_id} using eppn {eppn} (data owner: {data_owner})')
+                logger.info(
+                    f'Found SCIM user {user.scim_id} using {self.ext_id_attr} {ext_id} (data owner: {data_owner})'
+                )
             else:
-                logger.info(f'No user found using eppn {eppn}')
+                logger.info(f'No user found using {self.ext_id_attr} {ext_id}')
             return user
         return None
