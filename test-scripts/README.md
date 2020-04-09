@@ -57,7 +57,7 @@
          - 'Test Group 1'
       'put':
         '8b5a3e6f-709d-4ae9-961d-bc73bfa51deb':
-          'display_name': 'New group name'
+          'display_name': 'Test Group 1'
           'members':
             - 'id': 'd4aa1c10-7120-452b-a109-adf9030b9ef3'
               'display_name': 'Donald Duck'
@@ -83,13 +83,13 @@
   ...
   2020-04-09 11:48:17,389: scim-util: INFO Update result:
   {
-    "displayName": "New group name",
+    "displayName": "Test Group 1",
     "id": "8b5a3e6f-709d-4ae9-961d-bc73bfa51deb",
     "members": [
         {
-            "$ref": "http://scimapi.eduid.docker/scim/test/Users/2f4cbd92-f209-4475-ba46-60315c32e1bb",
+            "$ref": "http://scimapi.eduid.docker:8000/Users/d4aa1c10-7120-452b-a109-adf9030b9ef3",
             "display": "Donald Duck",
-            "value": "2f4cbd92-f209-4475-ba46-60315c32e1bb"
+            "value": "d4aa1c10-7120-452b-a109-adf9030b9ef3"
         }
     ],
     ...
