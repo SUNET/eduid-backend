@@ -53,7 +53,7 @@ class GroupsResource(BaseResource):
         location = self.url_for("Groups", db_group.identifier)
         meta = Meta(
             location=location,
-            last_modified=db_group.modified_ts,
+            last_modified=db_group.modified_ts or db_group.created_ts,
             resource_type=SCIMResourceType.group,
             created=db_group.created_ts,
             version=db_group.version,
