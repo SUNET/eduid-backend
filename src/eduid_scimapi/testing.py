@@ -2,12 +2,12 @@
 import unittest
 from os import environ
 
-from eduid_groupdb import Neo4jDB
-from eduid_groupdb.testing import Neo4jTemporaryInstance
-
 from eduid_common.config.testing import EtcdTemporaryInstance
 from eduid_userdb import MongoDB
 from eduid_userdb.testing import MongoTemporaryInstance
+
+from eduid_groupdb import Neo4jDB
+from eduid_groupdb.testing import Neo4jTemporaryInstance
 
 __author__ = 'lundberg'
 

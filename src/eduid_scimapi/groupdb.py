@@ -4,7 +4,6 @@ from typing import List, Optional
 from uuid import uuid4
 
 from eduid_groupdb import Group, GroupDB, User
-
 from eduid_scimapi.group import Group as SCIMGroup
 
 __author__ = 'lundberg'

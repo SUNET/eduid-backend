@@ -3,15 +3,14 @@ import pprint
 from dataclasses import dataclass
 from typing import Any, Dict, Mapping, Optional
 
-import satosa.context
-import satosa.internal
-from satosa.attribute_mapping import AttributeMapper
-from satosa.micro_services.base import ResponseMicroService
-
 from eduid_userdb import UserDB
 
+import satosa.context
+import satosa.internal
 from eduid_scimapi.user import ScimApiUser
 from eduid_scimapi.userdb import ScimApiUserDB
+from satosa.attribute_mapping import AttributeMapper
+from satosa.micro_services.base import ResponseMicroService
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +35,6 @@ class ScimAttributes(ResponseMicroService):
         # TODO: Implement real 'data owner' to database lookup
         self._userdbs = {'eduid.se': ScimApiUserDB(db_uri=self.config.mongo_uri)}
         self.converter = AttributeMapper(internal_attributes)
-
 
     def process(
         self, context: satosa.context.Context, data: satosa.internal.InternalData,

@@ -16,16 +16,35 @@ __author__ = 'lundberg'
 
 
 class ObjectIdField(fields.Field):
-    def _deserialize(self, value, attr, data, **kwargs):
+    def _deserialize(self, value: str, attr, data, **kwargs):
         try:
             return ObjectId(value)
         except InvalidId:
             raise ValidationError(f'invalid ObjectId: {value}')
 
-    def _serialize(self, value, attr, obj, **kwargs):
+    def _serialize(self, value: ObjectId, attr, obj, **kwargs):
         if value is None:
             return missing
         return str(value)
+
+
+class VersionField(ObjectIdField):
+    def _deserialize(self, value: str, attr, data, **kwargs):
+        try:
+            if value.startswith('W/"'):
+                value = value.lstrip('W/"').rstrip('"')
+            return ObjectId(value)
+        except InvalidId:
+            raise ValidationError(f'invalid version: {value}')
+
+    def _serialize(self, value: ObjectId, attr, obj, **kwargs):
+        if value is None:
+            return missing
+        return make_etag(value)
+
+
+def make_etag(version: ObjectId):
+    return f'W/"{version}"'
 
 
 class SCIMSchema(Enum):
@@ -51,7 +70,7 @@ class Meta:
     last_modified: datetime = field(metadata={'data_key': 'lastModified', 'required': True})
     resource_type: SCIMResourceType = field(metadata={'data_key': 'resourceType', 'by_value': True, 'required': True})
     created: datetime = field(metadata={'required': True})
-    version: ObjectId = field(metadata={'marshmallow_field': ObjectIdField(), 'required': True})
+    version: ObjectId = field(metadata={'marshmallow_field': VersionField(), 'required': True})
 
 
 @dataclass

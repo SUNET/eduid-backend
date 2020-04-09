@@ -5,7 +5,7 @@ import json
 import logging
 import sys
 from pprint import pformat
-from typing import Any, Callable, Dict, Mapping, NewType, Optional, cast
+from typing import Any, Callable, Dict, Mapping, NewType, Optional, cast, List
 
 import requests
 import yaml
@@ -29,13 +29,15 @@ def parse_args() -> Args:
     return cast(Args, parser.parse_args())
 
 
-def scim_request(func: Callable, url: str, json=None) -> Optional[Dict[str, Any]]:
-    headers = {'content-type': 'application/scim+json'}
+def scim_request(func: Callable, url: str, json: Optional[dict] = None,
+                 headers: Optional[dict] = None) -> Optional[Dict[str, Any]]:
+    if not headers:
+        headers = {'content-type': 'application/scim+json'}
     logger.debug(f'API URL: {url}')
     r = func(url, json=json, headers=headers)
     logger.debug(f'Response from server: {r}\n{r.text}')
 
-    if r.status_code != 200:
+    if r.status_code not in [200, 201, 204]:
         return None
 
     response = r.json()
@@ -60,10 +62,46 @@ def search_user(api: str, external_id: str) -> Optional[Dict[str, Any]]:
     return res
 
 
+def search_group(api: str, display_name: str) -> Optional[Dict[str, Any]]:
+    logger.info(f'Searching for group with displayName {display_name}')
+    query = {
+        'schemas': [
+            'urn:ietf:params:scim:api:messages:2.0:SearchRequest'
+        ],
+        'filter': f'displayName eq "{display_name}"',
+        'startIndex': 1,
+        'count': 1
+    }
+
+    logger.debug(f'Sending group search query:\n{pformat(json.dumps(query, sort_keys=True, indent=4))}')
+    res = scim_request(requests.post, f'{api}/Groups/.search', json=query)
+    logger.info(f'Group search result:\n{json.dumps(res, sort_keys=True, indent=4)}\n')
+    return res
+
+
+def create_group(api: str, display_name: str) -> Optional[Dict[str, Any]]:
+    logger.info(f'Creating group with displayName {display_name}')
+    query = {
+        'schemas': ['urn:ietf:params:scim:schemas:core:2.0:Group'],
+        'displayName': display_name,
+        'members': []
+    }
+    logger.debug(f'Sending group create query:\n{pformat(json.dumps(query, sort_keys=True, indent=4))}')
+    res = scim_request(requests.post, f'{api}/Groups/', json=query)
+    logger.info(f'Group create result:\n{json.dumps(res, sort_keys=True, indent=4)}\n')
+    return res
+
+
 def get_user_resource(api: str, scim_id: str) -> Optional[Dict[str, Any]]:
     logger.debug(f'Fetching SCIM user resource {scim_id}')
 
     return scim_request(requests.get, f'{api}/Users/{scim_id}')
+
+
+def get_group_resource(api: str, scim_id: str) -> Optional[Dict[str, Any]]:
+    logger.debug(f'Fetching SCIM group resource {scim_id}')
+
+    return scim_request(requests.get, f'{api}/Groups/{scim_id}')
 
 
 def put_user(api: str, scim_id: str, profiles: Mapping[str, Any]) -> None:
@@ -85,6 +123,32 @@ def put_user(api: str, scim_id: str, profiles: Mapping[str, Any]) -> None:
     logger.info(f'Update result:\n{json.dumps(res, sort_keys=True, indent=4)}')
     return None
 
+
+def put_group(api: str, scim_id: str, data: Dict[str, Any]) -> None:
+    scim = get_group_resource(api, scim_id)
+    if not scim:
+        return
+
+    meta = scim.pop('meta')
+    display_name = data.get('display_name')
+    members = data.get('members')
+    if display_name:
+        scim['displayName'] = display_name
+    if members:
+        new_members = []
+        for member in members:
+            new_members.append({
+                '$ref': f'{api}/Users/{member["id"]}',
+                'value': member['id'],
+                'display': member['display_name'],
+            })
+        scim['members'] = new_members
+
+    headers = {'content-type': 'application/scim+json', 'if-match': meta["version"]}
+
+    logger.info(f'Updating SCIM group resource {scim_id}:\n{json.dumps(scim, sort_keys=True, indent=4)}\n')
+    res = scim_request(requests.put, f'{api}/Groups/{scim_id}', json=scim, headers=headers)
+    logger.info(f'Update result:\n{json.dumps(res, sort_keys=True, indent=4)}')
 
 
 def process_users(api: str, ops: Mapping[str, Any]) -> None:
@@ -108,6 +172,19 @@ def process_users(api: str, ops: Mapping[str, Any]) -> None:
                 put_user(api, scim_id, ops[op][scim_id]['profiles'])
 
 
+def process_groups(api: str, ops: Mapping[str, Any]) -> None:
+    for op in ops.keys():
+        if op == 'search':
+            for display_name in ops[op]:
+                res = search_group(api, display_name)
+                if res['totalResults'] == 0:
+                    logger.info(f'Found no group with displayName: {display_name}. Creating it.')
+                    create_group(api, display_name)
+        elif op == 'put':
+            for scim_id in ops[op]:
+                put_group(api, scim_id, data=ops[op][scim_id])
+
+
 def main(args: Args) -> bool:
     data = yaml.safe_load(args.file)
 
@@ -116,6 +193,8 @@ def main(args: Args) -> bool:
     for api in data.keys():
         if 'users' in data[api]:
             process_users(api, data[api]['users'])
+        if 'groups' in data[api]:
+            process_groups(api, data[api]['groups'])
 
     return True
 
