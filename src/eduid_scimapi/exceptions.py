@@ -104,6 +104,15 @@ class BadRequest(HTTPErrorDetail, falcon.HTTPBadRequest):
             self.error_detail.title = 'Bad Request'
 
 
+class NotFound(HTTPErrorDetail, falcon.HTTPNotFound):
+    def __init__(self, **kwargs):
+        super().__init__(type=SCIM_ERROR, **kwargs)
+        if not self.error_detail.title:
+            self.error_detail.title = 'Not found'
+        if not self.error_detail.detail:
+            self.error_detail.detail = 'Resource not found'
+
+
 class UnsupportedMediaTypeMalformed(HTTPErrorDetail, falcon.HTTPUnsupportedMediaType):
     def __init__(self, **kwargs):
         super().__init__(type=SCIM_ERROR, **kwargs)

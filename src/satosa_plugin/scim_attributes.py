@@ -3,15 +3,14 @@ import pprint
 from dataclasses import dataclass
 from typing import Any, Dict, Mapping, Optional
 
-import satosa.context
-import satosa.internal
-from satosa.attribute_mapping import AttributeMapper
-from satosa.micro_services.base import ResponseMicroService
-
 from eduid_userdb import UserDB
 
+import satosa.context
+import satosa.internal
 from eduid_scimapi.user import ScimApiUser
 from eduid_scimapi.userdb import ScimApiUserDB
+from satosa.attribute_mapping import AttributeMapper
+from satosa.micro_services.base import ResponseMicroService
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +40,6 @@ class ScimAttributes(ResponseMicroService):
         _int = self.converter.to_internal('saml', {'eduPersonPrincipalName': 'something'})
         self.ext_id_attr = list(_int.keys())[0]
         logger.debug(f'SCIM externalId internal attribute name: {self.ext_id_attr}')
-
 
     def process(
         self, context: satosa.context.Context, data: satosa.internal.InternalData,

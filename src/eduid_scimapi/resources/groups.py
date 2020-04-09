@@ -2,13 +2,12 @@ import re
 from typing import List, Optional
 from uuid import UUID
 
-from eduid_groupdb import Group as DBGroup
-from eduid_groupdb import User as DBUser
-from eduid_groupdb.exceptions import MultipleReturnedError
 from falcon import Request, Response
 from marshmallow.exceptions import ValidationError
 
-from eduid_scimapi.exceptions import BadRequest, ServerInternal
+from eduid_groupdb import Group as DBGroup
+from eduid_groupdb.exceptions import MultipleReturnedError
+from eduid_scimapi.exceptions import BadRequest, NotFound
 from eduid_scimapi.group import (
     Group,
     GroupCreateRequestSchema,
@@ -18,7 +17,6 @@ from eduid_scimapi.group import (
     GroupUpdateRequest,
     GroupUpdateRequestSchema,
 )
-from eduid_scimapi.profile import Profile
 from eduid_scimapi.resources.base import BaseResource
 from eduid_scimapi.scimbase import (
     ListResponse,
@@ -28,10 +26,18 @@ from eduid_scimapi.scimbase import (
     SCIMSchema,
     SearchRequest,
     SearchRequestSchema,
+    make_etag,
 )
 
 
 class GroupsResource(BaseResource):
+    def _check_version(self, req: Request, db_group: DBGroup) -> bool:
+        if req.headers.get('IF-MATCH') == make_etag(db_group.version):
+            return True
+        self.context.logger.error(f'Version mismatch')
+        self.context.logger.debug(f'{req.headers.get("IF-MATCH")} != {make_etag(db_group.version)}')
+        return False
+
     def _get_group_members(self, db_group: DBGroup) -> List[GroupMember]:
         members = []
         for member in db_group.member_users:
@@ -47,7 +53,7 @@ class GroupsResource(BaseResource):
         location = self.url_for("Groups", db_group.identifier)
         meta = Meta(
             location=location,
-            last_modified=db_group.modified_ts,
+            last_modified=db_group.modified_ts or db_group.created_ts,
             resource_type=SCIMResourceType.group,
             created=db_group.created_ts,
             version=db_group.version,
@@ -64,7 +70,7 @@ class GroupsResource(BaseResource):
         resp.set_header("ETag", f'W/"{db_group.version}"')
         resp.media = GroupResponseSchema().dump(group)
 
-    def on_get(self, req: Request, resp: Response, scim_id=None):
+    def on_get(self, req: Request, resp: Response, scim_id: Optional[str] = None):
         """
         GET /Groups/c3819cbe-c893-4070-824c-fe3d0db8f955  HTTP/1.1
         Host: example.com
@@ -103,7 +109,7 @@ class GroupsResource(BaseResource):
             db_group: DBGroup = self.context.groupdb.get_group_by_scim_id(scope=scope, identifier=scim_id)
             self.context.logger.debug(f'Found group: {db_group}')
             if not db_group:
-                raise BadRequest(detail="Group not found")
+                raise NotFound(detail="Group not found")
             self._db_group_to_response(resp, db_group)
         else:
             # Return all Groups for scope
@@ -117,7 +123,7 @@ class GroupsResource(BaseResource):
             list_response.resources = resources
             resp.media = ListResponseSchema().dump(list_response)
 
-    def on_put(self, req: Request, resp: Response, scim_id):
+    def on_put(self, req: Request, resp: Response, scim_id: str):
         """
         PUT /Groups/c3819cbe-c893-4070-824c-fe3d0db8f955  HTTP/1.1
         Host: example.com
@@ -170,6 +176,11 @@ class GroupsResource(BaseResource):
         try:
             update_request: GroupUpdateRequest = GroupUpdateRequestSchema().load(req.media)
             self.context.logger.debug(update_request)
+            if scim_id != str(update_request.id):
+                self.context.logger.error(f'Id mismatch')
+                self.context.logger.debug(f'{scim_id} != {update_request.id}')
+                raise BadRequest(detail='Id mismatch')
+
             # Please mypy as GroupUpdateRequest no longer inherit from Group
             group = Group(display_name=update_request.display_name, members=update_request.members)
 
@@ -183,12 +194,10 @@ class GroupsResource(BaseResource):
             )
             self.context.logger.debug(f'Found group: {db_group}')
             if not db_group:
-                raise BadRequest(detail='Group not found')
+                raise NotFound(detail="Group not found")
 
             # Check version
-            if req.headers.get('IF-MATCH') != f'W/{db_group.version}':
-                self.context.logger.error(f'Version mismatch')
-                self.context.logger.debug(f'{req.headers.get("IF-MATCH")} != W/{db_group.version}')
+            if not self._check_version(req, db_group):
                 raise BadRequest(detail="Version mismatch")
 
             # Check that members exists in their respective db
@@ -250,6 +259,24 @@ class GroupsResource(BaseResource):
             self._db_group_to_response(resp, db_group)
         except ValidationError as e:
             raise BadRequest(detail=f"{e}")
+
+    def on_delete(self, req: Request, resp: Response, scim_id: str):
+        self.context.logger.info(f"Fetching group {scim_id}")
+        # TODO: Figure out scope
+        scope = 'eduid.se'
+
+        # Get group from db
+        db_group: DBGroup = self.context.groupdb.get_group_by_scim_id(scope=scope, identifier=scim_id)
+        self.context.logger.debug(f'Found group: {db_group}')
+        if not db_group:
+            raise NotFound(detail="Group not found")
+
+        # Check version
+        if not self._check_version(req, db_group):
+            raise BadRequest(detail="Version mismatch")
+
+        self.context.groupdb.remove_group(scope=scope, identifier=scim_id)
+        resp.status = '204'
 
 
 class GroupSearchResource(BaseResource):
