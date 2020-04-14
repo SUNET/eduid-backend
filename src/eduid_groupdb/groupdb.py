@@ -24,7 +24,7 @@ class GroupDB(BaseGraphDB):
         OWNER = 'OWNS'
 
     def db_setup(self):
-        with self.db.driver.session() as session:
+        with self.db.driver.session(access_mode='write') as session:
             statements = [
                 # Constraints for Group nodes
                 'CREATE CONSTRAINT ON (n:Group) ASSERT exists(n.scope)',
@@ -206,7 +206,7 @@ class GroupDB(BaseGraphDB):
                    m.identifier as identifier, m.scope as scope, m.version as version, m.description as description,
                    labels(m) as labels
             """
-        with self.db.driver.session() as session:
+        with self.db.driver.session(access_mode='read') as session:
             for record in session.run(q, scope=scope, identifier=identifier):
                 labels = record.get('labels', [])
                 if 'User' in labels:
@@ -221,7 +221,7 @@ class GroupDB(BaseGraphDB):
             OPTIONAL MATCH (g)<-[r]-(m)
             RETURN *
             """
-        with self.db.driver.session() as session:
+        with self.db.driver.session(access_mode='read') as session:
             group_graph: Graph = session.run(q, scope=scope, identifier=identifier).graph()
 
         if not group_graph.nodes and not group_graph.relationships:
@@ -262,7 +262,7 @@ class GroupDB(BaseGraphDB):
             MATCH (g: Group {scope: $scope, identifier: $identifier})
             DETACH DELETE g
             """
-        with self.db.driver.session() as session:
+        with self.db.driver.session(access_mode='write') as session:
             session.run(q, scope=scope, identifier=identifier)
 
     def get_groups_by_property(self, scope, key, value, skip=0, limit=100):
@@ -272,7 +272,7 @@ class GroupDB(BaseGraphDB):
             WHERE g.{key} = $value
             RETURN g as group SKIP $skip LIMIT $limit
             """
-        with self.db.driver.session() as session:
+        with self.db.driver.session(access_mode='read') as session:
             for record in session.run(q, scope=scope, value=value, skip=skip, limit=limit):
                 res.append(Group.from_mapping(record.data()['group']))
         return res
@@ -283,7 +283,7 @@ class GroupDB(BaseGraphDB):
             MATCH (g: Group {scope: $scope})
             RETURN g as group
             """
-        with self.db.driver.session() as session:
+        with self.db.driver.session(access_mode='read') as session:
             for record in session.run(q, scope=scope):
                 res.append(Group.from_mapping(record.data()['group']))
         return res
@@ -301,7 +301,7 @@ class GroupDB(BaseGraphDB):
             RETURN g as group
             """
 
-        with self.db.driver.session() as session:
+        with self.db.driver.session(access_mode='read') as session:
             for record in session.run(q, identifier=user.identifier, scope=scope):
                 res.append(Group.from_mapping(record.data()['group']))
         return res
@@ -311,12 +311,12 @@ class GroupDB(BaseGraphDB):
             MATCH (g: Group {scope: $scope, identifier: $identifier})             
             RETURN count(*) as exists LIMIT 1
             """
-        with self.db.driver.session() as session:
+        with self.db.driver.session(access_mode='read') as session:
             ret = session.run(q, scope=scope, identifier=identifier).single()['exists']
         return bool(ret)
 
     def save(self, group: Group) -> Group:
-        with self.db.driver.session() as session:
+        with self.db.driver.session(access_mode='write') as session:
             try:
                 tx = session.begin_transaction()
                 self._remove_missing_users_and_groups(tx, group, self.Role.OWNER)
