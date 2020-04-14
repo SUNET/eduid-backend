@@ -10,7 +10,7 @@ class ScimApiConfig(BaseConfig):
     Configuration for the SCIM API app
     """
 
-    test: bool = True
+    test: bool = False
     schema: str = 'http'
     server_name: str = 'localhost:8000'
     application_root: str = '/'

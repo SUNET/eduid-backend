@@ -1,13 +1,17 @@
 # -*- coding: utf-8 -*-
+import json
 import unittest
 from os import environ
 
+import falcon
+from falcon.testing import TestClient
+
 from eduid_common.config.testing import EtcdTemporaryInstance
-from eduid_userdb import MongoDB
 from eduid_userdb.testing import MongoTemporaryInstance
 
-from eduid_groupdb import Neo4jDB
 from eduid_groupdb.testing import Neo4jTemporaryInstance
+from eduid_scimapi.app import init_api
+from eduid_scimapi.config import ScimApiConfig
 
 __author__ = 'lundberg'
 
@@ -36,6 +40,29 @@ class ScimApiTestCase(unittest.TestCase):
         )
         cls.etcd_instance = EtcdTemporaryInstance.get_instance()
         environ.update({'ETCD_PORT': str(cls.etcd_instance.port)})
+
+    def setUp(self) -> None:
+        self.test_config = self._get_config()
+        api = init_api(name='test_api', test_config=self.test_config, debug=True)
+        self.client = TestClient(api)
+        self.headers = {
+            'Content-Type': 'application/scim+json',
+            'Accept': 'application/scim+json',
+        }
+
+    def _get_config(self) -> dict:
+        config = {
+            'test': True,
+            'mongo_uri': self.mongo_uri,
+            'neo4j_uri': self.neo4j_uri,
+            'neo4j_config': {'encrypted': False},
+            'logging_config': None,
+            'log_format': '%(asctime)s | %(levelname)s | %(name)s | %(module)s | %(message)s',
+        }
+        return config
+
+    def as_json(self, data: dict) -> str:
+        return json.dumps(data)
 
     def tearDown(self):
         # Mongodb collection need to be cleared in every test class
