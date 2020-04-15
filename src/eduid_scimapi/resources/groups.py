@@ -7,6 +7,7 @@ from marshmallow.exceptions import ValidationError
 
 from eduid_groupdb import Group as DBGroup
 from eduid_groupdb.exceptions import MultipleReturnedError
+
 from eduid_scimapi.exceptions import BadRequest, NotFound
 from eduid_scimapi.group import (
     Group,
