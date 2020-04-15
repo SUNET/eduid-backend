@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Sequence
 
 from falcon import Request, Response
+from marshmallow import ValidationError
 
 from eduid_userdb.user import User
 
@@ -10,7 +11,7 @@ from eduid_scimapi.context import Context
 from eduid_scimapi.exceptions import BadRequest
 from eduid_scimapi.profile import Profile, parse_nutid_profiles
 from eduid_scimapi.resources.base import BaseResource
-from eduid_scimapi.scimbase import SCIMSchema
+from eduid_scimapi.scimbase import ListResponse, ListResponseSchema, SCIMSchema, SearchRequest, SearchRequestSchema
 from eduid_scimapi.user import ScimApiUser
 
 
@@ -170,16 +171,17 @@ class UsersSearchResource(BaseResource):
              ]
            }
         """
-        self.context.logger.info(f'Searching for user(s)')
+        self.context.logger.info(f'Searching for users(s)')
 
         if not req.media:
             raise BadRequest(detail='No data in user search request')
-        # TODO: validate schemas, attributes etc.
-        filter = req.media.get('filter')
-        if not filter:
-            raise BadRequest(detail='No filter in user search request')
 
-        match = re.match('(.+?) (..) "(.+?)"', filter)
+        try:
+            query: SearchRequest = SearchRequestSchema().load(req.media)
+        except ValidationError as e:
+            raise BadRequest(detail=f'{e}')
+
+        match = re.match('(.+?) (..) "(.+?)"', query.filter)
         if not match:
             raise BadRequest(type='invalidFilter', detail='Unrecognised filter')
 
@@ -192,18 +194,14 @@ class UsersSearchResource(BaseResource):
         else:
             raise BadRequest(type='invalidFilter', detail=f'Can\'t filter on attribute {attr}')
 
-        resp.media = {
-            'totalResults': len(users),
-            'itemsPerPage': len(users),
-            'startIndex': 1,
-            'schemas': ['urn:ietf:params:scim:api:messages:2.0:ListResponse'],
-            'Resources': self._users_to_resources_dicts(req, users),
-        }
+        list_response = ListResponse(resources=self._users_to_resources_dicts(req, users), total_results=len(users))
+
+        resp.media = ListResponseSchema().dump(list_response)
 
     def _users_to_resources_dicts(self, req: Request, users: Sequence[ScimApiUser]) -> List[Dict[str, Any]]:
         _attributes = req.media.get('attributes')
         # TODO: include the requested attributes, not just id
-        return [{'id': str(user.scim_id) for user in users}]
+        return [{'id': str(user.scim_id)} for user in users]
 
     def _filter_externalid(self, req: Request, op: str, val: str) -> List[ScimApiUser]:
         if op != 'eq':
