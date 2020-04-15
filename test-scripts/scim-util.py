@@ -5,7 +5,7 @@ import json
 import logging
 import sys
 from pprint import pformat
-from typing import Any, Callable, Dict, Mapping, NewType, Optional, cast, List
+from typing import Any, Callable, Dict, List, Mapping, NewType, Optional, cast
 
 import requests
 import yaml
@@ -18,19 +18,16 @@ NUTID_V1 = 'https://scim.eduid.se/schema/nutid/v1'
 
 def parse_args() -> Args:
     parser = argparse.ArgumentParser(description='SCIM testing utility')
-    parser.add_argument('--debug',
-                        dest='debug',
-                        action='store_true', default=False,
-                        help='Enable debug operation'
-                        )
+    parser.add_argument('--debug', dest='debug', action='store_true', default=False, help='Enable debug operation')
 
     parser.add_argument('file', metavar='FILE', type=argparse.FileType('r'), help='YAML file with command data in it')
 
     return cast(Args, parser.parse_args())
 
 
-def scim_request(func: Callable, url: str, data: Optional[dict] = None,
-                 headers: Optional[dict] = None) -> Optional[Dict[str, Any]]:
+def scim_request(
+    func: Callable, url: str, data: Optional[dict] = None, headers: Optional[dict] = None
+) -> Optional[Dict[str, Any]]:
     if not headers:
         headers = {'content-type': 'application/scim+json'}
     logger.debug(f'API URL: {url}')
@@ -55,12 +52,10 @@ def scim_request(func: Callable, url: str, data: Optional[dict] = None,
 def search_user(api: str, filter: str) -> Optional[Dict[str, Any]]:
     logger.info(f'Searching for user with filter {filter}')
     query = {
-        'schemas': [
-            'urn:ietf:params:scim:api:messages:2.0:SearchRequest'
-        ],
+        'schemas': ['urn:ietf:params:scim:api:messages:2.0:SearchRequest'],
         'filter': filter,
         'startIndex': 1,
-        'count': 1
+        'count': 1,
     }
 
     logger.debug(f'Sending user search query:\n{json.dumps(query, sort_keys=True, indent=4)}')
@@ -72,12 +67,10 @@ def search_user(api: str, filter: str) -> Optional[Dict[str, Any]]:
 def search_group(api: str, display_name: str) -> Optional[Dict[str, Any]]:
     logger.info(f'Searching for group with displayName {display_name}')
     query = {
-        'schemas': [
-            'urn:ietf:params:scim:api:messages:2.0:SearchRequest'
-        ],
+        'schemas': ['urn:ietf:params:scim:api:messages:2.0:SearchRequest'],
         'filter': f'displayName eq "{display_name}"',
         'startIndex': 1,
-        'count': 1
+        'count': 1,
     }
 
     logger.debug(f'Sending group search query:\n{pformat(json.dumps(query, sort_keys=True, indent=4))}')
@@ -88,11 +81,7 @@ def search_group(api: str, display_name: str) -> Optional[Dict[str, Any]]:
 
 def create_group(api: str, display_name: str) -> Optional[Dict[str, Any]]:
     logger.info(f'Creating group with displayName {display_name}')
-    query = {
-        'schemas': ['urn:ietf:params:scim:schemas:core:2.0:Group'],
-        'displayName': display_name,
-        'members': []
-    }
+    query = {'schemas': ['urn:ietf:params:scim:schemas:core:2.0:Group'], 'displayName': display_name, 'members': []}
     logger.debug(f'Sending group create query:\n{pformat(json.dumps(query, sort_keys=True, indent=4))}')
     res = scim_request(requests.post, f'{api}/Groups/', json=query)
     logger.info(f'Group create result:\n{json.dumps(res, sort_keys=True, indent=4)}\n')
@@ -144,11 +133,9 @@ def put_group(api: str, scim_id: str, data: Dict[str, Any]) -> None:
     if members:
         new_members = []
         for member in members:
-            new_members.append({
-                '$ref': f'{api}/Users/{member["id"]}',
-                'value': member['id'],
-                'display': member['display_name'],
-            })
+            new_members.append(
+                {'$ref': f'{api}/Users/{member["id"]}', 'value': member['id'], 'display': member['display_name'],}
+            )
         scim['members'] = new_members
 
     headers = {'content-type': 'application/scim+json', 'if-match': meta["version"]}
@@ -224,8 +211,7 @@ def _config_logger(args: Args, progname: str):
     level = logging.INFO
     if args.debug:
         level = logging.DEBUG
-    logging.basicConfig(level=level, stream=sys.stderr,
-                        format='%(asctime)s: %(name)s: %(levelname)s %(message)s')
+    logging.basicConfig(level=level, stream=sys.stderr, format='%(asctime)s: %(name)s: %(levelname)s %(message)s')
     logger.name = progname
     # If stderr is not a TTY, change the log level of the StreamHandler (stream = sys.stderr above) to WARNING
     if not sys.stderr.isatty() and not args.debug:
