@@ -7,7 +7,10 @@ from uuid import uuid4
 
 from bson import ObjectId
 from marshmallow_dataclass import class_schema
-from eduid_groupdb import Group as DBGroup, User as DBUser
+
+from eduid_groupdb import Group as DBGroup
+from eduid_groupdb import User as DBUser
+
 from eduid_scimapi.group import GroupMember, GroupResponse
 from eduid_scimapi.scimbase import SCIMSchema, make_etag
 from eduid_scimapi.testing import ScimApiTestCase
@@ -35,7 +38,6 @@ class TestSCIMGroup(TestScimBase):
 
 
 class TestGroupResource(ScimApiTestCase):
-
     def add_group(self, scope: str, identifier: str, display_name: str) -> DBGroup:
         group = DBGroup(scope=scope, identifier=identifier, display_name=display_name)
         return self.context.groupdb.save(group)
@@ -76,12 +78,23 @@ class TestGroupResource(ScimApiTestCase):
     def test_update_group(self):
         db_group = self.add_group(self.data_owner, str(uuid4()), 'Test Group 1')
         user = self.add_user(identifier=str(uuid4()), external_id='not-used')
-        members = [{'value': str(user.scim_id), '$ref': f'http://localhost:8000/Users/{user.scim_id}', 'display': 'Test User 1'}]
-        request = {'schemas': [SCIMSchema.CORE_20_GROUP.value], 'id': db_group.identifier,
-                   'displayName': 'Another display name', 'members': members}
+        members = [
+            {
+                'value': str(user.scim_id),
+                '$ref': f'http://localhost:8000/Users/{user.scim_id}',
+                'display': 'Test User 1',
+            }
+        ]
+        request = {
+            'schemas': [SCIMSchema.CORE_20_GROUP.value],
+            'id': db_group.identifier,
+            'displayName': 'Another display name',
+            'members': members,
+        }
         self.headers['IF-MATCH'] = make_etag(db_group.version)
-        response = self.client.simulate_put(path=f'/Groups/{db_group.identifier}', body=self.as_json(request),
-                                            headers=self.headers)
+        response = self.client.simulate_put(
+            path=f'/Groups/{db_group.identifier}', body=self.as_json(request), headers=self.headers
+        )
 
         self.assertEqual([SCIMSchema.CORE_20_GROUP.value], response.json.get('schemas'))
         self.assertIsNotNone(response.json.get('id'))
