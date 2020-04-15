@@ -55,8 +55,7 @@ class HTTPErrorDetail(falcon.HTTPError):
         detail = kwargs.pop('detail', None)
         super().__init__(**kwargs)
         status = int(self.status.split(' ')[0])
-        self._error_detail = ErrorDetail(scimType=typ, schemas=schemas,
-                                         detail=detail, status=status)
+        self._error_detail = ErrorDetail(scimType=typ, schemas=schemas, detail=detail, status=status)
         self._extra_headers: Optional[Dict] = None
 
     @property
