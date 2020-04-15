@@ -1,12 +1,16 @@
 # -*- coding: utf-8 -*-
 import json
 import unittest
+import uuid
 from os import environ
 
 import falcon
+from bson import ObjectId
 from falcon.testing import TestClient
 
 from eduid_common.config.testing import EtcdTemporaryInstance
+from eduid_scimapi.context import Context
+from eduid_scimapi.user import ScimApiUser
 from eduid_userdb.testing import MongoTemporaryInstance
 from eduid_groupdb.testing import Neo4jTemporaryInstance
 
@@ -43,6 +47,13 @@ class ScimApiTestCase(unittest.TestCase):
 
     def setUp(self) -> None:
         self.test_config = self._get_config()
+        config = ScimApiConfig.init_config(test_config=self.test_config, debug=True)
+        self.context = Context(config)
+
+        # TODO: more tests for scoped groups when that is implemented
+        self.data_owner = 'eduid.se'
+        self.userdb = self.context.get_database(self.data_owner)
+
         api = init_api(name='test_api', test_config=self.test_config, debug=True)
         self.client = TestClient(api)
         self.headers = {
@@ -61,10 +72,15 @@ class ScimApiTestCase(unittest.TestCase):
         }
         return config
 
+    def add_user(self, identifier: str, external_id: str) -> ScimApiUser:
+        user = ScimApiUser(user_id=ObjectId(), scim_id=uuid.UUID(identifier), external_id=external_id)
+        self.userdb.save(user)
+        return self.userdb.get_user_by_scim_id(scim_id=identifier)
+
     def as_json(self, data: dict) -> str:
         return json.dumps(data)
 
     def tearDown(self):
-        # Mongodb collection need to be cleared in every test class
+        self.userdb._drop_whole_collection()
         self.etcd_instance.clear('/eduid/api/')
         self.neo4j_instance.purge_db()
