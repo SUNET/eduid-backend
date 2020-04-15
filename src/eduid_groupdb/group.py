@@ -7,7 +7,7 @@ from typing import List, Mapping, Optional, Type, Union
 
 from bson import ObjectId
 
-from eduid_groupdb.exceptions import MultipleUsersReturned, MultipleGroupsReturned
+from eduid_groupdb.exceptions import MultipleGroupsReturned, MultipleUsersReturned
 from eduid_groupdb.helpers import neo4j_ts_to_dt
 
 __author__ = 'lundberg'
