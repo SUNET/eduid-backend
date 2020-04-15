@@ -97,3 +97,33 @@
     ...
   }
 ```
+
+
+## Search operations
+
+To search for one or more users based on their externalId:
+
+```
+---
+  'http://scimapi.eduid.docker:8000':
+    'users':
+      'search':
+        'externalId':
+           - 'hubba-bubba@eduid.se'
+```
+
+To search for users based on last modification timestamp:
+
+```
+---
+  'http://scimapi.eduid.docker:8000':
+    'users':
+      'search':
+        'lastModified':
+           'ge':
+             - '2020-03-31T14:01:55.830000+00:00'
+```
+
+Supported operations for this search:
+  - 'gt' (greater than)
+  - 'ge' (greater than, or equal)
