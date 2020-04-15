@@ -1,5 +1,5 @@
 import re
-from typing import Optional
+from typing import Any, Dict, List, Optional, Sequence
 
 from falcon import Request, Response
 
@@ -178,16 +178,38 @@ class UsersSearchResource(BaseResource):
         if not filter:
             raise BadRequest(detail='No filter in user search request')
 
-        match = re.match('externalId eq "(.+?)"', filter)
+        match = re.match('(.+?) (eq) "(.+?)"', filter)
         if not match:
             raise BadRequest(detail='Unrecognised filter')
 
-        external_id = match.group(1)
-        user = req.context['userdb'].get_user_by_external_id(external_id)
+        attr, op, val = match.groups()
+
+        users = []
+        if attr.lower() == 'externalid':
+            users = self._filter_externalid(req, op.lower(), val)
+
+        resp.media = {
+            'totalResults': len(users),
+            'itemsPerPage': len(users),
+            'startIndex': 1,
+            'schemas': ['urn:ietf:params:scim:api:messages:2.0:ListResponse'],
+            'Resources': self._users_to_resources_dicts(req, users)
+        }
+
+    def _users_to_resources_dicts(self, req: Request, users: Sequence[ScimApiUser]) -> List[Dict[str, Any]]:
+        _attributes = req.media.get('attributes')
+        # TODO: include the requested attributes, not just id
+        return [{'id': str(user.scim_id) for user in users}]
+
+    def _filter_externalid(self, req: Request, op: str, val: str) -> List[ScimApiUser]:
+        if op != 'eq':
+            raise BadRequest(detail='Unsupported operator')
+
+        user = req.context['userdb'].get_user_by_external_id(val)
 
         if not user:
             # persist the scim_id for the search result by saving it as a ScimApiUser
-            user = ScimApiUser(external_id=external_id)
+            user = ScimApiUser(external_id=val)
             req.context['userdb'].save(user)
 
         _add_eduid_PoC_profile(user, self.context)
@@ -196,10 +218,7 @@ class UsersSearchResource(BaseResource):
             # TODO: probably not the right way to signal this
             raise BadRequest(detail='User not found')
 
-        location = self.url_for('Users', user.scim_id)
-        resp.set_header('Location', location)
-        resp.set_header('ETag', user.etag)
-        resp.media = user.to_scim_dict(location, debug=self.context.config.debug, data_owner=req.context['data_owner'])
+        return [user]
 
 
 def _add_eduid_PoC_profile(user: ScimApiUser, context: Context) -> None:
