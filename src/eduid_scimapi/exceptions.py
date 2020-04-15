@@ -4,7 +4,7 @@ import json
 import logging
 import traceback
 import uuid
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from typing import Dict, List, Optional
 
 import falcon
@@ -18,20 +18,10 @@ SCIM_ERROR = 'urn:ietf:params:scim:api:messages:2.0:Error'
 
 @dataclass
 class ErrorDetail(object):
-    type: str
-    title: Optional[str] = None
+    scimType: Optional[str] = None
+    schemas: List[str] = field(default_factory=lambda: [SCIM_ERROR])
+    detail: Optional[str] = None
     status: Optional[int] = None
-    detail: Optional[str] = None
-    instance: Optional[str] = None
-    algorithms: Optional[list] = None
-    subproblems: Optional[List[Subproblem]] = None
-
-
-@dataclass
-class Subproblem(object):
-    type: str
-    detail: Optional[str] = None
-    identifier: Optional[Dict[str, str]] = None
 
 
 # Catch and handle falcons default exceptions
@@ -60,16 +50,17 @@ def unexpected_error_handler(ex: Exception, req: falcon.Request, resp: falcon.Re
 
 class HTTPErrorDetail(falcon.HTTPError):
     def __init__(self, **kwargs):
-        typ = kwargs.pop('type')
+        typ = kwargs.pop('scimType', kwargs.pop('type'))
+        schemas = kwargs.pop('schemas', [SCIM_ERROR])
         detail = kwargs.pop('detail', None)
-        self._error_detail: Optional[ErrorDetail] = ErrorDetail(
-            type=typ, detail=detail,
-        )
-        self._extra_headers: Optional[Dict] = None
         super().__init__(**kwargs)
+        status = int(self.status.split(' ')[0])
+        self._error_detail = ErrorDetail(scimType=typ, schemas=schemas,
+                                         detail=detail, status=status)
+        self._extra_headers: Optional[Dict] = None
 
     @property
-    def error_detail(self):
+    def error_detail(self) -> ErrorDetail:
         return self._error_detail
 
     @property
@@ -81,16 +72,13 @@ class HTTPErrorDetail(falcon.HTTPError):
         self._extra_headers = headers
 
     def to_dict(self, obj_type=dict):
-        result = super().to_dict(obj_type)
-        result.update(filter_none(asdict(self._error_detail)))
+        result = filter_none(asdict(self._error_detail))
         return result
 
     @staticmethod
     def handle(ex: HTTPErrorDetail, req: falcon.Request, resp: falcon.Response, params):
         resp.status = ex.status
         resp.content_type = 'application/scim+json'
-        if not ex.error_detail.instance:
-            ex.error_detail.instance = req.uri
         resp.body = json.dumps(ex.to_dict())
         if ex.extra_headers:
             for key, value in ex.extra_headers.items():
@@ -99,16 +87,14 @@ class HTTPErrorDetail(falcon.HTTPError):
 
 class BadRequest(HTTPErrorDetail, falcon.HTTPBadRequest):
     def __init__(self, **kwargs):
-        super().__init__(type='x-error:badRequest', **kwargs)
-        if not self.error_detail.title:
-            self.error_detail.title = 'Bad Request'
+        super().__init__(**kwargs)
+        if not self.error_detail.detail:
+            self.error_detail.detail = 'Bad Request'
 
 
 class NotFound(HTTPErrorDetail, falcon.HTTPNotFound):
     def __init__(self, **kwargs):
         super().__init__(type=SCIM_ERROR, **kwargs)
-        if not self.error_detail.title:
-            self.error_detail.title = 'Not found'
         if not self.error_detail.detail:
             self.error_detail.detail = 'Resource not found'
 
@@ -116,8 +102,6 @@ class NotFound(HTTPErrorDetail, falcon.HTTPNotFound):
 class UnsupportedMediaTypeMalformed(HTTPErrorDetail, falcon.HTTPUnsupportedMediaType):
     def __init__(self, **kwargs):
         super().__init__(type=SCIM_ERROR, **kwargs)
-        if not self.error_detail.title:
-            self.error_detail.title = 'Unsupported media type'
         if not self.error_detail.detail:
             self.error_detail.detail = 'Request was made with an unsupported media type'
 
@@ -125,8 +109,6 @@ class UnsupportedMediaTypeMalformed(HTTPErrorDetail, falcon.HTTPUnsupportedMedia
 class MethodNotAllowedMalformed(HTTPErrorDetail, falcon.HTTPMethodNotAllowed):
     def __init__(self, **kwargs):
         super().__init__(type=SCIM_ERROR, **kwargs)
-        if not self.error_detail.title:
-            self.error_detail.title = 'Method not allowed'
         if not self.error_detail.detail:
             allowed_methods = kwargs.get('allowed_methods')
             self.error_detail.detail = f'The used HTTP method is not allowed. Allowed methods: {allowed_methods}'
@@ -135,5 +117,3 @@ class MethodNotAllowedMalformed(HTTPErrorDetail, falcon.HTTPMethodNotAllowed):
 class ServerInternal(HTTPErrorDetail, falcon.HTTPInternalServerError):
     def __init__(self, **kwargs):
         super().__init__(type=SCIM_ERROR, **kwargs)
-        if not self.error_detail.title:
-            self.error_detail.title = 'Internal server error'
