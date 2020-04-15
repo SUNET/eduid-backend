@@ -9,7 +9,8 @@
   'http://scimapi.eduid.docker:8000':
     'users':
       'search':
-         - 'hubba-bubba@eduid.se'
+        'externalId':
+           - 'hubba-bubba@eduid.se'
     'groups':
       'search':
          - 'Test Group 1'
@@ -42,7 +43,8 @@
   'http://scimapi.eduid.docker:8000':
     'users':
       'search':
-         - 'hubba-bubba@eduid.se'
+        'externalId':
+           - 'hubba-bubba@eduid.se'
       'put':
         'd4aa1c10-7120-452b-a109-adf9030b9ef3':
           'profiles':
@@ -51,7 +53,7 @@
               'displayName': 'Kalle Anka'
 	        'data':
               'some-opaque-data': 17,
-    
+
     'groups':
       'search':
          - 'Test Group 1'
@@ -95,3 +97,33 @@
     ...
   }
 ```
+
+
+## Search operations
+
+To search for one or more users based on their externalId:
+
+```
+---
+  'http://scimapi.eduid.docker:8000':
+    'users':
+      'search':
+        'externalId':
+           - 'hubba-bubba@eduid.se'
+```
+
+To search for users based on last modification timestamp:
+
+```
+---
+  'http://scimapi.eduid.docker:8000':
+    'users':
+      'search':
+        'lastModified':
+           'ge':
+             - '2020-03-31T14:01:55.830000+00:00'
+```
+
+Supported operations for this search:
+  - 'gt' (greater than)
+  - 'ge' (greater than, or equal)

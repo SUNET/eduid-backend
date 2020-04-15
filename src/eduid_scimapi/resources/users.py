@@ -1,7 +1,9 @@
 import re
-from typing import Optional
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Sequence
 
 from falcon import Request, Response
+from marshmallow import ValidationError
 
 from eduid_userdb.user import User
 
@@ -9,7 +11,7 @@ from eduid_scimapi.context import Context
 from eduid_scimapi.exceptions import BadRequest
 from eduid_scimapi.profile import Profile, parse_nutid_profiles
 from eduid_scimapi.resources.base import BaseResource
-from eduid_scimapi.scimbase import SCIMSchema
+from eduid_scimapi.scimbase import ListResponse, ListResponseSchema, SCIMSchema, SearchRequest, SearchRequestSchema
 from eduid_scimapi.user import ScimApiUser
 
 
@@ -169,37 +171,56 @@ class UsersSearchResource(BaseResource):
              ]
            }
         """
-        self.context.logger.info(f'Searching for user(s)')
+        self.context.logger.info(f'Searching for users(s)')
 
         if not req.media:
             raise BadRequest(detail='No data in user search request')
-        # TODO: validate schemas, attributes etc.
-        filter = req.media.get('filter')
-        if not filter:
-            raise BadRequest(detail='No filter in user search request')
 
-        match = re.match('externalId eq "(.+?)"', filter)
+        try:
+            query: SearchRequest = SearchRequestSchema().load(req.media)
+        except ValidationError as e:
+            raise BadRequest(detail=f'{e}')
+
+        match = re.match('(.+?) (..) "(.+?)"', query.filter)
         if not match:
-            raise BadRequest(detail='Unrecognised filter')
+            raise BadRequest(type='invalidFilter', detail='Unrecognised filter')
 
-        external_id = match.group(1)
-        user = req.context['userdb'].get_user_by_external_id(external_id)
+        attr, op, val = match.groups()
+
+        if attr.lower() == 'externalid':
+            users = self._filter_externalid(req, op.lower(), val)
+        elif attr.lower() == 'meta.lastmodified':
+            users = self._filter_lastmodified(req, op.lower(), val)
+        else:
+            raise BadRequest(type='invalidFilter', detail=f'Can\'t filter on attribute {attr}')
+
+        list_response = ListResponse(resources=self._users_to_resources_dicts(req, users), total_results=len(users))
+
+        resp.media = ListResponseSchema().dump(list_response)
+
+    def _users_to_resources_dicts(self, req: Request, users: Sequence[ScimApiUser]) -> List[Dict[str, Any]]:
+        _attributes = req.media.get('attributes')
+        # TODO: include the requested attributes, not just id
+        return [{'id': str(user.scim_id)} for user in users]
+
+    def _filter_externalid(self, req: Request, op: str, val: str) -> List[ScimApiUser]:
+        if op != 'eq':
+            raise BadRequest(type='invalidFilter', detail='Unsupported operator')
+
+        user = req.context['userdb'].get_user_by_external_id(val)
 
         if not user:
-            # persist the scim_id for the search result by saving it as a ScimApiUser
-            user = ScimApiUser(external_id=external_id)
-            req.context['userdb'].save(user)
+            return []
 
         _add_eduid_PoC_profile(user, self.context)
 
-        if not user:
-            # TODO: probably not the right way to signal this
-            raise BadRequest(detail='User not found')
+        return [user]
 
-        location = self.url_for('Users', user.scim_id)
-        resp.set_header('Location', location)
-        resp.set_header('ETag', user.etag)
-        resp.media = user.to_scim_dict(location, debug=self.context.config.debug, data_owner=req.context['data_owner'])
+    def _filter_lastmodified(self, req: Request, op: str, val: str) -> List[ScimApiUser]:
+        if op not in ['gt', 'ge']:
+            raise BadRequest(type='invalidFilter', detail='Unsupported operator')
+
+        return req.context['userdb'].get_user_by_last_modified(operator=op, value=datetime.fromisoformat(val))
 
 
 def _add_eduid_PoC_profile(user: ScimApiUser, context: Context) -> None:

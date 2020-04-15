@@ -1,4 +1,4 @@
-SOURCE=	src
+SOURCE=	src test-scripts
 
 reformat:
 	isort --line-width 120 --atomic --project eduid_scimapi --recursive $(SOURCE)
