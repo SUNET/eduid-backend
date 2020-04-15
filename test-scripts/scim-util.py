@@ -29,15 +29,22 @@ def parse_args() -> Args:
     return cast(Args, parser.parse_args())
 
 
-def scim_request(func: Callable, url: str, json: Optional[dict] = None,
+def scim_request(func: Callable, url: str, data: Optional[dict] = None,
                  headers: Optional[dict] = None) -> Optional[Dict[str, Any]]:
     if not headers:
         headers = {'content-type': 'application/scim+json'}
     logger.debug(f'API URL: {url}')
-    r = func(url, json=json, headers=headers)
+    r = func(url, json=data, headers=headers)
     logger.debug(f'Response from server: {r}\n{r.text}')
 
     if r.status_code not in [200, 201, 204]:
+        try:
+            logger.error(
+                f'Failure response ({r.status_code}) received from server:\n'
+                f'{json.dumps(r.json(), sort_keys=True, indent=4)}'
+            )
+        except Exception:
+            logger.error(f'Error {r} received from server: {r.text}')
         return None
 
     response = r.json()
@@ -45,19 +52,19 @@ def scim_request(func: Callable, url: str, json: Optional[dict] = None,
     return response
 
 
-def search_user(api: str, external_id: str) -> Optional[Dict[str, Any]]:
-    logger.info(f'Searching for user with externalId {external_id}')
+def search_user(api: str, filter: str) -> Optional[Dict[str, Any]]:
+    logger.info(f'Searching for user with filter {filter}')
     query = {
         'schemas': [
             'urn:ietf:params:scim:api:messages:2.0:SearchRequest'
         ],
-        'filter': f'externalId eq "{external_id}"',
+        'filter': filter,
         'startIndex': 1,
         'count': 1
     }
 
-    logger.debug(f'Sending user search query:\n{pformat(json.dumps(query, sort_keys=True, indent=4))}')
-    res = scim_request(requests.post, f'{api}/Users/.search', json=query)
+    logger.debug(f'Sending user search query:\n{json.dumps(query, sort_keys=True, indent=4)}')
+    res = scim_request(requests.post, f'{api}/Users/.search', data=query)
     logger.info(f'User search result:\n{json.dumps(res, sort_keys=True, indent=4)}\n')
     return res
 
@@ -74,7 +81,7 @@ def search_group(api: str, display_name: str) -> Optional[Dict[str, Any]]:
     }
 
     logger.debug(f'Sending group search query:\n{pformat(json.dumps(query, sort_keys=True, indent=4))}')
-    res = scim_request(requests.post, f'{api}/Groups/.search', json=query)
+    res = scim_request(requests.post, f'{api}/Groups/.search', data=query)
     logger.info(f'Group search result:\n{json.dumps(res, sort_keys=True, indent=4)}\n')
     return res
 
@@ -165,11 +172,24 @@ def process_users(api: str, ops: Mapping[str, Any]) -> None:
     """
     for op in ops.keys():
         if op == 'search':
-            for external_id in ops[op]:
-                search_user(api, external_id)
+            for what in ops[op]:
+                if what == 'externalId':
+                    for external_id in ops[op][what]:
+                        search_user(api, f'externalId eq "{external_id}"')
+                elif what == 'lastModified':
+                    for _op in ops[op][what]:
+                        if _op in ['gt', 'ge']:
+                            for _ts in ops[op][what][_op]:
+                                search_user(api, f'meta.lastModified {_op} "{_ts}"')
+                        else:
+                            logger.error(f'Unknown "user" lastModified operation {_op}')
+                else:
+                    logger.error(f'Unknown "user" search attribute {what}')
         elif op == 'put':
             for scim_id in ops[op]:
                 put_user(api, scim_id, ops[op][scim_id]['profiles'])
+        else:
+            logger.error(f'Unknown "user" operation {op}')
 
 
 def process_groups(api: str, ops: Mapping[str, Any]) -> None:

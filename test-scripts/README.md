@@ -9,7 +9,8 @@
   'http://scimapi.eduid.docker:8000':
     'users':
       'search':
-         - 'hubba-bubba@eduid.se'
+        'externalId':
+           - 'hubba-bubba@eduid.se'
     'groups':
       'search':
          - 'Test Group 1'
@@ -42,7 +43,8 @@
   'http://scimapi.eduid.docker:8000':
     'users':
       'search':
-         - 'hubba-bubba@eduid.se'
+        'externalId':
+           - 'hubba-bubba@eduid.se'
       'put':
         'd4aa1c10-7120-452b-a109-adf9030b9ef3':
           'profiles':
@@ -51,7 +53,7 @@
               'displayName': 'Kalle Anka'
 	        'data':
               'some-opaque-data': 17,
-    
+
     'groups':
       'search':
          - 'Test Group 1'
