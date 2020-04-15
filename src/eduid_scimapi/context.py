@@ -23,6 +23,7 @@ class Context(object):
             self.logger = logging.getLogger('eduid_scimapi')
         else:
             self.logger = logging.getLogger('eduid_scimapi')
+            self.logger.handlers = []  # Unset any other handlers
             sh = logging.StreamHandler(sys.stdout)
             formatter = logging.Formatter(self.config.log_format)
             sh.setFormatter(formatter)

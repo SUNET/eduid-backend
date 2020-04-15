@@ -1,12 +1,22 @@
 # -*- coding: utf-8 -*-
+import json
 import unittest
+import uuid
 from os import environ
+from typing import Optional
+
+import falcon
+from bson import ObjectId
+from falcon.testing import TestClient
 
 from eduid_common.config.testing import EtcdTemporaryInstance
-from eduid_groupdb import Neo4jDB
 from eduid_groupdb.testing import Neo4jTemporaryInstance
-from eduid_userdb import MongoDB
 from eduid_userdb.testing import MongoTemporaryInstance
+
+from eduid_scimapi.app import init_api
+from eduid_scimapi.config import ScimApiConfig
+from eduid_scimapi.context import Context
+from eduid_scimapi.user import ScimApiUser
 
 __author__ = 'lundberg'
 
@@ -36,7 +46,43 @@ class ScimApiTestCase(unittest.TestCase):
         cls.etcd_instance = EtcdTemporaryInstance.get_instance()
         environ.update({'ETCD_PORT': str(cls.etcd_instance.port)})
 
+    def setUp(self) -> None:
+        self.test_config = self._get_config()
+        config = ScimApiConfig.init_config(test_config=self.test_config, debug=True)
+        self.context = Context(config)
+
+        # TODO: more tests for scoped groups when that is implemented
+        self.data_owner = 'eduid.se'
+        self.userdb = self.context.get_database(self.data_owner)
+
+        api = init_api(name='test_api', test_config=self.test_config, debug=True)
+        self.client = TestClient(api)
+        self.headers = {
+            'Content-Type': 'application/scim+json',
+            'Accept': 'application/scim+json',
+        }
+
+    def _get_config(self) -> dict:
+        config = {
+            'test': True,
+            'mongo_uri': self.mongo_uri,
+            'neo4j_uri': self.neo4j_uri,
+            'neo4j_config': {'encrypted': False},
+            'logging_config': None,
+            'log_format': '%(asctime)s | %(levelname)s | %(name)s | %(module)s | %(message)s',
+        }
+        return config
+
+    def add_user(self, identifier: str, external_id: str) -> Optional[ScimApiUser]:
+        user = ScimApiUser(user_id=ObjectId(), scim_id=uuid.UUID(identifier), external_id=external_id)
+        self.userdb.save(user)
+        return self.userdb.get_user_by_scim_id(scim_id=identifier)
+
+    @staticmethod
+    def as_json(data: dict) -> str:
+        return json.dumps(data)
+
     def tearDown(self):
-        # Mongodb collection need to be cleared in every test class
+        self.userdb._drop_whole_collection()
         self.etcd_instance.clear('/eduid/api/')
         self.neo4j_instance.purge_db()

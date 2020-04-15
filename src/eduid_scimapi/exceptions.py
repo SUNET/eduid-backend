@@ -86,7 +86,7 @@ class HTTPErrorDetail(falcon.HTTPError):
 
 class BadRequest(HTTPErrorDetail, falcon.HTTPBadRequest):
     def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+        super().__init__(type=SCIM_ERROR, **kwargs)
         if not self.error_detail.detail:
             self.error_detail.detail = 'Bad Request'
 
