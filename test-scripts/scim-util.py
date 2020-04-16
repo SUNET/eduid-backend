@@ -83,7 +83,7 @@ def create_group(api: str, display_name: str) -> Optional[Dict[str, Any]]:
     logger.info(f'Creating group with displayName {display_name}')
     query = {'schemas': ['urn:ietf:params:scim:schemas:core:2.0:Group'], 'displayName': display_name, 'members': []}
     logger.debug(f'Sending group create query:\n{pformat(json.dumps(query, sort_keys=True, indent=4))}')
-    res = scim_request(requests.post, f'{api}/Groups/', json=query)
+    res = scim_request(requests.post, f'{api}/Groups/', data=query)
     logger.info(f'Group create result:\n{json.dumps(res, sort_keys=True, indent=4)}\n')
     return res
 
@@ -115,7 +115,7 @@ def put_user(api: str, scim_id: str, profiles: Mapping[str, Any]) -> None:
     scim[NUTID_V1]['profiles'] = profiles
 
     logger.info(f'Updating profiles for SCIM user resource {scim_id}:\n{json.dumps(scim, sort_keys=True, indent=4)}\n')
-    res = scim_request(requests.put, f'{api}/Users/{scim_id}', json=scim)
+    res = scim_request(requests.put, f'{api}/Users/{scim_id}', data=scim)
     logger.info(f'Update result:\n{json.dumps(res, sort_keys=True, indent=4)}')
     return None
 
@@ -141,7 +141,7 @@ def put_group(api: str, scim_id: str, data: Dict[str, Any]) -> None:
     headers = {'content-type': 'application/scim+json', 'if-match': meta["version"]}
 
     logger.info(f'Updating SCIM group resource {scim_id}:\n{json.dumps(scim, sort_keys=True, indent=4)}\n')
-    res = scim_request(requests.put, f'{api}/Groups/{scim_id}', json=scim, headers=headers)
+    res = scim_request(requests.put, f'{api}/Groups/{scim_id}', data=scim, headers=headers)
     logger.info(f'Update result:\n{json.dumps(res, sort_keys=True, indent=4)}')
 
 
