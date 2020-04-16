@@ -183,7 +183,7 @@ class UsersSearchResource(BaseResource):
 
         match = re.match('(.+?) (..) "(.+?)"', query.filter)
         if not match:
-            raise BadRequest(type='invalidFilter', detail='Unrecognised filter')
+            raise BadRequest(scim_type='invalidFilter', detail='Unrecognised filter')
 
         attr, op, val = match.groups()
 
@@ -192,7 +192,7 @@ class UsersSearchResource(BaseResource):
         elif attr.lower() == 'meta.lastmodified':
             users = self._filter_lastmodified(req, op.lower(), val)
         else:
-            raise BadRequest(type='invalidFilter', detail=f'Can\'t filter on attribute {attr}')
+            raise BadRequest(scim_type='invalidFilter', detail=f'Can\'t filter on attribute {attr}')
 
         list_response = ListResponse(resources=self._users_to_resources_dicts(req, users), total_results=len(users))
 
@@ -205,7 +205,7 @@ class UsersSearchResource(BaseResource):
 
     def _filter_externalid(self, req: Request, op: str, val: str) -> List[ScimApiUser]:
         if op != 'eq':
-            raise BadRequest(type='invalidFilter', detail='Unsupported operator')
+            raise BadRequest(scim_type='invalidFilter', detail='Unsupported operator')
 
         user = req.context['userdb'].get_user_by_external_id(val)
 
@@ -218,7 +218,7 @@ class UsersSearchResource(BaseResource):
 
     def _filter_lastmodified(self, req: Request, op: str, val: str) -> List[ScimApiUser]:
         if op not in ['gt', 'ge']:
-            raise BadRequest(type='invalidFilter', detail='Unsupported operator')
+            raise BadRequest(scim_type='invalidFilter', detail='Unsupported operator')
 
         return req.context['userdb'].get_user_by_last_modified(operator=op, value=datetime.fromisoformat(val))
 
