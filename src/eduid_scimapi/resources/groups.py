@@ -323,15 +323,14 @@ class GroupSearchResource(BaseResource):
 
         display_name = match.group(1)
         self.context.logger.debug(f"Searching for group with display name {repr(display_name)}")
+        # SCIM starts counting from 1 and Neo4j from 0
         db_groups = self.context.groupdb.get_groups_by_property(
-            scope=scope, key='display_name', value=display_name, skip=query.start_index, limit=query.count
+            scope=scope, key='display_name', value=display_name, skip=query.start_index - 1, limit=query.count
         )
 
         list_response = ListResponse(total_results=len(db_groups))
         resources = []
         for db_group in db_groups:
-            resources.append(
-                {'id': db_group.identifier, 'displayName': db_group.display_name,}
-            )
+            resources.append({'id': db_group.identifier, 'displayName': db_group.display_name})
         list_response.resources = resources
         resp.media = ListResponseSchema().dump(list_response)

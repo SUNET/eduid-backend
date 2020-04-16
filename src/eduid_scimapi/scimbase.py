@@ -8,7 +8,7 @@ from uuid import UUID, uuid4
 
 from bson import ObjectId
 from bson.errors import InvalidId
-from marshmallow import ValidationError, fields, missing
+from marshmallow import ValidationError, fields, missing, validate
 from marshmallow_dataclass import NewType, class_schema
 from marshmallow_enum import EnumField
 
@@ -97,8 +97,10 @@ class SearchRequest:
         default_factory=lambda: [SCIMSchema.API_MESSAGES_20_SEARCH_REQUEST], metadata={'required': True}
     )
     filter: str = field(default='', metadata={'required': True})
-    start_index: int = field(default=1, metadata={'data_key': 'startIndex', 'required': False})
-    count: int = field(default=100, metadata={'required': False})
+    start_index: int = field(
+        default=1, metadata={'data_key': 'startIndex', 'required': False, 'validate': validate.Range(min=1)}
+    )
+    count: int = field(default=100, metadata={'required': False, 'validate': validate.Range(min=1)})
 
 
 @dataclass
