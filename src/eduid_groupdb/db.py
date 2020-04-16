@@ -37,7 +37,7 @@ class Neo4jDB(object):
     def __repr__(self) -> str:
         return f'<eduID {self.__class__.__name__}: {getattr(self, "_username", None)}@{getattr(self, "_db_uri", None)}>'
 
-    def count_nodes(self, label: Optional[str]) -> int:
+    def count_nodes(self, label: Optional[str] = None) -> int:
         match_statement = 'MATCH ()'
         if label:
             match_statement = f'MATCH(:{label})'
