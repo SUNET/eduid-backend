@@ -48,4 +48,4 @@ class Context(object):
         return base_url
 
     def get_database(self, data_owner: str) -> ScimApiUserDB:
-        return self._userdbs[data_owner]
+        return self._userdbs.get(data_owner)

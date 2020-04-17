@@ -16,3 +16,4 @@ class ScimApiConfig(BaseConfig):
     application_root: str = '/'
     neo4j_uri: str = ''
     neo4j_config: Dict = field(default_factory=dict)
+    authorization_token_secret: str = 'secret'

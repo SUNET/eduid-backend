@@ -181,6 +181,8 @@ class UsersSearchResource(BaseResource):
         except ValidationError as e:
             raise BadRequest(detail=f'{e}')
 
+        self.context.logger.debug(f'Parsed user search query: {query}')
+
         match = re.match('(.+?) (..) "(.+?)"', query.filter)
         if not match:
             raise BadRequest(scim_type='invalidFilter', detail='Unrecognised filter')
