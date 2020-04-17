@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from bson import ObjectId
 
@@ -75,11 +75,34 @@ class ScimApiUserDB(BaseDB):
 
     def get_user_by_last_modified(self, operator: str, value: datetime) -> List[ScimApiUser]:
         # map SCIM filter operators to mongodb filter
-        mongo_operator = {'gt': '$gt', 'ge': '$gte',}.get(operator)
+        mongo_operator = {'gt': '$gt', 'ge': '$gte'}.get(operator)
         if not mongo_operator:
             raise ValueError('Invalid filter operator')
         docs = self._get_documents_by_filter(spec={'last_modified': {mongo_operator: value}}, raise_on_missing=False)
         return [ScimApiUser.from_dict(x) for x in docs]
+
+    def get_user_by_last_modified_aggr(
+        self, operator: str, value: datetime, limit: Optional[int] = None, skip: Optional[int] = None
+    ) -> Tuple[List[ScimApiUser], int]:
+        # map SCIM filter operators to mongodb filter
+        mongo_operator = {'gt': '$gt', 'ge': '$gte'}.get(operator)
+        if not mongo_operator:
+            raise ValueError('Invalid filter operator')
+        pipeline: Dict[str, Any] = {
+            '$facet': {
+                'docs': [{'$match': {'last_modified': {mongo_operator: value}}},],
+                'totalCount': [{'$count': 'count'}],
+            }
+        }
+        if skip:
+            pipeline['$facet']['docs'].append({'$skip': skip})
+        if limit:
+            pipeline['$facet']['docs'].append({'$limit': limit})
+
+        res = self._get_documents_by_aggregate([pipeline])[0]
+        docs = [ScimApiUser.from_dict(x) for x in res['docs']]
+        total_count = res['totalCount'][0]['count']
+        return docs, total_count
 
     def user_exists(self, scim_id: str) -> bool:
         return bool(self.db_count(spec={'scim_id': scim_id}, limit=1))

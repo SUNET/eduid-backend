@@ -153,6 +153,8 @@ class TestGroupResource(ScimApiTestCase):
         self.assertEqual([SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value], response.json.get('schemas'))
         resources = response.json.get('Resources')
         self.assertEqual(5, len(resources))
+        # TODO: Implement correct totalResults
+        # self.assertEqual(9, response.json.get('totalResults'))
 
     def test_search_group_count(self):
         for i in range(9):
@@ -167,3 +169,5 @@ class TestGroupResource(ScimApiTestCase):
         self.assertEqual([SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value], response.json.get('schemas'))
         resources = response.json.get('Resources')
         self.assertEqual(5, len(resources))
+        # TODO: Implement correct totalResults
+        # self.assertEqual(9, response.json.get('totalResults'))

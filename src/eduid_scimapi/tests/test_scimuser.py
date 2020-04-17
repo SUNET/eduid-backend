@@ -1,6 +1,6 @@
 import unittest
 from dataclasses import asdict
-from datetime import datetime
+from datetime import datetime, timedelta
 from uuid import uuid4
 
 import bson
@@ -90,6 +90,15 @@ class TestUserResource(ScimApiTestCase):
         self.test_profile = Profile()
         self.test_profile.attributes['displayName'] = 'Test User 1'
         self.test_profile.data = {'test_key': 'test_value'}
+
+    # TODO: Should we implement this?
+    # def test_get_users(self):
+    #    for i in range(9):
+    #        self.add_user(identifier=str(uuid4()), external_id=f'test-id-{i}', profiles={'test': self.test_profile})
+    #    response = self.client.simulate_get(path=f'/Users', headers=self.headers)
+    #    self.assertEqual([SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value], response.json.get('schemas'))
+    #    resources = response.json.get('Resources')
+    #    self.assertEqual(self.userdb.db_count(), len(resources))
 
     def test_get_user(self):
         db_user = self.add_user(identifier=str(uuid4()), external_id='test-id-1', profiles={'test': self.test_profile})
@@ -194,3 +203,63 @@ class TestUserResource(ScimApiTestCase):
         resources = response.json.get('Resources')
         self.assertEqual(1, len(resources))
         self.assertEqual(str(db_user.scim_id), resources[0].get('id'))
+
+    def test_search_user_last_modified(self):
+        db_user1 = self.add_user(identifier=str(uuid4()), external_id='test-id-1', profiles={'test': self.test_profile})
+        db_user2 = self.add_user(identifier=str(uuid4()), external_id='test-id-2', profiles={'test': self.test_profile})
+        self.assertGreater(db_user2.last_modified, db_user1.last_modified)
+
+        req = {
+            'schemas': [SCIMSchema.API_MESSAGES_20_SEARCH_REQUEST.value],
+            'filter': f'meta.lastmodified ge "{db_user1.last_modified.isoformat()}"',
+            'startIndex': 1,
+            'count': 10,
+        }
+
+        response = self.client.simulate_post(path='/Users/.search', body=self.as_json(req), headers=self.headers)
+        self.assertEqual([SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value], response.json.get('schemas'))
+        resources = response.json.get('Resources')
+        self.assertEqual(2, len(resources))
+
+        req = {
+            'schemas': [SCIMSchema.API_MESSAGES_20_SEARCH_REQUEST.value],
+            'filter': f'meta.lastmodified gt "{db_user1.last_modified.isoformat()}"',
+            'startIndex': 1,
+            'count': 10,
+        }
+        response = self.client.simulate_post(path='/Users/.search', body=self.as_json(req), headers=self.headers)
+        self.assertEqual([SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value], response.json.get('schemas'))
+        resources = response.json.get('Resources')
+        self.assertEqual(1, len(resources))
+
+    def test_search_group_start_index(self):
+        for i in range(9):
+            self.add_user(identifier=str(uuid4()), external_id=f'test-id-{i}', profiles={'test': self.test_profile})
+        last_modified = datetime.utcnow() - timedelta(hours=1)
+        req = {
+            'schemas': [SCIMSchema.API_MESSAGES_20_SEARCH_REQUEST.value],
+            'filter': f'meta.lastmodified gt "{last_modified.isoformat()}"',
+            'startIndex': 5,
+            'count': 10,
+        }
+        response = self.client.simulate_post(path='/Users/.search', body=self.as_json(req), headers=self.headers)
+        self.assertEqual([SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value], response.json.get('schemas'))
+        resources = response.json.get('Resources')
+        self.assertEqual(5, len(resources))
+        self.assertEqual(9, response.json.get('totalResults'))
+
+    def test_search_group_count(self):
+        for i in range(9):
+            self.add_user(identifier=str(uuid4()), external_id=f'test-id-{i}', profiles={'test': self.test_profile})
+        last_modified = datetime.utcnow() - timedelta(hours=1)
+        req = {
+            'schemas': [SCIMSchema.API_MESSAGES_20_SEARCH_REQUEST.value],
+            'filter': f'meta.lastmodified gt "{last_modified.isoformat()}"',
+            'startIndex': 1,
+            'count': 5,
+        }
+        response = self.client.simulate_post(path='/Users/.search', body=self.as_json(req), headers=self.headers)
+        self.assertEqual([SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value], response.json.get('schemas'))
+        resources = response.json.get('Resources')
+        self.assertEqual(5, len(resources))
+        self.assertEqual(9, response.json.get('totalResults'))
