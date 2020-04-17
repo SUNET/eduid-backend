@@ -50,12 +50,12 @@ def unexpected_error_handler(ex: Exception, req: falcon.Request, resp: falcon.Re
 
 class HTTPErrorDetail(falcon.HTTPError):
     def __init__(self, **kwargs):
-        typ = kwargs.pop('scimType', kwargs.pop('type'))
         schemas = kwargs.pop('schemas', [SCIM_ERROR])
+        scim_type = kwargs.pop('scim_type', None)
         detail = kwargs.pop('detail', None)
         super().__init__(**kwargs)
         status = int(self.status.split(' ')[0])
-        self._error_detail = ErrorDetail(scimType=typ, schemas=schemas, detail=detail, status=status)
+        self._error_detail = ErrorDetail(scimType=scim_type, schemas=schemas, detail=detail, status=status)
         self._extra_headers: Optional[Dict] = None
 
     @property
@@ -86,28 +86,28 @@ class HTTPErrorDetail(falcon.HTTPError):
 
 class BadRequest(HTTPErrorDetail, falcon.HTTPBadRequest):
     def __init__(self, **kwargs):
-        super().__init__(type=SCIM_ERROR, **kwargs)
+        super().__init__(**kwargs)
         if not self.error_detail.detail:
             self.error_detail.detail = 'Bad Request'
 
 
 class NotFound(HTTPErrorDetail, falcon.HTTPNotFound):
     def __init__(self, **kwargs):
-        super().__init__(type=SCIM_ERROR, **kwargs)
+        super().__init__(**kwargs)
         if not self.error_detail.detail:
             self.error_detail.detail = 'Resource not found'
 
 
 class UnsupportedMediaTypeMalformed(HTTPErrorDetail, falcon.HTTPUnsupportedMediaType):
     def __init__(self, **kwargs):
-        super().__init__(type=SCIM_ERROR, **kwargs)
+        super().__init__(**kwargs)
         if not self.error_detail.detail:
             self.error_detail.detail = 'Request was made with an unsupported media type'
 
 
 class MethodNotAllowedMalformed(HTTPErrorDetail, falcon.HTTPMethodNotAllowed):
     def __init__(self, **kwargs):
-        super().__init__(type=SCIM_ERROR, **kwargs)
+        super().__init__(**kwargs)
         if not self.error_detail.detail:
             allowed_methods = kwargs.get('allowed_methods')
             self.error_detail.detail = f'The used HTTP method is not allowed. Allowed methods: {allowed_methods}'
@@ -115,4 +115,4 @@ class MethodNotAllowedMalformed(HTTPErrorDetail, falcon.HTTPMethodNotAllowed):
 
 class ServerInternal(HTTPErrorDetail, falcon.HTTPInternalServerError):
     def __init__(self, **kwargs):
-        super().__init__(type=SCIM_ERROR, **kwargs)
+        super().__init__(**kwargs)

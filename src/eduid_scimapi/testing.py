@@ -3,7 +3,7 @@ import json
 import unittest
 import uuid
 from os import environ
-from typing import Optional
+from typing import Dict, Optional
 
 import falcon
 from bson import ObjectId
@@ -16,6 +16,7 @@ from eduid_userdb.testing import MongoTemporaryInstance
 from eduid_scimapi.app import init_api
 from eduid_scimapi.config import ScimApiConfig
 from eduid_scimapi.context import Context
+from eduid_scimapi.profile import Profile
 from eduid_scimapi.user import ScimApiUser
 
 __author__ = 'lundberg'
@@ -73,8 +74,13 @@ class ScimApiTestCase(unittest.TestCase):
         }
         return config
 
-    def add_user(self, identifier: str, external_id: str) -> Optional[ScimApiUser]:
+    def add_user(
+        self, identifier: str, external_id: str, profiles: Optional[Dict[str, Profile]] = None
+    ) -> Optional[ScimApiUser]:
         user = ScimApiUser(user_id=ObjectId(), scim_id=uuid.UUID(identifier), external_id=external_id)
+        if profiles:
+            for key, value in profiles.items():
+                user.profiles[key] = value
         self.userdb.save(user)
         return self.userdb.get_user_by_scim_id(scim_id=identifier)
 
