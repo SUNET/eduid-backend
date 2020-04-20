@@ -47,5 +47,5 @@ class Context(object):
             return urlappend(base_url, self.config.application_root)
         return base_url
 
-    def get_database(self, data_owner: str) -> ScimApiUserDB:
+    def get_database(self, data_owner: str) -> Optional[ScimApiUserDB]:
         return self._userdbs.get(data_owner)

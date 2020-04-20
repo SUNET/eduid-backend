@@ -81,6 +81,7 @@ class ScimApiTestCase(unittest.TestCase):
         if profiles:
             for key, value in profiles.items():
                 user.profiles[key] = value
+        assert self.userdb
         self.userdb.save(user)
         return self.userdb.get_user_by_scim_id(scim_id=identifier)
 
