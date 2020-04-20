@@ -5,8 +5,9 @@ import falcon
 from eduid_scimapi import exceptions
 from eduid_scimapi.config import ScimApiConfig
 from eduid_scimapi.context import Context
-from eduid_scimapi.middleware import HandleSCIM
+from eduid_scimapi.middleware import HandleAuthentication, HandleSCIM
 from eduid_scimapi.resources.groups import GroupSearchResource, GroupsResource
+from eduid_scimapi.resources.login import LoginResource
 from eduid_scimapi.resources.users import UsersResource, UsersSearchResource
 
 
@@ -15,7 +16,7 @@ def init_api(name: str, test_config: Optional[Dict] = None, debug: bool = False)
     context = Context(config)
     context.logger.info('Starting app')
 
-    api = falcon.API(middleware=[HandleSCIM(context)])
+    api = falcon.API(middleware=[HandleSCIM(context), HandleAuthentication(context)])
     api.req_options.media_handlers['application/scim+json'] = api.req_options.media_handlers['application/json']
 
     # Error handlers tried in reversed declaration order
@@ -23,6 +24,10 @@ def init_api(name: str, test_config: Optional[Dict] = None, debug: bool = False)
     api.add_error_handler(falcon.HTTPMethodNotAllowed, exceptions.method_not_allowed_handler)
     api.add_error_handler(falcon.HTTPUnsupportedMediaType, exceptions.unsupported_media_type_handler)
     api.add_error_handler(exceptions.HTTPErrorDetail)
+
+    # Login
+    # TODO: Move bearer token generation to a separate API
+    api.add_route('/login/', LoginResource(context=context))
 
     # Users
     api.add_route('/Users/', UsersResource(context=context))  # for POST

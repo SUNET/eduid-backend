@@ -91,6 +91,13 @@ class BadRequest(HTTPErrorDetail, falcon.HTTPBadRequest):
             self.error_detail.detail = 'Bad Request'
 
 
+class Unauthorized(HTTPErrorDetail, falcon.HTTPUnauthorized):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        if not self.error_detail.detail:
+            self.error_detail.detail = 'Unauthorized request'
+
+
 class NotFound(HTTPErrorDetail, falcon.HTTPNotFound):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

@@ -2,6 +2,7 @@ falcon==1.4.*
 PyYAML==5.1
 gunicorn==19.9.0
 marshmallow-dataclass[enum,union]==7.3.*
+python-jose==3.0.1
 eduid_userdb>=0.4.12
 eduid_groupdb
 eduid_common[api]
