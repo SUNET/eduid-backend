@@ -1,3 +1,5 @@
+import datetime
+
 from falcon import Request, Response
 from jose import jwt
 
@@ -11,7 +13,11 @@ class LoginResource(BaseResource):
         data_owner = req.media['data_owner']
         if data_owner not in self.context._userdbs:
             raise Unauthorized()
-        token = jwt.encode(
-            {'data_owner': data_owner}, self.context.config.authorization_token_secret, algorithm='HS256'
-        )
+        now = datetime.datetime.now(tz=datetime.timezone.utc)
+        expire = now + datetime.timedelta(seconds=self.context.config.authorization_token_expire)
+        claims = {
+            'data_owner': data_owner,
+            'exp': expire,
+        }
+        token = jwt.encode(claims, self.context.config.authorization_token_secret, algorithm='HS256')
         resp.set_header('Authorization', f'Bearer {token}')

@@ -17,3 +17,4 @@ class ScimApiConfig(BaseConfig):
     neo4j_uri: str = ''
     neo4j_config: Dict = field(default_factory=dict)
     authorization_token_secret: str = 'secret'
+    authorization_token_expire: int = 5 * 60

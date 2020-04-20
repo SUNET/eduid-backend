@@ -1,8 +1,8 @@
 from falcon import HTTPForbidden, Request, Response
-from jose import jwt
+from jose import ExpiredSignatureError, jwt
 
 from eduid_scimapi.context import Context
-from eduid_scimapi.exceptions import UnsupportedMediaTypeMalformed
+from eduid_scimapi.exceptions import Unauthorized, UnsupportedMediaTypeMalformed
 from eduid_scimapi.resources.base import BaseResource
 
 
@@ -46,12 +46,16 @@ class HandleAuthentication(object):
             return
 
         token = req.auth[len('Bearer ') :]
-        claims = jwt.decode(token, self.context.config.authorization_token_secret, algorithms=['HS256'])
+        try:
+            claims = jwt.decode(token, self.context.config.authorization_token_secret, algorithms=['HS256'])
+        except ExpiredSignatureError:
+            self.context.logger.info(f'Bearer token expired')
+            raise Unauthorized(detail='Signature expired')
 
         data_owner = claims.get('data_owner')
         if not self.context.get_database(data_owner):
             self.context.logger.info(f'No database available for data_owner {repr(data_owner)}')
-            raise HTTPForbidden
+            raise Unauthorized(detail='Unknown data_owner')
 
         req.context['data_owner'] = data_owner
         req.context['userdb'] = self.context.get_database(data_owner)

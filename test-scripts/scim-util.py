@@ -36,6 +36,9 @@ def scim_request(
     logger.debug(f'API URL: {url}')
     r = _make_request(func, url, data, headers)
 
+    if not r:
+        return None
+
     response = r.json()
     logger.debug(f'Response:\n{pformat(response, width=120)}')
     return response
