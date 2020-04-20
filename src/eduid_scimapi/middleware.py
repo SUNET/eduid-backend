@@ -14,7 +14,12 @@ class HandleSCIM(object):
         self.context.logger.debug(f'process_request: {req.method} {req.path}')
 
         if req.method == 'POST':
-            if req.content_type != 'application/scim+json':
+            if req.path == '/login':
+                if req.content_type != 'application/json':
+                    raise UnsupportedMediaTypeMalformed(
+                        detail=f'{req.content_type} is an unsupported media type for /login'
+                    )
+            elif req.content_type != 'application/scim+json':
                 raise UnsupportedMediaTypeMalformed(detail=f'{req.content_type} is an unsupported media type')
 
     def process_response(self, req: Request, resp: Response, resource: BaseResource, req_succeeded: bool):

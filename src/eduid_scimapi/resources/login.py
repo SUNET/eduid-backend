@@ -8,7 +8,7 @@ from eduid_scimapi.resources.base import BaseResource
 
 
 class LoginResource(BaseResource):
-    def on_get(self, req: Request, resp: Response):
+    def on_post(self, req: Request, resp: Response):
         self.context.logger.info(f'Logging in')
         data_owner = req.media['data_owner']
         if data_owner not in self.context._userdbs:

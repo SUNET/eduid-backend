@@ -163,7 +163,8 @@ def process_login(api: str, params: Mapping[str, Any]) -> Optional[str]:
     data_owner = params['data_owner']
     logger.debug(f'Login URL: {url}')
     data = {'data_owner': data_owner}
-    r = _make_request(requests.get, url, data)
+    logger.debug(f'Login payload:\n{json.dumps(data)}')
+    r = _make_request(requests.post, url, data=data)
     if not r:
         return None
 
