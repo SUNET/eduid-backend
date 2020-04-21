@@ -31,16 +31,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-import base64
-
-from fido2.ctap2 import AttestedCredentialData
-from fido2.server import Fido2Server, U2FFido2Server
-from fido2.utils import websafe_decode
 from flask import request
 
 from eduid_common.authn import fido_tokens
 from eduid_common.session import session
-from eduid_userdb.credentials import U2F, Webauthn
 
 from eduid_webapp.actions.action_abc import ActionPlugin
 from eduid_webapp.actions.app import current_actions_app as current_app
@@ -65,12 +59,8 @@ class Plugin(ActionPlugin):
         app.config.mfa_testing = False
 
     def get_config_for_bundle(self, action):
-        if action.old_format:
-            userid = action.user_id
-            user = current_app.central_userdb.get_user_by_id(userid, raise_on_missing=False)
-        else:
-            eppn = action.eppn
-            user = current_app.central_userdb.get_user_by_eppn(eppn, raise_on_missing=False)
+        eppn = action.eppn
+        user = current_app.central_userdb.get_user_by_eppn(eppn, raise_on_missing=False)
         current_app.logger.debug('Loaded User {} from db'.format(user))
         if not user:
             raise self.ActionError('mfa.user-not-found')
@@ -99,12 +89,8 @@ class Plugin(ActionPlugin):
                 'testing': True,
             }
 
-        if action.old_format:
-            userid = action.user_id
-            user = current_app.central_userdb.get_user_by_id(userid, raise_on_missing=False)
-        else:
-            eppn = action.eppn
-            user = current_app.central_userdb.get_user_by_eppn(eppn, raise_on_missing=False)
+        eppn = action.eppn
+        user = current_app.central_userdb.get_user_by_eppn(eppn, raise_on_missing=False)
         current_app.logger.debug('Loaded User {} from db (in perform_action)'.format(user))
 
         # Third party service MFA
@@ -162,39 +148,3 @@ class Plugin(ActionPlugin):
             raise self.ActionError('mfa.no-token-response')
 
         raise self.ActionError('mfa.unknown-token')
-
-
-def _get_user_credentials(user):
-    res = {}
-    for this in user.credentials.filter(U2F).to_list():
-        acd = AttestedCredentialData.from_ctap1(websafe_decode(this.keyhandle), websafe_decode(this.public_key))
-        res[this.key] = {
-            'u2f': {'version': this.version, 'keyHandle': this.keyhandle, 'publicKey': this.public_key,},
-            'webauthn': acd,
-            'app_id': this.app_id,
-        }
-    for this in user.credentials.filter(Webauthn).to_list():
-        keyhandle = this.keyhandle
-        cred_data = base64.urlsafe_b64decode(this.credential_data.encode('ascii'))
-        credential_data, rest = AttestedCredentialData.unpack_from(cred_data)
-        version = 'webauthn'
-        res[this.key] = {
-            'u2f': {'version': version, 'keyHandle': keyhandle, 'publicKey': credential_data.public_key,},
-            'webauthn': credential_data,
-            'app_id': '',
-        }
-    return res
-
-
-def _get_fido2server(credentials, fido2rp):
-    # See if any of the credentials is a legacy U2F credential with an app-id
-    # (assume all app-ids are the same - authenticating with a mix of different
-    # app-ids isn't supported in current Webauthn)
-    app_id = None
-    for k, v in credentials.items():
-        if v['app_id']:
-            app_id = v['app_id']
-            break
-    if app_id:
-        return U2FFido2Server(app_id, fido2rp)
-    return Fido2Server(fido2rp)
