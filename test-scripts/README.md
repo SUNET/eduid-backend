@@ -127,3 +127,21 @@ To search for users based on last modification timestamp:
 Supported operations for this search:
   - 'gt' (greater than)
   - 'ge' (greater than, or equal)
+
+
+## Authorization
+
+The API uses (currently optional) bearer tokens for authorization. As a first step during development,
+bearer tokens can be requested without authentication from the /login endpoint.
+
+```
+---
+  'http://scimapi.eduid.docker:8000':
+    'login':
+      url: 'http://scimapi.eduid.docker:8000/login'
+      data_owner: 'eduid.se'
+    'users':
+      'search':
+        'externalId':
+           - 'hubba-bubba@eduid.se'
+```
