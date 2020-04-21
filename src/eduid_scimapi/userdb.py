@@ -88,21 +88,11 @@ class ScimApiUserDB(BaseDB):
         mongo_operator = {'gt': '$gt', 'ge': '$gte'}.get(operator)
         if not mongo_operator:
             raise ValueError('Invalid filter operator')
-        pipeline: Dict[str, Any] = {
-            '$facet': {
-                'docs': [{'$match': {'last_modified': {mongo_operator: value}}},],
-                'totalCount': [{'$count': 'count'}],
-            }
-        }
-        if skip:
-            pipeline['$facet']['docs'].append({'$skip': skip})
-        if limit:
-            pipeline['$facet']['docs'].append({'$limit': limit})
 
-        res = self._get_documents_by_aggregate([pipeline])[0]
-        docs = [ScimApiUser.from_dict(x) for x in res['docs']]
-        total_count = res['totalCount'][0]['count']
-        return docs, total_count
+        spec = {'last_modified': {mongo_operator: value}}
+        res = self._get_documents_and_count(spec=spec, limit=limit, skip=skip)
+        docs = [ScimApiUser.from_dict(x) for x in res.docs]
+        return docs, res.total_count
 
     def user_exists(self, scim_id: str) -> bool:
         return bool(self.db_count(spec={'scim_id': scim_id}, limit=1))
