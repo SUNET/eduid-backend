@@ -227,7 +227,7 @@ class UsersSearchResource(BaseResource):
     ) -> Tuple[List[ScimApiUser], int]:
         if op not in ['gt', 'ge']:
             raise BadRequest(scim_type='invalidFilter', detail='Unsupported operator')
-        return req.context['userdb'].get_user_by_last_modified_aggr(
+        return req.context['userdb'].get_user_by_last_modified(
             operator=op, value=datetime.fromisoformat(val), skip=skip, limit=limit
         )
         # return req.context['userdb'].get_user_by_last_modified(operator=op, value=datetime.fromisoformat(val))

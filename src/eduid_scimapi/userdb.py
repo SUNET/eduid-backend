@@ -73,15 +73,7 @@ class ScimApiUserDB(BaseDB):
             return ScimApiUser.from_dict(docs[0])
         return None
 
-    def get_user_by_last_modified(self, operator: str, value: datetime) -> List[ScimApiUser]:
-        # map SCIM filter operators to mongodb filter
-        mongo_operator = {'gt': '$gt', 'ge': '$gte'}.get(operator)
-        if not mongo_operator:
-            raise ValueError('Invalid filter operator')
-        docs = self._get_documents_by_filter(spec={'last_modified': {mongo_operator: value}}, raise_on_missing=False)
-        return [ScimApiUser.from_dict(x) for x in docs]
-
-    def get_user_by_last_modified_aggr(
+    def get_user_by_last_modified(
         self, operator: str, value: datetime, limit: Optional[int] = None, skip: Optional[int] = None
     ) -> Tuple[List[ScimApiUser], int]:
         # map SCIM filter operators to mongodb filter
