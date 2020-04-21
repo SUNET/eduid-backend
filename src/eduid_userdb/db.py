@@ -217,7 +217,8 @@ class DocumentsWithTotalCount:
 
     @classmethod
     def from_result(cls, result: dict):
-        return DocumentsWithTotalCount(docs=result.get('docs', []), total_count=result.get('totalCount')[0]['count'])
+        total_count: List = result['totalCount']
+        return DocumentsWithTotalCount(docs=result.get('docs', []), total_count=total_count[0]['count'])
 
 
 class BaseDB(object):
