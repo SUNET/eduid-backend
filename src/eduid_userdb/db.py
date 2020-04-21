@@ -4,7 +4,7 @@ import copy
 import logging
 import warnings
 from dataclasses import dataclass
-from typing import Any, List, Mapping, Optional, Union, Dict
+from typing import Any, Dict, List, Mapping, Optional, Union
 
 import pymongo
 from bson import ObjectId
@@ -317,20 +317,16 @@ class BaseDB(object):
             return []
         return docs
 
-    def _get_documents_and_count(self, spec: dict, skip: Optional[int] = None,
-                                 limit: Optional[int] = None, raise_on_missing: bool = True) -> DocumentsWithTotalCount:
+    def _get_documents_and_count(
+        self, spec: dict, skip: Optional[int] = None, limit: Optional[int] = None, raise_on_missing: bool = True
+    ) -> DocumentsWithTotalCount:
         """
         :param spec: the search filter
         :param raise_on_missing: If True, raise exception if no matching user object can be found.
         :return: A list of aggregate results
         :raise DocumentDoesNotExist: No document matching the search criteria
         """
-        pipeline: Dict[str, Any] = {
-            '$facet': {
-                'docs': [{'$match': spec}],
-                'totalCount': [{'$count': 'count'}],
-            }
-        }
+        pipeline: Dict[str, Any] = {'$facet': {'docs': [{'$match': spec}], 'totalCount': [{'$count': 'count'}],}}
         if skip:
             pipeline['$facet']['docs'].append({'$skip': skip})
         if limit:
