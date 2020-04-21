@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import copy
 import logging
 import warnings
+from dataclasses import dataclass
 from typing import Any, List, Mapping, Optional, Union, Dict
 
 import pymongo
@@ -209,6 +210,16 @@ def _format_mongodb_uri(parsed_uri):
     return res
 
 
+@dataclass
+class DocumentsWithTotalCount:
+    docs: List[dict]
+    total_count: int
+
+    @classmethod
+    def from_result(cls, result: dict):
+        return DocumentsWithTotalCount(docs=result.get('docs', []), total_count=result.get('totalCount')[0]['count'])
+
+
 class BaseDB(object):
     """ Base class for common db operations """
 
@@ -291,7 +302,8 @@ class BaseDB(object):
 
         :param spec: the search filter
         :param fields: the fields to return in the search result
-        :return: A document dict
+        :param raise_on_missing:  If True, raise exception if no matching user object can be found.
+        :return: A list of documents
         :raise DocumentDoesNotExist: No document matching the search criteria
         """
         if fields is None:
@@ -304,6 +316,33 @@ class BaseDB(object):
                 raise DocumentDoesNotExist(f'No document matching {spec}')
             return []
         return docs
+
+    def _get_documents_and_count(self, spec: dict, skip: Optional[int] = None,
+                                 limit: Optional[int] = None, raise_on_missing: bool = True) -> DocumentsWithTotalCount:
+        """
+        :param spec: the search filter
+        :param raise_on_missing: If True, raise exception if no matching user object can be found.
+        :return: A list of aggregate results
+        :raise DocumentDoesNotExist: No document matching the search criteria
+        """
+        pipeline: Dict[str, Any] = {
+            '$facet': {
+                'docs': [{'$match': spec}],
+                'totalCount': [{'$count': 'count'}],
+            }
+        }
+        if skip:
+            pipeline['$facet']['docs'].append({'$skip': skip})
+        if limit:
+            pipeline['$facet']['docs'].append({'$limit': limit})
+
+        res = next(self._coll.aggregate(pipeline=[pipeline]))
+        ret = DocumentsWithTotalCount.from_result(res)
+        doc_count = len(ret.docs)
+        if doc_count == 0:
+            if raise_on_missing:
+                raise DocumentDoesNotExist(f'No document matching {pipeline}')
+        return ret
 
     def db_count(self, spec: Optional[dict] = None, limit: Optional[int] = None) -> int:
         """

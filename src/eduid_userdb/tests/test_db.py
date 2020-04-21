@@ -78,8 +78,12 @@ class TestMongoDB(TestCase):
 
 
 class TestDB(MongoTestCase):
+    def setUp(self, init_am=False, userdb_use_old_format=False, am_settings=None):
+        super().setUp(init_am=init_am, userdb_use_old_format=userdb_use_old_format, am_settings=am_settings)
+        self.doc_count = len(list(self.MockedUserDB().all_userdocs()))
+
     def test_db_count(self):
-        self.assertEqual(len(list(self.MockedUserDB().all_userdocs())), self.amdb.db_count())
+        self.assertEqual(self.doc_count, self.amdb.db_count())
 
     def test_db_count_limit(self):
         self.assertEqual(1, self.amdb.db_count(limit=1))
@@ -87,3 +91,18 @@ class TestDB(MongoTestCase):
 
     def test_db_count_spec(self):
         self.assertEqual(1, self.amdb.db_count(spec={'_id': ObjectId('012345678901234567890123')}))
+
+    def test_docs_with_count(self):
+        res = self.amdb._get_documents_and_count(spec={})
+        self.assertEqual(self.doc_count, len(res.docs))
+        self.assertEqual(2, res.total_count)
+
+    def test_docs_with_count_skip(self):
+        res = self.amdb._get_documents_and_count(spec={}, skip=1)
+        self.assertEqual(1, len(res.docs))
+        self.assertEqual(2, res.total_count)
+
+    def test_docs_with_count_limit(self):
+        res = self.amdb._get_documents_and_count(spec={}, limit=1)
+        self.assertEqual(1, len(res.docs))
+        self.assertEqual(2, res.total_count)
