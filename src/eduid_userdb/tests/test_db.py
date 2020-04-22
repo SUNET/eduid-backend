@@ -99,12 +99,3 @@ class TestDB(MongoTestCase):
     def test_get_documents_by_filter_limit(self):
         docs = self.amdb._get_documents_by_filter(spec={}, limit=1)
         self.assertEqual(1, len(docs))
-
-    def test_get_documents_and_count_by_filter_skip(self):
-        docs, count = self.amdb._get_documents_and_count_by_filter(spec={}, skip=1)
-        self.assertEqual(1, len(docs))
-        self.assertEqual(2, count)
-
-    def test_get_documents_and_count_by_filter_limit(self):
-        docs, count = self.amdb._get_documents_and_count_by_filter(spec={}, limit=1)
-        self.assertEqual(2, count)
