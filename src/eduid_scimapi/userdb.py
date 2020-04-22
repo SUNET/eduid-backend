@@ -4,8 +4,7 @@ from typing import Any, Dict, List, Mapping, Optional, Tuple
 
 from bson import ObjectId
 
-from eduid_userdb.db import BaseDB
-
+from eduid_scimapi.basedb import ScimApiBaseDB
 from eduid_scimapi.user import ScimApiUser
 
 __author__ = 'ft'
@@ -14,7 +13,7 @@ __author__ = 'ft'
 logger = logging.getLogger(__name__)
 
 
-class ScimApiUserDB(BaseDB):
+class ScimApiUserDB(ScimApiBaseDB):
     def __init__(self, db_uri, db_name='eduid_scimapi', collection='profiles'):
         super().__init__(db_uri, db_name, collection)
 
