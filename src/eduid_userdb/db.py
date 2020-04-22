@@ -1,16 +1,11 @@
-from __future__ import absolute_import
-
 import copy
 import logging
 import warnings
-from dataclasses import dataclass
-from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
+from typing import Any, Dict, List, Mapping, Optional, Union
 
 import pymongo
 from bson import ObjectId
-from pymongo.cursor import Cursor
 from pymongo.errors import PyMongoError
-from pymongo.results import DeleteResult
 from pymongo.uri_parser import parse_uri
 
 from eduid_userdb.exceptions import (
