@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Mapping, Optional, Tuple
 
 from bson import ObjectId
 
@@ -73,18 +73,17 @@ class ScimApiUserDB(BaseDB):
             return ScimApiUser.from_dict(docs[0])
         return None
 
-    def get_user_by_last_modified(
+    def get_users_by_last_modified(
         self, operator: str, value: datetime, limit: Optional[int] = None, skip: Optional[int] = None
     ) -> Tuple[List[ScimApiUser], int]:
         # map SCIM filter operators to mongodb filter
         mongo_operator = {'gt': '$gt', 'ge': '$gte'}.get(operator)
         if not mongo_operator:
             raise ValueError('Invalid filter operator')
-
         spec = {'last_modified': {mongo_operator: value}}
-        res = self._get_documents_and_count(spec=spec, limit=limit, skip=skip)
-        docs = [ScimApiUser.from_dict(x) for x in res.docs]
-        return docs, res.total_count
+        docs, total_count = self._get_documents_and_count_by_filter(spec=spec, limit=limit, skip=skip)
+        users = [ScimApiUser.from_dict(x) for x in docs]
+        return users, total_count
 
     def user_exists(self, scim_id: str) -> bool:
         return bool(self.db_count(spec={'scim_id': scim_id}, limit=1))
