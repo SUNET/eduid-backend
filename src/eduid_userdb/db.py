@@ -4,7 +4,7 @@ import copy
 import logging
 import warnings
 from dataclasses import dataclass
-from typing import Any, Dict, List, Mapping, Optional, Union
+from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
 
 import pymongo
 from bson import ObjectId
@@ -293,7 +293,7 @@ class BaseDB(object):
         raise_on_missing: bool = True,
     ) -> List[Mapping]:
         """
-        Locate a documents in the db using a custom search filter.
+        Locate documents in the db using a custom search filter.
 
         :param spec: the search filter
         :param fields: the fields to return in the search result
@@ -320,6 +320,37 @@ class BaseDB(object):
                 raise DocumentDoesNotExist(f'No document matching {spec}')
             return []
         return docs
+
+    def _get_documents_and_count_by_filter(
+        self,
+        spec: dict,
+        fields: Optional[dict] = None,
+        limit: Optional[int] = None,
+        skip: Optional[int] = None,
+        raise_on_missing: bool = True,
+    ) -> Tuple[List[Mapping], int]:
+        """
+        Locate and count documents in the db using a custom search filter.
+
+        :param spec: the search filter
+        :param fields: the fields to return in the search result
+        :param skip: Number of documents to skip before returning result
+        :param limit: Limit documents returned to this number
+        :param raise_on_missing:  If True, raise exception if no matching user object can be found.
+        :return: A list of documents and total number of documents matching the query
+        :raise DocumentDoesNotExist: No document matching the search criteria
+        """
+        total_count = self.db_count(spec=spec)
+        docs = self._get_documents_by_filter(
+            spec=spec, fields=fields, limit=limit, skip=skip, raise_on_missing=raise_on_missing
+        )
+        # Correct total_count if it is obviously wrong due to being made before actual data query
+        user_count = len(docs)
+        if skip is not None:
+            user_count += skip
+        if limit is not None and (limit > total_count != user_count):
+            total_count = user_count
+        return docs, total_count
 
     def db_count(self, spec: Optional[dict] = None, limit: Optional[int] = None) -> int:
         """
