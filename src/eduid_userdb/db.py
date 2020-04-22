@@ -285,8 +285,13 @@ class BaseDB(object):
         return docs
 
     def _get_documents_by_filter(
-        self, spec: dict, fields: Optional[dict] = None, skip: Optional[int] = None, limit: Optional[int] = None,
-            raise_on_missing: bool = True) -> List[Mapping]:
+        self,
+        spec: dict,
+        fields: Optional[dict] = None,
+        skip: Optional[int] = None,
+        limit: Optional[int] = None,
+        raise_on_missing: bool = True,
+    ) -> List[Mapping]:
         """
         Locate a documents in the db using a custom search filter.
 
