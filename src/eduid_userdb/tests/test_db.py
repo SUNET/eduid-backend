@@ -92,17 +92,10 @@ class TestDB(MongoTestCase):
     def test_db_count_spec(self):
         self.assertEqual(1, self.amdb.db_count(spec={'_id': ObjectId('012345678901234567890123')}))
 
-    def test_docs_with_count(self):
-        res = self.amdb._get_documents_and_count(spec={})
-        self.assertEqual(self.doc_count, len(res.docs))
-        self.assertEqual(2, res.total_count)
+    def test_get_documents_by_filter_skip(self):
+        docs = self.amdb._get_documents_by_filter(spec={}, skip=1)
+        self.assertEqual(1, len(docs))
 
-    def test_docs_with_count_skip(self):
-        res = self.amdb._get_documents_and_count(spec={}, skip=1)
-        self.assertEqual(1, len(res.docs))
-        self.assertEqual(2, res.total_count)
-
-    def test_docs_with_count_limit(self):
-        res = self.amdb._get_documents_and_count(spec={}, limit=1)
-        self.assertEqual(1, len(res.docs))
-        self.assertEqual(2, res.total_count)
+    def test_get_documents_by_filter_limit(self):
+        docs = self.amdb._get_documents_by_filter(spec={}, limit=1)
+        self.assertEqual(1, len(docs))

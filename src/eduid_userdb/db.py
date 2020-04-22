@@ -210,17 +210,6 @@ def _format_mongodb_uri(parsed_uri):
     return res
 
 
-@dataclass
-class DocumentsWithTotalCount:
-    docs: List[dict]
-    total_count: int
-
-    @classmethod
-    def from_result(cls, result: dict):
-        total_count: List = result['totalCount']
-        return DocumentsWithTotalCount(docs=result.get('docs', []), total_count=total_count[0]['count'])
-
-
 class BaseDB(object):
     """ Base class for common db operations """
 
@@ -296,50 +285,36 @@ class BaseDB(object):
         return docs
 
     def _get_documents_by_filter(
-        self, spec: dict, fields: Optional[dict] = None, raise_on_missing: bool = True
-    ) -> List[Mapping]:
+        self, spec: dict, fields: Optional[dict] = None, skip: Optional[int] = None, limit: Optional[int] = None,
+            raise_on_missing: bool = True) -> List[Mapping]:
         """
         Locate a documents in the db using a custom search filter.
 
         :param spec: the search filter
         :param fields: the fields to return in the search result
+        :param skip: Number of documents to skip before returning result
+        :param limit: Limit documents returned to this number
         :param raise_on_missing:  If True, raise exception if no matching user object can be found.
         :return: A list of documents
         :raise DocumentDoesNotExist: No document matching the search criteria
         """
-        if fields is None:
-            docs = list(self._coll.find(spec))
+        if fields is not None:
+            cursor = self._coll.find(spec, fields)
         else:
-            docs = list(self._coll.find(spec, fields))
+            cursor = self._coll.find(spec)
+
+        if skip is not None:
+            cursor = cursor.skip(skip=skip)
+        if limit is not None:
+            cursor = cursor.limit(limit=limit)
+
+        docs = list(cursor)
         doc_count = len(docs)
         if doc_count == 0:
             if raise_on_missing:
                 raise DocumentDoesNotExist(f'No document matching {spec}')
             return []
         return docs
-
-    def _get_documents_and_count(
-        self, spec: dict, skip: Optional[int] = None, limit: Optional[int] = None, raise_on_missing: bool = True
-    ) -> DocumentsWithTotalCount:
-        """
-        :param spec: the search filter
-        :param raise_on_missing: If True, raise exception if no matching user object can be found.
-        :return: A list of aggregate results
-        :raise DocumentDoesNotExist: No document matching the search criteria
-        """
-        pipeline: Dict[str, Any] = {'$facet': {'docs': [{'$match': spec}], 'totalCount': [{'$count': 'count'}],}}
-        if skip:
-            pipeline['$facet']['docs'].append({'$skip': skip})
-        if limit:
-            pipeline['$facet']['docs'].append({'$limit': limit})
-
-        res = next(self._coll.aggregate(pipeline=[pipeline]))
-        ret = DocumentsWithTotalCount.from_result(res)
-        doc_count = len(ret.docs)
-        if doc_count == 0:
-            if raise_on_missing:
-                raise DocumentDoesNotExist(f'No document matching {pipeline}')
-        return ret
 
     def db_count(self, spec: Optional[dict] = None, limit: Optional[int] = None) -> int:
         """
