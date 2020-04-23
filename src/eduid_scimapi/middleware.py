@@ -26,7 +26,7 @@ class HandleSCIM(object):
         self.context.logger.debug(f'process_response: {resource} {req.method} {req.path}')
 
         # Default to 'application/json' if responding with an error message
-        if req_succeeded:
+        if req_succeeded and resp.body:
             # candidates should be sorted by increasing desirability
             preferred = req.client_prefers(('application/json', 'application/scim+json'))
             self.context.logger.debug(f'Client prefers content-type {preferred}')
