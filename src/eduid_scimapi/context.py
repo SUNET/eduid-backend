@@ -32,13 +32,17 @@ class Context(object):
 
         # Setup databases
         self.eduid_userdb = UserDB(db_uri=self.config.mongo_uri, db_name='eduid_am')
-        self._userdbs = {'eduid.se': ScimApiUserDB(db_uri=self.config.mongo_uri)}
-        if self.config.neo4j_uri:
-            self.groupdb = ScimApiGroupDB(db_uri=self.config.neo4j_uri, config=self.config.neo4j_config)
-        else:
-            self.groupdb = None  # type: ignore
+        self._userdbs = {}
+        self._groupdbs = {}
+        for data_owner in self.config.data_owners:
+            self._userdbs[data_owner] = ScimApiUserDB(db_uri=self.config.mongo_uri)  # TODO: add collection=data_owner here
+            self._groupdbs[data_owner] = ScimApiGroupDB(db_uri=self.config.neo4j_uri, config=self.config.neo4j_config, scope=data_owner)
+
+        if not self._groupdbs:
             # Temporarily don't care about neo4jdb
             self.logger.info(f'Starting without neo4jdb')
+
+        #self.groupdb = None
 
     @property
     def base_url(self) -> str:
@@ -47,5 +51,8 @@ class Context(object):
             return urlappend(base_url, self.config.application_root)
         return base_url
 
-    def get_database(self, data_owner: str) -> Optional[ScimApiUserDB]:
+    def get_userdb(self, data_owner: str) -> Optional[ScimApiUserDB]:
         return self._userdbs.get(data_owner)
+
+    def get_groupdb(self, data_owner: str) -> Optional[ScimApiGroupDB]:
+        return self._groupdbs.get(data_owner)

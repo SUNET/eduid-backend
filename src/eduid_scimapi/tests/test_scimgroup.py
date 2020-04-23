@@ -35,15 +35,20 @@ class TestSCIMGroup(TestScimBase):
 
 
 class TestGroupResource(ScimApiTestCase):
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.groupdb = self.context.get_groupdb('eduid.se')
+
     def add_group(self, scope: str, identifier: str, display_name: str) -> DBGroup:
         group = DBGroup(scope=scope, identifier=identifier, display_name=display_name)
-        return self.context.groupdb.save(group)
+        return self.groupdb.save(group)
 
     def add_member(self, group: DBGroup, identifier: str, display_name: str) -> DBGroup:
         self.add_user(identifier=identifier, external_id='not-used')
         member = DBUser(identifier=identifier, display_name=display_name)
         group.members.append(member)
-        return self.context.groupdb.save(group)
+        return self.groupdb.save(group)
 
     def test_get_groups(self):
         for i in range(9):
@@ -51,7 +56,7 @@ class TestGroupResource(ScimApiTestCase):
         response = self.client.simulate_get(path=f'/Groups', headers=self.headers)
         self.assertEqual([SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value], response.json.get('schemas'))
         resources = response.json.get('Resources')
-        self.assertEqual(self.context.groupdb.db.count_nodes(), len(resources))
+        self.assertEqual(self.groupdb.db.count_nodes(), len(resources))
 
     def test_get_group(self):
         db_group = self.add_group(self.data_owner, str(uuid4()), 'Test Group 1')

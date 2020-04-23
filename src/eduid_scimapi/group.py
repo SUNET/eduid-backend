@@ -1,10 +1,10 @@
 from dataclasses import dataclass, field
-from typing import List
+from typing import Any, Dict, List
 from uuid import UUID
 
 from marshmallow_dataclass import class_schema
 
-from eduid_scimapi.scimbase import BaseCreateRequest, BaseResponse, BaseUpdateRequest, Meta, SCIMSchemaValue
+from eduid_scimapi.scimbase import Meta, SCIMSchemaValue
 
 __author__ = 'lundberg'
 
@@ -20,6 +20,7 @@ class GroupMember:
 class Group:
     display_name: str = field(default='', metadata={'data_key': 'displayName', 'required': True})
     members: List[GroupMember] = field(default_factory=list, metadata={'required': False})
+    data: Dict[str, Any] = field(default_factory=dict, metadata={'required': False})
 
 
 # Duplicate Group and BaseCreateRequest until dataclasses has better inheritance support
@@ -28,6 +29,7 @@ class GroupCreateRequest:
     schemas: List[SCIMSchemaValue] = field(default_factory=list, metadata={'required': True})
     display_name: str = field(default='', metadata={'data_key': 'displayName', 'required': True})
     members: List[GroupMember] = field(default_factory=list, metadata={'required': False})
+    data: Dict[str, Any] = field(default_factory=dict, metadata={'required': False})
 
 
 # Duplicate Group and BaseUpdateRequest until dataclasses has better inheritance support
@@ -37,6 +39,7 @@ class GroupUpdateRequest:
     schemas: List[SCIMSchemaValue] = field(default_factory=list, metadata={'required': True})
     display_name: str = field(default='', metadata={'data_key': 'displayName', 'required': True})
     members: List[GroupMember] = field(default_factory=list, metadata={'required': False})
+    data: Dict[str, Any] = field(default_factory=dict, metadata={'required': False})
 
 
 # Duplicate Group and BaseUpdateRequest until dataclasses has better inheritance support

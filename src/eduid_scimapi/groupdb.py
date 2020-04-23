@@ -21,8 +21,8 @@ class ScimApiGroupDB(GroupDB):
 
         return saved_group
 
-    def get_group_by_scim_id(self, scope: str, identifier: str) -> Optional[Group]:
-        group = self.get_group(scope=scope, identifier=identifier)
+    def get_group_by_scim_id(self, identifier: str) -> Optional[Group]:
+        group = self.get_group(identifier=identifier)
         return group
 
     def update_group(self, scope: str, scim_group: SCIMGroup, db_group: Group) -> Group:
