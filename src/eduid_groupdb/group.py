@@ -43,7 +43,7 @@ class User:
 
 @dataclass()
 class Group:
-    scope: str
+    scope: str  # TODO: Remove scope from Group?
     identifier: str
     version: Optional[ObjectId] = None
     display_name: Optional[str] = None

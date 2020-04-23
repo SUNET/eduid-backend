@@ -199,7 +199,7 @@ class GroupDB(BaseGraphDB):
             display_name=member.display_name,
         ).single()
 
-    def _get_users_and_groups_by_role(self, scope: str, identifier: str, role: Role) -> List[Union[User, Group]]:
+    def _get_users_and_groups_by_role(self, identifier: str, role: Role) -> List[Union[User, Group]]:
         res: List[Union[User, Group]] = []
         q = f"""
             MATCH (g: Group {{scope: $scope, identifier: $identifier}})<-[r:{role.value}]-(m)
@@ -208,7 +208,7 @@ class GroupDB(BaseGraphDB):
                    labels(m) as labels
             """
         with self.db.driver.session(access_mode=READ_ACCESS) as session:
-            for record in session.run(q, scope=scope, identifier=identifier):
+            for record in session.run(q, scope=self.scope, identifier=identifier):
                 labels = record.get('labels', [])
                 if 'User' in labels:
                     res.append(User.from_mapping(record.data()))
@@ -216,14 +216,14 @@ class GroupDB(BaseGraphDB):
                     res.append(Group.from_mapping(record.data()))
         return res
 
-    def get_group(self, scope: str, identifier: str) -> Optional[Group]:
+    def get_group(self, identifier: str) -> Optional[Group]:
         q = """
             MATCH (g: Group {scope: $scope, identifier: $identifier})
             OPTIONAL MATCH (g)<-[r]-(m)
             RETURN *
             """
         with self.db.driver.session(access_mode=READ_ACCESS) as session:
-            group_graph: Graph = session.run(q, scope=scope, identifier=identifier).graph()
+            group_graph: Graph = session.run(q, scope=self.scope, identifier=identifier).graph()
 
         if not group_graph.nodes and not group_graph.relationships:
             # group did not exist
@@ -258,15 +258,15 @@ class GroupDB(BaseGraphDB):
                     group.members.append(User.from_mapping(data))
         return group
 
-    def remove_group(self, scope: str, identifier: str) -> None:
+    def remove_group(self, identifier: str) -> None:
         q = """
             MATCH (g: Group {scope: $scope, identifier: $identifier})
             DETACH DELETE g
             """
         with self.db.driver.session(access_mode=WRITE_ACCESS) as session:
-            session.run(q, scope=scope, identifier=identifier)
+            session.run(q, scope=self.scope, identifier=identifier)
 
-    def get_groups_by_property(self, scope, key, value, skip=0, limit=100):
+    def get_groups_by_property(self, key: str, value: str, skip=0, limit=100):
         res: List[Group] = []
         q = f"""
             MATCH (g: Group {{scope: $scope}})
@@ -274,26 +274,27 @@ class GroupDB(BaseGraphDB):
             RETURN g as group SKIP $skip LIMIT $limit
             """
         with self.db.driver.session(access_mode=READ_ACCESS) as session:
-            for record in session.run(q, scope=scope, value=value, skip=skip, limit=limit):
+            for record in session.run(q, scope=self.scope, value=value, skip=skip, limit=limit):
                 res.append(Group.from_mapping(record.data()['group']))
         return res
 
-    def get_groups_for_scope(self, scope):
+    def get_groups(self):
         res: List[Group] = []
         q = """
             MATCH (g: Group {scope: $scope})
             RETURN g as group
             """
         with self.db.driver.session(access_mode=READ_ACCESS) as session:
-            for record in session.run(q, scope=scope):
+            for record in session.run(q, scope=self.scope):
                 res.append(Group.from_mapping(record.data()['group']))
         return res
 
-    def get_groups_for_user(self, user: User, scope: Optional[str] = None) -> List[Group]:
+    def get_groups_for_user(self, user: User) -> List[Group]:
         res: List[Group] = []
         with_scope = ''
 
-        if scope:
+        # TODO: this seems to be the only place where scope is Optional?
+        if self.scope:
             with_scope = 'WHERE g.scope = $scope'
 
         q = f"""
@@ -303,20 +304,23 @@ class GroupDB(BaseGraphDB):
             """
 
         with self.db.driver.session(access_mode=READ_ACCESS) as session:
-            for record in session.run(q, identifier=user.identifier, scope=scope):
+            for record in session.run(q, identifier=user.identifier, scope=self.scope):
                 res.append(Group.from_mapping(record.data()['group']))
         return res
 
-    def group_exists(self, scope: str, identifier: str) -> bool:
+    def group_exists(self, identifier: str) -> bool:
         q = """
             MATCH (g: Group {scope: $scope, identifier: $identifier})             
             RETURN count(*) as exists LIMIT 1
             """
         with self.db.driver.session(access_mode=READ_ACCESS) as session:
-            ret = session.run(q, scope=scope, identifier=identifier).single()['exists']
+            ret = session.run(q, scope=self.scope, identifier=identifier).single()['exists']
         return bool(ret)
 
     def save(self, group: Group) -> Group:
+        # TODO: replace group.scope with self.scope? Remove scope from Group?
+        assert group.scope == self.scope
+
         with self.db.driver.session(access_mode=WRITE_ACCESS) as session:
             try:
                 tx = session.begin_transaction()
