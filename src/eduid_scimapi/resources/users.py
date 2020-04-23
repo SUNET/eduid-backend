@@ -1,6 +1,6 @@
 import re
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from falcon import Request, Response
 from marshmallow import ValidationError
@@ -191,12 +191,16 @@ class UsersSearchResource(BaseResource):
 
         if attr.lower() == 'externalid':
             users = self._filter_externalid(req, op.lower(), val)
+            total_count = len(users)
         elif attr.lower() == 'meta.lastmodified':
-            users = self._filter_lastmodified(req, op.lower(), val)
+            # SCIM start_index 1 equals item 0
+            users, total_count = self._filter_lastmodified(
+                req, op.lower(), val, skip=query.start_index - 1, limit=query.count
+            )
         else:
             raise BadRequest(scim_type='invalidFilter', detail=f'Can\'t filter on attribute {attr}')
 
-        list_response = ListResponse(resources=self._users_to_resources_dicts(req, users), total_results=len(users))
+        list_response = ListResponse(resources=self._users_to_resources_dicts(req, users), total_results=total_count)
 
         resp.media = ListResponseSchema().dump(list_response)
 
@@ -218,11 +222,14 @@ class UsersSearchResource(BaseResource):
 
         return [user]
 
-    def _filter_lastmodified(self, req: Request, op: str, val: str) -> List[ScimApiUser]:
+    def _filter_lastmodified(
+        self, req: Request, op: str, val: str, skip: Optional[int] = None, limit: Optional[int] = None
+    ) -> Tuple[List[ScimApiUser], int]:
         if op not in ['gt', 'ge']:
             raise BadRequest(scim_type='invalidFilter', detail='Unsupported operator')
-
-        return req.context['userdb'].get_user_by_last_modified(operator=op, value=datetime.fromisoformat(val))
+        return req.context['userdb'].get_users_by_last_modified(
+            operator=op, value=datetime.fromisoformat(val), skip=skip, limit=limit
+        )
 
 
 def _add_eduid_PoC_profile(user: ScimApiUser, context: Context) -> None:

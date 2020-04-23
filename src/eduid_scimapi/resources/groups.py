@@ -323,7 +323,7 @@ class GroupSearchResource(BaseResource):
 
         display_name = match.group(1)
         self.context.logger.debug(f"Searching for group with display name {repr(display_name)}")
-        # SCIM starts counting from 1 and Neo4j from 0
+        # SCIM start_index 1 equals item 0
         db_groups = self.context.groupdb.get_groups_by_property(
             scope=scope, key='display_name', value=display_name, skip=query.start_index - 1, limit=query.count
         )
