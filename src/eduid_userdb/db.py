@@ -1,15 +1,11 @@
-from __future__ import absolute_import
-
 import copy
 import logging
 import warnings
-from typing import Any, List, Mapping, Optional, Union, Dict
+from typing import Any, Dict, List, Mapping, Optional, Union
 
 import pymongo
 from bson import ObjectId
-from pymongo.cursor import Cursor
 from pymongo.errors import PyMongoError
-from pymongo.results import DeleteResult
 from pymongo.uri_parser import parse_uri
 
 from eduid_userdb.exceptions import (
@@ -284,20 +280,35 @@ class BaseDB(object):
         return docs
 
     def _get_documents_by_filter(
-        self, spec: dict, fields: Optional[dict] = None, raise_on_missing: bool = True
+        self,
+        spec: dict,
+        fields: Optional[dict] = None,
+        skip: Optional[int] = None,
+        limit: Optional[int] = None,
+        raise_on_missing: bool = True,
     ) -> List[Mapping]:
         """
-        Locate a documents in the db using a custom search filter.
+        Locate documents in the db using a custom search filter.
 
         :param spec: the search filter
         :param fields: the fields to return in the search result
-        :return: A document dict
+        :param skip: Number of documents to skip before returning result
+        :param limit: Limit documents returned to this number
+        :param raise_on_missing:  If True, raise exception if no matching user object can be found.
+        :return: A list of documents
         :raise DocumentDoesNotExist: No document matching the search criteria
         """
-        if fields is None:
-            docs = list(self._coll.find(spec))
+        if fields is not None:
+            cursor = self._coll.find(spec, fields)
         else:
-            docs = list(self._coll.find(spec, fields))
+            cursor = self._coll.find(spec)
+
+        if skip is not None:
+            cursor = cursor.skip(skip=skip)
+        if limit is not None:
+            cursor = cursor.limit(limit=limit)
+
+        docs = list(cursor)
         doc_count = len(docs)
         if doc_count == 0:
             if raise_on_missing:
