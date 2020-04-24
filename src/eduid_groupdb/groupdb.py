@@ -131,10 +131,7 @@ class GroupDB(BaseGraphDB):
             DELETE r
             """
         tx.run(
-            q,
-            scope=self.scope,
-            identifier=group.identifier,
-            member_identifier=member.identifier,
+            q, scope=self.scope, identifier=group.identifier, member_identifier=member.identifier,
         )
 
     def _remove_user_from_group(self, tx: Transaction, group: Group, member: User, role: Role):

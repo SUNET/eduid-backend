@@ -191,10 +191,8 @@ class TestGroupDB(Neo4jTestCase):
 
         groups = self.group_db.get_groups_for_user(member_user)
         self.assertEqual(2, len(groups))
-        self.assertEqual(sorted([group1.identifier, group2.identifier]),
-                         sorted([x.identifier for x in groups]))
-        self.assertEqual(sorted([group1.display_name, group2.display_name]),
-                         sorted([x.display_name for x in groups]))
+        self.assertEqual(sorted([group1.identifier, group2.identifier]), sorted([x.identifier for x in groups]))
+        self.assertEqual(sorted([group1.display_name, group2.display_name]), sorted([x.display_name for x in groups]))
         self.assertIsNotNone(groups[0].created_ts)
 
     def test_remove_user_from_group(self):
