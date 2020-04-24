@@ -43,7 +43,6 @@ class User:
 
 @dataclass()
 class Group:
-    scope: str  # TODO: Remove scope from Group?
     identifier: str
     version: Optional[ObjectId] = None
     display_name: Optional[str] = None
@@ -56,12 +55,10 @@ class Group:
     def __eq__(self, other: object):
         if not isinstance(other, Group):
             raise NotImplemented('other instance must be of type Group')
-        if (self.scope == other.scope) and (self.identifier == other.identifier):
-            return True
-        return False
+        return self.identifier == other.identifier
 
     def __hash__(self):
-        return hash(f'{self.scope}-{self.identifier}')
+        return hash(self.identifier)
 
     @staticmethod
     def _filter_type(it: List[Union[User, Group]], member_type: Type[Union[User, Group]]):
@@ -77,12 +74,12 @@ class Group:
         return res[0]
 
     @staticmethod
-    def _get_group(it: List[Group], scope: str, identifier: str) -> Optional[Group]:
-        res = [group for group in it if group.scope == scope and group.identifier == identifier]
+    def _get_group(it: List[Group], identifier: str) -> Optional[Group]:
+        res = [group for group in it if group.identifier == identifier]
         if not res:
             return None
         if len(res) != 1:
-            raise MultipleGroupsReturned(f'More than one group with scope {scope} and identifier {identifier} found')
+            raise MultipleGroupsReturned(f'More than one group with identifier {identifier} found')
         return res[0]
 
     @property
@@ -107,11 +104,11 @@ class Group:
     def get_owner_user(self, identifier: str):
         return self._get_user(self.owner_users, identifier=identifier)
 
-    def get_member_group(self, scope: str, identifier: str):
-        return self._get_group(self.member_groups, scope=scope, identifier=identifier)
+    def get_member_group(self, identifier: str):
+        return self._get_group(self.member_groups, identifier=identifier)
 
-    def get_owner_group(self, scope: str, identifier: str):
-        return self._get_group(self.owner_groups, scope=scope, identifier=identifier)
+    def get_owner_group(self, identifier: str):
+        return self._get_group(self.owner_groups, identifier=identifier)
 
     @classmethod
     def from_mapping(cls, data: Mapping) -> Group:
@@ -120,7 +117,6 @@ class Group:
         if version is not None:
             version = ObjectId(version)
         return cls(
-            scope=data['scope'],
             identifier=data['identifier'],
             version=version,
             display_name=data['display_name'],

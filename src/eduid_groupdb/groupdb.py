@@ -46,8 +46,7 @@ class GroupDB(BaseGraphDB):
                     pass
         logger.info(f'{self} setup done.')
 
-    @staticmethod
-    def _create_or_update_group(tx: Transaction, group: Group) -> Group:
+    def _create_or_update_group(self, tx: Transaction, group: Group) -> Group:
         q = """
             MERGE (g:Group {scope: $scope, identifier: $identifier, version: $version})
                 ON CREATE SET g.created_ts = timestamp()
@@ -64,7 +63,7 @@ class GroupDB(BaseGraphDB):
         new_version = str(ObjectId())
         res = tx.run(
             q,
-            scope=group.scope,
+            scope=self.scope,
             identifier=group.identifier,
             version=version,
             display_name=group.display_name,
@@ -111,13 +110,13 @@ class GroupDB(BaseGraphDB):
             MATCH (Group {{scope: $scope, identifier: $identifier}})<-[r:{role.value}]-(m)
             RETURN m.scope as scope, m.identifier as identifier, labels(m) as labels
             """
-        members_in_db = tx.run(q, scope=group.scope, identifier=group.identifier)
+        members_in_db = tx.run(q, scope=self.scope, identifier=group.identifier)
         # NOTICE: tx.sync() will send the transaction up to and including this query so this
         #         should probably be done first or last in the save transaction.
         tx.sync()
         for record in members_in_db:
             if 'Group' in record['labels']:
-                group_member = Group(scope=record['scope'], identifier=record['identifier'])
+                group_member = Group(identifier=record['identifier'])
                 if group_member not in group_list:
                     self._remove_group_from_group(tx, group=group, member=group_member, role=role)
             elif 'User' in record['labels']:
@@ -125,34 +124,30 @@ class GroupDB(BaseGraphDB):
                 if user_member not in user_list:
                     self._remove_user_from_group(tx, group=group, member=user_member, role=role)
 
-    @staticmethod
-    def _remove_group_from_group(tx: Transaction, group: Group, member: Group, role: Role):
+    def _remove_group_from_group(self, tx: Transaction, group: Group, member: Group, role: Role):
         q = f"""
             MATCH (Group {{scope: $scope, identifier: $identifier}})<-[r:{role.value}]-(Group
-                    {{scope: $member_scope, identifier: $member_identifier}})
+                    {{scope: $scope, identifier: $member_identifier}})
             DELETE r
             """
         tx.run(
             q,
-            scope=group.scope,
+            scope=self.scope,
             identifier=group.identifier,
-            member_scope=member.scope,
             member_identifier=member.identifier,
         )
 
-    @staticmethod
-    def _remove_user_from_group(tx: Transaction, group: Group, member: User, role: Role):
+    def _remove_user_from_group(self, tx: Transaction, group: Group, member: User, role: Role):
         q = f"""
             MATCH (Group {{scope: $scope, identifier: $identifier}})<-[r:{role.value}]-(User
                     {{identifier: $member_identifier}})
             DELETE r
             """
-        tx.run(q, scope=group.scope, identifier=group.identifier, member_identifier=member.identifier)
+        tx.run(q, scope=self.scope, identifier=group.identifier, member_identifier=member.identifier)
 
-    @staticmethod
-    def _add_group_to_group(tx, group: Group, member: Group, role: Role) -> Record:
+    def _add_group_to_group(self, tx, group: Group, member: Group, role: Role) -> Record:
         q = f"""
-            MATCH (g:Group {{scope: $group_scope, identifier: $group_identifier}})
+            MATCH (g:Group {{scope: $scope, identifier: $group_identifier}})
             MERGE (m:Group {{scope: $scope, identifier: $identifier}})
                 ON CREATE SET
                     m.created_ts = timestamp(),
@@ -170,17 +165,15 @@ class GroupDB(BaseGraphDB):
         version = str(ObjectId())
         return tx.run(
             q,
-            group_scope=group.scope,
+            scope=self.scope,
             group_identifier=group.identifier,
             identifier=member.identifier,
-            scope=member.scope,
             version=version,
             display_name=member.display_name,
             description=member.description,
         ).single()
 
-    @staticmethod
-    def _add_user_to_group(tx, group: Group, member: User, role: Role) -> Record:
+    def _add_user_to_group(self, tx, group: Group, member: User, role: Role) -> Record:
         q = f"""
             MATCH (g:Group {{scope: $scope, identifier: $group_identifier}})
             MERGE (m:User {{identifier: $identifier}})
@@ -193,7 +186,7 @@ class GroupDB(BaseGraphDB):
             """
         return tx.run(
             q,
-            scope=group.scope,
+            scope=self.scope,
             group_identifier=group.identifier,
             identifier=member.identifier,
             display_name=member.display_name,
@@ -318,9 +311,6 @@ class GroupDB(BaseGraphDB):
         return bool(ret)
 
     def save(self, group: Group) -> Group:
-        # TODO: replace group.scope with self.scope? Remove scope from Group?
-        assert group.scope == self.scope
-
         with self.db.driver.session(access_mode=WRITE_ACCESS) as session:
             try:
                 tx = session.begin_transaction()
