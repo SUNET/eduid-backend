@@ -48,7 +48,8 @@ class HandleAuthentication(object):
             # TODO: Authorization is optional at the moment
             self.context.logger.info('No authorization header provided - proceeding anyway')
             req.context['data_owner'] = 'eduid.se'
-            req.context['userdb'] = self.context.get_database(req.context['data_owner'])
+            req.context['userdb'] = self.context.get_userdb(req.context['data_owner'])
+            req.context['groupdb'] = self.context.get_groupdb(req.context['data_owner'])
             return
 
         token = req.auth[len('Bearer ') :]
@@ -59,12 +60,13 @@ class HandleAuthentication(object):
             raise Unauthorized(detail='Signature expired')
 
         data_owner = claims.get('data_owner')
-        if not self.context.get_database(data_owner):
+        if not self.context.get_userdb(data_owner):
             self.context.logger.info(f'No database available for data_owner {repr(data_owner)}')
             raise Unauthorized(detail='Unknown data_owner')
 
         req.context['data_owner'] = data_owner
-        req.context['userdb'] = self.context.get_database(data_owner)
+        req.context['userdb'] = self.context.get_userdb(data_owner)
+        req.context['groupdb'] = self.context.get_groupdb(req.context['data_owner'])
 
         self.context.logger.debug(f'Bearer token data owner: {data_owner}')
 

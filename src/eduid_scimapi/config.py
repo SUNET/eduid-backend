@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Dict
+from typing import Dict, List
 
 from eduid_common.config.base import BaseConfig
 
@@ -18,3 +18,4 @@ class ScimApiConfig(BaseConfig):
     neo4j_config: Dict = field(default_factory=dict)
     authorization_token_secret: str = 'secret'
     authorization_token_expire: int = 5 * 60
+    data_owners: List[str] = field(default_factory=lambda: ['eduid.se'])

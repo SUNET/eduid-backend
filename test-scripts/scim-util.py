@@ -211,7 +211,7 @@ def process_groups(api: str, ops: Mapping[str, Any], token: Optional[str] = None
         if op == 'search':
             for display_name in ops[op]:
                 res = search_group(api, display_name, token=token)
-                if res['totalResults'] == 0:
+                if res is not None and res['totalResults'] == 0:
                     logger.info(f'Found no group with displayName: {display_name}. Creating it.')
                     create_group(api, display_name, token=token)
         elif op == 'put':
