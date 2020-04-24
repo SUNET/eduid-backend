@@ -209,7 +209,7 @@ class GroupsResource(BaseResource):
                         self.context.logger.error(f'User {member.value} not found')
                         raise BadRequest(detail=f'User {member.value} not found')
 
-            db_group = req.context['groupdb'].update_group(scope=req.context['data_owner'], scim_group=group, db_group=db_group)
+            db_group = req.context['groupdb'].update_group(scim_group=group, db_group=db_group)
             self._db_group_to_response(resp, db_group)
         except (ValidationError, MultipleReturnedError) as e:
             raise BadRequest(detail=f"{e}")
@@ -248,8 +248,7 @@ class GroupsResource(BaseResource):
         try:
             group: Group = GroupCreateRequestSchema().load(req.media)
             self.context.logger.debug(group)
-            # TODO: Remove scope from Group?
-            db_group = req.context['groupdb'].create_group(scope=req.context['data_owner'], scim_group=group)
+            db_group = req.context['groupdb'].create_group(scim_group=group)
             resp.status = '201'
             self._db_group_to_response(resp, db_group)
         except ValidationError as e:
