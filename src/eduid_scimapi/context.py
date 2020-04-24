@@ -35,14 +35,16 @@ class Context(object):
         self._userdbs = {}
         self._groupdbs = {}
         for data_owner in self.config.data_owners:
-            self._userdbs[data_owner] = ScimApiUserDB(db_uri=self.config.mongo_uri)  # TODO: add collection=data_owner here
-            self._groupdbs[data_owner] = ScimApiGroupDB(db_uri=self.config.neo4j_uri, config=self.config.neo4j_config, scope=data_owner)
+            self._userdbs[data_owner] = ScimApiUserDB(
+                db_uri=self.config.mongo_uri
+            )  # TODO: add collection=data_owner here
+            self._groupdbs[data_owner] = ScimApiGroupDB(
+                db_uri=self.config.neo4j_uri, config=self.config.neo4j_config, scope=data_owner
+            )
 
         if not self._groupdbs:
             # Temporarily don't care about neo4jdb
             self.logger.info(f'Starting without neo4jdb')
-
-        #self.groupdb = None
 
     @property
     def base_url(self) -> str:

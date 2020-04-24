@@ -35,7 +35,6 @@ class TestSCIMGroup(TestScimBase):
 
 
 class TestGroupResource(ScimApiTestCase):
-
     def setUp(self) -> None:
         super().setUp()
         self.groupdb = self.context.get_groupdb('eduid.se')

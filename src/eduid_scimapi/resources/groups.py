@@ -180,15 +180,14 @@ class GroupsResource(BaseResource):
                 raise BadRequest(detail='Id mismatch')
 
             # Please mypy as GroupUpdateRequest no longer inherit from Group
-            group = Group(display_name=update_request.display_name, members=update_request.members,
-                          data=update_request.data)
+            group = Group(
+                display_name=update_request.display_name, members=update_request.members, data=update_request.data
+            )
 
             self.context.logger.info(f"Fetching group {scim_id}")
 
             # Get group from db
-            db_group: DBGroup = req.context['groupdb'].get_group_by_scim_id(
-                identifier=str(update_request.id)
-            )
+            db_group: DBGroup = req.context['groupdb'].get_group_by_scim_id(identifier=str(update_request.id))
             self.context.logger.debug(f'Found group: {db_group}')
             if not db_group:
                 raise NotFound(detail="Group not found")
