@@ -4,15 +4,23 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from bson import ObjectId
 from bson.errors import InvalidId
-from marshmallow import ValidationError, fields, missing, validate
+from marshmallow import Schema, ValidationError, fields, missing, post_dump, validate
 from marshmallow_dataclass import NewType, class_schema
 from marshmallow_enum import EnumField
 
 __author__ = 'lundberg'
+
+
+class BaseSchema(Schema):
+    SKIP_VALUES = [None]
+
+    @post_dump
+    def remove_skip_values(self, data, **kwargs):
+        return {key: value for key, value in data.items() if value not in self.SKIP_VALUES}
 
 
 class ObjectIdField(fields.Field):
@@ -65,6 +73,13 @@ class SCIMResourceType(Enum):
 
 
 @dataclass
+class SubResource:
+    value: UUID = field(metadata={'required': True})
+    ref: str = field(metadata={'data_key': '$ref', 'required': True})
+    display: str = field(metadata={'required': True})
+
+
+@dataclass
 class Meta:
     location: str = field(metadata={'required': True})
     last_modified: datetime = field(metadata={'data_key': 'lastModified', 'required': True})
@@ -112,5 +127,5 @@ class ListResponse:
     total_results: int = field(default=0, metadata={'data_key': 'totalResults', 'required': True})
 
 
-SearchRequestSchema = class_schema(SearchRequest)
-ListResponseSchema = class_schema(ListResponse)
+SearchRequestSchema = class_schema(SearchRequest, base_schema=BaseSchema)
+ListResponseSchema = class_schema(ListResponse, base_schema=BaseSchema)

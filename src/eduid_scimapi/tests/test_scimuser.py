@@ -1,3 +1,4 @@
+import json
 import unittest
 from dataclasses import asdict
 from datetime import datetime, timedelta
@@ -5,11 +6,12 @@ from uuid import uuid4
 
 import bson
 from bson import ObjectId
+from marshmallow_dataclass import class_schema
 
-from eduid_scimapi.profile import Profile
-from eduid_scimapi.scimbase import SCIMSchema, make_etag
+from eduid_scimapi.scimbase import Meta, SCIMResourceType, SCIMSchema, make_etag
 from eduid_scimapi.testing import ScimApiTestCase
-from eduid_scimapi.user import ScimApiUser
+from eduid_scimapi.user import UserResponse, UserResponseSchema
+from eduid_scimapi.userdb import Profile, ScimApiUser
 
 
 class TestScimUser(unittest.TestCase):
@@ -34,25 +36,43 @@ class TestScimUser(unittest.TestCase):
         self.assertEqual(asdict(user), asdict(user2))
 
     def test_to_scimuser_doc(self):
-        user = ScimApiUser.from_dict(self.user_doc1)
-        location = 'http://localhost:12345/User'
-        scim = user.to_scim_dict(location=location)
+        db_user = ScimApiUser.from_dict(self.user_doc1)
+        meta = Meta(
+            location=f'http://example.org/Users/{db_user.scim_id}',
+            resource_type=SCIMResourceType.user,
+            created=db_user.created,
+            last_modified=db_user.last_modified,
+            version=db_user.version,
+        )
+
+        user_response = UserResponse(
+            id=db_user.scim_id,
+            meta=meta,
+            schemas=[SCIMSchema.CORE_20_USER, SCIMSchema.NUTID_V1],
+            external_id=db_user.external_id,
+        )
+        user_response.groups = []
+        user_response.nutid_v1.profiles = db_user.profiles
+        schema = class_schema(UserResponse)
+        scim = schema().dumps(user_response, sort_keys=True)
+
         expected = {
             'schemas': ['urn:ietf:params:scim:schemas:core:2.0:User', SCIMSchema.NUTID_V1.value],
             'externalId': 'hubba-bubba@eduid.se',
             'id': '9784e1bf-231b-4eb8-b315-52eb46dd7c4b',
+            'groups': [],
             SCIMSchema.NUTID_V1.value: {'profiles': {'student': {'attributes': {'displayName': 'Test'}, 'data': {}}}},
             'meta': {
                 'created': '2020-02-25T15:52:59.745000',
                 'lastModified': '2020-02-25T15:52:59.745000',
-                'location': location,
+                'location': f'http://example.org/Users/{db_user.scim_id}',
                 'resourceType': 'User',
                 'version': 'W/"5e5e6829f86abf66d341d4a2"',
             },
         }
-        self.assertEqual(scim, expected)
+        self.assertDictEqual(expected, json.loads(scim))
 
-    def test_to_scimuser_not_eduid(self):
+    def test_to_scimuser_no_external_id(self):
         user_doc2 = {
             '_id': ObjectId('5e81c5f849ac2cd87580e500'),
             'scim_id': 'a7851d21-eab9-4caa-ba5d-49653d65c452',
@@ -61,22 +81,40 @@ class TestScimUser(unittest.TestCase):
             'last_modified': datetime.fromisoformat('2020-03-30T10:12:08.531'),
             'profiles': {'student': {'data': {}}},
         }
-        user = ScimApiUser.from_dict(user_doc2)
-        location = 'http://localhost:12345/User'
-        scim = user.to_scim_dict(location=location)
+        db_user = ScimApiUser.from_dict(user_doc2)
+
+        meta = Meta(
+            location=f'http://example.org/Users/{db_user.scim_id}',
+            resource_type=SCIMResourceType.user,
+            created=db_user.created,
+            last_modified=db_user.last_modified,
+            version=db_user.version,
+        )
+
+        user_response = UserResponse(
+            id=db_user.scim_id,
+            meta=meta,
+            schemas=[SCIMSchema.CORE_20_USER, SCIMSchema.NUTID_V1],
+            external_id=db_user.external_id,
+        )
+        user_response.groups = []
+        user_response.nutid_v1.profiles = db_user.profiles
+        scim = UserResponseSchema().dumps(user_response)
+
         expected = {
             'schemas': ['urn:ietf:params:scim:schemas:core:2.0:User', SCIMSchema.NUTID_V1.value],
             'id': 'a7851d21-eab9-4caa-ba5d-49653d65c452',
+            'groups': [],
             SCIMSchema.NUTID_V1.value: {'profiles': {'student': {'attributes': {}, 'data': {}}}},
             'meta': {
                 'created': '2020-03-30T10:12:08.528000',
                 'lastModified': '2020-03-30T10:12:08.531000',
-                'location': location,
+                'location': f'http://example.org/Users/{db_user.scim_id}',
                 'resourceType': 'User',
                 'version': 'W/"5e81c5f849ac2cd87580e502"',
             },
         }
-        self.assertEqual(scim, expected)
+        self.assertDictEqual(expected, json.loads(scim))
 
     def test_bson_serialization(self):
         user = ScimApiUser.from_dict(self.user_doc1)
@@ -132,10 +170,8 @@ class TestUserResource(ScimApiTestCase):
         }
         response = self.client.simulate_post(path='/Users/', body=self.as_json(req), headers=self.headers)
 
-        # TODO: SCIMSchema.DEBUG_V1 should be returned if not asked for
         self.assertEqual(
-            [SCIMSchema.CORE_20_USER.value, SCIMSchema.NUTID_V1.value, SCIMSchema.DEBUG_V1.value],
-            response.json.get('schemas'),
+            [SCIMSchema.CORE_20_USER.value, SCIMSchema.NUTID_V1.value], response.json.get('schemas'),
         )
         self.assertIsNotNone(response.json.get('id'))
         self.assertEqual(f'http://localhost:8000/Users/{response.json.get("id")}', response.headers.get('location'))

@@ -4,16 +4,14 @@ from uuid import UUID
 
 from marshmallow_dataclass import class_schema
 
-from eduid_scimapi.scimbase import Meta, SCIMSchemaValue
+from eduid_scimapi.scimbase import BaseSchema, Meta, SCIMSchemaValue, SubResource
 
 __author__ = 'lundberg'
 
 
 @dataclass
-class GroupMember:
-    value: UUID = field(metadata={'required': True})
-    ref: str = field(metadata={'data_key': '$ref', 'required': True})
-    display: str = field(metadata={'required': True})
+class GroupMember(SubResource):
+    pass
 
 
 @dataclass
@@ -39,7 +37,7 @@ class GroupUpdateRequest:
     members: List[GroupMember] = field(default_factory=list, metadata={'required': False})
 
 
-# Duplicate Group and BaseUpdateRequest until dataclasses has better inheritance support
+# Duplicate Group and BaseResponse until dataclasses has better inheritance support
 @dataclass
 class GroupResponse:
     id: UUID = field(metadata={'required': True})
@@ -49,6 +47,6 @@ class GroupResponse:
     members: List[GroupMember] = field(default_factory=list, metadata={'required': False})
 
 
-GroupCreateRequestSchema = class_schema(GroupCreateRequest)
-GroupUpdateRequestSchema = class_schema(GroupUpdateRequest)
-GroupResponseSchema = class_schema(GroupResponse)
+GroupCreateRequestSchema = class_schema(GroupCreateRequest, base_schema=BaseSchema)
+GroupUpdateRequestSchema = class_schema(GroupUpdateRequest, base_schema=BaseSchema)
+GroupResponseSchema = class_schema(GroupResponse, base_schema=BaseSchema)

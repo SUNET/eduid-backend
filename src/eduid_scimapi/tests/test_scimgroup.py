@@ -2,20 +2,31 @@
 
 __author__ = 'lundberg'
 
+from datetime import datetime
 from uuid import uuid4
 
+from bson import ObjectId
 from marshmallow_dataclass import class_schema
 
 from eduid_groupdb import Group as DBGroup
 from eduid_groupdb import User as DBUser
 
 from eduid_scimapi.group import GroupMember, GroupResponse
-from eduid_scimapi.scimbase import SCIMSchema, make_etag
+from eduid_scimapi.scimbase import Meta, SCIMResourceType, SCIMSchema, make_etag
 from eduid_scimapi.testing import ScimApiTestCase
 from eduid_scimapi.tests.test_scimbase import TestScimBase
 
 
 class TestSCIMGroup(TestScimBase):
+    def setUp(self) -> None:
+        self.meta = Meta(
+            location='http://example.org/Groups/some-id',
+            resource_type=SCIMResourceType.group,
+            created=datetime.utcnow(),
+            last_modified=datetime.utcnow(),
+            version=ObjectId(),
+        )
+
     def test_group(self) -> None:
         schema = class_schema(GroupResponse)
         group = GroupResponse(id=uuid4(), schemas=[SCIMSchema.CORE_20_GROUP], meta=self.meta, display_name='Test Group')

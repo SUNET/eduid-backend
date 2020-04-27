@@ -18,7 +18,7 @@ from eduid_scimapi.group import (
     GroupUpdateRequest,
     GroupUpdateRequestSchema,
 )
-from eduid_scimapi.resources.base import BaseResource
+from eduid_scimapi.resources.base import BaseResource, SCIMResource
 from eduid_scimapi.scimbase import (
     ListResponse,
     ListResponseSchema,
@@ -31,14 +31,7 @@ from eduid_scimapi.scimbase import (
 )
 
 
-class GroupsResource(BaseResource):
-    def _check_version(self, req: Request, db_group: DBGroup) -> bool:
-        if req.headers.get('IF-MATCH') == make_etag(db_group.version):
-            return True
-        self.context.logger.error(f'Version mismatch')
-        self.context.logger.debug(f'{req.headers.get("IF-MATCH")} != {make_etag(db_group.version)}')
-        return False
-
+class GroupsResource(SCIMResource):
     def _get_group_members(self, db_group: DBGroup) -> List[GroupMember]:
         members = []
         for member in db_group.member_users:
@@ -68,7 +61,7 @@ class GroupsResource(BaseResource):
         )
 
         resp.set_header("Location", location)
-        resp.set_header("ETag", f'W/"{db_group.version}"')
+        resp.set_header("ETag", make_etag(db_group.version))
         resp.media = GroupResponseSchema().dump(group)
 
     def on_get(self, req: Request, resp: Response, scim_id: Optional[str] = None):
@@ -180,9 +173,7 @@ class GroupsResource(BaseResource):
                 raise BadRequest(detail='Id mismatch')
 
             # Please mypy as GroupUpdateRequest no longer inherit from Group
-            group = Group(
-                display_name=update_request.display_name, members=update_request.members,
-            )
+            group = Group(display_name=update_request.display_name, members=update_request.members,)
 
             self.context.logger.info(f"Fetching group {scim_id}")
 

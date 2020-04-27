@@ -1,82 +1,85 @@
-from __future__ import annotations
-
-import uuid
-from dataclasses import asdict, dataclass, field
-from datetime import datetime
-from typing import Any, Dict, Mapping, Optional, Type
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional
 from uuid import UUID
 
-from bson import ObjectId
+from marshmallow import fields
+from marshmallow_dataclass import class_schema
 
-from eduid_scimapi.profile import Profile
-from eduid_scimapi.scimbase import SCIMSchema
+from eduid_scimapi.scimbase import BaseSchema, Meta, SCIMSchema, SCIMSchemaValue, SubResource
 
-__author__ = 'ft'
+__author__ = 'lundberg'
 
 
 @dataclass
-class ScimApiUser(object):
-    user_id: ObjectId = field(default_factory=lambda: ObjectId())
-    scim_id: UUID = field(default_factory=lambda: uuid.uuid4())
-    external_id: Optional[str] = None
-    version: ObjectId = field(default_factory=lambda: ObjectId())
-    created: datetime = field(default_factory=lambda: datetime.utcnow())
-    last_modified: datetime = field(default_factory=lambda: datetime.utcnow())
-    profiles: Dict[str, Profile] = field(default_factory=lambda: {})
+class Profile:
+    attributes: Dict[str, Any] = field(
+        default_factory=dict, metadata={"marshmallow_field": fields.Dict(), 'required': False}
+    )
+    data: Dict[str, Any] = field(default_factory=dict, metadata={"marshmallow_field": fields.Dict(), 'required': False})
 
-    @property
-    def etag(self):
-        return f'W/"{self.version}"'
 
-    def to_scim_dict(self, location: str, debug: bool = False, data_owner: Optional[str] = None) -> Mapping[str, Any]:
-        res: Dict[str, Any] = {
-            'schemas': ['urn:ietf:params:scim:schemas:core:2.0:User'],
-            'id': str(self.scim_id),
-            'meta': {
-                'resourceType': 'User',
-                'created': self.created.isoformat(),
-                'lastModified': self.last_modified.isoformat(),
-                'location': location,
-                'version': self.etag,
-            },
-        }
-        if self.external_id is not None:
-            res['externalId'] = self.external_id
-        if self.profiles:
-            res['schemas'] += [SCIMSchema.NUTID_V1.value]
-            if SCIMSchema.NUTID_V1.value not in res:
-                res[SCIMSchema.NUTID_V1.value] = {}
-            if 'profiles' not in res[SCIMSchema.NUTID_V1.value]:
-                res[SCIMSchema.NUTID_V1.value]['profiles'] = {}
-            for prof in self.profiles.keys():
-                res[SCIMSchema.NUTID_V1.value]['profiles'][prof] = self.profiles[prof].to_schema_dict(
-                    SCIMSchema.NUTID_V1.value
-                )
-        if debug:
-            profiles_dicts = {}
-            for this in self.profiles.keys():
-                profiles_dicts[this] = asdict(self.profiles[this])
-            res['schemas'] += [SCIMSchema.DEBUG_V1.value]
-            res[SCIMSchema.DEBUG_V1.value] = {
-                'profiles': profiles_dicts,
-                'logged_in_as': data_owner,
-            }
+@dataclass
+class NutidExtensionV1:
+    profiles: Dict[str, Profile] = field(
+        default_factory=dict,
+        metadata={
+            "marshmallow_field": fields.Dict(keys=fields.Str, values=fields.Nested(class_schema(Profile))),
+            'required': False,
+        },
+    )
 
-        return res
 
-    def to_dict(self) -> Dict[str, Any]:
-        res = asdict(self)
-        res['scim_id'] = str(res['scim_id'])
-        res['_id'] = res.pop('user_id')
-        return res
+@dataclass
+class Group(SubResource):
+    pass
 
-    @classmethod
-    def from_dict(cls: Type[ScimApiUser], data: Mapping[str, Any]) -> ScimApiUser:
-        this = dict(data)
-        this['scim_id'] = uuid.UUID(this['scim_id'])
-        this['user_id'] = this.pop('_id')
-        parsed_profiles = {}
-        for k, v in this['profiles'].items():
-            parsed_profiles[k] = Profile(**v)
-        this['profiles'] = parsed_profiles
-        return cls(**this)
+
+@dataclass
+class User:
+    external_id: Optional[str] = field(default=None, metadata={'data_key': 'externalId', 'required': False})
+    groups: List[Group] = field(default_factory=list, metadata={'required': False})
+    nutid_v1: NutidExtensionV1 = field(
+        default_factory=lambda: NutidExtensionV1(), metadata={'data_key': SCIMSchema.NUTID_V1.value, 'required': False}
+    )
+
+
+# Duplicate User and BaseCreateRequest until dataclasses has better inheritance support
+@dataclass
+class UserCreateRequest:
+    schemas: List[SCIMSchemaValue] = field(default_factory=list, metadata={'required': True})
+    external_id: Optional[str] = field(default=None, metadata={'data_key': 'externalId', 'required': False})
+    groups: List[Group] = field(default_factory=list, metadata={'required': False})
+    nutid_v1: NutidExtensionV1 = field(
+        default_factory=lambda: NutidExtensionV1(), metadata={'data_key': SCIMSchema.NUTID_V1.value, 'required': False}
+    )
+
+
+# Duplicate User and BaseUpdateRequest until dataclasses has better inheritance support
+@dataclass
+class UserUpdateRequest:
+    id: UUID = field(metadata={'required': True})
+    schemas: List[SCIMSchemaValue] = field(default_factory=list, metadata={'required': True})
+    external_id: Optional[str] = field(default=None, metadata={'data_key': 'externalId', 'required': False})
+    groups: List[Group] = field(default_factory=list, metadata={'required': False})
+    nutid_v1: NutidExtensionV1 = field(
+        default_factory=lambda: NutidExtensionV1(), metadata={'data_key': SCIMSchema.NUTID_V1.value, 'required': False}
+    )
+
+
+# Duplicate User and BaseResponse until dataclasses has better inheritance support
+@dataclass
+class UserResponse:
+    id: UUID = field(metadata={'required': True})
+    meta: Meta = field(metadata={'required': True})  # type: ignore
+    schemas: List[SCIMSchemaValue] = field(default_factory=list, metadata={'required': True})
+    external_id: Optional[str] = field(default=None, metadata={'data_key': 'externalId', 'required': False})
+    groups: List[Group] = field(default_factory=list, metadata={'required': False})
+    nutid_v1: NutidExtensionV1 = field(
+        default_factory=lambda: NutidExtensionV1(), metadata={'data_key': SCIMSchema.NUTID_V1.value, 'required': False}
+    )
+
+
+NutidExtensionV1Schema = class_schema(NutidExtensionV1, base_schema=BaseSchema)
+UserCreateRequestSchema = class_schema(UserCreateRequest, base_schema=BaseSchema)
+UserUpdateRequestSchema = class_schema(UserUpdateRequest, base_schema=BaseSchema)
+UserResponseSchema = class_schema(UserResponse, base_schema=BaseSchema)
