@@ -33,6 +33,7 @@
 import json
 import time
 from datetime import datetime
+from typing import Optional
 
 from werkzeug.exceptions import InternalServerError
 
@@ -40,130 +41,149 @@ from eduid_webapp.actions.testing import ActionsTestCase
 
 
 class ActionsTests(ActionsTestCase):
+
     def update_actions_config(self, config):
         config['tou_version'] = 'test-version'
         return config
+
+    # Parameterized test functions
+
+    def _authn(self, timestamp: Optional[datetime] = None):
+        """
+        Set the (partial, not yet fully logged in) authn data in the session,
+        and return the response to a GET request to the root of the service.
+
+        :param timestamp: to control the timestamp set in the session at the beginning of authn'ing
+        """
+        eppn = self.test_eppn
+        if timestamp is None:
+            timestamp = datetime.fromtimestamp(int(time.time()))
+        with self.session_cookie(self.browser) as client:
+            with client.session_transaction() as sess:
+                with self.app.test_request_context():
+                    sess.common.eppn = eppn
+                    sess.actions.ts = timestamp
+                    sess.persist()
+                    return client.get('/')
+
+    def _get_config(self, **kwargs):
+        """
+        Prepare a mock actions session, and return the response to a request for client side configuration.
+
+        The kwargs are passed directoly to the `prepare_session` method.
+        """
+        with self.session_cookie(self.browser) as client:
+            self.prepare_session(client, **kwargs)
+            return client.get('/config')
+
+    def _get_actions(self, **kwargs):
+        """
+        Prepare a mock actions session, and return the response to a request for pending actions information.
+
+        The kwargs are passed directoly to the `prepare_session` method.
+        """
+        with self.session_cookie(self.browser) as client:
+            self.prepare_session(client, **kwargs)
+            with self.app.test_request_context('/get-actions'):
+                self.authenticate(idp_session='dummy-session')
+                response = self.app.dispatch_request()
+                return json.loads(response)
+
+    def _post_action(self, csrf_token: Optional[str] = None, **kwargs):
+        """
+        Prepare a mock actions session, and return the response to a POST request with action data.
+
+        The kwargs are passed directoly to the `prepare_session` method.
+
+        :param csrf_token: what csrf token to include in the POST params.
+        :param kwargs: params for the `prepare_session` method.
+        """
+        with self.session_cookie(self.browser) as client:
+            self.prepare_session(client, **kwargs)
+            with client.session_transaction() as sess:
+                with self.app.test_request_context():
+                    if csrf_token is None:
+                        csrf_token = sess.get_csrf_token()
+                    token = {'csrf_token': csrf_token}
+            return client.post('/post-action', data=json.dumps(token), content_type=self.content_type_json)
+
+    #  Actual tests
 
     def test_authn_no_data(self):
         response = self.browser.get('/')
         self.assertIn(b'Login action error', response.data)
 
     def test_authn(self):
-        eppn = self.test_eppn
-        timestamp = datetime.fromtimestamp(int(time.time()))
-        with self.app.test_client() as c:
-            with c.session_transaction() as sess:
-                sess.common.eppn = eppn
-                sess.actions.ts = timestamp
-                sess.persist()
-            response = c.get('/')
-            self.assertIn(b'/get-actions', response.data)
-            self.assertTrue(b'bundle-holder' in response.data)
+        response = self._authn()
+        self.assertIn(b'/get-actions', response.data)
+        self.assertTrue(b'bundle-holder' in response.data)
+
+    def test_authn_stale(self):
+        timestamp = datetime.fromtimestamp(0)
+        response = self._authn(timestamp=timestamp)
+        self.assertIn(b'There was an error servicing your request', response.data)
 
     def test_get_config(self):
-        with self.session_cookie(self.browser) as client:
-            self.prepare_session(client)
-            response = client.get('/config')
-            self.assertEqual(response.status_code, 200)
-            data = json.loads(response.data.decode('utf-8'))
-            self.assertEqual(data['payload']['setting1'], 'dummy')
+        response = self._get_config()
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.data.decode('utf-8'))
+        self.assertEqual(data['payload']['setting1'], 'dummy')
 
     def test_get_config_fails(self):
-        with self.session_cookie(self.browser) as client:
-            self.prepare_session(client, action_error=True)
-            response = client.get('/config')
-            self.assertEqual(response.status_code, 200)
-            data = json.loads(response.data.decode('utf-8'))
-            self.assertEqual(data['payload']['message'], 'test error')
+        response = self._get_config(action_error=True)
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.data.decode('utf-8'))
+        self.assertEqual(data['payload']['message'], 'test error')
 
     def test_get_actions(self):
-        with self.session_cookie(self.browser) as client:
-            self.prepare_session(client)
-            response = client.get('/get-actions')
-            self.assertEqual(response.status_code, 200)
-            data = json.loads(response.data)
-            self.assertTrue(data['action'])
-            self.assertEqual(data['url'], "http://example.com/plugin.js")
+        data = self._get_actions()
+        self.assertTrue(data['action'])
+        self.assertEqual(data['url'], "http://example.com/plugin.js")
 
     def test_get_actions_action_error(self):
-        with self.session_cookie(self.browser) as client:
-            self.prepare_session(client, action_error=True)
-            with self.app.test_request_context('/get-actions'):
-                try:
-                    _ = client.get('/get-actions')
-                except InternalServerError:
-                    pass
+        with self.assertRaises(InternalServerError):
+            self._get_actions(action_error=True)
 
     def test_get_actions_no_action(self):
-        with self.session_cookie(self.browser) as client:
-            self.prepare_session(client, add_action=False)
-            with self.app.test_request_context('/get-actions'):
-                self.authenticate(idp_session='dummy-session')
-                response = self.app.dispatch_request()
-                data = json.loads(response)
-                self.assertFalse(data['action'])
-                self.assertEqual(data['url'], 'https://example.com/idp?key=dummy-session')
+        data = self._get_actions(add_action=False)
+        self.assertFalse(data['action'])
+        self.assertEqual(data['url'], 'https://example.com/idp?key=dummy-session')
 
     def test_get_actions_no_plugin(self):
-        with self.session_cookie(self.browser) as client:
-            self.prepare_session(client, set_plugin=False)
-            with self.app.test_request_context('/get-actions'):
-                self.authenticate(idp_session='dummy-session')
-                try:
-                    self.app.dispatch_request()
-                except InternalServerError:
-                    pass
-
-    def test_post_action_no_csrf(self):
-        with self.session_cookie(self.browser) as client:
-            self.prepare_session(client)
-            with self.app.test_request_context():
-                response = client.post('/post-action')
-                data = json.loads(response.data)
-                self.assertEqual(response.status_code, 400)
-                self.assertEqual(data['message'], 'Bad Request')
-
-    def test_post_action_wrong_csrf(self):
-        with self.session_cookie(self.browser) as client:
-            self.prepare_session(client)
-            token = {'csrf_token': 'wrong code'}
-            response = client.post('/post-action', data=json.dumps(token), content_type=self.content_type_json)
-            data = json.loads(response.data)
-            self.assertEqual(response.status_code, 400)
-            self.assertEqual(data['message'], 'Bad Request')
+        with self.assertRaises(InternalServerError):
+            self._get_actions(set_plugin=False)
 
     def test_post_action(self):
-        with self.session_cookie(self.browser) as client:
-            self.prepare_session(client)
-            with client.session_transaction() as sess:
-                with self.app.test_request_context():
-                    token = {'csrf_token': sess.get_csrf_token()}
-            response = client.post('/post-action', data=json.dumps(token), content_type=self.content_type_json)
-            data = json.loads(response.data)
-            self.assertEqual(data['payload']['data']['completed'], 'done')
-            self.assertEqual(data['type'], 'POST_ACTIONS_POST_ACTION_SUCCESS')
+        response = self._post_action()
+        data = response.json
+        self.assertEqual(data['payload']['data']['completed'], 'done')
+        self.assertEqual(data['type'], 'POST_ACTIONS_POST_ACTION_SUCCESS')
+
+    def test_post_action_no_csrf(self):
+        response = self._post_action(csrf_token='')
+        self.assertEqual(response.status_code, 400)
+
+    def test_post_action_wrong_csrf(self):
+        response = self._post_action(csrf_token='wrong-token')
+        self.assertEqual(response.status_code, 400)
 
     def test_post_action_action_error(self):
-        with self.session_cookie(self.browser) as client:
-            self.prepare_session(client, action_error=True)
-            with client.session_transaction() as sess:
-                with self.app.test_request_context():
-                    token = {'csrf_token': sess.get_csrf_token()}
-            response = client.post('/post-action', data=json.dumps(token), content_type=self.content_type_json)
-            data = json.loads(response.data)
-            self.assertEqual(data['type'], 'POST_ACTIONS_POST_ACTION_FAIL')
-            self.assertEqual(data['payload']['message'], 'test error')
+        response = self._post_action(action_error=True)
+        data = response.json
+        self.assertEqual(data['type'], 'POST_ACTIONS_POST_ACTION_FAIL')
+        self.assertEqual(data['payload']['message'], 'test error')
 
     def test_post_action_validation_error(self):
-        with self.session_cookie(self.browser) as client:
-            self.prepare_session(client, validation_error=True)
-            with client.session_transaction() as sess:
-                with self.app.test_request_context():
-                    token = {'csrf_token': sess.get_csrf_token()}
-            response = client.post('/post-action', data=json.dumps(token), content_type=self.content_type_json)
-            data = json.loads(response.data)
-            self.assertEqual(data['type'], 'POST_ACTIONS_POST_ACTION_FAIL')
-            self.assertEqual(data['payload']['errors']['field1'], 'field test error')
+        response = self._post_action(validation_error=True)
+        data = response.json
+        self.assertEqual(data['type'], 'POST_ACTIONS_POST_ACTION_FAIL')
+        self.assertEqual(data['payload']['errors']['field1'], 'field test error')
+
+    def test_post_action_rm_action(self):
+        response = self._post_action(rm_action=True)
+        data = response.json
+        self.assertEqual(data['type'], 'POST_ACTIONS_POST_ACTION_FAIL')
+        self.assertEqual(data['payload']['message'], 'test error')
 
     def test_post_action_multi_step(self):
         with self.session_cookie(self.browser) as client:
@@ -182,16 +202,3 @@ class ActionsTests(ActionsTestCase):
             data = json.loads(response.data)
             self.assertEqual(data['payload']['data']['completed'], 'done')
             self.assertEqual(data['type'], 'POST_ACTIONS_POST_ACTION_SUCCESS')
-
-    def test_post_action_rm_action(self):
-        with self.session_cookie(self.browser) as client:
-            self.prepare_session(client, rm_action=True)
-            with client.session_transaction() as sess:
-                eppn = sess['eppn']
-                with self.app.test_request_context():
-                    token = {'csrf_token': sess.get_csrf_token()}
-            response = client.post('/post-action', data=json.dumps(token), content_type=self.content_type_json)
-            data = json.loads(response.data)
-            self.assertEqual(data['type'], 'POST_ACTIONS_POST_ACTION_FAIL')
-            self.assertEqual(data['payload']['message'], 'test error')
-            self.assertFalse(self.app.actions_db.has_actions(eppn))

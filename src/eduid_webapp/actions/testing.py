@@ -126,7 +126,7 @@ class ActionsTestCase(EduidAPITestCase):
         user_data['modified_ts'] = datetime.utcnow()
         self.user = User(data=user_data)
         self.app.central_userdb.save(self.user, check_sync=False)
-        self.test_eppn = 'hubba-bubba'
+        self.test_eppn = self.user.eppn
 
     def tearDown(self):
         self.app.central_userdb._drop_whole_collection()
