@@ -12,26 +12,29 @@ __author__ = 'lundberg'
 
 
 class TestScimBase(TestCase):
-    def setUp(self) -> None:
-        self.meta = Meta(
+    def test_meta(self) -> None:
+        meta = Meta(
             location='http://example.org/group/some-id',
             resource_type=SCIMResourceType.group,
             created=datetime.utcnow(),
             last_modified=datetime.utcnow(),
             version=ObjectId(),
         )
-        self.base = BaseResponse(
-            id=uuid4(), schemas=[SCIMSchema.CORE_20_USER, SCIMSchema.CORE_20_GROUP], meta=self.meta
-        )
-
-    def test_meta(self) -> None:
         schema = class_schema(Meta)
-        meta_dump = schema().dump(self.meta)
+        meta_dump = schema().dump(meta)
         loaded_meta = schema().load(meta_dump)
-        self.assertEqual(self.meta, loaded_meta)
+        self.assertEqual(meta, loaded_meta)
 
     def test_base_response(self) -> None:
+        meta = Meta(
+            location='http://example.org/group/some-id',
+            resource_type=SCIMResourceType.group,
+            created=datetime.utcnow(),
+            last_modified=datetime.utcnow(),
+            version=ObjectId(),
+        )
+        base = BaseResponse(id=uuid4(), schemas=[SCIMSchema.CORE_20_USER, SCIMSchema.CORE_20_GROUP], meta=meta)
         schema = class_schema(BaseResponse)
-        base_dump = schema().dump(self.base)
+        base_dump = schema().dump(base)
         loaded_base = schema().load(base_dump)
-        self.assertEqual(self.base, loaded_base)
+        self.assertEqual(base, loaded_base)

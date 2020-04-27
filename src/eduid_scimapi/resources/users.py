@@ -1,77 +1,143 @@
 import re
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Sequence, Tuple
+from uuid import UUID
 
 from falcon import Request, Response
 from marshmallow import ValidationError
 
-from eduid_userdb.user import User
+from eduid_groupdb import User as GroupUser
 
-from eduid_scimapi.context import Context
-from eduid_scimapi.exceptions import BadRequest
-from eduid_scimapi.profile import Profile, parse_nutid_profiles
-from eduid_scimapi.resources.base import BaseResource
-from eduid_scimapi.scimbase import ListResponse, ListResponseSchema, SCIMSchema, SearchRequest, SearchRequestSchema
-from eduid_scimapi.user import ScimApiUser
+from eduid_scimapi.exceptions import BadRequest, NotFound
+from eduid_scimapi.resources.base import BaseResource, SCIMResource
+from eduid_scimapi.scimbase import (
+    ListResponse,
+    ListResponseSchema,
+    Meta,
+    SCIMResourceType,
+    SCIMSchema,
+    SearchRequest,
+    SearchRequestSchema,
+    SubResource,
+    make_etag,
+)
+from eduid_scimapi.user import (
+    Profile,
+    UserCreateRequest,
+    UserCreateRequestSchema,
+    UserResponse,
+    UserResponseSchema,
+    UserUpdateRequest,
+    UserUpdateRequestSchema,
+)
+from eduid_scimapi.userdb import Profile as DBProfile
+from eduid_scimapi.userdb import ScimApiUser
 
 
-class UsersResource(BaseResource):
+class UsersResource(SCIMResource):
+    def _get_user_groups(self, db_user: ScimApiUser) -> List[SubResource]:
+        # TODO: Figure out scope
+        scope = 'eduid.se'
+        group_user = GroupUser(identifier=str(db_user.scim_id))
+        user_groups = self.context.groupdb.get_groups_for_user(user=group_user, scope=scope)
+        groups = []
+        for group in user_groups:
+            ref = self.url_for("Users", group.identifier)
+            groups.append(SubResource(value=UUID(group.identifier), ref=ref, display=group.display_name))
+        return groups
+
+    def _db_user_to_response(self, resp: Response, db_user: ScimApiUser):
+        location = self.url_for("Users", db_user.scim_id)
+        meta = Meta(
+            location=location,
+            last_modified=db_user.last_modified,
+            resource_type=SCIMResourceType.user,
+            created=db_user.created,
+            version=db_user.version,
+        )
+
+        user = UserResponse(
+            id=db_user.scim_id,
+            external_id=db_user.external_id,
+            groups=self._get_user_groups(db_user=db_user),
+            meta=meta,
+            schemas=[SCIMSchema.CORE_20_USER],
+        )
+
+        if db_user.profiles:
+            user.schemas.append(SCIMSchema.NUTID_V1)
+            for profile_name, db_profile in db_user.profiles.items():
+                profile = Profile(attributes=db_profile.attributes, data=db_profile.data)
+                user.nutid_v1.profiles[profile_name] = profile
+
+        resp.set_header("Location", location)
+        resp.set_header("ETag", make_etag(db_user.version))
+        resp.media = UserResponseSchema().dump(user)
+
     def on_get(self, req: Request, resp: Response, scim_id):
         self.context.logger.info(f'Fetching user {scim_id}')
 
-        user = req.context['userdb'].get_user_by_scim_id(scim_id)
-        if not user:
-            raise BadRequest(detail='User not found')
+        db_user = req.context['userdb'].get_user_by_scim_id(scim_id)
+        if not db_user:
+            raise NotFound(detail='User not found')
 
-        _add_eduid_PoC_profile(user, self.context)
-
-        location = self.url_for('Users', user.scim_id)
-        resp.set_header('Location', location)
-        resp.set_header('ETag', user.etag)
-        resp.media = user.to_scim_dict(location, data_owner=req.context['data_owner'])
+        self._db_user_to_response(resp=resp, db_user=db_user)
 
     def on_put(self, req: Request, resp: Response, scim_id):
-        self.context.logger.info(f'Fetching user {scim_id}')
+        try:
+            self.context.logger.info(f'Updating user {scim_id}')
 
-        user = req.context['userdb'].get_user_by_scim_id(scim_id)
-        if not user:
-            raise BadRequest(detail='User not found')
+            update_request: UserUpdateRequest = UserUpdateRequestSchema().load(req.media)
+            self.context.logger.debug(update_request)
+            if scim_id != str(update_request.id):
+                self.context.logger.error(f'Id mismatch')
+                self.context.logger.debug(f'{scim_id} != {update_request.id}')
+                raise BadRequest(detail='Id mismatch')
 
-        # TODO: check that meta.version in the request matches the user object loaded from the database
+            db_user: ScimApiUser = req.context['userdb'].get_user_by_scim_id(scim_id)
+            if not db_user:
+                raise NotFound(detail="Group not found")
 
-        self.context.logger.debug(f'Extra debug: user {scim_id} as dict:\n{user.to_dict()}')
+            # Check version
+            if not self._check_version(req, db_user):
+                raise BadRequest(detail="Version mismatch")
 
-        if SCIMSchema.NUTID_V1.value in req.media:
-            if not user.external_id:
-                self.context.logger.warning(f'User {user} has no external id, skipping NUTID update')
-            parsed_profiles = parse_nutid_profiles(req.media[SCIMSchema.NUTID_V1.value])
+            self.context.logger.debug(f'Extra debug: user {scim_id} as dict:\n{db_user.to_dict()}')
 
-            # Look for changes
-            changed = False
-            for this in parsed_profiles.keys():
-                if this not in user.profiles:
-                    self.context.logger.info(f'Adding profile {this}/{parsed_profiles[this]} to user')
-                    changed = True
-                elif parsed_profiles[this] != user.profiles[this]:
-                    self.context.logger.info(f'Profile {this}/{parsed_profiles[this]} updated')
-                    changed = True
-                else:
-                    self.context.logger.info(f'Profile {this}/{parsed_profiles[this]} not changed')
-            for this in user.profiles.keys():
-                if this not in parsed_profiles:
-                    self.context.logger.info(f'Profile {this}/{user.profiles[this]} removed')
-                    changed = True
+            if SCIMSchema.NUTID_V1.value in update_request.schemas:
+                if not db_user.external_id:
+                    # TODO: Skipping?
+                    self.context.logger.warning(f'User {db_user} has no external id, skipping NUTID update')
 
-            if changed:
-                user.profiles = parsed_profiles
-                req.context['userdb'].save(user)
+                # Look for changes
+                changed = False
+                for this in update_request.nutid_v1.profiles.keys():
+                    if this not in db_user.profiles:
+                        self.context.logger.info(
+                            f'Adding profile {this}/{update_request.nutid_v1.profiles[this]} to user'
+                        )
+                        changed = True
+                    elif update_request.nutid_v1.profiles[this] != db_user.profiles[this]:
+                        self.context.logger.info(f'Profile {this}/{update_request.nutid_v1.profiles[this]} updated')
+                        changed = True
+                    else:
+                        self.context.logger.info(f'Profile {this}/{update_request.nutid_v1.profiles[this]} not changed')
+                for this in db_user.profiles.keys():
+                    if this not in update_request.nutid_v1.profiles:
+                        self.context.logger.info(f'Profile {this}/{db_user.profiles[this]} removed')
+                        changed = True
 
-        location = self.url_for('Users', user.scim_id)
-        resp.set_header('Location', location)
-        resp.set_header('ETag', user.etag)
-        resp.media = user.to_scim_dict(location, data_owner=req.context['data_owner'])
+                if changed:
+                    for profile_name, profile in update_request.nutid_v1.profiles.items():
+                        db_profile = DBProfile(attributes=profile.attributes, data=profile.data)
+                        db_user.profiles[profile_name] = db_profile
+                    req.context['userdb'].save(db_user)
 
-    def on_post(self, req: Request, resp: Response, user_id: Optional[str] = None):
+            self._db_user_to_response(resp=resp, db_user=db_user)
+        except ValidationError as e:
+            raise BadRequest(detail=f"{e}")
+
+    def on_post(self, req: Request, resp: Response):
         """
                POST /Users  HTTP/1.1
                Host: example.com
@@ -118,22 +184,26 @@ class UsersResource(BaseResource):
                  "userName":"bjensen"
                }
         """
-        self.context.logger.info(f'Creating user {user_id}')
+        try:
+            self.context.logger.info(f'Creating user')
 
-        if not req.media:
-            raise BadRequest(detail='No data in user creation request')
-        external_id = req.media.get('externalId')
-        if not external_id:
-            raise BadRequest(detail='No externalId in user creation request')
+            create_request: UserCreateRequest = UserCreateRequestSchema().load(req.media)
+            self.context.logger.debug(create_request)
 
-        profiles = parse_nutid_profiles(req.media[SCIMSchema.NUTID_V1.value])
-        user = ScimApiUser(external_id=external_id, profiles=profiles)
-        req.context['userdb'].save(user)
+            # TODO: Is external_id optional or not?
+            if not create_request.external_id:
+                raise BadRequest(detail='No externalId in user creation request')
 
-        location = self.url_for('Users', user.scim_id)
-        resp.set_header('Location', location)
-        resp.set_header('ETag', user.etag)
-        resp.media = user.to_scim_dict(location, debug=self.context.config.debug, data_owner=req.context['data_owner'])
+            profiles = {}
+            for profile_name, profile in create_request.nutid_v1.profiles.items():
+                profiles[profile_name] = DBProfile(attributes=profile.attributes, data=profile.data)
+
+            db_user = ScimApiUser(external_id=create_request.external_id, profiles=profiles)
+            req.context['userdb'].save(db_user)
+
+            self._db_user_to_response(resp=resp, db_user=db_user)
+        except ValidationError as e:
+            raise BadRequest(detail=f"{e}")
 
 
 class UsersSearchResource(BaseResource):
@@ -173,9 +243,6 @@ class UsersSearchResource(BaseResource):
         """
         self.context.logger.info(f'Searching for users(s)')
 
-        if not req.media:
-            raise BadRequest(detail='No data in user search request')
-
         try:
             query: SearchRequest = SearchRequestSchema().load(req.media)
         except ValidationError as e:
@@ -204,12 +271,14 @@ class UsersSearchResource(BaseResource):
 
         resp.media = ListResponseSchema().dump(list_response)
 
-    def _users_to_resources_dicts(self, req: Request, users: Sequence[ScimApiUser]) -> List[Dict[str, Any]]:
+    @staticmethod
+    def _users_to_resources_dicts(req: Request, users: Sequence[ScimApiUser]) -> List[Dict[str, Any]]:
         _attributes = req.media.get('attributes')
         # TODO: include the requested attributes, not just id
         return [{'id': str(user.scim_id)} for user in users]
 
-    def _filter_externalid(self, req: Request, op: str, val: str) -> List[ScimApiUser]:
+    @staticmethod
+    def _filter_externalid(req: Request, op: str, val: str) -> List[ScimApiUser]:
         if op != 'eq':
             raise BadRequest(scim_type='invalidFilter', detail='Unsupported operator')
 
@@ -218,30 +287,14 @@ class UsersSearchResource(BaseResource):
         if not user:
             return []
 
-        _add_eduid_PoC_profile(user, self.context)
-
         return [user]
 
+    @staticmethod
     def _filter_lastmodified(
-        self, req: Request, op: str, val: str, skip: Optional[int] = None, limit: Optional[int] = None
+        req: Request, op: str, val: str, skip: Optional[int] = None, limit: Optional[int] = None
     ) -> Tuple[List[ScimApiUser], int]:
         if op not in ['gt', 'ge']:
             raise BadRequest(scim_type='invalidFilter', detail='Unsupported operator')
         return req.context['userdb'].get_users_by_last_modified(
             operator=op, value=datetime.fromisoformat(val), skip=skip, limit=limit
         )
-
-
-def _add_eduid_PoC_profile(user: ScimApiUser, context: Context) -> None:
-    """ PoC: Dynamically add an 'eduid.se' or 'dev.eduid.se' profile with data from eduid """
-    if user.external_id is None:
-        return
-    if user.external_id.endswith('@eduid.se') or user.external_id.endswith('@dev.eduid.se'):
-        eppn, domain = user.external_id.split('@')
-        context.logger.debug(f'Searching for eduid user with eppn {repr(eppn)}')
-
-        eduid_user = context.eduid_userdb.get_user_by_eppn(eppn)
-        assert isinstance(eduid_user, User)
-
-        eduid_profile = Profile(attributes={'displayName': eduid_user.display_name,})
-        user.profiles[domain] = eduid_profile

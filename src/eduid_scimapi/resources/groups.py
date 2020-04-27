@@ -12,13 +12,12 @@ from eduid_scimapi.exceptions import BadRequest, NotFound
 from eduid_scimapi.group import (
     Group,
     GroupCreateRequestSchema,
-    GroupMember,
     GroupResponse,
     GroupResponseSchema,
     GroupUpdateRequest,
     GroupUpdateRequestSchema,
 )
-from eduid_scimapi.resources.base import BaseResource
+from eduid_scimapi.resources.base import BaseResource, SCIMResource
 from eduid_scimapi.scimbase import (
     ListResponse,
     ListResponseSchema,
@@ -27,26 +26,20 @@ from eduid_scimapi.scimbase import (
     SCIMSchema,
     SearchRequest,
     SearchRequestSchema,
+    SubResource,
     make_etag,
 )
 
 
-class GroupsResource(BaseResource):
-    def _check_version(self, req: Request, db_group: DBGroup) -> bool:
-        if req.headers.get('IF-MATCH') == make_etag(db_group.version):
-            return True
-        self.context.logger.error(f'Version mismatch')
-        self.context.logger.debug(f'{req.headers.get("IF-MATCH")} != {make_etag(db_group.version)}')
-        return False
-
-    def _get_group_members(self, db_group: DBGroup) -> List[GroupMember]:
+class GroupsResource(SCIMResource):
+    def _get_group_members(self, db_group: DBGroup) -> List[SubResource]:
         members = []
         for member in db_group.member_users:
             ref = self.url_for("Users", member.identifier)
-            members.append(GroupMember(value=UUID(member.identifier), ref=ref, display=member.display_name))
+            members.append(SubResource(value=UUID(member.identifier), ref=ref, display=member.display_name))
         for member in db_group.member_groups:
             ref = self.url_for("Groups", member.identifier)
-            members.append(GroupMember(value=UUID(member.identifier), ref=ref, display=member.display_name))
+            members.append(SubResource(value=UUID(member.identifier), ref=ref, display=member.display_name))
         return members
 
     def _db_group_to_response(self, resp: Response, db_group: DBGroup):
@@ -68,7 +61,7 @@ class GroupsResource(BaseResource):
         )
 
         resp.set_header("Location", location)
-        resp.set_header("ETag", f'W/"{db_group.version}"')
+        resp.set_header("ETag", make_etag(db_group.version))
         resp.media = GroupResponseSchema().dump(group)
 
     def on_get(self, req: Request, resp: Response, scim_id: Optional[str] = None):

@@ -5,7 +5,6 @@ import uuid
 from os import environ
 from typing import Dict, Optional
 
-import falcon
 from bson import ObjectId
 from falcon.testing import TestClient
 
@@ -16,8 +15,7 @@ from eduid_userdb.testing import MongoTemporaryInstance
 from eduid_scimapi.app import init_api
 from eduid_scimapi.config import ScimApiConfig
 from eduid_scimapi.context import Context
-from eduid_scimapi.profile import Profile
-from eduid_scimapi.user import ScimApiUser
+from eduid_scimapi.userdb import Profile, ScimApiUser
 
 __author__ = 'lundberg'
 

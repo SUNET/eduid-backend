@@ -1,11 +1,14 @@
 from unittest import TestCase
 
-from eduid_scimapi.profile import parse_nutid_profiles
+from marshmallow_dataclass import class_schema
+
+from eduid_scimapi.user import NutidExtensionV1
 
 
 class TestProfile(TestCase):
     def test_parse(self):
         displayname = 'Musse Pigg'
         data = {'profiles': {'student': {'attributes': {'displayName': displayname}}}}
-        profiles = parse_nutid_profiles(data)
-        self.assertEqual(profiles['student'].attributes['displayName'], displayname)
+        schema = class_schema(NutidExtensionV1)
+        extension = schema().load(data)
+        self.assertEqual(extension.profiles['student'].attributes['displayName'], displayname)
