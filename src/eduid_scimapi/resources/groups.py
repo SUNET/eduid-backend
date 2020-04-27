@@ -94,20 +94,17 @@ class GroupsResource(SCIMResource):
             ]
         }
         """
-        # TODO: Figure out scope
-        scope = 'eduid.se'
-
         if scim_id:
             self.context.logger.info(f"Fetching group {scim_id}")
 
-            db_group: DBGroup = self.context.groupdb.get_group_by_scim_id(scope=scope, identifier=scim_id)
+            db_group: DBGroup = req.context['groupdb'].get_group_by_scim_id(identifier=scim_id)
             self.context.logger.debug(f'Found group: {db_group}')
             if not db_group:
                 raise NotFound(detail="Group not found")
             self._db_group_to_response(resp, db_group)
         else:
             # Return all Groups for scope
-            db_groups: List[DBGroup] = self.context.groupdb.get_groups_for_scope(scope=scope)
+            db_groups: List[DBGroup] = req.context['groupdb'].get_groups()
             list_response = ListResponse(total_results=len(db_groups))
             resources = []
             for db_group in db_groups:
@@ -176,16 +173,14 @@ class GroupsResource(SCIMResource):
                 raise BadRequest(detail='Id mismatch')
 
             # Please mypy as GroupUpdateRequest no longer inherit from Group
-            group = Group(display_name=update_request.display_name, members=update_request.members)
+            group = Group(
+                display_name=update_request.display_name, members=update_request.members,
+            )
 
             self.context.logger.info(f"Fetching group {scim_id}")
-            # TODO: Figure out scope
-            scope = 'eduid.se'
 
             # Get group from db
-            db_group: DBGroup = self.context.groupdb.get_group_by_scim_id(
-                scope=scope, identifier=str(update_request.id)
-            )
+            db_group: DBGroup = req.context['groupdb'].get_group_by_scim_id(identifier=str(update_request.id))
             self.context.logger.debug(f'Found group: {db_group}')
             if not db_group:
                 raise NotFound(detail="Group not found")
@@ -198,7 +193,7 @@ class GroupsResource(SCIMResource):
             self.context.logger.info(f'Checking if group and user members exists')
             for member in group.members:
                 if 'Groups' in member.ref:
-                    if not self.context.groupdb.group_exists(scope=scope, identifier=str(member.value)):
+                    if not req.context['groupdb'].group_exists(identifier=str(member.value)):
                         self.context.logger.error(f'Group {member.value} not found')
                         raise BadRequest(detail=f'Group {member.value} not found')
                 if 'Users' in member.ref:
@@ -206,7 +201,7 @@ class GroupsResource(SCIMResource):
                         self.context.logger.error(f'User {member.value} not found')
                         raise BadRequest(detail=f'User {member.value} not found')
 
-            db_group = self.context.groupdb.update_group(scope=scope, scim_group=group, db_group=db_group)
+            db_group = req.context['groupdb'].update_group(scim_group=group, db_group=db_group)
             self._db_group_to_response(resp, db_group)
         except (ValidationError, MultipleReturnedError) as e:
             raise BadRequest(detail=f"{e}")
@@ -241,14 +236,11 @@ class GroupsResource(SCIMResource):
             }
         }
         """
-        # TODO: Figure out scope
-        scope = 'eduid.se'
-
         self.context.logger.info(f"Creating group")
         try:
             group: Group = GroupCreateRequestSchema().load(req.media)
             self.context.logger.debug(group)
-            db_group = self.context.groupdb.create_group(scope=scope, scim_group=group)
+            db_group = req.context['groupdb'].create_group(scim_group=group)
             resp.status = '201'
             self._db_group_to_response(resp, db_group)
         except ValidationError as e:
@@ -256,11 +248,9 @@ class GroupsResource(SCIMResource):
 
     def on_delete(self, req: Request, resp: Response, scim_id: str):
         self.context.logger.info(f"Fetching group {scim_id}")
-        # TODO: Figure out scope
-        scope = 'eduid.se'
 
         # Get group from db
-        db_group: DBGroup = self.context.groupdb.get_group_by_scim_id(scope=scope, identifier=scim_id)
+        db_group: DBGroup = req.context['groupdb'].get_group_by_scim_id(identifier=scim_id)
         self.context.logger.debug(f'Found group: {db_group}')
         if not db_group:
             raise NotFound(detail="Group not found")
@@ -269,7 +259,7 @@ class GroupsResource(SCIMResource):
         if not self._check_version(req, db_group):
             raise BadRequest(detail="Version mismatch")
 
-        self.context.groupdb.remove_group(scope=scope, identifier=scim_id)
+        req.context['groupdb'].remove_group(identifier=scim_id)
         resp.status = '204'
 
 
@@ -300,9 +290,6 @@ class GroupSearchResource(BaseResource):
             ]
         }
         """
-        # TODO: Figure out scope
-        scope = 'eduid.se'
-
         try:
             self.context.logger.info(f"Searching for group(s)")
             query: SearchRequest = SearchRequestSchema().load(req.media)
@@ -317,8 +304,8 @@ class GroupSearchResource(BaseResource):
         display_name = match.group(1)
         self.context.logger.debug(f"Searching for group with display name {repr(display_name)}")
         # SCIM start_index 1 equals item 0
-        db_groups = self.context.groupdb.get_groups_by_property(
-            scope=scope, key='display_name', value=display_name, skip=query.start_index - 1, limit=query.count
+        db_groups = req.context['groupdb'].get_groups_by_property(
+            key='display_name', value=display_name, skip=query.start_index - 1, limit=query.count
         )
 
         list_response = ListResponse(total_results=len(db_groups))

@@ -1,10 +1,10 @@
 from dataclasses import dataclass, field
-from typing import List
+from typing import Any, Dict, List
 from uuid import UUID
 
 from marshmallow_dataclass import class_schema
 
-from eduid_scimapi.scimbase import BaseSchema, Meta, SCIMSchemaValue, SubResource
+from eduid_scimapi.scimbase import Meta, SCIMSchemaValue
 
 __author__ = 'lundberg'
 

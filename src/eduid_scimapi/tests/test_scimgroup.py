@@ -46,26 +46,32 @@ class TestSCIMGroup(TestScimBase):
 
 
 class TestGroupResource(ScimApiTestCase):
-    def add_group(self, scope: str, identifier: str, display_name: str) -> DBGroup:
-        group = DBGroup(scope=scope, identifier=identifier, display_name=display_name)
-        return self.context.groupdb.save(group)
+    def setUp(self) -> None:
+        super().setUp()
+        self.groupdb = self.context.get_groupdb('eduid.se')
+
+    def add_group(self, identifier: str, display_name: str) -> DBGroup:
+        group = DBGroup(identifier=identifier, display_name=display_name)
+        assert self.groupdb  # mypy doesn't know setUp will be called
+        return self.groupdb.save(group)
 
     def add_member(self, group: DBGroup, identifier: str, display_name: str) -> DBGroup:
         self.add_user(identifier=identifier, external_id='not-used')
         member = DBUser(identifier=identifier, display_name=display_name)
         group.members.append(member)
-        return self.context.groupdb.save(group)
+        assert self.groupdb  # mypy doesn't know setUp will be called
+        return self.groupdb.save(group)
 
     def test_get_groups(self):
         for i in range(9):
-            self.add_group(self.data_owner, str(uuid4()), f'Test Group {i}')
+            self.add_group(str(uuid4()), f'Test Group {i}')
         response = self.client.simulate_get(path=f'/Groups', headers=self.headers)
         self.assertEqual([SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value], response.json.get('schemas'))
         resources = response.json.get('Resources')
-        self.assertEqual(self.context.groupdb.db.count_nodes(), len(resources))
+        self.assertEqual(self.groupdb.db.count_nodes(), len(resources))
 
     def test_get_group(self):
-        db_group = self.add_group(self.data_owner, str(uuid4()), 'Test Group 1')
+        db_group = self.add_group(str(uuid4()), 'Test Group 1')
         response = self.client.simulate_get(path=f'/Groups/{db_group.identifier}', headers=self.headers)
         self.assertEqual([SCIMSchema.CORE_20_GROUP.value], response.json.get('schemas'))
         self.assertEqual(db_group.identifier, response.json.get('id'))
@@ -100,7 +106,7 @@ class TestGroupResource(ScimApiTestCase):
         self.assertEqual(f'Group', meta.get('resourceType'))
 
     def test_update_group(self):
-        db_group = self.add_group(self.data_owner, str(uuid4()), 'Test Group 1')
+        db_group = self.add_group(str(uuid4()), 'Test Group 1')
         user = self.add_user(identifier=str(uuid4()), external_id='not-used')
         members = [
             {
@@ -136,8 +142,8 @@ class TestGroupResource(ScimApiTestCase):
         self.assertEqual(f'Group', meta.get('resourceType'))
 
     def test_search_group_display_name(self):
-        db_group = self.add_group(self.data_owner, str(uuid4()), 'Test Group 1')
-        self.add_group(self.data_owner, str(uuid4()), 'Test Group 2')
+        db_group = self.add_group(str(uuid4()), 'Test Group 1')
+        self.add_group(str(uuid4()), 'Test Group 2')
         req = {
             'schemas': [SCIMSchema.API_MESSAGES_20_SEARCH_REQUEST.value],
             'filter': 'displayName eq "Test Group 1"',
@@ -153,7 +159,7 @@ class TestGroupResource(ScimApiTestCase):
 
     def test_search_group_start_index(self):
         for i in range(9):
-            self.add_group(self.data_owner, str(uuid4()), f'Test Group')
+            self.add_group(str(uuid4()), f'Test Group')
         req = {
             'schemas': [SCIMSchema.API_MESSAGES_20_SEARCH_REQUEST.value],
             'filter': 'displayName eq "Test Group"',
@@ -169,7 +175,7 @@ class TestGroupResource(ScimApiTestCase):
 
     def test_search_group_count(self):
         for i in range(9):
-            self.add_group(self.data_owner, str(uuid4()), f'Test Group')
+            self.add_group(str(uuid4()), f'Test Group')
         req = {
             'schemas': [SCIMSchema.API_MESSAGES_20_SEARCH_REQUEST.value],
             'filter': 'displayName eq "Test Group"',

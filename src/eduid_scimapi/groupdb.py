@@ -13,19 +13,19 @@ logger = logging.getLogger(__name__)
 
 
 class ScimApiGroupDB(GroupDB):
-    def create_group(self, scope: str, scim_group: SCIMGroup) -> Group:
-        group = Group(scope=scope, identifier=str(uuid4()), display_name=scim_group.display_name)
+    def create_group(self, scim_group: SCIMGroup) -> Group:
+        group = Group(identifier=str(uuid4()), display_name=scim_group.display_name)
         saved_group = self.save(group)
         logger.info(f'Created scim_group: {saved_group.identifier}')
         logger.debug(f'Data: {saved_group}')
 
         return saved_group
 
-    def get_group_by_scim_id(self, scope: str, identifier: str) -> Optional[Group]:
-        group = self.get_group(scope=scope, identifier=identifier)
+    def get_group_by_scim_id(self, identifier: str) -> Optional[Group]:
+        group = self.get_group(identifier=identifier)
         return group
 
-    def update_group(self, scope: str, scim_group: SCIMGroup, db_group: Group) -> Group:
+    def update_group(self, scim_group: SCIMGroup, db_group: Group) -> Group:
         changed = False
         member_changed = False
         members = []
@@ -37,7 +37,7 @@ class ScimApiGroupDB(GroupDB):
                 update_member = db_group.get_member_user(identifier=str(member.value))
             elif 'Groups' in member.ref:
                 group = True
-                update_member = db_group.get_member_group(scope=scope, identifier=str(member.value))
+                update_member = db_group.get_member_group(identifier=str(member.value))
 
             # Add a new member
             if update_member is None:
@@ -45,7 +45,7 @@ class ScimApiGroupDB(GroupDB):
                 if user:
                     update_member = User(identifier=str(member.value), display_name=member.display)
                 elif group:
-                    update_member = db_group.get_member_group(scope=scope, identifier=str(member.value))
+                    update_member = db_group.get_member_group(identifier=str(member.value))
                 logger.debug(f'Added new member: {update_member}')
             # Update member attributes if they changed
             elif update_member.display_name != member.display:
@@ -70,7 +70,7 @@ class ScimApiGroupDB(GroupDB):
             db_group.members = members
 
         if changed:
-            logger.info(f'Group {db_group.scope} {db_group.identifier} changed. Saving.')
+            logger.info(f'Group {db_group.identifier} changed. Saving.')
             db_group = self.save(db_group)
 
         return db_group
