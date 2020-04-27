@@ -298,8 +298,7 @@ class AuthnAPITestCase(AuthnAPITestBase):
 
         self.acs('/terminate', eppn, _check)
 
-    def test_signup_authn_new_user(self):
-        eppn = 'hubba-fooo'
+    def _signup_authn_user(self, eppn):
         timestamp = datetime.fromtimestamp(time.time())
 
         with self.app.test_client() as c:
@@ -308,24 +307,20 @@ class AuthnAPITestCase(AuthnAPITestBase):
                 session.common.eppn = eppn
                 session.signup.ts = timestamp
 
-                resp = self.app.dispatch_request()
-                self.assertEqual(resp.status_code, 302)
-                self.assertTrue(resp.location.startswith(self.app.config.signup_authn_success_redirect_url))
+                return self.app.dispatch_request()
+
+    def test_signup_authn_new_user(self):
+        eppn = 'hubba-fooo'
+        resp = self._signup_authn_user(eppn)
+        self.assertEqual(resp.status_code, 302)
+        self.assertTrue(resp.location.startswith(self.app.config.signup_authn_success_redirect_url))
 
     def test_signup_authn_old_user(self):
         """ A user that has verified their account should not try to use token login """
         eppn = 'hubba-bubba'
-        timestamp = datetime.fromtimestamp(time.time())
-
-        with self.app.test_client() as c:
-            with self.app.test_request_context('/signup-authn'):
-                c.set_cookie('test.localhost', key=self.app.config.session_cookie_name, value=session._session.token)
-                session.common.eppn = eppn
-                session.signup.ts = timestamp
-
-                resp = self.app.dispatch_request()
-                self.assertEqual(resp.status_code, 302)
-                self.assertTrue(resp.location.startswith(self.app.config.signup_authn_failure_redirect_url))
+        resp = self._signup_authn_user(eppn)
+        self.assertEqual(resp.status_code, 302)
+        self.assertTrue(resp.location.startswith(self.app.config.signup_authn_failure_redirect_url))
 
 
 class UnAuthnAPITestCase(EduidAPITestCase):
