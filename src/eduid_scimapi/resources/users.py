@@ -35,18 +35,16 @@ from eduid_scimapi.userdb import ScimApiUser
 
 
 class UsersResource(SCIMResource):
-    def _get_user_groups(self, db_user: ScimApiUser) -> List[SubResource]:
-        # TODO: Figure out scope
-        scope = 'eduid.se'
+    def _get_user_groups(self, req: Request, db_user: ScimApiUser) -> List[SubResource]:
         group_user = GroupUser(identifier=str(db_user.scim_id))
-        user_groups = self.context.groupdb.get_groups_for_user(user=group_user, scope=scope)
+        user_groups = req.context['groupdb'].get_groups_for_user(user=group_user,)
         groups = []
         for group in user_groups:
             ref = self.url_for("Users", group.identifier)
             groups.append(SubResource(value=UUID(group.identifier), ref=ref, display=group.display_name))
         return groups
 
-    def _db_user_to_response(self, resp: Response, db_user: ScimApiUser):
+    def _db_user_to_response(self, req: Request, resp: Response, db_user: ScimApiUser):
         location = self.url_for("Users", db_user.scim_id)
         meta = Meta(
             location=location,
@@ -59,7 +57,7 @@ class UsersResource(SCIMResource):
         user = UserResponse(
             id=db_user.scim_id,
             external_id=db_user.external_id,
-            groups=self._get_user_groups(db_user=db_user),
+            groups=self._get_user_groups(req=req, db_user=db_user),
             meta=meta,
             schemas=[SCIMSchema.CORE_20_USER],
         )
@@ -81,7 +79,7 @@ class UsersResource(SCIMResource):
         if not db_user:
             raise NotFound(detail='User not found')
 
-        self._db_user_to_response(resp=resp, db_user=db_user)
+        self._db_user_to_response(req=req, resp=resp, db_user=db_user)
 
     def on_put(self, req: Request, resp: Response, scim_id):
         try:
@@ -133,7 +131,7 @@ class UsersResource(SCIMResource):
                         db_user.profiles[profile_name] = db_profile
                     req.context['userdb'].save(db_user)
 
-            self._db_user_to_response(resp=resp, db_user=db_user)
+            self._db_user_to_response(req=req, resp=resp, db_user=db_user)
         except ValidationError as e:
             raise BadRequest(detail=f"{e}")
 
@@ -201,7 +199,7 @@ class UsersResource(SCIMResource):
             db_user = ScimApiUser(external_id=create_request.external_id, profiles=profiles)
             req.context['userdb'].save(db_user)
 
-            self._db_user_to_response(resp=resp, db_user=db_user)
+            self._db_user_to_response(req=req, resp=resp, db_user=db_user)
         except ValidationError as e:
             raise BadRequest(detail=f"{e}")
 
