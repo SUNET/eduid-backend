@@ -87,7 +87,10 @@ def post_email(user, email, verified, primary):
     current_app.logger.info('Saved unconfirmed email {!r} ' 'for user {}'.format(email, proofing_user))
     current_app.stats.count(name='email_save_unconfirmed_email', value=1)
 
-    send_verification_code(email, proofing_user)
+    sent = send_verification_code(email, proofing_user)
+    if not sent:
+        return {'_status': 'error', 'message': 'emails.throttled'}
+
     current_app.stats.count(name='email_send_verification_code', value=1)
 
     emails = {'emails': proofing_user.mail_addresses.to_list_of_dicts(), 'message': 'emails.save-success'}
