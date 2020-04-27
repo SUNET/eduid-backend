@@ -12,6 +12,7 @@ from eduid_scimapi.exceptions import BadRequest, NotFound
 from eduid_scimapi.group import (
     Group,
     GroupCreateRequestSchema,
+    GroupMember,
     GroupResponse,
     GroupResponseSchema,
     GroupUpdateRequest,
@@ -26,20 +27,19 @@ from eduid_scimapi.scimbase import (
     SCIMSchema,
     SearchRequest,
     SearchRequestSchema,
-    SubResource,
     make_etag,
 )
 
 
 class GroupsResource(SCIMResource):
-    def _get_group_members(self, db_group: DBGroup) -> List[SubResource]:
+    def _get_group_members(self, db_group: DBGroup) -> List[GroupMember]:
         members = []
         for member in db_group.member_users:
             ref = self.url_for("Users", member.identifier)
-            members.append(SubResource(value=UUID(member.identifier), ref=ref, display=member.display_name))
+            members.append(GroupMember(value=UUID(member.identifier), ref=ref, display=member.display_name))
         for member in db_group.member_groups:
             ref = self.url_for("Groups", member.identifier)
-            members.append(SubResource(value=UUID(member.identifier), ref=ref, display=member.display_name))
+            members.append(GroupMember(value=UUID(member.identifier), ref=ref, display=member.display_name))
         return members
 
     def _db_group_to_response(self, resp: Response, db_group: DBGroup):

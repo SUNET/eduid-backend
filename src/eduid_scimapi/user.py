@@ -30,9 +30,14 @@ class NutidExtensionV1:
 
 
 @dataclass
+class Group(SubResource):
+    pass
+
+
+@dataclass
 class User:
     external_id: Optional[str] = field(default=None, metadata={'data_key': 'externalId', 'required': False})
-    groups: List[SubResource] = field(default_factory=list, metadata={'required': False})
+    groups: List[Group] = field(default_factory=list, metadata={'required': False})
     nutid_v1: NutidExtensionV1 = field(
         default_factory=lambda: NutidExtensionV1(), metadata={'data_key': SCIMSchema.NUTID_V1.value, 'required': False}
     )
@@ -43,7 +48,7 @@ class User:
 class UserCreateRequest:
     schemas: List[SCIMSchemaValue] = field(default_factory=list, metadata={'required': True})
     external_id: Optional[str] = field(default=None, metadata={'data_key': 'externalId', 'required': False})
-    groups: List[SubResource] = field(default_factory=list, metadata={'required': False})
+    groups: List[Group] = field(default_factory=list, metadata={'required': False})
     nutid_v1: NutidExtensionV1 = field(
         default_factory=lambda: NutidExtensionV1(), metadata={'data_key': SCIMSchema.NUTID_V1.value, 'required': False}
     )
@@ -55,7 +60,7 @@ class UserUpdateRequest:
     id: UUID = field(metadata={'required': True})
     schemas: List[SCIMSchemaValue] = field(default_factory=list, metadata={'required': True})
     external_id: Optional[str] = field(default=None, metadata={'data_key': 'externalId', 'required': False})
-    groups: List[SubResource] = field(default_factory=list, metadata={'required': False})
+    groups: List[Group] = field(default_factory=list, metadata={'required': False})
     nutid_v1: NutidExtensionV1 = field(
         default_factory=lambda: NutidExtensionV1(), metadata={'data_key': SCIMSchema.NUTID_V1.value, 'required': False}
     )
@@ -68,7 +73,7 @@ class UserResponse:
     meta: Meta = field(metadata={'required': True})  # type: ignore
     schemas: List[SCIMSchemaValue] = field(default_factory=list, metadata={'required': True})
     external_id: Optional[str] = field(default=None, metadata={'data_key': 'externalId', 'required': False})
-    groups: List[SubResource] = field(default_factory=list, metadata={'required': False})
+    groups: List[Group] = field(default_factory=list, metadata={'required': False})
     nutid_v1: NutidExtensionV1 = field(
         default_factory=lambda: NutidExtensionV1(), metadata={'data_key': SCIMSchema.NUTID_V1.value, 'required': False}
     )

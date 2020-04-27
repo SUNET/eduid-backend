@@ -18,10 +18,10 @@ from eduid_scimapi.scimbase import (
     SCIMSchema,
     SearchRequest,
     SearchRequestSchema,
-    SubResource,
     make_etag,
 )
 from eduid_scimapi.user import (
+    Group,
     Profile,
     UserCreateRequest,
     UserCreateRequestSchema,
@@ -35,13 +35,13 @@ from eduid_scimapi.userdb import ScimApiUser
 
 
 class UsersResource(SCIMResource):
-    def _get_user_groups(self, req: Request, db_user: ScimApiUser) -> List[SubResource]:
+    def _get_user_groups(self, req: Request, db_user: ScimApiUser) -> List[Group]:
         group_user = GroupUser(identifier=str(db_user.scim_id))
         user_groups = req.context['groupdb'].get_groups_for_user(user=group_user,)
         groups = []
         for group in user_groups:
             ref = self.url_for("Users", group.identifier)
-            groups.append(SubResource(value=UUID(group.identifier), ref=ref, display=group.display_name))
+            groups.append(Group(value=UUID(group.identifier), ref=ref, display=group.display_name))
         return groups
 
     def _db_user_to_response(self, req: Request, resp: Response, db_user: ScimApiUser):

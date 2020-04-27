@@ -11,8 +11,8 @@ from marshmallow_dataclass import class_schema
 from eduid_groupdb import Group as DBGroup
 from eduid_groupdb import User as DBUser
 
-from eduid_scimapi.group import GroupResponse
-from eduid_scimapi.scimbase import Meta, SCIMResourceType, SCIMSchema, SubResource, make_etag
+from eduid_scimapi.group import GroupMember, GroupResponse
+from eduid_scimapi.scimbase import Meta, SCIMResourceType, SCIMSchema, make_etag
 from eduid_scimapi.testing import ScimApiTestCase
 from eduid_scimapi.tests.test_scimbase import TestScimBase
 
@@ -34,8 +34,8 @@ class TestSCIMGroup(TestScimBase):
         member_2_id = uuid4()
         group.members.extend(
             [
-                SubResource(value=member_1_id, display='Member 1', ref=f'https://some_domain/path/Users/{member_1_id}'),
-                SubResource(
+                GroupMember(value=member_1_id, display='Member 1', ref=f'https://some_domain/path/Users/{member_1_id}'),
+                GroupMember(
                     value=member_2_id, display='Member 2', ref=f'https://some_domain/path/Groups/{member_2_id}'
                 ),
             ]

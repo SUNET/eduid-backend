@@ -10,9 +10,14 @@ __author__ = 'lundberg'
 
 
 @dataclass
+class GroupMember(SubResource):
+    pass
+
+
+@dataclass
 class Group:
     display_name: str = field(default='', metadata={'data_key': 'displayName', 'required': True})
-    members: List[SubResource] = field(default_factory=list, metadata={'required': False})
+    members: List[GroupMember] = field(default_factory=list, metadata={'required': False})
 
 
 # Duplicate Group and BaseCreateRequest until dataclasses has better inheritance support
@@ -20,7 +25,7 @@ class Group:
 class GroupCreateRequest:
     schemas: List[SCIMSchemaValue] = field(default_factory=list, metadata={'required': True})
     display_name: str = field(default='', metadata={'data_key': 'displayName', 'required': True})
-    members: List[SubResource] = field(default_factory=list, metadata={'required': False})
+    members: List[GroupMember] = field(default_factory=list, metadata={'required': False})
 
 
 # Duplicate Group and BaseUpdateRequest until dataclasses has better inheritance support
@@ -29,7 +34,7 @@ class GroupUpdateRequest:
     id: UUID = field(metadata={'required': True})
     schemas: List[SCIMSchemaValue] = field(default_factory=list, metadata={'required': True})
     display_name: str = field(default='', metadata={'data_key': 'displayName', 'required': True})
-    members: List[SubResource] = field(default_factory=list, metadata={'required': False})
+    members: List[GroupMember] = field(default_factory=list, metadata={'required': False})
 
 
 # Duplicate Group and BaseResponse until dataclasses has better inheritance support
@@ -39,7 +44,7 @@ class GroupResponse:
     meta: Meta = field(metadata={'required': True})  # type: ignore
     schemas: List[SCIMSchemaValue] = field(default_factory=list, metadata={'required': True})
     display_name: str = field(default='', metadata={'data_key': 'displayName', 'required': True})
-    members: List[SubResource] = field(default_factory=list, metadata={'required': False})
+    members: List[GroupMember] = field(default_factory=list, metadata={'required': False})
 
 
 GroupCreateRequestSchema = class_schema(GroupCreateRequest, base_schema=BaseSchema)
