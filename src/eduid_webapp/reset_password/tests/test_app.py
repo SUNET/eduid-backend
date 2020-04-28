@@ -47,6 +47,7 @@ from eduid_common.authn.tests.test_fido_tokens import SAMPLE_WEBAUTHN_CREDENTIAL
 from eduid_userdb.credentials import Webauthn
 from eduid_userdb.exceptions import DocumentDoesNotExist
 from eduid_userdb.exceptions import UserDoesNotExist
+from eduid_userdb.exceptions import UserHasNotCompletedSignup
 
 from eduid_webapp.reset_password.app import init_reset_password_app
 from eduid_webapp.reset_password.helpers import (
@@ -103,20 +104,27 @@ class ResetPasswordTests(EduidAPITestCase):
     # Parameterized test methods
 
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
-    def _post_email_address(self, mock_sendmail: Any, data: Optional[dict] = None):
+    def _post_email_address(self, mock_sendmail: Any,
+                            data: Optional[dict] = None,
+                            sendmail_return: bool = True,
+                            sendmail_side_effect: Any = None):
         """
         POST an email address to start the reset password process for the corresponding account.
 
         :param data: to control the data sent with the POST request.
         """
-        mock_sendmail.return_value = True
+        mock_sendmail.return_value = sendmail_return
+        mock_sendmail.side_effect = sendmail_side_effect
         with self.app.test_client() as c:
             if data is None:
                 data = {'email': self.test_user_email}
             return c.post('/reset/', data=json.dumps(data), content_type=self.content_type_json)
 
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
-    def _post_reset_code(self, mock_sendmail: Any, data1: Optional[dict] = None, data2: Optional[dict] = None):
+    def _post_reset_code(self, mock_sendmail: Any,
+                         data1: Optional[dict] = None,
+                         data2: Optional[dict] = None,
+                         change_eppn: Optional[str] = None):
         """
         Create a password rest state for the test user, grab the created verification code from the db,
         and use it to get configuration for the reset form.
@@ -133,6 +141,10 @@ class ResetPasswordTests(EduidAPITestCase):
             response = c.post('/reset/', data=json.dumps(data1), content_type=self.content_type_json)
             self.assertEqual(response.status_code, 200)
             state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+            if change_eppn:
+                state._data['eduPersonPrincipalName'] = change_eppn
+                self.app.password_reset_state_db.save(state, check_sync=False)
+
             url = url_for('reset_password.config_reset_pw', _external=True)
             if data2 is None:
                 data2 = {
@@ -479,6 +491,21 @@ class ResetPasswordTests(EduidAPITestCase):
         state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
         self.assertEqual(state.email_address, 'johnsmith@example.com')
 
+    def test_post_email_address_sendmail_fail(self):
+        from eduid_common.api.exceptions import MailTaskFailed
+        response = self._post_email_address(sendmail_return=False, sendmail_side_effect=MailTaskFailed)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_FAIL')
+        self.assertEqual(response.json['payload']['message'], 'resetpw.send-pw-fail')
+
+    @patch('eduid_userdb.userdb.UserDB.get_user_by_mail')
+    def test_post_email_uncomplete_signup(self, mock_get_user: Any):
+        mock_get_user.side_effect = UserHasNotCompletedSignup('incomplete signup')
+        response = self._post_email_address()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_FAIL')
+        self.assertEqual(response.json['payload']['message'], 'resetpw.incomplete-user')
+
     def test_post_unknown_email_address(self):
         data = {'email': 'unknown@unplaced.un'}
         response = self._post_email_address(data=data)
@@ -491,6 +518,12 @@ class ResetPasswordTests(EduidAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json['payload']['extra_security']['phone_numbers'][0]['number'], 'XXXXXXXXXX09')
         self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_CONFIG_SUCCESS')
+
+    def test_post_reset_code_wrong_eppn(self):
+        response = self._post_reset_code(change_eppn='turra-burra')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_CONFIG_FAIL')
+        self.assertEqual(response.json['payload']['message'], '')
 
     def test_post_reset_code_unknown_email(self):
         data1 = {'email': 'unknown@unknown.com'}
