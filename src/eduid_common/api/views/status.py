@@ -34,11 +34,12 @@ import sys
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
 from os import environ
-from typing import Dict, Mapping, Optional
+from typing import Dict, Mapping, Optional, cast
 
 import redis
-from flask import Blueprint, current_app, jsonify
+from flask import Blueprint, Response, current_app, jsonify
 
+from eduid_common.config.base import BaseConfig
 from eduid_common.session.redis_session import get_redis_pool
 
 status_views = Blueprint('status', __name__, url_prefix='/status')
@@ -165,8 +166,9 @@ def _check_mail():
     return False
 
 
-def cached_json_response(key, data):
-    cache_for_seconds = current_app.config.status_cache_seconds
+def cached_json_response(key: str, data: Optional[dict] = None) -> Optional[Response]:
+    config = cast(BaseConfig, current_app.config)  # Please mypy
+    cache_for_seconds = config.status_cache_seconds
     now = datetime.utcnow()
     if SIMPLE_CACHE.get(key) is not None:
         if now < SIMPLE_CACHE[key].expire_time:
@@ -178,6 +180,11 @@ def cached_json_response(key, data):
             response.headers.add('Expires', SIMPLE_CACHE[key].expire_time.strftime("%a, %d %b %Y %H:%M:%S UTC"))
             response.headers.add('Cache-Control', f'public,max-age={cache_for_seconds}')
             return response
+
+    # Allow for the function to be called with no data so we can check for a cached response
+    # before running the checks
+    if data is None:
+        return None
 
     expires = now + timedelta(seconds=cache_for_seconds)
     response = jsonify(data)
@@ -191,6 +198,10 @@ def cached_json_response(key, data):
 
 @status_views.route('/healthy', methods=['GET'])
 def health_check():
+    response = cached_json_response('health_check')
+    if response:
+        return response
+
     res = {
         # Value of status crafted for grepabilty, trailing underscore intentional
         'status': f'STATUS_FAIL_{current_app.name}_',
@@ -220,4 +231,8 @@ def health_check():
 
 @status_views.route('/sanity-check', methods=['GET'])
 def sanity_check():
+    response = cached_json_response('sanity_check')
+    if response:
+        return response
+    # TODO: Do checks here
     return cached_json_response('sanity_check', {})
