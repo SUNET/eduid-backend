@@ -37,12 +37,13 @@ import importlib.util
 import os
 import warnings
 from dataclasses import asdict
+from sys import stderr
 from typing import Optional, Type
 
-from eduid_userdb import UserDB
 from flask import Flask
-from sys import stderr
 from werkzeug.middleware.proxy_fix import ProxyFix
+
+from eduid_userdb import UserDB
 
 from eduid_common.api.debug import init_app_debug
 from eduid_common.api.exceptions import init_exception_handlers, init_sentry
@@ -125,9 +126,9 @@ def get_app_config(name: str, config: Optional[dict] = None) -> dict:
     keys, load them as well.
     """
     warnings.warn(
-        "This function will be removed in a future version of eduid_common. "
-        "Use 'BaseConfig.init_config()' instead.",
-        DeprecationWarning, stacklevel=2
+        "This function will be removed in a future version of eduid_common. " "Use 'BaseConfig.init_config()' instead.",
+        DeprecationWarning,
+        stacklevel=2,
     )
     if config is None:
         config = {}
