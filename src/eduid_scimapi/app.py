@@ -8,13 +8,14 @@ from eduid_scimapi.context import Context
 from eduid_scimapi.middleware import HandleAuthentication, HandleSCIM
 from eduid_scimapi.resources.groups import GroupSearchResource, GroupsResource
 from eduid_scimapi.resources.login import LoginResource
+from eduid_scimapi.resources.status import HealthCheckResource
 from eduid_scimapi.resources.users import UsersResource, UsersSearchResource
 
 
 def init_api(name: str, test_config: Optional[Dict] = None, debug: bool = False) -> falcon.API:
     config = ScimApiConfig.init_config(ns='api', app_name=name, test_config=test_config, debug=debug)
-    context = Context(config)
-    context.logger.info('Starting app')
+    context = Context(name=name, config=config)
+    context.logger.info(f'Starting {name} app')
 
     api = falcon.API(middleware=[HandleSCIM(context), HandleAuthentication(context)])
     api.req_options.media_handlers['application/scim+json'] = api.req_options.media_handlers['application/json']
@@ -38,6 +39,9 @@ def init_api(name: str, test_config: Optional[Dict] = None, debug: bool = False)
     api.add_route('/Groups/', GroupsResource(context=context))
     api.add_route('/Groups/{scim_id}', GroupsResource(context=context))
     api.add_route('/Groups/.search', GroupSearchResource(context=context))
+
+    # Status
+    api.add_route('/status/healthy', HealthCheckResource(context=context))
 
     context.logger.info('app running...')
     return api
