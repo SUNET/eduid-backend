@@ -150,6 +150,10 @@ def put_group(api: str, scim_id: str, data: Dict[str, Any], token: Optional[str]
                 {'$ref': f'{api}/Users/{member["id"]}', 'value': member['id'], 'display': member['display_name'],}
             )
         scim['members'] = new_members
+    if 'attributes' in data:
+        if NUTID_V1 not in scim['schemas']:
+            scim['schemas'] += [NUTID_V1]
+        scim[NUTID_V1] = {'attributes': data['attributes']}
 
     headers = {'content-type': 'application/scim+json', 'if-match': meta["version"]}
 

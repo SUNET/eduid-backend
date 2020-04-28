@@ -60,6 +60,10 @@ class GroupsResource(SCIMResource):
             schemas=[SCIMSchema.CORE_20_GROUP],
         )
 
+        if db_group.attributes._id is not None:
+            group.schemas.append(SCIMSchema.NUTID_V1)
+            group.nutid_v1.attributes = db_group.attributes.attributes
+
         resp.set_header("Location", location)
         resp.set_header("ETag", make_etag(db_group.version))
         resp.media = GroupResponseSchema().dump(group)
@@ -173,7 +177,11 @@ class GroupsResource(SCIMResource):
                 raise BadRequest(detail='Id mismatch')
 
             # Please mypy as GroupUpdateRequest no longer inherit from Group
-            group = Group(display_name=update_request.display_name, members=update_request.members,)
+            group = Group(
+                display_name=update_request.display_name,
+                members=update_request.members,
+                nutid_v1=update_request.nutid_v1,
+            )
 
             self.context.logger.info(f"Fetching group {scim_id}")
 

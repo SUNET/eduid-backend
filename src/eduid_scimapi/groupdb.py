@@ -4,6 +4,7 @@ from typing import List, Optional
 from uuid import uuid4
 
 from eduid_groupdb import Group, GroupDB, User
+from eduid_groupdb.group import GroupAttrs
 
 from eduid_scimapi.group import Group as SCIMGroup
 
@@ -51,7 +52,7 @@ class ScimApiGroupDB(GroupDB):
             elif update_member.display_name != member.display:
                 member_changed = True
                 logger.debug(
-                    f'Changed display name for existing member: ' f'{update_member.display_name} -> {member.display}'
+                    f'Changed display name for existing member: {update_member.display_name} -> {member.display}'
                 )
                 update_member.display_name = member.display
 
@@ -68,6 +69,14 @@ class ScimApiGroupDB(GroupDB):
             logger.debug(f'Old members: {db_group.members}')
             logger.debug(f'New members: {members}')
             db_group.members = members
+
+        _sg_attributes = GroupAttrs(_id=db_group.attributes._id, attributes=scim_group.nutid_v1.attributes)
+        if db_group.attributes != _sg_attributes:
+            logger.debug(f'Old attributes: {db_group.attributes}')
+            logger.debug(f'New attributes: {_sg_attributes}')
+            db_group.attributes = _sg_attributes
+            logger.info(f'Group {db_group.identifier} attributes changed. Saving.')
+            db_group = self.save_attributes(db_group)
 
         if changed:
             logger.info(f'Group {db_group.identifier} changed. Saving.')

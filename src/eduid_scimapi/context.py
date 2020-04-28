@@ -1,11 +1,11 @@
 import logging
 import logging.config
 import sys
-from typing import Dict, Optional
+from typing import Optional
 
-from neobolt.addressing import AddressError
-
+from eduid_groupdb.attributes import AttributeDB
 from eduid_userdb import UserDB
+from eduid_userdb.db import BaseDB
 
 from eduid_scimapi.config import ScimApiConfig
 from eduid_scimapi.groupdb import ScimApiGroupDB
@@ -35,11 +35,17 @@ class Context(object):
         self._userdbs = {}
         self._groupdbs = {}
         for data_owner in self.config.data_owners:
+            _owner = data_owner.replace('.', '_')  # replace dots with underscores
+            coll = f'{_owner}__users'
+            # TODO: rename old collection and remove this
+            if data_owner == 'eduid.se':
+                coll = 'profiles'
             self._userdbs[data_owner] = ScimApiUserDB(
-                db_uri=self.config.mongo_uri
-            )  # TODO: add collection=data_owner here
+                db_uri=self.config.mongo_uri, db_name='eduid_scimapi', collection=coll,
+            )
+            attr_db = AttributeDB(db_uri=self.config.mongo_uri, db_name='eduid_scimapi', collection=f'{_owner}__groups')
             self._groupdbs[data_owner] = ScimApiGroupDB(
-                db_uri=self.config.neo4j_uri, config=self.config.neo4j_config, scope=data_owner
+                db_uri=self.config.neo4j_uri, config=self.config.neo4j_config, scope=data_owner, attr_db=attr_db
             )
 
         if not self._groupdbs:
