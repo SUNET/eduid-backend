@@ -5,7 +5,6 @@ from uuid import UUID
 from falcon import Request, Response
 from marshmallow.exceptions import ValidationError
 
-from eduid_groupdb import Group as DBGroup
 from eduid_groupdb.exceptions import MultipleReturnedError
 
 from eduid_scimapi.exceptions import BadRequest, NotFound
@@ -18,6 +17,7 @@ from eduid_scimapi.group import (
     GroupUpdateRequest,
     GroupUpdateRequestSchema,
 )
+from eduid_scimapi.groupdb import DBGroup
 from eduid_scimapi.resources.base import BaseResource, SCIMResource
 from eduid_scimapi.scimbase import (
     ListResponse,
@@ -62,7 +62,7 @@ class GroupsResource(SCIMResource):
 
         if db_group.attributes._id is not None:
             group.schemas.append(SCIMSchema.NUTID_V1)
-            group.nutid_v1.attributes = db_group.attributes.attributes
+            group.nutid_group_v1.data = db_group.attributes.data
 
         resp.set_header("Location", location)
         resp.set_header("ETag", make_etag(db_group.version))
@@ -101,7 +101,7 @@ class GroupsResource(SCIMResource):
         if scim_id:
             self.context.logger.info(f"Fetching group {scim_id}")
 
-            db_group: DBGroup = req.context['groupdb'].get_group_by_scim_id(identifier=scim_id)
+            db_group = req.context['groupdb'].get_group_by_scim_id(identifier=scim_id)
             self.context.logger.debug(f'Found group: {db_group}')
             if not db_group:
                 raise NotFound(detail="Group not found")
