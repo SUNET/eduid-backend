@@ -277,7 +277,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def _finish_register_key(self, mock_request_user_sync: Any,
-                             state: dict, att: str, cdata: str,
+                             state: dict, att: bytes, cdata: bytes,
                              cred_id: bytes, existing_legacy_token: bool = False,
                              csrf: Optional[str] = None):
         """
