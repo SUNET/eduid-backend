@@ -14,7 +14,8 @@ from eduid_scimapi.utils import urlappend
 
 
 class Context(object):
-    def __init__(self, config: ScimApiConfig):
+    def __init__(self, name: str, config: ScimApiConfig):
+        self.name = name
         self.config = config
 
         # Setup logging
@@ -31,7 +32,6 @@ class Context(object):
             self.logger.setLevel(self.config.log_level)
 
         # Setup databases
-        self.eduid_userdb = UserDB(db_uri=self.config.mongo_uri, db_name='eduid_am')
         self._userdbs = {}
         self._groupdbs = {}
         for data_owner in self.config.data_owners:
@@ -47,10 +47,6 @@ class Context(object):
             self._groupdbs[data_owner] = ScimApiGroupDB(
                 db_uri=self.config.neo4j_uri, config=self.config.neo4j_config, scope=data_owner, attr_db=attr_db
             )
-
-        if not self._groupdbs:
-            # Temporarily don't care about neo4jdb
-            self.logger.info(f'Starting without neo4jdb')
 
     @property
     def base_url(self) -> str:
