@@ -35,37 +35,14 @@ import json
 from contextlib import contextmanager
 from typing import Any, Optional
 
-from mock import Mock, patch
+from mock import patch
 
-from eduid_userdb.data_samples import NEW_COMPLETED_SIGNUP_USER_EXAMPLE
 from eduid_common.api.testing import EduidAPITestCase
+from eduid_userdb.exceptions import UserOutOfSync
 
 from eduid_webapp.signup.app import signup_init_app
 from eduid_webapp.signup.settings.common import SignupConfig
 from eduid_webapp.signup.verifications import send_verification_mail
-
-
-def mock_response(status_code=200, content=None, json_data=None, headers=dict(), raise_for_status=None):
-    """
-    since we typically test a bunch of different
-    requests calls for a service, we are going to do
-    a lot of mock responses, so its usually a good idea
-    to have a helper function that builds these things
-    """
-    mock_resp = Mock()
-    # mock raise_for_status call w/optional error
-    mock_resp.raise_for_status = Mock()
-    if raise_for_status:
-        mock_resp.raise_for_status.side_effect = raise_for_status
-    # set status code and content
-    mock_resp.status_code = status_code
-    mock_resp.content = content
-    # set headers
-    mock_resp.headers = headers
-    # add json data if provided
-    if json_data:
-        mock_resp.json = Mock(return_value=json_data)
-    return mock_resp
 
 
 class SignupTests(EduidAPITestCase):
@@ -266,7 +243,9 @@ class SignupTests(EduidAPITestCase):
 
                     client.post('/trycaptcha', data=json.dumps(data), content_type=self.content_type_json)
 
-                    send_verification_mail(email)
+                    if data1 is None:
+                        send_verification_mail(email)
+
                     signup_user = self.app.private_userdb.get_user_by_pending_mail_address(email)
                     response = client.get('/verify-link/' + signup_user.pending_mail_address.verification_code)
 
@@ -280,17 +259,39 @@ class SignupTests(EduidAPITestCase):
         self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_SUCCESS')
         self.assertEqual(data['payload']['next'], 'new')
 
+    def test_captcha_new_no_key(self):
+        self.app.config.recaptcha_public_key = None
+        response = self._captcha_new()
+        data = json.loads(response.data)
+        self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_FAIL')
+        self.assertEqual(data['payload']['message'], 'signup.recaptcha-not-verified')
+
+    def test_captcha_new_wrong_csrf(self):
+        data1 = {'csrf_token': 'wrong-token'}
+        response = self._captcha_new(data1=data1)
+        data = json.loads(response.data)
+        self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_FAIL')
+        self.assertEqual(data['payload']['error']['csrf_token'], ['CSRF failed to validate'])
+
     def test_captcha_repeated(self):
         response = self._captcha_new(email='johnsmith@example.com')
         data = json.loads(response.data)
         self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_FAIL')
         self.assertEqual(data['payload']['message'], 'signup.registering-address-used')
 
-    def test_captcha_repeated_unverified(self):
+    def test_captcha_remove_repeated_unverified(self):
         response = self._captcha_new(email='johnsmith2@example.com')
         data = json.loads(response.data)
         self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_SUCCESS')
         self.assertEqual(data['payload']['next'], 'new')
+
+    def test_captcha_unsynced(self):
+        with patch('eduid_webapp.signup.helpers.save_and_sync_user') as mock_save:
+            mock_save.side_effect = UserOutOfSync('unsync')
+            response = self._captcha_new()
+            data = json.loads(response.data)
+            self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_SUCCESS')
+            self.assertEqual(data['payload']['next'], 'new')
 
     def test_captcha_no_data_fail(self):
         with self.session_cookie(self.browser) as client:
@@ -423,6 +424,14 @@ class SignupTests(EduidAPITestCase):
         self.assertEqual(data['type'], 'GET_SIGNUP_VERIFY_LINK_SUCCESS')
         self.assertEqual(data['payload']['status'], 'verified')
 
+    def test_verify_code_unsynced(self):
+        with patch('eduid_webapp.signup.helpers.save_and_sync_user') as mock_save:
+            mock_save.side_effect = UserOutOfSync('unsync')
+            response = self._verify_code()
+            data = json.loads(response.data)
+            self.assertEqual(data['type'], 'GET_SIGNUP_VERIFY_LINK_FAIL')
+            self.assertEqual(data['payload']['message'], 'user-out-of-sync')
+
     def test_verify_code_with_magic(self):
         response = self._verify_code(code='magic-code', magic=True)
 
@@ -471,3 +480,21 @@ class SignupTests(EduidAPITestCase):
     def test_verify_code_after_captcha(self):
         data = self._verify_code_after_captcha()
         self.assertEqual(data['type'], 'GET_SIGNUP_VERIFY_LINK_SUCCESS')
+
+    def test_verify_code_after_captcha_proofing_log_error(self):
+        from eduid_webapp.signup.verifications import ProofingLogFailure
+        with patch('eduid_webapp.signup.views.verify_email_code') as mock_verify:
+            mock_verify.side_effect = ProofingLogFailure('fail')
+            data = self._verify_code_after_captcha()
+            self.assertEqual(data['type'], 'GET_SIGNUP_VERIFY_LINK_FAIL')
+            self.assertEqual(data['payload']['message'], 'Temporary technical problems')
+
+    def test_verify_code_after_captcha_wrong_csrf(self):
+        with self.assertRaises(AttributeError):
+            data1 = {'csrf_token': 'wrong-token'}
+            self._verify_code_after_captcha(data1=data1)
+
+    def test_verify_code_after_captcha_dont_accept_tou(self):
+        with self.assertRaises(AttributeError):
+            data1 = {'tou_accepted': False}
+            self._verify_code_after_captcha(data1=data1)
