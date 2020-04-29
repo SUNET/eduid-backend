@@ -126,7 +126,7 @@ def get_app_config(name: str, config: Optional[dict] = None) -> dict:
     keys, load them as well.
     """
     warnings.warn(
-        "This function will be removed in a future version of eduid_common. " "Use 'BaseConfig.init_config()' instead.",
+        "This function will be removed in a future version of eduid_common. Use 'BaseConfig.init_config()' instead.",
         DeprecationWarning,
         stacklevel=2,
     )

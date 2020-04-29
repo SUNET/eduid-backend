@@ -3,7 +3,6 @@
 from __future__ import absolute_import
 
 from flask import request
-
 from flask_babel import Babel
 
 __author__ = 'lundberg'
