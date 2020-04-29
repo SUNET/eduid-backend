@@ -275,8 +275,13 @@ class BaseConfig(CommonConfig):
     status_cache_seconds: int = 10
 
     @classmethod
-    def init_config(cls, ns: Optional[str] = None, app_name: Optional[str] = None, test_config: Optional[dict] = None,
-                    debug: bool = False):
+    def init_config(
+        cls,
+        ns: Optional[str] = None,
+        app_name: Optional[str] = None,
+        test_config: Optional[dict] = None,
+        debug: bool = False,
+    ):
         """
         Initialize configuration with values from etcd (or with test values)
         """
@@ -286,6 +291,7 @@ class BaseConfig(CommonConfig):
         if test_config:
             # Load init time settings
             config.update(test_config)
+            logger.info(f'Using test_config: {config}')
             return cls(**config)
 
         from eduid_common.config.parsers.etcd import EtcdConfigParser
