@@ -104,7 +104,7 @@ class SecurityTests(EduidAPITestCase):
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('eduid_webapp.security.views.security.revoke_all_credentials')
     def _account_terminated(self, mock_revoke: Any, mock_sync: Any, mock_sendmail: Any,
-                            reauthn: Optional[int] = None):
+                            reauthn: Optional[int] = None, sendmail_side_effect: Any = None):
         """
         Send a GET request to the endpoint to actually terminate the account,
         mocking re-authentiocation by setting a timestamp in the session.
@@ -114,6 +114,9 @@ class SecurityTests(EduidAPITestCase):
         mock_revoke.return_value = True
         mock_sync.return_value = True
         mock_sendmail.return_value = True
+        if sendmail_side_effect:
+            mock_sendmail.side_effect = sendmail_side_effect
+
         eppn = self.test_user_data['eduPersonPrincipalName']
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction() as sess:
@@ -221,13 +224,25 @@ class SecurityTests(EduidAPITestCase):
         self.assertEqual(response.json['type'], 'GET_SECURITY_ACCOUNT_TERMINATED_FAIL')
         self.assertEqual(response.json['payload']['message'], 'security.stale_authn_info')
 
+    @patch('eduid_webapp.security.views.security.send_termination_mail')
+    def test_account_terminated_sendmail_fail(self, mock_send: Any):
+        from eduid_common.api.exceptions import MsgTaskFailed
+        mock_send.side_effect = MsgTaskFailed()
+        response = self._account_terminated(reauthn=int(time.time()))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.location, 'http://test.localhost/services/authn/logout?next=https://eduid.se')
+
+    def test_account_terminated_mail_fail(self):
+        from eduid_common.api.exceptions import MsgTaskFailed
+        response = self._account_terminated(sendmail_side_effect=MsgTaskFailed())
+        self.assertEqual(response.status_code, 400)
+
     def test_account_terminated(self):
         response = self._account_terminated(reauthn=int(time.time()))
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.location, 'http://test.localhost/services/authn/logout?next=https://eduid.se')
 
-    @patch('eduid_common.api.am.AmRelay.request_user_sync')
-    def test_remove_nin(self, mock_request_user_sync):
+    def test_remove_nin(self):
         response = self._remove_nin()
 
         self.assertTrue(response.json['payload']['success'])
@@ -235,6 +250,14 @@ class SecurityTests(EduidAPITestCase):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         self.assertEqual(user.nins.count, 1)
         self.assertEqual(user.nins.verified.count, 1)
+
+    @patch('eduid_webapp.security.views.security.remove_nin_from_user')
+    def test_remove_nin_no_nin(self, mock_remove: Any):
+        from eduid_common.api.exceptions import AmTaskFailed
+        mock_remove.side_effect = AmTaskFailed()
+        response = self._remove_nin()
+
+        self.assertTrue(response.json['payload']['message'], "Temporary technical problems")
 
     def test_remove_nin_no_csrf(self):
         data1 = {'csrf_token': ''}
@@ -246,8 +269,7 @@ class SecurityTests(EduidAPITestCase):
         self.assertEqual(user.nins.count, 2)
         self.assertEqual(user.nins.verified.count, 1)
 
-    @patch('eduid_common.api.am.AmRelay.request_user_sync')
-    def test_not_remove_verified_nin(self, mock_request_user_sync):
+    def test_not_remove_verified_nin(self):
         response = self._remove_nin(unverify=False)
 
         self.assertFalse(response.json['payload']['success'])
@@ -267,8 +289,7 @@ class SecurityTests(EduidAPITestCase):
         self.assertEqual(user.nins.count, 2)
         self.assertEqual(user.nins.verified.count, 2)
 
-    @patch('eduid_common.api.am.AmRelay.request_user_sync')
-    def test_add_nin(self, mock_request_user_sync):
+    def test_add_nin(self):
         response = self._add_nin()
 
         self.assertTrue(response.json['payload']['success'])
@@ -287,8 +308,15 @@ class SecurityTests(EduidAPITestCase):
         self.assertEqual(user.nins.count, 2)
         self.assertEqual(user.nins.verified.count, 2)
 
-    @patch('eduid_common.api.am.AmRelay.request_user_sync')
-    def test_add_nin_bad_csrf(self, mock_request_user_sync):
+    @patch('eduid_webapp.security.views.security.add_nin_to_user')
+    def test_add_nin_task_failed(self, mock_add):
+        from eduid_common.api.exceptions import AmTaskFailed
+        mock_add.side_effect = AmTaskFailed()
+        response = self._add_nin()
+
+        self.assertEqual(response.json['payload']['message'], 'Temporary technical problems')
+
+    def test_add_nin_bad_csrf(self):
         data1 = {'csrf_token': 'bad-token'}
         response = self._add_nin(data1=data1, remove=False)
 
@@ -298,8 +326,7 @@ class SecurityTests(EduidAPITestCase):
         self.assertEqual(user.nins.count, 2)
         self.assertEqual(user.nins.verified.count, 2)
 
-    @patch('eduid_common.api.am.AmRelay.request_user_sync')
-    def test_add_invalid_nin(self, mock_request_user_sync):
+    def test_add_invalid_nin(self):
         data1 = {'nin': '123456789'}
         response = self._add_nin(data1=data1, remove=False)
         self.assertIsNotNone(response.json['payload']['error']['nin'])
