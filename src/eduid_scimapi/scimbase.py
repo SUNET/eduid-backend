@@ -61,6 +61,7 @@ class SCIMSchema(Enum):
     API_MESSAGES_20_SEARCH_REQUEST = 'urn:ietf:params:scim:api:messages:2.0:SearchRequest'
     API_MESSAGES_20_LIST_RESPONSE = 'urn:ietf:params:scim:api:messages:2.0:ListResponse'
     NUTID_V1 = 'https://scim.eduid.se/schema/nutid/v1'
+    NUTID_GROUP_V1 = 'https://scim.eduid.se/schema/nutid/group/v1'
     DEBUG_V1 = 'https://scim.eduid.se/schema/nutid-DEBUG/v1'
 
 

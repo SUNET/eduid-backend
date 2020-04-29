@@ -61,7 +61,7 @@ class GroupsResource(SCIMResource):
         )
 
         if db_group.attributes._id is not None:
-            group.schemas.append(SCIMSchema.NUTID_V1)
+            group.schemas.append(SCIMSchema.NUTID_GROUP_V1)
             group.nutid_group_v1.data = db_group.attributes.data
 
         resp.set_header("Location", location)
@@ -180,7 +180,7 @@ class GroupsResource(SCIMResource):
             group = Group(
                 display_name=update_request.display_name,
                 members=update_request.members,
-                nutid_v1=update_request.nutid_v1,
+                nutid_group_v1=update_request.nutid_group_v1,
             )
 
             self.context.logger.info(f"Fetching group {scim_id}")

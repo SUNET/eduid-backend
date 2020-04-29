@@ -5,7 +5,7 @@ import json
 import logging
 import sys
 from pprint import pformat
-from typing import Any, Callable, Dict, List, Mapping, NewType, Optional, cast
+from typing import Any, Callable, Dict, Mapping, NewType, Optional, cast
 
 import requests
 import yaml
@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 Args = NewType('Args', argparse.Namespace)
 NUTID_V1 = 'https://scim.eduid.se/schema/nutid/v1'
+NUTID_GROUP_V1 = 'https://scim.eduid.se/schema/nutid/group/v1'
 
 
 def parse_args() -> Args:
@@ -150,10 +151,10 @@ def put_group(api: str, scim_id: str, data: Dict[str, Any], token: Optional[str]
                 {'$ref': f'{api}/Users/{member["id"]}', 'value': member['id'], 'display': member['display_name'],}
             )
         scim['members'] = new_members
-    if 'attributes' in data:
-        if NUTID_V1 not in scim['schemas']:
-            scim['schemas'] += [NUTID_V1]
-        scim[NUTID_V1] = {'attributes': data['attributes']}
+    if 'data' in data:
+        if NUTID_GROUP_V1 not in scim['schemas']:
+            scim['schemas'] += [NUTID_GROUP_V1]
+        scim[NUTID_GROUP_V1] = {'data': data['data']}
 
     headers = {'content-type': 'application/scim+json', 'if-match': meta["version"]}
 

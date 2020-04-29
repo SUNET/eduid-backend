@@ -11,16 +11,8 @@ __author__ = 'lundberg'
 
 
 @dataclass
-class Profile:
-    attributes: Dict[str, Any] = field(
-        default_factory=dict, metadata={"marshmallow_field": fields.Dict(), 'required': False}
-    )
-    data: Dict[str, Any] = field(default_factory=dict, metadata={"marshmallow_field": fields.Dict(), 'required': False})
-
-
-@dataclass
-class NutidExtensionV1:
-    attributes: Dict[str, Any] = field(
+class NutidGroupExtensionV1:
+    data: Dict[str, Any] = field(
         default_factory=dict, metadata={"marshmallow_field": fields.Dict(), 'required': False,},
     )
 
@@ -34,8 +26,9 @@ class GroupMember(SubResource):
 class Group:
     display_name: str = field(default='', metadata={'data_key': 'displayName', 'required': True})
     members: List[GroupMember] = field(default_factory=list, metadata={'required': False})
-    nutid_v1: NutidExtensionV1 = field(
-        default_factory=lambda: NutidExtensionV1(), metadata={'data_key': SCIMSchema.NUTID_V1.value, 'required': False}
+    nutid_group_v1: NutidGroupExtensionV1 = field(
+        default_factory=lambda: NutidGroupExtensionV1(),
+        metadata={'data_key': SCIMSchema.NUTID_GROUP_V1.value, 'required': False},
     )
 
 
@@ -45,8 +38,9 @@ class GroupCreateRequest:
     schemas: List[SCIMSchemaValue] = field(default_factory=list, metadata={'required': True})
     display_name: str = field(default='', metadata={'data_key': 'displayName', 'required': True})
     members: List[GroupMember] = field(default_factory=list, metadata={'required': False})
-    nutid_v1: NutidExtensionV1 = field(
-        default_factory=lambda: NutidExtensionV1(), metadata={'data_key': SCIMSchema.NUTID_V1.value, 'required': False}
+    nutid_group_v1: NutidGroupExtensionV1 = field(
+        default_factory=lambda: NutidGroupExtensionV1(),
+        metadata={'data_key': SCIMSchema.NUTID_GROUP_V1.value, 'required': False},
     )
 
 
@@ -57,8 +51,9 @@ class GroupUpdateRequest:
     schemas: List[SCIMSchemaValue] = field(default_factory=list, metadata={'required': True})
     display_name: str = field(default='', metadata={'data_key': 'displayName', 'required': True})
     members: List[GroupMember] = field(default_factory=list, metadata={'required': False})
-    nutid_v1: NutidExtensionV1 = field(
-        default_factory=lambda: NutidExtensionV1(), metadata={'data_key': SCIMSchema.NUTID_V1.value, 'required': False}
+    nutid_group_v1: NutidGroupExtensionV1 = field(
+        default_factory=lambda: NutidGroupExtensionV1(),
+        metadata={'data_key': SCIMSchema.NUTID_GROUP_V1.value, 'required': False},
     )
 
 
@@ -70,8 +65,9 @@ class GroupResponse:
     schemas: List[SCIMSchemaValue] = field(default_factory=list, metadata={'required': True})
     display_name: str = field(default='', metadata={'data_key': 'displayName', 'required': True})
     members: List[GroupMember] = field(default_factory=list, metadata={'required': False})
-    nutid_v1: NutidExtensionV1 = field(
-        default_factory=lambda: NutidExtensionV1(), metadata={'data_key': SCIMSchema.NUTID_V1.value, 'required': False}
+    nutid_group_v1: NutidGroupExtensionV1 = field(
+        default_factory=lambda: NutidGroupExtensionV1(),
+        metadata={'data_key': SCIMSchema.NUTID_GROUP_V1.value, 'required': False},
     )
 
 
