@@ -41,21 +41,6 @@ class User:
         )
 
 
-@dataclass
-class GroupAttrs(object):
-    _id: Optional[ObjectId] = None
-    attributes: Dict[str, Any] = field(default_factory=dict)
-
-    def to_dict(self) -> Dict[str, Any]:
-        res = asdict(self)
-        del res['_id']
-        return res
-
-    @classmethod
-    def from_mapping(cls: Type[GroupAttrs], data: Mapping) -> GroupAttrs:
-        return cls(_id=data.get('_id'), attributes=data.get('attributes'),)
-
-
 @dataclass()
 class Group:
     identifier: str

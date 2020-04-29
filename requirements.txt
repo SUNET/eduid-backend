@@ -1,2 +1,1 @@
 neo4j>=1.7.6
-eduid_userdb>=0.4.13

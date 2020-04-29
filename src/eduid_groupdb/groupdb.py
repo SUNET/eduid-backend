@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import enum
 import logging
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 from bson import ObjectId
 from neo4j import Record, Transaction
@@ -10,7 +10,6 @@ from neo4j.types.graph import Graph
 from neobolt.routing import READ_ACCESS, WRITE_ACCESS
 
 from eduid_groupdb import BaseGraphDB, Group, User
-from eduid_groupdb.attributes import AttributeDB
 from eduid_groupdb.exceptions import EduIDGroupDBError, VersionMismatch
 
 __author__ = 'lundberg'
@@ -19,13 +18,6 @@ logger = logging.getLogger(__name__)
 
 
 class GroupDB(BaseGraphDB):
-    def __init__(
-        self, db_uri: str, scope: str, attr_db: AttributeDB, config: Optional[Dict[str, Any]] = None,
-    ):
-        super().__init__(db_uri=db_uri, scope=scope, config=config)
-        self._attr_db = attr_db
-        logger.info(f'{self} initialised')
-
     @enum.unique
     class Role(enum.Enum):
         # Role to relationship type
@@ -337,13 +329,6 @@ class GroupDB(BaseGraphDB):
         saved_group.owners = saved_owners
         return saved_group
 
-    def save_attributes(self, group: Group) -> Group:
-        if not self._attr_db:
-            raise RuntimeError('No attribute database initialised')
-        return self._attr_db.save_attributes(group)
-
     def _load_group(self, data: Dict) -> Group:
-        if not self._attr_db:
-            raise RuntimeError('No attribute database initialised')
-        group = Group.from_mapping(data)
-        return self._attr_db.load_attributes(group)
+        """ Method meant to be overridden by subclasses wanting to annotate the groups. """
+        return Group.from_mapping(data)
