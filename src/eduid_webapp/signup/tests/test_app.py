@@ -37,6 +37,7 @@ from typing import Any, Optional
 
 from mock import Mock, patch
 
+from eduid_userdb.data_samples import NEW_COMPLETED_SIGNUP_USER_EXAMPLE
 from eduid_common.api.testing import EduidAPITestCase
 
 from eduid_webapp.signup.app import signup_init_app
@@ -119,6 +120,34 @@ class SignupTests(EduidAPITestCase):
         yield client
 
     # parameterized test methods
+
+    @patch('eduid_webapp.signup.views.verify_recaptcha')
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
+    def _captcha_new(self, mock_sendmail: Any, mock_recaptcha: Any,
+                     data1: Optional[dict] = None,
+                     email: str = 'dummy@example.com'):
+        """
+        Bypass captcha verification using a magic code.
+
+        :param data1: to control the data POSTed to the /trycaptcha endpoint
+        :param email: the email to use for registration
+        """
+        mock_sendmail.return_value = True
+        mock_recaptcha.return_value = True
+
+        with self.session_cookie(self.browser) as client:
+            with client.session_transaction() as sess:
+                with self.app.test_request_context():
+                    data = {
+                        'email': email,
+                        'recaptcha_response': 'dummy',
+                        'tou_accepted': True,
+                        'csrf_token': sess.get_csrf_token(),
+                    }
+                    if data1 is not None:
+                        data.update(data1)
+
+                    return client.post('/trycaptcha', data=json.dumps(data), content_type=self.content_type_json)
 
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     def _captcha_new_magic_code(self, mock_sendmail: Any, data1: Optional[dict] = None,
@@ -244,6 +273,24 @@ class SignupTests(EduidAPITestCase):
                     return json.loads(response.data)
 
     # actual tests
+
+    def test_captcha_new(self):
+        response = self._captcha_new()
+        data = json.loads(response.data)
+        self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_SUCCESS')
+        self.assertEqual(data['payload']['next'], 'new')
+
+    def test_captcha_repeated(self):
+        response = self._captcha_new(email='johnsmith@example.com')
+        data = json.loads(response.data)
+        self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_FAIL')
+        self.assertEqual(data['payload']['message'], 'signup.registering-address-used')
+
+    def test_captcha_repeated_unverified(self):
+        response = self._captcha_new(email='johnsmith2@example.com')
+        data = json.loads(response.data)
+        self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_SUCCESS')
+        self.assertEqual(data['payload']['next'], 'new')
 
     def test_captcha_no_data_fail(self):
         with self.session_cookie(self.browser) as client:
