@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import enum
 import logging
-from typing import List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 from bson import ObjectId
 from neo4j import Record, Transaction
@@ -70,7 +70,7 @@ class GroupDB(BaseGraphDB):
             description=group.description,
             new_version=new_version,
         ).single()
-        return Group.from_mapping(res.data()['group'])
+        return self._load_group(res.data()['group'])
 
     def _add_or_update_users_and_groups(
         self, tx: Transaction, group: Group
@@ -83,13 +83,13 @@ class GroupDB(BaseGraphDB):
             members.append(User.from_mapping(res.data()))
         for group_member in group.member_groups:
             res = self._add_group_to_group(tx, group=group, member=group_member, role=self.Role.MEMBER)
-            members.append(Group.from_mapping(res.data()))
+            members.append(self._load_group(res.data()))
         for user_owner in group.owner_users:
             res = self._add_user_to_group(tx, group=group, member=user_owner, role=self.Role.OWNER)
             owners.append(User.from_mapping(res.data()))
         for group_owner in group.owner_groups:
             res = self._add_group_to_group(tx, group=group, member=group_owner, role=self.Role.OWNER)
-            owners.append(Group.from_mapping(res.data()))
+            owners.append(self._load_group(res.data()))
         return members, owners
 
     def _remove_missing_users_and_groups(self, tx: Transaction, group: Group, role: Role) -> None:
@@ -203,7 +203,7 @@ class GroupDB(BaseGraphDB):
                 if 'User' in labels:
                     res.append(User.from_mapping(record.data()))
                 elif 'Group' in labels:
-                    res.append(Group.from_mapping(record.data()))
+                    res.append(self._load_group(record.data()))
         return res
 
     def get_group(self, identifier: str) -> Optional[Group]:
@@ -222,11 +222,11 @@ class GroupDB(BaseGraphDB):
         if len(group_graph.relationships) == 0:
             # Just a group with no owners or members
             group_data = [node_data for node_data in group_graph.nodes][0]
-            return Group.from_mapping(group_data)
+            return self._load_group(group_data)
         else:
             # Grab the first relationships end node and create the group from that
             group_data = [node_data.end_node for node_data in group_graph.relationships][0]
-            group = Group.from_mapping(group_data)
+            group = self._load_group(group_data)
 
             # Iterate over relationships and create owners and members
             for rel in group_graph.relationships:
@@ -238,12 +238,12 @@ class GroupDB(BaseGraphDB):
                 is_member = rel.type == self.Role.MEMBER.value
                 # Instantiate and add owners
                 if is_owner and 'Group' in labels:
-                    group.owners.append(Group.from_mapping(data))
+                    group.owners.append(self._load_group(data))
                 if is_owner and 'User' in labels:
                     group.owners.append(User.from_mapping(data))
                 # Instantiate and add members
                 if is_member and 'Group' in labels:
-                    group.members.append(Group.from_mapping(data))
+                    group.members.append(self._load_group(data))
                 if is_member and 'User' in labels:
                     group.members.append(User.from_mapping(data))
         return group
@@ -265,7 +265,7 @@ class GroupDB(BaseGraphDB):
             """
         with self.db.driver.session(access_mode=READ_ACCESS) as session:
             for record in session.run(q, scope=self.scope, value=value, skip=skip, limit=limit):
-                res.append(Group.from_mapping(record.data()['group']))
+                res.append(self._load_group(record.data()['group']))
         return res
 
     def get_groups(self):
@@ -276,7 +276,7 @@ class GroupDB(BaseGraphDB):
             """
         with self.db.driver.session(access_mode=READ_ACCESS) as session:
             for record in session.run(q, scope=self.scope):
-                res.append(Group.from_mapping(record.data()['group']))
+                res.append(self._load_group(record.data()['group']))
         return res
 
     def get_groups_for_user(self, user: User) -> List[Group]:
@@ -295,7 +295,7 @@ class GroupDB(BaseGraphDB):
 
         with self.db.driver.session(access_mode=READ_ACCESS) as session:
             for record in session.run(q, identifier=user.identifier, scope=self.scope):
-                res.append(Group.from_mapping(record.data()['group']))
+                res.append(self._load_group(record.data()['group']))
         return res
 
     def group_exists(self, identifier: str) -> bool:
@@ -328,3 +328,7 @@ class GroupDB(BaseGraphDB):
         saved_group.members = saved_members
         saved_group.owners = saved_owners
         return saved_group
+
+    def _load_group(self, data: Dict) -> Group:
+        """ Method meant to be overridden by subclasses wanting to annotate the group. """
+        return Group.from_mapping(data)

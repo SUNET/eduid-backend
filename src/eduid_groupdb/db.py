@@ -68,7 +68,6 @@ class BaseGraphDB(ABC):
     """Base class for common db operations"""
 
     def __init__(self, db_uri: str, scope: str, config: Optional[Dict[str, Any]] = None):
-
         self._db_uri = db_uri
         self._db = Neo4jDB(db_uri=self._db_uri, config=config)
         self._scope = scope
