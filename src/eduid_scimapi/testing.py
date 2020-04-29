@@ -48,7 +48,7 @@ class ScimApiTestCase(unittest.TestCase):
     def setUp(self) -> None:
         self.test_config = self._get_config()
         config = ScimApiConfig.init_config(test_config=self.test_config, debug=True)
-        self.context = Context(config)
+        self.context = Context(name='test_app', config=config)
 
         # TODO: more tests for scoped groups when that is implemented
         self.data_owner = 'eduid.se'

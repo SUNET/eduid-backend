@@ -5,6 +5,7 @@ MAINTAINER eduid-dev <eduid-dev@SEGATE.SUNET.SE>
 ENV DEBIAN_FRONTEND noninteractive
 RUN apt-get -y update && apt-get -y install \
     git \
+    curl \
     python3-pip \
     python3.7-venv
 
@@ -16,6 +17,7 @@ RUN /opt/eduid/env/bin/pip install -U pip wheel
 RUN /opt/eduid/env/bin/pip install --index-url https://pypi.sunet.se -r /opt/eduid/eduid-scimapi/requirements.txt
 
 EXPOSE "8000"
+HEALTHCHECK --interval=27s CMD curl http://localhost:8000/status/healthy | grep -q STATUS_OK
 
 WORKDIR "/opt/eduid/eduid-scimapi/src"
 ENV GUNICORN_CMD_ARGS="--bind=0.0.0.0:8000"

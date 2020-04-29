@@ -1,3 +1,5 @@
+import re
+
 from falcon import HTTPForbidden, Request, Response
 from jose import ExpiredSignatureError, jwt
 
@@ -39,9 +41,19 @@ class HandleSCIM(object):
 class HandleAuthentication(object):
     def __init__(self, context: Context):
         self.context = context
+        self.no_auth_whitelist = self.context.config.no_authn_urls
+        self.context.logger.debug('No auth whitelist: {}'.format(self.no_auth_whitelist))
+
+    def _is_no_auth_path(self, path: str) -> bool:
+        for regex in self.no_auth_whitelist:
+            m = re.match(regex, path)
+            if m is not None:
+                self.context.logger.debug('{} matched whitelist'.format(path))
+                return True
+        return False
 
     def process_request(self, req: Request, resp: Response):
-        if req.path == '/login':
+        if self._is_no_auth_path(req.path):
             return
 
         if not req.auth or not req.auth.startswith('Bearer '):
