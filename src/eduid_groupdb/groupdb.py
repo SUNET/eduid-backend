@@ -330,5 +330,5 @@ class GroupDB(BaseGraphDB):
         return saved_group
 
     def _load_group(self, data: Dict) -> Group:
-        """ Method meant to be overridden by subclasses wanting to annotate the groups. """
+        """ Method meant to be overridden by subclasses wanting to annotate the group. """
         return Group.from_mapping(data)

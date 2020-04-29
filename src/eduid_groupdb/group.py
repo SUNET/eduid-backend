@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Dict, List, Mapping, Optional, Type, Union
+from typing import List, Mapping, Optional, Type, Union
 
 from bson import ObjectId
 
@@ -51,7 +51,6 @@ class Group:
     modified_ts: Optional[datetime] = None
     owners: List[Union[User, Group]] = field(default_factory=list)
     members: List[Union[User, Group]] = field(default_factory=list)
-    attributes: GroupAttrs = field(default_factory=lambda: GroupAttrs())
 
     def __eq__(self, other: object):
         if not isinstance(other, Group):
@@ -126,5 +125,4 @@ class Group:
             modified_ts=dt['modified_ts'],
             members=data.get('members', []),
             owners=data.get('owners', []),
-            attributes=GroupAttrs.from_mapping(data.get('attributes', {})),
         )
