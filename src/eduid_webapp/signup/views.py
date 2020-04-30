@@ -33,6 +33,8 @@
 
 from flask import Blueprint, request
 
+from eduid_userdb.exceptions import EduIDUserDBError
+
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith
 from eduid_common.api.schemas.base import FluxStandardAction
 
@@ -108,7 +110,7 @@ def resend_email_verification(email):
     current_app.logger.debug("Resend email confirmation to {!s}".format(email))
     send_verification_mail(email)
     current_app.stats.count(name='resend_code')
-    return {'message': 'signup.verification-resent'}
+    return {'message': 'signup.verification-present'}
 
 
 @signup_views.route('/verify-link/<code>', methods=['GET'])
@@ -122,4 +124,6 @@ def verify_link(code):
         return {'_status': 'error', 'status': 'already-verified', 'message': 'signup.already-verified'}
     except ProofingLogFailure:
         return {'_status': 'error', 'message': 'Temporary technical problems'}
+    except EduIDUserDBError:
+        return {'_status': 'error', 'status': 'unknown-code', 'message': 'signup.unknown-code'}
     return complete_registration(user)
