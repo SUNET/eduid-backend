@@ -563,6 +563,13 @@ class ResetPasswordTests(EduidAPITestCase):
         self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_FAIL')
         self.assertEqual(response.json['payload']['message'], 'resetpw.user-not-found')
 
+    def test_post_email_address_wrong_csrf(self):
+        data = {'csrf_token': 'wrong-token'}
+        response = self._post_email_address(data1=data)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_FAIL')
+        self.assertEqual(response.json['payload']['error']['csrf_token'], ['CSRF failed to validate'])
+
     def test_post_invalid_email_address(self):
         data = {'email': 'invalid-address'}
         response = self._post_email_address(data1=data)
@@ -629,9 +636,15 @@ class ResetPasswordTests(EduidAPITestCase):
         data2 = {'code': 'wrong-code'}
         response = self._post_reset_code(data2=data2)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json['payload']['message'], 'resetpw.unknown-code')
         self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_CONFIG_FAIL')
+
+    def test_post_reset_wrong_csrf(self):
+        data2 = {'csrf_token': 'wrong-code'}
+        response = self._post_reset_code(data2=data2)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_CONFIG_FAIL')
+        self.assertEqual(response.json['payload']['error']['csrf_token'], ['CSRF failed to validate'])
 
     def test_post_reset_password(self):
         response = self._post_reset_password()
@@ -739,6 +752,14 @@ class ResetPasswordTests(EduidAPITestCase):
         data3 = {'phone_index': '3'}
         with self.assertRaises(IndexError):
             self._post_choose_extra_sec(data3=data3)
+
+    def test_post_choose_extra_sec_wrong_csrf_token(self):
+        data3 = {'csrf_token': 'wrong-token'}
+        response = self._post_choose_extra_sec(data3=data3)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_EXTRA_SECURITY_PHONE_FAIL')
+        self.assertEqual(response.json['payload']['error']['csrf_token'], ['CSRF failed to validate'])
 
     def test_post_choose_extra_sec_wrong_final_code(self):
         data3 = {'code': 'wrong-code'}
@@ -914,6 +935,17 @@ class ResetPasswordTests(EduidAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_PHONE_FAIL')
         self.assertEqual(response.json['payload']['message'], 'resetpw.phone-code-unknown')
+
+    def test_post_reset_password_secure_phone_wrong_token(self):
+        self.app.config.environment = 'staging'
+        self.app.config.magic_code = 'magic-code'
+
+        data3 = {'csrf_token': 'wrong-token'}
+        response = self._post_extra_sec_magic_code(data3=data3, magic=False)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_PHONE_FAIL')
+        self.assertEqual(response.json['payload']['message'], 'csrf.try_again')
 
     def test_post_reset_password_secure_email_timeout(self):
         self.app.config.email_code_timeout = 0
