@@ -17,7 +17,7 @@ from eduid_scimapi.group import (
     GroupUpdateRequest,
     GroupUpdateRequestSchema,
 )
-from eduid_scimapi.groupdb import DBGroup
+from eduid_scimapi.groupdb import ScimApiGroup
 from eduid_scimapi.resources.base import BaseResource, SCIMResource
 from eduid_scimapi.scimbase import (
     ListResponse,
@@ -32,35 +32,35 @@ from eduid_scimapi.scimbase import (
 
 
 class GroupsResource(SCIMResource):
-    def _get_group_members(self, db_group: DBGroup) -> List[GroupMember]:
+    def _get_group_members(self, db_group: ScimApiGroup) -> List[GroupMember]:
         members = []
-        for member in db_group.member_users:
+        for member in db_group.graph.member_users:
             ref = self.url_for("Users", member.identifier)
             members.append(GroupMember(value=UUID(member.identifier), ref=ref, display=member.display_name))
-        for member in db_group.member_groups:
+        for member in db_group.graph.member_groups:
             ref = self.url_for("Groups", member.identifier)
             members.append(GroupMember(value=UUID(member.identifier), ref=ref, display=member.display_name))
         return members
 
-    def _db_group_to_response(self, resp: Response, db_group: DBGroup):
+    def _db_group_to_response(self, resp: Response, db_group: ScimApiGroup):
         members = self._get_group_members(db_group)
-        location = self.url_for("Groups", db_group.identifier)
+        location = self.url_for("Groups", str(db_group.scim_id))
         meta = Meta(
             location=location,
-            last_modified=db_group.modified_ts or db_group.created_ts,
+            last_modified=db_group.last_modified or db_group.created,
             resource_type=SCIMResourceType.group,
-            created=db_group.created_ts,
+            created=db_group.created,
             version=db_group.version,
         )
         group = GroupResponse(
-            display_name=db_group.display_name,
+            display_name=db_group.graph.display_name,
             members=members,
-            id=UUID(db_group.identifier),
+            id=db_group.scim_id,
             meta=meta,
             schemas=[SCIMSchema.CORE_20_GROUP],
         )
 
-        if db_group.attributes._id is not None:
+        if db_group.attributes.data:
             group.schemas.append(SCIMSchema.NUTID_GROUP_V1)
             group.nutid_group_v1.data = db_group.attributes.data
 
@@ -101,19 +101,19 @@ class GroupsResource(SCIMResource):
         if scim_id:
             self.context.logger.info(f"Fetching group {scim_id}")
 
-            db_group = req.context['groupdb'].get_group_by_scim_id(identifier=scim_id)
+            db_group = req.context['groupdb'].get_group_by_scim_id(scim_id)
             self.context.logger.debug(f'Found group: {db_group}')
             if not db_group:
                 raise NotFound(detail="Group not found")
             self._db_group_to_response(resp, db_group)
         else:
             # Return all Groups for scope
-            db_groups: List[DBGroup] = req.context['groupdb'].get_groups()
+            db_groups = req.context['groupdb'].get_groups()
             list_response = ListResponse(total_results=len(db_groups))
             resources = []
             for db_group in db_groups:
                 resources.append(
-                    {'id': db_group.identifier, 'displayName': db_group.display_name,}
+                    {'id': str(db_group.scim_id), 'displayName': db_group.graph.display_name,}
                 )
             list_response.resources = resources
             resp.media = ListResponseSchema().dump(list_response)
@@ -186,7 +186,7 @@ class GroupsResource(SCIMResource):
             self.context.logger.info(f"Fetching group {scim_id}")
 
             # Get group from db
-            db_group: DBGroup = req.context['groupdb'].get_group_by_scim_id(identifier=str(update_request.id))
+            db_group = req.context['groupdb'].get_group_by_scim_id(str(update_request.id))
             self.context.logger.debug(f'Found group: {db_group}')
             if not db_group:
                 raise NotFound(detail="Group not found")
@@ -256,7 +256,7 @@ class GroupsResource(SCIMResource):
         self.context.logger.info(f"Fetching group {scim_id}")
 
         # Get group from db
-        db_group: DBGroup = req.context['groupdb'].get_group_by_scim_id(identifier=scim_id)
+        db_group: ScimApiGroup = req.context['groupdb'].get_group_by_scim_id(identifier=scim_id)
         self.context.logger.debug(f'Found group: {db_group}')
         if not db_group:
             raise NotFound(detail="Group not found")
