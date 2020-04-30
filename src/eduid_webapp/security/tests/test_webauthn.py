@@ -3,6 +3,7 @@ from __future__ import absolute_import
 
 import base64
 import json
+from typing import Any, Optional
 
 from fido2 import cbor
 from fido2.client import ClientData
@@ -197,7 +198,51 @@ class SecurityWebauthnTests(EduidAPITestCase):
         self.app.central_userdb.save(user)
         return u2f_token
 
-    def _begin_register_key(self, other=None, authenticator='cross-platform', existing_legacy_token=False):
+    def _check_session_state(self, client):
+        with client.session_transaction() as sess:
+            self.assertIsNotNone(sess['_webauthn_state_'])
+            webauthn_state = sess['_webauthn_state_']
+        self.assertEqual(webauthn_state['user_verification'], 'discouraged')
+        self.assertIn('challenge', webauthn_state)
+
+    def _check_registration_begun(self, data):
+        self.assertEqual(data['type'], 'POST_WEBAUTHN_WEBAUTHN_REGISTER_BEGIN_SUCCESS')
+        self.assertIn('registration_data', data['payload'])
+        self.assertIn('csrf_token', data['payload'])
+
+    def _check_registration_complete(self, data):
+        self.assertEqual(data['type'], 'POST_WEBAUTHN_WEBAUTHN_REGISTER_COMPLETE_SUCCESS')
+        self.assertTrue(len(data['payload']['credentials']) > 0)
+        self.assertEqual(data['payload']['message'], 'security.webauthn_register_success')
+
+    def _check_last(self, data):
+        self.assertEqual(data['type'], 'POST_WEBAUTHN_WEBAUTHN_REMOVE_SUCCESS')
+        self.assertEqual(data['payload']['message'], 'security.webauthn-noremove-last')
+
+    def _check_removal(self, data, user_token):
+        self.assertEqual(data['type'], 'POST_WEBAUTHN_WEBAUTHN_REMOVE_SUCCESS')
+        self.assertIsNotNone(data['payload']['credentials'])
+        for credential in data['payload']['credentials']:
+            self.assertIsNotNone(credential)
+            self.assertNotEqual(credential['key'], user_token.key)
+
+    # parameterized test methods
+
+    def _begin_register_key(self, other: Optional[str] = None,
+                            authenticator: str = 'cross-platform',
+                            existing_legacy_token: bool = False,
+                            csrf: Optional[str] = None,
+                            check_session: bool = True):
+        """
+        Start process to register a webauthn token for the test user,
+        possibly adding U2F or webauthn credentials before.
+
+        :param other: to control the credential (ctap1 or ctap2) added to the account.
+        :param authenticator: which authenticator to use (platform|cross-platform)
+        :param existing_legacy_token: whether to add a legacy U2F credential to the test user.
+        :param csrf: to control the CSRF token to send
+        :param check_session: whether to check the registration state in the session
+        """
         response = self.browser.get('/webauthn/register/begin')
         self.assertEqual(response.status_code, 302)  # Redirect to token service
 
@@ -207,65 +252,45 @@ class SecurityWebauthnTests(EduidAPITestCase):
             self._add_u2f_token_to_user(eppn)
 
         if other == 'ctap1':
-            _ = self._add_token_to_user(REGISTERING_DATA, STATE)
+            self._add_token_to_user(REGISTERING_DATA, STATE)
         elif other == 'ctap2':
-            _ = self._add_token_to_user(REGISTERING_DATA_2, STATE_2)
+            self._add_token_to_user(REGISTERING_DATA_2, STATE_2)
 
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
-                    data = {'csrf_token': sess.get_csrf_token(), 'authenticator': authenticator}
+                    if csrf is not None:
+                        csrf_token = csrf
+                    else:
+                        csrf_token = sess.get_csrf_token()
+                    data = {
+                        'csrf_token': csrf_token,
+                        'authenticator': authenticator
+                    }
                 response2 = client.post(
                     '/webauthn/register/begin', data=json.dumps(data), content_type=self.content_type_json
                 )
-                with client.session_transaction() as sess:
-                    self.assertIsNotNone(sess['_webauthn_state_'])
-                    webauthn_state = sess['_webauthn_state_']
-                self.assertEqual(webauthn_state['user_verification'], 'discouraged')
-                self.assertIn('challenge', webauthn_state)
+                if check_session:
+                    self._check_session_state(client)
 
-            data = json.loads(response2.data)
-            self.assertEqual(data['type'], 'POST_WEBAUTHN_WEBAUTHN_REGISTER_BEGIN_SUCCESS')
-            self.assertIn('registration_data', data['payload'])
-            self.assertIn('csrf_token', data['payload'])
+            return json.loads(response2.data)
 
-    def test_begin_register_first_key(self):
-        self._begin_register_key()
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def _finish_register_key(self, mock_request_user_sync: Any,
+                             state: dict, att: bytes, cdata: bytes,
+                             cred_id: bytes, existing_legacy_token: bool = False,
+                             csrf: Optional[str] = None):
+        """
+        Finish registering a webauthn token.
 
-    def test_begin_register_first_key_with_legacy_token(self):
-        self._begin_register_key(existing_legacy_token=True)
-
-    def test_begin_register_2nd_key_ater_ctap1(self):
-        self._begin_register_key(other='ctap1')
-
-    def test_begin_register_2nd_key_ater_ctap1_with_legacy_token(self):
-        self._begin_register_key(other='ctap1', existing_legacy_token=True)
-
-    def test_begin_register_2nd_key_ater_ctap2(self):
-        self._begin_register_key(other='ctap2')
-
-    def test_begin_register_2nd_key_ater_ctap2_with_legacy_token(self):
-        self._begin_register_key(other='ctap2', existing_legacy_token=True)
-
-    def test_begin_register_first_device(self):
-        self._begin_register_key(authenticator='platform')
-
-    def test_begin_register_first_device_with_legacy_token(self):
-        self._begin_register_key(authenticator='platform', existing_legacy_token=True)
-
-    def test_begin_register_2nd_device_ater_ctap1(self):
-        self._begin_register_key(other='ctap1', authenticator='platform')
-
-    def test_begin_register_2nd_device_ater_ctap1_with_legacy_token(self):
-        self._begin_register_key(other='ctap1', authenticator='platform', existing_legacy_token=True)
-
-    def test_begin_register_2nd_device_ater_ctap2(self):
-        self._begin_register_key(other='ctap2', authenticator='platform')
-
-    def test_begin_register_2nd_device_ater_ctap2_with_legacy_token(self):
-        self._begin_register_key(other='ctap2', authenticator='platform', existing_legacy_token=True)
-
-    def _finish_register_key(self, state, att, cdata, cred_id, existing_legacy_token=False):
+        :param state: mock the webauthn registration state kept in the session
+        :param att: attestation object, to attest to the provenance of the authenticator and the data it emits
+        :param cdata: client data passed to the authenticator by the client
+        :param cred_id: credential ID
+        :param existing_legacy_token: whether to add a legacy U2F credential to the test user.
+        :param csrf: to control the CSRF token to send
+        """
+        mock_request_user_sync.side_effect = self.request_user_sync
         eppn = self.test_user_data['eduPersonPrincipalName']
         if existing_legacy_token:
             self._add_u2f_token_to_user(eppn)
@@ -274,8 +299,12 @@ class SecurityWebauthnTests(EduidAPITestCase):
             with client.session_transaction() as sess:
                 sess['_webauthn_state_'] = state
                 with self.app.test_request_context():
+                    if csrf is not None:
+                        csrf_token = csrf
+                    else:
+                        csrf_token = sess.get_csrf_token()
                     data = {
-                        'csrf_token': sess.get_csrf_token(),
+                        'csrf_token': csrf_token,
                         'attestationObject': att.decode('ascii'),
                         'clientDataJSON': cdata.decode('ascii'),
                         'credentialId': cred_id,
@@ -284,31 +313,19 @@ class SecurityWebauthnTests(EduidAPITestCase):
                 response2 = client.post(
                     '/webauthn/register/complete', data=json.dumps(data), content_type=self.content_type_json
                 )
-                data = json.loads(response2.data)
-                self.assertEqual(data['type'], 'POST_WEBAUTHN_WEBAUTHN_REGISTER_COMPLETE_SUCCESS')
+                return json.loads(response2.data)
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
-    def test_finish_register_ctap1(self, mock_request_user_sync):
-        mock_request_user_sync.side_effect = self.request_user_sync
-        self._finish_register_key(STATE, ATTESTATION_OBJECT, CLIENT_DATA_JSON, CREDENTIAL_ID)
+    def _dont_remove_last(self, mock_request_user_sync: Any,
+                          reg_data: bytes, state: dict, existing_legacy_token: bool = False, csrf: Optional[str] = None):
+        """
+        Send a request to remove the only webauthn credential from the test user - which should fail.
 
-    @patch('eduid_common.api.am.AmRelay.request_user_sync')
-    def test_finish_register_ctap1_with_legacy_token(self, mock_request_user_sync):
-        self._finish_register_key(
-            STATE, ATTESTATION_OBJECT, CLIENT_DATA_JSON, CREDENTIAL_ID, existing_legacy_token=True
-        )
-
-    @patch('eduid_common.api.am.AmRelay.request_user_sync')
-    def test_finish_register_ctap2(self, mock_request_user_sync):
-        self._finish_register_key(STATE_2, ATTESTATION_OBJECT_2, CLIENT_DATA_JSON_2, CREDENTIAL_ID_2)
-
-    @patch('eduid_common.api.am.AmRelay.request_user_sync')
-    def test_finish_register_ctap2_with_legacy_token(self, mock_request_user_sync):
-        self._finish_register_key(
-            STATE_2, ATTESTATION_OBJECT_2, CLIENT_DATA_JSON_2, CREDENTIAL_ID_2, existing_legacy_token=True
-        )
-
-    def _dont_remove_last(self, reg_data, state, existing_legacy_token=False):
+        :param reg_data: registration data as would be produced by a browser.
+        :param state: registration state kept in the session
+        :param existing_legacy_token: whether to add a legacy U2F credential to the test user.
+        :param csrf: to control the CSRF token to send
+        """
         eppn = self.test_user_data['eduPersonPrincipalName']
 
         if existing_legacy_token:
@@ -322,78 +339,173 @@ class SecurityWebauthnTests(EduidAPITestCase):
         with self.session_cookie(self.browser, eppn) as client:
             credentials_response = client.get('/credentials')
             csrf_token = json.loads(credentials_response.data)['payload']['csrf_token']
+            if csrf is not None:
+                csrf_token = csrf
+            else:
+                csrf_token = json.loads(credentials_response.data)['payload']['csrf_token']
             data = {
                 'csrf_token': csrf_token,
                 'credential_key': user_token.key,
             }
             response2 = client.post('/webauthn/remove', data=json.dumps(data), content_type=self.content_type_json)
-            modify_data = json.loads(response2.data)
-            self.assertEqual(modify_data['type'], 'POST_WEBAUTHN_WEBAUTHN_REMOVE_SUCCESS')
-            self.assertEqual(modify_data['payload']['message'], 'security.webauthn-noremove-last')
+            return json.loads(response2.data)
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
-    def test_dont_remove_last_ctap1(self, mock_request_user_sync):
-        mock_request_user_sync.side_effect = self.request_user_sync
-        self._dont_remove_last(REGISTERING_DATA, STATE)
+    def _remove(self, mock_request_user_sync: Any,
+                reg_data: bytes, state: dict, reg_data2: bytes, state2: dict,
+                existing_legacy_token: bool = False, csrf: Optional[str] = None):
+        """
+        Send a POST request to remove a webauthn credential from the test user.
+        Before sending the request, add 2 webauthn credentials (and possibly a legacy u2f credential) to the test user.
 
-    @patch('eduid_common.api.am.AmRelay.request_user_sync')
-    def test_dont_remove_last_ctap1_with_legacy_token(self, mock_request_user_sync):
-        mock_request_user_sync.side_effect = self.request_user_sync
-        self._dont_remove_last(REGISTERING_DATA, STATE, existing_legacy_token=True)
-
-    @patch('eduid_common.api.am.AmRelay.request_user_sync')
-    def test_dont_remove_last_ctap2(self, mock_request_user_sync):
-        mock_request_user_sync.side_effect = self.request_user_sync
-        self._dont_remove_last(REGISTERING_DATA_2, STATE_2)
-
-    @patch('eduid_common.api.am.AmRelay.request_user_sync')
-    def test_dont_remove_last_ctap2_with_legacy_token(self, mock_request_user_sync):
-        mock_request_user_sync.side_effect = self.request_user_sync
-        self._dont_remove_last(REGISTERING_DATA_2, STATE_2, existing_legacy_token=True)
-
-    def _remove(self, reg_data, state, reg_data2, state2, existing_legacy_token=False):
+        :param reg_data: registration data as would be produced by a browser.
+        :param state: registration state kept in the session
+        :param reg_data2: registration data as would be produced by a browser (for the 2nd webauthn credential)
+        :param state2: registration state kept in the session (for the 2nd webauthn credential)
+        :param existing_legacy_token: whether to add a legacy U2F credential to the test user.
+        :param csrf: to control the CSRF token to send
+        """
         eppn = self.test_user_data['eduPersonPrincipalName']
         if existing_legacy_token:
             self._add_u2f_token_to_user(eppn)
 
         user_token = self._add_token_to_user(reg_data, state)
-        _ = self._add_token_to_user(reg_data2, state2)
+        self._add_token_to_user(reg_data2, state2)
 
         response = self.browser.post('/webauthn/remove', data={})
         self.assertEqual(response.status_code, 302)  # Redirect to token service
 
         with self.session_cookie(self.browser, eppn) as client:
             credentials_response = client.get('/credentials')
-            csrf_token = json.loads(credentials_response.data)['payload']['csrf_token']
+            if csrf is not None:
+                csrf_token = csrf
+            else:
+                csrf_token = json.loads(credentials_response.data)['payload']['csrf_token']
             data = {
                 'csrf_token': csrf_token,
                 'credential_key': user_token.key,
             }
             response2 = client.post('/webauthn/remove', data=json.dumps(data), content_type=self.content_type_json)
-            modify_data = json.loads(response2.data)
-            self.assertEqual(modify_data['type'], 'POST_WEBAUTHN_WEBAUTHN_REMOVE_SUCCESS')
-            self.assertIsNotNone(modify_data['payload']['credentials'])
-            for credential in modify_data['payload']['credentials']:
-                self.assertIsNotNone(credential)
-                if credential['key'] == user_token.key:
-                    raise AssertionError('credential with keyhandle keyHandle should be missing')
+            return (user_token, json.loads(response2.data))
 
-    @patch('eduid_common.api.am.AmRelay.request_user_sync')
-    def test_remove_ctap1(self, mock_request_user_sync):
-        mock_request_user_sync.side_effect = self.request_user_sync
-        self._remove(REGISTERING_DATA, STATE, REGISTERING_DATA_2, STATE_2)
+    # actual tests
 
-    @patch('eduid_common.api.am.AmRelay.request_user_sync')
-    def test_remove_ctap1_with_legacy_token(self, mock_request_user_sync):
-        mock_request_user_sync.side_effect = self.request_user_sync
-        self._remove(REGISTERING_DATA, STATE, REGISTERING_DATA_2, STATE_2, existing_legacy_token=True)
+    def test_begin_register_first_key(self):
+        data = self._begin_register_key()
+        self._check_registration_begun(data)
 
-    @patch('eduid_common.api.am.AmRelay.request_user_sync')
-    def test_remove_ctap2(self, mock_request_user_sync):
-        mock_request_user_sync.side_effect = self.request_user_sync
-        self._remove(REGISTERING_DATA_2, STATE_2, REGISTERING_DATA, STATE)
+    def test_begin_register_first_key_with_legacy_token(self):
+        data = self._begin_register_key(existing_legacy_token=True)
+        self._check_registration_begun(data)
 
-    @patch('eduid_common.api.am.AmRelay.request_user_sync')
-    def test_remove_ctap2_legacy_token(self, mock_request_user_sync):
-        mock_request_user_sync.side_effect = self.request_user_sync
-        self._remove(REGISTERING_DATA_2, STATE_2, REGISTERING_DATA, STATE, existing_legacy_token=True)
+    def test_begin_register_2nd_key_ater_ctap1(self):
+        data = self._begin_register_key(other='ctap1')
+        self._check_registration_begun(data)
+
+    def test_begin_register_2nd_key_ater_ctap1_with_legacy_token(self):
+        data = self._begin_register_key(other='ctap1', existing_legacy_token=True)
+        self._check_registration_begun(data)
+
+    def test_begin_register_2nd_key_ater_ctap2(self):
+        data = self._begin_register_key(other='ctap2')
+        self._check_registration_begun(data)
+
+    def test_begin_register_2nd_key_ater_ctap2_with_legacy_token(self):
+        data = self._begin_register_key(other='ctap2', existing_legacy_token=True)
+        self._check_registration_begun(data)
+
+    def test_begin_register_first_device(self):
+        data = self._begin_register_key(authenticator='platform')
+        self._check_registration_begun(data)
+
+    def test_begin_register_first_device_with_legacy_token(self):
+        data = self._begin_register_key(authenticator='platform', existing_legacy_token=True)
+        self._check_registration_begun(data)
+
+    def test_begin_register_2nd_device_ater_ctap1(self):
+        data = self._begin_register_key(other='ctap1', authenticator='platform')
+        self._check_registration_begun(data)
+
+    def test_begin_register_2nd_device_ater_ctap1_with_legacy_token(self):
+        data = self._begin_register_key(other='ctap1', authenticator='platform', existing_legacy_token=True)
+        self._check_registration_begun(data)
+
+    def test_begin_register_2nd_device_ater_ctap2(self):
+        data = self._begin_register_key(other='ctap2', authenticator='platform')
+        self._check_registration_begun(data)
+
+    def test_begin_register_2nd_device_ater_ctap2_with_legacy_token(self):
+        data = self._begin_register_key(other='ctap2', authenticator='platform', existing_legacy_token=True)
+        self._check_registration_begun(data)
+
+    def test_begin_register_wrong_csrf_token(self):
+        data = self._begin_register_key(csrf='wrong-token', check_session=False)
+        self.assertEqual(data['type'], 'POST_WEBAUTHN_WEBAUTHN_REGISTER_BEGIN_FAIL')
+        self.assertEqual(data['payload']['error']['csrf_token'], ['CSRF failed to validate'])
+
+    def test_finish_register_ctap1(self):
+        data = self._finish_register_key(state=STATE, att=ATTESTATION_OBJECT, cdata=CLIENT_DATA_JSON, cred_id=CREDENTIAL_ID)
+        self._check_registration_complete(data)
+
+    def test_finish_register_ctap1_with_legacy_token(self):
+        data = self._finish_register_key(
+            state=STATE, att=ATTESTATION_OBJECT, cdata=CLIENT_DATA_JSON, cred_id=CREDENTIAL_ID, existing_legacy_token=True
+        )
+        self._check_registration_complete(data)
+
+    def test_finish_register_ctap2(self):
+        data = self._finish_register_key(state=STATE_2, att=ATTESTATION_OBJECT_2, cdata=CLIENT_DATA_JSON_2, cred_id=CREDENTIAL_ID_2)
+        self._check_registration_complete(data)
+
+    def test_finish_register_ctap2_with_legacy_token(self):
+        data = self._finish_register_key(
+            state=STATE_2, att=ATTESTATION_OBJECT_2, cdata=CLIENT_DATA_JSON_2, cred_id=CREDENTIAL_ID_2, existing_legacy_token=True
+        )
+        self._check_registration_complete(data)
+
+    def test_finish_register_wrong_csrf(self):
+        data = self._finish_register_key(state=STATE, att=ATTESTATION_OBJECT, cdata=CLIENT_DATA_JSON, cred_id=CREDENTIAL_ID, csrf='wrong-token')
+        self.assertEqual(data['type'], 'POST_WEBAUTHN_WEBAUTHN_REGISTER_COMPLETE_FAIL')
+        self.assertEqual(data['payload']['error']['csrf_token'], ['CSRF failed to validate'])
+
+    def test_dont_remove_last_ctap1(self):
+        data = self._dont_remove_last(reg_data=REGISTERING_DATA, state=STATE)
+        self._check_last(data)
+
+    def test_dont_remove_last_ctap1_with_legacy_token(self):
+        data = self._dont_remove_last(reg_data=REGISTERING_DATA, state=STATE, existing_legacy_token=True)
+        self._check_last(data)
+
+    def test_dont_remove_last_ctap2(self):
+        data = self._dont_remove_last(reg_data=REGISTERING_DATA_2, state=STATE_2)
+        self._check_last(data)
+
+    def test_dont_remove_last_ctap2_with_legacy_token(self):
+        data = self._dont_remove_last(reg_data=REGISTERING_DATA_2, state=STATE_2, existing_legacy_token=True)
+        self._check_last(data)
+
+    def test_dont_remove_last_wrong_csrf(self):
+        data = self._dont_remove_last(reg_data=REGISTERING_DATA, state=STATE, csrf='wrong-token')
+        self.assertEqual(data['type'], 'POST_WEBAUTHN_WEBAUTHN_REMOVE_FAIL')
+        self.assertEqual(data['payload']['error']['csrf_token'], ['CSRF failed to validate'])
+
+    def test_remove_ctap1(self):
+        user_token, data = self._remove(reg_data=REGISTERING_DATA, state=STATE, reg_data2=REGISTERING_DATA_2, state2=STATE_2)
+        self._check_removal(data, user_token)
+
+    def test_remove_ctap1_with_legacy_token(self):
+        user_token, data = self._remove(reg_data=REGISTERING_DATA, state=STATE, reg_data2=REGISTERING_DATA_2, state2=STATE_2, existing_legacy_token=True)
+        self._check_removal(data, user_token)
+
+    def test_remove_ctap2(self):
+        user_token, data = self._remove(reg_data=REGISTERING_DATA_2, state=STATE_2, reg_data2=REGISTERING_DATA, state2=STATE)
+        self._check_removal(data, user_token)
+
+    def test_remove_ctap2_legacy_token(self):
+        user_token, data = self._remove(reg_data=REGISTERING_DATA_2, state=STATE_2, reg_data2=REGISTERING_DATA, state2=STATE, existing_legacy_token=True)
+        self._check_removal(data, user_token)
+
+    def test_remove_wrong_csrf(self):
+        user_token, data = self._remove(reg_data=REGISTERING_DATA, state=STATE, reg_data2=REGISTERING_DATA_2, state2=STATE_2, csrf='wrong-csrf')
+        self.assertEqual(data['type'], 'POST_WEBAUTHN_WEBAUTHN_REMOVE_FAIL')
+        self.assertEqual(data['payload']['error']['csrf_token'], ['CSRF failed to validate'])
