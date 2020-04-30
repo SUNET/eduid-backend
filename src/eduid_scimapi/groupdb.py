@@ -78,21 +78,6 @@ class ScimApiGroupDB(ScimApiBaseDB):
         self.graphdb = GroupDB(db_uri=db_uri, scope=scope, config=config)
         logger.info(f'{self} initialised')
 
-    def load_attributes_old(self, group: ScimApiGroup) -> ScimApiGroup:
-        identifier = str(group.scim_id)
-        test_doc = {
-            '_group_identifier': identifier,
-        }
-        docs = self._get_documents_by_filter(spec=test_doc, raise_on_missing=False)
-        if not docs:
-            return group
-        if len(docs) != 1:
-            raise RuntimeError(f'More than one set of attributes returned for identifier {identifier}')
-        attr_dict = docs[0]['attributes']
-        attr_dict['_id'] = docs[0]['_id']
-        attrs = GroupAttrs.from_mapping(attr_dict)
-        return replace(group, attributes=attrs)
-
     def save(self, group: ScimApiGroup) -> bool:
         group_dict = group.to_dict()
 
@@ -120,41 +105,6 @@ class ScimApiGroupDB(ScimApiBaseDB):
         logger.debug(f'Extra debug:\n{extra_debug}')
 
         return result.acknowledged
-
-    def save_old(self, group: ScimApiGroup) -> ScimApiGroup:
-        _attr_dict = group.attributes.to_dict()
-        # Don't store the _id redundantly in the attributes section - it is the document id
-        # and explicitly put in the attr_doc above.
-        _attr_dict.pop('_id', None)
-
-        identifier = str(group.scim_id)
-        attr_doc = {
-            '_id': group.group_id,
-            '_group_identifier': identifier,
-            'attributes': _attr_dict,
-        }
-
-        # XXX FIX THIS, GROUP ID IS ALWAYS INITIALISED NOW
-        if group.group_id is None:
-            # attributes never saved before
-            del attr_doc['_id']
-            res = self._coll.insert_one(attr_doc)
-            new_attrs = replace(group.attributes, _id=res.inserted_id)
-            return replace(group, attributes=new_attrs)
-
-        # _id is not None, which means it should exist in the database
-        test_doc = {
-            '_id': group.group_id,
-            '_group_identifier': identifier,
-        }
-        res = self._coll.replace_one(test_doc, attr_doc, upsert=False)
-        if res.matched_count != 1:
-            logger.error(f'{self} FAILED Updating attributes {group.attributes} in {self._coll_name}: {res}')
-            raise RuntimeError('Group attributes out of sync')
-        if res.modified_count != 1:
-            logger.debug('The attributes were not modified')
-
-        return group
 
     def create_group(self, scim_group: SCIMGroup) -> ScimApiGroup:
         group = ScimApiGroup(attributes=GroupAttrs(data=scim_group.nutid_group_v1.data))
