@@ -11,8 +11,9 @@ from uuid import UUID
 from bson import ObjectId
 
 from eduid_groupdb import Group as GraphGroup
-from eduid_groupdb import User as GraphUser
 from eduid_groupdb import GroupDB
+from eduid_groupdb import User as GraphUser
+
 from eduid_scimapi.basedb import ScimApiBaseDB
 from eduid_scimapi.group import Group as SCIMGroup
 
@@ -48,9 +49,9 @@ class ScimApiGroup(object):
     def __post_init__(self):
         self.graph = GraphGroup(identifier=str(self.scim_id))
 
-#    @property
-#    def etag_remove_this(self):
-#        return f'W/"{self.version}"'
+    #    @property
+    #    def etag_remove_this(self):
+    #        return f'W/"{self.version}"'
 
     def to_dict(self) -> Dict[str, Any]:
         res = asdict(self)
@@ -111,8 +112,9 @@ class ScimApiGroupDB(ScimApiBaseDB):
         return result.acknowledged
 
     def create_group(self, scim_group: SCIMGroup) -> ScimApiGroup:
-        group = ScimApiGroup(extensions=GroupExtensions(data=scim_group.nutid_group_v1.data),
-                             display_name=scim_group.display_name)
+        group = ScimApiGroup(
+            extensions=GroupExtensions(data=scim_group.nutid_group_v1.data), display_name=scim_group.display_name
+        )
         group.graph = GraphGroup(identifier=str(group.scim_id), display_name=scim_group.display_name)
         self.graphdb.save(group.graph)
         if not self.save(group):
@@ -189,7 +191,6 @@ class ScimApiGroupDB(ScimApiBaseDB):
             assert group.graph
             res += [group]
         return res
-
 
     def get_group_by_scim_id(self, scim_id: str) -> Optional[ScimApiGroup]:
         doc = self._get_document_by_attr('scim_id', scim_id, raise_on_missing=False)
