@@ -43,7 +43,10 @@ class ScimApiGroup(object):
     created: datetime = field(default_factory=lambda: datetime.utcnow())
     last_modified: datetime = field(default_factory=lambda: datetime.utcnow())
     extensions: GroupExtensions = field(default_factory=lambda: GroupExtensions())
-    graph: Optional[GraphGroup] = None
+    graph: GraphGroup = field(init=False)
+
+    def __post_init__(self):
+        self.graph = GraphGroup(identifier=str(self.scim_id))
 
 #    @property
 #    def etag_remove_this(self):
@@ -178,7 +181,7 @@ class ScimApiGroupDB(ScimApiBaseDB):
 
     def get_groups(self) -> List[ScimApiGroup]:
         docs = self._get_documents_by_filter({}, raise_on_missing=False)
-        res = []
+        res: List[ScimApiGroup] = []
         for doc in docs:
             group = ScimApiGroup.from_dict(doc)
             group.graph = self.graphdb.get_group(str(group.scim_id))
@@ -200,7 +203,7 @@ class ScimApiGroupDB(ScimApiBaseDB):
         docs = self._get_documents_by_filter({key: value}, skip=skip, limit=limit, raise_on_missing=False)
         if not docs:
             return []
-        res = []
+        res: List[ScimApiGroup] = []
         for this in docs:
             group = ScimApiGroup.from_dict(this)
             group.graph = self.graphdb.get_group(str(group.scim_id))
@@ -209,9 +212,11 @@ class ScimApiGroupDB(ScimApiBaseDB):
 
     def get_groups_for_user(self, user: GraphUser) -> List[ScimApiGroup]:
         user_groups = self.graphdb.get_groups_for_user(user=user)
-        res = []
+        res: List[ScimApiGroup] = []
         for graph in user_groups:
             group = self.get_group_by_scim_id(graph.identifier)
+            if not group:
+                raise RuntimeError(f'Group {graph} found in graph database, but not in mongodb')
             group.graph = graph
             res += [group]
         return res
