@@ -4,6 +4,7 @@ __author__ = 'lundberg'
 
 import logging
 from datetime import datetime
+from typing import Optional
 from uuid import UUID, uuid4
 
 from bson import ObjectId
@@ -13,7 +14,7 @@ from eduid_groupdb import Group as GraphGroup
 from eduid_groupdb import User as GraphUser
 
 from eduid_scimapi.group import GroupMember, GroupResponse
-from eduid_scimapi.groupdb import ScimApiGroup
+from eduid_scimapi.groupdb import GroupExtensions, ScimApiGroup
 from eduid_scimapi.scimbase import Meta, SCIMResourceType, SCIMSchema, make_etag
 from eduid_scimapi.testing import ScimApiTestCase
 from eduid_scimapi.tests.test_scimbase import TestScimBase
@@ -58,8 +59,10 @@ class TestGroupResource(ScimApiTestCase):
         super().tearDown()
         self.groupdb._drop_whole_collection()
 
-    def add_group(self, scim_id: UUID, display_name: str) -> ScimApiGroup:
-        group = ScimApiGroup(scim_id=scim_id, display_name=display_name)
+    def add_group(self, scim_id: UUID, display_name: str, extensions: Optional[GroupExtensions] = None) -> ScimApiGroup:
+        if extensions is None:
+            extensions = GroupExtensions()
+        group = ScimApiGroup(scim_id=scim_id, display_name=display_name, extensions=extensions)
         assert self.groupdb  # mypy doesn't know setUp will be called
         self.groupdb.save(group)
         group.graph = GraphGroup(identifier=str(group.scim_id), display_name=display_name)
@@ -201,3 +204,35 @@ class TestGroupResource(ScimApiTestCase):
         self.assertEqual(5, len(resources))
         # TODO: Implement correct totalResults
         # self.assertEqual(9, response.json.get('totalResults'))
+
+    def test_search_group_extension_data_attribute_str(self):
+        ext = GroupExtensions(data={'some_key': "20072009"})
+        db_group = self.add_group(uuid4(), 'Test Group with extension', extensions=ext)
+        req = {
+            'schemas': [SCIMSchema.API_MESSAGES_20_SEARCH_REQUEST.value],
+            'filter': 'extensions.data.some_key eq "20072009"',
+            'startIndex': 1,
+            'count': 10,
+        }
+        response = self.client.simulate_post(path='/Groups/.search', body=self.as_json(req), headers=self.headers)
+        self.assertEqual([SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value], response.json.get('schemas'))
+        resources = response.json.get('Resources')
+        self.assertEqual(1, len(resources))
+        self.assertEqual(str(db_group.scim_id), resources[0].get('id'))
+        self.assertEqual(db_group.display_name, resources[0].get('displayName'))
+
+    def test_search_group_extension_data_attribute_int(self):
+        ext = GroupExtensions(data={'some_key': 20072009})
+        db_group = self.add_group(uuid4(), 'Test Group with extension', extensions=ext)
+        req = {
+            'schemas': [SCIMSchema.API_MESSAGES_20_SEARCH_REQUEST.value],
+            'filter': 'extensions.data.some_key eq 20072009',
+            'startIndex': 1,
+            'count': 10,
+        }
+        response = self.client.simulate_post(path='/Groups/.search', body=self.as_json(req), headers=self.headers)
+        self.assertEqual([SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value], response.json.get('schemas'))
+        resources = response.json.get('Resources')
+        self.assertEqual(1, len(resources))
+        self.assertEqual(str(db_group.scim_id), resources[0].get('id'))
+        self.assertEqual(db_group.display_name, resources[0].get('displayName'))

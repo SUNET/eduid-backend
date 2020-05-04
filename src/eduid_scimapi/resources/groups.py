@@ -1,5 +1,5 @@
 import re
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from uuid import UUID
 
 from falcon import Request, Response
@@ -29,6 +29,7 @@ from eduid_scimapi.scimbase import (
     SearchRequestSchema,
     make_etag,
 )
+from eduid_scimapi.search import SearchFilter, parse_search_filter
 
 
 class GroupsResource(SCIMResource):
@@ -302,21 +303,56 @@ class GroupSearchResource(BaseResource):
         except ValidationError as e:
             raise BadRequest(detail=f"{e}")
 
-        match = re.match('displayName eq "(.+)"', query.filter)
-        if not match:
-            self.context.logger.error(f'Unrecognised filter: {query.filter}')
-            raise BadRequest(detail="Unrecognised filter")
+        filter = parse_search_filter(query.filter)
 
-        display_name = match.group(1)
-        self.context.logger.debug(f"Searching for group with display name {repr(display_name)}")
-        # SCIM start_index 1 equals item 0
-        db_groups = req.context['groupdb'].get_groups_by_property(
-            key='display_name', value=display_name, skip=query.start_index - 1, limit=query.count
-        )
+        if filter.attr == 'displayname':
+            groups, total_count = self._filter_display_name(req, filter, skip=query.start_index - 1, limit=query.count)
+        elif filter.attr.startswith('extensions.data.'):
+            groups, total_count = self._filter_extensions_data(
+                req, filter, skip=query.start_index - 1, limit=query.count
+            )
+        else:
+            raise BadRequest(scim_type='invalidFilter', detail=f'Can\'t filter on attribute {filter.attr}')
 
-        list_response = ListResponse(total_results=len(db_groups))
+        list_response = ListResponse(total_results=len(groups))
         resources = []
-        for db_group in db_groups:
+        for db_group in groups:
             resources.append({'id': str(db_group.scim_id), 'displayName': db_group.graph.display_name})
         list_response.resources = resources
         resp.media = ListResponseSchema().dump(list_response)
+
+    def _filter_display_name(
+        self, req: Request, filter: SearchFilter, skip: Optional[int] = None, limit: Optional[int] = None,
+    ) -> Tuple[List[ScimApiGroup], int]:
+        if filter.op != 'eq':
+            raise BadRequest(scim_type='invalidFilter', detail='Unsupported operator')
+
+        self.context.logger.debug(f"Searching for group with display name {repr(filter.val)}")
+        groups, count = req.context['groupdb'].get_groups_by_property(
+            key='display_name', value=filter.val, skip=skip, limit=limit
+        )
+
+        if not groups:
+            return [], 0
+
+        return groups, count
+
+    def _filter_extensions_data(
+        self, req: Request, filter: SearchFilter, skip: Optional[int] = None, limit: Optional[int] = None,
+    ) -> Tuple[List[ScimApiGroup], int]:
+        if filter.op != 'eq':
+            raise BadRequest(scim_type='invalidFilter', detail='Unsupported operator')
+
+        match = re.match('^extensions\.data\.([a-z_]+)$', filter.attr)
+        if not match:
+            raise BadRequest(scim_type='invalidFilter', detail='Unsupported extension search key')
+
+        self.context.logger.debug(f'Searching for groups with {filter.attr} {filter.op} {repr(filter.val)}')
+        groups, count = req.context['groupdb'].get_groups_by_property(
+            key=filter.attr, value=filter.val, skip=skip, limit=limit
+        )
+
+        if not groups:
+            return [], 0
+
+        return groups, count

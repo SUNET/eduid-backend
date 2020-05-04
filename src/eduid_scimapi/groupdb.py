@@ -5,7 +5,7 @@ import logging
 import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Any, Dict, List, Mapping, Optional, Type
+from typing import Any, Dict, List, Mapping, Optional, Tuple, Type
 from uuid import UUID
 
 from bson import ObjectId
@@ -200,16 +200,18 @@ class ScimApiGroupDB(ScimApiBaseDB):
             return group
         return None
 
-    def get_groups_by_property(self, key: str, value: str, skip=0, limit=100) -> List[ScimApiGroup]:
-        docs = self._get_documents_by_filter({key: value}, skip=skip, limit=limit, raise_on_missing=False)
+    def get_groups_by_property(self, key: str, value: str, skip=0, limit=100) -> Tuple[List[ScimApiGroup], int]:
+        docs, count = self._get_documents_and_count_by_filter(
+            {key: value}, skip=skip, limit=limit, raise_on_missing=False
+        )
         if not docs:
-            return []
+            return [], 0
         res: List[ScimApiGroup] = []
         for this in docs:
             group = ScimApiGroup.from_dict(this)
             group.graph = self.graphdb.get_group(str(group.scim_id))
             res += [group]
-        return res
+        return res, count
 
     def get_groups_for_user(self, user: GraphUser) -> List[ScimApiGroup]:
         user_groups = self.graphdb.get_groups_for_user(user=user)
