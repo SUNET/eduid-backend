@@ -2,19 +2,23 @@
 
 __author__ = 'lundberg'
 
+import logging
 from datetime import datetime
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from bson import ObjectId
 from marshmallow_dataclass import class_schema
 
-from eduid_groupdb import Group as DBGroup
-from eduid_groupdb import User as DBUser
+from eduid_groupdb import Group as GraphGroup
+from eduid_groupdb import User as GraphUser
 
 from eduid_scimapi.group import GroupMember, GroupResponse
+from eduid_scimapi.groupdb import ScimApiGroup
 from eduid_scimapi.scimbase import Meta, SCIMResourceType, SCIMSchema, make_etag
 from eduid_scimapi.testing import ScimApiTestCase
 from eduid_scimapi.tests.test_scimbase import TestScimBase
+
+logger = logging.getLogger(__name__)
 
 
 class TestSCIMGroup(TestScimBase):
@@ -50,32 +54,41 @@ class TestGroupResource(ScimApiTestCase):
         super().setUp()
         self.groupdb = self.context.get_groupdb('eduid.se')
 
-    def add_group(self, identifier: str, display_name: str) -> DBGroup:
-        group = DBGroup(identifier=identifier, display_name=display_name)
-        assert self.groupdb  # mypy doesn't know setUp will be called
-        return self.groupdb.save(group)
+    def tearDown(self):
+        super().tearDown()
+        self.groupdb._drop_whole_collection()
 
-    def add_member(self, group: DBGroup, identifier: str, display_name: str) -> DBGroup:
-        self.add_user(identifier=identifier, external_id='not-used')
-        member = DBUser(identifier=identifier, display_name=display_name)
-        group.members.append(member)
+    def add_group(self, scim_id: UUID, display_name: str) -> ScimApiGroup:
+        group = ScimApiGroup(scim_id=scim_id, display_name=display_name)
         assert self.groupdb  # mypy doesn't know setUp will be called
-        return self.groupdb.save(group)
+        self.groupdb.save(group)
+        group.graph = GraphGroup(identifier=str(group.scim_id), display_name=display_name)
+        logger.info(f'TEST saved group {group}')
+        self.groupdb.graphdb.save(group.graph)
+        return group
+
+    def add_member(self, group: ScimApiGroup, identifier: str, display_name: str) -> ScimApiGroup:
+        self.add_user(identifier=identifier, external_id='not-used')
+        member = GraphUser(identifier=identifier, display_name=display_name)
+        group.graph.members.append(member)
+        assert self.groupdb  # mypy doesn't know setUp will be called
+        self.groupdb.save(group)
+        return group
 
     def test_get_groups(self):
         for i in range(9):
-            self.add_group(str(uuid4()), f'Test Group {i}')
+            self.add_group(uuid4(), f'Test Group {i}')
         response = self.client.simulate_get(path=f'/Groups', headers=self.headers)
         self.assertEqual([SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value], response.json.get('schemas'))
         resources = response.json.get('Resources')
-        self.assertEqual(self.groupdb.db.count_nodes(), len(resources))
+        self.assertEqual(self.groupdb.graphdb.db.count_nodes(), len(resources))
 
     def test_get_group(self):
-        db_group = self.add_group(str(uuid4()), 'Test Group 1')
-        response = self.client.simulate_get(path=f'/Groups/{db_group.identifier}', headers=self.headers)
+        db_group = self.add_group(uuid4(), 'Test Group 1')
+        response = self.client.simulate_get(path=f'/Groups/{db_group.scim_id}', headers=self.headers)
         self.assertEqual([SCIMSchema.CORE_20_GROUP.value], response.json.get('schemas'))
-        self.assertEqual(db_group.identifier, response.json.get('id'))
-        self.assertEqual(f'http://localhost:8000/Groups/{db_group.identifier}', response.headers.get('location'))
+        self.assertEqual(str(db_group.scim_id), response.json.get('id'))
+        self.assertEqual(f'http://localhost:8000/Groups/{db_group.scim_id}', response.headers.get('location'))
         self.assertEqual('Test Group 1', response.json.get('displayName'))
         self.assertEqual([], response.json.get('members'))
 
@@ -106,7 +119,7 @@ class TestGroupResource(ScimApiTestCase):
         self.assertEqual(f'Group', meta.get('resourceType'))
 
     def test_update_group(self):
-        db_group = self.add_group(str(uuid4()), 'Test Group 1')
+        db_group = self.add_group(uuid4(), 'Test Group 1')
         user = self.add_user(identifier=str(uuid4()), external_id='not-used')
         members = [
             {
@@ -117,13 +130,13 @@ class TestGroupResource(ScimApiTestCase):
         ]
         req = {
             'schemas': [SCIMSchema.CORE_20_GROUP.value],
-            'id': db_group.identifier,
+            'id': str(db_group.scim_id),
             'displayName': 'Another display name',
             'members': members,
         }
         self.headers['IF-MATCH'] = make_etag(db_group.version)
         response = self.client.simulate_put(
-            path=f'/Groups/{db_group.identifier}', body=self.as_json(req), headers=self.headers
+            path=f'/Groups/{db_group.scim_id}', body=self.as_json(req), headers=self.headers
         )
 
         self.assertEqual([SCIMSchema.CORE_20_GROUP.value], response.json.get('schemas'))
@@ -138,12 +151,12 @@ class TestGroupResource(ScimApiTestCase):
         self.assertIsNotNone(meta.get('created'))
         self.assertIsNotNone(meta.get('lastModified'))
         self.assertIsNotNone(meta.get('version'))
-        self.assertEqual(f'http://localhost:8000/Groups/{db_group.identifier}', meta.get('location'))
+        self.assertEqual(f'http://localhost:8000/Groups/{db_group.scim_id}', meta.get('location'))
         self.assertEqual(f'Group', meta.get('resourceType'))
 
     def test_search_group_display_name(self):
-        db_group = self.add_group(str(uuid4()), 'Test Group 1')
-        self.add_group(str(uuid4()), 'Test Group 2')
+        db_group = self.add_group(uuid4(), 'Test Group 1')
+        self.add_group(uuid4(), 'Test Group 2')
         req = {
             'schemas': [SCIMSchema.API_MESSAGES_20_SEARCH_REQUEST.value],
             'filter': 'displayName eq "Test Group 1"',
@@ -154,12 +167,12 @@ class TestGroupResource(ScimApiTestCase):
         self.assertEqual([SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value], response.json.get('schemas'))
         resources = response.json.get('Resources')
         self.assertEqual(1, len(resources))
-        self.assertEqual(db_group.identifier, resources[0].get('id'))
+        self.assertEqual(str(db_group.scim_id), resources[0].get('id'))
         self.assertEqual(db_group.display_name, resources[0].get('displayName'))
 
     def test_search_group_start_index(self):
         for i in range(9):
-            self.add_group(str(uuid4()), f'Test Group')
+            self.add_group(uuid4(), f'Test Group')
         req = {
             'schemas': [SCIMSchema.API_MESSAGES_20_SEARCH_REQUEST.value],
             'filter': 'displayName eq "Test Group"',
@@ -175,7 +188,7 @@ class TestGroupResource(ScimApiTestCase):
 
     def test_search_group_count(self):
         for i in range(9):
-            self.add_group(str(uuid4()), f'Test Group')
+            self.add_group(uuid4(), f'Test Group')
         req = {
             'schemas': [SCIMSchema.API_MESSAGES_20_SEARCH_REQUEST.value],
             'filter': 'displayName eq "Test Group"',

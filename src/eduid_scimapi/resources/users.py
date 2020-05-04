@@ -9,6 +9,8 @@ from marshmallow import ValidationError
 from eduid_groupdb import User as GroupUser
 
 from eduid_scimapi.exceptions import BadRequest, NotFound
+from eduid_scimapi.groupdb import ScimApiGroup
+from eduid_scimapi.resources import groups
 from eduid_scimapi.resources.base import BaseResource, SCIMResource
 from eduid_scimapi.scimbase import (
     ListResponse,
@@ -35,14 +37,13 @@ from eduid_scimapi.userdb import ScimApiUser
 
 
 class UsersResource(SCIMResource):
-    def _get_user_groups(self, req: Request, db_user: ScimApiUser) -> List[Group]:
+    def _get_user_groups(self, req: Request, db_user: ScimApiUser) -> List[ScimApiGroup]:
         group_user = GroupUser(identifier=str(db_user.scim_id))
         user_groups = req.context['groupdb'].get_groups_for_user(user=group_user,)
-        groups = []
         for group in user_groups:
             ref = self.url_for("Users", group.identifier)
-            groups.append(Group(value=UUID(group.identifier), ref=ref, display=group.display_name))
-        return groups
+            group.graph.ref = ref
+        return user_groups
 
     def _db_user_to_response(self, req: Request, resp: Response, db_user: ScimApiUser):
         location = self.url_for("Users", db_user.scim_id)

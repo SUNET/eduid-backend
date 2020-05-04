@@ -3,16 +3,16 @@ from __future__ import annotations
 
 import logging
 import uuid
-from dataclasses import asdict, dataclass, field, replace
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from typing import Any, Dict, List, Mapping, Optional, Type
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from bson import ObjectId
 
 from eduid_groupdb import Group as GraphGroup
-from eduid_groupdb import GroupDB, User
-
+from eduid_groupdb import User as GraphUser
+from eduid_groupdb import GroupDB
 from eduid_scimapi.basedb import ScimApiBaseDB
 from eduid_scimapi.group import Group as SCIMGroup
 
@@ -23,30 +23,31 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
-class GroupAttrs(object):
+class GroupExtensions(object):
     data: Dict[str, Any] = field(default_factory=dict)  # arbitrary third party data
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
 
     @classmethod
-    def from_mapping(cls: Type[GroupAttrs], data: Mapping) -> GroupAttrs:
+    def from_mapping(cls: Type[GroupExtensions], data: Mapping) -> GroupExtensions:
         return cls(data=data.get('data', {}),)
 
 
 @dataclass
 class ScimApiGroup(object):
+    display_name: str
     group_id: ObjectId = field(default_factory=lambda: ObjectId())
     scim_id: UUID = field(default_factory=lambda: uuid.uuid4())
     version: ObjectId = field(default_factory=lambda: ObjectId())
     created: datetime = field(default_factory=lambda: datetime.utcnow())
     last_modified: datetime = field(default_factory=lambda: datetime.utcnow())
-    attributes: GroupAttrs = field(default_factory=lambda: GroupAttrs())
+    extensions: GroupExtensions = field(default_factory=lambda: GroupExtensions())
     graph: Optional[GraphGroup] = None
 
-    @property
-    def etag(self):
-        return f'W/"{self.version}"'
+#    @property
+#    def etag_remove_this(self):
+#        return f'W/"{self.version}"'
 
     def to_dict(self) -> Dict[str, Any]:
         res = asdict(self)
@@ -60,7 +61,7 @@ class ScimApiGroup(object):
         this = dict(data)
         this['scim_id'] = uuid.UUID(this['scim_id'])
         this['group_id'] = this.pop('_id')
-        this['attributes'] = GroupAttrs.from_mapping(this['attributes'])
+        this['extensions'] = GroupExtensions.from_mapping(this['extensions'])
         return cls(**this)
 
 
@@ -107,7 +108,8 @@ class ScimApiGroupDB(ScimApiBaseDB):
         return result.acknowledged
 
     def create_group(self, scim_group: SCIMGroup) -> ScimApiGroup:
-        group = ScimApiGroup(attributes=GroupAttrs(data=scim_group.nutid_group_v1.data))
+        group = ScimApiGroup(extensions=GroupExtensions(data=scim_group.nutid_group_v1.data),
+                             display_name=scim_group.display_name)
         group.graph = GraphGroup(identifier=str(group.scim_id), display_name=scim_group.display_name)
         self.graphdb.save(group.graph)
         if not self.save(group):
@@ -132,7 +134,7 @@ class ScimApiGroupDB(ScimApiBaseDB):
             if update_member is None:
                 member_changed = True
                 if user_updated:
-                    update_member = User(identifier=str(member.value), display_name=member.display)
+                    update_member = GraphUser(identifier=str(member.value), display_name=member.display)
                 elif group_updated:
                     update_member = db_group.graph.get_member_group(identifier=str(member.value))
                 logger.debug(f'Added new member: {update_member}')
@@ -158,12 +160,12 @@ class ScimApiGroupDB(ScimApiBaseDB):
             logger.debug(f'New members: {members}')
             db_group.graph.members = members
 
-        _sg_attributes = GroupAttrs(data=scim_group.nutid_group_v1.data)
-        if db_group.attributes != _sg_attributes:
+        _sg_ext = GroupExtensions(data=scim_group.nutid_group_v1.data)
+        if db_group.extensions != _sg_ext:
             changed = True
-            logger.debug(f'Old attributes: {db_group.attributes}')
-            logger.debug(f'New attributes: {_sg_attributes}')
-            db_group.attributes = _sg_attributes
+            logger.debug(f'Old extensions: {db_group.extensions}')
+            logger.debug(f'New extensions: {_sg_ext}')
+            db_group.extensions = _sg_ext
 
         if changed:
             logger.info(f'Group {str(db_group.scim_id)} changed. Saving.')
@@ -174,21 +176,42 @@ class ScimApiGroupDB(ScimApiBaseDB):
 
         return db_group
 
+    def get_groups(self) -> List[ScimApiGroup]:
+        docs = self._get_documents_by_filter({}, raise_on_missing=False)
+        res = []
+        for doc in docs:
+            group = ScimApiGroup.from_dict(doc)
+            group.graph = self.graphdb.get_group(str(group.scim_id))
+            logger.info(f'TEST Loaded group {group}')
+            assert group.graph
+            res += [group]
+        return res
+
+
     def get_group_by_scim_id(self, scim_id: str) -> Optional[ScimApiGroup]:
-        docs = self._get_document_by_attr('scim_id', scim_id, raise_on_missing=False)
-        if docs:
-            group = ScimApiGroup.from_dict(docs)
-            group.graph = self.graphdb.get_group(str(scim_id))
+        doc = self._get_document_by_attr('scim_id', scim_id, raise_on_missing=False)
+        if doc:
+            group = ScimApiGroup.from_dict(doc)
+            group.graph = self.graphdb.get_group(scim_id)
             return group
         return None
 
     def get_groups_by_property(self, key: str, value: str, skip=0, limit=100) -> List[ScimApiGroup]:
-        docs = self._get_document_by_attr(key, value, raise_on_missing=False)
+        docs = self._get_documents_by_filter({key: value}, skip=skip, limit=limit, raise_on_missing=False)
         if not docs:
             return []
         res = []
         for this in docs:
             group = ScimApiGroup.from_dict(this)
             group.graph = self.graphdb.get_group(str(group.scim_id))
-            res += [this]
+            res += [group]
+        return res
+
+    def get_groups_for_user(self, user: GraphUser) -> List[ScimApiGroup]:
+        user_groups = self.graphdb.get_groups_for_user(user=user)
+        res = []
+        for graph in user_groups:
+            group = self.get_group_by_scim_id(graph.identifier)
+            group.graph = graph
+            res += [group]
         return res

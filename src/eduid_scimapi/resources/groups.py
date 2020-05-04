@@ -60,9 +60,9 @@ class GroupsResource(SCIMResource):
             schemas=[SCIMSchema.CORE_20_GROUP],
         )
 
-        if db_group.attributes.data:
+        if db_group.extensions.data:
             group.schemas.append(SCIMSchema.NUTID_GROUP_V1)
-            group.nutid_group_v1.data = db_group.attributes.data
+            group.nutid_group_v1.data = db_group.extensions.data
 
         resp.set_header("Location", location)
         resp.set_header("ETag", make_etag(db_group.version))
@@ -317,6 +317,6 @@ class GroupSearchResource(BaseResource):
         list_response = ListResponse(total_results=len(db_groups))
         resources = []
         for db_group in db_groups:
-            resources.append({'id': db_group.identifier, 'displayName': db_group.display_name})
+            resources.append({'id': str(db_group.scim_id), 'displayName': db_group.graph.display_name})
         list_response.resources = resources
         resp.media = ListResponseSchema().dump(list_response)
