@@ -37,13 +37,15 @@ from eduid_scimapi.userdb import ScimApiUser
 
 
 class UsersResource(SCIMResource):
-    def _get_user_groups(self, req: Request, db_user: ScimApiUser) -> List[ScimApiGroup]:
+    def _get_user_groups(self, req: Request, db_user: ScimApiUser) -> List[Group]:
+        """ Return the groups for a user formatted as SCIM search sub-resources """
         group_user = GroupUser(identifier=str(db_user.scim_id))
-        user_groups = req.context['groupdb'].get_groups_for_user(user=group_user,)
+        user_groups = req.context['groupdb'].get_groups_for_user(group_user)
+        groups = []
         for group in user_groups:
             ref = self.url_for("Users", group.identifier)
-            group.graph.ref = ref
-        return user_groups
+            groups.append(Group(value=UUID(group.identifier), ref=ref, display=group.display_name))
+        return groups
 
     def _db_user_to_response(self, req: Request, resp: Response, db_user: ScimApiUser):
         location = self.url_for("Users", db_user.scim_id)
