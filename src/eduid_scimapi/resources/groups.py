@@ -314,7 +314,7 @@ class GroupSearchResource(BaseResource):
         else:
             raise BadRequest(scim_type='invalidFilter', detail=f'Can\'t filter on attribute {filter.attr}')
 
-        list_response = ListResponse(total_results=len(groups))
+        list_response = ListResponse(total_results=total_count)
         resources = []
         for db_group in groups:
             resources.append({'id': str(db_group.scim_id), 'displayName': db_group.graph.display_name})
