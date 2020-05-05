@@ -187,8 +187,6 @@ class ScimApiGroupDB(ScimApiBaseDB):
         for doc in docs:
             group = ScimApiGroup.from_dict(doc)
             group.graph = self.graphdb.get_group(str(group.scim_id))
-            logger.info(f'TEST Loaded group {group}')
-            assert group.graph
             res += [group]
         return res
 
@@ -223,3 +221,16 @@ class ScimApiGroupDB(ScimApiBaseDB):
             group.graph = graph
             res += [group]
         return res
+
+    def get_groups_by_last_modified(
+        self, operator: str, value: datetime, limit: Optional[int] = None, skip: Optional[int] = None
+    ) -> Tuple[List[ScimApiGroup], int]:
+        # map SCIM filter operators to mongodb filter
+        mongo_operator = {'gt': '$gt', 'ge': '$gte'}.get(operator)
+        if not mongo_operator:
+            raise ValueError('Invalid filter operator')
+        spec = {'last_modified': {mongo_operator: value}}
+        docs, total_count = self._get_documents_and_count_by_filter(spec=spec, limit=limit, skip=skip)
+        groups = [ScimApiGroup.from_dict(x) for x in docs]
+        return groups, total_count
+

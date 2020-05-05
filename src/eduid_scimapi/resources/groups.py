@@ -307,6 +307,8 @@ class GroupSearchResource(BaseResource):
 
         if filter.attr == 'displayname':
             groups, total_count = self._filter_display_name(req, filter, skip=query.start_index - 1, limit=query.count)
+        elif filter.attr == 'meta.lastmodified':
+            groups, total_count = self._filter_lastmodified(req, filter, skip=query.start_index - 1, limit=query.count)
         elif filter.attr.startswith('extensions.data.'):
             groups, total_count = self._filter_extensions_data(
                 req, filter, skip=query.start_index - 1, limit=query.count
@@ -336,6 +338,16 @@ class GroupSearchResource(BaseResource):
             return [], 0
 
         return groups, count
+
+    @staticmethod
+    def _filter_lastmodified(
+        req: Request, filter: SearchFilter, skip: Optional[int] = None, limit: Optional[int] = None
+    ) -> Tuple[List[ScimApiGroup], int]:
+        if filter.op not in ['gt', 'ge']:
+            raise BadRequest(scim_type='invalidFilter', detail='Unsupported operator')
+        return req.context['groupdb'].get_groups_by_last_modified(
+            operator=filter.op, value=datetime.fromisoformat(filter.val), skip=skip, limit=limit
+        )
 
     def _filter_extensions_data(
         self, req: Request, filter: SearchFilter, skip: Optional[int] = None, limit: Optional[int] = None,
