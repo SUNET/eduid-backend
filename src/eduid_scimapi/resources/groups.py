@@ -1,4 +1,5 @@
 import re
+from datetime import datetime
 from typing import List, Optional, Tuple
 from uuid import UUID
 
@@ -318,8 +319,8 @@ class GroupSearchResource(BaseResource):
 
         list_response = ListResponse(total_results=total_count)
         resources = []
-        for db_group in groups:
-            resources.append({'id': str(db_group.scim_id), 'displayName': db_group.graph.display_name})
+        for this in groups:
+            resources.append({'id': str(this.scim_id), 'displayName': this.display_name})
         list_response.resources = resources
         resp.media = ListResponseSchema().dump(list_response)
 
@@ -329,7 +330,7 @@ class GroupSearchResource(BaseResource):
         if filter.op != 'eq':
             raise BadRequest(scim_type='invalidFilter', detail='Unsupported operator')
 
-        self.context.logger.debug(f"Searching for group with display name {repr(filter.val)}")
+        self.context.logger.debug(f'Searching for group with display name {repr(filter.val)}')
         groups, count = req.context['groupdb'].get_groups_by_property(
             key='display_name', value=filter.val, skip=skip, limit=limit
         )
@@ -368,3 +369,4 @@ class GroupSearchResource(BaseResource):
             return [], 0
 
         return groups, count
+

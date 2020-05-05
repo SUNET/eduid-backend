@@ -66,7 +66,7 @@ class TestGroupResource(ScimApiTestCase):
         assert self.groupdb  # mypy doesn't know setUp will be called
         self.groupdb.save(group)
         group.graph = GraphGroup(identifier=str(group.scim_id), display_name=display_name)
-        logger.info(f'TEST saved group {group}')
+        #logger.info(f'TEST saved group {group}')
         self.groupdb.graphdb.save(group.graph)
         return group
 
@@ -192,47 +192,61 @@ class TestGroupResource(ScimApiTestCase):
     def test_search_group_count(self):
         for i in range(9):
             self.add_group(uuid4(), f'Test Group')
-        req = {
-            'schemas': [SCIMSchema.API_MESSAGES_20_SEARCH_REQUEST.value],
-            'filter': 'displayName eq "Test Group"',
-            'startIndex': 1,
-            'count': 5,
-        }
-        response = self.client.simulate_post(path='/Groups/.search', body=self.as_json(req), headers=self.headers)
-        self.assertEqual([SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value], response.json.get('schemas'))
-        resources = response.json.get('Resources')
+
+        groups = self.groupdb.get_groups()
+        self.assertEqual(len(groups), 9)
+
+        json = self._perform_search(filter='displayName eq "Test Group"', start=1, count=5, return_json=True)
+        resources = json.get('Resources')
         self.assertEqual(5, len(resources))
-        # TODO: Implement correct totalResults
-        # self.assertEqual(9, response.json.get('totalResults'))
+        self.assertEqual(9, json.get('totalResults'))
 
     def test_search_group_extension_data_attribute_str(self):
         ext = GroupExtensions(data={'some_key': "20072009"})
         db_group = self.add_group(uuid4(), 'Test Group with extension', extensions=ext)
-        req = {
-            'schemas': [SCIMSchema.API_MESSAGES_20_SEARCH_REQUEST.value],
-            'filter': 'extensions.data.some_key eq "20072009"',
-            'startIndex': 1,
-            'count': 10,
-        }
-        response = self.client.simulate_post(path='/Groups/.search', body=self.as_json(req), headers=self.headers)
-        self.assertEqual([SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value], response.json.get('schemas'))
-        resources = response.json.get('Resources')
+
+        resources = self._perform_search(filter='extensions.data.some_key eq "20072009"')
         self.assertEqual(1, len(resources))
         self.assertEqual(str(db_group.scim_id), resources[0].get('id'))
         self.assertEqual(db_group.display_name, resources[0].get('displayName'))
 
     def test_search_group_extension_data_attribute_int(self):
-        ext = GroupExtensions(data={'some_key': 20072009})
-        db_group = self.add_group(uuid4(), 'Test Group with extension', extensions=ext)
+        ext1 = GroupExtensions(data={'some_key': 20072009})
+        group = self.add_group(uuid4(), 'Test Group with extension', extensions=ext1)
+
+        # Add extra group that should not be matched by search
+        ext2 = GroupExtensions(data={'some_key': 123})
+        self.add_group(uuid4(), 'Test Group with extension', extensions=ext2)
+
+        resources = self._perform_search(filter='extensions.data.some_key eq 20072009')
+        self.assertEqual(1, len(resources))
+        self.assertEqual(str(group.scim_id), resources[0].get('id'))
+        self.assertEqual(group.display_name, resources[0].get('displayName'))
+
+    def test_search_group_last_modified(self):
+        group1 = self.add_group(uuid4(), 'Test Group 1')
+        group2 = self.add_group(uuid4(), 'Test Group 2')
+        self.assertGreater(group2.last_modified, group1.last_modified)
+
+        resources = self._perform_search(filter=f'meta.lastModified ge "{group1.last_modified.isoformat()}"')
+        self.assertEqual(2, len(resources))
+
+        resources = self._perform_search(filter=f'meta.lastModified gt "{group1.last_modified.isoformat()}"')
+        self.assertEqual(1, len(resources))
+        self.assertEqual(str(group2.scim_id), resources[0].get('id'))
+        self.assertEqual(group2.display_name, resources[0].get('displayName'))
+
+    def _perform_search(self, filter: str, start: int=1, count: int=10, return_json: bool=False):
+        logger.info(f'Searching for group(s) using filter {repr(filter)}')
         req = {
             'schemas': [SCIMSchema.API_MESSAGES_20_SEARCH_REQUEST.value],
-            'filter': 'extensions.data.some_key eq 20072009',
-            'startIndex': 1,
-            'count': 10,
+            'filter': filter,
+            'startIndex': start,
+            'count': count,
         }
         response = self.client.simulate_post(path='/Groups/.search', body=self.as_json(req), headers=self.headers)
+        logger.info(f'Search response:\n{response.json}')
+        if return_json:
+            return response.json
         self.assertEqual([SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value], response.json.get('schemas'))
-        resources = response.json.get('Resources')
-        self.assertEqual(1, len(resources))
-        self.assertEqual(str(db_group.scim_id), resources[0].get('id'))
-        self.assertEqual(db_group.display_name, resources[0].get('displayName'))
+        return response.json.get('Resources')
