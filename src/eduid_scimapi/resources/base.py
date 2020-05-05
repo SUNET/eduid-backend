@@ -2,9 +2,8 @@ from typing import Union
 
 from falcon import Request
 
-from eduid_groupdb import Group as DBGroup
-
 from eduid_scimapi.context import Context
+from eduid_scimapi.groupdb import ScimApiGroup
 from eduid_scimapi.scimbase import make_etag
 from eduid_scimapi.userdb import ScimApiUser
 from eduid_scimapi.utils import urlappend
@@ -25,7 +24,7 @@ class BaseResource(object):
 
 
 class SCIMResource(BaseResource):
-    def _check_version(self, req: Request, db_obj: Union[DBGroup, ScimApiUser]) -> bool:
+    def _check_version(self, req: Request, db_obj: Union[ScimApiGroup, ScimApiUser]) -> bool:
         if req.headers.get('IF-MATCH') == make_etag(db_obj.version):
             return True
         self.context.logger.error(f'Version mismatch')

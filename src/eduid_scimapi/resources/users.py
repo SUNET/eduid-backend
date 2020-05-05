@@ -9,6 +9,8 @@ from marshmallow import ValidationError
 from eduid_groupdb import User as GroupUser
 
 from eduid_scimapi.exceptions import BadRequest, NotFound
+from eduid_scimapi.groupdb import ScimApiGroup
+from eduid_scimapi.resources import groups
 from eduid_scimapi.resources.base import BaseResource, SCIMResource
 from eduid_scimapi.scimbase import (
     ListResponse,
@@ -20,6 +22,7 @@ from eduid_scimapi.scimbase import (
     SearchRequestSchema,
     make_etag,
 )
+from eduid_scimapi.search import SearchFilter, parse_search_filter
 from eduid_scimapi.user import (
     Group,
     Profile,
@@ -36,8 +39,9 @@ from eduid_scimapi.userdb import ScimApiUser
 
 class UsersResource(SCIMResource):
     def _get_user_groups(self, req: Request, db_user: ScimApiUser) -> List[Group]:
+        """ Return the groups for a user formatted as SCIM search sub-resources """
         group_user = GroupUser(identifier=str(db_user.scim_id))
-        user_groups = req.context['groupdb'].get_groups_for_user(user=group_user,)
+        user_groups = req.context['groupdb'].get_groups_for_user(group_user)
         groups = []
         for group in user_groups:
             ref = self.url_for("Users", group.identifier)
@@ -248,22 +252,16 @@ class UsersSearchResource(BaseResource):
 
         self.context.logger.debug(f'Parsed user search query: {query}')
 
-        match = re.match('(.+?) (..) "(.+?)"', query.filter)
-        if not match:
-            raise BadRequest(scim_type='invalidFilter', detail='Unrecognised filter')
+        filter = parse_search_filter(query.filter)
 
-        attr, op, val = match.groups()
-
-        if attr.lower() == 'externalid':
-            users = self._filter_externalid(req, op.lower(), val)
+        if filter.attr == 'externalid':
+            users = self._filter_externalid(req, filter)
             total_count = len(users)
-        elif attr.lower() == 'meta.lastmodified':
+        elif filter.attr == 'meta.lastmodified':
             # SCIM start_index 1 equals item 0
-            users, total_count = self._filter_lastmodified(
-                req, op.lower(), val, skip=query.start_index - 1, limit=query.count
-            )
+            users, total_count = self._filter_lastmodified(req, filter, skip=query.start_index - 1, limit=query.count)
         else:
-            raise BadRequest(scim_type='invalidFilter', detail=f'Can\'t filter on attribute {attr}')
+            raise BadRequest(scim_type='invalidFilter', detail=f'Can\'t filter on attribute {filter.attr}')
 
         list_response = ListResponse(resources=self._users_to_resources_dicts(req, users), total_results=total_count)
 
@@ -276,11 +274,11 @@ class UsersSearchResource(BaseResource):
         return [{'id': str(user.scim_id)} for user in users]
 
     @staticmethod
-    def _filter_externalid(req: Request, op: str, val: str) -> List[ScimApiUser]:
-        if op != 'eq':
+    def _filter_externalid(req: Request, filter: SearchFilter) -> List[ScimApiUser]:
+        if filter.op != 'eq':
             raise BadRequest(scim_type='invalidFilter', detail='Unsupported operator')
 
-        user = req.context['userdb'].get_user_by_external_id(val)
+        user = req.context['userdb'].get_user_by_external_id(filter.val)
 
         if not user:
             return []
@@ -289,10 +287,12 @@ class UsersSearchResource(BaseResource):
 
     @staticmethod
     def _filter_lastmodified(
-        req: Request, op: str, val: str, skip: Optional[int] = None, limit: Optional[int] = None
+        req: Request, filter: SearchFilter, skip: Optional[int] = None, limit: Optional[int] = None
     ) -> Tuple[List[ScimApiUser], int]:
-        if op not in ['gt', 'ge']:
+        if filter.op not in ['gt', 'ge']:
             raise BadRequest(scim_type='invalidFilter', detail='Unsupported operator')
+        if not isinstance(filter.val, str):
+            raise BadRequest(scim_type='invalidFilter', detail='Invalid datetime')
         return req.context['userdb'].get_users_by_last_modified(
-            operator=op, value=datetime.fromisoformat(val), skip=skip, limit=limit
+            operator=filter.op, value=datetime.fromisoformat(filter.val), skip=skip, limit=limit
         )

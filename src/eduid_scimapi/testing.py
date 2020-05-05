@@ -20,28 +20,66 @@ from eduid_scimapi.userdb import Profile, ScimApiUser
 __author__ = 'lundberg'
 
 
-class ScimApiTestCase(unittest.TestCase):
+class BaseDBTestCase(unittest.TestCase):
     """
-    Base test case that sets up a temporary Neo4j instance
+    Base test case that sets up a temporary mongodb instance
     """
 
     mongodb_instance: MongoTemporaryInstance
     mongo_uri: str
 
-    etcd_instance: EtcdTemporaryInstance
-
-    neo4j_instance: Neo4jTemporaryInstance
-    neo4j_uri: str
-
     @classmethod
     def setUpClass(cls) -> None:
         cls.mongodb_instance = MongoTemporaryInstance.get_instance()
         cls.mongo_uri = cls.mongodb_instance.uri
+
+    def _get_config(self) -> dict:
+        config = {
+            'test': True,
+            'mongo_uri': self.mongo_uri,
+            'logging_config': None,
+            'log_format': '%(asctime)s | %(levelname)s | %(name)s | %(module)s | %(message)s',
+        }
+        return config
+
+
+class MongoNeoTestCase(BaseDBTestCase):
+    """
+    Base test case that sets up a temporary Neo4j instance
+    """
+
+    neo4j_instance: Neo4jTemporaryInstance
+    neo4j_uri: str
+
+    def _get_config(self) -> dict:
+        config = super()._get_config()
+        config.update(
+            {'neo4j_uri': self.neo4j_uri, 'neo4j_config': {'encrypted': False},}
+        )
+        return config
+
+    @classmethod
+    def setUpClass(cls) -> None:
         cls.neo4j_instance = Neo4jTemporaryInstance.get_instance()
         cls.neo4j_uri = (
             f'bolt://{cls.neo4j_instance.DEFAULT_USERNAME}:{cls.neo4j_instance.DEFAULT_PASSWORD}'
             f'@localhost:{cls.neo4j_instance.bolt_port}'
         )
+        super().setUpClass()
+
+    def tearDown(self):
+        super().tearDown()
+        self.neo4j_instance.purge_db()
+
+
+class ScimApiTestCase(MongoNeoTestCase):
+    """ Base test case providing the real API """
+
+    etcd_instance: EtcdTemporaryInstance
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        super().setUpClass()
         cls.etcd_instance = EtcdTemporaryInstance.get_instance()
         environ.update({'ETCD_PORT': str(cls.etcd_instance.port)})
 
@@ -61,17 +99,6 @@ class ScimApiTestCase(unittest.TestCase):
             'Accept': 'application/scim+json',
         }
 
-    def _get_config(self) -> dict:
-        config = {
-            'test': True,
-            'mongo_uri': self.mongo_uri,
-            'neo4j_uri': self.neo4j_uri,
-            'neo4j_config': {'encrypted': False},
-            'logging_config': None,
-            'log_format': '%(asctime)s | %(levelname)s | %(name)s | %(module)s | %(message)s',
-        }
-        return config
-
     def add_user(
         self, identifier: str, external_id: str, profiles: Optional[Dict[str, Profile]] = None
     ) -> Optional[ScimApiUser]:
@@ -88,6 +115,6 @@ class ScimApiTestCase(unittest.TestCase):
         return json.dumps(data)
 
     def tearDown(self):
+        super().tearDown()
         self.userdb._drop_whole_collection()
         self.etcd_instance.clear('/eduid/api/')
-        self.neo4j_instance.purge_db()

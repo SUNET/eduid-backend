@@ -5,6 +5,7 @@ from uuid import UUID
 from marshmallow import fields
 from marshmallow_dataclass import class_schema
 
+from eduid_scimapi.groupdb import ScimApiGroup
 from eduid_scimapi.scimbase import BaseSchema, Meta, SCIMSchema, SCIMSchemaValue, SubResource
 
 __author__ = 'lundberg'

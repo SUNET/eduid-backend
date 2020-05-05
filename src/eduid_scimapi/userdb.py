@@ -65,8 +65,8 @@ class ScimApiUser(object):
 
 
 class ScimApiUserDB(ScimApiBaseDB):
-    def __init__(self, db_uri, db_name='eduid_scimapi', collection='profiles'):
-        super().__init__(db_uri, db_name, collection)
+    def __init__(self, db_uri: str, collection: str, db_name='eduid_scimapi'):
+        super().__init__(db_uri, db_name, collection=collection)
 
     def save(self, user: ScimApiUser) -> bool:
         user_dict = user.to_dict()

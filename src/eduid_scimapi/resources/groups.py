@@ -1,11 +1,11 @@
 import re
-from typing import List, Optional
+from datetime import datetime
+from typing import List, Optional, Tuple
 from uuid import UUID
 
 from falcon import Request, Response
 from marshmallow.exceptions import ValidationError
 
-from eduid_groupdb import Group as DBGroup
 from eduid_groupdb.exceptions import MultipleReturnedError
 
 from eduid_scimapi.exceptions import BadRequest, NotFound
@@ -18,6 +18,7 @@ from eduid_scimapi.group import (
     GroupUpdateRequest,
     GroupUpdateRequestSchema,
 )
+from eduid_scimapi.groupdb import ScimApiGroup
 from eduid_scimapi.resources.base import BaseResource, SCIMResource
 from eduid_scimapi.scimbase import (
     ListResponse,
@@ -29,36 +30,41 @@ from eduid_scimapi.scimbase import (
     SearchRequestSchema,
     make_etag,
 )
+from eduid_scimapi.search import SearchFilter, parse_search_filter
 
 
 class GroupsResource(SCIMResource):
-    def _get_group_members(self, db_group: DBGroup) -> List[GroupMember]:
+    def _get_group_members(self, db_group: ScimApiGroup) -> List[GroupMember]:
         members = []
-        for member in db_group.member_users:
+        for member in db_group.graph.member_users:
             ref = self.url_for("Users", member.identifier)
             members.append(GroupMember(value=UUID(member.identifier), ref=ref, display=member.display_name))
-        for member in db_group.member_groups:
+        for member in db_group.graph.member_groups:
             ref = self.url_for("Groups", member.identifier)
             members.append(GroupMember(value=UUID(member.identifier), ref=ref, display=member.display_name))
         return members
 
-    def _db_group_to_response(self, resp: Response, db_group: DBGroup):
+    def _db_group_to_response(self, resp: Response, db_group: ScimApiGroup):
         members = self._get_group_members(db_group)
-        location = self.url_for("Groups", db_group.identifier)
+        location = self.url_for("Groups", str(db_group.scim_id))
         meta = Meta(
             location=location,
-            last_modified=db_group.modified_ts or db_group.created_ts,
+            last_modified=db_group.last_modified or db_group.created,
             resource_type=SCIMResourceType.group,
-            created=db_group.created_ts,
+            created=db_group.created,
             version=db_group.version,
         )
         group = GroupResponse(
-            display_name=db_group.display_name,
+            display_name=db_group.graph.display_name,
             members=members,
-            id=UUID(db_group.identifier),
+            id=db_group.scim_id,
             meta=meta,
             schemas=[SCIMSchema.CORE_20_GROUP],
         )
+
+        if db_group.extensions.data:
+            group.schemas.append(SCIMSchema.NUTID_GROUP_V1)
+            group.nutid_group_v1.data = db_group.extensions.data
 
         resp.set_header("Location", location)
         resp.set_header("ETag", make_etag(db_group.version))
@@ -97,19 +103,19 @@ class GroupsResource(SCIMResource):
         if scim_id:
             self.context.logger.info(f"Fetching group {scim_id}")
 
-            db_group: DBGroup = req.context['groupdb'].get_group_by_scim_id(identifier=scim_id)
+            db_group = req.context['groupdb'].get_group_by_scim_id(scim_id)
             self.context.logger.debug(f'Found group: {db_group}')
             if not db_group:
                 raise NotFound(detail="Group not found")
             self._db_group_to_response(resp, db_group)
         else:
             # Return all Groups for scope
-            db_groups: List[DBGroup] = req.context['groupdb'].get_groups()
+            db_groups = req.context['groupdb'].get_groups()
             list_response = ListResponse(total_results=len(db_groups))
             resources = []
             for db_group in db_groups:
                 resources.append(
-                    {'id': db_group.identifier, 'displayName': db_group.display_name,}
+                    {'id': str(db_group.scim_id), 'displayName': db_group.graph.display_name,}
                 )
             list_response.resources = resources
             resp.media = ListResponseSchema().dump(list_response)
@@ -173,12 +179,16 @@ class GroupsResource(SCIMResource):
                 raise BadRequest(detail='Id mismatch')
 
             # Please mypy as GroupUpdateRequest no longer inherit from Group
-            group = Group(display_name=update_request.display_name, members=update_request.members,)
+            group = Group(
+                display_name=update_request.display_name,
+                members=update_request.members,
+                nutid_group_v1=update_request.nutid_group_v1,
+            )
 
             self.context.logger.info(f"Fetching group {scim_id}")
 
             # Get group from db
-            db_group: DBGroup = req.context['groupdb'].get_group_by_scim_id(identifier=str(update_request.id))
+            db_group = req.context['groupdb'].get_group_by_scim_id(str(update_request.id))
             self.context.logger.debug(f'Found group: {db_group}')
             if not db_group:
                 raise NotFound(detail="Group not found")
@@ -248,7 +258,7 @@ class GroupsResource(SCIMResource):
         self.context.logger.info(f"Fetching group {scim_id}")
 
         # Get group from db
-        db_group: DBGroup = req.context['groupdb'].get_group_by_scim_id(identifier=scim_id)
+        db_group: ScimApiGroup = req.context['groupdb'].get_group_by_scim_id(identifier=scim_id)
         self.context.logger.debug(f'Found group: {db_group}')
         if not db_group:
             raise NotFound(detail="Group not found")
@@ -294,21 +304,70 @@ class GroupSearchResource(BaseResource):
         except ValidationError as e:
             raise BadRequest(detail=f"{e}")
 
-        match = re.match('displayName eq "(.+)"', query.filter)
-        if not match:
-            self.context.logger.error(f'Unrecognised filter: {query.filter}')
-            raise BadRequest(detail="Unrecognised filter")
+        filter = parse_search_filter(query.filter)
 
-        display_name = match.group(1)
-        self.context.logger.debug(f"Searching for group with display name {repr(display_name)}")
-        # SCIM start_index 1 equals item 0
-        db_groups = req.context['groupdb'].get_groups_by_property(
-            key='display_name', value=display_name, skip=query.start_index - 1, limit=query.count
-        )
+        if filter.attr == 'displayname':
+            groups, total_count = self._filter_display_name(req, filter, skip=query.start_index - 1, limit=query.count)
+        elif filter.attr == 'meta.lastmodified':
+            groups, total_count = self._filter_lastmodified(req, filter, skip=query.start_index - 1, limit=query.count)
+        elif filter.attr.startswith('extensions.data.'):
+            groups, total_count = self._filter_extensions_data(
+                req, filter, skip=query.start_index - 1, limit=query.count
+            )
+        else:
+            raise BadRequest(scim_type='invalidFilter', detail=f'Can\'t filter on attribute {filter.attr}')
 
-        list_response = ListResponse(total_results=len(db_groups))
+        list_response = ListResponse(total_results=total_count)
         resources = []
-        for db_group in db_groups:
-            resources.append({'id': db_group.identifier, 'displayName': db_group.display_name})
+        for this in groups:
+            resources.append({'id': str(this.scim_id), 'displayName': this.display_name})
         list_response.resources = resources
         resp.media = ListResponseSchema().dump(list_response)
+
+    def _filter_display_name(
+        self, req: Request, filter: SearchFilter, skip: Optional[int] = None, limit: Optional[int] = None,
+    ) -> Tuple[List[ScimApiGroup], int]:
+        if filter.op != 'eq':
+            raise BadRequest(scim_type='invalidFilter', detail='Unsupported operator')
+
+        self.context.logger.debug(f'Searching for group with display name {repr(filter.val)}')
+        groups, count = req.context['groupdb'].get_groups_by_property(
+            key='display_name', value=filter.val, skip=skip, limit=limit
+        )
+
+        if not groups:
+            return [], 0
+
+        return groups, count
+
+    @staticmethod
+    def _filter_lastmodified(
+        req: Request, filter: SearchFilter, skip: Optional[int] = None, limit: Optional[int] = None
+    ) -> Tuple[List[ScimApiGroup], int]:
+        if filter.op not in ['gt', 'ge']:
+            raise BadRequest(scim_type='invalidFilter', detail='Unsupported operator')
+        if not isinstance(filter.val, str):
+            raise BadRequest(scim_type='invalidFilter', detail='Invalid datetime')
+        return req.context['groupdb'].get_groups_by_last_modified(
+            operator=filter.op, value=datetime.fromisoformat(filter.val), skip=skip, limit=limit
+        )
+
+    def _filter_extensions_data(
+        self, req: Request, filter: SearchFilter, skip: Optional[int] = None, limit: Optional[int] = None,
+    ) -> Tuple[List[ScimApiGroup], int]:
+        if filter.op != 'eq':
+            raise BadRequest(scim_type='invalidFilter', detail='Unsupported operator')
+
+        match = re.match('^extensions\.data\.([a-z_]+)$', filter.attr)
+        if not match:
+            raise BadRequest(scim_type='invalidFilter', detail='Unsupported extension search key')
+
+        self.context.logger.debug(f'Searching for groups with {filter.attr} {filter.op} {repr(filter.val)}')
+        groups, count = req.context['groupdb'].get_groups_by_property(
+            key=filter.attr, value=filter.val, skip=skip, limit=limit
+        )
+
+        if not groups:
+            return [], 0
+
+        return groups, count

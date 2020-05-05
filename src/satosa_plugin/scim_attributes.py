@@ -10,8 +10,7 @@ from satosa.micro_services.base import ResponseMicroService
 
 from eduid_userdb import UserDB
 
-from eduid_scimapi.user import ScimApiUser
-from eduid_scimapi.userdb import ScimApiUserDB
+from eduid_scimapi.userdb import ScimApiUser, ScimApiUserDB
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +33,13 @@ class ScimAttributes(ResponseMicroService):
         self.eduid_userdb = UserDB(db_uri=self.config.mongo_uri, db_name='eduid_scimapi')
         logger.info(f'Connected to eduid db: {self.eduid_userdb}')
         # TODO: Implement real 'data owner' to database lookup
-        self._userdbs = {'eduid.se': ScimApiUserDB(db_uri=self.config.mongo_uri)}
+        data_owner = 'eduid.se'
+        _owner = data_owner.replace('.', '_')  # replace dots with underscores
+        coll = f'{_owner}__users'
+        # TODO: rename old collection and remove this
+        if data_owner == 'eduid.se':
+            coll = 'profiles'
+        self._userdbs = {'eduid.se': ScimApiUserDB(db_uri=self.config.mongo_uri, collection=coll)}
         self.converter = AttributeMapper(internal_attributes)
         # Get the internal attribute name for the eduPersonPrincipalName that will be
         # used to find users in the SCIM database
