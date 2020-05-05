@@ -21,7 +21,7 @@ def parse_search_filter(filter: str) -> SearchFilter:
 
     if len(val) and val[0] == '"' and val[-1] == '"':
         val = val[1:-1]
-        check = re.match('^[a-zA-Z0-9_ -]*$', val)
+        check = re.match('^[a-zA-Z0-9_ .,:;+-]*$', val)
         if not check:
             raise BadRequest(scim_type='invalidFilter', detail='Unrecognised string value in filter')
     elif val.isdecimal():
