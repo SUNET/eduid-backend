@@ -5,7 +5,6 @@ from eduid_scimapi.search import parse_search_filter
 
 
 class TestSearchFilter(unittest.TestCase):
-
     def test_lastmodified(self):
         now = datetime.utcnow()
         filter = f'meta.lastModified gt "{now.isoformat()}"'

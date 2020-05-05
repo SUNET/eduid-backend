@@ -259,9 +259,7 @@ class UsersSearchResource(BaseResource):
             total_count = len(users)
         elif filter.attr == 'meta.lastmodified':
             # SCIM start_index 1 equals item 0
-            users, total_count = self._filter_lastmodified(req, filter,
-                skip=query.start_index - 1, limit=query.count
-            )
+            users, total_count = self._filter_lastmodified(req, filter, skip=query.start_index - 1, limit=query.count)
         else:
             raise BadRequest(scim_type='invalidFilter', detail=f'Can\'t filter on attribute {filter.attr}')
 

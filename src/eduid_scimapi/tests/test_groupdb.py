@@ -3,19 +3,18 @@ import unittest
 from typing import Optional
 from uuid import UUID, uuid4
 
+from eduid_groupdb import Group as GraphGroup
+from eduid_groupdb import User as GraphUser
+
 from eduid_scimapi.config import ScimApiConfig
 from eduid_scimapi.context import Context
 from eduid_scimapi.groupdb import GroupExtensions, ScimApiGroup
 from eduid_scimapi.testing import BaseDBTestCase, MongoNeoTestCase
 
-from eduid_groupdb import Group as GraphGroup
-from eduid_groupdb import User as GraphUser
-
 logger = logging.getLogger(__name__)
 
 
 class TestGroupDB(MongoNeoTestCase):
-
     def setUp(self) -> None:
         super().setUp()
         self.test_config = self._get_config()
@@ -60,6 +59,3 @@ class TestGroupDB(MongoNeoTestCase):
         groups, count = self.groupdb._get_documents_and_count_by_filter(spec={}, skip=8, limit=3)
         self.assertEqual(len(groups), 1)
         self.assertEqual(count, 9)
-
-if __name__ == '__main__':
-    unittest.main()

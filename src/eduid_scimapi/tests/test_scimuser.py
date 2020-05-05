@@ -251,8 +251,9 @@ class TestUserResource(ScimApiTestCase):
             self.add_user(identifier=str(uuid4()), external_id=f'test-id-{i}', profiles={'test': self.test_profile})
         self.assertEqual(9, self.userdb.db_count())
         last_modified = datetime.utcnow() - timedelta(hours=1)
-        json = self._perform_search(filter=f'meta.lastmodified gt "{last_modified.isoformat()}"', start=5,
-                                    return_json=True)
+        json = self._perform_search(
+            filter=f'meta.lastmodified gt "{last_modified.isoformat()}"', start=5, return_json=True
+        )
         resources = json.get('Resources')
         self.assertEqual(5, len(resources))
         self.assertEqual(9, json.get('totalResults'))
@@ -262,8 +263,9 @@ class TestUserResource(ScimApiTestCase):
             self.add_user(identifier=str(uuid4()), external_id=f'test-id-{i}', profiles={'test': self.test_profile})
         self.assertEqual(9, self.userdb.db_count())
         last_modified = datetime.utcnow() - timedelta(hours=1)
-        json = self._perform_search(filter=f'meta.lastmodified gt "{last_modified.isoformat()}"', count=5,
-                                    return_json=True)
+        json = self._perform_search(
+            filter=f'meta.lastmodified gt "{last_modified.isoformat()}"', count=5, return_json=True
+        )
         resources = json.get('Resources')
         self.assertEqual(5, len(resources))
         self.assertEqual(9, json.get('totalResults'))
@@ -273,13 +275,14 @@ class TestUserResource(ScimApiTestCase):
             self.add_user(identifier=str(uuid4()), external_id=f'test-id-{i}', profiles={'test': self.test_profile})
         self.assertEqual(9, self.userdb.db_count())
         last_modified = datetime.utcnow() - timedelta(hours=1)
-        json = self._perform_search(filter=f'meta.lastmodified gt "{last_modified.isoformat()}"', start=7, count=5,
-                                    return_json=True)
+        json = self._perform_search(
+            filter=f'meta.lastmodified gt "{last_modified.isoformat()}"', start=7, count=5, return_json=True
+        )
         resources = json.get('Resources')
         self.assertEqual(3, len(resources))
         self.assertEqual(9, json.get('totalResults'))
 
-    def _perform_search(self, filter: str, start: int=1, count: int=10, return_json: bool=False):
+    def _perform_search(self, filter: str, start: int = 1, count: int = 10, return_json: bool = False):
         logger.info(f'Searching for group(s) using filter {repr(filter)}')
         req = {
             'schemas': [SCIMSchema.API_MESSAGES_20_SEARCH_REQUEST.value],
@@ -294,4 +297,3 @@ class TestUserResource(ScimApiTestCase):
         self.assertEqual([SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value], response.json.get('schemas'))
         resources = response.json.get('Resources')
         return resources
-

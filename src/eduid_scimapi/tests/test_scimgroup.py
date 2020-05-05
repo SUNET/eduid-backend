@@ -66,7 +66,7 @@ class TestGroupResource(ScimApiTestCase):
         assert self.groupdb  # mypy doesn't know setUp will be called
         self.groupdb.save(group)
         group.graph = GraphGroup(identifier=str(group.scim_id), display_name=display_name)
-        #logger.info(f'TEST saved group {group}')
+        # logger.info(f'TEST saved group {group}')
         self.groupdb.graphdb.save(group.graph)
         return group
 
@@ -236,7 +236,7 @@ class TestGroupResource(ScimApiTestCase):
         self.assertEqual(str(group2.scim_id), resources[0].get('id'))
         self.assertEqual(group2.display_name, resources[0].get('displayName'))
 
-    def _perform_search(self, filter: str, start: int=1, count: int=10, return_json: bool=False):
+    def _perform_search(self, filter: str, start: int = 1, count: int = 10, return_json: bool = False):
         logger.info(f'Searching for group(s) using filter {repr(filter)}')
         req = {
             'schemas': [SCIMSchema.API_MESSAGES_20_SEARCH_REQUEST.value],

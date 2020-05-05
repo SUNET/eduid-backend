@@ -233,4 +233,3 @@ class ScimApiGroupDB(ScimApiBaseDB):
         docs, total_count = self._get_documents_and_count_by_filter(spec=spec, limit=limit, skip=skip)
         groups = [ScimApiGroup.from_dict(x) for x in docs]
         return groups, total_count
-

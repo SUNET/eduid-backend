@@ -371,4 +371,3 @@ class GroupSearchResource(BaseResource):
             return [], 0
 
         return groups, count
-

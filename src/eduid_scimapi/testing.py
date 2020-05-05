@@ -20,7 +20,6 @@ from eduid_scimapi.userdb import Profile, ScimApiUser
 __author__ = 'lundberg'
 
 
-
 class BaseDBTestCase(unittest.TestCase):
     """
     Base test case that sets up a temporary mongodb instance
@@ -43,19 +42,20 @@ class BaseDBTestCase(unittest.TestCase):
         }
         return config
 
+
 class MongoNeoTestCase(BaseDBTestCase):
     """
     Base test case that sets up a temporary Neo4j instance
     """
+
     neo4j_instance: Neo4jTemporaryInstance
     neo4j_uri: str
 
     def _get_config(self) -> dict:
         config = super()._get_config()
-        config.update({
-            'neo4j_uri': self.neo4j_uri,
-            'neo4j_config': {'encrypted': False},
-        })
+        config.update(
+            {'neo4j_uri': self.neo4j_uri, 'neo4j_config': {'encrypted': False},}
+        )
         return config
 
     @classmethod
@@ -76,7 +76,6 @@ class ScimApiTestCase(MongoNeoTestCase):
     """ Base test case providing the real API """
 
     etcd_instance: EtcdTemporaryInstance
-
 
     @classmethod
     def setUpClass(cls) -> None:
@@ -99,7 +98,6 @@ class ScimApiTestCase(MongoNeoTestCase):
             'Content-Type': 'application/scim+json',
             'Accept': 'application/scim+json',
         }
-
 
     def add_user(
         self, identifier: str, external_id: str, profiles: Optional[Dict[str, Profile]] = None
