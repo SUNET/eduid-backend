@@ -17,6 +17,7 @@ def parse_search_filter(filter: str) -> SearchFilter:
     if not match:
         raise BadRequest(scim_type='invalidFilter', detail='Unrecognised filter')
 
+    val: Union[str, int]
     attr, op, val = match.groups()
 
     if len(val) and val[0] == '"' and val[-1] == '"':
