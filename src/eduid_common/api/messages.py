@@ -57,7 +57,7 @@ def success_message(message: Union[TranslatableMsg, str], data: Optional[dict] =
     """
     if isinstance(message, TranslatableMsg):
         message = str(message.value)
-    msg = {'_status': 'ok', 'message': message}
+    msg = {'_status': 'ok', 'success': True, 'message': message}
     if data is not None:
         msg.update(data)
     return msg
@@ -77,7 +77,7 @@ def error_message(message: Union[TranslatableMsg, str],
     """
     if isinstance(message, TranslatableMsg):
         message = str(message.value)
-    msg = {'_status': 'error', 'message': message}
+    msg = {'_status': 'error', 'success': False, 'message': message}
     if errors is not None:
         msg['errors'] = errors
     if status is not None:

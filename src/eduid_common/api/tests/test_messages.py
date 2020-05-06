@@ -56,6 +56,7 @@ class MessageTests(TestCase):
     def test_success_message(self):
         message = success_message(TestsMsg.fst_test_msg)
         self.assertEqual(message['_status'], 'ok')
+        self.assertTrue(message['success'])
         self.assertEqual(message['message'], 'test.first_msg')
 
     def test_success_message_with_data(self):
@@ -84,17 +85,60 @@ class MessageTests(TestCase):
     def test_success_message_unknown_with_data(self):
         data = {'email': 'test@example.com'}
         with self.assertRaises(AttributeError):
-            success_message(TestsMsg.fst_test_msg, data=data)
+            success_message(TestsMsg.unknown_msg, data=data)
 
     def test_error_message(self):
         message = error_message(TestsMsg.fst_test_msg)
         self.assertEqual(message['_status'], 'error')
+        self.assertFalse(message['success'])
         self.assertEqual(message['message'], 'test.first_msg')
+
+    def test_error_message_with_errors(self):
+        errors = {'email': 'required'}
+        message = error_message(TestsMsg.fst_test_msg, errors=errors)
+        self.assertEqual(message['_status'], 'error')
+        self.assertEqual(message['message'], 'test.first_msg')
+        self.assertEqual(message['errors'], errors)
+
+    def test_error_message_with_status(self):
+        status = 'stale'
+        message = error_message(TestsMsg.fst_test_msg, status=status)
+        self.assertEqual(message['_status'], 'error')
+        self.assertEqual(message['message'], 'test.first_msg')
+        self.assertEqual(message['status'], status)
+
+    def test_error_message_with_next(self):
+        next = '/next'
+        message = error_message(TestsMsg.fst_test_msg, next=next)
+        self.assertEqual(message['_status'], 'error')
+        self.assertEqual(message['message'], 'test.first_msg')
+        self.assertEqual(message['next'], next)
 
     def test_error_message_from_str(self):
         message = error_message('test.str_msg')
         self.assertEqual(message['_status'], 'error')
         self.assertEqual(message['message'], 'test.str_msg')
+
+    def test_error_message_from_str_with_errors(self):
+        errors = {'email': 'required'}
+        message = error_message('str_msg', errors=errors)
+        self.assertEqual(message['_status'], 'error')
+        self.assertEqual(message['message'], 'str_msg')
+        self.assertEqual(message['errors'], errors)
+
+    def test_error_message_from_str_with_status(self):
+        status = 'stale'
+        message = error_message('str_msg', status=status)
+        self.assertEqual(message['_status'], 'error')
+        self.assertEqual(message['message'], 'str_msg')
+        self.assertEqual(message['status'], status)
+
+    def test_error_message_from_str_with_next(self):
+        next = '/next'
+        message = error_message('str_msg', next=next)
+        self.assertEqual(message['_status'], 'error')
+        self.assertEqual(message['message'], 'str_msg')
+        self.assertEqual(message['next'], next)
 
     def test_error_message_unknown(self):
         with self.assertRaises(AttributeError):
