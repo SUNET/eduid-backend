@@ -44,8 +44,8 @@ class UsersResource(SCIMResource):
         user_groups = req.context['groupdb'].get_groups_for_user(group_user)
         groups = []
         for group in user_groups:
-            ref = self.url_for("Users", group.identifier)
-            groups.append(Group(value=UUID(group.identifier), ref=ref, display=group.display_name))
+            ref = self.url_for("Groups", group.scim_id)
+            groups.append(Group(value=group.scim_id, ref=ref, display=group.display_name))
         return groups
 
     def _db_user_to_response(self, req: Request, resp: Response, db_user: ScimApiUser):
