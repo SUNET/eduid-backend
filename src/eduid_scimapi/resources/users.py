@@ -76,9 +76,10 @@ class UsersResource(SCIMResource):
         resp.set_header("ETag", make_etag(db_user.version))
         resp.media = UserResponseSchema().dump(user)
 
-    def on_get(self, req: Request, resp: Response, scim_id):
+    def on_get(self, req: Request, resp: Response, scim_id: Optional[str] = None):
+        if scim_id is None:
+            raise BadRequest(detail='Not implemented')
         self.context.logger.info(f'Fetching user {scim_id}')
-
         db_user = req.context['userdb'].get_user_by_scim_id(scim_id)
         if not db_user:
             raise NotFound(detail='User not found')
