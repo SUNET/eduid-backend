@@ -119,14 +119,8 @@ def put_user(api: str, scim_id: str, profiles: Mapping[str, Any], token: Optiona
     if not scim:
         return
 
-    if NUTID_V1 not in scim['schemas']:
-        scim['schemas'] += [NUTID_V1]
-    if NUTID_V1 not in scim:
-        scim[NUTID_V1] = {}
-    if 'profiles' not in scim[NUTID_V1]:
-        scim[NUTID_V1]['profiles'] = {}
+    meta = scim.pop('meta')
 
-    scim[NUTID_V1]['profiles'] = profiles
     if NUTID_USER_V1 not in scim['schemas']:
         scim['schemas'] += [NUTID_USER_V1]
     if NUTID_USER_V1 not in scim:
@@ -136,8 +130,10 @@ def put_user(api: str, scim_id: str, profiles: Mapping[str, Any], token: Optiona
 
     scim[NUTID_USER_V1]['profiles'] = profiles
 
+    headers = {'content-type': 'application/scim+json', 'if-match': meta["version"]}
+
     logger.info(f'Updating profiles for SCIM user resource {scim_id}:\n{json.dumps(scim, sort_keys=True, indent=4)}\n')
-    res = scim_request(requests.put, f'{api}/Users/{scim_id}', data=scim, token=token)
+    res = scim_request(requests.put, f'{api}/Users/{scim_id}', data=scim, headers=headers, token=token)
     logger.info(f'Update result:\n{json.dumps(res, sort_keys=True, indent=4)}')
     return None
 
@@ -156,7 +152,7 @@ def put_group(api: str, scim_id: str, data: Dict[str, Any], token: Optional[str]
         new_members = []
         for member in members:
             new_members.append(
-                {'$ref': f'{api}/Users/{member["id"]}', 'value': member['id'], 'display': member['display_name'],}
+                {'$ref': f'{api}/Users/{member["id"]}', 'value': member['id'], 'display': member['display_name']}
             )
         scim['members'] = new_members
     if 'data' in data:
