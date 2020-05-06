@@ -49,10 +49,6 @@ class ScimApiGroup(object):
     def __post_init__(self):
         self.graph = GraphGroup(identifier=str(self.scim_id))
 
-    #    @property
-    #    def etag_remove_this(self):
-    #        return f'W/"{self.version}"'
-
     def to_dict(self) -> Dict[str, Any]:
         res = asdict(self)
         res['scim_id'] = str(res['scim_id'])
@@ -194,7 +190,10 @@ class ScimApiGroupDB(ScimApiBaseDB):
         doc = self._get_document_by_attr('scim_id', scim_id, raise_on_missing=False)
         if doc:
             group = ScimApiGroup.from_dict(doc)
+            # TODO: Teach get_group raise_on_missing
             group.graph = self.graphdb.get_group(scim_id)
+            if group.graph is None:
+                raise RuntimeError(f'Group {scim_id} found in mongodb, but not in graphdb')
             return group
         return None
 
