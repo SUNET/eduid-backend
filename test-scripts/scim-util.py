@@ -72,22 +72,22 @@ def search_user(api: str, filter: str, token: Optional[str] = None) -> Optional[
         'count': 1,
     }
 
-    logger.debug(f'Sending user search query:\n{json.dumps(query, sort_keys=True, indent=4)}')
+    logger.info(f'Sending user search query:\n{json.dumps(query, sort_keys=True, indent=4)}')
     res = scim_request(requests.post, f'{api}/Users/.search', data=query, token=token)
     logger.info(f'User search result:\n{json.dumps(res, sort_keys=True, indent=4)}\n')
     return res
 
 
-def search_group(api: str, display_name: str, token: Optional[str] = None) -> Optional[Dict[str, Any]]:
-    logger.info(f'Searching for group with displayName {display_name}')
+def search_group(api: str, filter: str, token: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    logger.info(f'Searching for group with filter {filter}')
     query = {
         'schemas': ['urn:ietf:params:scim:api:messages:2.0:SearchRequest'],
-        'filter': f'displayName eq "{display_name}"',
+        'filter': filter,
         'startIndex': 1,
-        'count': 1,
+        'count': 10,
     }
 
-    logger.debug(f'Sending group search query:\n{pformat(json.dumps(query, sort_keys=True, indent=4))}')
+    logger.info(f'Sending group search query:\n{json.dumps(query, sort_keys=True, indent=4)}')
     res = scim_request(requests.post, f'{api}/Groups/.search', data=query, token=token)
     logger.info(f'Group search result:\n{json.dumps(res, sort_keys=True, indent=4)}\n')
     return res
@@ -214,11 +214,25 @@ def process_users(api: str, ops: Mapping[str, Any], token: Optional[str] = None)
 def process_groups(api: str, ops: Mapping[str, Any], token: Optional[str] = None) -> None:
     for op in ops.keys():
         if op == 'search':
-            for display_name in ops[op]:
-                res = search_group(api, display_name, token=token)
-                if res is not None and res['totalResults'] == 0:
-                    logger.info(f'Found no group with displayName: {display_name}. Creating it.')
-                    create_group(api, display_name, token=token)
+            for what in ops[op]:
+                if what == 'displayName':
+                    for display_name in ops[op][what]:
+                        res = search_group(api, f'displayName eq "{display_name}"', token=token)
+                        if res is not None and res['totalResults'] == 0:
+                            logger.info(f'Found no group with displayName: {display_name}. Creating it.')
+                            create_group(api, display_name, token=token)
+                elif what == 'lastModified':
+                    for _op in ops[op][what]:
+                        if _op in ['gt', 'ge']:
+                            for _ts in ops[op][what][_op]:
+                                search_group(api, f'meta.lastModified {_op} "{_ts}"', token=token)
+                        else:
+                            logger.error(f'Unknown "group" lastModified operation {_op}')
+                elif what.startswith('extensions.data'):
+                    for value in ops[op][what]:
+                        search_group(api, f'{what} eq "{value}"', token=token)
+                else:
+                    logger.error(f'Unknown "group" search attribute {what}')
         elif op == 'put':
             for scim_id in ops[op]:
                 put_group(api, scim_id, data=ops[op][scim_id], token=token)

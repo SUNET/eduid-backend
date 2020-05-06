@@ -13,7 +13,8 @@
            - 'hubba-bubba@eduid.se'
     'groups':
       'search':
-         - 'Test Group 1'
+        'displayName':
+           - 'Test Group 1'
 ```
 
 - Run `scim-util.py test.yaml` to find your SCIM UUID. Note that scim-util.py requires Python 3.7.
@@ -56,7 +57,8 @@
 
     'groups':
       'search':
-         - 'Test Group 1'
+        'displayName':
+           - 'Test Group 1'
       'put':
         '8b5a3e6f-709d-4ae9-961d-bc73bfa51deb':
           'display_name': 'Test Group 1'
@@ -127,6 +129,26 @@ To search for users based on last modification timestamp:
 Supported operations for this search:
   - 'gt' (greater than)
   - 'ge' (greater than, or equal)
+
+
+To search for one or more groups based on NUTID attributes:
+
+```
+---
+  'http://scimapi.eduid.docker:8000':
+    'groups':
+      'search':
+        'extensions.data.foo':
+          - 'bar'
+      'put':
+        'a3add4cf-ce03-4d5f-bb9a-e5cb864d7bbb':
+          'display_name': 'Test Group 1'
+          'members':
+            - 'id': 'dd5d6f37-b60a-4859-b530-16ca181c4244'
+              'display_name': 'Donald Duck'
+          'data':
+            'foo': 'bar'
+```
 
 
 ## Authorization
