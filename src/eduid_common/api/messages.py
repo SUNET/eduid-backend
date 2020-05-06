@@ -64,26 +64,20 @@ def success_message(message: Union[TranslatableMsg, str], data: Optional[dict] =
 
 
 def error_message(message: Union[TranslatableMsg, str],
-                  errors: Optional[dict] = None,
-                  status: Optional[str] = None,
-                  next: Optional[str] = None) -> dict:
+                  data: Optional[dict] = None) -> dict:
     """
     Make a dict that corresponds to an error response, that can be marshalled into a response
     that eduid-front understands.
 
     :param message: the code that will be translated in eduid-front into a message to the user.
                     can be an SignupMsg instance or, for B/C and robustness, a str.
-    :param errors: an errors dict corresponding to a form in the front.
+    :param data: additional data the views may need to send in the response.
     """
     if isinstance(message, TranslatableMsg):
         message = str(message.value)
     msg = {'_status': 'error', 'success': False, 'message': message}
-    if errors is not None:
-        msg['errors'] = errors
-    if status is not None:
-        msg['status'] = status
-    if next is not None:
-        msg['next'] = next
+    if data is not None:
+        msg.update(data)
     return msg
 
 
