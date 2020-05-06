@@ -73,7 +73,7 @@
   $ ./scim-util.py test.yaml
   ...
   2020-03-11 11:11:59,025: scim-util: INFO Update result:
-  {'https://scim.eduid.se/schema/nutid/v1':
+  {'https://scim.eduid.se/schema/nutid/user/v1':
      {'student': {'attributes': {
                     'displayName': 'Kalle Anka'},
 		 },

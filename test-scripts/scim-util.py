@@ -13,7 +13,7 @@ import yaml
 logger = logging.getLogger(__name__)
 
 Args = NewType('Args', argparse.Namespace)
-NUTID_V1 = 'https://scim.eduid.se/schema/nutid/v1'
+NUTID_USER_V1 = 'https://scim.eduid.se/schema/nutid/user/v1'
 NUTID_GROUP_V1 = 'https://scim.eduid.se/schema/nutid/group/v1'
 
 
@@ -127,6 +127,14 @@ def put_user(api: str, scim_id: str, profiles: Mapping[str, Any], token: Optiona
         scim[NUTID_V1]['profiles'] = {}
 
     scim[NUTID_V1]['profiles'] = profiles
+    if NUTID_USER_V1 not in scim['schemas']:
+        scim['schemas'] += [NUTID_USER_V1]
+    if NUTID_USER_V1 not in scim:
+        scim[NUTID_USER_V1] = {}
+    if 'profiles' not in scim[NUTID_USER_V1]:
+        scim[NUTID_USER_V1]['profiles'] = {}
+
+    scim[NUTID_USER_V1]['profiles'] = profiles
 
     logger.info(f'Updating profiles for SCIM user resource {scim_id}:\n{json.dumps(scim, sort_keys=True, indent=4)}\n')
     res = scim_request(requests.put, f'{api}/Users/{scim_id}', data=scim, token=token)

@@ -51,7 +51,7 @@ class TestScimUser(unittest.TestCase):
         user_response = UserResponse(
             id=db_user.scim_id,
             meta=meta,
-            schemas=[SCIMSchema.CORE_20_USER, SCIMSchema.NUTID_V1],
+            schemas=[SCIMSchema.CORE_20_USER, SCIMSchema.NUTID_USER_V1],
             external_id=db_user.external_id,
         )
         user_response.groups = []
@@ -60,11 +60,13 @@ class TestScimUser(unittest.TestCase):
         scim = schema().dumps(user_response, sort_keys=True)
 
         expected = {
-            'schemas': ['urn:ietf:params:scim:schemas:core:2.0:User', SCIMSchema.NUTID_V1.value],
+            'schemas': ['urn:ietf:params:scim:schemas:core:2.0:User', SCIMSchema.NUTID_USER_V1.value],
             'externalId': 'hubba-bubba@eduid.se',
             'id': '9784e1bf-231b-4eb8-b315-52eb46dd7c4b',
             'groups': [],
-            SCIMSchema.NUTID_V1.value: {'profiles': {'student': {'attributes': {'displayName': 'Test'}, 'data': {}}}},
+            SCIMSchema.NUTID_USER_V1.value: {
+                'profiles': {'student': {'attributes': {'displayName': 'Test'}, 'data': {}}}
+            },
             'meta': {
                 'created': '2020-02-25T15:52:59.745000',
                 'lastModified': '2020-02-25T15:52:59.745000',
@@ -97,7 +99,7 @@ class TestScimUser(unittest.TestCase):
         user_response = UserResponse(
             id=db_user.scim_id,
             meta=meta,
-            schemas=[SCIMSchema.CORE_20_USER, SCIMSchema.NUTID_V1],
+            schemas=[SCIMSchema.CORE_20_USER, SCIMSchema.NUTID_USER_V1],
             external_id=db_user.external_id,
         )
         user_response.groups = []
@@ -105,10 +107,10 @@ class TestScimUser(unittest.TestCase):
         scim = UserResponseSchema().dumps(user_response)
 
         expected = {
-            'schemas': ['urn:ietf:params:scim:schemas:core:2.0:User', SCIMSchema.NUTID_V1.value],
+            'schemas': ['urn:ietf:params:scim:schemas:core:2.0:User', SCIMSchema.NUTID_USER_V1.value],
             'id': 'a7851d21-eab9-4caa-ba5d-49653d65c452',
             'groups': [],
-            SCIMSchema.NUTID_V1.value: {'profiles': {'student': {'attributes': {}, 'data': {}}}},
+            SCIMSchema.NUTID_USER_V1.value: {'profiles': {'student': {'attributes': {}, 'data': {}}}},
             'meta': {
                 'created': '2020-03-30T10:12:08.528000',
                 'lastModified': '2020-03-30T10:12:08.531000',
@@ -144,12 +146,12 @@ class TestUserResource(ScimApiTestCase):
     def test_get_user(self):
         db_user = self.add_user(identifier=str(uuid4()), external_id='test-id-1', profiles={'test': self.test_profile})
         response = self.client.simulate_get(path=f'/Users/{db_user.scim_id}', headers=self.headers)
-        self.assertEqual([SCIMSchema.CORE_20_USER.value, SCIMSchema.NUTID_V1.value], response.json.get('schemas'))
+        self.assertEqual([SCIMSchema.CORE_20_USER.value, SCIMSchema.NUTID_USER_V1.value], response.json.get('schemas'))
         self.assertEqual(str(db_user.scim_id), response.json.get('id'))
         self.assertEqual(f'http://localhost:8000/Users/{db_user.scim_id}', response.headers.get('location'))
         self.assertEqual('test-id-1', response.json.get('externalId'))
 
-        nutid = response.json.get(SCIMSchema.NUTID_V1.value)
+        nutid = response.json.get(SCIMSchema.NUTID_USER_V1.value)
         self.assertIsNotNone(nutid.get('profiles'))
         test_profile = nutid.get('profiles').get('test')
         self.assertEqual(self.test_profile.attributes, test_profile.get('attributes'))
@@ -165,22 +167,22 @@ class TestUserResource(ScimApiTestCase):
 
     def test_create_user(self):
         req = {
-            'schemas': [SCIMSchema.CORE_20_USER.value, SCIMSchema.NUTID_V1.value],
+            'schemas': [SCIMSchema.CORE_20_USER.value, SCIMSchema.NUTID_USER_V1.value],
             'externalId': 'test-id-1',
-            SCIMSchema.NUTID_V1.value: {
+            SCIMSchema.NUTID_USER_V1.value: {
                 'profiles': {'test': {'attributes': {'displayName': 'Test User 1'}, 'data': {'test_key': 'test_value'}}}
             },
         }
         response = self.client.simulate_post(path='/Users/', body=self.as_json(req), headers=self.headers)
 
         self.assertEqual(
-            [SCIMSchema.CORE_20_USER.value, SCIMSchema.NUTID_V1.value], response.json.get('schemas'),
+            [SCIMSchema.CORE_20_USER.value, SCIMSchema.NUTID_USER_V1.value], response.json.get('schemas'),
         )
         self.assertIsNotNone(response.json.get('id'))
         self.assertEqual(f'http://localhost:8000/Users/{response.json.get("id")}', response.headers.get('location'))
         self.assertEqual('test-id-1', response.json.get('externalId'))
 
-        nutid = response.json.get(SCIMSchema.NUTID_V1.value)
+        nutid = response.json.get(SCIMSchema.NUTID_USER_V1.value)
         self.assertIsNotNone(nutid.get('profiles'))
         test_profile = nutid.get('profiles').get('test')
         self.assertEqual(self.test_profile.attributes, test_profile.get('attributes'))
@@ -197,10 +199,10 @@ class TestUserResource(ScimApiTestCase):
     def test_update_user(self):
         db_user = self.add_user(identifier=str(uuid4()), external_id='test-id-1', profiles={'test': self.test_profile})
         req = {
-            'schemas': [SCIMSchema.CORE_20_USER.value, SCIMSchema.NUTID_V1.value],
+            'schemas': [SCIMSchema.CORE_20_USER.value, SCIMSchema.NUTID_USER_V1.value],
             'id': str(db_user.scim_id),
             'externalId': 'test-id-1',
-            SCIMSchema.NUTID_V1.value: {
+            SCIMSchema.NUTID_USER_V1.value: {
                 'profiles': {'test': {'attributes': {'displayName': 'Test User 1'}, 'data': {'test_key': 'test_value'}}}
             },
         }
@@ -209,12 +211,12 @@ class TestUserResource(ScimApiTestCase):
             path=f'/Users/{db_user.scim_id}', body=self.as_json(req), headers=self.headers
         )
 
-        self.assertEqual([SCIMSchema.CORE_20_USER.value, SCIMSchema.NUTID_V1.value], response.json.get('schemas'))
+        self.assertEqual([SCIMSchema.CORE_20_USER.value, SCIMSchema.NUTID_USER_V1.value], response.json.get('schemas'))
         self.assertIsNotNone(response.json.get('id'))
         self.assertEqual(f'http://localhost:8000/Users/{response.json.get("id")}', response.headers.get('location'))
         self.assertEqual('test-id-1', response.json.get('externalId'))
 
-        nutid = response.json.get(SCIMSchema.NUTID_V1.value)
+        nutid = response.json.get(SCIMSchema.NUTID_USER_V1.value)
         self.assertIsNotNone(nutid.get('profiles'))
         test_profile = nutid.get('profiles').get('test')
         self.assertEqual(self.test_profile.attributes, test_profile.get('attributes'))

@@ -67,7 +67,7 @@ class UsersResource(SCIMResource):
         )
 
         if db_user.profiles:
-            user.schemas.append(SCIMSchema.NUTID_V1)
+            user.schemas.append(SCIMSchema.NUTID_USER_V1)
             for profile_name, db_profile in db_user.profiles.items():
                 profile = Profile(attributes=db_profile.attributes, data=db_profile.data)
                 user.nutid_v1.profiles[profile_name] = profile
@@ -106,7 +106,7 @@ class UsersResource(SCIMResource):
 
             self.context.logger.debug(f'Extra debug: user {scim_id} as dict:\n{db_user.to_dict()}')
 
-            if SCIMSchema.NUTID_V1.value in update_request.schemas:
+            if SCIMSchema.NUTID_USER_V1.value in update_request.schemas:
                 if not db_user.external_id:
                     # TODO: Skipping?
                     self.context.logger.warning(f'User {db_user} has no external id, skipping NUTID update')
