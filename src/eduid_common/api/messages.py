@@ -41,8 +41,11 @@ from werkzeug.wrappers import Response as WerkzeugResponse
 @unique
 class TranslatableMsg(Enum):
     """
-    Messages sent to the front end with information on the results of the
-    attempted operations on the back end.
+    Subclasses of this are used to keep messages sent to the front end
+    with information on the results of the attempted operations on the back end.
+
+    Note that we cannot use this to keep common messages,
+    since Python enums cannot inherit members.
     """
 
 
