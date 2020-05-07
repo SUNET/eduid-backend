@@ -10,7 +10,7 @@ install_requires = [x for x in open(os.path.join(here, 'requirements.txt')).read
 testing_extras = [x for x in open(os.path.join(here, 'test_requirements.txt')).read().split('\n')
                   if len(x) > 0 and not x.startswith('-')]
 
-version = '0.0.1'
+version = '0.1.0'
 
 setup(
     name='eduid-scimapi',

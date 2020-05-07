@@ -40,7 +40,8 @@ class User:
     external_id: Optional[str] = field(default=None, metadata={'data_key': 'externalId', 'required': False})
     groups: List[Group] = field(default_factory=list, metadata={'required': False})
     nutid_v1: NutidExtensionV1 = field(
-        default_factory=lambda: NutidExtensionV1(), metadata={'data_key': SCIMSchema.NUTID_V1.value, 'required': False}
+        default_factory=lambda: NutidExtensionV1(),
+        metadata={'data_key': SCIMSchema.NUTID_USER_V1.value, 'required': False},
     )
 
 
@@ -51,7 +52,8 @@ class UserCreateRequest:
     external_id: Optional[str] = field(default=None, metadata={'data_key': 'externalId', 'required': False})
     groups: List[Group] = field(default_factory=list, metadata={'required': False})
     nutid_v1: NutidExtensionV1 = field(
-        default_factory=lambda: NutidExtensionV1(), metadata={'data_key': SCIMSchema.NUTID_V1.value, 'required': False}
+        default_factory=lambda: NutidExtensionV1(),
+        metadata={'data_key': SCIMSchema.NUTID_USER_V1.value, 'required': False},
     )
 
 
@@ -63,7 +65,8 @@ class UserUpdateRequest:
     external_id: Optional[str] = field(default=None, metadata={'data_key': 'externalId', 'required': False})
     groups: List[Group] = field(default_factory=list, metadata={'required': False})
     nutid_v1: NutidExtensionV1 = field(
-        default_factory=lambda: NutidExtensionV1(), metadata={'data_key': SCIMSchema.NUTID_V1.value, 'required': False}
+        default_factory=lambda: NutidExtensionV1(),
+        metadata={'data_key': SCIMSchema.NUTID_USER_V1.value, 'required': False},
     )
 
 
@@ -76,7 +79,8 @@ class UserResponse:
     external_id: Optional[str] = field(default=None, metadata={'data_key': 'externalId', 'required': False})
     groups: List[Group] = field(default_factory=list, metadata={'required': False})
     nutid_v1: NutidExtensionV1 = field(
-        default_factory=lambda: NutidExtensionV1(), metadata={'data_key': SCIMSchema.NUTID_V1.value, 'required': False}
+        default_factory=lambda: NutidExtensionV1(),
+        metadata={'data_key': SCIMSchema.NUTID_USER_V1.value, 'required': False},
     )
 
 

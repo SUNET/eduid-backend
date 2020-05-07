@@ -44,8 +44,8 @@ class UsersResource(SCIMResource):
         user_groups = req.context['groupdb'].get_groups_for_user(group_user)
         groups = []
         for group in user_groups:
-            ref = self.url_for("Users", group.identifier)
-            groups.append(Group(value=UUID(group.identifier), ref=ref, display=group.display_name))
+            ref = self.url_for("Groups", group.scim_id)
+            groups.append(Group(value=group.scim_id, ref=ref, display=group.display_name))
         return groups
 
     def _db_user_to_response(self, req: Request, resp: Response, db_user: ScimApiUser):
@@ -67,7 +67,7 @@ class UsersResource(SCIMResource):
         )
 
         if db_user.profiles:
-            user.schemas.append(SCIMSchema.NUTID_V1)
+            user.schemas.append(SCIMSchema.NUTID_USER_V1)
             for profile_name, db_profile in db_user.profiles.items():
                 profile = Profile(attributes=db_profile.attributes, data=db_profile.data)
                 user.nutid_v1.profiles[profile_name] = profile
@@ -76,9 +76,10 @@ class UsersResource(SCIMResource):
         resp.set_header("ETag", make_etag(db_user.version))
         resp.media = UserResponseSchema().dump(user)
 
-    def on_get(self, req: Request, resp: Response, scim_id):
+    def on_get(self, req: Request, resp: Response, scim_id: Optional[str] = None):
+        if scim_id is None:
+            raise BadRequest(detail='Not implemented')
         self.context.logger.info(f'Fetching user {scim_id}')
-
         db_user = req.context['userdb'].get_user_by_scim_id(scim_id)
         if not db_user:
             raise NotFound(detail='User not found')
@@ -106,7 +107,7 @@ class UsersResource(SCIMResource):
 
             self.context.logger.debug(f'Extra debug: user {scim_id} as dict:\n{db_user.to_dict()}')
 
-            if SCIMSchema.NUTID_V1.value in update_request.schemas:
+            if SCIMSchema.NUTID_USER_V1.value in update_request.schemas:
                 if not db_user.external_id:
                     # TODO: Skipping?
                     self.context.logger.warning(f'User {db_user} has no external id, skipping NUTID update')

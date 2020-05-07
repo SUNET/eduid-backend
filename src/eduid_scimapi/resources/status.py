@@ -97,9 +97,11 @@ class StatusResource(BaseResource):
 
 class HealthCheckResource(StatusResource):
     def _check_mongo(self):
-        db = self.context.get_userdb(self.context.config.data_owners[0])
+        user_db = self.context.get_userdb(self.context.config.data_owners[0])
+        group_db = self.context.get_groupdb(self.context.config.data_owners[0])
         try:
-            db.is_healthy()
+            user_db.is_healthy()
+            group_db.is_healthy()
             self.reset_failure_info('_check_mongo')
             return True
         except Exception as exc:
@@ -108,7 +110,7 @@ class HealthCheckResource(StatusResource):
             return False
 
     def _check_neo4j(self):
-        db = self.context.get_groupdb(self.context.config.data_owners[0])
+        group_db = self.context.get_groupdb(self.context.config.data_owners[0])
         try:
             # TODO: Implement is_healthy
             # db.is_healthy()
@@ -116,7 +118,7 @@ class HealthCheckResource(StatusResource):
                 MATCH (n)             
                 RETURN count(*) as exists LIMIT 1
                 """
-            with db.db.driver.session() as session:
+            with group_db.graphdb.db.driver.session() as session:
                 session.run(q).single()
             self.reset_failure_info('_check_neo4j')
             return True
