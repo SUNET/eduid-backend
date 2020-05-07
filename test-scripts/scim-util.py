@@ -93,6 +93,15 @@ def search_group(api: str, filter: str, token: Optional[str] = None) -> Optional
     return res
 
 
+def create_user(api: str, external_id: str, token: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    logger.info(f'Creating user with externalId {external_id}')
+    query = {'schemas': ['urn:ietf:params:scim:schemas:core:2.0:User'], 'externalId': external_id}
+    logger.debug(f'Sending user create query:\n{pformat(json.dumps(query, sort_keys=True, indent=4))}')
+    res = scim_request(requests.post, f'{api}/Users/', data=query, token=token)
+    logger.info(f'User create result:\n{json.dumps(res, sort_keys=True, indent=4)}\n')
+    return res
+
+
 def create_group(api: str, display_name: str, token: Optional[str] = None) -> Optional[Dict[str, Any]]:
     logger.info(f'Creating group with displayName {display_name}')
     query = {'schemas': ['urn:ietf:params:scim:schemas:core:2.0:Group'], 'displayName': display_name, 'members': []}
@@ -198,7 +207,11 @@ def process_users(api: str, ops: Mapping[str, Any], token: Optional[str] = None)
             for what in ops[op]:
                 if what == 'externalId':
                     for external_id in ops[op][what]:
-                        search_user(api, f'externalId eq "{external_id}"', token=token)
+                        res = search_user(api, f'externalId eq "{external_id}"', token=token)
+                        if res is not None and res['totalResults'] == 0:
+                            logger.info(f'Found no user with externalId: {external_id}. Creating it.')
+                            create_user(api, external_id, token=token)
+
                 elif what == 'lastModified':
                     for _op in ops[op][what]:
                         if _op in ['gt', 'ge']:
