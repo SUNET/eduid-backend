@@ -1,6 +1,7 @@
 import unittest
 from datetime import datetime
 
+from eduid_scimapi.exceptions import BadRequest
 from eduid_scimapi.search import parse_search_filter
 
 
@@ -34,3 +35,8 @@ class TestSearchFilter(unittest.TestCase):
         self.assertEqual(sf.attr, 'foo')
         self.assertEqual(sf.op, 'eq')
         self.assertEqual(sf.val, 123)
+
+    def test_not_printable(self):
+        filter = f'foo eq 12\u00093'
+        with self.assertRaises(BadRequest):
+            parse_search_filter(filter)
