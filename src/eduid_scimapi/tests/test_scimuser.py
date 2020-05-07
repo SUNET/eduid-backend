@@ -203,7 +203,9 @@ class TestUserResource(ScimApiTestCase):
             'id': str(db_user.scim_id),
             'externalId': 'test-id-1',
             SCIMSchema.NUTID_USER_V1.value: {
-                'profiles': {'test': {'attributes': {'displayName': 'Test User 1'}, 'data': {'test_key': 'test_value'}}}
+                'profiles': {
+                    'test': {'attributes': {'displayName': 'New display name'}, 'data': {'test_key': 'new value'}}
+                }
             },
         }
         self.headers['IF-MATCH'] = make_etag(db_user.version)
@@ -218,9 +220,10 @@ class TestUserResource(ScimApiTestCase):
 
         nutid = response.json.get(SCIMSchema.NUTID_USER_V1.value)
         self.assertIsNotNone(nutid.get('profiles'))
+        excepted_profile = req[SCIMSchema.NUTID_USER_V1.value].get('profiles').get('test')
         test_profile = nutid.get('profiles').get('test')
-        self.assertEqual(self.test_profile.attributes, test_profile.get('attributes'))
-        self.assertEqual(self.test_profile.data, test_profile.get('data'))
+        self.assertEqual(excepted_profile.get('attributes'), test_profile.get('attributes'))
+        self.assertEqual(excepted_profile.get('data'), test_profile.get('data'))
 
         meta = response.json.get('meta')
         self.assertIsNotNone(meta)

@@ -107,7 +107,7 @@ class UsersResource(SCIMResource):
 
             self.context.logger.debug(f'Extra debug: user {scim_id} as dict:\n{db_user.to_dict()}')
 
-            if SCIMSchema.NUTID_USER_V1.value in update_request.schemas:
+            if SCIMSchema.NUTID_USER_V1 in update_request.schemas:
                 if not db_user.external_id:
                     # TODO: Skipping?
                     self.context.logger.warning(f'User {db_user} has no external id, skipping NUTID update')
