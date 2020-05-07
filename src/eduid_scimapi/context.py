@@ -32,11 +32,7 @@ class Context(object):
         self._groupdbs = {}
         for data_owner in self.config.data_owners:
             _owner = data_owner.replace('.', '_')  # replace dots with underscores
-            coll = f'{_owner}__users'
-            # TODO: rename old collection and remove this
-            if data_owner == 'eduid.se':
-                coll = 'profiles'
-            self._userdbs[data_owner] = ScimApiUserDB(db_uri=self.config.mongo_uri, collection=coll,)
+            self._userdbs[data_owner] = ScimApiUserDB(db_uri=self.config.mongo_uri, collection=f'{_owner}__users')
             self._groupdbs[data_owner] = ScimApiGroupDB(
                 db_uri=self.config.neo4j_uri,
                 config=self.config.neo4j_config,
