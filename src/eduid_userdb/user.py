@@ -34,7 +34,7 @@
 
 import copy
 import datetime
-from typing import Any, Dict
+from typing import Any, Dict, Union, Optional
 
 import bson
 
@@ -282,6 +282,107 @@ class User(object):
         """
         _profiles = self._data_in.pop('profiles', [])
         self._profiles = ProfileList.from_list_of_dicts(_profiles)
+
+    # -----------------------------------------------------------------
+
+    @classmethod
+    def new(
+        cls,
+        eduPersonPrincipalName: str,
+        raise_on_unknown: bool = True,
+        _id: Optional[Union[bson.ObjectId, str]] = None,
+        subject: Optional[str] = None,
+        displayName: Optional[str] = None,
+        givenName: Optional[str] = None,
+        surname: Optional[str] = None,
+        sn: Optional[str] = None,
+        preferredLanguage: Optional[str] = None,
+        passwords: Optional[list] = None,
+        modified_ts: Optional[datetime.datetime] = None,
+        revoked_ts: Optional[datetime.datetime] = None,
+        entitlements: Optional[list] = None,
+        eduPersonEntitlement: Optional[list] = None,
+        terminated: Optional[bool] = None,
+        letter_proofing_data: Optional[dict] = None,
+        mailAliases: Optional[list] = None,
+        mail: Optional[str] = None,
+        mobile: Optional[list] = None,
+        phone: Optional[list] = None,
+        nins: Optional[list] = None,
+        norEduPersonNIN: Optional[list] = None,
+        tou: Optional[list] = None,
+        locked_identity: Optional[list] = None,
+        orcid: Optional[Orcid] = None,
+        profiles: Optional[list] = None,
+        **kwargs
+    ):
+        # revoked user
+        if revoked_ts is not None:
+            raise UserIsRevoked(
+                'User {!s}/{!s} was revoked at {!s}'.format(
+                    _id, eduPersonPrincipalName, revoked_ts
+                )
+            )
+        # incomplete user
+        if passwords is None:
+            raise UserHasNotCompletedSignup(
+                'User {!s}/{!s} is incomplete'.format(
+                    _id, eduPersonPrincipalName
+                )
+            )
+        # remove obsolete attributes
+        for attr in ('postalAddress', 'date', 'csrf'):
+            if attr in kwargs:
+                del kwargs[attr]
+
+        if raise_on_unknown:
+            if len(kwargs) > 0:
+                raise UserHasUnknownData(
+                    'User {!s}/{!s} unknown data: {!r}'.format(
+                        _id, eduPersonPrincipalName, kwargs.keys()
+                    )
+                )
+
+        data: Dict[str, Any] = {}
+
+        data['_id'] = _id
+        data['eduPersonPrincipalName'] = eduPersonPrincipalName
+        data['subject'] = subject
+        data['displayName'] = displayName
+        data['givenName'] = givenName
+        data['surname'] = surname
+        data['sn'] = sn
+        data['preferredLanguage'] = preferredLanguage
+        data['modified_ts'] = modified_ts
+        data['terminated'] = terminated
+        data['mail'] = mail
+        data['orcid'] = orcid
+        if letter_proofing_data is not None:
+            data['letter_proofing_data'] = letter_proofing_data
+        if passwords is not None:
+            data['passwords'] = passwords
+        if entitlements is not None:
+            data['entitlements'] = entitlements
+        if eduPersonEntitlement is not None:
+            data['eduPersonEntitlement'] = eduPersonEntitlement
+        if mailAliases is not None:
+            data['mailAliases'] = mailAliases
+        if mobile is not None:
+            data['mobile'] = mobile
+        if phone is not None:
+            data['phone'] = phone
+        if nins is not None:
+            data['nins'] = nins
+        if norEduPersonNIN is not None:
+            data['norEduPersonNIN'] = norEduPersonNIN
+        if tou is not None:
+            data['tou'] = tou
+        if locked_identity is not None:
+            data['locked_identity'] = locked_identity
+        if profiles is not None:
+            data['profiles'] = profiles
+
+        return cls(data)
 
     # -----------------------------------------------------------------
     @property
