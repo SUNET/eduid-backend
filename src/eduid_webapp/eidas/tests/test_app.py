@@ -7,16 +7,19 @@ import datetime
 import os
 import urllib
 from collections import OrderedDict
+from unittest import TestCase
 
 import six
 from mock import patch
 
+from eduid_common.api.messages import redirect_with_msg
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.authn.cache import OutstandingQueriesCache
 from eduid_userdb.credentials import U2F, Webauthn
 from eduid_userdb.credentials.fido import FidoCredential
 
 from eduid_webapp.eidas.app import init_eidas_app
+from eduid_webapp.eidas.helpers import EidasMsg
 from eduid_webapp.eidas.settings.common import EidasConfig
 
 __author__ = 'lundberg'
@@ -690,3 +693,12 @@ class EidasTests(EduidAPITestCase):
                 self.assertEqual(user.nins.primary.number, '190102031234')
 
                 self.assertEqual(self.app.proofing_log.db_count(), 1)
+
+
+class RedirectWithMsgTests(TestCase):
+
+    def test_redirect_with_message(self):
+        url = "https://www.exaple.com/services/eidas/?next=/authn"
+        response = redirect_with_msg(url, EidasMsg.authn_context_mismatch)
+        self.assertEqual(response.location,
+                         'https://www.exaple.com/services/eidas/?next=%2Fauthn&msg=%3AERROR%3Aeidas.authn_context_mismatch')

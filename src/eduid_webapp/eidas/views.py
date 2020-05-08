@@ -5,6 +5,7 @@ from __future__ import absolute_import, unicode_literals
 from flask import Blueprint, abort, current_app, make_response, redirect, request, url_for
 
 from eduid_common.api.decorators import MarshalWith, require_user
+from eduid_common.api.messages import redirect_with_msg
 from eduid_common.api.schemas.csrf import CSRFResponse
 from eduid_common.api.utils import get_unique_hash, urlappend
 from eduid_common.authn.acs_registry import get_action, schedule_action
@@ -19,7 +20,7 @@ from eduid_webapp.eidas.helpers import (
     create_authn_request,
     create_metadata,
     parse_authn_response,
-    redirect_with_msg,
+    EidasMsg,
     staging_nin_remap,
 )
 
@@ -44,7 +45,7 @@ def verify_token(user, credential_id):
     # Check if requested key id is a mfa token and if the user used that to log in
     token_to_verify = user.credentials.filter(FidoCredential).find(credential_id)
     if not token_to_verify:
-        return redirect_with_msg(redirect_url, ':ERROR:eidas.token_not_found')
+        return redirect_with_msg(redirect_url, EidasMsg.token_not_found)
     if token_to_verify.key not in session.get('eduidIdPCredentialsUsed', []):
         # If token was not used for login, reauthn the user
         current_app.logger.info('Token {} not used for login, redirecting to idp'.format(token_to_verify.key))
