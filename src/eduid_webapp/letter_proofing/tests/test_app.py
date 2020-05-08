@@ -189,6 +189,7 @@ class LetterProofingTests(EduidAPITestCase):
         csrf_token = json_data['payload']['csrf_token']
         json_data = self.verify_code(proofing_state.nin.verification_code, csrf_token)
         self.assertTrue(json_data['payload']['success'])
+        self.assertEqual(len(json_data['payload']['nins']), 1)
 
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         self.assertEqual(user.nins.primary.number, self.test_user_nin)
