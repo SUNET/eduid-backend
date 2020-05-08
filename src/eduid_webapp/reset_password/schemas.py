@@ -30,7 +30,6 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from flask_babel import gettext as _
 from marshmallow import ValidationError, fields, validates
 
 from eduid_common.api.schemas.base import EduidSchema, FluxStandardAction
@@ -53,7 +52,7 @@ class ResetPasswordInitSchema(EduidSchema, CSRFRequestMixin):
         try:
             validate_email(value)
         except ValidationError:
-            raise ValidationError(_('Invalid email address'))
+            raise ValidationError('Invalid email address')
 
 
 class ResetPasswordEmailCodeSchema(EduidSchema, CSRFRequestMixin):

@@ -82,6 +82,7 @@ from flask import Blueprint, abort, request
 from marshmallow import ValidationError
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith
+from eduid_common.api.messages import error_message, success_message
 from eduid_common.api.exceptions import MsgTaskFailed
 from eduid_common.api.helpers import check_magic_cookie
 from eduid_common.api.messages import CommonMsg
@@ -95,7 +96,6 @@ from eduid_webapp.reset_password.helpers import (
     BadCode,
     ResetPwMsg,
     check_password,
-    error_message,
     generate_suggested_password,
     get_extra_security_alternatives,
     get_pwreset_state,
@@ -105,7 +105,6 @@ from eduid_webapp.reset_password.helpers import (
     reset_user_password,
     send_password_reset_mail,
     send_verify_phone_code,
-    success_message,
     verify_email_address,
     verify_phone_number,
 )

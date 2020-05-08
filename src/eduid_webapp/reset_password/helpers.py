@@ -31,8 +31,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import math
-from enum import Enum, unique
-from typing import Optional
+from enum import unique
+from typing import Optional, Union
 
 import bcrypt
 from flask import render_template
@@ -40,6 +40,7 @@ from flask_babel import gettext as _
 
 from eduid_common.api.exceptions import MailTaskFailed
 from eduid_common.api.helpers import send_mail
+from eduid_common.api.messages import TranslatableMsg
 from eduid_common.api.utils import get_short_hash, get_unique_hash, save_and_sync_user, urlappend
 from eduid_common.authn import fido_tokens
 from eduid_common.authn.utils import generate_password
@@ -59,7 +60,7 @@ from eduid_webapp.reset_password.app import current_reset_password_app as curren
 
 
 @unique
-class ResetPwMsg(Enum):
+class ResetPwMsg(TranslatableMsg):
     """
     Messages sent to the front end with information on the results of the
     attempted operations on the back end.
@@ -116,6 +117,10 @@ class ResetPwMsg(Enum):
     mfa_no_data = 'mfa.no-request-data'
     # extra security with fido tokens failed - wrong token
     fido_token_fail = 'resetpw.fido-token-fail'
+    # The password chosen is too weak
+    resetpw_weak = 'resetpw.weak-password'
+    # email address validation error
+    invalid_email = 'Invalid email address'
 
 
 class BadCode(Exception):
@@ -125,14 +130,6 @@ class BadCode(Exception):
 
     def __init__(self, msg: ResetPwMsg):
         self.msg = msg
-
-
-def success_message(message: ResetPwMsg) -> dict:
-    return {'_status': 'ok', 'message': str(message.value)}
-
-
-def error_message(message: ResetPwMsg) -> dict:
-    return {'_status': 'error', 'message': str(message.value)}
 
 
 def get_pwreset_state(email_code: str) -> ResetPasswordState:
