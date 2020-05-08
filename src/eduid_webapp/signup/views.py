@@ -35,11 +35,20 @@ from flask import Blueprint, abort, request
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith
 from eduid_common.api.helpers import check_magic_cookie
+from eduid_common.api.messages import (
+    error_message,
+    success_message,
+)
 from eduid_common.api.schemas.base import FluxStandardAction
 from eduid_userdb.exceptions import EduIDUserDBError
 
 from eduid_webapp.signup.app import current_signup_app as current_app
-from eduid_webapp.signup.helpers import check_email_status, complete_registration, remove_users_with_mail_address
+from eduid_webapp.signup.helpers import (
+    check_email_status,
+    complete_registration,
+    remove_users_with_mail_address,
+    SignupMsg,
+)
 from eduid_webapp.signup.schemas import AccountCreatedResponse, EmailSchema, RegisterEmailSchema
 from eduid_webapp.signup.verifications import (
     AlreadyVerifiedException,
@@ -61,7 +70,8 @@ def trycaptcha(email, recaptcha_response, tou_accepted):
     Kantara requires a check for humanness even at level AL1.
     """
     if not tou_accepted:
-        return {'_status': 'error', 'message': 'signup.tou-not-accepted'}
+        return error_message(SignupMsg.no_tou)
+
     config = current_app.config
     recaptcha_verified = False
 
@@ -89,13 +99,16 @@ def trycaptcha(email, recaptcha_response, tou_accepted):
             # Workaround for failed earlier sync of user to userdb: Remove any signup_user with this e-mail address.
             remove_users_with_mail_address(email)
             send_verification_mail(email)
-            return {'message': 'signup.registering-new', 'next': next}
+            return success_message(SignupMsg.reg_new, data=dict(next=next))
+
         elif next == 'resend-code':
             return {'next': next}
+
         elif next == 'address-used':
             current_app.stats.count(name='address_used_error')
-            return {'_status': 'error', 'message': 'signup.registering-address-used', 'next': next}
-    return {'_status': 'error', 'message': 'signup.recaptcha-not-verified'}
+            return error_message(SignupMsg.email_used, data=dict(next=next))
+
+    return error_message(SignupMsg.no_recaptcha)
 
 
 @signup_views.route('/resend-verification', methods=['POST'])
@@ -109,7 +122,7 @@ def resend_email_verification(email):
     current_app.logger.debug("Resend email confirmation to {!s}".format(email))
     send_verification_mail(email)
     current_app.stats.count(name='resend_code')
-    return {'message': 'signup.verification-present'}
+    return success_message(SignupMsg.resent_success)
 
 
 @signup_views.route('/verify-link/<code>', methods=['GET'])
@@ -118,13 +131,17 @@ def verify_link(code):
     try:
         user = verify_email_code(code)
     except CodeDoesNotExist:
-        return {'_status': 'error', 'status': 'unknown-code', 'message': 'signup.unknown-code'}
+        return error_message(SignupMsg.unknown_code, data=dict(status='unknown-code'))
+
     except AlreadyVerifiedException:
-        return {'_status': 'error', 'status': 'already-verified', 'message': 'signup.already-verified'}
+        return error_message(SignupMsg.already_verified, data=dict(status='already-verified'))
+
     except ProofingLogFailure:
-        return {'_status': 'error', 'message': 'Temporary technical problems'}
+        return error_message(SignupMsg.temp_problem)
+
     except EduIDUserDBError:
-        return {'_status': 'error', 'status': 'unknown-code', 'message': 'signup.unknown-code'}
+        return error_message(SignupMsg.unknown_code, data=dict(status='unknown-code'))
+
     return complete_registration(user)
 
 
