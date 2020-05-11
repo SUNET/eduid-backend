@@ -209,7 +209,10 @@ class GroupsResource(SCIMResource):
                         self.context.logger.error(f'User {member.value} not found')
                         raise BadRequest(detail=f'User {member.value} not found')
 
-            db_group = req.context['groupdb'].update_group(scim_group=group, db_group=db_group)
+            updated_group = req.context['groupdb'].update_group(scim_group=group, db_group=db_group)
+            # Load the group from the database to ensure results are consistent with subsequent GETs.
+            # For example, timestamps have higher resolution in updated_group than after a load.
+            db_group = req.context['groupdb'].get_group_by_scim_id(str(updated_group.scim_id))
             self._db_group_to_response(resp, db_group)
         except (ValidationError, MultipleReturnedError) as e:
             raise BadRequest(detail=f"{e}")
@@ -248,7 +251,10 @@ class GroupsResource(SCIMResource):
         try:
             group: Group = GroupCreateRequestSchema().load(req.media)
             self.context.logger.debug(group)
-            db_group = req.context['groupdb'].create_group(scim_group=group)
+            created_group = req.context['groupdb'].create_group(scim_group=group)
+            # Load the group from the database to ensure results are consistent with subsequent GETs.
+            # For example, timestamps have higher resolution in created_group than after a load.
+            db_group = req.context['groupdb'].get_group_by_scim_id(str(created_group.scim_id))
             resp.status = '201'
             self._db_group_to_response(resp, db_group)
         except ValidationError as e:
