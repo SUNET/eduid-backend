@@ -160,34 +160,32 @@ class TestGroupResource(ScimApiTestCase):
     def test_search_group_display_name(self):
         db_group = self.add_group(uuid4(), 'Test Group 1')
         self.add_group(uuid4(), 'Test Group 2')
-        req = {
-            'schemas': [SCIMSchema.API_MESSAGES_20_SEARCH_REQUEST.value],
-            'filter': 'displayName eq "Test Group 1"',
-            'startIndex': 1,
-            'count': 10,
-        }
-        response = self.client.simulate_post(path='/Groups/.search', body=self.as_json(req), headers=self.headers)
-        self.assertEqual([SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value], response.json.get('schemas'))
-        resources = response.json.get('Resources')
+        resources = self._perform_search(filter='displayName eq "Test Group 1"')
         self.assertEqual(1, len(resources))
         self.assertEqual(str(db_group.scim_id), resources[0].get('id'))
         self.assertEqual(db_group.display_name, resources[0].get('displayName'))
 
+    def test_search_group_display_name_not_found(self):
+        resources = self._perform_search(filter='displayName eq "Test No Such Group"')
+        self.assertEqual(0, len(resources))
+
+    def test_search_group_display_name_bad_operator(self):
+        json = self._perform_search(filter='displayName lt 1', return_json=True)
+        expected = {
+            'scimType': 'invalidFilter',
+            'schemas': [SCIMSchema.ERROR.value],
+            'detail': 'Unsupported operator',
+            'status': 400,
+        }
+        self.assertEqual(expected, json)
+
     def test_search_group_start_index(self):
         for i in range(9):
             self.add_group(uuid4(), f'Test Group')
-        req = {
-            'schemas': [SCIMSchema.API_MESSAGES_20_SEARCH_REQUEST.value],
-            'filter': 'displayName eq "Test Group"',
-            'startIndex': 5,
-            'count': 10,
-        }
-        response = self.client.simulate_post(path='/Groups/.search', body=self.as_json(req), headers=self.headers)
-        self.assertEqual([SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value], response.json.get('schemas'))
-        resources = response.json.get('Resources')
+        json = self._perform_search(filter='displayName eq "Test Group"', start=5, return_json=True)
+        resources = json['Resources']
         self.assertEqual(5, len(resources))
-        # TODO: Implement correct totalResults
-        # self.assertEqual(9, response.json.get('totalResults'))
+        self.assertEqual(9, json.get('totalResults'))
 
     def test_search_group_count(self):
         for i in range(9):
@@ -235,6 +233,82 @@ class TestGroupResource(ScimApiTestCase):
         self.assertEqual(1, len(resources))
         self.assertEqual(str(group2.scim_id), resources[0].get('id'))
         self.assertEqual(group2.display_name, resources[0].get('displayName'))
+
+    def test_nutid_extension(self):
+        display_name = 'Test Group with Nutid extension'
+        nutid_data = {'data': {'testing': 'certainly'}}
+        req = {
+            'schemas': [SCIMSchema.CORE_20_GROUP.value],
+            'displayName': display_name,
+            'members': [],
+            SCIMSchema.NUTID_GROUP_V1.value: nutid_data,
+        }
+        post_resp = self.client.simulate_post(path='/Groups/', body=self.as_json(req), headers=self.headers)
+
+        # Verify NUTID data is part of the PUT response
+        self.assertEqual(
+            [SCIMSchema.CORE_20_GROUP.value, SCIMSchema.NUTID_GROUP_V1.value], post_resp.json.get('schemas')
+        )
+        scim_id = post_resp.json.get('id')
+        self.assertIsNotNone(scim_id)
+        self.assertEqual(f'http://localhost:8000/Groups/{post_resp.json.get("id")}', post_resp.headers.get('location'))
+        self.assertEqual(display_name, post_resp.json.get('displayName'))
+        self.assertEqual([], post_resp.json.get('members'))
+        self.assertEqual(nutid_data, post_resp.json.get(SCIMSchema.NUTID_GROUP_V1.value))
+
+        # Now fetch the group and validate the data
+        get_resp = self.client.simulate_get(path=f'/Groups/{scim_id}', headers=self.headers)
+        self.assertEqual(post_resp.json, get_resp.json)
+
+        # And now, update the NUTID extension data
+        nutid_data2 = {'data': {'testing': 'yes', 'other_key': 2}}
+        req = {
+            'schemas': [SCIMSchema.CORE_20_GROUP.value, SCIMSchema.NUTID_GROUP_V1.value],
+            'id': str(scim_id),
+            'displayName': display_name,
+            'members': [],
+            SCIMSchema.NUTID_GROUP_V1.value: nutid_data2,
+        }
+        self.headers['IF-MATCH'] = get_resp.json['meta']['version']
+        put_resp = self.client.simulate_put(path=f'/Groups/{scim_id}', body=self.as_json(req), headers=self.headers)
+
+        # Now fetch the group again and validate the data
+        get_resp2 = self.client.simulate_get(path=f'/Groups/{scim_id}', headers=self.headers)
+        self.assertEqual(put_resp.json, get_resp2.json)
+
+        self.assertEqual(
+            [SCIMSchema.CORE_20_GROUP.value, SCIMSchema.NUTID_GROUP_V1.value], get_resp2.json.get('schemas')
+        )
+        self.assertIsNotNone(get_resp2.json.get('id'))
+        self.assertEqual(f'http://localhost:8000/Groups/{get_resp2.json.get("id")}', get_resp2.headers.get('location'))
+        self.assertEqual(display_name, get_resp2.json.get('displayName'))
+        self.assertEqual([], get_resp2.json.get('members'))
+        self.assertEqual(nutid_data2, get_resp2.json.get(SCIMSchema.NUTID_GROUP_V1.value))
+
+        prev_meta = post_resp.json.get('meta')
+        self.assertIsNotNone(prev_meta)
+        meta = get_resp2.json.get('meta')
+        self.assertIsNotNone(meta)
+        self.assertEqual(meta['created'], prev_meta['created'])
+        self.assertNotEqual(meta['lastModified'], prev_meta['lastModified'])
+        self.assertNotEqual(meta['version'], prev_meta['version'])
+        self.assertEqual(f'http://localhost:8000/Groups/{scim_id}', meta.get('location'))
+        self.assertEqual('Group', meta.get('resourceType'))
+
+    def test_version_mismatch(self):
+        db_group = self.add_group(uuid4(), 'Test Group 1')
+        req = {
+            'schemas': [SCIMSchema.CORE_20_GROUP.value],
+            'id': str(db_group.scim_id),
+            'displayName': 'Another display name',
+        }
+        self.headers['IF-MATCH'] = make_etag(ObjectId())
+        response = self.client.simulate_put(
+            path=f'/Groups/{db_group.scim_id}', body=self.as_json(req), headers=self.headers
+        )
+        self.assertEqual([SCIMSchema.ERROR.value], response.json.get('schemas'))
+        self.assertEqual(400, response.json.get('status'))
+        self.assertEqual('Version mismatch', response.json.get('detail'))
 
     def _perform_search(self, filter: str, start: int = 1, count: int = 10, return_json: bool = False):
         logger.info(f'Searching for group(s) using filter {repr(filter)}')
