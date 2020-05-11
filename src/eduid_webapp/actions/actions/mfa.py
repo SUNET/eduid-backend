@@ -38,6 +38,7 @@ from eduid_common.session import session
 
 from eduid_webapp.actions.action_abc import ActionPlugin
 from eduid_webapp.actions.app import current_actions_app as current_app
+from eduid_webapp.actions.helpers import ActionsMsg
 
 __author__ = 'ft'
 
@@ -67,7 +68,7 @@ class Plugin(ActionPlugin):
             user = current_app.central_userdb.get_user_by_eppn(eppn, raise_on_missing=False)
         current_app.logger.debug('Loaded User {} from db'.format(user))
         if not user:
-            raise self.ActionError('mfa.user-not-found')
+            raise self.ActionError(ActionsMsg.user_not_found)
 
         config = fido_tokens.start_token_verification(user, self.PACKAGE_NAME)
 
@@ -121,7 +122,7 @@ class Plugin(ActionPlugin):
         req_json = request.get_json()
         if not req_json:
             current_app.logger.error('No data in request to authn {}'.format(user))
-            raise self.ActionError('mfa.no-request-data')
+            raise self.ActionError(ActionsMsg.no_data)
 
         # Process POSTed data
         if 'tokenResponse' in req_json:
@@ -153,6 +154,6 @@ class Plugin(ActionPlugin):
         else:
             current_app.logger.error('Neither U2F nor Webauthn data in request to authn {}'.format(user))
             current_app.logger.debug('Request: {}'.format(req_json))
-            raise self.ActionError('mfa.no-token-response')
+            raise self.ActionError(ActionsMsg.no_response)
 
-        raise self.ActionError('mfa.unknown-token')
+        raise self.ActionError(ActionsMsg.unknown_token)

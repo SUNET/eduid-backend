@@ -46,6 +46,7 @@ from eduid_userdb.userdb import User
 
 from eduid_webapp.actions.action_abc import ActionPlugin
 from eduid_webapp.actions.app import actions_init_app
+from eduid_webapp.actions.helpers import ActionsMsg
 from eduid_webapp.actions.settings.common import ActionsConfig
 
 
@@ -77,19 +78,19 @@ class TestingActionPlugin(ActionPlugin):
 
     def get_url_for_bundle(self, action):
         if 'action_error' in action.to_dict()['params']:
-            raise self.ActionError('test error')
+            raise self.ActionError(ActionsMsg.test_error)
         return "http://example.com/plugin.js"
 
     def get_config_for_bundle(self, action):
         if 'action_error' in action.to_dict()['params']:
-            raise self.ActionError('test error')
+            raise self.ActionError(ActionsMsg.test_error)
         return {'setting1': 'dummy'}
 
     def perform_step(self, action):
         if 'action_error' in action.to_dict()['params']:
-            raise self.ActionError('test error')
+            raise self.ActionError(ActionsMsg.test_error)
         if 'rm_action' in action.to_dict()['params']:
-            raise self.ActionError('test error', rm=True)
+            raise self.ActionError(ActionsMsg.test_error, rm=True)
         if 'validation_error' in action.to_dict()['params']:
             raise self.ValidationError({'field1': 'field test error'})
         return {'completed': 'done'}
