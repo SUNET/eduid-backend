@@ -60,6 +60,7 @@ class SCIMSchema(Enum):
     CORE_20_GROUP = 'urn:ietf:params:scim:schemas:core:2.0:Group'
     API_MESSAGES_20_SEARCH_REQUEST = 'urn:ietf:params:scim:api:messages:2.0:SearchRequest'
     API_MESSAGES_20_LIST_RESPONSE = 'urn:ietf:params:scim:api:messages:2.0:ListResponse'
+    ERROR = 'urn:ietf:params:scim:api:messages:2.0:Error'
     NUTID_USER_V1 = 'https://scim.eduid.se/schema/nutid/user/v1'
     NUTID_GROUP_V1 = 'https://scim.eduid.se/schema/nutid/group/v1'
     DEBUG_V1 = 'https://scim.eduid.se/schema/nutid-DEBUG/v1'

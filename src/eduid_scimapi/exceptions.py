@@ -9,17 +9,16 @@ from typing import Dict, List, Optional
 
 import falcon
 
+from eduid_scimapi.scimbase import SCIMSchema
 from eduid_scimapi.utils import filter_none
 
 logger = logging.getLogger(__name__)
-
-SCIM_ERROR = 'urn:ietf:params:scim:api:messages:2.0:Error'
 
 
 @dataclass
 class ErrorDetail(object):
     scimType: Optional[str] = None
-    schemas: List[str] = field(default_factory=lambda: [SCIM_ERROR])
+    schemas: List[str] = field(default_factory=lambda: [SCIMSchema.ERROR.value])
     detail: Optional[str] = None
     status: Optional[int] = None
 
@@ -50,7 +49,7 @@ def unexpected_error_handler(ex: Exception, req: falcon.Request, resp: falcon.Re
 
 class HTTPErrorDetail(falcon.HTTPError):
     def __init__(self, **kwargs):
-        schemas = kwargs.pop('schemas', [SCIM_ERROR])
+        schemas = kwargs.pop('schemas', [SCIMSchema.ERROR.value])
         scim_type = kwargs.pop('scim_type', None)
         detail = kwargs.pop('detail', None)
         super().__init__(**kwargs)
