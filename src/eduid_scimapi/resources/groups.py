@@ -305,7 +305,7 @@ class GroupSearchResource(BaseResource):
         }
         """
         try:
-            self.context.logger.info(f"Searching for group(s)")
+            self.context.logger.info('Searching for group(s)')
             query: SearchRequest = SearchRequestSchema().load(req.media)
         except ValidationError as e:
             raise BadRequest(detail=f"{e}")
@@ -323,11 +323,10 @@ class GroupSearchResource(BaseResource):
         else:
             raise BadRequest(scim_type='invalidFilter', detail=f'Can\'t filter on attribute {filter.attr}')
 
-        list_response = ListResponse(total_results=total_count)
         resources = []
         for this in groups:
             resources.append({'id': str(this.scim_id), 'displayName': this.display_name})
-        list_response.resources = resources
+        list_response = ListResponse(total_results=total_count, resources=resources)
         resp.media = ListResponseSchema().dump(list_response)
 
     def _filter_display_name(
