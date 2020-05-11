@@ -43,7 +43,7 @@ from eduid_webapp.security.schemas import CredentialSchema
 __author__ = 'eperez'
 
 
-class ResetPasswordInitSchema(CSRFRequestMixin):
+class ResetPasswordInitSchema(EduidSchema, CSRFRequestMixin):
 
     email = fields.String(required=True)
 
@@ -56,12 +56,12 @@ class ResetPasswordInitSchema(CSRFRequestMixin):
             raise ValidationError(_('Invalid email address'))
 
 
-class ResetPasswordEmailCodeSchema(CSRFRequestMixin):
+class ResetPasswordEmailCodeSchema(EduidSchema, CSRFRequestMixin):
 
     code = fields.String(required=True)
 
 
-class ResetPasswordExtraSecPhoneSchema(CSRFRequestMixin):
+class ResetPasswordExtraSecPhoneSchema(EduidSchema, CSRFRequestMixin):
 
     code = fields.String(required=True)
     phone_index = fields.Integer(required=True)
