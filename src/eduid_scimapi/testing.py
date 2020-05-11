@@ -3,7 +3,7 @@ import json
 import unittest
 import uuid
 from os import environ
-from typing import Dict, Optional
+from typing import Any, Dict, List, Mapping, Optional
 
 from bson import ObjectId
 from falcon.testing import TestClient
@@ -15,6 +15,7 @@ from eduid_userdb.testing import MongoTemporaryInstance
 from eduid_scimapi.app import init_api
 from eduid_scimapi.config import ScimApiConfig
 from eduid_scimapi.context import Context
+from eduid_scimapi.scimbase import SCIMSchema
 from eduid_scimapi.userdb import Profile, ScimApiUser
 
 __author__ = 'lundberg'
@@ -118,3 +119,20 @@ class ScimApiTestCase(MongoNeoTestCase):
         super().tearDown()
         self.userdb._drop_whole_collection()
         self.etcd_instance.clear('/eduid/api/')
+
+    def _assertScimError(
+        self,
+        json: Mapping[str, Any],
+        schemas: Optional[List[str]] = None,
+        status: int = 400,
+        scim_type: Optional[str] = None,
+        detail: Optional[str] = None,
+    ):
+        if schemas is None:
+            schemas = [SCIMSchema.ERROR.value]
+        self.assertEqual(schemas, json.get('schemas'))
+        self.assertEqual(status, json.get('status'))
+        if scim_type is not None:
+            self.assertEqual(scim_type, json.get('scimType'))
+        if detail is not None:
+            self.assertEqual(detail, json.get('detail'))

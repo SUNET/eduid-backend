@@ -157,6 +157,29 @@ class TestGroupResource(ScimApiTestCase):
         self.assertEqual(f'http://localhost:8000/Groups/{db_group.scim_id}', meta.get('location'))
         self.assertEqual(f'Group', meta.get('resourceType'))
 
+    def test_update_group_id_mismatch(self):
+        db_group = self.add_group(uuid4(), 'Test Group 1')
+        req = {
+            'schemas': [SCIMSchema.CORE_20_GROUP.value],
+            'id': str(uuid4()),
+            'displayName': 'Another display name',
+            'members': [],
+        }
+        response = self.client.simulate_put(
+            path=f'/Groups/{db_group.scim_id}', body=self.as_json(req), headers=self.headers
+        )
+        self._assertScimError(response.json, detail='Id mismatch')
+
+    def test_update_group_not_found(self):
+        req = {
+            'schemas': [SCIMSchema.CORE_20_GROUP.value],
+            'id': str(uuid4()),
+            'displayName': 'Another display name',
+            'members': [],
+        }
+        response = self.client.simulate_put(path=f'/Groups/{req["id"]}', body=self.as_json(req), headers=self.headers)
+        self._assertScimError(response.json, status=404, detail='Group not found')
+
     def test_search_group_display_name(self):
         db_group = self.add_group(uuid4(), 'Test Group 1')
         self.add_group(uuid4(), 'Test Group 2')
@@ -171,13 +194,7 @@ class TestGroupResource(ScimApiTestCase):
 
     def test_search_group_display_name_bad_operator(self):
         json = self._perform_search(filter='displayName lt 1', return_json=True)
-        expected = {
-            'scimType': 'invalidFilter',
-            'schemas': [SCIMSchema.ERROR.value],
-            'detail': 'Unsupported operator',
-            'status': 400,
-        }
-        self.assertEqual(expected, json)
+        self._assertScimError(json, scim_type='invalidFilter', detail='Unsupported operator')
 
     def test_search_group_start_index(self):
         for i in range(9):
@@ -207,6 +224,18 @@ class TestGroupResource(ScimApiTestCase):
         self.assertEqual(1, len(resources))
         self.assertEqual(str(db_group.scim_id), resources[0].get('id'))
         self.assertEqual(db_group.display_name, resources[0].get('displayName'))
+
+    def test_search_group_extension_data_bad_op(self):
+        json = self._perform_search(filter='extensions.data.some_key XY "20072009"', return_json=True)
+        self._assertScimError(json, detail='Unsupported operator')
+
+    def test_search_group_extension_data_invalid_key(self):
+        json = self._perform_search(filter='extensions.data.some.key eq "20072009"', return_json=True)
+        self._assertScimError(json, detail='Unsupported extension search key')
+
+    def test_search_group_extension_data_not_found(self):
+        resources = self._perform_search(filter='extensions.data.some_key eq "20072009"')
+        self.assertEqual(0, len(resources))
 
     def test_search_group_extension_data_attribute_int(self):
         ext1 = GroupExtensions(data={'some_key': 20072009})
@@ -306,9 +335,7 @@ class TestGroupResource(ScimApiTestCase):
         response = self.client.simulate_put(
             path=f'/Groups/{db_group.scim_id}', body=self.as_json(req), headers=self.headers
         )
-        self.assertEqual([SCIMSchema.ERROR.value], response.json.get('schemas'))
-        self.assertEqual(400, response.json.get('status'))
-        self.assertEqual('Version mismatch', response.json.get('detail'))
+        self._assertScimError(response.json, detail='Version mismatch')
 
     def _perform_search(self, filter: str, start: int = 1, count: int = 10, return_json: bool = False):
         logger.info(f'Searching for group(s) using filter {repr(filter)}')
