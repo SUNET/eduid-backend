@@ -144,6 +144,14 @@ class TestGroupResource_POST(TestGroupResource):
         self.assertEqual(f'http://localhost:8000/Groups/{response.json.get("id")}', meta.get('location'))
         self.assertEqual(f'Group', meta.get('resourceType'))
 
+    def test_schema_violation(self):
+        # request missing displayName
+        req = {'schemas': [SCIMSchema.CORE_20_GROUP.value], 'members': []}
+        response = self.client.simulate_post(path=f'/Groups/', body=self.as_json(req), headers=self.headers)
+        self._assertScimError(response.json, detail="{'displayName': ['Missing data for required field.']}")
+
+
+class TestGroupResource_PUT(TestGroupResource):
     def test_update_group(self):
         db_group = self.add_group(uuid4(), 'Test Group 1')
         subgroup = self.add_group(uuid4(), 'Test Group 2')
@@ -198,14 +206,6 @@ class TestGroupResource_POST(TestGroupResource):
         )
         self._assertScimError(response.json, detail='Id mismatch')
 
-    def test_schema_violation(self):
-        # request missing displayName
-        req = {'schemas': [SCIMSchema.CORE_20_GROUP.value], 'id': str(uuid4()), 'members': []}
-        response = self.client.simulate_put(path=f'/Groups/{uuid4()}', body=self.as_json(req), headers=self.headers)
-        self._assertScimError(response.json, detail="{'displayName': ['Missing data for required field.']}")
-
-
-class TestGroupResource_PUT(TestGroupResource):
     def test_update_group_not_found(self):
         req = {
             'schemas': [SCIMSchema.CORE_20_GROUP.value],
@@ -229,6 +229,46 @@ class TestGroupResource_PUT(TestGroupResource):
         )
         self._assertScimError(response.json, detail='Version mismatch')
 
+    def test_update_group_member_does_not_exist(self):
+        db_group = self.add_group(uuid4(), 'Test Group 1')
+        _user_scim_id = str(uuid4())
+        members = [
+            {'value': _user_scim_id, '$ref': f'http://localhost:8000/Users/{_user_scim_id}', 'display': 'Test User 1',}
+        ]
+        req = {
+            'schemas': [SCIMSchema.CORE_20_GROUP.value],
+            'id': str(db_group.scim_id),
+            'displayName': 'Another display name',
+            'members': members,
+        }
+        self.headers['IF-MATCH'] = make_etag(db_group.version)
+        response = self.client.simulate_put(
+            path=f'/Groups/{db_group.scim_id}', body=self.as_json(req), headers=self.headers
+        )
+        self._assertScimError(response.json, detail=f'User {_user_scim_id} not found')
+
+    def test_update_group_subgroup_does_not_exist(self):
+        db_group = self.add_group(uuid4(), 'Test Group 1')
+        _subgroup_scim_id = str(uuid4())
+        members = [
+            {
+                'value': _subgroup_scim_id,
+                '$ref': f'http://localhost:8000/Groups/{_subgroup_scim_id}',
+                'display': 'Test Group 2',
+            }
+        ]
+        req = {
+            'schemas': [SCIMSchema.CORE_20_GROUP.value],
+            'id': str(db_group.scim_id),
+            'displayName': 'Another display name',
+            'members': members,
+        }
+        self.headers['IF-MATCH'] = make_etag(db_group.version)
+        response = self.client.simulate_put(
+            path=f'/Groups/{db_group.scim_id}', body=self.as_json(req), headers=self.headers
+        )
+        self._assertScimError(response.json, detail=f'Group {_subgroup_scim_id} not found')
+
     def test_schema_violation(self):
         # request missing displayName
         req = {
@@ -249,7 +289,9 @@ class TestGroupResource_DELETE(TestGroupResource):
 
         req = {'schemas': [SCIMSchema.CORE_20_GROUP.value]}
         self.headers['IF-MATCH'] = make_etag(group.version)
-        response = self.client.simulate_delete(path=f'/Groups/{group.scim_id}', body=self.as_json(req), headers=self.headers)
+        response = self.client.simulate_delete(
+            path=f'/Groups/{group.scim_id}', body=self.as_json(req), headers=self.headers
+        )
         self.assertEqual(204, response.status_code)
 
         # Verify the group is no longer in the database
@@ -261,7 +303,9 @@ class TestGroupResource_DELETE(TestGroupResource):
 
         req = {'schemas': [SCIMSchema.CORE_20_GROUP.value]}
         self.headers['IF-MATCH'] = make_etag(ObjectId())
-        response = self.client.simulate_delete(path=f'/Groups/{group.scim_id}', body=self.as_json(req), headers=self.headers)
+        response = self.client.simulate_delete(
+            path=f'/Groups/{group.scim_id}', body=self.as_json(req), headers=self.headers
+        )
         self._assertScimError(response.json, detail='Version mismatch')
 
     def test_group_not_found(self):
