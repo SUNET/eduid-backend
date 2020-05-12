@@ -151,21 +151,30 @@ class TestTouUser(TestCase):
         user = ToUUser(data=userdata)
         self.assertEqual(user.tou.to_list_of_dicts()[0]['version'], '1')
 
+    def test_proper_new_user(self):
+        one = copy.deepcopy(_one_dict)
+        tou = [ToUEvent(data=one, raise_on_unknown=False)]
+        userdata = copy.deepcopy(NEW_USER_EXAMPLE)
+        userid = userdata['_id']
+        eppn = userdata['eduPersonPrincipalName']
+        user = ToUUser.new(userid=userid, eppn=eppn, tou=tou)
+        self.assertEqual(user.tou.to_list_of_dicts()[0]['version'], '1')
+
     def test_missing_eppn(self):
         one = copy.deepcopy(_one_dict)
         tou = ToUEvent(data=one, raise_on_unknown=False)
         with self.assertRaises(UserMissingData):
-            user = ToUUser(tou=[tou], userid=USERID)
+            ToUUser(tou=[tou], userid=USERID)
 
     def test_missing_userid(self):
         one = copy.deepcopy(_one_dict)
         tou = ToUEvent(data=one, raise_on_unknown=False)
         with self.assertRaises(UserMissingData):
-            user = ToUUser(tou=[tou], eppn=EPPN)
+            ToUUser(tou=[tou], eppn=EPPN)
 
     def test_missing_tou(self):
         with self.assertRaises(UserMissingData):
-            user = ToUUser(eppn=EPPN, userid=USERID)
+            ToUUser(eppn=EPPN, userid=USERID)
 
     def test_unknown_data(self):
         one = copy.deepcopy(_one_dict)
@@ -174,7 +183,7 @@ class TestTouUser(TestCase):
         userdata['tou'] = [tou]
         userdata['foo'] = 'bar'
         with self.assertRaises(UserHasUnknownData):
-            user = ToUUser(data=userdata)
+            ToUUser(data=userdata)
 
     def test_unknown_data_dont_raise(self):
         one = copy.deepcopy(_one_dict)

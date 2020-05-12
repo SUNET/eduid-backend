@@ -32,6 +32,8 @@
 
 __author__ = 'eperez'
 
+from typing import Optional, Union
+
 import bson
 
 from eduid_userdb import User
@@ -74,3 +76,16 @@ class ToUUser(User):
             )
 
         User.__init__(self, data, raise_on_unknown=raise_on_unknown)
+
+    @classmethod
+    def new(cls,
+            userid: Optional[Union[bson.ObjectId, str]] = None,
+            eppn: Optional[str] = None,
+            **kwargs):
+        """
+        """
+        if userid is not None:
+            kwargs['_id'] = userid
+        if eppn is not None:
+            kwargs['eduPersonPrincipalName'] = eppn
+        return cls(data=kwargs)

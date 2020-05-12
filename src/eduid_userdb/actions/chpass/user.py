@@ -33,6 +33,7 @@
 __author__ = 'eperez'
 
 from copy import deepcopy
+from typing import Optional, Union
 
 import bson
 
@@ -90,13 +91,23 @@ class ChpassUser(User):
             self._data.update(self._data_in)
 
     @classmethod
+    def new(cls,
+            userid: Optional[Union[bson.ObjectId, str]] = None,
+            **kwargs):
+        """
+        """
+        if userid is not None:
+            kwargs['_id'] = userid
+        return cls(data=kwargs)
+
+    @classmethod
     def from_central_user(cls, user):
-        '''
+        """
         Create user from generic user.
 
         :param user: user from central db
         :type user: eduid_userdb.user.User
-        '''
+        """
         data = {'_id': user.user_id, 'passwords': user.credentials.to_list_of_dicts(), 'modified_ts': user.modified_ts}
         return cls(data=data)
 
