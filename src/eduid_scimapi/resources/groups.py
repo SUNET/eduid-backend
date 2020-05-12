@@ -106,17 +106,17 @@ class GroupsResource(SCIMResource):
             if not db_group:
                 raise NotFound(detail="Group not found")
             self._db_group_to_response(resp, db_group)
-        else:
-            # Return all Groups for scope
-            db_groups = req.context['groupdb'].get_groups()
-            list_response = ListResponse(total_results=len(db_groups))
-            resources = []
-            for db_group in db_groups:
-                resources.append(
-                    {'id': str(db_group.scim_id), 'displayName': db_group.graph.display_name,}
-                )
-            list_response.resources = resources
-            resp.media = ListResponseSchema().dump(list_response)
+            return
+
+        # Return all Groups for scope
+        db_groups = req.context['groupdb'].get_groups()
+        resources = []
+        for db_group in db_groups:
+            resources.append(
+                {'id': str(db_group.scim_id), 'displayName': db_group.graph.display_name,}
+            )
+        list_response = ListResponse(total_results=len(db_groups), resources=resources)
+        resp.media = ListResponseSchema().dump(list_response)
 
     def on_put(self, req: Request, resp: Response, scim_id: str):
         """
