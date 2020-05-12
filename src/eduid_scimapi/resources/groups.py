@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import List, Optional, Tuple
 from uuid import UUID
 
-from falcon import Request, Response
+from falcon import HTTP_204, Request, Response
 from marshmallow.exceptions import ValidationError
 
 from eduid_scimapi.exceptions import BadRequest, NotFound
@@ -256,9 +256,7 @@ class GroupsResource(SCIMResource):
         self._db_group_to_response(resp, db_group)
 
     def on_delete(self, req: Request, resp: Response, scim_id: str):
-        self.context.logger.info(f"Fetching group {scim_id}")
-
-        # Get group from db
+        self.context.logger.info(f'Deleting group {scim_id}')
         db_group = ctx_groupdb(req).get_group_by_scim_id(scim_id=scim_id)
         self.context.logger.debug(f'Found group: {db_group}')
         if not db_group:
@@ -268,8 +266,10 @@ class GroupsResource(SCIMResource):
         if not self._check_version(req, db_group):
             raise BadRequest(detail="Version mismatch")
 
-        ctx_groupdb(req).remove_group(db_group)
-        resp.status = '204'
+        res = ctx_groupdb(req).remove_group(db_group)
+        self.context.logger.debug(f'Remove group result: {res}')
+
+        resp.status = HTTP_204
 
 
 class GroupSearchResource(BaseResource):
