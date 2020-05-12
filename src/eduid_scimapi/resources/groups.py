@@ -29,7 +29,6 @@ from eduid_scimapi.scimbase import (
     make_etag,
 )
 from eduid_scimapi.search import SearchFilter, parse_search_filter
-from eduid_userdb.exceptions import MultipleDocumentsReturned
 
 
 class GroupsResource(SCIMResource):
@@ -187,13 +186,7 @@ class GroupsResource(SCIMResource):
         )
 
         self.context.logger.info(f"Fetching group {scim_id}")
-
-        # Get group from db
-        try:
-            db_group = req.context['groupdb'].get_group_by_scim_id(str(update_request.id))
-        except MultipleDocumentsReturned as e:
-            raise BadRequest(detail=f"{e}")
-
+        db_group = req.context['groupdb'].get_group_by_scim_id(str(update_request.id))
         self.context.logger.debug(f'Found group: {db_group}')
         if not db_group:
             raise NotFound(detail="Group not found")
