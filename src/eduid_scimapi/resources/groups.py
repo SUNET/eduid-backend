@@ -211,6 +211,7 @@ class GroupsResource(SCIMResource):
         # Load the group from the database to ensure results are consistent with subsequent GETs.
         # For example, timestamps have higher resolution in updated_group than after a load.
         db_group = ctx_groupdb(req).get_group_by_scim_id(str(updated_group.scim_id))
+        assert db_group  # please mypy
         self._db_group_to_response(resp, db_group)
 
     def on_post(self, req: Request, resp: Response):
@@ -243,7 +244,7 @@ class GroupsResource(SCIMResource):
             }
         }
         """
-        self.context.logger.info(f"Creating group")
+        self.context.logger.info('Creating group')
         try:
             group: Group = GroupCreateRequestSchema().load(req.media)
         except ValidationError as e:
@@ -253,8 +254,9 @@ class GroupsResource(SCIMResource):
         # Load the group from the database to ensure results are consistent with subsequent GETs.
         # For example, timestamps have higher resolution in created_group than after a load.
         db_group = ctx_groupdb(req).get_group_by_scim_id(str(created_group.scim_id))
-        resp.status = '201'
+        assert db_group  # please mypy
         self._db_group_to_response(resp, db_group)
+        resp.status = '201'
 
     def on_delete(self, req: Request, resp: Response, scim_id: str):
         self.context.logger.info(f'Deleting group {scim_id}')
@@ -330,6 +332,8 @@ class GroupSearchResource(BaseResource):
     ) -> Tuple[List[ScimApiGroup], int]:
         if filter.op != 'eq':
             raise BadRequest(scim_type='invalidFilter', detail='Unsupported operator')
+        if not isinstance(filter.val, str):
+            raise BadRequest(scim_type='invalidFilter', detail='Invalid displayName')
 
         self.context.logger.debug(f'Searching for group with display name {repr(filter.val)}')
         groups, count = ctx_groupdb(req).get_groups_by_property(
