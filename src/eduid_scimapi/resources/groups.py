@@ -6,8 +6,6 @@ from uuid import UUID
 from falcon import Request, Response
 from marshmallow.exceptions import ValidationError
 
-from eduid_groupdb.exceptions import MultipleReturnedError
-
 from eduid_scimapi.exceptions import BadRequest, NotFound
 from eduid_scimapi.group import (
     Group,
@@ -31,6 +29,7 @@ from eduid_scimapi.scimbase import (
     make_etag,
 )
 from eduid_scimapi.search import SearchFilter, parse_search_filter
+from eduid_userdb.exceptions import MultipleDocumentsReturned
 
 
 class GroupsResource(SCIMResource):
@@ -172,50 +171,54 @@ class GroupsResource(SCIMResource):
         """
         try:
             update_request: GroupUpdateRequest = GroupUpdateRequestSchema().load(req.media)
-            self.context.logger.debug(update_request)
-            if scim_id != str(update_request.id):
-                self.context.logger.error(f'Id mismatch')
-                self.context.logger.debug(f'{scim_id} != {update_request.id}')
-                raise BadRequest(detail='Id mismatch')
-
-            # Please mypy as GroupUpdateRequest no longer inherit from Group
-            group = Group(
-                display_name=update_request.display_name,
-                members=update_request.members,
-                nutid_group_v1=update_request.nutid_group_v1,
-            )
-
-            self.context.logger.info(f"Fetching group {scim_id}")
-
-            # Get group from db
-            db_group = req.context['groupdb'].get_group_by_scim_id(str(update_request.id))
-            self.context.logger.debug(f'Found group: {db_group}')
-            if not db_group:
-                raise NotFound(detail="Group not found")
-
-            # Check version
-            if not self._check_version(req, db_group):
-                raise BadRequest(detail="Version mismatch")
-
-            # Check that members exists in their respective db
-            self.context.logger.info(f'Checking if group and user members exists')
-            for member in group.members:
-                if 'Groups' in member.ref:
-                    if not req.context['groupdb'].group_exists(identifier=str(member.value)):
-                        self.context.logger.error(f'Group {member.value} not found')
-                        raise BadRequest(detail=f'Group {member.value} not found')
-                if 'Users' in member.ref:
-                    if not req.context['userdb'].user_exists(scim_id=str(member.value)):
-                        self.context.logger.error(f'User {member.value} not found')
-                        raise BadRequest(detail=f'User {member.value} not found')
-
-            updated_group = req.context['groupdb'].update_group(scim_group=group, db_group=db_group)
-            # Load the group from the database to ensure results are consistent with subsequent GETs.
-            # For example, timestamps have higher resolution in updated_group than after a load.
-            db_group = req.context['groupdb'].get_group_by_scim_id(str(updated_group.scim_id))
-            self._db_group_to_response(resp, db_group)
-        except (ValidationError, MultipleReturnedError) as e:
+        except ValidationError as e:
             raise BadRequest(detail=f"{e}")
+        self.context.logger.debug(update_request)
+        if scim_id != str(update_request.id):
+            self.context.logger.error(f'Id mismatch')
+            self.context.logger.debug(f'{scim_id} != {update_request.id}')
+            raise BadRequest(detail='Id mismatch')
+
+        # Please mypy as GroupUpdateRequest no longer inherit from Group
+        group = Group(
+            display_name=update_request.display_name,
+            members=update_request.members,
+            nutid_group_v1=update_request.nutid_group_v1,
+        )
+
+        self.context.logger.info(f"Fetching group {scim_id}")
+
+        # Get group from db
+        try:
+            db_group = req.context['groupdb'].get_group_by_scim_id(str(update_request.id))
+        except MultipleDocumentsReturned as e:
+            raise BadRequest(detail=f"{e}")
+
+        self.context.logger.debug(f'Found group: {db_group}')
+        if not db_group:
+            raise NotFound(detail="Group not found")
+
+        # Check version
+        if not self._check_version(req, db_group):
+            raise BadRequest(detail="Version mismatch")
+
+        # Check that members exists in their respective db
+        self.context.logger.info(f'Checking if group and user members exists')
+        for member in group.members:
+            if 'Groups' in member.ref:
+                if not req.context['groupdb'].group_exists(identifier=str(member.value)):
+                    self.context.logger.error(f'Group {member.value} not found')
+                    raise BadRequest(detail=f'Group {member.value} not found')
+            if 'Users' in member.ref:
+                if not req.context['userdb'].user_exists(scim_id=str(member.value)):
+                    self.context.logger.error(f'User {member.value} not found')
+                    raise BadRequest(detail=f'User {member.value} not found')
+
+        updated_group = req.context['groupdb'].update_group(scim_group=group, db_group=db_group)
+        # Load the group from the database to ensure results are consistent with subsequent GETs.
+        # For example, timestamps have higher resolution in updated_group than after a load.
+        db_group = req.context['groupdb'].get_group_by_scim_id(str(updated_group.scim_id))
+        self._db_group_to_response(resp, db_group)
 
     def on_post(self, req: Request, resp: Response):
         """
@@ -250,15 +253,15 @@ class GroupsResource(SCIMResource):
         self.context.logger.info(f"Creating group")
         try:
             group: Group = GroupCreateRequestSchema().load(req.media)
-            self.context.logger.debug(group)
-            created_group = req.context['groupdb'].create_group(scim_group=group)
-            # Load the group from the database to ensure results are consistent with subsequent GETs.
-            # For example, timestamps have higher resolution in created_group than after a load.
-            db_group = req.context['groupdb'].get_group_by_scim_id(str(created_group.scim_id))
-            resp.status = '201'
-            self._db_group_to_response(resp, db_group)
         except ValidationError as e:
             raise BadRequest(detail=f"{e}")
+        self.context.logger.debug(group)
+        created_group = req.context['groupdb'].create_group(scim_group=group)
+        # Load the group from the database to ensure results are consistent with subsequent GETs.
+        # For example, timestamps have higher resolution in created_group than after a load.
+        db_group = req.context['groupdb'].get_group_by_scim_id(str(created_group.scim_id))
+        resp.status = '201'
+        self._db_group_to_response(resp, db_group)
 
     def on_delete(self, req: Request, resp: Response, scim_id: str):
         self.context.logger.info(f"Fetching group {scim_id}")
@@ -304,8 +307,8 @@ class GroupSearchResource(BaseResource):
             ]
         }
         """
+        self.context.logger.info('Searching for group(s)')
         try:
-            self.context.logger.info('Searching for group(s)')
             query: SearchRequest = SearchRequestSchema().load(req.media)
         except ValidationError as e:
             raise BadRequest(detail=f"{e}")
