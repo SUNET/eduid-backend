@@ -358,7 +358,7 @@ class GroupSearchResource(BaseResource):
         if filter.op != 'eq':
             raise BadRequest(scim_type='invalidFilter', detail='Unsupported operator')
 
-        match = re.match('^extensions\.data\.([a-z_]+)$', filter.attr)
+        match = re.match(r'^extensions\.data\.([a-z_]+)$', filter.attr)
         if not match:
             raise BadRequest(scim_type='invalidFilter', detail='Unsupported extension search key')
 
