@@ -146,13 +146,19 @@ class TestGroupResource_POST(TestGroupResource):
 
     def test_update_group(self):
         db_group = self.add_group(uuid4(), 'Test Group 1')
+        subgroup = self.add_group(uuid4(), 'Test Group 2')
         user = self.add_user(identifier=str(uuid4()), external_id='not-used')
         members = [
             {
                 'value': str(user.scim_id),
                 '$ref': f'http://localhost:8000/Users/{user.scim_id}',
                 'display': 'Test User 1',
-            }
+            },
+            {
+                'value': str(subgroup.scim_id),
+                '$ref': f'http://localhost:8000/Groups/{subgroup.scim_id}',
+                'display': 'Test Group 2',
+            },
         ]
         req = {
             'schemas': [SCIMSchema.CORE_20_GROUP.value],
@@ -169,8 +175,7 @@ class TestGroupResource_POST(TestGroupResource):
         self.assertIsNotNone(response.json.get('id'))
         self.assertEqual(f'http://localhost:8000/Groups/{response.json.get("id")}', response.headers.get('location'))
         self.assertEqual('Another display name', response.json.get('displayName'))
-        self.assertEqual(1, len(response.json.get('members')))
-        self.assertEqual(members[0], response.json.get('members')[0])
+        self.assertEqual(members, response.json.get('members'))
 
         meta = response.json.get('meta')
         self.assertIsNotNone(meta)

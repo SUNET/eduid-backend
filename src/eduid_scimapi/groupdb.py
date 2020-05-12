@@ -137,7 +137,7 @@ class ScimApiGroupDB(ScimApiBaseDB):
                 if user_updated:
                     update_member = GraphUser(identifier=str(member.value), display_name=member.display)
                 elif group_updated:
-                    update_member = db_group.graph.get_member_group(identifier=str(member.value))
+                    update_member = GraphGroup(identifier=str(member.value), display_name=member.display)
                 logger.debug(f'Added new member: {update_member}')
             # Update member attributes if they changed
             elif update_member.display_name != member.display:

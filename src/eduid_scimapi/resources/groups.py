@@ -167,6 +167,7 @@ class GroupsResource(SCIMResource):
         }
 
         """
+        self.context.logger.info('Updating group')
         try:
             update_request: GroupUpdateRequest = GroupUpdateRequestSchema().load(req.media)
         except ValidationError as e:
