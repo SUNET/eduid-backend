@@ -5,7 +5,9 @@ from jose import ExpiredSignatureError, jwt
 
 from eduid_scimapi.context import Context
 from eduid_scimapi.exceptions import Unauthorized, UnsupportedMediaTypeMalformed
+from eduid_scimapi.groupdb import ScimApiGroupDB
 from eduid_scimapi.resources.base import BaseResource
+from eduid_scimapi.userdb import ScimApiUserDB
 
 
 class HandleSCIM(object):
@@ -84,3 +86,13 @@ class HandleAuthentication(object):
 
     def process_response(self, req: Request, resp: Response, resource: BaseResource, req_succeeded: bool):
         pass
+
+
+def ctx_userdb(req: Request) -> ScimApiUserDB:
+    """ Retrieve the userdb put in the request context by the middleware in a way that mypy can understand. """
+    return req.context['userdb']
+
+
+def ctx_groupdb(req: Request) -> ScimApiGroupDB:
+    """ Retrieve the groupdb put in the request context by the middleware in a way that mypy can understand. """
+    return req.context['groupdb']
