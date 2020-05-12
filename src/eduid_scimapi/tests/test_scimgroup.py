@@ -103,6 +103,10 @@ class TestGroupResource(ScimApiTestCase):
         self.assertEqual(f'http://localhost:8000/Groups/{response.json.get("id")}', meta.get('location'))
         self.assertEqual(f'Group', meta.get('resourceType'))
 
+    def test_get_group_not_found(self):
+        response = self.client.simulate_get(path=f'/Groups/{uuid4()}', headers=self.headers)
+        self._assertScimError(response.json, status=404, detail='Group not found')
+
     def test_create_group(self):
         req = {'schemas': [SCIMSchema.CORE_20_GROUP.value], 'displayName': 'Test Group 1', 'members': []}
         response = self.client.simulate_post(path='/Groups/', body=self.as_json(req), headers=self.headers)
@@ -196,6 +200,10 @@ class TestGroupResource(ScimApiTestCase):
         json = self._perform_search(filter='displayName lt 1', return_json=True)
         self._assertScimError(json, scim_type='invalidFilter', detail='Unsupported operator')
 
+    def test_search_group_unknown_attribute(self):
+        json = self._perform_search(filter='no_such_attribute lt 1', return_json=True)
+        self._assertScimError(json, scim_type='invalidFilter', detail='Can\'t filter on attribute no_such_attribute')
+
     def test_search_group_start_index(self):
         for i in range(9):
             self.add_group(uuid4(), f'Test Group')
@@ -263,6 +271,13 @@ class TestGroupResource(ScimApiTestCase):
         self.assertEqual(str(group2.scim_id), resources[0].get('id'))
         self.assertEqual(group2.display_name, resources[0].get('displayName'))
 
+    def test_schema_violation(self):
+        # request missing filter
+        req = {
+            'schemas': [SCIMSchema.API_MESSAGES_20_SEARCH_REQUEST.value],
+        }
+        response = self.client.simulate_post(path='/Groups/.search', body=self.as_json(req), headers=self.headers)
+        self._assertScimError(response.json, detail="{'filter': ['Missing data for required field.']}")
     def test_nutid_extension(self):
         display_name = 'Test Group with Nutid extension'
         nutid_data = {'data': {'testing': 'certainly'}}
