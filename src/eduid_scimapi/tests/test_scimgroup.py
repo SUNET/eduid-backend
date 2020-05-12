@@ -78,6 +78,23 @@ class TestGroupResource(ScimApiTestCase):
         self.groupdb.save(group)
         return group
 
+    def _perform_search(self, filter: str, start: int = 1, count: int = 10, return_json: bool = False):
+        logger.info(f'Searching for group(s) using filter {repr(filter)}')
+        req = {
+            'schemas': [SCIMSchema.API_MESSAGES_20_SEARCH_REQUEST.value],
+            'filter': filter,
+            'startIndex': start,
+            'count': count,
+        }
+        response = self.client.simulate_post(path='/Groups/.search', body=self.as_json(req), headers=self.headers)
+        logger.info(f'Search response:\n{response.json}')
+        if return_json:
+            return response.json
+        self.assertEqual([SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value], response.json.get('schemas'))
+        return response.json.get('Resources')
+
+
+class TestGroupResource_GET(TestGroupResource):
     def test_get_groups(self):
         for i in range(9):
             self.add_group(uuid4(), f'Test Group {i}')
@@ -107,6 +124,8 @@ class TestGroupResource(ScimApiTestCase):
         response = self.client.simulate_get(path=f'/Groups/{uuid4()}', headers=self.headers)
         self._assertScimError(response.json, status=404, detail='Group not found')
 
+
+class TestGroupResource_POST(TestGroupResource):
     def test_create_group(self):
         req = {'schemas': [SCIMSchema.CORE_20_GROUP.value], 'displayName': 'Test Group 1', 'members': []}
         response = self.client.simulate_post(path='/Groups/', body=self.as_json(req), headers=self.headers)
@@ -174,6 +193,8 @@ class TestGroupResource(ScimApiTestCase):
         )
         self._assertScimError(response.json, detail='Id mismatch')
 
+
+class TestGroupResource_PUT(TestGroupResource):
     def test_update_group_not_found(self):
         req = {
             'schemas': [SCIMSchema.CORE_20_GROUP.value],
@@ -184,6 +205,21 @@ class TestGroupResource(ScimApiTestCase):
         response = self.client.simulate_put(path=f'/Groups/{req["id"]}', body=self.as_json(req), headers=self.headers)
         self._assertScimError(response.json, status=404, detail='Group not found')
 
+    def test_version_mismatch(self):
+        db_group = self.add_group(uuid4(), 'Test Group 1')
+        req = {
+            'schemas': [SCIMSchema.CORE_20_GROUP.value],
+            'id': str(db_group.scim_id),
+            'displayName': 'Another display name',
+        }
+        self.headers['IF-MATCH'] = make_etag(ObjectId())
+        response = self.client.simulate_put(
+            path=f'/Groups/{db_group.scim_id}', body=self.as_json(req), headers=self.headers
+        )
+        self._assertScimError(response.json, detail='Version mismatch')
+
+
+class TestGroupSearchResource(TestGroupResource):
     def test_search_group_display_name(self):
         db_group = self.add_group(uuid4(), 'Test Group 1')
         self.add_group(uuid4(), 'Test Group 2')
@@ -278,6 +314,9 @@ class TestGroupResource(ScimApiTestCase):
         }
         response = self.client.simulate_post(path='/Groups/.search', body=self.as_json(req), headers=self.headers)
         self._assertScimError(response.json, detail="{'filter': ['Missing data for required field.']}")
+
+
+class TestGroupExtensionData(TestGroupResource):
     def test_nutid_extension(self):
         display_name = 'Test Group with Nutid extension'
         nutid_data = {'data': {'testing': 'certainly'}}
@@ -338,31 +377,3 @@ class TestGroupResource(ScimApiTestCase):
         self.assertNotEqual(meta['version'], prev_meta['version'])
         self.assertEqual(f'http://localhost:8000/Groups/{scim_id}', meta.get('location'))
         self.assertEqual('Group', meta.get('resourceType'))
-
-    def test_version_mismatch(self):
-        db_group = self.add_group(uuid4(), 'Test Group 1')
-        req = {
-            'schemas': [SCIMSchema.CORE_20_GROUP.value],
-            'id': str(db_group.scim_id),
-            'displayName': 'Another display name',
-        }
-        self.headers['IF-MATCH'] = make_etag(ObjectId())
-        response = self.client.simulate_put(
-            path=f'/Groups/{db_group.scim_id}', body=self.as_json(req), headers=self.headers
-        )
-        self._assertScimError(response.json, detail='Version mismatch')
-
-    def _perform_search(self, filter: str, start: int = 1, count: int = 10, return_json: bool = False):
-        logger.info(f'Searching for group(s) using filter {repr(filter)}')
-        req = {
-            'schemas': [SCIMSchema.API_MESSAGES_20_SEARCH_REQUEST.value],
-            'filter': filter,
-            'startIndex': start,
-            'count': count,
-        }
-        response = self.client.simulate_post(path='/Groups/.search', body=self.as_json(req), headers=self.headers)
-        logger.info(f'Search response:\n{response.json}')
-        if return_json:
-            return response.json
-        self.assertEqual([SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value], response.json.get('schemas'))
-        return response.json.get('Resources')
