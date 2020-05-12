@@ -42,7 +42,7 @@ class GroupsResource(SCIMResource):
             members.append(GroupMember(value=UUID(member.identifier), ref=ref, display=member.display_name))
         return members
 
-    def _db_group_to_response(self, resp: Response, db_group: ScimApiGroup):
+    def _db_group_to_response(self, resp: Response, db_group: ScimApiGroup) -> None:
         members = self._get_group_members(db_group)
         location = self.url_for("Groups", str(db_group.scim_id))
         meta = Meta(
@@ -198,11 +198,11 @@ class GroupsResource(SCIMResource):
         # Check that members exists in their respective db
         self.context.logger.info(f'Checking if group and user members exists')
         for member in group.members:
-            if 'Groups' in member.ref:
+            if '/Groups/' in member.ref:
                 if not req.context['groupdb'].group_exists(identifier=str(member.value)):
                     self.context.logger.error(f'Group {member.value} not found')
                     raise BadRequest(detail=f'Group {member.value} not found')
-            if 'Users' in member.ref:
+            if '/Users/' in member.ref:
                 if not req.context['userdb'].user_exists(scim_id=str(member.value)):
                     self.context.logger.error(f'User {member.value} not found')
                     raise BadRequest(detail=f'User {member.value} not found')
