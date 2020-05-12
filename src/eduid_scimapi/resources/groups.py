@@ -351,11 +351,12 @@ class GroupSearchResource(BaseResource):
     ) -> Tuple[List[ScimApiGroup], int]:
         if filter.op not in ['gt', 'ge']:
             raise BadRequest(scim_type='invalidFilter', detail='Unsupported operator')
-        if not isinstance(filter.val, str):
+        try:
+            assert isinstance(filter.val, str)
+            _parsed = datetime.fromisoformat(filter.val)
+        except:
             raise BadRequest(scim_type='invalidFilter', detail='Invalid datetime')
-        return ctx_groupdb(req).get_groups_by_last_modified(
-            operator=filter.op, value=datetime.fromisoformat(filter.val), skip=skip, limit=limit
-        )
+        return ctx_groupdb(req).get_groups_by_last_modified(operator=filter.op, value=_parsed, skip=skip, limit=limit)
 
     def _filter_extensions_data(
         self, req: Request, filter: SearchFilter, skip: Optional[int] = None, limit: Optional[int] = None,
@@ -371,8 +372,4 @@ class GroupSearchResource(BaseResource):
         groups, count = ctx_groupdb(req).get_groups_by_property(
             key=filter.attr, value=filter.val, skip=skip, limit=limit
         )
-
-        if not groups:
-            return [], 0
-
         return groups, count

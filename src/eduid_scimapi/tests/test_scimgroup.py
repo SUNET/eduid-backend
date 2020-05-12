@@ -330,6 +330,10 @@ class TestGroupSearchResource(TestGroupResource):
         json = self._perform_search(filter='displayName lt 1', return_json=True)
         self._assertScimError(json, scim_type='invalidFilter', detail='Unsupported operator')
 
+    def test_search_group_display_name_not_string(self):
+        json = self._perform_search(filter='displayName eq 1', return_json=True)
+        self._assertScimError(json, scim_type='invalidFilter', detail='Invalid displayName')
+
     def test_search_group_unknown_attribute(self):
         json = self._perform_search(filter='no_such_attribute lt 1', return_json=True)
         self._assertScimError(json, scim_type='invalidFilter', detail='Can\'t filter on attribute no_such_attribute')
@@ -400,6 +404,14 @@ class TestGroupSearchResource(TestGroupResource):
         self.assertEqual(1, len(resources))
         self.assertEqual(str(group2.scim_id), resources[0].get('id'))
         self.assertEqual(group2.display_name, resources[0].get('displayName'))
+
+    def test_search_group_last_modified_invalid_datetime_1(self):
+        json = self._perform_search(filter=f'meta.lastModified ge 1', return_json=True)
+        self._assertScimError(json, detail='Invalid datetime')
+
+    def test_search_group_last_modified_invalid_datetime_2(self):
+        json = self._perform_search(filter=f'meta.lastModified ge "2020-05-12_15:36:00+00"', return_json=True)
+        self._assertScimError(json, detail='Invalid datetime')
 
     def test_schema_violation(self):
         # request missing filter
