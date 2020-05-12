@@ -4,7 +4,7 @@ __author__ = 'lundberg'
 
 import logging
 from datetime import datetime
-from typing import Optional
+from typing import Any, List, Mapping, Optional, Set
 from uuid import UUID, uuid4
 
 from bson import ObjectId
@@ -15,7 +15,7 @@ from eduid_groupdb import User as GraphUser
 
 from eduid_scimapi.group import GroupMember, GroupResponse
 from eduid_scimapi.groupdb import GroupExtensions, ScimApiGroup
-from eduid_scimapi.scimbase import Meta, SCIMResourceType, SCIMSchema, make_etag
+from eduid_scimapi.scimbase import Meta, SCIMResourceType, SCIMSchema, SubResource, make_etag
 from eduid_scimapi.testing import ScimApiTestCase
 from eduid_scimapi.tests.test_scimbase import TestScimBase
 
@@ -171,7 +171,7 @@ class TestGroupResource_PUT(TestGroupResource):
         req = {
             'schemas': [SCIMSchema.CORE_20_GROUP.value],
             'id': str(db_group.scim_id),
-            'displayName': 'Another display name',
+            'displayName': db_group.display_name,
             'members': members,
         }
         self.headers['IF-MATCH'] = make_etag(db_group.version)
@@ -182,7 +182,7 @@ class TestGroupResource_PUT(TestGroupResource):
         self.assertEqual([SCIMSchema.CORE_20_GROUP.value], response.json.get('schemas'))
         self.assertIsNotNone(response.json.get('id'))
         self.assertEqual(f'http://localhost:8000/Groups/{response.json.get("id")}', response.headers.get('location'))
-        self.assertEqual('Another display name', response.json.get('displayName'))
+        self.assertEqual(db_group.display_name, response.json.get('displayName'))
         self.assertEqual(members, response.json.get('members'))
 
         meta = response.json.get('meta')
@@ -192,6 +192,95 @@ class TestGroupResource_PUT(TestGroupResource):
         self.assertIsNotNone(meta.get('version'))
         self.assertEqual(f'http://localhost:8000/Groups/{db_group.scim_id}', meta.get('location'))
         self.assertEqual(f'Group', meta.get('resourceType'))
+
+    def test_update_existing_group(self):
+        db_group = self.add_group(uuid4(), 'Test Group 1')
+        subgroup = self.add_group(uuid4(), 'Test Group 2')
+        user = self.add_user(identifier=str(uuid4()), external_id='not-used')
+        members = [
+            {
+                'value': str(user.scim_id),
+                '$ref': f'http://localhost:8000/Users/{user.scim_id}',
+                'display': 'Test User 1',
+            },
+            {
+                'value': str(subgroup.scim_id),
+                '$ref': f'http://localhost:8000/Groups/{subgroup.scim_id}',
+                'display': 'Test Group 2',
+            },
+        ]
+        updated_display_name = 'Another display name'
+        req = {
+            'schemas': [SCIMSchema.CORE_20_GROUP.value, SCIMSchema.NUTID_GROUP_V1.value],
+            'id': str(db_group.scim_id),
+            'displayName': updated_display_name,
+            'members': members,
+            SCIMSchema.NUTID_GROUP_V1.value: {'data': {'test': 'updated'}},
+        }
+        self.headers['IF-MATCH'] = make_etag(db_group.version)
+        response = self.client.simulate_put(
+            path=f'/Groups/{db_group.scim_id}', body=self.as_json(req), headers=self.headers
+        )
+
+        self.assertEqual(req['schemas'], response.json.get('schemas'))
+        self.assertIsNotNone(response.json.get('id'))
+        self.assertEqual(f'http://localhost:8000/Groups/{response.json.get("id")}', response.headers.get('location'))
+        self.assertEqual(updated_display_name, response.json.get('displayName'))
+        self.assertSetEqual(_members_to_set(members), _members_to_set(response.json.get('members')))
+        self.assertEqual(req[SCIMSchema.NUTID_GROUP_V1.value], response.json.get(SCIMSchema.NUTID_GROUP_V1.value))
+
+        members[0]['display'] += ' (updated)'
+        members[1]['display'] += ' (also updated)'
+
+        self.headers['IF-MATCH'] = response.headers['Etag']
+        response = self.client.simulate_put(
+            path=f'/Groups/{db_group.scim_id}', body=self.as_json(req), headers=self.headers
+        )
+        self.assertSetEqual(_members_to_set(members), _members_to_set(response.json.get('members')))
+
+    def test_add_member_to_existing_group(self):
+        db_group = self.add_group(uuid4(), 'Test Group 1')
+        user = self.add_user(identifier=str(uuid4()), external_id='not-used')
+        members = [
+            {
+                'value': str(user.scim_id),
+                '$ref': f'http://localhost:8000/Users/{user.scim_id}',
+                'display': 'Test User 1',
+            }
+        ]
+        req = {
+            'schemas': [SCIMSchema.CORE_20_GROUP.value],
+            'id': str(db_group.scim_id),
+            'displayName': db_group.display_name,
+            'members': members,
+        }
+        self.headers['IF-MATCH'] = make_etag(db_group.version)
+        response = self.client.simulate_put(
+            path=f'/Groups/{db_group.scim_id}', body=self.as_json(req), headers=self.headers
+        )
+
+        self.assertEqual(req['schemas'], response.json.get('schemas'))
+        self.assertIsNotNone(response.json.get('id'))
+        self.assertEqual(f'http://localhost:8000/Groups/{response.json.get("id")}', response.headers.get('location'))
+        self.assertEqual(db_group.display_name, response.json.get('displayName'))
+        self.assertSetEqual(_members_to_set(members), _members_to_set(response.json.get('members')))
+
+        # Now, add another user and make a new request
+
+        added_user = self.add_user(identifier=str(uuid4()), external_id='not-used-2')
+        members += [
+            {
+                'value': str(added_user.scim_id),
+                '$ref': f'http://localhost:8000/Users/{added_user.scim_id}',
+                'display': 'Added User',
+            }
+        ]
+
+        self.headers['IF-MATCH'] = response.headers['Etag']
+        response = self.client.simulate_put(
+            path=f'/Groups/{db_group.scim_id}', body=self.as_json(req), headers=self.headers
+        )
+        self.assertEqual(_members_to_set(members), _members_to_set(response.json.get('members')))
 
     def test_update_group_id_mismatch(self):
         db_group = self.add_group(uuid4(), 'Test Group 1')
@@ -483,3 +572,10 @@ class TestGroupExtensionData(TestGroupResource):
         self.assertNotEqual(meta['version'], prev_meta['version'])
         self.assertEqual(f'http://localhost:8000/Groups/{scim_id}', meta.get('location'))
         self.assertEqual('Group', meta.get('resourceType'))
+
+
+def _members_to_set(members: List[Mapping[str, Any]]) -> Set[GroupMember]:
+    res: Set[GroupMember] = set()
+    for this in members:
+        res.add(GroupMember.from_mapping(this))
+    return res

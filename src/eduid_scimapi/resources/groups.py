@@ -198,11 +198,11 @@ class GroupsResource(SCIMResource):
         # Check that members exists in their respective db
         self.context.logger.info(f'Checking if group and user members exists')
         for member in group.members:
-            if '/Groups/' in member.ref:
+            if member.is_group:
                 if not ctx_groupdb(req).group_exists(str(member.value)):
                     self.context.logger.error(f'Group {member.value} not found')
                     raise BadRequest(detail=f'Group {member.value} not found')
-            if '/Users/' in member.ref:
+            if member.is_user:
                 if not ctx_userdb(req).user_exists(scim_id=str(member.value)):
                     self.context.logger.error(f'User {member.value} not found')
                     raise BadRequest(detail=f'User {member.value} not found')

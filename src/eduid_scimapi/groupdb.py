@@ -120,34 +120,32 @@ class ScimApiGroupDB(ScimApiBaseDB):
     def update_group(self, scim_group: SCIMGroup, db_group: ScimApiGroup) -> ScimApiGroup:
         changed = False
         member_changed = False
-        members = []
+        updated_members = []
         logger.info(f'Updating group {str(db_group.scim_id)}')
-        for member in scim_group.members:
-            user_updated, group_updated, update_member = None, None, None
-            if 'Users' in member.ref:
-                user_updated = True
-                update_member = db_group.graph.get_member_user(identifier=str(member.value))
-            elif 'Groups' in member.ref:
-                group_updated = True
-                update_member = db_group.graph.get_member_group(identifier=str(member.value))
+        for this in scim_group.members:
+            if this.is_user:
+                _member = db_group.graph.get_member_user(identifier=str(this.value))
+                _new_member = GraphUser(identifier=str(this.value), display_name=this.display) if not _member else None
+            elif this.is_group:
+                _member = db_group.graph.get_member_group(identifier=str(this.value))
+                _new_member = GraphGroup(identifier=str(this.value), display_name=this.display) if not _member else None
+            else:
+                raise ValueError(f"Don't recognise member {this}")
 
             # Add a new member
-            if update_member is None:
+            if _new_member:
                 member_changed = True
-                if user_updated:
-                    update_member = GraphUser(identifier=str(member.value), display_name=member.display)
-                elif group_updated:
-                    update_member = GraphGroup(identifier=str(member.value), display_name=member.display)
-                logger.debug(f'Added new member: {update_member}')
+                updated_members.append(_new_member)
+                logger.debug(f'Added new member: {_member}')
             # Update member attributes if they changed
-            elif update_member.display_name != member.display:
+            elif _member.display_name != this.display:
                 member_changed = True
-                logger.debug(
-                    f'Changed display name for existing member: {update_member.display_name} -> {member.display}'
-                )
-                update_member.display_name = member.display
-
-            members.append(update_member)
+                logger.debug(f'Changed display name for existing member: {_member.display_name} -> {this.display}')
+                _member.display_name = this.display
+                updated_members.append(_member)
+            else:
+                # no change, retain member as-is
+                updated_members.append(_member)
 
         if db_group.graph.display_name != scim_group.display_name:
             changed = True
@@ -155,11 +153,12 @@ class ScimApiGroupDB(ScimApiBaseDB):
             db_group.graph.display_name = scim_group.display_name
 
         # Check if there where new, changed or removed members
-        if member_changed or set(db_group.graph.members) != set(members):
+        if member_changed:
+            # TODO: If db_group.graph.members was a set, this could be made prettier
             changed = True
             logger.debug(f'Old members: {db_group.graph.members}')
-            logger.debug(f'New members: {members}')
-            db_group.graph.members = members
+            logger.debug(f'New members: {updated_members}')
+            db_group.graph.members = updated_members
 
         _sg_ext = GroupExtensions(data=scim_group.nutid_group_v1.data)
         if db_group.extensions != _sg_ext:
