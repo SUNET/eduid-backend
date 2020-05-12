@@ -198,7 +198,7 @@ class GroupsResource(SCIMResource):
         self.context.logger.info(f'Checking if group and user members exists')
         for member in group.members:
             if '/Groups/' in member.ref:
-                if not ctx_groupdb(req).group_exists(identifier=str(member.value)):
+                if not ctx_groupdb(req).group_exists(str(member.value)):
                     self.context.logger.error(f'Group {member.value} not found')
                     raise BadRequest(detail=f'Group {member.value} not found')
             if '/Users/' in member.ref:
@@ -268,7 +268,7 @@ class GroupsResource(SCIMResource):
         if not self._check_version(req, db_group):
             raise BadRequest(detail="Version mismatch")
 
-        ctx_groupdb(req).remove_group(identifier=scim_id)
+        ctx_groupdb(req).remove_group(db_group)
         resp.status = '204'
 
 

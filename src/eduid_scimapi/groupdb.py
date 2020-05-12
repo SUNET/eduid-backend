@@ -232,3 +232,13 @@ class ScimApiGroupDB(ScimApiBaseDB):
         docs, total_count = self._get_documents_and_count_by_filter(spec=spec, limit=limit, skip=skip)
         groups = [ScimApiGroup.from_dict(x) for x in docs]
         return groups, total_count
+
+    def group_exists(self, scim_id: str) -> bool:
+        doc = self._get_document_by_attr('scim_id', scim_id, raise_on_missing=False)
+        return doc is not None
+
+    def remove_group(self, group: ScimApiGroup) -> bool:
+        if not self.remove_document(group.group_id):
+            return False
+        self.graphdb.remove_group(str(group.scim_id))
+        return True
