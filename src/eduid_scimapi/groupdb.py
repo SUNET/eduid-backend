@@ -5,7 +5,7 @@ import logging
 import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Any, Dict, List, Mapping, Optional, Tuple, Type
+from typing import Any, Dict, List, Mapping, Optional, Tuple, Type, Union
 from uuid import UUID
 
 from bson import ObjectId
@@ -120,34 +120,32 @@ class ScimApiGroupDB(ScimApiBaseDB):
     def update_group(self, scim_group: SCIMGroup, db_group: ScimApiGroup) -> ScimApiGroup:
         changed = False
         member_changed = False
-        members = []
+        updated_members = []
         logger.info(f'Updating group {str(db_group.scim_id)}')
-        for member in scim_group.members:
-            user_updated, group_updated, update_member = None, None, None
-            if 'Users' in member.ref:
-                user_updated = True
-                update_member = db_group.graph.get_member_user(identifier=str(member.value))
-            elif 'Groups' in member.ref:
-                group_updated = True
-                update_member = db_group.graph.get_member_group(identifier=str(member.value))
+        for this in scim_group.members:
+            if this.is_user:
+                _member = db_group.graph.get_member_user(identifier=str(this.value))
+                _new_member = None if _member else GraphUser(identifier=str(this.value), display_name=this.display)
+            elif this.is_group:
+                _member = db_group.graph.get_member_group(identifier=str(this.value))
+                _new_member = None if _member else GraphGroup(identifier=str(this.value), display_name=this.display)
+            else:
+                raise ValueError(f"Don't recognise member {this}")
 
             # Add a new member
-            if update_member is None:
+            if _new_member:
                 member_changed = True
-                if user_updated:
-                    update_member = GraphUser(identifier=str(member.value), display_name=member.display)
-                elif group_updated:
-                    update_member = db_group.graph.get_member_group(identifier=str(member.value))
-                logger.debug(f'Added new member: {update_member}')
+                updated_members.append(_new_member)
+                logger.debug(f'Added new member: {_member}')
             # Update member attributes if they changed
-            elif update_member.display_name != member.display:
+            elif _member.display_name != this.display:
                 member_changed = True
-                logger.debug(
-                    f'Changed display name for existing member: {update_member.display_name} -> {member.display}'
-                )
-                update_member.display_name = member.display
-
-            members.append(update_member)
+                logger.debug(f'Changed display name for existing member: {_member.display_name} -> {this.display}')
+                _member.display_name = this.display
+                updated_members.append(_member)
+            else:
+                # no change, retain member as-is
+                updated_members.append(_member)
 
         if db_group.graph.display_name != scim_group.display_name:
             changed = True
@@ -155,11 +153,13 @@ class ScimApiGroupDB(ScimApiBaseDB):
             db_group.graph.display_name = scim_group.display_name
 
         # Check if there where new, changed or removed members
-        if member_changed or set(db_group.graph.members) != set(members):
+        if member_changed or set(db_group.graph.members) != set(updated_members):
+            # TODO: Make it so that only set comparison is used - that doesn't work today as display name is not
+            #       part of GraphGroup.__eq__
             changed = True
             logger.debug(f'Old members: {db_group.graph.members}')
-            logger.debug(f'New members: {members}')
-            db_group.graph.members = members
+            logger.debug(f'New members: {updated_members}')
+            db_group.graph.members = updated_members
 
         _sg_ext = GroupExtensions(data=scim_group.nutid_group_v1.data)
         if db_group.extensions != _sg_ext:
@@ -197,7 +197,9 @@ class ScimApiGroupDB(ScimApiBaseDB):
             return group
         return None
 
-    def get_groups_by_property(self, key: str, value: str, skip=0, limit=100) -> Tuple[List[ScimApiGroup], int]:
+    def get_groups_by_property(
+        self, key: str, value: Union[str, int], skip=0, limit=100
+    ) -> Tuple[List[ScimApiGroup], int]:
         docs, count = self._get_documents_and_count_by_filter(
             {key: value}, skip=skip, limit=limit, raise_on_missing=False
         )
@@ -232,3 +234,12 @@ class ScimApiGroupDB(ScimApiBaseDB):
         docs, total_count = self._get_documents_and_count_by_filter(spec=spec, limit=limit, skip=skip)
         groups = [ScimApiGroup.from_dict(x) for x in docs]
         return groups, total_count
+
+    def group_exists(self, scim_id: str) -> bool:
+        return bool(self.db_count(spec={'scim_id': scim_id}, limit=1))
+
+    def remove_group(self, group: ScimApiGroup) -> bool:
+        if not self.remove_document(group.group_id):
+            return False
+        self.graphdb.remove_group(str(group.scim_id))
+        return True

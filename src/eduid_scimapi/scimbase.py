@@ -74,11 +74,23 @@ class SCIMResourceType(Enum):
     group = 'Group'
 
 
-@dataclass
+@dataclass(eq=True, frozen=True)
 class SubResource:
     value: UUID = field(metadata={'required': True})
     ref: str = field(metadata={'data_key': '$ref', 'required': True})
     display: str = field(metadata={'required': True})
+
+    @property
+    def is_user(self):
+        return self.ref and '/Users/' in self.ref
+
+    @property
+    def is_group(self):
+        return self.ref and '/Groups/' in self.ref
+
+    @classmethod
+    def from_mapping(cls, data):
+        return cls(value=UUID(data['value']), ref=data['$ref'], display=data['display'])
 
 
 @dataclass

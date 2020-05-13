@@ -17,7 +17,7 @@ class NutidGroupExtensionV1:
     )
 
 
-@dataclass
+@dataclass(eq=True, frozen=True)
 class GroupMember(SubResource):
     pass
 

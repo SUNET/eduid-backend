@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import List, Optional, Tuple
 from uuid import UUID
 
-from falcon import Request, Response
+from falcon import HTTP_201, HTTP_204, Request, Response
 from marshmallow.exceptions import ValidationError
 
 from eduid_scimapi.exceptions import BadRequest, NotFound
@@ -17,6 +17,7 @@ from eduid_scimapi.group import (
     GroupUpdateRequestSchema,
 )
 from eduid_scimapi.groupdb import ScimApiGroup
+from eduid_scimapi.middleware import ctx_groupdb, ctx_userdb
 from eduid_scimapi.resources.base import BaseResource, SCIMResource
 from eduid_scimapi.scimbase import (
     ListResponse,
@@ -29,7 +30,6 @@ from eduid_scimapi.scimbase import (
     make_etag,
 )
 from eduid_scimapi.search import SearchFilter, parse_search_filter
-from eduid_userdb.exceptions import MultipleDocumentsReturned
 
 
 class GroupsResource(SCIMResource):
@@ -43,7 +43,7 @@ class GroupsResource(SCIMResource):
             members.append(GroupMember(value=UUID(member.identifier), ref=ref, display=member.display_name))
         return members
 
-    def _db_group_to_response(self, resp: Response, db_group: ScimApiGroup):
+    def _db_group_to_response(self, resp: Response, db_group: ScimApiGroup) -> None:
         members = self._get_group_members(db_group)
         location = self.url_for("Groups", str(db_group.scim_id))
         meta = Meta(
@@ -102,22 +102,20 @@ class GroupsResource(SCIMResource):
         if scim_id:
             self.context.logger.info(f"Fetching group {scim_id}")
 
-            db_group = req.context['groupdb'].get_group_by_scim_id(scim_id)
+            db_group = ctx_groupdb(req).get_group_by_scim_id(scim_id)
             self.context.logger.debug(f'Found group: {db_group}')
             if not db_group:
                 raise NotFound(detail="Group not found")
             self._db_group_to_response(resp, db_group)
-        else:
-            # Return all Groups for scope
-            db_groups = req.context['groupdb'].get_groups()
-            list_response = ListResponse(total_results=len(db_groups))
-            resources = []
-            for db_group in db_groups:
-                resources.append(
-                    {'id': str(db_group.scim_id), 'displayName': db_group.graph.display_name,}
-                )
-            list_response.resources = resources
-            resp.media = ListResponseSchema().dump(list_response)
+            return
+
+        # Return all Groups for scope
+        db_groups = ctx_groupdb(req).get_groups()
+        resources = []
+        for db_group in db_groups:
+            resources.append({'id': str(db_group.scim_id), 'displayName': db_group.graph.display_name})
+        list_response = ListResponse(total_results=len(db_groups), resources=resources)
+        resp.media = ListResponseSchema().dump(list_response)
 
     def on_put(self, req: Request, resp: Response, scim_id: str):
         """
@@ -169,6 +167,7 @@ class GroupsResource(SCIMResource):
         }
 
         """
+        self.context.logger.info('Updating group')
         try:
             update_request: GroupUpdateRequest = GroupUpdateRequestSchema().load(req.media)
         except ValidationError as e:
@@ -187,13 +186,7 @@ class GroupsResource(SCIMResource):
         )
 
         self.context.logger.info(f"Fetching group {scim_id}")
-
-        # Get group from db
-        try:
-            db_group = req.context['groupdb'].get_group_by_scim_id(str(update_request.id))
-        except MultipleDocumentsReturned as e:
-            raise BadRequest(detail=f"{e}")
-
+        db_group = ctx_groupdb(req).get_group_by_scim_id(str(update_request.id))
         self.context.logger.debug(f'Found group: {db_group}')
         if not db_group:
             raise NotFound(detail="Group not found")
@@ -205,19 +198,20 @@ class GroupsResource(SCIMResource):
         # Check that members exists in their respective db
         self.context.logger.info(f'Checking if group and user members exists')
         for member in group.members:
-            if 'Groups' in member.ref:
-                if not req.context['groupdb'].group_exists(identifier=str(member.value)):
+            if member.is_group:
+                if not ctx_groupdb(req).group_exists(str(member.value)):
                     self.context.logger.error(f'Group {member.value} not found')
                     raise BadRequest(detail=f'Group {member.value} not found')
-            if 'Users' in member.ref:
-                if not req.context['userdb'].user_exists(scim_id=str(member.value)):
+            if member.is_user:
+                if not ctx_userdb(req).user_exists(scim_id=str(member.value)):
                     self.context.logger.error(f'User {member.value} not found')
                     raise BadRequest(detail=f'User {member.value} not found')
 
-        updated_group = req.context['groupdb'].update_group(scim_group=group, db_group=db_group)
+        updated_group = ctx_groupdb(req).update_group(scim_group=group, db_group=db_group)
         # Load the group from the database to ensure results are consistent with subsequent GETs.
         # For example, timestamps have higher resolution in updated_group than after a load.
-        db_group = req.context['groupdb'].get_group_by_scim_id(str(updated_group.scim_id))
+        db_group = ctx_groupdb(req).get_group_by_scim_id(str(updated_group.scim_id))
+        assert db_group  # please mypy
         self._db_group_to_response(resp, db_group)
 
     def on_post(self, req: Request, resp: Response):
@@ -250,24 +244,23 @@ class GroupsResource(SCIMResource):
             }
         }
         """
-        self.context.logger.info(f"Creating group")
+        self.context.logger.info('Creating group')
         try:
             group: Group = GroupCreateRequestSchema().load(req.media)
         except ValidationError as e:
             raise BadRequest(detail=f"{e}")
         self.context.logger.debug(group)
-        created_group = req.context['groupdb'].create_group(scim_group=group)
+        created_group = ctx_groupdb(req).create_group(scim_group=group)
         # Load the group from the database to ensure results are consistent with subsequent GETs.
         # For example, timestamps have higher resolution in created_group than after a load.
-        db_group = req.context['groupdb'].get_group_by_scim_id(str(created_group.scim_id))
-        resp.status = '201'
+        db_group = ctx_groupdb(req).get_group_by_scim_id(str(created_group.scim_id))
+        assert db_group  # please mypy
         self._db_group_to_response(resp, db_group)
+        resp.status = HTTP_201
 
     def on_delete(self, req: Request, resp: Response, scim_id: str):
-        self.context.logger.info(f"Fetching group {scim_id}")
-
-        # Get group from db
-        db_group: ScimApiGroup = req.context['groupdb'].get_group_by_scim_id(identifier=scim_id)
+        self.context.logger.info(f'Deleting group {scim_id}')
+        db_group = ctx_groupdb(req).get_group_by_scim_id(scim_id=scim_id)
         self.context.logger.debug(f'Found group: {db_group}')
         if not db_group:
             raise NotFound(detail="Group not found")
@@ -276,8 +269,10 @@ class GroupsResource(SCIMResource):
         if not self._check_version(req, db_group):
             raise BadRequest(detail="Version mismatch")
 
-        req.context['groupdb'].remove_group(identifier=scim_id)
-        resp.status = '204'
+        res = ctx_groupdb(req).remove_group(db_group)
+        self.context.logger.debug(f'Remove group result: {res}')
+
+        resp.status = HTTP_204
 
 
 class GroupSearchResource(BaseResource):
@@ -337,9 +332,11 @@ class GroupSearchResource(BaseResource):
     ) -> Tuple[List[ScimApiGroup], int]:
         if filter.op != 'eq':
             raise BadRequest(scim_type='invalidFilter', detail='Unsupported operator')
+        if not isinstance(filter.val, str):
+            raise BadRequest(scim_type='invalidFilter', detail='Invalid displayName')
 
         self.context.logger.debug(f'Searching for group with display name {repr(filter.val)}')
-        groups, count = req.context['groupdb'].get_groups_by_property(
+        groups, count = ctx_groupdb(req).get_groups_by_property(
             key='display_name', value=filter.val, skip=skip, limit=limit
         )
 
@@ -356,9 +353,11 @@ class GroupSearchResource(BaseResource):
             raise BadRequest(scim_type='invalidFilter', detail='Unsupported operator')
         if not isinstance(filter.val, str):
             raise BadRequest(scim_type='invalidFilter', detail='Invalid datetime')
-        return req.context['groupdb'].get_groups_by_last_modified(
-            operator=filter.op, value=datetime.fromisoformat(filter.val), skip=skip, limit=limit
-        )
+        try:
+            _parsed = datetime.fromisoformat(filter.val)
+        except:
+            raise BadRequest(scim_type='invalidFilter', detail='Invalid datetime')
+        return ctx_groupdb(req).get_groups_by_last_modified(operator=filter.op, value=_parsed, skip=skip, limit=limit)
 
     def _filter_extensions_data(
         self, req: Request, filter: SearchFilter, skip: Optional[int] = None, limit: Optional[int] = None,
@@ -366,16 +365,12 @@ class GroupSearchResource(BaseResource):
         if filter.op != 'eq':
             raise BadRequest(scim_type='invalidFilter', detail='Unsupported operator')
 
-        match = re.match('^extensions\.data\.([a-z_]+)$', filter.attr)
+        match = re.match(r'^extensions\.data\.([a-z_]+)$', filter.attr)
         if not match:
             raise BadRequest(scim_type='invalidFilter', detail='Unsupported extension search key')
 
         self.context.logger.debug(f'Searching for groups with {filter.attr} {filter.op} {repr(filter.val)}')
-        groups, count = req.context['groupdb'].get_groups_by_property(
+        groups, count = ctx_groupdb(req).get_groups_by_property(
             key=filter.attr, value=filter.val, skip=skip, limit=limit
         )
-
-        if not groups:
-            return [], 0
-
         return groups, count

@@ -30,7 +30,7 @@ class NutidExtensionV1:
     )
 
 
-@dataclass
+@dataclass(eq=True, frozen=True)
 class Group(SubResource):
     pass
 
