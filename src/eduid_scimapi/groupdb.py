@@ -153,8 +153,9 @@ class ScimApiGroupDB(ScimApiBaseDB):
             db_group.graph.display_name = scim_group.display_name
 
         # Check if there where new, changed or removed members
-        if member_changed:
-            # TODO: If db_group.graph.members was a set, this could be made prettier
+        if member_changed or set(db_group.graph.members) != set(updated_members):
+            # TODO: Make it so that only set comparison is used - that doesn't work today as display name is not
+            #       part of GraphGroup.__eq__
             changed = True
             logger.debug(f'Old members: {db_group.graph.members}')
             logger.debug(f'New members: {updated_members}')
