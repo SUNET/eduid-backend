@@ -236,8 +236,7 @@ class ScimApiGroupDB(ScimApiBaseDB):
         return groups, total_count
 
     def group_exists(self, scim_id: str) -> bool:
-        doc = self._get_document_by_attr('scim_id', scim_id, raise_on_missing=False)
-        return doc is not None
+        return bool(self.db_count(spec={'scim_id': scim_id}, limit=1))
 
     def remove_group(self, group: ScimApiGroup) -> bool:
         if not self.remove_document(group.group_id):

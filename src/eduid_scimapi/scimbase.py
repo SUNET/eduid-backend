@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from bson import ObjectId
 from bson.errors import InvalidId

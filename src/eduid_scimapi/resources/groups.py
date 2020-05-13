@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import List, Optional, Tuple
 from uuid import UUID
 
-from falcon import HTTP_204, Request, Response
+from falcon import HTTP_201, HTTP_204, Request, Response
 from marshmallow.exceptions import ValidationError
 
 from eduid_scimapi.exceptions import BadRequest, NotFound
@@ -256,7 +256,7 @@ class GroupsResource(SCIMResource):
         db_group = ctx_groupdb(req).get_group_by_scim_id(str(created_group.scim_id))
         assert db_group  # please mypy
         self._db_group_to_response(resp, db_group)
-        resp.status = '201'
+        resp.status = HTTP_201
 
     def on_delete(self, req: Request, resp: Response, scim_id: str):
         self.context.logger.info(f'Deleting group {scim_id}')
@@ -351,8 +351,9 @@ class GroupSearchResource(BaseResource):
     ) -> Tuple[List[ScimApiGroup], int]:
         if filter.op not in ['gt', 'ge']:
             raise BadRequest(scim_type='invalidFilter', detail='Unsupported operator')
+        if not isinstance(filter.val, str):
+            raise BadRequest(scim_type='invalidFilter', detail='Invalid datetime')
         try:
-            assert isinstance(filter.val, str)
             _parsed = datetime.fromisoformat(filter.val)
         except:
             raise BadRequest(scim_type='invalidFilter', detail='Invalid datetime')
