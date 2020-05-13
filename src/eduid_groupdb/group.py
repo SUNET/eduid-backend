@@ -58,10 +58,12 @@ class Group:
         return self.identifier == other.identifier
 
     def __hash__(self):
+        # TODO: Hash has to include _all_ fields I think, definitely display_name. Probably owners and members.
+        #       Maybe go with (eq=True, frozen=True)?
         return hash(self.identifier)
 
     @staticmethod
-    def _filter_type(it: List[Union[User, Group]], member_type: Type[Union[User, Group]]):
+    def _filter_type(it: List[Union[User, Group]], member_type: Type[Union[User, Group]]) -> List[Union[User, Group]]:
         return [item for item in it if isinstance(item, member_type)]
 
     @staticmethod
@@ -98,16 +100,16 @@ class Group:
     def owner_groups(self) -> List[Group]:
         return self._filter_type(it=self.owners, member_type=Group)
 
-    def get_member_user(self, identifier: str):
+    def get_member_user(self, identifier: str) -> Optional[User]:
         return self._get_user(self.member_users, identifier=identifier)
 
-    def get_owner_user(self, identifier: str):
+    def get_owner_user(self, identifier: str) -> Optional[User]:
         return self._get_user(self.owner_users, identifier=identifier)
 
-    def get_member_group(self, identifier: str):
+    def get_member_group(self, identifier: str) -> Optional[Group]:
         return self._get_group(self.member_groups, identifier=identifier)
 
-    def get_owner_group(self, identifier: str):
+    def get_owner_group(self, identifier: str) -> Optional[Group]:
         return self._get_group(self.owner_groups, identifier=identifier)
 
     @classmethod
@@ -120,7 +122,7 @@ class Group:
             identifier=data['identifier'],
             version=version,
             display_name=data['display_name'],
-            description=data['description'],
+            description=data.get('description'),
             created_ts=dt['created_ts'],
             modified_ts=dt['modified_ts'],
             members=data.get('members', []),
