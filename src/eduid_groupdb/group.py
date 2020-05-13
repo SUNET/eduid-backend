@@ -63,10 +63,6 @@ class Group:
         return hash(self.identifier)
 
     @staticmethod
-    def _filter_type(it: List[Union[User, Group]], member_type: Type[Union[User, Group]]) -> List[Union[User, Group]]:
-        return [item for item in it if isinstance(item, member_type)]
-
-    @staticmethod
     def _get_user(it: List[User], identifier: str) -> Optional[User]:
         res = [user for user in it if user.identifier == identifier]
         if not res:
@@ -86,19 +82,19 @@ class Group:
 
     @property
     def member_users(self) -> List[User]:
-        return self._filter_type(it=self.members, member_type=User)
+        return [item for item in self.members if isinstance(item, User)]
 
     @property
     def member_groups(self) -> List[Group]:
-        return self._filter_type(it=self.members, member_type=Group)
+        return [item for item in self.members if isinstance(item, Group)]
 
     @property
     def owner_users(self) -> List[User]:
-        return self._filter_type(it=self.owners, member_type=User)
+        return [item for item in self.owners if isinstance(item, User)]
 
     @property
     def owner_groups(self) -> List[Group]:
-        return self._filter_type(it=self.owners, member_type=Group)
+        return [item for item in self.owners if isinstance(item, Group)]
 
     def get_member_user(self, identifier: str) -> Optional[User]:
         return self._get_user(self.member_users, identifier=identifier)
