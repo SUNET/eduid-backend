@@ -125,10 +125,10 @@ class ScimApiGroupDB(ScimApiBaseDB):
         for this in scim_group.members:
             if this.is_user:
                 _member = db_group.graph.get_member_user(identifier=str(this.value))
-                _new_member = GraphUser(identifier=str(this.value), display_name=this.display) if not _member else None
+                _new_member = None if _member else GraphUser(identifier=str(this.value), display_name=this.display)
             elif this.is_group:
                 _member = db_group.graph.get_member_group(identifier=str(this.value))
-                _new_member = GraphGroup(identifier=str(this.value), display_name=this.display) if not _member else None
+                _new_member = None if _member else GraphGroup(identifier=str(this.value), display_name=this.display)
             else:
                 raise ValueError(f"Don't recognise member {this}")
 
