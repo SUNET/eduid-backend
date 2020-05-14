@@ -15,7 +15,7 @@ from eduid_groupdb import User as GraphUser
 
 from eduid_scimapi.group import GroupMember, GroupResponse
 from eduid_scimapi.groupdb import GroupExtensions, ScimApiGroup
-from eduid_scimapi.scimbase import Meta, SCIMResourceType, SCIMSchema, SubResource, make_etag
+from eduid_scimapi.scimbase import Meta, SCIMResourceType, SCIMSchema, make_etag
 from eduid_scimapi.testing import ScimApiTestCase
 from eduid_scimapi.tests.test_scimbase import TestScimBase
 
@@ -93,6 +93,48 @@ class TestGroupResource(ScimApiTestCase):
         self.assertEqual([SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value], response.json.get('schemas'))
         return response.json.get('Resources')
 
+    def _assertGroupUpdateSuccess(
+        self, req: Mapping, response, group: ScimApiGroup, members: Optional[List[Mapping[str, Any]]] = None
+    ):
+        """ Function to validate successful responses to SCIM calls that update a group according to a request. """
+        if response.json.get('schemas') == [SCIMSchema.ERROR.value]:
+            self.fail(f'Got SCIM error response ({response.status}):\n{response.json}')
+        expected_schemas = req.get('schemas', [SCIMSchema.CORE_20_GROUP.value])
+        if SCIMSchema.NUTID_GROUP_V1.value in response.json and SCIMSchema.NUTID_GROUP_V1.value not in expected_schemas:
+            # The API can always add this extension to the response, even if it was not in the request
+            expected_schemas += [SCIMSchema.NUTID_GROUP_V1.value]
+        self.assertEqual(
+            sorted(expected_schemas), sorted(response.json.get('schemas')), 'Unexpected schema(s) in response'
+        )
+        self.assertEqual(str(group.scim_id), response.json.get('id'), 'Unexpected id in response')
+        expected_location = f'http://localhost:8000/Groups/{response.json.get("id")}'
+        self.assertEqual(
+            expected_location,
+            response.headers.get('location'),
+            'Unexpected group resource location in response headers',
+        )
+        self.assertEqual(group.display_name, response.json.get('displayName'), 'Unexpected displayName in response')
+        if members is not None:
+            members = _members_to_set(members)
+        if members is None:
+            members = _members_to_set(req['members'])
+        self.assertEqual(members, _members_to_set(response.json.get('members')), 'Unexpected members in response')
+
+        meta = response.json.get('meta')
+        self.assertIsNotNone(meta, 'No meta in response')
+        self.assertIsNotNone(meta.get('created'), 'No meta.created')
+        self.assertIsNotNone(meta.get('lastModified'), 'No meta.lastModified')
+        self.assertIsNotNone(meta.get('version'), 'No meta.version')
+        self.assertEqual(expected_location, meta.get('location'), 'Unexpected group resource location')
+        self.assertEqual(f'Group', meta.get('resourceType'), 'meta.resourceType is not Group')
+
+        if SCIMSchema.NUTID_GROUP_V1.value in req:
+            self.assertEqual(
+                req[SCIMSchema.NUTID_GROUP_V1.value],
+                response.json.get(SCIMSchema.NUTID_GROUP_V1.value),
+                'Unexpected NUTID group data in response',
+            )
+
 
 class TestGroupResource_GET(TestGroupResource):
     def test_get_groups(self):
@@ -106,19 +148,7 @@ class TestGroupResource_GET(TestGroupResource):
     def test_get_group(self):
         db_group = self.add_group(uuid4(), 'Test Group 1')
         response = self.client.simulate_get(path=f'/Groups/{db_group.scim_id}', headers=self.headers)
-        self.assertEqual([SCIMSchema.CORE_20_GROUP.value], response.json.get('schemas'))
-        self.assertEqual(str(db_group.scim_id), response.json.get('id'))
-        self.assertEqual(f'http://localhost:8000/Groups/{db_group.scim_id}', response.headers.get('location'))
-        self.assertEqual('Test Group 1', response.json.get('displayName'))
-        self.assertEqual([], response.json.get('members'))
-
-        meta = response.json.get('meta')
-        self.assertIsNotNone(meta)
-        self.assertIsNotNone(meta.get('created'))
-        self.assertIsNotNone(meta.get('lastModified'))
-        self.assertIsNotNone(meta.get('version'))
-        self.assertEqual(f'http://localhost:8000/Groups/{response.json.get("id")}', meta.get('location'))
-        self.assertEqual(f'Group', meta.get('resourceType'))
+        self._assertGroupUpdateSuccess({'members': []}, response, db_group)
 
     def test_get_group_not_found(self):
         response = self.client.simulate_get(path=f'/Groups/{uuid4()}', headers=self.headers)
@@ -130,19 +160,12 @@ class TestGroupResource_POST(TestGroupResource):
         req = {'schemas': [SCIMSchema.CORE_20_GROUP.value], 'displayName': 'Test Group 1', 'members': []}
         response = self.client.simulate_post(path='/Groups/', body=self.as_json(req), headers=self.headers)
 
-        self.assertEqual([SCIMSchema.CORE_20_GROUP.value], response.json.get('schemas'))
-        self.assertIsNotNone(response.json.get('id'))
-        self.assertEqual(f'http://localhost:8000/Groups/{response.json.get("id")}', response.headers.get('location'))
-        self.assertEqual('Test Group 1', response.json.get('displayName'))
-        self.assertEqual([], response.json.get('members'))
+        # Load the created group from the database, ensuring it was in fact created
+        _groups, _count = self.groupdb.get_groups_by_property('display_name', req['displayName'])
+        self.assertEqual(1, _count, 'More or less than one group found in the database after create')
+        db_group = _groups[0]
 
-        meta = response.json.get('meta')
-        self.assertIsNotNone(meta)
-        self.assertIsNotNone(meta.get('created'))
-        self.assertIsNotNone(meta.get('lastModified'))
-        self.assertIsNotNone(meta.get('version'))
-        self.assertEqual(f'http://localhost:8000/Groups/{response.json.get("id")}', meta.get('location'))
-        self.assertEqual(f'Group', meta.get('resourceType'))
+        self._assertGroupUpdateSuccess(req, response, db_group)
 
     def test_schema_violation(self):
         # request missing displayName
@@ -179,19 +202,7 @@ class TestGroupResource_PUT(TestGroupResource):
             path=f'/Groups/{db_group.scim_id}', body=self.as_json(req), headers=self.headers
         )
 
-        self.assertEqual([SCIMSchema.CORE_20_GROUP.value], response.json.get('schemas'))
-        self.assertIsNotNone(response.json.get('id'))
-        self.assertEqual(f'http://localhost:8000/Groups/{response.json.get("id")}', response.headers.get('location'))
-        self.assertEqual(db_group.display_name, response.json.get('displayName'))
-        self.assertEqual(members, response.json.get('members'))
-
-        meta = response.json.get('meta')
-        self.assertIsNotNone(meta)
-        self.assertIsNotNone(meta.get('created'))
-        self.assertIsNotNone(meta.get('lastModified'))
-        self.assertIsNotNone(meta.get('version'))
-        self.assertEqual(f'http://localhost:8000/Groups/{db_group.scim_id}', meta.get('location'))
-        self.assertEqual(f'Group', meta.get('resourceType'))
+        self._assertGroupUpdateSuccess(req, response, db_group)
 
     def test_update_existing_group(self):
         db_group = self.add_group(uuid4(), 'Test Group 1')
@@ -209,11 +220,11 @@ class TestGroupResource_PUT(TestGroupResource):
                 'display': 'Test Group 2',
             },
         ]
-        updated_display_name = 'Another display name'
+        db_group.display_name = 'Another display name'
         req = {
             'schemas': [SCIMSchema.CORE_20_GROUP.value, SCIMSchema.NUTID_GROUP_V1.value],
             'id': str(db_group.scim_id),
-            'displayName': updated_display_name,
+            'displayName': db_group.display_name,
             'members': members,
             SCIMSchema.NUTID_GROUP_V1.value: {'data': {'test': 'updated'}},
         }
@@ -222,12 +233,7 @@ class TestGroupResource_PUT(TestGroupResource):
             path=f'/Groups/{db_group.scim_id}', body=self.as_json(req), headers=self.headers
         )
 
-        self.assertEqual(req['schemas'], response.json.get('schemas'))
-        self.assertIsNotNone(response.json.get('id'))
-        self.assertEqual(f'http://localhost:8000/Groups/{response.json.get("id")}', response.headers.get('location'))
-        self.assertEqual(updated_display_name, response.json.get('displayName'))
-        self.assertSetEqual(_members_to_set(members), _members_to_set(response.json.get('members')))
-        self.assertEqual(req[SCIMSchema.NUTID_GROUP_V1.value], response.json.get(SCIMSchema.NUTID_GROUP_V1.value))
+        self._assertGroupUpdateSuccess(req, response, db_group)
 
         members[0]['display'] += ' (updated)'
         members[1]['display'] += ' (also updated)'
@@ -236,7 +242,7 @@ class TestGroupResource_PUT(TestGroupResource):
         response = self.client.simulate_put(
             path=f'/Groups/{db_group.scim_id}', body=self.as_json(req), headers=self.headers
         )
-        self.assertSetEqual(_members_to_set(members), _members_to_set(response.json.get('members')))
+        self._assertGroupUpdateSuccess(req, response, db_group)
 
     def test_add_member_to_existing_group(self):
         db_group = self.add_group(uuid4(), 'Test Group 1')
@@ -259,11 +265,7 @@ class TestGroupResource_PUT(TestGroupResource):
             path=f'/Groups/{db_group.scim_id}', body=self.as_json(req), headers=self.headers
         )
 
-        self.assertEqual(req['schemas'], response.json.get('schemas'))
-        self.assertIsNotNone(response.json.get('id'))
-        self.assertEqual(f'http://localhost:8000/Groups/{response.json.get("id")}', response.headers.get('location'))
-        self.assertEqual(db_group.display_name, response.json.get('displayName'))
-        self.assertSetEqual(_members_to_set(members), _members_to_set(response.json.get('members')))
+        self._assertGroupUpdateSuccess(req, response, db_group)
 
         # Now, add another user and make a new request
 
@@ -280,7 +282,7 @@ class TestGroupResource_PUT(TestGroupResource):
         response = self.client.simulate_put(
             path=f'/Groups/{db_group.scim_id}', body=self.as_json(req), headers=self.headers
         )
-        self.assertEqual(_members_to_set(members), _members_to_set(response.json.get('members')))
+        self._assertGroupUpdateSuccess(req, response, db_group)
 
     def test_removing_group_member(self):
         db_group = self.add_group(uuid4(), 'Test Group 1')
@@ -310,12 +312,7 @@ class TestGroupResource_PUT(TestGroupResource):
             path=f'/Groups/{db_group.scim_id}', body=self.as_json(req), headers=self.headers
         )
 
-        self.assertEqual(req['schemas'], response.json.get('schemas'))
-        self.assertIsNotNone(response.json.get('id'))
-        self.assertEqual(f'http://localhost:8000/Groups/{response.json.get("id")}', response.headers.get('location'))
-        self.assertEqual(db_group.display_name, response.json.get('displayName'))
-        self.assertSetEqual(_members_to_set(members), _members_to_set(response.json.get('members')))
-        self.assertEqual(req[SCIMSchema.NUTID_GROUP_V1.value], response.json.get(SCIMSchema.NUTID_GROUP_V1.value))
+        self._assertGroupUpdateSuccess(req, response, db_group)
 
         # Remove the second member
         req['members'] = [members[0]]
@@ -324,7 +321,8 @@ class TestGroupResource_PUT(TestGroupResource):
         response = self.client.simulate_put(
             path=f'/Groups/{db_group.scim_id}', body=self.as_json(req), headers=self.headers
         )
-        self.assertSetEqual(_members_to_set(members), _members_to_set(response.json.get('members')))
+
+        self._assertGroupUpdateSuccess(req, response, db_group)
 
     def test_update_group_id_mismatch(self):
         db_group = self.add_group(uuid4(), 'Test Group 1')
