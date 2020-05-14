@@ -93,40 +93,25 @@ class TestGroupResource(ScimApiTestCase):
         self.assertEqual([SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value], response.json.get('schemas'))
         return response.json.get('Resources')
 
-    def _assertGroupUpdateSuccess(
-        self, req: Mapping, response, group: ScimApiGroup, members: Optional[List[Mapping[str, Any]]] = None
-    ):
+    def _assertGroupUpdateSuccess(self, req: Mapping, response, group: ScimApiGroup):
         """ Function to validate successful responses to SCIM calls that update a group according to a request. """
         if response.json.get('schemas') == [SCIMSchema.ERROR.value]:
             self.fail(f'Got SCIM error response ({response.status}):\n{response.json}')
+
         expected_schemas = req.get('schemas', [SCIMSchema.CORE_20_GROUP.value])
         if SCIMSchema.NUTID_GROUP_V1.value in response.json and SCIMSchema.NUTID_GROUP_V1.value not in expected_schemas:
             # The API can always add this extension to the response, even if it was not in the request
             expected_schemas += [SCIMSchema.NUTID_GROUP_V1.value]
-        self.assertEqual(
-            sorted(expected_schemas), sorted(response.json.get('schemas')), 'Unexpected schema(s) in response'
-        )
-        self.assertEqual(str(group.scim_id), response.json.get('id'), 'Unexpected id in response')
-        expected_location = f'http://localhost:8000/Groups/{response.json.get("id")}'
-        self.assertEqual(
-            expected_location,
-            response.headers.get('location'),
-            'Unexpected group resource location in response headers',
-        )
-        self.assertEqual(group.display_name, response.json.get('displayName'), 'Unexpected displayName in response')
-        if members is not None:
-            members = _members_to_set(members)
-        if members is None:
-            members = _members_to_set(req['members'])
-        self.assertEqual(members, _members_to_set(response.json.get('members')), 'Unexpected members in response')
 
-        meta = response.json.get('meta')
-        self.assertIsNotNone(meta, 'No meta in response')
-        self.assertIsNotNone(meta.get('created'), 'No meta.created')
-        self.assertIsNotNone(meta.get('lastModified'), 'No meta.lastModified')
-        self.assertIsNotNone(meta.get('version'), 'No meta.version')
-        self.assertEqual(expected_location, meta.get('location'), 'Unexpected group resource location')
-        self.assertEqual(f'Group', meta.get('resourceType'), 'meta.resourceType is not Group')
+        self._assertScimResponseProperties(response, resource=group, expected_schemas=expected_schemas)
+
+        # Validate group update specifics
+
+        self.assertEqual(group.display_name, response.json.get('displayName'), 'Unexpected displayName in response')
+        request_members = _members_to_set(req['members'])
+        self.assertEqual(
+            request_members, _members_to_set(response.json.get('members')), 'Unexpected members in response'
+        )
 
         if SCIMSchema.NUTID_GROUP_V1.value in req:
             self.assertEqual(
