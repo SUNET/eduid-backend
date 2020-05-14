@@ -201,22 +201,48 @@ class TestGroupDB(Neo4jTestCase):
         member_user2 = User.from_mapping(self.user2)
         group.members.extend([member_user1, member_user2])
 
-        self.assertIn(member_user1, group.member_users)
-        self.assertIn(member_user2, group.member_users)
+        self.assertIn(member_user1, group.members)
+        self.assertIn(member_user2, group.members)
         post_save_group = self.group_db.save(group)
 
-        self.assertIn(member_user1, post_save_group.member_users)
-        self.assertIn(member_user2, post_save_group.member_users)
+        self.assertIn(member_user1, post_save_group.members)
+        self.assertIn(member_user2, post_save_group.members)
 
         group.members.remove(member_user1)
-        self.assertNotIn(member_user1, group.member_users)
-        self.assertIn(member_user2, group.member_users)
+        self.assertNotIn(member_user1, group.members)
+        self.assertIn(member_user2, group.members)
         group.version = post_save_group.version
         post_remove_group = self.group_db.save(group)
 
-        self.assertNotIn(member_user1, post_remove_group.member_users)
-        self.assertIn(member_user2, post_remove_group.member_users)
+        self.assertNotIn(member_user1, post_remove_group.members)
+        self.assertIn(member_user2, post_remove_group.members)
 
         get_group = self.group_db.get_group(identifier='test1')
-        self.assertNotIn(member_user1, get_group.member_users)
-        self.assertIn(member_user2, get_group.member_users)
+        self.assertNotIn(member_user1, get_group.members)
+        self.assertIn(member_user2, get_group.members)
+
+    def test_remove_group_from_group(self):
+        group = Group.from_mapping(self.group1)
+        member_user1 = User.from_mapping(self.user1)
+        member_group1 = Group.from_mapping(self.group2)
+        group.members.extend([member_user1, member_group1])
+
+        self.assertIn(member_user1, group.members)
+        self.assertIn(member_group1, group.members)
+        post_save_group = self.group_db.save(group)
+
+        self.assertIn(member_user1, post_save_group.members)
+        self.assertIn(member_group1, post_save_group.members)
+
+        group.members.remove(member_group1)
+        self.assertNotIn(member_group1, group.members)
+        self.assertIn(member_user1, group.members)
+        group.version = post_save_group.version
+        post_remove_group = self.group_db.save(group)
+
+        self.assertNotIn(member_group1, post_remove_group.members)
+        self.assertIn(member_user1, post_remove_group.members)
+
+        get_group = self.group_db.get_group(identifier=group.identifier)
+        self.assertNotIn(member_group1, get_group.members)
+        self.assertIn(member_user1, get_group.members)

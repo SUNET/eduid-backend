@@ -126,7 +126,7 @@ class GroupDB(BaseGraphDB):
 
     def _remove_group_from_group(self, tx: Transaction, group: Group, member: Group, role: Role):
         q = f"""
-            MATCH (Group {{scope: $scope, identifier: $identifier}})<-[r:{role.value}]-(Group
+            MATCH (g:Group {{scope: $scope, identifier: $identifier}})<-[r:{role.value}]-(m:Group
                     {{scope: $scope, identifier: $member_identifier}})
             DELETE r
             """
@@ -136,7 +136,7 @@ class GroupDB(BaseGraphDB):
 
     def _remove_user_from_group(self, tx: Transaction, group: Group, member: User, role: Role):
         q = f"""
-            MATCH (Group {{scope: $scope, identifier: $identifier}})<-[r:{role.value}]-(User
+            MATCH (g:Group {{scope: $scope, identifier: $identifier}})<-[r:{role.value}]-(m:User
                     {{identifier: $member_identifier}})
             DELETE r
             """
@@ -324,6 +324,7 @@ class GroupDB(BaseGraphDB):
                 raise EduIDGroupDBError(e.message)
             finally:
                 # If tx.success is not explicitly set to True close will perform a rollback
+                logger.debug(f'Group save successful: {tx.success}')
                 tx.close()
         saved_group.members = saved_members
         saved_group.owners = saved_owners
