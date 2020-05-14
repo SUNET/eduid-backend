@@ -39,8 +39,22 @@ class BaseDBTestCase(unittest.TestCase):
         config = {
             'test': True,
             'mongo_uri': self.mongo_uri,
-            'logging_config': None,
-            'log_format': '%(asctime)s | %(levelname)s | %(name)s | %(module)s | %(message)s',
+            'logging_config': {
+                'version': 1,
+                'formatters': {'default': {'format': '%(asctime)s | %(levelname)s | %(name)s | %(message)s'}},
+                'handlers': {
+                    'console': {
+                        'class': 'logging.StreamHandler',
+                        'formatter': 'default',
+                        'level': 'DEBUG',
+                        'stream': 'ext://sys.stdout',
+                    }
+                },
+                'loggers': {
+                    #'eduid_groupdb': {'handlers': ['console'], 'level': 'DEBUG'},
+                    'root': {'handlers': ['console'], 'level': 'INFO'},
+                },
+            },
         }
         return config
 
