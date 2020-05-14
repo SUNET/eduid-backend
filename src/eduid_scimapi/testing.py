@@ -152,7 +152,9 @@ class ScimApiTestCase(MongoNeoTestCase):
         if detail is not None:
             self.assertEqual(detail, json.get('detail'))
 
-    def _assertScimResponseProperties(self, response, resource: Union[ScimApiGroup, ScimApiUser], expected_schemas: List[str]):
+    def _assertScimResponseProperties(
+        self, response, resource: Union[ScimApiGroup, ScimApiUser], expected_schemas: List[str]
+    ):
         if SCIMSchema.NUTID_USER_V1.value in response.json:
             # The API can always add this extension to the response, even if it was not in the request
             expected_schemas += [SCIMSchema.NUTID_USER_V1.value]
