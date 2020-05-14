@@ -3,7 +3,7 @@ import json
 import unittest
 import uuid
 from os import environ
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Any, Dict, List, Mapping, Optional, Union
 
 from bson import ObjectId
 from falcon.testing import TestClient
@@ -15,6 +15,7 @@ from eduid_userdb.testing import MongoTemporaryInstance
 from eduid_scimapi.app import init_api
 from eduid_scimapi.config import ScimApiConfig
 from eduid_scimapi.context import Context
+from eduid_scimapi.groupdb import ScimApiGroup
 from eduid_scimapi.scimbase import SCIMSchema
 from eduid_scimapi.userdb import Profile, ScimApiUser
 
@@ -38,8 +39,22 @@ class BaseDBTestCase(unittest.TestCase):
         config = {
             'test': True,
             'mongo_uri': self.mongo_uri,
-            'logging_config': None,
-            'log_format': '%(asctime)s | %(levelname)s | %(name)s | %(module)s | %(message)s',
+            'logging_config': {
+                'version': 1,
+                'formatters': {'default': {'format': '%(asctime)s | %(levelname)s | %(name)s | %(message)s'}},
+                'handlers': {
+                    'console': {
+                        'class': 'logging.StreamHandler',
+                        'formatter': 'default',
+                        'level': 'DEBUG',
+                        'stream': 'ext://sys.stdout',
+                    }
+                },
+                'loggers': {
+                    #'eduid_groupdb': {'handlers': ['console'], 'level': 'DEBUG'},
+                    'root': {'handlers': ['console'], 'level': 'INFO'},
+                },
+            },
         }
         return config
 
@@ -136,3 +151,47 @@ class ScimApiTestCase(MongoNeoTestCase):
             self.assertEqual(scim_type, json.get('scimType'))
         if detail is not None:
             self.assertEqual(detail, json.get('detail'))
+
+    def _assertScimResponseProperties(
+        self, response, resource: Union[ScimApiGroup, ScimApiUser], expected_schemas: List[str]
+    ):
+        if SCIMSchema.NUTID_USER_V1.value in response.json:
+            # The API can always add this extension to the response, even if it was not in the request
+            expected_schemas += [SCIMSchema.NUTID_USER_V1.value]
+
+        if SCIMSchema.NUTID_GROUP_V1.value in response.json:
+            # The API can always add this extension to the response, even if it was not in the request
+            expected_schemas += [SCIMSchema.NUTID_GROUP_V1.value]
+
+        response_schemas = response.json.get('schemas')
+        self.assertIsInstance(response_schemas, list, 'Response schemas not present, or not a list')
+        self.assertEqual(
+            sorted(set(expected_schemas)), sorted(set(response_schemas)), 'Unexpected schema(s) in response'
+        )
+
+        if isinstance(resource, ScimApiUser):
+            expected_location = f'http://localhost:8000/Users/{resource.scim_id}'
+            expected_resource_type = 'User'
+        elif isinstance(resource, ScimApiGroup):
+            expected_location = f'http://localhost:8000/Groups/{resource.scim_id}'
+            expected_resource_type = 'Group'
+        else:
+            raise ValueError('Resource is neither ScimApiUser nor ScimApiGroup')
+
+        self.assertEqual(str(resource.scim_id), response.json.get('id'), 'Unexpected id in response')
+
+        self.assertEqual(
+            expected_location,
+            response.headers.get('location'),
+            'Unexpected group resource location in response headers',
+        )
+
+        meta = response.json.get('meta')
+        self.assertIsNotNone(meta, 'No meta in response')
+        self.assertIsNotNone(meta.get('created'), 'No meta.created')
+        self.assertIsNotNone(meta.get('lastModified'), 'No meta.lastModified')
+        self.assertIsNotNone(meta.get('version'), 'No meta.version')
+        self.assertEqual(expected_location, meta.get('location'), 'Unexpected group resource location')
+        self.assertEqual(
+            expected_resource_type, meta.get('resourceType'), f'meta.resourceType is not {expected_resource_type}'
+        )
