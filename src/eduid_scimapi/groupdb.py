@@ -136,7 +136,7 @@ class ScimApiGroupDB(ScimApiBaseDB):
             if _new_member:
                 member_changed = True
                 updated_members.append(_new_member)
-                logger.debug(f'Added new member: {_member}')
+                logger.debug(f'Added new member: {_new_member}')
             # Update member attributes if they changed
             elif _member.display_name != this.display:
                 member_changed = True
