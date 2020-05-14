@@ -22,7 +22,7 @@ class User:
 
     def __eq__(self, other: object):
         if not isinstance(other, User):
-            raise NotImplemented('other instance must be of type User')
+            return False
         if self.identifier == other.identifier:
             return True
         return False
@@ -54,7 +54,7 @@ class Group:
 
     def __eq__(self, other: object):
         if not isinstance(other, Group):
-            raise NotImplemented('other instance must be of type Group')
+            return False
         return self.identifier == other.identifier
 
     def __hash__(self):
