@@ -31,11 +31,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from flask import Blueprint, request
+from flask import Blueprint, request, abort
 
 from eduid_userdb.exceptions import EduIDUserDBError
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith
+from eduid_common.api.helpers import check_magic_cookie
 from eduid_common.api.schemas.base import FluxStandardAction
 
 from eduid_webapp.signup.app import current_signup_app as current_app
@@ -67,10 +68,9 @@ def trycaptcha(email, recaptcha_response, tou_accepted):
 
     # add a backdoor to bypass recaptcha checks for humanness,
     # to be used in testing environments for automated integration tests.
-    if config.environment in ('staging', 'dev') and config.magic_code != '':
-        if f"{config.magic_code}@" in email:
-            current_app.logger.info('Using BACKDOOR to verify reCaptcha!')
-            recaptcha_verified = True
+    if check_magic_cookie(config):
+        current_app.logger.info('Using BACKDOOR to verify reCaptcha during signup!')
+        recaptcha_verified = True
 
     # common path with no backdoor
     if not recaptcha_verified:
@@ -127,3 +127,17 @@ def verify_link(code):
     except EduIDUserDBError:
         return {'_status': 'error', 'status': 'unknown-code', 'message': 'signup.unknown-code'}
     return complete_registration(user)
+
+
+@signup_views.route('/get-code', methods=['GET'])
+def get_email_code():
+    try:
+        if check_magic_cookie(current_app.config):
+            email = request.args.get('email')
+            signup_user = current_app.private_userdb.get_user_by_pending_mail_address(email)
+            code = signup_user.pending_mail_address.verification_code
+            return code
+    except Exception:
+        pass
+
+    abort(400)

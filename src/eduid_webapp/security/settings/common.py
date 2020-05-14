@@ -63,8 +63,6 @@ class SecurityConfig(FlaskConfig):
     # password reset settings
     email_code_timeout: int = 7200  # seconds
     phone_code_timeout: int = 600  # seconds
-    # magic code for integration tests
-    magic_code: str = ''
     # for logging out when terminating an account
     logout_endpoint: str = '/services/authn/logout'
     # URL to send the user to after terminating the account

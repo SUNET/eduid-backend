@@ -38,6 +38,7 @@ import time
 from contextlib import contextmanager
 from copy import copy
 from typing import Any, Optional
+from urllib.parse import quote_plus
 
 from flask import url_for
 from mock import patch
@@ -422,50 +423,69 @@ class ResetPasswordTests(EduidAPITestCase):
 
             return c.post(url, data=json.dumps(data), content_type=self.content_type_json)
 
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
+    def _get_email_code_backdoor(self, mock_sendmail: Any,
+                                 data1: Optional[dict] = None):
+        """
+        Create a password rest state for the test user, grab the created verification code from the db,
+        and use it to get configuration for the reset form.
+
+        :param data1: to control the data (email) sent to create the reset state
+        """
+        mock_sendmail.return_value = True
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as session:
+                with self.app.test_request_context():
+                    data = {
+                        'email': self.test_user_email,
+                        'csrf_token': session.get_csrf_token(),
+                    }
+                    if data1 is not None:
+                        data.update(data1)
+                    response = client.post('/reset/', data=json.dumps(data), content_type=self.content_type_json)
+                    self.assertEqual(response.status_code, 200)
+
+                    client.set_cookie('localhost', key=self.app.config.magic_cookie_name, value=self.app.config.magic_cookie)
+
+                    eppn = quote_plus(self.test_user_eppn)
+
+                    return client.get(f'/reset/get-email-code?eppn={eppn}')
+
     @patch('eduid_common.authn.vccs.get_vccs_client')
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('eduid_common.api.msg.MsgRelay.sendsms')
-    def _post_extra_sec_magic_code(
-            self, mock_sendsms: Any, mock_request_user_sync: Any, mock_sendmail: Any, mock_get_vccs_client: Any,
-            data1: Optional[dict] = None, data2: Optional[dict] = None,
-            data3: Optional[dict] = None, magic: bool = True
-    ):
+    def _get_phone_code_backdoor(self, mock_sendsms: Any, mock_request_user_sync: Any,
+                                 mock_sendmail: Any, mock_get_vccs_client: Any,
+                                 sendsms_side_effect: Any = None):
         """
-        Test resetting the password with extra security via a phone number,
-        using a magic code to bypass verification ot the codes sent by email and SMS.
-        First create the reset password state in the database, then POST the code to get
-        configuration for the reset form, then POST the code and a choice of the verified
-        phone numbers for the user, and finally POST the verification codes and a new password.
-
-        :param data1: to control what email is sent to create the state and start the process
-        :param data2: to control the data POSTed to choose the phone number to send the extra sec code
-        :param data3: to control the data POSTed to finally reset the password
-        :param magic: to control whether to send a magic code for the emailed code in the final POST.
+        Test choosing extra security via a confirmed phone number to reset the password,
+        and getting the generated phone verification code through the backdoor
         """
         mock_request_user_sync.side_effect = self.request_user_sync
         mock_sendmail.return_value = True
         mock_get_vccs_client.return_value = TestVCCSClient()
         mock_sendsms.return_value = True
-        with self.session_cookie_anon(self.browser) as c:
-            with c.session_transaction() as session:
+        if sendsms_side_effect:
+            mock_sendsms.side_effect = sendsms_side_effect
+
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as session:
                 with self.app.test_request_context():
                     data = {
-                        'csrf_token': session.get_csrf_token(),
                         'email': self.test_user_email,
+                        'csrf_token': session.get_csrf_token(),
                     }
-                    if data1:
-                        data.update(data1)
-                    response = c.post('/reset/', data=json.dumps(data), content_type=self.content_type_json)
+                    response = client.post('/reset/', data=json.dumps(data), content_type=self.content_type_json)
                     self.assertEqual(response.status_code, 200)
                     state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
 
                     url = url_for('reset_password.config_reset_pw', _external=True)
                     data = {
+                        'code': state.email_code.code,
                         'csrf_token': session.get_csrf_token(),
-                        'code': state.email_code.code
                     }
-                    response = c.post(url, data=json.dumps(data), content_type=self.content_type_json)
+                    response = client.post(url, data=json.dumps(data), content_type=self.content_type_json)
                     self.assertEqual(response.status_code, 200)
 
                     url = url_for('reset_password.choose_extra_security_phone', _external=True)
@@ -474,30 +494,14 @@ class ResetPasswordTests(EduidAPITestCase):
                         'code': state.email_code.code,
                         'phone_index': '0'
                     }
-                    if data2 is not None:
-                        data.update(data2)
-
-                    response = c.post(url, data=json.dumps(data), content_type=self.content_type_json)
-
+                    response = client.post(url, data=json.dumps(data), content_type=self.content_type_json)
                     self.assertEqual(response.status_code, 200)
-                    self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_EXTRA_SECURITY_PHONE_SUCCESS')
 
-                    new_password = generate_suggested_password()
-                    url = url_for('reset_password.set_new_pw_extra_security_phone', _external=True)
-                    state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
-                    code = state.email_code.code
-                    if magic:
-                        code = 'magic-code'
-                    data = {
-                        'csrf_token': session.get_csrf_token(),
-                        'code': code,
-                        'phone_code': 'magic-code',
-                        'password': new_password,
-                    }
-                    if data3 is not None:
-                        data.update(data3)
+                    client.set_cookie('localhost', key=self.app.config.magic_cookie_name, value=self.app.config.magic_cookie)
 
-                    return c.post(url, data=json.dumps(data), content_type=self.content_type_json)
+                    eppn = quote_plus(self.test_user_eppn)
+
+                    return client.get(f'/reset/get-phone-code?eppn={eppn}')
 
     # actual tests
 
@@ -598,39 +602,6 @@ class ResetPasswordTests(EduidAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json['payload']['extra_security'], {})
         self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_CONFIG_SUCCESS')
-
-    def test_post_reset_code_magic(self):
-        self.app.config.environment = 'staging'
-        self.app.config.magic_code = 'magic-code'
-        data2 = {'code': 'magic-code'}
-        response = self._post_reset_code(data2=data2)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_CONFIG_SUCCESS')
-
-    def test_post_reset_code_magic_proper_code(self):
-        self.app.config.environment = 'staging'
-        self.app.config.magic_code = 'magic-code'
-        response = self._post_reset_code()
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_CONFIG_SUCCESS')
-
-    def test_post_reset_code_magic_wrong(self):
-        self.app.config.environment = 'staging'
-        self.app.config.magic_code = 'magic-code'
-        data2 = {'code': 'wrong-magic-code'}
-        response = self._post_reset_code(data2=data2)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_CONFIG_FAIL')
-        self.assertEqual(response.json['payload']['message'], 'resetpw.unknown-code')
-
-    def test_post_reset_code_no_magic_in_pro(self):
-        self.app.config.environment = 'pro'
-        self.app.config.magic_code = 'magic-code'
-        data2 = {'code': 'magic-code'}
-        response = self._post_reset_code(data2=data2)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_CONFIG_FAIL')
-        self.assertEqual(response.json['payload']['message'], 'resetpw.unknown-code')
 
     def test_post_reset_wrong_code(self):
         data2 = {'code': 'wrong-code'}
@@ -884,69 +855,6 @@ class ResetPasswordTests(EduidAPITestCase):
         self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_TOKEN_FAIL')
         self.assertEqual(response.json['payload']['message'], 'chpass.weak-password')
 
-    def test_post_extra_sec_magic_code(self):
-        self.app.config.environment = 'staging'
-        self.app.config.magic_code = 'magic-code'
-
-        response = self._post_extra_sec_magic_code()
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_PHONE_SUCCESS')
-
-    def test_post_reset_password_secure_with_wrong_magic_code(self):
-        self.app.config.environment = 'staging'
-        self.app.config.magic_code = 'magic-code'
-
-        data3 = {'phone_code': 'wrong-code'}
-        response = self._post_extra_sec_magic_code(data3=data3)
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_PHONE_FAIL')
-        self.assertEqual(response.json['payload']['message'], 'resetpw.phone-code-unknown')
-
-    def test_post_reset_password_secure_with_magic_code_in_pro(self):
-        self.app.config.environment = 'pro'
-        self.app.config.magic_code = 'magic-code'
-
-        response = self._post_extra_sec_magic_code()
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_PHONE_FAIL')
-        self.assertEqual(response.json['payload']['message'], 'resetpw.unknown-code')
-
-    def test_post_reset_password_secure_wrong_email_code(self):
-        self.app.config.environment = 'staging'
-        self.app.config.magic_code = 'magic-code'
-
-        data3 = {'code': 'wrong-code'}
-        response = self._post_extra_sec_magic_code(data3=data3)
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_PHONE_FAIL')
-        self.assertEqual(response.json['payload']['message'], 'resetpw.unknown-code')
-
-    def test_post_reset_password_secure_wrong_phone_code(self):
-        self.app.config.environment = 'staging'
-        self.app.config.magic_code = 'magic-code'
-
-        data3 = {'phone_code': 'wrong-code'}
-        response = self._post_extra_sec_magic_code(data3=data3, magic=False)
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_PHONE_FAIL')
-        self.assertEqual(response.json['payload']['message'], 'resetpw.phone-code-unknown')
-
-    def test_post_reset_password_secure_phone_wrong_token(self):
-        self.app.config.environment = 'staging'
-        self.app.config.magic_code = 'magic-code'
-
-        data3 = {'csrf_token': 'wrong-token'}
-        response = self._post_extra_sec_magic_code(data3=data3, magic=False)
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_PHONE_FAIL')
-        self.assertEqual(response.json['payload']['message'], 'csrf.try_again')
-
     def test_post_reset_password_secure_email_timeout(self):
         self.app.config.email_code_timeout = 0
         response = self._post_reset_password_secure_phone()
@@ -973,6 +881,84 @@ class ResetPasswordTests(EduidAPITestCase):
         # check that the password is marked as generated
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         self.assertFalse(user.credentials.to_list()[0].is_generated)
+
+    def test_get_code_backdoor(self):
+        self.app.config.magic_cookie = 'magic-cookie'
+        self.app.config.magic_cookie_name = 'magic'
+        self.app.config.environment = 'dev'
+
+        resp = self._get_email_code_backdoor()
+
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.data, state.email_code.code.encode('ascii'))
+
+    def test_get_code_no_backdoor_in_pro(self):
+        self.app.config.magic_cookie = 'magic-cookie'
+        self.app.config.magic_cookie_name = 'magic'
+        self.app.config.environment = 'pro'
+
+        resp = self._get_email_code_backdoor()
+
+        self.assertEqual(resp.status_code, 400)
+
+    def test_get_code_no_backdoor_misconfigured1(self):
+        self.app.config.magic_cookie = 'magic-cookie'
+        self.app.config.magic_cookie_name = ''
+        self.app.config.environment = 'dev'
+
+        resp = self._get_email_code_backdoor()
+
+        self.assertEqual(resp.status_code, 400)
+
+    def test_get_code_no_backdoor_misconfigured2(self):
+        self.app.config.magic_cookie = ''
+        self.app.config.magic_cookie_name = 'magic'
+        self.app.config.environment = 'dev'
+
+        resp = self._get_email_code_backdoor()
+
+        self.assertEqual(resp.status_code, 400)
+
+    def test_get_phone_code_backdoor(self):
+        self.app.config.magic_cookie = 'magic-cookie'
+        self.app.config.magic_cookie_name = 'magic'
+        self.app.config.environment = 'dev'
+
+        resp = self._get_phone_code_backdoor()
+
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.data, state.phone_code.code.encode('ascii'))
+
+    def test_get_phone_code_no_backdoor_in_pro(self):
+        self.app.config.magic_cookie = 'magic-cookie'
+        self.app.config.magic_cookie_name = 'magic'
+        self.app.config.environment = 'pro'
+
+        resp = self._get_phone_code_backdoor()
+
+        self.assertEqual(resp.status_code, 400)
+
+    def test_get_phone_code_no_backdoor_misconfigured1(self):
+        self.app.config.magic_cookie = 'magic-cookie'
+        self.app.config.magic_cookie_name = ''
+        self.app.config.environment = 'dev'
+
+        resp = self._get_phone_code_backdoor()
+
+        self.assertEqual(resp.status_code, 400)
+
+    def test_get_phone_code_no_backdoor_misconfigured2(self):
+        self.app.config.magic_cookie = ''
+        self.app.config.magic_cookie_name = 'magic'
+        self.app.config.environment = 'dev'
+
+        resp = self._get_phone_code_backdoor()
+
+        self.assertEqual(resp.status_code, 400)
 
 
 class ChangePasswordTests(EduidAPITestCase):

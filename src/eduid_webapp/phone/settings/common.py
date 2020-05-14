@@ -49,5 +49,3 @@ class PhoneConfig(FlaskConfig):
     throttle_resend_seconds: int = 300
     # default country code
     default_country_code: str = '46'
-    # for backdoors to bypass verification codes
-    magic_code: str = ''

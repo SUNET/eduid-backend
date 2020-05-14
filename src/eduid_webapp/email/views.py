@@ -36,8 +36,8 @@ from flask import Blueprint, abort, current_app, redirect, request
 from six.moves.urllib_parse import urlencode, urlsplit, urlunsplit
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
+from eduid_common.api.helpers import check_magic_cookie
 from eduid_common.api.utils import save_and_sync_user
-from eduid_common.session import session
 from eduid_userdb.element import DuplicateElementViolation, PrimaryElementViolation
 from eduid_userdb.exceptions import DocumentDoesNotExist, UserOutOfSync
 from eduid_userdb.mail import MailAddress
@@ -141,12 +141,6 @@ def post_primary(user, email):
 def verify(user, code, email):
     """
     """
-    # Use backdoor for the selenium integration tests
-    if current_app.config.environment in ('staging', 'dev') and current_app.config.magic_code != '':
-        if code == current_app.config.magic_code:
-            current_app.logger.debug('Using the BACKDOOR to verify email addresses in the email app')
-            code = session.email.verification_code
-
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     current_app.logger.debug('Trying to save email address {} as verified'.format(email))
 
@@ -299,3 +293,18 @@ def resend_code(user, email):
 
     emails = {'emails': user.mail_addresses.to_list_of_dicts(), 'message': 'emails.code-sent'}
     return EmailListPayload().dump(emails).data
+
+
+@email_views.route('/get-code', methods=['GET'])
+@require_user
+def get_code(user):
+    try:
+        if check_magic_cookie(current_app.config):
+            eppn = request.args.get('eppn')
+            email = request.args.get('email')
+            state = current_app.proofing_statedb.get_state_by_eppn_and_email(eppn, email)
+            return state.verification.verification_code
+    except Exception:
+        pass
+
+    abort(400)

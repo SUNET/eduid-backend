@@ -175,69 +175,6 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         self.assertEqual(self.app.proofing_log.db_count(), 1)
 
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
-    def test_password_reset_email_code_magic(self, mock_sendmail):
-        mock_sendmail.return_value = True
-
-        self.app.config.environment = 'staging'
-        self.app.config.magic_code = 'magic-code'
-        with self.app.test_client() as c:
-            c.get('/reset-password/')
-            with c.session_transaction() as sess:
-                data = {'csrf': sess.get_csrf_token(), 'email': 'johnsmith@example.com'}
-            response = c.post('/reset-password/', data=data)
-            self.assertEqual(response.status_code, 200)
-
-            response = c.get('/reset-password/email/magic-code')
-
-            state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
-            self.assertIsNotNone(state)
-            self.assertEqual(state.email_code.is_verified, True)
-            self.assertEqual(self.app.proofing_log.db_count(), 1)
-
-            self.assertEqual(response.status_code, 302)
-            self.assertEqual(
-                response.location,
-                'http://{}/reset-password/extra-security/{}'.format(self.app.config.server_name, state.email_code.code),
-            )
-            self.assertEqual(self.app.proofing_log.db_count(), 1)
-
-    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
-    def test_password_reset_email_code_wrong_magic(self, mock_sendmail):
-        mock_sendmail.return_value = True
-
-        self.app.config.environment = 'staging'
-        self.app.config.magic_code = 'magic-code'
-        with self.app.test_client() as c:
-            c.get('/reset-password/')
-            with c.session_transaction() as sess:
-                data = {'csrf': sess.get_csrf_token(), 'email': 'johnsmith@example.com'}
-            response = c.post('/reset-password/', data=data)
-            self.assertEqual(response.status_code, 200)
-
-            response = c.get('/reset-password/email/wrong-magic-code')
-
-            self.assertEqual(response.status_code, 200)
-            self.assertTrue(b'The requested state can not be found' in response.data)
-
-    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
-    def test_password_reset_email_code_magic_pro(self, mock_sendmail):
-        mock_sendmail.return_value = True
-
-        self.app.config.environment = 'pro'
-        self.app.config.magic_code = 'magic-code'
-        with self.app.test_client() as c:
-            c.get('/reset-password/')
-            with c.session_transaction() as sess:
-                data = {'csrf': sess.get_csrf_token(), 'email': 'johnsmith@example.com'}
-            response = c.post('/reset-password/', data=data)
-            self.assertEqual(response.status_code, 200)
-
-            response = c.get('/reset-password/email/magic-code')
-
-            self.assertEqual(response.status_code, 200)
-            self.assertTrue(b'The requested state can not be found' in response.data)
-
-    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     def test_password_reset_email_code_mail_relay_problem(self, mock_sendmail):
         mock_sendmail.side_effect = MailTaskFailed('test')
         response = self.post_email_address('johnsmith@example.com')
@@ -292,56 +229,6 @@ class SecurityResetPasswordTests(EduidAPITestCase):
 
         state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
         self.assertEqual(state.phone_code.is_verified, True)
-
-    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
-    @patch('eduid_common.api.msg.MsgRelay.sendsms')
-    def test_password_reset_extra_security_phone_with_magic_code(self, mock_sendmail, mock_sendsms):
-        mock_sendmail.return_value = True
-        mock_sendsms.return_value = True
-
-        self.app.config.environment = 'staging'
-        self.app.config.magic_code = 'magic-code'
-        email_address = 'johnsmith@example.com'
-
-        with self.app.test_client() as c:
-            c.get('/reset-password/')
-            with c.session_transaction() as sess:
-                data = {'csrf': sess.get_csrf_token(), 'email': email_address}
-            response = c.post('/reset-password/', data=data)
-            self.assertEqual(response.status_code, 200)
-
-            state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
-            self.assertIsNotNone(state)
-
-            response = c.get('/reset-password/email/magic-code')
-
-            self.assertEqual(response.status_code, 302)
-            self.assertEqual(
-                response.location,
-                'http://{}/reset-password/extra-security/{}'.format(self.app.config.server_name, state.email_code.code),
-            )
-            self.assertEqual(self.app.proofing_log.db_count(), 1)
-
-            c.get('/reset-password/extra-security/magic-code')
-            with c.session_transaction() as sess:
-                data = {'csrf': sess.get_csrf_token(), 'phone_number_index': '0'}
-            response = c.post('/reset-password/extra-security/magic-code', data=data)
-            self.assertEqual(response.status_code, 302)
-
-            state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
-            self.assertIsNotNone(state.phone_code)
-            self.assertEqual(state.phone_code.is_verified, False)
-
-            c.get('/reset-password/extra-security/phone/magic-code')
-
-            with c.session_transaction() as sess:
-                data = {'csrf': sess.get_csrf_token(), 'phone_code': 'magic-code'}
-            response = c.post('/reset-password/extra-security/phone/magic-code', data=data)
-            self.assertEqual(response.status_code, 302)
-            self.assertEqual(self.app.proofing_log.db_count(), 2)
-
-            state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
-            self.assertEqual(state.phone_code.is_verified, True)
 
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     @patch('eduid_common.api.msg.MsgRelay.sendsms')

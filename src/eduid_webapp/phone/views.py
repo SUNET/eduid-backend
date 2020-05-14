@@ -33,11 +33,11 @@
 
 from __future__ import absolute_import
 
-from flask import Blueprint
+from flask import Blueprint, request, abort
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
+from eduid_common.api.helpers import check_magic_cookie
 from eduid_common.api.utils import save_and_sync_user
-from eduid_common.session import session
 from eduid_userdb.element import PrimaryElementViolation, UserDBValueError
 from eduid_userdb.exceptions import DocumentDoesNotExist, UserOutOfSync
 from eduid_userdb.phone import PhoneNumber
@@ -152,13 +152,6 @@ def verify(user, code, number):
 
     Returns a listing of  all phones for the logged in user.
     """
-    # This code is to use the backdoor that allows selenium integration tests
-    # to verify phone numbers using a magic code
-    if current_app.config.environment in ('staging', 'dev') and current_app.config.magic_code != '':
-        if code == current_app.config.magic_code:
-            current_app.logger.debug('Using the BACKDOOR to verify phone numbers in the phone app')
-            code = session.phone.verification_code
-
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     current_app.logger.debug('Trying to save phone number {} as verified'.format(number))
 
@@ -263,3 +256,17 @@ def resend_code(user, number):
 
     phones = {'phones': user.phone_numbers.to_list_of_dicts(), 'message': 'phones.code-sent'}
     return PhoneListPayload().dump(phones).data
+
+
+@phone_views.route('/get-code', methods=['GET'])
+def get_code():
+    try:
+        if check_magic_cookie(current_app.config):
+            eppn = request.args.get('eppn')
+            phone = request.args.get('phone')
+            state = current_app.proofing_statedb.get_state_by_eppn_and_mobile(eppn, phone)
+            return state.verification.verification_code
+    except Exception:
+        pass
+
+    abort(400)

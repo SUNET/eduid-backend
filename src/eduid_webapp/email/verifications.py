@@ -37,7 +37,6 @@ from flask import current_app, render_template, url_for
 from flask_babel import gettext as _
 
 from eduid_common.api.utils import get_unique_hash, save_and_sync_user
-from eduid_common.session import session
 from eduid_userdb.element import DuplicateElementViolation
 from eduid_userdb.logs import MailAddressProofing
 from eduid_userdb.mail import MailAddress
@@ -72,12 +71,6 @@ def send_verification_code(email, user):
     state = new_proofing_state(email, user)
     if state is None:
         return False
-
-    # Open backdoor for the selenium integration tests
-    if current_app.config.environment in ('staging', 'dev') and current_app.config.magic_code != '':
-        if f'{current_app.config.magic_code}@' in email:
-            current_app.logger.debug('Opening the BACKDOOR to verify email addresses in the email app')
-            session.email.verification_code = state.verification.verification_code
 
     link = url_for('email.verify_link', code=state.verification.verification_code, email=email, _external=True)
     site_name = current_app.config.eduid_site_name

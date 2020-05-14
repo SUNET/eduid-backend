@@ -5,10 +5,12 @@ from __future__ import absolute_import
 import json
 from functools import wraps
 
-from flask import Blueprint, redirect, render_template, request, url_for
+from flask import Blueprint, redirect, render_template, request, url_for, abort
 from flask_babel import gettext as _
 
+from eduid_common.api.decorators import require_user
 from eduid_common.api.exceptions import MailTaskFailed, MsgTaskFailed
+from eduid_common.api.helpers import check_magic_cookie
 from eduid_common.session import session
 from eduid_userdb.exceptions import DocumentDoesNotExist
 from eduid_userdb.security.state import PasswordResetEmailAndPhoneState, PasswordResetEmailState
@@ -44,15 +46,6 @@ def require_state(f):
         email_code = kwargs.pop('email_code')
         mail_expiration_time = current_app.config.email_code_timeout
         sms_expiration_time = current_app.config.phone_code_timeout
-
-        # Backdoor for the staging and dev environments where a magic code
-        # bypasses verification of the emailed code, to be used in automated integration tests.
-        # Here we retrieve the real code from the session.
-        if current_app.config.environment in ('staging', 'dev') and current_app.config.magic_code:
-            if email_code == current_app.config.magic_code:
-                current_app.logger.info('Opening BACKDOOR to bypass verification of emailed code!')
-                email_code = session['resetpw_email_verification_code']
-
         try:
             state = current_app.password_reset_state_db.get_state_by_email_code(email_code)
             current_app.logger.debug(f'Found state using email_code {email_code}: {state}')
@@ -242,14 +235,6 @@ def extra_security_phone_number(state):
 
             phone_code = form.data.get('phone_code', '')
 
-            # Backdoor for the staging and dev environments where a magic code
-            # bypasses verification of the sms'd code, to be used in automated integration tests.
-            # Here we retrieve the real code from the session.
-            if current_app.config.environment in ('staging', 'dev') and current_app.config.magic_code:
-                if phone_code == current_app.config.magic_code:
-                    current_app.logger.info('Using BACKDOOR to bypass verification of emailed code!')
-                    phone_code = session['resetpw_sms_verification_code']
-
             if phone_code == state.phone_code.code:
                 if not verify_phone_number(state):
                     current_app.logger.info('Could not validated phone code for {}'.format(state.eppn))
@@ -322,3 +307,29 @@ def new_password(state):
 
     view_context['csrf_token'] = session.new_csrf_token()
     return render_template('reset_password_new_password.jinja2', view_context=view_context)
+
+
+@reset_password_views.route('/get-email-code', methods=['GET'])
+def get_email_code():
+    try:
+        if check_magic_cookie(current_app.config):
+            email = request.args.get('email')
+            state = current_app.password_reset_state_db.get_state_by_email(email)
+            return state.email_code.code
+    except Exception:
+        pass
+
+    abort(400)
+
+
+@reset_password_views.route('/get-phone-code', methods=['GET'])
+def get_phone_code():
+    try:
+        if check_magic_cookie(current_app.config):
+            email = request.args.get('email')
+            state = current_app.password_reset_state_db.get_state_by_eppn(email)
+            return state.phone_code.code
+    except Exception:
+        pass
+
+    abort(400)
