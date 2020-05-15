@@ -103,13 +103,6 @@ class ResetPasswordTests(EduidAPITestCase):
         with self.app.app_context():
             self.app.central_userdb._drop_whole_collection()
 
-    @contextmanager
-    def session_cookie_anon(self, client, server_name='localhost', **kwargs):
-        with client.session_transaction(**kwargs) as sess:
-            pass
-        client.set_cookie(server_name, key=self.app.config.session_cookie_name, value=sess._session.token)
-        yield client
-
     # Parameterized test methods
 
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
