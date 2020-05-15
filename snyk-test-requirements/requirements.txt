@@ -3,7 +3,7 @@ blinker
 coverage==3.6
 cryptography>=2.0.3
 eduid-am>=0.6.2b2
-eduid-common>=0.4.18
+eduid-common>=0.4.19
 eduid_lookup_mobile>=0.0.6b3
 eduid-msg>=0.10.3b0
 eduid-userdb>=0.4.6b15
