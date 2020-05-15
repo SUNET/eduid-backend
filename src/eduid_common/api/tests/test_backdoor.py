@@ -99,10 +99,18 @@ class BackdoorTests(EduidAPITestCase):
             response = client.get('/get-code?eppn=pepin-pepon')
             self.assertEqual(response.status_code, 400)
 
-    def test_no_backdoor_in_without_cookie(self):
+    def test_no_backdoor_without_cookie(self):
         """"""
         with self.session_cookie_anon(self.browser) as client:
 
+            response = client.get('/get-code?eppn=pepin-pepon')
+            self.assertEqual(response.status_code, 400)
+
+    def test_wrong_cookie_no_backdoor(self):
+        """"""
+        with self.session_cookie_anon(self.browser) as client:
+
+            client.set_cookie('localhost', key=self.app.config.magic_cookie_name, value='no-magic')
             response = client.get('/get-code?eppn=pepin-pepon')
             self.assertEqual(response.status_code, 400)
 
