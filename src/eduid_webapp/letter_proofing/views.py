@@ -2,7 +2,7 @@
 
 from __future__ import absolute_import
 
-from flask import Blueprint
+from flask import Blueprint, abort
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, can_verify_identity, require_user
 from eduid_common.api.exceptions import AmTaskFailed, MsgTaskFailed
@@ -12,7 +12,13 @@ from eduid_userdb.logs import LetterProofing
 from eduid_webapp.letter_proofing import pdf, schemas
 from eduid_webapp.letter_proofing.app import current_letterp_app as current_app
 from eduid_webapp.letter_proofing.ekopost import EkopostException
-from eduid_webapp.letter_proofing.helpers import check_state, create_proofing_state, get_address, send_letter
+from eduid_webapp.letter_proofing.helpers import (
+    check_state,
+    create_proofing_state,
+    get_address,
+    send_letter,
+    check_magic_cookie,
+)
 
 __author__ = 'lundberg'
 
@@ -141,3 +147,16 @@ def verify_code(user, code):
         current_app.logger.error('Verifying nin for user {} failed'.format(user))
         current_app.logger.error('{}'.format(e))
         return {'_status': 'error', 'message': 'Temporary technical problems'}
+
+
+@letter_proofing_views.route('/get-code', methods=['GET'])
+@require_user
+def get_code(user):
+    try:
+        if check_magic_cookie(current_app.config):
+            state = current_app.proofing_statedb.get_state_by_eppn(user.eppn)
+            return state.verification.verification_code
+    except Exception:
+        pass
+
+    abort(400)
