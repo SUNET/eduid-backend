@@ -15,6 +15,7 @@ from eduid_scimapi.group import (
     GroupResponseSchema,
     GroupUpdateRequest,
     GroupUpdateRequestSchema,
+    NutidGroupExtensionV1,
 )
 from eduid_scimapi.groupdb import ScimApiGroup
 from eduid_scimapi.middleware import ctx_groupdb, ctx_userdb
@@ -53,17 +54,17 @@ class GroupsResource(SCIMResource):
             created=db_group.created,
             version=db_group.version,
         )
+        schemas = [SCIMSchema.CORE_20_GROUP]
+        if db_group.extensions.data:
+            schemas.append(SCIMSchema.NUTID_GROUP_V1)
         group = GroupResponse(
             display_name=db_group.graph.display_name,
             members=members,
             id=db_group.scim_id,
             meta=meta,
-            schemas=[SCIMSchema.CORE_20_GROUP],
+            schemas=schemas,
+            nutid_group_v1=NutidGroupExtensionV1(data=db_group.extensions.data),
         )
-
-        if db_group.extensions.data:
-            group.schemas.append(SCIMSchema.NUTID_GROUP_V1)
-            group.nutid_group_v1.data = db_group.extensions.data
 
         resp.set_header("Location", location)
         resp.set_header("ETag", make_etag(db_group.version))

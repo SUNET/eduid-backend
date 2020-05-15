@@ -10,7 +10,7 @@ from eduid_scimapi.scimbase import BaseSchema, Meta, SCIMSchema, SCIMSchemaValue
 __author__ = 'lundberg'
 
 
-@dataclass
+@dataclass(frozen=True)
 class NutidGroupExtensionV1:
     data: Dict[str, Any] = field(
         default_factory=dict, metadata={"marshmallow_field": fields.Dict(), 'required': False,},
@@ -22,7 +22,7 @@ class GroupMember(SubResource):
     pass
 
 
-@dataclass
+@dataclass(frozen=True)
 class Group:
     display_name: str = field(default='', metadata={'data_key': 'displayName', 'required': True})
     members: List[GroupMember] = field(default_factory=list, metadata={'required': False})
@@ -33,7 +33,7 @@ class Group:
 
 
 # Duplicate Group and BaseCreateRequest until dataclasses has better inheritance support
-@dataclass
+@dataclass(frozen=True)
 class GroupCreateRequest:
     schemas: List[SCIMSchemaValue] = field(default_factory=list, metadata={'required': True})
     display_name: str = field(default='', metadata={'data_key': 'displayName', 'required': True})
@@ -45,7 +45,7 @@ class GroupCreateRequest:
 
 
 # Duplicate Group and BaseUpdateRequest until dataclasses has better inheritance support
-@dataclass
+@dataclass(frozen=True)
 class GroupUpdateRequest:
     id: UUID = field(metadata={'required': True})
     schemas: List[SCIMSchemaValue] = field(default_factory=list, metadata={'required': True})
@@ -58,7 +58,7 @@ class GroupUpdateRequest:
 
 
 # Duplicate Group and BaseResponse until dataclasses has better inheritance support
-@dataclass
+@dataclass(frozen=True)
 class GroupResponse:
     id: UUID = field(metadata={'required': True})
     meta: Meta = field(metadata={'required': True})  # type: ignore
