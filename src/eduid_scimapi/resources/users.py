@@ -1,7 +1,5 @@
-import re
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Sequence, Tuple
-from uuid import UUID
 
 from falcon import Request, Response
 from marshmallow import ValidationError
@@ -9,8 +7,6 @@ from marshmallow import ValidationError
 from eduid_groupdb import User as GroupUser
 
 from eduid_scimapi.exceptions import BadRequest, NotFound
-from eduid_scimapi.groupdb import ScimApiGroup
-from eduid_scimapi.resources import groups
 from eduid_scimapi.resources.base import BaseResource, SCIMResource
 from eduid_scimapi.scimbase import (
     ListResponse,

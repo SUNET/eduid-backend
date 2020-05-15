@@ -10,7 +10,7 @@ from eduid_scimapi.scimbase import BaseSchema, Meta, SCIMSchema, SCIMSchemaValue
 __author__ = 'lundberg'
 
 
-@dataclass
+@dataclass(frozen=True)
 class Profile:
     attributes: Dict[str, Any] = field(
         default_factory=dict, metadata={"marshmallow_field": fields.Dict(), 'required': False}
@@ -18,7 +18,7 @@ class Profile:
     data: Dict[str, Any] = field(default_factory=dict, metadata={"marshmallow_field": fields.Dict(), 'required': False})
 
 
-@dataclass
+@dataclass(frozen=True)
 class NutidExtensionV1:
     profiles: Dict[str, Profile] = field(
         default_factory=dict,
@@ -34,7 +34,7 @@ class Group(SubResource):
     pass
 
 
-@dataclass
+@dataclass(frozen=True)
 class User:
     external_id: Optional[str] = field(default=None, metadata={'data_key': 'externalId', 'required': False})
     groups: List[Group] = field(default_factory=list, metadata={'required': False})
@@ -45,7 +45,7 @@ class User:
 
 
 # Duplicate User and BaseCreateRequest until dataclasses has better inheritance support
-@dataclass
+@dataclass(frozen=True)
 class UserCreateRequest:
     schemas: List[SCIMSchemaValue] = field(default_factory=list, metadata={'required': True})
     external_id: Optional[str] = field(default=None, metadata={'data_key': 'externalId', 'required': False})
@@ -57,7 +57,7 @@ class UserCreateRequest:
 
 
 # Duplicate User and BaseUpdateRequest until dataclasses has better inheritance support
-@dataclass
+@dataclass(frozen=True)
 class UserUpdateRequest:
     id: UUID = field(metadata={'required': True})
     schemas: List[SCIMSchemaValue] = field(default_factory=list, metadata={'required': True})
@@ -70,7 +70,7 @@ class UserUpdateRequest:
 
 
 # Duplicate User and BaseResponse until dataclasses has better inheritance support
-@dataclass
+@dataclass(frozen=True)
 class UserResponse:
     id: UUID = field(metadata={'required': True})
     meta: Meta = field(metadata={'required': True})  # type: ignore

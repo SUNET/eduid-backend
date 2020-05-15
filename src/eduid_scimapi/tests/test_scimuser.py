@@ -11,7 +11,7 @@ from marshmallow_dataclass import class_schema
 
 from eduid_scimapi.scimbase import Meta, SCIMResourceType, SCIMSchema, make_etag
 from eduid_scimapi.testing import ScimApiTestCase
-from eduid_scimapi.user import UserResponse, UserResponseSchema
+from eduid_scimapi.user import NutidExtensionV1, UserResponse, UserResponseSchema
 from eduid_scimapi.userdb import Profile, ScimApiUser
 
 logger = logging.getLogger(__name__)
@@ -53,9 +53,9 @@ class TestScimUser(unittest.TestCase):
             meta=meta,
             schemas=[SCIMSchema.CORE_20_USER, SCIMSchema.NUTID_USER_V1],
             external_id=db_user.external_id,
+            groups=[],
+            nutid_v1=NutidExtensionV1(profiles=db_user.profiles),
         )
-        user_response.groups = []
-        user_response.nutid_v1.profiles = db_user.profiles
         schema = class_schema(UserResponse)
         scim = schema().dumps(user_response, sort_keys=True)
 
@@ -101,9 +101,9 @@ class TestScimUser(unittest.TestCase):
             meta=meta,
             schemas=[SCIMSchema.CORE_20_USER, SCIMSchema.NUTID_USER_V1],
             external_id=db_user.external_id,
+            groups=[],
+            nutid_v1=NutidExtensionV1(profiles=db_user.profiles),
         )
-        user_response.groups = []
-        user_response.nutid_v1.profiles = db_user.profiles
         scim = UserResponseSchema().dumps(user_response)
 
         expected = {
