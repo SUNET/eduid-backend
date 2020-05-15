@@ -157,7 +157,7 @@ class TestGroupDB(Neo4jTestCase):
         self.assertEqual(owner.identifier, post_save_owner.identifier)
         self.assertEqual(owner.display_name, post_save_owner.display_name)
 
-    def test_get_groups_for_user(self):
+    def test_get_groups_for_user_member(self):
         group = Group.from_mapping(self.group1)
         member_group = Group.from_mapping(self.group2)
         group.members.append(member_group)
@@ -168,16 +168,22 @@ class TestGroupDB(Neo4jTestCase):
 
         self.assertIn(member_group, group.member_groups)
         self.assertIn(member_user, group.member_users)
+        self.assertEqual(2, len(group.members))
         self.assertIn(owner, group.owners)
+        self.assertEqual(1, len(group.owners))
         self.group_db.save(group)
 
-        groups = self.group_db.get_groups_for_user(member_user)
+        groups = self.group_db.get_groups_for_member(member_user)
         self.assertEqual(1, len(groups))
         self.assertEqual(group.identifier, groups[0].identifier)
         self.assertEqual(group.display_name, groups[0].display_name)
         self.assertIsNotNone(groups[0].created_ts)
+        self.assertEqual(1, len(group.owners))
+        self.assertEqual(group.owners[0].identifier, groups[0].owners[0].identifier)
+        self.assertEqual(group.owners[0].display_name, groups[0].owners[0].display_name)
+        self.assertIsNotNone(groups[0].owners[0].created_ts)
 
-    def test_get_groups_for_user_2(self):
+    def test_get_groups_for_user_member_2(self):
         group1 = Group.from_mapping(self.group1)
         group2 = Group.from_mapping(self.group2)
         member_user = User.from_mapping(self.user1)
@@ -189,11 +195,114 @@ class TestGroupDB(Neo4jTestCase):
         self.assertIn(member_user, group2.member_users)
         self.group_db.save(group2)
 
-        groups = self.group_db.get_groups_for_user(member_user)
+        groups = self.group_db.get_groups_for_member(member_user)
         self.assertEqual(2, len(groups))
         self.assertEqual(sorted([group1.identifier, group2.identifier]), sorted([x.identifier for x in groups]))
         self.assertEqual(sorted([group1.display_name, group2.display_name]), sorted([x.display_name for x in groups]))
         self.assertIsNotNone(groups[0].created_ts)
+
+    def test_get_groups_for_group_member(self):
+        group = Group.from_mapping(self.group1)
+        member_group = Group.from_mapping(self.group2)
+        group.members.append(member_group)
+        member_user = User.from_mapping(self.user2)
+        group.members.append(member_user)
+        owner = User.from_mapping(self.user1)
+        group.owners.append(owner)
+
+        self.assertIn(member_group, group.member_groups)
+        self.assertIn(member_user, group.member_users)
+        self.assertEqual(2, len(group.members))
+        self.assertIn(owner, group.owners)
+        self.assertEqual(1, len(group.owners))
+        self.group_db.save(group)
+
+        groups = self.group_db.get_groups_for_member(member_group)
+        self.assertEqual(1, len(groups))
+        self.assertEqual(group.identifier, groups[0].identifier)
+        self.assertEqual(group.display_name, groups[0].display_name)
+        self.assertIsNotNone(groups[0].created_ts)
+        self.assertEqual(1, len(group.owners))
+        self.assertEqual(group.owners[0].identifier, groups[0].owners[0].identifier)
+        self.assertEqual(group.owners[0].display_name, groups[0].owners[0].display_name)
+        self.assertIsNotNone(groups[0].owners[0].created_ts)
+
+    def test_get_groups_for_user_owner(self):
+        group = Group.from_mapping(self.group1)
+        member_group = Group.from_mapping(self.group2)
+        group.members.append(member_group)
+        member_user = User.from_mapping(self.user2)
+        group.members.append(member_user)
+        owner = User.from_mapping(self.user1)
+        group.owners.append(owner)
+
+        self.assertIn(member_group, group.member_groups)
+        self.assertIn(member_user, group.member_users)
+        self.assertEqual(2, len(group.members), 'len(group.members)')
+        self.assertIn(owner, group.owners)
+        self.assertEqual(1, len(group.owners), 'len(group.owners)')
+        self.group_db.save(group)
+
+        groups = self.group_db.get_groups_for_owner(owner)
+        self.assertEqual(1, len(groups), 'len(groups)')
+        self.assertEqual(group.identifier, groups[0].identifier)
+        self.assertEqual(group.display_name, groups[0].display_name)
+        self.assertIsNotNone(groups[0].created_ts)
+        self.assertEqual(1, len(groups[0].owners), 'len(groups[0].owners)')
+        self.assertEqual(group.owners[0].identifier, groups[0].owners[0].identifier)
+        self.assertEqual(group.owners[0].display_name, groups[0].owners[0].display_name)
+        self.assertIsNotNone(groups[0].owners[0].created_ts)
+        self.assertEqual(2, len(groups[0].members), 'len(groups[0].members)')
+
+    def test_get_groups_for_user_owner_2(self):
+        group1 = Group.from_mapping(self.group1)
+        group2 = Group.from_mapping(self.group2)
+        owner_user = User.from_mapping(self.user1)
+        member_user = User.from_mapping(self.user2)
+        group1.owners.append(owner_user)
+        group2.owners.append(owner_user)
+        group1.members.append(member_user)
+        group2.members.append(member_user)
+
+        self.assertIn(owner_user, group1.owner_users)
+        self.group_db.save(group1)
+        self.assertIn(owner_user, group2.owner_users)
+        self.group_db.save(group2)
+
+        groups = self.group_db.get_groups_for_owner(owner_user)
+        self.assertEqual(2, len(groups), 'len(groups)')
+        self.assertEqual(sorted([group1.identifier, group2.identifier]), sorted([x.identifier for x in groups]))
+        self.assertEqual(sorted([group1.display_name, group2.display_name]), sorted([x.display_name for x in groups]))
+        self.assertIsNotNone(groups[0].created_ts)
+        self.assertEqual(1, len(groups[0].members), 'len(groups[0].members)')
+        self.assertEqual(1, len(groups[1].members), 'len(groups[1].members)')
+
+    def test_get_groups_for_group_owner(self):
+        group = Group.from_mapping(self.group1)
+        member_group = Group.from_mapping(self.group2)
+        group.members.append(member_group)
+        member_user = User.from_mapping(self.user2)
+        group.members.append(member_user)
+        owner = Group.from_mapping(self.group2)
+        group.owners.append(owner)
+
+        self.assertIn(member_group, group.member_groups)
+        self.assertIn(member_user, group.member_users)
+        self.assertEqual(2, len(group.members), 'len(group.members)')
+        self.assertIn(owner, group.owners)
+        self.assertEqual(1, len(group.owners), 'len(group.owners)')
+        self.group_db.save(group)
+
+        groups = self.group_db.get_groups_for_owner(owner)
+        self.assertEqual(1, len(groups), 'len(groups)')
+        self.assertEqual(group.identifier, groups[0].identifier)
+        self.assertEqual(group.display_name, groups[0].display_name)
+        self.assertIsNotNone(groups[0].created_ts)
+        self.assertEqual(1, len(groups[0].owners), 'len(groups[0].owners)')
+        self.assertEqual(group.owners[0].identifier, groups[0].owners[0].identifier)
+        self.assertEqual(group.owners[0].display_name, groups[0].owners[0].display_name)
+        self.assertIsNotNone(groups[0].owners[0].created_ts)
+        self.assertEqual(2, len(groups[0].members), 'len(groups[0].members)')
 
     def test_remove_user_from_group(self):
         group = Group.from_mapping(self.group1)
