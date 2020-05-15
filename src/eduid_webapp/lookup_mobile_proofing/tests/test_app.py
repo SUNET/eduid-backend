@@ -150,6 +150,81 @@ class LookupMobileProofingTests(EduidAPITestCase):
         self.assertEqual(user.nins.find(self.test_user_nin).is_verified, False)
         self.assertEqual(self.app.proofing_log.db_count(), 0)
 
+    @patch('eduid_webapp.lookup_mobile_proofing.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile')
+    @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_proofing_flow_no_match_backdoor(self, mock_request_user_sync, mock_get_postal_address, mock_find_nin_by_mobile):
+        mock_find_nin_by_mobile.return_value = None
+        mock_get_postal_address.return_value = None
+        mock_request_user_sync.side_effect = self.request_user_sync
+
+        self.app.config.environment = 'dev'
+        self.app.config.magic_cokie = 'magic-cookie'
+        self.app.config.magic_cokie_name = 'magic-cookie'
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+
+        with self.session_cookie(self.browser, self.test_user_eppn) as browser:
+            response = json.loads(browser.get('/proofing').data)
+        self.assertEqual(response['type'], 'GET_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS')
+
+        csrf_token = response['payload']['csrf_token']
+
+        with self.session_cookie(self.browser, self.test_user_eppn) as browser:
+
+            browser.set_cookie('localhost',
+                               key=self.app.config.magic_cookie_name,
+                               value=self.app.config.magic_cookie_name)
+
+            data = {'nin': self.test_user_nin, 'csrf_token': csrf_token}
+            response = browser.post('/proofing', data=json.dumps(data), content_type=self.content_type_json)
+            response = json.loads(response.data)
+        self.assertEqual(response['type'], 'POST_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS')
+        self.assertEqual(response['payload']['success'], True)
+
+        user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
+        self.assertEqual(user.nins.primary.number, self.test_user_nin)
+        self.assertEqual(user.nins.primary.created_by, 'lookup_mobile_proofing')
+        self.assertEqual(user.nins.primary.verified_by, 'lookup_mobile_proofing')
+        self.assertEqual(user.nins.primary.is_verified, True)
+        self.assertEqual(self.app.proofing_log.db_count(), 1)
+
+    @patch('eduid_webapp.lookup_mobile_proofing.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile')
+    @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_proofing_flow_no_match_backdoor_code_in_pro(self, mock_request_user_sync, mock_get_postal_address, mock_find_nin_by_mobile):
+        mock_find_nin_by_mobile.return_value = None
+        mock_get_postal_address.return_value = None
+        mock_request_user_sync.side_effect = self.request_user_sync
+
+        self.app.config.environment = 'pro'
+        self.app.config.magic_cokie = 'magic-cookie'
+        self.app.config.magic_cokie_name = 'magic-cookie'
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+
+        with self.session_cookie(self.browser, self.test_user_eppn) as browser:
+            response = json.loads(browser.get('/proofing').data)
+        self.assertEqual(response['type'], 'GET_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS')
+
+        csrf_token = response['payload']['csrf_token']
+
+        with self.session_cookie(self.browser, self.test_user_eppn) as browser:
+
+            browser.set_cookie('localhost',
+                               key=self.app.config.magic_cookie_name,
+                               value=self.app.config.magic_cookie_name)
+
+            data = {'nin': self.test_user_nin, 'csrf_token': csrf_token}
+            response = browser.post('/proofing', data=json.dumps(data), content_type=self.content_type_json)
+            response = json.loads(response.data)
+        self.assertEqual(response['type'], 'POST_LOOKUP_MOBILE_PROOFING_PROOFING_FAIL')
+        self.assertEqual(response['payload']['success'], True)
+
+        user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
+        self.assertEqual(user.nins.count, 1)
+        self.assertEqual(user.nins.find(self.test_user_nin).created_by, 'lookup_mobile_proofing')
+        self.assertEqual(user.nins.find(self.test_user_nin).is_verified, False)
+        self.assertEqual(self.app.proofing_log.db_count(), 0)
+
     @patch('eduid_common.api.msg.MsgRelay.get_relations_to')
     @patch('eduid_webapp.lookup_mobile_proofing.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile')
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')

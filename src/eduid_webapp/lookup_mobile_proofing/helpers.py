@@ -8,6 +8,8 @@ from eduid_userdb.proofing.element import NinProofingElement
 from eduid_userdb.proofing.state import NinProofingState
 from eduid_userdb.proofing.user import ProofingUser
 
+from eduid_common.api.helpers import check_magic_cookie
+
 from eduid_lookup_mobile.utilities import format_NIN
 from eduid_webapp.lookup_mobile_proofing.app import current_mobilep_app as current_app
 from eduid_webapp.lookup_mobile_proofing.lookup_mobile_relay import LookupMobileTaskFailed
@@ -62,6 +64,27 @@ def match_mobile_to_user(user, self_asserted_nin, verified_mobile_numbers):
     :rtype: tuple
     """
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
+
+    # This code is to use the backdoor that allows selenium integration tests
+    # to verify a NIN by having a magic code in the primary email address
+    if check_magic_cookie(current_app.config):
+        current_app.logger.debug('Using the BACKDOOR to verify a NIN through the lookup mobile app')
+        user_postal_address = {
+            'Name': {'GivenName': 'Magic Code', 'GivenNameMarking': '20', 'Surname': 'Magic Code'},
+            'OfficialAddress': {'Address2': 'Dummy address', 'City': 'LANDET', 'PostalCode': '12345'},
+        }
+        proofing_log_entry = TeleAdressProofing(
+            proofing_user,
+            created_by='lookup_mobile_proofing',
+            reason='magic_code',
+            nin=self_asserted_nin,
+            mobile_number='dummy phone',
+            user_postal_address=user_postal_address,
+            proofing_version='2014v1',
+        )
+        current_app.stats.count('validate_nin_by_mobile_magic_code')
+        return True, proofing_log_entry
+
     age = nin_to_age(self_asserted_nin)
 
     for mobile_number in verified_mobile_numbers:
