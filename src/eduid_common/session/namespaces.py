@@ -76,8 +76,6 @@ class TimestampedNS(SessionNSBase):
 @dataclass
 class ResetPasswordNS(SessionNSBase):
     generated_password_hash: Optional[str] = None
-    resetpw_email_verification_code: Optional[str] = None
-    resetpw_sms_verification_code: Optional[str] = None
     # XXX the keys below are not in use yet. They are set in eduid-common,
     # in a way that the security app understands. Once the (reset|change)
     # password views are removed from the security app, we will be able to
@@ -95,13 +93,3 @@ class Signup(TimestampedNS):
 @dataclass()
 class Actions(TimestampedNS):
     session: Optional[str] = None
-
-
-@dataclass()
-class Phone(TimestampedNS):
-    verification_code: Optional[str] = None
-
-
-@dataclass()
-class Email(TimestampedNS):
-    verification_code: Optional[str] = None

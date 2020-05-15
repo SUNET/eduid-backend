@@ -16,9 +16,7 @@ from eduid_common.session.logindata import SSOLoginData
 from eduid_common.session.namespaces import (
     Actions,
     Common,
-    Email,
     MfaAction,
-    Phone,
     ResetPasswordNS,
     SessionNSBase,
     Signup,
@@ -60,8 +58,6 @@ class EduidSession(SessionMixin, MutableMapping):
         self._common: Optional[Common] = None
         self._mfa_action: Optional[MfaAction] = None
         self._signup: Optional[Signup] = None
-        self._phone: Optional[Phone] = None
-        self._email: Optional[Email] = None
         self._actions: Optional[Actions] = None
         self._sso_ticket: Optional[SSOLoginData] = None
         self._reset_password: Optional[ResetPasswordNS] = None
@@ -130,28 +126,6 @@ class EduidSession(SessionMixin, MutableMapping):
     def signup(self, value: Optional[Signup]):
         if not self._signup:
             self._signup = value
-
-    @property
-    def phone(self) -> Optional[Phone]:
-        if not self._phone:
-            self._phone = Phone.from_dict(self._session.get('_phone', {}))
-        return self._phone
-
-    @phone.setter
-    def phone(self, value: Optional[Phone]):
-        if not self._phone:
-            self._phone = value
-
-    @property
-    def email(self) -> Optional[Email]:
-        if not self._email:
-            self._email = Email.from_dict(self._session.get('_email', {}))
-        return self._email
-
-    @email.setter
-    def email(self, value: Optional[Email]):
-        if not self._email:
-            self._email = value
 
     @property
     def actions(self) -> Optional[Actions]:
