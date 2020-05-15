@@ -86,5 +86,10 @@ class ResetPasswordNS(SessionNSBase):
 
 
 @dataclass()
+class Signup(TimestampedNS):
+    email_verification_code: Optional[str] = None
+
+
+@dataclass()
 class Actions(TimestampedNS):
     session: Optional[str] = None
