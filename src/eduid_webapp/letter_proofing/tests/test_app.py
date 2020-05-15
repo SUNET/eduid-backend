@@ -160,61 +160,6 @@ class LetterProofingTests(EduidAPITestCase):
 
             return client.get('/get-code')
 
-    def test_get_code_backdoor(self):
-        self.app.config.magic_cookie = 'magic-cookie'
-        self.app.config.magic_cookie_name = 'magic'
-        self.app.config.environment = 'dev'
-
-        response = self.get_code_backdoor()
-        state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
-
-        self.assertEqual(response.data.decode('ascii'), state.nin.verification_code)
-
-    def test_get_code_no_backdoor_in_pro(self):
-        self.app.config.magic_cookie = 'magic-cookie'
-        self.app.config.magic_cookie_name = 'magic'
-        self.app.config.environment = 'pro'
-
-        response = self.get_code_backdoor()
-
-        self.assertEqual(response.status_code, 400)
-
-    def test_get_code_no_backdoor_without_cookie(self):
-        self.app.config.magic_cookie = 'magic-cookie'
-        self.app.config.magic_cookie_name = 'magic'
-        self.app.config.environment = 'dev'
-
-        response = self.get_code_backdoor(add_cookie=False)
-
-        self.assertEqual(response.status_code, 400)
-
-    def test_get_code_no_backdoor_misconfigured1(self):
-        self.app.config.magic_cookie = 'magic-cookie'
-        self.app.config.magic_cookie_name = ''
-        self.app.config.environment = 'dev'
-
-        response = self.get_code_backdoor()
-
-        self.assertEqual(response.status_code, 400)
-
-    def test_get_code_no_backdoor_misconfigured2(self):
-        self.app.config.magic_cookie = ''
-        self.app.config.magic_cookie_name = 'magic'
-        self.app.config.environment = 'dev'
-
-        response = self.get_code_backdoor()
-
-        self.assertEqual(response.status_code, 400)
-
-    def test_get_code_no_backdoor_wrong_value(self):
-        self.app.config.magic_cookie = 'magic-cookie'
-        self.app.config.magic_cookie_name = 'magic'
-        self.app.config.environment = 'dev'
-
-        response = self.get_code_backdoor(cookie_value='wrong-cookie')
-
-        self.assertEqual(response.status_code, 400)
-
     # End helper methods
 
     def test_authenticate(self):
@@ -452,3 +397,58 @@ class LetterProofingTests(EduidAPITestCase):
             csrf_token = json_data['payload']['csrf_token']
             response = self.send_letter('200102031234', csrf_token)
         self.assertEqual(response['type'], 'POST_LETTER_PROOFING_PROOFING_FAIL')
+
+    def test_get_code_backdoor(self):
+        self.app.config.magic_cookie = 'magic-cookie'
+        self.app.config.magic_cookie_name = 'magic'
+        self.app.config.environment = 'dev'
+
+        response = self.get_code_backdoor()
+        state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
+
+        self.assertEqual(response.data.decode('ascii'), state.nin.verification_code)
+
+    def test_get_code_no_backdoor_in_pro(self):
+        self.app.config.magic_cookie = 'magic-cookie'
+        self.app.config.magic_cookie_name = 'magic'
+        self.app.config.environment = 'pro'
+
+        response = self.get_code_backdoor()
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_get_code_no_backdoor_without_cookie(self):
+        self.app.config.magic_cookie = 'magic-cookie'
+        self.app.config.magic_cookie_name = 'magic'
+        self.app.config.environment = 'dev'
+
+        response = self.get_code_backdoor(add_cookie=False)
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_get_code_no_backdoor_misconfigured1(self):
+        self.app.config.magic_cookie = 'magic-cookie'
+        self.app.config.magic_cookie_name = ''
+        self.app.config.environment = 'dev'
+
+        response = self.get_code_backdoor()
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_get_code_no_backdoor_misconfigured2(self):
+        self.app.config.magic_cookie = ''
+        self.app.config.magic_cookie_name = 'magic'
+        self.app.config.environment = 'dev'
+
+        response = self.get_code_backdoor()
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_get_code_no_backdoor_wrong_value(self):
+        self.app.config.magic_cookie = 'magic-cookie'
+        self.app.config.magic_cookie_name = 'magic'
+        self.app.config.environment = 'dev'
+
+        response = self.get_code_backdoor(cookie_value='wrong-cookie')
+
+        self.assertEqual(response.status_code, 400)
