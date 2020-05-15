@@ -5,6 +5,7 @@ from falcon import Request, Response
 from marshmallow import ValidationError
 
 from eduid_groupdb import User as GroupUser
+
 from eduid_scimapi.exceptions import BadRequest, NotFound
 from eduid_scimapi.middleware import ctx_groupdb, ctx_userdb
 from eduid_scimapi.resources.base import BaseResource, SCIMResource
