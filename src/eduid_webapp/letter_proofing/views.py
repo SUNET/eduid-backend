@@ -6,7 +6,11 @@ from flask import Blueprint, abort
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, can_verify_identity, require_user
 from eduid_common.api.exceptions import AmTaskFailed, MsgTaskFailed
-from eduid_common.api.helpers import add_nin_to_user, verify_nin_for_user
+from eduid_common.api.helpers import (
+    add_nin_to_user,
+    verify_nin_for_user,
+    check_magic_cookie,
+)
 from eduid_userdb.logs import LetterProofing
 
 from eduid_webapp.letter_proofing import pdf, schemas
@@ -17,7 +21,6 @@ from eduid_webapp.letter_proofing.helpers import (
     create_proofing_state,
     get_address,
     send_letter,
-    check_magic_cookie,
 )
 
 __author__ = 'lundberg'
@@ -155,7 +158,7 @@ def get_code(user):
     try:
         if check_magic_cookie(current_app.config):
             state = current_app.proofing_statedb.get_state_by_eppn(user.eppn)
-            return state.verification.verification_code
+            return state.nin.verification_code
     except Exception:
         pass
 
