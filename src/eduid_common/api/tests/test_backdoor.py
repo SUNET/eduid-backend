@@ -30,20 +30,10 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-
-import logging
-from urllib.parse import unquote
-
 from flask import Blueprint, request, current_app, abort
-from marshmallow import ValidationError, fields
-from werkzeug.http import dump_cookie
-
-from eduid_userdb import UserDB
 
 from eduid_common.api.app import EduIDBaseApp
-from eduid_common.api.decorators import UnmarshalWith
 from eduid_common.api.helpers import check_magic_cookie
-from eduid_common.api.schemas.csrf import CSRFRequestMixin
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.config.base import FlaskConfig
 from eduid_common.session.eduid_session import SessionFactory
