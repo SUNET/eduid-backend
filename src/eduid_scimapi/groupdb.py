@@ -212,8 +212,8 @@ class ScimApiGroupDB(ScimApiBaseDB):
             res += [group]
         return res, count
 
-    def get_groups_for_user(self, user: GraphUser) -> List[ScimApiGroup]:
-        user_groups = self.graphdb.get_groups_for_user(user=user)
+    def get_groups_for_member(self, member: Union[GraphUser, GraphGroup]) -> List[ScimApiGroup]:
+        user_groups = self.graphdb.get_groups_for_member(member=member)
         res: List[ScimApiGroup] = []
         for graph in user_groups:
             group = self.get_group_by_scim_id(graph.identifier)
