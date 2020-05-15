@@ -69,7 +69,7 @@ class GroupsResource(SCIMResource):
         resp.set_header("Location", location)
         resp.set_header("ETag", make_etag(db_group.version))
         dumped_group = GroupResponseSchema().dump(group)
-        if not SCIMSchema.NUTID_GROUP_V1 in group.schemas and SCIMSchema.NUTID_GROUP_V1.value in dumped_group:
+        if SCIMSchema.NUTID_GROUP_V1 not in group.schemas and SCIMSchema.NUTID_GROUP_V1.value in dumped_group:
             # Serialization will always put the NUTID_GROUP_V1 in the dumped_group, even if there was no data
             del dumped_group[SCIMSchema.NUTID_GROUP_V1.value]
         resp.media = dumped_group
