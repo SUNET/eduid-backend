@@ -19,7 +19,6 @@ from eduid_common.session.namespaces import (
     MfaAction,
     ResetPasswordNS,
     SessionNSBase,
-    Signup,
 )
 from eduid_common.session.redis_session import RedisEncryptedSession, SessionManager
 
@@ -57,7 +56,6 @@ class EduidSession(SessionMixin, MutableMapping):
         # Namespaces
         self._common: Optional[Common] = None
         self._mfa_action: Optional[MfaAction] = None
-        self._signup: Optional[Signup] = None
         self._actions: Optional[Actions] = None
         self._sso_ticket: Optional[SSOLoginData] = None
         self._reset_password: Optional[ResetPasswordNS] = None
@@ -115,17 +113,6 @@ class EduidSession(SessionMixin, MutableMapping):
         self._mfa_action = None
         self._session.pop('_mfa_action', None)
         self.modified = True
-
-    @property
-    def signup(self) -> Optional[Signup]:
-        if not self._signup:
-            self._signup = Signup.from_dict(self._session.get('_signup', {}))
-        return self._signup
-
-    @signup.setter
-    def signup(self, value: Optional[Signup]):
-        if not self._signup:
-            self._signup = value
 
     @property
     def actions(self) -> Optional[Actions]:
