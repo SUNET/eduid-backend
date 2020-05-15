@@ -223,6 +223,17 @@ class ScimApiGroupDB(ScimApiBaseDB):
             res += [group]
         return res
 
+    def get_groups_for_owner(self, owner: Union[GraphUser, GraphGroup]) -> List[ScimApiGroup]:
+        groups = self.graphdb.get_groups_for_owner(owner=owner)
+        res: List[ScimApiGroup] = []
+        for graph in groups:
+            group = self.get_group_by_scim_id(graph.identifier)
+            if not group:
+                raise RuntimeError(f'Group {graph} found in graph database, but not in mongodb')
+            group.graph = graph
+            res += [group]
+        return res
+
     def get_groups_by_last_modified(
         self, operator: str, value: datetime, limit: Optional[int] = None, skip: Optional[int] = None
     ) -> Tuple[List[ScimApiGroup], int]:
