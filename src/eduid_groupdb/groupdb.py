@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import enum
 import logging
+import warnings
 from typing import Dict, List, Optional, Tuple, Union
 
 from bson import ObjectId
@@ -126,7 +127,7 @@ class GroupDB(BaseGraphDB):
 
     def _remove_group_from_group(self, tx: Transaction, group: Group, member: Group, role: Role):
         q = f"""
-            MATCH (g:Group {{scope: $scope, identifier: $identifier}})<-[r:{role.value}]-(m:Group
+            MATCH (:Group {{scope: $scope, identifier: $identifier}})<-[r:{role.value}]-(:Group
                     {{scope: $scope, identifier: $member_identifier}})
             DELETE r
             """
@@ -136,7 +137,7 @@ class GroupDB(BaseGraphDB):
 
     def _remove_user_from_group(self, tx: Transaction, group: Group, member: User, role: Role):
         q = f"""
-            MATCH (g:Group {{scope: $scope, identifier: $identifier}})<-[r:{role.value}]-(m:User
+            MATCH (:Group {{scope: $scope, identifier: $identifier}})<-[r:{role.value}]-(:User
                     {{identifier: $member_identifier}})
             DELETE r
             """
@@ -279,24 +280,52 @@ class GroupDB(BaseGraphDB):
                 res.append(self._load_group(record.data()['group']))
         return res
 
-    def get_groups_for_user(self, user: User) -> List[Group]:
+    def _get_groups_for_role(self, entity: Union[User, Group], role: Role):
         res: List[Group] = []
-        with_scope = ''
+        if isinstance(entity, Group):
+            entity_match = '(:Group {scope: $scope, identifier: $identifier})'
+        else:
+            entity_match = '(:User {identifier: $identifier})'
 
-        # TODO: this seems to be the only place where scope is Optional?
-        if self.scope:
-            with_scope = 'WHERE g.scope = $scope'
+        if role is role.OWNER:
+            # Return all members only to an owner
+            ret_statement = f"""
+                            OPTIONAL MATCH (g)<-[r:{self.Role.MEMBER.value}]-(m)
+                            RETURN g as group, owners, collect({{display_name: r.display_name, created_ts: r.created_ts,
+                                modified_ts: r.modified_ts, identifier: m.identifier}}) as members
+                            """
+        else:
+            ret_statement = 'RETURN g as group, owners, collect({}) as members'
 
         q = f"""
-            MATCH (User {{identifier: $identifier}})-[IN]->(g: Group)
-            {with_scope}
-            RETURN g as group
+            MATCH {entity_match}-[:{role.value}]->(g: Group {{scope: $scope}})
+            WITH g
+            OPTIONAL MATCH (g)<-[r:{self.Role.OWNER.value}]-(o)
+            WITH g, collect({{display_name: r.display_name, created_ts: r.created_ts,
+                modified_ts: r.modified_ts, identifier: o.identifier}}) as owners
+            {ret_statement}
             """
-
+        logger.debug('Crafted _get_groups_for_role query:')
+        logger.debug(q)
         with self.db.driver.session(access_mode=READ_ACCESS) as session:
-            for record in session.run(q, identifier=user.identifier, scope=self.scope):
-                res.append(self._load_group(record.data()['group']))
+            for record in session.run(q, identifier=entity.identifier, scope=self.scope):
+                group = self._load_group(record.data()['group'])
+                group.owners = [self._load_node(owner) for owner in record.data()['owners'] if owner.get('identifier')]
+                group.members = [
+                    self._load_node(member) for member in record.data()['members'] if member.get('identifier')
+                ]
+                res.append(group)
         return res
+
+    def get_groups_for_user(self, user: User) -> List[Group]:
+        warnings.warn('Use get_groups_for_member instead', DeprecationWarning)
+        return self.get_groups_for_member(member=user)
+
+    def get_groups_for_member(self, member: Union[User, Group]) -> List[Group]:
+        return self._get_groups_for_role(entity=member, role=self.Role.MEMBER)
+
+    def get_groups_for_owner(self, owner: Union[User, Group]) -> List[Group]:
+        return self._get_groups_for_role(entity=owner, role=self.Role.OWNER)
 
     def group_exists(self, identifier: str) -> bool:
         q = """
@@ -330,6 +359,17 @@ class GroupDB(BaseGraphDB):
         saved_group.owners = saved_owners
         return saved_group
 
-    def _load_group(self, data: Dict) -> Group:
+    def _load_node(self, data: Dict) -> Union[User, Group]:
+        if data.get('scope'):
+            return self._load_group(data=data)
+        return self._load_user(data=data)
+
+    @staticmethod
+    def _load_group(data: Dict) -> Group:
         """ Method meant to be overridden by subclasses wanting to annotate the group. """
         return Group.from_mapping(data)
+
+    @staticmethod
+    def _load_user(data: Dict) -> User:
+        """ Method meant to be overridden by subclasses wanting to annotate the user. """
+        return User.from_mapping(data)
