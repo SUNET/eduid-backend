@@ -31,7 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from typing import cast
+from typing import cast, Dict
 
 from flask import current_app
 
@@ -48,7 +48,7 @@ __author__ = 'lundberg'
 
 
 class GroupManagementApp(AuthnBaseApp):
-    def __init__(self, name: str, config: dict, **kwargs):
+    def __init__(self, name: str, config: Dict, **kwargs):
         super(GroupManagementApp, self).__init__(name, GroupManagementConfig, config, **kwargs)
         self.config: GroupManagementConfig = cast(GroupManagementConfig, self.config)
 

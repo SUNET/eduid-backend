@@ -31,10 +31,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from typing import cast
+from typing import cast, Dict
 from flask import current_app
 
-from eduid_common.api.app import get_app_config
 from eduid_common.api import mail_relay
 from eduid_common.api import am, msg
 from eduid_common.authn.middleware import AuthnBaseApp
@@ -45,10 +44,10 @@ __author__ = '{{cookiecutter.author}}'
 
 class {{cookiecutter.class_name}}App(AuthnApp):
 
-    def __init__(self, name: str, config: dict, **kwargs):
+    def __init__(self, name: str, config: Dict, **kwargs):
         # Init app config
         super({{cookiecutter.class_name}}App, self).__init__(name, {{cookiecutter.class_name}}Config, config, **kwargs)
-        self.config = cast({{cookiecutter.class_name}}Config, self.config)
+        self.config: {{cookiecutter.class_name}}Config = cast({{cookiecutter.class_name}}Config, self.config)
         # Init dbs
         self.private_userdb = {{cookiecutter.class_name}}UserDB(self.config.mongo_uri)
         # Init celery
