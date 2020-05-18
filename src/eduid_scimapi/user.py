@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Dict, List, Optional
 from uuid import UUID
 
 from marshmallow import fields
@@ -47,9 +47,7 @@ class User:
 # Duplicate User and BaseCreateRequest until dataclasses has better inheritance support
 @dataclass(frozen=True)
 class UserCreateRequest:
-    schemas: Sequence[SCIMSchemaValue] = field(
-        default_factory=list, metadata={'marshmallow_field': fields.List(fields.Str()), 'required': True}
-    )
+    schemas: List[SCIMSchemaValue] = field(default_factory=list, metadata={'required': True})
     external_id: Optional[str] = field(default=None, metadata={'data_key': 'externalId', 'required': False})
     groups: List[Group] = field(default_factory=list, metadata={'required': False})
     nutid_v1: NutidExtensionV1 = field(
@@ -62,9 +60,7 @@ class UserCreateRequest:
 @dataclass(frozen=True)
 class UserUpdateRequest:
     id: UUID = field(metadata={'required': True})
-    schemas: Sequence[SCIMSchemaValue] = field(
-        default_factory=list, metadata={'marshmallow_field': fields.List(fields.Str()), 'required': True}
-    )
+    schemas: List[SCIMSchemaValue] = field(default_factory=list, metadata={'required': True})
     external_id: Optional[str] = field(default=None, metadata={'data_key': 'externalId', 'required': False})
     groups: List[Group] = field(default_factory=list, metadata={'required': False})
     nutid_v1: NutidExtensionV1 = field(
@@ -78,9 +74,7 @@ class UserUpdateRequest:
 class UserResponse:
     id: UUID = field(metadata={'required': True})
     meta: Meta = field(metadata={'required': True})  # type: ignore
-    schemas: Sequence[SCIMSchemaValue] = field(
-        default_factory=list, metadata={'marshmallow_field': fields.List(fields.Str()), 'required': True}
-    )
+    schemas: List[SCIMSchemaValue] = field(default_factory=list, metadata={'required': True})
     external_id: Optional[str] = field(default=None, metadata={'data_key': 'externalId', 'required': False})
     groups: List[Group] = field(default_factory=list, metadata={'required': False})
     nutid_v1: NutidExtensionV1 = field(

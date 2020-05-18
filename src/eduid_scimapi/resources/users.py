@@ -68,7 +68,7 @@ class UsersResource(SCIMResource):
             external_id=db_user.external_id,
             groups=self._get_user_groups(req=req, db_user=db_user),
             meta=meta,
-            schemas=schemas,
+            schemas=list(schemas),  # extra list() needed to work with _both_ mypy and marshmallow
             nutid_v1=NutidExtensionV1(profiles=_profiles),
         )
 

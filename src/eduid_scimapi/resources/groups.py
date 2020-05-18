@@ -62,7 +62,7 @@ class GroupsResource(SCIMResource):
             members=members,
             id=db_group.scim_id,
             meta=meta,
-            schemas=schemas,
+            schemas=list(schemas),  # extra list() needed to work with _both_ mypy and marshmallow
             nutid_group_v1=NutidGroupExtensionV1(data=db_group.extensions.data),
         )
 
