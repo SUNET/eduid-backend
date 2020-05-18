@@ -30,38 +30,4 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-
-from __future__ import absolute_import
-
-from eduid_common.api.testing import EduidAPITestCase
-from eduid_webapp.{{cookiecutter.directory_name}}.app import init_{{cookiecutter.directory_name}}_app
-from eduid_webapp.{{cookiecutter.directory_name}}.settings.common import {{cookiecutter.class_name}}Config
-
-__author__ = '{{cookiecutter.author}}'
-
-
-class {{cookiecutter.class_name}}Tests(EduidAPITestCase):
-    """Base TestCase for those tests that need a full environment setup"""
-
-    def setUp(self):
-        super({{cookiecutter.class_name}}Tests, self).setUp()
-
-    def load_app(self, config):
-        """
-        Called from the parent class, so we can provide the appropriate flask
-        app for this test case.
-        """
-        return init_{{cookiecutter.directory_name}}_app('testing', config)
-
-    def update_config(self, config):
-        config.update({
-            })
-        return {{cookiecutter.class_name}}Config(**config)
-
-    def tearDown(self):
-        super({{cookiecutter.class_name}}Tests, self).tearDown()
-        with self.app.app_context():
-            self.app.central_userdb._drop_whole_collection()
-
-    def test_app_starts(self):
-        self.assertEquals(self.app.config.app_name, "{{cookiecutter.directory_name}}")
+__author__ = 'lundberg'
