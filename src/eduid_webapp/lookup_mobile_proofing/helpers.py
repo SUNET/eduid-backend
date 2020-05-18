@@ -66,23 +66,23 @@ def match_mobile_to_user(user, self_asserted_nin, verified_mobile_numbers):
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
 
     # This code is to use the backdoor that allows selenium integration tests
-    # to verify a NIN by having a magic code in the primary email address
+    # to verify a NIN by sending a magic cookie
     if check_magic_cookie(current_app.config):
         current_app.logger.debug('Using the BACKDOOR to verify a NIN through the lookup mobile app')
         user_postal_address = {
-            'Name': {'GivenName': 'Magic Code', 'GivenNameMarking': '20', 'Surname': 'Magic Code'},
+            'Name': {'GivenName': 'Magic Cookie', 'GivenNameMarking': '20', 'Surname': 'Magic Cookie'},
             'OfficialAddress': {'Address2': 'Dummy address', 'City': 'LANDET', 'PostalCode': '12345'},
         }
         proofing_log_entry = TeleAdressProofing(
             proofing_user,
             created_by='lookup_mobile_proofing',
-            reason='magic_code',
+            reason='magic_cookie',
             nin=self_asserted_nin,
             mobile_number='dummy phone',
             user_postal_address=user_postal_address,
             proofing_version='2014v1',
         )
-        current_app.stats.count('validate_nin_by_mobile_magic_code')
+        current_app.stats.count('validate_nin_by_mobile_magic_cookie')
         return True, proofing_log_entry
 
     age = nin_to_age(self_asserted_nin)
