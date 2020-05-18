@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Sequence
 from uuid import UUID
 
 from marshmallow import fields
@@ -62,7 +62,7 @@ class GroupUpdateRequest:
 class GroupResponse:
     id: UUID = field(metadata={'required': True})
     meta: Meta = field(metadata={'required': True})  # type: ignore
-    schemas: List[SCIMSchemaValue] = field(default_factory=list, metadata={'required': True})
+    schemas: Sequence[SCIMSchemaValue] = field(default_factory=list, metadata={'required': True})
     display_name: str = field(default='', metadata={'data_key': 'displayName', 'required': True})
     members: List[GroupMember] = field(default_factory=list, metadata={'required': False})
     nutid_group_v1: NutidGroupExtensionV1 = field(
