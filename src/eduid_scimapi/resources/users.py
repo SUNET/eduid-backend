@@ -22,7 +22,8 @@ from eduid_scimapi.scimbase import (
 from eduid_scimapi.search import SearchFilter, parse_search_filter
 from eduid_scimapi.user import (
     Group,
-    NutidExtensionV1, Profile,
+    NutidExtensionV1,
+    Profile,
     UserCreateRequest,
     UserCreateRequestSchema,
     UserResponse,

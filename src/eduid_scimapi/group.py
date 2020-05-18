@@ -35,7 +35,9 @@ class Group:
 # Duplicate Group and BaseCreateRequest until dataclasses has better inheritance support
 @dataclass(frozen=True)
 class GroupCreateRequest:
-    schemas: List[SCIMSchemaValue] = field(default_factory=list, metadata={'required': True})
+    schemas: Sequence[SCIMSchemaValue] = field(
+        default_factory=list, metadata={'marshmallow_field': fields.List(fields.Str()), 'required': True}
+    )
     display_name: str = field(default='', metadata={'data_key': 'displayName', 'required': True})
     members: List[GroupMember] = field(default_factory=list, metadata={'required': False})
     nutid_group_v1: NutidGroupExtensionV1 = field(
@@ -48,7 +50,9 @@ class GroupCreateRequest:
 @dataclass(frozen=True)
 class GroupUpdateRequest:
     id: UUID = field(metadata={'required': True})
-    schemas: List[SCIMSchemaValue] = field(default_factory=list, metadata={'required': True})
+    schemas: Sequence[SCIMSchemaValue] = field(
+        default_factory=list, metadata={'marshmallow_field': fields.List(fields.Str()), 'required': True}
+    )
     display_name: str = field(default='', metadata={'data_key': 'displayName', 'required': True})
     members: List[GroupMember] = field(default_factory=list, metadata={'required': False})
     nutid_group_v1: NutidGroupExtensionV1 = field(
@@ -62,7 +66,9 @@ class GroupUpdateRequest:
 class GroupResponse:
     id: UUID = field(metadata={'required': True})
     meta: Meta = field(metadata={'required': True})  # type: ignore
-    schemas: Sequence[SCIMSchemaValue] = field(default_factory=list, metadata={'required': True})
+    schemas: Sequence[SCIMSchemaValue] = field(
+        default_factory=list, metadata={'marshmallow_field': fields.List(fields.Str()), 'required': True}
+    )
     display_name: str = field(default='', metadata={'data_key': 'displayName', 'required': True})
     members: List[GroupMember] = field(default_factory=list, metadata={'required': False})
     nutid_group_v1: NutidGroupExtensionV1 = field(
