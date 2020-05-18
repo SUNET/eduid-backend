@@ -59,7 +59,7 @@ class {{cookiecutter.class_name}}App(AuthnApp):
 current_{{cookiecutter.directory_name}}_app = cast({{cookiecutter.class_name}}App, current_app)
 
 
-def init_{{cookiecutter.directory_name}}_app(name: str, config: dict) -> {{cookiecutter.class_name}}App:
+def init_{{cookiecutter.directory_name}}_app(name: str, config: Dict) -> {{cookiecutter.class_name}}App:
     """
     :param name: The name of the instance, it will affect the configuration loaded.
     :param config: any additional configuration settings. Specially useful

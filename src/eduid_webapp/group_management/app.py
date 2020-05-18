@@ -74,7 +74,7 @@ class GroupManagementApp(AuthnBaseApp):
 current_group_management_app = cast(GroupManagementApp, current_app)
 
 
-def init_group_management_app(name: str, config: dict) -> GroupManagementApp:
+def init_group_management_app(name: str, config: Dict) -> GroupManagementApp:
     """
     :param name: The name of the instance, it will affect the configuration loaded.
     :param config: any additional configuration settings. Specially useful
