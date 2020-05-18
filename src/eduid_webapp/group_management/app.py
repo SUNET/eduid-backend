@@ -31,7 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from typing import cast, Dict
+from typing import Dict, cast
 
 from flask import current_app
 
@@ -55,7 +55,9 @@ class GroupManagementApp(AuthnBaseApp):
         # Init dbs
         # self.group_management_state_db = GroupManagementStateDB(self.config.mongo_uri)
 
-        _owner = self.config.scim_data_owner.replace('.', '_')  # replace dots with underscores
+        _owner = self.config.scim_data_owner.replace(
+            '.', '_'
+        )  # dot is a name separator in mongodb, so replace dots with underscores
         self.scimapi_userdb = ScimApiUserDB(db_uri=self.config.mongo_uri, collection=f'{_owner}__users')
         self.scimapi_groupdb = ScimApiGroupDB(
             db_uri=self.config.neo4j_uri,
