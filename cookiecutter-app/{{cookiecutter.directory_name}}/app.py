@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2019 SUNET
+# Copyright (c) 2020 SUNET
 # All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or
@@ -37,7 +37,7 @@ from flask import current_app
 from eduid_common.api.app import get_app_config
 from eduid_common.api import mail_relay
 from eduid_common.api import am, msg
-from eduid_common.authn.middleware import AuthnApp
+from eduid_common.authn.middleware import AuthnBaseApp
 from eduid_webapp.{{cookiecutter.directory_name}}.settings.common import {{cookiecutter.class_name}}Config
 
 __author__ = '{{cookiecutter.author}}'
@@ -45,12 +45,10 @@ __author__ = '{{cookiecutter.author}}'
 
 class {{cookiecutter.class_name}}App(AuthnApp):
 
-    def __init__(self, name, config):
-        # Init config for common setup
-        config = get_app_config(name, config)
-        super({{cookiecutter.class_name}}App, self).__init__(name, config)
+    def __init__(self, name: str, config: dict, **kwargs):
         # Init app config
-        self.config = {{cookiecutter.class_name}}Config(**config)
+        super({{cookiecutter.class_name}}App, self).__init__(name, {{cookiecutter.class_name}}Config, config, **kwargs)
+        self.config = cast({{cookiecutter.class_name}}Config, self.config)
         # Init dbs
         self.private_userdb = {{cookiecutter.class_name}}UserDB(self.config.mongo_uri)
         # Init celery
@@ -59,12 +57,7 @@ class {{cookiecutter.class_name}}App(AuthnApp):
         # Initiate external modules
 
 
-def get_current_app() -> {{cookiecutter.class_name}}App:
-    """Teach pycharm about {{cookiecutter.class_name}}App"""
-    return current_app  # type: ignore
-
-
-current_{{cookiecutter.directory_name}}_app = get_current_app()
+current_{{cookiecutter.directory_name}}_app = cast({{cookiecutter.class_name}}App, current_app)
 
 
 def init_{{cookiecutter.directory_name}}_app(name: str, config: dict) -> {{cookiecutter.class_name}}App:
@@ -79,7 +72,7 @@ def init_{{cookiecutter.directory_name}}_app(name: str, config: dict) -> {{cooki
 
     # Register views
     from eduid_webapp.{{cookiecutter.directory_name}}.views import {{cookiecutter.directory_name}}_views
-    app.register_blueprint({{cookiecutter.directory_name}}_views, url_prefix=app.config.application_root)
+    app.register_blueprint({{cookiecutter.directory_name}}_views)
 
     app.logger.info('{!s} initialized'.format(name))
     return app
