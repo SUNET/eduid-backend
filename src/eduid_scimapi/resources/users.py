@@ -22,7 +22,7 @@ from eduid_scimapi.scimbase import (
 from eduid_scimapi.search import SearchFilter, parse_search_filter
 from eduid_scimapi.user import (
     Group,
-    Profile,
+    NutidExtensionV1, Profile,
     UserCreateRequest,
     UserCreateRequestSchema,
     UserResponse,
@@ -55,19 +55,21 @@ class UsersResource(SCIMResource):
             version=db_user.version,
         )
 
+        schemas = [SCIMSchema.CORE_20_USER]
+        if db_user.profiles:
+            schemas.append(SCIMSchema.NUTID_USER_V1)
+
+        # Convert one type of Profile into another
+        _profiles = {k: Profile(attributes=v.attributes, data=v.data) for k, v in db_user.profiles.items()}
+
         user = UserResponse(
             id=db_user.scim_id,
             external_id=db_user.external_id,
             groups=self._get_user_groups(req=req, db_user=db_user),
             meta=meta,
-            schemas=[SCIMSchema.CORE_20_USER],
+            schemas=schemas,
+            nutid_v1=NutidExtensionV1(profiles=_profiles),
         )
-
-        if db_user.profiles:
-            user.schemas.append(SCIMSchema.NUTID_USER_V1)
-            for profile_name, db_profile in db_user.profiles.items():
-                profile = Profile(attributes=db_profile.attributes, data=db_profile.data)
-                user.nutid_v1.profiles[profile_name] = profile
 
         resp.set_header("Location", location)
         resp.set_header("ETag", make_etag(db_user.version))
@@ -94,7 +96,7 @@ class UsersResource(SCIMResource):
                 self.context.logger.debug(f'{scim_id} != {update_request.id}')
                 raise BadRequest(detail='Id mismatch')
 
-            db_user: ScimApiUser = ctx_userdb(req).get_user_by_scim_id(scim_id)
+            db_user = ctx_userdb(req).get_user_by_scim_id(scim_id)
             if not db_user:
                 raise NotFound(detail="Group not found")
 
@@ -275,6 +277,8 @@ class UsersSearchResource(BaseResource):
     def _filter_externalid(req: Request, filter: SearchFilter) -> List[ScimApiUser]:
         if filter.op != 'eq':
             raise BadRequest(scim_type='invalidFilter', detail='Unsupported operator')
+        if not isinstance(filter.val, str):
+            raise BadRequest(scim_type='invalidFilter', detail='Invalid externalId')
 
         user = ctx_userdb(req).get_user_by_external_id(filter.val)
 
