@@ -191,7 +191,7 @@ def send_mail(
 
 def check_magic_cookie(config: BaseConfig) -> bool:
     """
-    This is for use in backdoor views, to check whether the backdoor in open.
+    This is for use in backdoor views, to check whether the backdoor is open.
 
     Check that the environment allows the use of magic_cookies, that there is a magic cookie,
     and that the content of the magic cookie coincides with the configured magic cookie.
