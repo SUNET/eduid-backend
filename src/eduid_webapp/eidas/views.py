@@ -5,6 +5,7 @@ from __future__ import absolute_import, unicode_literals
 from flask import Blueprint, abort, current_app, make_response, redirect, request, url_for
 
 from eduid_common.api.decorators import MarshalWith, require_user
+from eduid_common.api.helpers import check_magic_cookie
 from eduid_common.api.schemas.csrf import CSRFResponse
 from eduid_common.api.utils import get_unique_hash, urlappend
 from eduid_common.authn.acs_registry import get_action, schedule_action
@@ -15,6 +16,7 @@ from eduid_common.session import session
 # TODO: Import FidoCredential in credentials.__init__
 from eduid_userdb.credentials.fido import FidoCredential
 
+from eduid_webapp.eidas.acs_actions import nin_verify_backdoor
 from eduid_webapp.eidas.helpers import (
     create_authn_request,
     create_metadata,
@@ -70,6 +72,12 @@ def verify_token(user, credential_id):
 def verify_nin(user):
     current_app.logger.debug('verify-nin called')
     required_loa = 'loa3'
+
+    # Backdoor for the selenium integration tests to verify NINs
+    # without sending the user to an eidas idp
+    if check_magic_cookie(current_app.config):
+        nin_verify_backdoor()
+
     return _authn('nin-verify-action', required_loa, force_authn=True)
 
 
