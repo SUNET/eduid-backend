@@ -6,6 +6,7 @@
 -r signup.txt
 -r actions.txt
 -r eidas.txt
+-r group_management.txt
 gunicorn
 blinker
 raven
