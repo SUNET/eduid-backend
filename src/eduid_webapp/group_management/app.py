@@ -31,35 +31,50 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from typing import cast, Dict
+from typing import Dict, cast
+
 from flask import current_app
 
 from eduid_common.api import mail_relay
-from eduid_common.api import am, msg
 from eduid_common.authn.middleware import AuthnBaseApp
-from eduid_webapp.{{cookiecutter.directory_name}}.settings.common import {{cookiecutter.class_name}}Config
 
-__author__ = '{{cookiecutter.author}}'
+from eduid_scimapi.groupdb import ScimApiGroupDB
+from eduid_scimapi.userdb import ScimApiUserDB
+
+# from eduid_userdb.group_management.db import GroupManagementStateDB
+from eduid_webapp.group_management.settings.common import GroupManagementConfig
+
+__author__ = 'lundberg'
 
 
-class {{cookiecutter.class_name}}App(AuthnApp):
-
+class GroupManagementApp(AuthnBaseApp):
     def __init__(self, name: str, config: Dict, **kwargs):
-        # Init app config
-        super({{cookiecutter.class_name}}App, self).__init__(name, {{cookiecutter.class_name}}Config, config, **kwargs)
-        self.config: {{cookiecutter.class_name}}Config = cast({{cookiecutter.class_name}}Config, self.config)
+        super(GroupManagementApp, self).__init__(name, GroupManagementConfig, config, **kwargs)
+        self.config: GroupManagementConfig = cast(GroupManagementConfig, self.config)
+
         # Init dbs
-        self.private_userdb = {{cookiecutter.class_name}}UserDB(self.config.mongo_uri)
+        # self.group_management_state_db = GroupManagementStateDB(self.config.mongo_uri)
+
+        _owner = self.config.scim_data_owner.replace(
+            '.', '_'
+        )  # dot is a name separator in mongodb, so replace dots with underscores
+        self.scimapi_userdb = ScimApiUserDB(db_uri=self.config.mongo_uri, collection=f'{_owner}__users')
+        self.scimapi_groupdb = ScimApiGroupDB(
+            db_uri=self.config.neo4j_uri,
+            config=self.config.neo4j_config,
+            scope=self.config.scim_data_owner,
+            mongo_uri=self.config.mongo_uri,
+            mongo_dbname='eduid_scimapi',
+            mongo_collection=f'{_owner}__groups',
+        )
         # Init celery
-        msg.init_relay(self)
-        am.init_relay(self, 'eduid_{{cookiecutter.directory_name}}')
-        # Initiate external modules
+        mail_relay.init_relay(self)
 
 
-current_{{cookiecutter.directory_name}}_app = cast({{cookiecutter.class_name}}App, current_app)
+current_group_management_app = cast(GroupManagementApp, current_app)
 
 
-def init_{{cookiecutter.directory_name}}_app(name: str, config: Dict) -> {{cookiecutter.class_name}}App:
+def init_group_management_app(name: str, config: Dict) -> GroupManagementApp:
     """
     :param name: The name of the instance, it will affect the configuration loaded.
     :param config: any additional configuration settings. Specially useful
@@ -67,11 +82,12 @@ def init_{{cookiecutter.directory_name}}_app(name: str, config: Dict) -> {{cooki
 
     :return: the flask app
     """
-    app = {{cookiecutter.class_name}}App(name, config)
+    app = GroupManagementApp(name, config)
 
     # Register views
-    from eduid_webapp.{{cookiecutter.directory_name}}.views import {{cookiecutter.directory_name}}_views
-    app.register_blueprint({{cookiecutter.directory_name}}_views)
+    from eduid_webapp.group_management.views import group_management_views
+
+    app.register_blueprint(group_management_views)
 
     app.logger.info('{!s} initialized'.format(name))
     return app

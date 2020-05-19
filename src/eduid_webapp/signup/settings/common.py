@@ -56,4 +56,3 @@ class SignupConfig(FlaskConfig):
     # Used to load the react bundle
     bundle_path: str = 'front-build/signup-bundle.dev.js'
     bundle_version: str = 'test'
-    magic_code: str = ''

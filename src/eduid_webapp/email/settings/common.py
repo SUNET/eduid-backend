@@ -49,4 +49,3 @@ class EmailConfig(FlaskConfig):
     email_verification_timeout: int = 86400  # seconds
     throttle_resend_seconds: int = 300
     email_verify_redirect_url: str = '/profile/emails'
-    magic_code: str = ''

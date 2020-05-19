@@ -273,52 +273,6 @@ class EmailTests(EduidAPITestCase):
 
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
-    def _verify_with_magic_code(self, mock_request_user_sync: Any, mock_sendmail: Any,
-                                code: str = 'magic-code', data1: Optional[dict] = None, data2: Optional[dict] = None):
-        """
-        Verify email address in the test user, using a magic code to bypass the emailed code
-
-        :param code: the verification code to use
-        :param data1: to control the data POSTed to the /new endpoint
-        :param data2: to control the data POSTed to the /verify endpoint
-        """
-        mock_request_user_sync.side_effect = self.request_user_sync
-        mock_sendmail.return_value = True
-
-        self.app.config.magic_code = code
-
-        response = self.browser.post('/verify')
-        self.assertEqual(response.status_code, 302)  # Redirect to token service
-
-        eppn = self.test_user_data['eduPersonPrincipalName']
-
-        with self.app.test_request_context():
-            with self.session_cookie(self.browser, eppn) as client:
-                with client.session_transaction() as sess:
-                    email = 'john-smith3+magic-code@example.com'
-                    data = {
-                        'csrf_token': sess.get_csrf_token(),
-                        'email': email,
-                        'verified': False,
-                        'primary': False,
-                    }
-                    if data1 is not None:
-                        data.update(data1)
-
-                    response = client.post('/new', data=json.dumps(data), content_type=self.content_type_json)
-
-                    data = {
-                        'email': email,
-                        'code': code,
-                        'csrf_token': json.loads(response.data)['payload']['csrf_token'],
-                    }
-                    if data2 is not None:
-                        data.update(data2)
-
-                    return client.post('/verify', data=json.dumps(data), content_type=self.content_type_json)
-
-    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
-    @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('eduid_webapp.email.verifications.get_unique_hash')
     def _verify_email_link(self, mock_code_verification: Any, mock_request_user_sync: Any, mock_sendmail: Any,
                            code: str = '432123425', data1: Optional[dict] = None):
@@ -683,38 +637,6 @@ class EmailTests(EduidAPITestCase):
         self.assertEqual(verify_email_data['type'], 'POST_EMAIL_VERIFY_FAIL')
         self.assertEqual(verify_email_data['payload']['message'], 'emails.code_invalid_or_expired')
         self.assertEqual(self.app.proofing_log.db_count(), 0)
-
-    def test_verify_with_magic_code(self):
-        self.app.config.environment = 'dev'
-        self.app.config.magic_code = 'magic-code'
-        response = self._verify_with_magic_code()
-        email = 'john-smith3+magic-code@example.com'
-
-        verify_email_data = json.loads(response.data)
-        self.assertEqual(verify_email_data['type'], 'POST_EMAIL_VERIFY_SUCCESS')
-        self.assertEqual(verify_email_data['payload']['emails'][2]['email'], email)
-        self.assertEqual(verify_email_data['payload']['emails'][2]['verified'], True)
-        self.assertEqual(verify_email_data['payload']['emails'][2]['primary'], False)
-        self.assertEqual(self.app.proofing_log.db_count(), 1)
-
-    def test_verify_with_wrong_magic_code(self):
-        self.app.config.environment = 'dev'
-        response = self._verify_with_magic_code(code='wrong-code')
-
-        verify_email_data = json.loads(response.data)
-        self.assertEqual(verify_email_data['type'], 'POST_EMAIL_VERIFY_FAIL')
-        self.assertEqual(verify_email_data['payload']['message'], 'emails.code_invalid_or_expired')
-
-    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
-    @patch('eduid_common.api.am.AmRelay.request_user_sync')
-    def test_verify_with_no_magic_code_in_pro(self, mock_request_user_sync, mock_sendmail):
-        self.app.config.environment = 'pro'
-        response = self._verify_with_magic_code()
-
-        verify_email_data = json.loads(response.data)
-        self.assertEqual(verify_email_data['type'], 'POST_EMAIL_VERIFY_FAIL')
-        self.assertEqual(verify_email_data['payload']['message'], 'emails.code_invalid_or_expired')
-
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('eduid_webapp.email.verifications.get_unique_hash')
