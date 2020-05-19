@@ -67,8 +67,6 @@ class ResetPasswordConfig(FlaskConfig):
     # URL to get the js app that can drive the process to reset the password
     password_reset_link: str = 'https://login.eduid.se/reset-password/'
     password_service_url: str = '/services/reset-password/'
-    # magic code for integration tests
-    magic_code: str = ''
     # webauthn stuff
     generate_u2f_challenges: bool = False
     u2f_valid_facets: list = field(default_factory=list)

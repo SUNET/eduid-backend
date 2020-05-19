@@ -65,14 +65,6 @@ def trycaptcha(email, recaptcha_response, tou_accepted):
     config = current_app.config
     recaptcha_verified = False
 
-    # add a backdoor to bypass recaptcha checks for humanness,
-    # to be used in testing environments for automated integration tests.
-    if config.environment in ('staging', 'dev') and config.magic_code != '':
-        if f"{config.magic_code}@" in email:
-            current_app.logger.info('Using BACKDOOR to verify reCaptcha!')
-            recaptcha_verified = True
-
-    # common path with no backdoor
     if not recaptcha_verified:
         remote_ip = request.remote_addr
         recaptcha_public_key = config.recaptcha_public_key
