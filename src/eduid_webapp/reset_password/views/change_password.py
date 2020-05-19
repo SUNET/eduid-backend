@@ -100,12 +100,13 @@ def change_password_view(user):
         current_app.logger.debug(form)
     except ValidationError as e:
         current_app.logger.error(e)
-        if 'csrf_token' in e.messages:
-            return error_message(ResetPwMsg.csrf_try_again)
         return error_message(ResetPwMsg.chpass_no_data)
     else:
         old_password = form.get('old_password')
         new_password = form.get('new_password')
+
+    if session.get_csrf_token() != form['csrf_token']:
+        return error_message(ResetPwMsg.csrf_try_again)
 
     authn_ts = session.get('reauthn-for-chpass', None)
     if authn_ts is None:
