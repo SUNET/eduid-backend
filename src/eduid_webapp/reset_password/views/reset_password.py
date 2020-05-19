@@ -411,7 +411,7 @@ def set_new_pw_extra_security_phone() -> dict:
         current_app.stats.count(name='reset_password_extra_security_phone_success')
     else:
         current_app.logger.info(f'Could not verify phone code for {state.eppn}')
-        return error_message(ResetPwMsg.unkown_phone_code)
+        return error_message(ResetPwMsg.unknown_phone_code)
 
     hashed = session.reset_password.generated_password_hash
     if check_password(password, hashed):

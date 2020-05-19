@@ -71,7 +71,7 @@ class ResetPwMsg(TranslatableMsg):
     unknown_code = 'resetpw.unknown-code'
     # The user has sent an SMS'ed code that corresponds to no known password
     # reset request
-    unkown_phone_code = 'resetpw.phone-code-unknown'
+    unknown_phone_code = 'resetpw.phone-code-unknown'
     # The user has sent a code that has expired
     expired_email_code = 'resetpw.expired-email-code'
     # The user has sent an SMS'ed code that has expired
