@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 from typing import List, Optional, Type
 
-from flask import current_app, render_template
+from flask import current_app, render_template, request
 
 from eduid_userdb.nin import Nin
 from eduid_userdb.proofing import ProofingUser
 from eduid_userdb.proofing.state import NinProofingState
 from eduid_userdb.user import User
+
+from eduid_common.config.base import BaseConfig
 
 from eduid_common.api.app import EduIDBaseApp
 
@@ -185,3 +187,20 @@ def send_mail(
     html = render_template(html_template, **context)
     app.logger.debug(f'rendered html: {html}')
     app.mail_relay.sendmail(subject, to_addresses, text, html, reference)
+
+
+def check_magic_cookie(config: BaseConfig) -> bool:
+    """
+    This is for use in backdoor views, to check whether the backdoor is open.
+
+    This checks that the environment allows the use of magic_cookies, that there is a magic cookie,
+    and that the content of the magic cookie coincides with the configured magic cookie.
+
+    :param config: A configuration object
+    """
+    if config.environment in ('dev', 'staging') and config.magic_cookie and config.magic_cookie_name:
+        cookie = request.cookies.get(config.magic_cookie_name)
+        if cookie is not None:
+            return cookie == config.magic_cookie
+
+    return False

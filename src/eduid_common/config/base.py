@@ -273,6 +273,10 @@ class BaseConfig(CommonConfig):
     stats_port: int = 8125
     sentry_dsn: Optional[str] = None
     status_cache_seconds: int = 10
+    # code to set in a "magic" cookie to bypass various verifications.
+    magic_cookie: Optional[str] = None
+    # name of the magic cookie
+    magic_cookie_name: Optional[str] = None
 
     @classmethod
     def init_config(

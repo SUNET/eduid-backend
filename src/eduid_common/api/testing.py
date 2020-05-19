@@ -214,6 +214,13 @@ class EduidAPITestCase(CommonTestCase):
         client.set_cookie(server_name, key=self.app.config.session_cookie_name, value=sess._session.token)
         yield client
 
+    @contextmanager
+    def session_cookie_anon(self, client, server_name='localhost', **kwargs):
+        with client.session_transaction(**kwargs) as sess:
+            pass
+        client.set_cookie(server_name, key=self.app.config.session_cookie_name, value=sess._session.token)
+        yield client
+
     def request_user_sync(self, private_user):
         """
         Updates the central db user with data from the private db user.
