@@ -45,14 +45,6 @@ def require_state(f):
         mail_expiration_time = current_app.config.email_code_timeout
         sms_expiration_time = current_app.config.phone_code_timeout
 
-        # Backdoor for the staging and dev environments where a magic code
-        # bypasses verification of the emailed code, to be used in automated integration tests.
-        # Here we retrieve the real code from the session.
-        if current_app.config.environment in ('staging', 'dev') and current_app.config.magic_code:
-            if email_code == current_app.config.magic_code:
-                current_app.logger.info('Opening BACKDOOR to bypass verification of emailed code!')
-                email_code = session['resetpw_email_verification_code']
-
         try:
             state = current_app.password_reset_state_db.get_state_by_email_code(email_code)
             current_app.logger.debug(f'Found state using email_code {email_code}: {state}')
@@ -241,14 +233,6 @@ def extra_security_phone_number(state):
             current_app.logger.info('Trying to verify phone code')
 
             phone_code = form.data.get('phone_code', '')
-
-            # Backdoor for the staging and dev environments where a magic code
-            # bypasses verification of the sms'd code, to be used in automated integration tests.
-            # Here we retrieve the real code from the session.
-            if current_app.config.environment in ('staging', 'dev') and current_app.config.magic_code:
-                if phone_code == current_app.config.magic_code:
-                    current_app.logger.info('Using BACKDOOR to bypass verification of emailed code!')
-                    phone_code = session['resetpw_sms_verification_code']
 
             if phone_code == state.phone_code.code:
                 if not verify_phone_number(state):

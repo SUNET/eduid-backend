@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2016 NORDUnet A/S
-# Copyright (c) 2019 SUNET
+# Copyright (c) 2020 SUNET
 # All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or
@@ -31,39 +30,4 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-
-from __future__ import absolute_import
-
-from dataclasses import dataclass, field
-from typing import List
-
-from eduid_common.config.base import FlaskConfig
-
-
-@dataclass
-class SecurityConfig(FlaskConfig):
-    """
-    Configuration for the security app
-    """
-
-    # timeout for phone verification token, in hours
-    phone_verification_timeout: int = 24
-    password_length: int = 12
-    password_entropy: int = 25
-    chpass_timeout: int = 600
-    vccs_url: str = ''
-    # uf2 settings
-    u2f_app_id: str = 'https://eduid.se/u2f-app-id.json'
-    u2f_max_allowed_tokens: int = 50  # Do not let a user register more than this amount of tokens
-    u2f_max_description_length: int = 64  # Do not allow longer descriptions than this number
-    u2f_facets: List[str] = field(default_factory=list)
-    # webauthn
-    webauthn_max_allowed_tokens: int = 10
-    fido2_rp_id: str = 'eduid.se'
-    # password reset settings
-    email_code_timeout: int = 7200  # seconds
-    phone_code_timeout: int = 600  # seconds
-    # for logging out when terminating an account
-    logout_endpoint: str = '/services/authn/logout'
-    # URL to send the user to after terminating the account
-    termination_redirect_url: str = 'https://eduid.se'
+__author__ = 'lundberg'
