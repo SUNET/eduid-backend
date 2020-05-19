@@ -8,7 +8,7 @@ from eduid_webapp.eidas.helpers import EidasMsg
 class MessagesTests(unittest.TestCase):
 
     def test_messages(self):
-
+        """"""
         self.assertEqual(str(EidasMsg.authn_context_mismatch.value), 'eidas.authn_context_mismatch')
         self.assertEqual(str(EidasMsg.reauthn_expired.value), 'eidas.reauthn_expired')
         self.assertEqual(str(EidasMsg.token_not_in_creds.value), 'eidas.token_not_in_credentials_used')
