@@ -398,15 +398,6 @@ def set_new_pw_extra_security_phone() -> dict:
     password = data.get('password')
     phone_code = data.get('phone_code')
 
-    # Backdoor for the staging and dev environments where a magic code
-    # bypasses verification of the sms'ed code, to be used in automated integration tests.
-    # here we store the real code in the session,
-    # to recover it in case the user sends the magic code.
-    if current_app.config.environment in ('staging', 'dev') and current_app.config.magic_code:
-        if phone_code == current_app.config.magic_code:
-            current_app.logger.info('Using BACKDOOR to bypass verification of SMS code!')
-            phone_code = session.reset_password.resetpw_sms_verification_code
-
     if phone_code == state.phone_code.code:
         if not verify_phone_number(state):
             current_app.logger.info(f'Could not verify phone code for {state.eppn}')

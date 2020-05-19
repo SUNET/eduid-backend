@@ -70,11 +70,6 @@ def send_verification_code(user, phone):
     if state is None:
         return False
 
-    # this adds a backdoor to be able to verify phone numbers in selenium integration tests.
-    if current_app.config.environment in ('staging', 'dev') and current_app.config.magic_code != '':
-        current_app.logger.info('Opening the BACKDOOR for phone verification in the phone app')
-        session.phone.verification_code = state.verification.verification_code
-
     current_app.msg_relay.phone_validator(state.reference, phone, state.verification.verification_code, user.language)
     current_app.logger.info('Sent verification sms to user {} with phone number {}.'.format(user, phone))
     return True

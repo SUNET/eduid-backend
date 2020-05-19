@@ -73,12 +73,6 @@ def send_verification_code(email, user):
     if state is None:
         return False
 
-    # Open backdoor for the selenium integration tests
-    if current_app.config.environment in ('staging', 'dev') and current_app.config.magic_code != '':
-        if f'{current_app.config.magic_code}@' in email:
-            current_app.logger.debug('Opening the BACKDOOR to verify email addresses in the email app')
-            session.email.verification_code = state.verification.verification_code
-
     link = url_for('email.verify_link', code=state.verification.verification_code, email=email, _external=True)
     site_name = current_app.config.eduid_site_name
     site_url = current_app.config.eduid_site_url
