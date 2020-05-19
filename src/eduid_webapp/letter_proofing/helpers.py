@@ -31,7 +31,7 @@ class LetterMsg(TranslatableMsg):
     # no postal address found
     address_not_found = 'letter.no-address-found'
     # error in the communications with navet
-    naver_error = 'error_navet_task'
+    navet_error = 'error_navet_task'
     # errors in the format of the postal address
     bad_address = 'letter.bad-postal-address'
     # unspecified problems sending the letter
