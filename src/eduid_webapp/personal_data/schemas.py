@@ -53,7 +53,7 @@ class PersonalDataRequestSchema(EduidSchema, CSRFRequestMixin):
     language = fields.String(required=True, default='en', validate=validate_language)
 
 
-class PersonalDataSchema(EduidSchema, CSRFResponseMixin):
+class PersonalDataSchema(EduidSchema):
 
     given_name = fields.String(required=True, attribute='givenName')
     surname = fields.String(required=True)
@@ -61,17 +61,12 @@ class PersonalDataSchema(EduidSchema, CSRFResponseMixin):
     language = fields.String(required=True, attribute='preferredLanguage', validate=validate_language)
 
 
-class PersonalDataSubSchema(EduidSchema, CSRFResponseMixin):
-
-    given_name = fields.String(required=True)
-    surname = fields.String(required=True)
-    display_name = fields.String(required=True)
-    language = fields.String(required=True, validate=validate_language)
-
-
 class PersonalDataResponseSchema(FluxStandardAction):
 
-    payload = fields.Nested(PersonalDataSubSchema)
+    class PersonalDataResponsePayload(PersonalDataSchema, CSRFResponseMixin):
+        pass
+
+    payload = fields.Nested(PersonalDataResponsePayload)
 
 
 class NinsResponseSchema(FluxStandardAction):
@@ -93,17 +88,7 @@ class AllDataSchema(EduidSchema):
     orcid = fields.Nested(OrcidSchema, attribute='orcid')
 
 
-class AllDataResponseSubSchema(EduidSchema, CSRFResponseMixin):
-    eppn = fields.String(required=True)
-    given_name = fields.String(required=True)
-    surname = fields.String(required=True)
-    display_name = fields.String(required=True)
-    language = fields.String(required=True, validate=validate_language)
-    nins = fields.Nested(NinSchema, many=True)
-    emails = fields.Nested(EmailSchema, many=True)
-    phones = fields.Nested(PhoneSchema, many=True)
-    orcid = fields.Nested(OrcidSchema)
-
-
 class AllDataResponseSchema(FluxStandardAction):
-    payload = fields.Nested(AllDataResponseSubSchema)
+    class AllDataResponsePayload(AllDataSchema, CSRFResponseMixin):
+        pass
+    payload = fields.Nested(AllDataResponsePayload)
