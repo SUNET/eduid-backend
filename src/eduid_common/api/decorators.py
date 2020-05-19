@@ -103,11 +103,11 @@ class MarshalWith(object):
             # Handle fail responses
             if response_status != FluxResponseStatus.ok:
                 response_data = FluxFailResponse(request, payload=ret)
-                return jsonify(self.schema().dump(response_data.to_dict()).data)
+                return jsonify(self.schema().dump(response_data.to_dict()))
 
             # Handle success responses
             response_data = FluxSuccessResponse(request, payload=ret)
-            return jsonify(self.schema().dump(response_data.to_dict()).data)
+            return jsonify(self.schema().dump(response_data.to_dict()))
 
         return marshal_decorator
 
@@ -124,7 +124,7 @@ class UnmarshalWith(object):
                 if json_data is None:
                     json_data = {}
                 unmarshal_result = self.schema().load(json_data)
-                kwargs.update(unmarshal_result.data)
+                kwargs.update(unmarshal_result)
                 return f(*args, **kwargs)
             except ValidationError as e:
                 response_data = FluxFailResponse(

@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 
-version = '0.4.19'
+version = '0.4.20'
 
 requires = [
     'six >= 1.11.0',
@@ -20,7 +20,7 @@ webapp_requires = [
     'python-etcd >= 0.4.5',
     'PyYAML >= 3.11',
     'bleach>=3.1.3',
-    'marshmallow>=2.15.1,==2.*',
+    'marshmallow>=3.0,==3.*',
     'Flask-Mail == 0.9.1',
     'eduid_msg >= 0.10.9',
     'eduid-am >= 0.7.3',

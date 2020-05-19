@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from marshmallow import Schema, ValidationError, fields, validates_schema
+from marshmallow import Schema, RAISE, ValidationError, fields, validates_schema
 
 __author__ = 'lundberg'
 
@@ -10,13 +10,7 @@ class EduidSchema(Schema):
     message = fields.String(required=False)
 
     class Meta:
-        strict = True
-
-    @validates_schema(pass_original=True)
-    def check_unknown_fields(self, data, original_data):
-        for key in data:
-            if key not in self.fields:
-                raise ValidationError('Unknown field name: {!s}'.format(key))
+        unknown = RAISE  # Raise ValidationError on unknown data
 
 
 class FluxStandardAction(EduidSchema):
