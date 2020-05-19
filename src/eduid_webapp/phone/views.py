@@ -168,7 +168,7 @@ def verify(user, code, number):
             return error_message(PhoneMsg.code_invalid)
     except DocumentDoesNotExist:
         current_app.logger.info("Could not find proofing state for number {}".format(number))
-        return error_message(PhoneMsg.phone_unknown)
+        return error_message(PhoneMsg.unknown_phone)
 
     if code == state.verification.verification_code:
         try:
