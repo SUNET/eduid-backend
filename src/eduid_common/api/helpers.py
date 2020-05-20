@@ -8,9 +8,8 @@ from eduid_userdb.proofing import ProofingUser
 from eduid_userdb.proofing.state import NinProofingState
 from eduid_userdb.user import User
 
-from eduid_common.config.base import BaseConfig
-
 from eduid_common.api.app import EduIDBaseApp
+from eduid_common.config.base import BaseConfig
 
 __author__ = 'lundberg'
 

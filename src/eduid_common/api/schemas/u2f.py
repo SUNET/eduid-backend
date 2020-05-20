@@ -35,9 +35,7 @@ class U2FEnrollResponseSchema(EduidSchema):
     registered_keys = fields.Nested(
         U2FRegisteredKey, required=True, default=list(), data_key='registeredKeys', many=True
     )
-    register_requests = fields.Nested(
-        U2FRegisterRequest, required=True, data_key='registerRequests', many=True
-    )
+    register_requests = fields.Nested(U2FRegisterRequest, required=True, data_key='registerRequests', many=True)
 
 
 class U2FBindRequestSchema(EduidSchema):

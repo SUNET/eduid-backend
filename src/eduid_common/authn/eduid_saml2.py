@@ -39,18 +39,16 @@ from flask import abort, redirect, request
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 from saml2.ident import decode
-from saml2.response import UnsolicitedResponse
-from saml2.response import LogoutResponse
+from saml2.response import LogoutResponse, UnsolicitedResponse
 from werkzeug.wrappers import Response
 
 from eduid_userdb.user import User
-from .cache import IdentityCache, OutstandingQueriesCache
-from .cache import StateCache
+
+from .cache import IdentityCache, OutstandingQueriesCache, StateCache
 from .utils import SPConfig, get_saml_attribute
 from eduid_common.api.app import EduIDBaseApp
 from eduid_common.api.utils import verify_relay_state
-from eduid_common.session import EduidSession
-from eduid_common.session import session
+from eduid_common.session import EduidSession, session
 
 logger = logging.getLogger(__name__)
 
@@ -209,9 +207,7 @@ def authenticate(app, session_info):
     return None
 
 
-def saml_logout(current_app: EduIDBaseApp,
-                user: User,
-                location: str) -> Response:
+def saml_logout(current_app: EduIDBaseApp, user: User, location: str) -> Response:
     """
     SAML Logout Request initiator.
     This function initiates the SAML2 Logout request
@@ -245,8 +241,6 @@ def saml_logout(current_app: EduIDBaseApp,
 
     headers_tuple = loresponse[1]['headers']
     location = headers_tuple[0][1]
-    current_app.logger.info(
-        f"Redirecting {user} to {location} after successful logout"
-    )
+    current_app.logger.info(f"Redirecting {user} to {location} after successful logout")
     state.sync()
     return redirect(location)

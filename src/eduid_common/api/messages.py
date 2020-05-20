@@ -66,8 +66,7 @@ def success_message(message: Union[TranslatableMsg, str], data: Optional[dict] =
     return msg
 
 
-def error_message(message: Union[TranslatableMsg, str],
-                  data: Optional[dict] = None) -> dict:
+def error_message(message: Union[TranslatableMsg, str], data: Optional[dict] = None) -> dict:
     """
     Make a dict that corresponds to an error response, that can be marshalled into a response
     that eduid-front understands.

@@ -13,14 +13,7 @@ from flask.sessions import SessionInterface, SessionMixin
 
 from eduid_common.config.exceptions import BadConfiguration
 from eduid_common.session.logindata import SSOLoginData
-from eduid_common.session.namespaces import (
-    Actions,
-    Common,
-    MfaAction,
-    ResetPasswordNS,
-    SessionNSBase,
-    Signup,
-)
+from eduid_common.session.namespaces import Actions, Common, MfaAction, ResetPasswordNS, SessionNSBase, Signup
 from eduid_common.session.redis_session import RedisEncryptedSession, SessionManager
 
 # From https://stackoverflow.com/a/39757388

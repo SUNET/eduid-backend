@@ -30,14 +30,13 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from flask import Blueprint, request, current_app, abort
+from flask import Blueprint, abort, current_app, request
 
 from eduid_common.api.app import EduIDBaseApp
 from eduid_common.api.helpers import check_magic_cookie
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.config.base import FlaskConfig
 from eduid_common.session.eduid_session import SessionFactory
-
 
 test_views = Blueprint('test', __name__)
 

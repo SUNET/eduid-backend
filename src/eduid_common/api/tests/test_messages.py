@@ -38,10 +38,10 @@ from werkzeug.wrappers import Response
 
 from eduid_common.api.messages import (
     TranslatableMsg,
-    success_message,
     error_message,
     make_query_string,
     redirect_with_msg,
+    success_message,
 )
 
 
@@ -52,7 +52,6 @@ class TestsMsg(TranslatableMsg):
 
 
 class MessageTests(TestCase):
-
     def test_success_message(self):
         message = success_message(TestsMsg.fst_test_msg)
         self.assertEqual(message['_status'], 'ok')
