@@ -106,6 +106,10 @@ def reset_password():
     if request.method == 'POST':
         try:
             form = ResetPasswordEmailSchema().load(request.form)
+        except ValidationError as e:
+            current_app.logger.error(e)
+            view_context['errors'] = e.messages
+        else:
             if session.get_csrf_token() == form['csrf']:
                 current_app.logger.info('Trying to send password reset email to {}'.format(form['email']))
                 try:
@@ -121,9 +125,7 @@ def reset_password():
                     return render_template('error.jinja2', view_context=view_context)
                 view_context['form_post_success'] = True
                 view_context['text'] = ''
-        except ValidationError as e:
-            current_app.logger.error(e)
-            view_context['errors'] = e.messages
+
     view_context['csrf_token'] = session.new_csrf_token()
     return render_template('reset_password.jinja2', view_context=view_context)
 
@@ -171,6 +173,10 @@ def choose_extra_security(state):
     if request.method == 'POST':
         try:
             form = ResetPasswordExtraSecuritySchema().load(request.form)
+        except ValidationError as e:
+            current_app.logger.error(e)
+            view_context['errors'] = e.messages
+        else:
             if session.get_csrf_token() == form['csrf']:
                 if form.get('no_extra_security'):
                     current_app.logger.info('Redirecting user to reset password with NO extra security')
@@ -194,9 +200,7 @@ def choose_extra_security(state):
                     current_app.logger.info('Redirecting user to verify phone number view')
                     current_app.stats.count(name='reset_password_extra_security_phone')
                     return redirect(url_for('reset_password.extra_security_phone_number', email_code=state.email_code.code))
-        except ValidationError as e:
-            current_app.logger.error(e)
-            view_context['errors'] = e.messages
+
     view_context['csrf_token'] = session.new_csrf_token()
 
     try:
@@ -236,6 +240,10 @@ def extra_security_phone_number(state):
     if request.method == 'POST':
         try:
             form = ResetPasswordVerifyPhoneNumberSchema().load(request.form)
+        except ValidationError as e:
+            current_app.logger.error(e)
+            view_context['errors'] = e.messages
+        else:
             if session.get_csrf_token() == form['csrf']:
                 current_app.logger.info('Trying to verify phone code')
 
@@ -255,9 +263,6 @@ def extra_security_phone_number(state):
                     current_app.stats.count(name='reset_password_extra_security_phone_success')
                     return redirect(url_for('reset_password.new_password', email_code=state.email_code.code))
                 view_context['form_post_fail_msg'] = _('Invalid code. Please try again.')
-        except ValidationError as e:
-            current_app.logger.error(e)
-            view_context['errors'] = e.messages
     view_context['csrf_token'] = session.new_csrf_token()
     return render_template('reset_password_verify_phone.jinja2', view_context=view_context)
 
@@ -288,6 +293,11 @@ def new_password(state):
                 zxcvbn_terms=view_context['zxcvbn_terms'], min_entropy=int(min_entropy)
             ).load(request.form)
             current_app.logger.debug(form)
+        except ValidationError as e:
+            current_app.logger.error(e)
+            view_context['errors'] = e.messages
+            view_context['active_pane'] = 'custom'
+        else:
             if session.get_csrf_token() == form['csrf']:
                 if form.get('use_generated_password'):
                     password = state.generated_password
@@ -304,10 +314,6 @@ def new_password(state):
                 view_context['form_post_success'] = True
                 view_context['login_url'] = current_app.config.eduid_site_url
                 return render_template('reset_password_new_password.jinja2', view_context=view_context)
-        except ValidationError as e:
-            current_app.logger.error(e)
-            view_context['errors'] = e.messages
-            view_context['active_pane'] = 'custom'
 
     # Generate a random good password
     # TODO: Hash the password using VCCSPasswordFactor before saving it to db
