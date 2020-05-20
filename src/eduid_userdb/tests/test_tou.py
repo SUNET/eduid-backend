@@ -157,7 +157,7 @@ class TestTouUser(TestCase):
         userdata = copy.deepcopy(NEW_USER_EXAMPLE)
         userid = userdata['_id']
         eppn = userdata['eduPersonPrincipalName']
-        user = ToUUser.new(userid=userid, eppn=eppn, tou=tou)
+        user = ToUUser.construct_user(userid=userid, eppn=eppn, tou=tou)
         self.assertEqual(user.tou.to_list_of_dicts()[0]['version'], '1')
 
     def test_missing_eppn(self):

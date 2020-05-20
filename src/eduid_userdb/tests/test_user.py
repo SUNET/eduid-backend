@@ -576,12 +576,12 @@ class _AbstractUserTestCase():
 
     def test_rebuild_user1(self):
         data1 = self.user1.to_dict()
-        new_user1 = User.new(**data1)
+        new_user1 = User.construct_user(**data1)
         self.assertEqual(new_user1.eppn, 'guvat-nalif')
 
     def test_rebuild_user2(self):
         data1 = self.user2.to_dict()
-        new_user2 = User.new(**data1)
+        new_user2 = User.construct_user(**data1)
         self.assertEqual(new_user2.eppn, 'birub-gagoz')
 
 
@@ -707,7 +707,7 @@ class TestNewUser(TestCase, _AbstractUserTestCase):
         eduPersonEntitlement = [u'http://foo.example.org']
         preferredLanguage = 'en'
 
-        self.user1 = User.new(
+        self.user1 = User.construct_user(
             _id=_id,
             eduPersonPrincipalName=eduPersonPrincipalName,
             mail=mail,
@@ -789,7 +789,7 @@ class TestNewUser(TestCase, _AbstractUserTestCase):
         surname = '\xf6ne'
         subject = 'physical person'
 
-        self.user2 = User.new(
+        self.user2 = User.construct_user(
             _id=_id,
             displayName=displayName,
             eduPersonPrincipalName=eduPersonPrincipalName,

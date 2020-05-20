@@ -78,10 +78,12 @@ class ToUUser(User):
         User.__init__(self, data, raise_on_unknown=raise_on_unknown)
 
     @classmethod
-    def new(cls,
-            userid: Optional[Union[bson.ObjectId, str]] = None,
-            eppn: Optional[str] = None,
-            **kwargs):
+    def construct_user(
+        cls,
+        userid: Optional[Union[bson.ObjectId, str]] = None,
+        eppn: Optional[str] = None,
+        **kwargs
+    ):
         """
         """
         if userid is not None:

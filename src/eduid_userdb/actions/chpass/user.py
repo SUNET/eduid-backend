@@ -91,9 +91,11 @@ class ChpassUser(User):
             self._data.update(self._data_in)
 
     @classmethod
-    def new(cls,
-            userid: Optional[Union[bson.ObjectId, str]] = None,
-            **kwargs):
+    def construct_user(
+        cls,
+        userid: Optional[Union[bson.ObjectId, str]] = None,
+        **kwargs
+    ):
         """
         """
         if userid is not None:

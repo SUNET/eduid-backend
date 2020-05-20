@@ -286,7 +286,7 @@ class User(object):
     # -----------------------------------------------------------------
 
     @classmethod
-    def new(
+    def construct_user(
         cls,
         eduPersonPrincipalName: str,
         raise_on_unknown: bool = True,
