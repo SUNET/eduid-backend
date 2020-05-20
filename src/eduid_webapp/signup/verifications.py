@@ -125,13 +125,6 @@ def send_verification_mail(email):
         signup_user.pending_mail_address.verification_code = code
         current_app.logger.info("User {}/{} updated with new e-mail confirmation code".format(signup_user, email))
 
-    # keep the verification code in the session if the backdoor
-    # for the selenium integration tests is configured
-    if (current_app.config.environment in ('dev', 'staging') and
-       current_app.config.magic_cookie is not None and current_app.config.magic_cookie_name is not None):
-        current_app.logger.info(f"Keeping the verification code in the session to open BACKDOOR for email {email}")
-        session.signup.email_verification_code = code
-
     # Send verification mail
     subject = _("eduid-signup verification email")
 

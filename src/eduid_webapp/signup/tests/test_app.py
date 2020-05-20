@@ -177,7 +177,7 @@ class SignupTests(EduidAPITestCase):
                 with self.app.test_request_context():
                     send_verification_mail(email)
                     signup_user = self.app.private_userdb.get_user_by_pending_mail_address(email)
-                    code = signup_user.pending_mail_address.verification_code
+                    code = code or signup_user.pending_mail_address.verification_code
 
                     return client.get('/verify-link/' + code)
 

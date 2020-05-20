@@ -31,37 +31,33 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from __future__ import absolute_import
+from marshmallow import fields
 
-from eduid_common.api.testing import EduidAPITestCase
-from eduid_webapp.{{cookiecutter.directory_name}}.app import init_{{cookiecutter.directory_name}}_app
-from eduid_webapp.{{cookiecutter.directory_name}}.settings.common import {{cookiecutter.class_name}}Config
+from eduid_common.api.schemas.base import EduidSchema, FluxStandardAction
+from eduid_common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
 
-__author__ = '{{cookiecutter.author}}'
+__author__ = 'lundberg'
 
 
-class {{cookiecutter.class_name}}Tests(EduidAPITestCase):
-    """Base TestCase for those tests that need a full environment setup"""
+class GroupMember(EduidSchema):
+    id = fields.UUID(required=True)
+    display_name = fields.Str(required=True)
 
-    def setUp(self):
-        super({{cookiecutter.class_name}}Tests, self).setUp()
 
-    def load_app(self, config):
-        """
-        Called from the parent class, so we can provide the appropriate flask
-        app for this test case.
-        """
-        return init_{{cookiecutter.directory_name}}_app('testing', config)
+class Group(EduidSchema):
+    id = fields.UUID(required=True)
+    display_name = fields.Str(required=True)
+    members = fields.Nested(nested=GroupMember, default=[], many=True)
+    owners = fields.Nested(nested=GroupMember, default=[], many=True)
 
-    def update_config(self, config):
-        config.update({
-            })
-        return {{cookiecutter.class_name}}Config(**config)
 
-    def tearDown(self):
-        super({{cookiecutter.class_name}}Tests, self).tearDown()
-        with self.app.app_context():
-            self.app.central_userdb._drop_whole_collection()
+class GroupManagementRequestSchema(EduidSchema, CSRFRequestMixin):
+    pass
 
-    def test_app_starts(self):
-        self.assertEquals(self.app.config.app_name, "{{cookiecutter.directory_name}}")
+
+class GroupManagementResponseSchema(EduidSchema, CSRFResponseMixin):
+    class GroupManagementResponsePayload(EduidSchema):
+        member_of = fields.Nested(Group, default=[], many=True)
+        owner_of = fields.Nested(Group, default=[], many=True)
+
+    payload = fields.Nested(GroupManagementResponsePayload)
