@@ -313,8 +313,8 @@ def new_password(state):
 def get_email_code():
     try:
         if check_magic_cookie(current_app.config):
-            email = request.args.get('email')
-            state = current_app.password_reset_state_db.get_state_by_email(email)
+            eppn = request.args.get('eppn')
+            state = current_app.password_reset_state_db.get_state_by_eppn(eppn)
             return state.email_code.code
     except Exception:
         pass
@@ -326,8 +326,8 @@ def get_email_code():
 def get_phone_code():
     try:
         if check_magic_cookie(current_app.config):
-            email = request.args.get('email')
-            state = current_app.password_reset_state_db.get_state_by_eppn(email)
+            eppn = request.args.get('eppn')
+            state = current_app.password_reset_state_db.get_state_by_eppn(eppn)
             return state.phone_code.code
     except Exception:
         pass
