@@ -71,13 +71,13 @@ def verify_token(user, credential_id):
 @require_user
 def verify_nin(user):
     current_app.logger.debug('verify-nin called')
-    required_loa = 'loa3'
 
     # Backdoor for the selenium integration tests to verify NINs
     # without sending the user to an eidas idp
     if check_magic_cookie(current_app.config):
-        nin_verify_backdoor()
+        return nin_verify_backdoor()
 
+    required_loa = 'loa3'
     return _authn('nin-verify-action', required_loa, force_authn=True)
 
 
