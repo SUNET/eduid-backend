@@ -15,7 +15,7 @@ email_re = re.compile(
 )
 
 
-def validate_nin(nin):
+def validate_nin(nin, **kwargs):
     """
     :param nin: National Identity Number
     :type nin: string_types
@@ -27,7 +27,7 @@ def validate_nin(nin):
     raise ValidationError('nin needs to be formatted as 18|19|20yymmddxxxx')
 
 
-def validate_email(email):
+def validate_email(email, **kwargs):
     """
     :param email: E-mail address
     :type email: string_types

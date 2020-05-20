@@ -18,7 +18,7 @@ class PasswordSchema(Schema):
         self.Meta.min_entropy = kwargs.pop('min_entropy')
         super(PasswordSchema, self).__init__(*args, **kwargs)
 
-    def validate_password(self, password):
+    def validate_password(self, password, **kwargs):
         """
         :param password: New password
         :type password: string_types

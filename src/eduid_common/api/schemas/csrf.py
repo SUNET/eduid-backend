@@ -17,7 +17,7 @@ class CSRFRequestMixin(Schema):
     csrf_token = fields.String(required=True)
 
     @validates('csrf_token')
-    def validate_csrf_token(self, value):
+    def validate_csrf_token(self, value, **kwargs):
         custom_header = request.headers.get('X-Requested-With', '')
         if custom_header != 'XMLHttpRequest':
             raise ValidationError('CSRF missing custom X-Requested-With header')
@@ -39,13 +39,13 @@ class CSRFRequestMixin(Schema):
             raise ValidationError('CSRF failed to validate')
 
     @post_load
-    def post_processing(self, in_data):
+    def post_processing(self, in_data, **kwargs):
         # Remove token from data forwarded to views
         in_data = self.remove_csrf_token(in_data)
         return in_data
 
     @staticmethod
-    def remove_csrf_token(in_data):
+    def remove_csrf_token(in_data, **kwargs):
         del in_data['csrf_token']
         return in_data
 
@@ -55,7 +55,7 @@ class CSRFResponseMixin(Schema):
     csrf_token = fields.String(required=True)
 
     @pre_dump
-    def get_csrf_token(self, out_data):
+    def get_csrf_token(self, out_data, **kwargs):
         # Generate a new csrf token for every response
         out_data['csrf_token'] = session.new_csrf_token()
         return out_data
@@ -75,7 +75,7 @@ class CSRFResponse(FluxStandardAction):
     payload = fields.Nested(ResponsePayload)
 
     @pre_dump
-    def add_payload_if_missing(self, out_data):
+    def add_payload_if_missing(self, out_data, **kwargs):
         if not out_data.get('payload'):
             out_data['payload'] = {'csrf_token': None}
         return out_data
