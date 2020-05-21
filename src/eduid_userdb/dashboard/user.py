@@ -36,6 +36,7 @@
 import copy
 import logging
 from datetime import datetime
+from typing import Optional, Union
 
 import bson
 
@@ -60,6 +61,21 @@ class DashboardUser(User):
             data = dict(_id=userid, eduPersonPrincipalName=eppn, subject=subject,)
 
         User.__init__(self, data=data)
+
+    @classmethod
+    def construct_user(
+        cls,
+        userid: Optional[Union[bson.ObjectId, str]] = None,
+        eppn: Optional[str] = None,
+        **kwargs
+    ):
+        """
+        """
+        if userid is not None:
+            kwargs['_id'] = userid
+        if eppn is not None:
+            kwargs['eduPersonPrincipalName'] = eppn
+        return cls(data=kwargs)
 
     def add_letter_proofing_data(self, data):
         """
