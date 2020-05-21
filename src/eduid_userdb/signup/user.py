@@ -36,6 +36,7 @@ import copy
 
 import bson
 import six
+from typing import Optional, Union
 
 from eduid_userdb import User
 from eduid_userdb.exceptions import UserIsRevoked
@@ -71,6 +72,21 @@ class SignupUser(User):
         self.pending_mail_address = _pending_mail_address
         if _proofing_reference:
             self.proofing_reference = _proofing_reference
+
+    @classmethod
+    def construct_user(
+        cls,
+        userid: Optional[Union[bson.ObjectId, str]] = None,
+        eppn: Optional[str] = None,
+        **kwargs
+    ):
+        """
+        """
+        if userid is not None:
+            kwargs['_id'] = userid
+        if eppn is not None:
+            kwargs['eduPersonPrincipalName'] = eppn
+        return cls(data=kwargs)
 
     def _parse_check_invalid_users(self):
         """
