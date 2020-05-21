@@ -61,7 +61,7 @@ class User(object):
     :type  data: dict
     """
 
-    def __init__(self, data: Optional[Dict[str, Any]], raise_on_unknown: bool = True, called_directly: bool = True):
+    def __init__(self, data: Dict[str, Any], raise_on_unknown: bool = True, called_directly: bool = True):
         if called_directly:
             warnings.warn("User.__init__ called directly", DeprecationWarning)
 
