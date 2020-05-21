@@ -155,10 +155,35 @@ class TestTouUser(TestCase):
         one = copy.deepcopy(_one_dict)
         tou = [ToUEvent(data=one, raise_on_unknown=False)]
         userdata = copy.deepcopy(NEW_USER_EXAMPLE)
-        userid = userdata['_id']
-        eppn = userdata['eduPersonPrincipalName']
-        user = ToUUser.construct_user(userid=userid, eppn=eppn, tou=tou)
+        userid = userdata.pop('_id')
+        eppn = userdata.pop('eduPersonPrincipalName')
+        user = ToUUser.construct_user(userid=userid, eppn=eppn, tou=tou, **userdata)
         self.assertEqual(user.tou.to_list_of_dicts()[0]['version'], '1')
+
+    def test_proper_new_user_no_id(self):
+        one = copy.deepcopy(_one_dict)
+        tou = [ToUEvent(data=one, raise_on_unknown=False)]
+        userdata = copy.deepcopy(NEW_USER_EXAMPLE)
+        userdata.pop('_id')
+        userdata.pop('eduPersonPrincipalName')
+        with self.assertRaises(UserMissingData):
+            ToUUser.construct_user(tou=tou, **userdata)
+
+    def test_proper_new_user_no_eppn(self):
+        one = copy.deepcopy(_one_dict)
+        tou = [ToUEvent(data=one, raise_on_unknown=False)]
+        userdata = copy.deepcopy(NEW_USER_EXAMPLE)
+        userid = userdata.pop('_id')
+        userdata.pop('eduPersonPrincipalName')
+        with self.assertRaises(UserMissingData):
+            ToUUser.construct_user(userid=userid, tou=tou, **userdata)
+
+    def test_proper_new_user_no_tou(self):
+        userdata = copy.deepcopy(NEW_USER_EXAMPLE)
+        userid = userdata.pop('_id')
+        eppn = userdata.pop('eduPersonPrincipalName')
+        with self.assertRaises(UserMissingData):
+            ToUUser.construct_user(userid=userid, eppn=eppn, **userdata)
 
     def test_missing_eppn(self):
         one = copy.deepcopy(_one_dict)
