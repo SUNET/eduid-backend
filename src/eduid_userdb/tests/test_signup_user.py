@@ -5,7 +5,7 @@ from eduid_userdb.signup.user import SignupUser
 from eduid_userdb.data_samples import NEW_SIGNUP_USER_EXAMPLE
 
 
-class TestPdataUser(TestCase):
+class TestSignupUser(TestCase):
     def test_proper_user(self):
         userdata = copy.deepcopy(NEW_SIGNUP_USER_EXAMPLE)
         user = SignupUser(data=userdata)
@@ -16,7 +16,7 @@ class TestPdataUser(TestCase):
         userdata = copy.deepcopy(NEW_SIGNUP_USER_EXAMPLE)
         userid = userdata.pop('_id')
         eppn = userdata.pop('eduPersonPrincipalName')
-        user = SignupUser.construct_user(userid=userid, eppn=eppn, **userdata)
+        user = SignupUser.construct_user(userid=userid, eppn=eppn)
         self.assertEqual(user.user_id, userid)
         self.assertEqual(user.eppn, eppn)
 
@@ -24,7 +24,7 @@ class TestPdataUser(TestCase):
         userdata = copy.deepcopy(NEW_SIGNUP_USER_EXAMPLE)
         userid = userdata.pop('_id')
         eppn = userdata.pop('eduPersonPrincipalName')
-        user = SignupUser.construct_user(eppn=eppn, **userdata)
+        user = SignupUser.construct_user(eppn=eppn)
         self.assertNotEqual(user.user_id, userid)
 
     def test_missing_eppn(self):
@@ -32,4 +32,4 @@ class TestPdataUser(TestCase):
         userid = userdata.pop('_id')
         userdata.pop('eduPersonPrincipalName')
         with self.assertRaises(KeyError):
-            SignupUser.construct_user(userid=userid, **userdata)
+            SignupUser.construct_user(userid=userid)

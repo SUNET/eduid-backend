@@ -64,16 +64,7 @@ class ToUUser(User):
         if data is None:
             data = {'_id': userid, 'eduPersonPrincipalName': eppn, 'tou': tou}
 
-        if '_id' not in data or data['_id'] is None:
-            raise UserMissingData('Attempting to record a ToU acceptance ' 'for an unidentified user.')
-        if 'eduPersonPrincipalName' not in data or data['eduPersonPrincipalName'] is None:
-            raise UserMissingData('Attempting to record a ToU acceptance ' 'for a user without eppn.')
-        if 'tou' not in data or data['tou'] is None:
-            raise UserMissingData(
-                'Attempting to record the acceptance of '
-                'an unknown version of the ToU for '
-                'the user with eppn ' + str(data['eduPersonPrincipalName'])
-            )
+        self.check_for_missing_data(data)
 
         User.__init__(self, data, raise_on_unknown=raise_on_unknown)
 
@@ -81,13 +72,27 @@ class ToUUser(User):
     def construct_user(
         cls,
         userid: Optional[Union[bson.ObjectId, str]] = None,
-        eppn: Optional[str] = None,
         **kwargs
     ):
         """
         """
         if userid is not None:
             kwargs['_id'] = userid
-        if eppn is not None:
-            kwargs['eduPersonPrincipalName'] = eppn
-        return cls(data=kwargs)
+
+        cls.check_for_missing_data(kwargs)
+
+        return User.construct_user(**kwargs)
+
+    @staticmethod
+    def check_for_missing_data(data):
+        if '_id' not in data or data['_id'] is None:
+            raise UserMissingData('Attempting to record a ToU acceptance ' 'for an unidentified user.')
+        if 'eduPersonPrincipalName' not in data or data['eduPersonPrincipalName'] is None:
+            if 'eppn' not in data or data['eppn'] is None:
+                raise UserMissingData('Attempting to record a ToU acceptance ' 'for a user without eppn.')
+        if 'tou' not in data or data['tou'] is None:
+            raise UserMissingData(
+                'Attempting to record the acceptance of '
+                'an unknown version of the ToU for '
+                'the user with eppn ' + str(data.get('eduPersonPrincipalName', data.get('eppn')))
+            )

@@ -64,12 +64,7 @@ class ChpassUser(User):
         if data is None:
             data = {'_id': userid, 'passwords': passwords}
 
-        if '_id' not in data or data['_id'] is None:
-            raise UserMissingData('Attempting to record passwords ' 'for an unidentified user.')
-        if 'passwords' not in data or data['passwords'] is None:
-            raise UserMissingData(
-                'Attempting to record ' 'an unknown password for ' 'the user with id ' + str(data['_id'])
-            )
+        self.check_for_missing_data(data)
 
         self._data_in = deepcopy(data)
         self._data = dict()
@@ -100,7 +95,19 @@ class ChpassUser(User):
         """
         if userid is not None:
             kwargs['_id'] = userid
-        return cls(data=kwargs)
+
+        cls.check_for_missing_data(kwargs)
+
+        return User.construct_user(**kwargs)
+
+    @staticmethod
+    def check_for_missing_data(data):
+        if '_id' not in data or data['_id'] is None:
+            raise UserMissingData('Attempting to record passwords ' 'for an unidentified user.')
+        if 'passwords' not in data or data['passwords'] is None:
+            raise UserMissingData(
+                'Attempting to record ' 'an unknown password for ' 'the user with id ' + str(data['_id'])
+            )
 
     @classmethod
     def from_central_user(cls, user):

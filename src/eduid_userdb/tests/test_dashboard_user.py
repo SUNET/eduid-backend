@@ -43,7 +43,7 @@ class TestPdataUser(TestCase):
         userdata = copy.deepcopy(NEW_USER_EXAMPLE)
         userid = userdata.pop('_id')
         eppn = userdata.pop('eduPersonPrincipalName')
-        user = DashboardUser.construct_user(userid=userid, eppn=eppn, **userdata)
+        user = DashboardUser.construct_user(userid=userid, eppn=eppn)
         self.assertEqual(user.user_id, userid)
         self.assertEqual(user.eppn, eppn)
 

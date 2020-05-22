@@ -130,24 +130,22 @@ class User(object):
     @classmethod
     def construct_user(
         cls,
-        eduPersonPrincipalName: str,
+        eppn: str,
         raise_on_unknown: bool = True,
         _id: Optional[Union[bson.ObjectId, str]] = None,
         subject: Optional[str] = None,
-        displayName: Optional[str] = None,
-        givenName: Optional[str] = None,
+        display_name: Optional[str] = None,
+        given_name: Optional[str] = None,
         surname: Optional[str] = None,
-        sn: Optional[str] = None,
-        preferredLanguage: Optional[str] = None,
+        language: Optional[str] = None,
         passwords: Optional[CredentialList] = None,
         modified_ts: Optional[datetime.datetime] = None,
         revoked_ts: Optional[datetime.datetime] = None,
         entitlements: Optional[List[str]] = None,
-        eduPersonEntitlement: Optional[List[str]] = None,
         terminated: Optional[bool] = None,
         letter_proofing_data: Optional[dict] = None,
-        mailAliases: Optional[MailAddressList] = None,
-        phone: Optional[PhoneNumberList] = None,
+        mail_addresses: Optional[MailAddressList] = None,
+        phone_numbers: Optional[PhoneNumberList] = None,
         nins: Optional[NinList] = None,
         tou: Optional[ToUList] = None,
         locked_identity: Optional[LockedIdentityList] = None,
@@ -155,45 +153,20 @@ class User(object):
         profiles: Optional[ProfileList] = None,
         **kwargs
     ):
-        # revoked user
-        if revoked_ts is not None:
-            raise UserIsRevoked(
-                'User {!s}/{!s} was revoked at {!s}'.format(
-                    _id, eduPersonPrincipalName, revoked_ts
-                )
-            )
-        # incomplete user
-        if passwords is None:
-            raise UserHasNotCompletedSignup(
-                'User {!s}/{!s} is incomplete'.format(
-                    _id, eduPersonPrincipalName
-                )
-            )
-        # remove obsolete attributes
-        for attr in ('postalAddress', 'date', 'csrf'):
-            if attr in kwargs:
-                del kwargs[attr]
-
-        if raise_on_unknown:
-            if len(kwargs) > 0:
-                raise UserHasUnknownData(
-                    'User {!s}/{!s} unknown data: {!r}'.format(
-                        _id, eduPersonPrincipalName, kwargs.keys()
-                    )
-                )
 
         data: Dict[str, Any] = {}
 
         data['_id'] = _id
-        data['eduPersonPrincipalName'] = eduPersonPrincipalName
+        data['eduPersonPrincipalName'] = eppn
         data['subject'] = subject
-        data['displayName'] = displayName
-        data['givenName'] = givenName
+        data['displayName'] = display_name
+        data['givenName'] = given_name
         data['surname'] = surname
-        data['sn'] = sn
-        data['preferredLanguage'] = preferredLanguage
+        data['preferredLanguage'] = language
         data['modified_ts'] = modified_ts
         data['terminated'] = terminated
+        if revoked_ts is not None:
+            data['revoked_ts'] = revoked_ts
         if orcid is not None:
             data['orcid'] = orcid.to_dict()
         if letter_proofing_data is not None:
@@ -202,12 +175,10 @@ class User(object):
             data['passwords'] = passwords.to_list_of_dicts()
         if entitlements is not None:
             data['entitlements'] = entitlements
-        if eduPersonEntitlement is not None:
-            data['eduPersonEntitlement'] = eduPersonEntitlement
-        if mailAliases is not None:
-            data['mailAliases'] = mailAliases.to_list_of_dicts()
-        if phone is not None:
-            data['phone'] = phone.to_list_of_dicts()
+        if mail_addresses is not None:
+            data['mailAliases'] = mail_addresses.to_list_of_dicts()
+        if phone_numbers is not None:
+            data['phone'] = phone_numbers.to_list_of_dicts()
         if nins is not None:
             data['nins'] = nins.to_list_of_dicts()
         if tou is not None:
@@ -216,6 +187,8 @@ class User(object):
             data['locked_identity'] = locked_identity.to_list_of_dicts()
         if profiles is not None:
             data['profiles'] = profiles.to_list_of_dicts()
+
+        data.update(kwargs)
 
         return cls.from_dict(data)
 

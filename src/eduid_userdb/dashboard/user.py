@@ -36,7 +36,6 @@
 import copy
 import logging
 from datetime import datetime
-from typing import Optional, Union
 
 import bson
 
@@ -51,7 +50,8 @@ class DashboardUser(User):
     Subclass of eduid_userdb.User with eduid Dashboard application specific data.
     """
 
-    def __init__(self, userid=None, eppn=None, subject='physical person', data=None):
+    def __init__(self, userid=None, eppn=None, subject='physical person', data=None,
+                 raise_on_unknown=False, called_directly=True):
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
 
@@ -60,22 +60,7 @@ class DashboardUser(User):
                 userid = bson.ObjectId()
             data = dict(_id=userid, eduPersonPrincipalName=eppn, subject=subject,)
 
-        User.__init__(self, data=data)
-
-    @classmethod
-    def construct_user(
-        cls,
-        userid: Optional[Union[bson.ObjectId, str]] = None,
-        eppn: Optional[str] = None,
-        **kwargs
-    ):
-        """
-        """
-        if userid is not None:
-            kwargs['_id'] = userid
-        if eppn is not None:
-            kwargs['eduPersonPrincipalName'] = eppn
-        return cls(data=kwargs)
+        User.__init__(self, data=data, raise_on_unknown=raise_on_unknown, called_directly=called_directly)
 
     def add_letter_proofing_data(self, data):
         """

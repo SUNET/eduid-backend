@@ -78,15 +78,25 @@ class SignupUser(User):
         cls,
         userid: Optional[Union[bson.ObjectId, str]] = None,
         eppn: Optional[str] = None,
+        pending_mail_address: Optional[EmailProofingElement] = None,
+        proofing_reference: Optional[str] = None,
         **kwargs
-    ):
+    ) -> User:
         """
         """
         if userid is not None:
             kwargs['_id'] = userid
         if eppn is not None:
             kwargs['eduPersonPrincipalName'] = eppn
-        return cls(data=kwargs)
+        user = cls(data=kwargs)
+
+        if pending_mail_address is not None:
+            user.pending_mail_address = pending_mail_address
+
+        if proofing_reference is not None:
+            user.proofing_reference = proofing_reference
+
+        return user
 
     def _parse_check_invalid_users(self):
         """

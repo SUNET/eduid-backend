@@ -690,7 +690,7 @@ class TestNewUser(TestCase, _AbstractUserTestCase):
 
     def _setup_user1(self):
         _id = ObjectId('547357c3d00690878ae9b620')
-        eduPersonPrincipalName = 'guvat-nalif'
+        eppn = 'guvat-nalif'
         mail = 'user@example.net'
         mailAliases_list = [
             {
@@ -700,7 +700,7 @@ class TestNewUser(TestCase, _AbstractUserTestCase):
                 'primary': True,
             }
         ]
-        mailAliases = MailAddressList(mailAliases_list)
+        mail_addresses = MailAddressList(mailAliases_list)
         password_list = [
             {
                 'created_ts': datetime.datetime(2014, 11, 24, 16, 22, 49, 188000),
@@ -722,37 +722,37 @@ class TestNewUser(TestCase, _AbstractUserTestCase):
         ]
         nins = NinList(nin_list)
         subject = 'physical person'
-        eduPersonEntitlement = [u'http://foo.example.org']
-        preferredLanguage = 'en'
+        entitlements = [u'http://foo.example.org']
+        language = 'en'
 
         self.user1 = User.construct_user(
             _id=_id,
-            eduPersonPrincipalName=eduPersonPrincipalName,
-            mailAliases=mailAliases,
+            eppn=eppn,
+            mail_addresses=mail_addresses,
             passwords=passwords,
             nins=nins,
             subject=subject,
-            eduPersonEntitlement=eduPersonEntitlement,
-            preferredLanguage=preferredLanguage,
+            entitlements=entitlements,
+            language=language,
         )
 
         self.data1 = {
             '_id': _id,
-            'eduPersonPrincipalName': eduPersonPrincipalName,
+            'eduPersonPrincipalName': eppn,
             'mail': mail,
-            'mailAliases': mailAliases.to_list_of_dicts(),
+            'mailAliases': mail_addresses.to_list_of_dicts(),
             'passwords': passwords.to_list_of_dicts(),
             'nins': nins.to_list_of_dicts(),
             'subject': subject,
-            'eduPersonEntitlement': eduPersonEntitlement,
-            'preferredLanguage': preferredLanguage,
+            'eduPersonEntitlement': entitlements,
+            'preferredLanguage': language,
         }
 
     def _setup_user2(self):
         _id = ObjectId('549190b5d00690878ae9b622')
-        displayName = 'Some \xf6ne'
-        eduPersonPrincipalName = 'birub-gagoz'
-        givenName = 'Some'
+        display_name = 'Some \xf6ne'
+        eppn = 'birub-gagoz'
+        given_name = 'Some'
         mail = 'some.one@gmail.com'
         mailAliases_list = [
             {'email': 'someone+test1@gmail.com', 'verified': True},
@@ -763,7 +763,7 @@ class TestNewUser(TestCase, _AbstractUserTestCase):
                 'primary': True,
             },
         ]
-        mailAliases = MailAddressList(mailAliases_list)
+        mail_addresses = MailAddressList(mailAliases_list)
         phone_list = [
             {
                 'created_ts': datetime.datetime(2014, 12, 18, 9, 11, 35, 78000),
@@ -772,7 +772,7 @@ class TestNewUser(TestCase, _AbstractUserTestCase):
                 'verified': True,
             }
         ]
-        phones = PhoneNumberList(phone_list)
+        phone_numbers = PhoneNumberList(phone_list)
         password_list = [
             {
                 'created_ts': datetime.datetime(2015, 2, 11, 13, 58, 42, 327000),
@@ -807,35 +807,35 @@ class TestNewUser(TestCase, _AbstractUserTestCase):
         profile = Profile(**profile_dict)
         profile_list = [profile]
         profiles = ProfileList(profile_list)
-        preferredLanguage = 'sv'
+        language = 'sv'
         surname = '\xf6ne'
         subject = 'physical person'
 
         self.user2 = User.construct_user(
             _id=_id,
-            displayName=displayName,
-            eduPersonPrincipalName=eduPersonPrincipalName,
-            givenName=givenName,
-            mailAliases=mailAliases,
-            phone=phones,
+            eppn=eppn,
+            display_name=display_name,
+            given_name=given_name,
+            mail_addresses=mail_addresses,
+            phone_numbers=phone_numbers,
             passwords=passwords,
             profiles=profiles,
-            preferredLanguage=preferredLanguage,
+            language=language,
             surname=surname,
             subject=subject,
         )
 
         self.data2 = {
             '_id': _id,
-            'displayName': displayName,
-            'eduPersonPrincipalName': eduPersonPrincipalName,
-            'givenName': givenName,
+            'displayName': display_name,
+            'eduPersonPrincipalName': eppn,
+            'givenName': given_name,
             'mail': mail,
-            'mailAliases': mailAliases.to_list_of_dicts(),
-            'mobile': phones.to_list_of_dicts(),
+            'mailAliases': mail_addresses.to_list_of_dicts(),
+            'mobile': phone_numbers.to_list_of_dicts(),
             'passwords': passwords.to_list_of_dicts(),
             'profiles': profiles.to_list_of_dicts(),
-            'preferredLanguage': preferredLanguage,
+            'preferredLanguage': language,
             'surname': surname,
             'subject': subject,
         }
