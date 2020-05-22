@@ -35,7 +35,7 @@
 import copy
 import datetime
 import warnings
-from typing import Any, Dict, Union, Optional
+from typing import Any, Dict, List, Union, Optional
 
 import bson
 
@@ -139,23 +139,20 @@ class User(object):
         surname: Optional[str] = None,
         sn: Optional[str] = None,
         preferredLanguage: Optional[str] = None,
-        passwords: Optional[list] = None,
+        passwords: Optional[CredentialList] = None,
         modified_ts: Optional[datetime.datetime] = None,
         revoked_ts: Optional[datetime.datetime] = None,
-        entitlements: Optional[list] = None,
-        eduPersonEntitlement: Optional[list] = None,
+        entitlements: Optional[List[str]] = None,
+        eduPersonEntitlement: Optional[List[str]] = None,
         terminated: Optional[bool] = None,
         letter_proofing_data: Optional[dict] = None,
-        mailAliases: Optional[list] = None,
-        mail: Optional[str] = None,
-        mobile: Optional[list] = None,
-        phone: Optional[list] = None,
-        nins: Optional[list] = None,
-        norEduPersonNIN: Optional[list] = None,
-        tou: Optional[list] = None,
-        locked_identity: Optional[list] = None,
+        mailAliases: Optional[MailAddressList] = None,
+        phone: Optional[PhoneNumberList] = None,
+        nins: Optional[NinList] = None,
+        tou: Optional[ToUList] = None,
+        locked_identity: Optional[LockedIdentityList] = None,
         orcid: Optional[Orcid] = None,
-        profiles: Optional[list] = None,
+        profiles: Optional[ProfileList] = None,
         **kwargs
     ):
         # revoked user
@@ -197,32 +194,28 @@ class User(object):
         data['preferredLanguage'] = preferredLanguage
         data['modified_ts'] = modified_ts
         data['terminated'] = terminated
-        data['mail'] = mail
-        data['orcid'] = orcid
+        if orcid is not None:
+            data['orcid'] = orcid.to_dict()
         if letter_proofing_data is not None:
             data['letter_proofing_data'] = letter_proofing_data
         if passwords is not None:
-            data['passwords'] = passwords
+            data['passwords'] = passwords.to_list_of_dicts()
         if entitlements is not None:
             data['entitlements'] = entitlements
         if eduPersonEntitlement is not None:
             data['eduPersonEntitlement'] = eduPersonEntitlement
         if mailAliases is not None:
-            data['mailAliases'] = mailAliases
-        if mobile is not None:
-            data['mobile'] = mobile
+            data['mailAliases'] = mailAliases.to_list_of_dicts()
         if phone is not None:
-            data['phone'] = phone
+            data['phone'] = phone.to_list_of_dicts()
         if nins is not None:
-            data['nins'] = nins
-        if norEduPersonNIN is not None:
-            data['norEduPersonNIN'] = norEduPersonNIN
+            data['nins'] = nins.to_list_of_dicts()
         if tou is not None:
-            data['tou'] = tou
+            data['tou'] = tou.to_list_of_dicts()
         if locked_identity is not None:
-            data['locked_identity'] = locked_identity
+            data['locked_identity'] = locked_identity.to_list_of_dicts()
         if profiles is not None:
-            data['profiles'] = profiles
+            data['profiles'] = profiles.to_list_of_dicts()
 
         return cls.from_dict(data)
 

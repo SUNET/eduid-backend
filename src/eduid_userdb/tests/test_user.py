@@ -6,10 +6,16 @@ from bson import ObjectId
 from six import string_types
 
 from eduid_userdb import LockedIdentityNin, OidcAuthorization, OidcIdToken, Orcid
+from eduid_userdb.credentials import CredentialList
 from eduid_userdb.credentials import METHOD_SWAMID_AL2_MFA
 from eduid_userdb.exceptions import EduIDUserDBError, UserHasNotCompletedSignup, UserHasUnknownData, UserIsRevoked
+from eduid_userdb.mail import MailAddressList
+from eduid_userdb.nin import NinList
+from eduid_userdb.phone import PhoneNumberList
+from eduid_userdb.profile import Profile, ProfileList
 from eduid_userdb.tou import ToUList
 from eduid_userdb.user import User
+
 
 __author__ = 'ft'
 
@@ -37,20 +43,6 @@ class _AbstractUserTestCase():
 
     def test_mail_addresses(self):
         self.assertEqual(self.user1.mail_addresses.primary.email, self.data1['mailAliases'][0]['email'])
-
-    def test_mail_addresses_to_old_userdb_format(self):
-        """
-        Test that we get back a dict identical to the one we put in for old-style userdb data.
-        """
-        to_dict_result = self.user1.mail_addresses.to_list_of_dicts(old_userdb_format=True)
-        self.assertEqual(to_dict_result, self.data1['mailAliases'])
-
-    def test_phone_numbers(self):
-        """
-        Test that we get back a dict identical to the one we put in for old-style userdb data.
-        """
-        to_dict_result = self.user2.phone_numbers.to_list_of_dicts(old_userdb_format=True)
-        self.assertEqual(to_dict_result, self.data2['mobile'])
 
     def test_passwords(self):
         """
@@ -575,13 +567,13 @@ class _AbstractUserTestCase():
         self.assertEqual('Right', user.to_dict()['surname'])
 
     def test_rebuild_user1(self):
-        data1 = self.user1.to_dict()
-        new_user1 = User.construct_user(**data1)
+        data = self.user1.to_dict()
+        new_user1 = User.from_dict(data)
         self.assertEqual(new_user1.eppn, 'guvat-nalif')
 
     def test_rebuild_user2(self):
-        data1 = self.user2.to_dict()
-        new_user2 = User.construct_user(**data1)
+        data = self.user2.to_dict()
+        new_user2 = User.from_dict(data)
         self.assertEqual(new_user2.eppn, 'birub-gagoz')
 
 
@@ -675,6 +667,20 @@ class TestUser(TestCase, _AbstractUserTestCase):
         }
         self.user2 = User(self.data2)
 
+    def test_mail_addresses_to_old_userdb_format(self):
+        """
+        Test that we get back a dict identical to the one we put in for old-style userdb data.
+        """
+        to_dict_result = self.user1.mail_addresses.to_list_of_dicts(old_userdb_format=True)
+        self.assertEqual(to_dict_result, self.data1['mailAliases'])
+
+    def test_phone_numbers(self):
+        """
+        Test that we get back a dict identical to the one we put in for old-style userdb data.
+        """
+        to_dict_result = self.user2.phone_numbers.to_list_of_dicts(old_userdb_format=True)
+        self.assertEqual(to_dict_result, self.data2['mobile'])
+
 
 class TestNewUser(TestCase, _AbstractUserTestCase):
 
@@ -686,14 +692,16 @@ class TestNewUser(TestCase, _AbstractUserTestCase):
         _id = ObjectId('547357c3d00690878ae9b620')
         eduPersonPrincipalName = 'guvat-nalif'
         mail = 'user@example.net'
-        mailAliases = [
+        mailAliases_list = [
             {
-                'added_timestamp': datetime.datetime(2014, 12, 18, 11, 25, 19, 804000),
+                'created_ts': datetime.datetime(2014, 12, 18, 11, 25, 19, 804000),
                 'email': 'user@example.net',
                 'verified': True,
+                'primary': True,
             }
         ]
-        passwords = [
+        mailAliases = MailAddressList(mailAliases_list)
+        password_list = [
             {
                 'created_ts': datetime.datetime(2014, 11, 24, 16, 22, 49, 188000),
                 'credential_id': '54735b588a7d2a2c4ec3e7d0',
@@ -702,7 +710,17 @@ class TestNewUser(TestCase, _AbstractUserTestCase):
                 'is_generated': False,
             }
         ]
-        norEduPersonNIN = [u'197801012345']
+        passwords = CredentialList(password_list)
+        nin_list = [
+            {
+                'number': '197801012345',
+                'created_ts': datetime.datetime(2014, 11, 24, 16, 22, 49, 188000),
+                'verified': True,
+                'primary': True,
+                'created_by': 'dashboard',
+            }
+        ]
+        nins = NinList(nin_list)
         subject = 'physical person'
         eduPersonEntitlement = [u'http://foo.example.org']
         preferredLanguage = 'en'
@@ -710,10 +728,9 @@ class TestNewUser(TestCase, _AbstractUserTestCase):
         self.user1 = User.construct_user(
             _id=_id,
             eduPersonPrincipalName=eduPersonPrincipalName,
-            mail=mail,
             mailAliases=mailAliases,
             passwords=passwords,
-            norEduPersonNIN=norEduPersonNIN,
+            nins=nins,
             subject=subject,
             eduPersonEntitlement=eduPersonEntitlement,
             preferredLanguage=preferredLanguage,
@@ -723,9 +740,9 @@ class TestNewUser(TestCase, _AbstractUserTestCase):
             '_id': _id,
             'eduPersonPrincipalName': eduPersonPrincipalName,
             'mail': mail,
-            'mailAliases': mailAliases,
-            'passwords': passwords,
-            'norEduPersonNIN': norEduPersonNIN,
+            'mailAliases': mailAliases.to_list_of_dicts(),
+            'passwords': passwords.to_list_of_dicts(),
+            'nins': nins.to_list_of_dicts(),
             'subject': subject,
             'eduPersonEntitlement': eduPersonEntitlement,
             'preferredLanguage': preferredLanguage,
@@ -737,23 +754,26 @@ class TestNewUser(TestCase, _AbstractUserTestCase):
         eduPersonPrincipalName = 'birub-gagoz'
         givenName = 'Some'
         mail = 'some.one@gmail.com'
-        mailAliases = [
+        mailAliases_list = [
             {'email': 'someone+test1@gmail.com', 'verified': True},
             {
-                'added_timestamp': datetime.datetime(2014, 12, 17, 14, 35, 14, 728000),
+                'created_ts': datetime.datetime(2014, 12, 17, 14, 35, 14, 728000),
                 'email': 'some.one@gmail.com',
                 'verified': True,
+                'primary': True,
             },
         ]
-        mobile = [
+        mailAliases = MailAddressList(mailAliases_list)
+        phone_list = [
             {
-                'added_timestamp': datetime.datetime(2014, 12, 18, 9, 11, 35, 78000),
-                'mobile': '+46702222222',
+                'created_ts': datetime.datetime(2014, 12, 18, 9, 11, 35, 78000),
+                'number': '+46702222222',
                 'primary': True,
                 'verified': True,
             }
         ]
-        passwords = [
+        phones = PhoneNumberList(phone_list)
+        password_list = [
             {
                 'created_ts': datetime.datetime(2015, 2, 11, 13, 58, 42, 327000),
                 'id': ObjectId('54db60128a7d2a26e8690cda'),
@@ -771,20 +791,22 @@ class TestNewUser(TestCase, _AbstractUserTestCase):
                 'proofing_version': 'testing',
             },
         ]
-        profiles = [
-            {
-                'created_by': 'test application',
-                'created_ts': datetime.datetime(2020, 2, 4, 17, 42, 33, 696751),
-                'owner': 'test owner 1',
-                'schema': 'test schema',
-                'profile_data': {
-                    'a_string': 'I am a string',
-                    'an_int': 3,
-                    'a_list': ['eins', 2, 'drei'],
-                    'a_map': {'some': 'data'},
-                },
-            }
-        ]
+        passwords = CredentialList(password_list)
+        profile_dict = {
+            'created_by': 'test application',
+            'created_ts': datetime.datetime(2020, 2, 4, 17, 42, 33, 696751),
+            'owner': 'test owner 1',
+            'schema': 'test schema',
+            'profile_data': {
+                'a_string': 'I am a string',
+                'an_int': 3,
+                'a_list': ['eins', 2, 'drei'],
+                'a_map': {'some': 'data'},
+            },
+        }
+        profile = Profile(**profile_dict)
+        profile_list = [profile]
+        profiles = ProfileList(profile_list)
         preferredLanguage = 'sv'
         surname = '\xf6ne'
         subject = 'physical person'
@@ -794,9 +816,8 @@ class TestNewUser(TestCase, _AbstractUserTestCase):
             displayName=displayName,
             eduPersonPrincipalName=eduPersonPrincipalName,
             givenName=givenName,
-            mail=mail,
             mailAliases=mailAliases,
-            mobile=mobile,
+            phone=phones,
             passwords=passwords,
             profiles=profiles,
             preferredLanguage=preferredLanguage,
@@ -810,11 +831,31 @@ class TestNewUser(TestCase, _AbstractUserTestCase):
             'eduPersonPrincipalName': eduPersonPrincipalName,
             'givenName': givenName,
             'mail': mail,
-            'mailAliases': mailAliases,
-            'mobile': mobile,
-            'passwords': passwords,
-            'profiles': profiles,
+            'mailAliases': mailAliases.to_list_of_dicts(),
+            'mobile': phones.to_list_of_dicts(),
+            'passwords': passwords.to_list_of_dicts(),
+            'profiles': profiles.to_list_of_dicts(),
             'preferredLanguage': preferredLanguage,
             'surname': surname,
             'subject': subject,
         }
+
+    def test_mail_addresses_to_new_userdb_format(self):
+        """
+        Test that we get back a dict identical to the one we put in for old-style userdb data.
+        """
+        to_dict_result = self.user1.mail_addresses.to_list_of_dicts()
+        self.assertEqual(to_dict_result, self.data1['mailAliases'])
+
+    def test_phone_numbers(self):
+        """
+        Test that we get back a dict identical to the one we put in for old-style userdb data.
+        """
+        to_dict_result = self.user2.phone_numbers.to_list_of_dicts()
+        self.assertEqual(to_dict_result, self.data2['mobile'])
+
+    def test_passwords_new_format(self):
+        """
+        Test that we get back a dict identical to the one we put in for old-style userdb data.
+        """
+        self.assertEqual(self.user1.passwords.to_list_of_dicts(), self.data1['passwords'])
