@@ -1,6 +1,7 @@
 from unittest import TestCase
 import copy
 
+from eduid_userdb.credentials import CredentialList
 from eduid_userdb.dashboard import DashboardLegacyUser as User
 from eduid_userdb.dashboard.user import DashboardUser
 from eduid_userdb.data_samples import NEW_USER_EXAMPLE
@@ -43,7 +44,8 @@ class TestPdataUser(TestCase):
         userdata = copy.deepcopy(NEW_USER_EXAMPLE)
         userid = userdata.pop('_id')
         eppn = userdata.pop('eduPersonPrincipalName')
-        user = DashboardUser.construct_user(userid=userid, eppn=eppn)
+        passwords = CredentialList(userdata['passwords'])
+        user = DashboardUser.construct_user(_id=userid, eppn=eppn, passwords=passwords)
         self.assertEqual(user.user_id, userid)
         self.assertEqual(user.eppn, eppn)
 
@@ -51,12 +53,13 @@ class TestPdataUser(TestCase):
         userdata = copy.deepcopy(NEW_USER_EXAMPLE)
         userid = userdata.pop('_id')
         eppn = userdata.pop('eduPersonPrincipalName')
-        user = DashboardUser.construct_user(eppn=eppn, **userdata)
+        passwords = CredentialList(userdata['passwords'])
+        user = DashboardUser.construct_user(eppn=eppn, passwords=passwords)
         self.assertNotEqual(user.user_id, userid)
 
     def test_missing_eppn(self):
         userdata = copy.deepcopy(NEW_USER_EXAMPLE)
         userid = userdata.pop('_id')
         userdata.pop('eduPersonPrincipalName')
-        with self.assertRaises(KeyError):
-            DashboardUser.construct_user(userid=userid, **userdata)
+        with self.assertRaises(TypeError):
+            DashboardUser.construct_user(_id=userid, **userdata)

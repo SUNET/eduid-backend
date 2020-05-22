@@ -131,7 +131,6 @@ class User(object):
     def construct_user(
         cls,
         eppn: str,
-        raise_on_unknown: bool = True,
         _id: Optional[Union[bson.ObjectId, str]] = None,
         subject: Optional[str] = None,
         display_name: Optional[str] = None,
@@ -151,6 +150,7 @@ class User(object):
         locked_identity: Optional[LockedIdentityList] = None,
         orcid: Optional[Orcid] = None,
         profiles: Optional[ProfileList] = None,
+        raise_on_unknown: bool = True,
         **kwargs
     ):
 
@@ -194,7 +194,7 @@ class User(object):
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any], raise_on_unknown: bool = True):
-        return cls(data, raise_on_unknown=raise_on_unknown, called_directly=False)
+        return cls(data=data, raise_on_unknown=raise_on_unknown, called_directly=False)
 
     def __repr__(self):
         return '<eduID {!s}: {!s}/{!s}>'.format(self.__class__.__name__, self.eppn, self.user_id,)

@@ -48,7 +48,8 @@ class SignupUser(User):
     Subclass of eduid_userdb.User with eduid Signup application specific data.
     """
 
-    def __init__(self, userid=None, eppn=None, subject='physical person', data=None):
+    def __init__(self, userid=None, eppn=None, subject='physical person', data=None,
+                 raise_on_unknown=False, called_directly=True):
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
 
@@ -64,7 +65,7 @@ class SignupUser(User):
             _pending_mail_address = EmailProofingElement(data=_pending_mail_address)
         self._pending_mail_address = None
 
-        User.__init__(self, data=data)
+        User.__init__(self, data=data, raise_on_unknown=raise_on_unknown, called_directly=called_directly)
 
         # now self._data exists so we can call our setters
         self.social_network = _social_network
@@ -88,7 +89,7 @@ class SignupUser(User):
             kwargs['_id'] = userid
         if eppn is not None:
             kwargs['eduPersonPrincipalName'] = eppn
-        user = cls(data=kwargs)
+        user = cls.from_dict(kwargs)
 
         if pending_mail_address is not None:
             user.pending_mail_address = pending_mail_address
