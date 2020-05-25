@@ -4,13 +4,13 @@ from __future__ import absolute_import
 import json
 
 from mock import patch
+from u2flib_server.model import DeviceRegistration, RegisteredKey
 
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_userdb.credentials import U2F
 
 from eduid_webapp.security.app import security_init_app
 from eduid_webapp.security.settings.common import SecurityConfig
-from u2flib_server.model import DeviceRegistration, RegisteredKey
 
 __author__ = 'lundberg'
 
@@ -143,8 +143,8 @@ class SecurityU2FTests(EduidAPITestCase):
             }
             response2 = client.post('/u2f/bind', data=json.dumps(data), content_type=self.content_type_json)
             bind_data = json.loads(response2.data)
-            self.assertEqual(bind_data['type'], 'POST_U2F_U2F_BIND_SUCCESS')
-            self.assertNotEqual(bind_data['payload']['credentials'], [])
+            self.assertEqual('POST_U2F_U2F_BIND_SUCCESS', bind_data['type'])
+            self.assertNotEqual([], bind_data['payload']['credentials'])
 
     def test_sign(self):
         eppn = self.test_user_data['eduPersonPrincipalName']

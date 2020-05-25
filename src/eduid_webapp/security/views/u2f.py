@@ -7,6 +7,7 @@ from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from flask import Blueprint
 from OpenSSL import crypto
+from u2flib_server.u2f import begin_authentication, begin_registration, complete_authentication, complete_registration
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid_common.api.schemas.u2f import U2FEnrollResponseSchema, U2FSignResponseSchema
@@ -27,7 +28,6 @@ from eduid_webapp.security.schemas import (
     VerifyWithU2FTokenRequestSchema,
     VerifyWithU2FTokenResponseSchema,
 )
-from u2flib_server.u2f import begin_authentication, begin_registration, complete_authentication, complete_registration
 
 __author__ = 'lundberg'
 
@@ -49,7 +49,7 @@ def enroll(user):
     enrollment = begin_registration(current_app.config.u2f_app_id, registered_keys)
     session['_u2f_enroll_'] = enrollment.json
     current_app.stats.count(name='u2f_token_enroll')
-    return U2FEnrollResponseSchema().load(enrollment.data_for_client).data
+    return U2FEnrollResponseSchema().load(enrollment.data_for_client)
 
 
 @u2f_views.route('/bind', methods=['POST'])
@@ -104,7 +104,7 @@ def sign(user):
     challenge = begin_authentication(current_app.config.u2f_app_id, registered_keys)
     session['_u2f_challenge_'] = challenge.json
     current_app.stats.count(name='u2f_sign')
-    return U2FSignResponseSchema().load(challenge.data_for_client).data
+    return U2FSignResponseSchema().load(challenge.data_for_client)
 
 
 @u2f_views.route('/verify', methods=['POST'])

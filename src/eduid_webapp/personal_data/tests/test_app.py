@@ -32,7 +32,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import json
-from typing import Optional, Any
+from typing import Any, Optional
 
 from mock import patch
 
@@ -145,6 +145,9 @@ class PersonalDataTests(EduidAPITestCase):
         self.assertEqual(user_data['payload']['surname'], 'Smith')
         self.assertEqual(user_data['payload']['display_name'], 'John Smith')
         self.assertEqual(user_data['payload']['language'], 'en')
+        # Check that unwanted data is not serialized
+        self.assertIsNotNone(self.test_user.to_dict().get('passwords'))
+        self.assertIsNone(user_data['payload'].get('passwords'))
 
     def test_get_unknown_user(self):
         with self.assertRaises(ApiException):
@@ -169,6 +172,10 @@ class PersonalDataTests(EduidAPITestCase):
         self.assertEqual(len(emails), 2)
         self.assertEqual(emails[0]['email'], u'johnsmith@example.com')
         self.assertTrue(emails[0]['verified'])
+
+        # Check that unwanted data is not serialized
+        self.assertIsNotNone(self.test_user.to_dict().get('passwords'))
+        self.assertIsNone(user_data['payload'].get('passwords'))
 
     def test_get_unknown_user_all_data(self):
         with self.assertRaises(ApiException):

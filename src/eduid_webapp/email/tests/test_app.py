@@ -32,7 +32,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 import json
 from datetime import datetime, timedelta
-from typing import Optional, Any
+from typing import Any, Optional
 
 from mock import patch
 
@@ -113,8 +113,14 @@ class EmailTests(EduidAPITestCase):
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('eduid_webapp.email.verifications.get_unique_hash')
-    def _post_email(self, mock_code_verification: Any, mock_request_user_sync: Any, mock_sendmail: Any,
-                    data1: Optional[dict] = None, send_data: bool = True):
+    def _post_email(
+        self,
+        mock_code_verification: Any,
+        mock_request_user_sync: Any,
+        mock_sendmail: Any,
+        data1: Optional[dict] = None,
+        send_data: bool = True,
+    ):
         """
         POST email data to add new email address to the test user.
 
@@ -192,9 +198,7 @@ class EmailTests(EduidAPITestCase):
             with client.session_transaction() as sess:
 
                 with self.app.test_request_context():
-                    data = {
-                        'csrf_token': sess.get_csrf_token()
-                    }
+                    data = {'csrf_token': sess.get_csrf_token()}
                     if data1 is not None:
                         data.update(data1)
 
@@ -202,8 +206,7 @@ class EmailTests(EduidAPITestCase):
 
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
-    def _resend_code(self, mock_request_user_sync: Any, mock_sendmail: Any,
-                     data1: Optional[dict] = None):
+    def _resend_code(self, mock_request_user_sync: Any, mock_sendmail: Any, data1: Optional[dict] = None):
         """
         Trigger resending a new verification code to the email being verified
 
@@ -218,9 +221,7 @@ class EmailTests(EduidAPITestCase):
             with client.session_transaction() as sess:
 
                 with self.app.test_request_context():
-                    data = {
-                        'csrf_token': sess.get_csrf_token()
-                    }
+                    data = {'csrf_token': sess.get_csrf_token()}
                     if data1 is not None:
                         data.update(data1)
 
@@ -229,8 +230,14 @@ class EmailTests(EduidAPITestCase):
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('eduid_webapp.email.verifications.get_unique_hash')
-    def _verify(self, mock_code_verification: Any, mock_request_user_sync: Any, mock_sendmail: Any,
-                data1: Optional[dict] = None, data2: Optional[dict] = None):
+    def _verify(
+        self,
+        mock_code_verification: Any,
+        mock_request_user_sync: Any,
+        mock_sendmail: Any,
+        data1: Optional[dict] = None,
+        data2: Optional[dict] = None,
+    ):
         """
         POST a new email address for the test user, and then verify it.
 
@@ -274,8 +281,14 @@ class EmailTests(EduidAPITestCase):
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('eduid_webapp.email.verifications.get_unique_hash')
-    def _verify_email_link(self, mock_code_verification: Any, mock_request_user_sync: Any, mock_sendmail: Any,
-                           code: str = '432123425', data1: Optional[dict] = None):
+    def _verify_email_link(
+        self,
+        mock_code_verification: Any,
+        mock_request_user_sync: Any,
+        mock_sendmail: Any,
+        code: str = '432123425',
+        data1: Optional[dict] = None,
+    ):
         """
         Verify email address in the test user, using a GET to the verification endpoint
 
@@ -637,6 +650,7 @@ class EmailTests(EduidAPITestCase):
         self.assertEqual(verify_email_data['type'], 'POST_EMAIL_VERIFY_FAIL')
         self.assertEqual(verify_email_data['payload']['message'], 'emails.code_invalid_or_expired')
         self.assertEqual(self.app.proofing_log.db_count(), 0)
+
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('eduid_webapp.email.verifications.get_unique_hash')
