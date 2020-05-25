@@ -34,7 +34,7 @@
 import json
 from datetime import datetime
 
-from flask import Blueprint, abort, request, url_for, redirect
+from flask import Blueprint, abort, redirect, request, url_for
 from six.moves.urllib_parse import parse_qs, urlencode, urlparse, urlunparse
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user

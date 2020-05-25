@@ -1,8 +1,9 @@
 from re import findall
 
 import vccs_client
-from eduid_webapp.signup.app import current_signup_app as current_app
 from pwgen import pwgen
+
+from eduid_webapp.signup.app import current_signup_app as current_app
 
 
 def generate_password(credential_id, user):

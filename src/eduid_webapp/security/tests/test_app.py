@@ -96,15 +96,19 @@ class SecurityTests(EduidAPITestCase):
                     if data1 is not None:
                         data.update(data1)
 
-                return client.post(
-                    '/terminate-account', data=json.dumps(data), content_type=self.content_type_json
-                )
+                return client.post('/terminate-account', data=json.dumps(data), content_type=self.content_type_json)
 
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('eduid_webapp.security.views.security.revoke_all_credentials')
-    def _account_terminated(self, mock_revoke: Any, mock_sync: Any, mock_sendmail: Any,
-                            reauthn: Optional[int] = None, sendmail_side_effect: Any = None):
+    def _account_terminated(
+        self,
+        mock_revoke: Any,
+        mock_sync: Any,
+        mock_sendmail: Any,
+        reauthn: Optional[int] = None,
+        sendmail_side_effect: Any = None,
+    ):
         """
         Send a GET request to the endpoint to actually terminate the account,
         mocking re-authentiocation by setting a timestamp in the session.
@@ -150,10 +154,7 @@ class SecurityTests(EduidAPITestCase):
         with self.session_cookie(self.browser, self.test_user_eppn) as client:
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
-                    data = {
-                        'nin': self.test_user_nin,
-                        'csrf_token': sess.get_csrf_token()
-                    }
+                    data = {'nin': self.test_user_nin, 'csrf_token': sess.get_csrf_token()}
                     if data1 is not None:
                         data.update(data1)
 
@@ -181,10 +182,7 @@ class SecurityTests(EduidAPITestCase):
         with self.session_cookie(self.browser, self.test_user_eppn) as client:
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
-                    data = {
-                        'nin': self.test_user_nin,
-                        'csrf_token': sess.get_csrf_token()
-                    }
+                    data = {'nin': self.test_user_nin, 'csrf_token': sess.get_csrf_token()}
                     if data1:
                         data.update(data1)
 
@@ -207,7 +205,9 @@ class SecurityTests(EduidAPITestCase):
     def test_delete_account(self):
         response = self._delete_account()
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json['payload']['location'], 'http://test.localhost/terminate?next=%2Faccount-terminated')
+        self.assertEqual(
+            response.json['payload']['location'], 'http://test.localhost/terminate?next=%2Faccount-terminated'
+        )
         self.assertEqual(response.json['type'], 'POST_SECURITY_TERMINATE_ACCOUNT_SUCCESS')
 
     def test_account_terminated_no_authn(self):
@@ -227,6 +227,7 @@ class SecurityTests(EduidAPITestCase):
     @patch('eduid_webapp.security.views.security.send_termination_mail')
     def test_account_terminated_sendmail_fail(self, mock_send: Any):
         from eduid_common.api.exceptions import MsgTaskFailed
+
         mock_send.side_effect = MsgTaskFailed()
         response = self._account_terminated(reauthn=int(time.time()))
         self.assertEqual(response.status_code, 302)
@@ -234,6 +235,7 @@ class SecurityTests(EduidAPITestCase):
 
     def test_account_terminated_mail_fail(self):
         from eduid_common.api.exceptions import MsgTaskFailed
+
         response = self._account_terminated(sendmail_side_effect=MsgTaskFailed())
         self.assertEqual(response.status_code, 400)
 
@@ -254,6 +256,7 @@ class SecurityTests(EduidAPITestCase):
     @patch('eduid_webapp.security.views.security.remove_nin_from_user')
     def test_remove_nin_no_nin(self, mock_remove: Any):
         from eduid_common.api.exceptions import AmTaskFailed
+
         mock_remove.side_effect = AmTaskFailed()
         response = self._remove_nin()
 
@@ -311,6 +314,7 @@ class SecurityTests(EduidAPITestCase):
     @patch('eduid_webapp.security.views.security.add_nin_to_user')
     def test_add_nin_task_failed(self, mock_add):
         from eduid_common.api.exceptions import AmTaskFailed
+
         mock_add.side_effect = AmTaskFailed()
         response = self._add_nin()
 
@@ -335,8 +339,8 @@ class SecurityTests(EduidAPITestCase):
         self.assertEqual(user.nins.count, 2)
         self.assertEqual(user.nins.verified.count, 2)
 
-# Tests below are for deprecated views (moved to the reset-password service),
-# to be removed whith the views
+    # Tests below are for deprecated views (moved to the reset-password service),
+    # to be removed whith the views
 
     def _get_credentials(self):
         response = self.browser.get('/credentials')
