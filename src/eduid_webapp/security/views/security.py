@@ -35,6 +35,7 @@ import json
 from datetime import datetime
 
 from flask import Blueprint, abort, redirect, request, url_for
+from marshmallow import ValidationError
 from six.moves.urllib_parse import parse_qs, urlencode, urlparse, urlunparse
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
@@ -90,7 +91,7 @@ def get_credentials(user):
 
     credentials = {'credentials': compile_credential_list(user)}
 
-    return CredentialList().dump(credentials).data
+    return credentials
 
 
 @security_views.route('/suggested-password', methods=['GET'])
@@ -103,7 +104,7 @@ def get_suggested(user):
     current_app.logger.debug('Triying to get the credentials ' 'for user {}'.format(user))
     suggested = {'suggested_password': generate_suggested_password()}
 
-    return SuggestedPassword().dump(suggested).data
+    return suggested
 
 
 @security_views.route('/change-password', methods=['POST'])
@@ -120,15 +121,17 @@ def change_password(user):
     if not request.data:
         return error_message('chpass.no-data')
 
-    form = schema.load(json.loads(request.data))
-    current_app.logger.debug(form)
-    if form.errors:
+    try:
+        form = schema.load(json.loads(request.data))
+        current_app.logger.debug(form)
+    except ValidationError as e:
+        current_app.logger.error(e)
         return error_message('chpass.weak-password')
     else:
-        old_password = form.data.get('old_password')
-        new_password = form.data.get('new_password')
+        old_password = form.get('old_password')
+        new_password = form.get('new_password')
 
-    if session.get_csrf_token() != form.data['csrf_token']:
+    if session.get_csrf_token() != form['csrf_token']:
         return error_message('csrf.try_again')
 
     authn_ts = session.get('reauthn-for-chpass', None)
@@ -166,7 +169,7 @@ def change_password(user):
         'message': 'chpass.password-changed',
     }
 
-    return CredentialList().dump(credentials).data
+    return credentials
 
 
 @security_views.route('/terminate-account', methods=['POST'])
@@ -194,7 +197,7 @@ def delete_account(user):
 
     url_parts[4] = urlencode(query)
     location = urlunparse(url_parts)
-    return RedirectSchema().dump({'location': location}).data
+    return {'location': location}
 
 
 @security_views.route('/account-terminated', methods=['GET'])

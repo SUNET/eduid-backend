@@ -65,7 +65,7 @@ def get_all_phones(user):
     """
 
     phones = {'phones': user.phone_numbers.to_list_of_dicts()}
-    return PhoneListPayload().dump(phones).data
+    return phones
 
 
 @phone_views.route('/new', methods=['POST'])
@@ -102,7 +102,7 @@ def post_phone(user, number, verified, primary):
     current_app.stats.count(name='mobile_send_verification_code', value=1)
 
     phones = {'phones': proofing_user.phone_numbers.to_list_of_dicts(), 'message': 'phones.save-success'}
-    return PhoneListPayload().dump(phones).data
+    return phones
 
 
 @phone_views.route('/primary', methods=['POST'])
@@ -138,7 +138,7 @@ def post_primary(user, number):
     current_app.stats.count(name='mobile_set_primary', value=1)
 
     phones = {'phones': proofing_user.phone_numbers.to_list_of_dicts(), 'message': 'phones.primary-success'}
-    return PhoneListPayload().dump(phones).data
+    return phones
 
 
 @phone_views.route('/verify', methods=['POST'])
@@ -177,7 +177,7 @@ def verify(user, code, number):
                 'phones': proofing_user.phone_numbers.to_list_of_dicts(),
                 'message': 'phones.verification-success',
             }
-            return PhoneListPayload().dump(phones).data
+            return phones
         except UserOutOfSync:
             current_app.logger.info('Could not confirm phone number, data out of sync')
             current_app.logger.debug('Phone number: {}'.format(number))
@@ -225,7 +225,7 @@ def post_remove(user, number):
     current_app.stats.count(name='mobile_remove_success', value=1)
 
     phones = {'phones': proofing_user.phone_numbers.to_list_of_dicts(), 'message': 'phones.removal-success'}
-    return PhoneListPayload().dump(phones).data
+    return phones
 
 
 @phone_views.route('/resend-code', methods=['POST'])
@@ -255,4 +255,4 @@ def resend_code(user, number):
     current_app.stats.count(name='mobile_resend_code', value=1)
 
     phones = {'phones': user.phone_numbers.to_list_of_dicts(), 'message': 'phones.code-sent'}
-    return PhoneListPayload().dump(phones).data
+    return phones
