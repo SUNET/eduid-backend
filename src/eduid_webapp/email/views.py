@@ -61,7 +61,7 @@ email_views = Blueprint('email', __name__, url_prefix='', template_folder='templ
 def get_all_emails(user):
     emails = {'emails': user.mail_addresses.to_list_of_dicts(), 'message': 'emails.get-success'}
 
-    return EmailListPayload().dump(emails).data
+    return emails
 
 
 @email_views.route('/new', methods=['POST'])
@@ -94,7 +94,7 @@ def post_email(user, email, verified, primary):
     current_app.stats.count(name='email_send_verification_code', value=1)
 
     emails = {'emails': proofing_user.mail_addresses.to_list_of_dicts(), 'message': 'emails.save-success'}
-    return EmailListPayload().dump(emails).data
+    return emails
 
 
 @email_views.route('/primary', methods=['POST'])
@@ -131,7 +131,7 @@ def post_primary(user, email):
     current_app.stats.count(name='email_set_primary', value=1)
 
     emails = {'emails': proofing_user.mail_addresses.to_list_of_dicts(), 'message': 'emails.primary-success'}
-    return EmailListPayload().dump(emails).data
+    return emails
 
 
 @email_views.route('/verify', methods=['POST'])
@@ -166,7 +166,7 @@ def verify(user, code, email):
                 'emails': proofing_user.mail_addresses.to_list_of_dicts(),
                 'message': 'emails.verification-success',
             }
-            return EmailListPayload().dump(emails).data
+            return emails
         except UserOutOfSync:
             current_app.logger.info('Could not confirm email, data out of sync')
             current_app.logger.debug('Mail address: {}'.format(email))
@@ -268,7 +268,7 @@ def post_remove(user, email):
     current_app.stats.count(name='email_remove_success', value=1)
 
     emails = {'emails': proofing_user.mail_addresses.to_list_of_dicts(), 'message': 'emails.removal-success'}
-    return EmailListPayload().dump(emails).data
+    return emails
 
 
 @email_views.route('/resend-code', methods=['POST'])
@@ -292,4 +292,4 @@ def resend_code(user, email):
     current_app.stats.count(name='email_resend_code', value=1)
 
     emails = {'emails': user.mail_addresses.to_list_of_dicts(), 'message': 'emails.code-sent'}
-    return EmailListPayload().dump(emails).data
+    return emails

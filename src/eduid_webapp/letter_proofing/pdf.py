@@ -5,9 +5,9 @@ from __future__ import absolute_import
 from datetime import timedelta
 
 from six import BytesIO, StringIO
+from xhtml2pdf import pisa
 
 from eduid_webapp.letter_proofing.app import current_letterp_app as current_app
-from xhtml2pdf import pisa
 
 
 class AddressFormatException(Exception):
