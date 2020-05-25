@@ -43,11 +43,9 @@ from eduid_userdb.personal_data import PersonalDataUser
 from eduid_webapp.personal_data.app import current_pdata_app as current_app
 from eduid_webapp.personal_data.schemas import (
     AllDataResponseSchema,
-    AllDataSchema,
     NinsResponseSchema,
     PersonalDataRequestSchema,
-    PersonalDataResponseSchema,
-    PersonalDataSchema,
+    PersonalDataResponseSchema
 )
 
 pd_views = Blueprint('personal_data', __name__, url_prefix='')
@@ -57,22 +55,14 @@ pd_views = Blueprint('personal_data', __name__, url_prefix='')
 @MarshalWith(AllDataResponseSchema)
 @require_user
 def get_all_data(user):
-    return AllDataSchema().dump(user.to_dict()).data
+    return user.to_dict()
 
 
 @pd_views.route('/user', methods=['GET'])
 @MarshalWith(PersonalDataResponseSchema)
 @require_user
 def get_user(user):
-
-    data = {
-        'given_name': user.given_name,
-        'surname': user.surname,
-        'display_name': user.display_name,
-        'language': user.language,
-    }
-
-    return PersonalDataRequestSchema().dump(data).data
+    return user.to_dict()
 
 
 @pd_views.route('/user', methods=['POST'])
@@ -96,7 +86,7 @@ def post_user(user, given_name, surname, display_name, language):
 
     personal_data = personal_data_user.to_dict()
     personal_data['message'] = 'pd.save-success'
-    return PersonalDataSchema().dump(personal_data).data
+    return personal_data
 
 
 @pd_views.route('/nins', methods=['GET'])
