@@ -32,7 +32,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import json
-from typing import Optional, Any
+from typing import Any, Optional
 
 from mock import patch
 

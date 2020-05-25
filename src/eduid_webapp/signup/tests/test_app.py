@@ -99,11 +99,15 @@ class SignupTests(EduidAPITestCase):
 
     @patch('eduid_webapp.signup.views.verify_recaptcha')
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
-    def _captcha_new(self, mock_sendmail: Any, mock_recaptcha: Any,
-                     data1: Optional[dict] = None,
-                     email: str = 'dummy@example.com',
-                     recaptcha_return_value: bool = True,
-                     add_magic_cookie: bool = False):
+    def _captcha_new(
+        self,
+        mock_sendmail: Any,
+        mock_recaptcha: Any,
+        data1: Optional[dict] = None,
+        email: str = 'dummy@example.com',
+        recaptcha_return_value: bool = True,
+        add_magic_cookie: bool = False
+    ):
         """
         :param data1: to control the data POSTed to the /trycaptcha endpoint
         :param email: the email to use for registration
@@ -132,7 +136,9 @@ class SignupTests(EduidAPITestCase):
 
     @patch('eduid_webapp.signup.views.verify_recaptcha')
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
-    def _resend_email(self, mock_sendmail: Any, mock_recaptcha: Any, data1: Optional[dict] = None, email: str = 'dummy@example.com'):
+    def _resend_email(
+        self, mock_sendmail: Any, mock_recaptcha: Any, data1: Optional[dict] = None, email: str = 'dummy@example.com'
+    ):
         """
         Trigger re-sending an email with a verification code.
 
@@ -145,23 +151,25 @@ class SignupTests(EduidAPITestCase):
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
-                    data = {
-                        'email': email,
-                        'csrf_token': sess.get_csrf_token()
-                    }
+                    data = {'email': email, 'csrf_token': sess.get_csrf_token()}
                     if data1 is not None:
                         data.update(data1)
 
-                return client.post(
-                    '/resend-verification', data=json.dumps(data), content_type=self.content_type_json
-                )
+                return client.post('/resend-verification', data=json.dumps(data), content_type=self.content_type_json)
 
     @patch('eduid_webapp.signup.views.verify_recaptcha')
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('vccs_client.VCCSClient.add_credentials')
-    def _verify_code(self, mock_add_credentials: Any, mock_request_user_sync: Any, mock_sendmail: Any, mock_recaptcha: Any,
-                     code: str = '', email: str = 'dummy@example.com'):
+    def _verify_code(
+        self,
+        mock_add_credentials: Any,
+        mock_request_user_sync: Any,
+        mock_sendmail: Any,
+        mock_recaptcha: Any,
+        code: str = '',
+        email: str = 'dummy@example.com',
+    ):
         """
         Test the verification link sent by email
 
@@ -185,8 +193,15 @@ class SignupTests(EduidAPITestCase):
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('vccs_client.VCCSClient.add_credentials')
-    def _verify_code_after_captcha(self, mock_add_credentials: Any, mock_request_user_sync: Any, mock_sendmail: Any, mock_recaptcha: Any,
-                                   data1: Optional[dict] = None, email: str = 'dummy@example.com'):
+    def _verify_code_after_captcha(
+        self,
+        mock_add_credentials: Any,
+        mock_request_user_sync: Any,
+        mock_sendmail: Any,
+        mock_recaptcha: Any,
+        data1: Optional[dict] = None,
+        email: str = 'dummy@example.com',
+    ):
         """
         Verify the pending account with an emailed verification code after creating the account by verifying the captcha.
 
@@ -423,6 +438,7 @@ class SignupTests(EduidAPITestCase):
 
     def test_verify_code_after_captcha_proofing_log_error(self):
         from eduid_webapp.signup.verifications import ProofingLogFailure
+
         with patch('eduid_webapp.signup.views.verify_email_code') as mock_verify:
             mock_verify.side_effect = ProofingLogFailure('fail')
             data = self._verify_code_after_captcha()
