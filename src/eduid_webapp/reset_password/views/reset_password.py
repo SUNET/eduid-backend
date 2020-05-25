@@ -79,6 +79,7 @@ import json
 import time
 
 from flask import Blueprint, request
+from marshmallow import ValidationError
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith
 from eduid_common.api.exceptions import MsgTaskFailed
@@ -239,17 +240,19 @@ def _get_state_and_data(SchemaClass):
 
     schema = SchemaClass(zxcvbn_terms=get_zxcvbn_terms(resetpw_user.eppn), min_entropy=int(min_entropy))
 
-    form = schema.load(json.loads(request.data))
-    current_app.logger.debug(f"Reset password data: {form}")
-    if form.errors:
-        if 'csrf_token' in form.errors:
+    try:
+        form = schema.load(json.loads(request.data))
+        current_app.logger.debug(f"Reset password data: {form}")
+    except ValidationError as e:
+        current_app.logger.error(e)
+        if 'csrf_token' in e.messages:
             raise BadStateOrData(ResetPwMsg.csrf_missing)
         raise BadStateOrData(ResetPwMsg.chpass_weak)
 
-    if session.get_csrf_token() != form.data['csrf_token']:
+    if session.get_csrf_token() != form['csrf_token']:
         raise BadStateOrData(ResetPwMsg.csrf_try_again)
 
-    return (resetpw_user, state, form.data)
+    return resetpw_user, state, form
 
 
 @reset_password_views.route('/new-password/', methods=['POST'])

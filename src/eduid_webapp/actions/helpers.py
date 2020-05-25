@@ -46,6 +46,7 @@ class ActionsMsg(TranslatableMsg):
     Messages sent to the front end with information on the results of the
     attempted operations on the back end.
     """
+
     # the user corresponding to the action has not been found in the db
     user_not_found = 'mfa.user-not-found'
     # some form has failed to validate

@@ -32,9 +32,9 @@
 #
 from __future__ import absolute_import
 
-from typing import Optional
 import base64
 import json
+from typing import Optional
 
 from bson import ObjectId
 from fido2.server import Fido2Server
@@ -136,8 +136,13 @@ class MFAActionPluginTests(ActionsTestCase):
             return json.loads(response.data)
 
     @patch('eduid_common.authn.fido_tokens.complete_authentication')
-    def _action(self, mock_complete_authn, data1: Optional[dict] = None,
-                keyhandle: str = 'test_key_handle', fido2_state: str = ''):
+    def _action(
+        self,
+        mock_complete_authn,
+        data1: Optional[dict] = None,
+        keyhandle: str = 'test_key_handle',
+        fido2_state: str = '',
+    ):
         """
         POST data reflecting the user's response to the mfa request.
 
@@ -253,20 +258,26 @@ class MFAActionPluginTests(ActionsTestCase):
         self.user.credentials.add(u2f)
         self.app.central_userdb.save(self.user, check_sync=False)
 
-        fido2_state = json.dumps(Fido2Server._make_internal_state(
-            base64.b64decode('3h/EAZpY25xDdSJCOMx1ABZEA5Odz3yejUI3AUNTQWc='), 'preferred'
-        ))
+        fido2_state = json.dumps(
+            Fido2Server._make_internal_state(
+                base64.b64decode('3h/EAZpY25xDdSJCOMx1ABZEA5Odz3yejUI3AUNTQWc='), 'preferred'
+            )
+        )
         self.app.config.fido2_rp_id = 'idp.dev.eduid.se'
 
         data1 = {
             'authenticatorData': 'mZ9k6EPHoJxJZNA+UuvM0JVoutZHmqelg9kXe/DSefgBAAAA/w==',
-            'clientDataJSON': ('eyJjaGFsbGVuZ2UiOiIzaF9FQVpwWTI1eERkU0pDT014MUFCWkVBNU9k'
-                               'ejN5ZWpVSTNBVU5UUVdjIiwib3JpZ2luIjoiaHR0cHM6Ly9pZHAuZGV2LmVkdWlkLnNlIiwidH'
-                               'lwZSI6IndlYmF1dGhuLmdldCJ9'),
-            'credentialId': ('V1vXqZcwBJD2RMIH2udd2F7R9NoSNlP7ZSPOtKHzS7n/rHFXcXbSpOoX//'
-                             'aUKyTR6jEC8Xv678WjXC5KEkvziA=='),
-            'signature': ('MEYCIQC5gM8inamJGUFKu3bNo4fT0jmJQuw33OSSXc242NCuiwIhAIWnVw2Sp'
-                          'ow72j6J92KaY2rLR6qSXEbLam09ZXbSkBnQ'),
+            'clientDataJSON': (
+                'eyJjaGFsbGVuZ2UiOiIzaF9FQVpwWTI1eERkU0pDT014MUFCWkVBNU9k'
+                'ejN5ZWpVSTNBVU5UUVdjIiwib3JpZ2luIjoiaHR0cHM6Ly9pZHAuZGV2LmVkdWlkLnNlIiwidH'
+                'lwZSI6IndlYmF1dGhuLmdldCJ9'
+            ),
+            'credentialId': (
+                'V1vXqZcwBJD2RMIH2udd2F7R9NoSNlP7ZSPOtKHzS7n/rHFXcXbSpOoX//aUKyTR6jEC8Xv678WjXC5KEkvziA=='
+            ),
+            'signature': (
+                'MEYCIQC5gM8inamJGUFKu3bNo4fT0jmJQuw33OSSXc242NCuiwIhAIWnVw2Spow72j6J92KaY2rLR6qSXEbLam09ZXbSkBnQ'
+            ),
         }
 
         response = self._action(data1=data1, fido2_state=fido2_state)
