@@ -46,17 +46,15 @@ from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.authn.testing import TestVCCSClient
 from eduid_common.authn.tests.test_fido_tokens import SAMPLE_WEBAUTHN_CREDENTIAL, SAMPLE_WEBAUTHN_REQUEST
 from eduid_userdb.credentials import Webauthn
-from eduid_userdb.exceptions import DocumentDoesNotExist
-from eduid_userdb.exceptions import UserDoesNotExist
-from eduid_userdb.exceptions import UserHasNotCompletedSignup
+from eduid_userdb.exceptions import DocumentDoesNotExist, UserDoesNotExist, UserHasNotCompletedSignup
 
 from eduid_webapp.reset_password.app import init_reset_password_app
 from eduid_webapp.reset_password.helpers import (
     generate_suggested_password,
     get_extra_security_alternatives,
+    get_zxcvbn_terms,
     hash_password,
     send_verify_phone_code,
-    get_zxcvbn_terms,
 )
 from eduid_webapp.reset_password.settings.common import ResetPasswordConfig
 
@@ -112,10 +110,13 @@ class ResetPasswordTests(EduidAPITestCase):
     # Parameterized test methods
 
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
-    def _post_email_address(self, mock_sendmail: Any,
-                            data1: Optional[dict] = None,
-                            sendmail_return: bool = True,
-                            sendmail_side_effect: Any = None):
+    def _post_email_address(
+        self,
+        mock_sendmail: Any,
+        data1: Optional[dict] = None,
+        sendmail_return: bool = True,
+        sendmail_side_effect: Any = None,
+    ):
         """
         POST an email address to start the reset password process for the corresponding account.
 
@@ -138,9 +139,7 @@ class ResetPasswordTests(EduidAPITestCase):
                     return c.post('/reset/', data=json.dumps(data), content_type=self.content_type_json)
 
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
-    def _post_reset_code(self, mock_sendmail: Any,
-                         data1: Optional[dict] = None,
-                         data2: Optional[dict] = None):
+    def _post_reset_code(self, mock_sendmail: Any, data1: Optional[dict] = None, data2: Optional[dict] = None):
         """
         Create a password rest state for the test user, grab the created verification code from the db,
         and use it to get configuration for the reset form.
@@ -174,8 +173,14 @@ class ResetPasswordTests(EduidAPITestCase):
     @patch('eduid_common.authn.vccs.get_vccs_client')
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
-    def _post_reset_password(self, mock_request_user_sync: Any, mock_sendmail: Any, mock_get_vccs_client: Any,
-                             data1: Optional[dict] = None, data2: Optional[dict] = None):
+    def _post_reset_password(
+        self,
+        mock_request_user_sync: Any,
+        mock_sendmail: Any,
+        mock_get_vccs_client: Any,
+        data1: Optional[dict] = None,
+        data2: Optional[dict] = None,
+    ):
         """
         Test sending data from the reset password form, without extra security.
         First POST an email address to the /reset endpoint to create a reset password state,
@@ -214,7 +219,7 @@ class ResetPasswordTests(EduidAPITestCase):
                     data = {
                         'csrf_token': session.get_csrf_token(),
                         'code': state.email_code.code,
-                        'password': new_password
+                        'password': new_password,
                     }
                     if data2 == {}:
                         data = {}
@@ -227,11 +232,18 @@ class ResetPasswordTests(EduidAPITestCase):
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('eduid_common.api.msg.MsgRelay.sendsms')
-    def _post_choose_extra_sec(self, mock_sendsms: Any, mock_request_user_sync: Any,
-                               mock_sendmail: Any, mock_get_vccs_client: Any,
-                               sendsms_side_effect: Any = None,
-                               data1: Optional[dict] = None, data2: Optional[dict] = None,
-                               data3: Optional[dict] = None, repeat: bool = False):
+    def _post_choose_extra_sec(
+        self,
+        mock_sendsms: Any,
+        mock_request_user_sync: Any,
+        mock_sendmail: Any,
+        mock_get_vccs_client: Any,
+        sendsms_side_effect: Any = None,
+        data1: Optional[dict] = None,
+        data2: Optional[dict] = None,
+        data3: Optional[dict] = None,
+        repeat: bool = False,
+    ):
         """
         Test choosing extra security via a confirmed phone number to reset the password.
         First create the reset password state in the database, then POST the generated code
@@ -275,11 +287,7 @@ class ResetPasswordTests(EduidAPITestCase):
                     self.assertEqual(response.status_code, 200)
 
                     url = url_for('reset_password.choose_extra_security_phone', _external=True)
-                    data = {
-                        'csrf_token': session.get_csrf_token(),
-                        'code': state.email_code.code,
-                        'phone_index': '0'
-                    }
+                    data = {'csrf_token': session.get_csrf_token(), 'code': state.email_code.code, 'phone_index': '0'}
                     if data3 is not None:
                         data.update(data3)
 
@@ -293,8 +301,13 @@ class ResetPasswordTests(EduidAPITestCase):
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('eduid_common.api.msg.MsgRelay.sendsms')
     def _post_reset_password_secure_phone(
-            self, mock_sendsms: Any, mock_request_user_sync: Any, mock_sendmail: Any, mock_get_vccs_client: Any,
-            data1: Optional[dict] = None, data2: Optional[dict] = None
+        self,
+        mock_sendsms: Any,
+        mock_request_user_sync: Any,
+        mock_sendmail: Any,
+        mock_get_vccs_client: Any,
+        data1: Optional[dict] = None,
+        data2: Optional[dict] = None,
     ):
         """
         Test fully resetting the password with extra security via a verification code sent by SMS.
@@ -351,10 +364,16 @@ class ResetPasswordTests(EduidAPITestCase):
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('fido2.cose.ES256.verify')
     def _post_reset_password_secure_token(
-            self, mock_verify: Any, mock_request_user_sync: Any, mock_get_vccs_client: Any, mock_sendmail: Any,
-            data1: Optional[dict] = None, credential_data: Optional[dict] = None,
-            data2: Optional[dict] = None, fido2state: Optional[dict] = None,
-            custom_password: Optional[str] = None
+        self,
+        mock_verify: Any,
+        mock_request_user_sync: Any,
+        mock_get_vccs_client: Any,
+        mock_sendmail: Any,
+        data1: Optional[dict] = None,
+        credential_data: Optional[dict] = None,
+        data2: Optional[dict] = None,
+        fido2state: Optional[dict] = None,
+        custom_password: Optional[str] = None,
     ):
         """
         Test resetting the password with extra security via a fido token.
@@ -466,6 +485,7 @@ class ResetPasswordTests(EduidAPITestCase):
 
     def test_post_email_address_sendmail_fail(self):
         from eduid_common.api.exceptions import MailTaskFailed
+
         response = self._post_email_address(sendmail_return=False, sendmail_side_effect=MailTaskFailed)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_FAIL')
@@ -609,6 +629,7 @@ class ResetPasswordTests(EduidAPITestCase):
     def test_post_choose_extra_sec_sms_fail(self):
         self.app.config.throttle_sms_seconds = 300
         from eduid_common.api.exceptions import MsgTaskFailed
+
         response = self._post_choose_extra_sec(sendsms_side_effect=MsgTaskFailed())
 
         self.assertEqual(response.status_code, 200)
@@ -733,8 +754,7 @@ class ResetPasswordTests(EduidAPITestCase):
         self, mock_verify, mock_request_user_sync, mock_get_vccs_client, mock_sendmail
     ):
         credential_data = {
-            'credential_data':
-            'AAAAAAAAAAAAAAAAAAAAAABAi3KjBT0t5TPm693T0O0f4zyiwvdu9cY8BegCjiVvq_FS-ZmPcvXipFvHvD5CH6ZVRR3nsVsOla0Cad3fbtUA_aUBAgMmIAEhWCCiwDYGxl1LnRMqooWm0aRR9YbBG2LZ84BMNh_4rHkA9yJYIIujMrUOpGekbXjgMQ8M13ZsBD_cROSPB79eGz2Nw1ZE'
+            'credential_data': 'AAAAAAAAAAAAAAAAAAAAAABAi3KjBT0t5TPm693T0O0f4zyiwvdu9cY8BegCjiVvq_FS-ZmPcvXipFvHvD5CH6ZVRR3nsVsOla0Cad3fbtUA_aUBAgMmIAEhWCCiwDYGxl1LnRMqooWm0aRR9YbBG2LZ84BMNh_4rHkA9yJYIIujMrUOpGekbXjgMQ8M13ZsBD_cROSPB79eGz2Nw1ZE'
         }
         response = self._post_reset_password_secure_token(credential_data=credential_data)
 
@@ -855,8 +875,9 @@ class ChangePasswordTests(EduidAPITestCase):
             return client.get('/suggested-password')
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
-    def _change_password(self, mock_request_user_sync: Any,
-                         reauthn: Optional[int] = None, data1: Optional[dict] = None):
+    def _change_password(
+        self, mock_request_user_sync: Any, reauthn: Optional[int] = None, data1: Optional[dict] = None
+    ):
         """
         To change the pasword of the test user, POST old and new passwords,
         mocking the required reauthentication (by setting a flag in the session).
@@ -873,23 +894,18 @@ class ChangePasswordTests(EduidAPITestCase):
                     if reauthn is not None:
                         sess['reauthn-for-chpass'] = reauthn
 
-                    data = {
-                        'new_password': '0ieT/(.edW76',
-                        'old_password': '5678',
-                        'csrf_token': sess.get_csrf_token()
-                    }
+                    data = {'new_password': '0ieT/(.edW76', 'old_password': '5678', 'csrf_token': sess.get_csrf_token()}
                     if data1 == {}:
                         data = {}
                     elif data1 is not None:
                         data.update(data1)
 
-                    return client.post(
-                        '/change-password', data=json.dumps(data), content_type=self.content_type_json
-                    )
+                    return client.post('/change-password', data=json.dumps(data), content_type=self.content_type_json)
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
-    def _get_suggested_and_change(self, mock_request_user_sync: Any,
-                                  data1: Optional[dict] = None, authenticate: bool = True):
+    def _get_suggested_and_change(
+        self, mock_request_user_sync: Any, data1: Optional[dict] = None, authenticate: bool = True
+    ):
         """
         To change the pasword of the test user using a suggested password,
         first GET a suggested password, and then POST old and new passwords,

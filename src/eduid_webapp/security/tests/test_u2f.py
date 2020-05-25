@@ -4,13 +4,13 @@ from __future__ import absolute_import
 import json
 
 from mock import patch
+from u2flib_server.model import DeviceRegistration, RegisteredKey
 
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_userdb.credentials import U2F
 
 from eduid_webapp.security.app import security_init_app
 from eduid_webapp.security.settings.common import SecurityConfig
-from u2flib_server.model import DeviceRegistration, RegisteredKey
 
 __author__ = 'lundberg'
 

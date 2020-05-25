@@ -7,6 +7,7 @@ from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from flask import Blueprint
 from OpenSSL import crypto
+from u2flib_server.u2f import begin_authentication, begin_registration, complete_authentication, complete_registration
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid_common.api.schemas.u2f import U2FEnrollResponseSchema, U2FSignResponseSchema
@@ -27,7 +28,6 @@ from eduid_webapp.security.schemas import (
     VerifyWithU2FTokenRequestSchema,
     VerifyWithU2FTokenResponseSchema,
 )
-from u2flib_server.u2f import begin_authentication, begin_registration, complete_authentication, complete_registration
 
 __author__ = 'lundberg'
 
