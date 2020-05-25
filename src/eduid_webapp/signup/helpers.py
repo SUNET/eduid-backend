@@ -36,6 +36,7 @@ import os
 import struct
 import time
 
+import proquint
 from bson import ObjectId
 from flask import abort
 
@@ -45,7 +46,6 @@ from eduid_userdb.credentials import Password
 from eduid_userdb.exceptions import UserOutOfSync
 from eduid_userdb.tou import ToUEvent
 
-import proquint
 from eduid_webapp.signup.app import current_signup_app as current_app
 from eduid_webapp.signup.vccs import generate_password
 

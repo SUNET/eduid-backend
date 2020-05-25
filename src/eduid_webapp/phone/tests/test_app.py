@@ -87,8 +87,13 @@ class PhoneTests(EduidAPITestCase):
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('eduid_webapp.phone.verifications.get_short_hash')
-    def _post_phone(self, mock_code_verification: Any, mock_request_user_sync: Any,
-                    mod_data: Optional[dict] = None, send_data: bool = True):
+    def _post_phone(
+        self,
+        mock_code_verification: Any,
+        mock_request_user_sync: Any,
+        mod_data: Optional[dict] = None,
+        send_data: bool = True,
+    ):
         """
         POST phone data to add a new phone number to the test user
 
@@ -136,10 +141,7 @@ class PhoneTests(EduidAPITestCase):
             with client.session_transaction() as sess:
 
                 with self.app.test_request_context():
-                    data = {
-                        'number': '+34609609609',
-                        'csrf_token': sess.get_csrf_token()
-                    }
+                    data = {'number': '+34609609609', 'csrf_token': sess.get_csrf_token()}
                     if mod_data:
                         data.update(mod_data)
 
@@ -187,10 +189,7 @@ class PhoneTests(EduidAPITestCase):
                 with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True):
 
                     with self.app.test_request_context():
-                        data = {
-                            'number': '+34609609609',
-                            'csrf_token': sess.get_csrf_token()
-                        }
+                        data = {'number': '+34609609609', 'csrf_token': sess.get_csrf_token()}
                         if mod_data:
                             data.update(mod_data)
 
@@ -328,9 +327,7 @@ class PhoneTests(EduidAPITestCase):
         new_phone_data = json.loads(response.data)
 
         self.assertEqual('POST_PHONE_NEW_FAIL', new_phone_data['type'])
-        self.assertEqual(
-            ['phone.swedish_mobile_format'], new_phone_data['payload']['error'].get('number')
-        )
+        self.assertEqual(['phone.swedish_mobile_format'], new_phone_data['payload']['error'].get('number'))
 
     def test_post_phone_bad_country_code(self):
         data = {'number': '00711234565'}
