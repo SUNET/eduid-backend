@@ -25,6 +25,7 @@ __author__ = 'lundberg'
 class SecurityResetPasswordTests(EduidAPITestCase):
     def setUp(self):
         self.test_user_eppn = 'hubba-bubba'
+        self.test_user_email = 'johnsmith@example.com'
         super(SecurityResetPasswordTests, self).setUp()
 
     def load_app(self, config):
@@ -45,9 +46,15 @@ class SecurityResetPasswordTests(EduidAPITestCase):
                 'email_code_timeout': 7200,
                 'phone_code_timeout': 600,
                 'password_entropy': 25,
+                'no_authn_urls': [r'/reset.*'],
             }
         )
         return SecurityConfig(**app_config)
+
+    def tearDown(self):
+        super(SecurityResetPasswordTests, self).tearDown()
+        with self.app.app_context():
+            self.app.central_userdb._drop_whole_collection()
 
     def post_email_address(self, email_address):
         with self.app.test_client() as c:
@@ -521,160 +528,108 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         for phone_number in user.phone_numbers.verified.to_list():
             self.assertEqual(phone_number.is_verified, True)
 
-    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
-    def _get_email_code_backdoor(self, mock_sendmail: Any,
-                                 data1: Optional[dict] = None):
-        """
-        Create a password rest state for the test user, grab the created verification code from the db,
-        and use it to get configuration for the reset form.
-
-        :param data1: to control the data (email) sent to create the reset state
-        """
-        mock_sendmail.return_value = True
-        with self.session_cookie_anon(self.browser) as client:
-            with client.session_transaction() as session:
-                with self.app.test_request_context():
-                    data = {
-                        'email': self.test_user_email,
-                        'csrf_token': session.get_csrf_token(),
-                    }
-                    if data1 is not None:
-                        data.update(data1)
-                    response = client.post('/reset/', data=json.dumps(data), content_type=self.content_type_json)
-                    self.assertEqual(response.status_code, 200)
-
-                    client.set_cookie('localhost', key=self.app.config.magic_cookie_name, value=self.app.config.magic_cookie)
-
-                    eppn = quote_plus(self.test_user_eppn)
-
-                    return client.get(f'/reset-password/get-email-code?eppn={eppn}')
-
     @patch('eduid_common.authn.vccs.get_vccs_client')
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('eduid_common.api.msg.MsgRelay.sendsms')
-    def _get_phone_code_backdoor(self, mock_sendsms: Any, mock_request_user_sync: Any,
-                                 mock_sendmail: Any, mock_get_vccs_client: Any,
-                                 sendsms_side_effect: Any = None):
-        """
-        Test choosing extra security via a confirmed phone number to reset the password,
-        and getting the generated phone verification code through the backdoor
-        """
+    def _get_code_backdoor(
+        self,
+        mock_sendsms: Any,
+        mock_request_user_sync: Any,
+        mock_sendmail: Any,
+        mock_get_vccs_client: Any,
+        cookie_name='magic',
+        cookie_value='magic-cookie',
+        environment='dev',
+    ):
         mock_request_user_sync.side_effect = self.request_user_sync
         mock_sendmail.return_value = True
         mock_get_vccs_client.return_value = TestVCCSClient()
         mock_sendsms.return_value = True
-        if sendsms_side_effect:
-            mock_sendsms.side_effect = sendsms_side_effect
 
-        with self.session_cookie_anon(self.browser) as client:
-            with client.session_transaction() as session:
-                with self.app.test_request_context():
-                    data = {
-                        'email': self.test_user_email,
-                        'csrf_token': session.get_csrf_token(),
-                    }
-                    response = client.post('/reset/', data=json.dumps(data), content_type=self.content_type_json)
-                    self.assertEqual(response.status_code, 200)
-                    state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+        self.app.config.magic_cookie = cookie_value
+        self.app.config.magic_cookie_name = cookie_name
+        self.app.config.environment = environment
 
-                    url = url_for('reset_password.config_reset_pw', _external=True)
-                    data = {
-                        'code': state.email_code.code,
-                        'csrf_token': session.get_csrf_token(),
-                    }
-                    response = client.post(url, data=json.dumps(data), content_type=self.content_type_json)
-                    self.assertEqual(response.status_code, 200)
+        self.post_email_address('johnsmith@example.com')
 
-                    url = url_for('reset_password.choose_extra_security_phone', _external=True)
-                    data = {
-                        'csrf_token': session.get_csrf_token(),
-                        'code': state.email_code.code,
-                        'phone_index': '0'
-                    }
-                    response = client.post(url, data=json.dumps(data), content_type=self.content_type_json)
-                    self.assertEqual(response.status_code, 200)
+        eppn = quote_plus(self.test_user_eppn)
 
-                    client.set_cookie('localhost', key=self.app.config.magic_cookie_name, value=self.app.config.magic_cookie)
-
-                    eppn = quote_plus(self.test_user_eppn)
-
-                    return client.get(f'/reset-password/get-phone-code?eppn={eppn}')
+        with self.app.test_client() as c:
+            c.set_cookie('localhost', key='magic', value='magic-cookie')
+            return c.get(f'/reset-password/get-email-code?eppn={eppn}')
 
     def test_get_code_backdoor(self):
-        self.app.config.magic_cookie = 'magic-cookie'
-        self.app.config.magic_cookie_name = 'magic'
-        self.app.config.environment = 'dev'
-
-        resp = self._get_email_code_backdoor()
-
-        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+        resp = self._get_code_backdoor()
 
         self.assertEqual(resp.status_code, 200)
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
         self.assertEqual(resp.data, state.email_code.code.encode('ascii'))
 
     def test_get_code_no_backdoor_in_pro(self):
-        self.app.config.magic_cookie = 'magic-cookie'
-        self.app.config.magic_cookie_name = 'magic'
-        self.app.config.environment = 'pro'
-
-        resp = self._get_email_code_backdoor()
-
+        resp = self._get_code_backdoor(environment='pro')
         self.assertEqual(resp.status_code, 400)
 
     def test_get_code_no_backdoor_misconfigured1(self):
-        self.app.config.magic_cookie = 'magic-cookie'
-        self.app.config.magic_cookie_name = ''
-        self.app.config.environment = 'dev'
-
-        resp = self._get_email_code_backdoor()
-
+        resp = self._get_code_backdoor(cookie_name='')
         self.assertEqual(resp.status_code, 400)
 
     def test_get_code_no_backdoor_misconfigured2(self):
-        self.app.config.magic_cookie = ''
-        self.app.config.magic_cookie_name = 'magic'
-        self.app.config.environment = 'dev'
-
-        resp = self._get_email_code_backdoor()
-
+        resp = self._get_code_backdoor(cookie_value='')
         self.assertEqual(resp.status_code, 400)
 
-    def test_get_phone_code_backdoor(self):
-        self.app.config.magic_cookie = 'magic-cookie'
-        self.app.config.magic_cookie_name = 'magic'
-        self.app.config.environment = 'dev'
+    @patch('eduid_common.authn.vccs.get_vccs_client')
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
+    @patch('eduid_common.api.msg.MsgRelay.sendsms')
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def _get_phone_code_backdoor(
+        self,
+        mock_request_user_sync,
+        mock_sendsms,
+        mock_sendmail,
+        mock_get_vccs_client,
+        cookie_name='magic',
+        cookie_value='magic-cookie',
+        environment='dev',
+    ):
+        mock_request_user_sync.side_effect = self.request_user_sync
+        mock_sendsms.return_value = True
+        mock_sendmail.return_value = True
+        mock_get_vccs_client.return_value = TestVCCSClient()
 
+        self.app.config.magic_cookie = cookie_value
+        self.app.config.magic_cookie_name = cookie_name
+        self.app.config.environment = environment
+
+        self.post_email_address('johnsmith@example.com')
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+        self.verify_email_address(state)
+        self.choose_extra_security_phone_number(state)
+        state = self.app.password_reset_state_db.get_state_by_email_code(state.email_code.code)
+        self.verify_phone_number(state)
+        eppn = quote_plus(self.test_user_eppn)
+
+        with self.app.test_client() as c:
+            c.set_cookie('localhost', key='magic', value='magic-cookie')
+            return c.get(f'/reset-password/get-phone-code?eppn={eppn}')
+
+    def test_get_phone_code_backdoor(self):
         resp = self._get_phone_code_backdoor()
 
         state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
-
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.data, state.phone_code.code.encode('ascii'))
 
     def test_get_phone_code_no_backdoor_in_pro(self):
-        self.app.config.magic_cookie = 'magic-cookie'
-        self.app.config.magic_cookie_name = 'magic'
-        self.app.config.environment = 'pro'
-
-        resp = self._get_phone_code_backdoor()
-
+        resp = self._get_phone_code_backdoor(environment='pro')
         self.assertEqual(resp.status_code, 400)
 
     def test_get_phone_code_no_backdoor_misconfigured1(self):
-        self.app.config.magic_cookie = 'magic-cookie'
-        self.app.config.magic_cookie_name = ''
-        self.app.config.environment = 'dev'
-
-        resp = self._get_phone_code_backdoor()
+        resp = self._get_phone_code_backdoor(cookie_name='')
 
         self.assertEqual(resp.status_code, 400)
 
     def test_get_phone_code_no_backdoor_misconfigured2(self):
-        self.app.config.magic_cookie = ''
-        self.app.config.magic_cookie_name = 'magic'
-        self.app.config.environment = 'dev'
-
-        resp = self._get_phone_code_backdoor()
+        resp = self._get_phone_code_backdoor(cookie_value='')
 
         self.assertEqual(resp.status_code, 400)
