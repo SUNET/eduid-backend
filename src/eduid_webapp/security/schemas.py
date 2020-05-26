@@ -107,7 +107,7 @@ class ChangePasswordSchema(PasswordSchema):
     new_password = fields.String(required=True)
 
     @validates('new_password')
-    def validate_custom_password(self, value):
+    def validate_custom_password(self, value, **kwargs):
         # Set a new error message
         try:
             self.validate_password(value)
@@ -123,11 +123,11 @@ class AccountTerminatedSchema(FluxStandardAction):
 class ConvertRegisteredKeys(EduidSchema):
     class U2FRegisteredKey(EduidSchema):
         version = fields.String(required=True)
-        keyhandle = fields.String(required=True, dump_to='keyHandle')
-        app_id = fields.String(required=True, dump_to='appId')
+        keyhandle = fields.String(required=True, data_key='keyHandle')
+        app_id = fields.String(required=True, data_key='appId')
         transports = fields.String()
 
-    registered_keys = fields.Nested(U2FRegisteredKey, required=True, missing=list(), many=True)
+    registered_keys = fields.Nested(U2FRegisteredKey, required=True, default=list(), many=True)
 
 
 class EnrollU2FTokenResponseSchema(FluxStandardAction):
@@ -143,13 +143,13 @@ class BindU2FRequestSchema(U2FBindRequestSchema, CSRFRequestMixin):
 
 
 class SignWithU2FTokenResponseSchema(FluxStandardAction):
-    class Payload(U2FSignResponseSchema, CSRFResponseMixin):
+    class SignWithU2FTokenPayload(U2FSignResponseSchema, CSRFResponseMixin):
         pass
 
-    payload = fields.Nested(Payload)
+    payload = fields.Nested(SignWithU2FTokenPayload)
 
 
-class VerifyWithU2FTokenRequestSchema(U2FVerifyRequestSchema):
+class VerifyWithU2FTokenRequestSchema(U2FVerifyRequestSchema, CSRFRequestMixin):
     pass
 
 
@@ -188,9 +188,9 @@ class WebauthnRegisterBeginSchema(EduidSchema, CSRFRequestMixin):
 
 class WebauthnRegisterRequestSchema(EduidSchema, CSRFRequestMixin):
 
-    credential_id = fields.String(required=True, load_from="credentialId")
-    attestation_object = fields.String(required=True, load_from="attestationObject")
-    client_data = fields.String(required=True, load_from="clientDataJSON")
+    credential_id = fields.String(required=True, data_key="credentialId")
+    attestation_object = fields.String(required=True, data_key="attestationObject")
+    client_data = fields.String(required=True, data_key="clientDataJSON")
     description = fields.String(required=True)
 
 
@@ -217,7 +217,7 @@ class ResetPasswordEmailSchema(Schema):
     email = fields.String(required=True)
 
     @validates('email')
-    def validate_email_field(self, value):
+    def validate_email_field(self, value, **kwargs):
         # Set a new error message
         try:
             validate_email(value)
@@ -246,7 +246,7 @@ class ResetPasswordNewPasswordSchema(PasswordSchema):
     repeat_password = fields.String(required=False)
 
     @validates_schema
-    def new_password_validation(self, data):
+    def new_password_validation(self, data, **kwargs):
         if not data.get('use_generated_password', False):
             custom_password = data.get('custom_password', None)
             repeat_password = data.get('repeat_password', None)
@@ -258,7 +258,7 @@ class ResetPasswordNewPasswordSchema(PasswordSchema):
                 raise ValidationError(_('Passwords does not match'), ['repeat_password'])
 
     @validates('custom_password')
-    def validate_custom_password(self, value):
+    def validate_custom_password(self, value, **kwargs):
         # Set a new error message
         try:
             self.validate_password(value)
