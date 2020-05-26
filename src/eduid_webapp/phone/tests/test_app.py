@@ -197,8 +197,14 @@ class PhoneTests(EduidAPITestCase):
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('eduid_webapp.phone.verifications.get_short_hash')
-    def _get_code_backdoor(self, mock_code_verification: Any, mock_request_user_sync: Any,
-            mod_data: Optional[dict] = None, phone: str = '+34670123456', code: str = '5250f9a4'):
+    def _get_code_backdoor(
+        self,
+        mock_code_verification: Any,
+        mock_request_user_sync: Any,
+        mod_data: Optional[dict] = None,
+        phone: str = '+34670123456',
+        code: str = '5250f9a4'
+    ):
         """
         POST phone data to generate a verification state,
         and try to get the generated code through the backdoor

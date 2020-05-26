@@ -436,8 +436,11 @@ class ResetPasswordTests(EduidAPITestCase):
             return c.post(url, data=json.dumps(data), content_type=self.content_type_json)
 
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
-    def _get_email_code_backdoor(self, mock_sendmail: Any,
-                                 data1: Optional[dict] = None):
+    def _get_email_code_backdoor(
+        self,
+        mock_sendmail: Any,
+        data1: Optional[dict] = None
+    ):
         """
         Create a password rest state for the test user, grab the created verification code from the db,
         and use it to get configuration for the reset form.
@@ -467,9 +470,14 @@ class ResetPasswordTests(EduidAPITestCase):
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('eduid_common.api.msg.MsgRelay.sendsms')
-    def _get_phone_code_backdoor(self, mock_sendsms: Any, mock_request_user_sync: Any,
-                                 mock_sendmail: Any, mock_get_vccs_client: Any,
-                                 sendsms_side_effect: Any = None):
+    def _get_phone_code_backdoor(
+        self,
+        mock_sendsms: Any,
+        mock_request_user_sync: Any,
+        mock_sendmail: Any,
+        mock_get_vccs_client: Any,
+        sendsms_side_effect: Any = None
+    ):
         """
         Test choosing extra security via a confirmed phone number to reset the password,
         and getting the generated phone verification code through the backdoor

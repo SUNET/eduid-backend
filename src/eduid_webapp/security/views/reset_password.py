@@ -328,6 +328,9 @@ def new_password(state):
 
 @reset_password_views.route('/get-email-code', methods=['GET'])
 def get_email_code():
+    """
+    Backdoor to get the email verification code in the staging or dev environments
+    """
     try:
         if check_magic_cookie(current_app.config):
             eppn = request.args.get('eppn')
@@ -341,6 +344,9 @@ def get_email_code():
 
 @reset_password_views.route('/get-phone-code', methods=['GET'])
 def get_phone_code():
+    """
+    Backdoor to get the phone verification code in the staging or dev environments
+    """
     try:
         if check_magic_cookie(current_app.config):
             eppn = request.args.get('eppn')

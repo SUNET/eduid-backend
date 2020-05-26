@@ -260,6 +260,9 @@ def resend_code(user, number):
 
 @phone_views.route('/get-code', methods=['GET'])
 def get_code():
+    """
+    Backdoor to get the verification code in the staging or dev environments
+    """
     try:
         if check_magic_cookie(current_app.config):
             eppn = request.args.get('eppn')

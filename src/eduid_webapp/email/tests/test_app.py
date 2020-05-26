@@ -325,8 +325,15 @@ class EmailTests(EduidAPITestCase):
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('eduid_webapp.email.verifications.get_unique_hash')
-    def _get_code_backdoor(self, mock_code_verification: Any, mock_request_user_sync: Any, mock_sendmail: Any,
-            data1: Optional[dict] = None, email: str = 'johnsmith3@example.com', code: str = '123456'):
+    def _get_code_backdoor(
+        self,
+        mock_code_verification: Any,
+        mock_request_user_sync: Any,
+        mock_sendmail: Any,
+        data1: Optional[dict] = None,
+        email: str = 'johnsmith3@example.com',
+        code: str = '123456'
+    ):
         """
         POST email data to generate a verification state,
         and try to get the generated code through the backdoor

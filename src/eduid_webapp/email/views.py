@@ -42,6 +42,7 @@ from eduid_userdb.element import DuplicateElementViolation, PrimaryElementViolat
 from eduid_userdb.exceptions import DocumentDoesNotExist, UserOutOfSync
 from eduid_userdb.mail import MailAddress
 from eduid_userdb.proofing import ProofingUser
+from eduid_userdb.user import User
 
 from eduid_webapp.email.schemas import (
     AddEmailSchema,
@@ -297,7 +298,10 @@ def resend_code(user, email):
 
 @email_views.route('/get-code', methods=['GET'])
 @require_user
-def get_code(user):
+def get_code(user: User):
+    """
+    Backdoor to get the verification code in the staging or dev environments
+    """
     try:
         if check_magic_cookie(current_app.config):
             eppn = request.args.get('eppn')

@@ -130,6 +130,9 @@ def verify_link(code):
 
 @signup_views.route('/get-code', methods=['GET'])
 def get_email_code():
+    """
+    Backdoor to get the email verification code in the staging or dev environments
+    """
     try:
         if check_magic_cookie(current_app.config):
             email = request.args.get('email')
