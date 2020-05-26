@@ -213,7 +213,14 @@ def mfa_authentication_action(session_info, user):
         return redirect_with_msg(redirect_url, ':ERROR:eidas.reauthn_expired')
 
     # Check that a verified NIN is equal to the asserted attribute personalIdentityNumber
-    asserted_nin = get_saml_attribute(session_info, 'personalIdentityNumber')[0]
+    _personal_idns = get_saml_attribute(session_info, 'personalIdentityNumber')
+    if _personal_idns is None:
+        current_app.logger.error('Got no personalIdentityNumber attributes. '
+                                 'pysaml2 without the right attribute_converter?')
+        # TODO: change to reasonable redirect_with_msg when the ENUM work for that is merged
+        raise RuntimeError('Got no personalIdentityNumber')
+
+    asserted_nin = _personal_idns[0]
     user_nin = user.nins.verified.find(asserted_nin)
     if not user_nin:
         current_app.logger.error('Asserted NIN not matching user verified nins')
