@@ -155,6 +155,9 @@ def verify_code(user, code):
 @letter_proofing_views.route('/get-code', methods=['GET'])
 @require_user
 def get_code(user):
+    """
+    Backdoor to get the verification code in the staging or dev environments
+    """
     try:
         if check_magic_cookie(current_app.config):
             state = current_app.proofing_statedb.get_state_by_eppn(user.eppn)

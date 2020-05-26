@@ -190,7 +190,7 @@ def nin_verify_action(session_info, user):
 
 
 @require_user
-def nin_verify_backdoor(user: User) -> Response:
+def nin_verify_BACKDOOR(user: User) -> Response:
     """
     Mock using a Sweden Connect federation IdP assertion to verify a users identity
     when the request carries a magic cookie.
@@ -198,7 +198,6 @@ def nin_verify_backdoor(user: User) -> Response:
     :param user: Central db user
 
     :return: redirect response
-    :rtype: Response
     """
 
     redirect_url = current_app.config.nin_verify_redirect_url

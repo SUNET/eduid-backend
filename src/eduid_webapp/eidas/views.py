@@ -16,7 +16,7 @@ from eduid_common.session import session
 # TODO: Import FidoCredential in credentials.__init__
 from eduid_userdb.credentials.fido import FidoCredential
 
-from eduid_webapp.eidas.acs_actions import nin_verify_backdoor
+from eduid_webapp.eidas.acs_actions import nin_verify_BACKDOOR
 from eduid_webapp.eidas.app import eidas_current_app as current_app
 from eduid_webapp.eidas.helpers import (
     create_authn_request,
@@ -76,7 +76,7 @@ def verify_nin(user):
     # Backdoor for the selenium integration tests to verify NINs
     # without sending the user to an eidas idp
     if check_magic_cookie(current_app.config):
-        return nin_verify_backdoor()
+        return nin_verify_BACKDOOR()
 
     required_loa = 'loa3'
     return _authn('nin-verify-action', required_loa, force_authn=True)

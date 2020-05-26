@@ -7,6 +7,7 @@ import datetime
 import os
 import urllib
 from collections import OrderedDict
+from typing import Any
 
 import six
 from mock import patch
@@ -566,7 +567,11 @@ class EidasTests(EduidAPITestCase):
 
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
-    def test_nin_verify_backdoor(self, mock_request_user_sync, mock_get_postal_address):
+    def test_nin_verify_backdoor(
+        self,
+        mock_request_user_sync: Any,
+        mock_get_postal_address: Any
+    ):
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.side_effect = self.request_user_sync
 
@@ -592,7 +597,11 @@ class EidasTests(EduidAPITestCase):
 
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
-    def test_nin_verify_no_backdoor_in_pro(self, mock_request_user_sync, mock_get_postal_address):
+    def test_nin_verify_no_backdoor_in_pro(
+        self,
+        mock_request_user_sync: Any,
+        mock_get_postal_address: Any
+    ):
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.side_effect = self.request_user_sync
 
@@ -617,7 +626,7 @@ class EidasTests(EduidAPITestCase):
 
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
-    def test_nin_verify_no_backdoor_misconfigured(self, mock_request_user_sync, mock_get_postal_address):
+    def test_nin_verify_no_backdoor_misconfigured(self, mock_request_user_sync: Any, mock_get_postal_address: Any):
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.side_effect = self.request_user_sync
 
@@ -639,7 +648,7 @@ class EidasTests(EduidAPITestCase):
 
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
-    def test_nin_verify_already_verified(self, mock_request_user_sync, mock_get_postal_address):
+    def test_nin_verify_already_verified(self, mock_request_user_sync: Any, mock_get_postal_address: Any):
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.side_effect = self.request_user_sync
 

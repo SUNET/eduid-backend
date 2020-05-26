@@ -156,7 +156,12 @@ class LookupMobileProofingTests(EduidAPITestCase):
     @patch('eduid_webapp.lookup_mobile_proofing.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile')
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
-    def test_proofing_flow_no_match_backdoor(self, mock_request_user_sync, mock_get_postal_address, mock_find_nin_by_mobile):
+    def test_proofing_flow_no_match_backdoor(
+        self,
+        mock_request_user_sync,
+        mock_get_postal_address,
+        mock_find_nin_by_mobile
+    ):
         mock_find_nin_by_mobile.return_value = None
         mock_get_postal_address.return_value = None
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -193,7 +198,12 @@ class LookupMobileProofingTests(EduidAPITestCase):
     @patch('eduid_webapp.lookup_mobile_proofing.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile')
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
-    def test_proofing_flow_no_match_backdoor_code_in_pro(self, mock_request_user_sync, mock_get_postal_address, mock_find_nin_by_mobile):
+    def test_proofing_flow_no_match_backdoor_code_in_pro(
+        self,
+        mock_request_user_sync,
+        mock_get_postal_address,
+        mock_find_nin_by_mobile
+    ):
         mock_find_nin_by_mobile.return_value = None
         mock_get_postal_address.return_value = None
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -229,7 +239,12 @@ class LookupMobileProofingTests(EduidAPITestCase):
     @patch('eduid_webapp.lookup_mobile_proofing.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile')
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
-    def test_proofing_flow_no_match_backdoor_code_unconfigured(self, mock_request_user_sync, mock_get_postal_address, mock_find_nin_by_mobile):
+    def test_proofing_flow_no_match_backdoor_code_unconfigured(
+        self,
+        mock_request_user_sync,
+        mock_get_postal_address,
+        mock_find_nin_by_mobile
+    ):
         mock_find_nin_by_mobile.return_value = None
         mock_get_postal_address.return_value = None
         mock_request_user_sync.side_effect = self.request_user_sync
