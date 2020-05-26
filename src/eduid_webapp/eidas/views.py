@@ -2,7 +2,7 @@
 
 from __future__ import absolute_import, unicode_literals
 
-from flask import Blueprint, abort, current_app, make_response, redirect, request, url_for
+from flask import Blueprint, abort, make_response, redirect, request, url_for
 
 from eduid_common.api.decorators import MarshalWith, require_user
 from eduid_common.api.helpers import check_magic_cookie
@@ -17,6 +17,7 @@ from eduid_common.session import session
 from eduid_userdb.credentials.fido import FidoCredential
 
 from eduid_webapp.eidas.acs_actions import nin_verify_backdoor
+from eduid_webapp.eidas.app import eidas_current_app as current_app
 from eduid_webapp.eidas.helpers import (
     create_authn_request,
     create_metadata,

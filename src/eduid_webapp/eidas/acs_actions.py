@@ -5,7 +5,7 @@ from __future__ import absolute_import
 import base64
 from six.moves.urllib_parse import urlsplit, urlunsplit
 
-from flask import current_app, redirect, request
+from flask import redirect, request
 from werkzeug.wrappers import Response
 
 from eduid_common.api.decorators import require_user
@@ -24,6 +24,7 @@ from eduid_userdb.proofing.state import NinProofingElement, NinProofingState
 from eduid_userdb.proofing.user import ProofingUser
 from eduid_userdb.user import User
 
+from eduid_webapp.eidas.app import eidas_current_app as current_app
 from eduid_webapp.eidas.helpers import is_required_loa, is_valid_reauthn, redirect_with_msg
 
 __author__ = 'lundberg'
