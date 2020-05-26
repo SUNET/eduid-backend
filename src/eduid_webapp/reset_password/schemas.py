@@ -48,7 +48,7 @@ class ResetPasswordInitSchema(EduidSchema, CSRFRequestMixin):
     email = fields.String(required=True)
 
     @validates('email')
-    def validate_email_field(self, value):
+    def validate_email_field(self, value, **kwargs):
         # Set a new error message
         try:
             validate_email(value)
@@ -74,7 +74,7 @@ class ResetPasswordWithCodeSchema(PasswordSchema):
     password = fields.String(required=True)
 
     @validates('password')
-    def validate_pw(self, value):
+    def validate_pw(self, value, **kwargs):
         # Set a new error message
         try:
             self.validate_password(value)
@@ -111,7 +111,7 @@ class ChangePasswordSchema(PasswordSchema):
     new_password = fields.String(required=True)
 
     @validates('new_password')
-    def validate_pw(self, value):
+    def validate_pw(self, value, **kwargs):
         # Set a new error message
         try:
             self.validate_password(value)

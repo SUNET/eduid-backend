@@ -32,7 +32,9 @@ def credentials_to_registered_keys(user_u2f_tokens):
     :rtype: list
     """
     u2f_dicts = user_u2f_tokens.to_list_of_dicts()
-    return ConvertRegisteredKeys().dump({'registered_keys': u2f_dicts}).data['registered_keys']
+    data = ConvertRegisteredKeys().dump({'registered_keys': u2f_dicts})
+    return data['registered_keys']
+
 
 
 def compile_credential_list(security_user):
