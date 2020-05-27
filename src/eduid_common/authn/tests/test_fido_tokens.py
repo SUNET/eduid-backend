@@ -77,8 +77,8 @@ def start_verification():
 
 class MockFidoApp(EduIDBaseApp):
     def __init__(self, name: str, config: dict, **kwargs):
-
-        super(MockFidoApp, self).__init__(name, MockFidoConfig, config, **kwargs)
+        self.config = MockFidoConfig(**config)
+        super(MockFidoApp, self).__init__(name, **kwargs)
         self.config: MockFidoConfig = cast(MockFidoConfig, self.config)
         self.register_blueprint(views)
 

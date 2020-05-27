@@ -32,6 +32,7 @@
 
 import logging
 import re
+from abc import ABCMeta
 from typing import Callable, Union
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
@@ -41,14 +42,13 @@ from werkzeug.wsgi import get_current_url
 
 from eduid_common.api.app import EduIDBaseApp
 from eduid_common.api.utils import urlappend
-from eduid_common.config.base import FlaskConfig
 from eduid_common.session import session
 from eduid_common.session.redis_session import NoSessionDataFoundException
 
 no_context_logger = logging.getLogger(__name__)
 
 
-class AuthnBaseApp(EduIDBaseApp):
+class AuthnBaseApp(EduIDBaseApp, metaclass=ABCMeta):
     """
     WSGI middleware that checks whether the request is authenticated,
     and in case it isn't, redirects to the authn service.

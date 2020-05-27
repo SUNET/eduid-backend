@@ -36,6 +36,7 @@ it with all attributes common to all eduID services.
 import importlib.util
 import os
 import warnings
+from abc import ABCMeta
 from dataclasses import asdict
 from sys import stderr
 from typing import Optional, Type
@@ -63,14 +64,12 @@ if DEBUG:
     stderr.writelines('----- WARNING! EDUID_APP_DEBUG is enabled -----\n')
 
 
-class EduIDBaseApp(Flask):
+class EduIDBaseApp(Flask, metaclass=ABCMeta):
     """
     Base class for eduID apps, initializing common features and facilities.
     """
 
-    def __init__(
-        self, name: str, config_class: Type[FlaskConfig], config: dict, init_central_userdb: bool = True, **kwargs
-    ):
+    def __init__(self, name: str, init_central_userdb: bool = True, **kwargs):
         """
         :param name: name of the app
         :param config_class: the dataclass with configuration settings
@@ -79,11 +78,12 @@ class EduIDBaseApp(Flask):
         :param init_central_userdb: whether the app requires access to the
                                     central user db.
         """
-        self.config: FlaskConfig  # type: ignore
+        if not isinstance(self.config, FlaskConfig):
+            raise TypeError('self.config is not a (subclass of) FlaskConfig')
 
-        super(EduIDBaseApp, self).__init__(name, **kwargs)
-
-        self.config = config_class.init_config(ns='webapp', app_name=name, test_config=config)
+        _saved_config = self.config
+        super().__init__(name, **kwargs)
+        self.config: FlaskConfig = _saved_config  # type: ignore
 
         if DEBUG:
             init_app_debug(self)
