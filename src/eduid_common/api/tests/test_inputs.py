@@ -32,6 +32,7 @@
 #
 
 import logging
+from typing import Any, Dict
 from urllib.parse import unquote
 
 from flask import Blueprint, make_response, request
@@ -117,6 +118,12 @@ def values_view():
     return _make_response(param)
 
 
+class InputsTestApp(EduIDBaseApp):
+    def __init__(self, name: str, config: Dict[str, Any], **kwargs):
+        self.config = FlaskConfig.init_config(ns='webapp', app_name=name, test_config=config)
+        super().__init__(name, **kwargs)
+
+
 class InputsTests(EduidAPITestCase):
     def update_config(self, config):
         """
@@ -130,7 +137,7 @@ class InputsTests(EduidAPITestCase):
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        app = EduIDBaseApp('testing', FlaskConfig, config)
+        app = InputsTestApp('testing', config)
         app.register_blueprint(test_views)
         app.central_userdb = UserDB(app.config.mongo_uri, 'eduid_am')
         app.session_interface = SessionFactory(app.config)

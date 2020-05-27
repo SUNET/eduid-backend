@@ -30,6 +30,8 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+from typing import Any, Dict
+
 from flask import Blueprint, abort, current_app, request
 
 from eduid_common.api.app import EduIDBaseApp
@@ -51,6 +53,12 @@ def get_code():
         pass
 
     abort(400)
+
+
+class BackdoorTestApp(EduIDBaseApp):
+    def __init__(self, name: str, config: Dict[str, Any], **kwargs):
+        self.config = FlaskConfig.init_config(ns='webapp', app_name=name, test_config=config)
+        super().__init__(name, **kwargs)
 
 
 class BackdoorTests(EduidAPITestCase):
@@ -75,7 +83,7 @@ class BackdoorTests(EduidAPITestCase):
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        app = EduIDBaseApp('testing', FlaskConfig, config)
+        app = BackdoorTestApp('testing', config)
         app.register_blueprint(test_views)
         app.session_interface = SessionFactory(app.config)
         return app

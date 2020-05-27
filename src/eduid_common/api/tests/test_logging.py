@@ -5,9 +5,16 @@ from typing import Any, Dict, List, Optional
 from eduid_common.api.app import EduIDBaseApp
 from eduid_common.api.logging import merge_config
 from eduid_common.api.testing import EduidAPITestCase
-from eduid_common.config.base import FlaskConfig
 
 __author__ = 'lundberg'
+
+from eduid_common.config.base import FlaskConfig
+
+
+class LoggingTestApp(EduIDBaseApp):
+    def __init__(self, name: str, config: Dict[str, Any], **kwargs):
+        self.config = FlaskConfig.init_config(ns='webapp', app_name=name, test_config=config)
+        super().__init__(name, **kwargs)
 
 
 class LoggingTest(EduidAPITestCase):
@@ -22,10 +29,10 @@ class LoggingTest(EduidAPITestCase):
 
     def load_app(self, config):
         """
-        Called from the parent class, so we can provide the appropiate flask
+        Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        return EduIDBaseApp('test_app', FlaskConfig, config)
+        return LoggingTestApp('test_app', config)
 
     def update_config(self, config):
         return config
