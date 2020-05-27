@@ -39,7 +39,7 @@ import warnings
 from abc import ABCMeta
 from dataclasses import asdict
 from sys import stderr
-from typing import Optional, Type
+from typing import Optional, TypeVar
 
 from flask import Flask
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -64,7 +64,10 @@ if DEBUG:
     stderr.writelines('----- WARNING! EDUID_APP_DEBUG is enabled -----\n')
 
 
-class EduIDBaseApp(Flask, metaclass=ABCMeta):
+TFlaskConfigSubclass = TypeVar('TFlaskConfigSubclass', bound='FlaskConfig')
+
+
+class EduIDBaseApp(Flask):
     """
     Base class for eduID apps, initializing common features and facilities.
     """
