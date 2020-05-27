@@ -6,9 +6,7 @@ from bson.objectid import ObjectId
 
 import eduid_userdb.element
 import eduid_userdb.exceptions
-from eduid_userdb.actions.chpass import ChpassUser
 from eduid_userdb.credentials import CredentialList, Password
-from eduid_userdb.exceptions import UserHasUnknownData, UserMissingData
 
 __author__ = 'lundberg'
 
@@ -99,38 +97,3 @@ class TestPassword(TestCase):
             this.created_ts = None
         with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
             this.created_ts = True
-
-
-USERID = '123467890123456789014567'
-
-
-class TestChpassUser(TestCase):
-    def test_proper_user(self):
-        one = copy.deepcopy(_one_dict)
-        password = Password(data=one, raise_on_unknown=False)
-        user = ChpassUser(userid=USERID, passwords=[password])
-        self.assertEqual(user.passwords.to_list_of_dicts()[0]['salt'], 'firstPasswordElement')
-
-    def test_missing_userid(self):
-        one = copy.deepcopy(_one_dict)
-        password = Password(data=one, raise_on_unknown=False)
-        with self.assertRaises(UserMissingData):
-            user = ChpassUser(passwords=[password])
-
-    def test_missing_tou(self):
-        with self.assertRaises(UserMissingData):
-            user = ChpassUser(userid=USERID)
-
-    def test_unknown_data(self):
-        one = copy.deepcopy(_one_dict)
-        password = Password(data=one, raise_on_unknown=False)
-        data = dict(_id=USERID, passwords=[password], foo='bar')
-        with self.assertRaises(UserHasUnknownData):
-            user = ChpassUser(data=data)
-
-    def test_unknown_data_dont_raise(self):
-        one = copy.deepcopy(_one_dict)
-        password = Password(data=one, raise_on_unknown=False)
-        data = dict(_id=USERID, passwords=[password], foo='bar')
-        user = ChpassUser(data=data, raise_on_unknown=False)
-        self.assertEqual(user.to_dict()['foo'], 'bar')

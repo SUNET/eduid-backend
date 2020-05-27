@@ -36,6 +36,7 @@ import copy
 import datetime
 import warnings
 from typing import Any, Dict, List, Union, Optional
+from typing import Type, TypeVar
 
 import bson
 
@@ -51,6 +52,8 @@ from eduid_userdb.profile import ProfileList
 from eduid_userdb.tou import ToUList
 
 VALID_SUBJECT_VALUES = ['physical person']
+
+U = TypeVar('U', bound='User')
 
 
 class User(object):
@@ -73,6 +76,8 @@ class User(object):
         self._data_in = copy.deepcopy(data)  # to not modify callers data
         self._data_orig = copy.deepcopy(data)  # to not modify callers data
         self._data: Dict[str, Any] = dict()
+
+        self.check_or_use_data()
 
         self._parse_check_invalid_users()
 
@@ -134,7 +139,7 @@ class User(object):
 
     @classmethod
     def construct_user(
-        cls,
+        cls: Type[U],
         eppn: str,
         _id: Optional[Union[bson.ObjectId, str]] = None,
         subject: Optional[str] = None,
@@ -157,7 +162,7 @@ class User(object):
         profiles: Optional[ProfileList] = None,
         raise_on_unknown: bool = True,
         **kwargs
-    ):
+    ) -> U:
         """
         Construct user from data in typed params.
         """
@@ -200,8 +205,17 @@ class User(object):
 
         return cls.from_dict(data)
 
+    def check_or_use_data(self):
+        """
+        Derived classes can override this method to check that the provided data
+        is enough for their purposes, or to deal specially with particular bits of it.
+
+        In case of problems they sould raise whatever Exception is appropriate.
+        """
+        pass
+
     @classmethod
-    def from_dict(cls, data: Dict[str, Any], raise_on_unknown: bool = True):
+    def from_dict(cls: Type[U], data: Dict[str, Any], raise_on_unknown: bool = True) -> U:
         """
         Construct user from a data dict.
         """

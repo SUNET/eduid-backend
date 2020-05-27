@@ -159,7 +159,7 @@ class TestTouUser(TestCase):
         userid = userdata.pop('_id')
         eppn = userdata.pop('eduPersonPrincipalName')
         passwords = CredentialList(userdata['passwords'])
-        user = ToUUser.construct_user(userid=userid, eppn=eppn, tou=tou, passwords=passwords)
+        user = ToUUser.construct_user(_id=userid, eppn=eppn, tou=tou, passwords=passwords)
         self.assertEqual(user.tou.to_list_of_dicts()[0]['version'], '1')
 
     def test_proper_new_user_no_id(self):
@@ -167,7 +167,7 @@ class TestTouUser(TestCase):
         tou = ToUList([ToUEvent(data=one, raise_on_unknown=False)])
         userdata = copy.deepcopy(NEW_USER_EXAMPLE)
         passwords = CredentialList(userdata['passwords'])
-        with self.assertRaises(UserMissingData):
+        with self.assertRaises(TypeError):
             ToUUser.construct_user(tou=tou, passwords=passwords)
 
     def test_proper_new_user_no_eppn(self):
@@ -176,7 +176,7 @@ class TestTouUser(TestCase):
         userdata = copy.deepcopy(NEW_USER_EXAMPLE)
         userid = userdata.pop('_id')
         passwords = CredentialList(userdata['passwords'])
-        with self.assertRaises(UserMissingData):
+        with self.assertRaises(TypeError):
             ToUUser.construct_user(userid=userid, tou=tou, passwords=passwords)
 
     def test_proper_new_user_no_tou(self):
@@ -185,7 +185,7 @@ class TestTouUser(TestCase):
         eppn = userdata.pop('eduPersonPrincipalName')
         passwords = CredentialList(userdata['passwords'])
         with self.assertRaises(UserMissingData):
-            ToUUser.construct_user(userid=userid, eppn=eppn, passwords=passwords)
+            ToUUser.construct_user(_id=userid, eppn=eppn, passwords=passwords)
 
     def test_missing_eppn(self):
         one = copy.deepcopy(_one_dict)

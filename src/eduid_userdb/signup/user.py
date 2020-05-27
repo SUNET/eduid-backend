@@ -38,7 +38,7 @@ import bson
 import six
 from typing import Optional, Union
 
-from eduid_userdb import User
+from eduid_userdb.user import User
 from eduid_userdb.exceptions import UserIsRevoked
 from eduid_userdb.proofing import EmailProofingElement
 
@@ -64,6 +64,11 @@ class SignupUser(User):
             if userid is None:
                 userid = bson.ObjectId()
             data = dict(_id=userid, eduPersonPrincipalName=eppn, subject=subject,)
+
+        User.__init__(self, data=data, raise_on_unknown=raise_on_unknown, called_directly=called_directly)
+
+    def check_or_use_data(self):
+        data = self._data
         _social_network = data.pop('social_network', None)
         _social_network_id = data.pop('social_network_id', None)
         _pending_mail_address = data.pop('pending_mail_address', None)
@@ -72,40 +77,11 @@ class SignupUser(User):
             _pending_mail_address = EmailProofingElement(data=_pending_mail_address)
         self._pending_mail_address = None
 
-        User.__init__(self, data=data, raise_on_unknown=raise_on_unknown, called_directly=called_directly)
-
-        # now self._data exists so we can call our setters
         self.social_network = _social_network
         self.social_network_id = _social_network_id
         self.pending_mail_address = _pending_mail_address
         if _proofing_reference:
             self.proofing_reference = _proofing_reference
-
-    @classmethod
-    def construct_user(
-        cls,
-        userid: Optional[Union[bson.ObjectId, str]] = None,
-        eppn: Optional[str] = None,
-        pending_mail_address: Optional[EmailProofingElement] = None,
-        proofing_reference: Optional[str] = None,
-        **kwargs
-    ) -> User:
-        """
-        User constructor
-        """
-        if userid is not None:
-            kwargs['_id'] = userid
-        if eppn is not None:
-            kwargs['eduPersonPrincipalName'] = eppn
-        user = cls.from_dict(kwargs)
-
-        if pending_mail_address is not None:
-            user.pending_mail_address = pending_mail_address
-
-        if proofing_reference is not None:
-            user.proofing_reference = proofing_reference
-
-        return user
 
     def _parse_check_invalid_users(self):
         """

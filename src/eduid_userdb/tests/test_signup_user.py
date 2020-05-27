@@ -16,7 +16,7 @@ class TestSignupUser(TestCase):
         userdata = copy.deepcopy(NEW_SIGNUP_USER_EXAMPLE)
         userid = userdata.pop('_id')
         eppn = userdata.pop('eduPersonPrincipalName')
-        user = SignupUser.construct_user(userid=userid, eppn=eppn)
+        user = SignupUser.construct_user(_id=userid, eppn=eppn)
         self.assertEqual(user.user_id, userid)
         self.assertEqual(user.eppn, eppn)
 
@@ -31,5 +31,5 @@ class TestSignupUser(TestCase):
         userdata = copy.deepcopy(NEW_SIGNUP_USER_EXAMPLE)
         userid = userdata.pop('_id')
         userdata.pop('eduPersonPrincipalName')
-        with self.assertRaises(KeyError):
-            SignupUser.construct_user(userid=userid)
+        with self.assertRaises(TypeError):
+            SignupUser.construct_user(_id=userid)
