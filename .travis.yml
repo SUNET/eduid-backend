@@ -19,8 +19,8 @@ install:
 # command to run tests
 script:
   - pip freeze
-  - pytest
-  - mypy --ignore-missing-imports src/eduid_webapp
+  - make test
+  - make typecheck
 after_success:
   - codecov
 
