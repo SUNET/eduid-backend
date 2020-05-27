@@ -67,7 +67,7 @@ if DEBUG:
 TFlaskConfigSubclass = TypeVar('TFlaskConfigSubclass', bound='FlaskConfig')
 
 
-class EduIDBaseApp(Flask):
+class EduIDBaseApp(Flask, metaclass=ABCMeta):
     """
     Base class for eduID apps, initializing common features and facilities.
     """
