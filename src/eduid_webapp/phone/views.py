@@ -255,7 +255,7 @@ def resend_code(user, number):
     current_app.stats.count(name='mobile_resend_code', value=1)
 
     phones = {'phones': user.phone_numbers.to_list_of_dicts(), 'message': 'phones.code-sent'}
-    return PhoneListPayload().dump(phones)
+    return phones
 
 
 @phone_views.route('/get-code', methods=['GET'])

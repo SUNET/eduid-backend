@@ -293,7 +293,7 @@ def resend_code(user, email):
     current_app.stats.count(name='email_resend_code', value=1)
 
     emails = {'emails': user.mail_addresses.to_list_of_dicts(), 'message': 'emails.code-sent'}
-    return EmailListPayload().dump(emails)
+    return emails
 
 
 @email_views.route('/get-code', methods=['GET'])
@@ -308,7 +308,7 @@ def get_code(user: User):
             email = request.args.get('email')
             state = current_app.proofing_statedb.get_state_by_eppn_and_email(eppn, email)
             return state.verification.verification_code
-    except Exception:
-        pass
+    except Exception as e:
+        current_app.logger.info(f"{user} tried to use the backdoor to get the verification code for an email, got error {e}")
 
     abort(400)
