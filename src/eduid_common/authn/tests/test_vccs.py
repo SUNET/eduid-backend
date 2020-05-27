@@ -32,7 +32,6 @@
 
 from mock import patch
 
-from eduid_userdb.actions.chpass import ChpassUser
 from eduid_userdb.testing import MongoTestCase
 
 from eduid_common.authn import vccs as vccs_module
@@ -43,8 +42,8 @@ class VCCSTestCase(MongoTestCase):
     def setUp(self):
         super(VCCSTestCase, self).setUp()
         self.vccs_client = MockVCCSClient()
-        self.central_user = self.amdb.get_user_by_mail('johnsmith@example.com')
-        self.user = ChpassUser.from_central_user(self.central_user)
+        self.user = self.amdb.get_user_by_mail('johnsmith@example.com')
+
         # Start with no credentials
         for credential in self.user.credentials.to_list():
             self.user.credentials.remove(credential.key)
