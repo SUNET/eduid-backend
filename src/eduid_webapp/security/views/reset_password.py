@@ -193,13 +193,17 @@ def choose_extra_security(state):
                         view_context = {
                             'heading': _('Temporary technical problem'),
                             'text': _('Please try again.'),
-                            'retry_url': url_for('reset_password.choose_extra_security', email_code=state.email_code.code),
+                            'retry_url': url_for(
+                                'reset_password.choose_extra_security', email_code=state.email_code.code
+                            ),
                             'retry_url_txt': _('Try again'),
                         }
                         return render_template('error.jinja2', view_context=view_context)
                     current_app.logger.info('Redirecting user to verify phone number view')
                     current_app.stats.count(name='reset_password_extra_security_phone')
-                    return redirect(url_for('reset_password.extra_security_phone_number', email_code=state.email_code.code))
+                    return redirect(
+                        url_for('reset_password.extra_security_phone_number', email_code=state.email_code.code)
+                    )
 
     view_context['csrf_token'] = session.new_csrf_token()
 
@@ -255,7 +259,9 @@ def extra_security_phone_number(state):
                         view_context = {
                             'heading': _('Temporary technical problem'),
                             'text': _('Please try again.'),
-                            'retry_url': url_for('reset_password.choose_extra_security', email_code=state.email_code.code),
+                            'retry_url': url_for(
+                                'reset_password.choose_extra_security', email_code=state.email_code.code
+                            ),
                             'retry_url_txt': _('Try again'),
                         }
                         return render_template('error.jinja2', view_context=view_context)

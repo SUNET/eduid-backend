@@ -37,7 +37,6 @@ from flask import current_app
 
 from eduid_common.api import mail_relay
 from eduid_common.authn.middleware import AuthnBaseApp
-
 from eduid_scimapi.groupdb import ScimApiGroupDB
 from eduid_scimapi.userdb import ScimApiUserDB
 
