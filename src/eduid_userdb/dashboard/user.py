@@ -36,6 +36,7 @@
 import copy
 import logging
 from datetime import datetime
+from typing import Optional, Union
 
 import bson
 
@@ -50,8 +51,15 @@ class DashboardUser(User):
     Subclass of eduid_userdb.User with eduid Dashboard application specific data.
     """
 
-    def __init__(self, userid=None, eppn=None, subject='physical person', data=None,
-                 raise_on_unknown=False, called_directly=True):
+    def __init__(
+        self,
+        userid: Optional[Union[str, bson.ObjectId]] = None,
+        eppn: Optional[str] = None,
+        subject: str = 'physical person',
+        data: Optional[dict] = None,
+        raise_on_unknown: bool = False,
+        called_directly: bool = True,
+    ):
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
 

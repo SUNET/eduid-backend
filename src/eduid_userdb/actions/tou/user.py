@@ -73,8 +73,9 @@ class ToUUser(User):
         cls,
         userid: Optional[Union[bson.ObjectId, str]] = None,
         **kwargs
-    ):
+    ) -> User:
         """
+        User constructor
         """
         if userid is not None:
             kwargs['_id'] = userid
@@ -84,7 +85,10 @@ class ToUUser(User):
         return User.construct_user(**kwargs)
 
     @staticmethod
-    def check_for_missing_data(data):
+    def check_for_missing_data(data: dict):
+        """
+        Check that the provided data dict contains all needed keys.
+        """
         if '_id' not in data or data['_id'] is None:
             raise UserMissingData('Attempting to record a ToU acceptance ' 'for an unidentified user.')
         if 'eduPersonPrincipalName' not in data or data['eduPersonPrincipalName'] is None:

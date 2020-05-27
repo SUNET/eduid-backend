@@ -90,8 +90,9 @@ class ChpassUser(User):
         cls,
         userid: Optional[Union[bson.ObjectId, str]] = None,
         **kwargs
-    ):
+    ) -> User:
         """
+        User construction
         """
         if userid is not None:
             kwargs['_id'] = userid
@@ -101,7 +102,12 @@ class ChpassUser(User):
         return User.construct_user(**kwargs)
 
     @staticmethod
-    def check_for_missing_data(data):
+    def check_for_missing_data(data: dict):
+        """
+        Check that the data dict passed in contains both a key for `_id` and for `passwords`.
+
+        raises UserMissingData.
+        """
         if '_id' not in data or data['_id'] is None:
             raise UserMissingData('Attempting to record passwords ' 'for an unidentified user.')
         if 'passwords' not in data or data['passwords'] is None:

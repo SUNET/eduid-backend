@@ -61,7 +61,12 @@ class User(object):
     :type  data: dict
     """
 
-    def __init__(self, data: Dict[str, Any], raise_on_unknown: bool = True, called_directly: bool = True):
+    def __init__(
+        self,
+        data: Dict[str, Any],
+        raise_on_unknown: bool = True,
+        called_directly: bool = True
+    ):
         if called_directly:
             warnings.warn("User.__init__ called directly", DeprecationWarning)
 
@@ -153,6 +158,9 @@ class User(object):
         raise_on_unknown: bool = True,
         **kwargs
     ):
+        """
+        Construct user from data in typed params.
+        """
 
         data: Dict[str, Any] = {}
 
@@ -194,6 +202,9 @@ class User(object):
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any], raise_on_unknown: bool = True):
+        """
+        Construct user from a data dict.
+        """
         return cls(data=data, raise_on_unknown=raise_on_unknown, called_directly=False)
 
     def __repr__(self):
@@ -355,8 +366,6 @@ class User(object):
         """
         _profiles = self._data_in.pop('profiles', [])
         self._profiles = ProfileList.from_list_of_dicts(_profiles)
-
-    # -----------------------------------------------------------------
 
     # -----------------------------------------------------------------
     @property
