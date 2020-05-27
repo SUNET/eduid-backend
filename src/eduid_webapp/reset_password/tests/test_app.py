@@ -436,11 +436,7 @@ class ResetPasswordTests(EduidAPITestCase):
             return c.post(url, data=json.dumps(data), content_type=self.content_type_json)
 
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
-    def _get_email_code_backdoor(
-        self,
-        mock_sendmail: Any,
-        data1: Optional[dict] = None
-    ):
+    def _get_email_code_backdoor(self, mock_sendmail: Any, data1: Optional[dict] = None):
         """
         Create a password rest state for the test user, grab the created verification code from the db,
         and use it to get configuration for the reset form.
@@ -460,7 +456,9 @@ class ResetPasswordTests(EduidAPITestCase):
                     response = client.post('/reset/', data=json.dumps(data), content_type=self.content_type_json)
                     self.assertEqual(response.status_code, 200)
 
-                    client.set_cookie('localhost', key=self.app.config.magic_cookie_name, value=self.app.config.magic_cookie)
+                    client.set_cookie(
+                        'localhost', key=self.app.config.magic_cookie_name, value=self.app.config.magic_cookie
+                    )
 
                     eppn = quote_plus(self.test_user_eppn)
 
@@ -476,7 +474,7 @@ class ResetPasswordTests(EduidAPITestCase):
         mock_request_user_sync: Any,
         mock_sendmail: Any,
         mock_get_vccs_client: Any,
-        sendsms_side_effect: Any = None
+        sendsms_side_effect: Any = None,
     ):
         """
         Test choosing extra security via a confirmed phone number to reset the password,
@@ -509,15 +507,13 @@ class ResetPasswordTests(EduidAPITestCase):
                     self.assertEqual(response.status_code, 200)
 
                     url = url_for('reset_password.choose_extra_security_phone', _external=True)
-                    data = {
-                        'csrf_token': session.get_csrf_token(),
-                        'code': state.email_code.code,
-                        'phone_index': '0'
-                    }
+                    data = {'csrf_token': session.get_csrf_token(), 'code': state.email_code.code, 'phone_index': '0'}
                     response = client.post(url, data=json.dumps(data), content_type=self.content_type_json)
                     self.assertEqual(response.status_code, 200)
 
-                    client.set_cookie('localhost', key=self.app.config.magic_cookie_name, value=self.app.config.magic_cookie)
+                    client.set_cookie(
+                        'localhost', key=self.app.config.magic_cookie_name, value=self.app.config.magic_cookie
+                    )
 
                     eppn = quote_plus(self.test_user_eppn)
 

@@ -3,9 +3,9 @@
 from __future__ import absolute_import
 
 import base64
-from six.moves.urllib_parse import urlsplit, urlunsplit
 
 from flask import redirect, request
+from six.moves.urllib_parse import urlsplit, urlunsplit
 from werkzeug.wrappers import Response
 
 from eduid_common.api.decorators import require_user
@@ -217,14 +217,8 @@ def nin_verify_BACKDOOR(user: User) -> Response:
     authn_context = 'http://id.elegnamnden.se/loa/1.0/loa3'
 
     user_address = {
-        'Name': {
-            'GivenNameMarking': '20',
-            'GivenName': 'Magic Cookie',
-            'Surname': 'Testsson'},
-        'OfficialAddress': {
-            'Address2': 'MAGIC COOKIE',
-            'PostalCode': '12345',
-            'City': 'LANDET'}
+        'Name': {'GivenNameMarking': '20', 'GivenName': 'Magic Cookie', 'Surname': 'Testsson'},
+        'OfficialAddress': {'Address2': 'MAGIC COOKIE', 'PostalCode': '12345', 'City': 'LANDET'},
     }
 
     proofing_log_entry = SwedenConnectProofing(

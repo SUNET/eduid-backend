@@ -154,9 +154,7 @@ class LetterProofingTests(EduidAPITestCase):
                 cookie_value = self.app.config.magic_cookie
 
             if add_cookie:
-                client.set_cookie('localhost',
-                                  key=self.app.config.magic_cookie_name,
-                                  value=cookie_value)
+                client.set_cookie('localhost', key=self.app.config.magic_cookie_name, value=cookie_value)
 
             return client.get('/get-code')
 

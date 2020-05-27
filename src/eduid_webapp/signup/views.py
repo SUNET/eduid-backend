@@ -31,7 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from flask import Blueprint, request, abort
+from flask import Blueprint, abort, request
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith
 from eduid_common.api.helpers import check_magic_cookie
@@ -140,6 +140,8 @@ def get_email_code():
             code = signup_user.pending_mail_address.verification_code
             return code
     except Exception as e:
-        current_app.logger.info(f"Someone tried to use the backdoor to get the email verification code for signup, got error {e}")
+        current_app.logger.info(
+            f"Someone tried to use the backdoor to get the email verification code for signup, got error {e}"
+        )
 
     abort(400)

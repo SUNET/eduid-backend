@@ -157,10 +157,7 @@ class LookupMobileProofingTests(EduidAPITestCase):
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def test_proofing_flow_no_match_backdoor(
-        self,
-        mock_request_user_sync,
-        mock_get_postal_address,
-        mock_find_nin_by_mobile
+        self, mock_request_user_sync, mock_get_postal_address, mock_find_nin_by_mobile
     ):
         mock_find_nin_by_mobile.return_value = None
         mock_get_postal_address.return_value = None
@@ -178,9 +175,7 @@ class LookupMobileProofingTests(EduidAPITestCase):
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
 
-            browser.set_cookie('localhost',
-                               key='magic-cookie',
-                               value='magic-cookie')
+            browser.set_cookie('localhost', key='magic-cookie', value='magic-cookie')
 
             data = {'nin': self.test_user_nin, 'csrf_token': csrf_token}
             response = browser.post('/proofing', data=json.dumps(data), content_type=self.content_type_json)
@@ -199,10 +194,7 @@ class LookupMobileProofingTests(EduidAPITestCase):
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def test_proofing_flow_no_match_backdoor_code_in_pro(
-        self,
-        mock_request_user_sync,
-        mock_get_postal_address,
-        mock_find_nin_by_mobile
+        self, mock_request_user_sync, mock_get_postal_address, mock_find_nin_by_mobile
     ):
         mock_find_nin_by_mobile.return_value = None
         mock_get_postal_address.return_value = None
@@ -221,9 +213,7 @@ class LookupMobileProofingTests(EduidAPITestCase):
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
 
-            browser.set_cookie('localhost',
-                               key='magic-cookie',
-                               value='magic-cookie')
+            browser.set_cookie('localhost', key='magic-cookie', value='magic-cookie')
 
             data = {'nin': self.test_user_nin, 'csrf_token': csrf_token}
             response = browser.post('/proofing', data=json.dumps(data), content_type=self.content_type_json)
@@ -240,10 +230,7 @@ class LookupMobileProofingTests(EduidAPITestCase):
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def test_proofing_flow_no_match_backdoor_code_unconfigured(
-        self,
-        mock_request_user_sync,
-        mock_get_postal_address,
-        mock_find_nin_by_mobile
+        self, mock_request_user_sync, mock_get_postal_address, mock_find_nin_by_mobile
     ):
         mock_find_nin_by_mobile.return_value = None
         mock_get_postal_address.return_value = None
@@ -261,9 +248,7 @@ class LookupMobileProofingTests(EduidAPITestCase):
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
 
-            browser.set_cookie('localhost',
-                               key='magic-cookie',
-                               value='magic-cookie')
+            browser.set_cookie('localhost', key='magic-cookie', value='magic-cookie')
 
             data = {'nin': self.test_user_nin, 'csrf_token': csrf_token}
             response = browser.post('/proofing', data=json.dumps(data), content_type=self.content_type_json)

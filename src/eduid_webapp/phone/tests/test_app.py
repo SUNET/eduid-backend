@@ -203,7 +203,7 @@ class PhoneTests(EduidAPITestCase):
         mock_request_user_sync: Any,
         mod_data: Optional[dict] = None,
         phone: str = '+34670123456',
-        code: str = '5250f9a4'
+        code: str = '5250f9a4',
     ):
         """
         POST phone data to generate a verification state,
@@ -233,7 +233,9 @@ class PhoneTests(EduidAPITestCase):
 
                         client.post('/new', data=json.dumps(data), content_type=self.content_type_json)
 
-                        client.set_cookie('localhost', key=self.app.config.magic_cookie_name, value=self.app.config.magic_cookie)
+                        client.set_cookie(
+                            'localhost', key=self.app.config.magic_cookie_name, value=self.app.config.magic_cookie
+                        )
 
                         phone = quote_plus(phone)
                         eppn = quote_plus(eppn)

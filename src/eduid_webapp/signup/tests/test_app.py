@@ -106,7 +106,7 @@ class SignupTests(EduidAPITestCase):
         data1: Optional[dict] = None,
         email: str = 'dummy@example.com',
         recaptcha_return_value: bool = True,
-        add_magic_cookie: bool = False
+        add_magic_cookie: bool = False,
     ):
         """
         :param data1: to control the data POSTed to the /trycaptcha endpoint
@@ -130,7 +130,9 @@ class SignupTests(EduidAPITestCase):
                         data.update(data1)
 
                     if add_magic_cookie:
-                        client.set_cookie('localhost', key=self.app.config.magic_cookie_name, value=self.app.config.magic_cookie)
+                        client.set_cookie(
+                            'localhost', key=self.app.config.magic_cookie_name, value=self.app.config.magic_cookie
+                        )
 
                     return client.post('/trycaptcha', data=json.dumps(data), content_type=self.content_type_json)
 
@@ -259,7 +261,9 @@ class SignupTests(EduidAPITestCase):
                 with self.app.test_request_context():
                     send_verification_mail(email)
 
-                    client.set_cookie('localhost', key=self.app.config.magic_cookie_name, value=self.app.config.magic_cookie)
+                    client.set_cookie(
+                        'localhost', key=self.app.config.magic_cookie_name, value=self.app.config.magic_cookie
+                    )
                     return client.get(f'/get-code?email={email}')
 
     def test_get_code_backdoor(self):

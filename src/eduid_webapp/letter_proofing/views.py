@@ -6,22 +6,13 @@ from flask import Blueprint, abort
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, can_verify_identity, require_user
 from eduid_common.api.exceptions import AmTaskFailed, MsgTaskFailed
-from eduid_common.api.helpers import (
-    add_nin_to_user,
-    verify_nin_for_user,
-    check_magic_cookie,
-)
+from eduid_common.api.helpers import add_nin_to_user, check_magic_cookie, verify_nin_for_user
 from eduid_userdb.logs import LetterProofing
 
 from eduid_webapp.letter_proofing import pdf, schemas
 from eduid_webapp.letter_proofing.app import current_letterp_app as current_app
 from eduid_webapp.letter_proofing.ekopost import EkopostException
-from eduid_webapp.letter_proofing.helpers import (
-    check_state,
-    create_proofing_state,
-    get_address,
-    send_letter,
-)
+from eduid_webapp.letter_proofing.helpers import check_state, create_proofing_state, get_address, send_letter
 
 __author__ = 'lundberg'
 
@@ -163,6 +154,8 @@ def get_code(user):
             state = current_app.proofing_statedb.get_state_by_eppn(user.eppn)
             return state.nin.verification_code
     except Exception as e:
-        current_app.logger.info(f"{user} tried to use the backdoor to get the letter verification code for a NIN, got error {e}")
+        current_app.logger.info(
+            f"{user} tried to use the backdoor to get the letter verification code for a NIN, got error {e}"
+        )
 
     abort(400)
