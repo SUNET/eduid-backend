@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright (c) 2018 NORDUnet A/S
+# Copyright (c) 2020 SUNET
 # All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or
@@ -73,8 +74,11 @@ def _get_tous(app, version=None):
 
 class ActionsApp(EduIDBaseApp):
     def __init__(self, name: str, config: dict, **kwargs):
-
-        super(ActionsApp, self).__init__(name, ActionsConfig, config, **kwargs)
+        # Initialise type of self.config before any parent class sets a precedent to mypy
+        self.config = ActionsConfig.init_config(ns='webapp', app_name=name, test_config=config)
+        super().__init__(name, **kwargs)
+        # cast self.config because sometimes mypy thinks it is a FlaskConfig after super().__init__()
+        self.config: ActionsConfig = cast(ActionsConfig, self.config)  # type: ignore
 
         from eduid_webapp.actions.views import actions_views
 
