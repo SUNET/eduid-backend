@@ -43,6 +43,7 @@ class VCCSTestCase(MongoTestCase):
         super(VCCSTestCase, self).setUp()
         self.vccs_client = MockVCCSClient()
         self.user = self.amdb.get_user_by_mail('johnsmith@example.com')
+
         # Start with no credentials
         for credential in self.user.credentials.to_list():
             self.user.credentials.remove(credential.key)
