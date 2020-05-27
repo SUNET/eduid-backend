@@ -17,5 +17,5 @@ install:
   - python setup.py install
 # command to run tests
 script:
-  - pytest
-  - mypy --ignore-missing-imports src/eduid_common
+  - make test
+  - make typecheck
