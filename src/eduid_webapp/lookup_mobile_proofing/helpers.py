@@ -24,6 +24,7 @@ class MobileMsg(TranslatableMsg):
     Messages sent to the front end with information on the results of the
     attempted operations on the back end.
     """
+
     # the user has no verified phones to use
     no_phone = 'no_phone'
     # problems looking up the phone

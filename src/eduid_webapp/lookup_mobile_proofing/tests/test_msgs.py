@@ -6,7 +6,6 @@ from eduid_webapp.lookup_mobile_proofing.helpers import MobileMsg
 
 
 class MessagesTests(unittest.TestCase):
-
     def test_messages(self):
         """"""
         self.assertEqual(str(MobileMsg.no_phone.value), 'no_phone')
