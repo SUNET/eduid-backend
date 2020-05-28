@@ -22,6 +22,7 @@ class EidasApp(AuthnBaseApp):
 
         # Load acs actions on app init
         from . import acs_actions
+
         # Make sure pycharm doesn't think the import above is unused and removes it
         if acs_actions.__author__:
             pass

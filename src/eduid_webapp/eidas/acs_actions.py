@@ -26,8 +26,7 @@ from eduid_userdb.proofing.user import ProofingUser
 from eduid_userdb.user import User
 
 from eduid_webapp.eidas.app import current_eidas_app as current_app
-from eduid_webapp.eidas.helpers import EidasMsg
-from eduid_webapp.eidas.helpers import is_required_loa, is_valid_reauthn
+from eduid_webapp.eidas.helpers import EidasMsg, is_required_loa, is_valid_reauthn
 
 __author__ = 'lundberg'
 

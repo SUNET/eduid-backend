@@ -20,10 +20,10 @@ from eduid_userdb.credentials.fido import FidoCredential
 from eduid_webapp.eidas.acs_actions import nin_verify_BACKDOOR
 from eduid_webapp.eidas.app import current_eidas_app as current_app
 from eduid_webapp.eidas.helpers import (
+    EidasMsg,
     create_authn_request,
     create_metadata,
     parse_authn_response,
-    EidasMsg,
     staging_nin_remap,
 )
 

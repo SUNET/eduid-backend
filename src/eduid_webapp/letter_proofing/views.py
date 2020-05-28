@@ -154,7 +154,5 @@ def get_code(user):
             state = current_app.proofing_statedb.get_state_by_eppn(user.eppn)
             return state.nin.verification_code
     except Exception:
-        current_app.logger.exception(
-            f"{user} tried to use the backdoor to get the letter verification code for a NIN"
-        )
+        current_app.logger.exception(f"{user} tried to use the backdoor to get the letter verification code for a NIN")
     abort(400)
