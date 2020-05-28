@@ -100,14 +100,22 @@ class SignupTests(EduidAPITestCase):
     @patch('eduid_webapp.signup.views.verify_recaptcha')
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     def _captcha_new(
-        self, mock_sendmail: Any, mock_recaptcha: Any, data1: Optional[dict] = None, email: str = 'dummy@example.com'
+        self,
+        mock_sendmail: Any,
+        mock_recaptcha: Any,
+        data1: Optional[dict] = None,
+        email: str = 'dummy@example.com',
+        recaptcha_return_value: bool = True,
+        add_magic_cookie: bool = False,
     ):
         """
         :param data1: to control the data POSTed to the /trycaptcha endpoint
         :param email: the email to use for registration
+        :param recaptcha_return_value: to mock captcha verification failure
+        :param add_magic_cookie: add magic cookie to the trycaptcha request
         """
         mock_sendmail.return_value = True
-        mock_recaptcha.return_value = True
+        mock_recaptcha.return_value = recaptcha_return_value
 
         with self.session_cookie(self.browser) as client:
             with client.session_transaction() as sess:
@@ -120,6 +128,11 @@ class SignupTests(EduidAPITestCase):
                     }
                     if data1 is not None:
                         data.update(data1)
+
+                    if add_magic_cookie:
+                        client.set_cookie(
+                            'localhost', key=self.app.config.magic_cookie_name, value=self.app.config.magic_cookie
+                        )
 
                     return client.post('/trycaptcha', data=json.dumps(data), content_type=self.content_type_json)
 
@@ -224,6 +237,77 @@ class SignupTests(EduidAPITestCase):
 
                     return json.loads(response.data)
 
+    @patch('eduid_webapp.signup.views.verify_recaptcha')
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('vccs_client.VCCSClient.add_credentials')
+    def _get_code_backdoor(
+        self,
+        mock_add_credentials: Any,
+        mock_request_user_sync: Any,
+        mock_sendmail: Any,
+        mock_recaptcha: Any,
+        email: str,
+    ):
+        """
+        Test getting the generatied verification code through the backdoor
+        """
+        mock_add_credentials.return_value = True
+        mock_request_user_sync.return_value = True
+        mock_sendmail.return_value = True
+        mock_recaptcha.return_value = True
+        with self.session_cookie(self.browser) as client:
+            with client.session_transaction():
+                with self.app.test_request_context():
+                    send_verification_mail(email)
+
+                    client.set_cookie(
+                        'localhost', key=self.app.config.magic_cookie_name, value=self.app.config.magic_cookie
+                    )
+                    return client.get(f'/get-code?email={email}')
+
+    def test_get_code_backdoor(self):
+        self.app.config.magic_cookie = 'magic-cookie'
+        self.app.config.magic_cookie_name = 'magic'
+        self.app.config.environment = 'dev'
+
+        email = 'johnsmith4@example.com'
+        resp = self._get_code_backdoor(email=email)
+
+        signup_user = self.app.private_userdb.get_user_by_pending_mail_address(email)
+
+        self.assertEqual(signup_user.pending_mail_address.verification_code, resp.data.decode('ascii'))
+
+    def test_get_code_no_backdoor_in_pro(self):
+        self.app.config.magic_cookie = 'magic-cookie'
+        self.app.config.magic_cookie_name = 'magic'
+        self.app.config.environment = 'pro'
+
+        email = 'johnsmith4@example.com'
+        resp = self._get_code_backdoor(email=email)
+
+        self.assertEqual(resp.status_code, 400)
+
+    def test_get_code_no_backdoor_misconfigured1(self):
+        self.app.config.magic_cookie = 'magic-cookie'
+        self.app.config.magic_cookie_name = ''
+        self.app.config.environment = 'dev'
+
+        email = 'johnsmith4@example.com'
+        resp = self._get_code_backdoor(email=email)
+
+        self.assertEqual(resp.status_code, 400)
+
+    def test_get_code_no_backdoor_misconfigured2(self):
+        self.app.config.magic_cookie = ''
+        self.app.config.magic_cookie_name = 'magic'
+        self.app.config.environment = 'dev'
+
+        email = 'johnsmith4@example.com'
+        resp = self._get_code_backdoor(email=email)
+
+        self.assertEqual(resp.status_code, 400)
+
     # actual tests
 
     def test_captcha_new(self):
@@ -257,6 +341,43 @@ class SignupTests(EduidAPITestCase):
         data = json.loads(response.data)
         self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_SUCCESS')
         self.assertEqual(data['payload']['next'], 'new')
+
+    def test_captcha_fail(self):
+        response = self._captcha_new(recaptcha_return_value=False)
+        data = json.loads(response.data)
+        self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_FAIL')
+
+    def test_captcha_backdoor(self):
+        self.app.config.magic_cookie = 'magic-cookie'
+        self.app.config.magic_cookie_name = 'magic'
+        self.app.config.environment = 'dev'
+        response = self._captcha_new(recaptcha_return_value=False, add_magic_cookie=True)
+        data = json.loads(response.data)
+        self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_SUCCESS')
+
+    def test_captcha_no_backdoor_in_pro(self):
+        self.app.config.magic_cookie = 'magic-cookie'
+        self.app.config.magic_cookie_name = 'magic'
+        self.app.config.environment = 'pro'
+        response = self._captcha_new(recaptcha_return_value=False, add_magic_cookie=True)
+        data = json.loads(response.data)
+        self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_FAIL')
+
+    def test_captcha_no_backdoor_misconfigured1(self):
+        self.app.config.magic_cookie = 'magic-cookie'
+        self.app.config.magic_cookie_name = ''
+        self.app.config.environment = 'dev'
+        response = self._captcha_new(recaptcha_return_value=False, add_magic_cookie=True)
+        data = json.loads(response.data)
+        self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_FAIL')
+
+    def test_captcha_no_backdoor_misconfigured2(self):
+        self.app.config.magic_cookie = ''
+        self.app.config.magic_cookie_name = 'magic'
+        self.app.config.environment = 'dev'
+        response = self._captcha_new(recaptcha_return_value=False, add_magic_cookie=True)
+        data = json.loads(response.data)
+        self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_FAIL')
 
     def test_captcha_unsynced(self):
         with patch('eduid_webapp.signup.helpers.save_and_sync_user') as mock_save:

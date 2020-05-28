@@ -37,7 +37,6 @@ from flask import current_app, render_template, url_for
 from flask_babel import gettext as _
 
 from eduid_common.api.utils import get_unique_hash, save_and_sync_user
-from eduid_common.session import session
 from eduid_userdb.element import DuplicateElementViolation
 from eduid_userdb.logs import MailAddressProofing
 from eduid_userdb.mail import MailAddress

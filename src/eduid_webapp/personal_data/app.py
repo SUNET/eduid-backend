@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright (c) 2016 NORDUnet A/S
-# Copyright (c) 2019 SUNET
+# Copyright (c) 2019,2020 SUNET
 # All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or
@@ -43,8 +43,11 @@ from eduid_userdb.personal_data import PersonalDataUserDB
 
 class PersonalDataApp(AuthnBaseApp):
     def __init__(self, name: str, config: dict, **kwargs):
-
-        super(PersonalDataApp, self).__init__(name, FlaskConfig, config, **kwargs)
+        # Initialise type of self.config before any parent class sets a precedent to mypy
+        self.config = FlaskConfig.init_config(ns='webapp', app_name=name, test_config=config)
+        super().__init__(name, **kwargs)
+        # cast self.config because sometimes mypy thinks it is a FlaskConfig after super().__init__()
+        self.config: FlaskConfig = cast(FlaskConfig, self.config)  # type: ignore
 
         from eduid_webapp.personal_data.views import pd_views
 

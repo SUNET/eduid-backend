@@ -35,10 +35,10 @@ from typing import Dict, List, Mapping
 from flask import Blueprint, jsonify
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
-from eduid_userdb import User
-
 from eduid_groupdb import User as GraphUser
 from eduid_scimapi.groupdb import ScimApiGroup
+from eduid_userdb import User
+
 from eduid_webapp.group_management.app import current_group_management_app as current_app
 from eduid_webapp.group_management.schemas import GroupManagementResponseSchema
 

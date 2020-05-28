@@ -37,12 +37,12 @@ from uuid import UUID, uuid4
 from bson import ObjectId
 
 from eduid_common.api.testing import EduidAPITestCase
-
 from eduid_groupdb.group import Group as GraphGroup
 from eduid_groupdb.group import User as GraphUser
 from eduid_groupdb.testing import Neo4jTemporaryInstance
 from eduid_scimapi.groupdb import GroupExtensions, ScimApiGroup
 from eduid_scimapi.userdb import ScimApiUser
+
 from eduid_webapp.group_management.app import init_group_management_app
 from eduid_webapp.group_management.settings.common import GroupManagementConfig
 
