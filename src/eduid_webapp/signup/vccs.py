@@ -3,6 +3,7 @@ from re import findall
 from pwgen import pwgen
 
 import vccs_client
+
 from eduid_webapp.signup.app import current_signup_app as current_app
 
 

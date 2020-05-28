@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright (c) 2016 NORDUnet A/S
+# Copyright (c) 2020 SUNET
 # All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or
@@ -46,8 +47,11 @@ from eduid_webapp.security.settings.common import SecurityConfig
 
 class SecurityApp(AuthnBaseApp):
     def __init__(self, name: str, config: dict, **kwargs):
-
-        super(SecurityApp, self).__init__(name, SecurityConfig, config, **kwargs)
+        # Initialise type of self.config before any parent class sets a precedent to mypy
+        self.config = SecurityConfig.init_config(ns='webapp', app_name=name, test_config=config)
+        super().__init__(name, **kwargs)
+        # cast self.config because sometimes mypy thinks it is a FlaskConfig after super().__init__()
+        self.config: SecurityConfig = cast(SecurityConfig, self.config)  # type: ignore
 
         from eduid_webapp.security.views.security import security_views
         from eduid_webapp.security.views.u2f import u2f_views

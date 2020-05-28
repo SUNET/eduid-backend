@@ -246,6 +246,19 @@ def nin_verify_BACKDOOR(user: User) -> Response:
 
     return redirect_with_msg(redirect_url, 'eidas.nin_verify_success')
 
+    # Verify NIN for user
+    try:
+        nin_element = NinProofingElement(number=asserted_nin, application='eduid-eidas', verified=False)
+        proofing_state = NinProofingState(id=None, modified_ts=None, eppn=user.eppn, nin=nin_element)
+        verify_nin_for_user(user, proofing_state, proofing_log_entry)
+    except AmTaskFailed as e:
+        current_app.logger.error('Verifying NIN for user failed')
+        current_app.logger.error('{}'.format(e))
+        return redirect_with_msg(redirect_url, ':ERROR:Temporary technical problems')
+    current_app.stats.count(name='nin_verified')
+
+    return redirect_with_msg(redirect_url, 'eidas.nin_verify_success')
+
 
 @acs_action('mfa-authentication-action')
 @require_user
@@ -276,8 +289,9 @@ def mfa_authentication_action(session_info, user):
     # Check that a verified NIN is equal to the asserted attribute personalIdentityNumber
     _personal_idns = get_saml_attribute(session_info, 'personalIdentityNumber')
     if _personal_idns is None:
-        current_app.logger.error('Got no personalIdentityNumber attributes. '
-                                 'pysaml2 without the right attribute_converter?')
+        current_app.logger.error(
+            'Got no personalIdentityNumber attributes. pysaml2 without the right attribute_converter?'
+        )
         # TODO: change to reasonable redirect_with_msg when the ENUM work for that is merged
         raise RuntimeError('Got no personalIdentityNumber')
 

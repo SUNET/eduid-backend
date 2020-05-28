@@ -157,5 +157,4 @@ def get_code(user):
         current_app.logger.exception(
             f"{user} tried to use the backdoor to get the letter verification code for a NIN"
         )
-
     abort(400)

@@ -1,5 +1,5 @@
 eduid-userdb>=0.4.11
-eduid-common[webapp]>=0.4.20
+eduid-common[webapp]>=0.4.21
 eduid-am>=0.7.4
 eduid-msg>=0.10.9
 eduid_lookup_mobile>=0.1.2
