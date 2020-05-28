@@ -773,9 +773,10 @@ class EidasTests(EduidAPITestCase):
 
 
 class RedirectWithMsgTests(TestCase):
-
     def test_redirect_with_message(self):
         url = "https://www.exaple.com/services/eidas/?next=/authn"
         response = redirect_with_msg(url, EidasMsg.authn_context_mismatch)
-        self.assertEqual(response.location,
-                         'https://www.exaple.com/services/eidas/?next=%2Fauthn&msg=%3AERROR%3Aeidas.authn_context_mismatch')
+        self.assertEqual(
+            response.location,
+            'https://www.exaple.com/services/eidas/?next=%2Fauthn&msg=%3AERROR%3Aeidas.authn_context_mismatch',
+        )

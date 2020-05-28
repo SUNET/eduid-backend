@@ -36,12 +36,8 @@ from flask import Blueprint, abort, current_app, redirect, request
 from six.moves.urllib_parse import urlsplit, urlunsplit
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
-from eduid_common.api.messages import (
-    success_message,
-    error_message,
-    make_query_string,
-)
 from eduid_common.api.helpers import check_magic_cookie
+from eduid_common.api.messages import error_message, make_query_string, success_message
 from eduid_common.api.utils import save_and_sync_user
 from eduid_userdb.element import DuplicateElementViolation, PrimaryElementViolation
 from eduid_userdb.exceptions import DocumentDoesNotExist, UserOutOfSync
@@ -49,6 +45,7 @@ from eduid_userdb.mail import MailAddress
 from eduid_userdb.proofing import ProofingUser
 from eduid_userdb.user import User
 
+from eduid_webapp.email.helpers import EmailMsg
 from eduid_webapp.email.schemas import (
     AddEmailSchema,
     ChangeEmailSchema,
@@ -56,7 +53,6 @@ from eduid_webapp.email.schemas import (
     EmailResponseSchema,
     VerificationCodeSchema,
 )
-from eduid_webapp.email.helpers import EmailMsg
 from eduid_webapp.email.verifications import send_verification_code, verify_mail_address
 
 email_views = Blueprint('email', __name__, url_prefix='', template_folder='templates')
@@ -320,8 +316,6 @@ def get_code(user: User):
             state = current_app.proofing_statedb.get_state_by_eppn_and_email(eppn, email)
             return state.verification.verification_code
     except Exception:
-        current_app.logger.exception(
-            f"{user} tried to use the backdoor to get the verification code for an email"
-        )
+        current_app.logger.exception(f"{user} tried to use the backdoor to get the verification code for an email")
 
     abort(400)
