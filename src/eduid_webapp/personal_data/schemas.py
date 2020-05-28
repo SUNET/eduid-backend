@@ -62,7 +62,6 @@ class PersonalDataSchema(EduidSchema):
 
 
 class PersonalDataResponseSchema(FluxStandardAction):
-
     class PersonalDataResponsePayload(PersonalDataSchema, CSRFResponseMixin):
         pass
 
@@ -91,4 +90,5 @@ class AllDataSchema(EduidSchema):
 class AllDataResponseSchema(FluxStandardAction):
     class AllDataResponsePayload(AllDataSchema, CSRFResponseMixin):
         pass
+
     payload = fields.Nested(AllDataResponsePayload)

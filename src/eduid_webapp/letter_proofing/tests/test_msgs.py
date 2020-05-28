@@ -14,7 +14,7 @@ class MessagesTests(unittest.TestCase):
         self.assertEqual(str(LetterMsg.letter_expired.value), 'letter.expired')
         self.assertEqual(str(LetterMsg.not_sent.value), 'letter.not-sent')
         self.assertEqual(str(LetterMsg.address_not_found.value), 'letter.no-address-found')
-        self.assertEqual(str(LetterMsg.naver_error.value), 'error_navet_task')
+        self.assertEqual(str(LetterMsg.navet_error.value), 'error_navet_task')
         self.assertEqual(str(LetterMsg.bad_address.value), 'letter.bad-postal-address')
         self.assertEqual(str(LetterMsg.temp_error.value), 'Temporary technical problems')
         self.assertEqual(str(LetterMsg.letter_sent.value), 'letter.saved-unconfirmed')

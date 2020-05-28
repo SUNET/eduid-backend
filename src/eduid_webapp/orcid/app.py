@@ -13,7 +13,7 @@
 #        copyright notice, this list of conditions and the following
 #        disclaimer in the documentation and/or other materials provided
 #        with the distribution.
-#     3. Neither the name of the NORDUnet nor the names of its
+#     3. Neither the name of the SUNET nor the names of its
 #        contributors may be used to endorse or promote products derived
 #        from this software without specific prior written permission.
 #
@@ -46,8 +46,11 @@ __author__ = 'lundberg'
 
 class OrcidApp(AuthnBaseApp):
     def __init__(self, name: str, config: dict, **kwargs):
-
-        super(OrcidApp, self).__init__(name, OrcidConfig, config, **kwargs)
+        # Initialise type of self.config before any parent class sets a precedent to mypy
+        self.config = OrcidConfig.init_config(ns='webapp', app_name=name, test_config=config)
+        super().__init__(name, **kwargs)
+        # cast self.config because sometimes mypy thinks it is a FlaskConfig after super().__init__()
+        self.config: OrcidConfig = cast(OrcidConfig, self.config)  # type: ignore
 
         # Register views
         from eduid_webapp.orcid.views import orcid_views

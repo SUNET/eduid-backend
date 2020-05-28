@@ -33,11 +33,11 @@
 
 from __future__ import absolute_import
 
-from flask import Blueprint
+from flask import Blueprint, abort, request
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
+from eduid_common.api.helpers import check_magic_cookie
 from eduid_common.api.utils import save_and_sync_user
-from eduid_common.session import session
 from eduid_userdb.element import PrimaryElementViolation, UserDBValueError
 from eduid_userdb.exceptions import DocumentDoesNotExist, UserOutOfSync
 from eduid_userdb.phone import PhoneNumber
@@ -256,3 +256,22 @@ def resend_code(user, number):
 
     phones = {'phones': user.phone_numbers.to_list_of_dicts(), 'message': 'phones.code-sent'}
     return phones
+
+
+@phone_views.route('/get-code', methods=['GET'])
+def get_code():
+    """
+    Backdoor to get the verification code in the staging or dev environments
+    """
+    try:
+        if check_magic_cookie(current_app.config):
+            eppn = request.args.get('eppn')
+            phone = request.args.get('phone')
+            state = current_app.proofing_statedb.get_state_by_eppn_and_mobile(eppn, phone)
+            return state.verification.verification_code
+    except Exception:
+        current_app.logger.exception(
+            "Someone tried to use the backdoor to get the verification code for a phone"
+        )
+
+    abort(400)

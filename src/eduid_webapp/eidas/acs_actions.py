@@ -4,8 +4,9 @@ from __future__ import absolute_import
 
 import base64
 
-from flask import current_app, redirect, request
+from flask import redirect, request
 from six.moves.urllib_parse import urlsplit, urlunsplit
+from werkzeug.wrappers import Response
 
 from eduid_common.api.decorators import require_user
 from eduid_common.api.exceptions import AmTaskFailed, MsgTaskFailed
@@ -22,9 +23,11 @@ from eduid_userdb.credentials.fido import FidoCredential
 from eduid_userdb.logs import MFATokenProofing, SwedenConnectProofing
 from eduid_userdb.proofing.state import NinProofingElement, NinProofingState
 from eduid_userdb.proofing.user import ProofingUser
+from eduid_userdb.user import User
 
-from eduid_webapp.eidas.helpers import is_required_loa, is_valid_reauthn
+from eduid_webapp.eidas.app import eidas_current_app as current_app
 from eduid_webapp.eidas.helpers import EidasMsg
+from eduid_webapp.eidas.helpers import is_required_loa, is_valid_reauthn
 
 __author__ = 'lundberg'
 
@@ -188,6 +191,75 @@ def nin_verify_action(session_info, user):
     return redirect_with_msg(redirect_url, EidasMsg.nin_verify_success, error=False)
 
 
+@require_user
+def nin_verify_BACKDOOR(user: User) -> Response:
+    """
+    Mock using a Sweden Connect federation IdP assertion to verify a users identity
+    when the request carries a magic cookie.
+
+    :param user: Central db user
+
+    :return: redirect response
+    """
+
+    redirect_url = current_app.config.nin_verify_redirect_url
+
+    proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
+    asserted_nin = request.cookies.get('nin')
+
+    if proofing_user.nins.verified.count != 0:
+        current_app.logger.error('User already has a verified NIN')
+        current_app.logger.debug(
+            'Primary NIN: {}. Asserted NIN: {}'.format(proofing_user.nins.primary.number, asserted_nin)
+        )
+        return redirect_with_msg(redirect_url, ':ERROR:eidas.nin_already_verified')
+
+    # Create a proofing log
+    issuer = 'https://idp.example.com/simplesaml/saml2/idp/metadata.php'
+    authn_context = 'http://id.elegnamnden.se/loa/1.0/loa3'
+
+    user_address = {
+        'Name': {'GivenNameMarking': '20', 'GivenName': 'Magic Cookie', 'Surname': 'Testsson'},
+        'OfficialAddress': {'Address2': 'MAGIC COOKIE', 'PostalCode': '12345', 'City': 'LANDET'},
+    }
+
+    proofing_log_entry = SwedenConnectProofing(
+        user=proofing_user,
+        created_by='eduid-eidas',
+        nin=asserted_nin,
+        issuer=issuer,
+        authn_context_class=authn_context,
+        user_postal_address=user_address,
+        proofing_version='2018v1',
+    )
+
+    # Verify NIN for user
+    try:
+        nin_element = NinProofingElement(number=asserted_nin, application='eduid-eidas', verified=False)
+        proofing_state = NinProofingState(id=None, modified_ts=None, eppn=user.eppn, nin=nin_element)
+        verify_nin_for_user(user, proofing_state, proofing_log_entry)
+    except AmTaskFailed as e:
+        current_app.logger.error('Verifying NIN for user failed')
+        current_app.logger.error('{}'.format(e))
+        return redirect_with_msg(redirect_url, ':ERROR:Temporary technical problems')
+    current_app.stats.count(name='nin_verified')
+
+    return redirect_with_msg(redirect_url, 'eidas.nin_verify_success')
+
+    # Verify NIN for user
+    try:
+        nin_element = NinProofingElement(number=asserted_nin, application='eduid-eidas', verified=False)
+        proofing_state = NinProofingState(id=None, modified_ts=None, eppn=user.eppn, nin=nin_element)
+        verify_nin_for_user(user, proofing_state, proofing_log_entry)
+    except AmTaskFailed as e:
+        current_app.logger.error('Verifying NIN for user failed')
+        current_app.logger.error('{}'.format(e))
+        return redirect_with_msg(redirect_url, ':ERROR:Temporary technical problems')
+    current_app.stats.count(name='nin_verified')
+
+    return redirect_with_msg(redirect_url, 'eidas.nin_verify_success')
+
+
 @acs_action('mfa-authentication-action')
 @require_user
 def mfa_authentication_action(session_info, user):
@@ -215,7 +287,15 @@ def mfa_authentication_action(session_info, user):
         return redirect_with_msg(redirect_url, EidasMsg.reauthn_expired)
 
     # Check that a verified NIN is equal to the asserted attribute personalIdentityNumber
-    asserted_nin = get_saml_attribute(session_info, 'personalIdentityNumber')[0]
+    _personal_idns = get_saml_attribute(session_info, 'personalIdentityNumber')
+    if _personal_idns is None:
+        current_app.logger.error(
+            'Got no personalIdentityNumber attributes. pysaml2 without the right attribute_converter?'
+        )
+        # TODO: change to reasonable redirect_with_msg when the ENUM work for that is merged
+        raise RuntimeError('Got no personalIdentityNumber')
+
+    asserted_nin = _personal_idns[0]
     user_nin = user.nins.verified.find(asserted_nin)
     if not user_nin:
         current_app.logger.error('Asserted NIN not matching user verified nins')
