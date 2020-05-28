@@ -6,7 +6,6 @@ from eduid_webapp.phone.helpers import PhoneMsg
 
 
 class MessagesTests(unittest.TestCase):
-
     def test_messages(self):
         """"""
         self.assertEqual(str(PhoneMsg.out_of_sync.value), 'user-out-of-sync')
