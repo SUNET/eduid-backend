@@ -6,7 +6,6 @@ from eduid_webapp.letter_proofing.helpers import LetterMsg
 
 
 class MessagesTests(unittest.TestCase):
-
     def test_messages(self):
         """"""
         self.assertEqual(str(LetterMsg.no_state.value), 'letter.no_state_found')

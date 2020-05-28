@@ -26,8 +26,7 @@ from eduid_userdb.proofing.user import ProofingUser
 from eduid_userdb.user import User
 
 from eduid_webapp.eidas.app import current_eidas_app as current_app
-from eduid_webapp.eidas.helpers import EidasMsg
-from eduid_webapp.eidas.helpers import is_required_loa, is_valid_reauthn
+from eduid_webapp.eidas.helpers import EidasMsg, is_required_loa, is_valid_reauthn
 
 __author__ = 'lundberg'
 
@@ -232,19 +231,6 @@ def nin_verify_BACKDOOR(user: User) -> Response:
         user_postal_address=user_address,
         proofing_version='2018v1',
     )
-
-    # Verify NIN for user
-    try:
-        nin_element = NinProofingElement(number=asserted_nin, application='eduid-eidas', verified=False)
-        proofing_state = NinProofingState(id=None, modified_ts=None, eppn=user.eppn, nin=nin_element)
-        verify_nin_for_user(user, proofing_state, proofing_log_entry)
-    except AmTaskFailed as e:
-        current_app.logger.error('Verifying NIN for user failed')
-        current_app.logger.error('{}'.format(e))
-        return redirect_with_msg(redirect_url, ':ERROR:Temporary technical problems')
-    current_app.stats.count(name='nin_verified')
-
-    return redirect_with_msg(redirect_url, 'eidas.nin_verify_success')
 
     # Verify NIN for user
     try:
