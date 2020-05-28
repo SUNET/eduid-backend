@@ -12,6 +12,7 @@ pre_build_script:
   - "docker pull docker.sunet.se/eduid/redis:latest"
   - "docker pull docker.sunet.se/library/etcd:v3.3.12"
   - "docker pull docker.sunet.se/eduid/mongodb:latest"
+  - "docker pull neo4j:enterprise"
 script:
   - "python3.7 -m venv venv"
   - ". venv/bin/activate"
