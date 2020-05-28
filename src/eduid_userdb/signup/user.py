@@ -57,9 +57,6 @@ class SignupUser(User):
         raise_on_unknown: bool = False,
         called_directly: bool = True,
     ):
-        data_in = data
-        data = copy.copy(data_in)  # to not modify callers data
-
         if data is None:
             if userid is None:
                 userid = bson.ObjectId()
@@ -68,7 +65,7 @@ class SignupUser(User):
         User.__init__(self, data=data, raise_on_unknown=raise_on_unknown, called_directly=called_directly)
 
     def check_or_use_data(self):
-        data = self._data
+        data = self._data_in
         _social_network = data.pop('social_network', None)
         _social_network_id = data.pop('social_network_id', None)
         _pending_mail_address = data.pop('pending_mail_address', None)
