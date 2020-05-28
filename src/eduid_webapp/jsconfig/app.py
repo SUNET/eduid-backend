@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright (c) 2016 NORDUnet A/S
+# Copyright (c) 2020 SUNET
 # All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or
@@ -48,7 +49,11 @@ class JSConfigApp(EduIDBaseApp):
         kwargs['static_folder'] = None
         kwargs['subdomain_matching'] = True
 
-        super(JSConfigApp, self).__init__(name, JSConfigConfig, config, **kwargs)
+        # Initialise type of self.config before any parent class sets a precedent to mypy
+        self.config = JSConfigConfig.init_config(ns='webapp', app_name=name, test_config=config)
+        super().__init__(name, **kwargs)
+        # cast self.config because sometimes mypy thinks it is a FlaskConfig after super().__init__()
+        self.config: JSConfigConfig = cast(JSConfigConfig, self.config)  # type: ignore
 
         if not self.testing:
             self.url_map.host_matching = False

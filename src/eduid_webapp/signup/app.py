@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright (c) 2016 NORDUnet A/S
+# Copyright (c) 2020 SUNET
 # All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or
@@ -44,8 +45,11 @@ from eduid_webapp.signup.settings.common import SignupConfig
 
 class SignupApp(EduIDBaseApp):
     def __init__(self, name: str, config: dict, **kwargs):
-
-        super(SignupApp, self).__init__(name, SignupConfig, config, **kwargs)
+        # Initialise type of self.config before any parent class sets a precedent to mypy
+        self.config = SignupConfig.init_config(ns='webapp', app_name=name, test_config=config)
+        super().__init__(name, **kwargs)
+        # cast self.config because sometimes mypy thinks it is a FlaskConfig after super().__init__()
+        self.config: SignupConfig = cast(SignupConfig, self.config)  # type: ignore
 
         from eduid_webapp.signup.views import signup_views
 

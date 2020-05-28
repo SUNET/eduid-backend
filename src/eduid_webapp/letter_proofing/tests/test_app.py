@@ -5,6 +5,7 @@ from __future__ import absolute_import
 import json
 from collections import OrderedDict
 from datetime import datetime
+from typing import Any, Optional
 
 from mock import Mock, patch
 
@@ -123,6 +124,39 @@ class LetterProofingTests(EduidAPITestCase):
             response = client.post('/verify-code', data=json.dumps(data), content_type=self.content_type_json)
         self.assertEqual(response.status_code, 200)
         return json.loads(response.data)
+
+    @patch('hammock.Hammock._request')
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
+    def get_code_backdoor(
+        self,
+        mock_get_postal_address: Any,
+        mock_request_user_sync: Any,
+        mock_hammock: Any,
+        cookie_value: Optional[str] = None,
+        add_cookie: bool = True,
+    ):
+        ekopost_response = self.mock_response(json_data={'id': 'test'})
+        mock_hammock.return_value = ekopost_response
+        mock_request_user_sync.side_effect = self.request_user_sync
+        mock_get_postal_address.return_value = self.mock_address
+
+        nin = self.test_user_nin
+        json_data = self.get_state()
+        csrf_token = json_data['payload']['csrf_token']
+        data = {'nin': nin, 'csrf_token': csrf_token}
+
+        with self.session_cookie(self.browser, self.test_user_eppn) as client:
+            response = client.post('/proofing', data=json.dumps(data), content_type=self.content_type_json)
+            self.assertEqual(response.status_code, 200)
+
+            if cookie_value is None:
+                cookie_value = self.app.config.magic_cookie
+
+            if add_cookie:
+                client.set_cookie('localhost', key=self.app.config.magic_cookie_name, value=cookie_value)
+
+            return client.get('/get-code')
 
     # End helper methods
 
@@ -362,3 +396,58 @@ class LetterProofingTests(EduidAPITestCase):
             csrf_token = json_data['payload']['csrf_token']
             response = self.send_letter('200102031234', csrf_token)
         self.assertEqual(response['type'], 'POST_LETTER_PROOFING_PROOFING_FAIL')
+
+    def test_get_code_backdoor(self):
+        self.app.config.magic_cookie = 'magic-cookie'
+        self.app.config.magic_cookie_name = 'magic'
+        self.app.config.environment = 'dev'
+
+        response = self.get_code_backdoor()
+        state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
+
+        self.assertEqual(response.data.decode('ascii'), state.nin.verification_code)
+
+    def test_get_code_no_backdoor_in_pro(self):
+        self.app.config.magic_cookie = 'magic-cookie'
+        self.app.config.magic_cookie_name = 'magic'
+        self.app.config.environment = 'pro'
+
+        response = self.get_code_backdoor()
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_get_code_no_backdoor_without_cookie(self):
+        self.app.config.magic_cookie = 'magic-cookie'
+        self.app.config.magic_cookie_name = 'magic'
+        self.app.config.environment = 'dev'
+
+        response = self.get_code_backdoor(add_cookie=False)
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_get_code_no_backdoor_misconfigured1(self):
+        self.app.config.magic_cookie = 'magic-cookie'
+        self.app.config.magic_cookie_name = ''
+        self.app.config.environment = 'dev'
+
+        response = self.get_code_backdoor()
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_get_code_no_backdoor_misconfigured2(self):
+        self.app.config.magic_cookie = ''
+        self.app.config.magic_cookie_name = 'magic'
+        self.app.config.environment = 'dev'
+
+        response = self.get_code_backdoor()
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_get_code_no_backdoor_wrong_value(self):
+        self.app.config.magic_cookie = 'magic-cookie'
+        self.app.config.magic_cookie_name = 'magic'
+        self.app.config.environment = 'dev'
+
+        response = self.get_code_backdoor(cookie_value='wrong-cookie')
+
+        self.assertEqual(response.status_code, 400)

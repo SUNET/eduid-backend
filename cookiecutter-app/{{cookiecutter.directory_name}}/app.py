@@ -13,7 +13,7 @@
 #        copyright notice, this list of conditions and the following
 #        disclaimer in the documentation and/or other materials provided
 #        with the distribution.
-#     3. Neither the name of the NORDUnet nor the names of its
+#     3. Neither the name of the SUNET nor the names of its
 #        contributors may be used to endorse or promote products derived
 #        from this software without specific prior written permission.
 #
@@ -45,8 +45,10 @@ __author__ = '{{cookiecutter.author}}'
 class {{cookiecutter.class_name}}App(AuthnApp):
 
     def __init__(self, name: str, config: Dict, **kwargs):
-        # Init app config
-        super({{cookiecutter.class_name}}App, self).__init__(name, {{cookiecutter.class_name}}Config, config, **kwargs)
+        # Initialise type of self.config before any parent class sets a precedent to mypy
+        self.config = {{cookiecutter.class_name}}Config.init_config(ns='webapp', app_name=name, test_config=config)
+        super().__init__(name, **kwargs)
+        # cast self.config because sometimes mypy thinks it is a FlaskConfig after super().__init__()
         self.config: {{cookiecutter.class_name}}Config = cast({{cookiecutter.class_name}}Config, self.config)
         # Init dbs
         self.private_userdb = {{cookiecutter.class_name}}UserDB(self.config.mongo_uri)

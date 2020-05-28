@@ -4,6 +4,8 @@ from __future__ import absolute_import
 
 from typing import cast
 
+from flask import current_app
+
 from eduid_common.api import am, msg
 from eduid_common.authn.middleware import AuthnBaseApp
 from eduid_common.authn.utils import get_saml2_config, no_authn_views
@@ -21,8 +23,11 @@ class EidasApp(AuthnBaseApp):
         # Load acs actions on app init
         from . import acs_actions
 
-        super(EidasApp, self).__init__(name, EidasConfig, config, **kwargs)
-        self.config: EidasConfig = cast(EidasConfig, self.config)
+        # Initialise type of self.config before any parent class sets a precedent to mypy
+        self.config = EidasConfig.init_config(ns='webapp', app_name=name, test_config=config)
+        super().__init__(name, **kwargs)
+        # cast self.config because sometimes mypy thinks it is a FlaskConfig after super().__init__()
+        self.config: EidasConfig = cast(EidasConfig, self.config)  # type: ignore
 
         self.saml2_config = get_saml2_config(self.config.saml2_settings_module)
         self.config.saml2_config = self.saml2_config
@@ -42,6 +47,9 @@ class EidasApp(AuthnBaseApp):
         # Init celery
         self = am.init_relay(self, 'eduid_eidas')
         self = msg.init_relay(self)
+
+
+eidas_current_app: EidasApp = cast(EidasApp, current_app)
 
 
 def init_eidas_app(name: str, config: dict) -> EidasApp:
