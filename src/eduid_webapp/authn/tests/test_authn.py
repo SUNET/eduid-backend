@@ -36,9 +36,11 @@ import logging
 import os
 import time
 from datetime import datetime
+from typing import Any, Dict
 
 import six
 from flask import Blueprint
+from saml2.s_utils import deflate_and_base64_encode
 from six.moves.urllib_parse import quote_plus
 from werkzeug.exceptions import NotFound
 from werkzeug.http import dump_cookie
@@ -53,11 +55,16 @@ from eduid_common.session import session
 
 from eduid_webapp.authn.app import authn_init_app
 from eduid_webapp.authn.settings.common import AuthnConfig
-from saml2.s_utils import deflate_and_base64_encode
 
 logger = logging.getLogger(__name__)
 
 HERE = os.path.abspath(os.path.dirname(__file__))
+
+
+class AuthnTestApp(AuthnBaseApp):
+    def __init__(self, name: str, config: Dict[str, Any], **kwargs):
+        self.config = AuthnConfig.init_config(ns='webapp', app_name=name, test_config=config)
+        super().__init__(name, **kwargs)
 
 
 class AuthnAPITestBase(EduidAPITestCase):
@@ -340,7 +347,7 @@ class UnAuthnAPITestCase(EduidAPITestCase):
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        return AuthnBaseApp('testing', AuthnConfig, config)
+        return AuthnTestApp('testing', config=config)
 
     def test_no_cookie(self):
         with self.app.test_client() as c:
@@ -391,7 +398,7 @@ class NoAuthnAPITestCase(EduidAPITestCase):
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        return AuthnBaseApp('testing', AuthnConfig, config)
+        return AuthnTestApp('testing', config)
 
     def test_no_authn(self):
         with self.app.test_client() as c:

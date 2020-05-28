@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright (c) 2016 NORDUnet A/S
+# Copyright (c) 2020 SUNET
 # All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or
@@ -44,8 +45,11 @@ from eduid_webapp.phone.settings.common import PhoneConfig
 
 class PhoneApp(AuthnBaseApp):
     def __init__(self, name: str, config: dict, **kwargs):
-
-        super(PhoneApp, self).__init__(name, PhoneConfig, config, **kwargs)
+        # Initialise type of self.config before any parent class sets a precedent to mypy
+        self.config = PhoneConfig.init_config(ns='webapp', app_name=name, test_config=config)
+        super().__init__(name, **kwargs)
+        # cast self.config because sometimes mypy thinks it is a FlaskConfig after super().__init__()
+        self.config: PhoneConfig = cast(PhoneConfig, self.config)  # type: ignore
 
         from eduid_webapp.phone.views import phone_views
 
