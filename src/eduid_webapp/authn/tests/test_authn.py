@@ -40,8 +40,6 @@ from typing import Any, Dict
 
 import six
 from flask import Blueprint
-
-from eduid_common.authn.middleware import AuthnBaseApp
 from saml2.s_utils import deflate_and_base64_encode
 from six.moves.urllib_parse import quote_plus
 from werkzeug.exceptions import NotFound
@@ -50,6 +48,7 @@ from werkzeug.http import dump_cookie
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.authn.cache import OutstandingQueriesCache
 from eduid_common.authn.eduid_saml2 import get_authn_request
+from eduid_common.authn.middleware import AuthnBaseApp
 from eduid_common.authn.tests.responses import auth_response, logout_request, logout_response
 from eduid_common.authn.utils import get_location, no_authn_views
 from eduid_common.session import session

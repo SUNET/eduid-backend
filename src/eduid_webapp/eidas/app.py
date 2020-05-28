@@ -4,6 +4,8 @@ from __future__ import absolute_import
 
 from typing import cast
 
+from flask import current_app
+
 from eduid_common.api import am, msg
 from eduid_common.authn.middleware import AuthnBaseApp
 from eduid_common.authn.utils import get_saml2_config, no_authn_views
@@ -45,6 +47,9 @@ class EidasApp(AuthnBaseApp):
         # Init celery
         self = am.init_relay(self, 'eduid_eidas')
         self = msg.init_relay(self)
+
+
+eidas_current_app: EidasApp = cast(EidasApp, current_app)
 
 
 def init_eidas_app(name: str, config: dict) -> EidasApp:

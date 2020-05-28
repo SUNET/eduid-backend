@@ -78,11 +78,12 @@ her data.
 import json
 import time
 
-from flask import Blueprint, request
+from flask import Blueprint, abort, request
 from marshmallow import ValidationError
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith
 from eduid_common.api.exceptions import MsgTaskFailed
+from eduid_common.api.helpers import check_magic_cookie
 from eduid_common.api.schemas.base import FluxStandardAction
 from eduid_common.authn import fido_tokens
 from eduid_common.session import session
@@ -517,3 +518,39 @@ def set_new_pw_extra_security_token() -> dict:
         return success_message(ResetPwMsg.pw_resetted)
 
     return error_message(ResetPwMsg.fido_token_fail)
+
+
+@reset_password_views.route('/get-email-code', methods=['GET'])
+def get_email_code():
+    """
+    Backdoor to get the email verification code in the staging or dev environments
+    """
+    try:
+        if check_magic_cookie(current_app.config):
+            eppn = request.args.get('eppn')
+            state = current_app.password_reset_state_db.get_state_by_eppn(eppn)
+            return state.email_code.code
+    except Exception:
+        current_app.logger.exception(
+            "Someone tried to use the backdoor to get the email verification code for a password reset"
+        )
+
+    abort(400)
+
+
+@reset_password_views.route('/get-phone-code', methods=['GET'])
+def get_phone_code():
+    """
+    Backdoor to get the phone verification code in the staging or dev environments
+    """
+    try:
+        if check_magic_cookie(current_app.config):
+            eppn = request.args.get('eppn')
+            state = current_app.password_reset_state_db.get_state_by_eppn(eppn)
+            return state.phone_code.code
+    except Exception as e:
+        current_app.logger.info(
+            f"Someone tried to use the backdoor to get the SMS verification code for a password reset, got error {e}"
+        )
+
+    abort(400)

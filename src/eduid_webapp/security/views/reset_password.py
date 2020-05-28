@@ -5,11 +5,13 @@ from __future__ import absolute_import
 import json
 from functools import wraps
 
-from flask import Blueprint, redirect, render_template, request, url_for
+from flask import Blueprint, abort, redirect, render_template, request, url_for
 from flask_babel import gettext as _
 from marshmallow import ValidationError
 
+from eduid_common.api.decorators import require_user
 from eduid_common.api.exceptions import MailTaskFailed, MsgTaskFailed
+from eduid_common.api.helpers import check_magic_cookie
 from eduid_common.session import session
 from eduid_userdb.exceptions import DocumentDoesNotExist
 from eduid_userdb.security.state import PasswordResetEmailAndPhoneState, PasswordResetEmailState
@@ -45,7 +47,6 @@ def require_state(f):
         email_code = kwargs.pop('email_code')
         mail_expiration_time = current_app.config.email_code_timeout
         sms_expiration_time = current_app.config.phone_code_timeout
-
         try:
             state = current_app.password_reset_state_db.get_state_by_email_code(email_code)
             current_app.logger.debug(f'Found state using email_code {email_code}: {state}')
@@ -329,3 +330,39 @@ def new_password(state):
 
     view_context['csrf_token'] = session.new_csrf_token()
     return render_template('reset_password_new_password.jinja2', view_context=view_context)
+
+
+@reset_password_views.route('/get-email-code', methods=['GET'])
+def get_email_code():
+    """
+    Backdoor to get the email verification code in the staging or dev environments
+    """
+    try:
+        if check_magic_cookie(current_app.config):
+            eppn = request.args.get('eppn')
+            state = current_app.password_reset_state_db.get_state_by_eppn(eppn)
+            return state.email_code.code
+    except Exception:
+        current_app.logger.exception(
+            "Someone tried to use the backdoor to get the email verification code for a password reset"
+        )
+
+    abort(400)
+
+
+@reset_password_views.route('/get-phone-code', methods=['GET'])
+def get_phone_code():
+    """
+    Backdoor to get the phone verification code in the staging or dev environments
+    """
+    try:
+        if check_magic_cookie(current_app.config):
+            eppn = request.args.get('eppn')
+            state = current_app.password_reset_state_db.get_state_by_eppn(eppn)
+            return state.phone_code.code
+    except Exception:
+        current_app.logger.exception(
+            "Someone tried to use the backdoor to get the SMS verification code for a password reset"
+        )
+
+    abort(400)

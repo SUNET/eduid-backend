@@ -2,6 +2,7 @@
 
 import time
 
+from eduid_common.api.helpers import check_magic_cookie
 from eduid_lookup_mobile.utilities import format_NIN
 from eduid_userdb import User
 from eduid_userdb.logs import TeleAdressProofing, TeleAdressProofingRelation
@@ -62,6 +63,27 @@ def match_mobile_to_user(user, self_asserted_nin, verified_mobile_numbers):
     :rtype: tuple
     """
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
+
+    # This code is to use the backdoor that allows selenium integration tests
+    # to verify a NIN by sending a magic cookie
+    if check_magic_cookie(current_app.config):
+        current_app.logger.info('Using the BACKDOOR to verify a NIN through the lookup mobile app')
+        user_postal_address = {
+            'Name': {'GivenName': 'Magic Cookie', 'GivenNameMarking': '20', 'Surname': 'Magic Cookie'},
+            'OfficialAddress': {'Address2': 'Dummy address', 'City': 'LANDET', 'PostalCode': '12345'},
+        }
+        proofing_log_entry = TeleAdressProofing(
+            proofing_user,
+            created_by='lookup_mobile_proofing',
+            reason='magic_cookie',
+            nin=self_asserted_nin,
+            mobile_number='dummy phone',
+            user_postal_address=user_postal_address,
+            proofing_version='2014v1',
+        )
+        current_app.stats.count('validate_nin_by_mobile_magic_cookie')
+        return True, proofing_log_entry
+
     age = nin_to_age(self_asserted_nin)
 
     for mobile_number in verified_mobile_numbers:

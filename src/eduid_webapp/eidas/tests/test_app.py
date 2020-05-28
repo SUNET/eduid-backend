@@ -7,6 +7,7 @@ import datetime
 import os
 import urllib
 from collections import OrderedDict
+from typing import Any
 
 import six
 from mock import patch
@@ -151,6 +152,9 @@ class EidasTests(EduidAPITestCase):
                 },
                 'authn_sign_alg': 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256',
                 'authn_digest_alg': 'http://www.w3.org/2001/04/xmlenc#sha256',
+                'magic_cookie': '',
+                'magic_cookie_name': 'magic-cookie',
+                'environment': 'dev',
             }
         )
         return EidasConfig(**app_config)
@@ -563,7 +567,80 @@ class EidasTests(EduidAPITestCase):
 
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
-    def test_nin_verify_already_verified(self, mock_request_user_sync, mock_get_postal_address):
+    def test_nin_verify_backdoor(self, mock_request_user_sync: Any, mock_get_postal_address: Any):
+        mock_get_postal_address.return_value = self.mock_address
+        mock_request_user_sync.side_effect = self.request_user_sync
+
+        user = self.app.central_userdb.get_user_by_eppn(self.test_unverified_user_eppn)
+        self.assertEqual(user.nins.verified.count, 0)
+
+        self.app.config.magic_cookie = 'magic-cookie'
+
+        with self.session_cookie(self.browser, self.test_unverified_user_eppn) as browser:
+            with browser.session_transaction():
+
+                browser.set_cookie('localhost', key='magic-cookie', value='magic-cookie')
+                browser.set_cookie('localhost', key='nin', value=self.test_user_nin)
+
+                browser.get('/verify-nin?idp={}'.format(self.test_idp))
+
+                user = self.app.central_userdb.get_user_by_eppn(self.test_unverified_user_eppn)
+
+                self.assertEqual(user.nins.verified.count, 1)
+                self.assertEqual(user.nins.primary.number, self.test_user_nin)
+
+                self.assertEqual(self.app.proofing_log.db_count(), 1)
+
+    @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_nin_verify_no_backdoor_in_pro(self, mock_request_user_sync: Any, mock_get_postal_address: Any):
+        mock_get_postal_address.return_value = self.mock_address
+        mock_request_user_sync.side_effect = self.request_user_sync
+
+        user = self.app.central_userdb.get_user_by_eppn(self.test_unverified_user_eppn)
+        self.assertEqual(user.nins.verified.count, 0)
+
+        self.app.config.magic_cookie = 'magic-cookie'
+        self.app.config.environment = 'pro'
+
+        with self.session_cookie(self.browser, self.test_unverified_user_eppn) as browser:
+            with browser.session_transaction():
+
+                browser.set_cookie('localhost', key='magic-cookie', value='magic-cookie')
+                browser.set_cookie('localhost', key='nin', value=self.test_user_nin)
+
+                browser.get('/verify-nin?idp={}'.format(self.test_idp))
+
+                user = self.app.central_userdb.get_user_by_eppn(self.test_unverified_user_eppn)
+
+                self.assertEqual(user.nins.verified.count, 0)
+                self.assertEqual(self.app.proofing_log.db_count(), 0)
+
+    @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_nin_verify_no_backdoor_misconfigured(self, mock_request_user_sync: Any, mock_get_postal_address: Any):
+        mock_get_postal_address.return_value = self.mock_address
+        mock_request_user_sync.side_effect = self.request_user_sync
+
+        user = self.app.central_userdb.get_user_by_eppn(self.test_unverified_user_eppn)
+        self.assertEqual(user.nins.verified.count, 0)
+
+        with self.session_cookie(self.browser, self.test_unverified_user_eppn) as browser:
+            with browser.session_transaction():
+
+                browser.set_cookie('localhost', key='magic-cookie', value='magic-cookie')
+                browser.set_cookie('localhost', key='nin', value=self.test_user_nin)
+
+                browser.get('/verify-nin?idp={}'.format(self.test_idp))
+
+                user = self.app.central_userdb.get_user_by_eppn(self.test_unverified_user_eppn)
+
+                self.assertEqual(user.nins.verified.count, 0)
+                self.assertEqual(self.app.proofing_log.db_count(), 0)
+
+    @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_nin_verify_already_verified(self, mock_request_user_sync: Any, mock_get_postal_address: Any):
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.side_effect = self.request_user_sync
 
