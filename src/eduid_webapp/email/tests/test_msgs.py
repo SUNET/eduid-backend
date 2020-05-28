@@ -6,7 +6,6 @@ from eduid_webapp.email.helpers import EmailMsg
 
 
 class MessagesTests(unittest.TestCase):
-
     def test_messages(self):
         """"""
         self.assertEqual(str(EmailMsg.missing.value), 'emails.missing')
