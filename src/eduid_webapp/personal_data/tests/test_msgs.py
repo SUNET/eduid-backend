@@ -6,7 +6,6 @@ from eduid_webapp.personal_data.helpers import PDataMsg
 
 
 class MessagesTests(unittest.TestCase):
-
     def test_messages(self):
         """"""
         self.assertEqual(str(PDataMsg.out_of_sync.value), 'user-out-of-sync')
