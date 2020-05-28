@@ -6,7 +6,6 @@ from eduid_webapp.signup.helpers import SignupMsg
 
 
 class MessagesTests(unittest.TestCase):
-
     def test_messages(self):
         """"""
         self.assertEqual(str(SignupMsg.out_of_sync.value), 'user-out-of-sync')
