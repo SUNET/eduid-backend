@@ -7,22 +7,13 @@ from flask import Blueprint, abort
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, can_verify_identity, require_user
 from eduid_common.api.exceptions import AmTaskFailed, MsgTaskFailed
 from eduid_common.api.helpers import add_nin_to_user, check_magic_cookie, verify_nin_for_user
-from eduid_common.api.messages import (
-    success_message,
-    error_message,
-)
+from eduid_common.api.messages import error_message, success_message
 from eduid_userdb.logs import LetterProofing
 
 from eduid_webapp.letter_proofing import pdf, schemas
 from eduid_webapp.letter_proofing.app import current_letterp_app as current_app
 from eduid_webapp.letter_proofing.ekopost import EkopostException
-from eduid_webapp.letter_proofing.helpers import (
-    check_state,
-    create_proofing_state,
-    get_address,
-    send_letter,
-    LetterMsg,
-)
+from eduid_webapp.letter_proofing.helpers import LetterMsg, check_state, create_proofing_state, get_address, send_letter
 
 __author__ = 'lundberg'
 

@@ -20,6 +20,7 @@ class LetterMsg(TranslatableMsg):
     Messages sent to the front end with information on the results of the
     attempted operations on the back end.
     """
+
     # No letter proofing state found in the db
     no_state = 'letter.no_state_found'
     # a letter has already been sent
