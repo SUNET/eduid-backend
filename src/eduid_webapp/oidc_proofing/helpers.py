@@ -27,6 +27,7 @@ class OIDCMsg(TranslatableMsg):
     Messages sent to the front end with information on the results of the
     attempted operations on the back end.
     """
+
     # temporary unspecified technical problems
     temp_error = 'Temporary technical problems'
     # Connection error sending a request to the authz endpoint

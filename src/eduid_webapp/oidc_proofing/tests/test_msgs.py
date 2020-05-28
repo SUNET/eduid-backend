@@ -6,7 +6,6 @@ from eduid_webapp.oidc_proofing.helpers import OIDCMsg
 
 
 class MessagesTests(unittest.TestCase):
-
     def test_messages(self):
         """"""
         self.assertEqual(str(OIDCMsg.temp_error.value), 'Temporary technical problems')
