@@ -22,6 +22,9 @@ class EidasApp(AuthnBaseApp):
 
         # Load acs actions on app init
         from . import acs_actions
+        # Make sure pycharm doesn't think the import above is unused and removes it
+        if acs_actions.__author__:
+            pass
 
         # Initialise type of self.config before any parent class sets a precedent to mypy
         self.config = EidasConfig.init_config(ns='webapp', app_name=name, test_config=config)
