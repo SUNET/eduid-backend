@@ -140,8 +140,6 @@ def get_email_code():
             code = signup_user.pending_mail_address.verification_code
             return code
     except Exception:
-        current_app.logger.exception(
-            "Someone tried to use the backdoor to get the email verification code for signup"
-        )
+        current_app.logger.exception("Someone tried to use the backdoor to get the email verification code for signup")
 
     abort(400)

@@ -274,8 +274,9 @@ def mfa_authentication_action(session_info, user):
     # Check that a verified NIN is equal to the asserted attribute personalIdentityNumber
     _personal_idns = get_saml_attribute(session_info, 'personalIdentityNumber')
     if _personal_idns is None:
-        current_app.logger.error('Got no personalIdentityNumber attributes. '
-                                 'pysaml2 without the right attribute_converter?')
+        current_app.logger.error(
+            'Got no personalIdentityNumber attributes. pysaml2 without the right attribute_converter?'
+        )
         # TODO: change to reasonable redirect_with_msg when the ENUM work for that is merged
         raise RuntimeError('Got no personalIdentityNumber')
 
