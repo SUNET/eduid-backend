@@ -38,15 +38,15 @@ class EidasApp(AuthnBaseApp):
         self.register_blueprint(eidas_views)
 
         # Register view path that should not be authorized
-        self = no_authn_views(self, ['/saml2-metadata', '/saml2-acs', '/mfa-authentication'])
+        no_authn_views(self, ['/saml2-metadata', '/saml2-acs', '/mfa-authentication'])
 
         # Init dbs
         self.private_userdb = EidasProofingUserDB(self.config.mongo_uri)
         self.proofing_log = ProofingLog(self.config.mongo_uri)
 
         # Init celery
-        self = am.init_relay(self, 'eduid_eidas')
-        self = msg.init_relay(self)
+        am.init_relay(self, 'eduid_eidas')
+        msg.init_relay(self)
 
 
 current_eidas_app: EidasApp = cast(EidasApp, current_app)

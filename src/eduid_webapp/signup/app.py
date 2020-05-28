@@ -55,9 +55,9 @@ class SignupApp(EduIDBaseApp):
 
         self.register_blueprint(signup_views)
 
-        self = am.init_relay(self, 'eduid_signup')
-        self = mail_relay.init_relay(self)
-        self = translation.init_babel(self)
+        am.init_relay(self, 'eduid_signup')
+        mail_relay.init_relay(self)
+        translation.init_babel(self)
 
         self.private_userdb = SignupUserDB(self.config.mongo_uri, 'eduid_signup')
         self.proofing_log = ProofingLog(self.config.mongo_uri)
