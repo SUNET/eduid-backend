@@ -19,6 +19,7 @@ from eduid_common.authn.cache import IdentityCache, OutstandingQueriesCache
 from eduid_common.authn.eduid_saml2 import BadSAMLResponse, get_authn_ctx
 from eduid_common.session import session
 
+
 __author__ = 'lundberg'
 
 

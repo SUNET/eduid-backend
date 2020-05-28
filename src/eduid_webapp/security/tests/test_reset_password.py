@@ -2,7 +2,11 @@
 from __future__ import absolute_import
 
 import datetime
+import json
+from typing import Any, Optional
+from urllib.parse import quote_plus
 
+from flask import url_for
 from mock import patch
 
 from eduid_common.api.exceptions import MailTaskFailed, MsgTaskFailed
@@ -21,6 +25,7 @@ __author__ = 'lundberg'
 class SecurityResetPasswordTests(EduidAPITestCase):
     def setUp(self):
         self.test_user_eppn = 'hubba-bubba'
+        self.test_user_email = 'johnsmith@example.com'
         super(SecurityResetPasswordTests, self).setUp()
 
     def load_app(self, config):
@@ -41,9 +46,15 @@ class SecurityResetPasswordTests(EduidAPITestCase):
                 'email_code_timeout': 7200,
                 'phone_code_timeout': 600,
                 'password_entropy': 25,
+                'no_authn_urls': [r'/reset.*'],
             }
         )
         return SecurityConfig(**app_config)
+
+    def tearDown(self):
+        super(SecurityResetPasswordTests, self).tearDown()
+        with self.app.app_context():
+            self.app.central_userdb._drop_whole_collection()
 
     def post_email_address(self, email_address):
         with self.app.test_client() as c:
@@ -516,3 +527,109 @@ class SecurityResetPasswordTests(EduidAPITestCase):
             self.assertEqual(nin.is_verified, True)
         for phone_number in user.phone_numbers.verified.to_list():
             self.assertEqual(phone_number.is_verified, True)
+
+    @patch('eduid_common.authn.vccs.get_vccs_client')
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid_common.api.msg.MsgRelay.sendsms')
+    def _get_code_backdoor(
+        self,
+        mock_sendsms: Any,
+        mock_request_user_sync: Any,
+        mock_sendmail: Any,
+        mock_get_vccs_client: Any,
+        cookie_name='magic',
+        cookie_value='magic-cookie',
+        environment='dev',
+    ):
+        mock_request_user_sync.side_effect = self.request_user_sync
+        mock_sendmail.return_value = True
+        mock_get_vccs_client.return_value = TestVCCSClient()
+        mock_sendsms.return_value = True
+
+        self.app.config.magic_cookie = cookie_value
+        self.app.config.magic_cookie_name = cookie_name
+        self.app.config.environment = environment
+
+        self.post_email_address('johnsmith@example.com')
+
+        eppn = quote_plus(self.test_user_eppn)
+
+        with self.app.test_client() as c:
+            c.set_cookie('localhost', key='magic', value='magic-cookie')
+            return c.get(f'/reset-password/get-email-code?eppn={eppn}')
+
+    def test_get_code_backdoor(self):
+        resp = self._get_code_backdoor()
+
+        self.assertEqual(resp.status_code, 200)
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+        self.assertEqual(resp.data, state.email_code.code.encode('ascii'))
+
+    def test_get_code_no_backdoor_in_pro(self):
+        resp = self._get_code_backdoor(environment='pro')
+        self.assertEqual(resp.status_code, 400)
+
+    def test_get_code_no_backdoor_misconfigured1(self):
+        resp = self._get_code_backdoor(cookie_name='')
+        self.assertEqual(resp.status_code, 400)
+
+    def test_get_code_no_backdoor_misconfigured2(self):
+        resp = self._get_code_backdoor(cookie_value='')
+        self.assertEqual(resp.status_code, 400)
+
+    @patch('eduid_common.authn.vccs.get_vccs_client')
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
+    @patch('eduid_common.api.msg.MsgRelay.sendsms')
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def _get_phone_code_backdoor(
+        self,
+        mock_request_user_sync,
+        mock_sendsms,
+        mock_sendmail,
+        mock_get_vccs_client,
+        cookie_name='magic',
+        cookie_value='magic-cookie',
+        environment='dev',
+    ):
+        mock_request_user_sync.side_effect = self.request_user_sync
+        mock_sendsms.return_value = True
+        mock_sendmail.return_value = True
+        mock_get_vccs_client.return_value = TestVCCSClient()
+
+        self.app.config.magic_cookie = cookie_value
+        self.app.config.magic_cookie_name = cookie_name
+        self.app.config.environment = environment
+
+        self.post_email_address('johnsmith@example.com')
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+        self.verify_email_address(state)
+        self.choose_extra_security_phone_number(state)
+        state = self.app.password_reset_state_db.get_state_by_email_code(state.email_code.code)
+        self.verify_phone_number(state)
+        eppn = quote_plus(self.test_user_eppn)
+
+        with self.app.test_client() as c:
+            c.set_cookie('localhost', key='magic', value='magic-cookie')
+            return c.get(f'/reset-password/get-phone-code?eppn={eppn}')
+
+    def test_get_phone_code_backdoor(self):
+        resp = self._get_phone_code_backdoor()
+
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.data, state.phone_code.code.encode('ascii'))
+
+    def test_get_phone_code_no_backdoor_in_pro(self):
+        resp = self._get_phone_code_backdoor(environment='pro')
+        self.assertEqual(resp.status_code, 400)
+
+    def test_get_phone_code_no_backdoor_misconfigured1(self):
+        resp = self._get_phone_code_backdoor(cookie_name='')
+
+        self.assertEqual(resp.status_code, 400)
+
+    def test_get_phone_code_no_backdoor_misconfigured2(self):
+        resp = self._get_phone_code_backdoor(cookie_value='')
+
+        self.assertEqual(resp.status_code, 400)

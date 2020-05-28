@@ -322,6 +322,52 @@ class EmailTests(EduidAPITestCase):
             with client.session_transaction():
                 return client.get('/verify?code={}&email={}'.format(code, email))
 
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid_webapp.email.verifications.get_unique_hash')
+    def _get_code_backdoor(
+        self,
+        mock_code_verification: Any,
+        mock_request_user_sync: Any,
+        mock_sendmail: Any,
+        data1: Optional[dict] = None,
+        email: str = 'johnsmith3@example.com',
+        code: str = '123456',
+    ):
+        """
+        POST email data to generate a verification state,
+        and try to get the generated code through the backdoor
+
+        :param data1: to override the data POSTed by default
+        :param email: email to use
+        :param code: mock generated code
+        """
+        mock_code_verification.return_value = code
+        mock_request_user_sync.side_effect = self.request_user_sync
+        mock_sendmail.return_value = True
+        eppn = self.test_user_data['eduPersonPrincipalName']
+
+        with self.session_cookie(self.browser, eppn) as client:
+            with client.session_transaction() as sess:
+
+                with self.app.test_request_context():
+                    data = {
+                        'email': email,
+                        'verified': False,
+                        'primary': False,
+                        'csrf_token': sess.get_csrf_token(),
+                    }
+                    if data1 is not None:
+                        data.update(data1)
+
+                client.post('/new', data=json.dumps(data), content_type=self.content_type_json)
+
+                client.set_cookie(
+                    'localhost', key=self.app.config.magic_cookie_name, value=self.app.config.magic_cookie
+                )
+
+                return client.get(f'/get-code?email={email}&eppn={eppn}')
+
     # actual test methods
 
     def test_get_all_emails(self):
@@ -708,3 +754,44 @@ class EmailTests(EduidAPITestCase):
         self.app.proofing_statedb.save(state2, check_sync=False)
         state = self.app.proofing_statedb.get_state_by_eppn_and_email(eppn=eppn, email=email)
         self.assertEqual(state.verification.verification_code, 'test_code_2')
+
+    def test_get_code_backdoor(self):
+        self.app.config.magic_cookie = 'magic-cookie'
+        self.app.config.magic_cookie_name = 'magic'
+        self.app.config.environment = 'dev'
+
+        code = '0123456'
+        resp = self._get_code_backdoor(code=code)
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.data, code.encode('ascii'))
+
+    def test_get_code_no_backdoor_in_pro(self):
+        self.app.config.magic_cookie = 'magic-cookie'
+        self.app.config.magic_cookie_name = 'magic'
+        self.app.config.environment = 'pro'
+
+        code = '0123456'
+        resp = self._get_code_backdoor(code=code)
+
+        self.assertEqual(resp.status_code, 400)
+
+    def test_get_code_no_backdoor_misconfigured1(self):
+        self.app.config.magic_cookie = 'magic-cookie'
+        self.app.config.magic_cookie_name = ''
+        self.app.config.environment = 'dev'
+
+        code = '0123456'
+        resp = self._get_code_backdoor(code=code)
+
+        self.assertEqual(resp.status_code, 400)
+
+    def test_get_code_no_backdoor_misconfigured2(self):
+        self.app.config.magic_cookie = ''
+        self.app.config.magic_cookie_name = 'magic'
+        self.app.config.environment = 'dev'
+
+        code = '0123456'
+        resp = self._get_code_backdoor(code=code)
+
+        self.assertEqual(resp.status_code, 400)

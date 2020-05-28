@@ -34,7 +34,6 @@
 import time
 
 from eduid_common.api.utils import get_short_hash, save_and_sync_user
-from eduid_common.session import session
 from eduid_userdb.element import DuplicateElementViolation
 from eduid_userdb.logs import PhoneNumberProofing
 from eduid_userdb.phone import PhoneNumber

@@ -36,12 +36,13 @@ from flask import Blueprint, abort, current_app, redirect, request
 from six.moves.urllib_parse import urlencode, urlsplit, urlunsplit
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
+from eduid_common.api.helpers import check_magic_cookie
 from eduid_common.api.utils import save_and_sync_user
-from eduid_common.session import session
 from eduid_userdb.element import DuplicateElementViolation, PrimaryElementViolation
 from eduid_userdb.exceptions import DocumentDoesNotExist, UserOutOfSync
 from eduid_userdb.mail import MailAddress
 from eduid_userdb.proofing import ProofingUser
+from eduid_userdb.user import User
 
 from eduid_webapp.email.schemas import (
     AddEmailSchema,
@@ -293,3 +294,23 @@ def resend_code(user, email):
 
     emails = {'emails': user.mail_addresses.to_list_of_dicts(), 'message': 'emails.code-sent'}
     return emails
+
+
+@email_views.route('/get-code', methods=['GET'])
+@require_user
+def get_code(user: User):
+    """
+    Backdoor to get the verification code in the staging or dev environments
+    """
+    try:
+        if check_magic_cookie(current_app.config):
+            eppn = request.args.get('eppn')
+            email = request.args.get('email')
+            state = current_app.proofing_statedb.get_state_by_eppn_and_email(eppn, email)
+            return state.verification.verification_code
+    except Exception:
+        current_app.logger.exception(
+            f"{user} tried to use the backdoor to get the verification code for an email"
+        )
+
+    abort(400)

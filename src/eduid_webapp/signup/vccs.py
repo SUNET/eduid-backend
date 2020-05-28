@@ -1,8 +1,8 @@
 from re import findall
 
-import vccs_client
 from pwgen import pwgen
 
+import vccs_client
 from eduid_webapp.signup.app import current_signup_app as current_app
 
 
