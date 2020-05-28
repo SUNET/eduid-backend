@@ -6,7 +6,6 @@ from eduid_webapp.reset_password.helpers import ResetPwMsg
 
 
 class MessagesTests(unittest.TestCase):
-
     def test_messages(self):
         """"""
         self.assertEqual(str(ResetPwMsg.unknown_code.value), 'resetpw.unknown-code')
