@@ -1,5 +1,6 @@
 SOURCE=	src
 EDUIDCOMMON= ../eduid-common/src
+EDUIDUSERDB= ../eduid-userdb/src
 
 test:
 	pytest
@@ -12,4 +13,4 @@ typecheck:
 	mypy --ignore-missing-imports $(SOURCE)
 
 typecheck_extra:
-	mypy --ignore-missing-imports $(EDUIDCOMMON) $(SOURCE)
+	mypy --ignore-missing-imports $(EDUIDCOMMON) $(EDUIDUSERDB) $(SOURCE)
