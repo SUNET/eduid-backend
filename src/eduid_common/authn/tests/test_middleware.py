@@ -31,6 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 from contextlib import contextmanager
+from typing import Any, Dict
 
 from werkzeug.exceptions import NotFound
 
@@ -39,13 +40,21 @@ from eduid_common.authn.middleware import AuthnBaseApp
 from eduid_common.config.base import FlaskConfig
 
 
+class AuthnTestApp(AuthnBaseApp):
+    def __init__(self, name: str, config: Dict[str, Any], **kwargs):
+        # This should be an AuthnConfig instance, but a FlaskConfig instance suffices for these
+        # tests and we don't want eduid_common to depend on eduid_webapp.
+        self.config = FlaskConfig.init_config(ns='webapp', app_name=name, test_config=config)
+        super().__init__(name, **kwargs)
+
+
 class AuthnTests(EduidAPITestCase):
     def load_app(self, config):
         """
-        Called from the parent class, so we can provide the appropiate flask
+        Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        return AuthnBaseApp('testing', FlaskConfig, config)
+        return AuthnTestApp('testing', config)
 
     def update_config(self, config):
         config.update(
@@ -81,7 +90,7 @@ class UnAuthnTests(EduidAPITestCase):
         Called from the parent class, so we can provide the appropiate flask
         app for this test case.
         """
-        return AuthnBaseApp('testing', FlaskConfig, config)
+        return AuthnTestApp('testing', config)
 
     def update_config(self, config):
         config.update(

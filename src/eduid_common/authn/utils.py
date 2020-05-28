@@ -38,6 +38,7 @@ import logging
 import os.path
 import sys
 import time
+from typing import TYPE_CHECKING, Any, List, Mapping, Optional, Sequence
 
 import six
 from pwgen import pwgen
@@ -45,6 +46,12 @@ from saml2 import server
 from saml2.config import SPConfig
 
 from eduid_common.api.utils import urlappend
+
+# From https://stackoverflow.com/a/39757388
+# The TYPE_CHECKING constant is always False at runtime, so the import won't be evaluated, but mypy
+# (and other type-checking tools) will evaluate the contents of that block.
+if TYPE_CHECKING:
+    from eduid_common.api.app import EduIDBaseApp
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +78,7 @@ def get_location(http_info):
     return header_value
 
 
-def get_saml_attribute(session_info, attr_name):
+def get_saml_attribute(session_info: Mapping[str, Any], attr_name: str) -> Optional[List[str]]:
     """
     Get value from a SAML attribute received from the SAML IdP.
 
@@ -99,14 +106,13 @@ def get_saml_attribute(session_info, attr_name):
     for saml_attr, _ in attributes.items():
         if saml_attr.lower() == attr_name.lower():
             return attributes[saml_attr]
+    return None
 
 
-def no_authn_views(app, paths):
+def no_authn_views(app: 'EduIDBaseApp', paths: Sequence[str]):
     """
     :param app: Flask app
-    :type app: flask.Flask
     :param paths: Paths that does not require authentication
-    :type paths: list
 
     :return: Flask app
     :rtype: flask.Flask

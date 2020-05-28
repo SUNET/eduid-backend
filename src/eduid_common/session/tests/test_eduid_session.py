@@ -12,8 +12,14 @@ from eduid_common.session.namespaces import LoginApplication
 __author__ = 'lundberg'
 
 
+class SessionTestApp(AuthnBaseApp):
+    def __init__(self, name: str, config: Dict[str, Any], **kwargs):
+        self.config = FlaskConfig.init_config(ns='webapp', app_name=name, test_config=config)
+        super().__init__(name, **kwargs)
+
+
 def session_init_app(name, config):
-    app = AuthnBaseApp(name, FlaskConfig, config, init_central_userdb=False)
+    app = SessionTestApp(name, config, init_central_userdb=False)
     app = no_authn_views(app, ['/unauthenticated'])
 
     @app.route('/authenticated')

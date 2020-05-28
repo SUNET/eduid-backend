@@ -40,7 +40,7 @@ import importlib.util
 import logging
 import os
 from dataclasses import dataclass, field, fields
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Any, Dict, List, Mapping, Optional, Type, TypeVar
 
 import yaml
 
@@ -182,6 +182,9 @@ class CommonConfig:
         }
 
 
+TBaseConfigSubclass = TypeVar('TBaseConfigSubclass', bound='BaseConfig')
+
+
 @dataclass
 class BaseConfig(CommonConfig):
     """
@@ -280,12 +283,12 @@ class BaseConfig(CommonConfig):
 
     @classmethod
     def init_config(
-        cls,
+        cls: Type[TBaseConfigSubclass],
         ns: Optional[str] = None,
         app_name: Optional[str] = None,
         test_config: Optional[dict] = None,
         debug: bool = False,
-    ):
+    ) -> TBaseConfigSubclass:
         """
         Initialize configuration with values from etcd (or with test values)
         """

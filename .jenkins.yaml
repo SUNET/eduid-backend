@@ -9,7 +9,7 @@ script:
   - ". venv/bin/activate"
   - "pip install -U setuptools wheel mypy"
   - "pip install --index-url https://pypi.sunet.se -r test_requirements.txt"
-  - "pytest"
-  - "mypy --ignore-missing-imports src/eduid_common"
+  - "make test"
+  - "make typecheck"
   - "python setup.py sdist bdist_wheel --universal"
 clean_workspace: true
