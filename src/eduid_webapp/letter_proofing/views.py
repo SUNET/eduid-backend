@@ -2,11 +2,11 @@
 
 from __future__ import absolute_import
 
-from flask import Blueprint
+from flask import Blueprint, abort
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, can_verify_identity, require_user
 from eduid_common.api.exceptions import AmTaskFailed, MsgTaskFailed
-from eduid_common.api.helpers import add_nin_to_user, verify_nin_for_user
+from eduid_common.api.helpers import add_nin_to_user, check_magic_cookie, verify_nin_for_user
 from eduid_common.api.messages import (
     success_message,
     error_message,
@@ -151,3 +151,20 @@ def verify_code(user, code):
         current_app.logger.error('Verifying nin for user {} failed'.format(user))
         current_app.logger.error('{}'.format(e))
         return error_message(LetterMsg.temp_error)
+
+
+@letter_proofing_views.route('/get-code', methods=['GET'])
+@require_user
+def get_code(user):
+    """
+    Backdoor to get the verification code in the staging or dev environments
+    """
+    try:
+        if check_magic_cookie(current_app.config):
+            state = current_app.proofing_statedb.get_state_by_eppn(user.eppn)
+            return state.nin.verification_code
+    except Exception:
+        current_app.logger.exception(
+            f"{user} tried to use the backdoor to get the letter verification code for a NIN"
+        )
+    abort(400)

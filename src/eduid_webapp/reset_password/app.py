@@ -13,7 +13,7 @@
 #        copyright notice, this list of conditions and the following
 #        disclaimer in the documentation and/or other materials provided
 #        with the distribution.
-#     3. Neither the name of the NORDUnet nor the names of its
+#     3. Neither the name of the SUNET nor the names of its
 #        contributors may be used to endorse or promote products derived
 #        from this software without specific prior written permission.
 #
@@ -49,8 +49,11 @@ __author__ = 'eperez'
 
 class ResetPasswordApp(AuthnBaseApp):
     def __init__(self, name: str, config: dict, **kwargs):
-
-        super(ResetPasswordApp, self).__init__(name, ResetPasswordConfig, config, **kwargs)
+        # Initialise type of self.config before any parent class sets a precedent to mypy
+        self.config = ResetPasswordConfig.init_config(ns='webapp', app_name=name, test_config=config)
+        super().__init__(name, **kwargs)
+        # cast self.config because sometimes mypy thinks it is a FlaskConfig after super().__init__()
+        self.config: ResetPasswordConfig = cast(ResetPasswordConfig, self.config)  # type: ignore
 
         # Register views
         from eduid_webapp.reset_password.views.reset_password import reset_password_views

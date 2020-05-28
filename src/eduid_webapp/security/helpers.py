@@ -36,7 +36,6 @@ def credentials_to_registered_keys(user_u2f_tokens):
     return data['registered_keys']
 
 
-
 def compile_credential_list(security_user):
     """
     :param security_user: User

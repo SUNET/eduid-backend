@@ -31,9 +31,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from flask import Blueprint, request
+from flask import Blueprint, abort, request
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith
+from eduid_common.api.helpers import check_magic_cookie
 from eduid_common.api.schemas.base import FluxStandardAction
 from eduid_userdb.exceptions import EduIDUserDBError
 
@@ -64,6 +65,13 @@ def trycaptcha(email, recaptcha_response, tou_accepted):
     config = current_app.config
     recaptcha_verified = False
 
+    # add a backdoor to bypass recaptcha checks for humanness,
+    # to be used in testing environments for automated integration tests.
+    if check_magic_cookie(config):
+        current_app.logger.info('Using BACKDOOR to verify reCaptcha during signup!')
+        recaptcha_verified = True
+
+    # common path with no backdoor
     if not recaptcha_verified:
         remote_ip = request.remote_addr
         recaptcha_public_key = config.recaptcha_public_key
@@ -118,3 +126,22 @@ def verify_link(code):
     except EduIDUserDBError:
         return {'_status': 'error', 'status': 'unknown-code', 'message': 'signup.unknown-code'}
     return complete_registration(user)
+
+
+@signup_views.route('/get-code', methods=['GET'])
+def get_email_code():
+    """
+    Backdoor to get the email verification code in the staging or dev environments
+    """
+    try:
+        if check_magic_cookie(current_app.config):
+            email = request.args.get('email')
+            signup_user = current_app.private_userdb.get_user_by_pending_mail_address(email)
+            code = signup_user.pending_mail_address.verification_code
+            return code
+    except Exception:
+        current_app.logger.exception(
+            "Someone tried to use the backdoor to get the email verification code for signup"
+        )
+
+    abort(400)
