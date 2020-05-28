@@ -130,7 +130,7 @@ class EduidAPITestCase(CommonTestCase):
 
         self.user = None
         # Initialize some convenience variables on self based on the first user in `users'
-        self.test_user_data = _standard_test_users.get(users[0])
+        self.test_user_data = _standard_test_users[users[0]]
         self.test_user = User(data=self.test_user_data)
 
         super(EduidAPITestCase, self).setUp(users=users, am_settings=am_settings)
