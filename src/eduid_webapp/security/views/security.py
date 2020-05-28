@@ -42,14 +42,12 @@ from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid_common.api.exceptions import AmTaskFailed, MsgTaskFailed
 from eduid_common.api.helpers import add_nin_to_user
 from eduid_common.api.utils import save_and_sync_user, urlappend
-from eduid_common.authn.eduid_saml2 import saml_logout
 from eduid_common.authn.vccs import add_credentials, revoke_all_credentials
 from eduid_common.session import session
 from eduid_userdb.exceptions import UserOutOfSync
 from eduid_userdb.proofing import NinProofingElement
 from eduid_userdb.proofing.state import NinProofingState
 from eduid_userdb.security import SecurityUser
-
 from eduid_webapp.security.app import current_security_app as current_app
 from eduid_webapp.security.helpers import (
     compile_credential_list,
@@ -62,14 +60,11 @@ from eduid_webapp.security.schemas import (
     AccountTerminatedSchema,
     ChangePasswordSchema,
     ChpassResponseSchema,
-    CredentialList,
     CsrfSchema,
     NINRequestSchema,
     NINResponseSchema,
     RedirectResponseSchema,
-    RedirectSchema,
     SecurityResponseSchema,
-    SuggestedPassword,
     SuggestedPasswordResponseSchema,
 )
 
