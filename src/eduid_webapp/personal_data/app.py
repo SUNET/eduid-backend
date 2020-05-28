@@ -53,7 +53,7 @@ class PersonalDataApp(AuthnBaseApp):
 
         self.register_blueprint(pd_views)
 
-        self = am.init_relay(self, 'eduid_personal_data')
+        am.init_relay(self, 'eduid_personal_data')
 
         self.private_userdb = PersonalDataUserDB(self.config.mongo_uri)
 

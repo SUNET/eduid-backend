@@ -64,7 +64,7 @@ class JSConfigApp(EduIDBaseApp):
 
         # Register view path that should not be authorized
         no_auth_paths = ['/get-bundle', '/signup/config']
-        self = no_authn_views(self, no_auth_paths)
+        no_authn_views(self, no_auth_paths)
 
 
 current_jsconfig_app: JSConfigApp = cast(JSConfigApp, current_app)
