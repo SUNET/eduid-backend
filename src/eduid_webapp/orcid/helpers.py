@@ -41,6 +41,7 @@ class OrcidMsg(TranslatableMsg):
     Messages sent to the front end with information on the results of the
     attempted operations on the back end.
     """
+
     # ORCID account already connected to eduID account
     already_connected = 'orc.already_connected'
     # Authorization error at ORCID

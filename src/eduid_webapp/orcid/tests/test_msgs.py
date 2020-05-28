@@ -6,7 +6,6 @@ from eduid_webapp.orcid.helpers import OrcidMsg
 
 
 class MessagesTests(unittest.TestCase):
-
     def test_messages(self):
         """"""
         self.assertEqual(str(OrcidMsg.already_connected.value), 'orc.already_connected')
