@@ -33,6 +33,7 @@
 
 import json
 from typing import Any, Optional
+from urllib.parse import quote_plus
 
 from mock import patch
 
@@ -193,6 +194,53 @@ class PhoneTests(EduidAPITestCase):
                             data.update(mod_data)
 
                     return client.post('/resend-code', data=json.dumps(data), content_type=self.content_type_json)
+
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid_webapp.phone.verifications.get_short_hash')
+    def _get_code_backdoor(
+        self,
+        mock_code_verification: Any,
+        mock_request_user_sync: Any,
+        mod_data: Optional[dict] = None,
+        phone: str = '+34670123456',
+        code: str = '5250f9a4',
+    ):
+        """
+        POST phone data to generate a verification state,
+        and try to get the generated code through the backdoor
+
+        :param mod_data: to control what data is POSTed
+        :param phone: the phone to use
+        :param code: mock verification code
+        """
+        mock_code_verification.return_value = code
+        mock_request_user_sync.side_effect = self.request_user_sync
+
+        eppn = self.test_user_data['eduPersonPrincipalName']
+
+        with self.session_cookie(self.browser, eppn) as client:
+            with client.session_transaction() as sess:
+                with patch('eduid_webapp.phone.verifications.current_app.msg_relay.phone_validator', return_value=True):
+                    with self.app.test_request_context():
+                        data = {
+                            'number': phone,
+                            'verified': False,
+                            'primary': False,
+                            'csrf_token': sess.get_csrf_token(),
+                        }
+                        if mod_data:
+                            data.update(mod_data)
+
+                        client.post('/new', data=json.dumps(data), content_type=self.content_type_json)
+
+                        client.set_cookie(
+                            'localhost', key=self.app.config.magic_cookie_name, value=self.app.config.magic_cookie
+                        )
+
+                        phone = quote_plus(phone)
+                        eppn = quote_plus(eppn)
+
+                        return client.get(f'/get-code?phone={phone}&eppn={eppn}')
 
     # actual tests
 
@@ -630,3 +678,44 @@ class PhoneTests(EduidAPITestCase):
 
         self.assertEqual('POST_PHONE_NEW_FAIL', new_phone_data2['type'])
         self.assertEqual(['phone.phone_duplicated'], new_phone_data2['payload']['error'].get('number'))
+
+    def test_get_code_backdoor(self):
+        self.app.config.magic_cookie = 'magic-cookie'
+        self.app.config.magic_cookie_name = 'magic'
+        self.app.config.environment = 'dev'
+
+        code = '0123456'
+        resp = self._get_code_backdoor(code=code)
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.data, code.encode('ascii'))
+
+    def test_get_code_no_backdoor_in_pro(self):
+        self.app.config.magic_cookie = 'magic-cookie'
+        self.app.config.magic_cookie_name = 'magic'
+        self.app.config.environment = 'pro'
+
+        code = '0123456'
+        resp = self._get_code_backdoor(code=code)
+
+        self.assertEqual(resp.status_code, 400)
+
+    def test_get_code_no_backdoor_misconfigured1(self):
+        self.app.config.magic_cookie = 'magic-cookie'
+        self.app.config.magic_cookie_name = ''
+        self.app.config.environment = 'dev'
+
+        code = '0123456'
+        resp = self._get_code_backdoor(code=code)
+
+        self.assertEqual(resp.status_code, 400)
+
+    def test_get_code_no_backdoor_misconfigured2(self):
+        self.app.config.magic_cookie = ''
+        self.app.config.magic_cookie_name = 'magic'
+        self.app.config.environment = 'dev'
+
+        code = '0123456'
+        resp = self._get_code_backdoor(code=code)
+
+        self.assertEqual(resp.status_code, 400)
