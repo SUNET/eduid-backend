@@ -82,7 +82,6 @@ from flask import Blueprint, abort, request
 from marshmallow import ValidationError
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith
-from eduid_common.api.messages import error_message, success_message
 from eduid_common.api.exceptions import MsgTaskFailed
 from eduid_common.api.helpers import check_magic_cookie
 from eduid_common.api.messages import CommonMsg
