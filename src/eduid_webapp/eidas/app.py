@@ -49,7 +49,7 @@ class EidasApp(AuthnBaseApp):
         self = msg.init_relay(self)
 
 
-eidas_current_app: EidasApp = cast(EidasApp, current_app)
+current_eidas_app: EidasApp = cast(EidasApp, current_app)
 
 
 def init_eidas_app(name: str, config: dict) -> EidasApp:
