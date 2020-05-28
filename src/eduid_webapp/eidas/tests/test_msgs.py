@@ -6,7 +6,6 @@ from eduid_webapp.eidas.helpers import EidasMsg
 
 
 class MessagesTests(unittest.TestCase):
-
     def test_messages(self):
         """"""
         self.assertEqual(str(EidasMsg.authn_context_mismatch.value), 'eidas.authn_context_mismatch')
