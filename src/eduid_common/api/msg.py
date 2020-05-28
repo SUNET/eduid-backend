@@ -25,9 +25,12 @@ LANGUAGE_MAPPING = {
 }
 
 
-def init_relay(app: EduIDBaseApp) -> EduIDBaseApp:
+def init_relay(app: EduIDBaseApp) -> None:
+    """
+    :param app: Flask app
+    """
     app.msg_relay = MsgRelay(app.config.celery_config)
-    return app
+    return None
 
 
 class MsgRelay(object):
