@@ -35,8 +35,7 @@
 import copy
 import datetime
 import warnings
-from typing import Any, Dict, List, Union, Optional
-from typing import Type, TypeVar
+from typing import Any, Dict, List, Optional, Type, TypeVar, Union
 
 import bson
 
@@ -64,12 +63,7 @@ class User(object):
     :type  data: dict
     """
 
-    def __init__(
-        self,
-        data: Dict[str, Any],
-        raise_on_unknown: bool = True,
-        called_directly: bool = True
-    ):
+    def __init__(self, data: Dict[str, Any], raise_on_unknown: bool = True, called_directly: bool = True):
         if called_directly:
             warnings.warn("User.__init__ called directly", DeprecationWarning)
 
@@ -161,7 +155,7 @@ class User(object):
         orcid: Optional[Orcid] = None,
         profiles: Optional[ProfileList] = None,
         raise_on_unknown: bool = True,
-        **kwargs
+        **kwargs,
     ) -> U:
         """
         Construct user from data in typed params.

@@ -1,5 +1,5 @@
-from unittest import TestCase
 import copy
+from unittest import TestCase
 
 from eduid_userdb.credentials import CredentialList
 from eduid_userdb.dashboard import DashboardLegacyUser as User

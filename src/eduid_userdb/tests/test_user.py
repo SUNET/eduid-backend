@@ -6,8 +6,7 @@ from bson import ObjectId
 from six import string_types
 
 from eduid_userdb import LockedIdentityNin, OidcAuthorization, OidcIdToken, Orcid
-from eduid_userdb.credentials import CredentialList
-from eduid_userdb.credentials import METHOD_SWAMID_AL2_MFA
+from eduid_userdb.credentials import METHOD_SWAMID_AL2_MFA, CredentialList
 from eduid_userdb.exceptions import EduIDUserDBError, UserHasNotCompletedSignup, UserHasUnknownData, UserIsRevoked
 from eduid_userdb.mail import MailAddressList
 from eduid_userdb.nin import NinList
@@ -16,7 +15,6 @@ from eduid_userdb.profile import Profile, ProfileList
 from eduid_userdb.tou import ToUList
 from eduid_userdb.user import User
 
-
 __author__ = 'ft'
 
 
@@ -24,8 +22,7 @@ def _keyid(kh):
     return 'sha256:' + sha256(kh.encode('utf-8')).hexdigest()
 
 
-class _AbstractUserTestCase():
-
+class _AbstractUserTestCase:
     def test_user_id(self):
         self.assertEqual(self.user1.user_id, self.data1['_id'])
 
@@ -578,7 +575,6 @@ class _AbstractUserTestCase():
 
 
 class TestUser(TestCase, _AbstractUserTestCase):
-
     def setUp(self):
         self.data1 = {
             u'_id': ObjectId('547357c3d00690878ae9b620'),
@@ -683,7 +679,6 @@ class TestUser(TestCase, _AbstractUserTestCase):
 
 
 class TestNewUser(TestCase, _AbstractUserTestCase):
-
     def setUp(self):
         self._setup_user1()
         self._setup_user2()

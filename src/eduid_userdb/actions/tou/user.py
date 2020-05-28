@@ -36,8 +36,8 @@ from typing import Optional, Union
 
 import bson
 
-from eduid_userdb.user import User
 from eduid_userdb.exceptions import UserMissingData
+from eduid_userdb.user import User
 
 
 class ToUUser(User):
@@ -60,7 +60,7 @@ class ToUUser(User):
         tou: Optional[list] = None,
         data: Optional[dict] = None,
         raise_on_unknown: bool = True,
-        called_directly: bool = True
+        called_directly: bool = True,
     ):
         """
         """

@@ -33,14 +33,14 @@
 __author__ = 'ft'
 
 import copy
+from typing import Optional, Union
 
 import bson
 import six
-from typing import Optional, Union
 
-from eduid_userdb.user import User
 from eduid_userdb.exceptions import UserIsRevoked
 from eduid_userdb.proofing import EmailProofingElement
+from eduid_userdb.user import User
 
 
 class SignupUser(User):

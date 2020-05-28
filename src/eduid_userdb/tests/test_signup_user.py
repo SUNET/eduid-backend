@@ -1,8 +1,8 @@
-from unittest import TestCase
 import copy
+from unittest import TestCase
 
-from eduid_userdb.signup.user import SignupUser
 from eduid_userdb.data_samples import NEW_SIGNUP_USER_EXAMPLE
+from eduid_userdb.signup.user import SignupUser
 
 
 class TestSignupUser(TestCase):
