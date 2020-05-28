@@ -6,7 +6,6 @@ from eduid_webapp.security.helpers import SecurityMsg
 
 
 class MessagesTests(unittest.TestCase):
-
     def test_messages(self):
         """"""
         self.assertEqual(str(SecurityMsg.out_of_sync.value), 'user-out-of-sync')

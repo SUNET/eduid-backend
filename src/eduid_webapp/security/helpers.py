@@ -31,6 +31,7 @@ class SecurityMsg(TranslatableMsg):
     Messages sent to the front end with information on the results of the
     attempted operations on the back end.
     """
+
     # The user has changed in the db since it was retrieved
     out_of_sync = 'user-out-of-sync'
     # Too much time passed since re-authn for account termination

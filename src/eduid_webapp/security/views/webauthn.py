@@ -11,10 +11,7 @@ from fido2.server import USER_VERIFICATION, Fido2Server, RelyingParty
 from flask import Blueprint
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
-from eduid_common.api.messages import (
-    error_message,
-    success_message,
-)
+from eduid_common.api.messages import error_message, success_message
 from eduid_common.api.schemas.base import FluxStandardAction
 from eduid_common.api.utils import save_and_sync_user
 from eduid_common.session import session
@@ -25,10 +22,7 @@ from eduid_userdb.credentials.fido import FidoCredential
 from eduid_userdb.security import SecurityUser
 
 from eduid_webapp.security.app import current_security_app as current_app
-from eduid_webapp.security.helpers import (
-    compile_credential_list,
-    SecurityMsg,
-)
+from eduid_webapp.security.helpers import SecurityMsg, compile_credential_list
 from eduid_webapp.security.schemas import (
     RemoveWebauthnTokenRequestSchema,
     SecurityResponseSchema,
