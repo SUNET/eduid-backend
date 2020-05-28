@@ -22,6 +22,9 @@ class EidasApp(AuthnBaseApp):
 
         # Load acs actions on app init
         from . import acs_actions
+        # Make sure pycharm doesn't think the import above is unused and removes it
+        if acs_actions.__author__:
+            pass
 
         # Initialise type of self.config before any parent class sets a precedent to mypy
         self.config = EidasConfig.init_config(ns='webapp', app_name=name, test_config=config)
@@ -30,7 +33,6 @@ class EidasApp(AuthnBaseApp):
         self.config: EidasConfig = cast(EidasConfig, self.config)  # type: ignore
 
         self.saml2_config = get_saml2_config(self.config.saml2_settings_module)
-        self.config.saml2_config = self.saml2_config
 
         # Register views
         from eduid_webapp.eidas.views import eidas_views
@@ -38,18 +40,18 @@ class EidasApp(AuthnBaseApp):
         self.register_blueprint(eidas_views)
 
         # Register view path that should not be authorized
-        self = no_authn_views(self, ['/saml2-metadata', '/saml2-acs', '/mfa-authentication'])
+        no_authn_views(self, ['/saml2-metadata', '/saml2-acs', '/mfa-authentication'])
 
         # Init dbs
         self.private_userdb = EidasProofingUserDB(self.config.mongo_uri)
         self.proofing_log = ProofingLog(self.config.mongo_uri)
 
         # Init celery
-        self = am.init_relay(self, 'eduid_eidas')
-        self = msg.init_relay(self)
+        am.init_relay(self, 'eduid_eidas')
+        msg.init_relay(self)
 
 
-eidas_current_app: EidasApp = cast(EidasApp, current_app)
+current_eidas_app: EidasApp = cast(EidasApp, current_app)
 
 
 def init_eidas_app(name: str, config: dict) -> EidasApp:

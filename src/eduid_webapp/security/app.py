@@ -64,12 +64,12 @@ class SecurityApp(AuthnBaseApp):
         self.register_blueprint(reset_password_views)
 
         # Register view path that should not be authorized
-        self = no_authn_views(self, ['/reset-password.*'])
+        no_authn_views(self, ['/reset-password.*'])
 
-        self = am.init_relay(self, f'eduid_{name}')
-        self = msg.init_relay(self)
-        self = mail_relay.init_relay(self)
-        self = translation.init_babel(self)
+        am.init_relay(self, f'eduid_{name}')
+        msg.init_relay(self)
+        mail_relay.init_relay(self)
+        translation.init_babel(self)
 
         self.private_userdb = SecurityUserDB(self.config.mongo_uri)
         self.authninfo_db = AuthnInfoDB(self.config.mongo_uri)
