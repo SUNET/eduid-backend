@@ -139,9 +139,9 @@ def get_email_code():
             signup_user = current_app.private_userdb.get_user_by_pending_mail_address(email)
             code = signup_user.pending_mail_address.verification_code
             return code
-    except Exception as e:
-        current_app.logger.info(
-            f"Someone tried to use the backdoor to get the email verification code for signup, got error {e}"
+    except Exception:
+        current_app.logger.exception(
+            "Someone tried to use the backdoor to get the email verification code for signup"
         )
 
     abort(400)

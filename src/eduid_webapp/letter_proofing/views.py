@@ -153,9 +153,9 @@ def get_code(user):
         if check_magic_cookie(current_app.config):
             state = current_app.proofing_statedb.get_state_by_eppn(user.eppn)
             return state.nin.verification_code
-    except Exception as e:
-        current_app.logger.info(
-            f"{user} tried to use the backdoor to get the letter verification code for a NIN, got error {e}"
+    except Exception:
+        current_app.logger.exception(
+            f"{user} tried to use the backdoor to get the letter verification code for a NIN"
         )
 
     abort(400)

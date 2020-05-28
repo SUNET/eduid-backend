@@ -342,9 +342,9 @@ def get_email_code():
             eppn = request.args.get('eppn')
             state = current_app.password_reset_state_db.get_state_by_eppn(eppn)
             return state.email_code.code
-    except Exception as e:
-        current_app.logger.info(
-            f"Someone tried to use the backdoor to get the email verification code for a password reset, got error {e}"
+    except Exception:
+        current_app.logger.exception(
+            "Someone tried to use the backdoor to get the email verification code for a password reset"
         )
 
     abort(400)
@@ -360,9 +360,9 @@ def get_phone_code():
             eppn = request.args.get('eppn')
             state = current_app.password_reset_state_db.get_state_by_eppn(eppn)
             return state.phone_code.code
-    except Exception as e:
-        current_app.logger.info(
-            f"Someone tried to use the backdoor to get the SMS verification code for a password reset, got error {e}"
+    except Exception:
+        current_app.logger.exception(
+            "Someone tried to use the backdoor to get the SMS verification code for a password reset"
         )
 
     abort(400)

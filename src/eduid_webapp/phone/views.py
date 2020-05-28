@@ -270,6 +270,8 @@ def get_code():
             state = current_app.proofing_statedb.get_state_by_eppn_and_mobile(eppn, phone)
             return state.verification.verification_code
     except Exception:
-        pass
+        current_app.logger.exception(
+            "Someone tried to use the backdoor to get the verification code for a phone"
+        )
 
     abort(400)
