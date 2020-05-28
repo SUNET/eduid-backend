@@ -40,7 +40,6 @@ from eduid_common.authn.middleware import AuthnBaseApp
 from eduid_scimapi.groupdb import ScimApiGroupDB
 from eduid_scimapi.userdb import ScimApiUserDB
 
-# from eduid_userdb.group_management.db import GroupManagementStateDB
 from eduid_webapp.group_management.settings.common import GroupManagementConfig
 
 __author__ = 'lundberg'

@@ -84,7 +84,7 @@ class ActionsApp(EduIDBaseApp):
 
         self.register_blueprint(actions_views)
 
-        self = am.init_relay(self, f'eduid_{name}')
+        am.init_relay(self, f'eduid_{name}')
 
         self.actions_db = ActionDB(self.config.mongo_uri)
 

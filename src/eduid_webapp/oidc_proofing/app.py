@@ -58,18 +58,18 @@ class OIDCProofingApp(AuthnBaseApp):
         self.register_blueprint(oidc_proofing_views)
 
         # Register view path that should not be authorized
-        self = no_authn_views(self, ['/authorization-response'])
+        no_authn_views(self, ['/authorization-response'])
 
         # Initialize the oidc_client after views to be able to set correct redirect_uris
-        self = oidc.init_client(self)
+        oidc.init_client(self)
 
         # Init celery
-        self = msg.init_relay(self)
-        self = am.init_relay(self, 'eduid_oidc_proofing')
-        self = mail_relay.init_relay(self)
+        msg.init_relay(self)
+        am.init_relay(self, 'eduid_oidc_proofing')
+        mail_relay.init_relay(self)
 
         # Init babel
-        self = translation.init_babel(self)
+        translation.init_babel(self)
 
         # Initialize db
         self.private_userdb = OidcProofingUserDB(self.config.mongo_uri)
