@@ -24,7 +24,7 @@ from eduid_userdb.proofing.state import NinProofingElement, NinProofingState
 from eduid_userdb.proofing.user import ProofingUser
 from eduid_userdb.user import User
 
-from eduid_webapp.eidas.app import eidas_current_app as current_app
+from eduid_webapp.eidas.app import current_eidas_app as current_app
 from eduid_webapp.eidas.helpers import is_required_loa, is_valid_reauthn, redirect_with_msg
 
 __author__ = 'lundberg'

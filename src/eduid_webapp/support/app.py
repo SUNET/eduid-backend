@@ -71,13 +71,13 @@ class SupportApp(AuthnBaseApp):
         self.support_email_proofing_db = db.SupportEmailProofingDB(self.config.mongo_uri)
         self.support_phone_proofing_db = db.SupportPhoneProofingDB(self.config.mongo_uri)
 
-        self = register_template_funcs(self)
+        register_template_funcs(self)
 
 
 current_support_app: SupportApp = cast(SupportApp, current_app)
 
 
-def register_template_funcs(app):
+def register_template_funcs(app: SupportApp) -> None:
     @app.template_filter('datetimeformat')
     def datetimeformat(value, format='%Y-%m-%d %H:%M %Z'):
         if not value:
@@ -101,7 +101,7 @@ def register_template_funcs(app):
             l = list()
         return l
 
-    return app
+    return None
 
 
 def support_init_app(name: str, config: dict) -> SupportApp:

@@ -55,8 +55,8 @@ class PhoneApp(AuthnBaseApp):
 
         self.register_blueprint(phone_views)
 
-        self = am.init_relay(self, 'eduid_phone')
-        self = msg.init_relay(self)
+        am.init_relay(self, 'eduid_phone')
+        msg.init_relay(self)
 
         self.private_userdb = PhoneProofingUserDB(self.config.mongo_uri)
         self.proofing_statedb = PhoneProofingStateDB(self.config.mongo_uri)
