@@ -33,7 +33,6 @@ class EidasApp(AuthnBaseApp):
         self.config: EidasConfig = cast(EidasConfig, self.config)  # type: ignore
 
         self.saml2_config = get_saml2_config(self.config.saml2_settings_module)
-        self.config.saml2_config = self.saml2_config
 
         # Register views
         from eduid_webapp.eidas.views import eidas_views
