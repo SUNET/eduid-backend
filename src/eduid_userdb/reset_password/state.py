@@ -190,7 +190,7 @@ class ResetPasswordEmailState(ResetPasswordState):
         self,
         eppn: Optional[str] = None,
         email_address: Optional[str] = None,
-        email_code: Optional[str] = None,
+        email_code: Optional[Union[str, CodeElement]] = None,
         created_ts: Optional[Union[bool, datetime.datetime]] = None,
         data: Optional[Mapping] = None,
         raise_on_unknown: bool = True,
@@ -198,6 +198,10 @@ class ResetPasswordEmailState(ResetPasswordState):
         if data is None:
             if created_ts is None:
                 created_ts = True
+            if email_address is None:
+                raise ValueError('Neither email_address nor data provided')
+            if email_code is None:
+                raise ValueError('Neither email_code nor data provided')
             data = dict(
                 eduPersonPrincipalName=eppn, email_address=email_address, email_code=email_code, created_ts=created_ts,
             )
@@ -205,10 +209,8 @@ class ResetPasswordEmailState(ResetPasswordState):
         self._data_in = copy.deepcopy(cast(dict, data))  # to not modify callers data
         self._data = dict()
 
-        # email_address
-        email_address = cast(str, self._data_in.pop('email_address'))
-        # email_code
-        email_code = cast(str, self._data_in.pop('email_code'))
+        email_address = self._data_in.pop('email_address')
+        email_code = self._data_in.pop('email_code')
 
         ResetPasswordState.__init__(self, self._data_in, raise_on_unknown)
 
