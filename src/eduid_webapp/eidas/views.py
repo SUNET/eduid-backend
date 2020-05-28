@@ -18,7 +18,7 @@ from eduid_common.session import session
 from eduid_userdb.credentials.fido import FidoCredential
 
 from eduid_webapp.eidas.acs_actions import nin_verify_BACKDOOR
-from eduid_webapp.eidas.app import eidas_current_app as current_app
+from eduid_webapp.eidas.app import current_eidas_app as current_app
 from eduid_webapp.eidas.helpers import (
     create_authn_request,
     create_metadata,

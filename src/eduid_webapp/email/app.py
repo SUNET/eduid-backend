@@ -55,9 +55,9 @@ class EmailApp(AuthnBaseApp):
 
         self.register_blueprint(email_views)
 
-        self = am.init_relay(self, 'eduid_email')
-        self = mail_relay.init_relay(self)
-        self = translation.init_babel(self)
+        am.init_relay(self, 'eduid_email')
+        mail_relay.init_relay(self)
+        translation.init_babel(self)
 
         self.private_userdb = EmailProofingUserDB(self.config.mongo_uri)
         self.proofing_statedb = EmailProofingStateDB(self.config.mongo_uri)
