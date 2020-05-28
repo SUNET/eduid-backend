@@ -41,6 +41,7 @@ class EmailMsg(TranslatableMsg):
     Messages sent to the front end with information on the results of the
     attempted operations on the back end.
     """
+
     # the requested email is missing
     missing = 'emails.missing'
     # the provided email is duplicated

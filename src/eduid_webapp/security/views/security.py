@@ -48,6 +48,7 @@ from eduid_userdb.exceptions import UserOutOfSync
 from eduid_userdb.proofing import NinProofingElement
 from eduid_userdb.proofing.state import NinProofingState
 from eduid_userdb.security import SecurityUser
+
 from eduid_webapp.security.app import current_security_app as current_app
 from eduid_webapp.security.helpers import (
     compile_credential_list,
