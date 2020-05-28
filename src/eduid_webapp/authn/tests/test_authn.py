@@ -40,6 +40,7 @@ from typing import Any, Dict
 
 import six
 from flask import Blueprint
+from saml2.s_utils import deflate_and_base64_encode
 from six.moves.urllib_parse import quote_plus
 from werkzeug.exceptions import NotFound
 from werkzeug.http import dump_cookie
@@ -54,7 +55,6 @@ from eduid_common.session import session
 
 from eduid_webapp.authn.app import authn_init_app
 from eduid_webapp.authn.settings.common import AuthnConfig
-from saml2.s_utils import deflate_and_base64_encode
 
 logger = logging.getLogger(__name__)
 
