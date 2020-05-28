@@ -122,10 +122,10 @@ def add_password(
     logger.info('Added password credential {} for user {}'.format(new_factor.credential_id, user))
 
     # Add new password to user
-    new_password = Password(
+    _password = Password(
         credential_id=credential_id, salt=new_factor.salt, is_generated=is_generated, application=application
     )
-    user.credentials.add(new_password)
+    user.credentials.add(_password)
     return user
 
 
@@ -163,10 +163,10 @@ def reset_password(
     logger.info('Added password credential {} for user {}'.format(new_factor.credential_id, user))
 
     # Add new password to user
-    new_password = Password(
+    _password = Password(
         credential_id=credential_id, salt=new_factor.salt, is_generated=is_generated, application=application
     )
-    user.credentials.add(new_password)
+    user.credentials.add(_password)
     return user
 
 
@@ -227,10 +227,10 @@ def change_password(
     logger.info('Revoked credential {} for user {}'.format(revoke_factor.credential_id, user))
 
     # Add new password to user
-    new_password = Password(
+    _password = Password(
         credential_id=credential_id, salt=new_factor.salt, is_generated=is_generated, application=application
     )
-    user.credentials.add(new_password)
+    user.credentials.add(_password)
     return user
 
 
