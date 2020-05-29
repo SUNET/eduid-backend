@@ -209,15 +209,15 @@ class ResetPasswordEmailState(ResetPasswordState):
         self._data_in = copy.deepcopy(cast(dict, data))  # to not modify callers data
         self._data = dict()
 
-        email_address = self._data_in.pop('email_address')
-        email_code = self._data_in.pop('email_code')
+        mail_address: str = self._data_in.pop('email_address')
+        mail_code: str = self._data_in.pop('email_code')
 
         ResetPasswordState.__init__(self, self._data_in, raise_on_unknown)
 
         # things with setters
         self.method = 'email'
-        self.email_address = email_address
-        self.email_code = CodeElement.parse(application='security', code_or_element=email_code)
+        self.email_address = mail_address
+        self.email_code = CodeElement.parse(application='security', code_or_element=mail_code)
 
     @property
     def email_address(self) -> str:
