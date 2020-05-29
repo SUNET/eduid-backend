@@ -41,8 +41,7 @@ import bson
 
 from eduid_userdb.credentials import CredentialList
 from eduid_userdb.element import UserDBValueError
-from eduid_userdb.exceptions import UserHasNotCompletedSignup, UserIsRevoked
-from eduid_userdb.exceptions import UserHasUnknownData, UserMissingData
+from eduid_userdb.exceptions import UserHasNotCompletedSignup, UserHasUnknownData, UserIsRevoked, UserMissingData
 from eduid_userdb.locked_identity import LockedIdentityList
 from eduid_userdb.mail import MailAddressList
 from eduid_userdb.nin import NinList
