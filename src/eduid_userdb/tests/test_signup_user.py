@@ -2,6 +2,7 @@ import copy
 from unittest import TestCase
 
 from eduid_userdb.data_samples import NEW_SIGNUP_USER_EXAMPLE
+from eduid_userdb.exceptions import UserMissingData
 from eduid_userdb.signup.user import SignupUser
 
 
@@ -31,5 +32,5 @@ class TestSignupUser(TestCase):
         userdata = copy.deepcopy(NEW_SIGNUP_USER_EXAMPLE)
         userid = userdata.pop('_id')
         userdata.pop('eduPersonPrincipalName')
-        with self.assertRaises(TypeError):
+        with self.assertRaises(UserMissingData):
             SignupUser.construct_user(_id=userid)
