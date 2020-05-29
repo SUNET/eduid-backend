@@ -5,6 +5,7 @@ from eduid_userdb.credentials import CredentialList
 from eduid_userdb.dashboard import DashboardLegacyUser as User
 from eduid_userdb.dashboard.user import DashboardUser
 from eduid_userdb.data_samples import NEW_USER_EXAMPLE
+from eduid_userdb.exceptions import UserMissingData
 from eduid_userdb.testing import MOCKED_USER_STANDARD
 
 
@@ -61,5 +62,5 @@ class TestPdataUser(TestCase):
         userdata = copy.deepcopy(NEW_USER_EXAMPLE)
         userid = userdata.pop('_id')
         userdata.pop('eduPersonPrincipalName')
-        with self.assertRaises(TypeError):
+        with self.assertRaises(UserMissingData):
             DashboardUser.construct_user(_id=userid, **userdata)

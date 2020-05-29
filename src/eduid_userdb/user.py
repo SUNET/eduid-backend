@@ -41,7 +41,8 @@ import bson
 
 from eduid_userdb.credentials import CredentialList
 from eduid_userdb.element import UserDBValueError
-from eduid_userdb.exceptions import UserHasNotCompletedSignup, UserHasUnknownData, UserIsRevoked
+from eduid_userdb.exceptions import UserHasNotCompletedSignup, UserIsRevoked
+from eduid_userdb.exceptions import UserHasUnknownData, UserMissingData
 from eduid_userdb.locked_identity import LockedIdentityList
 from eduid_userdb.mail import MailAddressList
 from eduid_userdb.nin import NinList
@@ -134,7 +135,7 @@ class User(object):
     @classmethod
     def construct_user(
         cls: Type[U],
-        eppn: str,
+        eppn: Optional[str],
         _id: Optional[Union[bson.ObjectId, str]] = None,
         subject: Optional[str] = None,
         display_name: Optional[str] = None,
@@ -164,6 +165,8 @@ class User(object):
         data: Dict[str, Any] = {}
 
         data['_id'] = _id
+        if eppn is None:
+            raise UserMissingData("User objects must be constructed with an eppn")
         data['eduPersonPrincipalName'] = eppn
         data['subject'] = subject
         data['displayName'] = display_name
