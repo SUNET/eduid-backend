@@ -48,7 +48,6 @@ class SignupConfig(FlaskConfig):
 
     signup_authn_url: str = '/services/authn/signup-authn'
     password_length: int = 10
-    vccs_url: Optional[str] = None
     tou_version: str = '2018-v1'
     default_finish_url: str = 'https://www.eduid.se/'
     # The signup app uses this to retrieve the ToU texts from the actions app

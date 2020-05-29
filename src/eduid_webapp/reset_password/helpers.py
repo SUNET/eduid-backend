@@ -32,7 +32,7 @@
 #
 import math
 from enum import unique
-from typing import Optional, Union
+from typing import Optional, Dict, Any
 
 import bcrypt
 from flask import render_template
@@ -52,6 +52,7 @@ from eduid_userdb.reset_password import (
     ResetPasswordEmailAndPhoneState,
     ResetPasswordEmailState,
     ResetPasswordState,
+    ResetPasswordStateType,
     ResetPasswordUser,
 )
 from eduid_userdb.user import User
@@ -132,7 +133,7 @@ class BadCode(Exception):
         self.msg = msg
 
 
-def get_pwreset_state(email_code: str) -> ResetPasswordState:
+def get_pwreset_state(email_code: str) -> ResetPasswordStateType:
     """
     get the password reset state for the provided code
 
@@ -280,10 +281,12 @@ def reset_user_password(user: User, state: ResetPasswordState, password: str):
                 nin.is_verified = False
                 current_app.logger.debug(f'NIN {nin.number} unverified')
 
+    is_generated = state.generated_password if isinstance(state.generated_password, bool) else False
+
     reset_password_user = reset_password(
         reset_password_user,
         new_password=password,
-        is_generated=state.generated_password,
+        is_generated=is_generated,
         application='security',
         vccs_url=vccs_url,
     )
@@ -298,7 +301,7 @@ def get_extra_security_alternatives(user: User, session_prefix: str) -> dict:
     :param user: The user
     :return: Dict of alternatives
     """
-    alternatives = {}
+    alternatives: Dict[str, Any] = {}
 
     if user.phone_numbers.verified.count:
         verified_phone_numbers = [
@@ -358,17 +361,17 @@ def verify_email_address(state: ResetPasswordEmailState) -> bool:
 
 
 def send_verify_phone_code(state: ResetPasswordEmailState, phone_number: str):
-    state = ResetPasswordEmailAndPhoneState.from_email_state(
+    phone_state = ResetPasswordEmailAndPhoneState.from_email_state(
         state, phone_number=phone_number, phone_code=get_short_hash()
     )
-    current_app.password_reset_state_db.save(state)
+    current_app.password_reset_state_db.save(phone_state)
 
     template = 'reset_password_sms.txt.jinja2'
-    context = {'verification_code': state.phone_code.code}
-    send_sms(state.phone_number, template, context, state.reference)
+    context = {'verification_code': phone_state.phone_code.code}
+    send_sms(phone_state.phone_number, template, context, phone_state.reference)
     current_app.logger.info(f'Sent password reset sms to user with eppn: {state.eppn}')
-    current_app.logger.debug(f'Sent password reset sms with code: {state.phone_code.code}')
-    current_app.logger.debug(f'Phone number: {state.phone_number}')
+    current_app.logger.debug(f'Sent password reset sms with code: {phone_state.phone_code.code}')
+    current_app.logger.debug(f'Phone number: {phone_state.phone_number}')
 
 
 def send_sms(phone_number: str, text_template: str, context: Optional[dict] = None, reference: Optional[str] = None):

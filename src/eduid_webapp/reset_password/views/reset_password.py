@@ -77,6 +77,8 @@ her data.
 """
 import json
 import time
+from datetime import datetime
+from typing import cast
 
 from flask import Blueprint, abort, request
 from marshmallow import ValidationError
@@ -88,7 +90,11 @@ from eduid_common.api.messages import CommonMsg, error_message, success_message
 from eduid_common.api.schemas.base import FluxStandardAction
 from eduid_common.authn import fido_tokens
 from eduid_common.session import session
-from eduid_userdb.reset_password import ResetPasswordEmailAndPhoneState
+from eduid_common.session.namespaces import ResetPasswordNS
+from eduid_userdb.reset_password import (
+    ResetPasswordEmailAndPhoneState,
+    ResetPasswordEmailState,
+)
 
 from eduid_webapp.reset_password.app import current_reset_password_app as current_app
 from eduid_webapp.reset_password.helpers import (
@@ -187,14 +193,15 @@ def config_reset_pw(code: str) -> dict:
     """
     current_app.logger.info(f'Configuring password reset form for {code}')
     try:
-        state = get_pwreset_state(code)
+        state: ResetPasswordEmailState = get_pwreset_state(code)
     except BadCode as e:
         return error_message(e.msg)
 
     verify_email_address(state)
 
     new_password = generate_suggested_password()
-    session.reset_password.generated_password_hash = hash_password(new_password)
+    reset_pw_session = cast(ResetPasswordNS, session.reset_password)
+    reset_pw_session.generated_password_hash = hash_password(new_password)
 
     user = current_app.central_userdb.get_user_by_eppn(state.eppn)
     alternatives = get_extra_security_alternatives(user, SESSION_PREFIX)
@@ -288,7 +295,8 @@ def set_new_pw() -> dict:
 
     password = data.get('password')
 
-    hashed = session.reset_password.generated_password_hash
+    reset_pw_session = cast(ResetPasswordNS, session.reset_password)
+    hashed = reset_pw_session.generated_password_hash
     if check_password(password, hashed):
         state.generated_password = True
         current_app.logger.info('Generated password used')
@@ -338,13 +346,14 @@ def choose_extra_security_phone(code: str, phone_index: int) -> dict:
     * Problems sending the SMS message
     """
     try:
-        state = get_pwreset_state(code)
+        state: ResetPasswordEmailAndPhoneState = get_pwreset_state(code)
     except BadCode as e:
         return error_message(e.msg)
 
     if isinstance(state, ResetPasswordEmailAndPhoneState):
         now = int(time.time())
-        if int(state.modified_ts.timestamp()) > now - current_app.config.throttle_sms_seconds:
+        modified_ts = cast(datetime, state.modified_ts)
+        if int(modified_ts.timestamp()) > now - current_app.config.throttle_sms_seconds:
             current_app.logger.info(f'Throttling reset password SMSs for: {state.eppn}')
             return error_message(ResetPwMsg.send_sms_throttled)
 
@@ -412,7 +421,8 @@ def set_new_pw_extra_security_phone() -> dict:
         current_app.logger.info(f'Could not verify phone code for {state.eppn}')
         return error_message(ResetPwMsg.unknown_phone_code)
 
-    hashed = session.reset_password.generated_password_hash
+    reset_pw_session = cast(ResetPasswordNS, session.reset_password)
+    hashed = reset_pw_session.generated_password_hash
     if check_password(password, hashed):
         state.generated_password = True
         current_app.logger.info('Generated password used')
@@ -469,7 +479,8 @@ def set_new_pw_extra_security_token() -> dict:
         current_app.logger.error(f'No data in request to authn {state.eppn}')
         return error_message(ResetPwMsg.mfa_no_data)
 
-    hashed = session.reset_password.generated_password_hash
+    reset_pw_session = cast(ResetPasswordNS, session.reset_password)
+    hashed = reset_pw_session.generated_password_hash
     if check_password(password, hashed):
         state.generated_password = True
         current_app.logger.info('Generated password used')
@@ -488,8 +499,9 @@ def set_new_pw_extra_security_token() -> dict:
         token_response = request.get_json().get('tokenResponse', '')
         current_app.logger.debug(f'U2F token response: {token_response}')
 
-        challenge = session.get(SESSION_PREFIX + '.u2f.challenge')
-        current_app.logger.debug(f'Challenge: {challenge}')
+        chllng = session.get(SESSION_PREFIX + '.u2f.challenge')
+        challenge = cast(bytes, chllng)
+        current_app.logger.debug(f'Challenge: {challenge!r}')
 
         result = fido_tokens.verify_u2f(user, challenge, token_response)
 
