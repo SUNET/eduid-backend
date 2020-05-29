@@ -77,8 +77,7 @@ class ToUUser(User):
         if '_id' not in data or data['_id'] is None:
             raise UserMissingData('Attempting to record a ToU acceptance ' 'for an unidentified user.')
         if 'eduPersonPrincipalName' not in data or data['eduPersonPrincipalName'] is None:
-            if 'eppn' not in data or data['eppn'] is None:
-                raise UserMissingData('Attempting to record a ToU acceptance ' 'for a user without eppn.')
+            raise UserMissingData('Attempting to record a ToU acceptance ' 'for a user without eppn.')
         if 'tou' not in data or data['tou'] is None:
             raise UserMissingData(
                 'Attempting to record the acceptance of '
