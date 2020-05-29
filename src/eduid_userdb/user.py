@@ -52,7 +52,7 @@ from eduid_userdb.tou import ToUList
 
 VALID_SUBJECT_VALUES = ['physical person']
 
-U = TypeVar('U', bound='User')
+TUserSubclass = TypeVar('TUserSubclass', bound='User')
 
 
 class User(object):
@@ -133,7 +133,7 @@ class User(object):
 
     @classmethod
     def construct_user(
-        cls: Type[U],
+        cls: Type[TUserSubclass],
         eppn: Optional[str] = None,
         _id: Optional[Union[bson.ObjectId, str]] = None,
         subject: Optional[str] = None,
@@ -156,7 +156,7 @@ class User(object):
         profiles: Optional[ProfileList] = None,
         raise_on_unknown: bool = True,
         **kwargs,
-    ) -> U:
+    ) -> TUserSubclass:
         """
         Construct user from data in typed params.
         """
@@ -211,7 +211,7 @@ class User(object):
         pass
 
     @classmethod
-    def from_dict(cls: Type[U], data: Dict[str, Any], raise_on_unknown: bool = True) -> U:
+    def from_dict(cls: Type[TUserSubclass], data: Dict[str, Any], raise_on_unknown: bool = True) -> TUserSubclass:
         """
         Construct user from a data dict.
         """
