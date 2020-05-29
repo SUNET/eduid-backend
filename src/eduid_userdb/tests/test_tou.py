@@ -167,7 +167,7 @@ class TestTouUser(TestCase):
         tou = ToUList([ToUEvent(data=one, raise_on_unknown=False)])
         userdata = copy.deepcopy(NEW_USER_EXAMPLE)
         passwords = CredentialList(userdata['passwords'])
-        with self.assertRaises(TypeError):
+        with self.assertRaises(UserMissingData):
             ToUUser.construct_user(tou=tou, passwords=passwords)
 
     def test_proper_new_user_no_eppn(self):
@@ -176,7 +176,7 @@ class TestTouUser(TestCase):
         userdata = copy.deepcopy(NEW_USER_EXAMPLE)
         userid = userdata.pop('_id')
         passwords = CredentialList(userdata['passwords'])
-        with self.assertRaises(TypeError):
+        with self.assertRaises(UserMissingData):
             ToUUser.construct_user(userid=userid, tou=tou, passwords=passwords)
 
     def test_proper_new_user_no_tou(self):

@@ -135,7 +135,7 @@ class User(object):
     @classmethod
     def construct_user(
         cls: Type[U],
-        eppn: Optional[str],
+        eppn: Optional[str] = None,
         _id: Optional[Union[bson.ObjectId, str]] = None,
         subject: Optional[str] = None,
         display_name: Optional[str] = None,
