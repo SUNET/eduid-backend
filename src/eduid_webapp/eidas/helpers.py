@@ -1,20 +1,19 @@
 # -*- coding: utf-8 -*-
 
 from datetime import datetime, timedelta
-from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+from enum import unique
 from xml.etree.ElementTree import ParseError
 
 from dateutil.parser import parse as dt_parse
 from dateutil.tz import tzutc
-from flask import redirect
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 from saml2.metadata import entity_descriptor
 from saml2.response import SAMLError
 from saml2.saml import AuthnContextClassRef
 from saml2.samlp import RequestedAuthnContext
-from werkzeug.wrappers import Response as WerkzeugResponse
 
+from eduid_common.api.messages import TranslatableMsg
 from eduid_common.authn.cache import IdentityCache, OutstandingQueriesCache
 from eduid_common.authn.eduid_saml2 import BadSAMLResponse, get_authn_ctx
 from eduid_common.session import session
@@ -22,6 +21,40 @@ from eduid_common.session import session
 from eduid_webapp.eidas.app import current_eidas_app as current_app
 
 __author__ = 'lundberg'
+
+
+@unique
+class EidasMsg(TranslatableMsg):
+    """
+    Messages sent to the front end with information on the results of the
+    attempted operations on the back end.
+    """
+
+    # LOA 3 not needed
+    authn_context_mismatch = 'eidas.authn_context_mismatch'
+    # re-authentication expired
+    reauthn_expired = 'eidas.reauthn_expired'
+    # the token was not used to authenticate this session
+    token_not_in_creds = 'eidas.token_not_in_credentials_used'
+    # the personalIdentityNumber from eidas does not correspond
+    # to a verified nin in the user's account
+    nin_not_matching = 'eidas.nin_not_matching'
+    # Navet lookup for the postal address failed
+    error_navet_task = 'error_navet_task'
+    # problem synchronzing the account to the central db
+    temp_problem = 'Temporary technical problems'
+    # successfully verified the token
+    verify_success = 'eidas.token_verify_success'
+    # The user already has a verified NIN
+    nin_already_verified = 'eidas.nin_already_verified'
+    # Successfully verified the NIN
+    nin_verify_success = 'eidas.nin_verify_success'
+    # missing redirect URL for mfa authn
+    no_redirect_url = 'eidas.no_redirect_url'
+    # Action completed, redirect to actions app
+    action_completed = 'actions.action-completed'
+    # Token not found on the credentials in the user's account
+    token_not_found = 'eidas.token_not_found'
 
 
 def create_authn_request(relay_state, selected_idp, required_loa, force_authn=False):
@@ -113,19 +146,6 @@ def is_valid_reauthn(session_info, max_age=60) -> bool:
 
 def create_metadata(config):
     return entity_descriptor(config)
-
-
-def redirect_with_msg(url: str, msg: str) -> WerkzeugResponse:
-    """
-    :param url: URL to redirect to
-    :param msg: message to append to query string
-    :return: Redirect response with appended query string message
-    """
-    scheme, netloc, path, query_string, fragment = urlsplit(url)
-    query_list = parse_qsl(query_string)
-    query_list.append(('msg', msg))
-    new_query_string = urlencode(query_list)
-    return redirect(urlunsplit((scheme, netloc, path, new_query_string, fragment)))
 
 
 def staging_nin_remap(session_info):
