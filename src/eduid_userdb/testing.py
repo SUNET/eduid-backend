@@ -43,8 +43,10 @@ import random
 import subprocess
 import time
 import unittest
+from abc import ABC
 from copy import deepcopy
 from datetime import date, timedelta
+from typing import Type, Optional
 
 import pymongo
 from bson import ObjectId
@@ -109,7 +111,23 @@ MOCKED_USER_STANDARD = {
 }
 
 
-class MockedUserDB(UserDB):
+class AbstractMockedUserDB(ABC):
+
+    def get_user(self, userid):
+        if userid not in self.test_users:
+            raise self.UserDoesNotExist
+        return User(deepcopy(self.test_users.get(userid)))
+
+    def all_users(self):
+        for user in self.test_users.values():
+            yield User(deepcopy(user))
+
+    def all_userdocs(self):
+        for user in self.test_users.values():
+            yield deepcopy(user)
+
+
+class MockedUserDB(AbstractMockedUserDB, UserDB):
     """
     Some mock users used in different tests.
 
@@ -139,19 +157,6 @@ class MockedUserDB(UserDB):
                 logger.debug("Updating MockedUser {!r} with:\n{!s}".format(mail, pprint.pformat(user)))
                 self.test_users[mail].update(user)
                 logger.debug("New MockedUser {!r}:\n{!s}".format(mail, pprint.pformat(self.test_users[mail])))
-
-    def get_user(self, userid):
-        if userid not in self.test_users:
-            raise self.UserDoesNotExist
-        return User(deepcopy(self.test_users.get(userid)))
-
-    def all_users(self):
-        for user in self.test_users.values():
-            yield User(deepcopy(user))
-
-    def all_userdocs(self):
-        for user in self.test_users.values():
-            yield deepcopy(user)
 
 
 class MongoTemporaryInstance(object):
@@ -236,9 +241,9 @@ class MongoTestCase(unittest.TestCase):
 
     fixtures: list = []
 
-    MockedUserDB = MockedUserDB
+    MockedUserDB: Type[AbstractMockedUserDB] = MockedUserDB
 
-    user = User(data=MOCKED_USER_STANDARD)
+    user: Optional[User] = User(data=MOCKED_USER_STANDARD)
     mock_users_patches: list = []
 
     def setUp(self, init_am=False, userdb_use_old_format=False, am_settings=None):

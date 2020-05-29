@@ -32,13 +32,16 @@
 #
 import copy
 import datetime
-from typing import Dict, Mapping, Optional, Union, cast
+from typing import Dict, Mapping, Optional, Union, cast, TypeVar
 
 import bson
 
 from eduid_userdb.element import _set_something_ts
 from eduid_userdb.exceptions import UserDBValueError, UserHasUnknownData
 from eduid_userdb.reset_password.element import CodeElement
+
+
+ResetPasswordStateType = TypeVar('ResetPasswordStateType', bound='ResetPasswordState')
 
 
 class ResetPasswordState(object):
@@ -299,7 +302,7 @@ class ResetPasswordEmailAndPhoneState(ResetPasswordEmailState):
     @classmethod
     def from_email_state(
         cls, email_state: ResetPasswordEmailState, phone_number: str, phone_code: str
-    ) -> ResetPasswordState:
+    ) -> 'ResetPasswordEmailAndPhoneState':
         data = email_state.to_dict()
         data['phone_number'] = phone_number
         data['phone_code'] = phone_code
