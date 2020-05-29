@@ -41,6 +41,7 @@ from eduid_userdb.exceptions import UserDBValueError, UserHasUnknownData
 from eduid_userdb.reset_password.element import CodeElement
 
 
+# this is to be able to type the `get_pwreset_state` function at eduid_webapp.reset_password.helpers
 ResetPasswordStateType = TypeVar('ResetPasswordStateType', bound='ResetPasswordState')
 
 

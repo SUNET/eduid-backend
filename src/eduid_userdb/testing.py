@@ -45,7 +45,6 @@ import time
 import unittest
 from abc import ABC
 from copy import deepcopy
-from datetime import date, timedelta
 from typing import Type, Optional
 
 import pymongo
@@ -111,6 +110,7 @@ MOCKED_USER_STANDARD = {
 }
 
 
+# Also used in the APIMockedUserDB at eduid_common.api.testing
 class AbstractMockedUserDB(ABC):
 
     def get_user(self, userid):
