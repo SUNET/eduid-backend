@@ -1,6 +1,11 @@
+import copy
 from unittest import TestCase
 
+from eduid_userdb.credentials import CredentialList
 from eduid_userdb.dashboard import DashboardLegacyUser as User
+from eduid_userdb.dashboard.user import DashboardUser
+from eduid_userdb.data_samples import NEW_USER_EXAMPLE
+from eduid_userdb.exceptions import UserMissingData
 from eduid_userdb.testing import MOCKED_USER_STANDARD
 
 
@@ -27,3 +32,35 @@ class TestUser(TestCase):
         # Restore the old mail settings for other tests
         user.set_mail_aliases(old_mail_aliases)
         user.set_mail(old_mail)
+
+
+class TestPdataUser(TestCase):
+    def test_proper_user(self):
+        userdata = copy.deepcopy(NEW_USER_EXAMPLE)
+        user = DashboardUser(data=userdata)
+        self.assertEqual(user.user_id, userdata['_id'])
+        self.assertEqual(user.eppn, userdata['eduPersonPrincipalName'])
+
+    def test_proper_new_user(self):
+        userdata = copy.deepcopy(NEW_USER_EXAMPLE)
+        userid = userdata.pop('_id')
+        eppn = userdata.pop('eduPersonPrincipalName')
+        passwords = CredentialList(userdata['passwords'])
+        user = DashboardUser.construct_user(_id=userid, eppn=eppn, passwords=passwords)
+        self.assertEqual(user.user_id, userid)
+        self.assertEqual(user.eppn, eppn)
+
+    def test_missing_id(self):
+        userdata = copy.deepcopy(NEW_USER_EXAMPLE)
+        userid = userdata.pop('_id')
+        eppn = userdata.pop('eduPersonPrincipalName')
+        passwords = CredentialList(userdata['passwords'])
+        user = DashboardUser.construct_user(eppn=eppn, passwords=passwords)
+        self.assertNotEqual(user.user_id, userid)
+
+    def test_missing_eppn(self):
+        userdata = copy.deepcopy(NEW_USER_EXAMPLE)
+        userid = userdata.pop('_id')
+        userdata.pop('eduPersonPrincipalName')
+        with self.assertRaises(UserMissingData):
+            DashboardUser.construct_user(_id=userid, **userdata)
