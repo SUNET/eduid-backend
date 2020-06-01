@@ -15,28 +15,28 @@ from eduid_userdb.support import models
 
 class TestSupportUsers(TestCase):
     def test_old_support_user(self):
-        user = models.SupportUserFilter(User(data=OLD_USER_EXAMPLE).to_dict())
+        user = models.SupportUserFilter(User.from_dict(data=OLD_USER_EXAMPLE).to_dict())
         self.assertNotIn('_id', user)
         self.assertNotIn('letter_proofing_data', user)
         for password in user['passwords']:
             self.assertNotIn('salt', password)
 
     def test_support_user(self):
-        user = models.SupportUserFilter(User(data=NEW_USER_EXAMPLE).to_dict())
+        user = models.SupportUserFilter(User.from_dict(data=NEW_USER_EXAMPLE).to_dict())
         self.assertNotIn('_id', user)
         self.assertNotIn('letter_proofing_data', user)
         for password in user['passwords']:
             self.assertNotIn('salt', password)
 
     def test_support_signup_user(self):
-        user = models.SupportSignupUserFilter(SignupUser(data=NEW_SIGNUP_USER_EXAMPLE).to_dict())
+        user = models.SupportSignupUserFilter(SignupUser.from_dict(data=NEW_SIGNUP_USER_EXAMPLE).to_dict())
         self.assertNotIn('_id', user)
         self.assertNotIn('letter_proofing_data', user)
         for password in user['passwords']:
             self.assertNotIn('salt', password)
 
     def test_support_completed_signup_user(self):
-        user = models.SupportSignupUserFilter(SignupUser(data=NEW_COMPLETED_SIGNUP_USER_EXAMPLE).to_dict())
+        user = models.SupportSignupUserFilter(SignupUser.from_dict(data=NEW_COMPLETED_SIGNUP_USER_EXAMPLE).to_dict())
         self.assertNotIn('_id', user)
         self.assertNotIn('letter_proofing_data', user)
 

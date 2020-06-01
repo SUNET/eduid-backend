@@ -766,4 +766,4 @@ class User(object):
             user_dict.pop('modified_ts', None)
         else:
             user_dict['modified_ts'] = private_user.modified_ts
-        return cls(data=user_dict)
+        return cls.from_dict(data=user_dict)

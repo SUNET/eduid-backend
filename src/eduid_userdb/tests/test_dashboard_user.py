@@ -37,7 +37,7 @@ class TestUser(TestCase):
 class TestPdataUser(TestCase):
     def test_proper_user(self):
         userdata = copy.deepcopy(NEW_USER_EXAMPLE)
-        user = DashboardUser(data=userdata)
+        user = DashboardUser.from_dict(data=userdata)
         self.assertEqual(user.user_id, userdata['_id'])
         self.assertEqual(user.eppn, userdata['eduPersonPrincipalName'])
 
