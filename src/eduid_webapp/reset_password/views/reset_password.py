@@ -499,8 +499,8 @@ def set_new_pw_extra_security_token() -> dict:
         token_response = request.get_json().get('tokenResponse', '')
         current_app.logger.debug(f'U2F token response: {token_response}')
 
-        chllng = session.get(SESSION_PREFIX + '.u2f.challenge')
-        challenge = cast(bytes, chllng)
+        _challenge = session.get(SESSION_PREFIX + '.u2f.challenge')
+        challenge = cast(bytes, _challenge)
         current_app.logger.debug(f'Challenge: {challenge!r}')
 
         result = fido_tokens.verify_u2f(user, challenge, token_response)
