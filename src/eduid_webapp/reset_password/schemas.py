@@ -37,8 +37,8 @@ from eduid_common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
 from eduid_common.api.schemas.password import PasswordSchema
 from eduid_common.api.schemas.validators import validate_email
 
-from eduid_webapp.security.schemas import CredentialSchema
 from eduid_webapp.reset_password.helpers import ResetPwMsg
+from eduid_webapp.security.schemas import CredentialSchema
 
 __author__ = 'eperez'
 
