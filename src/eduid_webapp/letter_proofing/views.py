@@ -7,12 +7,13 @@ from flask import Blueprint, abort
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, can_verify_identity, require_user
 from eduid_common.api.exceptions import AmTaskFailed, MsgTaskFailed
 from eduid_common.api.helpers import add_nin_to_user, check_magic_cookie, verify_nin_for_user
+from eduid_common.api.messages import error_message, success_message
 from eduid_userdb.logs import LetterProofing
 
 from eduid_webapp.letter_proofing import pdf, schemas
 from eduid_webapp.letter_proofing.app import current_letterp_app as current_app
 from eduid_webapp.letter_proofing.ekopost import EkopostException
-from eduid_webapp.letter_proofing.helpers import check_state, create_proofing_state, get_address, send_letter
+from eduid_webapp.letter_proofing.helpers import LetterMsg, check_state, create_proofing_state, get_address, send_letter
 
 __author__ = 'lundberg'
 
@@ -29,7 +30,7 @@ def get_state(user):
     if proofing_state:
         current_app.logger.info('Found proofing state for user {}'.format(user))
         return check_state(proofing_state)
-    return {'message': 'letter.no_state_found'}
+    return error_message(LetterMsg.no_state)
 
 
 @letter_proofing_views.route('/proofing', methods=['POST'])
@@ -55,20 +56,22 @@ def proofing(user, nin):
         current_app.logger.info('A letter has already been sent to the user. ')
         current_app.logger.debug('Proofing state: {}'.format(proofing_state.to_dict()))
         result = check_state(proofing_state)
+        if 'letter_expired' not in result:
+            # error message
+            return result
         if not result['letter_expired']:
             return result
-        else:
-            # XXX Are we sure that the user wants to send a new letter?
-            current_app.logger.info('The letter has expired. Sending a new one...')
+        # XXX Are we sure that the user wants to send a new letter?
+        current_app.logger.info('The letter has expired. Sending a new one...')
     try:
         address = get_address(user, proofing_state)
         if not address:
             current_app.logger.error('No address found for user {}'.format(user))
-            return {'_status': 'error', 'message': 'letter.no-address-found'}
+            return error_message(LetterMsg.address_not_found)
     except MsgTaskFailed as e:
         current_app.logger.error('Navet lookup failed for user {}: {}'.format(user, e))
         current_app.stats.count('navet_error')
-        return {'_status': 'error', 'message': 'error_navet_task'}
+        return error_message(LetterMsg.navet_error)
 
     # Set and save official address
     proofing_state.proofing_letter.address = address
@@ -80,11 +83,11 @@ def proofing(user, nin):
     except pdf.AddressFormatException as e:
         current_app.logger.error('{}'.format(e))
         current_app.stats.count('address_format_error')
-        return {'_status': 'error', 'message': 'letter.bad-postal-address'}
+        return error_message(LetterMsg.bad_address)
     except EkopostException as e:
         current_app.logger.error('{}'.format(e))
         current_app.stats.count('ekopost_error')
-        return {'_status': 'error', 'message': 'Temporary technical problems'}
+        return error_message(LetterMsg.temp_error)
 
     # Save the users proofing state
     proofing_state.proofing_letter.transaction_id = campaign_id
@@ -92,7 +95,7 @@ def proofing(user, nin):
     proofing_state.proofing_letter.sent_ts = True
     current_app.proofing_statedb.save(proofing_state)
     result = check_state(proofing_state)
-    result['message'] = 'letter.saved-unconfirmed'
+    result['message'] = LetterMsg.letter_sent.value
     return result
 
 
@@ -105,20 +108,20 @@ def verify_code(user, code):
     proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn, raise_on_missing=False)
 
     if not proofing_state:
-        return {'_status': 'error', 'message': 'letter.no_state_found'}
+        return error_message(LetterMsg.no_state)
 
     # Check if provided code matches the one in the letter
     if not code == proofing_state.nin.verification_code:
         current_app.logger.error('Verification code for user {} does not match'.format(user))
         # TODO: Throttling to discourage an adversary to try brute force
-        return {'_status': 'error', 'message': 'letter.wrong-code'}
+        return error_message(LetterMsg.wrong_code)
 
     try:
         official_address = get_address(user, proofing_state)
     except MsgTaskFailed as e:
         current_app.logger.error('Navet lookup failed for user {}: {}'.format(user, e))
         current_app.stats.count('navet_error')
-        return {'_status': 'error', 'message': 'error_navet_task'}
+        return error_message(LetterMsg.navet_error)
 
     proofing_log_entry = LetterProofing(
         user,
@@ -136,11 +139,11 @@ def verify_code(user, code):
         # Remove proofing state
         current_app.proofing_statedb.remove_state(proofing_state)
         current_app.stats.count(name='nin_verified')
-        return {'success': True, 'message': 'letter.verification_success', 'nins': user.nins.to_list_of_dicts()}
+        return success_message(LetterMsg.verify_success, data=dict(nins=user.nins.to_list_of_dicts()))
     except AmTaskFailed as e:
         current_app.logger.error('Verifying nin for user {} failed'.format(user))
         current_app.logger.error('{}'.format(e))
-        return {'_status': 'error', 'message': 'Temporary technical problems'}
+        return error_message(LetterMsg.temp_error)
 
 
 @letter_proofing_views.route('/get-code', methods=['GET'])
