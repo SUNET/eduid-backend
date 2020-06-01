@@ -93,7 +93,7 @@ def proofing(user, nin):
     proofing_state.proofing_letter.sent_ts = True
     current_app.proofing_statedb.save(proofing_state)
     result = check_state(proofing_state)
-    result['message'] = str(LetterMsg.letter_sent.value)
+    result['message'] = LetterMsg.letter_sent.value
     return result
 
 

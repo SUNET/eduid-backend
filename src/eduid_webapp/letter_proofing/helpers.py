@@ -70,7 +70,7 @@ def check_state(state):
                 'letter_sent': sent_dt,
                 'letter_expires': sent_dt + max_wait,
                 'letter_expired': False,
-                'message': str(LetterMsg.already_sent.value),
+                'message': LetterMsg.already_sent.value,
             }
         else:
             # If the letter haven't reached the user within the allotted time
@@ -83,7 +83,7 @@ def check_state(state):
                 'letter_sent': sent_dt,
                 'letter_expires': sent_dt + max_wait,
                 'letter_expired': True,
-                'message': str(LetterMsg.letter_expired.value),
+                'message': LetterMsg.letter_expired.value,
             }
     current_app.logger.info('Unfinished state for user with eppn {!s}'.format(state.eppn))
     return error_message(LetterMsg.not_sent)
