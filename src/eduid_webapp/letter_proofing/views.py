@@ -56,11 +56,13 @@ def proofing(user, nin):
         current_app.logger.info('A letter has already been sent to the user. ')
         current_app.logger.debug('Proofing state: {}'.format(proofing_state.to_dict()))
         result = check_state(proofing_state)
-        if 'letter_expired' not in result or not result['letter_expired']:
+        if 'letter_expired' not in result:
+            # error message
             return result
-        else:
-            # XXX Are we sure that the user wants to send a new letter?
-            current_app.logger.info('The letter has expired. Sending a new one...')
+        if not result['letter_expired']:
+            return result
+        # XXX Are we sure that the user wants to send a new letter?
+        current_app.logger.info('The letter has expired. Sending a new one...')
     try:
         address = get_address(user, proofing_state)
         if not address:
