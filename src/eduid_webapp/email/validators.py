@@ -42,11 +42,11 @@ def email_exists(email):
     user = get_user()
     user_emails = [e.email for e in user.mail_addresses.to_list()]
     if email not in user_emails:
-        raise ValidationError(str(EmailMsg.missing.value))
+        raise ValidationError(EmailMsg.missing.value)
 
 
 def email_does_not_exist(email):
     user = get_user()
     user_emails = [e.email for e in user.mail_addresses.to_list()]
     if email in user_emails:
-        raise ValidationError(str(EmailMsg.dupe.value))
+        raise ValidationError(EmailMsg.dupe.value)
