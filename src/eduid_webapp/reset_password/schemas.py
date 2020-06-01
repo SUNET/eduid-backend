@@ -38,6 +38,7 @@ from eduid_common.api.schemas.password import PasswordSchema
 from eduid_common.api.schemas.validators import validate_email
 
 from eduid_webapp.security.schemas import CredentialSchema
+from eduid_webapp.reset_password.helpers import ResetPwMsg
 
 __author__ = 'eperez'
 
@@ -52,7 +53,7 @@ class ResetPasswordInitSchema(EduidSchema, CSRFRequestMixin):
         try:
             validate_email(value)
         except ValidationError:
-            raise ValidationError('Invalid email address')
+            raise ValidationError(ResetPwMsg.invalid_email.value)
 
 
 class ResetPasswordEmailCodeSchema(EduidSchema, CSRFRequestMixin):
@@ -78,7 +79,7 @@ class ResetPasswordWithCodeSchema(PasswordSchema):
         try:
             self.validate_password(value)
         except ValidationError:
-            raise ValidationError('resetpw.weak-password')
+            raise ValidationError(ResetPwMsg.resetpw_weak.value)
 
 
 class ResetPasswordWithPhoneCodeSchema(ResetPasswordWithCodeSchema):
@@ -115,7 +116,7 @@ class ChangePasswordSchema(PasswordSchema):
         try:
             self.validate_password(value)
         except ValidationError:
-            raise ValidationError('chpass.weak-password')
+            raise ValidationError(ResetPwMsg.chpass_weak.value)
 
 
 class SuggestedPassword(EduidSchema, CSRFResponseMixin):
