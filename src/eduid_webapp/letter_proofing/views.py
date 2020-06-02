@@ -7,7 +7,7 @@ from flask import Blueprint, abort
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, can_verify_identity, require_user
 from eduid_common.api.exceptions import AmTaskFailed, MsgTaskFailed
 from eduid_common.api.helpers import add_nin_to_user, check_magic_cookie, verify_nin_for_user
-from eduid_common.api.messages import error_message, success_message
+from eduid_common.api.messages import error_message, success_message, CommonMsg
 from eduid_userdb.logs import LetterProofing
 
 from eduid_webapp.letter_proofing import pdf, schemas
@@ -71,7 +71,7 @@ def proofing(user, nin):
     except MsgTaskFailed as e:
         current_app.logger.error('Navet lookup failed for user {}: {}'.format(user, e))
         current_app.stats.count('navet_error')
-        return error_message(LetterMsg.navet_error)
+        return error_message(CommonMsg.navet_error)
 
     # Set and save official address
     proofing_state.proofing_letter.address = address
@@ -87,7 +87,7 @@ def proofing(user, nin):
     except EkopostException as e:
         current_app.logger.error('{}'.format(e))
         current_app.stats.count('ekopost_error')
-        return error_message(LetterMsg.temp_error)
+        return error_message(CommonMsg.temp_problem)
 
     # Save the users proofing state
     proofing_state.proofing_letter.transaction_id = campaign_id
@@ -121,7 +121,7 @@ def verify_code(user, code):
     except MsgTaskFailed as e:
         current_app.logger.error('Navet lookup failed for user {}: {}'.format(user, e))
         current_app.stats.count('navet_error')
-        return error_message(LetterMsg.navet_error)
+        return error_message(CommonMsg.navet_error)
 
     proofing_log_entry = LetterProofing(
         user,
@@ -143,7 +143,7 @@ def verify_code(user, code):
     except AmTaskFailed as e:
         current_app.logger.error('Verifying nin for user {} failed'.format(user))
         current_app.logger.error('{}'.format(e))
-        return error_message(LetterMsg.temp_error)
+        return error_message(CommonMsg.temp_problem)
 
 
 @letter_proofing_views.route('/get-code', methods=['GET'])

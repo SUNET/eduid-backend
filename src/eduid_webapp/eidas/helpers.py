@@ -39,10 +39,6 @@ class EidasMsg(TranslatableMsg):
     # the personalIdentityNumber from eidas does not correspond
     # to a verified nin in the user's account
     nin_not_matching = 'eidas.nin_not_matching'
-    # Navet lookup for the postal address failed
-    error_navet_task = 'error_navet_task'
-    # problem synchronzing the account to the central db
-    temp_problem = 'Temporary technical problems'
     # successfully verified the token
     verify_success = 'eidas.token_verify_success'
     # The user already has a verified NIN

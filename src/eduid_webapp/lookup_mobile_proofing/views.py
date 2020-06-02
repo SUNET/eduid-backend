@@ -7,7 +7,7 @@ from flask import Blueprint
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, can_verify_identity, require_user
 from eduid_common.api.exceptions import AmTaskFailed, MsgTaskFailed
 from eduid_common.api.helpers import add_nin_to_user, verify_nin_for_user
-from eduid_common.api.messages import error_message
+from eduid_common.api.messages import error_message, CommonMsg
 from eduid_common.api.schemas.csrf import CSRFResponse
 
 from eduid_webapp.lookup_mobile_proofing import schemas
@@ -52,7 +52,7 @@ def proofing(user, nin):
         return error_message(MobileMsg.lookup_error)
     except MsgTaskFailed:
         current_app.stats.count('navet_error')
-        return error_message(MobileMsg.navet_error)
+        return error_message(CommonMsg.navet_error)
 
     if success:
         try:
@@ -62,6 +62,6 @@ def proofing(user, nin):
         except AmTaskFailed as e:
             current_app.logger.error('Verifying nin for user {} failed'.format(user))
             current_app.logger.error('{}'.format(e))
-            return error_message(MobileMsg.temp_error)
+            return error_message(CommonMsg.temp_problem)
 
     return error_message(MobileMsg.no_match)

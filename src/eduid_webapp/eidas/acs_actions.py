@@ -11,7 +11,7 @@ from werkzeug.wrappers import Response
 from eduid_common.api.decorators import require_user
 from eduid_common.api.exceptions import AmTaskFailed, MsgTaskFailed
 from eduid_common.api.helpers import verify_nin_for_user
-from eduid_common.api.messages import redirect_with_msg
+from eduid_common.api.messages import redirect_with_msg, CommonMsg
 from eduid_common.api.utils import save_and_sync_user, urlappend, verify_relay_state
 from eduid_common.authn.acs_registry import acs_action
 from eduid_common.authn.eduid_saml2 import get_authn_ctx
@@ -91,7 +91,7 @@ def token_verify_action(session_info, user):
     except MsgTaskFailed as e:
         current_app.logger.error('Navet lookup failed: {}'.format(e))
         current_app.stats.count('navet_error')
-        return redirect_with_msg(redirect_url, EidasMsg.error_navet_task)
+        return redirect_with_msg(redirect_url, CommonMsg.error_navet_task)
     proofing_log_entry = MFATokenProofing(
         user=proofing_user,
         created_by='eduid-eidas',
@@ -116,7 +116,7 @@ def token_verify_action(session_info, user):
         except AmTaskFailed as e:
             current_app.logger.error('Verifying token for user failed')
             current_app.logger.error('{}'.format(e))
-            return redirect_with_msg(redirect_url, EidasMsg.temp_problem)
+            return redirect_with_msg(redirect_url, CommonMsg.temp_problem)
         current_app.stats.count(name='fido_token_verified')
 
     return redirect_with_msg(redirect_url, EidasMsg.verify_success, error=False)
@@ -164,7 +164,7 @@ def nin_verify_action(session_info, user):
     except MsgTaskFailed as e:
         current_app.logger.error('Navet lookup failed: {}'.format(e))
         current_app.stats.count('navet_error')
-        return redirect_with_msg(redirect_url, EidasMsg.error_navet_task)
+        return redirect_with_msg(redirect_url, CommonMsg.error_navet_task)
 
     proofing_log_entry = SwedenConnectProofing(
         user=proofing_user,
@@ -184,7 +184,7 @@ def nin_verify_action(session_info, user):
     except AmTaskFailed as e:
         current_app.logger.error('Verifying NIN for user failed')
         current_app.logger.error('{}'.format(e))
-        return redirect_with_msg(redirect_url, EidasMsg.temp_problem)
+        return redirect_with_msg(redirect_url, CommonMsg.temp_problem)
     current_app.stats.count(name='nin_verified')
 
     return redirect_with_msg(redirect_url, EidasMsg.nin_verify_success, error=False)
