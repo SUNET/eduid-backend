@@ -49,6 +49,28 @@ class TranslatableMsg(Enum):
     """
 
 
+@unique
+class CommonMsg(TranslatableMsg):
+    """
+    Messages sent to the front by more than one webapp.
+    """
+    # some form has failed to validate
+    form_errors = 'form-errors'
+    # problem synchronzing the account to the central db
+    temp_problem = 'Temporary technical problems'
+    # The user has changed in the db since it was retrieved
+    out_of_sync = 'user-out-of-sync'
+    # error in the communications with navet
+    navet_error = 'error_navet_task'
+    # NIN validation error
+    nin_invalid = 'nin needs to be formatted as 18|19|20yymmddxxxx'
+    # Eamil address validation error
+    email_invalid = 'email needs to be formatted according to RFC2822'
+    # CSRF
+    csrf_try_again = 'csrf.try_again'
+    csrf_missing = 'csrf.missing'
+
+
 def success_message(message: Union[TranslatableMsg, str], data: Optional[dict] = None) -> dict:
     """
     Make a dict that corresponds to a success response, that can be marshalled into a response
