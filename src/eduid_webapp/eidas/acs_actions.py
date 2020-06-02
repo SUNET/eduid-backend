@@ -91,7 +91,7 @@ def token_verify_action(session_info, user):
     except MsgTaskFailed as e:
         current_app.logger.error('Navet lookup failed: {}'.format(e))
         current_app.stats.count('navet_error')
-        return redirect_with_msg(redirect_url, CommonMsg.error_navet_task)
+        return redirect_with_msg(redirect_url, CommonMsg.navet_error)
     proofing_log_entry = MFATokenProofing(
         user=proofing_user,
         created_by='eduid-eidas',
@@ -164,7 +164,7 @@ def nin_verify_action(session_info, user):
     except MsgTaskFailed as e:
         current_app.logger.error('Navet lookup failed: {}'.format(e))
         current_app.stats.count('navet_error')
-        return redirect_with_msg(redirect_url, CommonMsg.error_navet_task)
+        return redirect_with_msg(redirect_url, CommonMsg.navet_error)
 
     proofing_log_entry = SwedenConnectProofing(
         user=proofing_user,
