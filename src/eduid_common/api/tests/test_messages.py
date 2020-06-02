@@ -13,7 +13,7 @@
 #        copyright notice, this list of conditions and the following
 #        disclaimer in the documentation and/or other materials provided
 #        with the distribution.
-#     3. Neither the name of the NORDUnet nor the names of its
+#     3. Neither the name of the SUNET nor the names of its
 #        contributors may be used to endorse or promote products derived
 #        from this software without specific prior written permission.
 #
@@ -33,6 +33,8 @@
 
 from enum import unique
 from unittest import TestCase
+
+from eduid_common.api.messages import CommonMsg
 
 from werkzeug.wrappers import Response
 
@@ -182,3 +184,16 @@ class MessageTests(TestCase):
         response = redirect_with_msg(url, 'test.str_msg', error=False)
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.location, 'https://example.com?msg=test.str_msg')
+
+
+class MessagesTests(TestCase):
+    def test_messages(self):
+        """"""
+        self.assertEqual(CommonMsg.temp_problem.value, 'Temporary technical problems')
+        self.assertEqual(CommonMsg.form_errors.value, 'form-errors')
+        self.assertEqual(CommonMsg.out_of_sync.value, 'user-out-of-sync')
+        self.assertEqual(CommonMsg.navet_error.value, 'error_navet_task')
+        self.assertEqual(CommonMsg.nin_invalid.value, 'nin needs to be formatted as 18|19|20yymmddxxxx')
+        self.assertEqual(CommonMsg.email_invalid.value, 'email needs to be formatted according to RFC2822')
+        self.assertEqual(CommonMsg.csrf_try_again.value, 'csrf.try_again')
+        self.assertEqual(CommonMsg.csrf_missing.value, 'csrf.missing')
