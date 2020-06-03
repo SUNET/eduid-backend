@@ -64,9 +64,8 @@ class TestGroupResource(ScimApiTestCase):
             extensions = GroupExtensions()
         group = ScimApiGroup(scim_id=scim_id, display_name=display_name, extensions=extensions)
         assert self.groupdb  # mypy doesn't know setUp will be called
-        self.groupdb.save(group)
         group.graph = GraphGroup(identifier=str(group.scim_id), display_name=display_name)
-        self.groupdb.graphdb.save(group.graph)
+        self.groupdb.save(group)
         return group
 
     def add_member(self, group: ScimApiGroup, identifier: str, display_name: str) -> ScimApiGroup:

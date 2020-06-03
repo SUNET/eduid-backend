@@ -34,10 +34,9 @@ class TestGroupDB(MongoNeoTestCase):
             extensions = GroupExtensions()
         group = ScimApiGroup(scim_id=scim_id, display_name=display_name, extensions=extensions)
         assert self.groupdb  # mypy doesn't know setUp will be called
-        self.groupdb.save(group)
         group.graph = GraphGroup(identifier=str(group.scim_id), display_name=display_name)
+        self.groupdb.save(group)
         logger.info(f'TEST saved group {group}')
-        self.groupdb.graphdb.save(group.graph)
         return group
 
     def test_full_search(self):
