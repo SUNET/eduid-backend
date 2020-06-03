@@ -29,12 +29,8 @@ class MobileMsg(TranslatableMsg):
     no_phone = 'no_phone'
     # problems looking up the phone
     lookup_error = 'error_lookup_mobile_task'
-    # problems in the communications with navet
-    navet_error = 'error_navet_task'
     # success verifying the NIN with the phone
     verify_success = 'letter.verification_success'
-    # temporary unspecified technical problems
-    temp_error = 'Temporary technical problems'
     # no match for the provided phone number
     no_match = 'nins.no-mobile-match'
 

@@ -49,8 +49,6 @@ class ActionsMsg(TranslatableMsg):
 
     # the user corresponding to the action has not been found in the db
     user_not_found = 'mfa.user-not-found'
-    # some form has failed to validate
-    form_errors = 'form-errors'
     # The (mfa|tou|...) action has been completed successfully
     action_completed = 'actions.action-completed'
     # No mfa data sent in authn request
