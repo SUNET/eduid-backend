@@ -31,12 +31,8 @@ class LetterMsg(TranslatableMsg):
     not_sent = 'letter.not-sent'
     # no postal address found
     address_not_found = 'letter.no-address-found'
-    # error in the communications with navet
-    navet_error = 'error_navet_task'
     # errors in the format of the postal address
     bad_address = 'letter.bad-postal-address'
-    # unspecified problems sending the letter
-    temp_error = 'Temporary technical problems'
     # letter sent and state saved w/o errors
     letter_sent = 'letter.saved-unconfirmed'
     # wrong verification code received

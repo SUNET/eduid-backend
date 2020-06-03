@@ -36,7 +36,7 @@ from flask import Blueprint, abort, current_app, request
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid_common.api.helpers import check_magic_cookie
-from eduid_common.api.messages import error_message, redirect_with_msg, success_message
+from eduid_common.api.messages import error_message, redirect_with_msg, success_message, CommonMsg
 from eduid_common.api.utils import save_and_sync_user
 from eduid_userdb.element import DuplicateElementViolation, PrimaryElementViolation
 from eduid_userdb.exceptions import DocumentDoesNotExist, UserOutOfSync
@@ -87,7 +87,7 @@ def post_email(user, email, verified, primary):
         save_and_sync_user(proofing_user)
     except UserOutOfSync:
         current_app.logger.debug('Couldnt save email {} for user {}, ' 'data out of sync'.format(email, proofing_user))
-        return error_message(EmailMsg.out_of_sync)
+        return error_message(CommonMsg.out_of_sync)
     current_app.logger.info('Saved unconfirmed email {!r} ' 'for user {}'.format(email, proofing_user))
     current_app.stats.count(name='email_save_unconfirmed_email', value=1)
 
@@ -116,7 +116,7 @@ def post_primary(user, email):
         current_app.logger.debug(
             'Couldnt save email {!r} as primary for user {}, data out of sync'.format(email, proofing_user)
         )
-        return error_message(EmailMsg.out_of_sync)
+        return error_message(CommonMsg.out_of_sync)
 
     if not mail.is_verified:
         current_app.logger.debug(
@@ -131,7 +131,7 @@ def post_primary(user, email):
         current_app.logger.debug(
             'Couldnt save email {!r} as primary for user' ' {}, data out of sync'.format(email, proofing_user)
         )
-        return error_message(EmailMsg.out_of_sync)
+        return error_message(CommonMsg.out_of_sync)
     current_app.logger.info('Email address {!r} made primary ' 'for user {}'.format(email, proofing_user))
     current_app.stats.count(name='email_set_primary', value=1)
 
@@ -176,7 +176,7 @@ def verify(user, code, email):
         except UserOutOfSync:
             current_app.logger.info('Could not confirm email, data out of sync')
             current_app.logger.debug('Mail address: {}'.format(email))
-            return error_message(EmailMsg.out_of_sync)
+            return error_message(CommonMsg.out_of_sync)
     current_app.logger.info("Invalid verification code")
     current_app.logger.debug("Email address: {}".format(state.verification.email))
     return error_message(EmailMsg.invalid_code)
@@ -217,7 +217,7 @@ def verify_link(user):
             except UserOutOfSync:
                 current_app.logger.info('Could not confirm email, data out of sync')
                 current_app.logger.debug('Mail address: {}'.format(email))
-                return redirect_with_msg(redirect_url, EmailMsg.out_of_sync)
+                return redirect_with_msg(redirect_url, CommonMsg.out_of_sync)
 
         current_app.logger.info("Invalid verification code")
         current_app.logger.debug("Email address: {}".format(state.verification.email))
@@ -259,7 +259,7 @@ def post_remove(user, email):
         save_and_sync_user(proofing_user)
     except UserOutOfSync:
         current_app.logger.debug('Could not remove email {} for user, data out of sync'.format(email))
-        return error_message(EmailMsg.out_of_sync)
+        return error_message(CommonMsg.out_of_sync)
 
     current_app.logger.info('Email address {} removed'.format(email))
     current_app.stats.count(name='email_remove_success', value=1)
@@ -280,7 +280,7 @@ def resend_code(user, email):
 
     if not user.mail_addresses.find(email):
         current_app.logger.debug('Unknown email {!r} in resend_code_action,' ' user {}'.format(email, user))
-        return error_message(EmailMsg.out_of_sync)
+        return error_message(CommonMsg.out_of_sync)
 
     sent = send_verification_code(email, user)
     if not sent:

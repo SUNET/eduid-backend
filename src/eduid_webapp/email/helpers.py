@@ -48,8 +48,6 @@ class EmailMsg(TranslatableMsg):
     dupe = 'emails.duplicated'
     # success retrieving the account's emails
     get_success = 'emails.get-success'
-    # The user has changed in the db since it was retrieved
-    out_of_sync = 'user-out-of-sync'
     # A verification mail for that address has been sent recently
     throttled = 'emails.throttled'
     still_valid_code = 'still-valid-code'
@@ -73,5 +71,3 @@ class EmailMsg(TranslatableMsg):
     removal_success = 'emails.removal-success'
     # success sending a verification code
     code_sent = 'emails.code-sent'
-    # validation error
-    invalid_email = 'email needs to be formatted according to RFC2822'

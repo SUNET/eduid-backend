@@ -84,6 +84,7 @@ from marshmallow import ValidationError
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith
 from eduid_common.api.exceptions import MsgTaskFailed
 from eduid_common.api.helpers import check_magic_cookie
+from eduid_common.api.messages import CommonMsg
 from eduid_common.api.schemas.base import FluxStandardAction
 from eduid_common.authn import fido_tokens
 from eduid_common.session import session
@@ -247,11 +248,11 @@ def _get_state_and_data(SchemaClass):
     except ValidationError as e:
         current_app.logger.error(e)
         if 'csrf_token' in e.messages:
-            raise BadStateOrData(ResetPwMsg.csrf_missing)
+            raise BadStateOrData(CommonMsg.csrf_missing)
         raise BadStateOrData(ResetPwMsg.chpass_weak)
 
     if session.get_csrf_token() != form['csrf_token']:
-        raise BadStateOrData(ResetPwMsg.csrf_try_again)
+        raise BadStateOrData(CommonMsg.csrf_try_again)
 
     return resetpw_user, state, form
 
