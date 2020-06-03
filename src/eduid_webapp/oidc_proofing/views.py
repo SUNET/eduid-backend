@@ -15,12 +15,14 @@ from six import BytesIO
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, can_verify_identity, require_user
 from eduid_common.api.exceptions import TaskFailed
 from eduid_common.api.helpers import add_nin_to_user
+from eduid_common.api.messages import error_message, CommonMsg
 from eduid_userdb.exceptions import DocumentDoesNotExist
 from eduid_userdb.proofing import ProofingUser
 from eduid_userdb.util import UTC
 
 from eduid_webapp.oidc_proofing import helpers, schemas
 from eduid_webapp.oidc_proofing.app import current_oidcp_app as current_app
+from eduid_webapp.oidc_proofing.helpers import OIDCMsg
 
 __author__ = 'lundberg'
 
@@ -169,10 +171,10 @@ def seleg_proofing(user, nin):
             success = helpers.do_authn_request(proofing_state, claims_request, redirect_url)
             if not success:
                 current_app.stats.count(name='seleg.authn_request_op_error')
-                return {'_status': 'error', 'message': 'Temporary technical problems'}
+                return error_message(CommonMsg.temp_problem)
         except requests.exceptions.ConnectionError as e:
             current_app.logger.error('No connection to authorization endpoint: {!s}'.format(e))
-            return {'_status': 'error', 'message': 'No connection to authorization endpoint'}
+            return error_message(OIDCMsg.no_conn)
 
         # If authentication request went well save user state
         current_app.stats.count(name='seleg.authn_request_success')
@@ -238,10 +240,10 @@ def freja_proofing(user, nin):
             success = helpers.do_authn_request(proofing_state, claims_request, redirect_url)
             if not success:
                 current_app.stats.count(name='freja.authn_request_op_error')
-                return {'_status': 'error', 'message': 'Temporary technical problems'}
+                return error_message(CommonMsg.temp_problem)
         except requests.exceptions.ConnectionError as e:
             current_app.logger.error('No connection to authorization endpoint: {!s}'.format(e))
-            return {'_status': 'error', 'message': 'No connection to authorization endpoint'}
+            return error_message(OIDCMsg.no_conn)
 
         # If authentication request went well save user state
         current_app.stats.count(name='freja.authn_request_success')

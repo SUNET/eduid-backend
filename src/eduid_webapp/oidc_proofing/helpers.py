@@ -3,12 +3,14 @@ from __future__ import absolute_import
 
 import json
 from datetime import datetime, timedelta
+from enum import unique
 
 import requests
 from flask import render_template
 from flask_babel import gettext as _
 
 from eduid_common.api.helpers import number_match_proofing, verify_nin_for_user
+from eduid_common.api.messages import TranslatableMsg
 from eduid_common.api.utils import get_unique_hash
 from eduid_userdb.logs import SeLegProofing, SeLegProofingFrejaEid
 from eduid_userdb.proofing import OidcProofingState
@@ -17,6 +19,17 @@ from eduid_userdb.proofing.element import NinProofingElement
 from eduid_webapp.oidc_proofing.app import current_oidcp_app as current_app
 
 __author__ = 'lundberg'
+
+
+@unique
+class OIDCMsg(TranslatableMsg):
+    """
+    Messages sent to the front end with information on the results of the
+    attempted operations on the back end.
+    """
+
+    # Connection error sending a request to the authz endpoint
+    no_conn = 'No connection to authorization endpoint'
 
 
 def create_proofing_state(user, nin):
