@@ -1,10 +1,8 @@
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Sequence, Tuple
-
+from eduid_groupdb import User as GroupUser
 from falcon import Request, Response
 from marshmallow import ValidationError
-
-from eduid_groupdb import User as GroupUser
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from eduid_scimapi.exceptions import BadRequest, NotFound
 from eduid_scimapi.middleware import ctx_groupdb, ctx_userdb
@@ -39,7 +37,7 @@ class UsersResource(SCIMResource):
     def _get_user_groups(self, req: Request, db_user: ScimApiUser) -> List[Group]:
         """ Return the groups for a user formatted as SCIM search sub-resources """
         group_user = GroupUser(identifier=str(db_user.scim_id))
-        user_groups = ctx_groupdb(req).get_groups_for_user(group_user)
+        user_groups = ctx_groupdb(req).get_groups_for_member(group_user)
         groups = []
         for group in user_groups:
             ref = self.url_for("Groups", group.scim_id)

@@ -102,6 +102,7 @@ class ScimApiUserDB(ScimApiBaseDB):
 
         return result.acknowledged
 
+    # TODO: Not working, remove/rewrite?
     def get_user_by_eduid_eppn(self, eppn: str) -> Optional[ScimApiUser]:
         return self.get_user_by_scoped_attribute('eduid', 'external_id', eppn)
 
@@ -117,6 +118,7 @@ class ScimApiUserDB(ScimApiBaseDB):
             return ScimApiUser.from_dict(docs)
         return None
 
+    # TODO: Not used, remove?
     def get_user_by_scoped_attribute(self, scope: str, attr: str, value: Any) -> Optional[ScimApiUser]:
         docs = self._get_documents_by_filter(spec={f'profiles.{scope}.{attr}': value}, raise_on_missing=False)
         if len(docs) == 1:
