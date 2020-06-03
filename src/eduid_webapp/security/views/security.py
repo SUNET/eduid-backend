@@ -58,7 +58,6 @@ from eduid_webapp.security.helpers import (
     get_zxcvbn_terms,
     remove_nin_from_user,
     send_termination_mail,
-    SecurityMsg,
 )
 from eduid_webapp.security.schemas import (
     AccountTerminatedSchema,
