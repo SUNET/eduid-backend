@@ -28,12 +28,8 @@ class OIDCMsg(TranslatableMsg):
     attempted operations on the back end.
     """
 
-    # temporary unspecified technical problems
-    temp_error = 'Temporary technical problems'
     # Connection error sending a request to the authz endpoint
     no_conn = 'No connection to authorization endpoint'
-    # NIN validation error
-    nin_invalid = 'nin needs to be formatted as 18|19|20yymmddxxxx'
 
 
 def create_proofing_state(user, nin):
