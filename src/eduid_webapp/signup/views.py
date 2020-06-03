@@ -35,7 +35,7 @@ from flask import Blueprint, abort, request
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith
 from eduid_common.api.helpers import check_magic_cookie
-from eduid_common.api.messages import error_message, success_message
+from eduid_common.api.messages import error_message, success_message, CommonMsg
 from eduid_common.api.schemas.base import FluxStandardAction
 from eduid_userdb.exceptions import EduIDUserDBError
 
@@ -134,7 +134,7 @@ def verify_link(code):
         return error_message(SignupMsg.already_verified, data=dict(status='already-verified'))
 
     except ProofingLogFailure:
-        return error_message(SignupMsg.temp_problem)
+        return error_message(CommonMsg.temp_problem)
 
     except EduIDUserDBError:
         return error_message(SignupMsg.unknown_code, data=dict(status='unknown-code'))

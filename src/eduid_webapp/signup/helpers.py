@@ -59,10 +59,6 @@ class SignupMsg(TranslatableMsg):
     attempted operations on the back end.
     """
 
-    # The user has changed in the db since it was retrieved
-    out_of_sync = 'user-out-of-sync'
-    # unspecified temporary problem
-    temp_problem = 'Temporary technical problems'
     # the ToU has not been accepted
     no_tou = 'signup.tou-not-accepted'
     # partial success registering new account
