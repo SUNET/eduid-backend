@@ -38,6 +38,7 @@ from marshmallow import ValidationError
 
 from eduid_common.api.decorators import MarshalWith, require_user
 from eduid_common.api.messages import CommonMsg
+from eduid_common.api.messages import error_message
 from eduid_common.api.utils import save_and_sync_user
 from eduid_common.authn.vccs import change_password
 from eduid_common.session import session
@@ -49,7 +50,6 @@ from eduid_webapp.reset_password.helpers import (
     ResetPwMsg,
     check_password,
     compile_credential_list,
-    error_message,
     generate_suggested_password,
     get_zxcvbn_terms,
     hash_password,
