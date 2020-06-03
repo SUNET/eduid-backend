@@ -15,6 +15,7 @@ from eduid_scimapi.group import (
     GroupResponseSchema,
     GroupUpdateRequest,
     GroupUpdateRequestSchema,
+    NutidGroupExtensionV1,
 )
 from eduid_scimapi.groupdb import ScimApiGroup
 from eduid_scimapi.middleware import ctx_groupdb, ctx_userdb
@@ -53,22 +54,22 @@ class GroupsResource(SCIMResource):
             created=db_group.created,
             version=db_group.version,
         )
+        schemas = [SCIMSchema.CORE_20_GROUP]
+        if db_group.extensions.data:
+            schemas.append(SCIMSchema.NUTID_GROUP_V1)
         group = GroupResponse(
             display_name=db_group.graph.display_name,
             members=members,
             id=db_group.scim_id,
             meta=meta,
-            schemas=[SCIMSchema.CORE_20_GROUP],
+            schemas=list(schemas),  # extra list() needed to work with _both_ mypy and marshmallow
+            nutid_group_v1=NutidGroupExtensionV1(data=db_group.extensions.data),
         )
-
-        if db_group.extensions.data:
-            group.schemas.append(SCIMSchema.NUTID_GROUP_V1)
-            group.nutid_group_v1.data = db_group.extensions.data
 
         resp.set_header("Location", location)
         resp.set_header("ETag", make_etag(db_group.version))
         dumped_group = GroupResponseSchema().dump(group)
-        if not SCIMSchema.NUTID_GROUP_V1 in group.schemas and SCIMSchema.NUTID_GROUP_V1.value in dumped_group:
+        if SCIMSchema.NUTID_GROUP_V1 not in group.schemas and SCIMSchema.NUTID_GROUP_V1.value in dumped_group:
             # Serialization will always put the NUTID_GROUP_V1 in the dumped_group, even if there was no data
             del dumped_group[SCIMSchema.NUTID_GROUP_V1.value]
         resp.media = dumped_group

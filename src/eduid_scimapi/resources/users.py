@@ -1,16 +1,11 @@
-import re
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Sequence, Tuple
-from uuid import UUID
-
+from eduid_groupdb import User as GroupUser
 from falcon import Request, Response
 from marshmallow import ValidationError
-
-from eduid_groupdb import User as GroupUser
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from eduid_scimapi.exceptions import BadRequest, NotFound
-from eduid_scimapi.groupdb import ScimApiGroup
-from eduid_scimapi.resources import groups
+from eduid_scimapi.middleware import ctx_groupdb, ctx_userdb
 from eduid_scimapi.resources.base import BaseResource, SCIMResource
 from eduid_scimapi.scimbase import (
     ListResponse,
@@ -25,6 +20,7 @@ from eduid_scimapi.scimbase import (
 from eduid_scimapi.search import SearchFilter, parse_search_filter
 from eduid_scimapi.user import (
     Group,
+    NutidExtensionV1,
     Profile,
     UserCreateRequest,
     UserCreateRequestSchema,
@@ -41,7 +37,7 @@ class UsersResource(SCIMResource):
     def _get_user_groups(self, req: Request, db_user: ScimApiUser) -> List[Group]:
         """ Return the groups for a user formatted as SCIM search sub-resources """
         group_user = GroupUser(identifier=str(db_user.scim_id))
-        user_groups = req.context['groupdb'].get_groups_for_member(group_user)
+        user_groups = ctx_groupdb(req).get_groups_for_member(group_user)
         groups = []
         for group in user_groups:
             ref = self.url_for("Groups", group.scim_id)
@@ -58,19 +54,21 @@ class UsersResource(SCIMResource):
             version=db_user.version,
         )
 
+        schemas = [SCIMSchema.CORE_20_USER]
+        if db_user.profiles:
+            schemas.append(SCIMSchema.NUTID_USER_V1)
+
+        # Convert one type of Profile into another
+        _profiles = {k: Profile(attributes=v.attributes, data=v.data) for k, v in db_user.profiles.items()}
+
         user = UserResponse(
             id=db_user.scim_id,
             external_id=db_user.external_id,
             groups=self._get_user_groups(req=req, db_user=db_user),
             meta=meta,
-            schemas=[SCIMSchema.CORE_20_USER],
+            schemas=list(schemas),  # extra list() needed to work with _both_ mypy and marshmallow
+            nutid_v1=NutidExtensionV1(profiles=_profiles),
         )
-
-        if db_user.profiles:
-            user.schemas.append(SCIMSchema.NUTID_USER_V1)
-            for profile_name, db_profile in db_user.profiles.items():
-                profile = Profile(attributes=db_profile.attributes, data=db_profile.data)
-                user.nutid_v1.profiles[profile_name] = profile
 
         resp.set_header("Location", location)
         resp.set_header("ETag", make_etag(db_user.version))
@@ -80,7 +78,7 @@ class UsersResource(SCIMResource):
         if scim_id is None:
             raise BadRequest(detail='Not implemented')
         self.context.logger.info(f'Fetching user {scim_id}')
-        db_user = req.context['userdb'].get_user_by_scim_id(scim_id)
+        db_user = ctx_userdb(req).get_user_by_scim_id(scim_id)
         if not db_user:
             raise NotFound(detail='User not found')
 
@@ -97,7 +95,7 @@ class UsersResource(SCIMResource):
                 self.context.logger.debug(f'{scim_id} != {update_request.id}')
                 raise BadRequest(detail='Id mismatch')
 
-            db_user: ScimApiUser = req.context['userdb'].get_user_by_scim_id(scim_id)
+            db_user = ctx_userdb(req).get_user_by_scim_id(scim_id)
             if not db_user:
                 raise NotFound(detail="Group not found")
 
@@ -134,7 +132,7 @@ class UsersResource(SCIMResource):
                     for profile_name, profile in update_request.nutid_v1.profiles.items():
                         db_profile = DBProfile(attributes=profile.attributes, data=profile.data)
                         db_user.profiles[profile_name] = db_profile
-                    req.context['userdb'].save(db_user)
+                    ctx_userdb(req).save(db_user)
 
             self._db_user_to_response(req=req, resp=resp, db_user=db_user)
         except ValidationError as e:
@@ -202,7 +200,7 @@ class UsersResource(SCIMResource):
                 profiles[profile_name] = DBProfile(attributes=profile.attributes, data=profile.data)
 
             db_user = ScimApiUser(external_id=create_request.external_id, profiles=profiles)
-            req.context['userdb'].save(db_user)
+            ctx_userdb(req).save(db_user)
 
             self._db_user_to_response(req=req, resp=resp, db_user=db_user)
         except ValidationError as e:
@@ -278,8 +276,10 @@ class UsersSearchResource(BaseResource):
     def _filter_externalid(req: Request, filter: SearchFilter) -> List[ScimApiUser]:
         if filter.op != 'eq':
             raise BadRequest(scim_type='invalidFilter', detail='Unsupported operator')
+        if not isinstance(filter.val, str):
+            raise BadRequest(scim_type='invalidFilter', detail='Invalid externalId')
 
-        user = req.context['userdb'].get_user_by_external_id(filter.val)
+        user = ctx_userdb(req).get_user_by_external_id(filter.val)
 
         if not user:
             return []
@@ -294,6 +294,6 @@ class UsersSearchResource(BaseResource):
             raise BadRequest(scim_type='invalidFilter', detail='Unsupported operator')
         if not isinstance(filter.val, str):
             raise BadRequest(scim_type='invalidFilter', detail='Invalid datetime')
-        return req.context['userdb'].get_users_by_last_modified(
+        return ctx_userdb(req).get_users_by_last_modified(
             operator=filter.op, value=datetime.fromisoformat(filter.val), skip=skip, limit=limit
         )
