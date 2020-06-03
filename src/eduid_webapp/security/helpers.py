@@ -2,6 +2,7 @@
 
 from __future__ import absolute_import
 
+from enum import unique
 from typing import Optional
 
 from flask import render_template, url_for
@@ -9,6 +10,7 @@ from flask_babel import gettext as _
 
 from eduid_common.api.decorators import deprecated
 from eduid_common.api.helpers import send_mail
+from eduid_common.api.messages import TranslatableMsg
 from eduid_common.api.utils import get_short_hash, get_unique_hash, save_and_sync_user
 from eduid_common.authn.utils import generate_password
 from eduid_common.authn.vccs import reset_password
@@ -21,6 +23,52 @@ from eduid_webapp.security.app import current_security_app as current_app
 from eduid_webapp.security.schemas import ConvertRegisteredKeys
 
 __author__ = 'lundberg'
+
+
+@unique
+class SecurityMsg(TranslatableMsg):
+    """
+    Messages sent to the front end with information on the results of the
+    attempted operations on the back end.
+    """
+
+    # Too much time passed since re-authn for account termination
+    stale_reauthn = 'security.stale_authn_info'
+    # removing a verified NIN is not allowed
+    rm_verified = 'nins.verified_no_rm'
+    # success removing nin
+    rm_success = 'nins.success_removal'
+    # the user already has the nin
+    already_exists = 'nins.already_exists'
+    # success adding a new nin
+    add_success = 'nins.successfully_added'
+    # The user tried to register more than the allowed number of tokens
+    max_tokens = 'security.u2f.max_allowed_tokens'
+    max_webauthn = 'security.webauthn.max_allowed_tokens'
+    # missing u2f enrollment data
+    missing_data = 'security.u2f.missing_enrollment_data'
+    # successfully registered u2f token
+    u2f_registered = 'security.u2f_register_success'
+    # No u2f tokens found for the user
+    no_u2f = 'security.u2f.no_token_found'
+    # no challenge data found in session during u2f token verification
+    no_challenge = 'security.u2f.missing_challenge_data'
+    # u2f token not found in user
+    no_token = 'security.u2f.missing_token'
+    # the description provided for the token is too long
+    long_desc = 'security.u2f.description_to_long'
+    # success removing u2f token
+    rm_u2f_success = 'security.u2f-token-removed'
+    # the account has to have personal data to be able to register webauthn data
+    no_pdata = 'security.webauthn-missing-pdata'
+    # success registering webauthn token
+    webauthn_success = 'security.webauthn_register_success'
+    # It is not allowed to remove the last webauthn credential left
+    no_last = 'security.webauthn-noremove-last'
+    # Success removing webauthn token
+    rm_webauthn = 'security.webauthn-token-removed'
+    # token to remove not found
+    no_webauthn = 'security.webauthn-token-notfound'
 
 
 def credentials_to_registered_keys(user_u2f_tokens):

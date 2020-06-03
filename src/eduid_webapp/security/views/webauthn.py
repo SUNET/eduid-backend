@@ -11,6 +11,7 @@ from fido2.server import USER_VERIFICATION, Fido2Server, RelyingParty
 from flask import Blueprint
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
+from eduid_common.api.messages import error_message, success_message
 from eduid_common.api.schemas.base import FluxStandardAction
 from eduid_common.api.utils import save_and_sync_user
 from eduid_common.session import session
@@ -21,7 +22,7 @@ from eduid_userdb.credentials.fido import FidoCredential
 from eduid_userdb.security import SecurityUser
 
 from eduid_webapp.security.app import current_security_app as current_app
-from eduid_webapp.security.helpers import compile_credential_list
+from eduid_webapp.security.helpers import SecurityMsg, compile_credential_list
 from eduid_webapp.security.schemas import (
     RemoveWebauthnTokenRequestSchema,
     SecurityResponseSchema,
@@ -65,11 +66,13 @@ def registration_begin(user, authenticator):
         current_app.logger.error(
             'User tried to register more than {} tokens.'.format(current_app.config.webauthn_max_allowed_tokens)
         )
-        return {'_status': 'error', 'message': 'security.webauthn.max_allowed_tokens'}
+        return error_message(SecurityMsg.max_webauthn)
+
     creds = make_credentials(user_webauthn_tokens.to_list())
     server = get_webauthn_server(current_app.config.fido2_rp_id)
     if user.given_name is None or user.surname is None or user.display_name is None:
-        return {'_status': 'error', 'message': 'security.webauthn-missing-pdata'}
+        return error_message(SecurityMsg.no_pdata)
+
     registration_data, state = server.register_begin(
         {
             'id': str(user.eppn).encode('ascii'),
@@ -124,7 +127,8 @@ def registration_complete(user, credential_id, attestation_object, client_data, 
     save_and_sync_user(security_user)
     current_app.stats.count(name='webauthn_register_complete')
     current_app.logger.info('User {} has completed registration of a webauthn token'.format(security_user))
-    return {'message': 'security.webauthn_register_success', 'credentials': compile_credential_list(security_user)}
+    credentials = compile_credential_list(security_user)
+    return success_message(SecurityMsg.webauthn_success, data=dict(credentials=credentials))
 
 
 @webauthn_views.route('/remove', methods=['POST'])
@@ -135,17 +139,20 @@ def remove(user, credential_key):
     security_user = SecurityUser.from_user(user, current_app.private_userdb)
     tokens = security_user.credentials.filter(FidoCredential)
     if tokens.count <= 1:
-        return {'_error': True, 'message': 'security.webauthn-noremove-last'}
+        return {'_error': True, 'message': SecurityMsg.no_last.value}
+
     token_to_remove = security_user.credentials.find(credential_key)
     if token_to_remove:
         security_user.credentials.remove(credential_key)
         save_and_sync_user(security_user)
         current_app.stats.count(name='webauthn_token_remove')
         current_app.logger.info(f'User {security_user} has removed a security token: {credential_key}')
-        message = 'security.webauthn-token-removed'
+        message = SecurityMsg.rm_webauthn
     else:
         current_app.logger.info(
             f'User {security_user} has tried to remove a' f' missing security token: {credential_key}'
         )
-        message = 'security.webauthn-token-notfound'
-    return {'message': message, 'credentials': compile_credential_list(security_user)}
+        message = SecurityMsg.no_webauthn
+
+    credentials = compile_credential_list(security_user)
+    return {'message': message, 'credentials': credentials}
