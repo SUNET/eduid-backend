@@ -37,7 +37,7 @@ from flask import Blueprint, abort, request
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid_common.api.helpers import check_magic_cookie
-from eduid_common.api.messages import error_message, success_message
+from eduid_common.api.messages import error_message, success_message, CommonMsg
 from eduid_common.api.utils import save_and_sync_user
 from eduid_userdb.element import PrimaryElementViolation, UserDBValueError
 from eduid_userdb.exceptions import DocumentDoesNotExist, UserOutOfSync
@@ -95,7 +95,7 @@ def post_phone(user, number, verified, primary):
         current_app.logger.debug(
             'Couldnt save phone number {!r} for user {}, ' 'data out of sync'.format(number, proofing_user)
         )
-        return error_message(PhoneMsg.out_of_sync)
+        return error_message(CommonMsg.out_of_sync)
 
     current_app.logger.info('Saved unconfirmed phone number {!r} ' 'for user {}'.format(number, proofing_user))
     current_app.stats.count(name='mobile_save_unconfirmed_mobile', value=1)
@@ -124,7 +124,7 @@ def post_primary(user, number):
     phone_element = proofing_user.phone_numbers.find(number)
     if not phone_element:
         current_app.logger.debug('Could not save phone number {} as primary, data out of sync'.format(number))
-        return error_message(PhoneMsg.out_of_sync)
+        return error_message(CommonMsg.out_of_sync)
 
     if not phone_element.is_verified:
         current_app.logger.debug('Could not save phone number {} as primary, phone number unconfirmed'.format(number))
@@ -135,7 +135,7 @@ def post_primary(user, number):
         save_and_sync_user(proofing_user)
     except UserOutOfSync:
         current_app.logger.debug('Could not save phone number {} as primary, data out of sync'.format(number))
-        return error_message(PhoneMsg.out_of_sync)
+        return error_message(CommonMsg.out_of_sync)
     current_app.logger.info('Phone number {} made primary'.format(number))
     current_app.stats.count(name='mobile_set_primary', value=1)
 
@@ -182,7 +182,7 @@ def verify(user, code, number):
         except UserOutOfSync:
             current_app.logger.info('Could not confirm phone number, data out of sync')
             current_app.logger.debug('Phone number: {}'.format(number))
-            return error_message(PhoneMsg.out_of_sync)
+            return error_message(CommonMsg.out_of_sync)
     current_app.logger.info("Invalid verification code")
     current_app.logger.debug("Proofing state: {!r}".format(state))
     return error_message(PhoneMsg.code_invalid)
@@ -221,7 +221,7 @@ def post_remove(user, number):
         current_app.logger.debug(
             'Couldnt remove phone number {!r} for user' ' {}, data out of sync'.format(number, proofing_user)
         )
-        return error_message(PhoneMsg.out_of_sync)
+        return error_message(CommonMsg.out_of_sync)
     current_app.logger.info('Phone number {!r} removed ' 'for user {}'.format(number, proofing_user))
     current_app.stats.count(name='mobile_remove_success', value=1)
 
@@ -246,7 +246,7 @@ def resend_code(user, number):
 
     if not user.phone_numbers.find(number):
         current_app.logger.warning('Unknown phone in resend_code_action, user {}'.format(user))
-        return error_message(PhoneMsg.out_of_sync)
+        return error_message(CommonMsg.out_of_sync)
 
     sent = send_verification_code(user, number)
     if not sent:

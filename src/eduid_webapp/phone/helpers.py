@@ -42,8 +42,6 @@ class PhoneMsg(TranslatableMsg):
     attempted operations on the back end.
     """
 
-    # The user has changed in the db since it was retrieved
-    out_of_sync = 'user-out-of-sync'
     # validation error: not conforming to e164
     e164_error = "phone.e164_format"
     # validation error: invalid phone number
