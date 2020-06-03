@@ -41,7 +41,7 @@ from six.moves.urllib_parse import parse_qs, urlencode, urlparse, urlunparse
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid_common.api.exceptions import AmTaskFailed, MsgTaskFailed
 from eduid_common.api.helpers import add_nin_to_user
-from eduid_common.api.messages import error_message, success_message
+from eduid_common.api.messages import error_message, success_message, CommonMsg
 from eduid_common.api.utils import save_and_sync_user, urlappend
 from eduid_common.authn.vccs import add_credentials, revoke_all_credentials
 from eduid_common.session import session
@@ -235,7 +235,7 @@ def account_terminated(user):
     try:
         save_and_sync_user(security_user)
     except UserOutOfSync:
-        return error_message(SecurityMsg.out_of_sync)
+        return error_message(CommonMsg.out_of_sync)
 
     current_app.stats.count(name='security_account_terminated', value=1)
     current_app.logger.info('Terminated user account')
@@ -272,7 +272,7 @@ def remove_nin(user, nin):
         current_app.logger.error('Removing nin from user failed')
         current_app.logger.debug(f'NIN: {nin}')
         current_app.logger.error('{}'.format(e))
-        return error_message(SecurityMsg.temp_problem)
+        return error_message(CommonMsg.temp_problem)
 
 
 @security_views.route('/add-nin', methods=['POST'])
@@ -300,4 +300,4 @@ def add_nin(user, nin):
         current_app.logger.error('Adding nin to user failed')
         current_app.logger.debug(f'NIN: {nin}')
         current_app.logger.error('{}'.format(e))
-        return error_message(SecurityMsg.temp_problem)
+        return error_message(CommonMsg.temp_problem)
