@@ -32,16 +32,12 @@ class SecurityMsg(TranslatableMsg):
     attempted operations on the back end.
     """
 
-    # The user has changed in the db since it was retrieved
-    out_of_sync = 'user-out-of-sync'
     # Too much time passed since re-authn for account termination
     stale_reauthn = 'security.stale_authn_info'
     # removing a verified NIN is not allowed
     rm_verified = 'nins.verified_no_rm'
     # success removing nin
     rm_success = 'nins.success_removal'
-    # unspecified temporary problem
-    temp_problem = 'Temporary technical problems'
     # the user already has the nin
     already_exists = 'nins.already_exists'
     # success adding a new nin
