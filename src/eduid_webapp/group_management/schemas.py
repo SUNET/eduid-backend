@@ -40,24 +40,34 @@ __author__ = 'lundberg'
 
 
 class GroupMember(EduidSchema):
-    id = fields.UUID(required=True)
+    identifier = fields.UUID(required=True)
     display_name = fields.Str(required=True)
 
 
 class Group(EduidSchema):
-    id = fields.UUID(required=True)
+    identifier = fields.UUID(required=True)
     display_name = fields.Str(required=True)
     members = fields.Nested(nested=GroupMember, default=[], many=True)
     owners = fields.Nested(nested=GroupMember, default=[], many=True)
 
 
-class GroupManagementRequestSchema(EduidSchema, CSRFRequestMixin):
+class GroupManagementRequestSchema(EduidSchema):
     pass
 
 
-class GroupManagementResponseSchema(EduidSchema, CSRFResponseMixin):
-    class GroupManagementResponsePayload(EduidSchema):
+class GroupManagementResponseSchema(FluxStandardAction):
+    class GroupManagementResponsePayload(EduidSchema, CSRFResponseMixin):
         member_of = fields.Nested(Group, default=[], many=True)
         owner_of = fields.Nested(Group, default=[], many=True)
 
     payload = fields.Nested(GroupManagementResponsePayload)
+
+
+class GroupCreateRequestSchema(EduidSchema, CSRFRequestMixin):
+
+    display_name = fields.Str(required=True)
+
+
+class GroupDeleteRequestSchema(EduidSchema, CSRFRequestMixin):
+
+    identifier = fields.UUID(required=True)
