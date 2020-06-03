@@ -42,8 +42,6 @@ class PDataMsg(TranslatableMsg):
     attempted operations on the back end.
     """
 
-    # The user has changed in the db since it was retrieved
-    out_of_sync = 'user-out-of-sync'
     # successfully saved personal data
     save_success = 'pd.save-success'
     # validation error: missing required field
