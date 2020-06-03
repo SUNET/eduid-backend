@@ -27,8 +27,6 @@ class MessagesTests(unittest.TestCase):
         self.assertEqual(ResetPwMsg.unrecognized_pw.value, 'chpass.unable-to-verify-old-password')
         self.assertEqual(ResetPwMsg.hwtoken_fail.value, 'security-key-fail')
         self.assertEqual(ResetPwMsg.state_no_key.value, 'chpass.no-code-in-data')
-        self.assertEqual(ResetPwMsg.csrf_try_again.value, 'csrf.try_again')
-        self.assertEqual(ResetPwMsg.csrf_missing.value, 'csrf.missing')
         self.assertEqual(ResetPwMsg.chpass_weak.value, 'chpass.weak-password')
         self.assertEqual(ResetPwMsg.chpass_no_data.value, 'chpass.no-data')
         self.assertEqual(ResetPwMsg.mfa_no_data.value, 'mfa.no-request-data')
