@@ -7,7 +7,7 @@ from oic.oic.message import AuthorizationResponse, Claims, ClaimsRequest
 from six.moves.urllib_parse import urlencode
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
-from eduid_common.api.messages import redirect_with_msg
+from eduid_common.api.messages import redirect_with_msg, CommonMsg
 from eduid_common.api.schemas.csrf import CSRFRequest
 from eduid_common.api.utils import get_unique_hash, save_and_sync_user
 from eduid_userdb.logs import OrcidProofing
@@ -162,7 +162,7 @@ def authorization_response(user):
         message_args = dict(msg=OrcidMsg.authz_success, error=False)
     else:
         current_app.logger.info('ORCID proofing data NOT saved, failed to save proofing log')
-        message_args = dict(msg=OrcidMsg.temp_problem)
+        message_args = dict(msg=CommonMsg.temp_problem)
 
     # Clean up
     current_app.logger.info('Removing proofing state')

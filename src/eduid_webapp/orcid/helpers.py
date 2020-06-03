@@ -54,5 +54,3 @@ class OrcidMsg(TranslatableMsg):
     sub_mismatch = 'orc.sub_mismatch'
     # ORCID proofing data saved for user
     authz_success = 'orc.authorization_success'
-    # ORCID data not saved due to unspecified problems
-    temp_problem = 'Temporary technical problems'
