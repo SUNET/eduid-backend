@@ -49,7 +49,7 @@ class SecurityMsg(TranslatableMsg):
     missing_data = 'security.u2f.missing_enrollment_data'
     # successfully registered u2f token
     u2f_registered = 'security.u2f_register_success'
-    # No u2f tokens forund for the user
+    # No u2f tokens found for the user
     no_u2f = 'security.u2f.no_token_found'
     # no challenge data found in session during u2f token verification
     no_challenge = 'security.u2f.missing_challenge_data'

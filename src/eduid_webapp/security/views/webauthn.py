@@ -139,7 +139,7 @@ def remove(user, credential_key):
     security_user = SecurityUser.from_user(user, current_app.private_userdb)
     tokens = security_user.credentials.filter(FidoCredential)
     if tokens.count <= 1:
-        return {'_error': True, 'message': str(SecurityMsg.no_last.value)}
+        return {'_error': True, 'message': SecurityMsg.no_last.value}
 
     token_to_remove = security_user.credentials.find(credential_key)
     if token_to_remove:
