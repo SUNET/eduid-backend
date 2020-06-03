@@ -102,6 +102,9 @@ class ScimApiUserDB(ScimApiBaseDB):
 
         return result.acknowledged
 
+    def remove(self, user: ScimApiUser):
+        return self.remove_document(user.user_id)
+
     # TODO: Not working, remove/rewrite?
     def get_user_by_eduid_eppn(self, eppn: str) -> Optional[ScimApiUser]:
         return self.get_user_by_scoped_attribute('eduid', 'external_id', eppn)
