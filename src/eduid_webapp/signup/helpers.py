@@ -35,11 +35,13 @@ import datetime
 import os
 import struct
 import time
+from enum import unique
 
 import proquint
 from bson import ObjectId
 from flask import abort
 
+from eduid_common.api.messages import TranslatableMsg
 from eduid_common.api.utils import save_and_sync_user
 from eduid_common.session import session
 from eduid_userdb.credentials import Password
@@ -48,6 +50,29 @@ from eduid_userdb.tou import ToUEvent
 
 from eduid_webapp.signup.app import current_signup_app as current_app
 from eduid_webapp.signup.vccs import generate_password
+
+
+@unique
+class SignupMsg(TranslatableMsg):
+    """
+    Messages sent to the front end with information on the results of the
+    attempted operations on the back end.
+    """
+
+    # the ToU has not been accepted
+    no_tou = 'signup.tou-not-accepted'
+    # partial success registering new account
+    reg_new = 'signup.registering-new'
+    # The email address used is already known
+    email_used = 'signup.registering-address-used'
+    # recaptcha not verified
+    no_recaptcha = 'signup.recaptcha-not-verified'
+    # verification email successfully re-sent
+    resent_success = 'signup.verification-present'
+    # unrecognized verfication code
+    unknown_code = 'signup.unknown-code'
+    # the verification code has already been verified
+    already_verified = 'signup.already-verified'
 
 
 def generate_eppn():
