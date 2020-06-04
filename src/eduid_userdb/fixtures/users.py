@@ -34,23 +34,52 @@ from datetime import datetime
 
 from bson import ObjectId
 
-from eduid_userdb.credentials import Password
+from eduid_userdb.credentials import CredentialList
+from eduid_userdb.fixtures.email_addresses import johnsmith2_example_com, johnsmith_example_com
+from eduid_userdb.fixtures.locked_identities import dashboard_locked_nin
+from eduid_userdb.fixtures.nins import dashboard_primary_nin, dashboard_verified_nin
+from eduid_userdb.fixtures.passwords import signup_password
+from eduid_userdb.fixtures.phones import dashboard_primary_phone, dashboard_unverified_phone
+from eduid_userdb.locked_identity import LockedIdentityList
+from eduid_userdb.mail import MailAddressList
+from eduid_userdb.nin import NinList
+from eduid_userdb.phone import PhoneNumberList
+from eduid_userdb.user import User
 
-signup_password = Password(
-    data={
-        'id': ObjectId('112345678901234567890123'),
-        'salt': '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$',
-        'created_by': 'signup',
-        'created_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"),
-    }
-)
+mail_addresses = MailAddressList([johnsmith_example_com, johnsmith2_example_com,])
 
 
-signup_password_2 = Password(
-    data={
-        'id': ObjectId('a12345678901234567890123'),
-        'salt': '$NDNv1H1$2d465dcc9c68075aa095b646a98e2e3edb1c612c175ebdeaca6c9a55a0457833$32$32$',
-        'created_by': 'signup',
-        'created_ts': datetime.strptime("2017-01-04T16:47:30", "%Y-%m-%dT%H:%M:%S"),
-    }
+nins = NinList([dashboard_primary_nin, dashboard_verified_nin,])
+
+
+passwords = CredentialList([signup_password,])
+
+
+phone_numbers = PhoneNumberList([dashboard_primary_phone, dashboard_unverified_phone,])
+
+
+locked_identity = LockedIdentityList([dashboard_locked_nin,])
+
+entitlements = [
+    'urn:mace:eduid.se:role:admin',
+    'urn:mace:eduid.se:role:student',
+]
+
+
+new_user_example = User.construct_user(
+    eppn='hubba-bubba',
+    _id=ObjectId('012345678901234567890123'),
+    given_name='John',
+    display_name='John Smith',
+    surname='Smith',
+    subject='physical person',
+    language='en',
+    modified_ts=datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"),
+    terminated=False,
+    mail_addresses=mail_addresses,
+    nins=nins,
+    phone_numbers=phone_numbers,
+    passwords=passwords,
+    entitlements=entitlements,
+    locked_identity=locked_identity,
 )

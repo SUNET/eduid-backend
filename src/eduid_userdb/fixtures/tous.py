@@ -36,10 +36,11 @@ from bson import ObjectId
 
 from eduid_userdb.tou import ToUEvent
 
-
-signup_2016_v1 = ToUEvent(data={
-    'event_id': ObjectId('912345678901234567890123'),
-    'version': '2016-v1',
-    'created_ts': datetime.strptime("2017-01-04T16:47:30", "%Y-%m-%dT%H:%M:%S"),
-    'created_by': 'signup',
-})
+signup_2016_v1 = ToUEvent(
+    data={
+        'event_id': ObjectId('912345678901234567890123'),
+        'version': '2016-v1',
+        'created_ts': datetime.strptime("2017-01-04T16:47:30", "%Y-%m-%dT%H:%M:%S"),
+        'created_by': 'signup',
+    }
+)

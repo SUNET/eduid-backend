@@ -34,7 +34,6 @@ from datetime import datetime
 
 from eduid_userdb.locked_identity import LockedIdentityNin
 
-
 dashboard_locked_nin = LockedIdentityNin(
     number='197801011234',
     created_by='dashboard',

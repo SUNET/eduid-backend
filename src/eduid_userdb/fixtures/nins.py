@@ -34,24 +34,27 @@ from datetime import datetime
 
 from eduid_userdb.nin import Nin
 
+dashboard_primary_nin = Nin(
+    data={
+        'number': '197801011234',
+        'created_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"),
+        'created_by': 'dashboard',
+        'verified': True,
+        'verified_by': 'dashboard',
+        'verified_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"),
+        'primary': True,
+    }
+)
 
-dashboard_primary_nin = Nin(data={
-    'number': '197801011234',
-    'created_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"),
-    'created_by': 'dashboard',
-    'verified': True,
-    'verified_by': 'dashboard',
-    'verified_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"),
-    'primary': True,
-})
 
-
-dashboard_verified_nin = Nin(data={
-    'number': '197801011235',
-    'created_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"),
-    'created_by': 'dashboard',
-    'verified': True,
-    'verified_by': 'dashboard',
-    'verified_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"),
-    'primary': False,
-})
+dashboard_verified_nin = Nin(
+    data={
+        'number': '197801011235',
+        'created_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"),
+        'created_by': 'dashboard',
+        'verified': True,
+        'verified_by': 'dashboard',
+        'verified_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"),
+        'primary': False,
+    }
+)

@@ -34,23 +34,26 @@ from datetime import datetime
 
 from eduid_userdb.phone import PhoneNumber
 
+dashboard_primary_phone = PhoneNumber(
+    data={
+        'number': '+34609609609',
+        'created_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"),
+        'created_by': 'dashboard',
+        'verified': True,
+        'verified_by': 'dashboard',
+        'verified_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"),
+        'primary': True,
+    }
+)
 
-dashboard_primary_phone = PhoneNumber(data={
-    'number': '+34609609609',
-    'created_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"),
-    'created_by': 'dashboard',
-    'verified': True,
-    'verified_by': 'dashboard',
-    'verified_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"),
-    'primary': True,
-})
 
-
-dashboard_unverified_phone = PhoneNumber(data={
-    'number': '+34 6096096096',
-    'created_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"),
-    'created_by': 'dashboard',
-    'verified': False,
-    'verified_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"),
-    'primary': False,
-})
+dashboard_unverified_phone = PhoneNumber(
+    data={
+        'number': '+34 6096096096',
+        'created_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"),
+        'created_by': 'dashboard',
+        'verified': False,
+        'verified_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"),
+        'primary': False,
+    }
+)

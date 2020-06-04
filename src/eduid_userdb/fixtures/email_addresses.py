@@ -34,35 +34,40 @@ from datetime import datetime
 
 from eduid_userdb.mail import MailAddress
 
-
-johnsmith_example_com = MailAddress(data={
-    'email': 'johnsmith@example.com',
-    'created_by': 'signup',
-    'created_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"),
-    'verified': True,
-    'verified_by': 'signup',
-    'verified_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"),
-    'primary': True,
-})
-
-
-johnsmith2_example_com = MailAddress(data={
-    'email': 'johnsmith2@example.com',
-    'created_by': 'dashboard',
-    'created_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"),
-    'verified': False,
-    'verified_by': 'dashboard',
-    'verified_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"),
-    'primary': False,
-})
+johnsmith_example_com = MailAddress(
+    data={
+        'email': 'johnsmith@example.com',
+        'created_by': 'signup',
+        'created_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"),
+        'verified': True,
+        'verified_by': 'signup',
+        'verified_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"),
+        'primary': True,
+    }
+)
 
 
-johnsmith3_example_com = MailAddress(data={
-    'email': 'johnsmith3@example.com',
-    'created_by': 'signup',
-    'created_ts': datetime.strptime("2017-01-04T15:47:27", "%Y-%m-%dT%H:%M:%S"),
-    'verified': True,
-    'verified_by': 'signup',
-    'verified_ts': datetime.strptime("2017-01-04T16:47:27", "%Y-%m-%dT%H:%M:%S"),
-    'primary': True,
-})
+johnsmith2_example_com = MailAddress(
+    data={
+        'email': 'johnsmith2@example.com',
+        'created_by': 'dashboard',
+        'created_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"),
+        'verified': False,
+        'verified_by': 'dashboard',
+        'verified_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"),
+        'primary': False,
+    }
+)
+
+
+johnsmith3_example_com = MailAddress(
+    data={
+        'email': 'johnsmith3@example.com',
+        'created_by': 'signup',
+        'created_ts': datetime.strptime("2017-01-04T15:47:27", "%Y-%m-%dT%H:%M:%S"),
+        'verified': True,
+        'verified_by': 'signup',
+        'verified_ts': datetime.strptime("2017-01-04T16:47:27", "%Y-%m-%dT%H:%M:%S"),
+        'primary': True,
+    }
+)
