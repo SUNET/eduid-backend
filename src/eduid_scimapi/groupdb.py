@@ -117,7 +117,8 @@ class ScimApiGroupDB(ScimApiBaseDB):
         )
         group.graph = GraphGroup(identifier=str(group.scim_id), display_name=scim_group.display_name)
         if not self.save(group):
-            logger.warning(f'Creating group {group} probably failed')
+            logger.error(f'Creating group {group} failed')
+            raise RuntimeError('Group creation failed')
         return group
 
     def update_group(self, scim_group: SCIMGroup, db_group: ScimApiGroup) -> ScimApiGroup:
