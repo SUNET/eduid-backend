@@ -35,7 +35,7 @@ from flask import Blueprint, abort, request
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith
 from eduid_common.api.helpers import check_magic_cookie
-from eduid_common.api.messages import error_message, success_message, CommonMsg
+from eduid_common.api.messages import CommonMsg, error_message, success_message
 from eduid_common.api.schemas.base import FluxStandardAction
 from eduid_userdb.exceptions import EduIDUserDBError
 
