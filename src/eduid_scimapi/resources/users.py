@@ -1,8 +1,10 @@
 from datetime import datetime
-from eduid_groupdb import User as GroupUser
+from typing import Any, Dict, List, Optional, Sequence, Tuple
+
 from falcon import Request, Response
 from marshmallow import ValidationError
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+
+from eduid_groupdb import User as GroupUser
 
 from eduid_scimapi.exceptions import BadRequest, NotFound
 from eduid_scimapi.middleware import ctx_groupdb, ctx_userdb

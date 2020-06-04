@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import pprint
 import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
@@ -94,13 +95,16 @@ class ScimApiGroupDB(ScimApiBaseDB):
             db_group = self._coll.find_one({'_id': group.group_id})
             if db_group:
                 logger.debug(f'{self} FAILED Updating group {group} in {self._coll_name}')
-                raise RuntimeError('User out of sync, please retry')
+                raise RuntimeError('Group out of sync, please retry')
             self._coll.insert_one(group_dict)
+        # Save graphdb group
+        # TODO: Should we try to roll back mongodb change if the graphdb save fails?
+        group.graph = self.graphdb.save(group.graph)
+
         # put the new version number and last_modified in the group object after a successful update
         group.version = group_dict['version']
         group.last_modified = group_dict['last_modified']
         logger.debug(f'{self} Updated group {group} in {self._coll_name}')
-        import pprint
 
         extra_debug = pprint.pformat(group_dict, width=120)
         logger.debug(f'Extra debug:\n{extra_debug}')
@@ -112,9 +116,9 @@ class ScimApiGroupDB(ScimApiBaseDB):
             extensions=GroupExtensions(data=scim_group.nutid_group_v1.data), display_name=scim_group.display_name
         )
         group.graph = GraphGroup(identifier=str(group.scim_id), display_name=scim_group.display_name)
-        self.graphdb.save(group.graph)
         if not self.save(group):
-            logger.warning(f'Creating group {group} probably failed')
+            logger.error(f'Creating group {group} failed')
+            raise RuntimeError('Group creation failed')
         return group
 
     def update_group(self, scim_group: SCIMGroup, db_group: ScimApiGroup) -> ScimApiGroup:
@@ -171,7 +175,7 @@ class ScimApiGroupDB(ScimApiBaseDB):
         if changed:
             logger.info(f'Group {str(db_group.scim_id)} changed. Saving.')
             if self.save(db_group):
-                db_group.graph = self.graphdb.save(db_group.graph)
+                logger.info(f'Group {str(db_group.scim_id)} saved.')
             else:
                 logger.warning(f'Update of group {db_group} probably failed')
 
