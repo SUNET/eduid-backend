@@ -103,7 +103,7 @@ def create_group(user: User, display_name: str) -> Mapping:
         current_app.logger.debug(f'scim_id: {scim_user.scim_id}')
         current_app.stats.count(name='user_created')
 
-    graph_user = GraphUser(identifier=str(scim_user.scim_id), display_name=user.display_name)
+    graph_user = GraphUser(identifier=str(scim_user.scim_id), display_name=user.mail_addresses.primary.email)
     group = ScimApiGroup(display_name=display_name)
     group.graph = GraphGroup(identifier=str(group.scim_id), display_name=display_name)
     group.graph.owners = [graph_user]
