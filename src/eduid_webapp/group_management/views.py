@@ -44,7 +44,7 @@ from eduid_scimapi.userdb import ScimApiUser
 from eduid_userdb import User
 
 from eduid_webapp.group_management.app import current_group_management_app as current_app
-from eduid_webapp.group_management.helpers import GroupManagementMsg
+from eduid_webapp.group_management.helpers import GroupManagementMsg, get_scim_user_by_eppn
 from eduid_webapp.group_management.schemas import (
     GroupCreateRequestSchema,
     GroupDeleteRequestSchema,
@@ -76,8 +76,7 @@ def _list_of_group_data(group_list: List[ScimApiGroup]) -> List[Dict]:
 @MarshalWith(GroupManagementResponseSchema)
 @require_user
 def get_groups(user: User) -> Mapping:
-    # TODO: get_user_by_eduid_eppn is not working anymore, do we want one?
-    scim_user = current_app.scimapi_userdb.get_user_by_external_id(external_id=f'{user.eppn}@eduid.se')
+    scim_user = get_scim_user_by_eppn(user.eppn)
     if not scim_user:
         current_app.logger.info('User does not exist in scimapi_userdb')
         # As the user does not exist return empty group lists
@@ -96,7 +95,7 @@ def get_groups(user: User) -> Mapping:
 @MarshalWith(GroupManagementResponseSchema)
 @require_user
 def create_group(user: User, display_name: str) -> Mapping:
-    scim_user = current_app.scimapi_userdb.get_user_by_external_id(external_id=f'{user.eppn}@eduid.se')
+    scim_user = get_scim_user_by_eppn(user.eppn)
     if not scim_user:
         scim_user = ScimApiUser(external_id=f'{user.eppn}@eduid.se')
         current_app.scimapi_userdb.save(scim_user)
@@ -108,15 +107,16 @@ def create_group(user: User, display_name: str) -> Mapping:
     group = ScimApiGroup(display_name=display_name)
     group.graph = GraphGroup(identifier=str(group.scim_id), display_name=display_name)
     group.graph.owners = [graph_user]
-    if current_app.scimapi_groupdb.save(group):
-        current_app.logger.info('Created ScimApiGroup')
-        current_app.logger.debug(f'scim_id: {group.scim_id}')
-        current_app.stats.count(name='group_created')
-        return get_groups()
 
-    current_app.logger.error('Failed to create ScimApiGroup')
+    if not current_app.scimapi_groupdb.save(group):
+        current_app.logger.error('Failed to create ScimApiGroup')
+        current_app.logger.debug(f'scim_id: {group.scim_id}')
+        return error_message(CommonMsg.temp_problem)
+
+    current_app.logger.info('Created ScimApiGroup')
     current_app.logger.debug(f'scim_id: {group.scim_id}')
-    return error_message(CommonMsg.temp_problem)
+    current_app.stats.count(name='group_created')
+    return get_groups()
 
 
 @group_management_views.route('/delete', methods=['POST'])
@@ -124,7 +124,7 @@ def create_group(user: User, display_name: str) -> Mapping:
 @MarshalWith(GroupManagementResponseSchema)
 @require_user
 def delete_group(user: User, identifier: UUID) -> Mapping:
-    scim_user = current_app.scimapi_userdb.get_user_by_external_id(external_id=f'{user.eppn}@eduid.se')
+    scim_user = get_scim_user_by_eppn(user.eppn)
     if not scim_user:
         current_app.logger.error('User does not exist in scimapi_userdb')
         return error_message(GroupManagementMsg.user_does_not_exist)
