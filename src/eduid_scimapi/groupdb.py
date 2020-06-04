@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import pprint
 import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
@@ -104,7 +105,6 @@ class ScimApiGroupDB(ScimApiBaseDB):
         group.version = group_dict['version']
         group.last_modified = group_dict['last_modified']
         logger.debug(f'{self} Updated group {group} in {self._coll_name}')
-        import pprint
 
         extra_debug = pprint.pformat(group_dict, width=120)
         logger.debug(f'Extra debug:\n{extra_debug}')
