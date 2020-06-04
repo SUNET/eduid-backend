@@ -99,7 +99,7 @@ def get_groups(user: User) -> Mapping:
 def create_group(user: User, display_name: str) -> Mapping:
     scim_user = get_scim_user_by_eppn(user.eppn)
     if not scim_user:
-        scim_user = ScimApiUser(external_id=f'{user.eppn}@eduid.se')
+        scim_user = ScimApiUser(external_id=f'{user.eppn}@{current_app.config.scim_external_id_scope}')
         current_app.scimapi_userdb.save(scim_user)
         current_app.logger.info('Created ScimApiUser')
         current_app.logger.debug(f'scim_id: {scim_user.scim_id}')
