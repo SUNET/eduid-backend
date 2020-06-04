@@ -33,14 +33,14 @@
 __author__ = 'ft'
 
 import copy
-from typing import Optional, Union
+from typing import Optional, Union, Type
 
 import bson
 import six
 
 from eduid_userdb.exceptions import UserIsRevoked
 from eduid_userdb.proofing import EmailProofingElement
-from eduid_userdb.user import User
+from eduid_userdb.user import User, TUserSubclass
 
 
 class SignupUser(User):
@@ -63,6 +63,26 @@ class SignupUser(User):
             data = dict(_id=userid, eduPersonPrincipalName=eppn, subject=subject,)
 
         User.__init__(self, data=data, raise_on_unknown=raise_on_unknown, called_directly=called_directly)
+
+    @classmethod
+    def construct_user(
+        cls: Type[TUserSubclass],
+        social_network: Optional[str] = None,
+        social_network_id: Optional[str] = None,
+        pending_mail_address: Optional[EmailProofingElement] = None,
+        proofing_reference: Optional[str] = None,
+        **kwargs
+    ) -> TUserSubclass:
+
+        data = {}
+        data['social_network'] = social_network,
+        data['social_network_id'] = social_network_id,
+        data['pending_mail_address'] = pending_mail_address,
+        data['proofing_reference'] = proofing_reference,
+
+        data.update(kwargs)
+
+        return super(SignupUser, cls).construct_user(**data)
 
     def check_or_use_data(self):
         data = self._data_in
