@@ -101,8 +101,7 @@ def create_group(user: User, display_name: str) -> Mapping:
     if not scim_user:
         scim_user = ScimApiUser(external_id=f'{user.eppn}@{current_app.config.scim_external_id_scope}')
         current_app.scimapi_userdb.save(scim_user)
-        current_app.logger.info('Created ScimApiUser')
-        current_app.logger.debug(f'scim_id: {scim_user.scim_id}')
+        current_app.logger.info(f'Created ScimApiUser with scim_id: {scim_user.scim_id}')
         current_app.stats.count(name='user_created')
 
     graph_user = GraphUser(identifier=str(scim_user.scim_id), display_name=user.mail_addresses.primary.email)
@@ -112,12 +111,10 @@ def create_group(user: User, display_name: str) -> Mapping:
     group.graph.members = [graph_user]
 
     if not current_app.scimapi_groupdb.save(group):
-        current_app.logger.error('Failed to create ScimApiGroup')
-        current_app.logger.debug(f'scim_id: {group.scim_id}')
+        current_app.logger.error(f'Failed to create ScimApiGroup with scim_id: {group.scim_id}')
         return error_message(CommonMsg.temp_problem)
 
-    current_app.logger.info('Created ScimApiGroup')
-    current_app.logger.debug(f'scim_id: {group.scim_id}')
+    current_app.logger.info(f'Created ScimApiGroup with scim_id: {group.scim_id}')
     current_app.stats.count(name='group_created')
     return get_groups()
 
@@ -140,7 +137,6 @@ def delete_group(user: User, identifier: UUID) -> Mapping:
 
     group = current_app.scimapi_groupdb.get_group_by_scim_id(scim_id=str(identifier))
     if group and current_app.scimapi_groupdb.remove_group(group):
-        current_app.logger.info('Deleted ScimApiGroup')
-        current_app.logger.debug(f'scim_id: {group.scim_id}')
+        current_app.logger.info(f'Deleted ScimApiGroup with scim_id: {group.scim_id}')
         current_app.stats.count(name='group_deleted')
     return get_groups()
