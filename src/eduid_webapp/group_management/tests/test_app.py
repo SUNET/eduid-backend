@@ -105,7 +105,9 @@ class GroupManagementTests(EduidAPITestCase):
 
     def test_get_member_groups(self):
         # Add test user as group member
-        graph_user = GraphUser(identifier=str(self.scim_user1.scim_id), display_name=self.test_user.display_name)
+        graph_user = GraphUser(
+            identifier=str(self.scim_user1.scim_id), display_name=self.test_user.mail_addresses.primary.email
+        )
         self.scim_group1.graph.members = [graph_user]
         self.scim_group1.graph.owners = [graph_user]
         self.app.scimapi_groupdb.save(self.scim_group1)
@@ -143,8 +145,9 @@ class GroupManagementTests(EduidAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual('POST_GROUP_MANAGEMENT_CREATE_SUCCESS', response.json.get('type'))
         payload = response.json.get('payload')
-        self.assertEqual(0, len(payload['member_of']))
+        self.assertEqual(1, len(payload['member_of']))
         self.assertEqual(1, len(payload['owner_of']))
+        self.assertEqual('Test Group 2', payload['member_of'][0]['display_name'])
         self.assertEqual('Test Group 2', payload['owner_of'][0]['display_name'])
 
     def test_create_group_no_scim_user(self):
@@ -159,13 +162,16 @@ class GroupManagementTests(EduidAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual('POST_GROUP_MANAGEMENT_CREATE_SUCCESS', response.json.get('type'))
         payload = response.json.get('payload')
-        self.assertEqual(0, len(payload['member_of']))
+        self.assertEqual(1, len(payload['member_of']))
         self.assertEqual(1, len(payload['owner_of']))
+        self.assertEqual('Test Group 2', payload['member_of'][0]['display_name'])
         self.assertEqual('Test Group 2', payload['owner_of'][0]['display_name'])
 
     def test_delete_group(self):
         # Add test user as group owner of two groups
-        graph_user = GraphUser(identifier=str(self.scim_user1.scim_id), display_name=self.test_user.display_name)
+        graph_user = GraphUser(
+            identifier=str(self.scim_user1.scim_id), display_name=self.test_user.mail_addresses.primary.email
+        )
         self.scim_group1.graph.owners = [graph_user]
         self.app.scimapi_groupdb.save(self.scim_group1)
         scim_group2 = self._add_scim_group(scim_id=uuid4(), display_name='Test Group 2')
