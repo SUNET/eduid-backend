@@ -59,7 +59,9 @@ group_management_views = Blueprint('group_management', __name__, url_prefix='', 
 def _list_of_group_data(group_list: List[ScimApiGroup]) -> List[Dict]:
     ret = []
     for group in group_list:
-        members = [{'identifier': member.identifier, 'display_name': member.display_name} for member in group.graph.members]
+        members = [
+            {'identifier': member.identifier, 'display_name': member.display_name} for member in group.graph.members
+        ]
         owners = [{'identifier': owner.identifier, 'display_name': owner.display_name} for owner in group.graph.owners]
         group_data = {
             'identifier': group.scim_id,
