@@ -32,12 +32,11 @@
 #
 from datetime import datetime
 
-from eduid_userdb.locked_identity import LockedIdentityElement
+from eduid_userdb.locked_identity import LockedIdentityNin
 
 
-dashboard_locked_nin = LockedIdentityElement(data={
-    'identity_type': 'nin',
-    'number': '197801011234',
-    'created_by': 'dashboard',
-    'created_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"),
-})
+dashboard_locked_nin = LockedIdentityNin(
+    number='197801011234',
+    created_by='dashboard',
+    created_ts=datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"),
+)

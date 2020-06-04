@@ -57,7 +57,7 @@ johnsmith2_example_com = MailAddress(data={
 })
 
 
-johnsmith3_example_com = MailAddress({
+johnsmith3_example_com = MailAddress(data={
     'email': 'johnsmith3@example.com',
     'created_by': 'signup',
     'created_ts': datetime.strptime("2017-01-04T15:47:27", "%Y-%m-%dT%H:%M:%S"),
