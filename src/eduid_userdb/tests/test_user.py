@@ -56,12 +56,12 @@ class _AbstractUserTestCase:
         data['date'] = 'anything'
         data['csrf'] = 'long and secret string'
         data['mailAliases'][0]['verification_code'] = '123456789'
-        user = User(data)
+        user = User.from_dict(data)
         self.assertEqual(self.user1._data, user._data)
 
         data = self.data2
         data['mobile'][0]['verification_code'] = '123456789'
-        user = User(data)
+        user = User.from_dict(data)
         self.assertEqual(self.user2._data, user._data)
 
     def test_unknown_attributes(self):
@@ -70,11 +70,11 @@ class _AbstractUserTestCase:
         """
         data = self.data1
         data['unknown_attribute'] = 'something'
-        user = User(data, raise_on_unknown=False)
+        user = User.from_dict(data, raise_on_unknown=False)
         self.assertEqual(data['_id'], user.user_id)
 
         with self.assertRaises(UserHasUnknownData):
-            User(data, raise_on_unknown=True)
+            User.from_dict(data, raise_on_unknown=True)
 
     def test_incomplete_signup_user(self):
         """
@@ -87,10 +87,10 @@ class _AbstractUserTestCase:
             u'mailAliases': [{u'email': u'olle@example.org', u'verified': False}],
         }
         with self.assertRaises(UserHasNotCompletedSignup):
-            User(data)
+            User.from_dict(data)
         data['subject'] = 'physical person'  # later signup added this attribute
         with self.assertRaises(UserHasNotCompletedSignup):
-            User(data)
+            User.from_dict(data)
         data[u'mailAliases'][0]['verified'] = True
         data['surname'] = 'not signup-incomplete anymore'
         data['passwords'] = [
@@ -102,7 +102,7 @@ class _AbstractUserTestCase:
                 u'is_generated': False,
             }
         ]
-        user = User(data)
+        user = User.from_dict(data)
         self.assertEqual(user.surname, data['surname'])
         self.assertEqual(user.passwords.to_list_of_dicts(), data['passwords'])
 
@@ -116,7 +116,7 @@ class _AbstractUserTestCase:
             u'revoked_ts': datetime.datetime(2015, 5, 26, 8, 33, 56, 826000),
         }
         with self.assertRaises(UserIsRevoked):
-            User(data)
+            User.from_dict(data)
 
     def test_user_with_no_primary_mail(self):
         mail = u'yahoo@example.com'
@@ -133,7 +133,7 @@ class _AbstractUserTestCase:
                 }
             ],
         }
-        user = User(data)
+        user = User.from_dict(data)
         self.assertEqual(mail, user.mail_addresses.primary.email)
 
     def test_user_with_indirectly_verified_primary_mail(self):
@@ -155,7 +155,7 @@ class _AbstractUserTestCase:
                 }
             ],
         }
-        user = User(data)
+        user = User.from_dict(data)
         self.assertEqual(mail, user.mail_addresses.primary.email)
 
     def test_user_with_indirectly_verified_primary_mail_and_explicit_primary_mail(self):
@@ -182,7 +182,7 @@ class _AbstractUserTestCase:
                 }
             ],
         }
-        user = User(data)
+        user = User.from_dict(data)
         self.assertEqual(new_mail, user.mail_addresses.primary.email)
 
     def test_user_with_csrf_junk_in_mail_address(self):
@@ -203,7 +203,7 @@ class _AbstractUserTestCase:
                 }
             ],
         }
-        user = User(data)
+        user = User.from_dict(data)
         self.assertEqual(mail, user.mail_addresses.primary.email)
 
     def test_to_dict(self):
@@ -211,7 +211,7 @@ class _AbstractUserTestCase:
         Test that User objects can be recreated.
         """
         d1 = self.user1.to_dict()
-        u2 = User(d1)
+        u2 = User.from_dict(d1)
         d2 = u2.to_dict()
         self.assertEqual(d1, d2)
 
@@ -220,7 +220,7 @@ class _AbstractUserTestCase:
         Test that User objects can be recreated.
         """
         d1 = self.user1.to_dict(old_userdb_format=True)
-        u2 = User(d1)
+        u2 = User.from_dict(d1)
         d2 = u2.to_dict(old_userdb_format=True)
         self.assertEqual(d1, d2)
 
@@ -283,7 +283,7 @@ class _AbstractUserTestCase:
             u'preferredLanguage': u'en',
             u'surname': u'yyy',
         }
-        user = User(data)
+        user = User.from_dict(data)
         self.assertEqual(user.phone_numbers.primary, None)
 
     def test_two_non_primary_phones(self):
@@ -324,7 +324,7 @@ class _AbstractUserTestCase:
             u'preferredLanguage': u'en',
             u'surname': u'yyy',
         }
-        user = User(data)
+        user = User.from_dict(data)
         self.assertEqual(user.phone_numbers.primary.number, number2)
 
     def test_primary_non_verified_phone(self):
@@ -357,7 +357,7 @@ class _AbstractUserTestCase:
             u'preferredLanguage': u'en',
             u'surname': u'yyy',
         }
-        user = User(data)
+        user = User.from_dict(data)
         for number in user.phone_numbers.to_list():
             self.assertEqual(number.is_primary, False)
 
@@ -383,7 +383,7 @@ class _AbstractUserTestCase:
                 }
             ],
         }
-        user = User(data)
+        user = User.from_dict(data)
         self.assertEqual(user.phone_numbers.primary.number, u'+22222222222')
 
     def test_user_tou(self):
@@ -400,7 +400,7 @@ class _AbstractUserTestCase:
         tou_events = ToUList([tou_dict])
         data = self.data1
         data.update({'tou': tou_events.to_list_of_dicts()})
-        user = User(data)
+        user = User.from_dict(data)
         self.assertTrue(user.tou.has_accepted('1', reaccept_interval=94608000))  # reaccept_interval seconds (3 years)
         self.assertFalse(user.tou.has_accepted('2', reaccept_interval=94608000))  # reaccept_interval seconds (3 years)
 
@@ -408,7 +408,7 @@ class _AbstractUserTestCase:
         locked_identity = {'created_by': 'test', 'created_ts': True, 'identity_type': 'nin', 'number': '197801012345'}
         data = self.data1
         data['locked_identity'] = [locked_identity]
-        user = User(data)
+        user = User.from_dict(data)
         self.assertTrue(user.locked_identity)
         self.assertIsInstance(user.locked_identity.find('nin').created_by, string_types)
         self.assertIsInstance(user.locked_identity.find('nin').created_ts, datetime.datetime)
@@ -417,7 +417,7 @@ class _AbstractUserTestCase:
 
     def test_locked_identity_set(self):
         locked_identity = {'created_by': 'test', 'created_ts': True, 'identity_type': 'nin', 'number': '197801012345'}
-        user = User(self.data1)
+        user = User.from_dict(self.data1)
         locked_nin = LockedIdentityNin(
             locked_identity['number'], locked_identity['created_by'], locked_identity['created_ts']
         )
@@ -432,20 +432,20 @@ class _AbstractUserTestCase:
 
     def test_locked_identity_to_dict(self):
         locked_identity = {'created_by': 'test', 'created_ts': True, 'identity_type': 'nin', 'number': '197801012345'}
-        user = User(self.data1)
+        user = User.from_dict(self.data1)
         locked_nin = LockedIdentityNin(
             locked_identity['number'], locked_identity['created_by'], locked_identity['created_ts']
         )
         user.locked_identity.add(locked_nin)
 
-        old_user = User(user.to_dict(old_userdb_format=True))
+        old_user = User.from_dict(user.to_dict(old_userdb_format=True))
         self.assertEqual(user.locked_identity.count, 1)
         self.assertIsInstance(old_user.locked_identity.to_list()[0].created_by, string_types)
         self.assertIsInstance(old_user.locked_identity.to_list()[0].created_ts, datetime.datetime)
         self.assertIsInstance(old_user.locked_identity.to_list()[0].identity_type, string_types)
         self.assertIsInstance(old_user.locked_identity.to_list()[0].number, string_types)
 
-        new_user = User(user.to_dict(old_userdb_format=False))
+        new_user = User.from_dict(user.to_dict(old_userdb_format=False))
         self.assertEqual(user.locked_identity.count, 1)
         self.assertIsInstance(new_user.locked_identity.to_list()[0].created_by, string_types)
         self.assertIsInstance(new_user.locked_identity.to_list()[0].created_ts, datetime.datetime)
@@ -454,7 +454,7 @@ class _AbstractUserTestCase:
 
     def test_locked_identity_remove(self):
         locked_identity = {'created_by': 'test', 'created_ts': True, 'identity_type': 'nin', 'number': '197801012345'}
-        user = User(self.data1)
+        user = User.from_dict(self.data1)
         locked_nin = LockedIdentityNin(
             locked_identity['number'], locked_identity['created_by'], locked_identity['created_ts']
         )
@@ -483,10 +483,10 @@ class _AbstractUserTestCase:
         oidc_authz = OidcAuthorization(id_token=oidc_id_token, application='test', **oidc_data)
         orcid_element = Orcid(id=orcid, oidc_authz=oidc_authz, application='test')
 
-        user = User(self.data1)
+        user = User.from_dict(self.data1)
         user.orcid = orcid_element
 
-        old_user = User(user.to_dict(old_userdb_format=True))
+        old_user = User.from_dict(user.to_dict(old_userdb_format=True))
         self.assertIsNotNone(old_user.orcid)
         self.assertIsInstance(old_user.orcid.created_by, string_types)
         self.assertIsInstance(old_user.orcid.created_ts, datetime.datetime)
@@ -494,7 +494,7 @@ class _AbstractUserTestCase:
         self.assertIsInstance(old_user.orcid.oidc_authz, OidcAuthorization)
         self.assertIsInstance(old_user.orcid.oidc_authz.id_token, OidcIdToken)
 
-        new_user = User(user.to_dict(old_userdb_format=False))
+        new_user = User.from_dict(user.to_dict(old_userdb_format=False))
         self.assertIsNotNone(new_user.orcid)
         self.assertIsInstance(new_user.orcid.created_by, string_types)
         self.assertIsInstance(new_user.orcid.created_ts, datetime.datetime)
@@ -538,7 +538,7 @@ class _AbstractUserTestCase:
                 'verified': False,
             },
         ]
-        user = User(
+        user = User.from_dict(
             data={
                 '_id': ObjectId(),
                 'eduPersonPrincipalName': 'test-test',
@@ -552,7 +552,7 @@ class _AbstractUserTestCase:
 
     def test_both_sn_and_surname(self):
         """ Test user that has both 'sn' and 'surname' """
-        user = User(
+        user = User.from_dict(
             data={
                 '_id': ObjectId(),
                 'eduPersonPrincipalName': 'test-test',
@@ -601,7 +601,7 @@ class TestUser(TestCase, _AbstractUserTestCase):
             u'eduPersonEntitlement': [u'http://foo.example.org'],
             u'preferredLanguage': u'en',
         }
-        self.user1 = User(self.data1)
+        self.user1 = User.from_dict(self.data1)
 
         self.data2 = {
             u'_id': ObjectId('549190b5d00690878ae9b622'),
@@ -661,7 +661,7 @@ class TestUser(TestCase, _AbstractUserTestCase):
             u'surname': u'\xf6ne',
             u'subject': u'physical person',
         }
-        self.user2 = User(self.data2)
+        self.user2 = User.from_dict(self.data2)
 
     def test_mail_addresses_to_old_userdb_format(self):
         """

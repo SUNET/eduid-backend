@@ -118,8 +118,8 @@ class TestUserDB_mail(MongoTestCase):
             u'passwords': [],
         }
 
-        self.user1 = User(data1)
-        self.user2 = User(data2)
+        self.user1 = User.from_dict(data1)
+        self.user2 = User.from_dict(data2)
 
         self.amdb.save(self.user1, check_sync=False)
         self.amdb.save(self.user2, check_sync=False)
@@ -175,8 +175,8 @@ class TestUserDB_phone(MongoTestCase):
             u'passwords': [],
         }
 
-        self.user1 = User(data1)
-        self.user2 = User(data2)
+        self.user1 = User.from_dict(data1)
+        self.user2 = User.from_dict(data2)
         self.amdb.save(self.user1)
         self.amdb.save(self.user2)
 
@@ -259,8 +259,8 @@ class TestUserDB_nin(MongoTestCase):
             u'passwords': [],
         }
 
-        self.user1 = User(data1)
-        self.user2 = User(data2)
+        self.user1 = User.from_dict(data1)
+        self.user2 = User.from_dict(data2)
         self.amdb.save(self.user1)
         self.amdb.save(self.user2)
 

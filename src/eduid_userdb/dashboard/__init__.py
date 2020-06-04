@@ -13,4 +13,3 @@ __authors__ = ['Fredrik Thulin']
 
 # convenience imports (order matters)
 from eduid_userdb.dashboard.user import DashboardLegacyUser, DashboardUser
-from eduid_userdb.dashboard.userdb import DashboardOldUserDB, DashboardUserDB, UserDBWrapper

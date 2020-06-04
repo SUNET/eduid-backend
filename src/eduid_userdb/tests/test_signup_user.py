@@ -9,7 +9,7 @@ from eduid_userdb.signup.user import SignupUser
 class TestSignupUser(TestCase):
     def test_proper_user(self):
         userdata = copy.deepcopy(NEW_SIGNUP_USER_EXAMPLE)
-        user = SignupUser(data=userdata)
+        user = SignupUser.from_dict(data=userdata)
         self.assertEqual(user.user_id, userdata['_id'])
         self.assertEqual(user.eppn, userdata['eduPersonPrincipalName'])
 
