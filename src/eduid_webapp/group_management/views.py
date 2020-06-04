@@ -107,6 +107,7 @@ def create_group(user: User, display_name: str) -> Mapping:
     group = ScimApiGroup(display_name=display_name)
     group.graph = GraphGroup(identifier=str(group.scim_id), display_name=display_name)
     group.graph.owners = [graph_user]
+    group.graph.members = [graph_user]
 
     if not current_app.scimapi_groupdb.save(group):
         current_app.logger.error('Failed to create ScimApiGroup')
