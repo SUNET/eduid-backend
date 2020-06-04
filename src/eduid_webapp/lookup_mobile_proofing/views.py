@@ -7,7 +7,7 @@ from flask import Blueprint
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, can_verify_identity, require_user
 from eduid_common.api.exceptions import AmTaskFailed, MsgTaskFailed
 from eduid_common.api.helpers import add_nin_to_user, verify_nin_for_user
-from eduid_common.api.messages import error_message, CommonMsg
+from eduid_common.api.messages import CommonMsg, error_message
 from eduid_common.api.schemas.csrf import CSRFResponse
 
 from eduid_webapp.lookup_mobile_proofing import schemas

@@ -41,7 +41,7 @@ from six.moves.urllib_parse import parse_qs, urlencode, urlparse, urlunparse
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid_common.api.exceptions import AmTaskFailed, MsgTaskFailed
 from eduid_common.api.helpers import add_nin_to_user
-from eduid_common.api.messages import error_message, success_message, CommonMsg
+from eduid_common.api.messages import CommonMsg, error_message, success_message
 from eduid_common.api.utils import save_and_sync_user, urlappend
 from eduid_common.authn.vccs import add_credentials, revoke_all_credentials
 from eduid_common.session import session

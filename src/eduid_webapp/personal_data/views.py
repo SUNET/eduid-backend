@@ -36,7 +36,7 @@ from __future__ import absolute_import
 from flask import Blueprint
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
-from eduid_common.api.messages import error_message, success_message, CommonMsg
+from eduid_common.api.messages import CommonMsg, error_message, success_message
 from eduid_common.api.utils import save_and_sync_user
 from eduid_userdb.exceptions import UserOutOfSync
 from eduid_userdb.personal_data import PersonalDataUser

@@ -11,7 +11,7 @@ from werkzeug.wrappers import Response
 from eduid_common.api.decorators import require_user
 from eduid_common.api.exceptions import AmTaskFailed, MsgTaskFailed
 from eduid_common.api.helpers import verify_nin_for_user
-from eduid_common.api.messages import redirect_with_msg, CommonMsg
+from eduid_common.api.messages import CommonMsg, redirect_with_msg
 from eduid_common.api.utils import save_and_sync_user, urlappend, verify_relay_state
 from eduid_common.authn.acs_registry import acs_action
 from eduid_common.authn.eduid_saml2 import get_authn_ctx

@@ -15,7 +15,7 @@ from six import BytesIO
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, can_verify_identity, require_user
 from eduid_common.api.exceptions import TaskFailed
 from eduid_common.api.helpers import add_nin_to_user
-from eduid_common.api.messages import error_message, CommonMsg
+from eduid_common.api.messages import CommonMsg, error_message
 from eduid_userdb.exceptions import DocumentDoesNotExist
 from eduid_userdb.proofing import ProofingUser
 from eduid_userdb.util import UTC

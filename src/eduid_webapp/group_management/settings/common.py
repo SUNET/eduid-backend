@@ -48,5 +48,6 @@ class GroupManagementConfig(FlaskConfig):
 
     app_name: str = 'group_management'
     scim_data_owner: str = 'eduid.se'
+    scim_external_id_scope: str = 'eduid.se'
     neo4j_uri: str = ''
     neo4j_config: Optional[dict] = None

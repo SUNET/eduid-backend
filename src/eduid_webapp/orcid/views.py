@@ -7,7 +7,7 @@ from oic.oic.message import AuthorizationResponse, Claims, ClaimsRequest
 from six.moves.urllib_parse import urlencode
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
-from eduid_common.api.messages import redirect_with_msg, CommonMsg
+from eduid_common.api.messages import CommonMsg, redirect_with_msg
 from eduid_common.api.schemas.csrf import CSRFRequest
 from eduid_common.api.utils import get_unique_hash, save_and_sync_user
 from eduid_userdb.logs import OrcidProofing
