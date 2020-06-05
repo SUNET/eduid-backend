@@ -54,7 +54,7 @@ class SignupUser(User):
         eppn: Optional[str] = None,
         subject: str = 'physical person',
         data: Optional[dict] = None,
-        raise_on_unknown: bool = False,
+        raise_on_unknown: bool = True,
         called_directly: bool = True,
     ):
         if data is None:
