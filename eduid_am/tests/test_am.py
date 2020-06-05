@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from typing import Any, Dict
+
 from bson import ObjectId
 
 import eduid_userdb
@@ -17,10 +19,10 @@ class AmTestUser(eduid_userdb.User):
     User class for the 'test' plugin below.
     """
 
-    def __init__(self, data):
+    def __init__(self, data: Dict[str, Any], raise_on_unknown: bool = True, called_directly: bool = True):
         self.uid = data.pop('uid', None)
 
-        eduid_userdb.User.__init__(self, data=data)
+        eduid_userdb.User.__init__(self, data=data, raise_on_unknown=raise_on_unknown, called_directly=called_directly)
 
     def to_dict(self, old_userdb_format=False):
         res = eduid_userdb.User.to_dict(self, old_userdb_format=old_userdb_format)

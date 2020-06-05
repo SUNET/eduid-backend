@@ -96,6 +96,4 @@ class AttributeFetcherTests(AMTestCase):
         user_data['mailAliases'] = [{'email': 'john@example.com', 'verified': True,}]
         user_data['passwords'] = [{'id': '123', 'salt': '456',}]
         with self.assertRaises(UserHasUnknownData):
-            user = SignupUser(data=user_data)
-            self.fetcher.private_db.save(user, raise_on_unknown=False)
-            self.fetcher.fetch_attrs.save(user.user_id)
+            SignupUser(data=user_data)
