@@ -32,7 +32,7 @@
 #
 import math
 from enum import unique
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Union
 
 import bcrypt
 from flask import render_template
@@ -129,7 +129,7 @@ class BadCode(Exception):
     Exception to signal that the password reset code received is not valid.
     """
 
-    def __init__(self, msg: TranslatableMsg):
+    def __init__(self, msg: Union[TranslatableMsg, str]):
         self.msg = msg
 
 
