@@ -129,7 +129,7 @@ class BadCode(Exception):
     Exception to signal that the password reset code received is not valid.
     """
 
-    def __init__(self, msg: str):
+    def __init__(self, msg: TranslatableMsg):
         self.msg = msg
 
 
