@@ -46,6 +46,7 @@ from eduid_userdb.nin import NinList
 from eduid_userdb.phone import PhoneNumberList
 from eduid_userdb.user import User
 
+
 mail_addresses = MailAddressList([johnsmith_example_com, johnsmith2_example_com,])
 
 
@@ -59,6 +60,7 @@ phone_numbers = PhoneNumberList([dashboard_primary_phone, dashboard_unverified_p
 
 
 locked_identity = LockedIdentityList([dashboard_locked_nin,])
+
 
 entitlements = [
     'urn:mace:eduid.se:role:admin',
