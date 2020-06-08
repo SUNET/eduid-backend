@@ -4,9 +4,10 @@ from __future__ import absolute_import
 
 from flask import Blueprint, redirect, request, url_for
 from oic.oic.message import AuthorizationResponse, Claims, ClaimsRequest
-from six.moves.urllib_parse import urlencode, urlsplit, urlunsplit
+from six.moves.urllib_parse import urlencode
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
+from eduid_common.api.messages import CommonMsg, redirect_with_msg
 from eduid_common.api.schemas.csrf import CSRFRequest
 from eduid_common.api.utils import get_unique_hash, save_and_sync_user
 from eduid_userdb.logs import OrcidProofing
@@ -14,6 +15,7 @@ from eduid_userdb.orcid import OidcAuthorization, OidcIdToken, Orcid
 from eduid_userdb.proofing import OrcidProofingState, ProofingUser
 
 from eduid_webapp.orcid.app import current_orcid_app as current_app
+from eduid_webapp.orcid.helpers import OrcidMsg
 from eduid_webapp.orcid.schemas import OrcidResponseSchema
 
 __author__ = 'lundberg'
@@ -51,10 +53,7 @@ def authorize(user):
         return redirect(authorization_url)
     # Orcid already connected to user
     redirect_url = current_app.config.orcid_verify_redirect_url
-    scheme, netloc, path, query_string, fragment = urlsplit(redirect_url)
-    new_query_string = urlencode({'msg': ':ERROR:orc.already_connected'})
-    redirect_url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
-    return redirect(redirect_url)
+    return redirect_with_msg(redirect_url, OrcidMsg.already_connected)
 
 
 @orcid_views.route('/authorization-response', methods=['GET'])
@@ -62,7 +61,6 @@ def authorize(user):
 def authorization_response(user):
     # Redirect url for user feedback
     redirect_url = current_app.config.orcid_verify_redirect_url
-    scheme, netloc, path, query_string, fragment = urlsplit(redirect_url)
 
     current_app.stats.count(name='authn_response')
 
@@ -79,17 +77,13 @@ def authorization_response(user):
                 request.host, authn_resp['error'], authn_resp.get('error_message'), authn_resp.get('error_description')
             )
         )
-        new_query_string = urlencode({'msg': ':ERROR:orc.authorization_fail'})
-        redirect_url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
-        return redirect(redirect_url)
+        return redirect_with_msg(redirect_url, OrcidMsg.authz_error)
 
     user_oidc_state = authn_resp['state']
     proofing_state = current_app.proofing_statedb.get_state_by_oidc_state(user_oidc_state, raise_on_missing=False)
     if not proofing_state:
         current_app.logger.error('The \'state\' parameter ({!s}) does not match a user state.'.format(user_oidc_state))
-        new_query_string = urlencode({'msg': ':ERROR:orc.unknown_state'})
-        redirect_url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
-        return redirect(redirect_url)
+        return redirect_with_msg(redirect_url, OrcidMsg.no_state)
 
     # do token request
     args = {
@@ -104,9 +98,8 @@ def authorization_response(user):
     id_token = token_resp['id_token']
     if id_token['nonce'] != proofing_state.nonce:
         current_app.logger.error('The \'nonce\' parameter does not match for user')
-        new_query_string = urlencode({'msg': ':ERROR:orc.unknown_nonce'})
-        redirect_url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
-        return redirect(redirect_url)
+        return redirect_with_msg(redirect_url, OrcidMsg.unknown_nonce)
+
     current_app.logger.info('ORCID authorized for user')
 
     # do userinfo request
@@ -119,9 +112,7 @@ def authorization_response(user):
         current_app.logger.error(
             'The \'sub\' of userinfo does not match \'sub\' of ID Token for user {!s}.'.format(proofing_state.eppn)
         )
-        new_query_string = urlencode({'msg': ':ERROR:orc.sub_mismatch'})
-        redirect_url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
-        return redirect(redirect_url)
+        return redirect_with_msg(redirect_url, OrcidMsg.sub_mismatch)
 
     # Save orcid and oidc data to user
     current_app.logger.info('Saving ORCID data for user')
@@ -168,16 +159,15 @@ def authorization_response(user):
         proofing_user.orcid = orcid_element
         save_and_sync_user(proofing_user)
         current_app.logger.info('ORCID proofing data saved to user')
-        new_query_string = urlencode({'msg': 'orc.authorization_success'})
+        message_args = dict(msg=OrcidMsg.authz_success, error=False)
     else:
         current_app.logger.info('ORCID proofing data NOT saved, failed to save proofing log')
-        new_query_string = urlencode({'msg': ':ERROR:Temporary technical problems'})
+        message_args = dict(msg=CommonMsg.temp_problem)
 
     # Clean up
     current_app.logger.info('Removing proofing state')
     current_app.proofing_statedb.remove_state(proofing_state)
-    redirect_url = urlunsplit((scheme, netloc, path, new_query_string, fragment))
-    return redirect(redirect_url)
+    return redirect_with_msg(redirect_url, **message_args)
 
 
 @orcid_views.route('/', methods=['GET'])

@@ -35,16 +35,18 @@ from marshmallow import ValidationError
 
 from eduid_common.api.utils import get_user
 
+from eduid_webapp.email.helpers import EmailMsg
+
 
 def email_exists(email):
     user = get_user()
     user_emails = [e.email for e in user.mail_addresses.to_list()]
     if email not in user_emails:
-        raise ValidationError('emails.missing')
+        raise ValidationError(EmailMsg.missing.value)
 
 
 def email_does_not_exist(email):
     user = get_user()
     user_emails = [e.email for e in user.mail_addresses.to_list()]
     if email in user_emails:
-        raise ValidationError('emails.duplicated')
+        raise ValidationError(EmailMsg.dupe.value)

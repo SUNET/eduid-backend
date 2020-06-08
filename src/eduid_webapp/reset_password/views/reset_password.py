@@ -84,6 +84,7 @@ from marshmallow import ValidationError
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith
 from eduid_common.api.exceptions import MsgTaskFailed
 from eduid_common.api.helpers import check_magic_cookie
+from eduid_common.api.messages import CommonMsg, error_message, success_message
 from eduid_common.api.schemas.base import FluxStandardAction
 from eduid_common.authn import fido_tokens
 from eduid_common.session import session
@@ -94,7 +95,6 @@ from eduid_webapp.reset_password.helpers import (
     BadCode,
     ResetPwMsg,
     check_password,
-    error_message,
     generate_suggested_password,
     get_extra_security_alternatives,
     get_pwreset_state,
@@ -104,7 +104,6 @@ from eduid_webapp.reset_password.helpers import (
     reset_user_password,
     send_password_reset_mail,
     send_verify_phone_code,
-    success_message,
     verify_email_address,
     verify_phone_number,
 )
@@ -247,11 +246,11 @@ def _get_state_and_data(SchemaClass):
     except ValidationError as e:
         current_app.logger.error(e)
         if 'csrf_token' in e.messages:
-            raise BadStateOrData(ResetPwMsg.csrf_missing)
+            raise BadStateOrData(CommonMsg.csrf_missing)
         raise BadStateOrData(ResetPwMsg.chpass_weak)
 
     if session.get_csrf_token() != form['csrf_token']:
-        raise BadStateOrData(ResetPwMsg.csrf_try_again)
+        raise BadStateOrData(CommonMsg.csrf_try_again)
 
     return resetpw_user, state, form
 
@@ -411,7 +410,7 @@ def set_new_pw_extra_security_phone() -> dict:
         current_app.stats.count(name='reset_password_extra_security_phone_success')
     else:
         current_app.logger.info(f'Could not verify phone code for {state.eppn}')
-        return error_message(ResetPwMsg.unkown_phone_code)
+        return error_message(ResetPwMsg.unknown_phone_code)
 
     hashed = session.reset_password.generated_password_hash
     if check_password(password, hashed):

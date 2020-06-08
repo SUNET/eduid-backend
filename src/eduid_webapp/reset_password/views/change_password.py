@@ -37,6 +37,7 @@ from flask import Blueprint, request
 from marshmallow import ValidationError
 
 from eduid_common.api.decorators import MarshalWith, require_user
+from eduid_common.api.messages import CommonMsg, error_message
 from eduid_common.api.utils import save_and_sync_user
 from eduid_common.authn.vccs import change_password
 from eduid_common.session import session
@@ -48,7 +49,6 @@ from eduid_webapp.reset_password.helpers import (
     ResetPwMsg,
     check_password,
     compile_credential_list,
-    error_message,
     generate_suggested_password,
     get_zxcvbn_terms,
     hash_password,
@@ -106,7 +106,7 @@ def change_password_view(user):
         new_password = form.get('new_password')
 
     if session.get_csrf_token() != form['csrf_token']:
-        return error_message(ResetPwMsg.csrf_try_again)
+        return error_message(CommonMsg.csrf_try_again)
 
     authn_ts = session.get('reauthn-for-chpass', None)
     if authn_ts is None:
@@ -137,7 +137,7 @@ def change_password_view(user):
     try:
         save_and_sync_user(resetpw_user)
     except UserOutOfSync:
-        return error_message(ResetPwMsg.out_of_sync)
+        return error_message(CommonMsg.out_of_sync)
 
     del session['reauthn-for-chpass']
 

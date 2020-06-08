@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2020 SUNET
 # All rights reserved.
@@ -13,7 +12,7 @@
 #        copyright notice, this list of conditions and the following
 #        disclaimer in the documentation and/or other materials provided
 #        with the distribution.
-#     3. Neither the name of the NORDUnet nor the names of its
+#     3. Neither the name of the SUNET nor the names of its
 #        contributors may be used to endorse or promote products derived
 #        from this software without specific prior written permission.
 #
@@ -30,24 +29,42 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-"""
-Configuration (file) handling for the eduID group_management app.
-"""
 
-from dataclasses import dataclass
-from typing import Optional
+from enum import unique
 
-from eduid_common.config.base import FlaskConfig
+from eduid_common.api.messages import TranslatableMsg
 
 
-@dataclass
-class GroupManagementConfig(FlaskConfig):
+@unique
+class PhoneMsg(TranslatableMsg):
     """
-    Configuration for the group_management app
+    Messages sent to the front end with information on the results of the
+    attempted operations on the back end.
     """
 
-    app_name: str = 'group_management'
-    scim_data_owner: str = 'eduid.se'
-    scim_external_id_scope: str = 'eduid.se'
-    neo4j_uri: str = ''
-    neo4j_config: Optional[dict] = None
+    # validation error: not conforming to e164
+    e164_error = "phone.e164_format"
+    # validation error: invalid phone number
+    phone_invalid = "phone.phone_format"
+    # validation error: invalid swedish number
+    swedish_invalid = "phone.swedish_mobile_format"
+    # validation error: duplicated phone
+    dupe = "phone.phone_duplicated"
+    # successfully saved phone number
+    save_success = 'phones.save-success'
+    # cannot set unconfirmed phone number as primary
+    unconfirmed_primary = 'phones.unconfirmed_number_not_primary'
+    # successfully set phone number as primary number
+    primary_success = 'phones.primary-success'
+    # The received verification code is invalid or has expired
+    code_invalid = 'phones.code_invalid_or_expired'
+    # the received phone to be set as primary is unknown
+    unknown_phone = 'phones.unknown_phone'
+    # success verifying phone number
+    verify_success = 'phones.verification-success'
+    # success removing phone number
+    removal_success = 'phones.removal-success'
+    # the previously sent verification code is still valid
+    still_valid_code = 'still-valid-code'
+    # success re-sending a verification code
+    resend_success = 'phones.code-sent'

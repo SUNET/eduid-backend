@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
-
 from datetime import datetime, timedelta
+from enum import unique
 
+from eduid_common.api.messages import TranslatableMsg, error_message
 from eduid_common.api.utils import get_short_hash
 from eduid_userdb.proofing import LetterProofingState, NinProofingElement
 from eduid_userdb.proofing.element import SentLetterElement
@@ -12,6 +12,33 @@ from eduid_webapp.letter_proofing import pdf
 from eduid_webapp.letter_proofing.app import current_letterp_app as current_app
 
 __author__ = 'lundberg'
+
+
+@unique
+class LetterMsg(TranslatableMsg):
+    """
+    Messages sent to the front end with information on the results of the
+    attempted operations on the back end.
+    """
+
+    # No letter proofing state found in the db
+    no_state = 'letter.no_state_found'
+    # a letter has already been sent
+    already_sent = 'letter.already-sent'
+    # the letter has been sent, but enough time has passed to send a new one
+    letter_expired = 'letter.expired'
+    # some unspecified problem sending the letter
+    not_sent = 'letter.not-sent'
+    # no postal address found
+    address_not_found = 'letter.no-address-found'
+    # errors in the format of the postal address
+    bad_address = 'letter.bad-postal-address'
+    # letter sent and state saved w/o errors
+    letter_sent = 'letter.saved-unconfirmed'
+    # wrong verification code received
+    wrong_code = 'letter.wrong-code'
+    # success verifying the code
+    verify_success = 'letter.verification_success'
 
 
 def check_state(state):
@@ -39,7 +66,7 @@ def check_state(state):
                 'letter_sent': sent_dt,
                 'letter_expires': sent_dt + max_wait,
                 'letter_expired': False,
-                'message': 'letter.already-sent',
+                'message': LetterMsg.already_sent.value,
             }
         else:
             # If the letter haven't reached the user within the allotted time
@@ -52,10 +79,10 @@ def check_state(state):
                 'letter_sent': sent_dt,
                 'letter_expires': sent_dt + max_wait,
                 'letter_expired': True,
-                'message': 'letter.expired',
+                'message': LetterMsg.letter_expired.value,
             }
     current_app.logger.info('Unfinished state for user with eppn {!s}'.format(state.eppn))
-    return {'message': 'letter.not-sent'}
+    return error_message(LetterMsg.not_sent)
 
 
 def create_proofing_state(eppn: str, nin: str) -> LetterProofingState:

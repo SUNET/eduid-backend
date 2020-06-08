@@ -30,7 +30,6 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from flask_babel import gettext as _
 from marshmallow import ValidationError, fields, validates
 
 from eduid_common.api.schemas.base import EduidSchema, FluxStandardAction
@@ -38,6 +37,7 @@ from eduid_common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
 from eduid_common.api.schemas.password import PasswordSchema
 from eduid_common.api.schemas.validators import validate_email
 
+from eduid_webapp.reset_password.helpers import ResetPwMsg
 from eduid_webapp.security.schemas import CredentialSchema
 
 __author__ = 'eperez'
@@ -53,7 +53,7 @@ class ResetPasswordInitSchema(EduidSchema, CSRFRequestMixin):
         try:
             validate_email(value)
         except ValidationError:
-            raise ValidationError(_('Invalid email address'))
+            raise ValidationError(ResetPwMsg.invalid_email.value)
 
 
 class ResetPasswordEmailCodeSchema(EduidSchema, CSRFRequestMixin):
@@ -79,7 +79,7 @@ class ResetPasswordWithCodeSchema(PasswordSchema):
         try:
             self.validate_password(value)
         except ValidationError:
-            raise ValidationError('resetpw.weak-password')
+            raise ValidationError(ResetPwMsg.resetpw_weak.value)
 
 
 class ResetPasswordWithPhoneCodeSchema(ResetPasswordWithCodeSchema):
@@ -116,7 +116,7 @@ class ChangePasswordSchema(PasswordSchema):
         try:
             self.validate_password(value)
         except ValidationError:
-            raise ValidationError('chpass.weak-password')
+            raise ValidationError(ResetPwMsg.chpass_weak.value)
 
 
 class SuggestedPassword(EduidSchema, CSRFResponseMixin):

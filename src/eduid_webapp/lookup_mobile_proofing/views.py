@@ -7,11 +7,12 @@ from flask import Blueprint
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, can_verify_identity, require_user
 from eduid_common.api.exceptions import AmTaskFailed, MsgTaskFailed
 from eduid_common.api.helpers import add_nin_to_user, verify_nin_for_user
+from eduid_common.api.messages import CommonMsg, error_message
 from eduid_common.api.schemas.csrf import CSRFResponse
 
 from eduid_webapp.lookup_mobile_proofing import schemas
 from eduid_webapp.lookup_mobile_proofing.app import current_mobilep_app as current_app
-from eduid_webapp.lookup_mobile_proofing.helpers import create_proofing_state, match_mobile_to_user
+from eduid_webapp.lookup_mobile_proofing.helpers import MobileMsg, create_proofing_state, match_mobile_to_user
 from eduid_webapp.lookup_mobile_proofing.lookup_mobile_relay import LookupMobileTaskFailed
 
 __author__ = 'lundberg'
@@ -42,25 +43,25 @@ def proofing(user, nin):
     # Get list of verified mobile numbers
     verified_mobiles = [item.number for item in user.phone_numbers.to_list() if item.is_verified]
     if not verified_mobiles:
-        return {'_status': 'error', 'message': 'no_phone'}
+        return error_message(MobileMsg.no_phone)
 
     try:
         success, proofing_log_entry = match_mobile_to_user(user, nin, verified_mobiles)
     except LookupMobileTaskFailed:
         current_app.stats.count('validate_nin_by_mobile_error')
-        return {'_status': 'error', 'message': 'error_lookup_mobile_task'}
+        return error_message(MobileMsg.lookup_error)
     except MsgTaskFailed:
         current_app.stats.count('navet_error')
-        return {'_status': 'error', 'message': 'error_navet_task'}
+        return error_message(CommonMsg.navet_error)
 
     if success:
         try:
             # Verify nin for user
             verify_nin_for_user(user, proofing_state, proofing_log_entry)
-            return {'success': True, 'message': 'letter.verification_success'}
+            return {'success': True, 'message': str(MobileMsg.verify_success.value)}
         except AmTaskFailed as e:
             current_app.logger.error('Verifying nin for user {} failed'.format(user))
             current_app.logger.error('{}'.format(e))
-            return {'_status': 'error', 'message': 'Temporary technical problems'}
+            return error_message(CommonMsg.temp_problem)
 
-    return {'_status': 'error', 'message': 'nins.no-mobile-match'}
+    return error_message(MobileMsg.no_match)

@@ -39,7 +39,7 @@ from flask import Blueprint, abort, redirect, render_template, request, url_for
 from six.moves.urllib_parse import urlsplit, urlunsplit
 
 from eduid_common.api.decorators import MarshalWith
-from eduid_common.api.messages import error_message, success_message
+from eduid_common.api.messages import CommonMsg, error_message, success_message
 from eduid_common.api.schemas.base import FluxStandardAction
 from eduid_common.authn.utils import check_previous_identification
 from eduid_common.session import session
@@ -154,7 +154,7 @@ def _do_action():
             'Validation error {} for step {} of action {}'.format(errors, session['current_step'], action)
         )
         session['current_step'] -= 1
-        return error_message(ActionsMsg.form_errors, data={'errors': errors})
+        return error_message(CommonMsg.form_errors, data={'errors': errors})
 
     eppn = session.get('user_eppn')
     if session['total_steps'] == session['current_step']:

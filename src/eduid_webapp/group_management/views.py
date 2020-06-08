@@ -31,16 +31,25 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 from typing import Dict, List, Mapping
+from uuid import UUID
 
 from flask import Blueprint, jsonify
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
+from eduid_common.api.messages import CommonMsg, error_message
+from eduid_groupdb import Group as GraphGroup
 from eduid_groupdb import User as GraphUser
 from eduid_scimapi.groupdb import ScimApiGroup
+from eduid_scimapi.userdb import ScimApiUser
 from eduid_userdb import User
 
 from eduid_webapp.group_management.app import current_group_management_app as current_app
-from eduid_webapp.group_management.schemas import GroupManagementResponseSchema
+from eduid_webapp.group_management.helpers import GroupManagementMsg, get_scim_user_by_eppn
+from eduid_webapp.group_management.schemas import (
+    GroupCreateRequestSchema,
+    GroupDeleteRequestSchema,
+    GroupManagementResponseSchema,
+)
 
 __author__ = 'lundberg'
 
@@ -50,10 +59,12 @@ group_management_views = Blueprint('group_management', __name__, url_prefix='', 
 def _list_of_group_data(group_list: List[ScimApiGroup]) -> List[Dict]:
     ret = []
     for group in group_list:
-        members = [{'id': member.identifier, 'display_name': member.display_name} for member in group.graph.members]
-        owners = [{'id': owner.identifier, 'display_name': owner.display_name} for owner in group.graph.owners]
+        members = [
+            {'identifier': member.identifier, 'display_name': member.display_name} for member in group.graph.members
+        ]
+        owners = [{'identifier': owner.identifier, 'display_name': owner.display_name} for owner in group.graph.owners]
         group_data = {
-            'id': group.scim_id,
+            'identifier': group.scim_id,
             'display_name': group.display_name,
             'members': members,
             'owners': owners,
@@ -67,14 +78,65 @@ def _list_of_group_data(group_list: List[ScimApiGroup]) -> List[Dict]:
 @MarshalWith(GroupManagementResponseSchema)
 @require_user
 def get_groups(user: User) -> Mapping:
-    # TODO: get_user_by_eduid_eppn is not working anymore, do we want one?
-    scim_user = current_app.scimapi_userdb.get_user_by_external_id(external_id=f'{user.eppn}@eduid.se')
+    scim_user = get_scim_user_by_eppn(user.eppn)
     if not scim_user:
-        current_app.logger.info(f'{user} does not exist in scimapi_userdb')
+        current_app.logger.info('User does not exist in scimapi_userdb')
+        # As the user does not exist return empty group lists
         return {}
+
     graph_user = GraphUser(identifier=str(scim_user.scim_id))
     member_groups = current_app.scimapi_groupdb.get_groups_for_member(member=graph_user)
     owner_groups = current_app.scimapi_groupdb.get_groups_for_owner(owner=graph_user)
     current_app.logger.debug(f'member_of: {member_groups}')
     current_app.logger.debug(f'owner_of: {owner_groups}')
     return {'member_of': _list_of_group_data(member_groups), 'owner_of': _list_of_group_data(owner_groups)}
+
+
+@group_management_views.route('/create', methods=['POST'])
+@UnmarshalWith(GroupCreateRequestSchema)
+@MarshalWith(GroupManagementResponseSchema)
+@require_user
+def create_group(user: User, display_name: str) -> Mapping:
+    scim_user = get_scim_user_by_eppn(user.eppn)
+    if not scim_user:
+        scim_user = ScimApiUser(external_id=f'{user.eppn}@{current_app.config.scim_external_id_scope}')
+        current_app.scimapi_userdb.save(scim_user)
+        current_app.logger.info(f'Created ScimApiUser with scim_id: {scim_user.scim_id}')
+        current_app.stats.count(name='user_created')
+
+    graph_user = GraphUser(identifier=str(scim_user.scim_id), display_name=user.mail_addresses.primary.email)
+    group = ScimApiGroup(display_name=display_name)
+    group.graph = GraphGroup(identifier=str(group.scim_id), display_name=display_name)
+    group.graph.owners = [graph_user]
+    group.graph.members = [graph_user]
+
+    if not current_app.scimapi_groupdb.save(group):
+        current_app.logger.error(f'Failed to create ScimApiGroup with scim_id: {group.scim_id}')
+        return error_message(CommonMsg.temp_problem)
+
+    current_app.logger.info(f'Created ScimApiGroup with scim_id: {group.scim_id}')
+    current_app.stats.count(name='group_created')
+    return get_groups()
+
+
+@group_management_views.route('/delete', methods=['POST'])
+@UnmarshalWith(GroupDeleteRequestSchema)
+@MarshalWith(GroupManagementResponseSchema)
+@require_user
+def delete_group(user: User, identifier: UUID) -> Mapping:
+    scim_user = get_scim_user_by_eppn(user.eppn)
+    if not scim_user:
+        current_app.logger.error('User does not exist in scimapi_userdb')
+        return error_message(GroupManagementMsg.user_does_not_exist)
+
+    graph_user = GraphUser(identifier=str(scim_user.scim_id))
+    owner_groups = current_app.scimapi_groupdb.get_groups_for_owner(owner=graph_user)
+    if identifier not in [owner_group.scim_id for owner_group in owner_groups]:
+        current_app.logger.error(f'User is not owner of group with scim_id: {identifier}')
+        return error_message(GroupManagementMsg.user_not_owner)
+
+    group = current_app.scimapi_groupdb.get_group_by_scim_id(scim_id=str(identifier))
+    if group and current_app.scimapi_groupdb.remove_group(group):
+        current_app.logger.info(f'Deleted ScimApiGroup with scim_id: {group.scim_id}')
+        current_app.stats.count(name='group_deleted')
+    return get_groups()

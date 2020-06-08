@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2020 SUNET
 # All rights reserved.
@@ -13,7 +12,7 @@
 #        copyright notice, this list of conditions and the following
 #        disclaimer in the documentation and/or other materials provided
 #        with the distribution.
-#     3. Neither the name of the NORDUnet nor the names of its
+#     3. Neither the name of the SUNET nor the names of its
 #        contributors may be used to endorse or promote products derived
 #        from this software without specific prior written permission.
 #
@@ -31,43 +30,27 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from marshmallow import fields
+from enum import unique
 
-from eduid_common.api.schemas.base import EduidSchema, FluxStandardAction
-from eduid_common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
-
-__author__ = 'lundberg'
+from eduid_common.api.messages import TranslatableMsg
 
 
-class GroupMember(EduidSchema):
-    identifier = fields.UUID(required=True)
-    display_name = fields.Str(required=True)
+@unique
+class OrcidMsg(TranslatableMsg):
+    """
+    Messages sent to the front end with information on the results of the
+    attempted operations on the back end.
+    """
 
-
-class Group(EduidSchema):
-    identifier = fields.UUID(required=True)
-    display_name = fields.Str(required=True)
-    members = fields.Nested(nested=GroupMember, default=[], many=True)
-    owners = fields.Nested(nested=GroupMember, default=[], many=True)
-
-
-class GroupManagementRequestSchema(EduidSchema):
-    pass
-
-
-class GroupManagementResponseSchema(FluxStandardAction):
-    class GroupManagementResponsePayload(EduidSchema, CSRFResponseMixin):
-        member_of = fields.Nested(Group, default=[], many=True)
-        owner_of = fields.Nested(Group, default=[], many=True)
-
-    payload = fields.Nested(GroupManagementResponsePayload)
-
-
-class GroupCreateRequestSchema(EduidSchema, CSRFRequestMixin):
-
-    display_name = fields.Str(required=True)
-
-
-class GroupDeleteRequestSchema(EduidSchema, CSRFRequestMixin):
-
-    identifier = fields.UUID(required=True)
+    # ORCID account already connected to eduID account
+    already_connected = 'orc.already_connected'
+    # Authorization error at ORCID
+    authz_error = 'orc.authorization_fail'
+    # proofing state corresponding to ORCID response not found
+    no_state = 'orc.unknown_state'
+    # nonce received from ORCID not known
+    unknown_nonce = 'orc.unknown_nonce'
+    # The 'sub' of userinfo does not match 'sub' of ID Token for user
+    sub_mismatch = 'orc.sub_mismatch'
+    # ORCID proofing data saved for user
+    authz_success = 'orc.authorization_success'

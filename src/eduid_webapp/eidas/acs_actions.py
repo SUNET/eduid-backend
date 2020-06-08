@@ -11,6 +11,7 @@ from werkzeug.wrappers import Response
 from eduid_common.api.decorators import require_user
 from eduid_common.api.exceptions import AmTaskFailed, MsgTaskFailed
 from eduid_common.api.helpers import verify_nin_for_user
+from eduid_common.api.messages import CommonMsg, redirect_with_msg
 from eduid_common.api.utils import save_and_sync_user, urlappend, verify_relay_state
 from eduid_common.authn.acs_registry import acs_action
 from eduid_common.authn.eduid_saml2 import get_authn_ctx
@@ -25,7 +26,7 @@ from eduid_userdb.proofing.user import ProofingUser
 from eduid_userdb.user import User
 
 from eduid_webapp.eidas.app import current_eidas_app as current_app
-from eduid_webapp.eidas.helpers import is_required_loa, is_valid_reauthn, redirect_with_msg
+from eduid_webapp.eidas.helpers import EidasMsg, is_required_loa, is_valid_reauthn
 
 __author__ = 'lundberg'
 
@@ -49,10 +50,10 @@ def token_verify_action(session_info, user):
     redirect_url = current_app.config.token_verify_redirect_url
 
     if not is_required_loa(session_info, 'loa3'):
-        return redirect_with_msg(redirect_url, ':ERROR:eidas.authn_context_mismatch')
+        return redirect_with_msg(redirect_url, EidasMsg.authn_context_mismatch)
 
     if not is_valid_reauthn(session_info):
-        return redirect_with_msg(redirect_url, ':ERROR:eidas.reauthn_expired')
+        return redirect_with_msg(redirect_url, EidasMsg.reauthn_expired)
 
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     token_to_verify = proofing_user.credentials.filter(FidoCredential).find(
@@ -61,7 +62,7 @@ def token_verify_action(session_info, user):
 
     # Check (again) if token was used to authenticate this session
     if token_to_verify.key not in session['eduidIdPCredentialsUsed']:
-        return redirect_with_msg(redirect_url, ':ERROR:eidas.token_not_in_credentials_used')
+        return redirect_with_msg(redirect_url, EidasMsg.token_not_in_creds)
 
     # Verify asserted NIN for user if there are no verified NIN
     if proofing_user.nins.verified.count == 0:
@@ -78,7 +79,7 @@ def token_verify_action(session_info, user):
     if not user_nin:
         current_app.logger.error('Asserted NIN not matching user verified nins')
         current_app.logger.debug('Asserted NIN: {}'.format(asserted_nin))
-        return redirect_with_msg(redirect_url, ':ERROR:eidas.nin_not_matching')
+        return redirect_with_msg(redirect_url, EidasMsg.nin_not_matching)
 
     # Create a proofing log
     issuer = session_info['issuer']
@@ -90,7 +91,7 @@ def token_verify_action(session_info, user):
     except MsgTaskFailed as e:
         current_app.logger.error('Navet lookup failed: {}'.format(e))
         current_app.stats.count('navet_error')
-        return redirect_with_msg(redirect_url, ':ERROR:error_navet_task')
+        return redirect_with_msg(redirect_url, CommonMsg.navet_error)
     proofing_log_entry = MFATokenProofing(
         user=proofing_user,
         created_by='eduid-eidas',
@@ -115,10 +116,10 @@ def token_verify_action(session_info, user):
         except AmTaskFailed as e:
             current_app.logger.error('Verifying token for user failed')
             current_app.logger.error('{}'.format(e))
-            return redirect_with_msg(redirect_url, ':ERROR:Temporary technical problems')
+            return redirect_with_msg(redirect_url, CommonMsg.temp_problem)
         current_app.stats.count(name='fido_token_verified')
 
-    return redirect_with_msg(redirect_url, 'eidas.token_verify_success')
+    return redirect_with_msg(redirect_url, EidasMsg.verify_success, error=False)
 
 
 @acs_action('nin-verify-action')
@@ -140,10 +141,10 @@ def nin_verify_action(session_info, user):
     redirect_url = current_app.config.nin_verify_redirect_url
 
     if not is_required_loa(session_info, 'loa3'):
-        return redirect_with_msg(redirect_url, ':ERROR:eidas.authn_context_mismatch')
+        return redirect_with_msg(redirect_url, EidasMsg.authn_context_mismatch)
 
     if not is_valid_reauthn(session_info):
-        return redirect_with_msg(redirect_url, ':ERROR:eidas.reauthn_expired')
+        return redirect_with_msg(redirect_url, EidasMsg.reauthn_expired)
 
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     asserted_nin = get_saml_attribute(session_info, 'personalIdentityNumber')[0]
@@ -153,7 +154,7 @@ def nin_verify_action(session_info, user):
         current_app.logger.debug(
             'Primary NIN: {}. Asserted NIN: {}'.format(proofing_user.nins.primary.number, asserted_nin)
         )
-        return redirect_with_msg(redirect_url, ':ERROR:eidas.nin_already_verified')
+        return redirect_with_msg(redirect_url, EidasMsg.nin_already_verified)
 
     # Create a proofing log
     issuer = session_info['issuer']
@@ -163,7 +164,7 @@ def nin_verify_action(session_info, user):
     except MsgTaskFailed as e:
         current_app.logger.error('Navet lookup failed: {}'.format(e))
         current_app.stats.count('navet_error')
-        return redirect_with_msg(redirect_url, ':ERROR:error_navet_task')
+        return redirect_with_msg(redirect_url, CommonMsg.navet_error)
 
     proofing_log_entry = SwedenConnectProofing(
         user=proofing_user,
@@ -183,10 +184,10 @@ def nin_verify_action(session_info, user):
     except AmTaskFailed as e:
         current_app.logger.error('Verifying NIN for user failed')
         current_app.logger.error('{}'.format(e))
-        return redirect_with_msg(redirect_url, ':ERROR:Temporary technical problems')
+        return redirect_with_msg(redirect_url, CommonMsg.temp_problem)
     current_app.stats.count(name='nin_verified')
 
-    return redirect_with_msg(redirect_url, 'eidas.nin_verify_success')
+    return redirect_with_msg(redirect_url, EidasMsg.nin_verify_success, error=False)
 
 
 @require_user
@@ -257,7 +258,7 @@ def mfa_authentication_action(session_info, user):
         # With no redirect url just redirect the user to dashboard for a new try to log in
         # TODO: This will result in a error 400 until we put the authentication in the session
         current_app.logger.error('Missing redirect url for mfa authentication')
-        return redirect_with_msg(current_app.config.action_url, ':ERROR:eidas.no_redirect_url')
+        return redirect_with_msg(current_app.config.action_url, EidasMsg.no_redirect_url)
 
     # We get the mfa authentication views "next" argument as base64 to avoid our request sanitation
     # to replace all & to &amp;
@@ -266,10 +267,10 @@ def mfa_authentication_action(session_info, user):
     redirect_url = verify_relay_state(redirect_url)
 
     if not is_required_loa(session_info, 'loa3'):
-        return redirect_with_msg(redirect_url, ':ERROR:eidas.authn_context_mismatch')
+        return redirect_with_msg(redirect_url, EidasMsg.authn_context_mismatch)
 
     if not is_valid_reauthn(session_info):
-        return redirect_with_msg(redirect_url, ':ERROR:eidas.reauthn_expired')
+        return redirect_with_msg(redirect_url, EidasMsg.reauthn_expired)
 
     # Check that a verified NIN is equal to the asserted attribute personalIdentityNumber
     _personal_idns = get_saml_attribute(session_info, 'personalIdentityNumber')
@@ -286,7 +287,7 @@ def mfa_authentication_action(session_info, user):
         current_app.logger.error('Asserted NIN not matching user verified nins')
         current_app.logger.debug('Asserted NIN: {}'.format(asserted_nin))
         current_app.stats.count(name='mfa_auth_nin_not_matching')
-        return redirect_with_msg(redirect_url, ':ERROR:eidas.nin_not_matching')
+        return redirect_with_msg(redirect_url, EidasMsg.nin_not_matching)
 
     session.mfa_action.success = True
     session.mfa_action.issuer = session_info['issuer']
@@ -296,7 +297,7 @@ def mfa_authentication_action(session_info, user):
     current_app.stats.count(name=f'mfa_auth_{session_info["issuer"]}_success')
 
     # Redirect back to action app but to the redirect-action view
-    resp = redirect_with_msg(redirect_url, 'actions.action-completed')
+    resp = redirect_with_msg(redirect_url, EidasMsg.action_completed, error=False)
     scheme, netloc, path, query_string, fragment = urlsplit(resp.location)
     new_path = urlappend(path, 'redirect-action')
     new_url = urlunsplit((scheme, netloc, new_path, query_string, fragment))

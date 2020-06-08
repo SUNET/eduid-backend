@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 
 import time
+from enum import unique
 
 from eduid_common.api.helpers import check_magic_cookie
+from eduid_common.api.messages import TranslatableMsg
 from eduid_lookup_mobile.utilities import format_NIN
 from eduid_userdb import User
 from eduid_userdb.logs import TeleAdressProofing, TeleAdressProofingRelation
@@ -14,6 +16,23 @@ from eduid_webapp.lookup_mobile_proofing.app import current_mobilep_app as curre
 from eduid_webapp.lookup_mobile_proofing.lookup_mobile_relay import LookupMobileTaskFailed
 
 __author__ = 'lundberg'
+
+
+@unique
+class MobileMsg(TranslatableMsg):
+    """
+    Messages sent to the front end with information on the results of the
+    attempted operations on the back end.
+    """
+
+    # the user has no verified phones to use
+    no_phone = 'no_phone'
+    # problems looking up the phone
+    lookup_error = 'error_lookup_mobile_task'
+    # success verifying the NIN with the phone
+    verify_success = 'letter.verification_success'
+    # no match for the provided phone number
+    no_match = 'nins.no-mobile-match'
 
 
 def nin_to_age(nin):

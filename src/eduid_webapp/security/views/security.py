@@ -41,6 +41,7 @@ from six.moves.urllib_parse import parse_qs, urlencode, urlparse, urlunparse
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid_common.api.exceptions import AmTaskFailed, MsgTaskFailed
 from eduid_common.api.helpers import add_nin_to_user
+from eduid_common.api.messages import CommonMsg, error_message, success_message
 from eduid_common.api.utils import save_and_sync_user, urlappend
 from eduid_common.authn.vccs import add_credentials, revoke_all_credentials
 from eduid_common.session import session
@@ -51,6 +52,7 @@ from eduid_userdb.security import SecurityUser
 
 from eduid_webapp.security.app import current_security_app as current_app
 from eduid_webapp.security.helpers import (
+    SecurityMsg,
     compile_credential_list,
     generate_suggested_password,
     get_zxcvbn_terms,
@@ -70,10 +72,6 @@ from eduid_webapp.security.schemas import (
 )
 
 security_views = Blueprint('security', __name__, url_prefix='', template_folder='templates')
-
-
-def error_message(message):
-    return {'_status': 'error', 'message': str(message)}
 
 
 @security_views.route('/credentials', methods=['GET'])
@@ -219,7 +217,7 @@ def account_terminated(user):
     delta = now - datetime.fromtimestamp(authn_ts)
 
     if int(delta.total_seconds()) > 600:
-        return error_message('security.stale_authn_info')
+        return error_message(SecurityMsg.stale_reauthn)
 
     del session['reauthn-for-termination']
 
@@ -237,7 +235,7 @@ def account_terminated(user):
     try:
         save_and_sync_user(security_user)
     except UserOutOfSync:
-        return error_message('user-out-of-sync')
+        return error_message(CommonMsg.out_of_sync)
 
     current_app.stats.count(name='security_account_terminated', value=1)
     current_app.logger.info('Terminated user account')
@@ -265,16 +263,16 @@ def remove_nin(user, nin):
     nin_obj = security_user.nins.find(nin)
     if nin_obj and nin_obj.is_verified:
         current_app.logger.info('NIN verified. Will not remove it.')
-        return {'_status': 'error', 'success': False, 'message': 'nins.verified_no_rm'}
+        return error_message(SecurityMsg.rm_verified)
 
     try:
         remove_nin_from_user(security_user, nin)
-        return {'success': True, 'message': 'nins.success_removal', 'nins': security_user.nins.to_list_of_dicts()}
+        return success_message(SecurityMsg.rm_success, data=dict(nins=security_user.nins.to_list_of_dicts()))
     except AmTaskFailed as e:
         current_app.logger.error('Removing nin from user failed')
         current_app.logger.debug(f'NIN: {nin}')
         current_app.logger.error('{}'.format(e))
-        return {'_status': 'error', 'message': 'Temporary technical problems'}
+        return error_message(CommonMsg.temp_problem)
 
 
 @security_views.route('/add-nin', methods=['POST'])
@@ -289,7 +287,7 @@ def add_nin(user, nin):
     nin_obj = security_user.nins.find(nin)
     if nin_obj:
         current_app.logger.info('NIN already added.')
-        return {'_status': 'error', 'success': False, 'message': 'nins.already_exists'}
+        return error_message(SecurityMsg.already_exists)
 
     try:
         nin_element = NinProofingElement(number=nin, application='security', verified=False)
@@ -297,9 +295,9 @@ def add_nin(user, nin):
             {'eduPersonPrincipalName': security_user.eppn, 'nin': nin_element.to_dict()}
         )
         add_nin_to_user(user, proofing_state, user_class=SecurityUser)
-        return {'success': True, 'message': 'nins.successfully_added', 'nins': security_user.nins.to_list_of_dicts()}
+        return success_message(SecurityMsg.add_success, data=dict(nins=security_user.nins.to_list_of_dicts()))
     except AmTaskFailed as e:
         current_app.logger.error('Adding nin to user failed')
         current_app.logger.debug(f'NIN: {nin}')
         current_app.logger.error('{}'.format(e))
-        return {'_status': 'error', 'message': 'Temporary technical problems'}
+        return error_message(CommonMsg.temp_problem)
