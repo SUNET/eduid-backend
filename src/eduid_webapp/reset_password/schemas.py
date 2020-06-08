@@ -126,4 +126,4 @@ class SuggestedPassword(EduidSchema, CSRFResponseMixin):
 
 class SuggestedPasswordResponseSchema(FluxStandardAction):
 
-    payload = fields.Nested(SuggestedPassword, many=False)
+    payload = SuggestedPassword()
