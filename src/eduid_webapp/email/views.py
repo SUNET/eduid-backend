@@ -32,7 +32,7 @@
 #
 from __future__ import absolute_import
 
-from flask import Blueprint, abort, current_app, request
+from flask import Blueprint, abort, request
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid_common.api.helpers import check_magic_cookie
