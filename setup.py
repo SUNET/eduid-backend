@@ -1,12 +1,12 @@
 from setuptools import setup, find_packages
 
 
-version = '0.4.22'
+version = '0.4.23'
 
 requires = [
     'six >= 1.11.0',
     'setuptools >= 2.2',
-    'eduid-userdb >= 0.4.8',
+    'eduid-userdb >= 0.4.14',
 ]
 
 # Flavours
