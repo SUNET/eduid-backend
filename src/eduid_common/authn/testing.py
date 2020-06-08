@@ -154,7 +154,7 @@ def provision_credentials(vccs_url, new_password, user, vccs=None, source='dashb
         vccs = get_vccs_client(vccs_url)
     # upgrade DashboardLegacyUser to DashboardUser
     if isinstance(user, DashboardLegacyUser):
-        user = DashboardUser(data=user._mongo_doc)
+        user = DashboardUser.from_dict(data=user._mongo_doc)
 
     new_factor = vccs_client.VCCSPasswordFactor(new_password, credential_id=str(password_id))
 

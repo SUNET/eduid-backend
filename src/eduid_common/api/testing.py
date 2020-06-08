@@ -131,7 +131,7 @@ class EduidAPITestCase(CommonTestCase):
         self.user = None
         # Initialize some convenience variables on self based on the first user in `users'
         self.test_user_data = _standard_test_users.get(users[0])
-        self.test_user = User(data=self.test_user_data)
+        self.test_user = User.from_dict(data=self.test_user_data)
 
         super(EduidAPITestCase, self).setUp(users=users, am_settings=am_settings)
         # Set up Redis for shared sessions
@@ -162,7 +162,7 @@ class EduidAPITestCase(CommonTestCase):
 
         if copy_user_to_private:
             data = self.test_user.to_dict()
-            self.app.private_userdb.save(self.app.private_userdb.UserClass(data=data), check_sync=False)
+            self.app.private_userdb.save(self.app.private_userdb.UserClass.from_dict(data=data), check_sync=False)
 
     def tearDown(self):
         try:
@@ -240,7 +240,7 @@ class EduidAPITestCase(CommonTestCase):
         for key in list(central_user_dict.keys()):
             if key not in private_user_dict:
                 central_user_dict.pop(key, None)
-        user = User(data=central_user_dict)
+        user = User.form_dict(data=central_user_dict)
         user.modified_ts = modified_ts
         self.app.central_userdb.save(user)
         return True
