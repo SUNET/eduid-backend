@@ -240,7 +240,7 @@ class EduidAPITestCase(CommonTestCase):
         for key in list(central_user_dict.keys()):
             if key not in private_user_dict:
                 central_user_dict.pop(key, None)
-        user = User.form_dict(data=central_user_dict)
+        user = User.from_dict(data=central_user_dict)
         user.modified_ts = modified_ts
         self.app.central_userdb.save(user)
         return True
