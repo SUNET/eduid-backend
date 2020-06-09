@@ -35,7 +35,6 @@ from __future__ import absolute_import
 
 import json
 import time
-from copy import copy
 from typing import Any, Optional
 from urllib.parse import quote_plus
 
@@ -44,9 +43,10 @@ from mock import patch
 
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.authn.testing import TestVCCSClient
-from eduid_common.authn.tests.test_fido_tokens import SAMPLE_WEBAUTHN_CREDENTIAL, SAMPLE_WEBAUTHN_REQUEST
+from eduid_common.authn.tests.test_fido_tokens import SAMPLE_WEBAUTHN_REQUEST
 from eduid_userdb.credentials import Webauthn
 from eduid_userdb.exceptions import DocumentDoesNotExist, UserDoesNotExist, UserHasNotCompletedSignup
+from eduid_userdb.fixtures.fido_credentials import webauthn_credential as sample_credential
 
 from eduid_webapp.reset_password.app import init_reset_password_app
 from eduid_webapp.reset_password.helpers import (
@@ -397,7 +397,7 @@ class ResetPasswordTests(EduidAPITestCase):
                     response = c.post('/reset/', data=json.dumps(data), content_type=self.content_type_json)
                     self.assertEqual(response.status_code, 200)
 
-                    credential = copy(SAMPLE_WEBAUTHN_CREDENTIAL)
+                    credential = sample_credential.to_dict()
                     if credential_data:
                         credential.update(credential_data)
                     webauthn_credential = Webauthn(**credential)
