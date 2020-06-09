@@ -13,7 +13,7 @@
 #        copyright notice, this list of conditions and the following
 #        disclaimer in the documentation and/or other materials provided
 #        with the distribution.
-#     3. Neither the name of the NORDUnet nor the names of its
+#     3. Neither the name of the SUNET nor the names of its
 #        contributors may be used to endorse or promote products derived
 #        from this software without specific prior written permission.
 #
@@ -273,7 +273,7 @@ def set_new_pw() -> dict:
     * A PasswordResetEmailState object in the password_reset_state_db
       keyed by the received code.
     * A flag in said state object indicating that the emailed code has already
-      been verifed.
+      been verified.
 
     As side effects, this view will:
     * Compare the received password with the hash in the session to mark
@@ -327,7 +327,7 @@ def choose_extra_security_phone(code: str, phone_index: int) -> dict:
     * A PasswordResetEmailState object in the password_reset_state_db
       keyed by the received code.
     * A flag in said state object indicating that the emailed code has already
-      been verifed.
+      been verified.
     * The user referenced in the state has at least phone_index (number) of
       verified phone numbers.
 
@@ -357,15 +357,15 @@ def choose_extra_security_phone(code: str, phone_index: int) -> dict:
             current_app.logger.info(f'Throttling reset password SMSs for: {state.eppn}')
             return error_message(ResetPwMsg.send_sms_throttled)
 
-    current_app.logger.info(f'Password reset: choose_extra_security for ' f'user with eppn {state.eppn}')
+    current_app.logger.info(f'Password reset: choose_extra_security for user with eppn {state.eppn}')
 
     # Check that the email code has been validated
     if not state.email_code.is_verified:
-        current_app.logger.info(f'User with eppn {state.eppn} has not ' f'verified their email address')
+        current_app.logger.info(f'User with eppn {state.eppn} has not verified their email address')
         return error_message(ResetPwMsg.email_not_validated)
 
     phone_number = state.extra_security['phone_numbers'][phone_index]
-    current_app.logger.info(f'Trying to send password reset sms to user with ' f'eppn {state.eppn}')
+    current_app.logger.info(f'Trying to send password reset sms to user with eppn {state.eppn}')
     try:
         send_verify_phone_code(state, phone_number["number"])
     except MsgTaskFailed as e:
@@ -388,7 +388,7 @@ def set_new_pw_extra_security_phone() -> dict:
     * A PasswordResetEmailAndPhoneState object in the password_reset_state_db
       keyed by the received codes.
     * A flag in said state object indicating that the emailed code has already
-      been verifed.
+      been verified.
 
     As side effects, this view will:
     * Compare the received password with the hash in the session to mark
@@ -453,7 +453,7 @@ def set_new_pw_extra_security_token() -> dict:
     * A PasswordResetEmailAndTokenState object in the password_reset_state_db
       keyed by the received code.
     * A flag in said state object indicating that the emailed code has already
-      been verifed.
+      been verified.
 
     As side effects, this view will:
     * Compare the received password with the hash in the session to mark
@@ -543,7 +543,7 @@ def get_email_code():
             return state.email_code.code
     except Exception:
         current_app.logger.exception(
-            "Someone tried to use the backdoor to get the email verification code for a password reset"
+            'Someone tried to use the backdoor to get the email verification code for a password reset'
         )
 
     abort(400)
@@ -559,9 +559,9 @@ def get_phone_code():
             eppn = request.args.get('eppn')
             state = current_app.password_reset_state_db.get_state_by_eppn(eppn)
             return state.phone_code.code
-    except Exception as e:
-        current_app.logger.info(
-            f"Someone tried to use the backdoor to get the SMS verification code for a password reset, got error {e}"
+    except Exception:
+        current_app.logger.exception(
+            'Someone tried to use the backdoor to get the SMS verification code for a password reset'
         )
 
     abort(400)
