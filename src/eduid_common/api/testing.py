@@ -133,8 +133,8 @@ class EduidAPITestCase(CommonTestCase):
 
         self.user = None  # type: ignore
         # Initialize some convenience variables on self based on the first user in `users'
-        self.test_user = _standard_test_users[users[0]]
-        self.test_user_data = self.test_user.to_dict()
+        self.test_user_data = _standard_test_users[users[0]].to_dict()
+        self.test_user = User.from_dict(self.test_user_data)
 
         super(EduidAPITestCase, self).setUp(users=users, am_settings=am_settings)
         # Set up Redis for shared sessions
