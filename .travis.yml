@@ -14,5 +14,5 @@ install:
 # command to run tests
 script:
   - pip freeze
-  - pytest
-  - mypy --ignore-missing-imports src/eduid_userdb
+  - make test
+  - make typecheck
