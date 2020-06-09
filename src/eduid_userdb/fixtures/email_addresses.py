@@ -34,6 +34,7 @@ from datetime import datetime
 
 from eduid_userdb.mail import MailAddress
 
+
 johnsmith_example_com = MailAddress(
     data={
         'email': 'johnsmith@example.com',
@@ -79,4 +80,30 @@ johnsmith_example_com_old = MailAddress(data={'email': 'johnsmith@example.com', 
 johnsmith2_example_com_old = MailAddress(data={'email': 'johnsmith2@example.com', 'verified': True})
 
 
-johnsmith3_example_com_old_unverified = MailAddress(data={'email': 'johnsmith3@example.com', 'verified': False})
+johnsmith3_example_com_unverified = MailAddress(data={'email': 'johnsmith3@example.com', 'verified': False})
+
+
+johnsmith_example_org = MailAddress(
+    data={
+        'email': 'johnsmith@example.org',
+        'created_by': 'signup',
+        'created_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"),
+        'verified': True,
+        'verified_by': 'signup',
+        'verified_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"),
+        'primary': True,
+    }
+)
+
+
+johnsmith2_example_org = MailAddress(
+    data={
+        'email': 'johnsmith2@example.org',
+        'created_by': 'dashboard',
+        'created_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"),
+        'verified': False,
+        'verified_by': 'dashboard',
+        'verified_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"),
+        'primary': False,
+    }
+)

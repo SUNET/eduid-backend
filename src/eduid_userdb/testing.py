@@ -45,12 +45,12 @@ import time
 import unittest
 from abc import ABC
 from copy import deepcopy
-from typing import Optional, Type
+from typing import Type
 
 import pymongo
-from bson import ObjectId
 
 from eduid_userdb import User, UserDB
+from eduid_userdb.fixtures.users import mocked_user_standard, mocked_user_standard_2
 from eduid_userdb.dashboard.user import DashboardUser
 
 logger = logging.getLogger(__name__)
@@ -61,53 +61,6 @@ MONGO_URI_TEST = 'mongodb://localhost:27017/eduid_dashboard_test'
 
 # eduid_userdb.db.DEFAULT_MONGODB_URI = MONGO_URI_AM_TEST
 # eduid_userdb.db.DEFAULT_MONGODB_NAME = 'eduid_userdb_test'
-
-
-MOCKED_USER_STANDARD = {
-    '_id': ObjectId('012345678901234567890123'),
-    'givenName': 'John',
-    'surname': 'Smith',
-    'displayName': 'John Smith',
-    'norEduPersonNIN': [{'number': '197801011234', 'verified': True, 'primary': True,}],
-    #'photo': 'https://pointing.to/your/photo',
-    'preferredLanguage': 'en',
-    'eduPersonPrincipalName': 'hubba-bubba',
-    #'modified_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"),
-    #'terminated': None,
-    'eduPersonEntitlement': ['urn:mace:eduid.se:role:admin', 'urn:mace:eduid.se:role:student',],
-    'phone': [
-        {'number': '+34609609609', 'primary': True, 'verified': True},
-        {'number': '+34 6096096096', 'verified': False},
-        {'number': '+34607507507', 'verified': True},
-    ],
-    'mail': 'johnsmith@example.com',
-    'mailAliases': [
-        {'email': 'johnsmith@example.com', 'verified': True,},
-        {'email': 'johnsmith2@example.com', 'verified': True,},
-        {'email': 'johnsmith3@example.com', 'verified': False,},
-    ],
-    'passwords': [
-        {
-            'id': ObjectId('112345678901234567890123'),
-            'salt': '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$',
-        }
-    ],
-    #'postalAddress': [{
-    #    'type': 'home',
-    #    'country': 'SE',
-    #    'address': "Long street, 48",
-    #    'postalCode': "123456",
-    #    'locality': "Stockholm",
-    #    'verified': True,
-    # }, {
-    #    'type': 'work',
-    #    'country': 'ES',
-    #    'address': "Calle Ancha, 49",
-    #    'postalCode': "123456",
-    #    'locality': "Punta Umbria",
-    #    'verified': False,
-    # }],
-}
 
 
 # Also used in the APIMockedUserDB at eduid_common.api.testing
@@ -136,16 +89,9 @@ class MockedUserDB(AbstractMockedUserDB, UserDB):
     """
 
     test_users = {
-        'johnsmith@example.com': deepcopy(MOCKED_USER_STANDARD),
-        'johnsmith@example.org': deepcopy(MOCKED_USER_STANDARD),
+        'johnsmith@example.com': mocked_user_standard.to_dict(),
+        'johnsmith@example.org': mocked_user_standard_2.to_dict(),
     }
-    test_users['johnsmith@example.org']['mail'] = 'johnsmith@example.org'
-    test_users['johnsmith@example.org']['mailAliases'][0]['email'] = 'johnsmith@example.org'
-    test_users['johnsmith@example.org']['mailAliases'][1]['email'] = 'johnsmith2@example.org'
-    test_users['johnsmith@example.org']['_id'] = ObjectId('901234567890123456789012')
-    test_users['johnsmith@example.org']['norEduPersonNIN'] = []
-    test_users['johnsmith@example.org']['phone'] = []
-    test_users['johnsmith@example.org']['eduPersonPrincipalName'] = 'babba-labba'
 
     def __init__(self, users=[]):
         import pprint
@@ -242,8 +188,7 @@ class MongoTestCase(unittest.TestCase):
 
     MockedUserDB: Type[AbstractMockedUserDB] = MockedUserDB
 
-    user = User.from_dict(data=MOCKED_USER_STANDARD)
-
+    user = User.from_dict(mocked_user_standard.to_dict())
     mock_users_patches: list = []
 
     def setUp(self, init_am=False, userdb_use_old_format=False, am_settings=None):

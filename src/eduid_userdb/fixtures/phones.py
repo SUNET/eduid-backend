@@ -47,6 +47,18 @@ dashboard_primary_phone = PhoneNumber(
 )
 
 
+dashboard_verified_phone = PhoneNumber(
+    data={
+        'number': '+34607507507',
+        'verified': True,
+        'created_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"),
+        'created_by': 'dashboard',
+        'verified_by': 'dashboard',
+        'verified_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S")
+    }
+)
+
+
 dashboard_unverified_phone = PhoneNumber(
     data={
         'number': '+34 6096096096',
