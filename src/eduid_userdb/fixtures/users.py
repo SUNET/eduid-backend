@@ -38,13 +38,14 @@ from eduid_userdb.credentials import CredentialList
 from eduid_userdb.fixtures.email_addresses import (
     johnsmith_example_com,
     johnsmith2_example_com,
+    johnsmith3_example_com,
     johnsmith_example_com_old,
     johnsmith2_example_com_old,
     johnsmith3_example_com_old_unverified,
 )
 from eduid_userdb.fixtures.locked_identities import dashboard_locked_nin
 from eduid_userdb.fixtures.nins import dashboard_primary_nin, dashboard_verified_nin
-from eduid_userdb.fixtures.passwords import signup_password, old_password
+from eduid_userdb.fixtures.passwords import signup_password, signup_password_2, old_password
 from eduid_userdb.fixtures.pending_emails import johnsmith2_example_com_pending
 from eduid_userdb.fixtures.phones import (
     dashboard_primary_phone,
@@ -52,11 +53,13 @@ from eduid_userdb.fixtures.phones import (
     old_primary_phone,
     old_unverified_phone,
 )
+from eduid_userdb.fixtures.tous import signup_2016_v1
 from eduid_userdb.locked_identity import LockedIdentityList
 from eduid_userdb.mail import MailAddressList
 from eduid_userdb.nin import NinList
 from eduid_userdb.phone import PhoneNumberList
 from eduid_userdb.signup import SignupUser
+from eduid_userdb.tou import ToUList
 from eduid_userdb.user import User
 
 new_user_example = User.construct_user(
@@ -97,6 +100,41 @@ new_signup_user_example = SignupUser.construct_user(
     social_network='facebook',
     social_network_id='hubba-1234',
     pending_mail_address=johnsmith2_example_com_pending
+)
+
+
+empty_nin_lists = NinList([])
+
+
+completed_signup_mail_addresses = MailAddressList([johnsmith3_example_com])
+
+
+tous = ToUList([signup_2016_v1])
+
+
+completed_signup_passwords = CredentialList([signup_password_2])
+
+
+empty_locked_identity = LockedIdentityList([])
+
+
+new_completed_signup_user_example = User.construct_user(
+    eppn='hubba-fooo',
+    _id=ObjectId('000000000000000000000002'),
+    given_name='John',
+    display_name='John Smith',
+    surname='Smith',
+    subject='physical person',
+    language='en',
+    modified_ts=datetime.strptime("2017-01-04T16:47:30", "%Y-%m-%dT%H:%M:%S"),
+    tou=tous,
+    terminated=False,
+    mail_addresses=completed_signup_mail_addresses,
+    nins=empty_nin_lists,
+    phone_numbers=phone_numbers,
+    passwords=completed_signup_passwords,
+    entitlements=[],
+    locked_identity=empty_locked_identity
 )
 
 
