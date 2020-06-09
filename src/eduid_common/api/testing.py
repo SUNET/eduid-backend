@@ -44,9 +44,13 @@ from typing import Any, Dict, List, Mapping, Optional
 from flask.testing import FlaskClient
 
 from eduid_userdb import User
-from eduid_userdb.data_samples import NEW_COMPLETED_SIGNUP_USER_EXAMPLE, NEW_UNVERIFIED_USER_EXAMPLE, NEW_USER_EXAMPLE
 from eduid_userdb.db import BaseDB
 from eduid_userdb.testing import AbstractMockedUserDB
+from eduid_userdb.fixtures.users import (
+    new_completed_signup_user_example,
+    new_unverified_user_example,
+    new_user_example
+)
 
 from eduid_common.api.messages import TranslatableMsg
 from eduid_common.api.testing_base import CommonTestCase
@@ -86,9 +90,9 @@ TEST_CONFIG = {
 
 
 _standard_test_users = {
-    'hubba-bubba': NEW_USER_EXAMPLE,
-    'hubba-baar': NEW_UNVERIFIED_USER_EXAMPLE,
-    'hubba-fooo': NEW_COMPLETED_SIGNUP_USER_EXAMPLE,
+    'hubba-bubba': new_user_example.to_dict(),
+    'hubba-baar': new_unverified_user_example.to_dict(),
+    'hubba-fooo': new_completed_signup_user_example.to_dict(),
 }
 
 
