@@ -32,17 +32,13 @@
 #
 import copy
 import datetime
-from typing import Dict, Mapping, Optional, Union, cast, TypeVar
+from typing import Dict, Mapping, Optional, TypeVar, Union, cast
 
 import bson
 
 from eduid_userdb.element import _set_something_ts
 from eduid_userdb.exceptions import UserDBValueError, UserHasUnknownData
 from eduid_userdb.reset_password.element import CodeElement
-
-
-# this is to be able to type the `get_pwreset_state` function at eduid_webapp.reset_password.helpers
-ResetPasswordStateType = TypeVar('ResetPasswordStateType', bound='ResetPasswordState')
 
 
 class ResetPasswordState(object):

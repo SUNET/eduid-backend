@@ -36,6 +36,5 @@ from eduid_userdb.reset_password.state import (
     ResetPasswordEmailAndPhoneState,
     ResetPasswordEmailState,
     ResetPasswordState,
-    ResetPasswordStateType,
 )
 from eduid_userdb.reset_password.user import ResetPasswordUser

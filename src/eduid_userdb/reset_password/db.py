@@ -31,7 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import logging
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Dict, Mapping, Optional, TypeVar, Union
 
 from eduid_userdb.db import BaseDB
 from eduid_userdb.exceptions import DocumentOutOfSync, MultipleDocumentsReturned
@@ -64,14 +64,16 @@ class ResetPasswordStateDB(BaseDB):
     ):
         super(ResetPasswordStateDB, self).__init__(db_uri, db_name, collection=collection)
 
-    def get_state_by_email_code(self, email_code: str, raise_on_missing: bool = True):
+    def get_state_by_email_code(
+        self, email_code: str, raise_on_missing: bool = True
+    ) -> Optional[Union[ResetPasswordEmailState, ResetPasswordEmailAndPhoneState]]:
         """
         Locate a state in the db given the state's email code.
 
         :param email_code: Code sent to the user
         :param raise_on_missing: Raise exception if True else return None
 
-        :return: ResetPasswordState instance | None
+        :return: ResetPasswordState subclass instance
 
         :raise self.DocumentDoesNotExist: No document match the search criteria
         :raise self.MultipleDocumentsReturned: More than one document matches
@@ -88,14 +90,16 @@ class ResetPasswordStateDB(BaseDB):
 
         return self.init_state(states[0])
 
-    def get_state_by_eppn(self, eppn: str, raise_on_missing: bool = True):
+    def get_state_by_eppn(
+        self, eppn: str, raise_on_missing: bool = True
+    ) -> Optional[Union[ResetPasswordEmailState, ResetPasswordEmailAndPhoneState]]:
         """
         Locate a state in the db given the users eppn.
 
         :param eppn: Users unique eppn
         :param raise_on_missing: Raise exception if True else return None
 
-        :return: ResetPasswordState instance | None
+        :return: ResetPasswordState subclass instance
 
         :raise self.DocumentDoesNotExist: No document match the search criteria
         :raise self.MultipleDocumentsReturned: More than one document matches
@@ -104,15 +108,15 @@ class ResetPasswordStateDB(BaseDB):
         state = self._get_document_by_attr('eduPersonPrincipalName', eppn, raise_on_missing)
         if state:
             return self.init_state(state)
+        return None
 
     @staticmethod
-    def init_state(state: Mapping) -> Optional[ResetPasswordState]:
-        resetpw_state = None
+    def init_state(state: Mapping) -> Optional[Union[ResetPasswordEmailState, ResetPasswordEmailAndPhoneState]]:
         if state.get('method') == 'email':
-            resetpw_state = ResetPasswordEmailState(data=state)
-        if state.get('method') == 'email_and_phone':
-            resetpw_state = ResetPasswordEmailAndPhoneState(data=state)
-        return resetpw_state
+            return ResetPasswordEmailState(data=state)
+        elif state.get('method') == 'email_and_phone':
+            return ResetPasswordEmailAndPhoneState(data=state)
+        return None
 
     def save(self, state: ResetPasswordState, check_sync: bool = True):
         """
