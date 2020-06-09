@@ -5,10 +5,9 @@ from typing import Any, Dict, List, Optional
 from eduid_common.api.app import EduIDBaseApp
 from eduid_common.api.logging import merge_config
 from eduid_common.api.testing import EduidAPITestCase
+from eduid_common.config.base import FlaskConfig
 
 __author__ = 'lundberg'
-
-from eduid_common.config.base import FlaskConfig
 
 
 class LoggingTestApp(EduIDBaseApp):

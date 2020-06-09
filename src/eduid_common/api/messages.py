@@ -54,6 +54,7 @@ class CommonMsg(TranslatableMsg):
     """
     Messages sent to the front by more than one webapp.
     """
+
     # some form has failed to validate
     form_errors = 'form-errors'
     # problem synchronzing the account to the central db
