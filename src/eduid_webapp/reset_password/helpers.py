@@ -32,7 +32,7 @@
 #
 import math
 from enum import unique
-from typing import Optional, Dict, Any, TypeVar
+from typing import Any, Dict, Optional, TypeVar, Union
 
 import bcrypt
 from flask import render_template
@@ -55,11 +55,7 @@ from eduid_userdb.reset_password import (
     ResetPasswordUser,
 )
 from eduid_userdb.user import User
-
 from eduid_webapp.reset_password.app import current_reset_password_app as current_app
-
-
-TResetPasswordStateSubclass = TypeVar('TResetPasswordStateSubclass', bound='ResetPasswordState')
 
 
 @unique
@@ -135,7 +131,7 @@ class BadCode(Exception):
         self.msg = msg
 
 
-def get_pwreset_state(email_code: str) -> TResetPasswordStateSubclass:
+def get_pwreset_state(email_code: str) -> Union[ResetPasswordEmailState, ResetPasswordEmailAndPhoneState]:
     """
     get the password reset state for the provided code
 
@@ -144,8 +140,9 @@ def get_pwreset_state(email_code: str) -> TResetPasswordStateSubclass:
     mail_expiration_time = current_app.config.email_code_timeout
     sms_expiration_time = current_app.config.phone_code_timeout
     try:
-        state = current_app.password_reset_state_db.get_state_by_email_code(email_code)
+        state = current_app.password_reset_state_db.get_state_by_email_code(email_code, raise_on_missing=True)
         current_app.logger.debug(f'Found state using email_code {email_code}: {state}')
+        assert state is not None  # assure mypy, raise_on_missing=True will make this never happen
     except DocumentDoesNotExist:
         current_app.logger.info(f'State not found: {email_code}')
         raise BadCode(ResetPwMsg.unknown_code)

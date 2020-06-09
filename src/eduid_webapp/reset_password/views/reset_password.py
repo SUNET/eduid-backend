@@ -346,7 +346,7 @@ def choose_extra_security_phone(code: str, phone_index: int) -> dict:
     * Problems sending the SMS message
     """
     try:
-        state: ResetPasswordEmailAndPhoneState = get_pwreset_state(code)
+        state = get_pwreset_state(code)
     except BadCode as e:
         return error_message(e.msg)
 
