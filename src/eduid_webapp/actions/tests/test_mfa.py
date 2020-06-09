@@ -182,8 +182,8 @@ class MFAActionPluginTests(ActionsTestCase):
 
             response = client.get('/redirect-action')
             self.assertEqual(response.status_code, 302)
-            user = cast(User, self.user)
-            return self.app.actions_db.get_actions(user.eppn, 'mock-session')
+            assert self.user is not None  # assure mypy that self.user has been initialised (in setUp)
+            return self.app.actions_db.get_actions(self.user.eppn, 'mock-session')
 
     # actual tests
 
