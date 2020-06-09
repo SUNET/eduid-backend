@@ -71,3 +71,12 @@ johnsmith3_example_com = MailAddress(
         'primary': True,
     }
 )
+
+
+johnsmith_example_com_old = MailAddress(data={'email': 'johnsmith@example.com', 'verified': True, 'primary': True})
+
+
+johnsmith2_example_com_old = MailAddress(data={'email': 'johnsmith2@example.com', 'verified': True})
+
+
+johnsmith3_example_com_old_unverified = MailAddress(data={'email': 'johnsmith3@example.com', 'verified': False})

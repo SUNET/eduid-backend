@@ -8,14 +8,14 @@ from eduid_userdb.data_samples import (
     OLD_USER_EXAMPLE,
     OLD_VERIFICATIONS_EXAMPLE,
 )
-from eduid_userdb.fixtures.users import new_user_example
+from eduid_userdb.fixtures.users import new_user_example, old_user_example
 from eduid_userdb.signup import SignupUser
 from eduid_userdb.support import models
 
 
 class TestSupportUsers(TestCase):
     def test_old_support_user(self):
-        user = models.SupportUserFilter(User.from_dict(data=OLD_USER_EXAMPLE).to_dict())
+        user = models.SupportUserFilter(old_user_example.to_dict())
         self.assertNotIn('_id', user)
         self.assertNotIn('letter_proofing_data', user)
         for password in user['passwords']:

@@ -57,3 +57,9 @@ dashboard_unverified_phone = PhoneNumber(
         'primary': False,
     }
 )
+
+
+old_primary_phone = PhoneNumber(data={'mobile': '+34609609609', 'primary': True, 'verified': True})
+
+
+old_unverified_phone = PhoneNumber(data={'mobile': '+34 6096096096', 'verified': False})

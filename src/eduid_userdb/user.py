@@ -188,6 +188,8 @@ class User(object):
             data['mailAliases'] = mail_addresses.to_list_of_dicts()
         if phone_numbers is not None:
             data['phone'] = phone_numbers.to_list_of_dicts()
+        elif 'mobile' in kwargs:
+            data['phone'] = kwargs.pop('mobile').to_list_of_dicts()
         if nins is not None:
             data['nins'] = nins.to_list_of_dicts()
         if tou is not None:

@@ -35,12 +35,23 @@ from datetime import datetime
 from bson import ObjectId
 
 from eduid_userdb.credentials import CredentialList
-from eduid_userdb.fixtures.email_addresses import johnsmith2_example_com, johnsmith_example_com
+from eduid_userdb.fixtures.email_addresses import (
+    johnsmith_example_com,
+    johnsmith2_example_com,
+    johnsmith_example_com_old,
+    johnsmith2_example_com_old,
+    johnsmith3_example_com_old_unverified,
+)
 from eduid_userdb.fixtures.locked_identities import dashboard_locked_nin
 from eduid_userdb.fixtures.nins import dashboard_primary_nin, dashboard_verified_nin
-from eduid_userdb.fixtures.passwords import signup_password
+from eduid_userdb.fixtures.passwords import signup_password, old_password
 from eduid_userdb.fixtures.pending_emails import johnsmith2_example_com_pending
-from eduid_userdb.fixtures.phones import dashboard_primary_phone, dashboard_unverified_phone
+from eduid_userdb.fixtures.phones import (
+    dashboard_primary_phone,
+    dashboard_unverified_phone,
+    old_primary_phone,
+    old_unverified_phone,
+)
 from eduid_userdb.locked_identity import LockedIdentityList
 from eduid_userdb.mail import MailAddressList
 from eduid_userdb.nin import NinList
@@ -86,4 +97,56 @@ new_signup_user_example = SignupUser.construct_user(
     social_network='facebook',
     social_network_id='hubba-1234',
     pending_mail_address=johnsmith2_example_com_pending
+)
+
+
+old_mail_addresses = MailAddressList([
+    johnsmith_example_com_old,
+    johnsmith2_example_com_old,
+    johnsmith3_example_com_old_unverified,
+])
+
+
+old_phone_numbers = PhoneNumberList([old_primary_phone, old_unverified_phone])
+
+
+old_postal_addresses = [
+    {
+        'type': 'home',
+        'country': 'SE',
+        'address': "Long street, 48",
+        'postalCode': "123456",
+        'locality': "Stockholm",
+        'verified': True,
+    },
+    {
+        'type': 'work',
+        'country': 'ES',
+        'address': "Calle Ancha, 49",
+        'postalCode': "123456",
+        'locality': "Punta Umbria",
+        'verified': False,
+    },
+]
+
+
+old_passwords = CredentialList([old_password])
+
+
+old_user_example = User.construct_user(
+    eppn='hubba-bubba',
+    _id=ObjectId('012345678901234567890123'),
+    given_name='John',
+    display_name='John Smith',
+    surname='Smith',
+    language='en',
+    modified_ts=datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"),
+    mail='johnsmith@example.com',
+    mail_addresses=old_mail_addresses,
+    norEduPersonNIN=['197801011234'],
+    postalAddress=old_postal_addresses,
+    mobile=old_phone_numbers,
+    passwords=old_passwords,
+    eduPersonEntitlement=['urn:mace:eduid.se:role:admin', 'urn:mace:eduid.se:role:student'],
+    terminated=None
 )
