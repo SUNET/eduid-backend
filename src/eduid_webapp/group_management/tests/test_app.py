@@ -41,6 +41,7 @@ from eduid_groupdb.group import User as GraphUser
 from eduid_groupdb.testing import Neo4jTemporaryInstance
 from eduid_scimapi.groupdb import GroupExtensions, ScimApiGroup
 from eduid_scimapi.userdb import ScimApiUser
+from eduid_userdb.exceptions import DocumentDoesNotExist
 
 from eduid_webapp.group_management.app import init_group_management_app
 from eduid_webapp.group_management.helpers import GroupManagementMsg
@@ -80,7 +81,8 @@ class GroupManagementTests(EduidAPITestCase):
         return group
 
     def setUp(self, **kwargs):
-        super(GroupManagementTests, self).setUp(**kwargs)
+        super(GroupManagementTests, self).setUp(users=['hubba-bubba', 'hubba-baar'], **kwargs)
+        self.test_user2 = self.app.central_userdb.get_user_by_eppn('hubba-baar')
         self.scim_user1 = self._add_scim_user(scim_id=uuid4(), eppn=self.test_user.eppn)
         self.scim_group1 = self._add_scim_group(scim_id=uuid4(), display_name='Test Group 1')
 
@@ -225,3 +227,85 @@ class GroupManagementTests(EduidAPITestCase):
         self.assertEqual(GroupManagementMsg.user_not_owner.value, payload['message'])
 
         self.assertTrue(self.app.scimapi_groupdb.group_exists(str(self.scim_group1.scim_id)))
+
+    def test_invite(self):
+        # Add test user as group owner of two groups
+        graph_user = GraphUser(
+            identifier=str(self.scim_user1.scim_id), display_name=self.test_user.mail_addresses.primary.email
+        )
+        self.scim_group1.graph.owners = [graph_user]
+        self.app.scimapi_groupdb.save(self.scim_group1)
+
+        with self.session_cookie(self.browser, self.test_user.eppn) as client:
+            with client.session_transaction() as sess:
+                with self.app.test_request_context():
+                    data = {
+                        'identifier': str(self.scim_group1.scim_id),
+                        'email_address': self.test_user2.mail_addresses.primary.email,
+                        'role': 'member',
+                        'csrf_token': sess.get_csrf_token(),
+                    }
+                    response = client.post(
+                        '/invites/create', data=json.dumps(data), content_type=self.content_type_json
+                    )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual('POST_GROUP_INVITE_INVITES_CREATE_SUCCESS', response.json.get('type'))
+        payload = response.json.get('payload')
+        self.assertEqual(str(self.scim_group1.scim_id), payload['identifier'])
+        self.assertEqual(self.test_user2.mail_addresses.primary.email, payload['email_address'])
+        self.assertEqual('member', payload['role'])
+        self.assertTrue(payload['success'])
+        self.assertIsNotNone(
+            self.app.invite_state_db.get_state(
+                group_id=payload['identifier'], email_address=payload['email_address'], role=payload['role']
+            )
+        )
+
+    def test_accept_invite(self):
+        # Add test user as group owner of two groups
+        graph_user = GraphUser(
+            identifier=str(self.scim_user1.scim_id), display_name=self.test_user.mail_addresses.primary.email
+        )
+        self.scim_group1.graph.owners = [graph_user]
+        self.app.scimapi_groupdb.save(self.scim_group1)
+
+        # Invite test user 2 to the group
+        with self.session_cookie(self.browser, self.test_user.eppn) as client:
+            with client.session_transaction() as sess:
+                with self.app.test_request_context():
+                    data = {
+                        'identifier': str(self.scim_group1.scim_id),
+                        'email_address': self.test_user2.mail_addresses.primary.email,
+                        'role': 'member',
+                        'csrf_token': sess.get_csrf_token(),
+                    }
+                    response = client.post(
+                        '/invites/create', data=json.dumps(data), content_type=self.content_type_json
+                    )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual('POST_GROUP_INVITE_INVITES_CREATE_SUCCESS', response.json.get('type'))
+
+        # Accept invite as test user 2
+        with self.session_cookie(self.browser, self.test_user2.eppn) as client:
+            with client.session_transaction() as sess:
+                with self.app.test_request_context():
+                    data = {
+                        'identifier': str(self.scim_group1.scim_id),
+                        'email_address': self.test_user2.mail_addresses.primary.email,
+                        'role': 'member',
+                        'csrf_token': sess.get_csrf_token(),
+                    }
+                    response = client.post(
+                        '/invites/accept', data=json.dumps(data), content_type=self.content_type_json
+                    )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual('POST_GROUP_INVITE_INVITES_ACCEPT_SUCCESS', response.json.get('type'))
+        payload = response.json.get('payload')
+        self.assertEqual(str(self.scim_group1.scim_id), payload['identifier'])
+        self.assertEqual(self.test_user2.mail_addresses.primary.email, payload['email_address'])
+        self.assertEqual('member', payload['role'])
+        self.assertTrue(payload['success'])
+        with self.assertRaises(DocumentDoesNotExist):
+            self.app.invite_state_db.get_state(
+                group_id=payload['identifier'], email_address=payload['email_address'], role=payload['role']
+            )

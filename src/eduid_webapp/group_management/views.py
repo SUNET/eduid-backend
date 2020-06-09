@@ -33,7 +33,8 @@
 from typing import Dict, List, Mapping
 from uuid import UUID
 
-from flask import Blueprint, jsonify
+from flask import Blueprint
+from pymongo.errors import DuplicateKeyError
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid_common.api.messages import CommonMsg, error_message
@@ -42,18 +43,29 @@ from eduid_groupdb import User as GraphUser
 from eduid_scimapi.groupdb import ScimApiGroup
 from eduid_scimapi.userdb import ScimApiUser
 from eduid_userdb import User
+from eduid_userdb.exceptions import DocumentDoesNotExist, EduIDDBError
+from eduid_userdb.group_management import GroupInviteState
 
 from eduid_webapp.group_management.app import current_group_management_app as current_app
-from eduid_webapp.group_management.helpers import GroupManagementMsg, get_scim_user_by_eppn
+from eduid_webapp.group_management.helpers import (
+    GroupManagementMsg,
+    add_user_to_group,
+    get_scim_user_by_eppn,
+    is_member,
+    is_owner,
+)
 from eduid_webapp.group_management.schemas import (
     GroupCreateRequestSchema,
     GroupDeleteRequestSchema,
+    GroupInviteRequestSchema,
+    GroupInviteResponseSchema,
     GroupManagementResponseSchema,
 )
 
 __author__ = 'lundberg'
 
 group_management_views = Blueprint('group_management', __name__, url_prefix='', template_folder='templates')
+group_invite_views = Blueprint('group_invite', __name__, url_prefix='/invites/', template_folder='templates')
 
 
 def _list_of_group_data(group_list: List[ScimApiGroup]) -> List[Dict]:
@@ -129,9 +141,7 @@ def delete_group(user: User, identifier: UUID) -> Mapping:
         current_app.logger.error('User does not exist in scimapi_userdb')
         return error_message(GroupManagementMsg.user_does_not_exist)
 
-    graph_user = GraphUser(identifier=str(scim_user.scim_id))
-    owner_groups = current_app.scimapi_groupdb.get_groups_for_owner(owner=graph_user)
-    if identifier not in [owner_group.scim_id for owner_group in owner_groups]:
+    if not is_owner(scim_user, identifier):
         current_app.logger.error(f'User is not owner of group with scim_id: {identifier}')
         return error_message(GroupManagementMsg.user_not_owner)
 
@@ -140,3 +150,82 @@ def delete_group(user: User, identifier: UUID) -> Mapping:
         current_app.logger.info(f'Deleted ScimApiGroup with scim_id: {group.scim_id}')
         current_app.stats.count(name='group_deleted')
     return get_groups()
+
+
+@group_invite_views.route('/create', methods=['POST'])
+@UnmarshalWith(GroupInviteRequestSchema)
+@MarshalWith(GroupInviteResponseSchema)
+@require_user
+def create_invite(user: User, identifier: UUID, email_address: str, role: str) -> Mapping:
+    scim_user = get_scim_user_by_eppn(user.eppn)
+    if not scim_user:
+        current_app.logger.error('User does not exist in scimapi_userdb')
+        return error_message(GroupManagementMsg.user_does_not_exist)
+
+    if not is_owner(scim_user, identifier):
+        current_app.logger.error(f'User is not owner of group with scim_id: {identifier}')
+        return error_message(GroupManagementMsg.user_not_owner)
+
+    invite_state = GroupInviteState(group_id=str(identifier), email_address=email_address, role=role)
+    # TODO: Send invite mail
+    try:
+        current_app.invite_state_db.save(invite_state)
+    except DuplicateKeyError:
+        current_app.logger.info(
+            f'Invite for email address {invite_state.email_address} to group {invite_state.group_id} as role {invite_state.role} already exists.'
+        )
+        return error_message(GroupManagementMsg.invite_already_exists)
+    current_app.stats.count(name='invite_created')
+    return {
+        'identifier': identifier,
+        'email_address': email_address,
+        'role': role,
+        'success': True,
+    }
+
+
+@group_invite_views.route('/accept', methods=['POST'])
+@UnmarshalWith(GroupInviteRequestSchema)
+@MarshalWith(GroupInviteResponseSchema)
+@require_user
+def accept_invite(user: User, identifier: UUID, email_address: str, role: str) -> Mapping:
+    # Check that the current user has verified the invited email address
+    mail_addresses = [item.email for item in user.mail_addresses.to_list() if item.is_verified]
+    if email_address not in mail_addresses:
+        current_app.logger.error(f'User has not verified email address: {email_address}')
+        return error_message(GroupManagementMsg.mail_address_not_verified)
+    try:
+        invite_state = current_app.invite_state_db.get_state(
+            group_id=str(identifier), email_address=email_address, role=role
+        )
+    except DocumentDoesNotExist:
+        current_app.logger.error('Invite does not exist')
+        return error_message(GroupManagementMsg.invite_not_found)
+
+    # Invite exists and current user is the one invited
+    scim_user = get_scim_user_by_eppn(user.eppn)
+    if not scim_user:
+        scim_user = ScimApiUser(external_id=f'{user.eppn}@{current_app.config.scim_external_id_scope}')
+        current_app.scimapi_userdb.save(scim_user)
+        current_app.logger.info(f'Created ScimApiUser with scim_id: {scim_user.scim_id}')
+        current_app.stats.count(name='user_created')
+
+    if is_member(scim_user, identifier):
+        current_app.logger.info(f'User is already member of group with scim_id: {identifier}')
+    else:
+        # Add user to group
+        try:
+            if not add_user_to_group(scim_user, invite_state):
+                current_app.logger.error('Group does not exist')
+                return error_message(GroupManagementMsg.group_not_found)
+        except EduIDDBError:
+            return error_message(CommonMsg.temp_problem)
+
+    current_app.invite_state_db.remove_state(invite_state)
+    current_app.stats.count(name=f'invite_accepted_{invite_state.role}')
+    return {
+        'identifier': identifier,
+        'email_address': email_address,
+        'role': role,
+        'success': True,
+    }
