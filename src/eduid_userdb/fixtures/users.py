@@ -103,7 +103,7 @@ new_signup_user_example = SignupUser.construct_user(
 )
 
 
-empty_nin_lists = NinList([])
+empty_nin_list = NinList([])
 
 
 completed_signup_mail_addresses = MailAddressList([johnsmith3_example_com])
@@ -130,7 +130,7 @@ new_completed_signup_user_example = User.construct_user(
     tou=tous,
     terminated=False,
     mail_addresses=completed_signup_mail_addresses,
-    nins=empty_nin_lists,
+    nins=empty_nin_list,
     phone_numbers=phone_numbers,
     passwords=completed_signup_passwords,
     entitlements=[],
@@ -187,4 +187,23 @@ old_user_example = User.construct_user(
     passwords=old_passwords,
     eduPersonEntitlement=['urn:mace:eduid.se:role:admin', 'urn:mace:eduid.se:role:student'],
     terminated=None
+)
+
+
+new_unverified_user_example = User.construct_user(
+    eppn='hubba-baar',
+    _id=ObjectId('000000000000000000000003'),
+    given_name='John',
+    display_name='John Smith',
+    surname='Smith',
+    subject='physical person',
+    language='en',
+    modified_ts=datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"),
+    terminated=False,
+    mail_addresses=mail_addresses,
+    nins=empty_nin_list,
+    phone_numbers=phone_numbers,
+    passwords=passwords,
+    entitlements=entitlements,
+    locked_identity=empty_locked_identity
 )
