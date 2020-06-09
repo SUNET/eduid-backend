@@ -33,8 +33,6 @@
 import logging
 from typing import Any, Dict, Mapping, Optional
 
-from pymongo.errors import DuplicateKeyError
-
 from eduid_userdb.db import BaseDB
 from eduid_userdb.exceptions import DocumentOutOfSync, MultipleDocumentsReturned
 from eduid_userdb.reset_password.state import (
@@ -86,7 +84,7 @@ class ResetPasswordStateDB(BaseDB):
             return None
 
         if len(states) > 1:
-            raise MultipleDocumentsReturned(f"Multiple matching users for " f"filter {filter}")
+            raise MultipleDocumentsReturned(f'Multiple matching users for filter {filter}')
 
         return self.init_state(states[0])
 
@@ -146,13 +144,11 @@ class ResetPasswordStateDB(BaseDB):
                 if db_state:
                     db_ts = db_state['modified_ts']
                 logging.debug(
-                    f"{self} FAILED Updating state {state} "
-                    f"(ts {modified}) in {self._coll_name}). "
-                    f"ts in db = {db_ts}"
+                    f'{self} FAILED Updating state {state} (ts {modified}) in {self._coll_name}). ts in db = {db_ts}'
                 )
                 raise DocumentOutOfSync("Stale state object can't be saved")
 
-            logging.debug(f"{self} Updated state {state} (ts {modified}) in " f"{self._coll_name}): {result}")
+            logging.debug(f'{self} Updated state {state} (ts {modified}) in {self._coll_name}): {result}')
 
     def remove_state(self, state: ResetPasswordState):
         """

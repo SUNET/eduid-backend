@@ -45,7 +45,7 @@ import time
 import unittest
 from abc import ABC
 from copy import deepcopy
-from typing import Type, Optional
+from typing import Optional, Type
 
 import pymongo
 from bson import ObjectId
@@ -112,7 +112,6 @@ MOCKED_USER_STANDARD = {
 
 # Also used in the APIMockedUserDB at eduid_common.api.testing
 class AbstractMockedUserDB(ABC):
-
     def get_user(self, userid):
         if userid not in self.test_users:
             raise self.UserDoesNotExist
