@@ -45,6 +45,7 @@ from eduid_userdb.locked_identity import LockedIdentityList
 from eduid_userdb.mail import MailAddressList
 from eduid_userdb.nin import NinList
 from eduid_userdb.phone import PhoneNumberList
+from eduid_userdb.signup import SignupUser
 from eduid_userdb.user import User
 
 new_user_example = User.construct_user(
@@ -66,7 +67,7 @@ new_user_example = User.construct_user(
 )
 
 
-new_signup_user_example = User.construct_user(
+new_signup_user_example = SignupUser.construct_user(
     eppn='hubba-bubba',
     _id=ObjectId('012345678901234567890123'),
     given_name='John',
@@ -84,5 +85,5 @@ new_signup_user_example = User.construct_user(
     locked_identity=LockedIdentityList([dashboard_locked_nin,]),
     social_network='facebook',
     social_network_id='hubba-1234',
-    pending_mail_address=johnsmith2_example_com_pending,
+    pending_mail_address=johnsmith2_example_com_pending
 )

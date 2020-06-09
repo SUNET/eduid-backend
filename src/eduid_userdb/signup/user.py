@@ -75,10 +75,11 @@ class SignupUser(User):
     ) -> TUserSubclass:
 
         data = {}
-        data['social_network'] = social_network,
-        data['social_network_id'] = social_network_id,
-        data['pending_mail_address'] = pending_mail_address,
-        data['proofing_reference'] = proofing_reference,
+        data['social_network'] = social_network
+        data['social_network_id'] = social_network_id
+        if pending_mail_address is not None:
+            data['pending_mail_address'] = pending_mail_address.to_dict()
+        data['proofing_reference'] = proofing_reference
 
         data.update(kwargs)
 
