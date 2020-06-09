@@ -32,7 +32,7 @@
 #
 import math
 from enum import unique
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, TypeVar
 
 import bcrypt
 from flask import render_template
@@ -52,12 +52,14 @@ from eduid_userdb.reset_password import (
     ResetPasswordEmailAndPhoneState,
     ResetPasswordEmailState,
     ResetPasswordState,
-    ResetPasswordStateType,
     ResetPasswordUser,
 )
 from eduid_userdb.user import User
 
 from eduid_webapp.reset_password.app import current_reset_password_app as current_app
+
+
+TResetPasswordStateSubclass = TypeVar('TResetPasswordStateSubclass', bound='ResetPasswordState')
 
 
 @unique
@@ -133,7 +135,7 @@ class BadCode(Exception):
         self.msg = msg
 
 
-def get_pwreset_state(email_code: str) -> ResetPasswordStateType:
+def get_pwreset_state(email_code: str) -> TResetPasswordStateSubclass:
     """
     get the password reset state for the provided code
 
