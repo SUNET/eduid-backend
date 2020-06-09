@@ -90,9 +90,9 @@ TEST_CONFIG = {
 
 
 _standard_test_users = {
-    'hubba-bubba': new_user_example.to_dict(),
-    'hubba-baar': new_unverified_user_example.to_dict(),
-    'hubba-fooo': new_completed_signup_user_example.to_dict(),
+    'hubba-bubba': new_user_example,
+    'hubba-baar': new_unverified_user_example,
+    'hubba-fooo': new_completed_signup_user_example,
 }
 
 
@@ -129,12 +129,12 @@ class EduidAPITestCase(CommonTestCase):
         if users is None:
             users = ['hubba-bubba']
         for this in users:
-            self.MockedUserDB.test_users[this] = _standard_test_users.get(this)
+            self.MockedUserDB.test_users[this] = _standard_test_users.get(this).to_dict()
 
         self.user = None  # type: ignore
         # Initialize some convenience variables on self based on the first user in `users'
-        self.test_user_data = _standard_test_users[users[0]]
-        self.test_user = User.from_dict(data=self.test_user_data)
+        self.test_user = _standard_test_users[users[0]]
+        self.test_user_data = self.test_user.to_dict()
 
         super(EduidAPITestCase, self).setUp(users=users, am_settings=am_settings)
         # Set up Redis for shared sessions
