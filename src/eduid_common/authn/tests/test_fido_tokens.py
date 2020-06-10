@@ -42,7 +42,7 @@ from mock import patch
 
 from eduid_userdb import User
 from eduid_userdb.credentials import U2F, Webauthn
-from eduid_userdb.fixtures.fido_credentials import webauthn_credential, u2f_credential
+from eduid_userdb.fixtures.fido_credentials import u2f_credential, webauthn_credential
 from eduid_userdb.fixtures.users import new_user_example
 
 from eduid_common.api.app import EduIDBaseApp
