@@ -6,8 +6,8 @@ from mock import patch
 
 from eduid_common.api.helpers import add_nin_to_user, set_user_names_from_offical_address, verify_nin_for_user
 from eduid_common.api.testing import EduidAPITestCase
-from eduid_userdb.fixtures.users import new_user_example
 from eduid_userdb.exceptions import UserDoesNotExist
+from eduid_userdb.fixtures.users import new_user_example
 from eduid_userdb.logs.element import NinProofingLogElement, ProofingLogElement
 from eduid_userdb.nin import Nin
 from eduid_userdb.proofing import NinProofingElement, ProofingUser
