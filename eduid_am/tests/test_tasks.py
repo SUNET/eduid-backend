@@ -12,7 +12,6 @@ from eduid_userdb.locked_identity import LockedIdentityList, LockedIdentityNin
 from eduid_am.consistency_checks import check_locked_identity, unverify_duplicates
 from eduid_am.testing import AMTestCase
 
-
 M = mocked_user_standard.to_dict()
 
 

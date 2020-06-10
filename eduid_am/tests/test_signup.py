@@ -12,7 +12,6 @@ from eduid_am.ams import eduid_signup
 from eduid_am.testing import AMTestCase
 from eduid_am.tests.test_proofing_fetchers import USER_DATA
 
-
 M = mocked_user_standard.to_dict()
 
 
@@ -47,7 +46,10 @@ class AttributeFetcherTests(AMTestCase):
         self.assertEqual(res['$set']['mailAliases'][2]['verified'], False)
         self.assertEqual(res['$set']['passwords'][0]['credential_id'], '112345678901234567890123')
         self.assertEqual(res['$set']['passwords'][0]['is_generated'], False)
-        self.assertEqual(res['$set']['passwords'][0]['salt'], '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$')
+        self.assertEqual(
+            res['$set']['passwords'][0]['salt'],
+            '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$',
+        )
 
     def test_existing_user(self):
         user_data = deepcopy(USER_DATA)
