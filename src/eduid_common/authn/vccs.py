@@ -77,7 +77,7 @@ def check_password(vccs_url, password, user, vccs=None):
 
     # upgrade DashboardLegacyUser to DashboardUser
     if isinstance(user, DashboardLegacyUser):
-        user = DashboardUser(data=user._mongo_doc)
+        user = DashboardUser.from_dict(data=user._mongo_doc)
 
     for user_password in user.credentials.filter(Password).to_list():
         factor = vccs_client.VCCSPasswordFactor(
@@ -259,7 +259,7 @@ def add_credentials(vccs_url, old_password, new_password, user, source='dashboar
     """
     # XXX: Can we remove this check?
     if isinstance(user, DashboardLegacyUser):
-        user = DashboardUser(data=user._mongo_doc)
+        user = DashboardUser.from_dict(data=user._mongo_doc)
 
     if vccs is None:
         vccs = get_vccs_client(vccs_url)
@@ -361,7 +361,7 @@ def revoke_all_credentials(vccs_url, user, source='dashboard', vccs=None):
     if vccs is None:
         vccs = get_vccs_client(vccs_url)
     if isinstance(user, DashboardLegacyUser):
-        user = DashboardUser(data=user._mongo_doc)
+        user = DashboardUser.from_dict(data=user._mongo_doc)
     to_revoke = []
     for password in user.credentials.filter(Password).to_list():
         credential_id = str(password.credential_id)

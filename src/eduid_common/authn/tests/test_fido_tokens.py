@@ -137,7 +137,7 @@ class FidoTokensTestCase(EduidAPITestCase):
         return MockFidoConfig(**app_config)
 
     def test_u2f_start_verification(self):
-        test_user = User(data=NEW_USER_EXAMPLE)
+        test_user = User.from_dict(data=NEW_USER_EXAMPLE)
         # Add a working U2F credential for this test
         test_user.credentials.add(self.u2f_credential)
         self.amdb.save(test_user, check_sync=False)
@@ -151,7 +151,7 @@ class FidoTokensTestCase(EduidAPITestCase):
                     self.assertEqual(json.loads(config['u2fdata'])["appId"], "https://eduid.se/u2f-app-id.json")
 
     def test_webauthn_start_verification(self):
-        test_user = User(data=NEW_USER_EXAMPLE)
+        test_user = User.from_dict(data=NEW_USER_EXAMPLE)
         # Add a working U2F credential for this test
         test_user.credentials.add(self.webauthn_credential)
         self.amdb.save(test_user, check_sync=False)
@@ -167,7 +167,7 @@ class FidoTokensTestCase(EduidAPITestCase):
     @patch('fido2.cose.ES256.verify')
     def test_webauthn_verify(self, mock_verify):
         mock_verify.return_value = True
-        test_user = User(data=NEW_USER_EXAMPLE)
+        test_user = User.from_dict(data=NEW_USER_EXAMPLE)
         # Add a working U2F credential for this test
         test_user.credentials.add(self.webauthn_credential)
         self.amdb.save(test_user, check_sync=False)
@@ -191,7 +191,7 @@ class FidoTokensTestCase(EduidAPITestCase):
     def test_webauthn_verify_wrong_origin(self, mock_verify):
         self.app.config.fido2_rp_id = 'wrong.rp.id'
         mock_verify.return_value = True
-        test_user = User(data=NEW_USER_EXAMPLE)
+        test_user = User.from_dict(data=NEW_USER_EXAMPLE)
         # Add a working U2F credential for this test
         test_user.credentials.add(self.webauthn_credential)
         self.amdb.save(test_user, check_sync=False)
@@ -214,7 +214,7 @@ class FidoTokensTestCase(EduidAPITestCase):
     @patch('fido2.cose.ES256.verify')
     def test_webauthn_verify_wrong_challenge(self, mock_verify):
         mock_verify.return_value = True
-        test_user = User(data=NEW_USER_EXAMPLE)
+        test_user = User.from_dict(data=NEW_USER_EXAMPLE)
         # Add a working U2F credential for this test
         test_user.credentials.add(self.webauthn_credential)
         self.amdb.save(test_user, check_sync=False)
@@ -239,7 +239,7 @@ class FidoTokensTestCase(EduidAPITestCase):
         req = deepcopy(SAMPLE_WEBAUTHN_REQUEST)
         req['credentialId'] = req['credentialId'].replace('0', '9')
         mock_verify.return_value = True
-        test_user = User(data=NEW_USER_EXAMPLE)
+        test_user = User.from_dict(data=NEW_USER_EXAMPLE)
         # Add a working U2F credential for this test
         test_user.credentials.add(self.webauthn_credential)
         self.amdb.save(test_user, check_sync=False)
