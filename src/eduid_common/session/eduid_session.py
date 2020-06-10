@@ -53,7 +53,7 @@ class EduidSession(SessionMixin, MutableMapping):
         self._signup: Optional[Signup] = None
         self._actions: Optional[Actions] = None
         self._sso_ticket: Optional[SSOLoginData] = None
-        self._reset_password: Optional[ResetPasswordNS] = None
+        self._reset_password: ResetPasswordNS
 
     def __getitem__(self, key, default=None):
         return self._session.__getitem__(key, default=None)
@@ -147,15 +147,19 @@ class EduidSession(SessionMixin, MutableMapping):
             self._sso_ticket = value
 
     @property
-    def reset_password(self) -> Optional[ResetPasswordNS]:
-        if not self._reset_password:
+    def reset_password(self) -> ResetPasswordNS:
+        if not hasattr(self, '_reset_password') or not self._reset_password:
             self._reset_password = ResetPasswordNS.from_dict(self._session.get('_reset_password', {}))
         return self._reset_password
 
     @reset_password.setter
-    def reset_password(self, value: Optional[ResetPasswordNS]):
-        if not self._reset_password:
+    def reset_password(self, value: ResetPasswordNS):
+        if not isinstance(value, ResetPasswordNS):
+            raise TypeError('reset_password value must be a ResetPasswordNS')
+        if not hasattr(self, '_reset_password') or not self._reset_password:
             self._reset_password = value
+        else:
+            raise ValueError('ResetPasswordNS already initialised')
 
     @property
     def token(self):
