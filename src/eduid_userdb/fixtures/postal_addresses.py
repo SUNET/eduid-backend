@@ -49,4 +49,3 @@ old_postal_addresses = [
         'verified': False,
     },
 ]
-

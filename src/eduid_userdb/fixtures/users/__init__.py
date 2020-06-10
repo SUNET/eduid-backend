@@ -30,10 +30,10 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from .mocked_user_standard_2 import mocked_user_standard_2
 from .mocked_user_standard import mocked_user_standard
-from .new_unverified_user import new_unverified_user_example
-from .old_user import old_user_example
+from .mocked_user_standard_2 import mocked_user_standard_2
 from .new_completed_signup_user import new_completed_signup_user_example
 from .new_signup_user import new_signup_user_example
+from .new_unverified_user import new_unverified_user_example
 from .new_user import new_user_example
+from .old_user import old_user_example

@@ -36,27 +36,23 @@ from bson import ObjectId
 
 from eduid_userdb.credentials import CredentialList
 from eduid_userdb.fixtures.email_addresses import (
-    johnsmith_example_com_old,
     johnsmith2_example_com_old,
     johnsmith3_example_com_unverified,
+    johnsmith_example_com_old,
 )
 from eduid_userdb.fixtures.passwords import old_password
-from eduid_userdb.fixtures.phones import (
-    old_primary_phone,
-    old_unverified_phone,
-)
+from eduid_userdb.fixtures.phones import old_primary_phone, old_unverified_phone
 from eduid_userdb.fixtures.postal_addresses import old_postal_addresses
 from eduid_userdb.mail import MailAddressList
 from eduid_userdb.phone import PhoneNumberList
 from eduid_userdb.user import User
 
-
 mail_addresses = MailAddressList(
-    [johnsmith_example_com_old, johnsmith2_example_com_old, johnsmith3_example_com_unverified, ]
+    [johnsmith_example_com_old, johnsmith2_example_com_old, johnsmith3_example_com_unverified,]
 )
 
 
-phone_numbers = PhoneNumberList([old_primary_phone, old_unverified_phone, ])
+phone_numbers = PhoneNumberList([old_primary_phone, old_unverified_phone,])
 
 
 passwords = CredentialList([old_password])

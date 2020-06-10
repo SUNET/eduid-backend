@@ -35,24 +35,17 @@ from datetime import datetime
 from bson import ObjectId
 
 from eduid_userdb.credentials import CredentialList
-from eduid_userdb.fixtures.email_addresses import (
-    johnsmith_example_com,
-    johnsmith2_example_com,
-)
+from eduid_userdb.fixtures.email_addresses import johnsmith2_example_com, johnsmith_example_com
 from eduid_userdb.fixtures.locked_identities import dashboard_locked_nin
 from eduid_userdb.fixtures.nins import dashboard_primary_nin, dashboard_verified_nin
 from eduid_userdb.fixtures.passwords import signup_password
 from eduid_userdb.fixtures.pending_emails import johnsmith2_example_com_pending
-from eduid_userdb.fixtures.phones import (
-    dashboard_primary_phone,
-    dashboard_unverified_phone,
-)
+from eduid_userdb.fixtures.phones import dashboard_primary_phone, dashboard_unverified_phone
 from eduid_userdb.locked_identity import LockedIdentityList
 from eduid_userdb.mail import MailAddressList
 from eduid_userdb.nin import NinList
 from eduid_userdb.phone import PhoneNumberList
 from eduid_userdb.signup.user import SignupUser
-
 
 mail_addresses = MailAddressList([johnsmith_example_com, johnsmith2_example_com])
 

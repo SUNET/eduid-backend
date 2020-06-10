@@ -34,18 +34,14 @@
 from bson import ObjectId
 
 from eduid_userdb.credentials import CredentialList
-from eduid_userdb.fixtures.email_addresses import (
-    johnsmith_example_org,
-    johnsmith2_example_org,
-)
+from eduid_userdb.fixtures.email_addresses import johnsmith2_example_org, johnsmith_example_org
 from eduid_userdb.fixtures.passwords import signup_password
 from eduid_userdb.mail import MailAddressList
 from eduid_userdb.nin import NinList
 from eduid_userdb.phone import PhoneNumberList
 from eduid_userdb.user import User
 
-
-mail_addresses = MailAddressList([johnsmith_example_org, johnsmith2_example_org, ])
+mail_addresses = MailAddressList([johnsmith_example_org, johnsmith2_example_org,])
 
 
 passwords = CredentialList([signup_password])
