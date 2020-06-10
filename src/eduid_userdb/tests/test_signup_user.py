@@ -1,7 +1,7 @@
 from unittest import TestCase
 
-from eduid_userdb.fixtures.users import new_signup_user_example
 from eduid_userdb.exceptions import UserMissingData
+from eduid_userdb.fixtures.users import new_signup_user_example
 from eduid_userdb.signup.user import SignupUser
 
 

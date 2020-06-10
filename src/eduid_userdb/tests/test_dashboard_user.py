@@ -5,7 +5,7 @@ from eduid_userdb.credentials import CredentialList
 from eduid_userdb.dashboard import DashboardLegacyUser as User
 from eduid_userdb.dashboard.user import DashboardUser
 from eduid_userdb.exceptions import UserMissingData
-from eduid_userdb.fixtures.users import new_user_example, mocked_user_standard
+from eduid_userdb.fixtures.users import mocked_user_standard, new_user_example
 
 
 class TestUser(TestCase):

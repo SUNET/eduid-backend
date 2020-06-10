@@ -34,7 +34,6 @@ from datetime import datetime
 
 from eduid_userdb.mail import MailAddress
 
-
 johnsmith_example_com = MailAddress(
     data={
         'email': 'johnsmith@example.com',

@@ -1,10 +1,10 @@
 from unittest import TestCase
 
 from eduid_userdb.fixtures.users import (
-    new_user_example,
-    new_signup_user_example,
     new_completed_signup_user_example,
-    old_user_example
+    new_signup_user_example,
+    new_user_example,
+    old_user_example,
 )
 from eduid_userdb.support import models
 

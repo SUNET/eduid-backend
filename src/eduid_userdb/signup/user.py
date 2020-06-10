@@ -33,14 +33,14 @@
 __author__ = 'ft'
 
 import copy
-from typing import Optional, Union, Type
+from typing import Optional, Type, Union
 
 import bson
 import six
 
 from eduid_userdb.exceptions import UserIsRevoked
 from eduid_userdb.proofing import EmailProofingElement
-from eduid_userdb.user import User, TUserSubclass
+from eduid_userdb.user import TUserSubclass, User
 
 
 class SignupUser(User):
@@ -71,7 +71,7 @@ class SignupUser(User):
         social_network_id: Optional[str] = None,
         pending_mail_address: Optional[EmailProofingElement] = None,
         proofing_reference: Optional[str] = None,
-        **kwargs
+        **kwargs,
     ) -> TUserSubclass:
 
         data = {}

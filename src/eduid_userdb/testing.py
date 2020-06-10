@@ -50,8 +50,8 @@ from typing import Type
 import pymongo
 
 from eduid_userdb import User, UserDB
-from eduid_userdb.fixtures.users import mocked_user_standard, mocked_user_standard_2
 from eduid_userdb.dashboard.user import DashboardUser
+from eduid_userdb.fixtures.users import mocked_user_standard, mocked_user_standard_2
 
 logger = logging.getLogger(__name__)
 

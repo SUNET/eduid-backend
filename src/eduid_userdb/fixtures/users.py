@@ -36,23 +36,23 @@ from bson import ObjectId
 
 from eduid_userdb.credentials import CredentialList
 from eduid_userdb.fixtures.email_addresses import (
-    johnsmith_example_com,
     johnsmith2_example_com,
-    johnsmith3_example_com,
-    johnsmith_example_com_old,
     johnsmith2_example_com_old,
-    johnsmith3_example_com_unverified,
-    johnsmith_example_org,
     johnsmith2_example_org,
+    johnsmith3_example_com,
+    johnsmith3_example_com_unverified,
+    johnsmith_example_com,
+    johnsmith_example_com_old,
+    johnsmith_example_org,
 )
 from eduid_userdb.fixtures.locked_identities import dashboard_locked_nin
 from eduid_userdb.fixtures.nins import dashboard_primary_nin, dashboard_verified_nin
-from eduid_userdb.fixtures.passwords import signup_password, signup_password_2, old_password
+from eduid_userdb.fixtures.passwords import old_password, signup_password, signup_password_2
 from eduid_userdb.fixtures.pending_emails import johnsmith2_example_com_pending
 from eduid_userdb.fixtures.phones import (
     dashboard_primary_phone,
-    dashboard_verified_phone,
     dashboard_unverified_phone,
+    dashboard_verified_phone,
     old_primary_phone,
     old_unverified_phone,
 )
@@ -102,7 +102,7 @@ new_signup_user_example = SignupUser.construct_user(
     locked_identity=LockedIdentityList([dashboard_locked_nin,]),
     social_network='facebook',
     social_network_id='hubba-1234',
-    pending_mail_address=johnsmith2_example_com_pending
+    pending_mail_address=johnsmith2_example_com_pending,
 )
 
 
@@ -134,18 +134,16 @@ new_completed_signup_user_example = User.construct_user(
     terminated=False,
     mail_addresses=completed_signup_mail_addresses,
     nins=empty_nin_list,
-    phone_numbers=phone_numbers,
+    phone_numbers=PhoneNumberList([dashboard_primary_phone, dashboard_unverified_phone,]),
     passwords=completed_signup_passwords,
     entitlements=[],
-    locked_identity=empty_locked_identity
+    locked_identity=empty_locked_identity,
 )
 
 
-old_mail_addresses = MailAddressList([
-    johnsmith_example_com_old,
-    johnsmith2_example_com_old,
-    johnsmith3_example_com_unverified,
-])
+old_mail_addresses = MailAddressList(
+    [johnsmith_example_com_old, johnsmith2_example_com_old, johnsmith3_example_com_unverified,]
+)
 
 
 old_phone_numbers = PhoneNumberList([old_primary_phone, old_unverified_phone])
@@ -189,7 +187,7 @@ old_user_example = User.construct_user(
     mobile=old_phone_numbers,
     passwords=old_passwords,
     eduPersonEntitlement=['urn:mace:eduid.se:role:admin', 'urn:mace:eduid.se:role:student'],
-    terminated=None
+    terminated=None,
 )
 
 
@@ -203,30 +201,22 @@ new_unverified_user_example = User.construct_user(
     language='en',
     modified_ts=datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"),
     terminated=False,
-    mail_addresses=mail_addresses,
+    mail_addresses=MailAddressList([johnsmith_example_com, johnsmith2_example_com,]),
     nins=empty_nin_list,
-    phone_numbers=phone_numbers,
-    passwords=passwords,
-    entitlements=entitlements,
-    locked_identity=empty_locked_identity
+    phone_numbers=PhoneNumberList([dashboard_primary_phone, dashboard_unverified_phone,]),
+    passwords=CredentialList([signup_password,]),
+    entitlements=['urn:mace:eduid.se:role:admin', 'urn:mace:eduid.se:role:student',],
+    locked_identity=empty_locked_identity,
 )
 
 
 nin_list = NinList([dashboard_primary_nin])
 
 
-phone_list = PhoneNumberList([
-    dashboard_primary_phone,
-    dashboard_verified_phone,
-    dashboard_unverified_phone,
-])
+phone_list = PhoneNumberList([dashboard_primary_phone, dashboard_verified_phone, dashboard_unverified_phone,])
 
 
-mail_list = MailAddressList([
-    johnsmith_example_com,
-    johnsmith2_example_com_old,
-    johnsmith3_example_com_unverified,
-])
+mail_list = MailAddressList([johnsmith_example_com, johnsmith2_example_com_old, johnsmith3_example_com_unverified,])
 
 
 mocked_user_standard = User.construct_user(
@@ -241,18 +231,14 @@ mocked_user_standard = User.construct_user(
     phone_numbers=phone_list,
     mail='johnsmith@example.com',
     mail_addresses=mail_list,
-    passwords=passwords
+    passwords=CredentialList([signup_password,]),
 )
 
 
-mail_list_2 = MailAddressList([
-    johnsmith_example_org,
-    johnsmith2_example_org,
-])
+mail_list_2 = MailAddressList([johnsmith_example_org, johnsmith2_example_org,])
 
 
-empty_phone_list = PhoneNumberList([
-])
+empty_phone_list = PhoneNumberList([])
 
 
 mocked_user_standard_2 = User.construct_user(
@@ -267,5 +253,5 @@ mocked_user_standard_2 = User.construct_user(
     phone_numbers=empty_phone_list,
     mail='johnsmith@example.com',
     mail_addresses=mail_list_2,
-    passwords=passwords
+    passwords=CredentialList([signup_password,]),
 )
