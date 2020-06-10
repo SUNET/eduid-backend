@@ -3,6 +3,7 @@
 from copy import deepcopy
 from unittest import TestCase
 
+from eduid_userdb.fixtures.users import mocked_user_standard
 from eduid_userdb.logs.db import ProofingLog
 from eduid_userdb.logs.element import (
     LetterProofing,
@@ -14,7 +15,7 @@ from eduid_userdb.logs.element import (
     TeleAdressProofing,
     TeleAdressProofingRelation,
 )
-from eduid_userdb.testing import MOCKED_USER_STANDARD, MongoTemporaryInstance
+from eduid_userdb.testing import MongoTemporaryInstance
 from eduid_userdb.user import User
 
 __author__ = 'lundberg'
@@ -24,7 +25,7 @@ class TestProofingLog(TestCase):
     def setUp(self):
         self.tmp_db = MongoTemporaryInstance.get_instance()
         self.proofing_log_db = ProofingLog(db_uri=self.tmp_db.uri)
-        self.user = User.from_dict(MOCKED_USER_STANDARD)
+        self.user = User.from_dict(mocked_user_standard.to_dict())
 
     def tearDown(self):
         self.proofing_log_db._drop_whole_collection()

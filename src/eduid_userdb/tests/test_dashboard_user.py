@@ -5,13 +5,12 @@ from eduid_userdb.credentials import CredentialList
 from eduid_userdb.dashboard import DashboardLegacyUser as User
 from eduid_userdb.dashboard.user import DashboardUser
 from eduid_userdb.exceptions import UserMissingData
-from eduid_userdb.fixtures.users import new_user_example
-from eduid_userdb.testing import MOCKED_USER_STANDARD
+from eduid_userdb.fixtures.users import new_user_example, mocked_user_standard
 
 
 class TestUser(TestCase):
     def test_verify_mail_and_set_as_primary(self):
-        user = User(MOCKED_USER_STANDARD)
+        user = User(mocked_user_standard.to_dict())
 
         # Save the original information so that
         # we can restore it after this test.
