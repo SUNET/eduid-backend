@@ -92,13 +92,14 @@ def post_email(user, email, verified, primary):
     current_app.stats.count(name='email_save_unconfirmed_email', value=1)
 
     sent = send_verification_code(email, proofing_user)
+    emails = {'emails': proofing_user.mail_addresses.to_list_of_dicts()}
+    email_list = EmailListPayload().dump(emails)
+
     if not sent:
-        return error_message(EmailMsg.throttled)
+        return success_message(EmailMsg.added_and_throttled, data=email_list)
 
     current_app.stats.count(name='email_send_verification_code', value=1)
 
-    emails = {'emails': proofing_user.mail_addresses.to_list_of_dicts()}
-    email_list = EmailListPayload().dump(emails)
     return success_message(EmailMsg.saved, data=email_list)
 
 

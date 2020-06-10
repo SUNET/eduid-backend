@@ -13,6 +13,7 @@ class MessagesTests(unittest.TestCase):
         self.assertEqual(EmailMsg.get_success.value, 'emails.get-success')
         self.assertEqual(EmailMsg.throttled.value, 'emails.throttled')
         self.assertEqual(EmailMsg.still_valid_code.value, 'still-valid-code')
+        self.assertEqual(EmailMsg.added_and_throttled.value, 'emails.added-and-throttled')
         self.assertEqual(EmailMsg.saved.value, 'emails.save-success')
         self.assertEqual(EmailMsg.unconfirmed_not_primary.value, 'emails.unconfirmed_address_not_primary')
         self.assertEqual(EmailMsg.success_primary.value, 'emails.primary-success')
