@@ -442,8 +442,8 @@ class EmailTests(EduidAPITestCase):
         self.assertEqual(response.status_code, 200)
         new_email_data = json.loads(response.data)
 
-        self.assertEqual(new_email_data['type'], 'POST_EMAIL_NEW_FAIL')
-        self.assertEqual(new_email_data['payload']['message'], 'emails.throttled')
+        self.assertEqual(new_email_data['type'], 'POST_EMAIL_NEW_SUCCESS')
+        self.assertEqual(new_email_data['payload']['message'], 'emails.added-and-throttled')
 
     def test_post_email_error_no_data(self):
         response = self._post_email(send_data=False)
