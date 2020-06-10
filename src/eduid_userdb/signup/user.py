@@ -33,13 +33,14 @@
 __author__ = 'ft'
 
 import copy
+from typing import Optional, Union
 
 import bson
 import six
 
-from eduid_userdb import User
 from eduid_userdb.exceptions import UserIsRevoked
 from eduid_userdb.proofing import EmailProofingElement
+from eduid_userdb.user import User
 
 
 class SignupUser(User):
@@ -47,14 +48,24 @@ class SignupUser(User):
     Subclass of eduid_userdb.User with eduid Signup application specific data.
     """
 
-    def __init__(self, userid=None, eppn=None, subject='physical person', data=None):
-        data_in = data
-        data = copy.copy(data_in)  # to not modify callers data
-
+    def __init__(
+        self,
+        userid: Optional[Union[str, bson.ObjectId]] = None,
+        eppn: Optional[str] = None,
+        subject: str = 'physical person',
+        data: Optional[dict] = None,
+        raise_on_unknown: bool = True,
+        called_directly: bool = True,
+    ):
         if data is None:
             if userid is None:
                 userid = bson.ObjectId()
             data = dict(_id=userid, eduPersonPrincipalName=eppn, subject=subject,)
+
+        User.__init__(self, data=data, raise_on_unknown=raise_on_unknown, called_directly=called_directly)
+
+    def check_or_use_data(self):
+        data = self._data_in
         _social_network = data.pop('social_network', None)
         _social_network_id = data.pop('social_network_id', None)
         _pending_mail_address = data.pop('pending_mail_address', None)
@@ -63,9 +74,6 @@ class SignupUser(User):
             _pending_mail_address = EmailProofingElement(data=_pending_mail_address)
         self._pending_mail_address = None
 
-        User.__init__(self, data=data)
-
-        # now self._data exists so we can call our setters
         self.social_network = _social_network
         self.social_network_id = _social_network_id
         self.pending_mail_address = _pending_mail_address

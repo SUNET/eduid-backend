@@ -24,7 +24,7 @@ class TestProofingLog(TestCase):
     def setUp(self):
         self.tmp_db = MongoTemporaryInstance.get_instance()
         self.proofing_log_db = ProofingLog(db_uri=self.tmp_db.uri)
-        self.user = User(MOCKED_USER_STANDARD)
+        self.user = User.from_dict(MOCKED_USER_STANDARD)
 
     def tearDown(self):
         self.proofing_log_db._drop_whole_collection()

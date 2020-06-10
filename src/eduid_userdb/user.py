@@ -34,13 +34,14 @@
 
 import copy
 import datetime
-from typing import Any, Dict
+import warnings
+from typing import Any, Dict, List, Optional, Type, TypeVar, Union
 
 import bson
 
 from eduid_userdb.credentials import CredentialList
 from eduid_userdb.element import UserDBValueError
-from eduid_userdb.exceptions import UserHasNotCompletedSignup, UserHasUnknownData, UserIsRevoked
+from eduid_userdb.exceptions import UserHasNotCompletedSignup, UserHasUnknownData, UserIsRevoked, UserMissingData
 from eduid_userdb.locked_identity import LockedIdentityList
 from eduid_userdb.mail import MailAddressList
 from eduid_userdb.nin import NinList
@@ -51,6 +52,8 @@ from eduid_userdb.tou import ToUList
 
 VALID_SUBJECT_VALUES = ['physical person']
 
+TUserSubclass = TypeVar('TUserSubclass', bound='User')
+
 
 class User(object):
     """
@@ -60,10 +63,15 @@ class User(object):
     :type  data: dict
     """
 
-    def __init__(self, data: Dict[str, Any], raise_on_unknown: bool = True):
+    def __init__(self, data: Dict[str, Any], raise_on_unknown: bool = True, called_directly: bool = True):
+        if called_directly:
+            warnings.warn("User.__init__ called directly", DeprecationWarning)
+
         self._data_in = copy.deepcopy(data)  # to not modify callers data
         self._data_orig = copy.deepcopy(data)  # to not modify callers data
         self._data: Dict[str, Any] = dict()
+
+        self.check_or_use_data()
 
         self._parse_check_invalid_users()
 
@@ -122,6 +130,92 @@ class User(object):
                 )
             # Just keep everything that is left as-is
             self._data.update(self._data_in)
+
+    @classmethod
+    def construct_user(
+        cls: Type[TUserSubclass],
+        eppn: Optional[str] = None,
+        _id: Optional[Union[bson.ObjectId, str]] = None,
+        subject: Optional[str] = None,
+        display_name: Optional[str] = None,
+        given_name: Optional[str] = None,
+        surname: Optional[str] = None,
+        language: Optional[str] = None,
+        passwords: Optional[CredentialList] = None,
+        modified_ts: Optional[datetime.datetime] = None,
+        revoked_ts: Optional[datetime.datetime] = None,
+        entitlements: Optional[List[str]] = None,
+        terminated: Optional[bool] = None,
+        letter_proofing_data: Optional[dict] = None,
+        mail_addresses: Optional[MailAddressList] = None,
+        phone_numbers: Optional[PhoneNumberList] = None,
+        nins: Optional[NinList] = None,
+        tou: Optional[ToUList] = None,
+        locked_identity: Optional[LockedIdentityList] = None,
+        orcid: Optional[Orcid] = None,
+        profiles: Optional[ProfileList] = None,
+        raise_on_unknown: bool = True,
+        **kwargs,
+    ) -> TUserSubclass:
+        """
+        Construct user from data in typed params.
+        """
+
+        data: Dict[str, Any] = {}
+
+        data['_id'] = _id
+        if eppn is None:
+            raise UserMissingData("User objects must be constructed with an eppn")
+        data['eduPersonPrincipalName'] = eppn
+        data['subject'] = subject
+        data['displayName'] = display_name
+        data['givenName'] = given_name
+        data['surname'] = surname
+        data['preferredLanguage'] = language
+        data['modified_ts'] = modified_ts
+        data['terminated'] = terminated
+        if revoked_ts is not None:
+            data['revoked_ts'] = revoked_ts
+        if orcid is not None:
+            data['orcid'] = orcid.to_dict()
+        if letter_proofing_data is not None:
+            data['letter_proofing_data'] = letter_proofing_data
+        if passwords is not None:
+            data['passwords'] = passwords.to_list_of_dicts()
+        if entitlements is not None:
+            data['entitlements'] = entitlements
+        if mail_addresses is not None:
+            data['mailAliases'] = mail_addresses.to_list_of_dicts()
+        if phone_numbers is not None:
+            data['phone'] = phone_numbers.to_list_of_dicts()
+        if nins is not None:
+            data['nins'] = nins.to_list_of_dicts()
+        if tou is not None:
+            data['tou'] = tou.to_list_of_dicts()
+        if locked_identity is not None:
+            data['locked_identity'] = locked_identity.to_list_of_dicts()
+        if profiles is not None:
+            data['profiles'] = profiles.to_list_of_dicts()
+
+        data.update(kwargs)
+
+        return cls.from_dict(data)
+
+    def check_or_use_data(self):
+        """
+        Derived classes can override this method to check that the provided data
+        is enough for their purposes, or to deal specially with particular bits of it.
+
+        In case of problems they sould raise whatever Exception is appropriate.
+        """
+        pass
+
+    @classmethod
+    def from_dict(cls: Type[TUserSubclass], data: Dict[str, Any], raise_on_unknown: bool = True) -> TUserSubclass:
+        """
+        Construct user from a data dict.
+        """
+        return cls(data=data, raise_on_unknown=raise_on_unknown, called_directly=False)
 
     def __repr__(self):
         return '<eduID {!s}: {!s}/{!s}>'.format(self.__class__.__name__, self.eppn, self.user_id,)
@@ -672,4 +766,4 @@ class User(object):
             user_dict.pop('modified_ts', None)
         else:
             user_dict['modified_ts'] = private_user.modified_ts
-        return cls(data=user_dict)
+        return cls.from_dict(data=user_dict)

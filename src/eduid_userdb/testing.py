@@ -242,7 +242,8 @@ class MongoTestCase(unittest.TestCase):
 
     MockedUserDB: Type[AbstractMockedUserDB] = MockedUserDB
 
-    user: Optional[User] = User(data=MOCKED_USER_STANDARD)
+    user = User.from_dict(data=MOCKED_USER_STANDARD)
+
     mock_users_patches: list = []
 
     def setUp(self, init_am=False, userdb_use_old_format=False, am_settings=None):
@@ -318,12 +319,12 @@ class MongoTestCase(unittest.TestCase):
         _foo_userdb = self.MockedUserDB(self.mock_users_patches)
         for userdoc in _foo_userdb.all_userdocs():
             this = deepcopy(userdoc)  # deep-copy to not have side effects between tests
-            user = User(data=this)
+            user = User.from_dict(data=this)
             self.amdb.save(user, check_sync=False, old_format=userdb_use_old_format)
 
     def tearDown(self):
         for userdoc in self.amdb._get_all_docs():
-            assert DashboardUser(data=userdoc)
+            assert DashboardUser.from_dict(data=userdoc)
         # Reset databases for the next test class, but do not shut down the temporary
         # mongodb instance, for efficiency reasons.
         for db_name in self.tmp_db.conn.list_database_names():

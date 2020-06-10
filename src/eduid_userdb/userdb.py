@@ -126,7 +126,7 @@ class UserDB(BaseDB):
             raise UserDoesNotExist("No user matching filter {!r}".format(filter))
 
         if return_list:
-            return [self.UserClass(data=user) for user in users]
+            return [self.UserClass.from_dict(data=user) for user in users]
 
         if len(users) == 0:
             return None
@@ -134,7 +134,7 @@ class UserDB(BaseDB):
         if len(users) > 1:
             raise MultipleUsersReturned("Multiple matching users for filter {!r}".format(filter))
 
-        return self.UserClass(data=users[0])
+        return self.UserClass.from_dict(data=users[0])
 
     def get_user_by_mail(self, email, raise_on_missing=True, return_list=False, include_unconfirmed=False):
         """
@@ -255,7 +255,7 @@ class UserDB(BaseDB):
             doc = self._get_document_by_attr(attr, value, raise_on_missing)
             if doc is not None:
                 logger.debug("{!s} Found user with id {!s}".format(self, doc['_id']))
-                user = self.UserClass(data=doc)
+                user = self.UserClass.from_dict(data=doc)
                 logger.debug("{!s} Returning user {!s}".format(self, user))
             return user
         except self.exceptions.DocumentDoesNotExist as e:

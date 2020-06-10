@@ -32,10 +32,12 @@
 
 __author__ = 'eperez'
 
+from typing import Optional, Union
+
 import bson
 
-from eduid_userdb import User
 from eduid_userdb.exceptions import UserMissingData
+from eduid_userdb.user import User
 
 
 class ToUUser(User):
@@ -44,24 +46,34 @@ class ToUUser(User):
     the eduid-actions plugin for ToU specific data.
 
     :param userid: user id
-    :type userid: bson.ObjectId
     :param eppn: eppn
-    :type eppn: str
     :param tou: ToU  list
-    :type tou: list
     :param data: userid, eppn and tou
-    :type data: dict
     :param raise_on_unknown: whether to raise an exception if
                              there is unknown data in the data dict
-    :type raise_on_unknown: bool
     """
 
-    def __init__(self, userid=None, eppn=None, tou=None, data=None, raise_on_unknown=True):
+    def __init__(
+        self,
+        userid: Optional[Union[str, bson.ObjectId]] = None,
+        eppn: Optional[str] = None,
+        tou: Optional[list] = None,
+        data: Optional[dict] = None,
+        raise_on_unknown: bool = True,
+        called_directly: bool = True,
+    ):
         """
         """
         if data is None:
             data = {'_id': userid, 'eduPersonPrincipalName': eppn, 'tou': tou}
 
+        User.__init__(self, data, raise_on_unknown=raise_on_unknown, called_directly=called_directly)
+
+    def check_or_use_data(self):
+        """
+        Check that the provided data dict contains all needed keys.
+        """
+        data = self._data_in
         if '_id' not in data or data['_id'] is None:
             raise UserMissingData('Attempting to record a ToU acceptance ' 'for an unidentified user.')
         if 'eduPersonPrincipalName' not in data or data['eduPersonPrincipalName'] is None:
@@ -70,7 +82,5 @@ class ToUUser(User):
             raise UserMissingData(
                 'Attempting to record the acceptance of '
                 'an unknown version of the ToU for '
-                'the user with eppn ' + str(data['eduPersonPrincipalName'])
+                'the user with eppn ' + str(data.get('eduPersonPrincipalName', data.get('eppn')))
             )
-
-        User.__init__(self, data, raise_on_unknown=raise_on_unknown)
