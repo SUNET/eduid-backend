@@ -55,6 +55,7 @@ from eduid_userdb.reset_password import (
     ResetPasswordUser,
 )
 from eduid_userdb.user import User
+
 from eduid_webapp.reset_password.app import current_reset_password_app as current_app
 
 
@@ -155,7 +156,9 @@ def get_pwreset_state(email_code: str) -> Union[ResetPasswordEmailState, ResetPa
         current_app.logger.info(f'Phone code expired for state: {email_code}')
         # Revert the state to EmailState to allow the user to choose extra security again
         current_app.password_reset_state_db.remove_state(state)
-        state = ResetPasswordEmailState(eppn=state.eppn, email_address=state.email_address, email_code=state.email_code.code)
+        state = ResetPasswordEmailState(
+            eppn=state.eppn, email_address=state.email_address, email_code=state.email_code.code
+        )
         current_app.password_reset_state_db.save(state)
         raise BadCode(ResetPwMsg.expired_sms_code)
 

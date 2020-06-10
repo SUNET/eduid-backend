@@ -91,10 +91,7 @@ from eduid_common.api.schemas.base import FluxStandardAction
 from eduid_common.authn import fido_tokens
 from eduid_common.session import session
 from eduid_common.session.namespaces import ResetPasswordNS
-from eduid_userdb.reset_password import (
-    ResetPasswordEmailAndPhoneState,
-    ResetPasswordEmailState,
-)
+from eduid_userdb.reset_password import ResetPasswordEmailAndPhoneState, ResetPasswordEmailState
 
 from eduid_webapp.reset_password.app import current_reset_password_app as current_app
 from eduid_webapp.reset_password.helpers import (

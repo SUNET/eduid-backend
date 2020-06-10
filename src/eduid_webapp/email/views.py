@@ -43,6 +43,7 @@ from eduid_userdb.exceptions import DocumentDoesNotExist, UserOutOfSync
 from eduid_userdb.mail import MailAddress
 from eduid_userdb.proofing import ProofingUser
 from eduid_userdb.user import User
+
 from eduid_webapp.email.app import current_email_app as current_app
 from eduid_webapp.email.helpers import EmailMsg
 from eduid_webapp.email.schemas import (
