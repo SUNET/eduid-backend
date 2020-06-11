@@ -32,7 +32,7 @@
 #
 from __future__ import absolute_import
 
-from flask import Blueprint, abort, current_app, request
+from flask import Blueprint, abort, request
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid_common.api.helpers import check_magic_cookie
@@ -44,6 +44,7 @@ from eduid_userdb.mail import MailAddress
 from eduid_userdb.proofing import ProofingUser
 from eduid_userdb.user import User
 
+from eduid_webapp.email.app import current_email_app as current_app
 from eduid_webapp.email.helpers import EmailMsg
 from eduid_webapp.email.schemas import (
     AddEmailSchema,
@@ -304,7 +305,14 @@ def get_code(user: User):
         if check_magic_cookie(current_app.config):
             eppn = request.args.get('eppn')
             email = request.args.get('email')
+            if not eppn or not email:
+                # TODO: Return something better when the ENUMs have landed in master
+                current_app.logger.error('Missing eppn or email')
+                abort(400)
             state = current_app.proofing_statedb.get_state_by_eppn_and_email(eppn, email)
+            if not state:
+                current_app.logger.error(f'No state found for eppn {eppn} and email {email}')
+                abort(400)
             return state.verification.verification_code
     except Exception:
         current_app.logger.exception(f"{user} tried to use the backdoor to get the verification code for an email")

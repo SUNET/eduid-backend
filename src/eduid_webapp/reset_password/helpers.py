@@ -32,7 +32,7 @@
 #
 import math
 from enum import unique
-from typing import Optional, Union
+from typing import Any, Dict, Optional, TypeVar, Union
 
 import bcrypt
 from flask import render_template
@@ -128,11 +128,11 @@ class BadCode(Exception):
     Exception to signal that the password reset code received is not valid.
     """
 
-    def __init__(self, msg: str):
+    def __init__(self, msg: TranslatableMsg):
         self.msg = msg
 
 
-def get_pwreset_state(email_code: str) -> ResetPasswordState:
+def get_pwreset_state(email_code: str) -> Union[ResetPasswordEmailState, ResetPasswordEmailAndPhoneState]:
     """
     get the password reset state for the provided code
 
@@ -141,8 +141,9 @@ def get_pwreset_state(email_code: str) -> ResetPasswordState:
     mail_expiration_time = current_app.config.email_code_timeout
     sms_expiration_time = current_app.config.phone_code_timeout
     try:
-        state = current_app.password_reset_state_db.get_state_by_email_code(email_code)
+        state = current_app.password_reset_state_db.get_state_by_email_code(email_code, raise_on_missing=True)
         current_app.logger.debug(f'Found state using email_code {email_code}: {state}')
+        assert state is not None  # assure mypy, raise_on_missing=True will make this never happen
     except DocumentDoesNotExist:
         current_app.logger.info(f'State not found: {email_code}')
         raise BadCode(ResetPwMsg.unknown_code)
@@ -155,7 +156,9 @@ def get_pwreset_state(email_code: str) -> ResetPasswordState:
         current_app.logger.info(f'Phone code expired for state: {email_code}')
         # Revert the state to EmailState to allow the user to choose extra security again
         current_app.password_reset_state_db.remove_state(state)
-        state = ResetPasswordEmailState(eppn=state.eppn, email_address=state.email_address, email_code=state.email_code)
+        state = ResetPasswordEmailState(
+            eppn=state.eppn, email_address=state.email_address, email_code=state.email_code.code
+        )
         current_app.password_reset_state_db.save(state)
         raise BadCode(ResetPwMsg.expired_sms_code)
 
@@ -280,10 +283,12 @@ def reset_user_password(user: User, state: ResetPasswordState, password: str):
                 nin.is_verified = False
                 current_app.logger.debug(f'NIN {nin.number} unverified')
 
+    is_generated = state.generated_password if isinstance(state.generated_password, bool) else False
+
     reset_password_user = reset_password(
         reset_password_user,
         new_password=password,
-        is_generated=state.generated_password,
+        is_generated=is_generated,
         application='security',
         vccs_url=vccs_url,
     )
@@ -298,7 +303,7 @@ def get_extra_security_alternatives(user: User, session_prefix: str) -> dict:
     :param user: The user
     :return: Dict of alternatives
     """
-    alternatives = {}
+    alternatives: Dict[str, Any] = {}
 
     if user.phone_numbers.verified.count:
         verified_phone_numbers = [
@@ -358,17 +363,17 @@ def verify_email_address(state: ResetPasswordEmailState) -> bool:
 
 
 def send_verify_phone_code(state: ResetPasswordEmailState, phone_number: str):
-    state = ResetPasswordEmailAndPhoneState.from_email_state(
+    phone_state = ResetPasswordEmailAndPhoneState.from_email_state(
         state, phone_number=phone_number, phone_code=get_short_hash()
     )
-    current_app.password_reset_state_db.save(state)
+    current_app.password_reset_state_db.save(phone_state)
 
     template = 'reset_password_sms.txt.jinja2'
-    context = {'verification_code': state.phone_code.code}
-    send_sms(state.phone_number, template, context, state.reference)
+    context = {'verification_code': phone_state.phone_code.code}
+    send_sms(phone_state.phone_number, template, context, phone_state.reference)
     current_app.logger.info(f'Sent password reset sms to user with eppn: {state.eppn}')
-    current_app.logger.debug(f'Sent password reset sms with code: {state.phone_code.code}')
-    current_app.logger.debug(f'Phone number: {state.phone_number}')
+    current_app.logger.debug(f'Sent password reset sms with code: {phone_state.phone_code.code}')
+    current_app.logger.debug(f'Phone number: {phone_state.phone_number}')
 
 
 def send_sms(phone_number: str, text_template: str, context: Optional[dict] = None, reference: Optional[str] = None):
