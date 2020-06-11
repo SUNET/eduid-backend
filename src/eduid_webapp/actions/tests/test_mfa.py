@@ -34,7 +34,7 @@ from __future__ import absolute_import
 
 import base64
 import json
-from typing import Optional, cast
+from typing import Optional
 
 from bson import ObjectId
 from fido2.server import Fido2Server
@@ -43,7 +43,6 @@ from mock import patch
 from eduid_common.session import session
 from eduid_userdb.credentials import U2F
 from eduid_userdb.testing import MOCKED_USER_STANDARD
-from eduid_userdb.user import User
 
 from eduid_webapp.actions.actions.mfa import Plugin
 from eduid_webapp.actions.testing import ActionsTestCase, MockIdPContext
