@@ -78,7 +78,7 @@ her data.
 import json
 import time
 from datetime import datetime
-from typing import cast
+from typing import Any, Mapping, Tuple, Type, TypeVar, Union
 
 from flask import Blueprint, abort, request
 from marshmallow import ValidationError
@@ -90,7 +90,7 @@ from eduid_common.api.messages import CommonMsg, error_message, success_message
 from eduid_common.api.schemas.base import FluxStandardAction
 from eduid_common.authn import fido_tokens
 from eduid_common.session import session
-from eduid_common.session.namespaces import ResetPasswordNS
+from eduid_userdb import User
 from eduid_userdb.reset_password import ResetPasswordEmailAndPhoneState, ResetPasswordEmailState
 
 from eduid_webapp.reset_password.app import current_reset_password_app as current_app
@@ -190,15 +190,14 @@ def config_reset_pw(code: str) -> dict:
     """
     current_app.logger.info(f'Configuring password reset form for {code}')
     try:
-        state: ResetPasswordEmailState = get_pwreset_state(code)
+        state = get_pwreset_state(code)
     except BadCode as e:
         return error_message(e.msg)
 
     verify_email_address(state)
 
     new_password = generate_suggested_password()
-    reset_pw_session = cast(ResetPasswordNS, session.reset_password)
-    reset_pw_session.generated_password_hash = hash_password(new_password)
+    session.reset_password.generated_password_hash = hash_password(new_password)
 
     user = current_app.central_userdb.get_user_by_eppn(state.eppn)
     alternatives = get_extra_security_alternatives(user, SESSION_PREFIX)
@@ -223,7 +222,14 @@ class BadStateOrData(Exception):
         self.msg = msg
 
 
-def _get_state_and_data(SchemaClass):
+TResetPasswordWithCodeSchemaSubclass = TypeVar(
+    'TResetPasswordWithCodeSchemaSubclass', bound=ResetPasswordWithCodeSchema
+)
+
+
+def _get_state_and_data(
+    schema_class: Type[TResetPasswordWithCodeSchemaSubclass],
+) -> Tuple[User, Union[ResetPasswordEmailState, ResetPasswordEmailAndPhoneState], Mapping[str, Any]]:
 
     if not request.data:
         raise BadStateOrData(ResetPwMsg.chpass_no_data)
@@ -242,7 +248,7 @@ def _get_state_and_data(SchemaClass):
     resetpw_user = current_app.central_userdb.get_user_by_eppn(state.eppn)
     min_entropy = current_app.config.password_entropy
 
-    schema = SchemaClass(zxcvbn_terms=get_zxcvbn_terms(resetpw_user.eppn), min_entropy=int(min_entropy))
+    schema = schema_class(zxcvbn_terms=get_zxcvbn_terms(resetpw_user.eppn), min_entropy=int(min_entropy))
 
     try:
         form = schema.load(json.loads(request.data))
@@ -291,9 +297,11 @@ def set_new_pw() -> dict:
         return error_message(e.msg)
 
     password = data.get('password')
+    # convince mypy it is a string - marshmallow schema validation has already been performed
+    if not isinstance(password, str):
+        raise TypeError('Provided password is not a string')
 
-    reset_pw_session = cast(ResetPasswordNS, session.reset_password)
-    hashed = reset_pw_session.generated_password_hash
+    hashed = session.reset_password.generated_password_hash
     if check_password(password, hashed):
         state.generated_password = True
         current_app.logger.info('Generated password used')
@@ -349,8 +357,9 @@ def choose_extra_security_phone(code: str, phone_index: int) -> dict:
 
     if isinstance(state, ResetPasswordEmailAndPhoneState):
         now = int(time.time())
-        modified_ts = cast(datetime, state.modified_ts)
-        if int(modified_ts.timestamp()) > now - current_app.config.throttle_sms_seconds:
+        if not isinstance(state.modified_ts, datetime):
+            raise TypeError(f'Modified timestamp in state is not a datetime ({repr(state.modified_ts)})')
+        if int(state.modified_ts.timestamp()) > now - current_app.config.throttle_sms_seconds:
             current_app.logger.info(f'Throttling reset password SMSs for: {state.eppn}')
             return error_message(ResetPwMsg.send_sms_throttled)
 
@@ -404,8 +413,17 @@ def set_new_pw_extra_security_phone() -> dict:
     except BadStateOrData as e:
         return error_message(e.msg)
 
+    if not isinstance(state, ResetPasswordEmailAndPhoneState):
+        raise TypeError(f'State is not ResetPasswordEmailAndPhoneState ({type(state)})')
+
     password = data.get('password')
     phone_code = data.get('phone_code')
+
+    # convince mypy these are string - marshmallow schema validation has already been performed
+    if not isinstance(password, str):
+        raise TypeError('Provided password is not a string')
+    if not isinstance(phone_code, str):
+        raise TypeError('Provided password is not a string')
 
     if phone_code == state.phone_code.code:
         if not verify_phone_number(state):
@@ -418,9 +436,7 @@ def set_new_pw_extra_security_phone() -> dict:
         current_app.logger.info(f'Could not verify phone code for {state.eppn}')
         return error_message(ResetPwMsg.unknown_phone_code)
 
-    reset_pw_session = cast(ResetPasswordNS, session.reset_password)
-    hashed = reset_pw_session.generated_password_hash
-    if check_password(password, hashed):
+    if check_password(password, session.reset_password.generated_password_hash):
         state.generated_password = True
         current_app.logger.info('Generated password used')
         current_app.stats.count(name='reset_password_generated_password_used')
@@ -470,14 +486,16 @@ def set_new_pw_extra_security_token() -> dict:
         return error_message(e.msg)
 
     password = data.get('password')
+    # convince mypy it is a string - marshmallow schema validation has already been performed
+    if not isinstance(password, str):
+        raise TypeError('Provided password is not a string')
 
     req_json = request.get_json()
     if not req_json:
         current_app.logger.error(f'No data in request to authn {state.eppn}')
         return error_message(ResetPwMsg.mfa_no_data)
 
-    reset_pw_session = cast(ResetPasswordNS, session.reset_password)
-    hashed = reset_pw_session.generated_password_hash
+    hashed = session.reset_password.generated_password_hash
     if check_password(password, hashed):
         state.generated_password = True
         current_app.logger.info('Generated password used')
@@ -497,10 +515,11 @@ def set_new_pw_extra_security_token() -> dict:
         current_app.logger.debug(f'U2F token response: {token_response}')
 
         _challenge = session.get(SESSION_PREFIX + '.u2f.challenge')
-        challenge = cast(bytes, _challenge)
-        current_app.logger.debug(f'Challenge: {challenge!r}')
+        if not isinstance(_challenge, bytes):
+            raise TypeError(f'U2F challenge in session is not bytes {repr(_challenge)}')
+        current_app.logger.debug(f'Challenge: {_challenge!r}')
 
-        result = fido_tokens.verify_u2f(user, challenge, token_response)
+        result = fido_tokens.verify_u2f(user, _challenge, token_response)
 
         if result is not None:
             success = result['success']
