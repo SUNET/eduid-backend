@@ -1,4 +1,5 @@
 SOURCE=	src
+EDUIDUSERDB= ../eduid-userdb/src
 
 test:
 	pytest
@@ -9,3 +10,6 @@ reformat:
 
 typecheck:
 	mypy --ignore-missing-imports $(SOURCE)
+
+typecheck_extra:
+	mypy --ignore-missing-imports $(EDUIDUSERDB) $(SOURCE)

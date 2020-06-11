@@ -13,14 +13,13 @@ from eduid_common.config.base import CeleryConfig
 __author__ = 'lundberg'
 
 
-def init_relay(app: EduIDBaseApp, application_name: str) -> EduIDBaseApp:
+def init_relay(app: EduIDBaseApp, application_name: str) -> None:
     """
     :param app: Flask app
     :param application_name: Name to help am find the entry point for the am plugin
-    :return: Flask app
     """
     app.am_relay = AmRelay(app.config.celery_config, application_name)
-    return app
+    return None
 
 
 class AmRelay(object):

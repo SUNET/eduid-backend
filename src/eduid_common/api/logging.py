@@ -104,7 +104,7 @@ def merge_config(base_config: dict, new_config: dict) -> dict:
     return base_config
 
 
-def init_logging(app: EduIDBaseApp) -> EduIDBaseApp:
+def init_logging(app: EduIDBaseApp) -> None:
     """
     Init logging using dictConfig.
 
@@ -161,4 +161,4 @@ def init_logging(app: EduIDBaseApp) -> EduIDBaseApp:
         pp = PrettyPrinter()
         app.logger.debug(f'Logging config:\n{pp.pformat(logging_config)}')
     app.logger.info('Logging configured')
-    return app
+    return None

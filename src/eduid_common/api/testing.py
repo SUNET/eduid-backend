@@ -45,6 +45,7 @@ from flask.testing import FlaskClient
 from eduid_userdb import User
 from eduid_userdb.data_samples import NEW_COMPLETED_SIGNUP_USER_EXAMPLE, NEW_UNVERIFIED_USER_EXAMPLE, NEW_USER_EXAMPLE
 from eduid_userdb.db import BaseDB
+from eduid_userdb.testing import AbstractMockedUserDB
 
 from eduid_common.api.testing_base import CommonTestCase
 from eduid_common.session import EduidSession
@@ -89,16 +90,12 @@ _standard_test_users = {
 }
 
 
-class APIMockedUserDB(object):
+class APIMockedUserDB(AbstractMockedUserDB):
 
     test_users: Dict[str, Any] = {}
 
     def __init__(self, _patches):
         pass
-
-    def all_userdocs(self):
-        for user in self.test_users.values():
-            yield deepcopy(user)
 
 
 class EduidAPITestCase(CommonTestCase):
@@ -130,7 +127,7 @@ class EduidAPITestCase(CommonTestCase):
 
         self.user = None
         # Initialize some convenience variables on self based on the first user in `users'
-        self.test_user_data = _standard_test_users.get(users[0])
+        self.test_user_data = _standard_test_users[users[0]]
         self.test_user = User.from_dict(data=self.test_user_data)
 
         super(EduidAPITestCase, self).setUp(users=users, am_settings=am_settings)

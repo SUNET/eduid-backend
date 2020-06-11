@@ -38,6 +38,7 @@ from flask import current_app
 
 import eduid_msg
 
+from eduid_common.api.app import EduIDBaseApp
 from eduid_common.api.exceptions import MailTaskFailed
 
 
@@ -96,12 +97,9 @@ class MailRelay(object):
         return result
 
 
-def init_relay(app):
+def init_relay(app: EduIDBaseApp) -> None:
     """
     :param app: Flask app
-    :type app: flask.Flask
-    :return: Flask app
-    :rtype: flask.Flask
     """
     app.mail_relay = MailRelay(app.config['CELERY_CONFIG'])
-    return app
+    return None

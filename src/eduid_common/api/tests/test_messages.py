@@ -34,11 +34,10 @@
 from enum import unique
 from unittest import TestCase
 
-from eduid_common.api.messages import CommonMsg
-
 from werkzeug.wrappers import Response
 
 from eduid_common.api.messages import (
+    CommonMsg,
     TranslatableMsg,
     error_message,
     make_query_string,

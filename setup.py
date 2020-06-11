@@ -1,7 +1,8 @@
 from setuptools import setup, find_packages
 
 
-version = '0.4.23'
+version = '0.4.24'
+
 
 requires = [
     'six >= 1.11.0',
