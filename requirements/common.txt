@@ -3,8 +3,8 @@ redis>=3.2.0,==3.*
 pynacl>=1.0.1
 python-etcd>=0.4.3
 Pillow>=3.0.0
-eduid-userdb>=0.4.14
-eduid-common[webapp]>=0.4.22
+eduid-userdb>=0.4.15
+eduid-common[webapp]>=0.4.24
 eduid-am>=0.6.3b7
 eduid-msg>=0.10.3b7
 marshmallow>=3.0,==3.*
