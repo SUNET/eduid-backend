@@ -423,7 +423,7 @@ def set_new_pw_extra_security_phone() -> dict:
     if not isinstance(password, str):
         raise TypeError('Provided password is not a string')
     if not isinstance(phone_code, str):
-        raise TypeError('Provided password is not a string')
+        raise TypeError('Provided phone_code is not a string')
 
     if phone_code == state.phone_code.code:
         if not verify_phone_number(state):
