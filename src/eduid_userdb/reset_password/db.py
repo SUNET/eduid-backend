@@ -31,9 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import logging
-from typing import Any, Dict, Mapping, Optional
-
-from pymongo.errors import DuplicateKeyError
+from typing import Any, Dict, Mapping, Optional, TypeVar, Union
 
 from eduid_userdb.db import BaseDB
 from eduid_userdb.exceptions import DocumentOutOfSync, MultipleDocumentsReturned
@@ -53,7 +51,7 @@ class ResetPasswordUserDB(UserDB):
 
     UserClass = ResetPasswordUser
 
-    def __init__(self, db_uri: str, db_name: str = 'eduid_reset_password', collection: str = 'profiles'):
+    def __init__(self, db_uri: Optional[str], db_name: str = 'eduid_reset_password', collection: str = 'profiles'):
         super(ResetPasswordUserDB, self).__init__(db_uri, db_name, collection=collection)
 
     def save(self, user: User, check_sync: bool = True, old_format: bool = False) -> bool:
@@ -61,17 +59,21 @@ class ResetPasswordUserDB(UserDB):
 
 
 class ResetPasswordStateDB(BaseDB):
-    def __init__(self, db_uri: str, db_name: str = 'eduid_reset_password', collection: str = 'password_reset_data'):
+    def __init__(
+        self, db_uri: Optional[str], db_name: str = 'eduid_reset_password', collection: str = 'password_reset_data'
+    ):
         super(ResetPasswordStateDB, self).__init__(db_uri, db_name, collection=collection)
 
-    def get_state_by_email_code(self, email_code: str, raise_on_missing: bool = True):
+    def get_state_by_email_code(
+        self, email_code: str, raise_on_missing: bool = True
+    ) -> Optional[Union[ResetPasswordEmailState, ResetPasswordEmailAndPhoneState]]:
         """
         Locate a state in the db given the state's email code.
 
         :param email_code: Code sent to the user
         :param raise_on_missing: Raise exception if True else return None
 
-        :return: ResetPasswordState instance | None
+        :return: ResetPasswordState subclass instance
 
         :raise self.DocumentDoesNotExist: No document match the search criteria
         :raise self.MultipleDocumentsReturned: More than one document matches
@@ -84,18 +86,20 @@ class ResetPasswordStateDB(BaseDB):
             return None
 
         if len(states) > 1:
-            raise MultipleDocumentsReturned(f"Multiple matching users for " f"filter {filter}")
+            raise MultipleDocumentsReturned(f'Multiple matching users for filter {filter}')
 
         return self.init_state(states[0])
 
-    def get_state_by_eppn(self, eppn: str, raise_on_missing: bool = True):
+    def get_state_by_eppn(
+        self, eppn: str, raise_on_missing: bool = True
+    ) -> Optional[Union[ResetPasswordEmailState, ResetPasswordEmailAndPhoneState]]:
         """
         Locate a state in the db given the users eppn.
 
         :param eppn: Users unique eppn
         :param raise_on_missing: Raise exception if True else return None
 
-        :return: ResetPasswordState instance | None
+        :return: ResetPasswordState subclass instance
 
         :raise self.DocumentDoesNotExist: No document match the search criteria
         :raise self.MultipleDocumentsReturned: More than one document matches
@@ -104,15 +108,15 @@ class ResetPasswordStateDB(BaseDB):
         state = self._get_document_by_attr('eduPersonPrincipalName', eppn, raise_on_missing)
         if state:
             return self.init_state(state)
+        return None
 
     @staticmethod
-    def init_state(state: Mapping) -> Optional[ResetPasswordState]:
-        resetpw_state = None
+    def init_state(state: Mapping) -> Optional[Union[ResetPasswordEmailState, ResetPasswordEmailAndPhoneState]]:
         if state.get('method') == 'email':
-            resetpw_state = ResetPasswordEmailState(data=state)
-        if state.get('method') == 'email_and_phone':
-            resetpw_state = ResetPasswordEmailAndPhoneState(data=state)
-        return resetpw_state
+            return ResetPasswordEmailState(data=state)
+        elif state.get('method') == 'email_and_phone':
+            return ResetPasswordEmailAndPhoneState(data=state)
+        return None
 
     def save(self, state: ResetPasswordState, check_sync: bool = True):
         """
@@ -144,13 +148,11 @@ class ResetPasswordStateDB(BaseDB):
                 if db_state:
                     db_ts = db_state['modified_ts']
                 logging.debug(
-                    f"{self} FAILED Updating state {state} "
-                    f"(ts {modified}) in {self._coll_name}). "
-                    f"ts in db = {db_ts}"
+                    f'{self} FAILED Updating state {state} (ts {modified}) in {self._coll_name}). ts in db = {db_ts}'
                 )
                 raise DocumentOutOfSync("Stale state object can't be saved")
 
-            logging.debug(f"{self} Updated state {state} (ts {modified}) in " f"{self._coll_name}): {result}")
+            logging.debug(f'{self} Updated state {state} (ts {modified}) in {self._coll_name}): {result}')
 
     def remove_state(self, state: ResetPasswordState):
         """
