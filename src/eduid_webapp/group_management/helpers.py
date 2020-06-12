@@ -1,16 +1,18 @@
 # -*- coding: utf-8 -*-
 from enum import unique
-from typing import Optional
+from typing import Any, Dict, List, Optional
 from uuid import UUID
 
 from eduid_common.api.messages import TranslatableMsg
-from eduid_groupdb import Group as GraphGroup
 from eduid_groupdb import User as GraphUser
+from eduid_scimapi.groupdb import ScimApiGroup
 from eduid_scimapi.userdb import ScimApiUser
-from eduid_userdb.exceptions import EduIDDBError
+from eduid_userdb import User
+from eduid_userdb.exceptions import DocumentDoesNotExist, EduIDDBError
 from eduid_userdb.group_management import GroupInviteState
 
 from eduid_webapp.group_management.app import current_group_management_app as current_app
+from eduid_webapp.group_management.schemas import GroupRole
 
 __author__ = 'lundberg'
 
@@ -54,20 +56,71 @@ def is_member(scim_user: ScimApiUser, group_id: UUID) -> bool:
 
 def add_user_to_group(scim_user: ScimApiUser, invite: GroupInviteState) -> bool:
     graph_user = GraphUser(identifier=str(scim_user.scim_id), display_name=invite.email_address)
-    group = current_app.scimapi_groupdb.get_group_by_scim_id(invite.group_id)
+    group = current_app.scimapi_groupdb.get_group_by_scim_id(invite.group_scim_id)
 
     if not group:
         return False
 
-    if invite.role == 'owner':
+    if invite.role == GroupRole.OWNER.value:
         group.graph.owners.append(graph_user)
-    if invite.role == 'member':
+    elif invite.role == GroupRole.MEMBER.value:
         group.graph.members.append(graph_user)
     else:
         raise NotImplementedError(f'Unknown role: {invite.role}')
 
     if not current_app.scimapi_groupdb.save(group):
-        current_app.logger.error(f'Failed to save group with scim_id: {invite.group_id}')
+        current_app.logger.error(f'Failed to save group with scim_id: {invite.group_scim_id}')
         raise EduIDDBError('Failed to save group')
 
+    current_app.logger.info(f'Added user as {invite.role} to group with scim_id: {invite.group_scim_id}')
     return True
+
+
+def get_outgoing_invites(groups: List[ScimApiGroup]) -> List[Dict[str, Any]]:
+    """
+    Return all outgoing invites to groups that the user is owner of.
+    """
+    invites = []
+    for group in groups:
+        try:
+            states = current_app.invite_state_db.get_states_by_group_scim_id(str(group.scim_id))
+        except DocumentDoesNotExist:
+            continue
+        group_invite = {'identifier': group.scim_id, 'owner_invites': [], 'member_invites': []}
+        for state in states:
+            if state.role == GroupRole.OWNER.value:
+                group_invite['owner_invites'].append({'email_address': state.email_address})
+            if state.role == GroupRole.MEMBER.value:
+                group_invite['member_invites'].append({'email_address': state.email_address})
+        invites.append(group_invite)
+    current_app.logger.info(f'outgoing invites: {invites}')
+    return invites
+
+
+def get_incoming_invites(user: User) -> List[Dict[str, Any]]:
+    """
+    Return all incoming invites to groups for the user
+    """
+    invites = []
+    emails = [item.email for item in user.mail_addresses.to_list() if item.is_verified]
+    states = current_app.invite_state_db.get_states_by_email_addresses(emails, raise_on_missing=False)
+    for state in states:
+        group = current_app.scimapi_groupdb.get_group_by_scim_id(state.group_scim_id)
+        if group is None:
+            current_app.invite_state_db.remove_state(state)
+            current_app.logger.info(f'Removed invite to non existant group: {state}')
+            continue
+
+        owners = [{'identifier': owner.identifier, 'display_name': owner.display_name} for owner in group.graph.owners]
+        invites.append(
+            {
+                'identifier': group.scim_id,
+                'display_name': group.display_name,
+                'owners': owners,
+                'email_address': state.email_address,
+                'role': state.role,
+            }
+        )
+
+    current_app.logger.info(f'incoming invites: {invites}')
+    return invites

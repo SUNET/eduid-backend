@@ -31,15 +31,21 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from marshmallow import ValidationError, fields, post_load, pre_load
+from enum import Enum, unique
+
+from marshmallow import ValidationError, fields
 
 from eduid_common.api.schemas.base import EduidSchema, FluxStandardAction
 from eduid_common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
 from eduid_common.api.schemas.validators import validate_email
 
-from eduid_webapp.group_management.app import current_app
-
 __author__ = 'lundberg'
+
+
+@unique
+class GroupRole(Enum):
+    OWNER = 'owner'
+    MEMBER = 'member'
 
 
 def validate_role(role: str, **kwargs):
@@ -47,13 +53,13 @@ def validate_role(role: str, **kwargs):
     :param role: Role in group
     :return: True|ValidationError
     """
-    roles = current_app.scimapi_groupdb.graphdb.Role.__members__.keys()
-    if role.upper() in roles:
+    roles = [r.value for r in GroupRole]
+    if role in roles:
         return True
     raise ValidationError(f'role needs to be one of the following: {roles}')
 
 
-class GroupMember(EduidSchema):
+class GroupUser(EduidSchema):
     identifier = fields.UUID(required=True)
     display_name = fields.Str(required=True)
 
@@ -61,8 +67,25 @@ class GroupMember(EduidSchema):
 class Group(EduidSchema):
     identifier = fields.UUID(required=True)
     display_name = fields.Str(required=True)
-    members = fields.Nested(nested=GroupMember, default=[], many=True)
-    owners = fields.Nested(nested=GroupMember, default=[], many=True)
+    members = fields.Nested(nested=GroupUser, default=[], many=True)
+    owners = fields.Nested(nested=GroupUser, default=[], many=True)
+
+
+class OutgoingInvite(EduidSchema):
+    class EmailAddress(EduidSchema):
+        email_address = fields.Email(required=True)
+
+    identifier = fields.UUID(required=True)
+    member_invites = fields.Nested(EmailAddress, many=True)
+    owner_invites = fields.Nested(EmailAddress, many=True)
+
+
+class IncomingInvite(EduidSchema):
+    identifier = fields.UUID(required=True)
+    display_name = fields.Str(required=True)
+    email_address = fields.Email(required=True)
+    role = fields.Str(required=True, validate=validate_role)
+    owners = fields.Nested(GroupUser, many=True)
 
 
 class GroupManagementResponseSchema(FluxStandardAction):
@@ -89,17 +112,24 @@ class GroupInviteRequestSchema(EduidSchema, CSRFRequestMixin):
     email_address = fields.Email(required=True, validate=[validate_email])
     role = fields.Str(required=True, validate=[validate_role])
 
-    @post_load
-    def lower_role(self, in_data, **kwargs):
-        in_data["role"] = in_data["role"].lower()
-        return in_data
 
-
-class GroupInviteResponseSchema(FluxStandardAction):
+class GroupIncomingInviteResponseSchema(FluxStandardAction):
     class GroupInviteResponsePayload(EduidSchema, CSRFResponseMixin):
-        identifier = fields.UUID(required=True)
-        email_address = fields.Email(required=True)
-        role = fields.Str(required=True, validate=[validate_role])
-        success = fields.Boolean(required=True)
+        incoming = fields.Nested(IncomingInvite, many=True)
+
+    payload = fields.Nested(GroupInviteResponsePayload)
+
+
+class GroupOutgoingInviteResponseSchema(FluxStandardAction):
+    class GroupInviteResponsePayload(EduidSchema, CSRFResponseMixin):
+        outgoing = fields.Nested(OutgoingInvite, many=True)
+
+    payload = fields.Nested(GroupInviteResponsePayload)
+
+
+class GroupAllInviteResponseSchema(FluxStandardAction):
+    class GroupInviteResponsePayload(EduidSchema, CSRFResponseMixin):
+        incoming = fields.Nested(IncomingInvite, many=True)
+        outgoing = fields.Nested(OutgoingInvite, many=True)
 
     payload = fields.Nested(GroupInviteResponsePayload)

@@ -86,7 +86,8 @@ def init_group_management_app(name: str, config: Dict) -> GroupManagementApp:
     app = GroupManagementApp(name, config)
 
     # Register views
-    from eduid_webapp.group_management.views import group_management_views, group_invite_views
+    from eduid_webapp.group_management.views.group import group_management_views
+    from eduid_webapp.group_management.views.invite import group_invite_views
 
     app.register_blueprint(group_management_views)
     app.register_blueprint(group_invite_views)
