@@ -14,9 +14,10 @@ __author__ = 'lundberg'
 
 @dataclass(frozen=True)
 class GroupInviteState:
-    group_id: str
+    group_scim_id: str
     email_address: str
     role: str
+    inviter: str
     id: bson.ObjectId = field(default_factory=bson.ObjectId)
     # Timestamp of last modification in the database.
     # None if GroupInviteState has never been written to the database.
@@ -45,10 +46,7 @@ class GroupInviteState:
     def to_dict(self) -> MutableMapping:
         res = asdict(self)
         res['_id'] = res.pop('id')
-        res['group_id'] = res.pop('group_id')
-        res['email_address'] = res.pop('email_address')
-        res['role'] = res.pop('role')
         return res
 
     def __str__(self):
-        return f'<eduID {self.__class__.__name__}: group_id={self.group_id} email_address={self.email_address} role={self.role}>'
+        return f'<eduID {self.__class__.__name__}: group_scim_id={self.group_scim_id} email_address={self.email_address} role={self.role}>'

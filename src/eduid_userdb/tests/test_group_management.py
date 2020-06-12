@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
 from uuid import uuid4
+
 from pymongo.errors import DuplicateKeyError
 
+from eduid_userdb.group_management import GroupInviteState, GroupManagementInviteStateDB
 from eduid_userdb.testing import MongoTestCase
-from eduid_userdb.group_management import GroupManagementInviteStateDB, GroupInviteState
 
 __author__ = 'lundberg'
 
 
 class TestResetGroupInviteStateDB(MongoTestCase):
-
     def setUp(self, **kwargs):
         super().setUp(None, None)
         self.invite_state_db = GroupManagementInviteStateDB(self.tmp_db.uri)

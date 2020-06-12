@@ -46,28 +46,31 @@ logger = logging.getLogger(__name__)
 class GroupManagementInviteStateDB(BaseDB):
     def __init__(self, db_uri: str, db_name: str = 'eduid_group_management', collection: str = 'group_invite_data'):
         super(GroupManagementInviteStateDB, self).__init__(db_uri, db_name, collection=collection)
-        # Create an index so that invites for group_id, email_address and role is unique
+        # Create an index so that invites for group_scim_id, email_address and role is unique
         indexes = {
-            'unique-group-email-role': {'key': [('group_id', 1), ('email_address', 1), ('role', 1)], 'unique': True}
+            'unique-group-email-role': {
+                'key': [('group_scim_id', 1), ('email_address', 1), ('role', 1)],
+                'unique': True,
+            }
         }
         self.setup_indexes(indexes)
 
     def get_state(
-        self, group_id: str, email_address: str, role: str, raise_on_missing: bool = True
+        self, group_scim_id: str, email_address: str, role: str, raise_on_missing: bool = True
     ) -> Optional[GroupInviteState]:
         """
-        :param group_id: Groups unique identifier
+        :param group_scim_id: Groups unique identifier
         :param email_address: Invited email address
         :param role: Group role
         :param raise_on_missing: Raise exception if True else return None
 
         :return: GroupInviteState instance
         """
-        spec = {'group_id': group_id, 'email_address': email_address, 'role': role}
+        spec = {'group_scim_id': group_scim_id, 'email_address': email_address, 'role': role}
         docs = list(self._get_documents_by_filter(spec, raise_on_missing=raise_on_missing))
 
         if len(docs) > 1:
-            # Ex. multiple states for same group_id, email address and roles matched
+            # Ex. multiple states for same group_scim_id, email address and roles matched
             # This should not be possible but we have seen it happen
             states = sorted(docs, key=itemgetter('modified_ts'))
             state_to_keep = states.pop(-1)  # Keep latest state
@@ -77,31 +80,31 @@ class GroupManagementInviteStateDB(BaseDB):
 
         return GroupInviteState.from_dict(docs[0])
 
-    def get_states_by_group_id(self, group_id: str, raise_on_missing: bool = True) -> Optional[List[GroupInviteState]]:
+    def get_states_by_group_scim_id(self, group_scim_id: str, raise_on_missing: bool = True) -> List[GroupInviteState]:
         """
         Locate a state in the db given the state's group identifier.
 
-        :param group_id: Groups unique identifier
+        :param group_scim_id: Groups unique identifier
         :param raise_on_missing: Raise exception if True else return None
 
         :return: List of GroupInviteState instances | None
 
         :raise self.DocumentDoesNotExist: No document match the search criteria
         """
-        spec = {'group_id': group_id}
+        ret: List[GroupInviteState] = list()
+        spec = {'group_scim_id': group_scim_id}
         states = list(self._get_documents_by_filter(spec, raise_on_missing=raise_on_missing))
 
         if len(states) == 0:
-            return None
+            return ret
 
-        ret = list()
         for state in states:
             ret.append(GroupInviteState.from_dict(state))
         return ret
 
     def get_states_by_email_addresses(
         self, email_addresses: List[str], raise_on_missing: bool = True
-    ) -> Optional[List[GroupInviteState]]:
+    ) -> List[GroupInviteState]:
         """
         Locate a state in the db given the state's group identifier.
 
@@ -118,7 +121,7 @@ class GroupManagementInviteStateDB(BaseDB):
             states.extend(list(self._get_documents_by_filter(spec, raise_on_missing=raise_on_missing)))
 
         if len(states) == 0:
-            return None
+            return []
 
         ret = list()
         for state in states:
@@ -138,7 +141,7 @@ class GroupManagementInviteStateDB(BaseDB):
             logging.debug(f"{self} Inserted new state {state} into {self._coll_name}): {result.inserted_id})")
         else:
             test_doc: Dict[str, Any] = {
-                'group_id': state.group_id,
+                'group_scim_id': state.group_scim_id,
                 'email_address': state.email_address,
                 'role': state.role,
             }
@@ -148,7 +151,7 @@ class GroupManagementInviteStateDB(BaseDB):
             if check_sync and result.matched_count == 0:
                 db_ts = None
                 db_state = self._coll.find_one(
-                    {'group_id': state.group_id, 'email_address': state.email_address, 'role': state.role}
+                    {'group_scim_id': state.group_scim_id, 'email_address': state.email_address, 'role': state.role}
                 )
                 if db_state:
                     db_ts = db_state['modified_ts']
@@ -166,4 +169,6 @@ class GroupManagementInviteStateDB(BaseDB):
         """
         :param state: GroupInviteState object
         """
-        self.remove_document({'group_id': state.group_id, 'email_address': state.email_address, 'role': state.role})
+        self.remove_document(
+            {'group_scim_id': state.group_scim_id, 'email_address': state.email_address, 'role': state.role}
+        )
