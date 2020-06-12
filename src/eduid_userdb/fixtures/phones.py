@@ -51,10 +51,10 @@ dashboard_verified_phone = PhoneNumber(
     data={
         'number': '+34607507507',
         'verified': True,
-        'created_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"),
+        'created_ts': datetime.fromisoformat("2013-09-02T10:23:25"),
         'created_by': 'dashboard',
         'verified_by': 'dashboard',
-        'verified_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"),
+        'verified_ts': datetime.fromisoformat("2013-09-02T10:23:25"),
     }
 )
 

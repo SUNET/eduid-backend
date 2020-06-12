@@ -61,6 +61,6 @@ old_password = Password(
         'id': ObjectId('112345678901234567890123'),
         'salt': '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$',
         'source': 'signup',
-        'created_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"),
+        'created_ts': datetime.fromisoformat("2013-09-02T10:23:25"),
     }
 )
