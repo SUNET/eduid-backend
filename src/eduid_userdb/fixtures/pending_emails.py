@@ -35,10 +35,10 @@ from datetime import datetime
 from eduid_userdb.proofing import EmailProofingElement
 
 johnsmith2_example_com_pending = EmailProofingElement(
-    data={
+    {
         'email': 'johnsmith2@example.com',
         'created_by': 'dashboard',
-        'created_ts': datetime.strptime("2013-09-02T10:23:25", "%Y-%m-%dT%H:%M:%S"),
+        'created_ts': datetime.fromisoformat("2013-09-02T10:23:25"),
         'verified': False,
         'verified_by': None,
         'verified_ts': None,
