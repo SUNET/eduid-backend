@@ -47,27 +47,6 @@ from eduid_userdb.phone import PhoneNumberList
 from eduid_userdb.user import User
 
 
-mail_addresses = MailAddressList([johnsmith_example_com, johnsmith2_example_com,])
-
-
-nins = NinList([dashboard_primary_nin, dashboard_verified_nin,])
-
-
-passwords = CredentialList([signup_password,])
-
-
-phone_numbers = PhoneNumberList([dashboard_primary_phone, dashboard_unverified_phone,])
-
-
-locked_identity = LockedIdentityList([dashboard_locked_nin,])
-
-
-entitlements = [
-    'urn:mace:eduid.se:role:admin',
-    'urn:mace:eduid.se:role:student',
-]
-
-
 new_user_example = User.construct_user(
     eppn='hubba-bubba',
     _id=ObjectId('012345678901234567890123'),
@@ -78,10 +57,13 @@ new_user_example = User.construct_user(
     language='en',
     modified_ts=datetime.fromisoformat("2013-09-02T10:23:25"),
     terminated=False,
-    mail_addresses=mail_addresses,
-    nins=nins,
-    phone_numbers=phone_numbers,
-    passwords=passwords,
-    entitlements=entitlements,
-    locked_identity=locked_identity,
+    mail_addresses=MailAddressList([johnsmith_example_com, johnsmith2_example_com,]),
+    nins=NinList([dashboard_primary_nin, dashboard_verified_nin,]),
+    phone_numbers=PhoneNumberList([dashboard_primary_phone, dashboard_unverified_phone,]),
+    passwords=CredentialList([signup_password,]),
+    entitlements=[
+        'urn:mace:eduid.se:role:admin',
+        'urn:mace:eduid.se:role:student',
+    ],
+    locked_identity=LockedIdentityList([dashboard_locked_nin,]),
 )
