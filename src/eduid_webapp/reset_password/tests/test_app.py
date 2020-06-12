@@ -47,7 +47,6 @@ from eduid_common.authn.testing import TestVCCSClient
 from eduid_common.authn.tests.test_fido_tokens import SAMPLE_WEBAUTHN_CREDENTIAL, SAMPLE_WEBAUTHN_REQUEST
 from eduid_userdb.credentials import Webauthn
 from eduid_userdb.exceptions import DocumentDoesNotExist, UserDoesNotExist, UserHasNotCompletedSignup
-
 from eduid_webapp.reset_password.app import init_reset_password_app
 from eduid_webapp.reset_password.helpers import (
     generate_suggested_password,
@@ -1031,7 +1030,7 @@ class ChangePasswordTests(EduidAPITestCase):
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def _change_password(
-        self, mock_request_user_sync: Any, reauthn: Optional[int] = None, data1: Optional[dict] = None
+        self, mock_request_user_sync: Any, reauthn: Optional[int] = None, data1: Optional[dict] = None, yuck_add_csrf: bool=False
     ):
         """
         To change the pasword of the test user, POST old and new passwords,
@@ -1052,6 +1051,8 @@ class ChangePasswordTests(EduidAPITestCase):
                     data = {'new_password': '0ieT/(.edW76', 'old_password': '5678', 'csrf_token': sess.get_csrf_token()}
                     if data1 == {}:
                         data = {}
+                        if yuck_add_csrf:
+                            data['csrf_token'] = sess.get_csrf_token()
                     elif data1 is not None:
                         data.update(data1)
 
@@ -1120,13 +1121,15 @@ class ChangePasswordTests(EduidAPITestCase):
         self.assertEqual(response.json['type'], "POST_CHANGE_PASSWORD_CHANGE_PASSWORD_SUCCESS")
 
     def test_change_passwd_no_data(self):
-        response = self._change_password(data1={})
+        response = self._change_password(data1={}, yuck_add_csrf=True)
 
         self.assertEqual(response.json['type'], "POST_CHANGE_PASSWORD_CHANGE_PASSWORD_FAIL")
-        self.assertEqual(response.json['payload']['message'], 'chpass.no-data')
+        self.assertEqual(response.json['payload']['error'], {'new_password': ['Missing data for required field.'],
+                                                             'old_password': ['Missing data for required field.'],
+                                                             })
 
     def test_change_passwd_empty_data(self):
-        data1 = {'new_password': '', 'old_password': '', 'csrf_token': ''}
+        data1 = {'new_password': '', 'old_password': ''}
         response = self._change_password(data1=data1)
 
         self.assertEqual(response.json['type'], "POST_CHANGE_PASSWORD_CHANGE_PASSWORD_FAIL")
@@ -1153,7 +1156,7 @@ class ChangePasswordTests(EduidAPITestCase):
         response = self._change_password(reauthn=reauthn, data1=data1)
 
         self.assertEqual(response.json['type'], "POST_CHANGE_PASSWORD_CHANGE_PASSWORD_FAIL")
-        self.assertEqual(response.json['payload']['message'], 'csrf.try_again')
+        self.assertEqual(response.json['payload']['error']['csrf_token'], ['CSRF failed to validate'])
 
     @patch('eduid_webapp.reset_password.views.change_password.change_password')
     def test_change_passwd_wrong_csrf(self, mock_change_password):
@@ -1164,7 +1167,7 @@ class ChangePasswordTests(EduidAPITestCase):
         response = self._change_password(data1=data1, reauthn=reauthn)
 
         self.assertEqual(response.json['type'], "POST_CHANGE_PASSWORD_CHANGE_PASSWORD_FAIL")
-        self.assertEqual(response.json['payload']['message'], 'csrf.try_again')
+        self.assertEqual(response.json['payload']['error']['csrf_token'], ['CSRF failed to validate'])
 
     @patch('eduid_webapp.reset_password.views.change_password.change_password')
     def test_change_passwd_weak(self, mock_change_password):
@@ -1175,7 +1178,7 @@ class ChangePasswordTests(EduidAPITestCase):
         response = self._change_password(data1=data1, reauthn=reauthn)
 
         self.assertEqual(response.json['type'], "POST_CHANGE_PASSWORD_CHANGE_PASSWORD_FAIL")
-        self.assertEqual(response.json['payload']['message'], 'chpass.no-data')
+        self.assertEqual(response.json['payload']['message'], 'chpass.weak-password')
 
     def test_get_suggested_and_change(self):
         response = self._get_suggested_and_change()
@@ -1204,7 +1207,7 @@ class ChangePasswordTests(EduidAPITestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json['type'], "POST_CHANGE_PASSWORD_CHANGE_PASSWORD_FAIL")
-        self.assertEqual(response.json['payload']['message'], 'csrf.try_again')
+        self.assertEqual(response.json['payload']['error']['csrf_token'], ['CSRF failed to validate'])
 
         # check that the password is marked as generated
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
@@ -1227,7 +1230,7 @@ class ChangePasswordTests(EduidAPITestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json['type'], "POST_CHANGE_PASSWORD_CHANGE_PASSWORD_FAIL")
-        self.assertEqual(response.json['payload']['message'], 'chpass.no-data')
+        self.assertEqual(response.json['payload']['message'], 'chpass.weak-password')
 
         # check that the password is marked as generated
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)

@@ -13,7 +13,7 @@
 #        copyright notice, this list of conditions and the following
 #        disclaimer in the documentation and/or other materials provided
 #        with the distribution.
-#     3. Neither the name of the NORDUnet nor the names of its
+#     3. Neither the name of SUNET nor the names of its
 #        contributors may be used to endorse or promote products derived
 #        from this software without specific prior written permission.
 #
@@ -104,19 +104,10 @@ class ChpassResponseSchema(FluxStandardAction):
     payload = fields.Nested(ChpassCredentialList)
 
 
-class ChangePasswordSchema(PasswordSchema):
+class ChpassRequestSchema(EduidSchema, CSRFRequestMixin):
 
-    csrf_token = fields.String(required=True)
     old_password = fields.String(required=True)
     new_password = fields.String(required=True)
-
-    @validates('new_password')
-    def validate_pw(self, value, **kwargs):
-        # Set a new error message
-        try:
-            self.validate_password(value)
-        except ValidationError:
-            raise ValidationError(ResetPwMsg.chpass_weak.value)
 
 
 class SuggestedPassword(EduidSchema, CSRFResponseMixin):
