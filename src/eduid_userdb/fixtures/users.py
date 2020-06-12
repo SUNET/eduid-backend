@@ -46,7 +46,6 @@ from eduid_userdb.nin import NinList
 from eduid_userdb.phone import PhoneNumberList
 from eduid_userdb.user import User
 
-
 new_user_example = User.construct_user(
     eppn='hubba-bubba',
     _id=ObjectId('012345678901234567890123'),
@@ -61,9 +60,6 @@ new_user_example = User.construct_user(
     nins=NinList([dashboard_primary_nin, dashboard_verified_nin,]),
     phone_numbers=PhoneNumberList([dashboard_primary_phone, dashboard_unverified_phone,]),
     passwords=CredentialList([signup_password,]),
-    entitlements=[
-        'urn:mace:eduid.se:role:admin',
-        'urn:mace:eduid.se:role:student',
-    ],
+    entitlements=['urn:mace:eduid.se:role:admin', 'urn:mace:eduid.se:role:student',],
     locked_identity=LockedIdentityList([dashboard_locked_nin,]),
 )

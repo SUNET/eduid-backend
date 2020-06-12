@@ -4,8 +4,8 @@ from unittest import TestCase
 from eduid_userdb.credentials import CredentialList
 from eduid_userdb.dashboard import DashboardLegacyUser as User
 from eduid_userdb.dashboard.user import DashboardUser
-from eduid_userdb.fixtures.users import new_user_example
 from eduid_userdb.exceptions import UserMissingData
+from eduid_userdb.fixtures.users import new_user_example
 from eduid_userdb.testing import MOCKED_USER_STANDARD
 
 
