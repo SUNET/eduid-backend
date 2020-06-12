@@ -160,16 +160,16 @@ def accept_invite(user: User, identifier: UUID, email_address: str, role: str) -
         current_app.logger.info(f'Created ScimApiUser with scim_id: {scim_user.scim_id}')
         current_app.stats.count(name='user_created')
 
-    if is_member(scim_user, identifier):
-        current_app.logger.info(f'User is already member of group with scim_id: {identifier}')
-    else:
-        # Add user to group
-        try:
-            if not add_user_to_group(scim_user, invite_state):
-                current_app.logger.error('Group does not exist')
-                return error_message(GroupManagementMsg.group_not_found)
-        except EduIDDBError:
-            return error_message(CommonMsg.temp_problem)
+    group = current_app.scimapi_groupdb.get_group_by_scim_id(invite_state.group_scim_id)
+    if not group:
+        current_app.logger.error(f'Group with scim_id {invite_state.group_scim_id} not found')
+        return error_message(GroupManagementMsg.group_not_found)
+
+    # Try to add user to group
+    try:
+        add_user_to_group(scim_user, group, invite_state)
+    except EduIDDBError:
+        return error_message(CommonMsg.temp_problem)
 
     current_app.invite_state_db.remove_state(invite_state)
     current_app.stats.count(name=f'invite_accepted_{invite_state.role}')

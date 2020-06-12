@@ -106,6 +106,13 @@ class GroupDeleteRequestSchema(EduidSchema, CSRFRequestMixin):
     identifier = fields.UUID(required=True)
 
 
+class GroupRemoveUserRequestSchema(EduidSchema, CSRFRequestMixin):
+
+    group_identifier = fields.UUID(required=True)
+    user_identifier = fields.UUID(required=True)
+    role = fields.Str(required=True, validate=validate_role)
+
+
 class GroupInviteRequestSchema(EduidSchema, CSRFRequestMixin):
 
     identifier = fields.UUID(required=True)

@@ -42,13 +42,16 @@ from eduid_groupdb import User as GraphUser
 from eduid_scimapi.groupdb import ScimApiGroup
 from eduid_scimapi.userdb import ScimApiUser
 from eduid_userdb import User
+from eduid_userdb.exceptions import EduIDDBError
 
 from eduid_webapp.group_management.app import current_group_management_app as current_app
-from eduid_webapp.group_management.helpers import GroupManagementMsg, get_scim_user_by_eppn, is_owner
+from eduid_webapp.group_management.helpers import GroupManagementMsg, get_scim_user_by_eppn, is_owner, is_member, \
+    remove_user_from_group
 from eduid_webapp.group_management.schemas import (
     GroupCreateRequestSchema,
     GroupDeleteRequestSchema,
     GroupManagementResponseSchema,
+    GroupRole, GroupRemoveUserRequestSchema
 )
 
 __author__ = 'lundberg'
@@ -137,4 +140,37 @@ def delete_group(user: User, identifier: UUID) -> Mapping:
     if group and current_app.scimapi_groupdb.remove_group(group):
         current_app.logger.info(f'Deleted ScimApiGroup with scim_id: {group.scim_id}')
         current_app.stats.count(name='group_deleted')
+    return get_groups()
+
+
+@group_management_views.route('/remove-user', methods=['POST'])
+@UnmarshalWith(GroupRemoveUserRequestSchema)
+@MarshalWith(GroupManagementResponseSchema)
+@require_user
+def remove_user(user: User, group_identifier: UUID, user_identifier: UUID, role: str) -> Mapping:
+    scim_user = get_scim_user_by_eppn(user.eppn)
+    if not scim_user:
+        current_app.logger.error('User does not exist in scimapi_userdb')
+        return error_message(GroupManagementMsg.user_does_not_exist)
+
+    group = current_app.scimapi_groupdb.get_group_by_scim_id(scim_id=str(group_identifier))
+    if not group:
+        current_app.logger.error(f'Group with scim_id {group_identifier} not found')
+        return error_message(GroupManagementMsg.group_not_found)
+
+    if not is_owner(scim_user, group_identifier):
+        current_app.logger.error(f'User is not owner of group with scim_id: {group_identifier}')
+        return error_message(GroupManagementMsg.user_not_owner)
+
+    user_to_remove = current_app.scimapi_userdb.get_user_by_scim_id(user_identifier)
+    if not user_to_remove:
+        current_app.logger.error('User to remove does not exist in scimapi_userdb')
+        return error_message(GroupManagementMsg.user_does_not_exist)
+
+    try:
+        remove_user_from_group(user_to_remove, group, role)
+    except EduIDDBError:
+        return error_message(CommonMsg.temp_problem)
+
+    current_app.stats.count(name=f'removed_{role}')
     return get_groups()
