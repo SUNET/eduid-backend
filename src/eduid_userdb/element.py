@@ -33,7 +33,8 @@
 #
 import copy
 import datetime
-from typing import List, Optional, Union
+import warnings
+from typing import Any, Dict, List, Optional, Type, TypeVar, Union
 
 from six import string_types
 
@@ -75,6 +76,9 @@ class PrimaryElementViolation(PrimaryElementError):
     pass
 
 
+TElementSubclass = TypeVar('TElementSubclass', bound='Element')
+
+
 class Element(object):
     """
     Base class for elements.
@@ -92,7 +96,10 @@ class Element(object):
         created_ts
     """
 
-    def __init__(self, data):
+    def __init__(self, data: Dict[str, Any], called_directly: bool = True):
+        if called_directly:
+            warnings.warn("Element.__init__ called directly", DeprecationWarning)
+
         if not isinstance(data, dict):
             raise UserDBValueError("Invalid 'data', not dict ({!r})".format(type(data)))
         self._data = {}
@@ -103,6 +110,13 @@ class Element(object):
 
     def __str__(self):
         return '<eduID {!s}: {!r}>'.format(self.__class__.__name__, getattr(self, '_data', None))
+
+    @classmethod
+    def from_dict(cls: Type[TElementSubclass], data: Dict[str, Any]) -> TElementSubclass:
+        """
+        Construct user from a data dict.
+        """
+        return cls(data=data, called_directly=False)
 
     # -----------------------------------------------------------------
     @property
@@ -189,8 +203,8 @@ class VerifiedElement(Element):
         verified_ts
     """
 
-    def __init__(self, data):
-        Element.__init__(self, data)
+    def __init__(self, data, called_directly=True):
+        Element.__init__(self, data, called_directly=called_directly)
         # Remove deprecated verification_code from VerifiedElement
         data.pop('verification_code', None)
         self.is_verified = data.pop('verified', False)
@@ -267,8 +281,8 @@ class PrimaryElement(VerifiedElement):
     :type raise_on_unknown: bool
     """
 
-    def __init__(self, data, raise_on_unknown=True, ignore_data=None):
-        VerifiedElement.__init__(self, data)
+    def __init__(self, data, raise_on_unknown=True, called_directly=True, ignore_data=None):
+        VerifiedElement.__init__(self, data, called_directly=called_directly)
 
         self.is_primary = data.pop('primary', False)
 

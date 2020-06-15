@@ -60,6 +60,7 @@ class MailAddress(PrimaryElement):
         primary=None,
         data=None,
         raise_on_unknown=True,
+        called_directly=True,
     ):
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
@@ -74,7 +75,7 @@ class MailAddress(PrimaryElement):
         # CSRF tokens were accidentally put in the database some time ago
         if 'csrf' in data:
             del data['csrf']
-        PrimaryElement.__init__(self, data, raise_on_unknown, ignore_data=['email'])
+        PrimaryElement.__init__(self, data, raise_on_unknown, called_directly=called_directly, ignore_data=['email'])
         self.email = data.pop('email')
 
     # -----------------------------------------------------------------

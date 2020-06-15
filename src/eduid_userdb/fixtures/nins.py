@@ -34,8 +34,8 @@ from datetime import datetime
 
 from eduid_userdb.nin import Nin
 
-dashboard_primary_nin = Nin(
-    data={
+dashboard_primary_nin = Nin.from_dict(
+    {
         'number': '197801011234',
         'created_ts': datetime.fromisoformat("2013-09-02T10:23:25"),
         'created_by': 'dashboard',
@@ -47,8 +47,8 @@ dashboard_primary_nin = Nin(
 )
 
 
-dashboard_verified_nin = Nin(
-    data={
+dashboard_verified_nin = Nin.from_dict(
+    {
         'number': '197801011235',
         'created_ts': datetime.fromisoformat("2013-09-02T10:23:25"),
         'created_by': 'dashboard',

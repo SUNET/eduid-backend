@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
+from datetime import datetime
 from six import string_types
+from typing import Any, Dict, Optional
 
 from eduid_userdb.element import Element, ElementList
 from eduid_userdb.exceptions import EduIDUserDBError, UserDBValueError
@@ -18,8 +20,8 @@ class LockedIdentityElement(Element):
         identity_type
     """
 
-    def __init__(self, data):
-        Element.__init__(self, data)
+    def __init__(self, data, called_directly=True):
+        Element.__init__(self, data, called_directly=called_directly)
         self.identity_type = data.pop('identity_type')
 
     # -----------------------------------------------------------------
@@ -61,9 +63,15 @@ class LockedIdentityNin(LockedIdentityElement):
         number
     """
 
-    def __init__(self, number, created_by, created_ts):
-        data = {'created_by': created_by, 'created_ts': created_ts, 'identity_type': 'nin'}
-        LockedIdentityElement.__init__(self, data)
+    def __init__(self, number: Optional[str] = None, created_by: Optional[str] = None, created_ts: Optional[datetime] = None, data: Optional[Dict[str, Any]] = None, called_directly: bool = True):
+        if data is None:
+            data = {'created_by': created_by, 'created_ts': created_ts}
+        else:
+            number = data.pop('number')
+
+        data['identity_type'] = 'nin'
+
+        LockedIdentityElement.__init__(self, data, called_directly=called_directly)
         self.number = number
 
     # -----------------------------------------------------------------

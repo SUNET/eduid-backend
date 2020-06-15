@@ -34,8 +34,8 @@ from datetime import datetime
 
 from eduid_userdb.mail import MailAddress
 
-johnsmith_example_com = MailAddress(
-    data={
+johnsmith_example_com = MailAddress.from_dict(
+    {
         'email': 'johnsmith@example.com',
         'created_by': 'signup',
         'created_ts': datetime.fromisoformat("2013-09-02T10:23:25"),
@@ -47,8 +47,8 @@ johnsmith_example_com = MailAddress(
 )
 
 
-johnsmith2_example_com = MailAddress(
-    data={
+johnsmith2_example_com = MailAddress.from_dict(
+    {
         'email': 'johnsmith2@example.com',
         'created_by': 'dashboard',
         'created_ts': datetime.fromisoformat("2013-09-02T10:23:25"),
@@ -60,8 +60,8 @@ johnsmith2_example_com = MailAddress(
 )
 
 
-johnsmith3_example_com = MailAddress(
-    data={
+johnsmith3_example_com = MailAddress.from_dict(
+    {
         'email': 'johnsmith3@example.com',
         'created_by': 'signup',
         'created_ts': datetime.fromisoformat("2017-01-04T15:47:27"),
@@ -73,17 +73,17 @@ johnsmith3_example_com = MailAddress(
 )
 
 
-johnsmith_example_com_old = MailAddress(data={'email': 'johnsmith@example.com', 'verified': True, 'primary': True})
+johnsmith_example_com_old = MailAddress.from_dict({'email': 'johnsmith@example.com', 'verified': True, 'primary': True})
 
 
-johnsmith2_example_com_old = MailAddress(data={'email': 'johnsmith2@example.com', 'verified': True})
+johnsmith2_example_com_old = MailAddress.from_dict({'email': 'johnsmith2@example.com', 'verified': True})
 
 
-johnsmith3_example_com_unverified = MailAddress(data={'email': 'johnsmith3@example.com', 'verified': False})
+johnsmith3_example_com_unverified = MailAddress.from_dict({'email': 'johnsmith3@example.com', 'verified': False})
 
 
-johnsmith_example_org = MailAddress(
-    data={
+johnsmith_example_org = MailAddress.from_dict(
+    {
         'email': 'johnsmith@example.org',
         'created_by': 'signup',
         'created_ts': datetime.fromisoformat("2013-09-02T10:23:25"),
@@ -95,8 +95,8 @@ johnsmith_example_org = MailAddress(
 )
 
 
-johnsmith2_example_org = MailAddress(
-    data={
+johnsmith2_example_org = MailAddress.from_dict(
+    {
         'email': 'johnsmith2@example.org',
         'created_by': 'dashboard',
         'created_ts': datetime.fromisoformat("2013-09-02T10:23:25"),

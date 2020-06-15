@@ -57,6 +57,7 @@ class ToUEvent(Event):
         event_id=None,
         data: Optional[Dict[str, Any]] = None,
         raise_on_unknown=True,
+        called_directly=True,
     ):
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
@@ -73,7 +74,7 @@ class ToUEvent(Event):
         for required in ['created_by', 'created_ts']:
             if required not in data or not data.get(required):
                 raise BadEvent('missing required data for event: {!s}'.format(required))
-        Event.__init__(self, data=data, raise_on_unknown=raise_on_unknown, ignore_data=['version'])
+        Event.__init__(self, data=data, raise_on_unknown=raise_on_unknown, called_directly=called_directly, ignore_data=['version'])
         self.version = data.pop('version')
 
     # -----------------------------------------------------------------

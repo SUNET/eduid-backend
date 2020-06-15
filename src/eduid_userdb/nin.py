@@ -60,6 +60,7 @@ class Nin(PrimaryElement):
         primary=None,
         data=None,
         raise_on_unknown=True,
+        called_directly=True,
     ):
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
@@ -71,7 +72,7 @@ class Nin(PrimaryElement):
                 number=number, created_by=application, created_ts=created_ts, verified=verified, primary=primary,
             )
 
-        PrimaryElement.__init__(self, data, raise_on_unknown, ignore_data=['number'])
+        PrimaryElement.__init__(self, data, raise_on_unknown, called_directly=called_directly, ignore_data=['number'])
         self.number = data.pop('number')
 
     # -----------------------------------------------------------------

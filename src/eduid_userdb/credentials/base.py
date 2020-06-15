@@ -53,8 +53,8 @@ class Credential(VerifiedElement):
     elements too.
     """
 
-    def __init__(self, data):
-        super(Credential, self).__init__(data)
+    def __init__(self, data, called_directly=True):
+        super(Credential, self).__init__(data, called_directly=called_directly)
 
         self.proofing_method = data.pop('proofing_method', None)
         self.proofing_version = data.pop('proofing_version', None)

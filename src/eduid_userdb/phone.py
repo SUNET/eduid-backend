@@ -60,6 +60,7 @@ class PhoneNumber(PrimaryElement):
         primary=False,
         data=None,
         raise_on_unknown=True,
+        called_directly=True,
     ):
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
@@ -82,7 +83,7 @@ class PhoneNumber(PrimaryElement):
         if 'csrf' in data:
             del data['csrf']
 
-        PrimaryElement.__init__(self, data, raise_on_unknown, ignore_data=['number'])
+        PrimaryElement.__init__(self, data, raise_on_unknown, called_directly=called_directly, ignore_data=['number'])
         self.number = data.pop('number')
 
     # -----------------------------------------------------------------

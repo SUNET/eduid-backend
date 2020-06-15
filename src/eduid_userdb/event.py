@@ -65,6 +65,7 @@ class Event(Element):
         event_type=None,
         event_id=None,
         raise_on_unknown=True,
+        called_directly=True,
         ignore_data=None,
     ):
         data_in = data
@@ -86,7 +87,7 @@ class Event(Element):
         if 'modified_ts' not in data:
             data['modified_ts'] = data.get('created_ts', None)
 
-        Element.__init__(self, data)
+        Element.__init__(self, data, called_directly=called_directly)
         self.event_type = data.pop('event_type', None)
         if 'id' in data:  # Compatibility for old format
             data['event_id'] = data.pop('id')

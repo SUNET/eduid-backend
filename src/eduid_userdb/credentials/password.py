@@ -55,6 +55,7 @@ class Password(Credential):
         created_ts: Optional[Union[str, bool]] = None,
         data: Optional[dict] = None,
         raise_on_unknown: bool = True,
+        called_directly: bool = True,
     ):
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
@@ -68,7 +69,7 @@ class Password(Credential):
 
         if 'source' in data:  # TODO: Load and save all users in the database to replace source with created_by
             data['created_by'] = data.pop('source')
-        Credential.__init__(self, data)
+        Credential.__init__(self, data, called_directly=called_directly)
         if 'id' in data:  # TODO: Load and save all users in the database to replace id with credential_id
             data['credential_id'] = data.pop('id')
         self.is_generated = data.pop('is_generated', False)
