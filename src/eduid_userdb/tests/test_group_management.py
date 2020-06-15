@@ -16,27 +16,39 @@ class TestResetGroupInviteStateDB(MongoTestCase):
 
     def test_invite_state(self):
         # Member
-        group_id = str(uuid4())
-        invite_state = GroupInviteState(group_id=group_id, email_address='johnsmith@example.com', role='member')
+        group_scim_id = str(uuid4())
+        invite_state = GroupInviteState(
+            group_scim_id=group_scim_id, email_address='johnsmith@example.com', role='member', inviter=self.user.eppn
+        )
         self.invite_state_db.save(invite_state)
-        invite = self.invite_state_db.get_state(group_id=group_id, email_address='johnsmith@example.com', role='member')
-        self.assertEqual(group_id, invite.group_id)
+        invite = self.invite_state_db.get_state(
+            group_scim_id=group_scim_id, email_address='johnsmith@example.com', role='member'
+        )
+        self.assertEqual(group_scim_id, invite.group_scim_id)
         self.assertEqual('johnsmith@example.com', invite.email_address)
         self.assertEqual('member', invite.role)
 
         # Owner
-        group_id = str(uuid4())
-        invite_state = GroupInviteState(group_id=group_id, email_address='johnsmith@example.com', role='owner')
+        group_scim_id = str(uuid4())
+        invite_state = GroupInviteState(
+            group_scim_id=group_scim_id, email_address='johnsmith@example.com', role='owner', inviter=self.user.eppn
+        )
         self.invite_state_db.save(invite_state)
-        invite = self.invite_state_db.get_state(group_id=group_id, email_address='johnsmith@example.com', role='owner')
-        self.assertEqual(group_id, invite.group_id)
+        invite = self.invite_state_db.get_state(
+            group_scim_id=group_scim_id, email_address='johnsmith@example.com', role='owner'
+        )
+        self.assertEqual(group_scim_id, invite.group_scim_id)
         self.assertEqual('johnsmith@example.com', invite.email_address)
         self.assertEqual('owner', invite.role)
 
     def test_save_duplicate(self):
-        group_id = str(uuid4())
-        invite_state1 = GroupInviteState(group_id=group_id, email_address='johnsmith@example.com', role='owner')
-        invite_state2 = GroupInviteState(group_id=group_id, email_address='johnsmith@example.com', role='owner')
+        group_scim_id = str(uuid4())
+        invite_state1 = GroupInviteState(
+            group_scim_id=group_scim_id, email_address='johnsmith@example.com', role='owner', inviter=self.user.eppn
+        )
+        invite_state2 = GroupInviteState(
+            group_scim_id=group_scim_id, email_address='johnsmith@example.com', role='owner', inviter=self.user.eppn
+        )
 
         self.invite_state_db.save(invite_state1)
         with self.assertRaises(DuplicateKeyError):
