@@ -47,7 +47,7 @@ class NinHelpersTest(EduidAPITestCase):
     def insert_verified_user(self):
         userdata = deepcopy(NEW_USER_EXAMPLE)
         del userdata['nins']
-        user = User(data=userdata)
+        user = User.from_dict(data=userdata)
         nin_element = Nin(
             number=self.test_user_nin,
             application='AlreadyVerifiedNinHelpersTest',
@@ -63,7 +63,7 @@ class NinHelpersTest(EduidAPITestCase):
     def insert_not_verified_user(self):
         userdata = deepcopy(NEW_USER_EXAMPLE)
         del userdata['nins']
-        user = User(data=userdata)
+        user = User.from_dict(data=userdata)
         nin_element = Nin(
             number=self.test_user_nin,
             application='AlreadyAddedNinHelpersTest',
@@ -80,7 +80,7 @@ class NinHelpersTest(EduidAPITestCase):
         # Replace user with one without previous proofings
         userdata = deepcopy(NEW_USER_EXAMPLE)
         del userdata['nins']
-        user = User(data=userdata)
+        user = User.from_dict(data=userdata)
         user.modified_ts = True
         self.app.central_userdb.save(user, check_sync=False)
         return user.eppn
@@ -192,7 +192,7 @@ class NinHelpersTest(EduidAPITestCase):
     def test_set_user_names_from_offical_address_1(self):
         userdata = deepcopy(NEW_USER_EXAMPLE)
         del userdata['displayName']
-        user = ProofingUser(data=userdata)
+        user = ProofingUser.from_dict(data=userdata)
         proofing_element = NinProofingLogElement(
             user,
             created_by='test',
@@ -210,7 +210,7 @@ class NinHelpersTest(EduidAPITestCase):
     def test_set_user_names_from_offical_address_2(self):
         userdata = deepcopy(NEW_USER_EXAMPLE)
         del userdata['displayName']
-        user = ProofingUser(data=userdata)
+        user = ProofingUser.from_dict(data=userdata)
         navet_response = {
             u'Name': {u'GivenName': u'Test', u'GivenNameMarking': u'10', u'Surname': u'Testsson'},
             u'OfficialAddress': {u'Address2': u'\xd6RGATAN 79 LGH 10', u'City': u'LANDET', u'PostalCode': u'12345'},
@@ -232,7 +232,7 @@ class NinHelpersTest(EduidAPITestCase):
     def test_set_user_names_from_offical_address_3(self):
         userdata = deepcopy(NEW_USER_EXAMPLE)
         del userdata['displayName']
-        user = ProofingUser(data=userdata)
+        user = ProofingUser.from_dict(data=userdata)
         navet_response = {
             u'Name': {
                 u'GivenName': u'Pippilotta Viktualia Rullgardina Krusmynta Efraimsdotter',
@@ -258,7 +258,7 @@ class NinHelpersTest(EduidAPITestCase):
     def test_set_user_names_from_offical_address_4(self):
         userdata = deepcopy(NEW_USER_EXAMPLE)
         del userdata['displayName']
-        user = ProofingUser(data=userdata)
+        user = ProofingUser.from_dict(data=userdata)
         navet_response = {
             u'Name': {u'GivenName': u'Testaren Test', u'Surname': u'Testsson'},
             u'OfficialAddress': {u'Address2': u'\xd6RGATAN 79 LGH 10', u'City': u'LANDET', u'PostalCode': u'12345'},
@@ -279,7 +279,7 @@ class NinHelpersTest(EduidAPITestCase):
 
     def test_set_user_names_from_offical_address_existing_display_name(self):
         userdata = deepcopy(NEW_USER_EXAMPLE)
-        user = ProofingUser(data=userdata)
+        user = ProofingUser.from_dict(data=userdata)
         proofing_element = NinProofingLogElement(
             user,
             created_by='test',

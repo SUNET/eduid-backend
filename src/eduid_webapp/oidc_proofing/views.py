@@ -104,7 +104,7 @@ def authorization_response():
     # TODO: Break out in parts to be able to continue the proofing process after a successful authorization response
     # TODO: even if the token request, userinfo request or something internal fails
     am_user = current_app.central_userdb.get_user_by_eppn(proofing_state.eppn)
-    user = ProofingUser(data=am_user.to_dict())
+    user = ProofingUser.from_dict(data=am_user.to_dict())
 
     try:
         # Handle userinfo differently depending on data in userinfo
