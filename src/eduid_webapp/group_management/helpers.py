@@ -78,18 +78,24 @@ def add_user_to_group(scim_user: ScimApiUser, scim_group: ScimApiGroup, invite: 
 def remove_user_from_group(scim_user: ScimApiUser, scim_group: ScimApiGroup, role: str) -> None:
     if role == GroupRole.OWNER.value:
         if is_owner(scim_user, scim_group.scim_id):
-            scim_group.graph.owners = [owner for owner in scim_group.graph.owners if owner.identifier != scim_user.scim_id]
+            scim_group.graph.owners = [
+                owner for owner in scim_group.graph.owners if owner.identifier != str(scim_user.scim_id)
+            ]
 
     elif role == GroupRole.MEMBER.value:
         if is_member(scim_user, scim_group.scim_id):
-            scim_group.graph.members = [member for member in scim_group.graph.members if member.identifier != scim_user.scim_id]
+            scim_group.graph.members = [
+                member for member in scim_group.graph.members if member.identifier != str(scim_user.scim_id)
+            ]
     else:
         raise NotImplementedError(f'Unknown role: {role}')
 
-    if not current_app.scimapi_userdb.save(scim_group):
+    if not current_app.scimapi_groupdb.save(scim_group):
         raise EduIDDBError(f'Failed to save group with scim_id {scim_group.scim_id}')
 
-    current_app.logger.info(f'Removed user as with scim_id {scim_user.scim_id} as {role} from group with scim_id {scim_group.scim_id}')
+    current_app.logger.info(
+        f'Removed user as with scim_id {scim_user.scim_id} as {role} from group with scim_id {scim_group.scim_id}'
+    )
     return None
 
 
