@@ -57,6 +57,9 @@ class OidcIdToken(Element):
                 created_by=application,
                 created_ts=created_ts,
             )
+        elif 'created_ts' not in data:
+            data['created_ts'] = True
+
         Element.__init__(self, data, called_directly=called_directly)
         self.iss = data.pop('iss')
         self.sub = data.pop('sub')
@@ -319,6 +322,7 @@ class OidcAuthorization(Element):
         created_ts=None,
         data=None,
         raise_on_unknown=True,
+        called_directly=True,
     ):
         data_in = data
         data = copy.deepcopy(data_in)  # to not modify callers data
@@ -335,8 +339,10 @@ class OidcAuthorization(Element):
                 created_by=application,
                 created_ts=created_ts,
             )
+        elif 'created_ts' not in data:
+            data['created_ts'] = True
 
-        Element.__init__(self, data)
+        Element.__init__(self, data, called_directly=called_directly)
         self.access_token = data.pop('access_token')
         self.token_type = data.pop('token_type')
         self.expires_in = data.pop('expires_in')
@@ -521,6 +527,8 @@ class Orcid(VerifiedElement):
                 created_ts=created_ts,
                 verified=verified,
             )
+        elif 'created_ts' not in data:
+            data['created_ts'] = True
 
         VerifiedElement.__init__(self, data, called_directly=called_directly)
         self.id = data.pop('id')
