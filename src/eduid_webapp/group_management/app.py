@@ -35,7 +35,7 @@ from typing import Dict, cast
 
 from flask import current_app
 
-from eduid_common.api import mail_relay
+from eduid_common.api import mail_relay, translation
 from eduid_common.authn.middleware import AuthnBaseApp
 from eduid_scimapi.groupdb import ScimApiGroupDB
 from eduid_scimapi.userdb import ScimApiUserDB
@@ -70,6 +70,9 @@ class GroupManagementApp(AuthnBaseApp):
         )
         # Init celery
         mail_relay.init_relay(self)
+
+        # Init translation
+        translation.init_babel(self)
 
 
 current_group_management_app = cast(GroupManagementApp, current_app)

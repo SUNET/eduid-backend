@@ -31,10 +31,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import json
-from typing import Optional
+from typing import Any, Optional
 from uuid import UUID, uuid4
 
 from flask import Response
+from mock import patch
 
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_groupdb.group import User as GraphUser
@@ -117,7 +118,11 @@ class GroupManagementTests(EduidAPITestCase):
         group.graph = self.app.scimapi_groupdb.graphdb.save(group.graph)
         return group
 
-    def _invite(self, group_scim_id: str, inviter: User, invite_address: str, role: str) -> Response:
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
+    def _invite(
+        self, mock_sendmail: Any, group_scim_id: str, inviter: User, invite_address: str, role: str
+    ) -> Response:
+        mock_sendmail.return_value = True
         with self.session_cookie(self.browser, inviter.eppn) as client:
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
@@ -181,18 +186,30 @@ class GroupManagementTests(EduidAPITestCase):
 
         # Invite test_user2 as owner and member of Test Group 1
         self._invite(
-            str(self.scim_group1.scim_id), self.test_user, self.test_user2.mail_addresses.primary.email, role='member'
+            group_scim_id=str(self.scim_group1.scim_id),
+            inviter=self.test_user,
+            invite_address=self.test_user2.mail_addresses.primary.email,
+            role='member',
         )
         self._invite(
-            str(self.scim_group1.scim_id), self.test_user, self.test_user2.mail_addresses.primary.email, role='owner'
+            group_scim_id=str(self.scim_group1.scim_id),
+            inviter=self.test_user,
+            invite_address=self.test_user2.mail_addresses.primary.email,
+            role='owner',
         )
         # Invite test_user3 as member of Test Group 1
         self._invite(
-            str(self.scim_group1.scim_id), self.test_user, self.test_user3.mail_addresses.primary.email, role='member'
+            group_scim_id=str(self.scim_group1.scim_id),
+            inviter=self.test_user,
+            invite_address=self.test_user3.mail_addresses.primary.email,
+            role='member',
         )
         # Invite test_user3 as member of Test Group 2
         self._invite(
-            str(self.scim_group2.scim_id), self.test_user, self.test_user3.mail_addresses.primary.email, role='member'
+            group_scim_id=str(self.scim_group2.scim_id),
+            inviter=self.test_user,
+            invite_address=self.test_user3.mail_addresses.primary.email,
+            role='member',
         )
 
     def test_app_starts(self):
@@ -499,7 +516,7 @@ class GroupManagementTests(EduidAPITestCase):
 
         # Invite test user 2 to the group as member
         response = self._invite(
-            str(self.scim_group1.scim_id),
+            group_scim_id=str(self.scim_group1.scim_id),
             inviter=self.test_user,
             invite_address=self.test_user2.mail_addresses.primary.email,
             role='member',
@@ -611,7 +628,7 @@ class GroupManagementTests(EduidAPITestCase):
 
         # Invite test user 2 to the group as owner
         response = self._invite(
-            str(self.scim_group1.scim_id),
+            group_scim_id=str(self.scim_group1.scim_id),
             inviter=self.test_user,
             invite_address=self.test_user2.mail_addresses.primary.email,
             role='owner',

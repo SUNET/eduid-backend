@@ -3,6 +3,10 @@ from enum import unique
 from typing import Any, Dict, List, Optional
 from uuid import UUID
 
+from flask_babel import gettext as _
+
+from eduid_common.api.exceptions import MailTaskFailed
+from eduid_common.api.helpers import send_mail
 from eduid_common.api.messages import TranslatableMsg
 from eduid_groupdb import User as GraphUser
 from eduid_scimapi.groupdb import ScimApiGroup
@@ -55,7 +59,7 @@ def is_member(scim_user: ScimApiUser, group_id: UUID) -> bool:
     return False
 
 
-def add_user_to_group(scim_user: ScimApiUser, scim_group: ScimApiGroup, invite: GroupInviteState) -> None:
+def accept_group_invitation(scim_user: ScimApiUser, scim_group: ScimApiGroup, invite: GroupInviteState) -> None:
     graph_user = GraphUser(identifier=str(scim_user.scim_id), display_name=invite.email_address)
 
     if invite.role == GroupRole.OWNER.value:
@@ -147,3 +151,20 @@ def get_incoming_invites(user: User) -> List[Dict[str, Any]]:
 
     current_app.logger.info(f'incoming invites: {invites}')
     return invites
+
+
+def send_invite_email(invite_state: GroupInviteState):
+    text_template = current_app.config.group_invite_template_txt
+    html_template = current_app.config.group_invite_template_txt
+
+    to_addresses = [invite_state.email_address]
+    group = current_app.scimapi_groupdb.get_group_by_scim_id(invite_state.group_scim_id)
+    context = {'group_display_name': group.display_name, 'group_invite_url': current_app.config.group_invite_url}
+    subject = _('Group invitation')
+    try:
+        send_mail(subject, to_addresses, text_template, html_template, current_app, context, invite_state.group_scim_id)
+    except MailTaskFailed as e:
+        current_app.logger.error(f'Sending group invite email to {invite_state.email_address} failed: {e}')
+        raise e
+
+    current_app.logger.info(f'Sent group invite email {invite_state.email_address}')

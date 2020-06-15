@@ -37,6 +37,7 @@ from flask import Blueprint
 from pymongo.errors import DuplicateKeyError
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
+from eduid_common.api.exceptions import MailTaskFailed
 from eduid_common.api.messages import CommonMsg, error_message
 from eduid_groupdb import User as GraphUser
 from eduid_scimapi.userdb import ScimApiUser
@@ -47,12 +48,12 @@ from eduid_userdb.group_management import GroupInviteState
 from eduid_webapp.group_management.app import current_group_management_app as current_app
 from eduid_webapp.group_management.helpers import (
     GroupManagementMsg,
-    add_user_to_group,
+    accept_group_invitation,
     get_incoming_invites,
     get_outgoing_invites,
     get_scim_user_by_eppn,
-    is_member,
     is_owner,
+    send_invite_email,
 )
 from eduid_webapp.group_management.schemas import (
     GroupAllInviteResponseSchema,
@@ -122,14 +123,18 @@ def create_invite(user: User, identifier: UUID, email_address: str, role: str) -
     invite_state = GroupInviteState(
         group_scim_id=str(identifier), email_address=email_address, role=role, inviter=user.eppn
     )
-    # TODO: Send invite mail
     try:
         current_app.invite_state_db.save(invite_state)
     except DuplicateKeyError:
         current_app.logger.info(
-            f'Invite for email address {invite_state.email_address} to group {invite_state.group_scim_id} as role {invite_state.role} already exists.'
+            f'Invite for email address {invite_state.email_address} to group {invite_state.group_scim_id} '
+            f'as role {invite_state.role} already exists.'
         )
         return error_message(GroupManagementMsg.invite_already_exists)
+    try:
+        send_invite_email(invite_state)
+    except MailTaskFailed:
+        return error_message(CommonMsg.temp_problem)
     current_app.stats.count(name='invite_created')
     return outgoing_invites()
 
@@ -167,7 +172,7 @@ def accept_invite(user: User, identifier: UUID, email_address: str, role: str) -
 
     # Try to add user to group
     try:
-        add_user_to_group(scim_user, group, invite_state)
+        accept_group_invitation(scim_user, group, invite_state)
     except EduIDDBError:
         return error_message(CommonMsg.temp_problem)
 
