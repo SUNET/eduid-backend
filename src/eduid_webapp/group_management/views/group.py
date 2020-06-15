@@ -43,6 +43,7 @@ from eduid_scimapi.groupdb import ScimApiGroup
 from eduid_scimapi.userdb import ScimApiUser
 from eduid_userdb import User
 from eduid_userdb.exceptions import EduIDDBError
+
 from eduid_webapp.group_management.app import current_group_management_app as current_app
 from eduid_webapp.group_management.helpers import (
     GroupManagementMsg,
@@ -141,6 +142,9 @@ def delete_group(user: User, identifier: UUID) -> Mapping:
 
     group = current_app.scimapi_groupdb.get_group_by_scim_id(scim_id=str(identifier))
     if group and current_app.scimapi_groupdb.remove_group(group):
+        # Remove outstanding invitations to the group
+        for state in current_app.invite_state_db.get_states_by_group_scim_id(str(identifier), raise_on_missing=False):
+            current_app.invite_state_db.remove_state(state)
         current_app.logger.info(f'Deleted ScimApiGroup with scim_id: {group.scim_id}')
         current_app.stats.count(name='group_deleted')
     return get_groups()

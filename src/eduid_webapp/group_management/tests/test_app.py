@@ -325,6 +325,33 @@ class GroupManagementTests(EduidAPITestCase):
 
         self.assertTrue(self.app.scimapi_groupdb.group_exists(str(self.scim_group1.scim_id)))
 
+    def test_delete_group_and_invites(self):
+        # Add test user as group owner
+        graph_user = GraphUser(
+            identifier=str(self.scim_user1.scim_id), display_name=self.test_user.mail_addresses.primary.email
+        )
+        self.scim_group1.graph.owners = [graph_user]
+        self.app.scimapi_groupdb.save(self.scim_group1)
+
+        self._invite_setup()
+        self.assertEqual(
+            3,
+            len(self.app.invite_state_db.get_states_by_group_scim_id(str(self.scim_group1.scim_id))),
+            'number of invites before',
+        )
+
+        with self.session_cookie(self.browser, self.test_user.eppn) as client:
+            with client.session_transaction() as sess:
+                with self.app.test_request_context():
+                    data = {'identifier': str(self.scim_group1.scim_id), 'csrf_token': sess.get_csrf_token()}
+                    response = client.post('/delete', data=json.dumps(data), content_type=self.content_type_json)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual('POST_GROUP_MANAGEMENT_DELETE_SUCCESS', response.json.get('type'))
+
+        self.assertFalse(self.app.scimapi_groupdb.group_exists(str(self.scim_group1.scim_id)))
+        with self.assertRaises(DocumentDoesNotExist):
+            self.app.invite_state_db.get_states_by_group_scim_id(str(self.scim_group1.scim_id))
+
     def test_remove_member(self):
         # Add test_user1 as group owner
         graph_user1 = GraphUser(identifier=str(self.scim_user1.scim_id), display_name='Test User 1')
