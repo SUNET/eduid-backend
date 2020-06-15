@@ -174,3 +174,31 @@ def accept_invite(user: User, identifier: UUID, email_address: str, role: str) -
     current_app.invite_state_db.remove_state(invite_state)
     current_app.stats.count(name=f'invite_accepted_{invite_state.role}')
     return incoming_invites()
+
+
+@group_invite_views.route('/decline', methods=['POST'])
+@UnmarshalWith(GroupInviteRequestSchema)
+@MarshalWith(GroupIncomingInviteResponseSchema)
+@require_user
+def decline_invite(user: User, identifier: UUID, email_address: str, role: str) -> Mapping:
+    # Check that the current user has verified the invited email address
+    mail_addresses = [item.email for item in user.mail_addresses.to_list() if item.is_verified]
+    if email_address not in mail_addresses:
+        current_app.logger.error(f'User has not verified email address: {email_address}')
+        return error_message(GroupManagementMsg.mail_address_not_verified)
+    try:
+        invite_state = current_app.invite_state_db.get_state(
+            group_scim_id=str(identifier), email_address=email_address, role=role
+        )
+    except DocumentDoesNotExist:
+        current_app.logger.error('Invite does not exist')
+        return error_message(GroupManagementMsg.invite_not_found)
+
+    # Remove group invite
+    try:
+        current_app.invite_state_db.remove_state(invite_state)
+    except EduIDDBError:
+        return error_message(CommonMsg.temp_problem)
+
+    current_app.stats.count(name=f'invite_declined_{invite_state.role}')
+    return incoming_invites()

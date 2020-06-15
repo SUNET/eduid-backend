@@ -151,6 +151,23 @@ class GroupManagementTests(EduidAPITestCase):
         self.assertEqual('POST_GROUP_INVITE_INVITES_ACCEPT_SUCCESS', response.json.get('type'))
         return response
 
+    def _decline_invite(self, group_scim_id: str, invitee: User, invite_address: str, role: str) -> Response:
+        with self.session_cookie(self.browser, invitee.eppn) as client:
+            with client.session_transaction() as sess:
+                with self.app.test_request_context():
+                    data = {
+                        'identifier': group_scim_id,
+                        'email_address': invite_address,
+                        'role': role,
+                        'csrf_token': sess.get_csrf_token(),
+                    }
+                    response = client.post(
+                        '/invites/decline', data=json.dumps(data), content_type=self.content_type_json
+                    )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual('POST_GROUP_INVITE_INVITES_DECLINE_SUCCESS', response.json.get('type'))
+        return response
+
     def _invite_setup(self):
         # Add test user as group owner of two groups
         graph_user = GraphUser(
@@ -517,6 +534,46 @@ class GroupManagementTests(EduidAPITestCase):
         graph_user = GraphUser(identifier=str(scim_user.scim_id))
         self.assertIn(graph_user, scim_group.graph.members)
 
+    def test_decline_invite_member(self):
+        # Add test user as group owner
+        graph_user = GraphUser(
+            identifier=str(self.scim_user1.scim_id), display_name=self.test_user.mail_addresses.primary.email
+        )
+        self.scim_group1.graph.owners = [graph_user]
+        self.app.scimapi_groupdb.save(self.scim_group1)
+
+        # Invite test user 2 to the group as member
+        self._invite(
+            group_scim_id=str(self.scim_group1.scim_id),
+            inviter=self.test_user,
+            invite_address=self.test_user2.mail_addresses.primary.email,
+            role='member',
+        )
+        # Decline invite as test user 2
+        response = self._decline_invite(
+            group_scim_id=str(self.scim_group1.scim_id),
+            invitee=self.test_user2,
+            invite_address=self.test_user2.mail_addresses.primary.email,
+            role='member',
+        )
+
+        payload = response.json.get('payload')
+        incoming = payload['incoming']
+        self.assertEqual(0, len(incoming), 'test_accept_invite_member incoming invites')
+
+        with self.assertRaises(DocumentDoesNotExist):
+            self.app.invite_state_db.get_state(
+                group_scim_id=str(self.scim_group1.scim_id),
+                email_address=self.test_user2.mail_addresses.primary.email,
+                role=GroupRole.MEMBER.value,
+            )
+        scim_group = self.app.scimapi_groupdb.get_group_by_scim_id(str(self.scim_group1.scim_id))
+        scim_user = self.app.scimapi_userdb.get_user_by_external_id(
+            f'{self.test_user2.eppn}@{self.app.config.scim_external_id_scope}'
+        )
+        graph_user = GraphUser(identifier=str(scim_user.scim_id))
+        self.assertNotIn(graph_user, scim_group.graph.members)
+
     def test_invite_owner(self):
         # Add test user as group owner
         graph_user = GraphUser(
@@ -587,6 +644,46 @@ class GroupManagementTests(EduidAPITestCase):
         )
         graph_user = GraphUser(identifier=str(scim_user.scim_id))
         self.assertIn(graph_user, scim_group.graph.owners)
+
+    def test_decline_invite_owner(self):
+        # Add test user as group owner
+        graph_user = GraphUser(
+            identifier=str(self.scim_user1.scim_id), display_name=self.test_user.mail_addresses.primary.email
+        )
+        self.scim_group1.graph.owners = [graph_user]
+        self.app.scimapi_groupdb.save(self.scim_group1)
+
+        # Invite test user 2 to the group as member
+        self._invite(
+            group_scim_id=str(self.scim_group1.scim_id),
+            inviter=self.test_user,
+            invite_address=self.test_user2.mail_addresses.primary.email,
+            role='owner',
+        )
+        # Decline invite as test user 2
+        response = self._decline_invite(
+            group_scim_id=str(self.scim_group1.scim_id),
+            invitee=self.test_user2,
+            invite_address=self.test_user2.mail_addresses.primary.email,
+            role='owner',
+        )
+
+        payload = response.json.get('payload')
+        incoming = payload['incoming']
+        self.assertEqual(0, len(incoming), 'test_accept_invite_owner incoming invites')
+
+        with self.assertRaises(DocumentDoesNotExist):
+            self.app.invite_state_db.get_state(
+                group_scim_id=str(self.scim_group1.scim_id),
+                email_address=self.test_user2.mail_addresses.primary.email,
+                role=GroupRole.MEMBER.value,
+            )
+        scim_group = self.app.scimapi_groupdb.get_group_by_scim_id(str(self.scim_group1.scim_id))
+        scim_user = self.app.scimapi_userdb.get_user_by_external_id(
+            f'{self.test_user2.eppn}@{self.app.config.scim_external_id_scope}'
+        )
+        graph_user = GraphUser(identifier=str(scim_user.scim_id))
+        self.assertNotIn(graph_user, scim_group.graph.owners)
 
     def test_all_invites(self):
         response = self.browser.get('/invites/all')
