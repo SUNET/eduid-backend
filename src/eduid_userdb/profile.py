@@ -14,18 +14,26 @@ __author__ = 'lundberg'
 class Profile(Element):
     def __init__(
         self,
-        owner: str,
-        schema: str,
-        profile_data: Mapping[str, Any],
+        owner: Optional[str] = None,
+        schema: Optional[str] = None,
+        profile_data: Optional[Mapping[str, Any]] = None,
         created_by: Optional[str] = None,
         created_ts: Optional[Union[datetime, bool]] = None,
         modified_ts: Optional[Union[datetime, bool]] = None,
+        data: Optional[Mapping[str, Any]] = None,
+        called_directly: bool = True,
     ):
 
         if created_ts is None:
             created_ts = True
-        data = dict(created_by=created_by, created_ts=created_ts, modified_ts=modified_ts)
-        super().__init__(data=data)
+        if data is None:
+            data = dict(created_by=created_by, created_ts=created_ts, modified_ts=modified_ts)
+        else:
+            owner = data.pop('owner')
+            schema = data.pop('schema')
+            profile_data = data.pop('profile_data')
+
+        super().__init__(data=data, called_directly=called_directly)
 
         self.owner = owner
         self.schema = schema
@@ -33,7 +41,7 @@ class Profile(Element):
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> Profile:
-        return cls(**data)
+        return cls(data=data, called_directly=False)
 
     # -----------------------------------------------------------------
     @property
@@ -106,5 +114,5 @@ class ProfileList(ElementList):
     def from_list_of_dicts(cls, items: List[Mapping[str, Any]]) -> ProfileList:
         profiles = list()
         for item in items:
-            profiles.append(Profile.from_dict(data=item))
+            profiles.append(Profile.from_dict(item))
         return cls(profiles=profiles)

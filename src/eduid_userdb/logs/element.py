@@ -5,6 +5,7 @@
 
 from __future__ import absolute_import
 
+from typing import Any, Dict, Optional
 import logging
 
 import six
@@ -17,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 class LogElement(Element):
-    def __init__(self, created_by):
+    def __init__(self, created_by: Optional[str] = None, data: Optional[Dict[str, Any]] = None, called_directly: bool = True):
         """
         :param created_by: Application creating the log element
 
@@ -27,7 +28,12 @@ class LogElement(Element):
         :rtype: LogElement
         """
         self._required_keys = ['created_by', 'created_ts']
-        super(LogElement, self).__init__(data={'created_by': created_by, 'created_ts': True})
+        if data is None:
+            data = {'created_by': created_by, 'created_ts': True}
+        else:
+            data['created_ts'] = True
+
+        super(LogElement, self).__init__(data=data, called_directly=called_directly)
 
     def validate(self):
         # Check that all keys are accounted for and that no string values are blank
@@ -48,7 +54,7 @@ class LogElement(Element):
 
 
 class ProofingLogElement(LogElement):
-    def __init__(self, user, created_by, proofing_method, proofing_version):
+    def __init__(self, user, created_by, proofing_method, proofing_version, called_directly=True):
         """
         :param user: User object
         :param created_by: Application creating the log element
@@ -63,7 +69,7 @@ class ProofingLogElement(LogElement):
         :return: ProofingLogElement object
         :rtype: ProofingLogElement
         """
-        super(ProofingLogElement, self).__init__(created_by)
+        super(ProofingLogElement, self).__init__(created_by=created_by, called_directly=called_directly)
         self._required_keys.extend(['eduPersonPrincipalName', 'proofing_method', 'proofing_version'])
         self._data['eduPersonPrincipalName'] = user.eppn
         self._data['proofing_method'] = proofing_method
@@ -71,7 +77,7 @@ class ProofingLogElement(LogElement):
 
 
 class NinProofingLogElement(ProofingLogElement):
-    def __init__(self, user, created_by, nin, user_postal_address, proofing_method, proofing_version):
+    def __init__(self, user, created_by, nin, user_postal_address, proofing_method, proofing_version, called_directly=True):
         """
         :param user: user object
         :param created_by: Application creating the log element
@@ -89,7 +95,7 @@ class NinProofingLogElement(ProofingLogElement):
         :rtype: NinProofingLogElement
         """
         super(NinProofingLogElement, self).__init__(
-            user, created_by, proofing_method=proofing_method, proofing_version=proofing_version
+            user, created_by, proofing_method=proofing_method, proofing_version=proofing_version, called_directly=called_directly
         )
         self._required_keys.extend(['nin', 'user_postal_address'])
         self._data['nin'] = nin
@@ -113,7 +119,7 @@ class MailAddressProofing(ProofingLogElement):
     }
     """
 
-    def __init__(self, user, created_by, mail_address, reference, proofing_version):
+    def __init__(self, user, created_by, mail_address, reference, proofing_version, called_directly=True):
         """
         :param user: User object
         :param created_by: Application creating the log element
@@ -131,7 +137,7 @@ class MailAddressProofing(ProofingLogElement):
         :rtype: MailAddressProofing
         """
         super(MailAddressProofing, self).__init__(
-            user, created_by, proofing_method='e-mail', proofing_version=proofing_version
+            user, created_by, proofing_method='e-mail', proofing_version=proofing_version, called_directly=called_directly
         )
         self._required_keys.extend(['mail_address', 'reference'])
         self._data['mail_address'] = mail_address
@@ -151,7 +157,7 @@ class PhoneNumberProofing(ProofingLogElement):
     }
     """
 
-    def __init__(self, user, created_by, phone_number, reference, proofing_version):
+    def __init__(self, user, created_by, phone_number, reference, proofing_version, called_directly=True):
         """
         :param user: User object
         :param created_by: Application creating the log element
@@ -169,7 +175,7 @@ class PhoneNumberProofing(ProofingLogElement):
         :rtype: PhoneNumberProofing
         """
         super(PhoneNumberProofing, self).__init__(
-            user, created_by, proofing_method='sms', proofing_version=proofing_version
+            user, created_by, proofing_method='sms', proofing_version=proofing_version, called_directly=called_directly
         )
         self._required_keys.extend(['phone_number', 'reference'])
         self._data['phone_number'] = phone_number
@@ -192,7 +198,7 @@ class TeleAdressProofing(NinProofingLogElement):
     }
     """
 
-    def __init__(self, user, created_by, reason, nin, mobile_number, user_postal_address, proofing_version):
+    def __init__(self, user, created_by, reason, nin, mobile_number, user_postal_address, proofing_version, called_directly=True):
         """
         :param user: user object
         :param created_by: Application creating the log element
@@ -214,7 +220,7 @@ class TeleAdressProofing(NinProofingLogElement):
         :rtype: TeleAdressProofing
         """
         super(TeleAdressProofing, self).__init__(
-            user, created_by, nin, user_postal_address, proofing_method='TeleAdress', proofing_version=proofing_version
+            user, created_by, nin, user_postal_address, proofing_method='TeleAdress', proofing_version=proofing_version, called_directly=called_directly
         )
         self._required_keys.extend(['reason', 'mobile_number'])
         self._data['reason'] = reason
@@ -252,6 +258,7 @@ class TeleAdressProofingRelation(TeleAdressProofing):
         registered_relation,
         registered_postal_address,
         proofing_version,
+        called_directly=True,
     ):
         """
         :param user: user object
@@ -280,7 +287,7 @@ class TeleAdressProofingRelation(TeleAdressProofing):
         :rtype: TeleAdressProofingRelation
         """
         super(TeleAdressProofingRelation, self).__init__(
-            user, created_by, reason, nin, mobile_number, user_postal_address, proofing_version=proofing_version
+            user, created_by, reason, nin, mobile_number, user_postal_address, proofing_version=proofing_version, called_directly=called_directly
         )
         self._required_keys.extend(['mobile_number_registered_to', 'registered_relation', 'registered_postal_address'])
         self._data['mobile_number_registered_to'] = mobile_number_registered_to
@@ -303,7 +310,7 @@ class LetterProofing(NinProofingLogElement):
     }
     """
 
-    def __init__(self, user, created_by, nin, letter_sent_to, transaction_id, user_postal_address, proofing_version):
+    def __init__(self, user, created_by, nin, letter_sent_to, transaction_id, user_postal_address, proofing_version, called_directly=True):
         """
         :param user: user object
         :param created_by: Application creating the log element
@@ -325,7 +332,7 @@ class LetterProofing(NinProofingLogElement):
         :rtype: LetterProofing
         """
         super(LetterProofing, self).__init__(
-            user, created_by, nin, user_postal_address, proofing_method='letter', proofing_version=proofing_version
+            user, created_by, nin, user_postal_address, proofing_method='letter', proofing_version=proofing_version, called_directly=called_directly
         )
         self._required_keys.extend(['proofing_method', 'letter_sent_to', 'transaction_id'])
         self._data['letter_sent_to'] = letter_sent_to
@@ -347,7 +354,7 @@ class SeLegProofing(NinProofingLogElement):
     }
     """
 
-    def __init__(self, user, created_by, nin, vetting_by, transaction_id, user_postal_address, proofing_version):
+    def __init__(self, user, created_by, nin, vetting_by, transaction_id, user_postal_address, proofing_version, called_directly=True):
         """
         :param user: user object
         :param created_by: Application creating the log element
@@ -369,7 +376,7 @@ class SeLegProofing(NinProofingLogElement):
         :rtype: SeLegProofing
         """
         super(SeLegProofing, self).__init__(
-            user, created_by, nin, user_postal_address, proofing_method='se-leg', proofing_version=proofing_version
+            user, created_by, nin, user_postal_address, proofing_method='se-leg', proofing_version=proofing_version, called_directly=called_directly
         )
         self._required_keys.extend(['proofing_method', 'vetting_by', 'transaction_id'])
         self._data['vetting_by'] = vetting_by
@@ -392,7 +399,7 @@ class SeLegProofingFrejaEid(SeLegProofing):
     }
     """
 
-    def __init__(self, user, created_by, nin, transaction_id, opaque_data, user_postal_address, proofing_version):
+    def __init__(self, user, created_by, nin, transaction_id, opaque_data, user_postal_address, proofing_version, called_directly=True):
         """
         :param user: user object
         :param created_by: Application creating the log element
@@ -421,6 +428,7 @@ class SeLegProofingFrejaEid(SeLegProofing):
             transaction_id=transaction_id,
             user_postal_address=user_postal_address,
             proofing_version=proofing_version,
+            called_directly=called_directly
         )
         self._required_keys.extend(['opaque_data'])
         self._data['opaque_data'] = opaque_data
@@ -440,7 +448,7 @@ class OrcidProofing(ProofingLogElement):
     }
     """
 
-    def __init__(self, user, created_by, orcid, issuer, audience, proofing_method, proofing_version):
+    def __init__(self, user, created_by, orcid, issuer, audience, proofing_method, proofing_version, called_directly=True):
         """
         :param user: User object
         :param created_by: Application creating the log element
@@ -462,7 +470,7 @@ class OrcidProofing(ProofingLogElement):
         :rtype: ProofingLogElement
         """
         super(OrcidProofing, self).__init__(
-            user, created_by, proofing_method=proofing_method, proofing_version=proofing_version
+            user, created_by, proofing_method=proofing_method, proofing_version=proofing_version, called_directly=called_directly
         )
         self._required_keys.extend(['orcid', 'issuer', 'audience'])
         self._data['orcid'] = orcid
@@ -485,7 +493,7 @@ class SwedenConnectProofing(NinProofingLogElement):
     }
     """
 
-    def __init__(self, user, created_by, nin, issuer, authn_context_class, user_postal_address, proofing_version):
+    def __init__(self, user, created_by, nin, issuer, authn_context_class, user_postal_address, proofing_version, called_directly=True):
         """
         :param user: user object
         :param created_by: Application creating the log element
@@ -513,6 +521,7 @@ class SwedenConnectProofing(NinProofingLogElement):
             user_postal_address,
             proofing_method='swedenconnect',
             proofing_version=proofing_version,
+            called_directly=called_directly
         )
         self._required_keys.extend(['issuer', 'authn_context_class'])
         self._data['issuer'] = issuer
@@ -536,7 +545,7 @@ class MFATokenProofing(SwedenConnectProofing):
     """
 
     def __init__(
-        self, user, created_by, nin, issuer, authn_context_class, key_id, user_postal_address, proofing_version
+        self, user, created_by, nin, issuer, authn_context_class, key_id, user_postal_address, proofing_version, called_directly=True
     ):
         """
         :param user: user object
@@ -561,7 +570,7 @@ class MFATokenProofing(SwedenConnectProofing):
         :rtype: MFATokenProofing
         """
         super(MFATokenProofing, self).__init__(
-            user, created_by, nin, issuer, authn_context_class, user_postal_address, proofing_version=proofing_version
+            user, created_by, nin, issuer, authn_context_class, user_postal_address, proofing_version=proofing_version, called_directly=called_directly
         )
         self._required_keys.extend(['key_id'])
         self._data['key_id'] = key_id

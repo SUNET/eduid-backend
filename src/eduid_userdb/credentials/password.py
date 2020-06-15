@@ -36,10 +36,12 @@ from __future__ import absolute_import
 
 import copy
 from typing import Optional, Union
+from typing import Any, Dict, Type
 
 from bson.objectid import ObjectId
 
 from eduid_userdb.credentials import Credential
+from eduid_userdb.element import TElementSubclass
 from eduid_userdb.exceptions import UserDBValueError, UserHasUnknownData
 
 __author__ = 'lundberg'
@@ -82,6 +84,13 @@ class Password(Credential):
                 raise UserHasUnknownData('Password {!r} unknown data: {!r}'.format(self.key, leftovers))
             # Just keep everything that is left as-is
             self._data.update(data)
+
+    @classmethod
+    def from_dict(cls: Type[TElementSubclass], data: Dict[str, Any], raise_on_unknown: bool = True) -> TElementSubclass:
+        """
+        Construct user from a data dict.
+        """
+        return cls(data=data, raise_on_unknown=raise_on_unknown, called_directly=False)
 
     @property
     def key(self) -> str:
@@ -153,4 +162,4 @@ def password_from_dict(data, raise_on_unknown=True):
     :type raise_on_unknown: bool
     :rtype: Password
     """
-    return Password(data=data, raise_on_unknown=raise_on_unknown)
+    return Password.from_dict(data, raise_on_unknown=raise_on_unknown)

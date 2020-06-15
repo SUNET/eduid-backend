@@ -33,10 +33,11 @@
 #
 
 import copy
+from typing import Any, Dict, Type
 
 from six import string_types
 
-from eduid_userdb.element import PrimaryElement, PrimaryElementList
+from eduid_userdb.element import PrimaryElement, PrimaryElementList, TElementSubclass
 from eduid_userdb.exceptions import UserDBValueError
 
 __author__ = 'ft'
@@ -77,6 +78,13 @@ class MailAddress(PrimaryElement):
             del data['csrf']
         PrimaryElement.__init__(self, data, raise_on_unknown, called_directly=called_directly, ignore_data=['email'])
         self.email = data.pop('email')
+
+    @classmethod
+    def from_dict(cls: Type[TElementSubclass], data: Dict[str, Any], raise_on_unknown: bool = True) -> TElementSubclass:
+        """
+        Construct user from a data dict.
+        """
+        return cls(data=data, raise_on_unknown=raise_on_unknown, called_directly=False)
 
     # -----------------------------------------------------------------
     @property
@@ -200,23 +208,4 @@ def address_from_dict(data, raise_on_unknown=True):
     :type raise_on_unknown: bool
     :rtype: MailAddress
     """
-    return MailAddress(data=data, raise_on_unknown=raise_on_unknown)
-
-
-def new(email, application, verified=False, created_ts=None):
-    """
-    Create a new MailAddress object.
-
-    :param email: E-mail address
-    :param application: Name of creating application ('signup', ...)
-    :param verified: Declare e-mail address verified/confirmed
-    :param created_ts: Timestamp of creation (or None to use current time)
-
-    :type email: str | unicode
-    :type application: str | unicode
-    :type verified: bool
-    :type created_ts: None | datetime.datetime
-
-    :return: New MailAddress instance
-    :rtype: MailAddress
-    """
+    return MailAddress.from_dict(data, raise_on_unknown=raise_on_unknown)

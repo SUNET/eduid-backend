@@ -112,8 +112,8 @@ class LockedIdentityList(ElementList):
             else:
                 if item['identity_type'] == 'nin':
                     elements.append(
-                        LockedIdentityNin(
-                            number=item['number'], created_by=item['created_by'], created_ts=item['created_ts']
+                        LockedIdentityNin.from_dict(
+                            dict(number=item['number'], created_by=item['created_by'], created_ts=item['created_ts'])
                         )
                     )
         ElementList.__init__(self, elements)

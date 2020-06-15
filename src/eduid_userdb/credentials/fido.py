@@ -36,10 +36,12 @@ from __future__ import absolute_import
 
 import copy
 from hashlib import sha256
+from typing import Any, Dict, Type
 
 from six import string_types
 
 from eduid_userdb.credentials import Credential
+from eduid_userdb.element import TElementSubclass
 from eduid_userdb.exceptions import UserDBValueError, UserHasUnknownData
 
 __author__ = 'ft'
@@ -50,9 +52,9 @@ class FidoCredential(Credential):
     Token authentication credential
     """
 
-    def __init__(self, data):
+    def __init__(self, data, called_directly=True):
 
-        Credential.__init__(self, data)
+        Credential.__init__(self, data, called_directly=called_directly)
         self.keyhandle = data.pop('keyhandle')
         self.app_id = data.pop('app_id')
         self.description = data.pop('description', '')
@@ -135,6 +137,7 @@ class U2F(FidoCredential):
         created_ts=None,
         data=None,
         raise_on_unknown=True,
+        called_directly=True,
     ):
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
@@ -153,7 +156,7 @@ class U2F(FidoCredential):
                 created_ts=created_ts,
             )
 
-        FidoCredential.__init__(self, data)
+        FidoCredential.__init__(self, data, called_directly=called_directly)
         self.version = data.pop('version')
         self.public_key = data.pop('public_key')
         self.attest_cert = data.pop('attest_cert', '')
@@ -164,6 +167,13 @@ class U2F(FidoCredential):
                 raise UserHasUnknownData('U2F {!r} unknown data: {!r}'.format(self.key, leftovers,))
             # Just keep everything that is left as-is
             self._data.update(data)
+
+    @classmethod
+    def from_dict(cls: Type[TElementSubclass], data: Dict[str, Any], raise_on_unknown: bool = True) -> TElementSubclass:
+        """
+        Construct user from a data dict.
+        """
+        return cls(data=data, raise_on_unknown=raise_on_unknown, called_directly=False)
 
     @property
     def key(self):
@@ -247,7 +257,7 @@ def u2f_from_dict(data, raise_on_unknown=True):
     :type raise_on_unknown: bool
     :rtype: U2F
     """
-    return U2F(data=data, raise_on_unknown=raise_on_unknown)
+    return U2F.from_dict(data, raise_on_unknown=raise_on_unknown)
 
 
 class Webauthn(FidoCredential):
@@ -266,6 +276,7 @@ class Webauthn(FidoCredential):
         created_ts=None,
         data=None,
         raise_on_unknown=True,
+        called_directly=True,
     ):
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
@@ -283,7 +294,7 @@ class Webauthn(FidoCredential):
                 created_ts=created_ts,
             )
 
-        FidoCredential.__init__(self, data)
+        FidoCredential.__init__(self, data, called_directly=called_directly)
         self.attest_obj = data.pop('attest_obj', '')
         self.credential_data = data.pop('credential_data', '')
 
@@ -293,6 +304,13 @@ class Webauthn(FidoCredential):
                 raise UserHasUnknownData('Webauthn {!r} unknown data: {!r}'.format(self.key, leftovers,))
             # Just keep everything that is left as-is
             self._data.update(data)
+
+    @classmethod
+    def from_dict(cls: Type[TElementSubclass], data: Dict[str, Any], raise_on_unknown: bool = True) -> TElementSubclass:
+        """
+        Construct user from a data dict.
+        """
+        return cls(data=data, raise_on_unknown=raise_on_unknown, called_directly=False)
 
     @property
     def key(self):
@@ -356,4 +374,4 @@ def webauthn_from_dict(data, raise_on_unknown=True):
     :type raise_on_unknown: bool
     :rtype: Webauthn
     """
-    return Webauthn(data=data, raise_on_unknown=raise_on_unknown)
+    return Webauthn.from_dict(data, raise_on_unknown=raise_on_unknown)

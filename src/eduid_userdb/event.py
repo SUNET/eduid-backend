@@ -176,7 +176,7 @@ class EventList(ElementList):
                 if 'event_type' in this:
                     event = event_from_dict(this, raise_on_unknown=raise_on_unknown)
                 else:
-                    event = self._event_class(data=this)
+                    event = self._event_class.from_dict(this)
                 self.add(event)
 
     def add(self, event) -> None:
@@ -212,5 +212,5 @@ def event_from_dict(data: Dict[str, Any], raise_on_unknown: bool = True):
     if data['event_type'] == 'tou_event':
         from eduid_userdb.tou import ToUEvent  # avoid cyclic dependency by importing this here
 
-        return ToUEvent(data=data, raise_on_unknown=raise_on_unknown)
+        return ToUEvent.from_dict(data=data, raise_on_unknown=raise_on_unknown)
     raise BadEvent('Unknown event_type in data: {!s}'.format(data['event_type']))

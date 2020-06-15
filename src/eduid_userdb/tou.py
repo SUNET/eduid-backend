@@ -35,10 +35,11 @@
 
 import copy
 import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Type
 
 from six import string_types
 
+from eduid_userdb.element import TElementSubclass
 from eduid_userdb.event import Event, EventList
 from eduid_userdb.exceptions import BadEvent, EduIDUserDBError, UserDBValueError
 
@@ -76,6 +77,13 @@ class ToUEvent(Event):
                 raise BadEvent('missing required data for event: {!s}'.format(required))
         Event.__init__(self, data=data, raise_on_unknown=raise_on_unknown, called_directly=called_directly, ignore_data=['version'])
         self.version = data.pop('version')
+
+    @classmethod
+    def from_dict(cls: Type[TElementSubclass], data: Dict[str, Any], raise_on_unknown: bool = True) -> TElementSubclass:
+        """
+        Construct user from a data dict.
+        """
+        return cls(data=data, raise_on_unknown=raise_on_unknown, called_directly=False)
 
     # -----------------------------------------------------------------
     @property

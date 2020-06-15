@@ -3,10 +3,12 @@
 from __future__ import absolute_import
 
 import copy
+from typing import Any, Dict, List, Optional, Type
 
 from six import string_types
 
 from eduid_userdb.element import Element, VerifiedElement
+from eduid_userdb.element import TElementSubclass
 from eduid_userdb.exceptions import UserDBValueError, UserHasUnknownData
 
 __author__ = 'lundberg'
@@ -33,6 +35,7 @@ class OidcIdToken(Element):
         created_ts=None,
         data=None,
         raise_on_unknown=True,
+        called_directly=True,
     ):
         data_in = data
         data = copy.deepcopy(data_in)  # to not modify callers data
@@ -54,7 +57,7 @@ class OidcIdToken(Element):
                 created_by=application,
                 created_ts=created_ts,
             )
-        Element.__init__(self, data)
+        Element.__init__(self, data, called_directly=called_directly)
         self.iss = data.pop('iss')
         self.sub = data.pop('sub')
         self.aud = data.pop('aud')
@@ -68,6 +71,13 @@ class OidcIdToken(Element):
 
         if raise_on_unknown and data:
             raise UserHasUnknownData('{!s} has unknown data: {!r}'.format(self.__class__.__name__, data.keys()))
+
+    @classmethod
+    def from_dict(cls: Type[TElementSubclass], data: Dict[str, Any], raise_on_unknown: bool = True) -> TElementSubclass:
+        """
+        Construct user from a data dict.
+        """
+        return cls(data=data, raise_on_unknown=raise_on_unknown, called_directly=False)
 
     @property
     def key(self):
@@ -335,7 +345,7 @@ class OidcAuthorization(Element):
         # Parse ID token
         _id_token = data.pop('id_token')
         if isinstance(_id_token, dict):
-            self.id_token = OidcIdToken(data=_id_token, raise_on_unknown=raise_on_unknown)
+            self.id_token = OidcIdToken.from_dict(_id_token, raise_on_unknown=raise_on_unknown)
         if isinstance(_id_token, OidcIdToken):
             self.id_token = _id_token
 
@@ -493,6 +503,7 @@ class Orcid(VerifiedElement):
         created_ts=None,
         data=None,
         raise_on_unknown=True,
+        called_directly=True,
     ):
         data_in = data
         data = copy.deepcopy(data_in)  # to not modify callers data
@@ -511,7 +522,7 @@ class Orcid(VerifiedElement):
                 verified=verified,
             )
 
-        VerifiedElement.__init__(self, data)
+        VerifiedElement.__init__(self, data, called_directly=called_directly)
         self.id = data.pop('id')
         self.name = data.pop('name', None)
         self.given_name = data.pop('given_name', None)
