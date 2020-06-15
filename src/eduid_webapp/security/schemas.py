@@ -87,7 +87,7 @@ class RedirectSchema(EduidSchema, CSRFResponseMixin):
 
 class RedirectResponseSchema(FluxStandardAction):
 
-    payload = RedirectSchema()
+    payload = fields.Nested(RedirectSchema, many=False)
 
 
 class SuggestedPassword(EduidSchema, CSRFResponseMixin):
@@ -97,7 +97,7 @@ class SuggestedPassword(EduidSchema, CSRFResponseMixin):
 
 class SuggestedPasswordResponseSchema(FluxStandardAction):
 
-    payload = SuggestedPassword()
+    payload = fields.Nested(SuggestedPassword, many=False)
 
 
 class ChangePasswordSchema(PasswordSchema):

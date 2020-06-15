@@ -125,7 +125,7 @@ class ActionsTestCase(EduidAPITestCase):
         super(ActionsTestCase, self).setUp(users=None, copy_user_to_private=False, am_settings=None)
         user_data = deepcopy(MOCKED_USER_STANDARD)
         user_data['modified_ts'] = datetime.utcnow()
-        self.user = User(data=user_data)
+        self.user = User.from_dict(data=user_data)
         self.app.central_userdb.save(self.user, check_sync=False)
         self.test_eppn = self.user.eppn
 

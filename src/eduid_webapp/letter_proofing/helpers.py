@@ -86,7 +86,7 @@ def check_state(state):
 
 
 def create_proofing_state(eppn: str, nin: str) -> LetterProofingState:
-    nin = NinProofingElement(
+    _nin = NinProofingElement(
         number=nin,
         application='eduid-idproofing-letter',
         created_ts=True,
@@ -94,7 +94,7 @@ def create_proofing_state(eppn: str, nin: str) -> LetterProofingState:
         verification_code=get_short_hash(),
     )
     proofing_letter = SentLetterElement(data={})
-    return LetterProofingState(id=None, modified_ts=None, eppn=eppn, nin=nin, proofing_letter=proofing_letter)
+    return LetterProofingState(id=None, modified_ts=None, eppn=eppn, nin=_nin, proofing_letter=proofing_letter)
 
 
 def get_address(user, proofing_state):

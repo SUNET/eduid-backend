@@ -51,6 +51,8 @@ class EmailMsg(TranslatableMsg):
     # A verification mail for that address has been sent recently
     throttled = 'emails.throttled'
     still_valid_code = 'still-valid-code'
+    # The email has been added, but no verification code has been sent (throttled)
+    added_and_throttled = 'emails.added-and-throttled'
     # succesfully saved new email address
     saved = 'emails.save-success'
     # trying to set as primary an unconfirmed address

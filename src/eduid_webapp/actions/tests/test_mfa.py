@@ -42,7 +42,6 @@ from mock import patch
 
 from eduid_common.session import session
 from eduid_userdb.credentials import U2F
-from eduid_userdb.exceptions import UserDoesNotExist
 from eduid_userdb.testing import MOCKED_USER_STANDARD
 
 from eduid_webapp.actions.actions.mfa import Plugin
@@ -182,6 +181,7 @@ class MFAActionPluginTests(ActionsTestCase):
 
             response = client.get('/redirect-action')
             self.assertEqual(response.status_code, 302)
+            assert self.user is not None  # assure mypy that self.user has been initialised (in setUp)
             return self.app.actions_db.get_actions(self.user.eppn, 'mock-session')
 
     # actual tests
