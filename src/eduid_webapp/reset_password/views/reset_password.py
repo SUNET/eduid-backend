@@ -226,10 +226,20 @@ class BadStateOrData(Exception):
 class ResetContext(object):
     state: Union[ResetPasswordEmailState, ResetPasswordEmailAndPhoneState]
     user: User
-    error: Optional[Dict[str, Any]] = None
+    error: Optional[Dict[str, Any]] = None  # If this is not None, the request should be aborted with this as result
 
 
-def _load_data(code: str, password: str, stats_prefix: str) -> ResetContext:
+def _load_data(code: str, password: str) -> ResetContext:
+    """
+    Use a code to load reset-password state from the database.
+
+    Also validates the supplied password to make sure it conforms to the eduID service
+    requirements.
+
+    :param code: User supplied password reset code
+    :param password: User supplied new password candidate
+    :return: ResetContext instance
+    """
     try:
         state = get_pwreset_state(code)
     except BadCode as e:
@@ -243,11 +253,11 @@ def _load_data(code: str, password: str, stats_prefix: str) -> ResetContext:
     if check_password(password, hashed):
         state.generated_password = True
         current_app.logger.info('Generated password used')
-        current_app.stats.count(name=f'{stats_prefix}_generated_password_used')
+        current_app.stats.count(name=f'reset_password_generated_password_used')
     else:
         state.generated_password = False
         current_app.logger.info('Custom password used')
-        current_app.stats.count(name=f'{stats_prefix}_custom_password_used')
+        current_app.stats.count(name=f'reset_password_custom_password_used')
 
     user = current_app.central_userdb.get_user_by_eppn(state.eppn, raise_on_missing=False)
 
@@ -289,7 +299,7 @@ def set_new_pw(code: str, password: str) -> Mapping[str, Any]:
     if not password or not code:
         return error_message(ResetPwMsg.missing_data)
 
-    data = _load_data(code, password, stats_prefix='reset_password')
+    data = _load_data(code, password)
     if data.error:
         return data.error
 
@@ -394,7 +404,7 @@ def set_new_pw_extra_security_phone(code: str, password: str, phone_code: str) -
     if not password:
         return error_message(ResetPwMsg.chpass_no_data)
 
-    data = _load_data(code, password, stats_prefix='reset_password')
+    data = _load_data(code, password)
     if data.error:
         return data.error
 
@@ -454,7 +464,7 @@ def set_new_pw_extra_security_token(
     * Communication problems with the VCCS backend;
     * Synchronization problems with the central user db.
     """
-    data = _load_data(code, password, stats_prefix='reset_password')
+    data = _load_data(code, password)
     if data.error:
         return data.error
 
