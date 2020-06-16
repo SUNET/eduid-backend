@@ -130,7 +130,14 @@ class NinProofingElement(ProofingElement):
     """
 
     def __init__(
-        self, number=None, application=None, created_ts=None, verified=False, verification_code=None, data=None, called_directly=True,
+        self,
+        number=None,
+        application=None,
+        created_ts=None,
+        verified=False,
+        verification_code=None,
+        data=None,
+        called_directly=True,
     ):
 
         data = copy.copy(data)
@@ -193,7 +200,14 @@ class EmailProofingElement(ProofingElement):
     """
 
     def __init__(
-        self, email=None, application=None, created_ts=None, verified=False, verification_code=None, data=None, called_directly=True,
+        self,
+        email=None,
+        application=None,
+        created_ts=None,
+        verified=False,
+        verification_code=None,
+        data=None,
+        called_directly=True,
     ):
 
         data = copy.copy(data)
@@ -256,7 +270,14 @@ class PhoneProofingElement(ProofingElement):
     """
 
     def __init__(
-        self, phone=None, application=None, created_ts=None, verified=False, verification_code=None, data=None, called_directly=True,
+        self,
+        phone=None,
+        application=None,
+        created_ts=None,
+        verified=False,
+        verification_code=None,
+        data=None,
+        called_directly=True,
     ):
 
         data = copy.copy(data)

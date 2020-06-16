@@ -40,7 +40,15 @@ from eduid_userdb.exceptions import UserDBValueError
 
 
 class CodeElement(Element):
-    def __init__(self, application: Optional[str] = None, code: Optional[str] = None, verified: Optional[bool] = None, created_ts: Optional[Union[datetime, bool]] = None, data: Optional[Dict[str, Any]] = None, called_directly: bool = True):
+    def __init__(
+        self,
+        application: Optional[str] = None,
+        code: Optional[str] = None,
+        verified: Optional[bool] = None,
+        created_ts: Optional[Union[datetime, bool]] = None,
+        data: Optional[Dict[str, Any]] = None,
+        called_directly: bool = True,
+    ):
 
         if data is None:
             data = dict(created_by=application, created_ts=created_ts,)

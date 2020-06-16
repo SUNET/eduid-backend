@@ -419,7 +419,11 @@ class _AbstractUserTestCase:
         locked_identity = {'created_by': 'test', 'created_ts': True, 'identity_type': 'nin', 'number': '197801012345'}
         user = User.from_dict(self.data1)
         locked_nin = LockedIdentityNin.from_dict(
-            dict(number=locked_identity['number'], created_by=locked_identity['created_by'], created_ts=locked_identity['created_ts'])
+            dict(
+                number=locked_identity['number'],
+                created_by=locked_identity['created_by'],
+                created_ts=locked_identity['created_ts'],
+            )
         )
         user.locked_identity.add(locked_nin)
         self.assertEqual(user.locked_identity.count, 1)
@@ -434,7 +438,11 @@ class _AbstractUserTestCase:
         locked_identity = {'created_by': 'test', 'created_ts': True, 'identity_type': 'nin', 'number': '197801012345'}
         user = User.from_dict(self.data1)
         locked_nin = LockedIdentityNin.from_dict(
-            dict(number=locked_identity['number'], created_by=locked_identity['created_by'], created_ts=locked_identity['created_ts'])
+            dict(
+                number=locked_identity['number'],
+                created_by=locked_identity['created_by'],
+                created_ts=locked_identity['created_ts'],
+            )
         )
         user.locked_identity.add(locked_nin)
 
@@ -456,7 +464,11 @@ class _AbstractUserTestCase:
         locked_identity = {'created_by': 'test', 'created_ts': True, 'identity_type': 'nin', 'number': '197801012345'}
         user = User.from_dict(self.data1)
         locked_nin = LockedIdentityNin.from_dict(
-            dict(number=locked_identity['number'], created_by=locked_identity['created_by'], created_ts=locked_identity['created_ts'])
+            dict(
+                number=locked_identity['number'],
+                created_by=locked_identity['created_by'],
+                created_ts=locked_identity['created_ts'],
+            )
         )
         user.locked_identity.add(locked_nin)
         with self.assertRaises(EduIDUserDBError):

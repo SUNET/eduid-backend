@@ -75,7 +75,9 @@ class ToUEvent(Event):
         for required in ['created_by', 'created_ts']:
             if required not in data or not data.get(required):
                 raise BadEvent('missing required data for event: {!s}'.format(required))
-        Event.__init__(self, data=data, raise_on_unknown=raise_on_unknown, called_directly=called_directly, ignore_data=['version'])
+        Event.__init__(
+            self, data=data, raise_on_unknown=raise_on_unknown, called_directly=called_directly, ignore_data=['version']
+        )
         self.version = data.pop('version')
 
     @classmethod

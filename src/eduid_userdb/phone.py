@@ -37,8 +37,7 @@ from typing import Any, Dict, Type
 
 from six import string_types
 
-from eduid_userdb.element import PrimaryElement, PrimaryElementList
-from eduid_userdb.element import TElementSubclass
+from eduid_userdb.element import PrimaryElement, PrimaryElementList, TElementSubclass
 from eduid_userdb.exceptions import UserDBValueError
 
 __author__ = 'ft'

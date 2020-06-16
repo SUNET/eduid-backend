@@ -97,7 +97,9 @@ class ProofingStateTest(TestCase):
         }
         """
 
-        nin_pe = NinProofingElement.from_dict(dict(number='200102034567', application='eduid_oidc_proofing', verified=False))
+        nin_pe = NinProofingElement.from_dict(
+            dict(number='200102034567', application='eduid_oidc_proofing', verified=False)
+        )
         state = OidcProofingState(
             eppn=EPPN,
             state='2c84fedd-a694-46f0-b235-7c4dd7982852',

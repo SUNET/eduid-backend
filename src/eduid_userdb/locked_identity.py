@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 
 from datetime import datetime
-from six import string_types
 from typing import Any, Dict, Optional
+
+from six import string_types
 
 from eduid_userdb.element import Element, ElementList
 from eduid_userdb.exceptions import EduIDUserDBError, UserDBValueError
@@ -63,7 +64,14 @@ class LockedIdentityNin(LockedIdentityElement):
         number
     """
 
-    def __init__(self, number: Optional[str] = None, created_by: Optional[str] = None, created_ts: Optional[datetime] = None, data: Optional[Dict[str, Any]] = None, called_directly: bool = True):
+    def __init__(
+        self,
+        number: Optional[str] = None,
+        created_by: Optional[str] = None,
+        created_ts: Optional[datetime] = None,
+        data: Optional[Dict[str, Any]] = None,
+        called_directly: bool = True,
+    ):
         if data is None:
             data = {'created_by': created_by, 'created_ts': created_ts}
         else:

@@ -98,18 +98,14 @@ class TestToUEvent(TestCase):
         Test that ToUEvent require created_ts, although Event does not.
         """
         with self.assertRaises(eduid_userdb.exceptions.BadEvent):
-            ToUEvent.from_dict(
-                dict(created_by='unit test', created_ts=None, version='foo', event_id=bson.ObjectId())
-            )
+            ToUEvent.from_dict(dict(created_by='unit test', created_ts=None, version='foo', event_id=bson.ObjectId()))
 
     def test_created_ts_is_required2(self):
         """
         Test bad 'version'.
         """
         with self.assertRaises(eduid_userdb.exceptions.BadEvent):
-            ToUEvent.from_dict(
-                dict(created_by='unit test', created_ts=True, version=False, event_id=bson.ObjectId())
-            )
+            ToUEvent.from_dict(dict(created_by='unit test', created_ts=True, version=False, event_id=bson.ObjectId()))
 
     def test_modify_created_ts(self):
         this = self.three.to_list()[-1]

@@ -35,8 +35,7 @@
 from __future__ import absolute_import
 
 import copy
-from typing import Optional, Union
-from typing import Any, Dict, Type
+from typing import Any, Dict, Optional, Type, Union
 
 from bson.objectid import ObjectId
 

@@ -7,8 +7,7 @@ from typing import Any, Dict, List, Optional, Type
 
 from six import string_types
 
-from eduid_userdb.element import Element, VerifiedElement
-from eduid_userdb.element import TElementSubclass
+from eduid_userdb.element import Element, TElementSubclass, VerifiedElement
 from eduid_userdb.exceptions import UserDBValueError, UserHasUnknownData
 
 __author__ = 'lundberg'
