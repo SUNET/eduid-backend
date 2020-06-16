@@ -84,7 +84,7 @@ class TestNinList(TestCase):
             'id': bson.ObjectId(),
             'salt': 'foo',
         }
-        new = Password(data=pwdict)
+        new = Password.from_dict(pwdict)
         with self.assertRaises(eduid_userdb.element.UserDBValueError):
             self.one.add(new)
 

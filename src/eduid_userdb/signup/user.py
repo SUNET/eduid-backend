@@ -71,7 +71,7 @@ class SignupUser(User):
         _proofing_reference = data.pop('proofing_reference', None)
         if _pending_mail_address:
             if isinstance(_pending_mail_address, dict):
-                _pending_mail_address = EmailProofingElement(data=_pending_mail_address)
+                _pending_mail_address = EmailProofingElement.from_dict(_pending_mail_address)
 
         self.social_network = _social_network
         self.social_network_id = _social_network_id

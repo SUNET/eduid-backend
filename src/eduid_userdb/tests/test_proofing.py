@@ -59,8 +59,8 @@ class ProofingStateTest(TestCase):
         """
         state = LetterProofingState(
             eppn=EPPN,
-            nin=NinProofingElement(
-                data={
+            nin=NinProofingElement.from_dict(
+                {
                     'number': '200102034567',
                     'created_by': 'eduid_letter_proofing',
                     'created_ts': True,
@@ -72,7 +72,7 @@ class ProofingStateTest(TestCase):
             ),
             id=None,
             modified_ts=None,
-            proofing_letter=SentLetterElement(data={}),
+            proofing_letter=SentLetterElement.from_dict({}),
         )
         state.proofing_letter.address = ADDRESS
         x = state.proofing_letter.to_dict()
@@ -97,7 +97,7 @@ class ProofingStateTest(TestCase):
         }
         """
 
-        nin_pe = NinProofingElement(number='200102034567', application='eduid_oidc_proofing', verified=False)
+        nin_pe = NinProofingElement.from_dict(dict(number='200102034567', application='eduid_oidc_proofing', verified=False))
         state = OidcProofingState(
             eppn=EPPN,
             state='2c84fedd-a694-46f0-b235-7c4dd7982852',

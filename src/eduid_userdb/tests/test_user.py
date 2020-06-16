@@ -418,8 +418,8 @@ class _AbstractUserTestCase:
     def test_locked_identity_set(self):
         locked_identity = {'created_by': 'test', 'created_ts': True, 'identity_type': 'nin', 'number': '197801012345'}
         user = User.from_dict(self.data1)
-        locked_nin = LockedIdentityNin(
-            locked_identity['number'], locked_identity['created_by'], locked_identity['created_ts']
+        locked_nin = LockedIdentityNin.from_dict(
+            dict(number=locked_identity['number'], created_by=locked_identity['created_by'], created_ts=locked_identity['created_ts'])
         )
         user.locked_identity.add(locked_nin)
         self.assertEqual(user.locked_identity.count, 1)
@@ -433,8 +433,8 @@ class _AbstractUserTestCase:
     def test_locked_identity_to_dict(self):
         locked_identity = {'created_by': 'test', 'created_ts': True, 'identity_type': 'nin', 'number': '197801012345'}
         user = User.from_dict(self.data1)
-        locked_nin = LockedIdentityNin(
-            locked_identity['number'], locked_identity['created_by'], locked_identity['created_ts']
+        locked_nin = LockedIdentityNin.from_dict(
+            dict(number=locked_identity['number'], created_by=locked_identity['created_by'], created_ts=locked_identity['created_ts'])
         )
         user.locked_identity.add(locked_nin)
 
@@ -455,8 +455,8 @@ class _AbstractUserTestCase:
     def test_locked_identity_remove(self):
         locked_identity = {'created_by': 'test', 'created_ts': True, 'identity_type': 'nin', 'number': '197801012345'}
         user = User.from_dict(self.data1)
-        locked_nin = LockedIdentityNin(
-            locked_identity['number'], locked_identity['created_by'], locked_identity['created_ts']
+        locked_nin = LockedIdentityNin.from_dict(
+            dict(number=locked_identity['number'], created_by=locked_identity['created_by'], created_ts=locked_identity['created_ts'])
         )
         user.locked_identity.add(locked_nin)
         with self.assertRaises(EduIDUserDBError):
@@ -479,9 +479,12 @@ class _AbstractUserTestCase:
             "token_type": "bearer",
         }
         orcid = "user_orcid"
-        oidc_id_token = OidcIdToken(application='test', **id_token)
-        oidc_authz = OidcAuthorization(id_token=oidc_id_token, application='test', **oidc_data)
-        orcid_element = Orcid(id=orcid, oidc_authz=oidc_authz, application='test')
+        id_token['created_by'] = 'test'
+        oidc_id_token = OidcIdToken.from_dict(id_token)
+        oidc_data['created_by'] = 'test'
+        oidc_data['id_token'] = oidc_id_token
+        oidc_authz = OidcAuthorization.from_dict(oidc_data)
+        orcid_element = Orcid.from_dict(dict(id=orcid, oidc_authz=oidc_authz, created_by='test'))
 
         user = User.from_dict(self.data1)
         user.orcid = orcid_element
@@ -799,7 +802,7 @@ class TestNewUser(TestCase, _AbstractUserTestCase):
                 'a_map': {'some': 'data'},
             },
         }
-        profile = Profile(**profile_dict)
+        profile = Profile.from_dict(profile_dict)
         profile_list = [profile]
         profiles = ProfileList(profile_list)
         language = 'sv'

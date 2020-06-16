@@ -366,7 +366,7 @@ class User(object):
         self._orcid = None
         _orcid = self._data_in.pop('orcid', None)
         if _orcid is not None:
-            self._orcid = Orcid(data=_orcid)
+            self._orcid = Orcid.from_dict(_orcid)
 
     def _parse_profiles(self):
         """

@@ -546,7 +546,7 @@ class Orcid(VerifiedElement):
         # Parse ID token
         _oidc_authz = data.pop('oidc_authz')
         if isinstance(_oidc_authz, dict):
-            self.oidc_authz = OidcAuthorization(data=_oidc_authz)
+            self.oidc_authz = OidcAuthorization.from_dict(_oidc_authz)
         if isinstance(_oidc_authz, OidcAuthorization):
             self.oidc_authz = _oidc_authz
 

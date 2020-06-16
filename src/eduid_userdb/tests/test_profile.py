@@ -13,12 +13,14 @@ OPAQUE_DATA = {'a_string': 'I am a string', 'an_int': 3, 'a_list': ['eins', 2, '
 
 class ProfileTest(TestCase):
     def test_create_profile(self):
-        profile = Profile(
-            owner='test owner',
-            schema='test schema',
-            profile_data=OPAQUE_DATA,
-            created_by='test created_by',
-            created_ts=True,
+        profile = Profile.from_dict(
+            dict(
+                owner='test owner',
+                schema='test schema',
+                profile_data=OPAQUE_DATA,
+                created_by='test created_by',
+                created_ts=True,
+            )
         )
         self.assertEqual(profile.owner, 'test owner')
         self.assertEqual(profile.schema, 'test schema')
@@ -31,7 +33,7 @@ class ProfileTest(TestCase):
     def test_create_profile_from_dict(self):
         data = dict(owner='test owner', created_by='test created_by', created_ts=True, schema='test schema')
         data['profile_data'] = OPAQUE_DATA
-        profile = Profile.from_dict(data=data)
+        profile = Profile.from_dict(data)
         self.assertEqual(profile.owner, 'test owner')
         self.assertEqual(profile.schema, 'test schema')
         self.assertEqual(profile.created_by, 'test created_by')
@@ -41,16 +43,18 @@ class ProfileTest(TestCase):
             self.assertEqual(value, profile.profile_data[key])
 
     def test_profile_list(self):
-        profile = Profile(
-            owner='test owner 1',
-            schema='test schema',
-            profile_data=OPAQUE_DATA,
-            created_by='test created_by',
-            created_ts=True,
+        profile = Profile.from_dict(
+            dict(
+                owner='test owner 1',
+                schema='test schema',
+                profile_data=OPAQUE_DATA,
+                created_by='test created_by',
+                created_ts=True,
+            )
         )
         data = dict(owner='test owner 2', created_by='test created_by', created_ts=True, schema='test schema')
         data['profile_data'] = OPAQUE_DATA
-        profile2 = Profile.from_dict(data=data)
+        profile2 = Profile.from_dict(data)
 
         profile_list = ProfileList([profile, profile2])
         self.assertIsNotNone(profile_list)
@@ -81,15 +85,17 @@ class ProfileTest(TestCase):
         self.assertEqual(profile_list.count, 0)
 
     def test_profile_list_owner_conflict(self):
-        profile = Profile(
-            owner='test owner 1',
-            schema='test schema',
-            profile_data=OPAQUE_DATA,
-            created_by='test created_by',
-            created_ts=True,
+        profile = Profile.from_dict(
+            dict(
+                owner='test owner 1',
+                schema='test schema',
+                profile_data=OPAQUE_DATA,
+                created_by='test created_by',
+                created_ts=True,
+            )
         )
         profile_dict = profile.to_dict()
-        profile2 = Profile.from_dict(data=profile_dict)
+        profile2 = Profile.from_dict(profile_dict)
 
         with self.assertRaises(DuplicateElementViolation):
             ProfileList([profile, profile2])

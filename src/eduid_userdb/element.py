@@ -98,6 +98,7 @@ class Element(object):
 
     def __init__(self, data: Dict[str, Any], called_directly: bool = True):
         if called_directly:
+            breakpoint()
             warnings.warn("Element.__init__ called directly", DeprecationWarning)
 
         if not isinstance(data, dict):

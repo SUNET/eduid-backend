@@ -63,16 +63,16 @@ class TestOrcid(TestCase):
         self.assertEqual(dict_1, dict_2)
 
         with self.assertRaises(eduid_userdb.exceptions.UserHasUnknownData):
-            OidcIdToken(data=id_token_data)
+            OidcIdToken.from_dict(id_token_data)
 
         with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            OidcIdToken()
+            OidcIdToken.from_dict(None)
 
     def test_oidc_authz(self):
         id_token_data = token_response['id_token']
         id_token_data['created_ts'] = True
         id_token_data['created_by'] = 'test'
-        id_token = OidcIdToken(data=token_response['id_token'], raise_on_unknown=False)
+        id_token = OidcIdToken.from_dict(token_response['id_token'], raise_on_unknown=False)
 
         token_response['created_ts'] = True
         token_response['created_by'] = 'test'
@@ -103,17 +103,17 @@ class TestOrcid(TestCase):
         self.assertEqual(dict_1, dict_2)
 
         with self.assertRaises(eduid_userdb.exceptions.UserHasUnknownData):
-            OidcAuthorization(data=token_response)
+            OidcAuthorization.from_dict(token_response)
 
         with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            OidcAuthorization()
+            OidcAuthorization.from_dict(None)
 
     def test_orcid(self):
         token_response['id_token']['created_ts'] = True
         token_response['id_token']['created_by'] = 'test'
         token_response['created_ts'] = True
         token_response['created_by'] = 'test'
-        oidc_authz = OidcAuthorization(data=token_response, raise_on_unknown=False)
+        oidc_authz = OidcAuthorization.from_dict(token_response, raise_on_unknown=False)
         orcid_1 = Orcid.from_dict(
             dict(id='https://op.example.org/user_orcid', oidc_authz=oidc_authz, created_by='test', verified=True)
         )

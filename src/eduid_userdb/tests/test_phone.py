@@ -91,7 +91,7 @@ class TestPhoneNumberList(TestCase):
             'id': bson.ObjectId(),
             'salt': 'foo',
         }
-        new = Password(data=pwdict)
+        new = Password.from_dict(pwdict)
         with self.assertRaises(eduid_userdb.element.UserDBValueError):
             self.one.add(new)
 
@@ -207,7 +207,7 @@ class TestPhoneNumber(TestCase):
 
     def test_create_phone_number(self):
         one = copy.deepcopy(_one_dict)
-        one = PhoneNumber(data=one)
+        one = PhoneNumber.from_dict(one)
         self.assertEqual(_one_dict, one.to_dict())
 
     def test_parse_cycle(self):
@@ -227,12 +227,12 @@ class TestPhoneNumber(TestCase):
         one = copy.deepcopy(_one_dict)
         one['foo'] = 'bar'
         with self.assertRaises(eduid_userdb.exceptions.UserHasUnknownData):
-            PhoneNumber(data=one)
+            PhoneNumber.from_dict(one)
 
     def test_unknown_input_data_allowed(self):
         one = copy.deepcopy(_one_dict)
         one['foo'] = 'bar'
-        addr = PhoneNumber(data=one, raise_on_unknown=False)
+        addr = PhoneNumber.from_dict(one, raise_on_unknown=False)
         out = addr.to_dict()
         self.assertIn('foo', out)
         self.assertEqual(out['foo'], one['foo'])
