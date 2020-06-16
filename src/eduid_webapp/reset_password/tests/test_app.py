@@ -13,7 +13,7 @@
 #        copyright notice, this list of conditions and the following
 #        disclaimer in the documentation and/or other materials provided
 #        with the distribution.
-#     3. Neither the name of the NORDUnet nor the names of its
+#     3. Neither the name of the SUNET nor the names of its
 #        contributors may be used to endorse or promote products derived
 #        from this software without specific prior written permission.
 #
@@ -36,19 +36,22 @@ from __future__ import absolute_import
 import json
 import time
 from copy import copy
-from typing import Any, Optional
+from typing import Any, Mapping, Optional
 from urllib.parse import quote_plus
 
 from flask import url_for
 from mock import patch
 
+from eduid_common.api.messages import TranslatableMsg
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.authn.testing import TestVCCSClient
 from eduid_common.authn.tests.test_fido_tokens import SAMPLE_WEBAUTHN_CREDENTIAL, SAMPLE_WEBAUTHN_REQUEST
 from eduid_userdb.credentials import Webauthn
 from eduid_userdb.exceptions import DocumentDoesNotExist, UserDoesNotExist, UserHasNotCompletedSignup
+
 from eduid_webapp.reset_password.app import init_reset_password_app
 from eduid_webapp.reset_password.helpers import (
+    ResetPwMsg,
     generate_suggested_password,
     get_extra_security_alternatives,
     get_zxcvbn_terms,
@@ -650,10 +653,15 @@ class ResetPasswordTests(EduidAPITestCase):
 
     def test_post_reset_password_no_data(self):
         response = self._post_reset_password(data2={})
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_NEW_PASSWORD_FAIL')
-        self.assertEqual(response.json['payload']['message'], 'chpass.no-code-in-data')
+        self._check_api_error(
+            response,
+            type_='POST_RESET_PASSWORD_RESET_NEW_PASSWORD_FAIL',
+            error={
+                'code': ['Missing data for required field.'],
+                'csrf_token': ['Missing data for required field.'],
+                'password': ['Missing data for required field.'],
+            },
+        )
 
     def test_post_reset_password_weak(self):
         data2 = {'password': 'pw'}
@@ -669,7 +677,7 @@ class ResetPasswordTests(EduidAPITestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_NEW_PASSWORD_FAIL')
-        self.assertEqual(response.json['payload']['message'], 'csrf.try_again')
+        self.assertEqual(response.json['payload']['error']['csrf_token'], ['CSRF failed to validate'])
 
     def test_post_reset_password_wrong_code(self):
         data2 = {'code': 'wrong-code'}
@@ -774,10 +782,11 @@ class ResetPasswordTests(EduidAPITestCase):
     def test_post_reset_password_secure_phone_wrong_csrf_token(self):
         data2 = {'csrf_token': 'wrong-code'}
         response = self._post_reset_password_secure_phone(data2=data2)
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_PHONE_FAIL')
-        self.assertEqual(response.json['payload']['message'], 'csrf.try_again')
+        self._check_api_error(
+            response,
+            type_='POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_PHONE_FAIL',
+            error={'csrf_token': ['CSRF failed to validate']},
+        )
 
     def test_post_reset_password_secure_phone_wrong_email_token(self):
         data2 = {'code': 'wrong-code'}
@@ -798,29 +807,34 @@ class ResetPasswordTests(EduidAPITestCase):
     def test_post_reset_password_secure_phone_weak_password(self):
         data2 = {'password': 'pw'}
         response = self._post_reset_password_secure_phone(data2=data2)
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_PHONE_FAIL')
-        self.assertEqual(response.json['payload']['message'], 'chpass.weak-password')
+        self._check_api_result(
+            response, type_='POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_PHONE_FAIL', msg=ResetPwMsg.chpass_weak
+        )
 
     def test_post_reset_password_secure_token(self):
         response = self._post_reset_password_secure_token()
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_TOKEN_SUCCESS')
+        self._check_api_result(
+            response, type_='POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_TOKEN_SUCCESS', msg=ResetPwMsg.pw_resetted
+        )
 
     def test_post_reset_password_secure_token_custom_pw(self):
         response = self._post_reset_password_secure_token(custom_password='T%7j 8/tT a0=b')
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_TOKEN_SUCCESS')
+        self._check_api_result(
+            response, type_='POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_TOKEN_SUCCESS', msg=ResetPwMsg.pw_resetted
+        )
+        # TODO: Load the user from the database and verify the new credential has is_generated=False
 
     def test_post_reset_password_secure_token_no_data(self):
         response = self._post_reset_password_secure_token(data2={})
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_TOKEN_FAIL')
-        self.assertEqual(response.json['payload']['message'], 'chpass.no-code-in-data')
+        self._check_api_error(
+            response,
+            type_='POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_TOKEN_FAIL',
+            error={
+                'code': ['Missing data for required field.'],
+                'csrf_token': ['Missing data for required field.'],
+                'password': ['Missing data for required field.'],
+            },
+        )
 
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     @patch('eduid_common.authn.vccs.get_vccs_client')
@@ -849,10 +863,11 @@ class ResetPasswordTests(EduidAPITestCase):
     def test_post_reset_password_secure_token_wrong_csrf(self):
         data2 = {'csrf_token': 'wrong-code'}
         response = self._post_reset_password_secure_token(data2=data2)
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_TOKEN_FAIL')
-        self.assertEqual(response.json['payload']['message'], 'csrf.try_again')
+        self._check_api_error(
+            response,
+            type_='POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_TOKEN_FAIL',
+            error={'csrf_token': ['CSRF failed to validate']},
+        )
 
     def test_post_reset_password_secure_token_wrong_code(self):
         data2 = {'code': 'wrong-code'}
@@ -1030,7 +1045,11 @@ class ChangePasswordTests(EduidAPITestCase):
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def _change_password(
-        self, mock_request_user_sync: Any, reauthn: Optional[int] = None, data1: Optional[dict] = None, yuck_add_csrf: bool=False
+        self,
+        mock_request_user_sync: Any,
+        reauthn: Optional[int] = None,
+        data1: Optional[dict] = None,
+        yuck_add_csrf: bool = False,
     ):
         """
         To change the pasword of the test user, POST old and new passwords,
@@ -1124,9 +1143,13 @@ class ChangePasswordTests(EduidAPITestCase):
         response = self._change_password(data1={}, yuck_add_csrf=True)
 
         self.assertEqual(response.json['type'], "POST_CHANGE_PASSWORD_CHANGE_PASSWORD_FAIL")
-        self.assertEqual(response.json['payload']['error'], {'new_password': ['Missing data for required field.'],
-                                                             'old_password': ['Missing data for required field.'],
-                                                             })
+        self.assertEqual(
+            response.json['payload']['error'],
+            {
+                'new_password': ['Missing data for required field.'],
+                'old_password': ['Missing data for required field.'],
+            },
+        )
 
     def test_change_passwd_empty_data(self):
         data1 = {'new_password': '', 'old_password': ''}

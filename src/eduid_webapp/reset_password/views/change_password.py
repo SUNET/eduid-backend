@@ -30,12 +30,10 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-import json
 from datetime import datetime
 from typing import Any, Mapping
 
-from flask import Blueprint, request
-from marshmallow import ValidationError
+from flask import Blueprint
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid_common.api.messages import CommonMsg, error_message
@@ -46,6 +44,7 @@ from eduid_common.session import session
 from eduid_userdb import User
 from eduid_userdb.exceptions import UserOutOfSync
 from eduid_userdb.reset_password import ResetPasswordUser
+
 from eduid_webapp.reset_password.app import current_reset_password_app as current_app
 from eduid_webapp.reset_password.helpers import (
     ResetPwMsg,

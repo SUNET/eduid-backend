@@ -67,19 +67,10 @@ class ResetPasswordExtraSecPhoneSchema(EduidSchema, CSRFRequestMixin):
     phone_index = fields.Integer(required=True)
 
 
-class ResetPasswordWithCodeSchema(PasswordSchema):
+class ResetPasswordWithCodeSchema(EduidSchema, CSRFRequestMixin):
 
-    csrf_token = fields.String(required=True)
     code = fields.String(required=True)
     password = fields.String(required=True)
-
-    @validates('password')
-    def validate_pw(self, value, **kwargs):
-        # Set a new error message
-        try:
-            self.validate_password(value)
-        except ValidationError:
-            raise ValidationError(ResetPwMsg.resetpw_weak.value)
 
 
 class ResetPasswordWithPhoneCodeSchema(ResetPasswordWithCodeSchema):
@@ -118,3 +109,21 @@ class SuggestedPassword(EduidSchema, CSRFResponseMixin):
 class SuggestedPasswordResponseSchema(FluxStandardAction):
 
     payload = fields.Nested(SuggestedPassword, many=False)
+
+
+class NewPasswordSecurePhoneRequestSchema(EduidSchema, CSRFRequestMixin):
+
+    code = fields.String(required=True)
+    password = fields.String(required=True)
+    phone_code = fields.String(required=True)
+
+
+class NewPasswordSecureTokenRequestSchema(EduidSchema, CSRFRequestMixin):
+
+    code = fields.String(required=True)
+    password = fields.String(required=True)
+    tokenResponse = fields.String(required=False)
+    authenticatorData = fields.String(required=False)
+    clientDataJSON = fields.String(required=False)
+    credentialId = fields.String(required=False)
+    signature = fields.String(required=False)
