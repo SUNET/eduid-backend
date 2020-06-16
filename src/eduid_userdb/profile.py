@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, List, Mapping, Optional, Union
+from typing import Any, Dict, List, Mapping, Optional, Union
 
 from eduid_userdb.element import DuplicateElementViolation, Element, ElementList
 from eduid_userdb.exceptions import UserDBValueError
@@ -20,7 +20,7 @@ class Profile(Element):
         created_by: Optional[str] = None,
         created_ts: Optional[Union[datetime, bool]] = None,
         modified_ts: Optional[Union[datetime, bool]] = None,
-        data: Optional[Mapping[str, Any]] = None,
+        data: Optional[Dict[str, Any]] = None,
         called_directly: bool = True,
     ):
 
@@ -35,12 +35,15 @@ class Profile(Element):
 
         super().__init__(data=data, called_directly=called_directly)
 
-        self.owner = owner
-        self.schema = schema
-        self.profile_data = profile_data
+        if owner is not None:
+            self.owner = owner
+        if schema is not None:
+            self.schema = schema
+        if profile_data is not None:
+            self.profile_data = profile_data
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> Profile:
+    def from_dict(cls, data: Dict[str, Any]) -> Profile:
         return cls(data=data, called_directly=False)
 
     # -----------------------------------------------------------------
@@ -111,7 +114,7 @@ class ProfileList(ElementList):
             self.add(profile)
 
     @classmethod
-    def from_list_of_dicts(cls, items: List[Mapping[str, Any]]) -> ProfileList:
+    def from_list_of_dicts(cls, items: List[Dict[str, Any]]) -> ProfileList:
         profiles = list()
         for item in items:
             profiles.append(Profile.from_dict(item))

@@ -103,7 +103,7 @@ class Element(object):
 
         if not isinstance(data, dict):
             raise UserDBValueError("Invalid 'data', not dict ({!r})".format(type(data)))
-        self._data = {}
+        self._data: Dict[str, Any] = {}
 
         self.created_by = data.pop('created_by', None)
         self.created_ts = data.pop('created_ts', None)

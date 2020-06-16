@@ -58,8 +58,10 @@ class CodeElement(Element):
 
         super().__init__(data, called_directly=called_directly)
 
-        self.code = code
-        self.is_verified = verified
+        if code is not None:
+            self.code = code
+        if verified is not None:
+            self.is_verified = verified
 
     @property
     def key(self) -> str:
