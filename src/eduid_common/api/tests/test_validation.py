@@ -4,7 +4,6 @@ from eduid_common.api.validation import is_valid_password
 
 
 class TestIsValidPassword(unittest.TestCase):
-
     def test_is_valid_password(self):
         res = is_valid_password('abc123', [], 1)
         self.assertEqual(True, res)

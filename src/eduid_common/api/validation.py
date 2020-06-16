@@ -5,7 +5,6 @@ from typing import Sequence
 
 from zxcvbn import zxcvbn
 
-
 nin_re = re.compile(r'^(18|19|20)\d{2}(0[1-9]|1[0-2])\d{2}\d{4}$')
 # RFC2822_email, http://www.regular-expressions.info/email.html
 email_re = re.compile(
