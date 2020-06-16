@@ -13,7 +13,7 @@
 #        copyright notice, this list of conditions and the following
 #        disclaimer in the documentation and/or other materials provided
 #        with the distribution.
-#     3. Neither the name of the NORDUnet nor the names of its
+#     3. Neither the name of the SUNET nor the names of its
 #        contributors may be used to endorse or promote products derived
 #        from this software without specific prior written permission.
 #
@@ -63,22 +63,12 @@ class GroupManagementInviteStateDB(BaseDB):
         :param email_address: Invited email address
         :param role: Group role
         :param raise_on_missing: Raise exception if True else return None
-
-        :return: GroupInviteState instance
         """
         spec = {'group_scim_id': group_scim_id, 'email_address': email_address, 'role': role}
         docs = list(self._get_documents_by_filter(spec, raise_on_missing=raise_on_missing))
-
-        if len(docs) > 1:
-            # Ex. multiple states for same group_scim_id, email address and roles matched
-            # This should not be possible but we have seen it happen
-            states = sorted(docs, key=itemgetter('modified_ts'))
-            state_to_keep = states.pop(-1)  # Keep latest state
-            for state in states:
-                self.remove_document(state['_id'])
-            return GroupInviteState.from_dict(state_to_keep)
-
-        return GroupInviteState.from_dict(docs[0])
+        if len(docs) == 1:
+            return GroupInviteState.from_dict(docs[0])
+        return None
 
     def get_states_by_group_scim_id(self, group_scim_id: str, raise_on_missing: bool = True) -> List[GroupInviteState]:
         """
@@ -87,20 +77,17 @@ class GroupManagementInviteStateDB(BaseDB):
         :param group_scim_id: Groups unique identifier
         :param raise_on_missing: Raise exception if True else return None
 
-        :return: List of GroupInviteState instances | None
+        :return: List of GroupInviteState instances
 
         :raise self.DocumentDoesNotExist: No document match the search criteria
         """
-        ret: List[GroupInviteState] = list()
         spec = {'group_scim_id': group_scim_id}
         states = list(self._get_documents_by_filter(spec, raise_on_missing=raise_on_missing))
 
         if len(states) == 0:
-            return ret
+            return []
 
-        for state in states:
-            ret.append(GroupInviteState.from_dict(state))
-        return ret
+        return [GroupInviteState.from_dict(state) for state in states]
 
     def get_states_by_email_addresses(
         self, email_addresses: List[str], raise_on_missing: bool = True
@@ -111,7 +98,7 @@ class GroupManagementInviteStateDB(BaseDB):
         :param email_addresses: List of a users verified email addresses
         :param raise_on_missing: Raise exception if True else return None
 
-        :return: List of GroupInviteState instances | None
+        :return: List of GroupInviteState instances
 
         :raise self.DocumentDoesNotExist: No document match the search criteria
         """
@@ -123,10 +110,7 @@ class GroupManagementInviteStateDB(BaseDB):
         if len(states) == 0:
             return []
 
-        ret = list()
-        for state in states:
-            ret.append(GroupInviteState.from_dict(state))
-        return ret
+        return [GroupInviteState.from_dict(state) for state in states]
 
     def save(self, state: GroupInviteState, check_sync: bool = True) -> None:
         """
@@ -139,31 +123,30 @@ class GroupManagementInviteStateDB(BaseDB):
             # document has never been modified
             result = self._coll.insert_one(state.to_dict())
             logging.debug(f"{self} Inserted new state {state} into {self._coll_name}): {result.inserted_id})")
-        else:
-            test_doc: Dict[str, Any] = {
-                'group_scim_id': state.group_scim_id,
-                'email_address': state.email_address,
-                'role': state.role,
-            }
-            if check_sync:
-                test_doc['modified_ts'] = modified
-            result = self._coll.replace_one(test_doc, state.to_dict(), upsert=(not check_sync))
-            if check_sync and result.matched_count == 0:
-                db_ts = None
-                db_state = self._coll.find_one(
-                    {'group_scim_id': state.group_scim_id, 'email_address': state.email_address, 'role': state.role}
-                )
-                if db_state:
-                    db_ts = db_state['modified_ts']
-                logging.error(
-                    "{} FAILED Updating state {} (ts {}) in {}). "
-                    "ts in db = {!s}".format(self, state, modified, self._coll_name, db_ts)
-                )
-                raise DocumentOutOfSync('Stale state object can\'t be saved')
+            return None
 
-            logging.debug(
-                "{!s} Updated state {} (ts {}) in {}): {}".format(self, state, modified, self._coll_name, result)
+        test_doc: Dict[str, Any] = {
+            'group_scim_id': state.group_scim_id,
+            'email_address': state.email_address,
+            'role': state.role,
+        }
+        if check_sync:
+            test_doc['modified_ts'] = modified
+        result = self._coll.replace_one(test_doc, state.to_dict(), upsert=(not check_sync))
+        if check_sync and result.matched_count == 0:
+            db_ts = None
+            db_state = self._coll.find_one(
+                {'group_scim_id': state.group_scim_id, 'email_address': state.email_address, 'role': state.role}
             )
+            if db_state:
+                db_ts = db_state['modified_ts']
+            logging.error(
+                "{} FAILED Updating state {} (ts {}) in {}). "
+                "ts in db = {!s}".format(self, state, modified, self._coll_name, db_ts)
+            )
+            raise DocumentOutOfSync('Stale state object can\'t be saved')
+
+        logging.debug(f'{self} Updated state {state} (ts {modified}) in {self._coll_name}): {result}')
 
     def remove_state(self, state: GroupInviteState) -> None:
         """

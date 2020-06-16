@@ -18,7 +18,10 @@ class TestResetGroupInviteStateDB(MongoTestCase):
         # Member
         group_scim_id = str(uuid4())
         invite_state = GroupInviteState(
-            group_scim_id=group_scim_id, email_address='johnsmith@example.com', role='member', inviter=self.user.eppn
+            group_scim_id=group_scim_id,
+            email_address='johnsmith@example.com',
+            role='member',
+            inviter_eppn=self.user.eppn,
         )
         self.invite_state_db.save(invite_state)
         invite = self.invite_state_db.get_state(
@@ -31,7 +34,10 @@ class TestResetGroupInviteStateDB(MongoTestCase):
         # Owner
         group_scim_id = str(uuid4())
         invite_state = GroupInviteState(
-            group_scim_id=group_scim_id, email_address='johnsmith@example.com', role='owner', inviter=self.user.eppn
+            group_scim_id=group_scim_id,
+            email_address='johnsmith@example.com',
+            role='owner',
+            inviter_eppn=self.user.eppn,
         )
         self.invite_state_db.save(invite_state)
         invite = self.invite_state_db.get_state(
@@ -44,10 +50,16 @@ class TestResetGroupInviteStateDB(MongoTestCase):
     def test_save_duplicate(self):
         group_scim_id = str(uuid4())
         invite_state1 = GroupInviteState(
-            group_scim_id=group_scim_id, email_address='johnsmith@example.com', role='owner', inviter=self.user.eppn
+            group_scim_id=group_scim_id,
+            email_address='johnsmith@example.com',
+            role='owner',
+            inviter_eppn=self.user.eppn,
         )
         invite_state2 = GroupInviteState(
-            group_scim_id=group_scim_id, email_address='johnsmith@example.com', role='owner', inviter=self.user.eppn
+            group_scim_id=group_scim_id,
+            email_address='johnsmith@example.com',
+            role='owner',
+            inviter_eppn=self.user.eppn,
         )
 
         self.invite_state_db.save(invite_state1)
