@@ -144,4 +144,4 @@ class TestOrcid(TestCase):
             Orcid.from_dict(data)
 
         with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            Orcid.from_dict({})
+            Orcid.from_dict(None)
