@@ -113,7 +113,7 @@ def create_invite(user: User, group_identifier: UUID, email_address: str, role: 
             f'Invite for email address {invite_state.email_address} to group {invite_state.group_scim_id} '
             f'as role {invite_state.role} already exists.'
         )
-        return error_message(GroupManagementMsg.invite_already_exists)
+    # Always send an e-mail even it the invite already existed
     try:
         send_invite_email(invite_state)
     except MailTaskFailed:

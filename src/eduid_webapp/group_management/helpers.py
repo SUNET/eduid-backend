@@ -35,7 +35,6 @@ class GroupManagementMsg(TranslatableMsg):
     create_failed = 'group.create_failed'
     user_not_owner = 'group.user_not_owner'
     mail_address_not_verified = 'group.mail_address_not_verified'
-    invite_already_exists = 'group.invite_already_exists'
 
 
 def get_scim_user_by_eppn(eppn: str) -> Optional[ScimApiUser]:
