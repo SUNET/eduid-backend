@@ -125,7 +125,7 @@ class EduidAPITestCase(CommonTestCase):
         for this in users:
             self.MockedUserDB.test_users[this] = _standard_test_users.get(this)
 
-        self.user = None
+        self.user = None  # type: ignore
         # Initialize some convenience variables on self based on the first user in `users'
         self.test_user_data = _standard_test_users[users[0]]
         self.test_user = User.from_dict(data=self.test_user_data)
