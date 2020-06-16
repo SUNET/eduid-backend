@@ -48,10 +48,21 @@ class GroupRole(Enum):
     MEMBER = 'member'
 
 
+class LowerEmail(fields.Email):
+    def _serialize(self, value, attr, obj, **kwargs):
+        value = super()._serialize(value, attr, obj, **kwargs)
+        return value.lower()
+
+    def _deserialize(self, value, attr, data, **kwargs):
+        value = super()._deserialize(value, attr, data, **kwargs)
+        return value.lower()
+
+
 def validate_role(role: str, **kwargs):
     """
     :param role: Role in group
-    :return: True|ValidationError
+    :return: True
+    :raises ValidationError
     """
     roles = [r.value for r in GroupRole]
     if role in roles:
@@ -73,17 +84,17 @@ class Group(EduidSchema):
 
 class OutgoingInvite(EduidSchema):
     class EmailAddress(EduidSchema):
-        email_address = fields.Email(required=True)
+        email_address = LowerEmail(required=True)
 
-    identifier = fields.UUID(required=True)
+    group_identifier = fields.UUID(required=True)
     member_invites = fields.Nested(EmailAddress, many=True)
     owner_invites = fields.Nested(EmailAddress, many=True)
 
 
 class IncomingInvite(EduidSchema):
-    identifier = fields.UUID(required=True)
+    group_identifier = fields.UUID(required=True)
     display_name = fields.Str(required=True)
-    email_address = fields.Email(required=True)
+    email_address = LowerEmail(required=True)
     role = fields.Str(required=True, validate=validate_role)
     owners = fields.Nested(GroupUser, many=True)
 
@@ -103,7 +114,7 @@ class GroupCreateRequestSchema(EduidSchema, CSRFRequestMixin):
 
 class GroupDeleteRequestSchema(EduidSchema, CSRFRequestMixin):
 
-    identifier = fields.UUID(required=True)
+    group_identifier = fields.UUID(required=True)
 
 
 class GroupRemoveUserRequestSchema(EduidSchema, CSRFRequestMixin):
@@ -115,9 +126,9 @@ class GroupRemoveUserRequestSchema(EduidSchema, CSRFRequestMixin):
 
 class GroupInviteRequestSchema(EduidSchema, CSRFRequestMixin):
 
-    identifier = fields.UUID(required=True)
-    email_address = fields.Email(required=True, validate=[validate_email])
-    role = fields.Str(required=True, validate=[validate_role])
+    group_identifier = fields.UUID(required=True)
+    email_address = fields.Email(required=True, validate=validate_email)
+    role = fields.Str(required=True, validate=validate_role)
 
 
 class GroupIncomingInviteResponseSchema(FluxStandardAction):

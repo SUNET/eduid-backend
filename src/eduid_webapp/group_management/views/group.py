@@ -47,6 +47,7 @@ from eduid_userdb.exceptions import EduIDDBError
 from eduid_webapp.group_management.app import current_group_management_app as current_app
 from eduid_webapp.group_management.helpers import (
     GroupManagementMsg,
+    get_or_create_scim_user_by_eppn,
     get_scim_user_by_eppn,
     is_owner,
     remove_user_from_group,
@@ -104,13 +105,7 @@ def get_groups(user: User) -> Mapping:
 @MarshalWith(GroupManagementResponseSchema)
 @require_user
 def create_group(user: User, display_name: str) -> Mapping:
-    scim_user = get_scim_user_by_eppn(user.eppn)
-    if not scim_user:
-        scim_user = ScimApiUser(external_id=f'{user.eppn}@{current_app.config.scim_external_id_scope}')
-        current_app.scimapi_userdb.save(scim_user)
-        current_app.logger.info(f'Created ScimApiUser with scim_id: {scim_user.scim_id}')
-        current_app.stats.count(name='user_created')
-
+    scim_user = get_or_create_scim_user_by_eppn(user.eppn)
     graph_user = GraphUser(identifier=str(scim_user.scim_id), display_name=user.mail_addresses.primary.email)
     group = ScimApiGroup(display_name=display_name)
     group.graph = GraphGroup(identifier=str(group.scim_id), display_name=display_name)
@@ -130,20 +125,22 @@ def create_group(user: User, display_name: str) -> Mapping:
 @UnmarshalWith(GroupDeleteRequestSchema)
 @MarshalWith(GroupManagementResponseSchema)
 @require_user
-def delete_group(user: User, identifier: UUID) -> Mapping:
+def delete_group(user: User, group_identifier: UUID) -> Mapping:
     scim_user = get_scim_user_by_eppn(user.eppn)
     if not scim_user:
         current_app.logger.error('User does not exist in scimapi_userdb')
         return error_message(GroupManagementMsg.user_does_not_exist)
 
-    if not is_owner(scim_user, identifier):
-        current_app.logger.error(f'User is not owner of group with scim_id: {identifier}')
+    if not is_owner(scim_user, group_identifier):
+        current_app.logger.error(f'User is not owner of group with scim_id: {group_identifier}')
         return error_message(GroupManagementMsg.user_not_owner)
 
-    group = current_app.scimapi_groupdb.get_group_by_scim_id(scim_id=str(identifier))
+    group = current_app.scimapi_groupdb.get_group_by_scim_id(scim_id=str(group_identifier))
     if group and current_app.scimapi_groupdb.remove_group(group):
         # Remove outstanding invitations to the group
-        for state in current_app.invite_state_db.get_states_by_group_scim_id(str(identifier), raise_on_missing=False):
+        for state in current_app.invite_state_db.get_states_by_group_scim_id(
+            str(group_identifier), raise_on_missing=False
+        ):
             current_app.invite_state_db.remove_state(state)
         current_app.logger.info(f'Deleted ScimApiGroup with scim_id: {group.scim_id}')
         current_app.stats.count(name='group_deleted')
@@ -172,7 +169,7 @@ def remove_user(user: User, group_identifier: UUID, user_identifier: UUID, role:
     user_to_remove = current_app.scimapi_userdb.get_user_by_scim_id(scim_id=str(user_identifier))
     if not user_to_remove:
         current_app.logger.error('User to remove does not exist in scimapi_userdb')
-        return error_message(GroupManagementMsg.user_to_remove_does_not_exist)
+        return error_message(GroupManagementMsg.user_to_be_removed_does_not_exist)
 
     try:
         remove_user_from_group(user_to_remove, group, role)

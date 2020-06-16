@@ -13,7 +13,7 @@
 #        copyright notice, this list of conditions and the following
 #        disclaimer in the documentation and/or other materials provided
 #        with the distribution.
-#     3. Neither the name of the NORDUnet nor the names of its
+#     3. Neither the name of the SUNET nor the names of its
 #        contributors may be used to endorse or promote products derived
 #        from this software without specific prior written permission.
 #
@@ -50,6 +50,7 @@ from eduid_webapp.group_management.helpers import (
     GroupManagementMsg,
     accept_group_invitation,
     get_incoming_invites,
+    get_or_create_scim_user_by_eppn,
     get_outgoing_invites,
     get_scim_user_by_eppn,
     is_owner,
@@ -71,57 +72,39 @@ group_invite_views = Blueprint('group_invite', __name__, url_prefix='/invites/',
 @MarshalWith(GroupAllInviteResponseSchema)
 @require_user
 def all_invites(user: User) -> Mapping:
-    incoming = get_incoming_invites(user)
-    outgoing = []
-    scim_user = get_scim_user_by_eppn(user.eppn)
-    if scim_user:
-        # The user can only be a group owner if there is a scim_user
-        graph_user = GraphUser(identifier=str(scim_user.scim_id))
-        owner_groups = current_app.scimapi_groupdb.get_groups_for_owner(owner=graph_user)
-        outgoing = get_outgoing_invites(owner_groups)
-
-    return {'incoming': incoming, 'outgoing': outgoing}
+    return {'incoming': get_incoming_invites(user), 'outgoing': get_outgoing_invites(user)}
 
 
 @group_invite_views.route('/incoming', methods=['GET'])
 @MarshalWith(GroupIncomingInviteResponseSchema)
 @require_user
 def incoming_invites(user: User) -> Mapping:
-    invites = get_incoming_invites(user)
-    return {'incoming': invites}
+    return {'incoming': get_incoming_invites(user)}
 
 
 @group_invite_views.route('/outgoing', methods=['GET'])
 @MarshalWith(GroupOutgoingInviteResponseSchema)
 @require_user
 def outgoing_invites(user: User) -> Mapping:
-    invites = []
-    scim_user = get_scim_user_by_eppn(user.eppn)
-    if scim_user:
-        # The user can only be a group owner if there is a scim_user
-        graph_user = GraphUser(identifier=str(scim_user.scim_id))
-        owner_groups = current_app.scimapi_groupdb.get_groups_for_owner(owner=graph_user)
-        invites = get_outgoing_invites(owner_groups)
-
-    return {'outgoing': invites}
+    return {'outgoing': get_outgoing_invites(user)}
 
 
 @group_invite_views.route('/create', methods=['POST'])
 @UnmarshalWith(GroupInviteRequestSchema)
 @MarshalWith(GroupOutgoingInviteResponseSchema)
 @require_user
-def create_invite(user: User, identifier: UUID, email_address: str, role: str) -> Mapping:
+def create_invite(user: User, group_identifier: UUID, email_address: str, role: str) -> Mapping:
     scim_user = get_scim_user_by_eppn(user.eppn)
     if not scim_user:
         current_app.logger.error('User does not exist in scimapi_userdb')
         return error_message(GroupManagementMsg.user_does_not_exist)
 
-    if not is_owner(scim_user, identifier):
-        current_app.logger.error(f'User is not owner of group with scim_id: {identifier}')
+    if not is_owner(scim_user, group_identifier):
+        current_app.logger.error(f'User is not owner of group with scim_id: {group_identifier}')
         return error_message(GroupManagementMsg.user_not_owner)
 
     invite_state = GroupInviteState(
-        group_scim_id=str(identifier), email_address=email_address, role=role, inviter=user.eppn
+        group_scim_id=str(group_identifier), email_address=email_address, role=role, inviter_eppn=user.eppn
     )
     try:
         current_app.invite_state_db.save(invite_state)
@@ -143,27 +126,23 @@ def create_invite(user: User, identifier: UUID, email_address: str, role: str) -
 @UnmarshalWith(GroupInviteRequestSchema)
 @MarshalWith(GroupIncomingInviteResponseSchema)
 @require_user
-def accept_invite(user: User, identifier: UUID, email_address: str, role: str) -> Mapping:
+def accept_invite(user: User, group_identifier: UUID, email_address: str, role: str) -> Mapping:
     # Check that the current user has verified the invited email address
-    mail_addresses = [item.email for item in user.mail_addresses.to_list() if item.is_verified]
-    if email_address not in mail_addresses:
+    user_email_address = user.mail_addresses.find(email_address)
+    if not user_email_address or not user_email_address.is_verified:
         current_app.logger.error(f'User has not verified email address: {email_address}')
         return error_message(GroupManagementMsg.mail_address_not_verified)
+
     try:
         invite_state = current_app.invite_state_db.get_state(
-            group_scim_id=str(identifier), email_address=email_address, role=role
+            group_scim_id=str(group_identifier), email_address=email_address, role=role
         )
     except DocumentDoesNotExist:
-        current_app.logger.error('Invite does not exist')
+        current_app.logger.error(f'Invite for group {group_identifier} does not exist')
         return error_message(GroupManagementMsg.invite_not_found)
 
     # Invite exists and current user is the one invited
-    scim_user = get_scim_user_by_eppn(user.eppn)
-    if not scim_user:
-        scim_user = ScimApiUser(external_id=f'{user.eppn}@{current_app.config.scim_external_id_scope}')
-        current_app.scimapi_userdb.save(scim_user)
-        current_app.logger.info(f'Created ScimApiUser with scim_id: {scim_user.scim_id}')
-        current_app.stats.count(name='user_created')
+    scim_user = get_or_create_scim_user_by_eppn(user.eppn)
 
     group = current_app.scimapi_groupdb.get_group_by_scim_id(invite_state.group_scim_id)
     if not group:
@@ -185,15 +164,16 @@ def accept_invite(user: User, identifier: UUID, email_address: str, role: str) -
 @UnmarshalWith(GroupInviteRequestSchema)
 @MarshalWith(GroupIncomingInviteResponseSchema)
 @require_user
-def decline_invite(user: User, identifier: UUID, email_address: str, role: str) -> Mapping:
+def decline_invite(user: User, group_identifier: UUID, email_address: str, role: str) -> Mapping:
     # Check that the current user has verified the invited email address
-    mail_addresses = [item.email for item in user.mail_addresses.to_list() if item.is_verified]
-    if email_address not in mail_addresses:
+    user_email_address = user.mail_addresses.find(email_address)
+    if not user_email_address or not user_email_address.is_verified:
         current_app.logger.error(f'User has not verified email address: {email_address}')
         return error_message(GroupManagementMsg.mail_address_not_verified)
+
     try:
         invite_state = current_app.invite_state_db.get_state(
-            group_scim_id=str(identifier), email_address=email_address, role=role
+            group_scim_id=str(group_identifier), email_address=email_address, role=role
         )
     except DocumentDoesNotExist:
         current_app.logger.error('Invite does not exist')

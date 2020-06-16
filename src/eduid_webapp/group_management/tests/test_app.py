@@ -127,7 +127,7 @@ class GroupManagementTests(EduidAPITestCase):
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
                     data = {
-                        'identifier': group_scim_id,
+                        'group_identifier': group_scim_id,
                         'email_address': invite_address,
                         'role': role,
                         'csrf_token': sess.get_csrf_token(),
@@ -144,7 +144,7 @@ class GroupManagementTests(EduidAPITestCase):
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
                     data = {
-                        'identifier': group_scim_id,
+                        'group_identifier': group_scim_id,
                         'email_address': invite_address,
                         'role': role,
                         'csrf_token': sess.get_csrf_token(),
@@ -161,7 +161,7 @@ class GroupManagementTests(EduidAPITestCase):
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
                     data = {
-                        'identifier': group_scim_id,
+                        'group_identifier': group_scim_id,
                         'email_address': invite_address,
                         'role': role,
                         'csrf_token': sess.get_csrf_token(),
@@ -296,7 +296,7 @@ class GroupManagementTests(EduidAPITestCase):
         with self.session_cookie(self.browser, self.test_user.eppn) as client:
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
-                    data = {'identifier': str(self.scim_group1.scim_id), 'csrf_token': sess.get_csrf_token()}
+                    data = {'group_identifier': str(self.scim_group1.scim_id), 'csrf_token': sess.get_csrf_token()}
                     response = client.post('/delete', data=json.dumps(data), content_type=self.content_type_json)
         self.assertEqual(response.status_code, 200)
         self.assertEqual('POST_GROUP_MANAGEMENT_DELETE_SUCCESS', response.json.get('type'))
@@ -315,7 +315,7 @@ class GroupManagementTests(EduidAPITestCase):
         with self.session_cookie(self.browser, self.test_user.eppn) as client:
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
-                    data = {'identifier': str(self.scim_group1.scim_id), 'csrf_token': sess.get_csrf_token()}
+                    data = {'group_identifier': str(self.scim_group1.scim_id), 'csrf_token': sess.get_csrf_token()}
                     response = client.post('/delete', data=json.dumps(data), content_type=self.content_type_json)
         self.assertEqual(response.status_code, 200)
         self.assertEqual('POST_GROUP_MANAGEMENT_DELETE_FAIL', response.json.get('type'))
@@ -333,7 +333,7 @@ class GroupManagementTests(EduidAPITestCase):
         with self.session_cookie(self.browser, self.test_user.eppn) as client:
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
-                    data = {'identifier': str(self.scim_group1.scim_id), 'csrf_token': sess.get_csrf_token()}
+                    data = {'group_identifier': str(self.scim_group1.scim_id), 'csrf_token': sess.get_csrf_token()}
                     response = client.post('/delete', data=json.dumps(data), content_type=self.content_type_json)
         self.assertEqual(response.status_code, 200)
         self.assertEqual('POST_GROUP_MANAGEMENT_DELETE_FAIL', response.json.get('type'))
@@ -360,7 +360,7 @@ class GroupManagementTests(EduidAPITestCase):
         with self.session_cookie(self.browser, self.test_user.eppn) as client:
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
-                    data = {'identifier': str(self.scim_group1.scim_id), 'csrf_token': sess.get_csrf_token()}
+                    data = {'group_identifier': str(self.scim_group1.scim_id), 'csrf_token': sess.get_csrf_token()}
                     response = client.post('/delete', data=json.dumps(data), content_type=self.content_type_json)
         self.assertEqual(response.status_code, 200)
         self.assertEqual('POST_GROUP_MANAGEMENT_DELETE_SUCCESS', response.json.get('type'))
@@ -526,7 +526,7 @@ class GroupManagementTests(EduidAPITestCase):
         outgoing = payload['outgoing']
         self.assertEqual(1, len(outgoing), 'test_invite_member outgoing invites')
         for invite in outgoing:
-            self.assertEqual(str(self.scim_group1.scim_id), invite['identifier'])
+            self.assertEqual(str(self.scim_group1.scim_id), invite['group_identifier'])
             self.assertEqual(1, len(invite['member_invites']))
             self.assertEqual(0, len(invite['owner_invites']))
 
@@ -638,7 +638,7 @@ class GroupManagementTests(EduidAPITestCase):
         outgoing = payload['outgoing']
         self.assertEqual(1, len(outgoing), 'test_invite_owner outgoing invites')
         for invite in outgoing:
-            self.assertEqual(str(self.scim_group1.scim_id), invite['identifier'])
+            self.assertEqual(str(self.scim_group1.scim_id), invite['group_identifier'])
             self.assertEqual(0, len(invite['member_invites']))
             self.assertEqual(1, len(invite['owner_invites']))
         self.assertIsNotNone(
@@ -745,10 +745,10 @@ class GroupManagementTests(EduidAPITestCase):
         outgoing = payload['outgoing']
         self.assertEqual(2, len(outgoing), 'test_user_1 outgoing invites')
         for invite in outgoing:
-            if invite['identifier'] == str(self.scim_group1.scim_id):
+            if invite['group_identifier'] == str(self.scim_group1.scim_id):
                 self.assertEqual(2, len(invite['member_invites']))
                 self.assertEqual(1, len(invite['owner_invites']))
-            elif invite['identifier'] == str(self.scim_group2.scim_id):
+            elif invite['group_identifier'] == str(self.scim_group2.scim_id):
                 self.assertEqual(1, len(invite['member_invites']))
                 self.assertEqual(0, len(invite['owner_invites']))
             else:
@@ -764,7 +764,7 @@ class GroupManagementTests(EduidAPITestCase):
         incoming = payload['incoming']
         self.assertEqual(2, len(incoming), 'test_user_2 incoming invites')
         for invite in incoming:
-            self.assertEqual(str(self.scim_group1.scim_id), invite['identifier'])
+            self.assertEqual(str(self.scim_group1.scim_id), invite['group_identifier'])
             self.assertEqual(self.scim_group1.display_name, invite['display_name'])
             self.assertEqual(self.test_user2.mail_addresses.primary.email, invite['email_address'])
             self.assertEqual(1, len(invite['owners']))
@@ -780,7 +780,7 @@ class GroupManagementTests(EduidAPITestCase):
         incoming = payload['incoming']
         self.assertEqual(2, len(incoming), 'test_user_3 incoming invites')
         for invite in incoming:
-            self.assertIsNotNone(invite['identifier'])
+            self.assertIsNotNone(invite['group_identifier'])
             self.assertIsNotNone(invite['display_name'])
             self.assertEqual(self.test_user3.mail_addresses.primary.email, invite['email_address'])
             self.assertEqual(1, len(invite['owners']))
@@ -802,10 +802,10 @@ class GroupManagementTests(EduidAPITestCase):
         outgoing = payload['outgoing']
         self.assertEqual(2, len(outgoing), 'test_user_1 outgoing invites')
         for invite in outgoing:
-            if invite['identifier'] == str(self.scim_group1.scim_id):
+            if invite['group_identifier'] == str(self.scim_group1.scim_id):
                 self.assertEqual(2, len(invite['member_invites']))
                 self.assertEqual(1, len(invite['owner_invites']))
-            elif invite['identifier'] == str(self.scim_group2.scim_id):
+            elif invite['group_identifier'] == str(self.scim_group2.scim_id):
                 self.assertEqual(1, len(invite['member_invites']))
                 self.assertEqual(0, len(invite['owner_invites']))
             else:
@@ -827,7 +827,7 @@ class GroupManagementTests(EduidAPITestCase):
         incoming = payload['incoming']
         self.assertEqual(2, len(incoming), 'test_user_2 incoming invites')
         for invite in incoming:
-            self.assertEqual(str(self.scim_group1.scim_id), invite['identifier'])
+            self.assertEqual(str(self.scim_group1.scim_id), invite['group_identifier'])
             self.assertEqual(self.scim_group1.display_name, invite['display_name'])
             self.assertEqual(self.test_user2.mail_addresses.primary.email, invite['email_address'])
             self.assertEqual(1, len(invite['owners']))
@@ -843,7 +843,7 @@ class GroupManagementTests(EduidAPITestCase):
         incoming = payload['incoming']
         self.assertEqual(2, len(incoming), 'test_user_3 incoming invites')
         for invite in incoming:
-            self.assertIsNotNone(invite['identifier'])
+            self.assertIsNotNone(invite['group_identifier'])
             self.assertIsNotNone(invite['display_name'])
             self.assertEqual(self.test_user3.mail_addresses.primary.email, invite['email_address'])
             self.assertEqual(1, len(invite['owners']))
