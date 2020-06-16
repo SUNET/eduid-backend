@@ -29,7 +29,7 @@ class GroupManagementMsg(TranslatableMsg):
     """
 
     user_does_not_exist = 'group.user_does_not_exist'
-    user_to_remove_does_not_exist = 'group.user_to_remove_does_not_exist'
+    user_to_be_removed_does_not_exist = 'group.user_to_be_removed_does_not_exist'
     group_not_found = 'group.group_not_found'
     invite_not_found = 'group.invite_not_found'
     create_failed = 'group.create_failed'
