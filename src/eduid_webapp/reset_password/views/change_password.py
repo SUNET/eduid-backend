@@ -139,7 +139,7 @@ def change_password_view(user: User, old_password: str, new_password: str) -> Ma
     credentials = {
         'next_url': next_url,
         'credentials': compile_credential_list(resetpw_user),
-        'message': 'chpass.password-changed',
+        'message': 'chpass.password-changed',  # TODO: shouldn't this be a ResetPwMsg?
     }
 
     return credentials
