@@ -47,7 +47,6 @@ class CodeElement(Element):
         verified: Optional[bool] = None,
         created_ts: Optional[Union[datetime, bool]] = None,
         data: Optional[Dict[str, Any]] = None,
-        raise_on_unknown: bool = True,
         called_directly: bool = True,
     ):
 
@@ -57,7 +56,7 @@ class CodeElement(Element):
             code = data.pop('code')
             verified = data.pop('verified')
 
-        super().__init__(data, raise_on_unknown=raise_on_unknown, called_directly=called_directly)
+        super().__init__(data, called_directly=called_directly)
 
         if code is not None:
             self.code = code

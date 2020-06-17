@@ -36,12 +36,11 @@ from __future__ import absolute_import
 
 import copy
 from hashlib import sha256
-from typing import Any, Dict, Type
+from typing import Any, Dict, Type, TypeVar
 
 from six import string_types
 
 from eduid_userdb.credentials import Credential
-from eduid_userdb.element import TElementSubclass
 from eduid_userdb.exceptions import UserDBValueError, UserHasUnknownData
 
 __author__ = 'ft'
@@ -52,12 +51,17 @@ class FidoCredential(Credential):
     Token authentication credential
     """
 
-    def __init__(self, data, raise_on_unknown=True, called_directly=True):
+    def __init__(self, data, called_directly=True):
 
-        Credential.__init__(self, data, raise_on_unknown=raise_on_unknown, called_directly=called_directly)
+        Credential.__init__(self, data, called_directly=called_directly)
         self.keyhandle = data.pop('keyhandle')
         self.app_id = data.pop('app_id')
         self.description = data.pop('description', '')
+
+    def check_unknown_data(self, data: Dict[str, Any]):
+        leftovers = data.keys()
+        if leftovers:
+            raise UserHasUnknownData(f'{self.__class__.__name__} {self.key} unknown data: {leftovers}')
 
     @property
     def keyhandle(self):
@@ -120,6 +124,9 @@ class FidoCredential(Credential):
         self._data['description'] = value
 
 
+TU2FSubclass = TypeVar('TU2FSubclass', bound='U2F')
+
+
 class U2F(FidoCredential):
     """
     U2F token authentication credential
@@ -156,17 +163,24 @@ class U2F(FidoCredential):
                 created_ts=created_ts,
             )
 
-        FidoCredential.__init__(self, data, raise_on_unknown=raise_on_unknown, called_directly=called_directly)
+        FidoCredential.__init__(self, data, called_directly=called_directly)
+
         self.version = data.pop('version')
         self.public_key = data.pop('public_key')
         self.attest_cert = data.pop('attest_cert', '')
 
-        leftovers = data.keys()
-        if leftovers:
-            if raise_on_unknown:
-                raise UserHasUnknownData('U2F {!r} unknown data: {!r}'.format(self.key, leftovers,))
-            # Just keep everything that is left as-is
-            self._data.update(data)
+        if raise_on_unknown:
+            self.check_unknown_data(data)
+
+        # Just keep everything that is left as-is
+        self._data.update(data)
+
+    @classmethod
+    def from_dict(cls: Type[TU2FSubclass], data: Dict[str, Any], raise_on_unknown: bool = True) -> TU2FSubclass:
+        """
+        Construct user from a data dict.
+        """
+        return cls(data=data, called_directly=False, raise_on_unknown=raise_on_unknown)
 
     @property
     def key(self):
@@ -253,6 +267,9 @@ def u2f_from_dict(data, raise_on_unknown=True):
     return U2F.from_dict(data, raise_on_unknown=raise_on_unknown)
 
 
+TWebauthnSubclass = TypeVar('TWebauthnSubclass', bound='Webauthn')
+
+
 class Webauthn(FidoCredential):
     """
     Webauthn token authentication credential
@@ -286,17 +303,23 @@ class Webauthn(FidoCredential):
                 created_by=application,
                 created_ts=created_ts,
             )
+        FidoCredential.__init__(self, data, called_directly=called_directly)
 
-        FidoCredential.__init__(self, data, raise_on_unknown=raise_on_unknown, called_directly=called_directly)
         self.attest_obj = data.pop('attest_obj', '')
         self.credential_data = data.pop('credential_data', '')
 
-        leftovers = data.keys()
-        if leftovers:
-            if raise_on_unknown:
-                raise UserHasUnknownData('Webauthn {!r} unknown data: {!r}'.format(self.key, leftovers,))
-            # Just keep everything that is left as-is
-            self._data.update(data)
+        if raise_on_unknown:
+            self.check_unknown_data(data)
+
+        # Just keep everything that is left as-is
+        self._data.update(data)
+
+    @classmethod
+    def from_dict(cls: Type[TWebauthnSubclass], data: Dict[str, Any], raise_on_unknown: bool = True) -> TWebauthnSubclass:
+        """
+        Construct user from a data dict.
+        """
+        return cls(data=data, called_directly=False, raise_on_unknown=raise_on_unknown)
 
     @property
     def key(self):

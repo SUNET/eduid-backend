@@ -3,17 +3,38 @@
 from __future__ import absolute_import
 
 import copy
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, Dict, Type, TypeVar
 
 from six import string_types
 
-from eduid_userdb.element import Element, TElementSubclass, VerifiedElement
+from eduid_userdb.element import Element, TPrimaryElementSubclass, VerifiedElement
 from eduid_userdb.exceptions import UserDBValueError, UserHasUnknownData
 
 __author__ = 'lundberg'
 
 
-class OidcIdToken(Element):
+TOidcSubclass = TypeVar('TOidcSubclass', bound='OidcElement')
+
+
+class OidcElement(Element):
+
+    def __init__(
+        self,
+        data=None,
+        raise_on_unknown=True,
+        called_directly=True,
+    ):
+        raise NotImplementedError()
+
+    @classmethod
+    def from_dict(cls: Type[TOidcSubclass], data: Dict[str, Any], raise_on_unknown: bool = True) -> TOidcSubclass:
+        """
+        Construct user from a data dict.
+        """
+        return cls(data=data, called_directly=False, raise_on_unknown=raise_on_unknown)
+
+
+class OidcIdToken(OidcElement):
     """
     OpenID Connect ID token data
     """
@@ -298,7 +319,7 @@ class OidcIdToken(Element):
             self._data['azp'] = value
 
 
-class OidcAuthorization(Element):
+class OidcAuthorization(OidcElement):
     """
     OpenID Connect Authorization data
     """
@@ -480,6 +501,9 @@ class OidcAuthorization(Element):
         return data
 
 
+TOrcidSubclass = TypeVar('TOrcidSubclass', bound='Orcid')
+
+
 class Orcid(VerifiedElement):
     """
     :param data: Orcid parameters from database
@@ -537,6 +561,13 @@ class Orcid(VerifiedElement):
 
         if raise_on_unknown and data:
             raise UserHasUnknownData('{!s} has unknown data: {!r}'.format(self.__class__.__name__, data.keys()))
+
+    @classmethod
+    def from_dict(cls: Type['Orcid'], data: Dict[str, Any], raise_on_unknown: bool = True) -> 'Orcid':
+        """
+        Construct user from a data dict.
+        """
+        return cls(data=data, called_directly=False, raise_on_unknown=raise_on_unknown)
 
     # -----------------------------------------------------------------
     @property

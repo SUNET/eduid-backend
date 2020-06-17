@@ -21,8 +21,8 @@ class LockedIdentityElement(Element):
         identity_type
     """
 
-    def __init__(self, data, raise_on_unknown=True, called_directly=True):
-        Element.__init__(self, data, raise_on_unknown=raise_on_unknown, called_directly=called_directly)
+    def __init__(self, data, called_directly=True):
+        Element.__init__(self, data, called_directly=called_directly)
         self.identity_type = data.pop('identity_type')
 
     # -----------------------------------------------------------------
@@ -70,7 +70,6 @@ class LockedIdentityNin(LockedIdentityElement):
         created_by: Optional[str] = None,
         created_ts: Optional[datetime] = None,
         data: Optional[Dict[str, Any]] = None,
-        raise_on_unknown: bool = True,
         called_directly: bool = True,
     ):
         if data is None:
@@ -80,7 +79,7 @@ class LockedIdentityNin(LockedIdentityElement):
 
         data['identity_type'] = 'nin'
 
-        LockedIdentityElement.__init__(self, data, raise_on_unknown=raise_on_unknown, called_directly=called_directly)
+        LockedIdentityElement.__init__(self, data, called_directly=called_directly)
         self.number = number
 
     # -----------------------------------------------------------------

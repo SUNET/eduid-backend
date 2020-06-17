@@ -99,9 +99,7 @@ class Element(object):
     def __init__(
         self,
         data: Dict[str, Any],
-        raise_on_unknown: bool = True,
         called_directly: bool = True,
-        ignore_data: Optional[List[str]] = None,
     ):
         if called_directly:
             breakpoint()
@@ -119,11 +117,11 @@ class Element(object):
         return '<eduID {!s}: {!r}>'.format(self.__class__.__name__, getattr(self, '_data', None))
 
     @classmethod
-    def from_dict(cls: Type[TElementSubclass], data: Dict[str, Any], raise_on_unknown: bool = True) -> TElementSubclass:
+    def from_dict(cls: Type[TElementSubclass], data: Dict[str, Any]) -> TElementSubclass:
         """
         Construct user from a data dict.
         """
-        return cls(data=data, called_directly=False, raise_on_unknown=raise_on_unknown)
+        return cls(data=data, called_directly=False)
 
     # -----------------------------------------------------------------
     @property
@@ -213,12 +211,10 @@ class VerifiedElement(Element):
     def __init__(
         self,
         data: Dict[str, Any],
-        raise_on_unknown: bool = True,
         called_directly: bool = True,
-        ignore_data: Optional[List[str]] = None,
     ):
         Element.__init__(
-            self, data, raise_on_unknown=raise_on_unknown, called_directly=called_directly, ignore_data=ignore_data
+            self, data, called_directly=called_directly
         )
         # Remove deprecated verification_code from VerifiedElement
         data.pop('verification_code', None)
@@ -281,6 +277,9 @@ class VerifiedElement(Element):
         _set_something_ts(self._data, 'verified_ts', value, allow_update=True)
 
 
+TPrimaryElementSubclass = TypeVar('TPrimaryElementSubclass', bound='PrimaryElement')
+
+
 class PrimaryElement(VerifiedElement):
     """
     Elements that can be either primary or not.
@@ -304,7 +303,7 @@ class PrimaryElement(VerifiedElement):
         ignore_data: Optional[List[str]] = None,
     ):
         VerifiedElement.__init__(
-            self, data, raise_on_unknown=raise_on_unknown, called_directly=called_directly, ignore_data=ignore_data
+            self, data, called_directly=called_directly
         )
 
         self.is_primary = data.pop('primary', False)
@@ -316,6 +315,13 @@ class PrimaryElement(VerifiedElement):
                 raise UserHasUnknownData('{!s} has unknown data: {!r}'.format(self.__class__.__name__, leftovers,))
             # Just keep everything that is left as-is
             self._data.update(data)
+
+    @classmethod
+    def from_dict(cls: Type[TPrimaryElementSubclass], data: Dict[str, Any], raise_on_unknown: bool = True) -> TPrimaryElementSubclass:
+        """
+        Construct user from a data dict.
+        """
+        return cls(data=data, called_directly=False, raise_on_unknown=raise_on_unknown)
 
     # -----------------------------------------------------------------
     @property

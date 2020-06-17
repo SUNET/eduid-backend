@@ -69,7 +69,6 @@ class ProofingElement(VerifiedElement):
         verified_ts=None,
         verification_code=None,
         data=None,
-        raise_on_unknown=True,
         called_directly=True,
     ):
 
@@ -87,7 +86,7 @@ class ProofingElement(VerifiedElement):
                 verification_code=verification_code,
             )
         verification_code = data_in.pop('verification_code', None)
-        VerifiedElement.__init__(self, data_in, raise_on_unknown=raise_on_unknown, called_directly=called_directly)
+        VerifiedElement.__init__(self, data_in, called_directly=called_directly)
         self.verification_code = verification_code
 
     @property
@@ -138,7 +137,6 @@ class NinProofingElement(ProofingElement):
         verified=False,
         verification_code=None,
         data=None,
-        raise_on_unknown=True,
         called_directly=True,
     ):
 
@@ -152,7 +150,6 @@ class NinProofingElement(ProofingElement):
             verified=verified,
             verification_code=verification_code,
             data=data,
-            raise_on_unknown=raise_on_unknown,
             called_directly=called_directly,
         )
         self.number = number
@@ -210,7 +207,6 @@ class EmailProofingElement(ProofingElement):
         verified=False,
         verification_code=None,
         data=None,
-        raise_on_unknown=True,
         called_directly=True,
     ):
 
@@ -224,7 +220,6 @@ class EmailProofingElement(ProofingElement):
             verified=verified,
             verification_code=verification_code,
             data=data,
-            raise_on_unknown=raise_on_unknown,
             called_directly=called_directly,
         )
         self.email = email
@@ -282,7 +277,6 @@ class PhoneProofingElement(ProofingElement):
         verified=False,
         verification_code=None,
         data=None,
-        raise_on_unknown=True,
         called_directly=True,
     ):
 
@@ -296,7 +290,6 @@ class PhoneProofingElement(ProofingElement):
             verified=verified,
             verification_code=verification_code,
             data=data,
-            raise_on_unknown=raise_on_unknown,
             called_directly=called_directly,
         )
         self.number = phone
@@ -339,9 +332,9 @@ class SentLetterElement(Element):
     created_ts
     """
 
-    def __init__(self, data, raise_on_unknown=True, called_directly=True):
+    def __init__(self, data, called_directly=True):
         super(SentLetterElement, self).__init__(
-            data, raise_on_unknown=raise_on_unknown, called_directly=called_directly
+            data, called_directly=called_directly
         )
 
         self._data['is_sent'] = data.pop('is_sent', False)

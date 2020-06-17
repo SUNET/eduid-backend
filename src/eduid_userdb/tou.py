@@ -35,11 +35,10 @@
 
 import copy
 import datetime
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, Dict, List, Optional
 
 from six import string_types
 
-from eduid_userdb.element import TElementSubclass
 from eduid_userdb.event import Event, EventList
 from eduid_userdb.exceptions import BadEvent, EduIDUserDBError, UserDBValueError
 
