@@ -75,24 +75,23 @@ supplemented with a text input for the SMS'ed code. In this case submitting the
 form will also result in resetting her password, but without unverifying any of
 her data.
 """
-import json
 import time
+from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Mapping, Tuple, Type, TypeVar, Union
+from typing import Any, Mapping, Optional, Union
 
 from flask import Blueprint, abort, request
-from marshmallow import ValidationError
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith
 from eduid_common.api.exceptions import MsgTaskFailed
 from eduid_common.api.helpers import check_magic_cookie
-from eduid_common.api.messages import CommonMsg, error_message, success_message
+from eduid_common.api.messages import TranslatableMsg, error_message, success_message
 from eduid_common.api.schemas.base import FluxStandardAction
+from eduid_common.api.validation import is_valid_password
 from eduid_common.authn import fido_tokens
 from eduid_common.session import session
 from eduid_userdb import User
 from eduid_userdb.reset_password import ResetPasswordEmailAndPhoneState, ResetPasswordEmailState
-
 from eduid_webapp.reset_password.app import current_reset_password_app as current_app
 from eduid_webapp.reset_password.helpers import (
     BadCode,
@@ -111,12 +110,12 @@ from eduid_webapp.reset_password.helpers import (
     verify_phone_number,
 )
 from eduid_webapp.reset_password.schemas import (
+    NewPasswordSecurePhoneRequestSchema,
+    NewPasswordSecureTokenRequestSchema,
     ResetPasswordEmailCodeSchema,
     ResetPasswordExtraSecPhoneSchema,
     ResetPasswordInitSchema,
     ResetPasswordWithCodeSchema,
-    ResetPasswordWithPhoneCodeSchema,
-    ResetPasswordWithSecTokenSchema,
 )
 
 SESSION_PREFIX = "eduid_webapp.reset_password.views"
@@ -222,52 +221,57 @@ class BadStateOrData(Exception):
         self.msg = msg
 
 
-TResetPasswordWithCodeSchemaSubclass = TypeVar(
-    'TResetPasswordWithCodeSchemaSubclass', bound=ResetPasswordWithCodeSchema
-)
+@dataclass
+class ResetContext(object):
+    state: Union[ResetPasswordEmailState, ResetPasswordEmailAndPhoneState]
+    user: User
+    error: Optional[TranslatableMsg] = None  # If this is not None, the request should be aborted with this error
 
 
-def _get_state_and_data(
-    schema_class: Type[TResetPasswordWithCodeSchemaSubclass],
-) -> Tuple[User, Union[ResetPasswordEmailState, ResetPasswordEmailAndPhoneState], Mapping[str, Any]]:
+def _load_data(code: str, password: str) -> ResetContext:
+    """
+    Use a code to load reset-password state from the database.
 
-    if not request.data:
-        raise BadStateOrData(ResetPwMsg.chpass_no_data)
+    Also validates the supplied password to make sure it conforms to the eduID service
+    requirements.
 
-    data = json.loads(request.data)
-
-    if 'code' not in data:
-        raise BadStateOrData(ResetPwMsg.state_no_key)
-
-    code = data['code']
+    :param code: User supplied password reset code
+    :param password: User supplied new password candidate
+    :return: ResetContext instance
+    """
     try:
         state = get_pwreset_state(code)
     except BadCode as e:
-        raise BadStateOrData(e.msg)
+        return ResetContext(
+            state=None,  # type: ignore
+            user=None,  # type: ignore
+            error=e.msg,
+        )
 
-    resetpw_user = current_app.central_userdb.get_user_by_eppn(state.eppn)
+    hashed = session.reset_password.generated_password_hash
+    if check_password(password, hashed):
+        state.generated_password = True
+        current_app.logger.info('Generated password used')
+        current_app.stats.count(name=f'reset_password_generated_password_used')
+    else:
+        state.generated_password = False
+        current_app.logger.info('Custom password used')
+        current_app.stats.count(name=f'reset_password_custom_password_used')
+
+    user = current_app.central_userdb.get_user_by_eppn(state.eppn, raise_on_missing=False)
+
     min_entropy = current_app.config.password_entropy
-
-    schema = schema_class(zxcvbn_terms=get_zxcvbn_terms(resetpw_user.eppn), min_entropy=int(min_entropy))
-
     try:
-        form = schema.load(json.loads(request.data))
-        current_app.logger.debug(f"Reset password data: {form}")
-    except ValidationError as e:
-        current_app.logger.error(e)
-        if 'csrf_token' in e.messages:
-            raise BadStateOrData(CommonMsg.csrf_missing)
-        raise BadStateOrData(ResetPwMsg.chpass_weak)
-
-    if session.get_csrf_token() != form['csrf_token']:
-        raise BadStateOrData(CommonMsg.csrf_try_again)
-
-    return resetpw_user, state, form
+        is_valid_password(password, user_info=get_zxcvbn_terms(user.eppn), min_entropy=min_entropy)
+    except ValueError:
+        return ResetContext(state=state, user=user, error=ResetPwMsg.chpass_weak,)
+    return ResetContext(state=state, user=user)
 
 
 @reset_password_views.route('/new-password/', methods=['POST'])
 @MarshalWith(FluxStandardAction)
-def set_new_pw() -> dict:
+@UnmarshalWith(ResetPasswordWithCodeSchema)
+def set_new_pw(code: str, password: str) -> Mapping[str, Any]:
     """
     View that receives an emailed reset password code and a password, and sets
     the password as credential for the user, with no extra security.
@@ -291,30 +295,17 @@ def set_new_pw() -> dict:
     * Communication problems with the VCCS backend;
     * Synchronization problems with the central user db.
     """
-    try:
-        resetpw_user, state, data = _get_state_and_data(ResetPasswordWithCodeSchema)
-    except BadStateOrData as e:
-        return error_message(e.msg)
+    if not password or not code:
+        return error_message(ResetPwMsg.missing_data)
 
-    password = data.get('password')
-    # convince mypy it is a string - marshmallow schema validation has already been performed
-    if not isinstance(password, str):
-        raise TypeError('Provided password is not a string')
+    data = _load_data(code, password)
+    if data.error:
+        return error_message(data.error)
 
-    hashed = session.reset_password.generated_password_hash
-    if check_password(password, hashed):
-        state.generated_password = True
-        current_app.logger.info('Generated password used')
-        current_app.stats.count(name='reset_password_generated_password_used')
-    else:
-        state.generated_password = False
-        current_app.logger.info('Custom password used')
-        current_app.stats.count(name='reset_password_custom_password_used')
-
-    current_app.logger.info(f'Resetting password for user {resetpw_user}')
-    reset_user_password(resetpw_user, state, password)
-    current_app.logger.info(f'Password reset done, removing state for {resetpw_user}')
-    current_app.password_reset_state_db.remove_state(state)
+    current_app.logger.info(f'Resetting password for user {data.user}')
+    reset_user_password(data.user, data.state, password)
+    current_app.logger.info(f'Password reset done, removing state for {data.user}')
+    current_app.password_reset_state_db.remove_state(data.state)
     return success_message(ResetPwMsg.pw_resetted)
 
 
@@ -383,8 +374,9 @@ def choose_extra_security_phone(code: str, phone_index: int) -> dict:
 
 
 @reset_password_views.route('/new-password-secure-phone/', methods=['POST'])
+@UnmarshalWith(NewPasswordSecurePhoneRequestSchema)
 @MarshalWith(FluxStandardAction)
-def set_new_pw_extra_security_phone() -> dict:
+def set_new_pw_extra_security_phone(code: str, password: str, phone_code: str) -> dict:
     """
     View that receives an emailed reset password code, an SMS'ed reset password
     code, and a password, and sets the password as credential for the user, with
@@ -408,55 +400,46 @@ def set_new_pw_extra_security_phone() -> dict:
     * Communication problems with the VCCS backend;
     * Synchronization problems with the central user db.
     """
-    try:
-        resetpw_user, state, data = _get_state_and_data(ResetPasswordWithPhoneCodeSchema)
-    except BadStateOrData as e:
-        return error_message(e.msg)
+    if not password:
+        return error_message(ResetPwMsg.chpass_no_data)
 
-    if not isinstance(state, ResetPasswordEmailAndPhoneState):
-        raise TypeError(f'State is not ResetPasswordEmailAndPhoneState ({type(state)})')
+    data = _load_data(code, password)
+    if data.error:
+        return error_message(data.error)
 
-    password = data.get('password')
-    phone_code = data.get('phone_code')
+    if not isinstance(data.state, ResetPasswordEmailAndPhoneState):
+        raise TypeError(f'State is not ResetPasswordEmailAndPhoneState ({type(data.state)})')
 
-    # convince mypy these are string - marshmallow schema validation has already been performed
-    if not isinstance(password, str):
-        raise TypeError('Provided password is not a string')
-    if not isinstance(phone_code, str):
-        raise TypeError('Provided phone_code is not a string')
-
-    if phone_code == state.phone_code.code:
-        if not verify_phone_number(state):
-            current_app.logger.info(f'Could not verify phone code for {state.eppn}')
+    if phone_code == data.state.phone_code.code:
+        if not verify_phone_number(data.state):
+            current_app.logger.info(f'Could not verify phone code for {data.state.eppn}')
             return error_message(ResetPwMsg.phone_invalid)
 
-        current_app.logger.info(f'Phone code verified for {state.eppn}')
+        current_app.logger.info(f'Phone code verified for {data.state.eppn}')
         current_app.stats.count(name='reset_password_extra_security_phone_success')
     else:
-        current_app.logger.info(f'Could not verify phone code for {state.eppn}')
+        current_app.logger.info(f'Could not verify phone code for {data.state.eppn}')
         return error_message(ResetPwMsg.unknown_phone_code)
 
-    if check_password(password, session.reset_password.generated_password_hash):
-        state.generated_password = True
-        current_app.logger.info('Generated password used')
-        current_app.stats.count(name='reset_password_generated_password_used')
-    else:
-        state.generated_password = False
-        current_app.logger.info('Custom password used')
-        current_app.stats.count(name='reset_password_custom_password_used')
-
-    user = current_app.central_userdb.get_user_by_eppn(state.eppn, raise_on_missing=False)
-
-    current_app.logger.info(f'Resetting password for user {user}')
-    reset_user_password(user, state, password)
-    current_app.logger.info(f'Password reset done, removing state for {user}')
-    current_app.password_reset_state_db.remove_state(state)
+    current_app.logger.info(f'Resetting password for user {data.user}')
+    reset_user_password(data.user, data.state, password)
+    current_app.logger.info(f'Password reset done, removing state for {data.user}')
+    current_app.password_reset_state_db.remove_state(data.state)
     return success_message(ResetPwMsg.pw_resetted)
 
 
 @reset_password_views.route('/new-password-secure-token/', methods=['POST'])
+@UnmarshalWith(NewPasswordSecureTokenRequestSchema)
 @MarshalWith(FluxStandardAction)
-def set_new_pw_extra_security_token() -> dict:
+def set_new_pw_extra_security_token(
+    code: str,
+    password: str,
+    tokenResponse: Optional[str] = None,
+    authenticatorData: Optional[str] = None,
+    clientDataJSON: Optional[str] = None,
+    credentialId: Optional[str] = None,
+    signature: Optional[str] = None,
+) -> dict:
     """
     View that receives an emailed reset password code, hw token data,
     and a password, and sets the password as credential for the user, with
@@ -480,36 +463,13 @@ def set_new_pw_extra_security_token() -> dict:
     * Communication problems with the VCCS backend;
     * Synchronization problems with the central user db.
     """
-    try:
-        resetpw_user, state, data = _get_state_and_data(ResetPasswordWithSecTokenSchema)
-    except BadStateOrData as e:
-        return error_message(e.msg)
-
-    password = data.get('password')
-    # convince mypy it is a string - marshmallow schema validation has already been performed
-    if not isinstance(password, str):
-        raise TypeError('Provided password is not a string')
-
-    req_json = request.get_json()
-    if not req_json:
-        current_app.logger.error(f'No data in request to authn {state.eppn}')
-        return error_message(ResetPwMsg.mfa_no_data)
-
-    hashed = session.reset_password.generated_password_hash
-    if check_password(password, hashed):
-        state.generated_password = True
-        current_app.logger.info('Generated password used')
-        current_app.stats.count(name='reset_password_generated_password_used')
-    else:
-        state.generated_password = False
-        current_app.logger.info('Custom password used')
-        current_app.stats.count(name='reset_password_custom_password_used')
-
-    user = current_app.central_userdb.get_user_by_eppn(state.eppn, raise_on_missing=False)
+    data = _load_data(code, password)
+    if data.error:
+        return error_message(data.error)
 
     # Process POSTed data
     success = False
-    if 'tokenResponse' in req_json:
+    if tokenResponse:
         # CTAP1/U2F
         token_response = request.get_json().get('tokenResponse', '')
         current_app.logger.debug(f'U2F token response: {token_response}')
@@ -519,32 +479,40 @@ def set_new_pw_extra_security_token() -> dict:
             raise TypeError(f'U2F challenge in session is not bytes {repr(_challenge)}')
         current_app.logger.debug(f'Challenge: {_challenge!r}')
 
-        result = fido_tokens.verify_u2f(user, _challenge, token_response)
+        result = fido_tokens.verify_u2f(data.user, _challenge, token_response)
 
         if result is not None:
             success = result['success']
 
-    elif not success and 'authenticatorData' in req_json:
+    elif not success and authenticatorData:
         # CTAP2/Webauthn
         try:
-            result = fido_tokens.verify_webauthn(user, req_json, SESSION_PREFIX)
+            result = fido_tokens.verify_webauthn(
+                data.user,
+                dict(
+                    credentialId=credentialId,
+                    clientDataJSON=clientDataJSON,
+                    authenticatorData=authenticatorData,
+                    signature=signature,
+                ),
+                SESSION_PREFIX,
+            )
         except fido_tokens.VerificationProblem:
             pass
         else:
             success = result['success']
 
     else:
-        current_app.logger.error(f'Neither U2F nor Webauthn data in request to authn {user}')
-        current_app.logger.debug(f'Request: {req_json}')
+        current_app.logger.error(f'Neither U2F nor Webauthn data in request to authn {data.user}')
 
-    if success:
-        current_app.logger.info(f'Resetting password for user {user}')
-        reset_user_password(user, state, password)
-        current_app.logger.info(f'Password reset done, removing state for {user}')
-        current_app.password_reset_state_db.remove_state(state)
-        return success_message(ResetPwMsg.pw_resetted)
+    if not success:
+        return error_message(ResetPwMsg.fido_token_fail)
 
-    return error_message(ResetPwMsg.fido_token_fail)
+    current_app.logger.info(f'Resetting password for user {data.user}')
+    reset_user_password(data.user, data.state, password)
+    current_app.logger.info(f'Password reset done, removing state for {data.user}')
+    current_app.password_reset_state_db.remove_state(data.state)
+    return success_message(ResetPwMsg.pw_resetted)
 
 
 @reset_password_views.route('/get-email-code', methods=['GET'])

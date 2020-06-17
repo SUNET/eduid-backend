@@ -13,7 +13,7 @@
 #        copyright notice, this list of conditions and the following
 #        disclaimer in the documentation and/or other materials provided
 #        with the distribution.
-#     3. Neither the name of the NORDUnet nor the names of its
+#     3. Neither the name of the SUNET nor the names of its
 #        contributors may be used to endorse or promote products derived
 #        from this software without specific prior written permission.
 #
@@ -50,6 +50,7 @@ from eduid_userdb.exceptions import DocumentDoesNotExist, UserDoesNotExist, User
 
 from eduid_webapp.reset_password.app import init_reset_password_app
 from eduid_webapp.reset_password.helpers import (
+    ResetPwMsg,
     generate_suggested_password,
     get_extra_security_alternatives,
     get_zxcvbn_terms,
@@ -622,22 +623,20 @@ class ResetPasswordTests(EduidAPITestCase):
     def test_post_reset_wrong_code(self):
         data2 = {'code': 'wrong-code'}
         response = self._post_reset_code(data2=data2)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json['payload']['message'], 'resetpw.unknown-code')
-        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_CONFIG_FAIL')
+        self._check_api_result(response, type_='POST_RESET_PASSWORD_RESET_CONFIG_FAIL', msg=ResetPwMsg.unknown_code)
 
     def test_post_reset_wrong_csrf(self):
         data2 = {'csrf_token': 'wrong-code'}
         response = self._post_reset_code(data2=data2)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_CONFIG_FAIL')
-        self.assertEqual(response.json['payload']['error']['csrf_token'], ['CSRF failed to validate'])
+        self._check_api_error(
+            response, type_='POST_RESET_PASSWORD_RESET_CONFIG_FAIL', error={'csrf_token': ['CSRF failed to validate'],},
+        )
 
     def test_post_reset_password(self):
         response = self._post_reset_password()
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SUCCESS')
+        self._check_api_result(
+            response, type_='POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SUCCESS', msg=ResetPwMsg.pw_resetted
+        )
 
         # check that the user no longer has verified data
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
@@ -651,34 +650,38 @@ class ResetPasswordTests(EduidAPITestCase):
 
     def test_post_reset_password_no_data(self):
         response = self._post_reset_password(data2={})
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_NEW_PASSWORD_FAIL')
-        self.assertEqual(response.json['payload']['message'], 'chpass.no-code-in-data')
+        self._check_api_error(
+            response,
+            type_='POST_RESET_PASSWORD_RESET_NEW_PASSWORD_FAIL',
+            error={
+                'code': ['Missing data for required field.'],
+                'csrf_token': ['Missing data for required field.'],
+                'password': ['Missing data for required field.'],
+            },
+        )
 
     def test_post_reset_password_weak(self):
         data2 = {'password': 'pw'}
         response = self._post_reset_password(data2=data2)
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_NEW_PASSWORD_FAIL')
-        self.assertEqual(response.json['payload']['message'], 'chpass.weak-password')
+        self._check_api_result(
+            response, type_='POST_RESET_PASSWORD_RESET_NEW_PASSWORD_FAIL', msg=ResetPwMsg.chpass_weak
+        )
 
     def test_post_reset_password_no_csrf(self):
         data2 = {'csrf_token': ''}
         response = self._post_reset_password(data2=data2)
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_NEW_PASSWORD_FAIL')
-        self.assertEqual(response.json['payload']['message'], 'csrf.try_again')
+        self._check_api_error(
+            response,
+            type_='POST_RESET_PASSWORD_RESET_NEW_PASSWORD_FAIL',
+            error={'csrf_token': ['CSRF failed to validate'],},
+        )
 
     def test_post_reset_password_wrong_code(self):
         data2 = {'code': 'wrong-code'}
         response = self._post_reset_password(data2=data2)
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_NEW_PASSWORD_FAIL')
-        self.assertEqual(response.json['payload']['message'], 'resetpw.unknown-code')
+        self._check_api_result(
+            response, type_='POST_RESET_PASSWORD_RESET_NEW_PASSWORD_FAIL', msg=ResetPwMsg.unknown_code
+        )
 
         # check that the user still has verified data
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
@@ -690,51 +693,48 @@ class ResetPasswordTests(EduidAPITestCase):
     def test_post_reset_password_custom(self):
         data2 = {'password': 'cust0m-p4ssw0rd'}
         response = self._post_reset_password(data2=data2)
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SUCCESS')
+        self._check_api_result(
+            response, type_='POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SUCCESS', msg=ResetPwMsg.pw_resetted
+        )
 
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         self.assertFalse(user.credentials.to_list()[0].is_generated)
 
     def test_post_choose_extra_sec(self):
         response = self._post_choose_extra_sec()
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_EXTRA_SECURITY_PHONE_SUCCESS')
+        self._check_api_result(
+            response, type_='POST_RESET_PASSWORD_RESET_EXTRA_SECURITY_PHONE_SUCCESS', msg=ResetPwMsg.send_sms_success
+        )
 
     def test_post_choose_extra_sec_sms_fail(self):
         self.app.config.throttle_sms_seconds = 300
         from eduid_common.api.exceptions import MsgTaskFailed
 
         response = self._post_choose_extra_sec(sendsms_side_effect=MsgTaskFailed())
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_EXTRA_SECURITY_PHONE_FAIL')
-        self.assertEqual(response.json['payload']['message'], 'resetpw.sms-failed')
+        self._check_api_result(
+            response, type_='POST_RESET_PASSWORD_RESET_EXTRA_SECURITY_PHONE_FAIL', msg=ResetPwMsg.send_sms_failure
+        )
 
     def test_post_choose_extra_sec_throttled(self):
         self.app.config.throttle_sms_seconds = 300
         response = self._post_choose_extra_sec(repeat=True)
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_EXTRA_SECURITY_PHONE_FAIL')
-        self.assertEqual(response.json['payload']['message'], 'resetpw.sms-throttled')
+        self._check_api_result(
+            response, type_='POST_RESET_PASSWORD_RESET_EXTRA_SECURITY_PHONE_FAIL', msg=ResetPwMsg.send_sms_throttled
+        )
 
     def test_post_choose_extra_sec_not_throttled(self):
         self.app.config.throttle_sms_seconds = 0
         response = self._post_choose_extra_sec(repeat=True)
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_EXTRA_SECURITY_PHONE_SUCCESS')
+        self._check_api_result(
+            response, type_='POST_RESET_PASSWORD_RESET_EXTRA_SECURITY_PHONE_SUCCESS', msg=ResetPwMsg.send_sms_success
+        )
 
     def test_post_choose_extra_sec_wrong_code(self):
         data2 = {'code': 'wrong-code'}
         response = self._post_choose_extra_sec(data2=data2)
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_EXTRA_SECURITY_PHONE_FAIL')
-        self.assertEqual(response.json['payload']['message'], 'resetpw.email-not-validated')
+        self._check_api_result(
+            response, type_='POST_RESET_PASSWORD_RESET_EXTRA_SECURITY_PHONE_FAIL', msg=ResetPwMsg.email_not_validated
+        )
 
     def test_post_choose_extra_sec_bad_phone_index(self):
         data3 = {'phone_index': '3'}
@@ -744,84 +744,89 @@ class ResetPasswordTests(EduidAPITestCase):
     def test_post_choose_extra_sec_wrong_csrf_token(self):
         data3 = {'csrf_token': 'wrong-token'}
         response = self._post_choose_extra_sec(data3=data3)
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_EXTRA_SECURITY_PHONE_FAIL')
-        self.assertEqual(response.json['payload']['error']['csrf_token'], ['CSRF failed to validate'])
+        self._check_api_error(
+            response,
+            type_='POST_RESET_PASSWORD_RESET_EXTRA_SECURITY_PHONE_FAIL',
+            error={'csrf_token': ['CSRF failed to validate'],},
+        )
 
     def test_post_choose_extra_sec_wrong_final_code(self):
         data3 = {'code': 'wrong-code'}
         response = self._post_choose_extra_sec(data3=data3)
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_EXTRA_SECURITY_PHONE_FAIL')
-        self.assertEqual(response.json['payload']['message'], 'resetpw.unknown-code')
+        self._check_api_result(
+            response, type_='POST_RESET_PASSWORD_RESET_EXTRA_SECURITY_PHONE_FAIL', msg=ResetPwMsg.unknown_code
+        )
 
     def test_post_reset_password_secure_phone(self):
         response = self._post_reset_password_secure_phone()
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_PHONE_SUCCESS')
+        self._check_api_result(
+            response, type_='POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_PHONE_SUCCESS', msg=ResetPwMsg.pw_resetted
+        )
 
     @patch('eduid_webapp.reset_password.views.reset_password.verify_phone_number')
     def test_post_reset_password_secure_phone_verify_fail(self, mock_verify: Any):
         mock_verify.return_value = False
         response = self._post_reset_password_secure_phone()
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_PHONE_FAIL')
-        self.assertEqual(response.json['payload']['message'], 'resetpw.phone-invalid')
+        self._check_api_result(
+            response, type_='POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_PHONE_FAIL', msg=ResetPwMsg.phone_invalid
+        )
 
     def test_post_reset_password_secure_phone_wrong_csrf_token(self):
         data2 = {'csrf_token': 'wrong-code'}
         response = self._post_reset_password_secure_phone(data2=data2)
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_PHONE_FAIL')
-        self.assertEqual(response.json['payload']['message'], 'csrf.try_again')
+        self._check_api_error(
+            response,
+            type_='POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_PHONE_FAIL',
+            error={'csrf_token': ['CSRF failed to validate']},
+        )
 
     def test_post_reset_password_secure_phone_wrong_email_token(self):
         data2 = {'code': 'wrong-code'}
         response = self._post_reset_password_secure_phone(data2=data2)
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_PHONE_FAIL')
-        self.assertEqual(response.json['payload']['message'], 'resetpw.unknown-code')
+        self._check_api_result(
+            response, type_='POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_PHONE_FAIL', msg=ResetPwMsg.unknown_code
+        )
 
     def test_post_reset_password_secure_phone_wrong_sms_token(self):
         data2 = {'phone_code': 'wrong-code'}
         response = self._post_reset_password_secure_phone(data2=data2)
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_PHONE_FAIL')
-        self.assertEqual(response.json['payload']['message'], 'resetpw.phone-code-unknown')
+        self._check_api_result(
+            response,
+            type_='POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_PHONE_FAIL',
+            msg=ResetPwMsg.unknown_phone_code,
+        )
 
     def test_post_reset_password_secure_phone_weak_password(self):
         data2 = {'password': 'pw'}
         response = self._post_reset_password_secure_phone(data2=data2)
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_PHONE_FAIL')
-        self.assertEqual(response.json['payload']['message'], 'chpass.weak-password')
+        self._check_api_result(
+            response, type_='POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_PHONE_FAIL', msg=ResetPwMsg.chpass_weak
+        )
 
     def test_post_reset_password_secure_token(self):
         response = self._post_reset_password_secure_token()
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_TOKEN_SUCCESS')
+        self._check_api_result(
+            response, type_='POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_TOKEN_SUCCESS', msg=ResetPwMsg.pw_resetted
+        )
 
     def test_post_reset_password_secure_token_custom_pw(self):
         response = self._post_reset_password_secure_token(custom_password='T%7j 8/tT a0=b')
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_TOKEN_SUCCESS')
+        self._check_api_result(
+            response, type_='POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_TOKEN_SUCCESS', msg=ResetPwMsg.pw_resetted
+        )
+        # TODO: Load the user from the database and verify the new credential has is_generated=False
 
     def test_post_reset_password_secure_token_no_data(self):
         response = self._post_reset_password_secure_token(data2={})
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_TOKEN_FAIL')
-        self.assertEqual(response.json['payload']['message'], 'chpass.no-code-in-data')
+        self._check_api_error(
+            response,
+            type_='POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_TOKEN_FAIL',
+            error={
+                'code': ['Missing data for required field.'],
+                'csrf_token': ['Missing data for required field.'],
+                'password': ['Missing data for required field.'],
+            },
+        )
 
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     @patch('eduid_common.authn.vccs.get_vccs_client')
@@ -834,65 +839,62 @@ class ResetPasswordTests(EduidAPITestCase):
             'credential_data': 'AAAAAAAAAAAAAAAAAAAAAABAi3KjBT0t5TPm693T0O0f4zyiwvdu9cY8BegCjiVvq_FS-ZmPcvXipFvHvD5CH6ZVRR3nsVsOla0Cad3fbtUA_aUBAgMmIAEhWCCiwDYGxl1LnRMqooWm0aRR9YbBG2LZ84BMNh_4rHkA9yJYIIujMrUOpGekbXjgMQ8M13ZsBD_cROSPB79eGz2Nw1ZE'
         }
         response = self._post_reset_password_secure_token(credential_data=credential_data)
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_TOKEN_FAIL')
-        self.assertEqual(response.json['payload']['message'], 'resetpw.fido-token-fail')
+        self._check_api_result(
+            response, type_='POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_TOKEN_FAIL', msg=ResetPwMsg.fido_token_fail
+        )
 
     def test_post_reset_password_secure_token_wrong_request(self):
         data2 = {'authenticatorData': 'Wrong-authenticatorData----UMmBLDxB7n3apMPQAAAAAAA'}
         response = self._post_reset_password_secure_token(data2=data2)
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_TOKEN_FAIL')
-        self.assertEqual(response.json['payload']['message'], 'resetpw.fido-token-fail')
+        self._check_api_result(
+            response, type_='POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_TOKEN_FAIL', msg=ResetPwMsg.fido_token_fail
+        )
 
     def test_post_reset_password_secure_token_wrong_csrf(self):
         data2 = {'csrf_token': 'wrong-code'}
         response = self._post_reset_password_secure_token(data2=data2)
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_TOKEN_FAIL')
-        self.assertEqual(response.json['payload']['message'], 'csrf.try_again')
+        self._check_api_error(
+            response,
+            type_='POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_TOKEN_FAIL',
+            error={'csrf_token': ['CSRF failed to validate']},
+        )
 
     def test_post_reset_password_secure_token_wrong_code(self):
         data2 = {'code': 'wrong-code'}
         response = self._post_reset_password_secure_token(data2=data2)
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_TOKEN_FAIL')
-        self.assertEqual(response.json['payload']['message'], 'resetpw.unknown-code')
+        self._check_api_result(
+            response, type_='POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_TOKEN_FAIL', msg=ResetPwMsg.unknown_code
+        )
 
     def test_post_reset_password_secure_token_weak_password(self):
         data2 = {'password': 'pw'}
         response = self._post_reset_password_secure_token(data2=data2)
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_TOKEN_FAIL')
-        self.assertEqual(response.json['payload']['message'], 'chpass.weak-password')
+        self._check_api_result(
+            response, type_='POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_TOKEN_FAIL', msg=ResetPwMsg.chpass_weak
+        )
 
     def test_post_reset_password_secure_email_timeout(self):
         self.app.config.email_code_timeout = 0
         response = self._post_reset_password_secure_phone()
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_PHONE_FAIL')
-        self.assertEqual(response.json['payload']['message'], 'resetpw.expired-email-code')
+        self._check_api_result(
+            response,
+            type_='POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_PHONE_FAIL',
+            msg=ResetPwMsg.expired_email_code,
+        )
 
     def test_post_reset_password_secure_phone_timeout(self):
         self.app.config.phone_code_timeout = 0
         response = self._post_reset_password_secure_phone()
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_PHONE_FAIL')
-        self.assertEqual(response.json['payload']['message'], 'resetpw.expired-sms-code')
+        self._check_api_result(
+            response, type_='POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_PHONE_FAIL', msg=ResetPwMsg.expired_sms_code
+        )
 
     def test_post_reset_password_secure_custom(self):
         data2 = {'password': 'other-password'}
         response = self._post_reset_password_secure_phone(data2=data2)
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_PHONE_SUCCESS')
+        self._check_api_result(
+            response, type_='POST_RESET_PASSWORD_RESET_NEW_PASSWORD_SECURE_PHONE_SUCCESS', msg=ResetPwMsg.pw_resetted
+        )
 
         # check that the password is marked as generated
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
@@ -1031,7 +1033,11 @@ class ChangePasswordTests(EduidAPITestCase):
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def _change_password(
-        self, mock_request_user_sync: Any, reauthn: Optional[int] = None, data1: Optional[dict] = None
+        self,
+        mock_request_user_sync: Any,
+        reauthn: Optional[int] = None,
+        data1: Optional[dict] = None,
+        yuck_add_csrf: bool = False,
     ):
         """
         To change the pasword of the test user, POST old and new passwords,
@@ -1052,6 +1058,8 @@ class ChangePasswordTests(EduidAPITestCase):
                     data = {'new_password': '0ieT/(.edW76', 'old_password': '5678', 'csrf_token': sess.get_csrf_token()}
                     if data1 == {}:
                         data = {}
+                        if yuck_add_csrf:
+                            data['csrf_token'] = sess.get_csrf_token()
                     elif data1 is not None:
                         data.update(data1)
 
@@ -1116,33 +1124,42 @@ class ChangePasswordTests(EduidAPITestCase):
 
         reauthn = int(time.time())
         response = self._change_password(reauthn=reauthn)
-
+        self._check_api_result(
+            response,
+            type_='POST_CHANGE_PASSWORD_CHANGE_PASSWORD_SUCCESS',
+            # TODO: this endpoint does not return an ResetPwMsg
+            # msg=ResetPwMsg.pw_resetted,
+            msg=None,
+        )
         self.assertEqual(response.json['type'], "POST_CHANGE_PASSWORD_CHANGE_PASSWORD_SUCCESS")
 
     def test_change_passwd_no_data(self):
-        response = self._change_password(data1={})
-
-        self.assertEqual(response.json['type'], "POST_CHANGE_PASSWORD_CHANGE_PASSWORD_FAIL")
-        self.assertEqual(response.json['payload']['message'], 'chpass.no-data')
+        response = self._change_password(data1={}, yuck_add_csrf=True)
+        self._check_api_error(
+            response,
+            type_='POST_CHANGE_PASSWORD_CHANGE_PASSWORD_FAIL',
+            error={
+                'new_password': ['Missing data for required field.'],
+                'old_password': ['Missing data for required field.'],
+            },
+        )
 
     def test_change_passwd_empty_data(self):
-        data1 = {'new_password': '', 'old_password': '', 'csrf_token': ''}
+        data1 = {'new_password': '', 'old_password': ''}
         response = self._change_password(data1=data1)
-
-        self.assertEqual(response.json['type'], "POST_CHANGE_PASSWORD_CHANGE_PASSWORD_FAIL")
-        self.assertEqual(response.json['payload']['message'], 'chpass.no-data')
+        self._check_api_result(
+            response, type_='POST_CHANGE_PASSWORD_CHANGE_PASSWORD_FAIL', msg=ResetPwMsg.chpass_no_data
+        )
 
     def test_change_passwd_no_reauthn(self):
         response = self._change_password()
-
-        self.assertEqual(response.json['type'], "POST_CHANGE_PASSWORD_CHANGE_PASSWORD_FAIL")
-        self.assertEqual(response.json['payload']['message'], 'chpass.no_reauthn')
+        self._check_api_result(response, type_='POST_CHANGE_PASSWORD_CHANGE_PASSWORD_FAIL', msg=ResetPwMsg.no_reauthn)
 
     def test_change_passwd_stale(self):
         response = self._change_password(reauthn=1)
-
-        self.assertEqual(response.json['type'], "POST_CHANGE_PASSWORD_CHANGE_PASSWORD_FAIL")
-        self.assertEqual(response.json['payload']['message'], 'chpass.stale_reauthn')
+        self._check_api_result(
+            response, type_='POST_CHANGE_PASSWORD_CHANGE_PASSWORD_FAIL', msg=ResetPwMsg.stale_reauthn
+        )
 
     @patch('eduid_webapp.reset_password.views.change_password.change_password')
     def test_change_passwd_no_csrf(self, mock_change_password):
@@ -1151,9 +1168,11 @@ class ChangePasswordTests(EduidAPITestCase):
         reauthn = int(time.time())
         data1 = {'csrf_token': ''}
         response = self._change_password(reauthn=reauthn, data1=data1)
-
-        self.assertEqual(response.json['type'], "POST_CHANGE_PASSWORD_CHANGE_PASSWORD_FAIL")
-        self.assertEqual(response.json['payload']['message'], 'csrf.try_again')
+        self._check_api_error(
+            response,
+            type_='POST_CHANGE_PASSWORD_CHANGE_PASSWORD_FAIL',
+            error={'csrf_token': ['CSRF failed to validate'],},
+        )
 
     @patch('eduid_webapp.reset_password.views.change_password.change_password')
     def test_change_passwd_wrong_csrf(self, mock_change_password):
@@ -1162,9 +1181,11 @@ class ChangePasswordTests(EduidAPITestCase):
         reauthn = int(time.time())
         data1 = {'csrf_token': 'wrong-token'}
         response = self._change_password(data1=data1, reauthn=reauthn)
-
-        self.assertEqual(response.json['type'], "POST_CHANGE_PASSWORD_CHANGE_PASSWORD_FAIL")
-        self.assertEqual(response.json['payload']['message'], 'csrf.try_again')
+        self._check_api_error(
+            response,
+            type_='POST_CHANGE_PASSWORD_CHANGE_PASSWORD_FAIL',
+            error={'csrf_token': ['CSRF failed to validate'],},
+        )
 
     @patch('eduid_webapp.reset_password.views.change_password.change_password')
     def test_change_passwd_weak(self, mock_change_password):
@@ -1175,7 +1196,7 @@ class ChangePasswordTests(EduidAPITestCase):
         response = self._change_password(data1=data1, reauthn=reauthn)
 
         self.assertEqual(response.json['type'], "POST_CHANGE_PASSWORD_CHANGE_PASSWORD_FAIL")
-        self.assertEqual(response.json['payload']['message'], 'chpass.no-data')
+        self.assertEqual(response.json['payload']['message'], 'chpass.weak-password')
 
     def test_get_suggested_and_change(self):
         response = self._get_suggested_and_change()
@@ -1204,7 +1225,7 @@ class ChangePasswordTests(EduidAPITestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json['type'], "POST_CHANGE_PASSWORD_CHANGE_PASSWORD_FAIL")
-        self.assertEqual(response.json['payload']['message'], 'csrf.try_again')
+        self.assertEqual(response.json['payload']['error']['csrf_token'], ['CSRF failed to validate'])
 
         # check that the password is marked as generated
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
@@ -1227,7 +1248,7 @@ class ChangePasswordTests(EduidAPITestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json['type'], "POST_CHANGE_PASSWORD_CHANGE_PASSWORD_FAIL")
-        self.assertEqual(response.json['payload']['message'], 'chpass.no-data')
+        self.assertEqual(response.json['payload']['message'], 'chpass.weak-password')
 
         # check that the password is marked as generated
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
