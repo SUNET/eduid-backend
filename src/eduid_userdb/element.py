@@ -97,9 +97,7 @@ class Element(object):
     """
 
     def __init__(
-        self,
-        data: Dict[str, Any],
-        called_directly: bool = True,
+        self, data: Dict[str, Any], called_directly: bool = True,
     ):
         if called_directly:
             breakpoint()
@@ -209,13 +207,9 @@ class VerifiedElement(Element):
     """
 
     def __init__(
-        self,
-        data: Dict[str, Any],
-        called_directly: bool = True,
+        self, data: Dict[str, Any], called_directly: bool = True,
     ):
-        Element.__init__(
-            self, data, called_directly=called_directly
-        )
+        Element.__init__(self, data, called_directly=called_directly)
         # Remove deprecated verification_code from VerifiedElement
         data.pop('verification_code', None)
         self.is_verified = data.pop('verified', False)
@@ -302,9 +296,7 @@ class PrimaryElement(VerifiedElement):
         called_directly: bool = True,
         ignore_data: Optional[List[str]] = None,
     ):
-        VerifiedElement.__init__(
-            self, data, called_directly=called_directly
-        )
+        VerifiedElement.__init__(self, data, called_directly=called_directly)
 
         self.is_primary = data.pop('primary', False)
 
@@ -317,7 +309,9 @@ class PrimaryElement(VerifiedElement):
             self._data.update(data)
 
     @classmethod
-    def from_dict(cls: Type[TPrimaryElementSubclass], data: Dict[str, Any], raise_on_unknown: bool = True) -> TPrimaryElementSubclass:
+    def from_dict(
+        cls: Type[TPrimaryElementSubclass], data: Dict[str, Any], raise_on_unknown: bool = True
+    ) -> TPrimaryElementSubclass:
         """
         Construct user from a data dict.
         """

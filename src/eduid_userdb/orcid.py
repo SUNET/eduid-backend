@@ -17,12 +17,8 @@ TOidcSubclass = TypeVar('TOidcSubclass', bound='OidcElement')
 
 
 class OidcElement(Element):
-
     def __init__(
-        self,
-        data=None,
-        raise_on_unknown=True,
-        called_directly=True,
+        self, data=None, raise_on_unknown=True, called_directly=True,
     ):
         raise NotImplementedError()
 

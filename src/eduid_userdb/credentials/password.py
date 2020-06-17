@@ -87,7 +87,9 @@ class Password(Credential):
             self._data.update(data)
 
     @classmethod
-    def from_dict(cls: Type[TPasswordSubclass], data: Dict[str, Any], raise_on_unknown: bool = True) -> TPasswordSubclass:
+    def from_dict(
+        cls: Type[TPasswordSubclass], data: Dict[str, Any], raise_on_unknown: bool = True
+    ) -> TPasswordSubclass:
         """
         Construct user from a data dict.
         """

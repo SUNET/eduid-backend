@@ -333,9 +333,7 @@ class SentLetterElement(Element):
     """
 
     def __init__(self, data, called_directly=True):
-        super(SentLetterElement, self).__init__(
-            data, called_directly=called_directly
-        )
+        super(SentLetterElement, self).__init__(data, called_directly=called_directly)
 
         self._data['is_sent'] = data.pop('is_sent', False)
         self._data['sent_ts'] = data.pop('sent_ts', None)

@@ -315,7 +315,9 @@ class Webauthn(FidoCredential):
         self._data.update(data)
 
     @classmethod
-    def from_dict(cls: Type[TWebauthnSubclass], data: Dict[str, Any], raise_on_unknown: bool = True) -> TWebauthnSubclass:
+    def from_dict(
+        cls: Type[TWebauthnSubclass], data: Dict[str, Any], raise_on_unknown: bool = True
+    ) -> TWebauthnSubclass:
         """
         Construct user from a data dict.
         """
