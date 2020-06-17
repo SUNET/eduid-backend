@@ -32,7 +32,7 @@
 #
 import math
 from enum import unique
-from typing import Any, Dict, Optional, TypeVar, Union
+from typing import Any, Dict, List, Optional, TypeVar, Union
 
 import bcrypt
 from flask import render_template
@@ -69,6 +69,8 @@ class ResetPwMsg(TranslatableMsg):
     # The user has sent a code that corresponds to no known password reset
     # request
     unknown_code = 'resetpw.unknown-code'
+    # Some required input data is empty
+    missing_data = 'resetpw.missing-data'
     # The user has sent an SMS'ed code that corresponds to no known password
     # reset request
     unknown_phone_code = 'resetpw.phone-code-unknown'
@@ -443,14 +445,14 @@ def compile_credential_list(user: ResetPasswordUser) -> list:
     return credentials
 
 
-def get_zxcvbn_terms(eppn):
+# TODO: Change this function to accepting a User instead of an eppn,
+#       since we probably already have a user loaded where this function is called
+def get_zxcvbn_terms(eppn: str) -> List[str]:
     """
-    :param eppn: User eppn
-    :type eppn: six.string_types
-    :return: List of user info
-    :rtype: list
-
     Combine known data that is bad for a password to a list for zxcvbn.
+
+    :param eppn: User eppn
+    :return: List of user info
     """
     user = current_app.central_userdb.get_user_by_eppn(eppn, raise_on_missing=True)
     user_input = list()

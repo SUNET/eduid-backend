@@ -13,7 +13,7 @@
 #        copyright notice, this list of conditions and the following
 #        disclaimer in the documentation and/or other materials provided
 #        with the distribution.
-#     3. Neither the name of the NORDUnet nor the names of its
+#     3. Neither the name of the SUNET nor the names of its
 #        contributors may be used to endorse or promote products derived
 #        from this software without specific prior written permission.
 #
@@ -30,17 +30,18 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-import json
 from datetime import datetime
+from typing import Any, Mapping
 
-from flask import Blueprint, request
-from marshmallow import ValidationError
+from flask import Blueprint
 
-from eduid_common.api.decorators import MarshalWith, require_user
+from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid_common.api.messages import CommonMsg, error_message
 from eduid_common.api.utils import save_and_sync_user
+from eduid_common.api.validation import is_valid_password
 from eduid_common.authn.vccs import change_password
 from eduid_common.session import session
+from eduid_userdb import User
 from eduid_userdb.exceptions import UserOutOfSync
 from eduid_userdb.reset_password import ResetPasswordUser
 
@@ -54,12 +55,10 @@ from eduid_webapp.reset_password.helpers import (
     hash_password,
 )
 from eduid_webapp.reset_password.schemas import (
-    ChangePasswordSchema,
+    ChpassRequestSchema,
     ChpassResponseSchema,
-    SuggestedPassword,
     SuggestedPasswordResponseSchema,
 )
-from eduid_webapp.security.schemas import CredentialList
 
 change_password_views = Blueprint('change_password', __name__, url_prefix='')
 
@@ -83,30 +82,20 @@ def get_suggested(user):
 
 @change_password_views.route('/change-password', methods=['POST'])
 @MarshalWith(ChpassResponseSchema)
+@UnmarshalWith(ChpassRequestSchema)
 @require_user
-def change_password_view(user):
+def change_password_view(user: User, old_password: str, new_password: str) -> Mapping[str, Any]:
     """
     View to change the password
     """
-    resetpw_user = ResetPasswordUser.from_user(user, current_app.private_userdb)
+    if not old_password or not new_password:
+        return error_message(ResetPwMsg.chpass_no_data)
+
     min_entropy = current_app.config.password_entropy
-    schema = ChangePasswordSchema(zxcvbn_terms=get_zxcvbn_terms(resetpw_user.eppn), min_entropy=int(min_entropy))
-
-    if not request.data:
-        return error_message(ResetPwMsg.chpass_no_data)
-
     try:
-        form = schema.load(json.loads(request.data))
-        current_app.logger.debug(form)
-    except ValidationError as e:
-        current_app.logger.error(e)
-        return error_message(ResetPwMsg.chpass_no_data)
-    else:
-        old_password = form.get('old_password')
-        new_password = form.get('new_password')
-
-    if session.get_csrf_token() != form['csrf_token']:
-        return error_message(CommonMsg.csrf_try_again)
+        is_valid_password(new_password, user_info=get_zxcvbn_terms(user.eppn), min_entropy=min_entropy)
+    except ValueError:
+        return error_message(ResetPwMsg.chpass_weak)
 
     authn_ts = session.get('reauthn-for-chpass', None)
     if authn_ts is None:
@@ -125,6 +114,8 @@ def change_password_view(user):
     else:
         is_generated = False
         current_app.stats.count(name='change_password_custom_password_used')
+
+    resetpw_user = ResetPasswordUser.from_user(user, current_app.private_userdb)
 
     vccs_url = current_app.config.vccs_url
     added = change_password(resetpw_user, new_password, old_password, 'reset-password', is_generated, vccs_url)
@@ -148,7 +139,7 @@ def change_password_view(user):
     credentials = {
         'next_url': next_url,
         'credentials': compile_credential_list(resetpw_user),
-        'message': 'chpass.password-changed',
+        'message': 'chpass.password-changed',  # TODO: shouldn't this be a ResetPwMsg?
     }
 
     return credentials
