@@ -64,27 +64,6 @@ class SignupUser(User):
 
         User.__init__(self, data=data, raise_on_unknown=raise_on_unknown, called_directly=called_directly)
 
-    @classmethod
-    def construct_user(
-        cls: Type[TUserSubclass],
-        social_network: Optional[str] = None,
-        social_network_id: Optional[str] = None,
-        pending_mail_address: Optional[EmailProofingElement] = None,
-        proofing_reference: Optional[str] = None,
-        **kwargs,
-    ) -> TUserSubclass:
-
-        data = {}
-        data['social_network'] = social_network
-        data['social_network_id'] = social_network_id
-        if pending_mail_address is not None:
-            data['pending_mail_address'] = pending_mail_address.to_dict()
-        data['proofing_reference'] = proofing_reference
-
-        data.update(kwargs)
-
-        return super(SignupUser, cls).construct_user(**data)
-
     def check_or_use_data(self):
         data = self._data_in
         _social_network = data.pop('social_network', None)
@@ -92,8 +71,8 @@ class SignupUser(User):
         _pending_mail_address = data.pop('pending_mail_address', None)
         _proofing_reference = data.pop('proofing_reference', None)
         if _pending_mail_address:
-            _pending_mail_address = EmailProofingElement(data=_pending_mail_address)
-        self._pending_mail_address = None
+            if isinstance(_pending_mail_address, dict):
+                _pending_mail_address = EmailProofingElement(data=_pending_mail_address)
 
         self.social_network = _social_network
         self.social_network_id = _social_network_id
