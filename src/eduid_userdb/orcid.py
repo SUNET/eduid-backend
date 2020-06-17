@@ -74,13 +74,6 @@ class OidcIdToken(Element):
         if raise_on_unknown and data:
             raise UserHasUnknownData('{!s} has unknown data: {!r}'.format(self.__class__.__name__, data.keys()))
 
-    @classmethod
-    def from_dict(cls: Type[TElementSubclass], data: Dict[str, Any], raise_on_unknown: bool = True) -> TElementSubclass:
-        """
-        Construct user from a data dict.
-        """
-        return cls(data=data, raise_on_unknown=raise_on_unknown, called_directly=False)
-
     @property
     def key(self):
         """
@@ -356,13 +349,6 @@ class OidcAuthorization(Element):
 
         if raise_on_unknown and data:
             raise UserHasUnknownData('{!s} has unknown data: {!r}'.format(self.__class__.__name__, data.keys()))
-
-    @classmethod
-    def from_dict(cls: Type[TElementSubclass], data: Dict[str, Any], raise_on_unknown: bool = True) -> TElementSubclass:
-        """
-        Construct user from a data dict.
-        """
-        return cls(data=data, called_directly=False, raise_on_unknown=raise_on_unknown)
 
     @property
     def key(self):

@@ -87,13 +87,6 @@ class PhoneNumber(PrimaryElement):
         PrimaryElement.__init__(self, data, raise_on_unknown, called_directly=called_directly, ignore_data=['number'])
         self.number = data.pop('number')
 
-    @classmethod
-    def from_dict(cls: Type[TElementSubclass], data: Dict[str, Any], raise_on_unknown: bool = True) -> TElementSubclass:
-        """
-        Construct user from a data dict.
-        """
-        return cls(data=data, raise_on_unknown=raise_on_unknown, called_directly=False)
-
     # -----------------------------------------------------------------
     @property
     def key(self):

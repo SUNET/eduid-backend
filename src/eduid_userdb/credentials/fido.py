@@ -52,9 +52,9 @@ class FidoCredential(Credential):
     Token authentication credential
     """
 
-    def __init__(self, data, called_directly=True):
+    def __init__(self, data, raise_on_unknown=True, called_directly=True):
 
-        Credential.__init__(self, data, called_directly=called_directly)
+        Credential.__init__(self, data, raise_on_unknown=raise_on_unknown, called_directly=called_directly)
         self.keyhandle = data.pop('keyhandle')
         self.app_id = data.pop('app_id')
         self.description = data.pop('description', '')
@@ -156,7 +156,7 @@ class U2F(FidoCredential):
                 created_ts=created_ts,
             )
 
-        FidoCredential.__init__(self, data, called_directly=called_directly)
+        FidoCredential.__init__(self, data, raise_on_unknown=raise_on_unknown, called_directly=called_directly)
         self.version = data.pop('version')
         self.public_key = data.pop('public_key')
         self.attest_cert = data.pop('attest_cert', '')
@@ -167,13 +167,6 @@ class U2F(FidoCredential):
                 raise UserHasUnknownData('U2F {!r} unknown data: {!r}'.format(self.key, leftovers,))
             # Just keep everything that is left as-is
             self._data.update(data)
-
-    @classmethod
-    def from_dict(cls: Type[TElementSubclass], data: Dict[str, Any], raise_on_unknown: bool = True) -> TElementSubclass:
-        """
-        Construct user from a data dict.
-        """
-        return cls(data=data, raise_on_unknown=raise_on_unknown, called_directly=False)
 
     @property
     def key(self):
@@ -294,7 +287,7 @@ class Webauthn(FidoCredential):
                 created_ts=created_ts,
             )
 
-        FidoCredential.__init__(self, data, called_directly=called_directly)
+        FidoCredential.__init__(self, data, raise_on_unknown=raise_on_unknown, called_directly=called_directly)
         self.attest_obj = data.pop('attest_obj', '')
         self.credential_data = data.pop('credential_data', '')
 
@@ -304,13 +297,6 @@ class Webauthn(FidoCredential):
                 raise UserHasUnknownData('Webauthn {!r} unknown data: {!r}'.format(self.key, leftovers,))
             # Just keep everything that is left as-is
             self._data.update(data)
-
-    @classmethod
-    def from_dict(cls: Type[TElementSubclass], data: Dict[str, Any], raise_on_unknown: bool = True) -> TElementSubclass:
-        """
-        Construct user from a data dict.
-        """
-        return cls(data=data, raise_on_unknown=raise_on_unknown, called_directly=False)
 
     @property
     def key(self):

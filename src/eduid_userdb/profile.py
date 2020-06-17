@@ -21,6 +21,7 @@ class Profile(Element):
         created_ts: Optional[Union[datetime, bool]] = None,
         modified_ts: Optional[Union[datetime, bool]] = None,
         data: Optional[Dict[str, Any]] = None,
+        raise_on_unknown: bool = True,
         called_directly: bool = True,
     ):
 
@@ -41,10 +42,6 @@ class Profile(Element):
             self.schema = schema
         if profile_data is not None:
             self.profile_data = profile_data
-
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> Profile:
-        return cls(data=data, called_directly=False)
 
     # -----------------------------------------------------------------
     @property
