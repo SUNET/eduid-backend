@@ -99,7 +99,7 @@ class LockedIdentityList(ElementList):
     def __init__(self, locked_identities):
         elements = []
         for item in locked_identities:
-            if isinstance(item, LockedIdentityList):
+            if isinstance(item, LockedIdentityElement):
                 elements.append(item)
             else:
                 if item['identity_type'] == 'nin':

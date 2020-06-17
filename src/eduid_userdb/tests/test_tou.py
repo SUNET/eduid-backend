@@ -8,9 +8,9 @@ import eduid_userdb.element
 import eduid_userdb.exceptions
 from eduid_userdb.actions.tou import ToUUser
 from eduid_userdb.credentials import CredentialList
-from eduid_userdb.data_samples import NEW_USER_EXAMPLE
 from eduid_userdb.event import Event, EventList
 from eduid_userdb.exceptions import UserHasUnknownData, UserMissingData
+from eduid_userdb.fixtures.users import new_user_example
 from eduid_userdb.tou import ToUEvent, ToUList
 
 __author__ = 'ft'
@@ -147,7 +147,7 @@ class TestTouUser(TestCase):
     def test_proper_user(self):
         one = copy.deepcopy(_one_dict)
         tou = ToUEvent(data=one, raise_on_unknown=False)
-        userdata = copy.deepcopy(NEW_USER_EXAMPLE)
+        userdata = new_user_example.to_dict()
         userdata['tou'] = [tou]
         user = ToUUser.from_dict(data=userdata)
         self.assertEqual(user.tou.to_list_of_dicts()[0]['version'], '1')
@@ -155,7 +155,7 @@ class TestTouUser(TestCase):
     def test_proper_new_user(self):
         one = copy.deepcopy(_one_dict)
         tou = ToUList([ToUEvent(data=one, raise_on_unknown=False)])
-        userdata = copy.deepcopy(NEW_USER_EXAMPLE)
+        userdata = new_user_example.to_dict()
         userid = userdata.pop('_id')
         eppn = userdata.pop('eduPersonPrincipalName')
         passwords = CredentialList(userdata['passwords'])
@@ -165,7 +165,7 @@ class TestTouUser(TestCase):
     def test_proper_new_user_no_id(self):
         one = copy.deepcopy(_one_dict)
         tou = ToUList([ToUEvent(data=one, raise_on_unknown=False)])
-        userdata = copy.deepcopy(NEW_USER_EXAMPLE)
+        userdata = new_user_example.to_dict()
         passwords = CredentialList(userdata['passwords'])
         with self.assertRaises(UserMissingData):
             ToUUser.construct_user(tou=tou, passwords=passwords)
@@ -173,14 +173,14 @@ class TestTouUser(TestCase):
     def test_proper_new_user_no_eppn(self):
         one = copy.deepcopy(_one_dict)
         tou = ToUList([ToUEvent(data=one, raise_on_unknown=False)])
-        userdata = copy.deepcopy(NEW_USER_EXAMPLE)
+        userdata = new_user_example.to_dict()
         userid = userdata.pop('_id')
         passwords = CredentialList(userdata['passwords'])
         with self.assertRaises(UserMissingData):
             ToUUser.construct_user(userid=userid, tou=tou, passwords=passwords)
 
     def test_proper_new_user_no_tou(self):
-        userdata = copy.deepcopy(NEW_USER_EXAMPLE)
+        userdata = new_user_example.to_dict()
         userid = userdata.pop('_id')
         eppn = userdata.pop('eduPersonPrincipalName')
         passwords = CredentialList(userdata['passwords'])
@@ -206,7 +206,7 @@ class TestTouUser(TestCase):
     def test_unknown_data(self):
         one = copy.deepcopy(_one_dict)
         tou = ToUEvent(data=one, raise_on_unknown=False)
-        userdata = copy.deepcopy(NEW_USER_EXAMPLE)
+        userdata = new_user_example.to_dict()
         userdata['tou'] = [tou]
         userdata['foo'] = 'bar'
         with self.assertRaises(UserHasUnknownData):
@@ -215,7 +215,7 @@ class TestTouUser(TestCase):
     def test_unknown_data_dont_raise(self):
         one = copy.deepcopy(_one_dict)
         tou = ToUEvent(data=one, raise_on_unknown=False)
-        userdata = copy.deepcopy(NEW_USER_EXAMPLE)
+        userdata = new_user_example.to_dict()
         userdata['tou'] = [tou]
         userdata['foo'] = 'bar'
         user = ToUUser.from_dict(data=userdata, raise_on_unknown=False)
