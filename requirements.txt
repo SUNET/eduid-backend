@@ -1,4 +1,4 @@
-eduid-userdb>=0.4.15
+eduid-userdb>=0.4.16
 eduid-common[webapp]>=0.4.25
 eduid-am>=0.7.4
 eduid-msg>=0.10.9
@@ -10,6 +10,7 @@ urllib3>=1.21.1
 python-etcd>=0.4.3
 Pillow>=3.0.0
 marshmallow>=3.0,==3.*
+marshmallow-enum==1.5.*
 Babel>=2.6.0
 flask-babel>=0.11.2
 oic>=0.8.3

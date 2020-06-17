@@ -35,10 +35,11 @@ from typing import Dict, cast
 
 from flask import current_app
 
-from eduid_common.api import mail_relay
+from eduid_common.api import mail_relay, translation
 from eduid_common.authn.middleware import AuthnBaseApp
 from eduid_scimapi.groupdb import ScimApiGroupDB
 from eduid_scimapi.userdb import ScimApiUserDB
+from eduid_userdb.group_management import GroupManagementInviteStateDB
 
 from eduid_webapp.group_management.settings.common import GroupManagementConfig
 
@@ -54,8 +55,7 @@ class GroupManagementApp(AuthnBaseApp):
         self.config: GroupManagementConfig = cast(GroupManagementConfig, self.config)  # type: ignore
 
         # Init dbs
-        # self.group_management_state_db = GroupManagementStateDB(self.config.mongo_uri)
-
+        self.invite_state_db = GroupManagementInviteStateDB(self.config.mongo_uri)
         _owner = self.config.scim_data_owner.replace(
             '.', '_'
         )  # dot is a name separator in mongodb, so replace dots with underscores
@@ -70,6 +70,9 @@ class GroupManagementApp(AuthnBaseApp):
         )
         # Init celery
         mail_relay.init_relay(self)
+
+        # Init translation
+        translation.init_babel(self)
 
 
 current_group_management_app = cast(GroupManagementApp, current_app)
@@ -86,9 +89,11 @@ def init_group_management_app(name: str, config: Dict) -> GroupManagementApp:
     app = GroupManagementApp(name, config)
 
     # Register views
-    from eduid_webapp.group_management.views import group_management_views
+    from eduid_webapp.group_management.views.group import group_management_views
+    from eduid_webapp.group_management.views.invite import group_invite_views
 
     app.register_blueprint(group_management_views)
+    app.register_blueprint(group_invite_views)
 
     app.logger.info('{!s} initialized'.format(name))
     return app

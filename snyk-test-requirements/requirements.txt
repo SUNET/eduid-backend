@@ -13,6 +13,7 @@ gunicorn
 hammock>=0.2.4
 python-jose>=3.0.1
 marshmallow>=3.0,==3.*
+marshmallow-enum==1.5.*
 oic==0.8.3
 Pillow>=3.0.0
 pynacl>=1.0.1

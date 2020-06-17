@@ -1,0 +1,7 @@
+{% trans site_name=site_name, site_url=site_url, group_display_name=group_display_name, group_invite_url=group_invite_url %}
+    <p>Hi,</p>
+    <p>You are invited to join the group {{ group_display_name }} with your <a href={{ site_url }}>{{ site_name }}</a> account.</p>
+    <p>To accept or decline the invitation go to <a href={{ group_invite_url }}>{{ group_invite_url }}</a>.</p>
+    <p>If you do not have an {{ site_name }} account you can <a href="{{ site_url }}">create one</a>.</p>
+    <p>(This is an automated email. Please do not reply.)</p>
+{% endtrans %}

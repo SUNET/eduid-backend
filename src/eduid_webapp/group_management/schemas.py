@@ -32,14 +32,27 @@
 #
 
 from marshmallow import fields
+from marshmallow_enum import EnumField
 
 from eduid_common.api.schemas.base import EduidSchema, FluxStandardAction
 from eduid_common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
+from eduid_common.api.schemas.validators import validate_email
+from eduid_userdb.group_management import GroupRole
 
 __author__ = 'lundberg'
 
 
-class GroupMember(EduidSchema):
+class LowerEmail(fields.Email):
+    def _serialize(self, value, attr, obj, **kwargs):
+        value = super()._serialize(value, attr, obj, **kwargs)
+        return value.lower()
+
+    def _deserialize(self, value, attr, data, **kwargs):
+        value = super()._deserialize(value, attr, data, **kwargs)
+        return value.lower()
+
+
+class GroupUser(EduidSchema):
     identifier = fields.UUID(required=True)
     display_name = fields.Str(required=True)
 
@@ -47,12 +60,25 @@ class GroupMember(EduidSchema):
 class Group(EduidSchema):
     identifier = fields.UUID(required=True)
     display_name = fields.Str(required=True)
-    members = fields.Nested(nested=GroupMember, default=[], many=True)
-    owners = fields.Nested(nested=GroupMember, default=[], many=True)
+    members = fields.Nested(nested=GroupUser, default=[], many=True)
+    owners = fields.Nested(nested=GroupUser, default=[], many=True)
 
 
-class GroupManagementRequestSchema(EduidSchema):
-    pass
+class OutgoingInvite(EduidSchema):
+    class EmailAddress(EduidSchema):
+        email_address = LowerEmail(required=True)
+
+    group_identifier = fields.UUID(required=True)
+    member_invites = fields.Nested(EmailAddress, many=True)
+    owner_invites = fields.Nested(EmailAddress, many=True)
+
+
+class IncomingInvite(EduidSchema):
+    group_identifier = fields.UUID(required=True)
+    display_name = fields.Str(required=True)
+    email_address = LowerEmail(required=True)
+    role = EnumField(GroupRole, required=True, by_value=True)
+    owners = fields.Nested(GroupUser, many=True)
 
 
 class GroupManagementResponseSchema(FluxStandardAction):
@@ -70,4 +96,40 @@ class GroupCreateRequestSchema(EduidSchema, CSRFRequestMixin):
 
 class GroupDeleteRequestSchema(EduidSchema, CSRFRequestMixin):
 
-    identifier = fields.UUID(required=True)
+    group_identifier = fields.UUID(required=True)
+
+
+class GroupRemoveUserRequestSchema(EduidSchema, CSRFRequestMixin):
+
+    group_identifier = fields.UUID(required=True)
+    user_identifier = fields.UUID(required=True)
+    role = EnumField(GroupRole, required=True, by_value=True)
+
+
+class GroupInviteRequestSchema(EduidSchema, CSRFRequestMixin):
+
+    group_identifier = fields.UUID(required=True)
+    email_address = fields.Email(required=True, validate=validate_email)
+    role = EnumField(GroupRole, required=True, by_value=True)
+
+
+class GroupIncomingInviteResponseSchema(FluxStandardAction):
+    class GroupInviteResponsePayload(EduidSchema, CSRFResponseMixin):
+        incoming = fields.Nested(IncomingInvite, many=True)
+
+    payload = fields.Nested(GroupInviteResponsePayload)
+
+
+class GroupOutgoingInviteResponseSchema(FluxStandardAction):
+    class GroupInviteResponsePayload(EduidSchema, CSRFResponseMixin):
+        outgoing = fields.Nested(OutgoingInvite, many=True)
+
+    payload = fields.Nested(GroupInviteResponsePayload)
+
+
+class GroupAllInviteResponseSchema(FluxStandardAction):
+    class GroupInviteResponsePayload(EduidSchema, CSRFResponseMixin):
+        incoming = fields.Nested(IncomingInvite, many=True)
+        outgoing = fields.Nested(OutgoingInvite, many=True)
+
+    payload = fields.Nested(GroupInviteResponsePayload)

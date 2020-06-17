@@ -51,3 +51,6 @@ class GroupManagementConfig(FlaskConfig):
     scim_external_id_scope: str = 'eduid.se'
     neo4j_uri: str = ''
     neo4j_config: Optional[dict] = None
+    group_invite_template_html: str = 'group_invite_email.html.jinja2'
+    group_invite_template_txt: str = 'group_invite_email.txt.jinja2'
+    group_invite_url: str = 'https://dashboard.eduid.se'
