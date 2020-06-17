@@ -40,9 +40,9 @@ from eduid_common.api.messages import CommonMsg, error_message
 from eduid_groupdb import Group as GraphGroup
 from eduid_groupdb import User as GraphUser
 from eduid_scimapi.groupdb import ScimApiGroup
-from eduid_scimapi.userdb import ScimApiUser
 from eduid_userdb import User
 from eduid_userdb.exceptions import EduIDDBError
+from eduid_userdb.group_management import GroupRole
 
 from eduid_webapp.group_management.app import current_group_management_app as current_app
 from eduid_webapp.group_management.helpers import (
@@ -151,7 +151,7 @@ def delete_group(user: User, group_identifier: UUID) -> Mapping:
 @UnmarshalWith(GroupRemoveUserRequestSchema)
 @MarshalWith(GroupManagementResponseSchema)
 @require_user
-def remove_user(user: User, group_identifier: UUID, user_identifier: UUID, role: str) -> Mapping:
+def remove_user(user: User, group_identifier: UUID, user_identifier: UUID, role: GroupRole) -> Mapping:
     scim_user = get_scim_user_by_eppn(user.eppn)
     if not scim_user:
         current_app.logger.error('User does not exist in scimapi_userdb')
@@ -176,5 +176,5 @@ def remove_user(user: User, group_identifier: UUID, user_identifier: UUID, role:
     except EduIDDBError:
         return error_message(CommonMsg.temp_problem)
 
-    current_app.stats.count(name=f'removed_{role}')
+    current_app.stats.count(name=f'removed_{role.value}')
     return get_groups()

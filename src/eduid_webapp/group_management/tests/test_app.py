@@ -534,7 +534,7 @@ class GroupManagementTests(EduidAPITestCase):
             self.app.invite_state_db.get_state(
                 group_scim_id=str(self.scim_group1.scim_id),
                 email_address=self.test_user2.mail_addresses.primary.email,
-                role=GroupRole.MEMBER.value,
+                role=GroupRole.MEMBER,
             )
         )
 
@@ -569,7 +569,7 @@ class GroupManagementTests(EduidAPITestCase):
             self.app.invite_state_db.get_state(
                 group_scim_id=str(self.scim_group1.scim_id),
                 email_address=self.test_user2.mail_addresses.primary.email,
-                role=GroupRole.MEMBER.value,
+                role=GroupRole.MEMBER,
             )
         scim_group = self.app.scimapi_groupdb.get_group_by_scim_id(str(self.scim_group1.scim_id))
         scim_user = self.app.scimapi_userdb.get_user_by_external_id(
@@ -609,7 +609,7 @@ class GroupManagementTests(EduidAPITestCase):
             self.app.invite_state_db.get_state(
                 group_scim_id=str(self.scim_group1.scim_id),
                 email_address=self.test_user2.mail_addresses.primary.email,
-                role=GroupRole.MEMBER.value,
+                role=GroupRole.MEMBER,
             )
         scim_group = self.app.scimapi_groupdb.get_group_by_scim_id(str(self.scim_group1.scim_id))
         scim_user = self.app.scimapi_userdb.get_user_by_external_id(
@@ -645,7 +645,7 @@ class GroupManagementTests(EduidAPITestCase):
             self.app.invite_state_db.get_state(
                 group_scim_id=str(self.scim_group1.scim_id),
                 email_address=self.test_user2.mail_addresses.primary.email,
-                role=GroupRole.OWNER.value,
+                role=GroupRole.OWNER,
             )
         )
 
@@ -680,7 +680,7 @@ class GroupManagementTests(EduidAPITestCase):
             self.app.invite_state_db.get_state(
                 group_scim_id=str(self.scim_group1.scim_id),
                 email_address=self.test_user2.mail_addresses.primary.email,
-                role=GroupRole.MEMBER.value,
+                role=GroupRole.MEMBER,
             )
         scim_group = self.app.scimapi_groupdb.get_group_by_scim_id(str(self.scim_group1.scim_id))
         scim_user = self.app.scimapi_userdb.get_user_by_external_id(
@@ -720,7 +720,7 @@ class GroupManagementTests(EduidAPITestCase):
             self.app.invite_state_db.get_state(
                 group_scim_id=str(self.scim_group1.scim_id),
                 email_address=self.test_user2.mail_addresses.primary.email,
-                role=GroupRole.MEMBER.value,
+                role=GroupRole.MEMBER,
             )
         scim_group = self.app.scimapi_groupdb.get_group_by_scim_id(str(self.scim_group1.scim_id))
         scim_user = self.app.scimapi_userdb.get_user_by_external_id(
@@ -746,11 +746,11 @@ class GroupManagementTests(EduidAPITestCase):
         self.assertEqual(2, len(outgoing), 'test_user_1 outgoing invites')
         for invite in outgoing:
             if invite['group_identifier'] == str(self.scim_group1.scim_id):
-                self.assertEqual(2, len(invite['member_invites']))
-                self.assertEqual(1, len(invite['owner_invites']))
+                self.assertEqual(2, len(invite['member_invites']), 'first group member_invites')
+                self.assertEqual(1, len(invite['owner_invites']), 'first group owner_invites')
             elif invite['group_identifier'] == str(self.scim_group2.scim_id):
-                self.assertEqual(1, len(invite['member_invites']))
-                self.assertEqual(0, len(invite['owner_invites']))
+                self.assertEqual(1, len(invite['member_invites']), 'second group member_invites')
+                self.assertEqual(0, len(invite['owner_invites']), 'second group owner_invites')
             else:
                 self.assertTrue(False, 'Unknown group scim_id in outgoing invites')
 

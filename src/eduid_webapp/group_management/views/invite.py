@@ -39,11 +39,9 @@ from pymongo.errors import DuplicateKeyError
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid_common.api.exceptions import MailTaskFailed
 from eduid_common.api.messages import CommonMsg, error_message
-from eduid_groupdb import User as GraphUser
-from eduid_scimapi.userdb import ScimApiUser
 from eduid_userdb import User
 from eduid_userdb.exceptions import DocumentDoesNotExist, EduIDDBError
-from eduid_userdb.group_management import GroupInviteState
+from eduid_userdb.group_management import GroupInviteState, GroupRole
 
 from eduid_webapp.group_management.app import current_group_management_app as current_app
 from eduid_webapp.group_management.helpers import (
@@ -93,7 +91,7 @@ def outgoing_invites(user: User) -> Mapping:
 @UnmarshalWith(GroupInviteRequestSchema)
 @MarshalWith(GroupOutgoingInviteResponseSchema)
 @require_user
-def create_invite(user: User, group_identifier: UUID, email_address: str, role: str) -> Mapping:
+def create_invite(user: User, group_identifier: UUID, email_address: str, role: GroupRole) -> Mapping:
     scim_user = get_scim_user_by_eppn(user.eppn)
     if not scim_user:
         current_app.logger.error('User does not exist in scimapi_userdb')
@@ -111,7 +109,7 @@ def create_invite(user: User, group_identifier: UUID, email_address: str, role: 
     except DuplicateKeyError:
         current_app.logger.info(
             f'Invite for email address {invite_state.email_address} to group {invite_state.group_scim_id} '
-            f'as role {invite_state.role} already exists.'
+            f'as role {invite_state.role.value} already exists.'
         )
     # Always send an e-mail even it the invite already existed
     try:
@@ -126,7 +124,7 @@ def create_invite(user: User, group_identifier: UUID, email_address: str, role: 
 @UnmarshalWith(GroupInviteRequestSchema)
 @MarshalWith(GroupIncomingInviteResponseSchema)
 @require_user
-def accept_invite(user: User, group_identifier: UUID, email_address: str, role: str) -> Mapping:
+def accept_invite(user: User, group_identifier: UUID, email_address: str, role: GroupRole) -> Mapping:
     # Check that the current user has verified the invited email address
     user_email_address = user.mail_addresses.find(email_address)
     if not user_email_address or not user_email_address.is_verified:
@@ -156,7 +154,7 @@ def accept_invite(user: User, group_identifier: UUID, email_address: str, role: 
         return error_message(CommonMsg.temp_problem)
 
     current_app.invite_state_db.remove_state(invite_state)
-    current_app.stats.count(name=f'invite_accepted_{invite_state.role}')
+    current_app.stats.count(name=f'invite_accepted_{invite_state.role.value}')
     return incoming_invites()
 
 
@@ -164,7 +162,7 @@ def accept_invite(user: User, group_identifier: UUID, email_address: str, role: 
 @UnmarshalWith(GroupInviteRequestSchema)
 @MarshalWith(GroupIncomingInviteResponseSchema)
 @require_user
-def decline_invite(user: User, group_identifier: UUID, email_address: str, role: str) -> Mapping:
+def decline_invite(user: User, group_identifier: UUID, email_address: str, role: GroupRole) -> Mapping:
     # Check that the current user has verified the invited email address
     user_email_address = user.mail_addresses.find(email_address)
     if not user_email_address or not user_email_address.is_verified:
@@ -185,5 +183,5 @@ def decline_invite(user: User, group_identifier: UUID, email_address: str, role:
     except EduIDDBError:
         return error_message(CommonMsg.temp_problem)
 
-    current_app.stats.count(name=f'invite_declined_{invite_state.role}')
+    current_app.stats.count(name=f'invite_declined_{invite_state.role.value}')
     return incoming_invites()

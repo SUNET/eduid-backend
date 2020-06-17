@@ -31,21 +31,15 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from enum import Enum, unique
-
-from marshmallow import ValidationError, fields
+from marshmallow import fields
+from marshmallow_enum import EnumField
 
 from eduid_common.api.schemas.base import EduidSchema, FluxStandardAction
 from eduid_common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
 from eduid_common.api.schemas.validators import validate_email
+from eduid_userdb.group_management import GroupRole
 
 __author__ = 'lundberg'
-
-
-@unique
-class GroupRole(Enum):
-    OWNER = 'owner'
-    MEMBER = 'member'
 
 
 class LowerEmail(fields.Email):
@@ -56,18 +50,6 @@ class LowerEmail(fields.Email):
     def _deserialize(self, value, attr, data, **kwargs):
         value = super()._deserialize(value, attr, data, **kwargs)
         return value.lower()
-
-
-def validate_role(role: str, **kwargs):
-    """
-    :param role: Role in group
-    :return: True
-    :raises ValidationError
-    """
-    roles = [r.value for r in GroupRole]
-    if role in roles:
-        return True
-    raise ValidationError(f'role needs to be one of the following: {roles}')
 
 
 class GroupUser(EduidSchema):
@@ -95,7 +77,7 @@ class IncomingInvite(EduidSchema):
     group_identifier = fields.UUID(required=True)
     display_name = fields.Str(required=True)
     email_address = LowerEmail(required=True)
-    role = fields.Str(required=True, validate=validate_role)
+    role = EnumField(GroupRole, required=True, by_value=True)
     owners = fields.Nested(GroupUser, many=True)
 
 
@@ -121,14 +103,14 @@ class GroupRemoveUserRequestSchema(EduidSchema, CSRFRequestMixin):
 
     group_identifier = fields.UUID(required=True)
     user_identifier = fields.UUID(required=True)
-    role = fields.Str(required=True, validate=validate_role)
+    role = EnumField(GroupRole, required=True, by_value=True)
 
 
 class GroupInviteRequestSchema(EduidSchema, CSRFRequestMixin):
 
     group_identifier = fields.UUID(required=True)
     email_address = fields.Email(required=True, validate=validate_email)
-    role = fields.Str(required=True, validate=validate_role)
+    role = EnumField(GroupRole, required=True, by_value=True)
 
 
 class GroupIncomingInviteResponseSchema(FluxStandardAction):

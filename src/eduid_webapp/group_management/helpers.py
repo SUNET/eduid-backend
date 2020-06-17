@@ -68,11 +68,11 @@ def is_member(scim_user: ScimApiUser, group_id: UUID) -> bool:
 def accept_group_invitation(scim_user: ScimApiUser, scim_group: ScimApiGroup, invite: GroupInviteState) -> None:
     graph_user = GraphUser(identifier=str(scim_user.scim_id), display_name=invite.email_address)
     modified = False
-    if invite.role == GroupRole.OWNER.value:
+    if invite.role == GroupRole.OWNER:
         if not is_owner(scim_user, scim_group.scim_id):
             scim_group.graph.owners.append(graph_user)
             modified = True
-    elif invite.role == GroupRole.MEMBER.value:
+    elif invite.role == GroupRole.MEMBER:
         if not is_member(scim_user, scim_group.scim_id):
             scim_group.graph.members.append(graph_user)
             modified = True
@@ -83,19 +83,19 @@ def accept_group_invitation(scim_user: ScimApiUser, scim_group: ScimApiGroup, in
         if not current_app.scimapi_groupdb.save(scim_group):
             current_app.logger.error(f'Failed to save group with scim_id: {invite.group_scim_id}')
             raise EduIDDBError('Failed to save group')
-        current_app.logger.info(f'Added user as {invite.role} to group with scim_id: {invite.group_scim_id}')
+        current_app.logger.info(f'Added user as {invite.role.value} to group with scim_id: {invite.group_scim_id}')
     return None
 
 
-def remove_user_from_group(scim_user: ScimApiUser, scim_group: ScimApiGroup, role: str) -> None:
+def remove_user_from_group(scim_user: ScimApiUser, scim_group: ScimApiGroup, role: GroupRole) -> None:
     modified = False
-    if role == GroupRole.OWNER.value:
+    if role == GroupRole.OWNER:
         if is_owner(scim_user, scim_group.scim_id):
             scim_group.graph.owners = [
                 owner for owner in scim_group.graph.owners if owner.identifier != str(scim_user.scim_id)
             ]
             modified = True
-    elif role == GroupRole.MEMBER.value:
+    elif role == GroupRole.MEMBER:
         if is_member(scim_user, scim_group.scim_id):
             scim_group.graph.members = [
                 member for member in scim_group.graph.members if member.identifier != str(scim_user.scim_id)
@@ -108,7 +108,7 @@ def remove_user_from_group(scim_user: ScimApiUser, scim_group: ScimApiGroup, rol
         if not current_app.scimapi_groupdb.save(scim_group):
             raise EduIDDBError(f'Failed to save group with scim_id {scim_group.scim_id}')
         current_app.logger.info(
-            f'Removed user as with scim_id {scim_user.scim_id} as {role} from group with scim_id {scim_group.scim_id}'
+            f'Removed user as with scim_id {scim_user.scim_id} as {role.value} from group with scim_id {scim_group.scim_id}'
         )
     return None
 
@@ -131,9 +131,9 @@ def get_outgoing_invites(user: User) -> List[Dict[str, Any]]:
             continue
         group_invite = {'group_identifier': group.scim_id, 'owner_invites': [], 'member_invites': []}
         for state in states:
-            if state.role == GroupRole.OWNER.value:
+            if state.role == GroupRole.OWNER:
                 group_invite['owner_invites'].append({'email_address': state.email_address})
-            if state.role == GroupRole.MEMBER.value:
+            if state.role == GroupRole.MEMBER:
                 group_invite['member_invites'].append({'email_address': state.email_address})
         invites.append(group_invite)
     current_app.logger.debug(f'outgoing invites: {invites}')
