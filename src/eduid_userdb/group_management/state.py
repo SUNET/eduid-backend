@@ -57,7 +57,7 @@ class GroupInviteState:
     def to_dict(self) -> Dict[str, Any]:
         res = asdict(self)
         res['_id'] = res.pop('id')
-        res['role'] = GroupRole(res['role']).value
+        res['role'] = res['role'].value
         return res
 
     def __str__(self) -> str:
