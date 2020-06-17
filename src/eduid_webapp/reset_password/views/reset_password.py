@@ -78,21 +78,20 @@ her data.
 import time
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Dict, Mapping, Optional, Union
+from typing import Any, Mapping, Optional, Union
 
 from flask import Blueprint, abort, request
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith
 from eduid_common.api.exceptions import MsgTaskFailed
 from eduid_common.api.helpers import check_magic_cookie
-from eduid_common.api.messages import error_message, success_message
+from eduid_common.api.messages import TranslatableMsg, error_message, success_message
 from eduid_common.api.schemas.base import FluxStandardAction
 from eduid_common.api.validation import is_valid_password
 from eduid_common.authn import fido_tokens
 from eduid_common.session import session
 from eduid_userdb import User
 from eduid_userdb.reset_password import ResetPasswordEmailAndPhoneState, ResetPasswordEmailState
-
 from eduid_webapp.reset_password.app import current_reset_password_app as current_app
 from eduid_webapp.reset_password.helpers import (
     BadCode,
@@ -226,7 +225,7 @@ class BadStateOrData(Exception):
 class ResetContext(object):
     state: Union[ResetPasswordEmailState, ResetPasswordEmailAndPhoneState]
     user: User
-    error: Optional[Dict[str, Any]] = None  # If this is not None, the request should be aborted with this as result
+    error: Optional[TranslatableMsg] = None  # If this is not None, the request should be aborted with this error
 
 
 def _load_data(code: str, password: str) -> ResetContext:
@@ -246,7 +245,7 @@ def _load_data(code: str, password: str) -> ResetContext:
         return ResetContext(
             state=None,  # type: ignore
             user=None,  # type: ignore
-            error=error_message(e.msg),
+            error=e.msg,
         )
 
     hashed = session.reset_password.generated_password_hash
@@ -265,7 +264,7 @@ def _load_data(code: str, password: str) -> ResetContext:
     try:
         is_valid_password(password, user_info=get_zxcvbn_terms(user.eppn), min_entropy=min_entropy)
     except ValueError:
-        return ResetContext(state=state, user=user, error=error_message(ResetPwMsg.chpass_weak),)
+        return ResetContext(state=state, user=user, error=ResetPwMsg.chpass_weak,)
     return ResetContext(state=state, user=user)
 
 
@@ -301,7 +300,7 @@ def set_new_pw(code: str, password: str) -> Mapping[str, Any]:
 
     data = _load_data(code, password)
     if data.error:
-        return data.error
+        return error_message(data.error)
 
     current_app.logger.info(f'Resetting password for user {data.user}')
     reset_user_password(data.user, data.state, password)
@@ -406,7 +405,7 @@ def set_new_pw_extra_security_phone(code: str, password: str, phone_code: str) -
 
     data = _load_data(code, password)
     if data.error:
-        return data.error
+        return error_message(data.error)
 
     if not isinstance(data.state, ResetPasswordEmailAndPhoneState):
         raise TypeError(f'State is not ResetPasswordEmailAndPhoneState ({type(data.state)})')
@@ -466,7 +465,7 @@ def set_new_pw_extra_security_token(
     """
     data = _load_data(code, password)
     if data.error:
-        return data.error
+        return error_message(data.error)
 
     # Process POSTed data
     success = False
