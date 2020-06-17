@@ -5,6 +5,7 @@ from __future__ import annotations
 import copy
 import datetime
 from dataclasses import asdict, dataclass, field, fields
+from enum import Enum, unique
 from typing import Any, Dict, Mapping, Optional
 
 import bson
@@ -14,11 +15,17 @@ from eduid_userdb.exceptions import UserDBValueError
 __author__ = 'lundberg'
 
 
+@unique
+class GroupRole(Enum):
+    OWNER = 'owner'
+    MEMBER = 'member'
+
+
 @dataclass(frozen=True)
 class GroupInviteState:
     group_scim_id: str
     email_address: str
-    role: str
+    role: GroupRole
     inviter_eppn: str
     id: bson.ObjectId = field(default_factory=bson.ObjectId)
     # Timestamp of last modification in the database.
@@ -30,6 +37,8 @@ class GroupInviteState:
         _data = copy.deepcopy(dict(data))  # to not modify callers data
         if '_id' in _data:
             _data['id'] = _data.pop('_id')
+        if 'role' in _data:
+            _data['role'] = GroupRole(_data['role'])
 
         # Can not use default args as those will be placed before non default args
         # in inheriting classes
@@ -48,7 +57,11 @@ class GroupInviteState:
     def to_dict(self) -> Dict[str, Any]:
         res = asdict(self)
         res['_id'] = res.pop('id')
+        res['role'] = GroupRole(res['role']).value
         return res
 
     def __str__(self) -> str:
-        return f'<eduID {self.__class__.__name__}: group_scim_id={self.group_scim_id} email_address={self.email_address} role={self.role}>'
+        return (
+            f'<eduID {self.__class__.__name__}: group_scim_id={self.group_scim_id} '
+            f'email_address={self.email_address} role={self.role.value}>'
+        )

@@ -33,12 +33,11 @@
 import datetime
 import logging
 from dataclasses import replace
-from operator import itemgetter
 from typing import Any, Dict, List, Optional
 
 from eduid_userdb.db import BaseDB
 from eduid_userdb.exceptions import DocumentOutOfSync
-from eduid_userdb.group_management.state import GroupInviteState
+from eduid_userdb.group_management.state import GroupInviteState, GroupRole
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +55,7 @@ class GroupManagementInviteStateDB(BaseDB):
         self.setup_indexes(indexes)
 
     def get_state(
-        self, group_scim_id: str, email_address: str, role: str, raise_on_missing: bool = True
+        self, group_scim_id: str, email_address: str, role: GroupRole, raise_on_missing: bool = True
     ) -> Optional[GroupInviteState]:
         """
         :param group_scim_id: Groups unique identifier
@@ -64,7 +63,7 @@ class GroupManagementInviteStateDB(BaseDB):
         :param role: Group role
         :param raise_on_missing: Raise exception if True else return None
         """
-        spec = {'group_scim_id': group_scim_id, 'email_address': email_address, 'role': role}
+        spec = {'group_scim_id': group_scim_id, 'email_address': email_address, 'role': role.value}
         docs = list(self._get_documents_by_filter(spec, raise_on_missing=raise_on_missing))
         if len(docs) == 1:
             return GroupInviteState.from_dict(docs[0])
@@ -153,5 +152,5 @@ class GroupManagementInviteStateDB(BaseDB):
         :param state: GroupInviteState object
         """
         self.remove_document(
-            {'group_scim_id': state.group_scim_id, 'email_address': state.email_address, 'role': state.role}
+            {'group_scim_id': state.group_scim_id, 'email_address': state.email_address, 'role': state.role.value}
         )
