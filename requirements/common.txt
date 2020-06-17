@@ -8,6 +8,7 @@ eduid-common[webapp]>=0.4.24
 eduid-am>=0.6.3b7
 eduid-msg>=0.10.3b7
 marshmallow>=3.0,==3.*
+marshmallow-enum==1.5.*
 Babel>=2.6.0
 flask-babel>=0.11.2
 oic>=0.8.3
