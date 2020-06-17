@@ -1,18 +1,9 @@
 # -*- coding: utf-8 -*-
-
-import re
-
 from marshmallow import ValidationError
 
-__author__ = 'lundberg'
+from eduid_common.api.validation import is_valid_email, is_valid_nin
 
-nin_re = re.compile(r'^(18|19|20)\d{2}(0[1-9]|1[0-2])\d{2}\d{4}$')
-# RFC2822_email, http://www.regular-expressions.info/email.html
-email_re = re.compile(
-    r"(?i)[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/="
-    r"?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\."
-    r")+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?"
-)
+__author__ = 'lundberg'
 
 
 def validate_nin(nin, **kwargs):
@@ -22,9 +13,10 @@ def validate_nin(nin, **kwargs):
     :return: True|ValidationError
     :rtype: Boolean|ValidationError
     """
-    if nin_re.match(nin):
-        return True
-    raise ValidationError('nin needs to be formatted as 18|19|20yymmddxxxx')
+    try:
+        return is_valid_nin(nin)
+    except ValueError:
+        raise ValidationError('nin needs to be formatted as 18|19|20yymmddxxxx')
 
 
 def validate_email(email, **kwargs):
@@ -34,6 +26,7 @@ def validate_email(email, **kwargs):
     :return: True|ValidationError
     :rtype: Boolean|ValidationError
     """
-    if email_re.match(email):
-        return True
-    raise ValidationError('email needs to be formatted according to RFC2822')
+    try:
+        return is_valid_email(email)
+    except ValueError:
+        raise ValidationError('email needs to be formatted according to RFC2822')

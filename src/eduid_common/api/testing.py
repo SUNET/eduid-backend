@@ -34,11 +34,12 @@
 from __future__ import absolute_import
 
 import logging
+import pprint
 import sys
 import traceback
 from contextlib import contextmanager
 from copy import deepcopy
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Mapping, Optional
 
 from flask.testing import FlaskClient
 
@@ -47,6 +48,7 @@ from eduid_userdb.data_samples import NEW_COMPLETED_SIGNUP_USER_EXAMPLE, NEW_UNV
 from eduid_userdb.db import BaseDB
 from eduid_userdb.testing import AbstractMockedUserDB
 
+from eduid_common.api.messages import TranslatableMsg
 from eduid_common.api.testing_base import CommonTestCase
 from eduid_common.session import EduidSession
 from eduid_common.session.testing import RedisTemporaryInstance
@@ -125,7 +127,7 @@ class EduidAPITestCase(CommonTestCase):
         for this in users:
             self.MockedUserDB.test_users[this] = _standard_test_users.get(this)
 
-        self.user = None
+        self.user = None  # type: ignore
         # Initialize some convenience variables on self based on the first user in `users'
         self.test_user_data = _standard_test_users[users[0]]
         self.test_user = User.from_dict(data=self.test_user_data)
@@ -241,6 +243,50 @@ class EduidAPITestCase(CommonTestCase):
         user.modified_ts = modified_ts
         self.app.central_userdb.save(user)
         return True
+
+    def _check_api_error(self, response, type_: str, error: Mapping[str, Any]):
+        """ Check that a call to the API failed in the data validation stage. """
+        return self._check_api_response(response, 200, type_=type_, error=error)
+
+    def _check_api_result(self, response, type_: str, msg: TranslatableMsg):
+        """ Check the message returned from an eduID webapp endpoint. """
+        return self._check_api_response(response, 200, type_=type_, message=msg)
+
+    def _check_api_response(
+        self,
+        response,
+        status: int,
+        type_: str,
+        message: Optional[TranslatableMsg] = None,
+        error: Optional[Mapping[str, Any]] = None,
+    ):
+        """
+        Check data returned from an eduID webapp endpoint.
+
+        :param response: The flask test Response instance
+        :param status: Expected HTTP status code
+        :param type_: Expected JSON 'type' element
+        :param message: Expected JSON payload message element
+        :param error: Expected JSON error message
+        """
+        try:
+            self.assertEqual(status, response.status_code, f'The HTTP response code was not {status}')
+            self.assertEqual(type_, response.json['type'], 'Response had unexpected type')
+            self.assertIn('payload', response.json, 'JSON body has no "payload" element')
+            if message is not None:
+                self.assertIn('message', response.json['payload'], 'JSON payload has no "message" element')
+                self.assertEqual(message.value, response.json['payload']['message'], 'Wrong message returned')
+            if error is not None:
+                self.assertIn('error', response.json['payload'], 'JSON payload has no "error" element')
+                self.assertEqual(error, response.json['payload']['error'], 'Wrong error returned')
+        except (AssertionError, KeyError):
+            if response.json:
+                logger.info(
+                    f'Test case got unexpected response ({response.status_code}):\n{pprint.pformat(response.json)}'
+                )
+            else:
+                logger.info(f'Test case got unexpected response ({response.status_code}):\n{response.data}')
+            raise
 
 
 class CSRFTestClient(FlaskClient):
