@@ -138,7 +138,7 @@ class Plugin(ActionPlugin):
             if result is not None:
                 action.result = result
                 current_app.actions_db.update_action(action)
-                return result
+                return action.result
 
         elif 'authenticatorData' in req_json:
             # CTAP2/Webauthn
