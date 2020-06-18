@@ -88,7 +88,7 @@ class Password(Credential):
         cls: Type['Password'], data: Dict[str, Any], raise_on_unknown: bool = True
     ) -> 'Password':
         """
-        Construct user from a data dict.
+        Construct password credential from a data dict.
         """
         return cls(data=data, raise_on_unknown=raise_on_unknown, called_directly=False)
 
