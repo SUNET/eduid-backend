@@ -56,6 +56,8 @@ class AttributeFetcherTests(AMTestCase):
             }
         }
         res = self.fetcher.fetch_attrs(bson.ObjectId(M['_id']))
+        # remove the datetimes from the response,
+        # that carry their own tzinfo object from bson
         del res['$set']['mailAliases'][0]['created_ts']
         del res['$set']['mailAliases'][0]['verified_ts']
         del res['$set']['passwords'][0]['created_ts']
