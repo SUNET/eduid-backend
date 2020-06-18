@@ -39,7 +39,7 @@ from flask import Blueprint, abort, redirect, render_template, request, url_for
 from six.moves.urllib_parse import urlsplit, urlunsplit
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith
-from eduid_common.api.messages import CommonMsg, FluxData, error_message, success_message
+from eduid_common.api.messages import CommonMsg, error_message, success_message
 from eduid_common.api.schemas.base import FluxStandardAction
 from eduid_common.authn.utils import check_previous_identification
 from eduid_common.session import session
@@ -132,7 +132,7 @@ def redirect_action():
     return redirect(return_url)
 
 
-def _do_action() -> FluxData:
+def _do_action():
     action_type = session.get('current_plugin')
     if not action_type:
         abort(403)
