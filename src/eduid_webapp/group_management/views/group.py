@@ -162,7 +162,8 @@ def remove_user(user: User, group_identifier: UUID, user_identifier: UUID, role:
         current_app.logger.error(f'Group with scim_id {group_identifier} not found')
         return error_message(GroupManagementMsg.group_not_found)
 
-    if not is_owner(scim_user, group_identifier):
+    # Check that it is either the user or a group owner that removes the user from the group
+    if user_identifier != scim_user.scim_id and not is_owner(scim_user, group_identifier):
         current_app.logger.error(f'User is not owner of group with scim_id: {group_identifier}')
         return error_message(GroupManagementMsg.user_not_owner)
 
@@ -176,5 +177,9 @@ def remove_user(user: User, group_identifier: UUID, user_identifier: UUID, role:
     except EduIDDBError:
         return error_message(CommonMsg.temp_problem)
 
-    current_app.stats.count(name=f'removed_{role.value}')
+    if user_identifier == scim_user.scim_id:
+        # If the user initiates the removal count it as "left the group"
+        current_app.stats.count(name=f'left_{role.value}')
+    else:
+        current_app.stats.count(name=f'removed_{role.value}')
     return get_groups()
