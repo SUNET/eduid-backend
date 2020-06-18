@@ -37,7 +37,7 @@ from __future__ import absolute_import
 import copy
 from datetime import datetime
 from hashlib import sha256
-from typing import Any, Dict, Optional, Type, TypeVar
+from typing import Any, Dict, Optional, Type, Union
 
 from six import string_types
 
@@ -128,9 +128,6 @@ class FidoCredential(Credential):
         self._data['description'] = value
 
 
-TU2FSubclass = TypeVar('TU2FSubclass', bound='U2F')
-
-
 class U2F(FidoCredential):
     """
     U2F token authentication credential
@@ -145,7 +142,7 @@ class U2F(FidoCredential):
         attest_cert: Optional[str] = None,
         description: Optional[str] = None,
         application: Optional[str] = None,
-        created_ts: Optional[datetime] = None,
+        created_ts: Optional[Union[datetime, bool]] = None,
         data: Optional[Dict[str, Any]] = None,
         raise_on_unknown: bool = True,
         called_directly: bool = True,
@@ -180,7 +177,7 @@ class U2F(FidoCredential):
         self._data.update(data)
 
     @classmethod
-    def from_dict(cls: Type[TU2FSubclass], data: Dict[str, Any], raise_on_unknown: bool = True) -> TU2FSubclass:
+    def from_dict(cls: Type['U2F'], data: Dict[str, Any], raise_on_unknown: bool = True) -> 'U2F':
         """
         Construct U2F credential from a data dict.
         """
@@ -271,9 +268,6 @@ def u2f_from_dict(data, raise_on_unknown=True):
     return U2F.from_dict(data, raise_on_unknown=raise_on_unknown)
 
 
-TWebauthnSubclass = TypeVar('TWebauthnSubclass', bound='Webauthn')
-
-
 class Webauthn(FidoCredential):
     """
     Webauthn token authentication credential
@@ -281,16 +275,16 @@ class Webauthn(FidoCredential):
 
     def __init__(
         self,
-        keyhandle=None,
-        credential_data=None,
-        app_id=None,
-        attest_obj=None,
-        description=None,
-        application=None,
-        created_ts=None,
-        data=None,
-        raise_on_unknown=True,
-        called_directly=True,
+        keyhandle: Optional[str] = None,
+        credential_data: Optional[str] = None,
+        app_id: Optional[str] = None,
+        attest_obj: Optional[str] = None,
+        description: Optional[str] = None,
+        application: Optional[str] = None,
+        created_ts: Optional[Union[datetime, bool]] = None,
+        data: Optional[Dict[str, Any]] = None,
+        raise_on_unknown: bool = True,
+        called_directly: bool = True,
     ):
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
@@ -320,10 +314,10 @@ class Webauthn(FidoCredential):
 
     @classmethod
     def from_dict(
-        cls: Type[TWebauthnSubclass], data: Dict[str, Any], raise_on_unknown: bool = True
-    ) -> TWebauthnSubclass:
+        cls: Type['Webauthn'], data: Dict[str, Any], raise_on_unknown: bool = True
+    ) -> 'Webauthn':
         """
-        Construct user from a data dict.
+        Construct Webauthn credential from a data dict.
         """
         return cls(data=data, called_directly=False, raise_on_unknown=raise_on_unknown)
 
