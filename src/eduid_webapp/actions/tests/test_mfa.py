@@ -45,6 +45,7 @@ from eduid_userdb.credentials import U2F
 from eduid_userdb.fixtures.users import mocked_user_standard
 
 from eduid_webapp.actions.actions.mfa import Plugin
+from eduid_webapp.actions.helpers import ActionsMsg
 from eduid_webapp.actions.testing import ActionsTestCase, MockIdPContext
 
 __author__ = 'ft'
@@ -213,6 +214,7 @@ class MFAActionPluginTests(ActionsTestCase):
     def test_action_success(self):
         data1 = {'tokenResponse': 'dummy-response'}
         response = self._action(data1=data1)
+        self._check_api_result(response, type_='POST_ACTIONS_POST_ACTION_SUCCESS', msg=ActionsMsg.action_completed)
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.data)
         self.assertEqual(data['payload']['message'], "actions.action-completed")
@@ -239,7 +241,9 @@ class MFAActionPluginTests(ActionsTestCase):
             'csrf_token': 'wrong-token',
         }
         response = self._action(data1=data1)
-        self.assertEqual(response.status_code, 400)
+        self._check_api_error(
+            response, type_='POST_ACTIONS_POST_ACTION_FAIL', error={'csrf_token': ['CSRF failed to validate'],},
+        )
 
     @patch('eduid_common.authn.fido_tokens.complete_authentication')
     def test_action_webauthn_legacy_token(self, mock_complete_authn):

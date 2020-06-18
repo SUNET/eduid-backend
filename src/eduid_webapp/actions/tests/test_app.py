@@ -154,17 +154,22 @@ class ActionsTests(ActionsTestCase):
 
     def test_post_action(self):
         response = self._post_action()
+        self._check_api_response(response, status=200, type_='POST_ACTIONS_POST_ACTION_SUCCESS')
         data = response.json
         self.assertEqual(data['payload']['data']['completed'], 'done')
         self.assertEqual(data['type'], 'POST_ACTIONS_POST_ACTION_SUCCESS')
 
     def test_post_action_no_csrf(self):
         response = self._post_action(csrf_token='')
-        self.assertEqual(response.status_code, 400)
+        self._check_api_error(
+            response, type_='POST_ACTIONS_POST_ACTION_FAIL', error={'csrf_token': ['CSRF failed to validate'],},
+        )
 
     def test_post_action_wrong_csrf(self):
         response = self._post_action(csrf_token='wrong-token')
-        self.assertEqual(response.status_code, 400)
+        self._check_api_error(
+            response, type_='POST_ACTIONS_POST_ACTION_FAIL', error={'csrf_token': ['CSRF failed to validate'],},
+        )
 
     def test_post_action_action_error(self):
         response = self._post_action(action_error=True)
