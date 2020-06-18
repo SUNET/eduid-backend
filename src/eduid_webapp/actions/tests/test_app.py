@@ -155,9 +155,7 @@ class ActionsTests(ActionsTestCase):
     def test_post_action(self):
         response = self._post_action()
         self._check_api_response(response, status=200, type_='POST_ACTIONS_POST_ACTION_SUCCESS')
-        data = response.json
-        self.assertEqual(data['payload']['data']['completed'], 'done')
-        self.assertEqual(data['type'], 'POST_ACTIONS_POST_ACTION_SUCCESS')
+        self.assertEqual(response.json['payload']['data']['completed'], 'done')
 
     def test_post_action_no_csrf(self):
         response = self._post_action(csrf_token='')
