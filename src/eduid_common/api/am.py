@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 
-import eduid_am
 from flask import current_app
 
 from eduid_userdb import User
 from eduid_userdb.exceptions import LockedIdentityViolation
 
+import eduid_am
 from eduid_common.api.app import EduIDBaseApp
 from eduid_common.api.exceptions import AmTaskFailed
 from eduid_common.config.base import CeleryConfig

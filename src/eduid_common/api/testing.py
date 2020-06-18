@@ -44,8 +44,8 @@ from typing import Any, Dict, List, Mapping, Optional
 from flask.testing import FlaskClient
 
 from eduid_userdb import User
-from eduid_userdb.data_samples import NEW_COMPLETED_SIGNUP_USER_EXAMPLE, NEW_UNVERIFIED_USER_EXAMPLE, NEW_USER_EXAMPLE
 from eduid_userdb.db import BaseDB
+from eduid_userdb.fixtures.users import new_completed_signup_user_example, new_unverified_user_example, new_user_example
 from eduid_userdb.testing import AbstractMockedUserDB
 
 from eduid_common.api.messages import TranslatableMsg
@@ -86,9 +86,9 @@ TEST_CONFIG = {
 
 
 _standard_test_users = {
-    'hubba-bubba': NEW_USER_EXAMPLE,
-    'hubba-baar': NEW_UNVERIFIED_USER_EXAMPLE,
-    'hubba-fooo': NEW_COMPLETED_SIGNUP_USER_EXAMPLE,
+    'hubba-bubba': new_user_example,
+    'hubba-baar': new_unverified_user_example,
+    'hubba-fooo': new_completed_signup_user_example,
 }
 
 
@@ -125,12 +125,14 @@ class EduidAPITestCase(CommonTestCase):
         if users is None:
             users = ['hubba-bubba']
         for this in users:
-            self.MockedUserDB.test_users[this] = _standard_test_users.get(this)
+            _user = _standard_test_users.get(this)
+            if _user is not None:
+                self.MockedUserDB.test_users[this] = _user.to_dict()
 
         self.user = None  # type: ignore
         # Initialize some convenience variables on self based on the first user in `users'
-        self.test_user_data = _standard_test_users[users[0]]
-        self.test_user = User.from_dict(data=self.test_user_data)
+        self.test_user_data = _standard_test_users[users[0]].to_dict()
+        self.test_user = User.from_dict(self.test_user_data)
 
         super(EduidAPITestCase, self).setUp(users=users, am_settings=am_settings)
         # Set up Redis for shared sessions
