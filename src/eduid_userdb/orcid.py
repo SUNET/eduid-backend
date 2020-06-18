@@ -15,7 +15,7 @@ __author__ = 'lundberg'
 
 class OidcElement(Element):
     def __init__(
-            self, data: Optional[Dict[str, Any]] = None, raise_on_unknown: bool = True, called_directly: bool = True,
+        self, data: Optional[Dict[str, Any]] = None, raise_on_unknown: bool = True, called_directly: bool = True,
     ):
         raise NotImplementedError()
 

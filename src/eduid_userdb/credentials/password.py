@@ -84,9 +84,7 @@ class Password(Credential):
             self._data.update(data)
 
     @classmethod
-    def from_dict(
-        cls: Type['Password'], data: Dict[str, Any], raise_on_unknown: bool = True
-    ) -> 'Password':
+    def from_dict(cls: Type['Password'], data: Dict[str, Any], raise_on_unknown: bool = True) -> 'Password':
         """
         Construct password credential from a data dict.
         """

@@ -33,9 +33,9 @@
 #
 
 import copy
-
 from datetime import datetime
 from typing import Any, Dict, Optional, Union
+
 from six import string_types
 
 from eduid_userdb.element import PrimaryElement, PrimaryElementList

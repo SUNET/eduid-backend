@@ -35,8 +35,9 @@
 
 from __future__ import absolute_import
 
-from six import string_types
 from typing import Any, Dict
+
+from six import string_types
 
 from eduid_userdb.element import VerifiedElement
 from eduid_userdb.exceptions import UserDBValueError
