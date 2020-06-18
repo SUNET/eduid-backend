@@ -125,7 +125,9 @@ class EduidAPITestCase(CommonTestCase):
         if users is None:
             users = ['hubba-bubba']
         for this in users:
-            self.MockedUserDB.test_users[this] = _standard_test_users.get(this).to_dict()
+            _user = _standard_test_users.get(this)
+            if _user is not None:
+                self.MockedUserDB.test_users[this] = _user.to_dict()
 
         self.user = None  # type: ignore
         # Initialize some convenience variables on self based on the first user in `users'
