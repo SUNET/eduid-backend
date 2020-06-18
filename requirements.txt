@@ -1,6 +1,6 @@
-eduid-userdb>=0.4.16
+eduid-userdb>=0.4.17
 eduid-common[webapp]>=0.4.25
-eduid-am>=0.7.4
+eduid-am>=0.7.6
 eduid-msg>=0.10.9
 eduid_lookup_mobile>=0.1.2
 Flask>=1.1,<1.2
