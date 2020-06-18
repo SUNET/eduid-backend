@@ -41,7 +41,7 @@ from mock import MagicMock
 
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.session import session
-from eduid_userdb.testing import MOCKED_USER_STANDARD
+from eduid_userdb.fixtures.users import mocked_user_standard
 from eduid_userdb.userdb import User
 
 from eduid_webapp.actions.action_abc import ActionPlugin
@@ -123,7 +123,7 @@ TEST_CONFIG = {
 class ActionsTestCase(EduidAPITestCase):
     def setUp(self, users=None, copy_user_to_private=False, am_settings=None):
         super(ActionsTestCase, self).setUp(users=None, copy_user_to_private=False, am_settings=None)
-        user_data = deepcopy(MOCKED_USER_STANDARD)
+        user_data = mocked_user_standard.to_dict()
         user_data['modified_ts'] = datetime.utcnow()
         self.user = User.from_dict(data=user_data)
         self.app.central_userdb.save(self.user, check_sync=False)
