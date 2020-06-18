@@ -35,7 +35,7 @@
 
 import copy
 import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from six import string_types
 
@@ -50,14 +50,14 @@ class ToUEvent(Event):
 
     def __init__(
         self,
-        version=None,
-        application=None,
-        created_ts=None,
-        modified_ts=None,
-        event_id=None,
+        version: Optional[str] = None,
+        application: Optional[str] = None,
+        created_ts: Optional[Union[datetime.datetime, bool]] = None,
+        modified_ts: Optional[Union[datetime.datetime, bool]] = None,
+        event_id: Optional[str] = None,
         data: Optional[Dict[str, Any]] = None,
-        raise_on_unknown=True,
-        called_directly=True,
+        raise_on_unknown: bool = True,
+        called_directly: bool = True,
     ):
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
