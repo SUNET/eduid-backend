@@ -116,7 +116,7 @@ class Element(object):
     @classmethod
     def from_dict(cls: Type[TElementSubclass], data: Dict[str, Any]) -> TElementSubclass:
         """
-        Construct user from a data dict.
+        Construct element from a data dict.
         """
         return cls(data=data, called_directly=False)
 
@@ -312,7 +312,7 @@ class PrimaryElement(VerifiedElement):
         cls: Type[TPrimaryElementSubclass], data: Dict[str, Any], raise_on_unknown: bool = True
     ) -> TPrimaryElementSubclass:
         """
-        Construct user from a data dict.
+        Construct primary element from a data dict.
         """
         return cls(data=data, called_directly=False, raise_on_unknown=raise_on_unknown)
 
