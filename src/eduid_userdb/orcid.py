@@ -3,27 +3,24 @@
 from __future__ import absolute_import
 
 import copy
-from typing import Any, Dict, Type, TypeVar
+from typing import Any, Dict, Optional, Type
 
 from six import string_types
 
-from eduid_userdb.element import Element, TPrimaryElementSubclass, VerifiedElement
+from eduid_userdb.element import Element, VerifiedElement
 from eduid_userdb.exceptions import UserDBValueError, UserHasUnknownData
 
 __author__ = 'lundberg'
 
 
-TOidcSubclass = TypeVar('TOidcSubclass', bound='OidcElement')
-
-
 class OidcElement(Element):
     def __init__(
-        self, data=None, raise_on_unknown=True, called_directly=True,
+            self, data: Optional[Dict[str, Any]] = None, raise_on_unknown: bool = True, called_directly: bool = True,
     ):
         raise NotImplementedError()
 
     @classmethod
-    def from_dict(cls: Type[TOidcSubclass], data: Dict[str, Any], raise_on_unknown: bool = True) -> TOidcSubclass:
+    def from_dict(cls: Type['OidcElement'], data: Dict[str, Any], raise_on_unknown: bool = True) -> 'OidcElement':
         """
         Construct user from a data dict.
         """
@@ -495,9 +492,6 @@ class OidcAuthorization(OidcElement):
         data = copy.deepcopy(self._data)
         data['id_token'] = self.id_token.to_dict()
         return data
-
-
-TOrcidSubclass = TypeVar('TOrcidSubclass', bound='Orcid')
 
 
 class Orcid(VerifiedElement):
