@@ -34,7 +34,7 @@
 #
 
 import copy
-from typing import Any, Dict, List, Type, TypeVar
+from typing import Any, Dict, List, Type
 
 from bson import ObjectId
 
@@ -47,9 +47,6 @@ from eduid_userdb.exceptions import BadEvent, EventHasUnknownData, UserDBValueEr
 #   src/eduid_userdb/event.py:45: error: Argument 2 to NewType(...) must be subclassable (got "Any")
 class EventId(ObjectId):
     pass
-
-
-TEventSubclass = TypeVar('TEventSubclass', bound='Event')
 
 
 class Event(Element):
@@ -105,9 +102,9 @@ class Event(Element):
             self._data.update(data)
 
     @classmethod
-    def from_dict(cls: Type[TEventSubclass], data: Dict[str, Any], raise_on_unknown: bool = True) -> TEventSubclass:
+    def from_dict(cls: Type['Event'], data: Dict[str, Any], raise_on_unknown: bool = True) -> 'Event':
         """
-        Construct user from a data dict.
+        Construct event from a data dict.
         """
         return cls(data=data, called_directly=False, raise_on_unknown=raise_on_unknown)
 
