@@ -6,11 +6,13 @@ import eduid_userdb
 from eduid_common.config.base import FlaskConfig
 from eduid_common.config.workers import AmConfig
 from eduid_userdb.exceptions import EduIDUserDBError, MultipleUsersReturned, UserDoesNotExist
+from eduid_userdb.fixtures.users import mocked_user_standard
 from eduid_userdb.locked_identity import LockedIdentityList, LockedIdentityNin
-from eduid_userdb.testing import MOCKED_USER_STANDARD as M
 
 from eduid_am.consistency_checks import check_locked_identity, unverify_duplicates
 from eduid_am.testing import AMTestCase
+
+M = mocked_user_standard.to_dict()
 
 
 class TestTasks(AMTestCase):
@@ -26,7 +28,7 @@ class TestTasks(AMTestCase):
 
     def test_get_user_by_id(self):
         user = self.amdb.get_user_by_id(M['_id'])
-        self.assertEqual(user.mail_addresses.primary.email, M['mail'])
+        self.assertEqual(user.mail_addresses.primary.email, M['mailAliases'][0]['email'])
         with self.assertRaises(UserDoesNotExist):
             self.amdb.get_user_by_id(b'123456789012')
 
@@ -39,13 +41,13 @@ class TestTasks(AMTestCase):
             self.amdb.get_user_by_mail(M['mailAliases'][2]['email'], raise_on_missing=True)
 
     def test_user_duplication_exception(self):
-        user1 = self.amdb.get_user_by_mail(M['mail'])
+        user1 = self.amdb.get_user_by_mail(M['mailAliases'][0]['email'])
         user2_doc = user1.to_dict()
         user2_doc['_id'] = ObjectId()  # make up a new unique identifier
         del user2_doc['modified_ts']  # defeat sync-check mechanism
         self.amdb.save(eduid_userdb.User(data=user2_doc))
         with self.assertRaises(MultipleUsersReturned):
-            self.amdb.get_user_by_mail(M['mail'])
+            self.amdb.get_user_by_mail(M['mailAliases'][0]['email'])
 
     def test_unverify_duplicate_mail(self):
         user_id = ObjectId('901234567890123456789012')  # johnsmith@example.org / babba-labba

@@ -1,16 +1,17 @@
 from copy import deepcopy
-from datetime import date, timedelta
+from datetime import datetime
 
 import bson
 
-from eduid_common.config.workers import AmConfig
 from eduid_userdb.exceptions import UserDoesNotExist, UserHasUnknownData
+from eduid_userdb.fixtures.users import mocked_user_standard
 from eduid_userdb.signup import SignupUser
-from eduid_userdb.testing import MOCKED_USER_STANDARD as M
 
 from eduid_am.ams import eduid_signup
 from eduid_am.testing import AMTestCase
 from eduid_am.tests.test_proofing_fetchers import USER_DATA
+
+M = mocked_user_standard.to_dict()
 
 
 class AttributeFetcherTests(AMTestCase):
@@ -34,12 +35,19 @@ class AttributeFetcherTests(AMTestCase):
             '$set': {
                 'eduPersonPrincipalName': 'hubba-bubba',
                 'mailAliases': [
-                    {'email': 'johnsmith@example.com', 'primary': True, 'verified': True},
+                    {
+                        'created_by': 'signup',
+                        'email': 'johnsmith@example.com',
+                        'primary': True,
+                        'verified': True,
+                        'verified_by': 'signup',
+                    },
                     {'email': 'johnsmith2@example.com', 'primary': False, 'verified': True},
                     {'email': 'johnsmith3@example.com', 'primary': False, 'verified': False},
                 ],
                 'passwords': [
                     {
+                        'created_by': 'signup',
                         'credential_id': '112345678901234567890123',
                         'is_generated': False,
                         'salt': '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$',
@@ -47,9 +55,14 @@ class AttributeFetcherTests(AMTestCase):
                 ],
             }
         }
-
         res = self.fetcher.fetch_attrs(bson.ObjectId(M['_id']))
-        self.assertEqual(res, expected)
+        # remove the datetimes from the response,
+        # that carry their own tzinfo object from bson
+        del res['$set']['mailAliases'][0]['created_ts']
+        del res['$set']['mailAliases'][0]['verified_ts']
+        del res['$set']['passwords'][0]['created_ts']
+
+        assert res == expected
 
     def test_existing_user(self):
         user_data = deepcopy(USER_DATA)
