@@ -193,7 +193,7 @@ old_user_example = User.construct_user(
     ),
     norEduPersonNIN=['197801011234'],
     postalAddress=old_postal_addresses,
-    mobile=PhoneNumberList([old_primary_phone, old_unverified_phone,]),
+    phone_numbers=PhoneNumberList([old_primary_phone, old_unverified_phone,]),
     passwords=CredentialList([old_password]),
     eduPersonEntitlement=['urn:mace:eduid.se:role:admin', 'urn:mace:eduid.se:role:student',],
     terminated=None,
