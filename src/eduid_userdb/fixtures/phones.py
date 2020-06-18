@@ -47,6 +47,18 @@ dashboard_primary_phone = PhoneNumber(
 )
 
 
+dashboard_verified_phone = PhoneNumber(
+    data={
+        'number': '+34607507507',
+        'verified': True,
+        'created_ts': datetime.fromisoformat("2013-09-02T10:23:25"),
+        'created_by': 'dashboard',
+        'verified_by': 'dashboard',
+        'verified_ts': datetime.fromisoformat("2013-09-02T10:23:25"),
+    }
+)
+
+
 dashboard_unverified_phone = PhoneNumber(
     data={
         'number': '+34 6096096096',
@@ -57,3 +69,9 @@ dashboard_unverified_phone = PhoneNumber(
         'primary': False,
     }
 )
+
+
+old_primary_phone = PhoneNumber(data={'mobile': '+34609609609', 'primary': True, 'verified': True})
+
+
+old_unverified_phone = PhoneNumber(data={'mobile': '+34 6096096096', 'verified': False})

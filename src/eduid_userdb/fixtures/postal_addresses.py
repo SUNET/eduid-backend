@@ -30,18 +30,22 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from datetime import datetime
 
-from eduid_userdb.proofing import EmailProofingElement
-
-johnsmith2_example_com_pending = EmailProofingElement(
-    data={
-        'email': 'johnsmith2@example.com',
-        'created_by': 'dashboard',
-        'created_ts': datetime.fromisoformat("2013-09-02T10:23:25"),
+old_postal_addresses = [
+    {
+        'type': 'home',
+        'country': 'SE',
+        'address': "Long street, 48",
+        'postalCode': "123456",
+        'locality': "Stockholm",
+        'verified': True,
+    },
+    {
+        'type': 'work',
+        'country': 'ES',
+        'address': "Calle Ancha, 49",
+        'postalCode': "123456",
+        'locality': "Punta Umbria",
         'verified': False,
-        'verified_by': None,
-        'verified_ts': None,
-        'primary': False,
-    }
-)
+    },
+]

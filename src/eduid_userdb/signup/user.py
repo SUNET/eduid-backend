@@ -32,7 +32,6 @@
 
 __author__ = 'ft'
 
-import copy
 from typing import Optional, Union
 
 import bson
@@ -71,8 +70,8 @@ class SignupUser(User):
         _pending_mail_address = data.pop('pending_mail_address', None)
         _proofing_reference = data.pop('proofing_reference', None)
         if _pending_mail_address:
-            _pending_mail_address = EmailProofingElement(data=_pending_mail_address)
-        self._pending_mail_address = None
+            if isinstance(_pending_mail_address, dict):
+                _pending_mail_address = EmailProofingElement(data=_pending_mail_address)
 
         self.social_network = _social_network
         self.social_network_id = _social_network_id
