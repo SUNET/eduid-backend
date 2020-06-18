@@ -33,35 +33,20 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import Any, Dict, Mapping, Optional, Type, Union
+from typing import Mapping, Type, Union
 
 from eduid_userdb.element import Element
 from eduid_userdb.exceptions import UserDBValueError
 
 
 class CodeElement(Element):
-    def __init__(
-        self,
-        application: Optional[str] = None,
-        code: Optional[str] = None,
-        verified: Optional[bool] = None,
-        created_ts: Optional[Union[datetime, bool]] = None,
-        data: Optional[Dict[str, Any]] = None,
-        called_directly: bool = True,
-    ):
+    def __init__(self, application: str, code: str, verified: bool, created_ts: Union[datetime, bool]):
 
-        if data is None:
-            data = dict(created_by=application, created_ts=created_ts,)
-        else:
-            code = data.pop('code')
-            verified = data.pop('verified')
+        data = dict(created_by=application, created_ts=created_ts,)
+        super().__init__(data)
 
-        super().__init__(data, called_directly=called_directly)
-
-        if code is not None:
-            self.code = code
-        if verified is not None:
-            self.is_verified = verified
+        self.code = code
+        self.is_verified = verified
 
     @property
     def key(self) -> str:
@@ -110,19 +95,17 @@ class CodeElement(Element):
         cls: Type[CodeElement], code_or_element: Union[Mapping, CodeElement, str], application: str
     ) -> CodeElement:
         if isinstance(code_or_element, str):
-            return cls.from_dict(dict(application=application, code=code_or_element, created_ts=True, verified=False))
+            return cls(application=application, code=code_or_element, created_ts=True, verified=False)
         if isinstance(code_or_element, dict):
             data = code_or_element
             for this in data.keys():
                 if this not in ['application', 'code', 'created_by', 'created_ts', 'verified']:
                     raise ValueError(f'Unknown data {this} for CodeElement.parse from mapping')
-            return cls.from_dict(
-                dict(
-                    application=data.get('created_by', application),
-                    code=data['code'],
-                    created_ts=data.get('created_ts', True),
-                    verified=data.get('verified', False),
-                )
+            return cls(
+                application=data.get('created_by', application),
+                code=data['code'],
+                created_ts=data.get('created_ts', True),
+                verified=data.get('verified', False),
             )
         if isinstance(code_or_element, CodeElement):
             return code_or_element
