@@ -34,7 +34,8 @@
 #
 
 import copy
-from typing import Any, Dict, List, Type
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Type, Union
 
 from bson import ObjectId
 
@@ -58,15 +59,15 @@ class Event(Element):
 
     def __init__(
         self,
-        application=None,
-        created_ts=None,
-        modified_ts=None,
-        data=None,
-        event_type=None,
-        event_id=None,
-        raise_on_unknown=True,
-        called_directly=True,
-        ignore_data=None,
+        application: Optional[str] = None,
+        created_ts: Optional[Union[datetime, bool]] = None,
+        modified_ts: Optional[Union[datetime, bool]] = None,
+        data: Optional[Dict[str, Any]] = None,
+        event_type: Optional[str] = None,
+        event_id: Optional[str] = None,
+        raise_on_unknown: bool = True,
+        called_directly: bool = True,
+        ignore_data: Optional[List[str]] = None,
     ):
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
