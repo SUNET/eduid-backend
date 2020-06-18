@@ -7,7 +7,7 @@ version = '0.4.25'
 requires = [
     'six >= 1.11.0',
     'setuptools >= 2.2',
-    'eduid-userdb >= 0.4.15',
+    'eduid-userdb >= 0.4.17',
 ]
 
 # Flavours
