@@ -44,7 +44,6 @@ from eduid_common.api.schemas.base import FluxStandardAction
 from eduid_common.authn.utils import check_previous_identification
 from eduid_common.session import session
 from eduid_userdb.actions import Action
-
 from eduid_webapp.actions.app import current_actions_app as current_app
 from eduid_webapp.actions.helpers import ActionsMsg, get_next_action
 from eduid_webapp.actions.schemas import PostActionRequestSchema, PostActionResponseSchema
@@ -118,7 +117,7 @@ def get_actions():
 @actions_views.route('/post-action', methods=['POST'])
 @MarshalWith(PostActionResponseSchema)
 @UnmarshalWith(PostActionRequestSchema)
-def post_action() -> FluxData:
+def post_action():
     return _do_action()
 
 
