@@ -14,34 +14,24 @@ __author__ = 'lundberg'
 class Profile(Element):
     def __init__(
         self,
-        owner: Optional[str] = None,
-        schema: Optional[str] = None,
-        profile_data: Optional[Mapping[str, Any]] = None,
+        owner: str,
+        schema: str,
+        profile_data: Mapping[str, Any],
         created_by: Optional[str] = None,
         created_ts: Optional[Union[datetime, bool]] = None,
         modified_ts: Optional[Union[datetime, bool]] = None,
-        data: Optional[Dict[str, Any]] = None,
-        raise_on_unknown: bool = True,
-        called_directly: bool = True,
     ):
 
         if created_ts is None:
             created_ts = True
-        if data is None:
-            data = dict(created_by=created_by, created_ts=created_ts, modified_ts=modified_ts)
-        else:
-            owner = data.pop('owner')
-            schema = data.pop('schema')
-            profile_data = data.pop('profile_data')
+        data = dict(created_by=created_by, created_ts=created_ts, modified_ts=modified_ts)
+        # do not deprecate direct calls to the __init__ of Profile,
+        # since it does not accept a data dict, and is already very near a dataclass
+        super().__init__(data=data, called_directly=False)
 
-        super().__init__(data=data, called_directly=called_directly)
-
-        if owner is not None:
-            self.owner = owner
-        if schema is not None:
-            self.schema = schema
-        if profile_data is not None:
-            self.profile_data = profile_data
+        self.owner = owner
+        self.schema = schema
+        self.profile_data = profile_data
 
     # -----------------------------------------------------------------
     @property
@@ -114,5 +104,5 @@ class ProfileList(ElementList):
     def from_list_of_dicts(cls, items: List[Dict[str, Any]]) -> ProfileList:
         profiles = list()
         for item in items:
-            profiles.append(Profile.from_dict(item))
+            profiles.append(Profile(**item))
         return cls(profiles=profiles)

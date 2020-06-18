@@ -814,7 +814,7 @@ class TestNewUser(TestCase, _AbstractUserTestCase):
                 'a_map': {'some': 'data'},
             },
         }
-        profile = Profile.from_dict(profile_dict)
+        profile = Profile(**profile_dict)
         profile_list = [profile]
         profiles = ProfileList(profile_list)
         language = 'sv'
