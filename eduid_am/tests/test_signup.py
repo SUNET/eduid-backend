@@ -1,9 +1,8 @@
 from copy import deepcopy
-from datetime import date, timedelta
+from datetime import datetime
 
 import bson
 
-from eduid_common.config.workers import AmConfig
 from eduid_userdb.exceptions import UserDoesNotExist, UserHasUnknownData
 from eduid_userdb.fixtures.users import mocked_user_standard
 from eduid_userdb.signup import SignupUser
@@ -31,25 +30,37 @@ class AttributeFetcherTests(AMTestCase):
             self.fetcher.fetch_attrs(bson.ObjectId('000000000000000000000000'))
 
     def test_existing_user_from_db(self):
-
+        self.maxDiff = None
+        expected = {
+            '$set': {
+                'eduPersonPrincipalName': 'hubba-bubba',
+                'mailAliases': [
+                    {
+                        'created_by': 'signup',
+                        'email': 'johnsmith@example.com',
+                        'primary': True,
+                        'verified': True,
+                        'verified_by': 'signup',
+                    },
+                    {'email': 'johnsmith2@example.com', 'primary': False, 'verified': True},
+                    {'email': 'johnsmith3@example.com', 'primary': False, 'verified': False},
+                ],
+                'passwords': [
+                    {
+                        'created_by': 'signup',
+                        'credential_id': '112345678901234567890123',
+                        'is_generated': False,
+                        'salt': '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$',
+                    }
+                ],
+            }
+        }
         res = self.fetcher.fetch_attrs(bson.ObjectId(M['_id']))
+        del res['$set']['mailAliases'][0]['created_ts']
+        del res['$set']['mailAliases'][0]['verified_ts']
+        del res['$set']['passwords'][0]['created_ts']
 
-        self.assertEqual(res['$set']['eduPersonPrincipalName'], 'hubba-bubba')
-        self.assertEqual(res['$set']['mailAliases'][0]['email'], 'johnsmith@example.com')
-        self.assertEqual(res['$set']['mailAliases'][0]['primary'], True)
-        self.assertEqual(res['$set']['mailAliases'][0]['verified'], True)
-        self.assertEqual(res['$set']['mailAliases'][1]['email'], 'johnsmith2@example.com')
-        self.assertEqual(res['$set']['mailAliases'][1]['primary'], False)
-        self.assertEqual(res['$set']['mailAliases'][1]['verified'], True)
-        self.assertEqual(res['$set']['mailAliases'][2]['email'], 'johnsmith3@example.com')
-        self.assertEqual(res['$set']['mailAliases'][2]['primary'], False)
-        self.assertEqual(res['$set']['mailAliases'][2]['verified'], False)
-        self.assertEqual(res['$set']['passwords'][0]['credential_id'], '112345678901234567890123')
-        self.assertEqual(res['$set']['passwords'][0]['is_generated'], False)
-        self.assertEqual(
-            res['$set']['passwords'][0]['salt'],
-            '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$',
-        )
+        assert res == expected
 
     def test_existing_user(self):
         user_data = deepcopy(USER_DATA)
