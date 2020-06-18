@@ -36,6 +36,7 @@
 from __future__ import absolute_import
 
 from six import string_types
+from typing import Any, Dict
 
 from eduid_userdb.element import VerifiedElement
 from eduid_userdb.exceptions import UserDBValueError
@@ -53,7 +54,7 @@ class Credential(VerifiedElement):
     elements too.
     """
 
-    def __init__(self, data, called_directly=True):
+    def __init__(self, data: Dict[str, Any], called_directly: bool = True):
         super(Credential, self).__init__(data, called_directly=called_directly)
 
         self.proofing_method = data.pop('proofing_method', None)
