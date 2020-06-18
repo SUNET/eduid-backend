@@ -35,7 +35,7 @@
 from __future__ import absolute_import
 
 import copy
-from typing import Any, Dict, Optional, Type, TypeVar, Union
+from typing import Any, Dict, Optional, Type, Union
 
 from bson.objectid import ObjectId
 
@@ -43,9 +43,6 @@ from eduid_userdb.credentials import Credential
 from eduid_userdb.exceptions import UserDBValueError, UserHasUnknownData
 
 __author__ = 'lundberg'
-
-
-TPasswordSubclass = TypeVar('TPasswordSubclass', bound='Password')
 
 
 class Password(Credential):
@@ -88,8 +85,8 @@ class Password(Credential):
 
     @classmethod
     def from_dict(
-        cls: Type[TPasswordSubclass], data: Dict[str, Any], raise_on_unknown: bool = True
-    ) -> TPasswordSubclass:
+        cls: Type['Password'], data: Dict[str, Any], raise_on_unknown: bool = True
+    ) -> 'Password':
         """
         Construct user from a data dict.
         """
