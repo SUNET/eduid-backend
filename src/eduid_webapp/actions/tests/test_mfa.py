@@ -42,7 +42,7 @@ from mock import patch
 
 from eduid_common.session import session
 from eduid_userdb.credentials import U2F
-from eduid_userdb.testing import MOCKED_USER_STANDARD
+from eduid_userdb.fixtures.users import mocked_user_standard
 
 from eduid_webapp.actions.actions.mfa import Plugin
 from eduid_webapp.actions.testing import ActionsTestCase, MockIdPContext
@@ -51,7 +51,7 @@ __author__ = 'ft'
 
 MFA_ACTION = {
     '_id': ObjectId('234567890123456789012301'),
-    'eppn': MOCKED_USER_STANDARD['eduPersonPrincipalName'],
+    'eppn': mocked_user_standard.eppn,
     'action': 'mfa',
     'session': 'mock-session',
     'preference': 1,
