@@ -6,7 +6,7 @@ from urllib.parse import urlparse
 from uuid import uuid4
 
 import six
-from flask import current_app
+from flask import Request, current_app
 
 from eduid_userdb.exceptions import EduIDUserDBError, MultipleUsersReturned, UserDBValueError, UserDoesNotExist
 
@@ -130,26 +130,58 @@ def urlappend(base, path):
     return '{!s}{!s}'.format(base, path)
 
 
-def get_flux_type(req, suffix):
+def get_flux_type(req: Request, suffix: str) -> str:
     """
+    Construct the Flux Standard Action 'type' element.
+
+    This can be thought of as a routing information for data produced in a backend endpoint
+    into the right place in the frontend. The result of this function is a string like
+
+      POST_RESET_PASSWORD_RESET_CONFIG_SUCCESS
+
+    and the frontend will have sort of an 'on receive' event handler, that updates the right
+    parts of the frontend when data tagged with this 'type' is received.
+
+    This string might look a bit wonky, so let's break it down. We have
+
+      method = POST
+      blueprint = RESET_PASSWORD
+      url_rule = RESET_CONFIG (from the route '/config' and the blueprint url_prefix '/reset')
+      suffix = SUCCESS
+
+    We need to create a 'type' that allows the frontend to understand exactly what endpoint
+    produced a response.
+
+    It is not clear (to me, ft@) that
+      - the method needs to be present
+      - the blueprint is needed in addition to the url_rule
+      - the suffix is needed since the Flux Standard Action will have error=True on errors
+
+    but this is how it is currently defined and to change it requires a lot of coordination with eduid-frontend.
+
     :param req: flask request
-    :type req: flask.request
     :param suffix: SUCCESS|FAIL|?
-    :type suffix: str|unicode
-    :return: Flux type
-    :rtype: str|unicode
+    :return: Flux Standard Action 'type' value
     """
     method = req.method
     blueprint = req.blueprint
+    # req.url_rule.rule is e.g. '/reset/config', but can also be '/', '/reset/' or '/verify-link/<code>'
+    url_rule = req.url_rule.rule
     # Remove APPLICATION_ROOT from request url rule
     # XXX: There must be a better way to get the internal path info
     app_root = current_app.config['APPLICATION_ROOT']
-    if app_root is None or app_root == '/':  # "/" is default in Flask >1.0
-        app_root = ''
-    url_rule = req.url_rule.rule.replace(app_root, '')
+    if app_root is not None and url_rule.startswith(app_root):
+        url_rule = url_rule[len(app_root) :]
+    # replace slashes and hyphens with spaces
     url_rule = url_rule.replace('/', ' ').replace('-', ' ')
+    # remove any variables (enclosed in <>) from the path
     url_rule = re.sub(r'<.+?>', '', url_rule)
-    flux_type = '_'.join('{!s} {!s} {!s} {!s}'.format(method, blueprint, url_rule, suffix).split()).upper()
+    # Clean up the url_rule removing what was once trailing spaces, redundant slashes between
+    # variables etc. using split() and then join()
+    url_rule = '_'.join(url_rule.split())
+    # Combine all non-empty parts, and finally uppercase the result.
+    _elements = [x for x in [method, blueprint, url_rule, suffix] if x]
+    flux_type = '_'.join(_elements).upper()
     return flux_type
 
 

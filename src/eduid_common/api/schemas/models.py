@@ -1,21 +1,50 @@
 # -*- coding: utf-8 -*-
 
-from dataclasses import dataclass
+from enum import Enum, unique
+from typing import Any, Dict
 
 from eduid_common.api.utils import get_flux_type
 
 __author__ = 'lundberg'
 
 
-@dataclass
-class FluxResponseStatus:
-    ok: str = 'ok'
-    error: str = 'error'
+@unique
+class FluxResponseStatus(Enum):
+    OK = 'ok'
+    ERROR = 'error'
 
 
 class FluxResponse(object):
-    def __init__(self, req, suffix, payload=None, error=None, meta=None):
-        self.flux_type = get_flux_type(req, suffix)
+    """
+    Class representing a Flux Standard Action (https://github.com/redux-utilities/flux-standard-action).
+
+    Quoting the page above, an example of a basic Flux Standard Action is
+
+        {
+          type: 'ADD_TODO',
+          payload: {
+            text: 'Do something.'
+          }
+        }
+
+    An action MUST
+
+      - have a type property.
+
+    An action MAY
+
+      - have an error property.
+      - have a payload property.
+      - have a meta property.
+
+    An action MUST NOT include properties other than type, payload, error, and meta.
+    """
+
+    def __init__(self, req, payload=None, error=None, meta=None):
+        _suffix = 'success'
+        if error:
+            _suffix = 'fail'
+        self.flux_type = get_flux_type(req, _suffix)
         self.payload = payload
         self.meta = meta
         self.error = error
@@ -29,9 +58,11 @@ class FluxResponse(object):
     def __str__(self):
         return u'{!s} ({!r})'.format(self.__class__.__name__, self.to_dict())
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]:
         rv = dict()
+        # A Flux Standard Action MUST have a type
         rv['type'] = self.flux_type
+        # ... and MAY have payload, error, meta (and MUST NOT have anything else)
         if self.payload is not None:
             rv['payload'] = self.payload
         if self.error is not None:
@@ -41,11 +72,15 @@ class FluxResponse(object):
         return rv
 
 
+# TODO: Do we need these different classes for fail and success?
+#       FluxResponse.error already indicates if it is a failure response.
+
+
 class FluxSuccessResponse(FluxResponse):
     def __init__(self, req, payload, meta=None):
-        FluxResponse.__init__(self, req, 'success', payload, meta=meta)
+        super().__init__(req, payload, meta=meta)
 
 
 class FluxFailResponse(FluxResponse):
     def __init__(self, req, payload, meta=None):
-        FluxResponse.__init__(self, req, 'fail', payload, error=True, meta=meta)
+        super().__init__(req, payload, error=True, meta=meta)
