@@ -165,6 +165,9 @@ def get_flux_type(req: Request, suffix: str) -> str:
     """
     method = req.method
     blueprint = req.blueprint
+    if req.url_rule is None:
+        # mainly please mypy - but this can also happen when testing if a view doesn't have proper routing set up
+        raise ValueError('No Flask url_rule present in request')
     # req.url_rule.rule is e.g. '/reset/config', but can also be '/', '/reset/' or '/verify-link/<code>'
     url_rule = req.url_rule.rule
     # Remove APPLICATION_ROOT from request url rule
