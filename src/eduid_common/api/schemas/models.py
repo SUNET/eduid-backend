@@ -34,9 +34,9 @@ class FluxResponse(object):
         rv['type'] = self.flux_type
         if self.payload is not None:
             rv['payload'] = self.payload
-        if self.payload is not None:
+        if self.error is not None:
             rv['error'] = self.error
-        if self.payload is not None:
+        if self.meta is not None:
             rv['meta'] = self.meta
         return rv
 
