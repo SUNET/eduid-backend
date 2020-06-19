@@ -928,7 +928,7 @@ class AttributeFetcherOrcidTests(AMTestCase):
                     'created_by': 'orcid',
                 }
             },
-        },
+        }
 
         assert expected == fetched
 
