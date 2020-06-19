@@ -272,16 +272,16 @@ class EduidAPITestCase(CommonTestCase):
         :param error: Expected JSON error message
         """
         try:
-            self.assertEqual(status, response.status_code, f'The HTTP response code was not {status}')
-            self.assertEqual(type_, response.json['type'], 'Response had unexpected type')
-            self.assertIn('payload', response.json, 'JSON body has no "payload" element')
+            assert status == response.status_code, f'The HTTP response code was not {status}'
+            assert type_ == response.json['type'], 'Response had unexpected type'
+            assert 'payload' in response.json, 'JSON body has no "payload" element'
             if message is not None:
-                self.assertIn('message', response.json['payload'], 'JSON payload has no "message" element')
-                self.assertEqual(message.value, response.json['payload']['message'], 'Wrong message returned')
+                assert 'message' in response.json['payload'], 'JSON payload has no "message" element'
+                assert message.value == response.json['payload']['message'], 'Wrong message returned'
             if error is not None:
-                self.assertTrue(response.json['error'], 'The Flux response was supposed to have error=True')
-                self.assertIn('error', response.json['payload'], 'JSON payload has no "error" element')
-                self.assertEqual(error, response.json['payload']['error'], 'Wrong error returned')
+                assert response.json['error'] == True, 'The Flux response was supposed to have error=True'
+                assert 'error' in response.json['payload'], 'JSON payload has no "error" element'
+                assert error == response.json['payload']['error'], 'Wrong error returned'
         except (AssertionError, KeyError):
             if response.json:
                 logger.info(
