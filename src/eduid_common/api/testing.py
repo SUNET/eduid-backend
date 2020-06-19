@@ -279,6 +279,7 @@ class EduidAPITestCase(CommonTestCase):
                 self.assertIn('message', response.json['payload'], 'JSON payload has no "message" element')
                 self.assertEqual(message.value, response.json['payload']['message'], 'Wrong message returned')
             if error is not None:
+                self.assertTrue(response.json['error'], 'The Flux response was supposed to have error=True')
                 self.assertIn('error', response.json['payload'], 'JSON payload has no "error" element')
                 self.assertEqual(error, response.json['payload']['error'], 'Wrong error returned')
         except (AssertionError, KeyError):

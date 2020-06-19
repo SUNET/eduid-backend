@@ -71,7 +71,7 @@ class CommonMsg(TranslatableMsg):
     nin_invalid = 'nin needs to be formatted as 18|19|20yymmddxxxx'
     # Eamil address validation error
     email_invalid = 'email needs to be formatted according to RFC2822'
-    # CSRF
+    # TODO: These _should_ be unused now - check and remove
     csrf_try_again = 'csrf.try_again'
     csrf_missing = 'csrf.missing'
 
