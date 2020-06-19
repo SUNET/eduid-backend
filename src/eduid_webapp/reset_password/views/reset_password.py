@@ -78,20 +78,21 @@ her data.
 import time
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Mapping, Optional, Union
+from typing import Optional, Union
 
 from flask import Blueprint, abort, request
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith
 from eduid_common.api.exceptions import MsgTaskFailed
 from eduid_common.api.helpers import check_magic_cookie
-from eduid_common.api.messages import TranslatableMsg, error_message, success_message
+from eduid_common.api.messages import FluxData, TranslatableMsg, error_message, success_message
 from eduid_common.api.schemas.base import FluxStandardAction
 from eduid_common.api.validation import is_valid_password
 from eduid_common.authn import fido_tokens
 from eduid_common.session import session
 from eduid_userdb import User
 from eduid_userdb.reset_password import ResetPasswordEmailAndPhoneState, ResetPasswordEmailState
+
 from eduid_webapp.reset_password.app import current_reset_password_app as current_app
 from eduid_webapp.reset_password.helpers import (
     BadCode,
@@ -127,7 +128,7 @@ reset_password_views = Blueprint('reset_password', __name__, url_prefix='/reset'
 @reset_password_views.route('/', methods=['POST'])
 @UnmarshalWith(ResetPasswordInitSchema)
 @MarshalWith(FluxStandardAction)
-def init_reset_pw(email: str) -> dict:
+def init_reset_pw(email: str) -> FluxData:
     """
     View that receives an email address to initiate a reset password process.
     It returns a message informing of the result of the operation.
@@ -159,7 +160,7 @@ def init_reset_pw(email: str) -> dict:
 @reset_password_views.route('/config/', methods=['POST'])
 @UnmarshalWith(ResetPasswordEmailCodeSchema)
 @MarshalWith(FluxStandardAction)
-def config_reset_pw(code: str) -> dict:
+def config_reset_pw(code: str) -> FluxData:
     """
     View that receives an emailed reset password code and returns the
     configuration needed for the reset password form.
@@ -203,17 +204,20 @@ def config_reset_pw(code: str) -> dict:
     state.extra_security = alternatives
     current_app.password_reset_state_db.save(state)
 
-    return {
-        'csrf_token': session.get_csrf_token(),
-        'suggested_password': new_password,
-        'email_code': state.email_code.code,
-        'email_address': state.email_address,
-        'extra_security': mask_alternatives(alternatives),
-        'password_entropy': current_app.config.password_entropy,
-        'password_length': current_app.config.password_length,
-        'password_service_url': current_app.config.password_service_url,
-        'zxcvbn_terms': get_zxcvbn_terms(state.eppn),
-    }
+    return success_message(
+        message=None,
+        data={
+            'csrf_token': session.get_csrf_token(),
+            'suggested_password': new_password,
+            'email_code': state.email_code.code,
+            'email_address': state.email_address,
+            'extra_security': mask_alternatives(alternatives),
+            'password_entropy': current_app.config.password_entropy,
+            'password_length': current_app.config.password_length,
+            'password_service_url': current_app.config.password_service_url,
+            'zxcvbn_terms': get_zxcvbn_terms(state.eppn),
+        },
+    )
 
 
 class BadStateOrData(Exception):
@@ -271,7 +275,7 @@ def _load_data(code: str, password: str) -> ResetContext:
 @reset_password_views.route('/new-password/', methods=['POST'])
 @MarshalWith(FluxStandardAction)
 @UnmarshalWith(ResetPasswordWithCodeSchema)
-def set_new_pw(code: str, password: str) -> Mapping[str, Any]:
+def set_new_pw(code: str, password: str) -> FluxData:
     """
     View that receives an emailed reset password code and a password, and sets
     the password as credential for the user, with no extra security.
@@ -312,7 +316,7 @@ def set_new_pw(code: str, password: str) -> Mapping[str, Any]:
 @reset_password_views.route('/extra-security-phone/', methods=['POST'])
 @UnmarshalWith(ResetPasswordExtraSecPhoneSchema)
 @MarshalWith(FluxStandardAction)
-def choose_extra_security_phone(code: str, phone_index: int) -> dict:
+def choose_extra_security_phone(code: str, phone_index: int) -> FluxData:
     """
     View called when the user chooses extra security (she can do that when she
     has some verified phone number). It receives an emailed reset password code
@@ -376,7 +380,7 @@ def choose_extra_security_phone(code: str, phone_index: int) -> dict:
 @reset_password_views.route('/new-password-secure-phone/', methods=['POST'])
 @UnmarshalWith(NewPasswordSecurePhoneRequestSchema)
 @MarshalWith(FluxStandardAction)
-def set_new_pw_extra_security_phone(code: str, password: str, phone_code: str) -> dict:
+def set_new_pw_extra_security_phone(code: str, password: str, phone_code: str) -> FluxData:
     """
     View that receives an emailed reset password code, an SMS'ed reset password
     code, and a password, and sets the password as credential for the user, with
@@ -439,7 +443,7 @@ def set_new_pw_extra_security_token(
     clientDataJSON: Optional[str] = None,
     credentialId: Optional[str] = None,
     signature: Optional[str] = None,
-) -> dict:
+) -> FluxData:
     """
     View that receives an emailed reset password code, hw token data,
     and a password, and sets the password as credential for the user, with

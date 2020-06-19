@@ -36,7 +36,7 @@ from uuid import UUID
 from flask import Blueprint
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
-from eduid_common.api.messages import CommonMsg, error_message
+from eduid_common.api.messages import CommonMsg, FluxData, error_message, success_message
 from eduid_groupdb import Group as GraphGroup
 from eduid_groupdb import User as GraphUser
 from eduid_scimapi.groupdb import ScimApiGroup
@@ -85,26 +85,28 @@ def _list_of_group_data(group_list: List[ScimApiGroup]) -> List[Dict]:
 @group_management_views.route('/groups', methods=['GET'])
 @MarshalWith(GroupManagementResponseSchema)
 @require_user
-def get_groups(user: User) -> Mapping:
+def get_groups(user: User) -> FluxData:
     scim_user = get_scim_user_by_eppn(user.eppn)
     if not scim_user:
         current_app.logger.info('User does not exist in scimapi_userdb')
         # As the user does not exist return empty group lists
-        return {}
+        return success_message(data={})
 
     graph_user = GraphUser(identifier=str(scim_user.scim_id))
     member_groups = current_app.scimapi_groupdb.get_groups_for_member(member=graph_user)
     owner_groups = current_app.scimapi_groupdb.get_groups_for_owner(owner=graph_user)
     current_app.logger.debug(f'member_of: {member_groups}')
     current_app.logger.debug(f'owner_of: {owner_groups}')
-    return {'member_of': _list_of_group_data(member_groups), 'owner_of': _list_of_group_data(owner_groups)}
+    return success_message(
+        data={'member_of': _list_of_group_data(member_groups), 'owner_of': _list_of_group_data(owner_groups)}
+    )
 
 
 @group_management_views.route('/create', methods=['POST'])
 @UnmarshalWith(GroupCreateRequestSchema)
 @MarshalWith(GroupManagementResponseSchema)
 @require_user
-def create_group(user: User, display_name: str) -> Mapping:
+def create_group(user: User, display_name: str) -> FluxData:
     scim_user = get_or_create_scim_user_by_eppn(user.eppn)
     graph_user = GraphUser(identifier=str(scim_user.scim_id), display_name=user.mail_addresses.primary.email)
     group = ScimApiGroup(display_name=display_name)
@@ -125,7 +127,7 @@ def create_group(user: User, display_name: str) -> Mapping:
 @UnmarshalWith(GroupDeleteRequestSchema)
 @MarshalWith(GroupManagementResponseSchema)
 @require_user
-def delete_group(user: User, group_identifier: UUID) -> Mapping:
+def delete_group(user: User, group_identifier: UUID) -> FluxData:
     scim_user = get_scim_user_by_eppn(user.eppn)
     if not scim_user:
         current_app.logger.error('User does not exist in scimapi_userdb')
@@ -151,7 +153,7 @@ def delete_group(user: User, group_identifier: UUID) -> Mapping:
 @UnmarshalWith(GroupRemoveUserRequestSchema)
 @MarshalWith(GroupManagementResponseSchema)
 @require_user
-def remove_user(user: User, group_identifier: UUID, user_identifier: UUID, role: GroupRole) -> Mapping:
+def remove_user(user: User, group_identifier: UUID, user_identifier: UUID, role: GroupRole) -> FluxData:
     scim_user = get_scim_user_by_eppn(user.eppn)
     if not scim_user:
         current_app.logger.error('User does not exist in scimapi_userdb')

@@ -31,12 +31,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 from datetime import datetime
-from typing import Any, Mapping
 
 from flask import Blueprint
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
-from eduid_common.api.messages import CommonMsg, error_message
+from eduid_common.api.messages import CommonMsg, FluxData, error_message, success_message
 from eduid_common.api.utils import save_and_sync_user
 from eduid_common.api.validation import is_valid_password
 from eduid_common.authn.vccs import change_password
@@ -66,25 +65,23 @@ change_password_views = Blueprint('change_password', __name__, url_prefix='')
 @change_password_views.route('/suggested-password', methods=['GET'])
 @MarshalWith(SuggestedPasswordResponseSchema)
 @require_user
-def get_suggested(user):
+def get_suggested(user) -> FluxData:
     """
-    View to get a suggested  password for the logged user.
+    View to get a suggested password for the logged user.
     """
     current_app.logger.debug(f'Sending new generated password for {user}')
     password = generate_suggested_password()
 
     session.reset_password.generated_password_hash = hash_password(password)
 
-    suggested = {'suggested_password': password}
-
-    return suggested
+    return success_message(message=None, data={'suggested_password': password})
 
 
 @change_password_views.route('/change-password', methods=['POST'])
 @MarshalWith(ChpassResponseSchema)
 @UnmarshalWith(ChpassRequestSchema)
 @require_user
-def change_password_view(user: User, old_password: str, new_password: str) -> Mapping[str, Any]:
+def change_password_view(user: User, old_password: str, new_password: str) -> FluxData:
     """
     View to change the password
     """
@@ -136,10 +133,11 @@ def change_password_view(user: User, old_password: str, new_password: str) -> Ma
     current_app.logger.info(f'Changed password for user {resetpw_user.eppn}')
 
     next_url = current_app.config.dashboard_url
-    credentials = {
-        'next_url': next_url,
-        'credentials': compile_credential_list(resetpw_user),
-        'message': 'chpass.password-changed',  # TODO: shouldn't this be a ResetPwMsg?
-    }
-
-    return credentials
+    return success_message(
+        ResetPwMsg.chpass_password_changed,
+        data={
+            'next_url': next_url,
+            'credentials': compile_credential_list(resetpw_user),
+            'message': ResetPwMsg.chpass_password_changed,
+        },
+    )

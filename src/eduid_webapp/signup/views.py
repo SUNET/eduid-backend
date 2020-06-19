@@ -35,7 +35,7 @@ from flask import Blueprint, abort, request
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith
 from eduid_common.api.helpers import check_magic_cookie
-from eduid_common.api.messages import CommonMsg, error_message, success_message
+from eduid_common.api.messages import CommonMsg, FluxData, error_message, success_message
 from eduid_common.api.schemas.base import FluxStandardAction
 from eduid_userdb.exceptions import EduIDUserDBError
 
@@ -124,7 +124,7 @@ def resend_email_verification(email):
 
 @signup_views.route('/verify-link/<code>', methods=['GET'])
 @MarshalWith(FluxStandardAction)
-def verify_link(code):
+def verify_link(code: str) -> FluxData:
     try:
         user = verify_email_code(code)
     except CodeDoesNotExist:

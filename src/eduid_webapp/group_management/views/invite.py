@@ -38,7 +38,7 @@ from pymongo.errors import DuplicateKeyError
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid_common.api.exceptions import MailTaskFailed
-from eduid_common.api.messages import CommonMsg, error_message
+from eduid_common.api.messages import CommonMsg, FluxData, error_message, success_message
 from eduid_userdb import User
 from eduid_userdb.exceptions import DocumentDoesNotExist, EduIDDBError
 from eduid_userdb.group_management import GroupInviteState, GroupRole
@@ -69,29 +69,29 @@ group_invite_views = Blueprint('group_invite', __name__, url_prefix='/invites/',
 @group_invite_views.route('/all', methods=['GET'])
 @MarshalWith(GroupAllInviteResponseSchema)
 @require_user
-def all_invites(user: User) -> Mapping:
-    return {'incoming': get_incoming_invites(user), 'outgoing': get_outgoing_invites(user)}
+def all_invites(user: User) -> FluxData:
+    return success_message(data={'incoming': get_incoming_invites(user), 'outgoing': get_outgoing_invites(user)})
 
 
 @group_invite_views.route('/incoming', methods=['GET'])
 @MarshalWith(GroupIncomingInviteResponseSchema)
 @require_user
-def incoming_invites(user: User) -> Mapping:
-    return {'incoming': get_incoming_invites(user)}
+def incoming_invites(user: User) -> FluxData:
+    return success_message(data={'incoming': get_incoming_invites(user)})
 
 
 @group_invite_views.route('/outgoing', methods=['GET'])
 @MarshalWith(GroupOutgoingInviteResponseSchema)
 @require_user
-def outgoing_invites(user: User) -> Mapping:
-    return {'outgoing': get_outgoing_invites(user)}
+def outgoing_invites(user: User) -> FluxData:
+    return success_message(data={'outgoing': get_outgoing_invites(user)})
 
 
 @group_invite_views.route('/create', methods=['POST'])
 @UnmarshalWith(GroupInviteRequestSchema)
 @MarshalWith(GroupOutgoingInviteResponseSchema)
 @require_user
-def create_invite(user: User, group_identifier: UUID, email_address: str, role: GroupRole) -> Mapping:
+def create_invite(user: User, group_identifier: UUID, email_address: str, role: GroupRole) -> FluxData:
     scim_user = get_scim_user_by_eppn(user.eppn)
     if not scim_user:
         current_app.logger.error('User does not exist in scimapi_userdb')
@@ -124,7 +124,7 @@ def create_invite(user: User, group_identifier: UUID, email_address: str, role: 
 @UnmarshalWith(GroupInviteRequestSchema)
 @MarshalWith(GroupIncomingInviteResponseSchema)
 @require_user
-def accept_invite(user: User, group_identifier: UUID, email_address: str, role: GroupRole) -> Mapping:
+def accept_invite(user: User, group_identifier: UUID, email_address: str, role: GroupRole) -> FluxData:
     # Check that the current user has verified the invited email address
     user_email_address = user.mail_addresses.find(email_address)
     if not user_email_address or not user_email_address.is_verified:
@@ -162,7 +162,7 @@ def accept_invite(user: User, group_identifier: UUID, email_address: str, role: 
 @UnmarshalWith(GroupInviteRequestSchema)
 @MarshalWith(GroupIncomingInviteResponseSchema)
 @require_user
-def decline_invite(user: User, group_identifier: UUID, email_address: str, role: GroupRole) -> Mapping:
+def decline_invite(user: User, group_identifier: UUID, email_address: str, role: GroupRole) -> FluxData:
     # Check that the current user has verified the invited email address
     user_email_address = user.mail_addresses.find(email_address)
     if not user_email_address or not user_email_address.is_verified:
