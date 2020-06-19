@@ -1,5 +1,4 @@
 from copy import deepcopy
-from datetime import datetime
 
 import bson
 
@@ -22,7 +21,7 @@ class AttributeFetcherTests(AMTestCase):
         self.fetcher = eduid_signup(self.am_settings)
 
         for userdoc in self.amdb._get_all_docs():
-            signup_user = SignupUser(data=userdoc)
+            signup_user = SignupUser.from_dict(userdoc)
             self.fetcher.private_db.save(signup_user, check_sync=False)
 
     def test_invalid_user(self):
@@ -69,7 +68,7 @@ class AttributeFetcherTests(AMTestCase):
         user_data['mail'] = 'johnsmith@example.com'
         user_data['mailAliases'] = [{'verified': True, 'email': 'johnsmith@example.com'}]
         del user_data['passwords']
-        user = SignupUser(data=user_data)
+        user = SignupUser.from_dict(user_data)
         self.fetcher.private_db.save(user)
         with self.assertRaises(ValueError):
             self.fetcher.fetch_attrs(bson.ObjectId(user.user_id))
@@ -78,7 +77,7 @@ class AttributeFetcherTests(AMTestCase):
         user_data = deepcopy(USER_DATA)
         user_data['mail'] = 'johnsmith@example.com'
         del user_data['passwords']
-        user = SignupUser(data=user_data)
+        user = SignupUser.from_dict(user_data)
         self.fetcher.private_db.save(user)
         with self.assertRaises(ValueError):
             self.fetcher.fetch_attrs(bson.ObjectId(user.user_id))
@@ -88,7 +87,7 @@ class AttributeFetcherTests(AMTestCase):
         user_data['mail'] = 'john@example.com'
         user_data['mailAliases'] = [{'email': 'john@example.com', 'verified': True,}]
         user_data['passwords'] = [{'id': '123', 'salt': '456',}]
-        user = SignupUser(data=user_data)
+        user = SignupUser.from_dict(user_data)
         self.fetcher.private_db.save(user)
         attrs = self.fetcher.fetch_attrs(user.user_id)
         self.assertEqual(
@@ -109,4 +108,4 @@ class AttributeFetcherTests(AMTestCase):
         user_data['mailAliases'] = [{'email': 'john@example.com', 'verified': True,}]
         user_data['passwords'] = [{'id': '123', 'salt': '456',}]
         with self.assertRaises(UserHasUnknownData):
-            SignupUser(data=user_data)
+            SignupUser.from_dict(user_data)

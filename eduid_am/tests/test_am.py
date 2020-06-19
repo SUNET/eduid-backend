@@ -111,7 +111,7 @@ class MessageTest(AMTestCase):
             'uid': 'vlindeman',
             'passwords': [{'id': ObjectId('112345678901234567890123'), 'salt': '$NDNv1H1$9c81...545$32$32$',}],
         }
-        test_user = AmTestUser(userdoc)
+        test_user = AmTestUser.from_dict(userdoc)
         # Save the user in the eduid_am_test database
         self.private_db.save(test_user)
 
@@ -141,13 +141,13 @@ class MessageTest(AMTestCase):
             'uid': 'vlindeman',
             'passwords': [{'id': ObjectId('112345678901234567890123'), 'salt': '$NDNv1H1$9c81...545$32$32$',}],
         }
-        test_user = AmTestUser(userdoc)
+        test_user = AmTestUser.from_dict(userdoc)
         # Save the user in the private database
         self.private_db.save(test_user)
         # Save the user in the central database
         user_dict = test_user.to_dict()
         del user_dict['uid']
-        central_user = eduid_userdb.User(data=user_dict)
+        central_user = eduid_userdb.User.from_dict(user_dict)
         self.amdb.save(central_user, check_sync=False)
 
         am_user = self.amdb.get_user_by_id(_id)
@@ -174,13 +174,13 @@ class MessageTest(AMTestCase):
             'uid': 'vlindeman',
             'passwords': [{'id': ObjectId('112345678901234567890123'), 'salt': '$NDNv1H1$9c81...545$32$32$',}],
         }
-        test_user = AmTestUser(userdoc)
+        test_user = AmTestUser.from_dict(userdoc)
         # Save the user in the private database
         self.private_db.save(test_user)
         # Save the user in the central database
         user_dict = test_user.to_dict()
         del user_dict['uid']
-        central_user = eduid_userdb.User(data=user_dict)
+        central_user = eduid_userdb.User.from_dict(user_dict)
         self.amdb.save(central_user, check_sync=False)
 
         am_user = self.amdb.get_user_by_id(_id)
