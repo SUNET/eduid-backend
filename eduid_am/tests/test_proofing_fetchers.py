@@ -890,39 +890,47 @@ class AttributeFetcherOrcidTests(AMTestCase):
     def test_existing_user(self):
         proofing_user = ProofingUser.from_dict(self.user_data)
         self.fetcher.private_db.save(proofing_user)
+        fetched = self.fetcher.fetch_attrs(proofing_user.user_id)
+        # remove the datetimes from the response,
+        # that carry their own tzinfo object from bson
+        if 'created_ts' in fetched['$set']['orcid']:
+            fetched['$set']['orcid'].pop('created_ts')
+        if 'created_ts' in fetched['$set']['orcid']['oidc_authz']:
+            fetched['$set']['orcid']['oidc_authz'].pop('created_ts')
+        if 'created_ts' in fetched['$set']['orcid']['oidc_authz']['id_token']:
+            fetched['$set']['orcid']['oidc_authz']['id_token'].pop('created_ts')
 
-        self.assertDictEqual(
-            self.fetcher.fetch_attrs(proofing_user.user_id),
-            {
-                '$set': {
-                    'orcid': {
-                        'oidc_authz': {
-                            'token_type': 'bearer',
-                            'refresh_token': 'a_refresh_token',
-                            'access_token': 'an_access_token',
-                            'id_token': {
-                                'nonce': 'a_nonce',
-                                'sub': 'sub_id',
-                                'iss': 'https://issuer.example.org',
-                                'created_by': 'orcid',
-                                'exp': 1526890816,
-                                'auth_time': 1526890214,
-                                'iat': 1526890216,
-                                'aud': ['APP-YIAD0N1L4B3Z3W9Q'],
-                            },
-                            'expires_in': 631138518,
+        expected = {
+            '$set': {
+                'orcid': {
+                    'oidc_authz': {
+                        'token_type': 'bearer',
+                        'refresh_token': 'a_refresh_token',
+                        'access_token': 'an_access_token',
+                        'id_token': {
+                            'nonce': 'a_nonce',
+                            'sub': 'sub_id',
+                            'iss': 'https://issuer.example.org',
                             'created_by': 'orcid',
+                            'exp': 1526890816,
+                            'auth_time': 1526890214,
+                            'iat': 1526890216,
+                            'aud': ['APP-YIAD0N1L4B3Z3W9Q'],
                         },
-                        'given_name': 'Testaren',
-                        'family_name': 'Testsson',
-                        'name': None,
-                        'verified': True,
-                        'id': 'orcid_unique_id',
+                        'expires_in': 631138518,
                         'created_by': 'orcid',
-                    }
-                },
+                    },
+                    'given_name': 'Testaren',
+                    'family_name': 'Testsson',
+                    'name': None,
+                    'verified': True,
+                    'id': 'orcid_unique_id',
+                    'created_by': 'orcid',
+                }
             },
-        )
+        },
+
+        assert expected == fetched
 
     def test_malicious_attributes(self):
         self.user_data.update(
