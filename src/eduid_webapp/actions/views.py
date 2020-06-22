@@ -38,8 +38,8 @@ import json
 from flask import Blueprint, abort, redirect, render_template, request, url_for
 from six.moves.urllib_parse import urlsplit, urlunsplit
 
-from eduid_common.api.decorators import MarshalWith
-from eduid_common.api.messages import CommonMsg, error_message, success_message
+from eduid_common.api.decorators import MarshalWith, UnmarshalWith
+from eduid_common.api.messages import CommonMsg, error_response, success_response
 from eduid_common.api.schemas.base import FluxStandardAction
 from eduid_common.authn.utils import check_previous_identification
 from eduid_common.session import session
@@ -47,6 +47,7 @@ from eduid_userdb.actions import Action
 
 from eduid_webapp.actions.app import current_actions_app as current_app
 from eduid_webapp.actions.helpers import ActionsMsg, get_next_action
+from eduid_webapp.actions.schemas import PostActionRequestSchema, PostActionResponseSchema
 
 actions_views = Blueprint('actions', __name__, url_prefix='', template_folder='templates')
 
@@ -90,7 +91,7 @@ def get_config():
         config['csrf_token'] = session.new_csrf_token()
         return config
     except plugin_obj.ActionError as exc:
-        return error_message(exc.args[0])
+        return error_response(message=exc.args[0])
 
 
 @actions_views.route('/get-actions', methods=['GET'])
@@ -115,14 +116,10 @@ def get_actions():
 
 
 @actions_views.route('/post-action', methods=['POST'])
-@MarshalWith(FluxStandardAction)
+@MarshalWith(PostActionResponseSchema)
+@UnmarshalWith(PostActionRequestSchema)
 def post_action():
-    if not request.data or session.get_csrf_token() != json.loads(request.data)['csrf_token']:
-        abort(400)
-    ret = _do_action()
-    # Add a new csrf token as this is a POST request
-    ret['csrf_token'] = session.new_csrf_token()
-    return ret
+    return _do_action()
 
 
 @actions_views.route('/redirect-action', methods=['GET'])
@@ -154,18 +151,18 @@ def _do_action():
             'Validation error {} for step {} of action {}'.format(errors, session['current_step'], action)
         )
         session['current_step'] -= 1
-        return error_message(CommonMsg.form_errors, data={'errors': errors})
+        return error_response(payload={'errors': errors}, message=CommonMsg.form_errors)
 
     eppn = session.get('user_eppn')
     if session['total_steps'] == session['current_step']:
         current_app.logger.info('Finished pre-login action {} for eppn {}'.format(action.action_type, eppn))
-        return success_message(ActionsMsg.action_completed, data=dict(data=data))
+        return success_response(payload=dict(data=data), message=ActionsMsg.action_completed)
 
     current_app.logger.info(
         'Performed step {} for action {} for eppn {}'.format(action.action_type, session['current_step'], eppn)
     )
     session['current_step'] += 1
-    return {'data': data}
+    return success_response(payload={'data': data}, message=None)
 
 
 def _aborted(action, exc):
@@ -178,4 +175,4 @@ def _aborted(action, exc):
         msg = 'Removing faulty action with id '
         current_app.logger.info(msg + str(aid))
         current_app.actions_db.remove_action_by_id(aid)
-    return error_message(exc.args[0])
+    return error_response(message=exc.args[0])

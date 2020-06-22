@@ -37,7 +37,7 @@ from flask import Blueprint, abort, request
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid_common.api.helpers import check_magic_cookie
-from eduid_common.api.messages import CommonMsg, error_message, success_message
+from eduid_common.api.messages import CommonMsg, error_response, success_response
 from eduid_common.api.utils import save_and_sync_user
 from eduid_userdb.element import PrimaryElementViolation, UserDBValueError
 from eduid_userdb.exceptions import DocumentDoesNotExist, UserOutOfSync
@@ -95,7 +95,7 @@ def post_phone(user, number, verified, primary):
         current_app.logger.debug(
             'Couldnt save phone number {!r} for user {}, ' 'data out of sync'.format(number, proofing_user)
         )
-        return error_message(CommonMsg.out_of_sync)
+        return error_response(message=CommonMsg.out_of_sync)
 
     current_app.logger.info('Saved unconfirmed phone number {!r} ' 'for user {}'.format(number, proofing_user))
     current_app.stats.count(name='mobile_save_unconfirmed_mobile', value=1)
@@ -104,7 +104,7 @@ def post_phone(user, number, verified, primary):
     current_app.stats.count(name='mobile_send_verification_code', value=1)
 
     phones = {'phones': proofing_user.phone_numbers.to_list_of_dicts()}
-    return success_message(PhoneMsg.save_success, data=phones)
+    return success_response(payload=phones, message=PhoneMsg.save_success)
 
 
 @phone_views.route('/primary', methods=['POST'])
@@ -124,23 +124,23 @@ def post_primary(user, number):
     phone_element = proofing_user.phone_numbers.find(number)
     if not phone_element:
         current_app.logger.debug('Could not save phone number {} as primary, data out of sync'.format(number))
-        return error_message(CommonMsg.out_of_sync)
+        return error_response(message=CommonMsg.out_of_sync)
 
     if not phone_element.is_verified:
         current_app.logger.debug('Could not save phone number {} as primary, phone number unconfirmed'.format(number))
-        return error_message(PhoneMsg.unconfirmed_primary)
+        return error_response(message=PhoneMsg.unconfirmed_primary)
 
     proofing_user.phone_numbers.primary = phone_element.number
     try:
         save_and_sync_user(proofing_user)
     except UserOutOfSync:
         current_app.logger.debug('Could not save phone number {} as primary, data out of sync'.format(number))
-        return error_message(CommonMsg.out_of_sync)
+        return error_response(message=CommonMsg.out_of_sync)
     current_app.logger.info('Phone number {} made primary'.format(number))
     current_app.stats.count(name='mobile_set_primary', value=1)
 
     phones = {'phones': proofing_user.phone_numbers.to_list_of_dicts()}
-    return success_message(PhoneMsg.primary_success, data=phones)
+    return success_response(payload=phones, message=PhoneMsg.primary_success)
 
 
 @phone_views.route('/verify', methods=['POST'])
@@ -165,10 +165,10 @@ def verify(user, code, number):
             current_app.logger.info("Proofing state is expired. Removing the state.")
             current_app.logger.debug("Proofing state: {!r}".format(state))
             current_app.proofing_statedb.remove_state(state)
-            return error_message(PhoneMsg.code_invalid)
+            return error_response(message=PhoneMsg.code_invalid)
     except DocumentDoesNotExist:
         current_app.logger.info("Could not find proofing state for number {}".format(number))
-        return error_message(PhoneMsg.unknown_phone)
+        return error_response(message=PhoneMsg.unknown_phone)
 
     if code == state.verification.verification_code:
         try:
@@ -178,14 +178,14 @@ def verify(user, code, number):
             phones = {
                 'phones': proofing_user.phone_numbers.to_list_of_dicts(),
             }
-            return success_message(PhoneMsg.verify_success, data=phones)
+            return success_response(payload=phones, message=PhoneMsg.verify_success)
         except UserOutOfSync:
             current_app.logger.info('Could not confirm phone number, data out of sync')
             current_app.logger.debug('Phone number: {}'.format(number))
-            return error_message(CommonMsg.out_of_sync)
+            return error_response(message=CommonMsg.out_of_sync)
     current_app.logger.info("Invalid verification code")
     current_app.logger.debug("Proofing state: {!r}".format(state))
-    return error_message(PhoneMsg.code_invalid)
+    return error_response(message=PhoneMsg.code_invalid)
 
 
 @phone_views.route('/remove', methods=['POST'])
@@ -213,7 +213,7 @@ def post_remove(user, number):
     except UserDBValueError:
         current_app.logger.info('Tried to remove a non existing phone number')
         current_app.logger.debug('Phone number: {}.'.format(number))
-        return error_message(PhoneMsg.unknown_phone)
+        return error_response(message=PhoneMsg.unknown_phone)
 
     try:
         save_and_sync_user(proofing_user)
@@ -221,12 +221,12 @@ def post_remove(user, number):
         current_app.logger.debug(
             'Couldnt remove phone number {!r} for user' ' {}, data out of sync'.format(number, proofing_user)
         )
-        return error_message(CommonMsg.out_of_sync)
+        return error_response(message=CommonMsg.out_of_sync)
     current_app.logger.info('Phone number {!r} removed ' 'for user {}'.format(number, proofing_user))
     current_app.stats.count(name='mobile_remove_success', value=1)
 
     phones = {'phones': proofing_user.phone_numbers.to_list_of_dicts()}
-    return success_message(PhoneMsg.removal_success, data=phones)
+    return success_response(payload=phones, message=PhoneMsg.removal_success)
 
 
 @phone_views.route('/resend-code', methods=['POST'])
@@ -246,17 +246,17 @@ def resend_code(user, number):
 
     if not user.phone_numbers.find(number):
         current_app.logger.warning('Unknown phone in resend_code_action, user {}'.format(user))
-        return error_message(CommonMsg.out_of_sync)
+        return error_response(message=CommonMsg.out_of_sync)
 
     sent = send_verification_code(user, number)
     if not sent:
-        return error_message(PhoneMsg.still_valid_code)
+        return error_response(message=PhoneMsg.still_valid_code)
 
     current_app.logger.debug('New verification code sent to ' 'phone number {!r} for user {}'.format(number, user))
     current_app.stats.count(name='mobile_resend_code', value=1)
 
     phones = {'phones': user.phone_numbers.to_list_of_dicts()}
-    return success_message(PhoneMsg.resend_success, data=phones)
+    return success_response(payload=phones, message=PhoneMsg.resend_success)
 
 
 @phone_views.route('/get-code', methods=['GET'])

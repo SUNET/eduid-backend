@@ -41,7 +41,7 @@ import proquint
 from bson import ObjectId
 from flask import abort
 
-from eduid_common.api.messages import TranslatableMsg
+from eduid_common.api.messages import FluxData, TranslatableMsg, error_response, success_response
 from eduid_common.api.utils import save_and_sync_user
 from eduid_common.session import session
 from eduid_userdb.credentials import Password
@@ -157,7 +157,7 @@ def remove_users_with_mail_address(email):
         signup_db.remove_user_by_id(user.user_id)
 
 
-def complete_registration(signup_user):
+def complete_registration(signup_user) -> FluxData:
     """
     After a successful registration:
     * record acceptance of TOU
@@ -171,7 +171,6 @@ def complete_registration(signup_user):
     :type signup_user: SignupUser
 
     :return: registration status info
-    :rtype: dict
     """
     current_app.logger.info("Completing registration for user " "{}".format(signup_user))
 
@@ -187,7 +186,7 @@ def complete_registration(signup_user):
         save_and_sync_user(signup_user)
     except UserOutOfSync:
         current_app.logger.error('Couldnt save user {}, ' 'data out of sync'.format(signup_user))
-        return {'_status': 'error', 'message': 'user-out-of-sync'}
+        return error_response(message='user-out-of-sync')
 
     timestamp = datetime.datetime.fromtimestamp(int(time.time()))
     session.common.eppn = signup_user.eppn
@@ -203,7 +202,7 @@ def complete_registration(signup_user):
 
     current_app.stats.count(name='signup_complete')
     current_app.logger.info("Signup process for new user {} complete".format(signup_user))
-    return context
+    return success_response(payload=context)
 
 
 def record_tou(user, source):

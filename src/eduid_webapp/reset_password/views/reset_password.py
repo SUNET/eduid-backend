@@ -78,20 +78,21 @@ her data.
 import time
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Mapping, Optional, Union
+from typing import Optional, Union
 
 from flask import Blueprint, abort, request
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith
 from eduid_common.api.exceptions import MsgTaskFailed
 from eduid_common.api.helpers import check_magic_cookie
-from eduid_common.api.messages import TranslatableMsg, error_message, success_message
+from eduid_common.api.messages import FluxData, TranslatableMsg, error_response, success_response
 from eduid_common.api.schemas.base import FluxStandardAction
 from eduid_common.api.validation import is_valid_password
 from eduid_common.authn import fido_tokens
 from eduid_common.session import session
 from eduid_userdb import User
 from eduid_userdb.reset_password import ResetPasswordEmailAndPhoneState, ResetPasswordEmailState
+
 from eduid_webapp.reset_password.app import current_reset_password_app as current_app
 from eduid_webapp.reset_password.helpers import (
     BadCode,
@@ -127,7 +128,7 @@ reset_password_views = Blueprint('reset_password', __name__, url_prefix='/reset'
 @reset_password_views.route('/', methods=['POST'])
 @UnmarshalWith(ResetPasswordInitSchema)
 @MarshalWith(FluxStandardAction)
-def init_reset_pw(email: str) -> dict:
+def init_reset_pw(email: str) -> FluxData:
     """
     View that receives an email address to initiate a reset password process.
     It returns a message informing of the result of the operation.
@@ -151,15 +152,15 @@ def init_reset_pw(email: str) -> dict:
         send_password_reset_mail(email)
     except BadCode as error:
         current_app.logger.error(f'Sending password reset e-mail for {email} failed: {error}')
-        return error_message(error.msg)
+        return error_response(message=error.msg)
 
-    return success_message(ResetPwMsg.send_pw_success)
+    return success_response(message=ResetPwMsg.send_pw_success)
 
 
 @reset_password_views.route('/config/', methods=['POST'])
 @UnmarshalWith(ResetPasswordEmailCodeSchema)
 @MarshalWith(FluxStandardAction)
-def config_reset_pw(code: str) -> dict:
+def config_reset_pw(code: str) -> FluxData:
     """
     View that receives an emailed reset password code and returns the
     configuration needed for the reset password form.
@@ -191,7 +192,7 @@ def config_reset_pw(code: str) -> dict:
     try:
         state = get_pwreset_state(code)
     except BadCode as e:
-        return error_message(e.msg)
+        return error_response(message=e.msg)
 
     verify_email_address(state)
 
@@ -203,17 +204,19 @@ def config_reset_pw(code: str) -> dict:
     state.extra_security = alternatives
     current_app.password_reset_state_db.save(state)
 
-    return {
-        'csrf_token': session.get_csrf_token(),
-        'suggested_password': new_password,
-        'email_code': state.email_code.code,
-        'email_address': state.email_address,
-        'extra_security': mask_alternatives(alternatives),
-        'password_entropy': current_app.config.password_entropy,
-        'password_length': current_app.config.password_length,
-        'password_service_url': current_app.config.password_service_url,
-        'zxcvbn_terms': get_zxcvbn_terms(state.eppn),
-    }
+    return success_response(
+        payload={
+            'csrf_token': session.get_csrf_token(),
+            'suggested_password': new_password,
+            'email_code': state.email_code.code,
+            'email_address': state.email_address,
+            'extra_security': mask_alternatives(alternatives),
+            'password_entropy': current_app.config.password_entropy,
+            'password_length': current_app.config.password_length,
+            'password_service_url': current_app.config.password_service_url,
+            'zxcvbn_terms': get_zxcvbn_terms(state.eppn),
+        },
+    )
 
 
 class BadStateOrData(Exception):
@@ -271,7 +274,7 @@ def _load_data(code: str, password: str) -> ResetContext:
 @reset_password_views.route('/new-password/', methods=['POST'])
 @MarshalWith(FluxStandardAction)
 @UnmarshalWith(ResetPasswordWithCodeSchema)
-def set_new_pw(code: str, password: str) -> Mapping[str, Any]:
+def set_new_pw(code: str, password: str) -> FluxData:
     """
     View that receives an emailed reset password code and a password, and sets
     the password as credential for the user, with no extra security.
@@ -296,23 +299,23 @@ def set_new_pw(code: str, password: str) -> Mapping[str, Any]:
     * Synchronization problems with the central user db.
     """
     if not password or not code:
-        return error_message(ResetPwMsg.missing_data)
+        return error_response(message=ResetPwMsg.missing_data)
 
     data = _load_data(code, password)
     if data.error:
-        return error_message(data.error)
+        return error_response(message=data.error)
 
     current_app.logger.info(f'Resetting password for user {data.user}')
     reset_user_password(data.user, data.state, password)
     current_app.logger.info(f'Password reset done, removing state for {data.user}')
     current_app.password_reset_state_db.remove_state(data.state)
-    return success_message(ResetPwMsg.pw_resetted)
+    return success_response(message=ResetPwMsg.pw_resetted)
 
 
 @reset_password_views.route('/extra-security-phone/', methods=['POST'])
 @UnmarshalWith(ResetPasswordExtraSecPhoneSchema)
 @MarshalWith(FluxStandardAction)
-def choose_extra_security_phone(code: str, phone_index: int) -> dict:
+def choose_extra_security_phone(code: str, phone_index: int) -> FluxData:
     """
     View called when the user chooses extra security (she can do that when she
     has some verified phone number). It receives an emailed reset password code
@@ -344,7 +347,7 @@ def choose_extra_security_phone(code: str, phone_index: int) -> dict:
     try:
         state = get_pwreset_state(code)
     except BadCode as e:
-        return error_message(e.msg)
+        return error_response(message=e.msg)
 
     if isinstance(state, ResetPasswordEmailAndPhoneState):
         now = int(time.time())
@@ -352,14 +355,14 @@ def choose_extra_security_phone(code: str, phone_index: int) -> dict:
             raise TypeError(f'Modified timestamp in state is not a datetime ({repr(state.modified_ts)})')
         if int(state.modified_ts.timestamp()) > now - current_app.config.throttle_sms_seconds:
             current_app.logger.info(f'Throttling reset password SMSs for: {state.eppn}')
-            return error_message(ResetPwMsg.send_sms_throttled)
+            return error_response(message=ResetPwMsg.send_sms_throttled)
 
     current_app.logger.info(f'Password reset: choose_extra_security for user with eppn {state.eppn}')
 
     # Check that the email code has been validated
     if not state.email_code.is_verified:
         current_app.logger.info(f'User with eppn {state.eppn} has not verified their email address')
-        return error_message(ResetPwMsg.email_not_validated)
+        return error_response(message=ResetPwMsg.email_not_validated)
 
     phone_number = state.extra_security['phone_numbers'][phone_index]
     current_app.logger.info(f'Trying to send password reset sms to user with eppn {state.eppn}')
@@ -367,16 +370,16 @@ def choose_extra_security_phone(code: str, phone_index: int) -> dict:
         send_verify_phone_code(state, phone_number["number"])
     except MsgTaskFailed as e:
         current_app.logger.error(f'Sending sms failed: {e}')
-        return error_message(ResetPwMsg.send_sms_failure)
+        return error_response(message=ResetPwMsg.send_sms_failure)
 
     current_app.stats.count(name='reset_password_extra_security_phone')
-    return success_message(ResetPwMsg.send_sms_success)
+    return success_response(message=ResetPwMsg.send_sms_success)
 
 
 @reset_password_views.route('/new-password-secure-phone/', methods=['POST'])
 @UnmarshalWith(NewPasswordSecurePhoneRequestSchema)
 @MarshalWith(FluxStandardAction)
-def set_new_pw_extra_security_phone(code: str, password: str, phone_code: str) -> dict:
+def set_new_pw_extra_security_phone(code: str, password: str, phone_code: str) -> FluxData:
     """
     View that receives an emailed reset password code, an SMS'ed reset password
     code, and a password, and sets the password as credential for the user, with
@@ -401,11 +404,11 @@ def set_new_pw_extra_security_phone(code: str, password: str, phone_code: str) -
     * Synchronization problems with the central user db.
     """
     if not password:
-        return error_message(ResetPwMsg.chpass_no_data)
+        return error_response(message=ResetPwMsg.chpass_no_data)
 
     data = _load_data(code, password)
     if data.error:
-        return error_message(data.error)
+        return error_response(message=data.error)
 
     if not isinstance(data.state, ResetPasswordEmailAndPhoneState):
         raise TypeError(f'State is not ResetPasswordEmailAndPhoneState ({type(data.state)})')
@@ -413,19 +416,19 @@ def set_new_pw_extra_security_phone(code: str, password: str, phone_code: str) -
     if phone_code == data.state.phone_code.code:
         if not verify_phone_number(data.state):
             current_app.logger.info(f'Could not verify phone code for {data.state.eppn}')
-            return error_message(ResetPwMsg.phone_invalid)
+            return error_response(message=ResetPwMsg.phone_invalid)
 
         current_app.logger.info(f'Phone code verified for {data.state.eppn}')
         current_app.stats.count(name='reset_password_extra_security_phone_success')
     else:
         current_app.logger.info(f'Could not verify phone code for {data.state.eppn}')
-        return error_message(ResetPwMsg.unknown_phone_code)
+        return error_response(message=ResetPwMsg.unknown_phone_code)
 
     current_app.logger.info(f'Resetting password for user {data.user}')
     reset_user_password(data.user, data.state, password)
     current_app.logger.info(f'Password reset done, removing state for {data.user}')
     current_app.password_reset_state_db.remove_state(data.state)
-    return success_message(ResetPwMsg.pw_resetted)
+    return success_response(message=ResetPwMsg.pw_resetted)
 
 
 @reset_password_views.route('/new-password-secure-token/', methods=['POST'])
@@ -439,7 +442,7 @@ def set_new_pw_extra_security_token(
     clientDataJSON: Optional[str] = None,
     credentialId: Optional[str] = None,
     signature: Optional[str] = None,
-) -> dict:
+) -> FluxData:
     """
     View that receives an emailed reset password code, hw token data,
     and a password, and sets the password as credential for the user, with
@@ -465,7 +468,7 @@ def set_new_pw_extra_security_token(
     """
     data = _load_data(code, password)
     if data.error:
-        return error_message(data.error)
+        return error_response(message=data.error)
 
     # Process POSTed data
     success = False
@@ -506,13 +509,13 @@ def set_new_pw_extra_security_token(
         current_app.logger.error(f'Neither U2F nor Webauthn data in request to authn {data.user}')
 
     if not success:
-        return error_message(ResetPwMsg.fido_token_fail)
+        return error_response(message=ResetPwMsg.fido_token_fail)
 
     current_app.logger.info(f'Resetting password for user {data.user}')
     reset_user_password(data.user, data.state, password)
     current_app.logger.info(f'Password reset done, removing state for {data.user}')
     current_app.password_reset_state_db.remove_state(data.state)
-    return success_message(ResetPwMsg.pw_resetted)
+    return success_response(message=ResetPwMsg.pw_resetted)
 
 
 @reset_password_views.route('/get-email-code', methods=['GET'])
