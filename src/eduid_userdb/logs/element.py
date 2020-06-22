@@ -27,7 +27,9 @@ class LogElement(Element):
         :rtype: LogElement
         """
         self._required_keys = ['created_by', 'created_ts']
-        super(LogElement, self).__init__(data={'created_by': created_by, 'created_ts': True})
+        # Since log elements are already nearer dataclasses than the rest of elements,
+        # we do not deprecate direct calls to their __init__, which is close to what a dataclass would provide.
+        super().__init__(data={'created_by': created_by, 'created_ts': True}, called_directly=False)
 
     def validate(self):
         # Check that all keys are accounted for and that no string values are blank

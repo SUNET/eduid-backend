@@ -33,6 +33,8 @@
 #
 
 import copy
+from datetime import datetime
+from typing import Any, Dict, Optional, Union
 
 from six import string_types
 
@@ -53,13 +55,14 @@ class PhoneNumber(PrimaryElement):
 
     def __init__(
         self,
-        number=None,
-        application=None,
-        verified=False,
-        created_ts=None,
-        primary=False,
-        data=None,
-        raise_on_unknown=True,
+        number: Optional[str] = None,
+        application: Optional[str] = None,
+        verified: bool = False,
+        created_ts: Optional[Union[datetime, bool]] = None,
+        primary: bool = False,
+        data: Optional[Dict[str, Any]] = None,
+        raise_on_unknown: bool = True,
+        called_directly: bool = True,
     ):
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
@@ -82,7 +85,7 @@ class PhoneNumber(PrimaryElement):
         if 'csrf' in data:
             del data['csrf']
 
-        PrimaryElement.__init__(self, data, raise_on_unknown, ignore_data=['number'])
+        super().__init__(data, raise_on_unknown, called_directly=called_directly, ignore_data=['number'])
         self.number = data.pop('number')
 
     # -----------------------------------------------------------------
@@ -197,4 +200,4 @@ def phone_from_dict(data, raise_on_unknown=True):
     :type raise_on_unknown: bool
     :rtype: PhoneNumber
     """
-    return PhoneNumber(data=data, raise_on_unknown=raise_on_unknown)
+    return PhoneNumber.from_dict(data, raise_on_unknown=raise_on_unknown)

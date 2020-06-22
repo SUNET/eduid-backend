@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
+from __future__ import annotations
 
 import copy
+from typing import Any, Dict, Type
 
 from six import string_types
 
@@ -33,6 +34,7 @@ class OidcIdToken(Element):
         created_ts=None,
         data=None,
         raise_on_unknown=True,
+        called_directly=True,
     ):
         data_in = data
         data = copy.deepcopy(data_in)  # to not modify callers data
@@ -54,7 +56,10 @@ class OidcIdToken(Element):
                 created_by=application,
                 created_ts=created_ts,
             )
-        Element.__init__(self, data)
+        elif 'created_ts' not in data:
+            data['created_ts'] = True
+
+        super().__init__(data, called_directly=called_directly)
         self.iss = data.pop('iss')
         self.sub = data.pop('sub')
         self.aud = data.pop('aud')
@@ -68,6 +73,13 @@ class OidcIdToken(Element):
 
         if raise_on_unknown and data:
             raise UserHasUnknownData('{!s} has unknown data: {!r}'.format(self.__class__.__name__, data.keys()))
+
+    @classmethod
+    def from_dict(cls: Type[OidcIdToken], data: Dict[str, Any], raise_on_unknown: bool = True) -> OidcIdToken:
+        """
+        Construct user from a data dict.
+        """
+        return cls(data=data, called_directly=False, raise_on_unknown=raise_on_unknown)
 
     @property
     def key(self):
@@ -309,6 +321,7 @@ class OidcAuthorization(Element):
         created_ts=None,
         data=None,
         raise_on_unknown=True,
+        called_directly=True,
     ):
         data_in = data
         data = copy.deepcopy(data_in)  # to not modify callers data
@@ -325,8 +338,10 @@ class OidcAuthorization(Element):
                 created_by=application,
                 created_ts=created_ts,
             )
+        elif 'created_ts' not in data:
+            data['created_ts'] = True
 
-        Element.__init__(self, data)
+        super().__init__(data, called_directly=called_directly)
         self.access_token = data.pop('access_token')
         self.token_type = data.pop('token_type')
         self.expires_in = data.pop('expires_in')
@@ -335,12 +350,19 @@ class OidcAuthorization(Element):
         # Parse ID token
         _id_token = data.pop('id_token')
         if isinstance(_id_token, dict):
-            self.id_token = OidcIdToken(data=_id_token, raise_on_unknown=raise_on_unknown)
+            self.id_token = OidcIdToken.from_dict(_id_token, raise_on_unknown=raise_on_unknown)
         if isinstance(_id_token, OidcIdToken):
             self.id_token = _id_token
 
         if raise_on_unknown and data:
             raise UserHasUnknownData('{!s} has unknown data: {!r}'.format(self.__class__.__name__, data.keys()))
+
+    @classmethod
+    def from_dict(cls: Type[OidcAuthorization], data: Dict[str, Any], raise_on_unknown: bool = True) -> OidcAuthorization:
+        """
+        Construct user from a data dict.
+        """
+        return cls(data=data, called_directly=False, raise_on_unknown=raise_on_unknown)
 
     @property
     def key(self):
@@ -493,6 +515,7 @@ class Orcid(VerifiedElement):
         created_ts=None,
         data=None,
         raise_on_unknown=True,
+        called_directly=True,
     ):
         data_in = data
         data = copy.deepcopy(data_in)  # to not modify callers data
@@ -510,8 +533,10 @@ class Orcid(VerifiedElement):
                 created_ts=created_ts,
                 verified=verified,
             )
+        elif 'created_ts' not in data:
+            data['created_ts'] = True
 
-        VerifiedElement.__init__(self, data)
+        super().__init__(data, called_directly=called_directly)
         self.id = data.pop('id')
         self.name = data.pop('name', None)
         self.given_name = data.pop('given_name', None)
@@ -520,12 +545,19 @@ class Orcid(VerifiedElement):
         # Parse ID token
         _oidc_authz = data.pop('oidc_authz')
         if isinstance(_oidc_authz, dict):
-            self.oidc_authz = OidcAuthorization(data=_oidc_authz)
+            self.oidc_authz = OidcAuthorization.from_dict(_oidc_authz)
         if isinstance(_oidc_authz, OidcAuthorization):
             self.oidc_authz = _oidc_authz
 
         if raise_on_unknown and data:
             raise UserHasUnknownData('{!s} has unknown data: {!r}'.format(self.__class__.__name__, data.keys()))
+
+    @classmethod
+    def from_dict(cls: Type['Orcid'], data: Dict[str, Any], raise_on_unknown: bool = True) -> 'Orcid':
+        """
+        Construct user from a data dict.
+        """
+        return cls(data=data, called_directly=False, raise_on_unknown=raise_on_unknown)
 
     # -----------------------------------------------------------------
     @property

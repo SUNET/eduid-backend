@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, List, Mapping, Optional, Union
+from typing import Any, Dict, List, Mapping, Optional, Union
 
 from eduid_userdb.element import DuplicateElementViolation, Element, ElementList
 from eduid_userdb.exceptions import UserDBValueError
@@ -25,15 +25,13 @@ class Profile(Element):
         if created_ts is None:
             created_ts = True
         data = dict(created_by=created_by, created_ts=created_ts, modified_ts=modified_ts)
-        super().__init__(data=data)
+        # do not deprecate direct calls to the __init__ of Profile,
+        # since it does not accept a data dict, and is already very near a dataclass
+        super().__init__(data=data, called_directly=False)
 
         self.owner = owner
         self.schema = schema
         self.profile_data = profile_data
-
-    @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> Profile:
-        return cls(**data)
 
     # -----------------------------------------------------------------
     @property
@@ -103,8 +101,8 @@ class ProfileList(ElementList):
             self.add(profile)
 
     @classmethod
-    def from_list_of_dicts(cls, items: List[Mapping[str, Any]]) -> ProfileList:
+    def from_list_of_dicts(cls, items: List[Dict[str, Any]]) -> ProfileList:
         profiles = list()
         for item in items:
-            profiles.append(Profile.from_dict(data=item))
+            profiles.append(Profile(**item))
         return cls(profiles=profiles)

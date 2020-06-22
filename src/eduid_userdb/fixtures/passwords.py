@@ -36,8 +36,8 @@ from bson import ObjectId
 
 from eduid_userdb.credentials import Password
 
-signup_password = Password(
-    data={
+signup_password = Password.from_dict(
+    {
         'id': ObjectId('112345678901234567890123'),
         'salt': '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$',
         'created_by': 'signup',
@@ -46,8 +46,8 @@ signup_password = Password(
 )
 
 
-signup_password_2 = Password(
-    data={
+signup_password_2 = Password.from_dict(
+    {
         'id': ObjectId('a12345678901234567890123'),
         'salt': '$NDNv1H1$2d465dcc9c68075aa095b646a98e2e3edb1c612c175ebdeaca6c9a55a0457833$32$32$',
         'created_by': 'signup',
@@ -56,8 +56,8 @@ signup_password_2 = Password(
 )
 
 
-old_password = Password(
-    data={
+old_password = Password.from_dict(
+    {
         'id': ObjectId('112345678901234567890123'),
         'salt': '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$',
         'source': 'signup',

@@ -73,12 +73,12 @@ class TestWebauthn(TestCase):
         one = copy.deepcopy(_one_dict)
         one['foo'] = 'bar'
         with self.assertRaises(eduid_userdb.exceptions.UserHasUnknownData):
-            Webauthn(data=one)
+            Webauthn.from_dict(one)
 
     def test_unknown_input_data_allowed(self):
         one = copy.deepcopy(_one_dict)
         one['foo'] = 'bar'
-        addr = Webauthn(data=one, raise_on_unknown=False)
+        addr = Webauthn.from_dict(one, raise_on_unknown=False)
         out = addr.to_dict()
         self.assertIn('foo', out)
         self.assertEqual(out['foo'], one['foo'])

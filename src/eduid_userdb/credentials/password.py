@@ -35,7 +35,7 @@
 from __future__ import absolute_import
 
 import copy
-from typing import Optional, Union
+from typing import Any, Dict, Optional, Type, Union
 
 from bson.objectid import ObjectId
 
@@ -55,6 +55,7 @@ class Password(Credential):
         created_ts: Optional[Union[str, bool]] = None,
         data: Optional[dict] = None,
         raise_on_unknown: bool = True,
+        called_directly: bool = True,
     ):
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
@@ -68,7 +69,7 @@ class Password(Credential):
 
         if 'source' in data:  # TODO: Load and save all users in the database to replace source with created_by
             data['created_by'] = data.pop('source')
-        Credential.__init__(self, data)
+        super().__init__(data, called_directly=called_directly)
         if 'id' in data:  # TODO: Load and save all users in the database to replace id with credential_id
             data['credential_id'] = data.pop('id')
         self.is_generated = data.pop('is_generated', False)
@@ -81,6 +82,13 @@ class Password(Credential):
                 raise UserHasUnknownData('Password {!r} unknown data: {!r}'.format(self.key, leftovers))
             # Just keep everything that is left as-is
             self._data.update(data)
+
+    @classmethod
+    def from_dict(cls: Type['Password'], data: Dict[str, Any], raise_on_unknown: bool = True) -> 'Password':
+        """
+        Construct password credential from a data dict.
+        """
+        return cls(data=data, raise_on_unknown=raise_on_unknown, called_directly=False)
 
     @property
     def key(self) -> str:
@@ -152,4 +160,4 @@ def password_from_dict(data, raise_on_unknown=True):
     :type raise_on_unknown: bool
     :rtype: Password
     """
-    return Password(data=data, raise_on_unknown=raise_on_unknown)
+    return Password.from_dict(data, raise_on_unknown=raise_on_unknown)

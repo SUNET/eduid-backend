@@ -32,10 +32,12 @@
 #
 # Author : Fredrik Thulin <fredrik@thulin.net>
 #
-from __future__ import absolute_import
+from __future__ import annotations
 
 import copy
+from datetime import datetime
 from hashlib import sha256
+from typing import Any, Dict, Optional, Type, Union
 
 from six import string_types
 
@@ -50,12 +52,20 @@ class FidoCredential(Credential):
     Token authentication credential
     """
 
-    def __init__(self, data):
+    def __init__(self, data: Dict[str, Any], called_directly: bool = True):
 
-        Credential.__init__(self, data)
+        super().__init__(data, called_directly=called_directly)
         self.keyhandle = data.pop('keyhandle')
         self.app_id = data.pop('app_id')
         self.description = data.pop('description', '')
+
+    def check_unknown_data(self, data: Dict[str, Any]):
+        """
+        called when an instance of a subclass is created with `raise_on_unknown`
+        """
+        leftovers = data.keys()
+        if leftovers:
+            raise UserHasUnknownData(f'{self.__class__.__name__} {self.key} unknown data: {leftovers}')
 
     @property
     def keyhandle(self):
@@ -125,16 +135,17 @@ class U2F(FidoCredential):
 
     def __init__(
         self,
-        version=None,
-        keyhandle=None,
-        public_key=None,
-        app_id=None,
-        attest_cert=None,
-        description=None,
-        application=None,
-        created_ts=None,
-        data=None,
-        raise_on_unknown=True,
+        version: Optional[str] = None,
+        keyhandle: Optional[str] = None,
+        public_key: Optional[str] = None,
+        app_id: Optional[str] = None,
+        attest_cert: Optional[str] = None,
+        description: Optional[str] = None,
+        application: Optional[str] = None,
+        created_ts: Optional[Union[datetime, bool]] = None,
+        data: Optional[Dict[str, Any]] = None,
+        raise_on_unknown: bool = True,
+        called_directly: bool = True,
     ):
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
@@ -153,17 +164,24 @@ class U2F(FidoCredential):
                 created_ts=created_ts,
             )
 
-        FidoCredential.__init__(self, data)
+        super().__init__(data, called_directly=called_directly)
+
         self.version = data.pop('version')
         self.public_key = data.pop('public_key')
         self.attest_cert = data.pop('attest_cert', '')
 
-        leftovers = data.keys()
-        if leftovers:
-            if raise_on_unknown:
-                raise UserHasUnknownData('U2F {!r} unknown data: {!r}'.format(self.key, leftovers,))
-            # Just keep everything that is left as-is
-            self._data.update(data)
+        if raise_on_unknown:
+            self.check_unknown_data(data)
+
+        # Just keep everything that is left as-is
+        self._data.update(data)
+
+    @classmethod
+    def from_dict(cls: Type[U2F], data: Dict[str, Any], raise_on_unknown: bool = True) -> U2F:
+        """
+        Construct U2F credential from a data dict.
+        """
+        return cls(data=data, called_directly=False, raise_on_unknown=raise_on_unknown)
 
     @property
     def key(self):
@@ -247,7 +265,7 @@ def u2f_from_dict(data, raise_on_unknown=True):
     :type raise_on_unknown: bool
     :rtype: U2F
     """
-    return U2F(data=data, raise_on_unknown=raise_on_unknown)
+    return U2F.from_dict(data, raise_on_unknown=raise_on_unknown)
 
 
 class Webauthn(FidoCredential):
@@ -257,15 +275,16 @@ class Webauthn(FidoCredential):
 
     def __init__(
         self,
-        keyhandle=None,
-        credential_data=None,
-        app_id=None,
-        attest_obj=None,
-        description=None,
-        application=None,
-        created_ts=None,
-        data=None,
-        raise_on_unknown=True,
+        keyhandle: Optional[str] = None,
+        credential_data: Optional[str] = None,
+        app_id: Optional[str] = None,
+        attest_obj: Optional[str] = None,
+        description: Optional[str] = None,
+        application: Optional[str] = None,
+        created_ts: Optional[Union[datetime, bool]] = None,
+        data: Optional[Dict[str, Any]] = None,
+        raise_on_unknown: bool = True,
+        called_directly: bool = True,
     ):
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
@@ -282,17 +301,23 @@ class Webauthn(FidoCredential):
                 created_by=application,
                 created_ts=created_ts,
             )
+        super().__init__(data, called_directly=called_directly)
 
-        FidoCredential.__init__(self, data)
         self.attest_obj = data.pop('attest_obj', '')
         self.credential_data = data.pop('credential_data', '')
 
-        leftovers = data.keys()
-        if leftovers:
-            if raise_on_unknown:
-                raise UserHasUnknownData('Webauthn {!r} unknown data: {!r}'.format(self.key, leftovers,))
-            # Just keep everything that is left as-is
-            self._data.update(data)
+        if raise_on_unknown:
+            self.check_unknown_data(data)
+
+        # Just keep everything that is left as-is
+        self._data.update(data)
+
+    @classmethod
+    def from_dict(cls: Type[Webauthn], data: Dict[str, Any], raise_on_unknown: bool = True) -> Webauthn:
+        """
+        Construct Webauthn credential from a data dict.
+        """
+        return cls(data=data, called_directly=False, raise_on_unknown=raise_on_unknown)
 
     @property
     def key(self):
@@ -356,4 +381,4 @@ def webauthn_from_dict(data, raise_on_unknown=True):
     :type raise_on_unknown: bool
     :rtype: Webauthn
     """
-    return Webauthn(data=data, raise_on_unknown=raise_on_unknown)
+    return Webauthn.from_dict(data, raise_on_unknown=raise_on_unknown)

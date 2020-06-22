@@ -69,6 +69,7 @@ class ProofingElement(VerifiedElement):
         verified_ts=None,
         verification_code=None,
         data=None,
+        called_directly=True,
     ):
 
         data_in = copy.copy(data)  # to not modify callers data
@@ -85,7 +86,7 @@ class ProofingElement(VerifiedElement):
                 verification_code=verification_code,
             )
         verification_code = data_in.pop('verification_code', None)
-        VerifiedElement.__init__(self, data_in)
+        super().__init__(data_in, called_directly=called_directly)
         self.verification_code = verification_code
 
     @property
@@ -129,7 +130,14 @@ class NinProofingElement(ProofingElement):
     """
 
     def __init__(
-        self, number=None, application=None, created_ts=None, verified=False, verification_code=None, data=None
+        self,
+        number=None,
+        application=None,
+        created_ts=None,
+        verified=False,
+        verification_code=None,
+        data=None,
+        called_directly=True,
     ):
 
         data = copy.copy(data)
@@ -142,6 +150,7 @@ class NinProofingElement(ProofingElement):
             verified=verified,
             verification_code=verification_code,
             data=data,
+            called_directly=called_directly,
         )
         self.number = number
 
@@ -191,7 +200,14 @@ class EmailProofingElement(ProofingElement):
     """
 
     def __init__(
-        self, email=None, application=None, created_ts=None, verified=False, verification_code=None, data=None
+        self,
+        email=None,
+        application=None,
+        created_ts=None,
+        verified=False,
+        verification_code=None,
+        data=None,
+        called_directly=True,
     ):
 
         data = copy.copy(data)
@@ -204,6 +220,7 @@ class EmailProofingElement(ProofingElement):
             verified=verified,
             verification_code=verification_code,
             data=data,
+            called_directly=called_directly,
         )
         self.email = email
 
@@ -253,7 +270,14 @@ class PhoneProofingElement(ProofingElement):
     """
 
     def __init__(
-        self, phone=None, application=None, created_ts=None, verified=False, verification_code=None, data=None
+        self,
+        phone=None,
+        application=None,
+        created_ts=None,
+        verified=False,
+        verification_code=None,
+        data=None,
+        called_directly=True,
     ):
 
         data = copy.copy(data)
@@ -266,6 +290,7 @@ class PhoneProofingElement(ProofingElement):
             verified=verified,
             verification_code=verification_code,
             data=data,
+            called_directly=called_directly,
         )
         self.number = phone
 
@@ -307,8 +332,8 @@ class SentLetterElement(Element):
     created_ts
     """
 
-    def __init__(self, data):
-        super(SentLetterElement, self).__init__(data)
+    def __init__(self, data, called_directly=True):
+        super().__init__(data, called_directly=called_directly)
 
         self._data['is_sent'] = data.pop('is_sent', False)
         self._data['sent_ts'] = data.pop('sent_ts', None)

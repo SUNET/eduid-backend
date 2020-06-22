@@ -34,6 +34,6 @@ from datetime import datetime
 
 from eduid_userdb.locked_identity import LockedIdentityNin
 
-dashboard_locked_nin = LockedIdentityNin(
-    number='197801011234', created_by='dashboard', created_ts=datetime.fromisoformat("2013-09-02T10:23:25"),
+dashboard_locked_nin = LockedIdentityNin.from_dict(
+    dict(number='197801011234', created_by='dashboard', created_ts=datetime.fromisoformat("2013-09-02T10:23:25"))
 )

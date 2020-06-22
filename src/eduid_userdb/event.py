@@ -32,9 +32,11 @@
 #
 # Author : Fredrik Thulin <fredrik@thulin.net>
 #
+from __future__ import annotations
 
 import copy
-from typing import Any, Dict, List, Type
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Type, Union
 
 from bson import ObjectId
 
@@ -58,14 +60,15 @@ class Event(Element):
 
     def __init__(
         self,
-        application=None,
-        created_ts=None,
-        modified_ts=None,
-        data=None,
-        event_type=None,
-        event_id=None,
-        raise_on_unknown=True,
-        ignore_data=None,
+        application: Optional[str] = None,
+        created_ts: Optional[Union[datetime, bool]] = None,
+        modified_ts: Optional[Union[datetime, bool]] = None,
+        data: Optional[Dict[str, Any]] = None,
+        event_type: Optional[str] = None,
+        event_id: Optional[str] = None,
+        raise_on_unknown: bool = True,
+        called_directly: bool = True,
+        ignore_data: Optional[List[str]] = None,
     ):
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
@@ -86,7 +89,7 @@ class Event(Element):
         if 'modified_ts' not in data:
             data['modified_ts'] = data.get('created_ts', None)
 
-        Element.__init__(self, data)
+        super().__init__(data, called_directly=called_directly)
         self.event_type = data.pop('event_type', None)
         if 'id' in data:  # Compatibility for old format
             data['event_id'] = data.pop('id')
@@ -99,6 +102,13 @@ class Event(Element):
                 raise EventHasUnknownData('Event {!r} unknown data: {!r}'.format(self.event_id, leftovers,))
             # Just keep everything that is left as-is
             self._data.update(data)
+
+    @classmethod
+    def from_dict(cls: Type[Event], data: Dict[str, Any], raise_on_unknown: bool = True) -> Event:
+        """
+        Construct event from a data dict.
+        """
+        return cls(data=data, called_directly=False, raise_on_unknown=raise_on_unknown)
 
     # -----------------------------------------------------------------
     @property
@@ -175,7 +185,7 @@ class EventList(ElementList):
                 if 'event_type' in this:
                     event = event_from_dict(this, raise_on_unknown=raise_on_unknown)
                 else:
-                    event = self._event_class(data=this)
+                    event = self._event_class.from_dict(this)
                 self.add(event)
 
     def add(self, event) -> None:
@@ -211,5 +221,5 @@ def event_from_dict(data: Dict[str, Any], raise_on_unknown: bool = True):
     if data['event_type'] == 'tou_event':
         from eduid_userdb.tou import ToUEvent  # avoid cyclic dependency by importing this here
 
-        return ToUEvent(data=data, raise_on_unknown=raise_on_unknown)
+        return ToUEvent.from_dict(data=data, raise_on_unknown=raise_on_unknown)
     raise BadEvent('Unknown event_type in data: {!s}'.format(data['event_type']))

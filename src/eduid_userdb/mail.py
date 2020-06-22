@@ -33,6 +33,8 @@
 #
 
 import copy
+from datetime import datetime
+from typing import Any, Dict, Optional, Union
 
 from six import string_types
 
@@ -53,13 +55,14 @@ class MailAddress(PrimaryElement):
 
     def __init__(
         self,
-        email=None,
-        application=None,
-        verified=False,
-        created_ts=None,
-        primary=None,
-        data=None,
-        raise_on_unknown=True,
+        email: Optional[str] = None,
+        application: Optional[str] = None,
+        verified: bool = False,
+        created_ts: Optional[Union[datetime, bool]] = None,
+        primary: bool = False,
+        data: Optional[Dict[str, Any]] = None,
+        raise_on_unknown: bool = True,
+        called_directly: bool = True,
     ):
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
@@ -74,7 +77,7 @@ class MailAddress(PrimaryElement):
         # CSRF tokens were accidentally put in the database some time ago
         if 'csrf' in data:
             del data['csrf']
-        PrimaryElement.__init__(self, data, raise_on_unknown, ignore_data=['email'])
+        super().__init__(data, raise_on_unknown, called_directly=called_directly, ignore_data=['email'])
         self.email = data.pop('email')
 
     # -----------------------------------------------------------------
@@ -199,23 +202,4 @@ def address_from_dict(data, raise_on_unknown=True):
     :type raise_on_unknown: bool
     :rtype: MailAddress
     """
-    return MailAddress(data=data, raise_on_unknown=raise_on_unknown)
-
-
-def new(email, application, verified=False, created_ts=None):
-    """
-    Create a new MailAddress object.
-
-    :param email: E-mail address
-    :param application: Name of creating application ('signup', ...)
-    :param verified: Declare e-mail address verified/confirmed
-    :param created_ts: Timestamp of creation (or None to use current time)
-
-    :type email: str | unicode
-    :type application: str | unicode
-    :type verified: bool
-    :type created_ts: None | datetime.datetime
-
-    :return: New MailAddress instance
-    :rtype: MailAddress
-    """
+    return MailAddress.from_dict(data, raise_on_unknown=raise_on_unknown)

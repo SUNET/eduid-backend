@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 
+from datetime import datetime
+from typing import Any, Dict, Optional
+
 from six import string_types
 
 from eduid_userdb.element import Element, ElementList
@@ -18,8 +21,8 @@ class LockedIdentityElement(Element):
         identity_type
     """
 
-    def __init__(self, data):
-        Element.__init__(self, data)
+    def __init__(self, data, called_directly=True):
+        super().__init__(data, called_directly=called_directly)
         self.identity_type = data.pop('identity_type')
 
     # -----------------------------------------------------------------
@@ -61,9 +64,22 @@ class LockedIdentityNin(LockedIdentityElement):
         number
     """
 
-    def __init__(self, number, created_by, created_ts):
-        data = {'created_by': created_by, 'created_ts': created_ts, 'identity_type': 'nin'}
-        LockedIdentityElement.__init__(self, data)
+    def __init__(
+        self,
+        number: Optional[str] = None,
+        created_by: Optional[str] = None,
+        created_ts: Optional[datetime] = None,
+        data: Optional[Dict[str, Any]] = None,
+        called_directly: bool = True,
+    ):
+        if data is None:
+            data = {'created_by': created_by, 'created_ts': created_ts}
+        else:
+            number = data.pop('number')
+
+        data['identity_type'] = 'nin'
+
+        super().__init__(data, called_directly=called_directly)
         self.number = number
 
     # -----------------------------------------------------------------
@@ -104,8 +120,8 @@ class LockedIdentityList(ElementList):
             else:
                 if item['identity_type'] == 'nin':
                     elements.append(
-                        LockedIdentityNin(
-                            number=item['number'], created_by=item['created_by'], created_ts=item['created_ts']
+                        LockedIdentityNin.from_dict(
+                            dict(number=item['number'], created_by=item['created_by'], created_ts=item['created_ts'])
                         )
                     )
         ElementList.__init__(self, elements)

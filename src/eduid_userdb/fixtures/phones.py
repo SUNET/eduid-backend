@@ -34,8 +34,8 @@ from datetime import datetime
 
 from eduid_userdb.phone import PhoneNumber
 
-dashboard_primary_phone = PhoneNumber(
-    data={
+dashboard_primary_phone = PhoneNumber.from_dict(
+    {
         'number': '+34609609609',
         'created_ts': datetime.fromisoformat("2013-09-02T10:23:25"),
         'created_by': 'dashboard',
@@ -47,8 +47,8 @@ dashboard_primary_phone = PhoneNumber(
 )
 
 
-dashboard_verified_phone = PhoneNumber(
-    data={
+dashboard_verified_phone = PhoneNumber.from_dict(
+    {
         'number': '+34607507507',
         'verified': True,
         'created_ts': datetime.fromisoformat("2013-09-02T10:23:25"),
@@ -59,8 +59,8 @@ dashboard_verified_phone = PhoneNumber(
 )
 
 
-dashboard_unverified_phone = PhoneNumber(
-    data={
+dashboard_unverified_phone = PhoneNumber.from_dict(
+    {
         'number': '+34 6096096096',
         'created_ts': datetime.fromisoformat("2013-09-02T10:23:25"),
         'created_by': 'dashboard',
@@ -71,7 +71,7 @@ dashboard_unverified_phone = PhoneNumber(
 )
 
 
-old_primary_phone = PhoneNumber(data={'mobile': '+34609609609', 'primary': True, 'verified': True})
+old_primary_phone = PhoneNumber.from_dict({'mobile': '+34609609609', 'primary': True, 'verified': True})
 
 
-old_unverified_phone = PhoneNumber(data={'mobile': '+34 6096096096', 'verified': False})
+old_unverified_phone = PhoneNumber.from_dict({'mobile': '+34 6096096096', 'verified': False})

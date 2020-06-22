@@ -35,6 +35,8 @@
 
 from __future__ import absolute_import
 
+from typing import Any, Dict
+
 from six import string_types
 
 from eduid_userdb.element import VerifiedElement
@@ -53,8 +55,8 @@ class Credential(VerifiedElement):
     elements too.
     """
 
-    def __init__(self, data):
-        super(Credential, self).__init__(data)
+    def __init__(self, data: Dict[str, Any], called_directly: bool = True):
+        super().__init__(data, called_directly=called_directly)
 
         self.proofing_method = data.pop('proofing_method', None)
         self.proofing_version = data.pop('proofing_version', None)
