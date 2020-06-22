@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 
-version = '0.4.26'
+version = '0.5.0'
 
 
 requires = [

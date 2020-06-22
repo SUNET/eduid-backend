@@ -34,8 +34,6 @@
 from enum import unique
 from unittest import TestCase
 
-from werkzeug.wrappers import Response
-
 from eduid_common.api.messages import (
     CommonMsg,
     TranslatableMsg,
@@ -44,6 +42,7 @@ from eduid_common.api.messages import (
     redirect_with_msg,
     success_message,
 )
+from eduid_common.api.schemas.models import FluxResponseStatus
 
 
 @unique
@@ -55,28 +54,25 @@ class TestsMsg(TranslatableMsg):
 class MessageTests(TestCase):
     def test_success_message(self):
         message = success_message(TestsMsg.fst_test_msg)
-        self.assertEqual(message['_status'], 'ok')
-        self.assertTrue(message['success'])
-        self.assertEqual(message['message'], 'test.first_msg')
+        assert message.status == FluxResponseStatus.OK
+        assert message.payload == dict(message=TestsMsg.fst_test_msg.value, success=True)
 
     def test_success_message_with_data(self):
         data = {'email': 'test@example.com'}
         message = success_message(TestsMsg.fst_test_msg, data=data)
-        self.assertEqual(message['_status'], 'ok')
-        self.assertEqual(message['message'], 'test.first_msg')
-        self.assertEqual(message['email'], 'test@example.com')
+        assert message.status == FluxResponseStatus.OK
+        assert message.payload == dict(message=TestsMsg.fst_test_msg.value, success=True, email='test@example.com')
 
     def test_success_message_from_str(self):
         message = success_message('test.str_msg')
-        self.assertEqual(message['_status'], 'ok')
-        self.assertEqual(message['message'], 'test.str_msg')
+        assert message.status == FluxResponseStatus.OK
+        assert message.payload == dict(message='test.str_msg', success=True)
 
     def test_success_message_from_str_with_data(self):
         data = {'email': 'test@example.com'}
         message = success_message('test.str_msg', data=data)
-        self.assertEqual(message['_status'], 'ok')
-        self.assertEqual(message['message'], 'test.str_msg')
-        self.assertEqual(message['email'], 'test@example.com')
+        assert message.status == FluxResponseStatus.OK
+        assert message.payload == dict(message='test.str_msg', success=True, email='test@example.com')
 
     def test_success_message_unknown(self):
         with self.assertRaises(AttributeError):
@@ -89,56 +85,49 @@ class MessageTests(TestCase):
 
     def test_error_message(self):
         message = error_message(TestsMsg.fst_test_msg)
-        self.assertEqual(message['_status'], 'error')
-        self.assertFalse(message['success'])
-        self.assertEqual(message['message'], 'test.first_msg')
+        assert message.status == FluxResponseStatus.ERROR
+        assert message.payload == dict(message=TestsMsg.fst_test_msg.value, success=False)
 
     def test_error_message_with_errors(self):
         data = {'errors': {'email': 'required'}}
         message = error_message(TestsMsg.fst_test_msg, data=data)
-        self.assertEqual(message['_status'], 'error')
-        self.assertEqual(message['message'], 'test.first_msg')
-        self.assertEqual(message['errors'], data['errors'])
+        assert message.status == FluxResponseStatus.ERROR
+        assert message.payload == dict(message=TestsMsg.fst_test_msg.value, success=False, errors=data['errors'])
 
     def test_error_message_with_status(self):
         data = {'status': 'stale'}
         message = error_message(TestsMsg.fst_test_msg, data=data)
-        self.assertEqual(message['_status'], 'error')
-        self.assertEqual(message['message'], 'test.first_msg')
-        self.assertEqual(message['status'], data['status'])
+        assert message.status == FluxResponseStatus.ERROR
+        assert message.payload == dict(message=TestsMsg.fst_test_msg.value, success=False, status=data['status'])
 
     def test_error_message_with_next(self):
         data = {'next': '/next'}
         message = error_message(TestsMsg.fst_test_msg, data=data)
-        self.assertEqual(message['_status'], 'error')
-        self.assertEqual(message['message'], 'test.first_msg')
-        self.assertEqual(message['next'], data['next'])
+        assert message.status == FluxResponseStatus.ERROR
+        assert message.payload == dict(message=TestsMsg.fst_test_msg.value, success=False, next=data['next'])
 
     def test_error_message_from_str(self):
         message = error_message('test.str_msg')
-        self.assertEqual(message['_status'], 'error')
-        self.assertEqual(message['message'], 'test.str_msg')
+        assert message.status == FluxResponseStatus.ERROR
+        assert message.payload == dict(message='test.str_msg', success=False)
 
     def test_error_message_from_str_with_errors(self):
         data = {'errors': {'email': 'required'}}
         message = error_message('str_msg', data=data)
-        self.assertEqual(message['_status'], 'error')
-        self.assertEqual(message['message'], 'str_msg')
-        self.assertEqual(message['errors'], data['errors'])
+        assert message.status == FluxResponseStatus.ERROR
+        assert message.payload == dict(message='str_msg', success=False, errors=data['errors'])
 
     def test_error_message_from_str_with_status(self):
         data = {'status': 'stale'}
         message = error_message('str_msg', data=data)
-        self.assertEqual(message['_status'], 'error')
-        self.assertEqual(message['message'], 'str_msg')
-        self.assertEqual(message['status'], data['status'])
+        assert message.status == FluxResponseStatus.ERROR
+        assert message.payload == dict(message='str_msg', success=False, status=data['status'])
 
     def test_error_message_from_str_with_next(self):
         data = {'next': '/next'}
         message = error_message('str_msg', data=data)
-        self.assertEqual(message['_status'], 'error')
-        self.assertEqual(message['message'], 'str_msg')
-        self.assertEqual(message['next'], data['next'])
+        assert message.status == FluxResponseStatus.ERROR
+        assert message.payload == dict(message='str_msg', success=False, next=data['next'])
 
     def test_error_message_unknown(self):
         with self.assertRaises(AttributeError):

@@ -30,12 +30,16 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+from copy import copy
+from dataclasses import dataclass
 from enum import Enum, unique
-from typing import Optional, Union
+from typing import Any, Dict, Mapping, Optional, Union
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from flask import redirect
 from werkzeug.wrappers import Response as WerkzeugResponse
+
+from eduid_common.api.schemas.models import FluxResponseStatus
 
 
 @unique
@@ -67,43 +71,67 @@ class CommonMsg(TranslatableMsg):
     nin_invalid = 'nin needs to be formatted as 18|19|20yymmddxxxx'
     # Eamil address validation error
     email_invalid = 'email needs to be formatted according to RFC2822'
-    # CSRF
+    # TODO: These _should_ be unused now - check and remove
     csrf_try_again = 'csrf.try_again'
     csrf_missing = 'csrf.missing'
 
 
-def success_message(message: Union[TranslatableMsg, str], data: Optional[dict] = None) -> dict:
+@dataclass(frozen=True)
+class FluxData:
+    status: FluxResponseStatus
+    payload: Mapping[str, Any]
+
+
+def success_message(
+    message: Optional[Union[TranslatableMsg, str]] = None, data: Optional[Mapping[str, Any]] = None
+) -> FluxData:
     """
-    Make a dict that corresponds to a success response, that can be marshalled into a response
-    that eduid-front understands.
+    Make a success response, that can be marshalled into a response that eduid-front understands.
+
+    See the documentation of the MarshalWith decorator for further details on the actual on-the-wire format.
 
     :param message: the code that will be translated in eduid-front into a message to the user.
                     can be an TranslatableMsg instance or, for B/C and robustness, a str.
     :param data: additional data the views may need to send in the response.
     """
-    if isinstance(message, TranslatableMsg):
-        message = str(message.value)
-    msg = {'_status': 'ok', 'success': True, 'message': message}
-    if data is not None:
-        msg.update(data)
-    return msg
+    return FluxData(status=FluxResponseStatus.OK, payload=_make_payload(message, data, True))
 
 
-def error_message(message: Union[TranslatableMsg, str], data: Optional[dict] = None) -> dict:
+def error_message(
+    message: Optional[Union[TranslatableMsg, str]] = None, data: Optional[Mapping[str, Any]] = None
+) -> FluxData:
     """
-    Make a dict that corresponds to an error response, that can be marshalled into a response
-    that eduid-front understands.
+    Make an error response, that can be marshalled into a response that eduid-front understands.
+
+    See the documentation of the MarshalWith decorator for further details on the actual on-the-wire format.
 
     :param message: the code that will be translated in eduid-front into a message to the user.
                     can be an SignupMsg instance or, for B/C and robustness, a str.
     :param data: additional data the views may need to send in the response.
     """
-    if isinstance(message, TranslatableMsg):
-        message = str(message.value)
-    msg = {'_status': 'error', 'success': False, 'message': message}
+    return FluxData(status=FluxResponseStatus.ERROR, payload=_make_payload(message, data, False))
+
+
+def _make_payload(
+    message: Optional[Union[TranslatableMsg, str]], data: Optional[Mapping[str, Any]], success: bool,
+) -> Mapping[str, Any]:
+    payload: Dict[str, Any] = {}
     if data is not None:
-        msg.update(data)
-    return msg
+        payload = copy(dict(data))  # to not mess with callers data
+
+    if message is not None:
+        if isinstance(message, TranslatableMsg):
+            payload['message'] = str(message.value)
+        elif isinstance(message, str):
+            payload['message'] = message
+        else:
+            raise TypeError('Flux message was neither a TranslatableMsg nor a string')
+
+    # TODO: See if the frontend actually uses this element, and if not - remove it (breaks some tests)
+    if 'success' not in payload:
+        payload['success'] = success
+
+    return payload
 
 
 def make_query_string(msg: TranslatableMsg, error: bool = True):

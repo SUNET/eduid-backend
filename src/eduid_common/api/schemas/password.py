@@ -3,7 +3,6 @@
 import math
 
 from marshmallow import Schema, ValidationError
-
 from zxcvbn import zxcvbn
 
 __author__ = 'lundberg'
