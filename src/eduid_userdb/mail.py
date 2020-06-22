@@ -77,7 +77,7 @@ class MailAddress(PrimaryElement):
         # CSRF tokens were accidentally put in the database some time ago
         if 'csrf' in data:
             del data['csrf']
-        PrimaryElement.__init__(self, data, raise_on_unknown, called_directly=called_directly, ignore_data=['email'])
+        super().__init__(data, raise_on_unknown, called_directly=called_directly, ignore_data=['email'])
         self.email = data.pop('email')
 
     # -----------------------------------------------------------------

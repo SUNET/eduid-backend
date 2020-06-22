@@ -79,7 +79,7 @@ class LockedIdentityNin(LockedIdentityElement):
 
         data['identity_type'] = 'nin'
 
-        LockedIdentityElement.__init__(self, data, called_directly=called_directly)
+        super().__init__(data, called_directly=called_directly)
         self.number = number
 
     # -----------------------------------------------------------------

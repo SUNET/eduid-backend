@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
+from __future__ import annotations
 
 import copy
 from typing import Any, Dict, Optional, Type
@@ -20,7 +20,7 @@ class OidcElement(Element):
         raise NotImplementedError()
 
     @classmethod
-    def from_dict(cls: Type['OidcElement'], data: Dict[str, Any], raise_on_unknown: bool = True) -> 'OidcElement':
+    def from_dict(cls: Type[OidcElement], data: Dict[str, Any], raise_on_unknown: bool = True) -> OidcElement:
         """
         Construct user from a data dict.
         """
@@ -536,7 +536,7 @@ class Orcid(VerifiedElement):
         elif 'created_ts' not in data:
             data['created_ts'] = True
 
-        VerifiedElement.__init__(self, data, called_directly=called_directly)
+        super().__init__(data, called_directly=called_directly)
         self.id = data.pop('id')
         self.name = data.pop('name', None)
         self.given_name = data.pop('given_name', None)
