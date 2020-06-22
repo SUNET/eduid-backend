@@ -70,7 +70,7 @@ class AttributeFetcherOldToNewUsersTests(AMTestCase):
                     self.af_registry[attr] = af_class(self.am_settings)
 
         for userdoc in self.amdb._get_all_docs():
-            proofing_user = ProofingUser(data=userdoc)
+            proofing_user = ProofingUser.from_dict(userdoc)
             for fetcher in self.af_registry.values():
                 fetcher.private_db.save(proofing_user, check_sync=False)
 
@@ -88,7 +88,7 @@ class AttributeFetcherOldToNewUsersTests(AMTestCase):
 
     def test_existing_user(self):
         for fetcher in self.af_registry.values():
-            proofing_user = ProofingUser(data=self.user_data)
+            proofing_user = ProofingUser.from_dict(self.user_data)
             fetcher.private_db.save(proofing_user)
 
             actual_update = fetcher.fetch_attrs(proofing_user.user_id)
@@ -119,7 +119,7 @@ class AttributeFetcherOldToNewUsersTests(AMTestCase):
     def test_fillup_attributes(self):
 
         for fetcher in self.af_registry.values():
-            proofing_user = ProofingUser(data=self.user_data)
+            proofing_user = ProofingUser.from_dict(self.user_data)
             fetcher.private_db.save(proofing_user)
 
             actual_update = fetcher.fetch_attrs(proofing_user.user_id)
@@ -160,7 +160,7 @@ class AttributeFetcherOldToNewUsersTests(AMTestCase):
                 ],
             }
         )
-        proofing_user = ProofingUser(data=self.user_data)
+        proofing_user = ProofingUser.from_dict(self.user_data)
         fetcher = self.af_registry['eduid_letter_proofing']
         fetcher.private_db.save(proofing_user)
 
@@ -221,7 +221,7 @@ class AttributeFetcherOldToNewUsersTests(AMTestCase):
                 "transaction_id": "debug mode transaction id",
             }
         )
-        proofing_user = ProofingUser(data=self.user_data)
+        proofing_user = ProofingUser.from_dict(self.user_data)
         fetcher.private_db.save(proofing_user)
 
         actual_update = fetcher.fetch_attrs(proofing_user.user_id)
@@ -286,7 +286,7 @@ class AttributeFetcherOldToNewUsersTests(AMTestCase):
         self.user_data.update({'norEduPersonNIN': '123456781235'})
         del self.user_data['nins']
         for fetcher in self.af_registry.values():
-            proofing_user = ProofingUser(data=self.user_data)
+            proofing_user = ProofingUser.from_dict(self.user_data)
             fetcher.private_db.save(proofing_user)
 
             actual_update = fetcher.fetch_attrs(proofing_user.user_id)
@@ -311,7 +311,7 @@ class AttributeFetcherNINProofingTests(AMTestCase):
                     self.af_registry[attr] = af_class(self.am_settings)
 
         for userdoc in self.amdb._get_all_docs():
-            proofing_user = ProofingUser(data=userdoc)
+            proofing_user = ProofingUser.from_dict(userdoc)
             for fetcher in self.af_registry.values():
                 fetcher.private_db.save(proofing_user, check_sync=False)
 
@@ -330,7 +330,7 @@ class AttributeFetcherNINProofingTests(AMTestCase):
     def test_existing_user(self):
 
         for fetcher in self.af_registry.values():
-            proofing_user = ProofingUser(data=self.user_data)
+            proofing_user = ProofingUser.from_dict(self.user_data)
             fetcher.private_db.save(proofing_user)
 
             self.assertDictEqual(
@@ -361,7 +361,7 @@ class AttributeFetcherNINProofingTests(AMTestCase):
     def test_fillup_attributes(self):
 
         for fetcher in self.af_registry.values():
-            proofing_user = ProofingUser(data=self.user_data)
+            proofing_user = ProofingUser.from_dict(self.user_data)
             fetcher.private_db.save(proofing_user)
 
             self.assertDictEqual(
@@ -402,7 +402,7 @@ class AttributeFetcherNINProofingTests(AMTestCase):
                 ],
             }
         )
-        proofing_user = ProofingUser(data=self.user_data)
+        proofing_user = ProofingUser.from_dict(self.user_data)
         fetcher = self.af_registry['eduid_letter_proofing']
         fetcher.private_db.save(proofing_user)
 
@@ -464,7 +464,7 @@ class AttributeFetcherNINProofingTests(AMTestCase):
                 "transaction_id": "debug mode transaction id",
             }
         )
-        proofing_user = ProofingUser(data=self.user_data)
+        proofing_user = ProofingUser.from_dict(self.user_data)
         fetcher.private_db.save(proofing_user)
 
         actual_update = fetcher.fetch_attrs(proofing_user.user_id)
@@ -533,7 +533,7 @@ class AttributeFetcherEmailProofingTests(AMTestCase):
         self.user_data = deepcopy(USER_DATA)
         self.af_registry = AFRegistry(self.am_settings)
         # for userdoc in self.amdb._get_all_docs():
-        #    proofing_user = ProofingUser(data=userdoc)
+        #    proofing_user = ProofingUser.from_dict(userdoc)
         #    for context in self.plugin_contexts:
         #        context.private_db.save(proofing_user, check_sync=False)
 
@@ -552,7 +552,7 @@ class AttributeFetcherEmailProofingTests(AMTestCase):
     def test_existing_user(self):
 
         fetcher = self.af_registry['eduid_email']
-        proofing_user = ProofingUser(data=self.user_data)
+        proofing_user = ProofingUser.from_dict(self.user_data)
         fetcher.private_db.save(proofing_user)
 
         self.assertDictEqual(
@@ -592,7 +592,7 @@ class AttributeFetcherEmailProofingTests(AMTestCase):
         }
 
         fetcher = self.af_registry['eduid_email']
-        proofing_user = ProofingUser(data=self.user_data)
+        proofing_user = ProofingUser.from_dict(self.user_data)
         fetcher.private_db.save(proofing_user)
 
         self.assertDictEqual(
@@ -609,7 +609,7 @@ class AttributeFetcherPhoneProofingTests(AMTestCase):
         self.af_registry = AFRegistry(self.am_settings)
         self.fetcher = self.af_registry['eduid_phone']
         for userdoc in self.amdb._get_all_docs():
-            proofing_user = ProofingUser(data=userdoc)
+            proofing_user = ProofingUser.from_dict(userdoc)
             self.fetcher.private_db.save(proofing_user, check_sync=False)
 
         self.maxDiff = None
@@ -624,7 +624,7 @@ class AttributeFetcherPhoneProofingTests(AMTestCase):
             self.fetcher.fetch_attrs(bson.ObjectId('0' * 24))
 
     def test_existing_user(self):
-        proofing_user = ProofingUser(data=self.user_data)
+        proofing_user = ProofingUser.from_dict(self.user_data)
         self.fetcher.private_db.save(proofing_user)
 
         self.assertDictEqual(
@@ -645,7 +645,7 @@ class AttributeFetcherPhoneProofingTests(AMTestCase):
             self.fetcher.fetch_attrs(user_id)
 
     def test_fillup_attributes(self):
-        proofing_user = ProofingUser(data=self.user_data)
+        proofing_user = ProofingUser.from_dict(self.user_data)
         self.fetcher.private_db.save(proofing_user)
 
         self.assertDictEqual(
@@ -674,7 +674,7 @@ class AttributeFetcherPersonalDataTests(AMTestCase):
             self.fetcher.fetch_attrs(bson.ObjectId('0' * 24))
 
     def test_existing_user(self):
-        personal_data_user = PersonalDataUser(data=self.user_data)
+        personal_data_user = PersonalDataUser.from_dict(self.user_data)
         self.fetcher.private_db.save(personal_data_user)
 
         self.assertDictEqual(
@@ -702,7 +702,7 @@ class AttributeFetcherPersonalDataTests(AMTestCase):
             self.fetcher.fetch_attrs(user_id)
 
     def test_fillup_attributes(self):
-        personal_data_user = PersonalDataUser(data=self.user_data)
+        personal_data_user = PersonalDataUser.from_dict(self.user_data)
         self.fetcher.private_db.save(personal_data_user)
 
         self.assertDictEqual(
@@ -738,7 +738,7 @@ class AttributeFetcherSecurityTests(AMTestCase):
             self.fetcher.fetch_attrs(bson.ObjectId('0' * 24))
 
     def test_existing_user(self):
-        security_user = SecurityUser(data=self.user_data)
+        security_user = SecurityUser.from_dict(self.user_data)
         self.fetcher.private_db.save(security_user)
 
         self.assertDictEqual(
@@ -772,7 +772,7 @@ class AttributeFetcherSecurityTests(AMTestCase):
             self.fetcher.fetch_attrs(user_id)
 
     def test_fillup_attributes(self):
-        security_user = SecurityUser(data=self.user_data)
+        security_user = SecurityUser.from_dict(self.user_data)
         self.fetcher.private_db.save(security_user)
 
         self.assertDictEqual(
@@ -814,7 +814,7 @@ class AttributeFetcherResetPasswordTests(AMTestCase):
             self.fetcher.fetch_attrs(bson.ObjectId('0' * 24))
 
     def test_existing_user(self):
-        reset_password_user = ResetPasswordUser(data=self.user_data)
+        reset_password_user = ResetPasswordUser.from_dict(self.user_data)
         self.fetcher.private_db.save(reset_password_user)
 
         self.assertDictEqual(
@@ -847,7 +847,7 @@ class AttributeFetcherResetPasswordTests(AMTestCase):
             self.fetcher.fetch_attrs(user_id)
 
     def test_fillup_attributes(self):
-        reset_password_user = ResetPasswordUser(data=self.user_data)
+        reset_password_user = ResetPasswordUser.from_dict(self.user_data)
         self.fetcher.private_db.save(reset_password_user)
 
         self.assertDictEqual(
@@ -888,41 +888,49 @@ class AttributeFetcherOrcidTests(AMTestCase):
             self.fetcher.fetch_attrs(bson.ObjectId('0' * 24))
 
     def test_existing_user(self):
-        proofing_user = ProofingUser(data=self.user_data)
+        proofing_user = ProofingUser.from_dict(self.user_data)
         self.fetcher.private_db.save(proofing_user)
+        fetched = self.fetcher.fetch_attrs(proofing_user.user_id)
+        # remove the datetimes from the response,
+        # that carry their own tzinfo object from bson
+        if 'created_ts' in fetched['$set']['orcid']:
+            fetched['$set']['orcid'].pop('created_ts')
+        if 'created_ts' in fetched['$set']['orcid']['oidc_authz']:
+            fetched['$set']['orcid']['oidc_authz'].pop('created_ts')
+        if 'created_ts' in fetched['$set']['orcid']['oidc_authz']['id_token']:
+            fetched['$set']['orcid']['oidc_authz']['id_token'].pop('created_ts')
 
-        self.assertDictEqual(
-            self.fetcher.fetch_attrs(proofing_user.user_id),
-            {
-                '$set': {
-                    'orcid': {
-                        'oidc_authz': {
-                            'token_type': 'bearer',
-                            'refresh_token': 'a_refresh_token',
-                            'access_token': 'an_access_token',
-                            'id_token': {
-                                'nonce': 'a_nonce',
-                                'sub': 'sub_id',
-                                'iss': 'https://issuer.example.org',
-                                'created_by': 'orcid',
-                                'exp': 1526890816,
-                                'auth_time': 1526890214,
-                                'iat': 1526890216,
-                                'aud': ['APP-YIAD0N1L4B3Z3W9Q'],
-                            },
-                            'expires_in': 631138518,
+        expected = {
+            '$set': {
+                'orcid': {
+                    'oidc_authz': {
+                        'token_type': 'bearer',
+                        'refresh_token': 'a_refresh_token',
+                        'access_token': 'an_access_token',
+                        'id_token': {
+                            'nonce': 'a_nonce',
+                            'sub': 'sub_id',
+                            'iss': 'https://issuer.example.org',
                             'created_by': 'orcid',
+                            'exp': 1526890816,
+                            'auth_time': 1526890214,
+                            'iat': 1526890216,
+                            'aud': ['APP-YIAD0N1L4B3Z3W9Q'],
                         },
-                        'given_name': 'Testaren',
-                        'family_name': 'Testsson',
-                        'name': None,
-                        'verified': True,
-                        'id': 'orcid_unique_id',
+                        'expires_in': 631138518,
                         'created_by': 'orcid',
-                    }
-                },
+                    },
+                    'given_name': 'Testaren',
+                    'family_name': 'Testsson',
+                    'name': None,
+                    'verified': True,
+                    'id': 'orcid_unique_id',
+                    'created_by': 'orcid',
+                }
             },
-        )
+        }
+
+        assert expected == fetched
 
     def test_malicious_attributes(self):
         self.user_data.update(
@@ -937,7 +945,7 @@ class AttributeFetcherOrcidTests(AMTestCase):
             self.fetcher.fetch_attrs(user_id)
 
     def test_remove_orcid(self):
-        proofing_user = ProofingUser(data=self.user_data)
+        proofing_user = ProofingUser.from_dict(self.user_data)
         proofing_user.orcid = None
         self.fetcher.private_db.save(proofing_user)
 

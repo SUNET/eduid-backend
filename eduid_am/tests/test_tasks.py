@@ -45,7 +45,7 @@ class TestTasks(AMTestCase):
         user2_doc = user1.to_dict()
         user2_doc['_id'] = ObjectId()  # make up a new unique identifier
         del user2_doc['modified_ts']  # defeat sync-check mechanism
-        self.amdb.save(eduid_userdb.User(data=user2_doc))
+        self.amdb.save(eduid_userdb.User.from_dict(user2_doc))
         with self.assertRaises(MultipleUsersReturned):
             self.amdb.get_user_by_mail(M['mailAliases'][0]['email'])
 
