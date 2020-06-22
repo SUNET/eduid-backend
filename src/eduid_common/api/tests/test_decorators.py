@@ -3,7 +3,7 @@ from unittest.case import TestCase
 import flask
 
 from eduid_common.api.decorators import MarshalWith
-from eduid_common.api.messages import FluxData, error_message, success_message
+from eduid_common.api.messages import FluxData, error_response, success_response
 from eduid_common.api.schemas.base import FluxStandardAction
 from eduid_common.api.tests.test_messages import TestsMsg
 
@@ -23,7 +23,7 @@ class MarshalDecoratorTests(TestCase):
 
     def test_success_message(self):
         """ Test that a simple success_message is turned into a well-formed Flux Standard Action response"""
-        msg = success_message(TestsMsg.fst_test_msg)
+        msg = success_response(message=TestsMsg.fst_test_msg)
         with self.app.test_request_context('/test/foo'):
             response = self.flask_view(msg)
             assert response.json == {
@@ -33,7 +33,7 @@ class MarshalDecoratorTests(TestCase):
 
     def test_success_message_with_data(self):
         """ Test that a success_message with data is turned into a well-formed Flux Standard Action response"""
-        msg = success_message(TestsMsg.fst_test_msg, data={'working': True})
+        msg = success_response(payload={'working': True}, message=TestsMsg.fst_test_msg)
         with self.app.test_request_context('/test/foo'):
             response = self.flask_view(msg)
             assert response.json == {
@@ -43,7 +43,7 @@ class MarshalDecoratorTests(TestCase):
 
     def test_error_message(self):
         """ Test that a simple success_message is turned into a well-formed Flux Standard Action response"""
-        msg = error_message(TestsMsg.fst_test_msg)
+        msg = error_response(message=TestsMsg.fst_test_msg)
         with self.app.test_request_context('/test/foo'):
             response = self.flask_view(msg)
             assert response.json == {
@@ -54,7 +54,7 @@ class MarshalDecoratorTests(TestCase):
 
     def test_error_message_with_data(self):
         """ Test that an error_message with data is turned into a well-formed Flux Standard Action response"""
-        msg = error_message(TestsMsg.fst_test_msg, data={'working': True})
+        msg = error_response(payload={'working': True}, message=TestsMsg.fst_test_msg)
         with self.app.test_request_context('/test/foo'):
             response = self.flask_view(msg)
             assert response.json == {

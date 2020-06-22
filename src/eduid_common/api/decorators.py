@@ -11,7 +11,7 @@ from marshmallow.exceptions import ValidationError
 from six import string_types
 from werkzeug.wrappers import Response as WerkzeugResponse
 
-from eduid_common.api.messages import FluxData, error_message
+from eduid_common.api.messages import FluxData, error_response
 from eduid_common.api.schemas.models import FluxFailResponse, FluxResponseStatus, FluxSuccessResponse
 from eduid_common.api.utils import get_user
 from eduid_common.session import session
@@ -70,12 +70,12 @@ def can_verify_identity(f):
         # For now a user can just have one verified NIN
         if user.nins.primary is not None:
             # TODO: Make this a CommonMsg I guess
-            return error_message(message='User is already verified')
+            return error_response(message='User is already verified')
         # A user can not verify a nin if another previously was verified
         locked_nin = user.locked_identity.find('nin')
         if locked_nin and locked_nin.number != kwargs['nin']:
             # TODO: Make this a CommonMsg I guess
-            return error_message(message='Another nin is already registered for this user')
+            return error_response(message='Another nin is already registered for this user')
 
         return f(*args, **kwargs)
 
