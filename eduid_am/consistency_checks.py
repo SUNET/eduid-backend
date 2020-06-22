@@ -203,7 +203,11 @@ def check_locked_identity(userdb, user_id, attributes, app_name):
     locked_nin = locked_identities.find('nin')
     # Create a new locked nin if it does not already exist
     if not locked_nin:
-        locked_nin = LockedIdentityNin(nin['number'], nin.get('created_by', app_name), nin.get('created_ts', True))
+        locked_nin = LockedIdentityNin.from_dict(
+            dict(
+                number=nin['number'], created_by=nin.get('created_by', app_name), created_ts=nin.get('created_ts', True)
+            )
+        )
         locked_identities.add(locked_nin)
 
     # Check nin to be set against locked nin

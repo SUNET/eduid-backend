@@ -158,7 +158,7 @@ class TestTasks(AMTestCase):
         attributes = {'$set': {'nins': [{'verified': True, 'number': '200102031234', 'primary': True}],}}
         new_attributes = check_locked_identity(self.amdb, user_id, attributes, 'test')
 
-        locked_nin = LockedIdentityNin('200102031234', 'test', True)
+        locked_nin = LockedIdentityNin.from_dict(dict(number='200102031234', created_by='test', created_ts=True))
         locked_identities = LockedIdentityList({}).add(locked_nin)
         attributes['$set']['locked_identity'] = locked_identities.to_list_of_dicts()
 
@@ -167,7 +167,9 @@ class TestTasks(AMTestCase):
     def test_check_locked_identity(self):
         user_id = ObjectId('012345678901234567890123')  # johnsmith@example.com / hubba-bubba
         user = self.amdb.get_user_by_id(user_id)
-        user.locked_identity.add(LockedIdentityNin('197801011234', 'test', True))
+        user.locked_identity.add(
+            LockedIdentityNin.from_dict(dict(number='197801011234', created_by='test', created_ts=True))
+        )
         self.amdb.save(user)
         attributes = {
             '$set': {
@@ -176,7 +178,7 @@ class TestTasks(AMTestCase):
         }
         new_attributes = check_locked_identity(self.amdb, user_id, attributes, 'test')
 
-        locked_nin = LockedIdentityNin('197801011234', 'test', True)
+        locked_nin = LockedIdentityNin.from_dict(dict(number='197801011234', created_by='test', created_ts=True))
         locked_identities = LockedIdentityList({}).add(locked_nin)
         attributes['$set']['locked_identity'] = locked_identities.to_list_of_dicts()
 
@@ -185,7 +187,9 @@ class TestTasks(AMTestCase):
     def test_check_locked_identity_wrong_nin(self):
         user_id = ObjectId('901234567890123456789012')  # johnsmith@example.org / babba-labba
         user = self.amdb.get_user_by_id(user_id)
-        user.locked_identity.add(LockedIdentityNin('200102031234', 'test', True))
+        user.locked_identity.add(
+            LockedIdentityNin.from_dict(dict(number='200102031234', created_by='test', created_ts=True))
+        )
         self.amdb.save(user)
         attributes = {'$set': {'nins': [{'verified': True, 'number': '200506076789', 'primary': True}],}}
         with self.assertRaises(EduIDUserDBError):
