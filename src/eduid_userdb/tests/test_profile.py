@@ -36,9 +36,13 @@ class ProfileTest(TestCase):
             created_by='test created_by',
             created_ts=True,
         )
-        data = dict(owner='test owner 2', created_by='test created_by', created_ts=True, schema='test schema')
-        data['profile_data'] = OPAQUE_DATA
-        profile2 = Profile(**data)
+        profile2 = Profile(
+            owner='test owner 2',
+            created_by='test created_by',
+            created_ts=True,
+            schema='test schema',
+            profile_data=OPAQUE_DATA,
+        )
 
         profile_list = ProfileList([profile, profile2])
         self.assertIsNotNone(profile_list)
