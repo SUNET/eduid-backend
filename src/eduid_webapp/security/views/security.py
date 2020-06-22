@@ -41,7 +41,7 @@ from six.moves.urllib_parse import parse_qs, urlencode, urlparse, urlunparse
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid_common.api.exceptions import AmTaskFailed, MsgTaskFailed
 from eduid_common.api.helpers import add_nin_to_user
-from eduid_common.api.messages import CommonMsg, error_message, success_message
+from eduid_common.api.messages import CommonMsg, error_response, success_response
 from eduid_common.api.utils import save_and_sync_user, urlappend
 from eduid_common.authn.vccs import add_credentials, revoke_all_credentials
 from eduid_common.session import session
@@ -113,43 +113,43 @@ def change_password(user):
     schema = ChangePasswordSchema(zxcvbn_terms=get_zxcvbn_terms(security_user.eppn), min_entropy=int(min_entropy))
 
     if not request.data:
-        return error_message('chpass.no-data')
+        return error_response(message='chpass.no-data')
 
     try:
         form = schema.load(json.loads(request.data))
         current_app.logger.debug(form)
     except ValidationError as e:
         current_app.logger.error(e)
-        return error_message('chpass.weak-password')
+        return error_response(message='chpass.weak-password')
     else:
         old_password = form.get('old_password')
         new_password = form.get('new_password')
 
     if session.get_csrf_token() != form['csrf_token']:
-        return error_message('csrf.try_again')
+        return error_response(message='csrf.try_again')
 
     authn_ts = session.get('reauthn-for-chpass', None)
     if authn_ts is None:
-        return error_message('chpass.no_reauthn')
+        return error_response(message='chpass.no_reauthn')
 
     now = datetime.utcnow()
     delta = now - datetime.fromtimestamp(authn_ts)
     timeout = current_app.config.chpass_timeout
     if int(delta.total_seconds()) > timeout:
-        return error_message('chpass.stale_reauthn')
+        return error_response(message='chpass.stale_reauthn')
 
     vccs_url = current_app.config.vccs_url
     added = add_credentials(vccs_url, old_password, new_password, security_user, source='security')
 
     if not added:
         current_app.logger.debug('Problem verifying the old credentials for {}'.format(user))
-        return error_message('chpass.unable-to-verify-old-password')
+        return error_response(message='chpass.unable-to-verify-old-password')
 
     security_user.terminated = False
     try:
         save_and_sync_user(security_user)
     except UserOutOfSync:
-        return error_message('user-out-of-sync')
+        return error_response(message='user-out-of-sync')
 
     del session['reauthn-for-chpass']
 
@@ -217,7 +217,7 @@ def account_terminated(user):
     delta = now - datetime.fromtimestamp(authn_ts)
 
     if int(delta.total_seconds()) > 600:
-        return error_message(SecurityMsg.stale_reauthn)
+        return error_response(message=SecurityMsg.stale_reauthn)
 
     del session['reauthn-for-termination']
 
@@ -235,7 +235,7 @@ def account_terminated(user):
     try:
         save_and_sync_user(security_user)
     except UserOutOfSync:
-        return error_message(CommonMsg.out_of_sync)
+        return error_response(message=CommonMsg.out_of_sync)
 
     current_app.stats.count(name='security_account_terminated', value=1)
     current_app.logger.info('Terminated user account')
@@ -263,16 +263,18 @@ def remove_nin(user, nin):
     nin_obj = security_user.nins.find(nin)
     if nin_obj and nin_obj.is_verified:
         current_app.logger.info('NIN verified. Will not remove it.')
-        return error_message(SecurityMsg.rm_verified)
+        return error_response(message=SecurityMsg.rm_verified)
 
     try:
         remove_nin_from_user(security_user, nin)
-        return success_message(SecurityMsg.rm_success, data=dict(nins=security_user.nins.to_list_of_dicts()))
+        return success_response(
+            payload=dict(nins=security_user.nins.to_list_of_dicts()), message=SecurityMsg.rm_success
+        )
     except AmTaskFailed as e:
         current_app.logger.error('Removing nin from user failed')
         current_app.logger.debug(f'NIN: {nin}')
         current_app.logger.error('{}'.format(e))
-        return error_message(CommonMsg.temp_problem)
+        return error_response(message=CommonMsg.temp_problem)
 
 
 @security_views.route('/add-nin', methods=['POST'])
@@ -287,7 +289,7 @@ def add_nin(user, nin):
     nin_obj = security_user.nins.find(nin)
     if nin_obj:
         current_app.logger.info('NIN already added.')
-        return error_message(SecurityMsg.already_exists)
+        return error_response(message=SecurityMsg.already_exists)
 
     try:
         nin_element = NinProofingElement(number=nin, application='security', verified=False)
@@ -295,9 +297,11 @@ def add_nin(user, nin):
             {'eduPersonPrincipalName': security_user.eppn, 'nin': nin_element.to_dict()}
         )
         add_nin_to_user(user, proofing_state, user_class=SecurityUser)
-        return success_message(SecurityMsg.add_success, data=dict(nins=security_user.nins.to_list_of_dicts()))
+        return success_response(
+            payload=dict(nins=security_user.nins.to_list_of_dicts()), message=SecurityMsg.add_success
+        )
     except AmTaskFailed as e:
         current_app.logger.error('Adding nin to user failed')
         current_app.logger.debug(f'NIN: {nin}')
         current_app.logger.error('{}'.format(e))
-        return error_message(CommonMsg.temp_problem)
+        return error_response(message=CommonMsg.temp_problem)

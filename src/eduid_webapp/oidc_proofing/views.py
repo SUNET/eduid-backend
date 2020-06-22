@@ -15,7 +15,7 @@ from six import BytesIO
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, can_verify_identity, require_user
 from eduid_common.api.exceptions import TaskFailed
 from eduid_common.api.helpers import add_nin_to_user
-from eduid_common.api.messages import CommonMsg, error_message
+from eduid_common.api.messages import CommonMsg, error_response
 from eduid_userdb.exceptions import DocumentDoesNotExist
 from eduid_userdb.proofing import ProofingUser
 from eduid_userdb.util import UTC
@@ -171,10 +171,10 @@ def seleg_proofing(user, nin):
             success = helpers.do_authn_request(proofing_state, claims_request, redirect_url)
             if not success:
                 current_app.stats.count(name='seleg.authn_request_op_error')
-                return error_message(CommonMsg.temp_problem)
+                return error_response(message=CommonMsg.temp_problem)
         except requests.exceptions.ConnectionError as e:
             current_app.logger.error('No connection to authorization endpoint: {!s}'.format(e))
-            return error_message(OIDCMsg.no_conn)
+            return error_response(message=OIDCMsg.no_conn)
 
         # If authentication request went well save user state
         current_app.stats.count(name='seleg.authn_request_success')
@@ -240,10 +240,10 @@ def freja_proofing(user, nin):
             success = helpers.do_authn_request(proofing_state, claims_request, redirect_url)
             if not success:
                 current_app.stats.count(name='freja.authn_request_op_error')
-                return error_message(CommonMsg.temp_problem)
+                return error_response(message=CommonMsg.temp_problem)
         except requests.exceptions.ConnectionError as e:
             current_app.logger.error('No connection to authorization endpoint: {!s}'.format(e))
-            return error_message(OIDCMsg.no_conn)
+            return error_response(message=OIDCMsg.no_conn)
 
         # If authentication request went well save user state
         current_app.stats.count(name='freja.authn_request_success')

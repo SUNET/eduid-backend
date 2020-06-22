@@ -11,7 +11,7 @@ from fido2.server import USER_VERIFICATION, Fido2Server, RelyingParty
 from flask import Blueprint
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
-from eduid_common.api.messages import error_message, success_message
+from eduid_common.api.messages import error_response, success_response
 from eduid_common.api.schemas.base import FluxStandardAction
 from eduid_common.api.utils import save_and_sync_user
 from eduid_common.session import session
@@ -66,12 +66,12 @@ def registration_begin(user, authenticator):
         current_app.logger.error(
             'User tried to register more than {} tokens.'.format(current_app.config.webauthn_max_allowed_tokens)
         )
-        return error_message(SecurityMsg.max_webauthn)
+        return error_response(message=SecurityMsg.max_webauthn)
 
     creds = make_credentials(user_webauthn_tokens.to_list())
     server = get_webauthn_server(current_app.config.fido2_rp_id)
     if user.given_name is None or user.surname is None or user.display_name is None:
-        return error_message(SecurityMsg.no_pdata)
+        return error_response(message=SecurityMsg.no_pdata)
 
     registration_data, state = server.register_begin(
         {
@@ -128,7 +128,7 @@ def registration_complete(user, credential_id, attestation_object, client_data, 
     current_app.stats.count(name='webauthn_register_complete')
     current_app.logger.info('User {} has completed registration of a webauthn token'.format(security_user))
     credentials = compile_credential_list(security_user)
-    return success_message(SecurityMsg.webauthn_success, data=dict(credentials=credentials))
+    return success_response(payload=dict(credentials=credentials), message=SecurityMsg.webauthn_success)
 
 
 @webauthn_views.route('/remove', methods=['POST'])

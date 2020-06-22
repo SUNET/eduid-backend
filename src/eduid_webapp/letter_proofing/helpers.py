@@ -3,7 +3,7 @@
 from datetime import datetime, timedelta
 from enum import unique
 
-from eduid_common.api.messages import TranslatableMsg, error_message
+from eduid_common.api.messages import TranslatableMsg, error_response
 from eduid_common.api.utils import get_short_hash
 from eduid_userdb.proofing import LetterProofingState, NinProofingElement
 from eduid_userdb.proofing.element import SentLetterElement
@@ -82,7 +82,7 @@ def check_state(state):
                 'message': LetterMsg.letter_expired.value,
             }
     current_app.logger.info('Unfinished state for user with eppn {!s}'.format(state.eppn))
-    return error_message(LetterMsg.not_sent)
+    return error_response(message=LetterMsg.not_sent)
 
 
 def create_proofing_state(eppn: str, nin: str) -> LetterProofingState:

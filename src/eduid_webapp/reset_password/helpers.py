@@ -123,6 +123,8 @@ class ResetPwMsg(TranslatableMsg):
     resetpw_weak = 'resetpw.weak-password'
     # email address validation error
     invalid_email = 'Invalid email address'
+    # password successfully changed
+    chpass_password_changed = 'chpass.password-changed'
 
 
 class BadCode(Exception):

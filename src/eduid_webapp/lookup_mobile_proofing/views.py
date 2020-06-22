@@ -7,7 +7,7 @@ from flask import Blueprint
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, can_verify_identity, require_user
 from eduid_common.api.exceptions import AmTaskFailed, MsgTaskFailed
 from eduid_common.api.helpers import add_nin_to_user, verify_nin_for_user
-from eduid_common.api.messages import CommonMsg, error_message
+from eduid_common.api.messages import CommonMsg, error_response
 from eduid_common.api.schemas.csrf import CSRFResponse
 
 from eduid_webapp.lookup_mobile_proofing import schemas
@@ -43,16 +43,16 @@ def proofing(user, nin):
     # Get list of verified mobile numbers
     verified_mobiles = [item.number for item in user.phone_numbers.to_list() if item.is_verified]
     if not verified_mobiles:
-        return error_message(MobileMsg.no_phone)
+        return error_response(message=MobileMsg.no_phone)
 
     try:
         success, proofing_log_entry = match_mobile_to_user(user, nin, verified_mobiles)
     except LookupMobileTaskFailed:
         current_app.stats.count('validate_nin_by_mobile_error')
-        return error_message(MobileMsg.lookup_error)
+        return error_response(message=MobileMsg.lookup_error)
     except MsgTaskFailed:
         current_app.stats.count('navet_error')
-        return error_message(CommonMsg.navet_error)
+        return error_response(message=CommonMsg.navet_error)
 
     if success:
         try:
@@ -62,6 +62,6 @@ def proofing(user, nin):
         except AmTaskFailed as e:
             current_app.logger.error('Verifying nin for user {} failed'.format(user))
             current_app.logger.error('{}'.format(e))
-            return error_message(CommonMsg.temp_problem)
+            return error_response(message=CommonMsg.temp_problem)
 
-    return error_message(MobileMsg.no_match)
+    return error_response(message=MobileMsg.no_match)

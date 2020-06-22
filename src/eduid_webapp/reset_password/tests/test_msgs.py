@@ -33,3 +33,4 @@ class MessagesTests(unittest.TestCase):
         self.assertEqual(ResetPwMsg.fido_token_fail.value, 'resetpw.fido-token-fail')
         self.assertEqual(ResetPwMsg.resetpw_weak.value, 'resetpw.weak-password')
         self.assertEqual(ResetPwMsg.invalid_email.value, 'Invalid email address')
+        self.assertEqual(ResetPwMsg.chpass_password_changed.value, 'chpass.password-changed')

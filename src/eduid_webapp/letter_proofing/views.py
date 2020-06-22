@@ -7,7 +7,7 @@ from flask import Blueprint, abort
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, can_verify_identity, require_user
 from eduid_common.api.exceptions import AmTaskFailed, MsgTaskFailed
 from eduid_common.api.helpers import add_nin_to_user, check_magic_cookie, verify_nin_for_user
-from eduid_common.api.messages import CommonMsg, error_message, success_message
+from eduid_common.api.messages import CommonMsg, error_response, success_response
 from eduid_userdb.logs import LetterProofing
 
 from eduid_webapp.letter_proofing import pdf, schemas
@@ -30,7 +30,7 @@ def get_state(user):
     if proofing_state:
         current_app.logger.info('Found proofing state for user {}'.format(user))
         return check_state(proofing_state)
-    return error_message(LetterMsg.no_state)
+    return error_response(message=LetterMsg.no_state)
 
 
 @letter_proofing_views.route('/proofing', methods=['POST'])
@@ -67,11 +67,11 @@ def proofing(user, nin):
         address = get_address(user, proofing_state)
         if not address:
             current_app.logger.error('No address found for user {}'.format(user))
-            return error_message(LetterMsg.address_not_found)
+            return error_response(message=LetterMsg.address_not_found)
     except MsgTaskFailed as e:
         current_app.logger.error('Navet lookup failed for user {}: {}'.format(user, e))
         current_app.stats.count('navet_error')
-        return error_message(CommonMsg.navet_error)
+        return error_response(message=CommonMsg.navet_error)
 
     # Set and save official address
     proofing_state.proofing_letter.address = address
@@ -83,11 +83,11 @@ def proofing(user, nin):
     except pdf.AddressFormatException as e:
         current_app.logger.error('{}'.format(e))
         current_app.stats.count('address_format_error')
-        return error_message(LetterMsg.bad_address)
+        return error_response(message=LetterMsg.bad_address)
     except EkopostException as e:
         current_app.logger.error('{}'.format(e))
         current_app.stats.count('ekopost_error')
-        return error_message(CommonMsg.temp_problem)
+        return error_response(message=CommonMsg.temp_problem)
 
     # Save the users proofing state
     proofing_state.proofing_letter.transaction_id = campaign_id
@@ -108,20 +108,20 @@ def verify_code(user, code):
     proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn, raise_on_missing=False)
 
     if not proofing_state:
-        return error_message(LetterMsg.no_state)
+        return error_response(message=LetterMsg.no_state)
 
     # Check if provided code matches the one in the letter
     if not code == proofing_state.nin.verification_code:
         current_app.logger.error('Verification code for user {} does not match'.format(user))
         # TODO: Throttling to discourage an adversary to try brute force
-        return error_message(LetterMsg.wrong_code)
+        return error_response(message=LetterMsg.wrong_code)
 
     try:
         official_address = get_address(user, proofing_state)
     except MsgTaskFailed as e:
         current_app.logger.error('Navet lookup failed for user {}: {}'.format(user, e))
         current_app.stats.count('navet_error')
-        return error_message(CommonMsg.navet_error)
+        return error_response(message=CommonMsg.navet_error)
 
     proofing_log_entry = LetterProofing(
         user,
@@ -139,11 +139,11 @@ def verify_code(user, code):
         # Remove proofing state
         current_app.proofing_statedb.remove_state(proofing_state)
         current_app.stats.count(name='nin_verified')
-        return success_message(LetterMsg.verify_success, data=dict(nins=user.nins.to_list_of_dicts()))
+        return success_response(payload=dict(nins=user.nins.to_list_of_dicts()), message=LetterMsg.verify_success)
     except AmTaskFailed as e:
         current_app.logger.error('Verifying nin for user {} failed'.format(user))
         current_app.logger.error('{}'.format(e))
-        return error_message(CommonMsg.temp_problem)
+        return error_response(message=CommonMsg.temp_problem)
 
 
 @letter_proofing_views.route('/get-code', methods=['GET'])

@@ -36,7 +36,7 @@ from flask import Blueprint, abort, request
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid_common.api.helpers import check_magic_cookie
-from eduid_common.api.messages import CommonMsg, error_message, redirect_with_msg, success_message
+from eduid_common.api.messages import CommonMsg, error_response, redirect_with_msg, success_response
 from eduid_common.api.utils import save_and_sync_user
 from eduid_userdb.element import DuplicateElementViolation, PrimaryElementViolation
 from eduid_userdb.exceptions import DocumentDoesNotExist, UserOutOfSync
@@ -66,7 +66,7 @@ def get_all_emails(user):
 
     email_list = EmailListPayload().dump(emails)
 
-    return success_message(EmailMsg.get_success, data=email_list)
+    return success_response(payload=email_list, message=EmailMsg.get_success)
 
 
 @email_views.route('/new', methods=['POST'])
@@ -82,13 +82,13 @@ def post_email(user, email, verified, primary):
     try:
         proofing_user.mail_addresses.add(new_mail)
     except DuplicateElementViolation:
-        return error_message(EmailMsg.dupe)
+        return error_response(message=EmailMsg.dupe)
 
     try:
         save_and_sync_user(proofing_user)
     except UserOutOfSync:
         current_app.logger.debug('Couldnt save email {} for user {}, ' 'data out of sync'.format(email, proofing_user))
-        return error_message(CommonMsg.out_of_sync)
+        return error_response(message=CommonMsg.out_of_sync)
     current_app.logger.info('Saved unconfirmed email {!r} ' 'for user {}'.format(email, proofing_user))
     current_app.stats.count(name='email_save_unconfirmed_email', value=1)
 
@@ -97,11 +97,11 @@ def post_email(user, email, verified, primary):
     email_list = EmailListPayload().dump(emails)
 
     if not sent:
-        return success_message(EmailMsg.added_and_throttled, data=email_list)
+        return success_response(payload=email_list, message=EmailMsg.added_and_throttled)
 
     current_app.stats.count(name='email_send_verification_code', value=1)
 
-    return success_message(EmailMsg.saved, data=email_list)
+    return success_response(payload=email_list, message=EmailMsg.saved)
 
 
 @email_views.route('/primary', methods=['POST'])
@@ -118,13 +118,13 @@ def post_primary(user, email):
         current_app.logger.debug(
             'Couldnt save email {!r} as primary for user {}, data out of sync'.format(email, proofing_user)
         )
-        return error_message(CommonMsg.out_of_sync)
+        return error_response(message=CommonMsg.out_of_sync)
 
     if not mail.is_verified:
         current_app.logger.debug(
             'Couldnt save email {!r} as primary for user {}, email unconfirmed'.format(email, proofing_user)
         )
-        return error_message(EmailMsg.unconfirmed_not_primary)
+        return error_response(message=EmailMsg.unconfirmed_not_primary)
 
     proofing_user.mail_addresses.primary = mail.email
     try:
@@ -133,13 +133,13 @@ def post_primary(user, email):
         current_app.logger.debug(
             'Couldnt save email {!r} as primary for user' ' {}, data out of sync'.format(email, proofing_user)
         )
-        return error_message(CommonMsg.out_of_sync)
+        return error_response(message=CommonMsg.out_of_sync)
     current_app.logger.info('Email address {!r} made primary ' 'for user {}'.format(email, proofing_user))
     current_app.stats.count(name='email_set_primary', value=1)
 
     emails = {'emails': proofing_user.mail_addresses.to_list_of_dicts()}
     email_list = EmailListPayload().dump(emails)
-    return success_message(EmailMsg.success_primary, data=email_list)
+    return success_response(payload=email_list, message=EmailMsg.success_primary)
 
 
 @email_views.route('/verify', methods=['POST'])
@@ -160,10 +160,10 @@ def verify(user, code, email):
             current_app.logger.info("Verification code is expired. Removing the state")
             current_app.logger.debug("Proofing state: {}".format(state))
             current_app.proofing_statedb.remove_state(state)
-            return error_message(EmailMsg.invalid_code)
+            return error_response(message=EmailMsg.invalid_code)
     except DocumentDoesNotExist:
         current_app.logger.info('Could not find proofing state for email {}'.format(email))
-        return error_message(EmailMsg.unknown_email)
+        return error_response(message=EmailMsg.unknown_email)
 
     if code == state.verification.verification_code:
         try:
@@ -174,14 +174,14 @@ def verify(user, code, email):
                 'emails': proofing_user.mail_addresses.to_list_of_dicts(),
             }
             email_list = EmailListPayload().dump(emails)
-            return success_message(EmailMsg.verify_success, data=email_list)
+            return success_response(payload=email_list, message=EmailMsg.verify_success)
         except UserOutOfSync:
             current_app.logger.info('Could not confirm email, data out of sync')
             current_app.logger.debug('Mail address: {}'.format(email))
-            return error_message(CommonMsg.out_of_sync)
+            return error_response(message=CommonMsg.out_of_sync)
     current_app.logger.info("Invalid verification code")
     current_app.logger.debug("Email address: {}".format(state.verification.email))
-    return error_message(EmailMsg.invalid_code)
+    return error_response(message=EmailMsg.invalid_code)
 
 
 @email_views.route('/verify', methods=['GET'])
@@ -241,12 +241,12 @@ def post_remove(user, email):
     # Do not let the user remove all mail addresses
     if len(emails) == 1:
         current_app.logger.debug('Cannot remove the last address: {}'.format(email))
-        return error_message(EmailMsg.cannot_remove_last)
+        return error_response(message=EmailMsg.cannot_remove_last)
 
     # Do not let the user remove all verified mail addresses
     if len(verified_emails) == 1 and verified_emails[0].email == email:
         current_app.logger.debug('Cannot remove last verified address: {}'.format(email))
-        return error_message(EmailMsg.cannot_remove_last_verified)
+        return error_response(message=EmailMsg.cannot_remove_last_verified)
 
     try:
         proofing_user.mail_addresses.remove(email)
@@ -261,14 +261,14 @@ def post_remove(user, email):
         save_and_sync_user(proofing_user)
     except UserOutOfSync:
         current_app.logger.debug('Could not remove email {} for user, data out of sync'.format(email))
-        return error_message(CommonMsg.out_of_sync)
+        return error_response(message=CommonMsg.out_of_sync)
 
     current_app.logger.info('Email address {} removed'.format(email))
     current_app.stats.count(name='email_remove_success', value=1)
 
     emails = {'emails': proofing_user.mail_addresses.to_list_of_dicts()}
     email_list = EmailListPayload().dump(emails)
-    return success_message(EmailMsg.removal_success, data=email_list)
+    return success_response(payload=email_list, message=EmailMsg.removal_success)
 
 
 @email_views.route('/resend-code', methods=['POST'])
@@ -282,17 +282,17 @@ def resend_code(user, email):
 
     if not user.mail_addresses.find(email):
         current_app.logger.debug('Unknown email {!r} in resend_code_action,' ' user {}'.format(email, user))
-        return error_message(CommonMsg.out_of_sync)
+        return error_response(message=CommonMsg.out_of_sync)
 
     sent = send_verification_code(email, user)
     if not sent:
-        return error_message(EmailMsg.still_valid_code)
+        return error_response(message=EmailMsg.still_valid_code)
 
     current_app.logger.debug('New verification code sent to ' 'address {} for user {}'.format(email, user))
     current_app.stats.count(name='email_resend_code', value=1)
 
     emails = {'emails': user.mail_addresses.to_list_of_dicts()}
-    return success_message(EmailMsg.code_sent, data=emails)
+    return success_response(payload=emails, message=EmailMsg.code_sent)
 
 
 @email_views.route('/get-code', methods=['GET'])
