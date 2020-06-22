@@ -174,6 +174,11 @@ def remove_user(user: User, group_identifier: UUID, user_identifier: UUID, role:
         current_app.logger.error('User to remove does not exist in scimapi_userdb')
         return error_response(message=GroupManagementMsg.user_to_be_removed_does_not_exist)
 
+    # Check so we don't remove the last owner of a group
+    if role == GroupRole.OWNER and len(group.graph.owners) == 1:
+        current_app.logger.error('Can not remove the last owner of a group')
+        return error_response(message=GroupManagementMsg.can_not_remove_last_owner)
+
     try:
         remove_user_from_group(user_to_remove, group, role)
     except EduIDDBError:

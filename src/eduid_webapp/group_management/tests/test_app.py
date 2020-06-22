@@ -473,6 +473,36 @@ class GroupManagementTests(EduidAPITestCase):
         found_owners = [owner for owner in group.graph.owners if owner.identifier == str(self.scim_user2.scim_id)]
         self.assertEqual(0, len(found_owners), "len(found_owners)")
 
+    def test_remove_last_owner(self):
+        # Add test_user1 as group owner
+        graph_user1 = GraphUser(identifier=str(self.scim_user1.scim_id), display_name='Test User 1')
+        self.scim_group1.graph.owners = [graph_user1]
+
+        self.app.scimapi_groupdb.save(self.scim_group1)
+
+        # Check that test_user1 is an owner of scim_group1
+        group = self.app.scimapi_groupdb.get_group_by_scim_id(str(self.scim_group1.scim_id))
+        found_owners = [owner for owner in group.graph.owners if owner.identifier == str(self.scim_user1.scim_id)]
+        self.assertEqual(1, len(found_owners))
+
+        with self.session_cookie(self.browser, self.test_user.eppn) as client:
+            with client.session_transaction() as sess:
+                with self.app.test_request_context():
+                    data = {
+                        'group_identifier': str(self.scim_group1.scim_id),
+                        'user_identifier': str(self.scim_user1.scim_id),
+                        'role': 'owner',
+                        'csrf_token': sess.get_csrf_token(),
+                    }
+                    response = client.post('/remove-user', data=json.dumps(data), content_type=self.content_type_json)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual('POST_GROUP_MANAGEMENT_REMOVE_USER_FAIL', response.json.get('type'))
+
+        # Check that test_user1 is still owner of scim_group1
+        group = self.app.scimapi_groupdb.get_group_by_scim_id(str(self.scim_group1.scim_id))
+        found_owners = [owner for owner in group.graph.owners if owner.identifier == str(self.scim_user1.scim_id)]
+        self.assertEqual(1, len(found_owners), "len(found_owners)")
+
     def test_remove_self_member(self):
         # Add test_user1 as group member
         graph_user1 = GraphUser(identifier=str(self.scim_user1.scim_id), display_name='Test User 1')
