@@ -295,7 +295,7 @@ class PrimaryElement(VerifiedElement):
         called_directly: bool = True,
         ignore_data: Optional[List[str]] = None,
     ):
-        VerifiedElement.__init__(self, data, called_directly=called_directly)
+        super().__init__(data, called_directly=called_directly)
 
         self.is_primary = data.pop('primary', False)
 
