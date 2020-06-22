@@ -61,7 +61,7 @@ class FidoCredential(Credential):
 
     def check_unknown_data(self, data: Dict[str, Any]):
         """
-        called when an instance of a subclass is created with `raise_on_unkknown`
+        called when an instance of a subclass is created with `raise_on_unknown`
         """
         leftovers = data.keys()
         if leftovers:

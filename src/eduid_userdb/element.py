@@ -208,7 +208,7 @@ class VerifiedElement(Element):
     def __init__(
         self, data: Dict[str, Any], called_directly: bool = True,
     ):
-        Element.__init__(self, data, called_directly=called_directly)
+        super().__init__(data, called_directly=called_directly)
         # Remove deprecated verification_code from VerifiedElement
         data.pop('verification_code', None)
         self.is_verified = data.pop('verified', False)

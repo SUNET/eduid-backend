@@ -32,6 +32,7 @@
 #
 # Author : Fredrik Thulin <fredrik@thulin.net>
 #
+from __future__ import annotations
 
 import copy
 from datetime import datetime
@@ -88,7 +89,7 @@ class Event(Element):
         if 'modified_ts' not in data:
             data['modified_ts'] = data.get('created_ts', None)
 
-        Element.__init__(self, data, called_directly=called_directly)
+        super().__init__(data, called_directly=called_directly)
         self.event_type = data.pop('event_type', None)
         if 'id' in data:  # Compatibility for old format
             data['event_id'] = data.pop('id')
@@ -103,7 +104,7 @@ class Event(Element):
             self._data.update(data)
 
     @classmethod
-    def from_dict(cls: Type['Event'], data: Dict[str, Any], raise_on_unknown: bool = True) -> 'Event':
+    def from_dict(cls: Type[Event], data: Dict[str, Any], raise_on_unknown: bool = True) -> Event:
         """
         Construct event from a data dict.
         """

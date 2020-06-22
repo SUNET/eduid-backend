@@ -28,18 +28,6 @@ class ProfileTest(TestCase):
             self.assertIn(key, profile.profile_data)
             self.assertEqual(value, profile.profile_data[key])
 
-    def test_create_profile_from_dict(self):
-        data = dict(owner='test owner', created_by='test created_by', created_ts=True, schema='test schema')
-        data['profile_data'] = OPAQUE_DATA
-        profile = Profile(**data)
-        self.assertEqual(profile.owner, 'test owner')
-        self.assertEqual(profile.schema, 'test schema')
-        self.assertEqual(profile.created_by, 'test created_by')
-        self.assertIsNotNone(profile.created_ts)
-        for key, value in OPAQUE_DATA.items():
-            self.assertIn(key, profile.profile_data)
-            self.assertEqual(value, profile.profile_data[key])
-
     def test_profile_list(self):
         profile = Profile(
             owner='test owner 1',
@@ -53,23 +41,6 @@ class ProfileTest(TestCase):
         profile2 = Profile(**data)
 
         profile_list = ProfileList([profile, profile2])
-        self.assertIsNotNone(profile_list)
-        self.assertEqual(profile_list.count, 2)
-        self.assertIsNotNone(profile_list.find('test owner 1'))
-        self.assertIsNotNone(profile_list.find('test owner 2'))
-
-    def test_profile_list_from_dicts(self):
-        data1 = dict(
-            owner='test owner 1',
-            schema='test schema',
-            profile_data=OPAQUE_DATA,
-            created_by='test created_by',
-            created_ts=True,
-        )
-        data2 = dict(owner='test owner 2', created_by='test created_by', created_ts=True, schema='test schema')
-        data2['profile_data'] = OPAQUE_DATA
-
-        profile_list = ProfileList.from_list_of_dicts([data1, data2])
         self.assertIsNotNone(profile_list)
         self.assertEqual(profile_list.count, 2)
         self.assertIsNotNone(profile_list.find('test owner 1'))

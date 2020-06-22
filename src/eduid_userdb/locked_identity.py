@@ -22,7 +22,7 @@ class LockedIdentityElement(Element):
     """
 
     def __init__(self, data, called_directly=True):
-        Element.__init__(self, data, called_directly=called_directly)
+        super().__init__(data, called_directly=called_directly)
         self.identity_type = data.pop('identity_type')
 
     # -----------------------------------------------------------------

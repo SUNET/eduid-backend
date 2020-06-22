@@ -86,7 +86,7 @@ class ProofingElement(VerifiedElement):
                 verification_code=verification_code,
             )
         verification_code = data_in.pop('verification_code', None)
-        VerifiedElement.__init__(self, data_in, called_directly=called_directly)
+        super().__init__(data_in, called_directly=called_directly)
         self.verification_code = verification_code
 
     @property
@@ -333,7 +333,7 @@ class SentLetterElement(Element):
     """
 
     def __init__(self, data, called_directly=True):
-        super(SentLetterElement, self).__init__(data, called_directly=called_directly)
+        super().__init__(data, called_directly=called_directly)
 
         self._data['is_sent'] = data.pop('is_sent', False)
         self._data['sent_ts'] = data.pop('sent_ts', None)

@@ -85,7 +85,7 @@ class PhoneNumber(PrimaryElement):
         if 'csrf' in data:
             del data['csrf']
 
-        PrimaryElement.__init__(self, data, raise_on_unknown, called_directly=called_directly, ignore_data=['number'])
+        super().__init__(data, raise_on_unknown, called_directly=called_directly, ignore_data=['number'])
         self.number = data.pop('number')
 
     # -----------------------------------------------------------------
