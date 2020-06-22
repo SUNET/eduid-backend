@@ -54,7 +54,7 @@ class FidoCredential(Credential):
 
     def __init__(self, data: Dict[str, Any], called_directly: bool = True):
 
-        Credential.__init__(self, data, called_directly=called_directly)
+        super().__init__(data, called_directly=called_directly)
         self.keyhandle = data.pop('keyhandle')
         self.app_id = data.pop('app_id')
         self.description = data.pop('description', '')
@@ -164,7 +164,7 @@ class U2F(FidoCredential):
                 created_ts=created_ts,
             )
 
-        FidoCredential.__init__(self, data, called_directly=called_directly)
+        super().__init__(data, called_directly=called_directly)
 
         self.version = data.pop('version')
         self.public_key = data.pop('public_key')
@@ -301,7 +301,7 @@ class Webauthn(FidoCredential):
                 created_by=application,
                 created_ts=created_ts,
             )
-        FidoCredential.__init__(self, data, called_directly=called_directly)
+        super().__init__(data, called_directly=called_directly)
 
         self.attest_obj = data.pop('attest_obj', '')
         self.credential_data = data.pop('credential_data', '')
