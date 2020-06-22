@@ -56,7 +56,7 @@ class Credential(VerifiedElement):
     """
 
     def __init__(self, data: Dict[str, Any], called_directly: bool = True):
-        super(Credential, self).__init__(data, called_directly=called_directly)
+        super().__init__(data, called_directly=called_directly)
 
         self.proofing_method = data.pop('proofing_method', None)
         self.proofing_version = data.pop('proofing_version', None)

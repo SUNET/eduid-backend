@@ -69,7 +69,7 @@ class Password(Credential):
 
         if 'source' in data:  # TODO: Load and save all users in the database to replace source with created_by
             data['created_by'] = data.pop('source')
-        Credential.__init__(self, data, called_directly=called_directly)
+        super().__init__(data, called_directly=called_directly)
         if 'id' in data:  # TODO: Load and save all users in the database to replace id with credential_id
             data['credential_id'] = data.pop('id')
         self.is_generated = data.pop('is_generated', False)
