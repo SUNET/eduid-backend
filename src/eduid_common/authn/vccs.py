@@ -122,8 +122,8 @@ def add_password(
     logger.info('Added password credential {} for user {}'.format(new_factor.credential_id, user))
 
     # Add new password to user
-    _password = Password(
-        credential_id=credential_id, salt=new_factor.salt, is_generated=is_generated, application=application
+    _password = Password.from_dict(
+        dict(credential_id=credential_id, salt=new_factor.salt, is_generated=is_generated, created_by=application)
     )
     user.credentials.add(_password)
     return user
@@ -163,8 +163,8 @@ def reset_password(
     logger.info('Added password credential {} for user {}'.format(new_factor.credential_id, user))
 
     # Add new password to user
-    _password = Password(
-        credential_id=credential_id, salt=new_factor.salt, is_generated=is_generated, application=application
+    _password = Password.from_dict(
+        dict(credential_id=credential_id, salt=new_factor.salt, is_generated=is_generated, created_by=application)
     )
     user.credentials.add(_password)
     return user
@@ -227,8 +227,8 @@ def change_password(
     logger.info('Revoked credential {} for user {}'.format(revoke_factor.credential_id, user))
 
     # Add new password to user
-    _password = Password(
-        credential_id=credential_id, salt=new_factor.salt, is_generated=is_generated, application=application
+    _password = Password.from_dict(
+        dict(credential_id=credential_id, salt=new_factor.salt, is_generated=is_generated, created_by=application)
     )
     user.credentials.add(_password)
     return user
@@ -312,7 +312,7 @@ def add_credentials(vccs_url, old_password, new_password, user, source='dashboar
                 # TODO: VCCSClientHTTPError when the credential is already revoked or just return success.
                 logger.warning("VCCS failed to revoke all passwords for " "user {!s}".format(user))
 
-    new_password = Password(credential_id=credential_id, salt=new_factor.salt, application=source)
+    new_password = Password.from_dict(dict(credential_id=credential_id, salt=new_factor.salt, created_by=source))
     user.credentials.add(new_password)
     return user
 
