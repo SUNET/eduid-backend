@@ -35,7 +35,7 @@ from flask import Blueprint, abort, request
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith
 from eduid_common.api.helpers import check_magic_cookie
-from eduid_common.api.messages import CommonMsg, FluxData, error_message, success_message
+from eduid_common.api.messages import CommonMsg, FluxData, error_response, success_response
 from eduid_common.api.schemas.base import FluxStandardAction
 from eduid_userdb.exceptions import EduIDUserDBError
 
@@ -67,7 +67,7 @@ def trycaptcha(email, recaptcha_response, tou_accepted):
     Kantara requires a check for humanness even at level AL1.
     """
     if not tou_accepted:
-        return error_message(SignupMsg.no_tou)
+        return error_response(message=SignupMsg.no_tou)
 
     config = current_app.config
     recaptcha_verified = False
@@ -96,16 +96,16 @@ def trycaptcha(email, recaptcha_response, tou_accepted):
             # Workaround for failed earlier sync of user to userdb: Remove any signup_user with this e-mail address.
             remove_users_with_mail_address(email)
             send_verification_mail(email)
-            return success_message(SignupMsg.reg_new, data=dict(next=next))
+            return success_response(payload=dict(next=next), message=SignupMsg.reg_new)
 
         elif next == 'resend-code':
             return {'next': next}
 
         elif next == 'address-used':
             current_app.stats.count(name='address_used_error')
-            return error_message(SignupMsg.email_used, data=dict(next=next))
+            return error_response(payload=dict(next=next), message=SignupMsg.email_used)
 
-    return error_message(SignupMsg.no_recaptcha)
+    return error_response(message=SignupMsg.no_recaptcha)
 
 
 @signup_views.route('/resend-verification', methods=['POST'])
@@ -119,7 +119,7 @@ def resend_email_verification(email):
     current_app.logger.debug("Resend email confirmation to {!s}".format(email))
     send_verification_mail(email)
     current_app.stats.count(name='resend_code')
-    return success_message(SignupMsg.resent_success)
+    return success_response(message=SignupMsg.resent_success)
 
 
 @signup_views.route('/verify-link/<code>', methods=['GET'])
@@ -128,16 +128,16 @@ def verify_link(code: str) -> FluxData:
     try:
         user = verify_email_code(code)
     except CodeDoesNotExist:
-        return error_message(SignupMsg.unknown_code, data=dict(status='unknown-code'))
+        return error_response(payload=dict(status='unknown-code'), message=SignupMsg.unknown_code)
 
     except AlreadyVerifiedException:
-        return error_message(SignupMsg.already_verified, data=dict(status='already-verified'))
+        return error_response(payload=dict(status='already-verified'), message=SignupMsg.already_verified)
 
     except ProofingLogFailure:
-        return error_message(CommonMsg.temp_problem)
+        return error_response(message=CommonMsg.temp_problem)
 
     except EduIDUserDBError:
-        return error_message(SignupMsg.unknown_code, data=dict(status='unknown-code'))
+        return error_response(payload=dict(status='unknown-code'), message=SignupMsg.unknown_code)
 
     return complete_registration(user)
 

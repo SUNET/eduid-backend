@@ -9,7 +9,7 @@ from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid_common.api.decorators import MarshalWith, require_user
 from eduid_common.api.helpers import check_magic_cookie
-from eduid_common.api.messages import FluxData, redirect_with_msg, success_message
+from eduid_common.api.messages import FluxData, redirect_with_msg, success_response
 from eduid_common.api.schemas.csrf import CSRFResponse
 from eduid_common.api.utils import get_unique_hash, urlappend
 from eduid_common.authn.acs_registry import get_action, schedule_action
@@ -39,7 +39,7 @@ eidas_views = Blueprint('eidas', __name__, url_prefix='', template_folder='templ
 @MarshalWith(CSRFResponse)
 @require_user
 def index(user) -> FluxData:
-    return success_message(message=None, data=None)
+    return success_response(payload=None, message=None)
 
 
 @eidas_views.route('/verify-token/<credential_id>', methods=['GET'])

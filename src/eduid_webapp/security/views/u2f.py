@@ -10,7 +10,7 @@ from OpenSSL import crypto
 from u2flib_server.u2f import begin_authentication, begin_registration, complete_authentication, complete_registration
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
-from eduid_common.api.messages import error_message, success_message
+from eduid_common.api.messages import error_response, success_response
 from eduid_common.api.schemas.u2f import U2FEnrollResponseSchema, U2FSignResponseSchema
 from eduid_common.api.utils import save_and_sync_user
 from eduid_common.session import session
@@ -45,7 +45,7 @@ def enroll(user):
         current_app.logger.error(
             'User tried to register more than {} tokens.'.format(current_app.config.u2f_max_allowed_tokens)
         )
-        return error_message(SecurityMsg.max_tokens)
+        return error_response(message=SecurityMsg.max_tokens)
     registered_keys = credentials_to_registered_keys(user_u2f_tokens)
     enrollment = begin_registration(current_app.config.u2f_app_id, registered_keys)
     session['_u2f_enroll_'] = enrollment.json
@@ -68,7 +68,7 @@ def bind(user, version, registration_data, client_data, description=''):
     enrollment_data = session.pop('_u2f_enroll_', None)
     if not enrollment_data:
         current_app.logger.error('Found no U2F enrollment data in session.')
-        return error_message(SecurityMsg.missing_data)
+        return error_response(message=SecurityMsg.missing_data)
 
     data = {'version': version, 'registrationData': registration_data, 'clientData': client_data}
     device, der_cert = complete_registration(enrollment_data, data, current_app.config.u2f_facets)
@@ -92,7 +92,7 @@ def bind(user, version, registration_data, client_data, description=''):
     save_and_sync_user(security_user)
     current_app.stats.count(name='u2f_token_bind')
     credentials = compile_credential_list(security_user)
-    return success_message(SecurityMsg.u2f_registered, data=dict(credentials=credentials))
+    return success_response(payload=dict(credentials=credentials), message=SecurityMsg.u2f_registered)
 
 
 @u2f_views.route('/sign', methods=['GET'])
@@ -102,7 +102,7 @@ def sign(user):
     user_u2f_tokens = user.credentials.filter(U2F)
     if not user_u2f_tokens.count:
         current_app.logger.error('Found no U2F token for user.')
-        return error_message(SecurityMsg.no_u2f)
+        return error_response(message=SecurityMsg.no_u2f)
 
     registered_keys = credentials_to_registered_keys(user_u2f_tokens)
     challenge = begin_authentication(current_app.config.u2f_app_id, registered_keys)
@@ -119,7 +119,7 @@ def verify(user, key_handle, signature_data, client_data):
     challenge = session.pop('_u2f_challenge_')
     if not challenge:
         current_app.logger.error('Found no U2F challenge data in session.')
-        return error_message(SecurityMsg.no_challenge)
+        return error_response(message=SecurityMsg.no_challenge)
 
     data = {'keyHandle': key_handle, 'signatureData': signature_data, 'clientData': client_data}
     device, c, t = complete_authentication(challenge, data, current_app.config.u2f_facets)
@@ -136,7 +136,7 @@ def modify(user, credential_key, description):
     token_to_modify = security_user.credentials.filter(U2F).find(credential_key)
     if not token_to_modify:
         current_app.logger.error('Did not find requested U2F token for user.')
-        return error_message(SecurityMsg.no_token)
+        return error_response(message=SecurityMsg.no_token)
 
     if len(description) > current_app.config.u2f_max_description_length:
         current_app.logger.error(
@@ -144,7 +144,7 @@ def modify(user, credential_key, description):
                 current_app.config.u2f_max_description_length
             )
         )
-        return error_message(SecurityMsg.long_desc)
+        return error_response(message=SecurityMsg.long_desc)
 
     token_to_modify.description = description
     save_and_sync_user(security_user)
@@ -165,4 +165,4 @@ def remove(user, credential_key):
         current_app.stats.count(name='u2f_token_remove')
 
     credentials = compile_credential_list(security_user)
-    return success_message(SecurityMsg.rm_u2f_success, data=dict(credentials=credentials))
+    return success_response(payload=dict(credentials=credentials), message=SecurityMsg.rm_u2f_success)
