@@ -32,7 +32,7 @@
 #
 # Author : Fredrik Thulin <fredrik@thulin.net>
 #
-from __future__ import absolute_import
+from __future__ import annotations
 
 import copy
 from datetime import datetime
@@ -177,7 +177,7 @@ class U2F(FidoCredential):
         self._data.update(data)
 
     @classmethod
-    def from_dict(cls: Type['U2F'], data: Dict[str, Any], raise_on_unknown: bool = True) -> 'U2F':
+    def from_dict(cls: Type[U2F], data: Dict[str, Any], raise_on_unknown: bool = True) -> U2F:
         """
         Construct U2F credential from a data dict.
         """
@@ -313,7 +313,7 @@ class Webauthn(FidoCredential):
         self._data.update(data)
 
     @classmethod
-    def from_dict(cls: Type['Webauthn'], data: Dict[str, Any], raise_on_unknown: bool = True) -> 'Webauthn':
+    def from_dict(cls: Type[Webauthn], data: Dict[str, Any], raise_on_unknown: bool = True) -> Webauthn:
         """
         Construct Webauthn credential from a data dict.
         """
