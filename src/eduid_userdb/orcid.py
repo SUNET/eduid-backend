@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import copy
-from typing import Any, Dict, Optional, Type
+from typing import Any, Dict, Type
 
 from six import string_types
 
@@ -13,21 +13,7 @@ from eduid_userdb.exceptions import UserDBValueError, UserHasUnknownData
 __author__ = 'lundberg'
 
 
-class OidcElement(Element):
-    def __init__(
-        self, data: Optional[Dict[str, Any]] = None, raise_on_unknown: bool = True, called_directly: bool = True,
-    ):
-        raise NotImplementedError()
-
-    @classmethod
-    def from_dict(cls: Type[OidcElement], data: Dict[str, Any], raise_on_unknown: bool = True) -> OidcElement:
-        """
-        Construct user from a data dict.
-        """
-        return cls(data=data, called_directly=False, raise_on_unknown=raise_on_unknown)
-
-
-class OidcIdToken(OidcElement):
+class OidcIdToken(Element):
     """
     OpenID Connect ID token data
     """
@@ -73,7 +59,7 @@ class OidcIdToken(OidcElement):
         elif 'created_ts' not in data:
             data['created_ts'] = True
 
-        Element.__init__(self, data, called_directly=called_directly)
+        super().__init__(data, called_directly=called_directly)
         self.iss = data.pop('iss')
         self.sub = data.pop('sub')
         self.aud = data.pop('aud')
@@ -87,6 +73,13 @@ class OidcIdToken(OidcElement):
 
         if raise_on_unknown and data:
             raise UserHasUnknownData('{!s} has unknown data: {!r}'.format(self.__class__.__name__, data.keys()))
+
+    @classmethod
+    def from_dict(cls: Type[OidcIdToken], data: Dict[str, Any], raise_on_unknown: bool = True) -> OidcIdToken:
+        """
+        Construct user from a data dict.
+        """
+        return cls(data=data, called_directly=False, raise_on_unknown=raise_on_unknown)
 
     @property
     def key(self):
@@ -312,7 +305,7 @@ class OidcIdToken(OidcElement):
             self._data['azp'] = value
 
 
-class OidcAuthorization(OidcElement):
+class OidcAuthorization(Element):
     """
     OpenID Connect Authorization data
     """
@@ -348,7 +341,7 @@ class OidcAuthorization(OidcElement):
         elif 'created_ts' not in data:
             data['created_ts'] = True
 
-        Element.__init__(self, data, called_directly=called_directly)
+        super().__init__(data, called_directly=called_directly)
         self.access_token = data.pop('access_token')
         self.token_type = data.pop('token_type')
         self.expires_in = data.pop('expires_in')
@@ -363,6 +356,13 @@ class OidcAuthorization(OidcElement):
 
         if raise_on_unknown and data:
             raise UserHasUnknownData('{!s} has unknown data: {!r}'.format(self.__class__.__name__, data.keys()))
+
+    @classmethod
+    def from_dict(cls: Type[OidcAuthorization], data: Dict[str, Any], raise_on_unknown: bool = True) -> OidcAuthorization:
+        """
+        Construct user from a data dict.
+        """
+        return cls(data=data, called_directly=False, raise_on_unknown=raise_on_unknown)
 
     @property
     def key(self):
