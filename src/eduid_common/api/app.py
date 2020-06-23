@@ -57,7 +57,7 @@ from eduid_common.config.base import FlaskConfig
 from eduid_common.config.exceptions import BadConfiguration
 from eduid_common.config.parsers.etcd import EtcdConfigParser
 from eduid_common.session.eduid_session import SessionFactory
-from eduid_common.stats import init_app_stats
+from eduid_common.stats import AppStats, init_app_stats
 
 DEBUG = os.environ.get('EDUID_APP_DEBUG', False)
 if DEBUG:
@@ -110,7 +110,7 @@ class EduIDBaseApp(Flask, metaclass=ABCMeta):
         init_exception_handlers(self)
         init_sentry(self)
         init_template_functions(self)
-        init_app_stats(self)
+        self.stats = init_app_stats(self)
         self.session_interface = SessionFactory(asdict(self.config))
 
         if init_central_userdb:

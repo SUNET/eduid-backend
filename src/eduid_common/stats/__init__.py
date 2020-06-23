@@ -13,9 +13,16 @@ Example usage in some view:
 
 __author__ = 'ft'
 
+from abc import ABC, abstractmethod
 
-class AppStats:
-    pass
+from eduid_common.api.app import EduIDBaseApp
+
+
+class AppStats(ABC):
+
+    @abstractmethod
+    def count(self, name, value=1):
+        pass
 
 
 class NoOpStats(AppStats):
@@ -23,7 +30,7 @@ class NoOpStats(AppStats):
     No-op class used when statsd server is not set.
 
     Having this no-op class initialized in case there is no statsd_server
-    configured allows us to not check if request.stats is set everywhere.
+    configured allows us to not check if current_app.stats is set everywhere.
     """
 
     def __init__(self, logger=None, prefix=None):
@@ -50,11 +57,12 @@ class Statsd(AppStats):
         self.client.incr('{}.count'.format(name), count=value)
 
 
-def init_app_stats(app):
+def init_app_stats(app: EduIDBaseApp) -> AppStats:
+    _stats: AppStats
     stats_host = app.config.stats_host
     if not stats_host:
-        app.stats = NoOpStats()
+        _stats = NoOpStats()
     else:
         stats_port = app.config.stats_port
-        app.stats = Statsd(host=stats_host, port=stats_port, prefix=app.name)
-    return app
+        _stats = Statsd(host=stats_host, port=stats_port, prefix=app.name)
+    return _stats
