@@ -98,7 +98,7 @@ class ToUActionPluginTests(ActionsTestCase):
             ToUEvent.from_dict(
                 dict(
                     version=version,
-                    application='eduid_tou_plugin',
+                    created_by='eduid_tou_plugin',
                     created_ts=created_ts,
                     modified_ts=modified_ts,
                     event_id=event_id,
