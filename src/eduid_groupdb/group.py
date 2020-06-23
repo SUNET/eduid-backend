@@ -46,7 +46,6 @@ class Group:
     identifier: str
     version: Optional[ObjectId] = None
     display_name: Optional[str] = None
-    description: Optional[str] = None
     created_ts: Optional[datetime] = None
     modified_ts: Optional[datetime] = None
     owners: List[Union[User, Group]] = field(default_factory=list)
@@ -118,7 +117,6 @@ class Group:
             identifier=data['identifier'],
             version=version,
             display_name=data['display_name'],
-            description=data.get('description'),
             created_ts=dt['created_ts'],
             modified_ts=dt['modified_ts'],
             members=data.get('members', []),

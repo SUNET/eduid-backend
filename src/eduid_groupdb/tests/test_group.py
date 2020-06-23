@@ -12,12 +12,10 @@ class TestGroup(TestCase):
         self.group1: Dict[str, Union[str, list]] = {
             'identifier': 'test1',
             'display_name': 'Test Group 1',
-            'description': 'A test group',
         }
         self.group2: Dict[str, Union[str, list]] = {
             'identifier': 'test2',
             'display_name': 'Test Group 2',
-            'description': 'Another test group',
         }
         self.user1: Dict[str, str] = {'identifier': 'user1', 'display_name': 'Test Testsson'}
         self.user2: Dict[str, str] = {'identifier': 'user2', 'display_name': 'Namn Namnsson'}
@@ -26,7 +24,6 @@ class TestGroup(TestCase):
         group = Group(**self.group1)
         self.assertEqual(self.group1['identifier'], group.identifier)
         self.assertEqual(self.group1['display_name'], group.display_name)
-        self.assertEqual(self.group1['description'], group.description)
 
     def test_init_group_with_members(self):
         user = User(**self.user1)
