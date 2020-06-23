@@ -17,7 +17,7 @@ class CodeElement(Element):
     def __init__(self, application: str, code: str, verified: bool, created_ts: Union[datetime, bool]):
 
         data = dict(created_by=application, created_ts=created_ts,)
-        super().__init__(data)
+        super().__init__(data, called_directly=False)
 
         self.code = code
         self.is_verified = verified
@@ -69,19 +69,17 @@ class CodeElement(Element):
         cls: Type[CodeElement], code_or_element: Union[Mapping, CodeElement, str], application: str
     ) -> CodeElement:
         if isinstance(code_or_element, str):
-            return cls.from_dict(dict(created_by=application, code=code_or_element, created_ts=True, verified=False))
+            return cls(application=application, code=code_or_element, created_ts=True, verified=False)
         if isinstance(code_or_element, dict):
             data = code_or_element
             for this in data.keys():
                 if this not in ['application', 'code', 'created_by', 'created_ts', 'verified']:
                     raise ValueError(f'Unknown data {this} for CodeElement.parse from mapping')
-            return cls.from_dict(
-                dict(
-                    created_by=data.get('created_by', application),
-                    code=data['code'],
-                    created_ts=data.get('created_ts', True),
-                    verified=data.get('verified', False),
-                )
+            return cls(
+                application=data.get('created_by', application),
+                code=data['code'],
+                created_ts=data.get('created_ts', True),
+                verified=data.get('verified', False),
             )
         if isinstance(code_or_element, CodeElement):
             return code_or_element
