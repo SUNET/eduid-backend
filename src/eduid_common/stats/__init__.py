@@ -17,7 +17,6 @@ from abc import ABC, abstractmethod
 
 
 class AppStats(ABC):
-
     @abstractmethod
     def count(self, name, value=1):
         pass
@@ -55,8 +54,8 @@ class Statsd(AppStats):
         self.client.incr('{}.count'.format(name), count=value)
 
 
-# importing EduIDBaseApp in this module leads to a circular import
-def init_app_stats(app: 'EduIDBaseApp') -> AppStats:
+# importing EduIDBaseApp in this module leads to a circular import :(
+def init_app_stats(app) -> AppStats:
     _stats: AppStats
     stats_host = app.config.stats_host
     if not stats_host:
