@@ -159,12 +159,15 @@ def remove_user(user: User, group_identifier: UUID, user_identifier: UUID, role:
         current_app.logger.error('User does not exist in scimapi_userdb')
         return error_response(message=GroupManagementMsg.user_does_not_exist)
 
+    _removing_self = user_identifier == scim_user.scim_id
+
     group = current_app.scimapi_groupdb.get_group_by_scim_id(scim_id=str(group_identifier))
     if not group:
         current_app.logger.error(f'Group with scim_id {group_identifier} not found')
         return error_response(message=GroupManagementMsg.group_not_found)
 
-    if not is_owner(scim_user, group_identifier):
+    # Check that it is either the user or a group owner that removes the user from the group
+    if not _removing_self and not is_owner(scim_user, group_identifier):
         current_app.logger.error(f'User is not owner of group with scim_id: {group_identifier}')
         return error_response(message=GroupManagementMsg.user_not_owner)
 
@@ -173,10 +176,19 @@ def remove_user(user: User, group_identifier: UUID, user_identifier: UUID, role:
         current_app.logger.error('User to remove does not exist in scimapi_userdb')
         return error_response(message=GroupManagementMsg.user_to_be_removed_does_not_exist)
 
+    # Check so we don't remove the last owner of a group
+    if role == GroupRole.OWNER and len(group.graph.owners) == 1:
+        current_app.logger.error(f'Can not remove the last owner in group with scim_id: {group_identifier}')
+        return error_response(message=GroupManagementMsg.can_not_remove_last_owner)
+
     try:
         remove_user_from_group(user_to_remove, group, role)
     except EduIDDBError:
         return error_response(message=CommonMsg.temp_problem)
 
-    current_app.stats.count(name=f'removed_{role.value}')
+    if _removing_self:
+        # If the user initiates the removal count it as "left the group"
+        current_app.stats.count(name=f'{role.value}_left_group')
+    else:
+        current_app.stats.count(name=f'{role.value}_removed_from_group')
     return get_groups()
