@@ -178,7 +178,7 @@ def remove_user(user: User, group_identifier: UUID, user_identifier: UUID, role:
 
     # Check so we don't remove the last owner of a group
     if role == GroupRole.OWNER and len(group.graph.owners) == 1:
-        current_app.logger.error('Can not remove the last owner of a group')
+        current_app.logger.error(f'Can not remove the last owner in group with scim_id: {group_identifier}')
         return error_response(message=GroupManagementMsg.can_not_remove_last_owner)
 
     try:
