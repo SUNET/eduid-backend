@@ -358,7 +358,9 @@ class OidcAuthorization(Element):
             raise UserHasUnknownData('{!s} has unknown data: {!r}'.format(self.__class__.__name__, data.keys()))
 
     @classmethod
-    def from_dict(cls: Type[OidcAuthorization], data: Dict[str, Any], raise_on_unknown: bool = True) -> OidcAuthorization:
+    def from_dict(
+        cls: Type[OidcAuthorization], data: Dict[str, Any], raise_on_unknown: bool = True
+    ) -> OidcAuthorization:
         """
         Construct user from a data dict.
         """
