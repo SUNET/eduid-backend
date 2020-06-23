@@ -189,8 +189,10 @@ def complete_registration(signup_user) -> FluxData:
         return error_response(message='user-out-of-sync')
 
     timestamp = datetime.datetime.fromtimestamp(int(time.time()))
-    session.common.eppn = signup_user.eppn
-    session.signup.ts = timestamp
+    if session.common is not None:  # please mypy
+        session.common.eppn = signup_user.eppn
+    if session.signup is not None:  # please mypy
+        session.signup.ts = timestamp
     context.update(
         {
             "status": 'verified',
