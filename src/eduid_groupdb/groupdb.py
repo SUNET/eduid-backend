@@ -53,7 +53,6 @@ class GroupDB(BaseGraphDB):
                 ON CREATE SET g.created_ts = timestamp()
                 ON MATCH SET g.modified_ts = timestamp()
             SET g.display_name = $display_name
-            SET g.description = $description
             SET g.version = $new_version
             RETURN g as group
             """
@@ -68,7 +67,6 @@ class GroupDB(BaseGraphDB):
             identifier=group.identifier,
             version=version,
             display_name=group.display_name,
-            description=group.description,
             new_version=new_version,
         ).single()
         return self._load_group(res.data()['group'])
@@ -150,14 +148,13 @@ class GroupDB(BaseGraphDB):
                 ON CREATE SET
                     m.created_ts = timestamp(),
                     m.version = $version,
-                    m.display_name = $display_name,
-                    m.description = $description
+                    m.display_name = $display_name
             MERGE (m)-[r:{role.value}]->(g)
                 ON CREATE SET r.created_ts = timestamp()
                 ON MATCH SET r.modified_ts = timestamp()
             SET r.display_name = $display_name
             RETURN r.display_name as display_name, r.created_ts as created_ts, r.modified_ts as modified_ts,
-                   m.identifier as identifier, m.scope as scope, m.description as description
+                   m.identifier as identifier, m.scope as scope
             """
         # Need a version if the group is created
         version = str(ObjectId())
@@ -168,7 +165,6 @@ class GroupDB(BaseGraphDB):
             identifier=member.identifier,
             version=version,
             display_name=member.display_name,
-            description=member.description,
         ).single()
 
     def _add_user_to_group(self, tx, group: Group, member: User, role: Role) -> Record:
@@ -195,8 +191,7 @@ class GroupDB(BaseGraphDB):
         q = f"""
             MATCH (g: Group {{scope: $scope, identifier: $identifier}})<-[r:{role.value}]-(m)
             RETURN r.display_name as display_name, r.created_ts as created_ts, r.modified_ts as modified_ts,
-                   m.identifier as identifier, m.scope as scope, m.version as version, m.description as description,
-                   labels(m) as labels
+                   m.identifier as identifier, m.scope as scope, m.version as version, labels(m) as labels
             """
         with self.db.driver.session(access_mode=READ_ACCESS) as session:
             for record in session.run(q, scope=self.scope, identifier=identifier):

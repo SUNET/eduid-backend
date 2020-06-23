@@ -19,13 +19,11 @@ class TestGroupDB(Neo4jTestCase):
             'identifier': 'test1',
             'version': None,
             'display_name': 'Test Group 1',
-            'description': 'A test group',
         }
         self.group2: Dict[str, Union[str, list, None]] = {
             'identifier': 'test2',
             'version': None,
             'display_name': 'Test Group 2',
-            'description': 'Another test group',
         }
         self.user1: Dict[str, str] = {'identifier': 'user1', 'display_name': 'Test Testsson'}
         self.user2: Dict[str, str] = {'identifier': 'user2', 'display_name': 'Namn Namnsson'}
@@ -38,7 +36,6 @@ class TestGroupDB(Neo4jTestCase):
         self.assertEqual(group.identifier, post_save_group.identifier)
         self.assertNotEqual(group.version, post_save_group.version)
         self.assertEqual(group.display_name, post_save_group.display_name)
-        self.assertEqual(group.description, post_save_group.description)
         self.assertIsNotNone(post_save_group.created_ts)
         self.assertIsNone(post_save_group.modified_ts)
 
@@ -46,7 +43,6 @@ class TestGroupDB(Neo4jTestCase):
         self.assertEqual(group.identifier, get_group.identifier)
         self.assertEqual(post_save_group.version, get_group.version)
         self.assertEqual(group.display_name, get_group.display_name)
-        self.assertEqual(group.description, get_group.description)
         self.assertIsNotNone(get_group.created_ts)
 
     def test_update_group(self):
@@ -57,7 +53,6 @@ class TestGroupDB(Neo4jTestCase):
         self.assertEqual(group.identifier, post_save_group.identifier)
         self.assertNotEqual(group.version, post_save_group.version)
         self.assertEqual(group.display_name, post_save_group.display_name)
-        self.assertEqual(group.description, post_save_group.description)
         self.assertIsNotNone(post_save_group.created_ts)
         self.assertIsNone(post_save_group.modified_ts)
 
@@ -69,7 +64,6 @@ class TestGroupDB(Neo4jTestCase):
         self.assertEqual(group.identifier, post_save_group2.identifier)
         self.assertNotEqual(group.version, post_save_group2.version)
         self.assertEqual(group.display_name, post_save_group2.display_name)
-        self.assertEqual(group.description, post_save_group2.description)
         self.assertIsNotNone(post_save_group2.created_ts)
         self.assertIsNotNone(post_save_group2.modified_ts)
 
@@ -125,7 +119,6 @@ class TestGroupDB(Neo4jTestCase):
         post_save_member_group = post_save_group.member_groups[0]
         self.assertEqual(member_group.identifier, post_save_member_group.identifier)
         self.assertEqual(member_group.display_name, post_save_member_group.display_name)
-        self.assertEqual(member_group.description, post_save_member_group.description)
 
     def test_create_group_with_group_member_and_user_owner(self):
         group = Group.from_mapping(self.group1)
@@ -147,7 +140,6 @@ class TestGroupDB(Neo4jTestCase):
         post_save_member_group = post_save_group.member_groups[0]
         self.assertEqual(member_group.identifier, post_save_member_group.identifier)
         self.assertEqual(member_group.display_name, post_save_member_group.display_name)
-        self.assertEqual(member_group.description, post_save_member_group.description)
 
         post_save_user = post_save_group.member_users[0]
         self.assertEqual(member_user.identifier, post_save_user.identifier)
