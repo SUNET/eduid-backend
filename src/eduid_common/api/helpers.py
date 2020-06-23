@@ -114,7 +114,7 @@ def verify_nin_for_user(user, proofing_state, proofing_log_entry):
         nin_element = Nin.from_dict(
             dict(
                 number=proofing_state.nin.number,
-                application=proofing_state.nin.created_by,
+                created_by=proofing_state.nin.created_by,
                 created_ts=proofing_state.nin.created_ts,
                 verified=False,
                 primary=False,
