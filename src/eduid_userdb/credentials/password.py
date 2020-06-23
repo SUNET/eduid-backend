@@ -66,6 +66,8 @@ class Password(Credential):
             data = dict(
                 id=credential_id, salt=salt, is_generated=is_generated, created_by=application, created_ts=created_ts,
             )
+        elif 'created_ts' not in data:
+            data['created_ts'] = True
 
         if 'source' in data:  # TODO: Load and save all users in the database to replace source with created_by
             data['created_by'] = data.pop('source')

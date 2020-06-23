@@ -163,6 +163,8 @@ class U2F(FidoCredential):
                 created_by=application,
                 created_ts=created_ts,
             )
+        elif 'created_ts' not in data:
+            data['created_ts'] = True
 
         super().__init__(data, called_directly=called_directly)
 
@@ -301,6 +303,9 @@ class Webauthn(FidoCredential):
                 created_by=application,
                 created_ts=created_ts,
             )
+        elif 'created_ts' not in data:
+            data['created_ts'] = True
+
         super().__init__(data, called_directly=called_directly)
 
         self.attest_obj = data.pop('attest_obj', '')
