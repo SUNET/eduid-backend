@@ -116,7 +116,7 @@ def send_verification_mail(email):
 
     signup_user = current_app.private_userdb.get_user_by_pending_mail_address(email)
     if not signup_user:
-        mailaddress = EmailProofingElement(email=email, application='signup', verified=False, verification_code=code)
+        mailaddress = EmailProofingElement.from_dict(dict(email=email, created_by='signup', verified=False, verification_code=code))
         signup_user = SignupUser.from_dict(data=dict(eduPersonPrincipalName=generate_eppn()))
         signup_user.pending_mail_address = mailaddress
         current_app.logger.info("New user {}/{} created. e-mail is pending confirmation".format(signup_user, email))
@@ -186,7 +186,7 @@ def verify_email_code(code):
         raise AlreadyVerifiedException()
 
     mail_dict = signup_user.pending_mail_address.to_dict()
-    mail_address = MailAddress(data=mail_dict, raise_on_unknown=False)
+    mail_address = MailAddress.from_dict(mail_dict, raise_on_unknown=False)
     if mail_address.is_verified:
         # There really should be no way to get here, is_verified is set to False when
         # the EmailProofingElement is created.

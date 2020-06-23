@@ -54,7 +54,7 @@ def new_proofing_state(email, user):
         current_app.logger.info('Removed old proofing state')
         current_app.logger.debug('Old proofing state: {}'.format(old_state.to_dict()))
 
-    verification = EmailProofingElement(email=email, verification_code=get_unique_hash(), application='email')
+    verification = EmailProofingElement.from_dict(dict(email=email, verification_code=get_unique_hash(), created_by='email'))
     proofing_state = EmailProofingState(id=None, modified_ts=None, eppn=user.eppn, verification=verification)
     # XXX This should be an atomic transaction together with saving
     # the user and sending the letter.
@@ -105,7 +105,7 @@ def verify_mail_address(state, proofing_user):
     :return: None
 
     """
-    new_email = MailAddress(email=state.verification.email, application='email', verified=True, primary=False)
+    new_email = MailAddress.from_dict(dict(email=state.verification.email, created_by='email', verified=True, primary=False))
 
     has_primary = proofing_user.mail_addresses.primary
     if has_primary is None:

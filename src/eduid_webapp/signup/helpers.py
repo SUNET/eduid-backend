@@ -178,7 +178,7 @@ def complete_registration(signup_user) -> FluxData:
     password_id = ObjectId()
     (password, salt) = generate_password(str(password_id), signup_user)
 
-    credential = Password(credential_id=password_id, salt=salt, is_generated=True, application='signup')
+    credential = Password.from_dict(dict(credential_id=password_id, salt=salt, is_generated=True, created_by='signup'))
     signup_user.passwords.add(credential)
     # Record the acceptance of the terms of use
     record_tou(signup_user, 'signup')
@@ -224,4 +224,4 @@ def record_tou(user, source):
         'Recording ToU acceptance {!r} (version {})'
         ' for user {} (source: {})'.format(event_id, tou_version, user, source)
     )
-    user.tou.add(ToUEvent(version=tou_version, application=source, created_ts=created_ts, event_id=event_id))
+    user.tou.add(ToUEvent.from_dict(dict(version=tou_version, created_by=source, created_ts=created_ts, event_id=event_id)))

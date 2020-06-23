@@ -64,7 +64,7 @@ def create_proofing_state(user: User, nin: str) -> NinProofingState:
     :param nin: National Identity Number
     """
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
-    nin_element = NinProofingElement(number=nin, application='lookup_mobile_proofing', verified=False)
+    nin_element = NinProofingElement.from_dict(dict(number=nin, created_by='lookup_mobile_proofing', verified=False))
     return NinProofingState(id=None, modified_ts=None, eppn=proofing_user.eppn, nin=nin_element)
 
 

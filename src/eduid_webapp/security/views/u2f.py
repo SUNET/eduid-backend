@@ -78,15 +78,17 @@ def bind(user, version, registration_data, client_data, description=''):
     if not isinstance(pem_cert, six.string_types):
         pem_cert = pem_cert.decode('utf-8')
 
-    u2f_token = U2F(
-        version=device['version'],
-        keyhandle=device['keyHandle'],
-        app_id=device['appId'],
-        public_key=device['publicKey'],
-        attest_cert=pem_cert,
-        description=description,
-        application='eduid_security',
-        created_ts=True,
+    u2f_token = U2F.from_dict(
+        dict(
+            version=device['version'],
+            keyhandle=device['keyHandle'],
+            app_id=device['appId'],
+            public_key=device['publicKey'],
+            attest_cert=pem_cert,
+            description=description,
+            created_by='eduid_security',
+            created_ts=True,
+        )
     )
     security_user.credentials.add(u2f_token)
     save_and_sync_user(security_user)

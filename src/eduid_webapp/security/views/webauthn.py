@@ -114,13 +114,15 @@ def registration_complete(user, credential_id, attestation_object, client_data, 
     cred_data = auth_data.credential_data
     current_app.logger.debug('Proccessed Webauthn credential data: {}.'.format(cred_data))
 
-    credential = Webauthn(
-        keyhandle=credential_id,
-        credential_data=base64.urlsafe_b64encode(cred_data).decode('ascii'),
-        app_id=current_app.config.fido2_rp_id,
-        attest_obj=base64.b64encode(attestation_object.encode('utf-8')).decode('ascii'),
-        description=description,
-        application='security',
+    credential = Webauthn.from_dict(
+        dict(
+            keyhandle=credential_id,
+            credential_data=base64.urlsafe_b64encode(cred_data).decode('ascii'),
+            app_id=current_app.config.fido2_rp_id,
+            attest_obj=base64.b64encode(attestation_object.encode('utf-8')).decode('ascii'),
+            description=description,
+            created_by='security',
+        )
     )
 
     security_user.credentials.add(credential)

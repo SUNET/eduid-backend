@@ -400,7 +400,7 @@ class ResetPasswordTests(EduidAPITestCase):
                     credential = sample_credential.to_dict()
                     if credential_data:
                         credential.update(credential_data)
-                    webauthn_credential = Webauthn(**credential)
+                    webauthn_credential = Webauthn.from_dict(credential)
                     user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
                     user.credentials.add(webauthn_credential)
                     self.app.central_userdb.save(user, check_sync=False)

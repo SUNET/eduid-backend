@@ -86,14 +86,16 @@ def check_state(state):
 
 
 def create_proofing_state(eppn: str, nin: str) -> LetterProofingState:
-    _nin = NinProofingElement(
-        number=nin,
-        application='eduid-idproofing-letter',
-        created_ts=True,
-        verified=False,
-        verification_code=get_short_hash(),
+    _nin = NinProofingElement.from_dict(
+        dict(
+            number=nin,
+            created_by='eduid-idproofing-letter',
+            created_ts=True,
+            verified=False,
+            verification_code=get_short_hash(),
+        )
     )
-    proofing_letter = SentLetterElement(data={})
+    proofing_letter = SentLetterElement.from_dict({})
     return LetterProofingState(id=None, modified_ts=None, eppn=eppn, nin=_nin, proofing_letter=proofing_letter)
 
 

@@ -44,25 +44,31 @@ class OrcidTests(EduidAPITestCase):
 
         self.oidc_provider_config_response = MockResponse(200, json.dumps(self.oidc_provider_config))
 
-        self.oidc_id_token = OidcIdToken(
-            iss='iss', sub='sub', aud=['aud'], exp=0, iat=0, nonce='nonce', auth_time=0, application='orcid'
+        self.oidc_id_token = OidcIdToken.from_dict(
+            dict(
+                iss='iss', sub='sub', aud=['aud'], exp=0, iat=0, nonce='nonce', auth_time=0, created_by='orcid'
+            )
         )
-        self.oidc_authz = OidcAuthorization(
-            access_token='access_token',
-            token_type='token_type',
-            id_token=self.oidc_id_token,
-            expires_in=0,
-            refresh_token='refresh_token',
-            application='orcid',
+        self.oidc_authz = OidcAuthorization.from_dict(
+            dict(
+                access_token='access_token',
+                token_type='token_type',
+                id_token=self.oidc_id_token,
+                expires_in=0,
+                refresh_token='refresh_token',
+                created_by='orcid',
+            )
         )
-        self.orcid_element = Orcid(
-            id='https://sandbox.orcid.org/0000-0000-0000-0000',
-            name=None,
-            given_name='Test',
-            family_name='Testsson',
-            verified=True,
-            oidc_authz=self.oidc_authz,
-            application='orcid',
+        self.orcid_element = Orcid.from_dict(
+            dict(
+                id='https://sandbox.orcid.org/0000-0000-0000-0000',
+                name=None,
+                given_name='Test',
+                family_name='Testsson',
+                verified=True,
+                oidc_authz=self.oidc_authz,
+                created_by='orcid',
+            )
         )
 
         super(OrcidTests, self).setUp()
