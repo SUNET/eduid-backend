@@ -273,7 +273,9 @@ class OidcProofingTests(EduidAPITestCase):
         mock_request_user_sync.side_effect = self.request_user_sync
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
 
-        not_verified_nin = Nin.from_dict(dict(number=self.test_user_nin, created_by='test', verified=False, primary=False))
+        not_verified_nin = Nin.from_dict(
+            dict(number=self.test_user_nin, created_by='test', verified=False, primary=False)
+        )
         user.nins.add(not_verified_nin)
         self.app.central_userdb.save(user)
 
@@ -324,7 +326,9 @@ class OidcProofingTests(EduidAPITestCase):
         mock_request_user_sync.side_effect = self.request_user_sync
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
 
-        not_verified_nin = Nin.from_dict(dict(number=self.test_user_wrong_nin, created_by='test', verified=False, primary=False))
+        not_verified_nin = Nin.from_dict(
+            dict(number=self.test_user_wrong_nin, created_by='test', verified=False, primary=False)
+        )
         user.nins.add(not_verified_nin)
         self.app.central_userdb.save(user)
 
@@ -420,7 +424,9 @@ class OidcProofingTests(EduidAPITestCase):
         mock_request_user_sync.side_effect = self.request_user_sync
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
 
-        not_verified_nin = Nin.from_dict(dict(number=self.test_user_nin, created_by='test', verified=False, primary=False))
+        not_verified_nin = Nin.from_dict(
+            dict(number=self.test_user_nin, created_by='test', verified=False, primary=False)
+        )
         user.nins.add(not_verified_nin)
         self.app.central_userdb.save(user)
 
@@ -469,7 +475,9 @@ class OidcProofingTests(EduidAPITestCase):
         mock_request_user_sync.side_effect = self.request_user_sync
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
 
-        not_verified_nin = Nin.from_dict(dict(number=self.test_user_wrong_nin, created_by='test', verified=False, primary=False))
+        not_verified_nin = Nin.from_dict(
+            dict(number=self.test_user_wrong_nin, created_by='test', verified=False, primary=False)
+        )
         user.nins.add(not_verified_nin)
         self.app.central_userdb.save(user)
 
@@ -561,7 +569,9 @@ class OidcProofingTests(EduidAPITestCase):
         csrf_token = response['payload']['csrf_token']
 
         # User with locked_identity and correct nin
-        user.locked_identity.add(LockedIdentityNin.from_dict(dict(number=self.test_user_nin, created_by='test', created_ts=True)))
+        user.locked_identity.add(
+            LockedIdentityNin.from_dict(dict(number=self.test_user_nin, created_by='test', created_ts=True))
+        )
         self.app.central_userdb.save(user, check_sync=False)
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
@@ -600,7 +610,9 @@ class OidcProofingTests(EduidAPITestCase):
 
         csrf_token = response['payload']['csrf_token']
 
-        user.locked_identity.add(LockedIdentityNin.from_dict(dict(number=self.test_user_nin, created_by='test', created_ts=True)))
+        user.locked_identity.add(
+            LockedIdentityNin.from_dict(dict(number=self.test_user_nin, created_by='test', created_ts=True))
+        )
         self.app.central_userdb.save(user, check_sync=False)
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:

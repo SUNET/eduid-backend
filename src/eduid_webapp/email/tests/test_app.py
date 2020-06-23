@@ -84,14 +84,22 @@ class EmailTests(EduidAPITestCase):
             user.mail_addresses.remove(address.email)
 
     def _add_2_emails(self, user):
-        verified = MailAddress.from_dict(dict(email='verified@example.com', created_by='test', verified=True, primary=True))
-        verified2 = MailAddress.from_dict(dict(email='verified2@example.com', created_by='test', verified=True, primary=False))
+        verified = MailAddress.from_dict(
+            dict(email='verified@example.com', created_by='test', verified=True, primary=True)
+        )
+        verified2 = MailAddress.from_dict(
+            dict(email='verified2@example.com', created_by='test', verified=True, primary=False)
+        )
         user.mail_addresses.add(verified)
         user.mail_addresses.add(verified2)
 
     def _add_2_emails_1_verified(self, user):
-        verified = MailAddress.from_dict(dict(email='verified@example.com', created_by='test', verified=True, primary=True))
-        verified2 = MailAddress.from_dict(dict(email='unverified@example.com', created_by='test', verified=False, primary=False))
+        verified = MailAddress.from_dict(
+            dict(email='verified@example.com', created_by='test', verified=True, primary=True)
+        )
+        verified2 = MailAddress.from_dict(
+            dict(email='unverified@example.com', created_by='test', verified=False, primary=False)
+        )
         user.mail_addresses.add(verified)
         user.mail_addresses.add(verified2)
 

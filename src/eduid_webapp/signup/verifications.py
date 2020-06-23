@@ -116,7 +116,9 @@ def send_verification_mail(email):
 
     signup_user = current_app.private_userdb.get_user_by_pending_mail_address(email)
     if not signup_user:
-        mailaddress = EmailProofingElement.from_dict(dict(email=email, created_by='signup', verified=False, verification_code=code))
+        mailaddress = EmailProofingElement.from_dict(
+            dict(email=email, created_by='signup', verified=False, verification_code=code)
+        )
         signup_user = SignupUser.from_dict(data=dict(eduPersonPrincipalName=generate_eppn()))
         signup_user.pending_mail_address = mailaddress
         current_app.logger.info("New user {}/{} created. e-mail is pending confirmation".format(signup_user, email))

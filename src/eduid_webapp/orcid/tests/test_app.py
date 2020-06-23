@@ -45,9 +45,7 @@ class OrcidTests(EduidAPITestCase):
         self.oidc_provider_config_response = MockResponse(200, json.dumps(self.oidc_provider_config))
 
         self.oidc_id_token = OidcIdToken.from_dict(
-            dict(
-                iss='iss', sub='sub', aud=['aud'], exp=0, iat=0, nonce='nonce', auth_time=0, created_by='orcid'
-            )
+            dict(iss='iss', sub='sub', aud=['aud'], exp=0, iat=0, nonce='nonce', auth_time=0, created_by='orcid')
         )
         self.oidc_authz = OidcAuthorization.from_dict(
             dict(
