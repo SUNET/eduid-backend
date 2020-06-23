@@ -132,7 +132,7 @@ class NinProofingState(ProofingState):
     @classmethod
     def from_dict(cls, data: Mapping) -> NinProofingState:
         _data = copy.deepcopy(dict(data))  # to not modify callers data
-        _data['nin'] = NinProofingElement(data=_data['nin'])
+        _data['nin'] = NinProofingElement.from_dict(_data['nin'])
         return cls._default_from_dict(_data, {'nin'})
 
     def to_dict(self) -> MutableMapping:
@@ -149,8 +149,8 @@ class LetterProofingState(NinProofingState):
     @classmethod
     def from_dict(cls, data: Mapping) -> LetterProofingState:
         _data = copy.deepcopy(dict(data))  # to not modify callers data
-        _data['nin'] = NinProofingElement(data=_data['nin'])
-        _data['proofing_letter'] = SentLetterElement(data=_data['proofing_letter'])
+        _data['nin'] = NinProofingElement.from_dict(_data['nin'])
+        _data['proofing_letter'] = SentLetterElement.from_dict(_data['proofing_letter'])
         return cls._default_from_dict(_data, {'nin', 'proofing_letter'})
 
     def to_dict(self) -> MutableMapping:
@@ -180,7 +180,7 @@ class OidcProofingState(NinProofingState):
     @classmethod
     def from_dict(cls, data: Mapping) -> OidcProofingState:
         _data = copy.deepcopy(dict(data))  # to not modify callers data
-        _data['nin'] = NinProofingElement(data=_data['nin'])
+        _data['nin'] = NinProofingElement.from_dict(_data['nin'])
         return cls._default_from_dict(_data, {'nin', 'state', 'nonce', 'token'})
 
 
@@ -192,7 +192,7 @@ class EmailProofingState(ProofingState):
     @classmethod
     def from_dict(cls, data: Mapping) -> EmailProofingState:
         _data = copy.deepcopy(dict(data))  # to not modify callers data
-        _data['verification'] = EmailProofingElement(data=_data['verification'])
+        _data['verification'] = EmailProofingElement.from_dict(_data['verification'])
         return cls._default_from_dict(_data, {'verification'})
 
     def to_dict(self) -> MutableMapping:
@@ -209,7 +209,7 @@ class PhoneProofingState(ProofingState):
     @classmethod
     def from_dict(cls, data: Mapping) -> PhoneProofingState:
         _data = copy.deepcopy(dict(data))  # to not modify callers data
-        _data['verification'] = PhoneProofingElement(data=_data['verification'])
+        _data['verification'] = PhoneProofingElement.from_dict(_data['verification'])
         return cls._default_from_dict(_data, {'verification'})
 
     def to_dict(self) -> MutableMapping:
