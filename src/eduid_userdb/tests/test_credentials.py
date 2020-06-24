@@ -46,6 +46,7 @@ def _keyid(key):
 
 class TestCredentialList(TestCase):
     def setUp(self):
+        self.maxDiff = None  # make pytest always show full diffs
         self.empty = CredentialList([])
         self.one = CredentialList([_one_dict])
         self.two = CredentialList([_one_dict, _two_dict])
@@ -62,7 +63,14 @@ class TestCredentialList(TestCase):
     def test_to_list_of_dicts(self):
         self.assertEqual([], self.empty.to_list_of_dicts(), list)
 
-        self.assertEqual([_one_dict], self.one.to_list_of_dicts(old_userdb_format=True))
+        expected = [_one_dict]
+        got = self.one.to_list_of_dicts(old_userdb_format=True)
+
+        # The credential in the CredentialList has acquired a created_ts attr
+        # that is not in the original dict
+        del got[0]['created_ts']
+
+        assert expected == got, 'Credential list with one password not as expected'
 
     def test_find(self):
         match = self.two.find('222222222222222222222222')
@@ -87,7 +95,17 @@ class TestCredentialList(TestCase):
     def test_add(self):
         second = self.two.find(ObjectId('222222222222222222222222'))
         self.one.add(second)
-        self.assertEqual(self.one.to_list_of_dicts(), self.two.to_list_of_dicts())
+
+        expected = self.two.to_list_of_dicts()
+        got = self.one.to_list_of_dicts()
+
+        # The created_ts timestamps are created at slightly different times and thus differ
+        for cred in expected:
+            del cred['created_ts']
+        for cred in got:
+            del cred['created_ts']
+
+        assert expected == got, 'List of credentials with added credential different than expected'
 
     def test_add_duplicate(self):
         dup = self.two.find(ObjectId('222222222222222222222222'))
@@ -97,11 +115,31 @@ class TestCredentialList(TestCase):
     def test_add_password(self):
         third = self.three.find(ObjectId('333333333333333333333333'))
         this = CredentialList([_one_dict, _two_dict] + [third])
-        self.assertEqual(this.to_list_of_dicts(), self.three.to_list_of_dicts())
+
+        expected = self.three.to_list_of_dicts()
+        got = this.to_list_of_dicts()
+
+        # The created_ts timestamps are created at slightly different times and thus differ
+        for cred in expected:
+            del cred['created_ts']
+        for cred in got:
+            del cred['created_ts']
+
+        assert expected == got, 'List of credentials with added password different than expected'
 
     def test_remove(self):
         now_two = self.three.remove(ObjectId('333333333333333333333333'))
-        self.assertEqual(self.two.to_list_of_dicts(), now_two.to_list_of_dicts())
+
+        expected = self.two.to_list_of_dicts()
+        got = now_two.to_list_of_dicts()
+
+        # The created_ts timestamps are created at slightly different times and thus differ
+        for cred in expected:
+            del cred['created_ts']
+        for cred in got:
+            del cred['created_ts']
+
+        assert expected == got, 'List of credentials with removed credential different than expected'
 
     def test_remove_unknown(self):
         with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):

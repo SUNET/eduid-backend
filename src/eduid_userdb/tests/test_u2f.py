@@ -100,14 +100,12 @@ class TestU2F(TestCase):
 
     def test_created_ts(self):
         this = self.three.find(_keyid(_three_dict))
-        this.created_ts = True
         self.assertIsInstance(this.created_ts, datetime.datetime)
         with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
             this.created_ts = False
 
     def test_modify_created_ts(self):
         this = self.three.find(_keyid(_three_dict))
-        this.created_ts = datetime.datetime.utcnow()
         with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
             this.created_ts = None
         with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):

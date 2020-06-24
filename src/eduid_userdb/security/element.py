@@ -17,7 +17,7 @@ class CodeElement(Element):
     def __init__(self, application: str, code: str, verified: bool, created_ts: Union[datetime, bool]):
 
         data = dict(created_by=application, created_ts=created_ts,)
-        super().__init__(data)
+        super().__init__(data, called_directly=False)
 
         self.code = code
         self.is_verified = verified
