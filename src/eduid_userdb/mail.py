@@ -31,10 +31,11 @@
 #
 # Author : Fredrik Thulin <fredrik@thulin.net>
 #
+from __future__ import annotations
 
 import copy
 from datetime import datetime
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional, Type, Union
 
 from six import string_types
 
@@ -64,21 +65,31 @@ class MailAddress(PrimaryElement):
         raise_on_unknown: bool = True,
         called_directly: bool = True,
     ):
+        raise NotImplementedError()
+
+    @classmethod
+    def from_dict(
+        cls: Type[MailAddress], data: Dict[str, Any], raise_on_unknown: bool = True, ignore_data: Optional[Dict[str, Any]] = None
+    ) -> MailAddress:
+
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
 
-        if data is None:
-            if created_ts is None:
-                created_ts = True
-            data = dict(email=email, created_by=application, created_ts=created_ts, verified=verified, primary=primary,)
         if 'added_timestamp' in data:
             # old userdb-style creation timestamp
             data['created_ts'] = data.pop('added_timestamp')
+
         # CSRF tokens were accidentally put in the database some time ago
         if 'csrf' in data:
             del data['csrf']
-        super().__init__(data, raise_on_unknown, called_directly=called_directly, ignore_data=['email'])
-        self.email = data.pop('email')
+
+        email = data.pop('email')
+
+        self = super().from_dict(data, raise_on_unknown=raise_on_unknown, ignore_data=ignore_data)
+
+        self.email = email
+
+        return self
 
     # -----------------------------------------------------------------
     @property

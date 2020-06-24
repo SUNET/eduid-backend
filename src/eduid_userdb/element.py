@@ -99,16 +99,7 @@ class Element(object):
     def __init__(
         self, data: Dict[str, Any], called_directly: bool = True,
     ):
-        if called_directly:
-            warnings.warn("Element.__init__ called directly", DeprecationWarning)
-
-        if not isinstance(data, dict):
-            raise UserDBValueError("Invalid 'data', not dict ({!r})".format(type(data)))
-        self._data: Dict[str, Any] = {}
-
-        self.created_by = data.pop('created_by', None)
-        self.created_ts = data.pop('created_ts', None)
-        self.modified_ts = data.pop('modified_ts', None)
+        raise NotImplementedError()
 
     def __str__(self):
         return '<eduID {!s}: {!r}>'.format(self.__class__.__name__, getattr(self, '_data', None))
@@ -118,7 +109,17 @@ class Element(object):
         """
         Construct element from a data dict.
         """
-        return cls(data=data, called_directly=False)
+        if not isinstance(data, dict):
+            raise UserDBValueError("Invalid 'data', not dict ({!r})".format(type(data)))
+
+        self = object.__new__(cls)
+        self._data: Dict[str, Any] = {}
+
+        self.created_by = data.pop('created_by', None)
+        self.created_ts = data.pop('created_ts', None)
+        self.modified_ts = data.pop('modified_ts', None)
+
+        return self
 
     # -----------------------------------------------------------------
     @property
@@ -208,12 +209,21 @@ class VerifiedElement(Element):
     def __init__(
         self, data: Dict[str, Any], called_directly: bool = True,
     ):
-        super().__init__(data, called_directly=called_directly)
+        raise NotImplementedError()
+
+    @classmethod
+    def from_dict(cls: Type[TElementSubclass], data: Dict[str, Any]) -> TElementSubclass:
+        """
+        Construct element from a data dict.
+        """
+        self = super().from_dict(data)
         # Remove deprecated verification_code from VerifiedElement
         data.pop('verification_code', None)
         self.is_verified = data.pop('verified', False)
         self.verified_by = data.pop('verified_by', None)
         self.verified_ts = data.pop('verified_ts', None)
+
+        return self
 
     # -----------------------------------------------------------------
     @property
@@ -295,7 +305,16 @@ class PrimaryElement(VerifiedElement):
         called_directly: bool = True,
         ignore_data: Optional[List[str]] = None,
     ):
-        super().__init__(data, called_directly=called_directly)
+        raise NotImplementedError()
+
+    @classmethod
+    def from_dict(
+        cls: Type[TPrimaryElementSubclass], data: Dict[str, Any], raise_on_unknown: bool = True, ignore_data: Optional[Dict[str, Any]] = None
+    ) -> TPrimaryElementSubclass:
+        """
+        Construct primary element from a data dict.
+        """
+        self = super().from_dict(data)
 
         self.is_primary = data.pop('primary', False)
 
@@ -307,14 +326,7 @@ class PrimaryElement(VerifiedElement):
             # Just keep everything that is left as-is
             self._data.update(data)
 
-    @classmethod
-    def from_dict(
-        cls: Type[TPrimaryElementSubclass], data: Dict[str, Any], raise_on_unknown: bool = True
-    ) -> TPrimaryElementSubclass:
-        """
-        Construct primary element from a data dict.
-        """
-        return cls(data=data, called_directly=False, raise_on_unknown=raise_on_unknown)
+        return self
 
     # -----------------------------------------------------------------
     @property
