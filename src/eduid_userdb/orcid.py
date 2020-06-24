@@ -36,30 +36,21 @@ class OidcIdToken(Element):
         raise_on_unknown=True,
         called_directly=True,
     ):
+        raise NotImplementedError()
+
+    @classmethod
+    def from_dict(cls: Type[OidcIdToken], data: Dict[str, Any], raise_on_unknown: bool = True) -> OidcIdToken:
+        """
+        Construct user from a data dict.
+        """
         data_in = data
         data = copy.deepcopy(data_in)  # to not modify callers data
 
-        if data is None:
-            if created_ts is None:
-                created_ts = True
-            data = dict(
-                iss=iss,
-                sub=sub,
-                aud=aud,
-                exp=exp,
-                iat=iat,
-                nonce=nonce,
-                auth_time=auth_time,
-                acr=acr,
-                amr=amr,
-                azp=azp,
-                created_by=application,
-                created_ts=created_ts,
-            )
-        elif 'created_ts' not in data:
+        if 'created_ts' not in data:
             data['created_ts'] = True
 
-        super().__init__(data, called_directly=called_directly)
+        self = super().from_dict(data)
+
         self.iss = data.pop('iss')
         self.sub = data.pop('sub')
         self.aud = data.pop('aud')
@@ -73,13 +64,6 @@ class OidcIdToken(Element):
 
         if raise_on_unknown and data:
             raise UserHasUnknownData('{!s} has unknown data: {!r}'.format(self.__class__.__name__, data.keys()))
-
-    @classmethod
-    def from_dict(cls: Type[OidcIdToken], data: Dict[str, Any], raise_on_unknown: bool = True) -> OidcIdToken:
-        """
-        Construct user from a data dict.
-        """
-        return cls(data=data, called_directly=False, raise_on_unknown=raise_on_unknown)
 
     @property
     def key(self):
