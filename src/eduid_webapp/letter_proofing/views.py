@@ -30,7 +30,7 @@ def get_state(user):
     if proofing_state:
         current_app.logger.info('Found proofing state for user {}'.format(user))
         return check_state(proofing_state)
-    return error_response(message=LetterMsg.no_state)
+    return success_response(message=LetterMsg.no_state)
 
 
 @letter_proofing_views.route('/proofing', methods=['POST'])
