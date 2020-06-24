@@ -77,12 +77,14 @@ def add_nin_to_user(user: User, proofing_state: NinProofingState, user_class: Ty
     if not proofing_user.nins.find(proofing_state.nin.number):
         current_app.logger.info('Adding NIN for user {}'.format(user))
         current_app.logger.debug('Self asserted NIN: {}'.format(proofing_state.nin.number))
-        nin_element = Nin(
-            number=proofing_state.nin.number,
-            application=proofing_state.nin.created_by,
-            verified=proofing_state.nin.is_verified,
-            created_ts=proofing_state.nin.created_ts,
-            primary=False,
+        nin_element = Nin.from_dict(
+            dict(
+                number=proofing_state.nin.number,
+                created_by=proofing_state.nin.created_by,
+                verified=proofing_state.nin.is_verified,
+                created_ts=proofing_state.nin.created_ts,
+                primary=False,
+            )
         )
         proofing_user.nins.add(nin_element)
         proofing_user.modified_ts = True
@@ -109,12 +111,14 @@ def verify_nin_for_user(user, proofing_state, proofing_log_entry):
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     nin_element = proofing_user.nins.find(proofing_state.nin.number)
     if not nin_element:
-        nin_element = Nin(
-            number=proofing_state.nin.number,
-            application=proofing_state.nin.created_by,
-            created_ts=proofing_state.nin.created_ts,
-            verified=False,
-            primary=False,
+        nin_element = Nin.from_dict(
+            dict(
+                number=proofing_state.nin.number,
+                created_by=proofing_state.nin.created_by,
+                created_ts=proofing_state.nin.created_ts,
+                verified=False,
+                primary=False,
+            )
         )
         proofing_user.nins.add(nin_element)
 
