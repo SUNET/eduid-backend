@@ -741,23 +741,25 @@ class AttributeFetcherSecurityTests(AMTestCase):
         security_user = SecurityUser.from_dict(self.user_data)
         self.fetcher.private_db.save(security_user)
 
-        self.assertDictEqual(
-            self.fetcher.fetch_attrs(security_user.user_id),
-            {
-                '$set': {
-                    'passwords': [
-                        {
-                            'credential_id': u'112345678901234567890123',
-                            'is_generated': False,
-                            'salt': '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$',
-                        }
-                    ],
-                    'nins': [{'number': '123456781235', 'primary': True, 'verified': True}],
-                    'phone': [{'number': '+46700011336', 'primary': True, 'verified': True}],
-                },
-                '$unset': {'terminated': None},
+        expected = {
+            '$set': {
+                'passwords': [
+                    {
+                        'credential_id': u'112345678901234567890123',
+                        'is_generated': False,
+                        'salt': '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$',
+                    }
+                ],
+                'nins': [{'number': '123456781235', 'primary': True, 'verified': True}],
+                'phone': [{'number': '+46700011336', 'primary': True, 'verified': True}],
             },
-        )
+            '$unset': {'terminated': None},
+        }
+        fetched = self.fetcher.fetch_attrs(security_user.user_id)
+        for cred in fetched['$set']['passwords']:
+            del cred['created_ts']
+
+        assert fetched == expected, 'Wrong data fetched by the security fetcher'
 
     def test_malicious_attributes(self):
         self.user_data.update(
@@ -775,23 +777,25 @@ class AttributeFetcherSecurityTests(AMTestCase):
         security_user = SecurityUser.from_dict(self.user_data)
         self.fetcher.private_db.save(security_user)
 
-        self.assertDictEqual(
-            self.fetcher.fetch_attrs(security_user.user_id),
-            {
-                '$set': {
-                    'passwords': [
-                        {
-                            'credential_id': u'112345678901234567890123',
-                            'is_generated': False,
-                            'salt': '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$',
-                        }
-                    ],
-                    'nins': [{'number': '123456781235', 'primary': True, 'verified': True}],
-                    'phone': [{'number': '+46700011336', 'primary': True, 'verified': True}],
-                },
-                '$unset': {'terminated': None},
+        fetched = self.fetcher.fetch_attrs(security_user.user_id)
+        for pw in fetched['$set']['passwords']:
+            del pw['created_ts']
+
+        expected = {
+            '$set': {
+                'passwords': [
+                    {
+                        'credential_id': u'112345678901234567890123',
+                        'is_generated': False,
+                        'salt': '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$',
+                    }
+                ],
+                'nins': [{'number': '123456781235', 'primary': True, 'verified': True}],
+                'phone': [{'number': '+46700011336', 'primary': True, 'verified': True}],
             },
-        )
+            '$unset': {'terminated': None},
+        }
+        assert fetched == expected, 'Wrong data fetched by security fetcher'
 
 
 class AttributeFetcherResetPasswordTests(AMTestCase):
@@ -817,22 +821,24 @@ class AttributeFetcherResetPasswordTests(AMTestCase):
         reset_password_user = ResetPasswordUser.from_dict(self.user_data)
         self.fetcher.private_db.save(reset_password_user)
 
-        self.assertDictEqual(
-            self.fetcher.fetch_attrs(reset_password_user.user_id),
-            {
-                '$set': {
-                    'passwords': [
-                        {
-                            'credential_id': u'112345678901234567890123',
-                            'is_generated': False,
-                            'salt': '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$',
-                        }
-                    ],
-                    'nins': [{'number': '123456781235', 'primary': True, 'verified': True}],
-                    'phone': [{'number': '+46700011336', 'primary': True, 'verified': True}],
-                },
-            },
-        )
+        fetched = self.fetcher.fetch_attrs(reset_password_user.user_id)
+        for pw in fetched['$set']['passwords']:
+            del pw['created_ts']
+
+        expected = {
+            '$set': {
+                'passwords': [
+                    {
+                        'credential_id': u'112345678901234567890123',
+                        'is_generated': False,
+                        'salt': '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$',
+                    }
+                ],
+                'nins': [{'number': '123456781235', 'primary': True, 'verified': True}],
+                'phone': [{'number': '+46700011336', 'primary': True, 'verified': True}],
+            }
+        }
+        assert fetched == expected, 'Wrong data fetched by reset password fetcher'
 
     def test_malicious_attributes(self):
         self.user_data.update(
@@ -850,22 +856,24 @@ class AttributeFetcherResetPasswordTests(AMTestCase):
         reset_password_user = ResetPasswordUser.from_dict(self.user_data)
         self.fetcher.private_db.save(reset_password_user)
 
-        self.assertDictEqual(
-            self.fetcher.fetch_attrs(reset_password_user.user_id),
-            {
-                '$set': {
-                    'passwords': [
-                        {
-                            'credential_id': u'112345678901234567890123',
-                            'is_generated': False,
-                            'salt': '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$',
-                        }
-                    ],
-                    'nins': [{'number': '123456781235', 'primary': True, 'verified': True}],
-                    'phone': [{'number': '+46700011336', 'primary': True, 'verified': True}],
-                },
-            },
-        )
+        fetched = self.fetcher.fetch_attrs(reset_password_user.user_id)
+        for pw in fetched['$set']['passwords']:
+            del pw['created_ts']
+
+        expected = {
+            '$set': {
+                'passwords': [
+                    {
+                        'credential_id': u'112345678901234567890123',
+                        'is_generated': False,
+                        'salt': '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$',
+                    }
+                ],
+                'nins': [{'number': '123456781235', 'primary': True, 'verified': True}],
+                'phone': [{'number': '+46700011336', 'primary': True, 'verified': True}],
+            }
+        }
+        assert fetched == expected, 'Wrong data fetched by reset password fetcher'
 
 
 class AttributeFetcherOrcidTests(AMTestCase):
