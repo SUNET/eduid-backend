@@ -89,17 +89,19 @@ class AttributeFetcherTests(AMTestCase):
         user_data['passwords'] = [{'id': '123', 'salt': '456',}]
         user = SignupUser.from_dict(user_data)
         self.fetcher.private_db.save(user)
-        attrs = self.fetcher.fetch_attrs(user.user_id)
-        self.assertEqual(
-            attrs,
-            {
-                '$set': {
-                    'eduPersonPrincipalName': 'test-test',
-                    'mailAliases': [{'verified': True, 'primary': True, 'email': 'john@example.com'}],
-                    'passwords': [{'credential_id': u'123', 'is_generated': False, 'salt': u'456',}],
-                }
-            },
-        )
+
+        fetched = self.fetcher.fetch_attrs(user.user_id)
+        for pw in fetched['$set']['passwords']:
+            del pw['created_ts']
+
+        expected = {
+            '$set': {
+                'eduPersonPrincipalName': 'test-test',
+                'mailAliases': [{'verified': True, 'primary': True, 'email': 'john@example.com'}],
+                'passwords': [{'credential_id': u'123', 'is_generated': False, 'salt': u'456',}],
+            }
+        }
+        assert fetched == expected, 'Wronf data fetched by signup fetcher'
 
     def test_malicious_attributes(self):
         user_data = deepcopy(USER_DATA)
