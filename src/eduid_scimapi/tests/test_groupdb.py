@@ -3,6 +3,7 @@ from typing import Optional
 from uuid import UUID, uuid4
 
 from eduid_graphdb.groupdb import Group as GraphGroup
+
 from eduid_scimapi.config import ScimApiConfig
 from eduid_scimapi.context import Context
 from eduid_scimapi.groupdb import GroupExtensions, ScimApiGroup
