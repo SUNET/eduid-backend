@@ -2,9 +2,9 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import unique
-from typing import Optional, OrderedDict, Union
+from typing import Optional
 
-from eduid_common.api.messages import FluxData, TranslatableMsg, error_response, success_response
+from eduid_common.api.messages import TranslatableMsg, error_response, success_response
 from eduid_common.api.utils import get_short_hash
 from eduid_userdb import User
 from eduid_userdb.proofing import LetterProofingState, NinProofingElement
