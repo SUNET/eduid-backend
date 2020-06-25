@@ -61,8 +61,8 @@ class GroupManagementApp(AuthnBaseApp):
         )  # dot is a name separator in mongodb, so replace dots with underscores
         self.scimapi_userdb = ScimApiUserDB(db_uri=self.config.mongo_uri, collection=f'{_owner}__users')
         self.scimapi_groupdb = ScimApiGroupDB(
-            db_uri=self.config.neo4j_uri,
-            config=self.config.neo4j_config,
+            neo4j_uri=self.config.neo4j_uri,
+            neo4j_config=self.config.neo4j_config,
             scope=self.config.scim_data_owner,
             mongo_uri=self.config.mongo_uri,
             mongo_dbname='eduid_scimapi',
