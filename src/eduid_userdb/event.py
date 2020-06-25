@@ -70,26 +70,27 @@ class Event(Element):
         called_directly: bool = True,
         ignore_data: Optional[List[str]] = None,
     ):
+        raise NotImplementedError()
+
+    @classmethod
+    def from_dict(cls: Type[Event], data: Dict[str, Any], raise_on_unknown: bool = True, ignore_data: Optional[List[str]] = None) -> Event:
+        """
+        Construct event from a data dict.
+        """
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
 
-        if data is None:
-            if created_ts is None:
-                created_ts = True
-            if modified_ts is None:
-                modified_ts = created_ts
-            data = dict(
-                created_by=application,
-                created_ts=created_ts,
-                modified_ts=modified_ts,
-                event_type=event_type,
-                event_id=event_id,
-            )
+        if 'created_ts' not in data:
+            data['created_ts'] = True
+        if 'modified_ts' not in data:
+            data['modified_ts'] = data['created_ts']
+
         # modified_ts was not part of Event from the start, make sure it gets added and default to created_ts
         if 'modified_ts' not in data:
             data['modified_ts'] = data.get('created_ts', None)
 
-        super().__init__(data, called_directly=called_directly)
+        self = super().from_dict(data)
+
         self.event_type = data.pop('event_type', None)
         if 'id' in data:  # Compatibility for old format
             data['event_id'] = data.pop('id')
@@ -103,12 +104,7 @@ class Event(Element):
             # Just keep everything that is left as-is
             self._data.update(data)
 
-    @classmethod
-    def from_dict(cls: Type[Event], data: Dict[str, Any], raise_on_unknown: bool = True) -> Event:
-        """
-        Construct event from a data dict.
-        """
-        return cls(data=data, called_directly=False, raise_on_unknown=raise_on_unknown)
+        return self
 
     # -----------------------------------------------------------------
     @property

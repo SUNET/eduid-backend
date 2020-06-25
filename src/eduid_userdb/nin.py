@@ -31,10 +31,11 @@
 #
 # Author : Fredrik Thulin <fredrik@thulin.net>
 #
+from __future__ import annotations
 
 import copy
 from datetime import datetime
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional, Type, Union
 
 from six import string_types
 
@@ -64,18 +65,24 @@ class Nin(PrimaryElement):
         raise_on_unknown: bool = True,
         called_directly: bool = True,
     ):
+        raise NotImplementedError()
+
+    @classmethod
+    def from_dict(
+        cls: Type[Nin], data: Dict[str, Any], raise_on_unknown: bool = True, ignore_data: Optional[Dict[str, Any]] = None
+    ) -> Nin:
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
 
-        if data is None:
-            if created_ts is None:
-                created_ts = True
-            data = dict(
-                number=number, created_by=application, created_ts=created_ts, verified=verified, primary=primary,
-            )
+        if 'created_ts' not in data:
+            data['created_ts'] = True
 
-        super().__init__(data, raise_on_unknown, called_directly=called_directly, ignore_data=['number'])
-        self.number = data.pop('number')
+        number = data.pop('number')
+
+        self = super().from_dict(data, raise_on_unknown)
+        self.number = number
+
+        return self
 
     # -----------------------------------------------------------------
     @property

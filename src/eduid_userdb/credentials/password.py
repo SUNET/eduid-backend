@@ -32,7 +32,7 @@
 #
 # Author : Johan Lundberg <lundberg@nordu.net>
 #
-from __future__ import absolute_import
+from __future__ import annotations
 
 import copy
 from typing import Any, Dict, Optional, Type, Union
@@ -57,23 +57,29 @@ class Password(Credential):
         raise_on_unknown: bool = True,
         called_directly: bool = True,
     ):
+        raise NotImplementedError()
+
+    @classmethod
+    def from_dict(
+        cls: Type[Password], data: Dict[str, Any], raise_on_unknown: bool = True
+    ) -> Password:
+        """
+        Construct password credential from a data dict.
+        """
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
 
-        if data is None:
-            if created_ts is None:
-                created_ts = True
-            data = dict(
-                id=credential_id, salt=salt, is_generated=is_generated, created_by=application, created_ts=created_ts,
-            )
-        elif 'created_ts' not in data:
+        if 'created_ts' not in data:
             data['created_ts'] = True
 
         if 'source' in data:  # TODO: Load and save all users in the database to replace source with created_by
             data['created_by'] = data.pop('source')
-        super().__init__(data, called_directly=called_directly)
+
+        self = super().from_dict(data)
+
         if 'id' in data:  # TODO: Load and save all users in the database to replace id with credential_id
             data['credential_id'] = data.pop('id')
+
         self.is_generated = data.pop('is_generated', False)
         self.credential_id = data.pop('credential_id')
         self.salt = data.pop('salt')
@@ -85,12 +91,7 @@ class Password(Credential):
             # Just keep everything that is left as-is
             self._data.update(data)
 
-    @classmethod
-    def from_dict(cls: Type['Password'], data: Dict[str, Any], raise_on_unknown: bool = True) -> 'Password':
-        """
-        Construct password credential from a data dict.
-        """
-        return cls(data=data, raise_on_unknown=raise_on_unknown, called_directly=False)
+        return self
 
     @property
     def key(self) -> str:
