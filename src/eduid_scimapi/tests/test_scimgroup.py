@@ -10,8 +10,8 @@ from uuid import UUID, uuid4
 from bson import ObjectId
 from marshmallow_dataclass import class_schema
 
-from eduid_groupdb import Group as GraphGroup
-from eduid_groupdb import User as GraphUser
+from eduid_graphdb.groupdb import Group as GraphGroup
+from eduid_graphdb.groupdb import User as GraphUser
 
 from eduid_scimapi.group import GroupMember, GroupResponse
 from eduid_scimapi.groupdb import GroupExtensions, ScimApiGroup
