@@ -216,10 +216,10 @@ class ScimApiGroupDB(ScimApiBaseDB):
             res += [group]
         return res, count
 
-    def get_groups_for_member(self, member: Union[GraphUser, GraphGroup]) -> List[ScimApiGroup]:
-        user_groups = self.graphdb.get_groups_for_member(member=member)
+    def get_groups_for_user_identifer(self, member_identifier: UUID) -> List[ScimApiGroup]:
+        groups = self.graphdb.get_groups_for_user_identifer(str(member_identifier))
         res: List[ScimApiGroup] = []
-        for graph in user_groups:
+        for graph in groups:
             group = self.get_group_by_scim_id(graph.identifier)
             if not group:
                 raise RuntimeError(f'Group {graph} found in graph database, but not in mongodb')
@@ -227,8 +227,8 @@ class ScimApiGroupDB(ScimApiBaseDB):
             res += [group]
         return res
 
-    def get_groups_for_owner(self, owner: Union[GraphUser, GraphGroup]) -> List[ScimApiGroup]:
-        groups = self.graphdb.get_groups_for_owner(owner=owner)
+    def get_groups_owned_by_user_identifier(self, owner_identifier: UUID) -> List[ScimApiGroup]:
+        groups = self.graphdb.get_groups_owned_by_user_identifier(str(owner_identifier))
         res: List[ScimApiGroup] = []
         for graph in groups:
             group = self.get_group_by_scim_id(graph.identifier)
