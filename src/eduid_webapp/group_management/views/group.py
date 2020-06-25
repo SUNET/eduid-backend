@@ -37,8 +37,8 @@ from flask import Blueprint
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid_common.api.messages import CommonMsg, FluxData, error_response, success_response
-from eduid_groupdb import Group as GraphGroup
-from eduid_groupdb import User as GraphUser
+from eduid_graphdb.groupdb import Group as GraphGroup
+from eduid_graphdb.groupdb import User as GraphUser
 from eduid_scimapi.groupdb import ScimApiGroup
 from eduid_userdb import User
 from eduid_userdb.exceptions import EduIDDBError

@@ -38,8 +38,8 @@ from flask import Response
 from mock import patch
 
 from eduid_common.api.testing import EduidAPITestCase
-from eduid_groupdb.group import User as GraphUser
-from eduid_groupdb.testing import Neo4jTemporaryInstance
+from eduid_graphdb.groupdb import User as GraphUser
+from eduid_graphdb.testing import Neo4jTemporaryInstance
 from eduid_scimapi.groupdb import GroupExtensions, ScimApiGroup
 from eduid_scimapi.userdb import ScimApiUser
 from eduid_userdb import User
