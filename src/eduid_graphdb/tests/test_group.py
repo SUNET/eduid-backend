@@ -2,7 +2,7 @@
 from typing import Dict, Union
 from unittest import TestCase
 
-from eduid_groupdb.groupdb import Group, User
+from eduid_graphdb.groupdb import Group, User
 
 __author__ = 'lundberg'
 

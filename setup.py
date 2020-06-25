@@ -2,7 +2,7 @@ import os
 
 from setuptools import setup, find_packages
 
-version = '0.3.1'
+version = '0.4.0'
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -14,7 +14,7 @@ testing_extras = [x for x in open(os.path.join(here, 'test_requirements.txt')).r
 bson_requires = ['bson>=0.5.9']
 
 setup(
-    name='eduid-groupdb',
+    name='eduid-graphdb',
     version=version,
     packages=find_packages('src'),
     package_dir={'': 'src'},
@@ -25,9 +25,9 @@ setup(
     extras_require={
         'bson': bson_requires,
     },
-    url='https://github.com/SUNET/eduid-groupdb',
+    url='https://github.com/SUNET/eduid-graphdb',
     license='BSD-2-Clause',
     author='Johan Lundberg',
     author_email='lundberg@sunet.se',
-    description='Group operations for Neo4j'
+    description='Graph operations with Neo4j'
 )

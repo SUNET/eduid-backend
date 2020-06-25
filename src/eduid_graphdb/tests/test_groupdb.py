@@ -4,9 +4,9 @@ from typing import Dict, Union
 from bson import ObjectId
 from neo4j import basic_auth
 
-from eduid_groupdb.exceptions import VersionMismatch
-from eduid_groupdb.groupdb import Group, GroupDB, User
-from eduid_groupdb.testing import Neo4jTestCase
+from eduid_graphdb.exceptions import VersionMismatch
+from eduid_graphdb.groupdb import Group, GroupDB, User
+from eduid_graphdb.testing import Neo4jTestCase
 
 __author__ = 'lundberg'
 
