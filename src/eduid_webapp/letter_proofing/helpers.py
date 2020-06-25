@@ -63,13 +63,14 @@ class StateExpireInfo(object):
 
 def check_state(state: LetterProofingState) -> StateExpireInfo:
     """
-    Checks if the state is expired, and return data about the outcome of the check.
+    Checks if the state is expired.
 
     NOTE: If the state is found to be expired, it is REMOVED from the database, so
           a user will only get information about the expired letter once.
 
-    :param state:  Users proofing state
-    :return: State expiration information, or an FluxData error response if the state is not valid
+    :param state: Users proofing state
+    :return: Information about the users current letter proofing state,
+             such as when it was created, when it expires etc.
     """
     current_app.logger.info('Checking state for user with eppn {!s}'.format(state.eppn))
     if not state.proofing_letter.is_sent:
