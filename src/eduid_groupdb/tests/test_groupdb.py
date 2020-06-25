@@ -153,7 +153,7 @@ class TestGroupDB(Neo4jTestCase):
         assert 1 == len(group.owners)
         self.group_db.save(group)
 
-        groups = self.group_db.get_groups_for_user_member(member_user.identifier)
+        groups = self.group_db.get_groups_for_user_identifer(member_user.identifier)
         assert 1 == len(groups)
         self._assert_group(group, groups[0])
         assert 1 == len(group.owners)
@@ -171,7 +171,7 @@ class TestGroupDB(Neo4jTestCase):
         assert member_user in group2.member_users
         self.group_db.save(group2)
 
-        groups = self.group_db.get_groups_for_user_member(member_user.identifier)
+        groups = self.group_db.get_groups_for_user_identifer(member_user.identifier)
         assert 2 == len(groups)
         assert sorted([group1.identifier, group2.identifier]) == sorted([x.identifier for x in groups])
         assert sorted([group1.display_name, group2.display_name]) == sorted([x.display_name for x in groups])
@@ -193,7 +193,7 @@ class TestGroupDB(Neo4jTestCase):
         assert 1 == len(group.owners)
         self.group_db.save(group)
 
-        groups = self.group_db.get_groups_for_group_member(member_group.identifier)
+        groups = self.group_db.get_groups_for_group_identifier(member_group.identifier)
         assert 1 == len(groups)
         self._assert_group(group, groups[0])
         assert 1 == len(group.owners)
@@ -215,7 +215,7 @@ class TestGroupDB(Neo4jTestCase):
         assert 1 == len(group.owners)
         self.group_db.save(group)
 
-        groups = self.group_db.get_groups_for_user_owner(owner.identifier)
+        groups = self.group_db.get_groups_owned_by_user_identifier(owner.identifier)
         assert 1 == len(groups)
         self._assert_group(group, groups[0])
         assert 1 == len(groups[0].owners)
@@ -237,7 +237,7 @@ class TestGroupDB(Neo4jTestCase):
         assert owner_user in group2.owner_users
         self.group_db.save(group2)
 
-        groups = self.group_db.get_groups_for_user_owner(owner_user.identifier)
+        groups = self.group_db.get_groups_owned_by_user_identifier(owner_user.identifier)
         assert 2 == len(groups)
         assert sorted([group1.identifier, group2.identifier]) == sorted([x.identifier for x in groups])
         assert sorted([group1.display_name, group2.display_name]) == sorted([x.display_name for x in groups])
@@ -261,7 +261,7 @@ class TestGroupDB(Neo4jTestCase):
         assert 1 == len(group.owners)
         self.group_db.save(group)
 
-        groups = self.group_db.get_groups_for_group_owner(owner.identifier)
+        groups = self.group_db.get_groups_owned_by_group_identifier(owner.identifier)
         assert 1 == len(groups)
         self._assert_group(group, groups[0])
         assert 1 == len(groups[0].owners)

@@ -325,7 +325,9 @@ class GroupDB(BaseGraphDB):
         return res
 
     def get_groups_for_member(self, member: Union[User, Group]) -> List[Group]:
-        warnings.warn('Use get_groups_for_user_member or get_groups_for_group_member', DeprecationWarning)
+        warnings.warn(
+            'Use get_groups_for_user_identifer or get_groups_for_group_identifier instead', DeprecationWarning
+        )
         if isinstance(member, Group):
             label = Label.GROUP
         else:
@@ -333,23 +335,26 @@ class GroupDB(BaseGraphDB):
         return self._get_groups_for_role(label=label, identifier=member.identifier, role=Role.MEMBER)
 
     def get_groups_for_owner(self, owner: Union[User, Group]) -> List[Group]:
-        warnings.warn('Use get_groups_for_user_owner or get_groups_for_group_owner', DeprecationWarning)
+        warnings.warn(
+            'Use get_groups_owned_by_user_identifier or get_groups_owned_by_group_identifier instead',
+            DeprecationWarning,
+        )
         if isinstance(owner, Group):
             label = Label.GROUP
         else:
             label = Label.USER
         return self._get_groups_for_role(label=label, identifier=owner.identifier, role=Role.OWNER)
 
-    def get_groups_for_user_member(self, identifier: str) -> List[Group]:
+    def get_groups_for_user_identifer(self, identifier: str) -> List[Group]:
         return self._get_groups_for_role(Label.USER, identifier, role=Role.MEMBER)
 
-    def get_groups_for_group_member(self, identifier: str) -> List[Group]:
+    def get_groups_for_group_identifier(self, identifier: str) -> List[Group]:
         return self._get_groups_for_role(Label.GROUP, identifier, role=Role.MEMBER)
 
-    def get_groups_for_user_owner(self, identifier: str) -> List[Group]:
+    def get_groups_owned_by_user_identifier(self, identifier: str) -> List[Group]:
         return self._get_groups_for_role(Label.USER, identifier, role=Role.OWNER)
 
-    def get_groups_for_group_owner(self, identifier: str) -> List[Group]:
+    def get_groups_owned_by_group_identifier(self, identifier: str) -> List[Group]:
         return self._get_groups_for_role(Label.GROUP, identifier, role=Role.OWNER)
 
     def group_exists(self, identifier: str) -> bool:
