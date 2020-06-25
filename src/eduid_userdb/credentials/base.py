@@ -33,9 +33,9 @@
 # Author : Fredrik Thulin <fredrik@thulin.net>
 #
 
-from __future__ import absolute_import
+from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any, Dict, Type
 
 from six import string_types
 
@@ -56,10 +56,21 @@ class Credential(VerifiedElement):
     """
 
     def __init__(self, data: Dict[str, Any], called_directly: bool = True):
-        super().__init__(data, called_directly=called_directly)
+        raise NotImplementedError()
+
+    @classmethod
+    def from_dict(
+        cls: Type[Credential], data: Dict[str, Any]
+    ) -> Credential:
+        """
+        Construct credential from a data dict.
+        """
+        self = super().from_dict(data)
 
         self.proofing_method = data.pop('proofing_method', None)
         self.proofing_version = data.pop('proofing_version', None)
+
+        return self
 
     def __str__(self):
         shortkey = self.key[:12]

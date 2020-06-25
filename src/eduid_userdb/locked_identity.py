@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
+from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Type
 
 from six import string_types
 
@@ -22,8 +23,16 @@ class LockedIdentityElement(Element):
     """
 
     def __init__(self, data, called_directly=True):
-        super().__init__(data, called_directly=called_directly)
+        raise NotImplementedError()
+
+    @classmethod
+    def from_dict(cls: Type[LockedIdentityElement], data: Dict[str, Any]) -> LockedIdentityElement:
+        """
+        Construct locked identity element from a data dict.
+        """
+        self = super().from_dict(data)
         self.identity_type = data.pop('identity_type')
+        return self
 
     # -----------------------------------------------------------------
     @property
@@ -72,15 +81,20 @@ class LockedIdentityNin(LockedIdentityElement):
         data: Optional[Dict[str, Any]] = None,
         called_directly: bool = True,
     ):
-        if data is None:
-            data = {'created_by': created_by, 'created_ts': created_ts}
-        else:
-            number = data.pop('number')
+        raise NotImplementedError()
 
+    @classmethod
+    def from_dict(cls: Type[LockedIdentityElement], data: Dict[str, Any]) -> LockedIdentityElement:
+        """
+        Construct locked identity element from a data dict.
+        """
         data['identity_type'] = 'nin'
 
-        super().__init__(data, called_directly=called_directly)
+        number = data.pop('number')
+        self = super().from_dict(data)
         self.number = number
+
+        return self
 
     # -----------------------------------------------------------------
     @property

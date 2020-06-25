@@ -32,10 +32,11 @@
 #
 # Author : Fredrik Thulin <fredrik@thulin.net>
 #
+from __future__ import annotations
 
 import copy
 import datetime
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Type, Union
 
 from six import string_types
 
@@ -59,25 +60,27 @@ class ToUEvent(Event):
         raise_on_unknown: bool = True,
         called_directly: bool = True,
     ):
+        raise NotImplementedError()
+
+    @classmethod
+    def from_dict(cls: Type[ToUEvent], data: Dict[str, Any], raise_on_unknown: bool = True) -> ToUEvent:
+        """
+        Construct ToU event from a data dict.
+        """
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
 
-        if data is None:
-            data = dict(
-                version=version,
-                created_by=application,
-                created_ts=created_ts,
-                modified_ts=modified_ts,
-                event_type='tou_event',
-                event_id=event_id,
-            )
+        data['event_type'] = 'tou_event'
+
         for required in ['created_by', 'created_ts']:
             if required not in data or not data.get(required):
                 raise BadEvent('missing required data for event: {!s}'.format(required))
-        Event.__init__(
-            self, data=data, raise_on_unknown=raise_on_unknown, called_directly=called_directly, ignore_data=['version']
+        self = super().from_dict(
+            data, raise_on_unknown=raise_on_unknown, ignore_data=['version']
         )
         self.version = data.pop('version')
+
+        return self
 
     # -----------------------------------------------------------------
     @property

@@ -41,7 +41,7 @@ class OidcIdToken(Element):
     @classmethod
     def from_dict(cls: Type[OidcIdToken], data: Dict[str, Any], raise_on_unknown: bool = True) -> OidcIdToken:
         """
-        Construct user from a data dict.
+        Construct oidc id token from a data dict.
         """
         data_in = data
         data = copy.deepcopy(data_in)  # to not modify callers data
@@ -307,6 +307,15 @@ class OidcAuthorization(Element):
         raise_on_unknown=True,
         called_directly=True,
     ):
+        raise NotImplementedError()
+
+    @classmethod
+    def from_dict(
+        cls: Type[OidcAuthorization], data: Dict[str, Any], raise_on_unknown: bool = True
+    ) -> OidcAuthorization:
+        """
+        Construct user from a data dict.
+        """
         data_in = data
         data = copy.deepcopy(data_in)  # to not modify callers data
 
@@ -340,15 +349,6 @@ class OidcAuthorization(Element):
 
         if raise_on_unknown and data:
             raise UserHasUnknownData('{!s} has unknown data: {!r}'.format(self.__class__.__name__, data.keys()))
-
-    @classmethod
-    def from_dict(
-        cls: Type[OidcAuthorization], data: Dict[str, Any], raise_on_unknown: bool = True
-    ) -> OidcAuthorization:
-        """
-        Construct user from a data dict.
-        """
-        return cls(data=data, called_directly=False, raise_on_unknown=raise_on_unknown)
 
     @property
     def key(self):

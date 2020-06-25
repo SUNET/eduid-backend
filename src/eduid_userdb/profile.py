@@ -24,10 +24,16 @@ class Profile(Element):
 
         if created_ts is None:
             created_ts = True
-        data = dict(created_by=created_by, created_ts=created_ts, modified_ts=modified_ts)
         # do not deprecate direct calls to the __init__ of Profile,
         # since it does not accept a data dict, and is already very near a dataclass
-        super().__init__(data=data, called_directly=False)
+        # Once Element is a dataclass, we can remove the lines below up till EOR
+        # and rely on super
+        self._data: Dict[str, Any] = {}
+
+        self.created_by = created_by
+        self.created_ts = created_ts
+        self.modified_ts = modified_ts
+        # EOR
 
         self.owner = owner
         self.schema = schema

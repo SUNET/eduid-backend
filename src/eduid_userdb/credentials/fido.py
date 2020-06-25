@@ -53,11 +53,21 @@ class FidoCredential(Credential):
     """
 
     def __init__(self, data: Dict[str, Any], called_directly: bool = True):
+        raise NotImplementedError()
 
-        super().__init__(data, called_directly=called_directly)
+    @classmethod
+    def from_dict(
+        cls: Type[FidoCredential], data: Dict[str, Any]
+    ) -> FidoCredential:
+        """
+        Construct fido credential from a data dict.
+        """
+        self = super().from_dict(data)
         self.keyhandle = data.pop('keyhandle')
         self.app_id = data.pop('app_id')
         self.description = data.pop('description', '')
+
+        return self
 
     def check_unknown_data(self, data: Dict[str, Any]):
         """
@@ -147,26 +157,22 @@ class U2F(FidoCredential):
         raise_on_unknown: bool = True,
         called_directly: bool = True,
     ):
+        raise NotImplementedError()
+
+    @classmethod
+    def from_dict(
+        cls: Type[U2F], data: Dict[str, Any], raise_on_unknown: bool = True
+    ) -> U2F:
+        """
+        Construct U2F credential from a data dict.
+        """
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
 
-        if data is None:
-            if created_ts is None:
-                created_ts = True
-            data = dict(
-                version=version,
-                keyhandle=keyhandle,
-                public_key=public_key,
-                app_id=app_id,
-                attest_cert=attest_cert,
-                description=description,
-                created_by=application,
-                created_ts=created_ts,
-            )
-        elif 'created_ts' not in data:
+        if 'created_ts' not in data:
             data['created_ts'] = True
 
-        super().__init__(data, called_directly=called_directly)
+        self = super().from_dict(data)
 
         self.version = data.pop('version')
         self.public_key = data.pop('public_key')
@@ -178,12 +184,7 @@ class U2F(FidoCredential):
         # Just keep everything that is left as-is
         self._data.update(data)
 
-    @classmethod
-    def from_dict(cls: Type[U2F], data: Dict[str, Any], raise_on_unknown: bool = True) -> U2F:
-        """
-        Construct U2F credential from a data dict.
-        """
-        return cls(data=data, called_directly=False, raise_on_unknown=raise_on_unknown)
+        return self
 
     @property
     def key(self):
@@ -288,25 +289,22 @@ class Webauthn(FidoCredential):
         raise_on_unknown: bool = True,
         called_directly: bool = True,
     ):
+        raise NotImplementedError()
+
+    @classmethod
+    def from_dict(
+        cls: Type[Webauthn], data: Dict[str, Any], raise_on_unknown: bool = True
+    ) -> Webauthn:
+        """
+        Construct U2F credential from a data dict.
+        """
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
 
-        if data is None:
-            if created_ts is None:
-                created_ts = True
-            data = dict(
-                keyhandle=keyhandle,
-                credential_data=credential_data,
-                app_id=app_id,
-                attest_obj=attest_obj,
-                description=description,
-                created_by=application,
-                created_ts=created_ts,
-            )
-        elif 'created_ts' not in data:
+        if 'created_ts' not in data:
             data['created_ts'] = True
 
-        super().__init__(data, called_directly=called_directly)
+        self = super().from_dict(data)
 
         self.attest_obj = data.pop('attest_obj', '')
         self.credential_data = data.pop('credential_data', '')
@@ -317,12 +315,7 @@ class Webauthn(FidoCredential):
         # Just keep everything that is left as-is
         self._data.update(data)
 
-    @classmethod
-    def from_dict(cls: Type[Webauthn], data: Dict[str, Any], raise_on_unknown: bool = True) -> Webauthn:
-        """
-        Construct Webauthn credential from a data dict.
-        """
-        return cls(data=data, called_directly=False, raise_on_unknown=raise_on_unknown)
+        return self
 
     @property
     def key(self):
