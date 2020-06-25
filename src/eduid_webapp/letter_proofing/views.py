@@ -120,6 +120,13 @@ def verify_code(user: User, code: str) -> FluxData:
         # TODO: Throttling to discourage an adversary to try brute force
         return error_response(message=LetterMsg.wrong_code)
 
+    state_info = check_state(proofing_state)
+    if state_info.error:
+        return state_info.to_response()
+
+    if state_info.is_expired:
+        return state_info.to_response()
+
     try:
         # Fetch registered address again, to save the address of record at time of verification.
         official_address = get_address(user, proofing_state)
