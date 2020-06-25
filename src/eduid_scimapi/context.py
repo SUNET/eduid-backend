@@ -34,8 +34,8 @@ class Context(object):
             _owner = data_owner.replace('.', '_')  # replace dots with underscores
             self._userdbs[data_owner] = ScimApiUserDB(db_uri=self.config.mongo_uri, collection=f'{_owner}__users')
             self._groupdbs[data_owner] = ScimApiGroupDB(
-                db_uri=self.config.neo4j_uri,
-                config=self.config.neo4j_config,
+                neo4j_uri=self.config.neo4j_uri,
+                neo4j_config=self.config.neo4j_config,
                 scope=data_owner,
                 mongo_uri=self.config.mongo_uri,
                 mongo_dbname='eduid_scimapi',

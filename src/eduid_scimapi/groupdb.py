@@ -69,15 +69,15 @@ class ScimApiGroup(object):
 class ScimApiGroupDB(ScimApiBaseDB):
     def __init__(
         self,
-        db_uri: str,
+        neo4j_uri: str,
         scope: str,
         mongo_uri: str,
         mongo_dbname: str,
         mongo_collection: str,
-        config: Optional[Dict[str, Any]] = None,
+        neo4j_config: Optional[Dict[str, Any]] = None,
     ):
         super().__init__(mongo_uri, mongo_dbname, collection=mongo_collection)
-        self.graphdb = GroupDB(db_uri=db_uri, scope=scope, config=config)
+        self.graphdb = GroupDB(db_uri=neo4j_uri, scope=scope, config=neo4j_config)
         logger.info(f'{self} initialised')
 
     def save(self, group: ScimApiGroup) -> bool:
