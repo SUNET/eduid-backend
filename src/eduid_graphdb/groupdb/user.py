@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Mapping, Optional
 
-from eduid_groupdb.helpers import neo4j_ts_to_dt
+from eduid_graphdb.helpers import neo4j_ts_to_dt
 
 __author__ = 'lundberg'
 

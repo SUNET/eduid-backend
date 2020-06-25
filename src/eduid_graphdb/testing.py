@@ -11,7 +11,7 @@ from typing import Optional
 
 from neobolt.exceptions import ServiceUnavailable
 
-from eduid_groupdb.db import Neo4jDB
+from eduid_graphdb.db import Neo4jDB
 
 __author__ = 'lundberg'
 

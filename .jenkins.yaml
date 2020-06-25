@@ -12,8 +12,8 @@ script:
   - "pip install -U setuptools wheel mypy"
   - "pip install --index-url https://pypi.sunet.se -r test_requirements.txt"
   - "pip freeze"
-  - "pytest"
-  - "mypy --ignore-missing-imports src/eduid_groupdb"
+  - "make test"
+  - "make typecheck"
   - "python setup.py sdist bdist_wheel --universal"
 publish_over_ssh:
   - pypi.sunet.se

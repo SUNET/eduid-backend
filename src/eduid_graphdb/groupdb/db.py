@@ -10,10 +10,10 @@ from neo4j.exceptions import ClientError, ConstraintError, CypherError
 from neo4j.types.graph import Graph
 from neobolt.routing import READ_ACCESS, WRITE_ACCESS
 
-from eduid_groupdb import BaseGraphDB
-from eduid_groupdb.exceptions import EduIDGroupDBError, VersionMismatch
-from eduid_groupdb.groupdb.group import Group
-from eduid_groupdb.groupdb.user import User
+from eduid_graphdb import BaseGraphDB
+from eduid_graphdb.exceptions import EduIDGroupDBError, VersionMismatch
+from eduid_graphdb.groupdb.group import Group
+from eduid_graphdb.groupdb.user import User
 
 __author__ = 'lundberg'
 
@@ -323,27 +323,6 @@ class GroupDB(BaseGraphDB):
                 ]
                 res.append(group)
         return res
-
-    def get_groups_for_member(self, member: Union[User, Group]) -> List[Group]:
-        warnings.warn(
-            'Use get_groups_for_user_identifer or get_groups_for_group_identifier instead', DeprecationWarning
-        )
-        if isinstance(member, Group):
-            label = Label.GROUP
-        else:
-            label = Label.USER
-        return self._get_groups_for_role(label=label, identifier=member.identifier, role=Role.MEMBER)
-
-    def get_groups_for_owner(self, owner: Union[User, Group]) -> List[Group]:
-        warnings.warn(
-            'Use get_groups_owned_by_user_identifier or get_groups_owned_by_group_identifier instead',
-            DeprecationWarning,
-        )
-        if isinstance(owner, Group):
-            label = Label.GROUP
-        else:
-            label = Label.USER
-        return self._get_groups_for_role(label=label, identifier=owner.identifier, role=Role.OWNER)
 
     def get_groups_for_user_identifer(self, identifier: str) -> List[Group]:
         return self._get_groups_for_role(Label.USER, identifier, role=Role.MEMBER)

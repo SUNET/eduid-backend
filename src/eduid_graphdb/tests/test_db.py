@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 from neo4j import basic_auth
 
-from eduid_groupdb.db import BaseGraphDB
-from eduid_groupdb.testing import Neo4jTestCase
+from eduid_graphdb.db import BaseGraphDB
+from eduid_graphdb.testing import Neo4jTestCase
 
 __author__ = 'lundberg'
 
