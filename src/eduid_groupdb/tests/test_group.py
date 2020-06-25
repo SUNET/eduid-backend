@@ -2,7 +2,7 @@
 from typing import Dict, Union
 from unittest import TestCase
 
-from eduid_groupdb import Group, User
+from eduid_groupdb.groupdb import Group, User
 
 __author__ = 'lundberg'
 
@@ -22,20 +22,20 @@ class TestGroup(TestCase):
 
     def test_init_group(self):
         group = Group(**self.group1)
-        self.assertEqual(self.group1['identifier'], group.identifier)
-        self.assertEqual(self.group1['display_name'], group.display_name)
+        assert self.group1['identifier'] == group.identifier
+        assert self.group1['display_name'] == group.display_name
 
     def test_init_group_with_members(self):
         user = User(**self.user1)
         self.group1['members'] = [user]
         group = Group(**self.group1)
-        self.assertIn(user, group.members)
-        self.assertIn(user, group.member_users)
-        self.assertEqual(0, len(group.member_groups))
+        assert user in group.members
+        assert user in group.member_users
+        assert 0 == len(group.member_groups)
         group.members.append(Group(**self.group2))
-        self.assertEqual(1, len(group.member_groups))
+        assert 1 == len(group.member_groups)
         group.members.append(User(**self.user2))
-        self.assertEqual(3, len(group.members))
+        assert 3 == len(group.members)
 
     def test_init_group_with_owner_and_member(self):
         user = User(**self.user1)
@@ -43,9 +43,9 @@ class TestGroup(TestCase):
         self.group1['members'] = [user]
         self.group1['owners'] = [owner]
         group = Group(**self.group1)
-        self.assertIn(user, group.members)
-        self.assertIn(user, group.member_users)
-        self.assertIn(owner, group.owners)
+        assert user in group.members
+        assert user in group.member_users
+        assert owner in group.owners
 
     def test_get_users_and_groups(self):
         member1 = User(**self.user1)
@@ -59,15 +59,12 @@ class TestGroup(TestCase):
         self.group1['owners'] = [owner1, owner2, owner3]
         group = Group(**self.group1)
 
-        self.assertEqual(owner2, group.get_owner_user(identifier=owner2.identifier))
-        self.assertEqual(member2, group.get_member_user(identifier=member2.identifier))
+        assert owner2 == group.get_owner_user(identifier=owner2.identifier)
+        assert member2 == group.get_member_user(identifier=member2.identifier)
+        assert owner3 == group.get_owner_group(identifier=owner3.identifier)
+        assert member3 == group.get_member_group(identifier=member3.identifier)
 
-        self.assertEqual(owner3, group.get_owner_group(identifier=owner3.identifier))
-        self.assertEqual(member3, group.get_member_group(identifier=member3.identifier))
-
-        self.assertIsNone(group.get_member_user(identifier='missing_identifier'))
-        self.assertIsNone(group.get_owner_user(identifier='missing_identifier'))
-
-        self.assertIsNone(group.get_member_group(identifier='missing_identifier'))
-
-        self.assertIsNone(group.get_owner_group(identifier='missing_identifier'))
+        assert group.get_member_user(identifier='missing_identifier') is None
+        assert group.get_owner_user(identifier='missing_identifier') is None
+        assert group.get_member_group(identifier='missing_identifier') is None
+        assert group.get_owner_group(identifier='missing_identifier') is None

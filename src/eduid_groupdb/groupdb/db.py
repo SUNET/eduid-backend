@@ -10,21 +10,31 @@ from neo4j.exceptions import ClientError, ConstraintError, CypherError
 from neo4j.types.graph import Graph
 from neobolt.routing import READ_ACCESS, WRITE_ACCESS
 
-from eduid_groupdb import BaseGraphDB, Group, User
+from eduid_groupdb import BaseGraphDB
 from eduid_groupdb.exceptions import EduIDGroupDBError, VersionMismatch
+from eduid_groupdb.groupdb.group import Group
+from eduid_groupdb.groupdb.user import User
 
 __author__ = 'lundberg'
 
 logger = logging.getLogger(__name__)
 
 
-class GroupDB(BaseGraphDB):
-    @enum.unique
-    class Role(enum.Enum):
-        # Role to relationship type
-        MEMBER = 'IN'
-        OWNER = 'OWNS'
+@enum.unique
+class Label(enum.Enum):
+    # Role to relationship type
+    GROUP = 'Group'
+    USER = 'User'
 
+
+@enum.unique
+class Role(enum.Enum):
+    # Role to relationship type
+    MEMBER = 'IN'
+    OWNER = 'OWNS'
+
+
+class GroupDB(BaseGraphDB):
     def db_setup(self):
         with self.db.driver.session(access_mode=WRITE_ACCESS) as session:
             statements = [
@@ -78,16 +88,16 @@ class GroupDB(BaseGraphDB):
         owners: List[Union[User, Group]] = []
 
         for user_member in group.member_users:
-            res = self._add_user_to_group(tx, group=group, member=user_member, role=self.Role.MEMBER)
+            res = self._add_user_to_group(tx, group=group, member=user_member, role=Role.MEMBER)
             members.append(User.from_mapping(res.data()))
         for group_member in group.member_groups:
-            res = self._add_group_to_group(tx, group=group, member=group_member, role=self.Role.MEMBER)
+            res = self._add_group_to_group(tx, group=group, member=group_member, role=Role.MEMBER)
             members.append(self._load_group(res.data()))
         for user_owner in group.owner_users:
-            res = self._add_user_to_group(tx, group=group, member=user_owner, role=self.Role.OWNER)
+            res = self._add_user_to_group(tx, group=group, member=user_owner, role=Role.OWNER)
             owners.append(User.from_mapping(res.data()))
         for group_owner in group.owner_groups:
-            res = self._add_group_to_group(tx, group=group, member=group_owner, role=self.Role.OWNER)
+            res = self._add_group_to_group(tx, group=group, member=group_owner, role=Role.OWNER)
             owners.append(self._load_group(res.data()))
         return members, owners
 
@@ -97,10 +107,10 @@ class GroupDB(BaseGraphDB):
         # Create lists of current members by type
         group_list: List[Group] = []
         user_list: List[User] = []
-        if role is self.Role.MEMBER:
+        if role is Role.MEMBER:
             group_list = group.member_groups
             user_list = group.member_users
-        elif role is self.Role.OWNER:
+        elif role is Role.OWNER:
             group_list = group.owner_groups
             user_list = group.owner_users
 
@@ -230,8 +240,8 @@ class GroupDB(BaseGraphDB):
                 # Merge node and relationship data
                 data = dict(rel.start_node.items())
                 data.update(dict(rel.items()))
-                is_owner = rel.type == self.Role.OWNER.value
-                is_member = rel.type == self.Role.MEMBER.value
+                is_owner = rel.type == Role.OWNER.value
+                is_member = rel.type == Role.MEMBER.value
                 # Instantiate and add owners
                 if is_owner and 'Group' in labels:
                     group.owners.append(self._load_group(data))
@@ -275,19 +285,21 @@ class GroupDB(BaseGraphDB):
                 res.append(self._load_group(record.data()['group']))
         return res
 
-    def _get_groups_for_role(self, entity: Union[User, Group], role: Role):
+    def _get_groups_for_role(self, label: Label, identifier: str, role: Role):
         res: List[Group] = []
-        if isinstance(entity, Group):
+        if label == Label.GROUP:
             entity_match = '(:Group {scope: $scope, identifier: $identifier})'
-        else:
+        elif label == Label.USER:
             entity_match = '(:User {identifier: $identifier})'
+        else:
+            raise NotImplementedError(f'Label {label.value} not implemented')
 
         if role is role.OWNER:
             # Return all members only to an owner
             ret_statement = f"""
-                            OPTIONAL MATCH (g)<-[r:{self.Role.MEMBER.value}]-(m)
+                            OPTIONAL MATCH (g)<-[r:{Role.MEMBER.value}]-(m)
                             RETURN g as group, owners, collect({{display_name: r.display_name, created_ts: r.created_ts,
-                                modified_ts: r.modified_ts, identifier: m.identifier}}) as members
+                                modified_ts: r.modified_ts, identifier: m.identifier, scope: m.scope}}) as members
                             """
         else:
             ret_statement = 'RETURN g as group, owners, collect({}) as members'
@@ -295,15 +307,15 @@ class GroupDB(BaseGraphDB):
         q = f"""
             MATCH {entity_match}-[:{role.value}]->(g: Group {{scope: $scope}})
             WITH g
-            OPTIONAL MATCH (g)<-[r:{self.Role.OWNER.value}]-(o)
+            OPTIONAL MATCH (g)<-[r:{Role.OWNER.value}]-(o)
             WITH g, collect({{display_name: r.display_name, created_ts: r.created_ts,
-                modified_ts: r.modified_ts, identifier: o.identifier}}) as owners
+                modified_ts: r.modified_ts, identifier: o.identifier, scope: o.scope}}) as owners
             {ret_statement}
             """
         logger.debug('Crafted _get_groups_for_role query:')
         logger.debug(q)
         with self.db.driver.session(access_mode=READ_ACCESS) as session:
-            for record in session.run(q, identifier=entity.identifier, scope=self.scope):
+            for record in session.run(q, identifier=identifier, scope=self.scope):
                 group = self._load_group(record.data()['group'])
                 group.owners = [self._load_node(owner) for owner in record.data()['owners'] if owner.get('identifier')]
                 group.members = [
@@ -312,19 +324,42 @@ class GroupDB(BaseGraphDB):
                 res.append(group)
         return res
 
-    def get_groups_for_user(self, user: User) -> List[Group]:
-        warnings.warn('Use get_groups_for_member instead', DeprecationWarning)
-        return self.get_groups_for_member(member=user)
-
     def get_groups_for_member(self, member: Union[User, Group]) -> List[Group]:
-        return self._get_groups_for_role(entity=member, role=self.Role.MEMBER)
+        warnings.warn(
+            'Use get_groups_for_user_identifer or get_groups_for_group_identifier instead', DeprecationWarning
+        )
+        if isinstance(member, Group):
+            label = Label.GROUP
+        else:
+            label = Label.USER
+        return self._get_groups_for_role(label=label, identifier=member.identifier, role=Role.MEMBER)
 
     def get_groups_for_owner(self, owner: Union[User, Group]) -> List[Group]:
-        return self._get_groups_for_role(entity=owner, role=self.Role.OWNER)
+        warnings.warn(
+            'Use get_groups_owned_by_user_identifier or get_groups_owned_by_group_identifier instead',
+            DeprecationWarning,
+        )
+        if isinstance(owner, Group):
+            label = Label.GROUP
+        else:
+            label = Label.USER
+        return self._get_groups_for_role(label=label, identifier=owner.identifier, role=Role.OWNER)
+
+    def get_groups_for_user_identifer(self, identifier: str) -> List[Group]:
+        return self._get_groups_for_role(Label.USER, identifier, role=Role.MEMBER)
+
+    def get_groups_for_group_identifier(self, identifier: str) -> List[Group]:
+        return self._get_groups_for_role(Label.GROUP, identifier, role=Role.MEMBER)
+
+    def get_groups_owned_by_user_identifier(self, identifier: str) -> List[Group]:
+        return self._get_groups_for_role(Label.USER, identifier, role=Role.OWNER)
+
+    def get_groups_owned_by_group_identifier(self, identifier: str) -> List[Group]:
+        return self._get_groups_for_role(Label.GROUP, identifier, role=Role.OWNER)
 
     def group_exists(self, identifier: str) -> bool:
         q = """
-            MATCH (g: Group {scope: $scope, identifier: $identifier})             
+            MATCH (g: Group {scope: $scope, identifier: $identifier})
             RETURN count(*) as exists LIMIT 1
             """
         with self.db.driver.session(access_mode=READ_ACCESS) as session:
@@ -335,8 +370,8 @@ class GroupDB(BaseGraphDB):
         with self.db.driver.session(access_mode=WRITE_ACCESS) as session:
             try:
                 tx = session.begin_transaction()
-                self._remove_missing_users_and_groups(tx, group, self.Role.OWNER)
-                self._remove_missing_users_and_groups(tx, group, self.Role.MEMBER)
+                self._remove_missing_users_and_groups(tx, group, Role.OWNER)
+                self._remove_missing_users_and_groups(tx, group, Role.MEMBER)
                 saved_group = self._create_or_update_group(tx, group)
                 saved_members, saved_owners = self._add_or_update_users_and_groups(tx, group)
                 tx.success = True

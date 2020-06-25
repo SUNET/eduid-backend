@@ -3,42 +3,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import List, Mapping, Optional, Type, Union
+from typing import List, Mapping, Optional, Union
 
 from bson import ObjectId
 
 from eduid_groupdb.exceptions import MultipleGroupsReturned, MultipleUsersReturned
+from eduid_groupdb.groupdb.user import User
 from eduid_groupdb.helpers import neo4j_ts_to_dt
 
 __author__ = 'lundberg'
-
-
-@dataclass()
-class User:
-    identifier: str
-    display_name: Optional[str] = None
-    created_ts: Optional[datetime] = None
-    modified_ts: Optional[datetime] = None
-
-    def __eq__(self, other: object):
-        if not isinstance(other, User):
-            return False
-        if self.identifier == other.identifier:
-            return True
-        return False
-
-    def __hash__(self):
-        return hash(self.identifier)
-
-    @classmethod
-    def from_mapping(cls, data: Mapping) -> User:
-        dt = neo4j_ts_to_dt(data)
-        return cls(
-            identifier=data['identifier'],
-            display_name=data['display_name'],
-            created_ts=dt['created_ts'],
-            modified_ts=dt['modified_ts'],
-        )
 
 
 @dataclass()
