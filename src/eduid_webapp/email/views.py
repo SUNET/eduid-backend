@@ -77,7 +77,7 @@ def post_email(user, email, verified, primary):
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     current_app.logger.debug('Trying to save unconfirmed email {!r} ' 'for user {}'.format(email, proofing_user))
 
-    new_mail = MailAddress(email=email, application='email', verified=False, primary=False)
+    new_mail = MailAddress.from_dict(dict(email=email, created_by='email', verified=False, primary=False))
 
     try:
         proofing_user.mail_addresses.add(new_mail)

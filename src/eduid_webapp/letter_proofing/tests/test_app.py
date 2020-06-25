@@ -275,7 +275,9 @@ class LetterProofingTests(EduidAPITestCase):
 
     def test_proofing_flow_previously_added_nin(self):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        not_verified_nin = Nin(number=self.test_user_nin, application='test', verified=False, primary=False)
+        not_verified_nin = Nin.from_dict(
+            dict(number=self.test_user_nin, created_by='test', verified=False, primary=False)
+        )
         user.nins.add(not_verified_nin)
         self.app.central_userdb.save(user)
 
@@ -307,7 +309,9 @@ class LetterProofingTests(EduidAPITestCase):
         # Remove correct unverified nin and add wrong nin
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         user.nins.remove(self.test_user_nin)
-        not_verified_nin = Nin(number=self.test_user_wrong_nin, application='test', verified=False, primary=False)
+        not_verified_nin = Nin.from_dict(
+            dict(number=self.test_user_wrong_nin, created_by='test', verified=False, primary=False)
+        )
         user.nins.add(not_verified_nin)
         self.app.central_userdb.save(user)
 
@@ -372,7 +376,9 @@ class LetterProofingTests(EduidAPITestCase):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
 
         # User with locked_identity and correct nin
-        user.locked_identity.add(LockedIdentityNin(number=self.test_user_nin, created_by='test', created_ts=True))
+        user.locked_identity.add(
+            LockedIdentityNin.from_dict(dict(number=self.test_user_nin, created_by='test', created_ts=True))
+        )
         self.app.central_userdb.save(user, check_sync=False)
         with self.session_cookie(self.browser, self.test_user_eppn):
             json_data = self.get_state()
@@ -387,7 +393,9 @@ class LetterProofingTests(EduidAPITestCase):
         mock_request_user_sync.side_effect = self.request_user_sync
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
 
-        user.locked_identity.add(LockedIdentityNin(number=self.test_user_nin, created_by='test', created_ts=True))
+        user.locked_identity.add(
+            LockedIdentityNin.from_dict(dict(number=self.test_user_nin, created_by='test', created_ts=True))
+        )
         self.app.central_userdb.save(user, check_sync=False)
 
         # User with locked_identity and incorrect nin

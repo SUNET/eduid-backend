@@ -165,23 +165,27 @@ class EidasTests(EduidAPITestCase):
     def add_token_to_user(self, eppn, credential_id, token_type):
         user = self.app.central_userdb.get_user_by_eppn(eppn)
         if token_type == 'u2f':
-            mfa_token = U2F(
-                version='test',
-                keyhandle=credential_id,
-                public_key='test',
-                app_id='test',
-                attest_cert='test',
-                description='test',
-                application='test',
+            mfa_token = U2F.from_dict(
+                dict(
+                    version='test',
+                    keyhandle=credential_id,
+                    public_key='test',
+                    app_id='test',
+                    attest_cert='test',
+                    description='test',
+                    created_by='test',
+                )
             )
         else:
-            mfa_token = Webauthn(
-                keyhandle=credential_id,
-                credential_data='test',
-                app_id='test',
-                attest_obj='test',
-                description='test',
-                application='test',
+            mfa_token = Webauthn.from_dict(
+                dict(
+                    keyhandle=credential_id,
+                    credential_data='test',
+                    app_id='test',
+                    attest_obj='test',
+                    description='test',
+                    created_by='test',
+                )
             )
         user.credentials.add(mfa_token)
         self.request_user_sync(user)
