@@ -125,6 +125,8 @@ def verify_code(user: User, code: str) -> FluxData:
         return state_info.to_response()
 
     if state_info.is_expired:
+        # This is not an error in the get_state view, but here it is an error so 'upgrade' it.
+        state_info.error = True
         return state_info.to_response()
 
     try:
