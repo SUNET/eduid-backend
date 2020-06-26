@@ -3,10 +3,12 @@ python:
   - "3.7"
 services:
   - docker
+env:
+  - NEO4J_VERSION=4.0-enterprise
 before_install:
   - docker pull docker.sunet.se/eduid/mongodb:latest
   - docker pull docker.sunet.se/library/etcd:v3.3.12
-  - docker pull neo4j:enterprise
+  - docker pull neo4j:$NEO4J_VERSION
 # command to install dependencies
 install:
   - pip install -U setuptools wheel mypy
