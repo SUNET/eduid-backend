@@ -48,12 +48,14 @@ class NinHelpersTest(EduidAPITestCase):
         userdata = new_user_example.to_dict()
         del userdata['nins']
         user = User.from_dict(data=userdata)
-        nin_element = Nin(
-            number=self.test_user_nin,
-            application='AlreadyVerifiedNinHelpersTest',
-            verified=True,
-            created_ts=True,
-            primary=True,
+        nin_element = Nin.from_dict(
+            dict(
+                number=self.test_user_nin,
+                created_by='AlreadyVerifiedNinHelpersTest',
+                verified=True,
+                created_ts=True,
+                primary=True,
+            )
         )
         user.nins.add(nin_element)
         user.modified_ts = True
@@ -64,12 +66,14 @@ class NinHelpersTest(EduidAPITestCase):
         userdata = new_user_example.to_dict()
         del userdata['nins']
         user = User.from_dict(data=userdata)
-        nin_element = Nin(
-            number=self.test_user_nin,
-            application='AlreadyAddedNinHelpersTest',
-            verified=False,
-            created_ts=True,
-            primary=False,
+        nin_element = Nin.from_dict(
+            dict(
+                number=self.test_user_nin,
+                created_by='AlreadyAddedNinHelpersTest',
+                verified=False,
+                created_ts=True,
+                primary=False,
+            )
         )
         user.nins.add(nin_element)
         user.modified_ts = True
@@ -90,7 +94,9 @@ class NinHelpersTest(EduidAPITestCase):
         mock_user_sync.return_value = True
         eppn = self.insert_no_nins_user()
         user = self.app.central_userdb.get_user_by_eppn(eppn)
-        nin_element = NinProofingElement(number=self.test_user_nin, application='NinHelpersTest', verified=False)
+        nin_element = NinProofingElement.from_dict(
+            dict(number=self.test_user_nin, created_by='NinHelpersTest', verified=False)
+        )
         proofing_state = NinProofingState.from_dict({'eduPersonPrincipalName': eppn, 'nin': nin_element.to_dict()})
         with self.app.app_context():
             add_nin_to_user(user, proofing_state)
@@ -105,7 +111,9 @@ class NinHelpersTest(EduidAPITestCase):
     def test_add_nin_to_user_existing_not_verified(self):
         eppn = self.insert_not_verified_user()
         user = self.app.central_userdb.get_user_by_eppn(eppn)
-        nin_element = NinProofingElement(number=self.test_user_nin, application='NinHelpersTest', verified=False)
+        nin_element = NinProofingElement.from_dict(
+            dict(number=self.test_user_nin, created_by='NinHelpersTest', verified=False)
+        )
         proofing_state = NinProofingState.from_dict({'eduPersonPrincipalName': eppn, 'nin': nin_element.to_dict()})
         with self.app.app_context():
             add_nin_to_user(user, proofing_state)
@@ -115,7 +123,9 @@ class NinHelpersTest(EduidAPITestCase):
     def test_add_nin_to_user_existing_verified(self):
         eppn = self.insert_verified_user()
         user = self.app.central_userdb.get_user_by_eppn(eppn)
-        nin_element = NinProofingElement(number=self.test_user_nin, application='NinHelpersTest', verified=False)
+        nin_element = NinProofingElement.from_dict(
+            dict(number=self.test_user_nin, created_by='NinHelpersTest', verified=False)
+        )
         proofing_state = NinProofingState.from_dict({'eduPersonPrincipalName': eppn, 'nin': nin_element.to_dict()})
         with self.app.app_context():
             add_nin_to_user(user, proofing_state)
@@ -127,7 +137,9 @@ class NinHelpersTest(EduidAPITestCase):
         mock_user_sync.return_value = True
         eppn = self.insert_no_nins_user()
         user = self.app.central_userdb.get_user_by_eppn(eppn)
-        nin_element = NinProofingElement(number=self.test_user_nin, application='NinHelpersTest', verified=False)
+        nin_element = NinProofingElement.from_dict(
+            dict(number=self.test_user_nin, created_by='NinHelpersTest', verified=False)
+        )
         proofing_state = NinProofingState.from_dict({'eduPersonPrincipalName': eppn, 'nin': nin_element.to_dict()})
         proofing_log_entry = NinProofingLogElement(
             user,
@@ -155,7 +167,9 @@ class NinHelpersTest(EduidAPITestCase):
         mock_user_sync.return_value = True
         eppn = self.insert_not_verified_user()
         user = self.app.central_userdb.get_user_by_eppn(eppn)
-        nin_element = NinProofingElement(number=self.test_user_nin, application='NinHelpersTest', verified=False)
+        nin_element = NinProofingElement.from_dict(
+            dict(number=self.test_user_nin, created_by='NinHelpersTest', verified=False)
+        )
         proofing_state = NinProofingState.from_dict({'eduPersonPrincipalName': eppn, 'nin': nin_element.to_dict()})
         proofing_log_entry = NinProofingLogElement(
             user,
@@ -181,7 +195,9 @@ class NinHelpersTest(EduidAPITestCase):
     def test_verify_nin_for_user_existing_verified(self):
         eppn = self.insert_verified_user()
         user = self.app.central_userdb.get_user_by_eppn(eppn)
-        nin_element = NinProofingElement(number=self.test_user_nin, application='NinHelpersTest', verified=False)
+        nin_element = NinProofingElement.from_dict(
+            dict(number=self.test_user_nin, created_by='NinHelpersTest', verified=False)
+        )
         proofing_state = NinProofingState.from_dict({'eduPersonPrincipalName': eppn, 'nin': nin_element.to_dict()})
         proofing_log_entry = ProofingLogElement(
             user, created_by=proofing_state.nin.created_by, proofing_method='test', proofing_version='2017'

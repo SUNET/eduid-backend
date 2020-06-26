@@ -117,32 +117,38 @@ def authorization_response(user):
     # Save orcid and oidc data to user
     current_app.logger.info('Saving ORCID data for user')
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
-    oidc_id_token = OidcIdToken(
-        iss=id_token['iss'],
-        sub=id_token['sub'],
-        aud=id_token['aud'],
-        exp=id_token['exp'],
-        iat=id_token['iat'],
-        nonce=id_token['nonce'],
-        auth_time=id_token['auth_time'],
-        application='orcid',
+    oidc_id_token = OidcIdToken.from_dict(
+        dict(
+            iss=id_token['iss'],
+            sub=id_token['sub'],
+            aud=id_token['aud'],
+            exp=id_token['exp'],
+            iat=id_token['iat'],
+            nonce=id_token['nonce'],
+            auth_time=id_token['auth_time'],
+            created_by='orcid',
+        )
     )
-    oidc_authz = OidcAuthorization(
-        access_token=token_resp['access_token'],
-        token_type=token_resp['token_type'],
-        id_token=oidc_id_token,
-        expires_in=token_resp['expires_in'],
-        refresh_token=token_resp['refresh_token'],
-        application='orcid',
+    oidc_authz = OidcAuthorization.from_dict(
+        dict(
+            access_token=token_resp['access_token'],
+            token_type=token_resp['token_type'],
+            id_token=oidc_id_token,
+            expires_in=token_resp['expires_in'],
+            refresh_token=token_resp['refresh_token'],
+            created_by='orcid',
+        )
     )
-    orcid_element = Orcid(
-        id=userinfo['id'],
-        name=userinfo['name'],
-        given_name=userinfo['given_name'],
-        family_name=userinfo['family_name'],
-        verified=True,
-        oidc_authz=oidc_authz,
-        application='orcid',
+    orcid_element = Orcid.from_dict(
+        dict(
+            id=userinfo['id'],
+            name=userinfo['name'],
+            given_name=userinfo['given_name'],
+            family_name=userinfo['family_name'],
+            verified=True,
+            oidc_authz=oidc_authz,
+            created_by='orcid',
+        )
     )
     orcid_proofing = OrcidProofing(
         proofing_user,

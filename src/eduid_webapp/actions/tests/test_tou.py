@@ -95,12 +95,14 @@ class ToUActionPluginTests(ActionsTestCase):
         if created_ts is None:
             created_ts = datetime.utcnow()
         user.tou.add(
-            ToUEvent(
-                version=version,
-                application='eduid_tou_plugin',
-                created_ts=created_ts,
-                modified_ts=modified_ts,
-                event_id=event_id,
+            ToUEvent.from_dict(
+                dict(
+                    version=version,
+                    created_by='eduid_tou_plugin',
+                    created_ts=created_ts,
+                    modified_ts=modified_ts,
+                    event_id=event_id,
+                )
             )
         )
         self.app.central_userdb.save(user, check_sync=False)

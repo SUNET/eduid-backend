@@ -170,13 +170,15 @@ class SecurityWebauthnTests(EduidAPITestCase):
         cred_data = auth_data.credential_data
         cred_id = cred_data.credential_id
 
-        credential = Webauthn(
-            keyhandle=cred_id.hex(),
-            credential_data=base64.urlsafe_b64encode(cred_data).decode('ascii'),
-            app_id=self.app.config.fido2_rp_id,
-            attest_obj=base64.b64encode(attestation).decode('ascii'),
-            description='ctap1 token',
-            application='test_security',
+        credential = Webauthn.from_dict(
+            dict(
+                keyhandle=cred_id.hex(),
+                credential_data=base64.urlsafe_b64encode(cred_data).decode('ascii'),
+                app_id=self.app.config.fido2_rp_id,
+                attest_obj=base64.b64encode(attestation).decode('ascii'),
+                description='ctap1 token',
+                created_by='test_security',
+            )
         )
         self.test_user.credentials.add(credential)
         self.app.central_userdb.save(self.test_user, check_sync=False)
@@ -184,15 +186,17 @@ class SecurityWebauthnTests(EduidAPITestCase):
 
     def _add_u2f_token_to_user(self, eppn):
         user = self.app.central_userdb.get_user_by_eppn(eppn)
-        u2f_token = U2F(
-            version='version',
-            keyhandle='keyHandle',
-            app_id='appId',
-            public_key='publicKey',
-            attest_cert='cert',
-            description='description',
-            application='eduid_security',
-            created_ts=True,
+        u2f_token = U2F.from_dict(
+            dict(
+                version='version',
+                keyhandle='keyHandle',
+                app_id='appId',
+                public_key='publicKey',
+                attest_cert='cert',
+                description='description',
+                created_by='eduid_security',
+                created_ts=True,
+            )
         )
         user.credentials.add(u2f_token)
         self.app.central_userdb.save(user)

@@ -86,7 +86,7 @@ def post_phone(user, number, verified, primary):
         'Trying to save unconfirmed phone number {!r} ' 'for user {}'.format(number, proofing_user)
     )
 
-    new_phone = PhoneNumber(number=number, application='phone', verified=False, primary=False)
+    new_phone = PhoneNumber.from_dict(dict(number=number, created_by='phone', verified=False, primary=False))
     proofing_user.phone_numbers.add(new_phone)
 
     try:

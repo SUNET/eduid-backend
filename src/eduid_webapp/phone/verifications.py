@@ -51,7 +51,9 @@ def new_proofing_state(phone, user):
         current_app.logger.debug('removing old proofing state: {!r}.'.format(old_state.to_dict()))
         current_app.proofing_statedb.remove_state(old_state)
 
-    verification = PhoneProofingElement(phone=phone, verification_code=get_short_hash(), application='phone')
+    verification = PhoneProofingElement.from_dict(
+        dict(number=phone, verification_code=get_short_hash(), created_by='phone')
+    )
     proofing_state = PhoneProofingState(id=None, modified_ts=None, eppn=user.eppn, verification=verification)
     # XXX This should be an atomic transaction together with saving
     # the user and sending the letter.
@@ -86,7 +88,7 @@ def verify_phone_number(state, proofing_user):
 
     """
     number = state.verification.number
-    new_phone = PhoneNumber(number=number, application='eduid_phone', verified=True, primary=False)
+    new_phone = PhoneNumber.from_dict(dict(number=number, created_by='eduid_phone', verified=True, primary=False))
 
     has_primary = proofing_user.phone_numbers.primary
     if has_primary is None:

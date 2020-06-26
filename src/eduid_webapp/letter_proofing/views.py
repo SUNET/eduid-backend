@@ -7,7 +7,8 @@ from flask import Blueprint, abort
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, can_verify_identity, require_user
 from eduid_common.api.exceptions import AmTaskFailed, MsgTaskFailed
 from eduid_common.api.helpers import add_nin_to_user, check_magic_cookie, verify_nin_for_user
-from eduid_common.api.messages import CommonMsg, error_response, success_response
+from eduid_common.api.messages import CommonMsg, FluxData, error_response, success_response
+from eduid_userdb import User
 from eduid_userdb.logs import LetterProofing
 
 from eduid_webapp.letter_proofing import pdf, schemas
@@ -23,13 +24,14 @@ letter_proofing_views = Blueprint('letter_proofing', __name__, url_prefix='', te
 @letter_proofing_views.route('/proofing', methods=['GET'])
 @MarshalWith(schemas.LetterProofingResponseSchema)
 @require_user
-def get_state(user):
+def get_state(user) -> FluxData:
     current_app.logger.info('Getting proofing state for user {}'.format(user))
     proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn, raise_on_missing=False)
 
     if proofing_state:
         current_app.logger.info('Found proofing state for user {}'.format(user))
-        return check_state(proofing_state)
+        result = check_state(proofing_state)
+        return result.to_response()
     return success_response(message=LetterMsg.no_state)
 
 
@@ -38,7 +40,7 @@ def get_state(user):
 @MarshalWith(schemas.LetterProofingResponseSchema)
 @can_verify_identity
 @require_user
-def proofing(user, nin):
+def proofing(user: User, nin: str) -> FluxData:
     current_app.logger.info('Send letter for user {} initiated'.format(user))
     proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn, raise_on_missing=False)
 
@@ -52,15 +54,17 @@ def proofing(user, nin):
     # NOOP if the user already have the nin
     add_nin_to_user(user, proofing_state)
 
+    # TODO: Don't send a letter if the nin is already verified
+
     if proofing_state.proofing_letter.is_sent:
         current_app.logger.info('A letter has already been sent to the user. ')
         current_app.logger.debug('Proofing state: {}'.format(proofing_state.to_dict()))
         result = check_state(proofing_state)
-        if 'letter_expired' not in result:
+        if result.error:
             # error message
-            return result
-        if not result['letter_expired']:
-            return result
+            return result.to_response()
+        if not result.is_expired:
+            return result.to_response()
         # XXX Are we sure that the user wants to send a new letter?
         current_app.logger.info('The letter has expired. Sending a new one...')
     try:
@@ -68,8 +72,8 @@ def proofing(user, nin):
         if not address:
             current_app.logger.error('No address found for user {}'.format(user))
             return error_response(message=LetterMsg.address_not_found)
-    except MsgTaskFailed as e:
-        current_app.logger.error('Navet lookup failed for user {}: {}'.format(user, e))
+    except MsgTaskFailed:
+        current_app.logger.exception(f'Navet lookup failed for user {user}')
         current_app.stats.count('navet_error')
         return error_response(message=CommonMsg.navet_error)
 
@@ -80,12 +84,12 @@ def proofing(user, nin):
     try:
         campaign_id = send_letter(user, proofing_state)
         current_app.stats.count('letter_sent')
-    except pdf.AddressFormatException as e:
-        current_app.logger.error('{}'.format(e))
+    except pdf.AddressFormatException:
+        current_app.logger.exception('Failed formatting address')
         current_app.stats.count('address_format_error')
         return error_response(message=LetterMsg.bad_address)
-    except EkopostException as e:
-        current_app.logger.error('{}'.format(e))
+    except EkopostException:
+        current_app.logger.exception('Ekopost returned an error')
         current_app.stats.count('ekopost_error')
         return error_response(message=CommonMsg.temp_problem)
 
@@ -95,15 +99,15 @@ def proofing(user, nin):
     proofing_state.proofing_letter.sent_ts = True
     current_app.proofing_statedb.save(proofing_state)
     result = check_state(proofing_state)
-    result['message'] = LetterMsg.letter_sent.value
-    return result
+    result.message = LetterMsg.letter_sent
+    return result.to_response()
 
 
 @letter_proofing_views.route('/verify-code', methods=['POST'])
 @UnmarshalWith(schemas.VerifyCodeRequestSchema)
 @MarshalWith(schemas.VerifyCodeResponseSchema)
 @require_user
-def verify_code(user, code):
+def verify_code(user: User, code: str) -> FluxData:
     current_app.logger.info('Verifying code for user {}'.format(user))
     proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn, raise_on_missing=False)
 
@@ -116,10 +120,20 @@ def verify_code(user, code):
         # TODO: Throttling to discourage an adversary to try brute force
         return error_response(message=LetterMsg.wrong_code)
 
+    state_info = check_state(proofing_state)
+    if state_info.error:
+        return state_info.to_response()
+
+    if state_info.is_expired:
+        # This is not an error in the get_state view, but here it is an error so 'upgrade' it.
+        state_info.error = True
+        return state_info.to_response()
+
     try:
+        # Fetch registered address again, to save the address of record at time of verification.
         official_address = get_address(user, proofing_state)
-    except MsgTaskFailed as e:
-        current_app.logger.error('Navet lookup failed for user {}: {}'.format(user, e))
+    except MsgTaskFailed:
+        current_app.logger.exception(f'Navet lookup failed for user {user}')
         current_app.stats.count('navet_error')
         return error_response(message=CommonMsg.navet_error)
 

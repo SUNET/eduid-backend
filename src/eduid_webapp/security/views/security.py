@@ -292,7 +292,7 @@ def add_nin(user, nin):
         return error_response(message=SecurityMsg.already_exists)
 
     try:
-        nin_element = NinProofingElement(number=nin, application='security', verified=False)
+        nin_element = NinProofingElement.from_dict(dict(number=nin, created_by='security', verified=False))
         proofing_state = NinProofingState.from_dict(
             {'eduPersonPrincipalName': security_user.eppn, 'nin': nin_element.to_dict()}
         )

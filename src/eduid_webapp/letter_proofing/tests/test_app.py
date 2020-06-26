@@ -5,7 +5,7 @@ from __future__ import absolute_import
 import json
 from collections import OrderedDict
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, Dict, Optional
 
 from mock import Mock, patch
 
@@ -14,6 +14,7 @@ from eduid_userdb.locked_identity import LockedIdentityNin
 from eduid_userdb.nin import Nin
 
 from eduid_webapp.letter_proofing.app import init_letter_proofing_app
+from eduid_webapp.letter_proofing.helpers import LetterMsg
 from eduid_webapp.letter_proofing.settings.common import LetterProofingConfig
 
 __author__ = 'lundberg'
@@ -114,16 +115,26 @@ class LetterProofingTests(EduidAPITestCase):
         self.assertEqual(response.status_code, 200)
         return json.loads(response.data)
 
+    def verify_code(self, code: str, csrf_token: str) -> Dict[str, Any]:
+        """ Invoke the verify-code endpoint, check that the HTTP response code is 200 and return the JSON data. """
+        response = self.verify_code2(code, csrf_token)
+        self.assertEqual(response.status_code, 200)
+        return json.loads(response.data)
+
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
-    def verify_code(self, code, csrf_token, mock_get_postal_address, mock_request_user_sync):
+    def verify_code2(self, code, csrf_token, mock_get_postal_address, mock_request_user_sync):
+        """
+        Invoke the verify-code endpoint and return the whole response.
+
+        To be used with the data validation functions _check_api_result, _check_response, and _check_error.
+        """
         mock_request_user_sync.side_effect = self.request_user_sync
         mock_get_postal_address.return_value = self.mock_address
         data = {'code': code, 'csrf_token': csrf_token}
         with self.session_cookie(self.browser, self.test_user_eppn) as client:
             response = client.post('/verify-code', data=json.dumps(data), content_type=self.content_type_json)
-        self.assertEqual(response.status_code, 200)
-        return json.loads(response.data)
+        return response
 
     @patch('hammock.Hammock._request')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
@@ -253,6 +264,27 @@ class LetterProofingTests(EduidAPITestCase):
         json_data = self.verify_code('wrong code', csrf_token)
         self.assertEqual(json_data['payload']['message'], 'letter.wrong-code')
 
+    def test_verify_letter_expired(self):
+        json_data = self.get_state()
+        csrf_token = json_data['payload']['csrf_token']
+        json_data = self.send_letter(self.test_user_nin, csrf_token)
+        with self.app.test_request_context():
+            with self.app.app_context():
+                proofing_state = self.app.proofing_statedb.get_state_by_eppn(
+                    self.test_user_eppn, raise_on_missing=False
+                )
+                # move the proofing state back in time so that it is expired by now
+                proofing_state.proofing_letter._data['sent_ts'] = None
+                proofing_state.proofing_letter.sent_ts = datetime.fromisoformat('2020-01-01T01:02:03')
+                self.app.proofing_statedb.save(proofing_state)
+        csrf_token = json_data['payload']['csrf_token']
+        response = self.verify_code2(proofing_state.nin.verification_code, csrf_token)
+        # TODO: sort out how to properly generate FSA errors, and make _check_api_error validate exactly that.
+        #       Then use self._check_api_error here.
+        self._check_api_response(
+            response, status=200, type_='POST_LETTER_PROOFING_VERIFY_CODE_FAIL', message=LetterMsg.letter_expired
+        )
+
     def test_proofing_flow(self):
         json_data = self.get_state()
         csrf_token = json_data['payload']['csrf_token']
@@ -275,7 +307,9 @@ class LetterProofingTests(EduidAPITestCase):
 
     def test_proofing_flow_previously_added_nin(self):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        not_verified_nin = Nin(number=self.test_user_nin, application='test', verified=False, primary=False)
+        not_verified_nin = Nin.from_dict(
+            dict(number=self.test_user_nin, created_by='test', verified=False, primary=False)
+        )
         user.nins.add(not_verified_nin)
         self.app.central_userdb.save(user)
 
@@ -307,7 +341,9 @@ class LetterProofingTests(EduidAPITestCase):
         # Remove correct unverified nin and add wrong nin
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         user.nins.remove(self.test_user_nin)
-        not_verified_nin = Nin(number=self.test_user_wrong_nin, application='test', verified=False, primary=False)
+        not_verified_nin = Nin.from_dict(
+            dict(number=self.test_user_wrong_nin, created_by='test', verified=False, primary=False)
+        )
         user.nins.add(not_verified_nin)
         self.app.central_userdb.save(user)
 
@@ -372,7 +408,9 @@ class LetterProofingTests(EduidAPITestCase):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
 
         # User with locked_identity and correct nin
-        user.locked_identity.add(LockedIdentityNin(number=self.test_user_nin, created_by='test', created_ts=True))
+        user.locked_identity.add(
+            LockedIdentityNin.from_dict(dict(number=self.test_user_nin, created_by='test', created_ts=True))
+        )
         self.app.central_userdb.save(user, check_sync=False)
         with self.session_cookie(self.browser, self.test_user_eppn):
             json_data = self.get_state()
@@ -387,7 +425,9 @@ class LetterProofingTests(EduidAPITestCase):
         mock_request_user_sync.side_effect = self.request_user_sync
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
 
-        user.locked_identity.add(LockedIdentityNin(number=self.test_user_nin, created_by='test', created_ts=True))
+        user.locked_identity.add(
+            LockedIdentityNin.from_dict(dict(number=self.test_user_nin, created_by='test', created_ts=True))
+        )
         self.app.central_userdb.save(user, check_sync=False)
 
         # User with locked_identity and incorrect nin
