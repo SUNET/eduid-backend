@@ -37,8 +37,8 @@ from flask import Blueprint
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid_common.api.messages import CommonMsg, FluxData, error_response, success_response
-from eduid_groupdb import Group as GraphGroup
-from eduid_groupdb import User as GraphUser
+from eduid_graphdb.groupdb import Group as GraphGroup
+from eduid_graphdb.groupdb import User as GraphUser
 from eduid_scimapi.groupdb import ScimApiGroup
 from eduid_userdb import User
 from eduid_userdb.exceptions import EduIDDBError
@@ -92,9 +92,8 @@ def get_groups(user: User) -> FluxData:
         # As the user does not exist return empty group lists
         return success_response(payload={})
 
-    graph_user = GraphUser(identifier=str(scim_user.scim_id))
-    member_groups = current_app.scimapi_groupdb.get_groups_for_member(member=graph_user)
-    owner_groups = current_app.scimapi_groupdb.get_groups_for_owner(owner=graph_user)
+    member_groups = current_app.scimapi_groupdb.get_groups_for_user_identifer(scim_user.scim_id)
+    owner_groups = current_app.scimapi_groupdb.get_groups_owned_by_user_identifier(scim_user.scim_id)
     current_app.logger.debug(f'member_of: {member_groups}')
     current_app.logger.debug(f'owner_of: {owner_groups}')
     return success_response(

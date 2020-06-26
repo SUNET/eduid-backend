@@ -8,7 +8,7 @@ from flask_babel import gettext as _
 from eduid_common.api.exceptions import MailTaskFailed
 from eduid_common.api.helpers import send_mail
 from eduid_common.api.messages import TranslatableMsg
-from eduid_groupdb import User as GraphUser
+from eduid_graphdb.groupdb import User as GraphUser
 from eduid_scimapi.groupdb import ScimApiGroup
 from eduid_scimapi.userdb import ScimApiUser
 from eduid_userdb import User
@@ -55,14 +55,12 @@ def get_or_create_scim_user_by_eppn(eppn: str) -> ScimApiUser:
 
 
 def is_owner(scim_user: ScimApiUser, group_id: UUID) -> bool:
-    graph_user = GraphUser(identifier=str(scim_user.scim_id))
-    owner_groups = current_app.scimapi_groupdb.get_groups_for_owner(graph_user)
+    owner_groups = current_app.scimapi_groupdb.get_groups_owned_by_user_identifier(scim_user.scim_id)
     return group_id in [owner_group.scim_id for owner_group in owner_groups]
 
 
 def is_member(scim_user: ScimApiUser, group_id: UUID) -> bool:
-    graph_user = GraphUser(identifier=str(scim_user.scim_id))
-    member_groups = current_app.scimapi_groupdb.get_groups_for_member(graph_user)
+    member_groups = current_app.scimapi_groupdb.get_groups_for_user_identifer(scim_user.scim_id)
     return group_id in [member_group.scim_id for member_group in member_groups]
 
 
@@ -123,8 +121,7 @@ def get_outgoing_invites(user: User) -> List[Dict[str, Any]]:
     if not scim_user:
         return invites
 
-    graph_user = GraphUser(identifier=str(scim_user.scim_id))
-    groups = current_app.scimapi_groupdb.get_groups_for_owner(owner=graph_user)
+    groups = current_app.scimapi_groupdb.get_groups_owned_by_user_identifier(scim_user.scim_id)
     for group in groups:
         try:
             states = current_app.invite_state_db.get_states_by_group_scim_id(str(group.scim_id))
