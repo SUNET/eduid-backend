@@ -3,18 +3,20 @@ builders:
 upstream:
   - eduid-userdb
   - eduid-common
-  - eduid-groupdb
+  - eduid-graphdb
 triggers:
   cron: "@weekly"
 slack:
   room: "eduid-builds"
+environment_variables:
+  NEO4J_VERSION: "4.0-enterprise"
 python_module: eduid_scimapi
 clean_workspace: true
 publish_over_ssh:
   - pypi.sunet.se
 
 pre_build_script:
-  - "docker pull neo4j:enterprise"
+  - "docker pull neo4j:$NEO4J_VERSION"
   - "docker pull docker.sunet.se/library/etcd:v3.3.12"
   - "docker pull docker.sunet.se/eduid/mongodb:latest"
 

@@ -1,15 +1,13 @@
 import logging
-import unittest
 from typing import Optional
 from uuid import UUID, uuid4
 
-from eduid_groupdb import Group as GraphGroup
-from eduid_groupdb import User as GraphUser
+from eduid_graphdb.groupdb import Group as GraphGroup
 
 from eduid_scimapi.config import ScimApiConfig
 from eduid_scimapi.context import Context
 from eduid_scimapi.groupdb import GroupExtensions, ScimApiGroup
-from eduid_scimapi.testing import BaseDBTestCase, MongoNeoTestCase
+from eduid_scimapi.testing import MongoNeoTestCase
 
 logger = logging.getLogger(__name__)
 

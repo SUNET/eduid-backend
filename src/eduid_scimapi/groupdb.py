@@ -11,9 +11,9 @@ from uuid import UUID
 
 from bson import ObjectId
 
-from eduid_groupdb import Group as GraphGroup
-from eduid_groupdb import GroupDB
-from eduid_groupdb import User as GraphUser
+from eduid_graphdb.groupdb import Group as GraphGroup
+from eduid_graphdb.groupdb import GroupDB
+from eduid_graphdb.groupdb import User as GraphUser
 
 from eduid_scimapi.basedb import ScimApiBaseDB
 from eduid_scimapi.group import Group as SCIMGroup
@@ -69,15 +69,15 @@ class ScimApiGroup(object):
 class ScimApiGroupDB(ScimApiBaseDB):
     def __init__(
         self,
-        db_uri: str,
+        neo4j_uri: str,
         scope: str,
         mongo_uri: str,
         mongo_dbname: str,
         mongo_collection: str,
-        config: Optional[Dict[str, Any]] = None,
+        neo4j_config: Optional[Dict[str, Any]] = None,
     ):
         super().__init__(mongo_uri, mongo_dbname, collection=mongo_collection)
-        self.graphdb = GroupDB(db_uri=db_uri, scope=scope, config=config)
+        self.graphdb = GroupDB(db_uri=neo4j_uri, scope=scope, config=neo4j_config)
         logger.info(f'{self} initialised')
 
     def save(self, group: ScimApiGroup) -> bool:
@@ -216,10 +216,10 @@ class ScimApiGroupDB(ScimApiBaseDB):
             res += [group]
         return res, count
 
-    def get_groups_for_member(self, member: Union[GraphUser, GraphGroup]) -> List[ScimApiGroup]:
-        user_groups = self.graphdb.get_groups_for_member(member=member)
+    def get_groups_for_user_identifer(self, member_identifier: UUID) -> List[ScimApiGroup]:
+        groups = self.graphdb.get_groups_for_user_identifer(str(member_identifier))
         res: List[ScimApiGroup] = []
-        for graph in user_groups:
+        for graph in groups:
             group = self.get_group_by_scim_id(graph.identifier)
             if not group:
                 raise RuntimeError(f'Group {graph} found in graph database, but not in mongodb')
@@ -227,8 +227,8 @@ class ScimApiGroupDB(ScimApiBaseDB):
             res += [group]
         return res
 
-    def get_groups_for_owner(self, owner: Union[GraphUser, GraphGroup]) -> List[ScimApiGroup]:
-        groups = self.graphdb.get_groups_for_owner(owner=owner)
+    def get_groups_owned_by_user_identifier(self, owner_identifier: UUID) -> List[ScimApiGroup]:
+        groups = self.graphdb.get_groups_owned_by_user_identifier(str(owner_identifier))
         res: List[ScimApiGroup] = []
         for graph in groups:
             group = self.get_group_by_scim_id(graph.identifier)

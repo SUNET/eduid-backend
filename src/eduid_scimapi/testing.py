@@ -9,7 +9,7 @@ from bson import ObjectId
 from falcon.testing import TestClient
 
 from eduid_common.config.testing import EtcdTemporaryInstance
-from eduid_groupdb.testing import Neo4jTemporaryInstance
+from eduid_graphdb.testing import Neo4jTemporaryInstance
 from eduid_userdb.testing import MongoTemporaryInstance
 
 from eduid_scimapi.app import init_api
