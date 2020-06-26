@@ -5,6 +5,7 @@
 
 from __future__ import absolute_import
 
+from typing import Any, Dict
 import logging
 
 import six
@@ -27,9 +28,11 @@ class LogElement(Element):
         :rtype: LogElement
         """
         self._required_keys = ['created_by', 'created_ts']
-        # Since log elements are already nearer dataclasses than the rest of elements,
-        # we do not deprecate direct calls to their __init__, which is close to what a dataclass would provide.
-        super().__init__(data={'created_by': created_by, 'created_ts': True}, called_directly=False)
+
+        self._data: Dict[str, Any] = {}
+
+        self.created_by = created_by
+        self.created_ts = True
 
     def validate(self):
         # Check that all keys are accounted for and that no string values are blank

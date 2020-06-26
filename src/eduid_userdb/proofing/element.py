@@ -30,7 +30,9 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+from __future__ import annotations
 
+from typing import Any, Dict, Type
 import copy
 
 from six import string_types
@@ -71,23 +73,23 @@ class ProofingElement(VerifiedElement):
         data=None,
         called_directly=True,
     ):
+        raise NotImplementedError()
 
+    @classmethod
+    def from_dict(cls: Type[ProofingElement], data: Dict[str, Any], raise_on_unknown: bool = True) -> ProofingElement:
+        """
+        Construct proofing element from a data dict.
+        """
         data_in = copy.copy(data)  # to not modify callers data
 
-        if data_in is None:
-            if created_ts is None:
-                created_ts = True
-            data_in = dict(
-                created_by=application,
-                created_ts=created_ts,
-                verified=verified,
-                verified_by=verified_by,
-                verified_ts=verified_ts,
-                verification_code=verification_code,
-            )
+        if 'created_ts' not in data:
+            data['created_ts'] = True
+
         verification_code = data_in.pop('verification_code', None)
-        super().__init__(data_in, called_directly=called_directly)
+        self = super().from_dict(data_in)
         self.verification_code = verification_code
+
+        return self
 
     @property
     def verification_code(self):
@@ -139,20 +141,19 @@ class NinProofingElement(ProofingElement):
         data=None,
         called_directly=True,
     ):
+        raise NotImplementedError()
 
+    @classmethod
+    def from_dict(cls: Type[NinProofingElement], data: Dict[str, Any], raise_on_unknown: bool = True) -> NinProofingElement:
+        """
+        Construct nin proofing element from a data dict.
+        """
         data = copy.copy(data)
-        if number is None:
-            number = data.pop('number')
 
-        super(NinProofingElement, self).__init__(
-            application=application,
-            created_ts=created_ts,
-            verified=verified,
-            verification_code=verification_code,
-            data=data,
-            called_directly=called_directly,
-        )
-        self.number = number
+        self = super().from_dict(data)
+        self.number = data.pop('number')
+
+        return self
 
     @property
     def number(self):
@@ -209,20 +210,19 @@ class EmailProofingElement(ProofingElement):
         data=None,
         called_directly=True,
     ):
+        raise NotImplementedError()
 
+    @classmethod
+    def from_dict(cls: Type[EmailProofingElement], data: Dict[str, Any], raise_on_unknown: bool = True) -> EmailProofingElement:
+        """
+        Construct email proofing element from a data dict.
+        """
         data = copy.copy(data)
-        if email is None:
-            email = data.pop('email')
 
-        super(EmailProofingElement, self).__init__(
-            application=application,
-            created_ts=created_ts,
-            verified=verified,
-            verification_code=verification_code,
-            data=data,
-            called_directly=called_directly,
-        )
-        self.email = email
+        self = super().from_dict(data)
+        self.email = data.pop('email')
+
+        return self
 
     @property
     def email(self):
@@ -279,20 +279,19 @@ class PhoneProofingElement(ProofingElement):
         data=None,
         called_directly=True,
     ):
+        raise NotImplementedError()
 
+    @classmethod
+    def from_dict(cls: Type[PhoneProofingElement], data: Dict[str, Any], raise_on_unknown: bool = True) -> PhoneProofingElement:
+        """
+        Construct phone proofing element from a data dict.
+        """
         data = copy.copy(data)
-        if not phone:
-            phone = data.pop('number')
 
-        super(PhoneProofingElement, self).__init__(
-            application=application,
-            created_ts=created_ts,
-            verified=verified,
-            verification_code=verification_code,
-            data=data,
-            called_directly=called_directly,
-        )
-        self.number = phone
+        self = super().from_dict(data)
+        self.number = data.pop('number')
+
+        return self
 
     @property
     def number(self):
@@ -333,12 +332,21 @@ class SentLetterElement(Element):
     """
 
     def __init__(self, data, called_directly=True):
-        super().__init__(data, called_directly=called_directly)
+        raise NotImplementedError()
+
+    @classmethod
+    def from_dict(cls: Type[SentLetterElement], data: Dict[str, Any], raise_on_unknown: bool = True) -> SentLetterElement:
+        """
+        Construct sent letter element from a data dict.
+        """
+        self = super().from_dict(data)
 
         self._data['is_sent'] = data.pop('is_sent', False)
         self._data['sent_ts'] = data.pop('sent_ts', None)
         self._data['transaction_id'] = data.pop('transaction_id', None)
         self._data['address'] = data.pop('address', None)
+
+        return self
 
     @property
     def is_sent(self):

@@ -547,7 +547,6 @@ class _AbstractUserTestCase:
             {'number': '+4673123', 'primary': True, 'verified': True},
             {
                 'created_by': 'phone',
-                'created_ts': datetime.datetime.utcnow(),
                 'number': '+4670999',
                 'primary': False,
                 'verified': False,
@@ -563,7 +562,11 @@ class _AbstractUserTestCase:
             }
         )
         out = user.to_dict()['phone']
-        self.assertEqual(phone, out)
+        # remove timestamps
+        for _phone in out:
+            del _phone['created_ts']
+
+        assert phone == out, 'The phone objects differ when using both phone and mobile'
 
     def test_both_sn_and_surname(self):
         """ Test user that has both 'sn' and 'surname' """

@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import Mapping, Type, Union
+from typing import Any, Dict, Mapping, Type, Union
 
 from eduid_userdb.deprecation import deprecated
 from eduid_userdb.element import Element
@@ -16,9 +16,10 @@ class CodeElement(Element):
     @deprecated("Remove once the password reset views are served from their own webapp")
     def __init__(self, application: str, code: str, verified: bool, created_ts: Union[datetime, bool]):
 
-        data = dict(created_by=application, created_ts=created_ts,)
-        super().__init__(data, called_directly=False)
+        self._data: Dict[str, Any] = {}
 
+        self.created_by = application
+        self.created_ts = created_ts
         self.code = code
         self.is_verified = verified
 

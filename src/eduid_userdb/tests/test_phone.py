@@ -57,7 +57,12 @@ class TestPhoneNumberList(TestCase):
     def test_to_list_of_dicts(self):
         self.assertEqual([], self.empty.to_list_of_dicts(), list)
 
-        self.assertEqual([_one_dict], self.one.to_list_of_dicts())
+        # remove added timestamps
+        list_of_dicts = self.one.to_list_of_dicts()
+        for d in list_of_dicts:
+            del d['created_ts']
+
+        self.assertEqual([_one_dict], list_of_dicts)
 
     def test_find(self):
         match = self.one.find('+46700000001')
@@ -69,17 +74,36 @@ class TestPhoneNumberList(TestCase):
     def test_add(self):
         second = self.two.find('+46700000002')
         self.one.add(second)
-        self.assertEqual(self.one.to_list_of_dicts(), self.two.to_list_of_dicts())
+        expected = self.two.to_list_of_dicts()
+        got = self.one.to_list_of_dicts()
+        # remove timestamps added at different times
+        for d in expected:
+            del d['created_ts']
+        for d in got:
+            if 'created_ts' in d:
+                del d['created_ts']
+
+        assert expected == got, 'Adding a phone number to a list results in wrong data'
 
     def test_add_duplicate(self):
         dup = self.two.find(self.two.primary.number)
         with self.assertRaises(eduid_userdb.element.DuplicateElementViolation):
             self.two.add(dup)
 
-    def test_add_mailaddress(self):
+    def test_add_phonenumber(self):
         third = self.three.find('+46700000003')
         this = PhoneNumberList([_one_dict, _two_dict, third])
-        self.assertEqual(this.to_list_of_dicts(), self.three.to_list_of_dicts())
+
+        expected = self.three.to_list_of_dicts()
+        got = this.to_list_of_dicts()
+        # remove timestamps added at different times
+        for d in expected:
+            del d['created_ts']
+        for d in got:
+            if 'created_ts' in d:
+                del d['created_ts']
+
+        assert expected == got, 'Phone number list contains wrong data'
 
     def test_add_another_primary(self):
         new = eduid_userdb.phone.phone_from_dict({'number': '+46700000009', 'verified': True, 'primary': True,})
@@ -97,7 +121,15 @@ class TestPhoneNumberList(TestCase):
 
     def test_remove(self):
         now_two = self.three.remove('+46700000003')
-        self.assertEqual(self.two.to_list_of_dicts(), now_two.to_list_of_dicts())
+        expected = self.two.to_list_of_dicts()
+        got = now_two.to_list_of_dicts()
+        # remove timestamps - added at different times
+        for d in expected:
+            del d['created_ts']
+        for d in got:
+            del d['created_ts']
+
+        assert expected == got, 'Phone list has wrong data after removing phone'
 
     def test_remove_unknown(self):
         with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
@@ -208,7 +240,11 @@ class TestPhoneNumber(TestCase):
     def test_create_phone_number(self):
         one = copy.deepcopy(_one_dict)
         one = PhoneNumber.from_dict(one)
-        self.assertEqual(_one_dict, one.to_dict())
+        # remove added timestamp
+        one_dict = one.to_dict()
+        del one_dict['created_ts']
+
+        assert _one_dict == one_dict, 'Created phone has wrong data'
 
     def test_parse_cycle(self):
         """
@@ -306,14 +342,12 @@ class TestPhoneNumber(TestCase):
 
     def test_created_ts(self):
         this = self.three.find('+46700000003')
-        this.created_ts = True
         self.assertIsInstance(this.created_ts, datetime.datetime)
         with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
             this.created_ts = False
 
     def test_modify_created_ts(self):
         this = self.three.find('+46700000003')
-        this.created_ts = datetime.datetime.utcnow()
         with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
             this.created_ts = None
         with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):

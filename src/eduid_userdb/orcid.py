@@ -46,6 +46,9 @@ class OidcIdToken(Element):
         data_in = data
         data = copy.deepcopy(data_in)  # to not modify callers data
 
+        if not isinstance(data, dict):
+            raise UserDBValueError("Invalid 'data', not dict ({!r})".format(type(data)))
+
         if 'created_ts' not in data:
             data['created_ts'] = True
 
@@ -64,6 +67,8 @@ class OidcIdToken(Element):
 
         if raise_on_unknown and data:
             raise UserHasUnknownData('{!s} has unknown data: {!r}'.format(self.__class__.__name__, data.keys()))
+
+        return self
 
     @property
     def key(self):
@@ -319,22 +324,14 @@ class OidcAuthorization(Element):
         data_in = data
         data = copy.deepcopy(data_in)  # to not modify callers data
 
-        if data is None:
-            if created_ts is None:
-                created_ts = True
-            data = dict(
-                access_token=access_token,
-                token_type=token_type,
-                id_token=id_token,
-                expires_in=expires_in,
-                refresh_token=refresh_token,
-                created_by=application,
-                created_ts=created_ts,
-            )
-        elif 'created_ts' not in data:
+        if not isinstance(data, dict):
+            raise UserDBValueError("Invalid 'data', not dict ({!r})".format(type(data)))
+
+        if 'created_ts' not in data:
             data['created_ts'] = True
 
-        super().__init__(data, called_directly=called_directly)
+        self = super().from_dict(data)
+
         self.access_token = data.pop('access_token')
         self.token_type = data.pop('token_type')
         self.expires_in = data.pop('expires_in')
@@ -349,6 +346,8 @@ class OidcAuthorization(Element):
 
         if raise_on_unknown and data:
             raise UserHasUnknownData('{!s} has unknown data: {!r}'.format(self.__class__.__name__, data.keys()))
+
+        return self
 
     @property
     def key(self):
@@ -503,26 +502,24 @@ class Orcid(VerifiedElement):
         raise_on_unknown=True,
         called_directly=True,
     ):
+        raise NotImplementedError()
+
+    @classmethod
+    def from_dict(cls: Type[Orcid], data: Dict[str, Any], raise_on_unknown: bool = True) -> Orcid:
+        """
+        Construct user from a data dict.
+        """
         data_in = data
         data = copy.deepcopy(data_in)  # to not modify callers data
 
-        if data is None:
-            if created_ts is None:
-                created_ts = True
-            data = dict(
-                id=id,
-                name=name,
-                given_name=given_name,
-                family_name=family_name,
-                oidc_authz=oidc_authz,
-                created_by=application,
-                created_ts=created_ts,
-                verified=verified,
-            )
-        elif 'created_ts' not in data:
+        if not isinstance(data, dict):
+            raise UserDBValueError("Invalid 'data', not dict ({!r})".format(type(data)))
+
+        if 'created_ts' not in data:
             data['created_ts'] = True
 
-        super().__init__(data, called_directly=called_directly)
+        self = super().from_dict(data)
+
         self.id = data.pop('id')
         self.name = data.pop('name', None)
         self.given_name = data.pop('given_name', None)
@@ -538,12 +535,7 @@ class Orcid(VerifiedElement):
         if raise_on_unknown and data:
             raise UserHasUnknownData('{!s} has unknown data: {!r}'.format(self.__class__.__name__, data.keys()))
 
-    @classmethod
-    def from_dict(cls: Type['Orcid'], data: Dict[str, Any], raise_on_unknown: bool = True) -> 'Orcid':
-        """
-        Construct user from a data dict.
-        """
-        return cls(data=data, called_directly=False, raise_on_unknown=raise_on_unknown)
+        return self
 
     # -----------------------------------------------------------------
     @property

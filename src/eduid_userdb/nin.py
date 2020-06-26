@@ -74,6 +74,9 @@ class Nin(PrimaryElement):
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
 
+        if not isinstance(data, dict):
+            raise UserDBValueError("Invalid 'data', not dict ({!r})".format(type(data)))
+
         if 'created_ts' not in data:
             data['created_ts'] = True
 

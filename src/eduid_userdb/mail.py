@@ -75,6 +75,9 @@ class MailAddress(PrimaryElement):
         data_in = data
         data = copy.copy(data_in)  # to not modify callers data
 
+        if not isinstance(data, dict):
+            raise UserDBValueError("Invalid 'data', not dict ({!r})".format(type(data)))
+
         if 'added_timestamp' in data:
             # old userdb-style creation timestamp
             data['created_ts'] = data.pop('added_timestamp')
