@@ -1,0 +1,34 @@
+@startuml
+title eduid-letter-proofing
+
+Client->"/proofing": GET
+alt state does not exist
+    "/proofing"->Client: {"payload":{"message":"letter.no_state_found"},"type":"GET_LETTER_PROOFING_PROOFING_SUCCESS"}
+else state exist
+    alt letter not sent
+        "/proofing"->Client: {"error": true, "payload":{"message":"letter.not-sent"},"type":"GET_LETTER_PROOFING_PROOFING_FAIL"}
+    else letter sent
+        "/proofing"->Client: {"payload":{"message":"letter.already-sent", letter_sent: datetime, letter_expires: datetime, letter_expired: false},"type":"GET_LETTER_PROOFING_PROOFING_SUCCESS"}
+    else letter expired
+        "/proofing"->Client: {"payload":{"message":"letter.expired", letter_sent: datetime, letter_expires: datetime, letter_expired: true},"type":"GET_LETTER_PROOFING_PROOFING_SUCCESS"}
+    end
+end
+
+Client->"/proofing": POST {"nin": number}
+alt letter sent
+    "/proofing"->Client: {"payload":{"message":"letter.already-sent", letter_sent: datetime, letter_expires: datetime, letter_expired: false},"type":"POST_LETTER_PROOFING_PROOFING_SUCCESS"}
+else letter not sent
+    "/proofing"->Client: {"payload":{"message":"letter.saved-unconfirmed", letter_sent: datetime, letter_expires: datetime, letter_expired: false},"type":"POST_LETTER_PROOFING_PROOFING_SUCCESS"}
+end
+
+Client -> "/verify-code": POST {"code": code}
+alt state does not exist
+    "/verify-code"->Client: {"error": true, "payload":{"message":"letter.no_state_found"},"type":"GET_LETTER_PROOFING_VERIFY_CODE_FAIL"}
+else state exist
+    alt code correct
+        "/verify-code"->Client: {"payload":{"message":"letter.verification_success", "success": true, "nins": [{"number": number, "verified": true, "primary": true}]},"type":"POST_LETTER_PROOFING_VERIFY_CODE_SUCCESS"}
+    else code not correct
+        "/verify-code"->Client: {"error": true, "payload":{"message":"letter.wrong-code"},"type":"GET_LETTER_PROOFING_VERIFY_CODE_FAIL"}
+    end
+end
+@enduml
