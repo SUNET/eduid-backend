@@ -584,7 +584,8 @@ class GroupManagementTests(EduidAPITestCase):
             invite_address=self.test_user2.mail_addresses.primary.email,
             role='member',
         )
-
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual('POST_GROUP_INVITE_INVITES_CREATE_SUCCESS', response.json.get('type'))
         payload = response.json.get('payload')
         outgoing = payload['outgoing']
         self.assertEqual(1, len(outgoing), 'test_invite_member outgoing invites')
@@ -623,7 +624,8 @@ class GroupManagementTests(EduidAPITestCase):
             invite_address=self.test_user2.mail_addresses.primary.email,
             role='member',
         )
-
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual('POST_GROUP_INVITE_INVITES_ACCEPT_SUCCESS', response.json.get('type'))
         payload = response.json.get('payload')
         incoming = payload['incoming']
         self.assertEqual(0, len(incoming), 'test_accept_invite_member incoming invites')
@@ -663,7 +665,8 @@ class GroupManagementTests(EduidAPITestCase):
             invite_address=self.test_user2.mail_addresses.primary.email,
             role='member',
         )
-
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual('POST_GROUP_INVITE_INVITES_DECLINE_SUCCESS', response.json.get('type'))
         payload = response.json.get('payload')
         incoming = payload['incoming']
         self.assertEqual(0, len(incoming), 'test_accept_invite_member incoming invites')
@@ -696,7 +699,8 @@ class GroupManagementTests(EduidAPITestCase):
             invite_address=self.test_user2.mail_addresses.primary.email,
             role='owner',
         )
-
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual('POST_GROUP_INVITE_INVITES_CREATE_SUCCESS', response.json.get('type'))
         payload = response.json.get('payload')
         outgoing = payload['outgoing']
         self.assertEqual(1, len(outgoing), 'test_invite_owner outgoing invites')
@@ -734,7 +738,8 @@ class GroupManagementTests(EduidAPITestCase):
             invite_address=self.test_user2.mail_addresses.primary.email,
             role='owner',
         )
-
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual('POST_GROUP_INVITE_INVITES_ACCEPT_SUCCESS', response.json.get('type'))
         payload = response.json.get('payload')
         incoming = payload['incoming']
         self.assertEqual(0, len(incoming), 'test_accept_invite_owner incoming invites')
@@ -774,7 +779,8 @@ class GroupManagementTests(EduidAPITestCase):
             invite_address=self.test_user2.mail_addresses.primary.email,
             role='owner',
         )
-
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual('POST_GROUP_INVITE_INVITES_DECLINE_SUCCESS', response.json.get('type'))
         payload = response.json.get('payload')
         incoming = payload['incoming']
         self.assertEqual(0, len(incoming), 'test_accept_invite_owner incoming invites')
