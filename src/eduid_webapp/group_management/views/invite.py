@@ -131,11 +131,10 @@ def accept_invite(user: User, group_identifier: UUID, email_address: str, role: 
         current_app.logger.error(f'User has not verified email address: {email_address}')
         return error_response(message=GroupManagementMsg.mail_address_not_verified)
 
-    try:
-        invite_state = current_app.invite_state_db.get_state(
-            group_scim_id=str(group_identifier), email_address=email_address, role=role
-        )
-    except DocumentDoesNotExist:
+    invite_state = current_app.invite_state_db.get_state(
+        group_scim_id=str(group_identifier), email_address=email_address, role=role, raise_on_missing=False
+    )
+    if not invite_state:
         current_app.logger.error(f'Invite for group {group_identifier} does not exist')
         return error_response(message=GroupManagementMsg.invite_not_found)
 
@@ -169,11 +168,10 @@ def decline_invite(user: User, group_identifier: UUID, email_address: str, role:
         current_app.logger.error(f'User has not verified email address: {email_address}')
         return error_response(message=GroupManagementMsg.mail_address_not_verified)
 
-    try:
-        invite_state = current_app.invite_state_db.get_state(
-            group_scim_id=str(group_identifier), email_address=email_address, role=role
-        )
-    except DocumentDoesNotExist:
+    invite_state = current_app.invite_state_db.get_state(
+        group_scim_id=str(group_identifier), email_address=email_address, role=role, raise_on_missing=False
+    )
+    if not invite_state:
         current_app.logger.error('Invite does not exist')
         return error_response(message=GroupManagementMsg.invite_not_found)
 
