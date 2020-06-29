@@ -23,12 +23,14 @@ end
 
 Client -> "/verify-code": POST {"code": code}
 alt state does not exist
-    "/verify-code"->Client: {"error": true, "payload":{"message":"letter.no_state_found"},"type":"GET_LETTER_PROOFING_VERIFY_CODE_FAIL"}
+    "/verify-code"->Client: {"error": true, "payload":{"message":"letter.no_state_found"},"type":"POST_LETTER_PROOFING_VERIFY_CODE_FAIL"}
 else state exist
-    alt code correct
-        "/verify-code"->Client: {"payload":{"message":"letter.verification_success", "success": true, "nins": [{"number": number, "verified": true, "primary": true}]},"type":"POST_LETTER_PROOFING_VERIFY_CODE_SUCCESS"}
+    alt code expired
+        "/verify-code"->Client: {"error": true, "payload":{"message":"letter.expired"},"type":"POST_LETTER_PROOFING_VERIFY_CODE_FAIL"}
     else code not correct
-        "/verify-code"->Client: {"error": true, "payload":{"message":"letter.wrong-code"},"type":"GET_LETTER_PROOFING_VERIFY_CODE_FAIL"}
+        "/verify-code"->Client: {"error": true, "payload":{"message":"letter.wrong-code"},"type":"POST_LETTER_PROOFING_VERIFY_CODE_FAIL"}
+    else code correct
+        "/verify-code"->Client: {"payload":{"message":"letter.verification_success", "success": true, "nins": [{"number": number, "verified": true, "primary": true}]},"type":"POST_LETTER_PROOFING_VERIFY_CODE_SUCCESS"}
     end
 end
 @enduml
