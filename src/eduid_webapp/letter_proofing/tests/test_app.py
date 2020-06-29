@@ -127,7 +127,7 @@ class LetterProofingTests(EduidAPITestCase):
         """
         Invoke the verify-code endpoint and return the whole response.
 
-        To be used with the data validation functions _check_api_result, _check_response, and _check_error.
+        To be used with the data validation functions _check_success_response, _check_response, and _check_error.
         """
         mock_request_user_sync.side_effect = self.request_user_sync
         mock_get_postal_address.return_value = self.mock_address
@@ -279,8 +279,8 @@ class LetterProofingTests(EduidAPITestCase):
                 self.app.proofing_statedb.save(proofing_state)
         csrf_token = json_data['payload']['csrf_token']
         response = self.verify_code2(proofing_state.nin.verification_code, csrf_token)
-        # TODO: sort out how to properly generate FSA errors, and make _check_api_error validate exactly that.
-        #       Then use self._check_api_error here.
+        # TODO: sort out how to properly generate FSA errors, and make _check_error_response validate exactly that.
+        #       Then use self._check_error_response here.
         self._check_api_response(
             response, status=200, type_='POST_LETTER_PROOFING_VERIFY_CODE_FAIL', message=LetterMsg.letter_expired
         )
