@@ -141,7 +141,6 @@ def accept_invite(user: User, group_identifier: UUID, email_address: str, role: 
     # Invite exists and current user is the one invited
     scim_user = get_or_create_scim_user_by_eppn(user.eppn)
 
-    assert invite_state is not None  # Please mypy as DocumentDoesNotExist above would be raised
     group = current_app.scimapi_groupdb.get_group_by_scim_id(invite_state.group_scim_id)
     if not group:
         current_app.logger.error(f'Group with scim_id {invite_state.group_scim_id} not found')
