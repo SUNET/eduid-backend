@@ -246,11 +246,7 @@ class LetterProofingTests(EduidAPITestCase):
 
     def test_verify_letter_code(self):
         json_data = self.send_letter(self.test_user_nin)
-        with self.app.test_request_context():
-            with self.app.app_context():
-                proofing_state = self.app.proofing_statedb.get_state_by_eppn(
-                    self.test_user_eppn, raise_on_missing=False
-                )
+        proofing_state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
         # Deliberately test the CSRF token from the send_letter response
         csrf_token = json_data['payload']['csrf_token']
         response = self.verify_code2(proofing_state.nin.verification_code, csrf_token)
@@ -270,11 +266,7 @@ class LetterProofingTests(EduidAPITestCase):
 
     def test_verify_letter_code_bad_csrf(self):
         self.send_letter(self.test_user_nin)
-        with self.app.test_request_context():
-            with self.app.app_context():
-                proofing_state = self.app.proofing_statedb.get_state_by_eppn(
-                    self.test_user_eppn, raise_on_missing=False
-                )
+        proofing_state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
         response = self.verify_code2(proofing_state.nin.verification_code, 'bad_csrf')
         self._check_error_response(response, type_='POST_LETTER_PROOFING_VERIFY_CODE_FAIL',
                                    error={'csrf_token': ['CSRF failed to validate']})
@@ -287,15 +279,12 @@ class LetterProofingTests(EduidAPITestCase):
 
     def test_verify_letter_expired(self):
         json_data = self.send_letter(self.test_user_nin)
-        with self.app.test_request_context():
-            with self.app.app_context():
-                proofing_state = self.app.proofing_statedb.get_state_by_eppn(
-                    self.test_user_eppn, raise_on_missing=False
-                )
-                # move the proofing state back in time so that it is expired by now
-                proofing_state.proofing_letter._data['sent_ts'] = None
-                proofing_state.proofing_letter.sent_ts = datetime.fromisoformat('2020-01-01T01:02:03')
-                self.app.proofing_statedb.save(proofing_state)
+        # move the proofing state back in time so that it is expired by now
+        proofing_state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
+        proofing_state.proofing_letter._data['sent_ts'] = None
+        proofing_state.proofing_letter.sent_ts = datetime.fromisoformat('2020-01-01T01:02:03')
+        self.app.proofing_statedb.save(proofing_state)
+
         csrf_token = json_data['payload']['csrf_token']
         response = self.verify_code2(proofing_state.nin.verification_code, csrf_token)
         self._check_error_response(
@@ -305,12 +294,8 @@ class LetterProofingTests(EduidAPITestCase):
     def test_proofing_flow(self):
         self.send_letter(self.test_user_nin)
         self.get_state()
-        json_data = self.get_state()
-        csrf_token = json_data['payload']['csrf_token']
-        with self.app.test_request_context():
-            user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn, raise_on_missing=True)
-            proofing_state = self.app.proofing_statedb.get_state_by_eppn(user.eppn, raise_on_missing=False)
-        response = self.verify_code2(proofing_state.nin.verification_code, csrf_token)
+        proofing_state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
+        response = self.verify_code2(proofing_state.nin.verification_code, None)
         self._check_success_response(
             response, type_='POST_LETTER_PROOFING_VERIFY_CODE_SUCCESS', msg=LetterMsg.verify_success
         )
@@ -331,9 +316,7 @@ class LetterProofingTests(EduidAPITestCase):
         self.app.central_userdb.save(user)
 
         self.send_letter(self.test_user_nin)
-        with self.app.test_request_context():
-            user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn, raise_on_missing=True)
-            proofing_state = self.app.proofing_statedb.get_state_by_eppn(user.eppn, raise_on_missing=False)
+        proofing_state = self.app.proofing_statedb.get_state_by_eppn(user.eppn)
         response = self.verify_code2(proofing_state.nin.verification_code, None)
         self._check_success_response(
             response, type_='POST_LETTER_PROOFING_VERIFY_CODE_SUCCESS', msg=LetterMsg.verify_success
@@ -360,9 +343,7 @@ class LetterProofingTests(EduidAPITestCase):
         self.app.central_userdb.save(user)
 
         # Time passes, user gets code in the mail. Enters code.
-        with self.app.test_request_context():
-            user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn, raise_on_missing=True)
-            proofing_state = self.app.proofing_statedb.get_state_by_eppn(user.eppn, raise_on_missing=False)
+        proofing_state = self.app.proofing_statedb.get_state_by_eppn(user.eppn)
         response = self.verify_code2(proofing_state.nin.verification_code, None)
         self._check_success_response(
             response, type_='POST_LETTER_PROOFING_VERIFY_CODE_SUCCESS', msg=LetterMsg.verify_success
