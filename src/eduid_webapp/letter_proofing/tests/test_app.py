@@ -101,10 +101,23 @@ class LetterProofingTests(EduidAPITestCase):
         self.assertEqual(response.status_code, 200)
         return json.loads(response.data)
 
+    def send_letter(self, nin: str, csrf_token: str) -> Dict[str, Any]:
+        """
+        Invoke the POST /proofing endpoint, check that the HTTP response code is 200 and return the JSON data.
+        """
+        response = self.send_letter2(nin, csrf_token)
+        self.assertEqual(response.status_code, 200)
+        return json.loads(response.data)
+
     @patch('hammock.Hammock._request')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
-    def send_letter(self, nin, csrf_token, mock_get_postal_address, mock_request_user_sync, mock_hammock):
+    def send_letter2(self, nin: str, csrf_token: str, mock_get_postal_address, mock_request_user_sync, mock_hammock):
+        """
+        Invoke the POST /proofing endpoint and return the whole response.
+
+        To be used with the data validation functions _check_success_response and _check_error_response.
+        """
         ekopost_response = self.mock_response(json_data={'id': 'test'})
         mock_hammock.return_value = ekopost_response
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -112,22 +125,23 @@ class LetterProofingTests(EduidAPITestCase):
         data = {'nin': nin, 'csrf_token': csrf_token}
         with self.session_cookie(self.browser, self.test_user_eppn) as client:
             response = client.post('/proofing', data=json.dumps(data), content_type=self.content_type_json)
-        self.assertEqual(response.status_code, 200)
-        return json.loads(response.data)
+        return response
 
     def verify_code(self, code: str, csrf_token: str) -> Dict[str, Any]:
-        """ Invoke the verify-code endpoint, check that the HTTP response code is 200 and return the JSON data. """
+        """
+        Invoke the POST /verify-code endpoint, check that the HTTP response code is 200 and return the JSON data.
+        """
         response = self.verify_code2(code, csrf_token)
         self.assertEqual(response.status_code, 200)
         return json.loads(response.data)
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
-    def verify_code2(self, code, csrf_token, mock_get_postal_address, mock_request_user_sync):
+    def verify_code2(self, code: str, csrf_token: str, mock_get_postal_address, mock_request_user_sync):
         """
-        Invoke the verify-code endpoint and return the whole response.
+        Invoke the POST /verify-code endpoint and return the whole response.
 
-        To be used with the data validation functions _check_success_response, _check_response, and _check_error.
+        To be used with the data validation functions _check_success_response and _check_error_response.
         """
         mock_request_user_sync.side_effect = self.request_user_sync
         mock_get_postal_address.return_value = self.mock_address
@@ -180,13 +194,14 @@ class LetterProofingTests(EduidAPITestCase):
 
     def test_letter_not_sent_status(self):
         json_data = self.get_state()
-        self.assertNotIn('letter_sent', json_data)
+        assert json_data['payload']['message'] == LetterMsg.no_state.value
 
     def test_send_letter(self):
         json_data = self.get_state()
         csrf_token = json_data['payload']['csrf_token']
-        json_data = self.send_letter(self.test_user_nin, csrf_token)
-        expires = json_data['payload']['letter_expires']
+        response = self.send_letter2(self.test_user_nin, csrf_token)
+        self._check_success_response(response, type_='POST_LETTER_PROOFING_PROOFING_SUCCESS', msg=LetterMsg.letter_sent)
+        expires = response.json['payload']['letter_expires']
         expires = datetime.utcfromtimestamp(int(expires))
         self.assertIsInstance(expires, datetime)
         expires = expires.strftime('%Y-%m-%d')
@@ -195,21 +210,26 @@ class LetterProofingTests(EduidAPITestCase):
     def test_resend_letter(self):
         json_data = self.get_state()
         csrf_token = json_data['payload']['csrf_token']
-        json_data = self.send_letter(self.test_user_nin, csrf_token)
-        csrf_token = json_data['payload']['csrf_token']
-        self.assertEqual(json_data['payload']['message'], 'letter.saved-unconfirmed')
-        json_data = self.send_letter(self.test_user_nin, csrf_token)
-        self.assertEqual(json_data['payload']['message'], 'letter.already-sent')
-        expires = json_data['payload']['letter_expires']
+
+        response = self.send_letter2(self.test_user_nin, csrf_token)
+        self._check_success_response(response, type_='POST_LETTER_PROOFING_PROOFING_SUCCESS', msg=LetterMsg.letter_sent)
+
+        csrf_token = response.json['payload']['csrf_token']
+        response2 = self.send_letter2(self.test_user_nin, csrf_token)
+        self._check_success_response(
+            response2, type_='POST_LETTER_PROOFING_PROOFING_SUCCESS', msg=LetterMsg.already_sent
+        )
+
+        expires = response2.json['payload']['letter_expires']
         expires = datetime.utcfromtimestamp(int(expires))
         self.assertIsInstance(expires, datetime)
         expires = expires.strftime('%Y-%m-%d')
         self.assertIsInstance(expires, str)
 
     def test_send_letter_bad_csrf(self):
-        json_data = self.send_letter(self.test_user_nin, 'bad_csrf')
-        self.assertEqual(json_data['type'], 'POST_LETTER_PROOFING_PROOFING_FAIL')
-        self.assertEqual(json_data['payload']['error']['csrf_token'], ['CSRF failed to validate'])
+        response = self.send_letter2(self.test_user_nin, 'bad_csrf')
+        self._check_error_response(response, type_='POST_LETTER_PROOFING_PROOFING_FAIL',
+                                   error={'csrf_token': ['CSRF failed to validate']})
 
     def test_letter_sent_status(self):
         json_data = self.get_state()
@@ -232,9 +252,13 @@ class LetterProofingTests(EduidAPITestCase):
                     self.test_user_eppn, raise_on_missing=False
                 )
         csrf_token = json_data['payload']['csrf_token']
-        json_data = self.verify_code(proofing_state.nin.verification_code, csrf_token)
-        self.assertTrue(json_data['payload']['success'])
-        self.assertEqual(len(json_data['payload']['nins']), 1)
+        response = self.verify_code2(proofing_state.nin.verification_code, csrf_token)
+        # TODO: The payload incorrectly contains the NIN from before it was marked as verified.
+        self._check_success_response(response, type_='POST_LETTER_PROOFING_VERIFY_CODE_SUCCESS',
+                                     payload={'nins': [{'number': self.test_user_nin,
+                                                        'primary': False,
+                                                        'verified': False}],
+                                              })
 
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         self.assertEqual(user.nins.primary.number, self.test_user_nin)
@@ -252,17 +276,17 @@ class LetterProofingTests(EduidAPITestCase):
                 proofing_state = self.app.proofing_statedb.get_state_by_eppn(
                     self.test_user_eppn, raise_on_missing=False
                 )
-        json_data = self.verify_code(proofing_state.nin.verification_code, 'bad_csrf')
-        self.assertEqual(json_data['type'], 'POST_LETTER_PROOFING_VERIFY_CODE_FAIL')
-        self.assertEqual(json_data['payload']['error']['csrf_token'], ['CSRF failed to validate'])
+        response = self.verify_code2(proofing_state.nin.verification_code, 'bad_csrf')
+        self._check_error_response(response, type_='POST_LETTER_PROOFING_VERIFY_CODE_FAIL',
+                                   error={'csrf_token': ['CSRF failed to validate']})
 
     def test_verify_letter_code_fail(self):
         json_data = self.get_state()
         csrf_token = json_data['payload']['csrf_token']
         json_data = self.send_letter(self.test_user_nin, csrf_token)
         csrf_token = json_data['payload']['csrf_token']
-        json_data = self.verify_code('wrong code', csrf_token)
-        self.assertEqual(json_data['payload']['message'], 'letter.wrong-code')
+        response = self.verify_code2('wrong code', csrf_token)
+        self._check_error_response(response, type_='POST_LETTER_PROOFING_VERIFY_CODE_FAIL', msg=LetterMsg.wrong_code)
 
     def test_verify_letter_expired(self):
         json_data = self.get_state()
@@ -279,10 +303,8 @@ class LetterProofingTests(EduidAPITestCase):
                 self.app.proofing_statedb.save(proofing_state)
         csrf_token = json_data['payload']['csrf_token']
         response = self.verify_code2(proofing_state.nin.verification_code, csrf_token)
-        # TODO: sort out how to properly generate FSA errors, and make _check_error_response validate exactly that.
-        #       Then use self._check_error_response here.
-        self._check_api_response(
-            response, status=200, type_='POST_LETTER_PROOFING_VERIFY_CODE_FAIL', message=LetterMsg.letter_expired
+        self._check_error_response(
+            response, type_='POST_LETTER_PROOFING_VERIFY_CODE_FAIL', msg=LetterMsg.letter_expired
         )
 
     def test_proofing_flow(self):
@@ -295,8 +317,10 @@ class LetterProofingTests(EduidAPITestCase):
         with self.app.test_request_context():
             user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn, raise_on_missing=True)
             proofing_state = self.app.proofing_statedb.get_state_by_eppn(user.eppn, raise_on_missing=False)
-        json_data = self.verify_code(proofing_state.nin.verification_code, csrf_token)
-        self.assertTrue(json_data['payload']['success'])
+        response = self.verify_code2(proofing_state.nin.verification_code, csrf_token)
+        self._check_success_response(
+            response, type_='POST_LETTER_PROOFING_VERIFY_CODE_SUCCESS', msg=LetterMsg.verify_success
+        )
 
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         self.assertEqual(user.nins.primary.number, self.test_user_nin)
@@ -322,8 +346,10 @@ class LetterProofingTests(EduidAPITestCase):
         with self.app.test_request_context():
             user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn, raise_on_missing=True)
             proofing_state = self.app.proofing_statedb.get_state_by_eppn(user.eppn, raise_on_missing=False)
-        json_data = self.verify_code(proofing_state.nin.verification_code, csrf_token)
-        self.assertTrue(json_data['payload']['success'])
+        response = self.verify_code2(proofing_state.nin.verification_code, csrf_token)
+        self._check_success_response(
+            response, type_='POST_LETTER_PROOFING_VERIFY_CODE_SUCCESS', msg=LetterMsg.verify_success
+        )
 
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         self.assertEqual(user.nins.primary.number, self.test_user_nin)
@@ -347,14 +373,18 @@ class LetterProofingTests(EduidAPITestCase):
         user.nins.add(not_verified_nin)
         self.app.central_userdb.save(user)
 
+        # Time passes, user gets code in the mail. Enters code.
         json_data = self.get_state()
         csrf_token = json_data['payload']['csrf_token']
         with self.app.test_request_context():
             user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn, raise_on_missing=True)
             proofing_state = self.app.proofing_statedb.get_state_by_eppn(user.eppn, raise_on_missing=False)
-        json_data = self.verify_code(proofing_state.nin.verification_code, csrf_token)
-        self.assertTrue(json_data['payload']['success'])
+        response = self.verify_code2(proofing_state.nin.verification_code, csrf_token)
+        self._check_success_response(
+            response, type_='POST_LETTER_PROOFING_VERIFY_CODE_SUCCESS', msg=LetterMsg.verify_success
+        )
 
+        # Now check that the (now verified) NIN on the user is back to the one used to request the letter
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         self.assertEqual(user.nins.primary.number, self.test_user_nin)
         self.assertEqual(user.nins.primary.created_by, proofing_state.nin.created_by)
@@ -377,13 +407,13 @@ class LetterProofingTests(EduidAPITestCase):
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
     def test_unmarshal_error(self, mock_get_postal_address):
         mock_get_postal_address.return_value = self.mock_address
-        data = {'nin': 'not a nin'}
-        with self.session_cookie(self.browser, self.test_user_eppn) as client:
-            response = client.post('/proofing', data=json.dumps(data), content_type=self.content_type_json)
-        self.assertEqual(response.status_code, 200)
-        json_data = json.loads(response.data)
-        self.assertEqual(json_data['type'], 'POST_LETTER_PROOFING_PROOFING_FAIL')
-        self.assertIn('nin', json_data['payload']['error'].keys())
+
+        json_data = self.get_state()
+        csrf_token = json_data['payload']['csrf_token']
+        response = self.send_letter2('not a nin', csrf_token)
+
+        self._check_error_response(response, type_='POST_LETTER_PROOFING_PROOFING_FAIL',
+                                   error={'nin': ['nin needs to be formatted as 18|19|20yymmddxxxx']})
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
@@ -397,8 +427,9 @@ class LetterProofingTests(EduidAPITestCase):
         with self.session_cookie(self.browser, self.test_user_eppn):
             json_data = self.get_state()
             csrf_token = json_data['payload']['csrf_token']
-            response = self.send_letter(self.test_user_nin, csrf_token)
-        self.assertEqual(response['type'], 'POST_LETTER_PROOFING_PROOFING_SUCCESS')
+            response = self.send_letter2(self.test_user_nin, csrf_token)
+        self._check_success_response(response, type_='POST_LETTER_PROOFING_PROOFING_SUCCESS',
+                                   msg=LetterMsg.letter_sent)
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
@@ -415,8 +446,9 @@ class LetterProofingTests(EduidAPITestCase):
         with self.session_cookie(self.browser, self.test_user_eppn):
             json_data = self.get_state()
             csrf_token = json_data['payload']['csrf_token']
-            response = self.send_letter(self.test_user_nin, csrf_token)
-        self.assertEqual(response['type'], 'POST_LETTER_PROOFING_PROOFING_SUCCESS')
+            response = self.send_letter2(self.test_user_nin, csrf_token)
+        self._check_success_response(response, type_='POST_LETTER_PROOFING_PROOFING_SUCCESS',
+                                   msg=LetterMsg.letter_sent)
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
@@ -434,8 +466,10 @@ class LetterProofingTests(EduidAPITestCase):
         with self.session_cookie(self.browser, self.test_user_eppn):
             json_data = self.get_state()
             csrf_token = json_data['payload']['csrf_token']
-            response = self.send_letter('200102031234', csrf_token)
-        self.assertEqual(response['type'], 'POST_LETTER_PROOFING_PROOFING_FAIL')
+            response = self.send_letter2('200102031234', csrf_token)
+        self._check_error_response(response, type_='POST_LETTER_PROOFING_PROOFING_FAIL',
+                                   payload={'message': 'Another nin is already registered for this user'
+                                                       })
 
     def test_get_code_backdoor(self):
         self.app.config.magic_cookie = 'magic-cookie'
