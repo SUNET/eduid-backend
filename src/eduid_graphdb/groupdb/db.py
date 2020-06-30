@@ -35,6 +35,10 @@ class Role(enum.Enum):
 
 
 class GroupDB(BaseGraphDB):
+    def __init__(self, db_uri: str, scope: str, config: Optional[Dict[str, Any]] = None):
+        super().__init__(db_uri=db_uri, config=config)
+        self._scope = scope
+
     def db_setup(self):
         with self.db.driver.session(access_mode=WRITE_ACCESS) as session:
             statements = [
@@ -56,6 +60,10 @@ class GroupDB(BaseGraphDB):
                     # Constraints already set up
                     pass
         logger.info(f'{self} setup done.')
+
+    @property
+    def scope(self):
+        return self._scope
 
     def _create_or_update_group(self, tx: Transaction, group: Group) -> Group:
         q = """
