@@ -47,13 +47,15 @@ class LetterProofingTests(EduidAPITestCase):
         super(LetterProofingTests, self).setUp(users=['hubba-baar'])
 
     @staticmethod
-    def mock_response(status_code=200, content=None, json_data=None, headers=dict(), raise_for_status=None):
+    def mock_response(status_code=200, content=None, json_data=None, headers=None, raise_for_status=None):
         """
         since we typically test a bunch of different
         requests calls for a service, we are going to do
         a lot of mock responses, so its usually a good idea
         to have a helper function that builds these things
         """
+        if headers is None:
+            headers = {}
         mock_resp = Mock()
         # mock raise_for_status call w/optional error
         mock_resp.raise_for_status = Mock()
