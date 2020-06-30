@@ -41,6 +41,7 @@ from contextlib import contextmanager
 from copy import deepcopy
 from typing import Any, Dict, List, Mapping, Optional
 
+from flask import Response
 from flask.testing import FlaskClient
 
 from eduid_userdb import User
@@ -246,17 +247,23 @@ class EduidAPITestCase(CommonTestCase):
         self.app.central_userdb.save(user)
         return True
 
-    def _check_api_error(self, response, type_: str, error: Mapping[str, Any]):
+    def _check_error_response(
+        self,
+        response: Response,
+        type_: str,
+        msg: Optional[TranslatableMsg] = None,
+        error: Optional[Mapping[str, Any]] = None,
+    ):
         """ Check that a call to the API failed in the data validation stage. """
-        return self._check_api_response(response, 200, type_=type_, error=error)
+        return self._check_api_response(response, 200, type_=type_, message=msg, error=error)
 
-    def _check_api_result(self, response, type_: str, msg: TranslatableMsg):
+    def _check_success_response(self, response: Response, type_: str, msg: Optional[TranslatableMsg] = None):
         """ Check the message returned from an eduID webapp endpoint. """
         return self._check_api_response(response, 200, type_=type_, message=msg)
 
+    @staticmethod
     def _check_api_response(
-        self,
-        response,
+        response: Response,
         status: int,
         type_: str,
         message: Optional[TranslatableMsg] = None,
@@ -279,7 +286,7 @@ class EduidAPITestCase(CommonTestCase):
                 assert 'message' in response.json['payload'], 'JSON payload has no "message" element'
                 assert message.value == response.json['payload']['message'], 'Wrong message returned'
             if error is not None:
-                assert response.json['error'] == True, 'The Flux response was supposed to have error=True'
+                assert response.json['error'] is True, 'The Flux response was supposed to have error=True'
                 assert 'error' in response.json['payload'], 'JSON payload has no "error" element'
                 assert error == response.json['payload']['error'], 'Wrong error returned'
         except (AssertionError, KeyError):

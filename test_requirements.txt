@@ -16,3 +16,6 @@ redis>=2.10.5
 urllib3>=1.24.2
 vccs_client>=0.4.5
 zxcvbn>=4.4.27,<5.0
+isort
+black
+mypy
