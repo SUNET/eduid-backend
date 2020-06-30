@@ -216,7 +216,9 @@ class MFAActionPluginTests(ActionsTestCase):
     def test_action_success(self):
         data1 = {'tokenResponse': 'dummy-response'}
         response = self._action(data1=data1)
-        self._check_api_result(response, type_='POST_ACTIONS_POST_ACTION_SUCCESS', msg=ActionsMsg.action_completed)
+        self._check_success_response(
+            response, type_='POST_ACTIONS_POST_ACTION_SUCCESS', msg=ActionsMsg.action_completed
+        )
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.data)
         self.assertEqual(data['payload']['message'], "actions.action-completed")
@@ -243,7 +245,7 @@ class MFAActionPluginTests(ActionsTestCase):
             'csrf_token': 'wrong-token',
         }
         response = self._action(data1=data1)
-        self._check_api_error(
+        self._check_error_response(
             response, type_='POST_ACTIONS_POST_ACTION_FAIL', error={'csrf_token': ['CSRF failed to validate'],},
         )
 
