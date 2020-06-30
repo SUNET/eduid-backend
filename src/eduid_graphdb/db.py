@@ -25,7 +25,10 @@ class Neo4jDB(object):
         self._schema = parse_result.scheme
         self._hostname = parse_result.hostname
         self._port = parse_result.port
+        self._routing_context = parse_result.query
         self._db_uri = f'{self._schema}://{self._hostname}:{self._port}'
+        if self._routing_context:
+            self._db_uri = f'{self._db_uri}?{self._routing_context}'
 
         # Use username and password from uri if auth not in config
         self._username = parse_result.username
