@@ -253,13 +253,22 @@ class EduidAPITestCase(CommonTestCase):
         type_: str,
         msg: Optional[TranslatableMsg] = None,
         error: Optional[Mapping[str, Any]] = None,
+        payload: Optional[Mapping[str, Any]] = None,
     ):
         """ Check that a call to the API failed in the data validation stage. """
-        return self._check_api_response(response, 200, type_=type_, message=msg, error=error)
+        return self._check_api_response(response, 200, type_=type_, message=msg, error=error, payload=payload)
 
-    def _check_success_response(self, response: Response, type_: str, msg: Optional[TranslatableMsg] = None):
-        """ Check the message returned from an eduID webapp endpoint. """
-        return self._check_api_response(response, 200, type_=type_, message=msg)
+    def _check_success_response(
+        self,
+        response: Response,
+        type_: str,
+        msg: Optional[TranslatableMsg] = None,
+        payload: Optional[Mapping[str, Any]] = None,
+    ):
+        """
+        Check the message returned from an eduID webapp endpoint.
+        """
+        return self._check_api_response(response, 200, type_=type_, message=msg, payload=payload)
 
     @staticmethod
     def _check_api_response(
@@ -268,15 +277,35 @@ class EduidAPITestCase(CommonTestCase):
         type_: str,
         message: Optional[TranslatableMsg] = None,
         error: Optional[Mapping[str, Any]] = None,
+        payload: Optional[Mapping[str, Any]] = None,
     ):
         """
         Check data returned from an eduID webapp endpoint.
+
+        This is expected to be a Flux Standard Action response, e.g.
+
+        {'type': 'POST_LETTER_PROOFING_VERIFY_CODE_SUCCESS'},
+         'payload': {'csrf_token': '1b0c34e9693e31a97dc478bbcde576098d58e847',
+                     'message': 'letter.verification_success',
+                     'nins': [{'number': '200001023456',
+                               'primary': False,
+                               'verified': False}],
+                     'success': True}
+        }
+
+        If msg is provided, payload['message'] is validated against it.
+
+        If payload is provided, the elements in it are verified to be present in the response 'payload'.
+        Because of the ever-changing csrf_token, and to not make all previous tests fail when a new
+        item is added to the payload in a response from some endpoint, we don't fail if there are more
+        elements present in the response payload.
 
         :param response: The flask test Response instance
         :param status: Expected HTTP status code
         :param type_: Expected JSON 'type' element
         :param message: Expected JSON payload message element
         :param error: Expected JSON error message
+        :param payload: Data expected to be found in the 'payload' of the response
         """
         try:
             assert status == response.status_code, f'The HTTP response code was not {status}'
@@ -289,6 +318,12 @@ class EduidAPITestCase(CommonTestCase):
                 assert response.json['error'] is True, 'The Flux response was supposed to have error=True'
                 assert 'error' in response.json['payload'], 'JSON payload has no "error" element'
                 assert error == response.json['payload']['error'], 'Wrong error returned'
+            if payload is not None:
+                for k, v in payload.items():
+                    assert k in response.json['payload'], f'The Flux response payload does not contain {repr(k)}'
+                    assert (
+                        v == response.json['payload'][k]
+                    ), f'The Flux response payload item {repr(k)} is not {repr(v)}'
         except (AssertionError, KeyError):
             if response.json:
                 logger.info(
