@@ -159,13 +159,13 @@ class ActionsTests(ActionsTestCase):
 
     def test_post_action_no_csrf(self):
         response = self._post_action(csrf_token='')
-        self._check_api_error(
+        self._check_error_response(
             response, type_='POST_ACTIONS_POST_ACTION_FAIL', error={'csrf_token': ['CSRF failed to validate'],},
         )
 
     def test_post_action_wrong_csrf(self):
         response = self._post_action(csrf_token='wrong-token')
-        self._check_api_error(
+        self._check_error_response(
             response, type_='POST_ACTIONS_POST_ACTION_FAIL', error={'csrf_token': ['CSRF failed to validate'],},
         )
 
