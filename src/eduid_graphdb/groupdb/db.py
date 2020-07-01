@@ -364,8 +364,10 @@ class GroupDB(BaseGraphDB):
                 logger.error(e)
                 raise EduIDGroupDBError(e.message)
             finally:
+                logger.info(f'Saving group with scope {self._scope} and identifier {group.identifier}')
+                logger.debug(f'Group: {group}')
                 if tx.closed():
-                    logger.info('Group save successful')
+                    logger.info(f'Group save successful')
                 else:
                     logger.error('Group save error: ROLLING BACK')
                 tx.close()
