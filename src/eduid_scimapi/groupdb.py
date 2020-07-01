@@ -48,7 +48,7 @@ class ScimApiGroup(object):
     graph: GraphGroup = field(init=False)
 
     def __post_init__(self):
-        self.graph = GraphGroup(identifier=str(self.scim_id))
+        self.graph = GraphGroup(identifier=str(self.scim_id), display_name=self.display_name)
 
     def to_dict(self) -> Dict[str, Any]:
         res = asdict(self)
