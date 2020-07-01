@@ -112,17 +112,17 @@ class LetterProofingTests(EduidAPITestCase):
         """
         response = self._send_letter2(nin, csrf_token)
         if validate_response:
-            self._check_success_response(response, type_='POST_LETTER_PROOFING_PROOFING_SUCCESS', msg=LetterMsg.letter_sent)
+            self._check_success_response(
+                response, type_='POST_LETTER_PROOFING_PROOFING_SUCCESS', msg=LetterMsg.letter_sent
+            )
         return response
 
     @patch('hammock.Hammock._request')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
-    def _send_letter2(self, nin: str, csrf_token: Optional[str], mock_get_postal_address, mock_request_user_sync, mock_hammock):
-        """
-        Invoke the POST /proofing endpoint and return the whole response.
-
-        """
+    def _send_letter2(
+        self, nin: str, csrf_token: Optional[str], mock_get_postal_address, mock_request_user_sync, mock_hammock
+    ):
         if csrf_token is None:
             _state = self.get_state()
             csrf_token = _state['payload']['csrf_token']
@@ -235,8 +235,9 @@ class LetterProofingTests(EduidAPITestCase):
 
     def test_send_letter_bad_csrf(self):
         response = self.send_letter(self.test_user_nin, 'bad_csrf', validate_response=False)
-        self._check_error_response(response, type_='POST_LETTER_PROOFING_PROOFING_FAIL',
-                                   error={'csrf_token': ['CSRF failed to validate']})
+        self._check_error_response(
+            response, type_='POST_LETTER_PROOFING_PROOFING_FAIL', error={'csrf_token': ['CSRF failed to validate']}
+        )
 
     def test_letter_sent_status(self):
         self.send_letter(self.test_user_nin)
@@ -254,11 +255,11 @@ class LetterProofingTests(EduidAPITestCase):
         csrf_token = response1.json['payload']['csrf_token']
         response2 = self.verify_code(proofing_state.nin.verification_code, csrf_token)
         # TODO: The payload incorrectly contains the NIN from before it was marked as verified.
-        self._check_success_response(response2, type_='POST_LETTER_PROOFING_VERIFY_CODE_SUCCESS',
-                                     payload={'nins': [{'number': self.test_user_nin,
-                                                        'primary': False,
-                                                        'verified': False}],
-                                              })
+        self._check_success_response(
+            response2,
+            type_='POST_LETTER_PROOFING_VERIFY_CODE_SUCCESS',
+            payload={'nins': [{'number': self.test_user_nin, 'primary': False, 'verified': False}],},
+        )
 
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         self.assertEqual(user.nins.primary.number, self.test_user_nin)
@@ -267,12 +268,18 @@ class LetterProofingTests(EduidAPITestCase):
         self.assertEqual(user.nins.primary.is_verified, True)
         self.assertEqual(self.app.proofing_log.db_count(), 1)
 
+        docs = list(self.app.proofing_log._get_all_docs())
+        assert docs == {}
+
+        # LOAD PROOFING EVENT FROM LOG USING proofing_state.reference, AND VERIFY NIN ON USER CORRESPONDS TO LOGGED EVENT
+
     def test_verify_letter_code_bad_csrf(self):
         self.send_letter(self.test_user_nin)
         proofing_state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
         response = self.verify_code(proofing_state.nin.verification_code, 'bad_csrf', validate_response=False)
-        self._check_error_response(response, type_='POST_LETTER_PROOFING_VERIFY_CODE_FAIL',
-                                   error={'csrf_token': ['CSRF failed to validate']})
+        self._check_error_response(
+            response, type_='POST_LETTER_PROOFING_VERIFY_CODE_FAIL', error={'csrf_token': ['CSRF failed to validate']}
+        )
 
     def test_verify_letter_code_fail(self):
         self.send_letter(self.test_user_nin)
@@ -366,8 +373,11 @@ class LetterProofingTests(EduidAPITestCase):
 
         response = self.send_letter('not a nin', validate_response=False)
 
-        self._check_error_response(response, type_='POST_LETTER_PROOFING_PROOFING_FAIL',
-                                   error={'nin': ['nin needs to be formatted as 18|19|20yymmddxxxx']})
+        self._check_error_response(
+            response,
+            type_='POST_LETTER_PROOFING_PROOFING_FAIL',
+            error={'nin': ['nin needs to be formatted as 18|19|20yymmddxxxx']},
+        )
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
@@ -411,9 +421,11 @@ class LetterProofingTests(EduidAPITestCase):
         # User with locked_identity and incorrect nin
         with self.session_cookie(self.browser, self.test_user_eppn):
             response = self.send_letter('200102031234', validate_response=False)
-        self._check_error_response(response, type_='POST_LETTER_PROOFING_PROOFING_FAIL',
-                                   payload={'message': 'Another nin is already registered for this user'
-                                                       })
+        self._check_error_response(
+            response,
+            type_='POST_LETTER_PROOFING_PROOFING_FAIL',
+            payload={'message': 'Another nin is already registered for this user'},
+        )
 
     def test_get_code_backdoor(self):
         self.app.config.magic_cookie = 'magic-cookie'
