@@ -349,6 +349,8 @@ class GroupDB(BaseGraphDB):
         return bool(ret)
 
     def save(self, group: Group) -> Group:
+        logger.info(f'Saving group with scope {self._scope} and identifier {group.identifier}')
+        logger.debug(f'Group: {group}')
         with self.db.driver.session(default_access_mode=WRITE_ACCESS) as session:
             try:
                 tx = session.begin_transaction()
@@ -364,8 +366,6 @@ class GroupDB(BaseGraphDB):
                 logger.error(e)
                 raise EduIDGroupDBError(e.message)
             finally:
-                logger.info(f'Saving group with scope {self._scope} and identifier {group.identifier}')
-                logger.debug(f'Group: {group}')
                 if tx.closed():
                     logger.info(f'Group save successful')
                 else:
