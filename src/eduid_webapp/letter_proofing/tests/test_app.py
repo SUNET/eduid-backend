@@ -268,11 +268,6 @@ class LetterProofingTests(EduidAPITestCase):
         self.assertEqual(user.nins.primary.is_verified, True)
         self.assertEqual(self.app.proofing_log.db_count(), 1)
 
-        docs = list(self.app.proofing_log._get_all_docs())
-        assert docs == {}
-
-        # LOAD PROOFING EVENT FROM LOG USING proofing_state.reference, AND VERIFY NIN ON USER CORRESPONDS TO LOGGED EVENT
-
     def test_verify_letter_code_bad_csrf(self):
         self.send_letter(self.test_user_nin)
         proofing_state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
