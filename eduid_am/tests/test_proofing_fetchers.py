@@ -165,6 +165,10 @@ class AttributeFetcherOldToNewUsersTests(AMTestCase):
         fetcher.private_db.save(proofing_user)
 
         actual_update = fetcher.fetch_attrs(proofing_user.user_id)
+        # remove newly added created_ts
+        for nin in actual_update['$set']['nins']:
+            del nin['created_ts']
+
         expected_update = {
             '$set': {
                 "givenName": u"Testaren",
@@ -197,12 +201,15 @@ class AttributeFetcherOldToNewUsersTests(AMTestCase):
                 ],
             },
         }
-        self.assertDictEqual(actual_update, expected_update)
+        assert actual_update == expected_update, 'Fetched (old to new) letter proofing data has unexpected data'
 
         actual_update = fetcher.fetch_attrs(proofing_user.user_id)
+        # remove newly added created_ts
+        for nin in actual_update['$set']['nins']:
+            del nin['created_ts']
 
         # Don't repeat the letter_proofing_data
-        self.assertDictEqual(actual_update, expected_update)
+        assert actual_update == expected_update, 'Fetched (old to new, 2nd time) letter proofing data has unexpected data'
 
         # Adding a new letter_proofing_data
         self.user_data['letter_proofing_data'].append(
@@ -225,6 +232,10 @@ class AttributeFetcherOldToNewUsersTests(AMTestCase):
         fetcher.private_db.save(proofing_user)
 
         actual_update = fetcher.fetch_attrs(proofing_user.user_id)
+        # remove newly added created_ts
+        for nin in actual_update['$set']['nins']:
+            del nin['created_ts']
+
         expected_update = {
             '$set': {
                 "givenName": u"Testaren",
@@ -280,7 +291,7 @@ class AttributeFetcherOldToNewUsersTests(AMTestCase):
             },
         }
 
-        self.assertDictEqual(actual_update, expected_update)
+        assert actual_update == expected_update, 'Fetched (old to new) letter proofing data with appended attributes has unexpected data'
 
     def convert_and_remove_norEduPersonNIN(self):
         self.user_data.update({'norEduPersonNIN': '123456781235'})
@@ -407,6 +418,10 @@ class AttributeFetcherNINProofingTests(AMTestCase):
         fetcher.private_db.save(proofing_user)
 
         actual_update = fetcher.fetch_attrs(proofing_user.user_id)
+        # remove newly added created_ts
+        for nin in actual_update['$set']['nins']:
+            del nin['created_ts']
+
         expected_update = {
             '$set': {
                 "givenName": u"Testaren",
@@ -440,12 +455,15 @@ class AttributeFetcherNINProofingTests(AMTestCase):
             },
         }
 
-        self.assertDictEqual(actual_update, expected_update)
+        assert actual_update == expected_update, 'Fetched letter proofing data has unexpected data'
 
         actual_update = fetcher.fetch_attrs(proofing_user.user_id)
+        # remove newly added created_ts
+        for nin in actual_update['$set']['nins']:
+            del nin['created_ts']
 
         # Don't repeat the letter_proofing_data
-        self.assertDictEqual(actual_update, expected_update)
+        assert actual_update == expected_update, 'Fetched (2nd time) letter proofing data has unexpected data'
 
         # Adding a new letter_proofing_data
         self.user_data['letter_proofing_data'].append(
@@ -468,6 +486,10 @@ class AttributeFetcherNINProofingTests(AMTestCase):
         fetcher.private_db.save(proofing_user)
 
         actual_update = fetcher.fetch_attrs(proofing_user.user_id)
+        # remove newly added created_ts
+        for nin in actual_update['$set']['nins']:
+            del nin['created_ts']
+
         expected_update = {
             '$set': {
                 "givenName": u"Testaren",
@@ -522,8 +544,7 @@ class AttributeFetcherNINProofingTests(AMTestCase):
                 ],
             },
         }
-
-        self.assertDictEqual(actual_update, expected_update)
+        assert actual_update == expected_update, 'Fetched letter proofing data with appended attributes has unexpected data'
 
 
 class AttributeFetcherEmailProofingTests(AMTestCase):
@@ -626,11 +647,14 @@ class AttributeFetcherPhoneProofingTests(AMTestCase):
     def test_existing_user(self):
         proofing_user = ProofingUser.from_dict(self.user_data)
         self.fetcher.private_db.save(proofing_user)
+        fetched = self.fetcher.fetch_attrs(proofing_user.user_id)
+        # remove newly added created_ts
+        for phone in fetched['$set']['phone']:
+            del phone['created_ts']
 
-        self.assertDictEqual(
-            self.fetcher.fetch_attrs(proofing_user.user_id),
-            {'$set': {'phone': [{'verified': True, 'number': '+46700011336', 'primary': True}],},},
-        )
+        expected = {'$set': {'phone': [{'verified': True, 'number': '+46700011336', 'primary': True}],},}
+
+        assert expected == fetched, 'Unexpected data fetched by phone fetcher for existing user'
 
     def test_malicious_attributes(self):
         self.user_data.update(
@@ -643,15 +667,6 @@ class AttributeFetcherPhoneProofingTests(AMTestCase):
 
         with self.assertRaises(UserHasUnknownData):
             self.fetcher.fetch_attrs(user_id)
-
-    def test_fillup_attributes(self):
-        proofing_user = ProofingUser.from_dict(self.user_data)
-        self.fetcher.private_db.save(proofing_user)
-
-        self.assertDictEqual(
-            self.fetcher.fetch_attrs(proofing_user.user_id),
-            {'$set': {'phone': [{'verified': True, 'number': '+46700011336', 'primary': True}],},},
-        )
 
 
 class AttributeFetcherPersonalDataTests(AMTestCase):
@@ -756,8 +771,13 @@ class AttributeFetcherSecurityTests(AMTestCase):
             '$unset': {'terminated': None},
         }
         fetched = self.fetcher.fetch_attrs(security_user.user_id)
-        for cred in fetched['$set']['passwords']:
-            del cred['created_ts']
+        # remove newly added created_ts
+        for pw in fetched['$set']['passwords']:
+            del pw['created_ts']
+        for nin in fetched['$set']['nins']:
+            del nin['created_ts']
+        for phone in fetched['$set']['phone']:
+            del phone['created_ts']
 
         assert fetched == expected, 'Wrong data fetched by the security fetcher'
 
@@ -778,8 +798,13 @@ class AttributeFetcherSecurityTests(AMTestCase):
         self.fetcher.private_db.save(security_user)
 
         fetched = self.fetcher.fetch_attrs(security_user.user_id)
+        # remove newly added created_ts
         for pw in fetched['$set']['passwords']:
             del pw['created_ts']
+        for nin in fetched['$set']['nins']:
+            del nin['created_ts']
+        for phone in fetched['$set']['phone']:
+            del phone['created_ts']
 
         expected = {
             '$set': {
@@ -822,8 +847,13 @@ class AttributeFetcherResetPasswordTests(AMTestCase):
         self.fetcher.private_db.save(reset_password_user)
 
         fetched = self.fetcher.fetch_attrs(reset_password_user.user_id)
+        # remove newly added created_ts
         for pw in fetched['$set']['passwords']:
             del pw['created_ts']
+        for nin in fetched['$set']['nins']:
+            del nin['created_ts']
+        for phone in fetched['$set']['phone']:
+            del phone['created_ts']
 
         expected = {
             '$set': {
@@ -857,8 +887,13 @@ class AttributeFetcherResetPasswordTests(AMTestCase):
         self.fetcher.private_db.save(reset_password_user)
 
         fetched = self.fetcher.fetch_attrs(reset_password_user.user_id)
+        # remove newly added created_ts
         for pw in fetched['$set']['passwords']:
             del pw['created_ts']
+        for nin in fetched['$set']['nins']:
+            del nin['created_ts']
+        for phone in fetched['$set']['phone']:
+            del phone['created_ts']
 
         expected = {
             '$set': {
