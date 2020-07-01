@@ -25,7 +25,10 @@ class Neo4jDB(object):
         self._schema = parse_result.scheme
         self._hostname = parse_result.hostname
         self._port = parse_result.port
+        self._routing_context = parse_result.query
         self._db_uri = f'{self._schema}://{self._hostname}:{self._port}'
+        if self._routing_context:
+            self._db_uri += f'?{self._routing_context}'
 
         # Use username and password from uri if auth not in config
         self._username = parse_result.username
@@ -67,10 +70,9 @@ class Neo4jDB(object):
 class BaseGraphDB(ABC):
     """Base class for common db operations"""
 
-    def __init__(self, db_uri: str, scope: str, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, db_uri: str, config: Optional[Dict[str, Any]] = None):
         self._db_uri = db_uri
         self._db = Neo4jDB(db_uri=self._db_uri, config=config)
-        self._scope = scope
         self.db_setup()
 
     def __repr__(self) -> str:
@@ -79,10 +81,6 @@ class BaseGraphDB(ABC):
     @property
     def db(self):
         return self._db
-
-    @property
-    def scope(self):
-        return self._scope
 
     def db_setup(self):
         """Use this for setting up indices or constraints"""

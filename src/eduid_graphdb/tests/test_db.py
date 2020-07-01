@@ -18,8 +18,8 @@ class TestNeo4jDB(Neo4jTestCase):
 
 class TestBaseGraphDB(Neo4jTestCase):
     class TestDB(BaseGraphDB):
-        def __init__(self, db_uri, scope='__testing__', config=None):
-            super().__init__(db_uri, scope=scope, config=config)
+        def __init__(self, db_uri, config=None):
+            super().__init__(db_uri, config=config)
 
         def db_setup(self):
             with self._db.driver.session() as session:

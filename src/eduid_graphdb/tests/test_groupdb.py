@@ -6,6 +6,7 @@ from neo4j import basic_auth
 
 from eduid_graphdb.exceptions import VersionMismatch
 from eduid_graphdb.groupdb import Group, GroupDB, User
+from eduid_graphdb.groupdb.db import Role
 from eduid_graphdb.testing import Neo4jTestCase
 
 __author__ = 'lundberg'
@@ -65,6 +66,14 @@ class TestGroupDB(Neo4jTestCase):
         assert 1 == self.group_db.db.count_nodes(label='Group')
         self._assert_group(group, post_save_group2, modified=True)
 
+    def test_get_group_by_property(self):
+        group = Group.from_mapping(self.group1)
+        self.group_db.save(group)
+
+        post_get_group = self.group_db.get_groups_by_property(key='display_name', value='Test Group 1')
+        assert 1 == len(post_get_group)
+        self._assert_group(group, post_get_group[0])
+
     def test_get_non_existing_group(self):
         group = self.group_db.get_group(identifier='test1')
         self.assertIsNone(group)
@@ -75,6 +84,13 @@ class TestGroupDB(Neo4jTestCase):
 
         self.assertTrue(self.group_db.group_exists(identifier=group.identifier))
         self.assertFalse(self.group_db.group_exists(identifier='wrong-identifier'))
+
+    def test_get_groups(self):
+        self.group_db.save(Group.from_mapping(self.group1))
+        self.group_db.save(Group.from_mapping(self.group2))
+
+        groups = self.group_db.get_groups()
+        assert 2 == len(groups)
 
     def test_save_with_wrong_group_version(self):
         group = Group.from_mapping(self.group1)
@@ -136,6 +152,14 @@ class TestGroupDB(Neo4jTestCase):
 
         post_save_owner = post_save_group.owners[0]
         self._assert_user(owner, post_save_owner)
+
+    def test_remove_group(self):
+        group = Group.from_mapping(self.group1)
+        self.group_db.save(group)
+        assert self.group_db.group_exists(group.identifier) is True
+
+        self.group_db.remove_group(group.identifier)
+        assert self.group_db.group_exists(group.identifier) is False
 
     def test_get_groups_for_user_member(self):
         group = Group.from_mapping(self.group1)
@@ -267,6 +291,35 @@ class TestGroupDB(Neo4jTestCase):
         assert 1 == len(groups[0].owners)
         self._assert_group(group.owners[0], groups[0].owners[0])
         assert 2 == len(groups[0].members)
+
+    def test_get_groups_and_users_by_role(self):
+        group = Group.from_mapping(self.group1)
+        member_group = Group.from_mapping(self.group2)
+        group.members.append(member_group)
+        member_user = User.from_mapping(self.user2)
+        group.members.append(member_user)
+        owner_group = Group.from_mapping(self.group2)
+        group.owners.append(owner_group)
+        owner_user = User.from_mapping(self.user2)
+        group.owners.append(owner_user)
+
+        assert member_group in group.member_groups
+        assert member_user in group.member_users
+        assert 2 == len(group.members)
+        assert owner_group in group.owners
+        assert owner_user in group.owners
+        assert 2 == len(group.owners)
+        self.group_db.save(group)
+
+        members = self.group_db.get_users_and_groups_by_role(group.identifier, Role.MEMBER)
+        owners = self.group_db.get_users_and_groups_by_role(group.identifier, Role.OWNER)
+
+        assert member_group in members
+        assert member_user in members
+        assert 2 == len(members)
+        assert owner_group in owners
+        assert owner_user in owners
+        assert 2 == len(owners)
 
     def test_remove_user_from_group(self):
         group = Group.from_mapping(self.group1)

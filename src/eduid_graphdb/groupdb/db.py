@@ -1,14 +1,12 @@
 # -*- coding: utf-8 -*-
 import enum
 import logging
-import warnings
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from bson import ObjectId
-from neo4j import Record, Transaction
-from neo4j.exceptions import ClientError, ConstraintError, CypherError
-from neo4j.types.graph import Graph
-from neobolt.routing import READ_ACCESS, WRITE_ACCESS
+from neo4j import READ_ACCESS, WRITE_ACCESS, Record, Transaction
+from neo4j.exceptions import ClientError, ConstraintError
+from neo4j.graph import Graph
 
 from eduid_graphdb import BaseGraphDB
 from eduid_graphdb.exceptions import EduIDGroupDBError, VersionMismatch
@@ -35,8 +33,12 @@ class Role(enum.Enum):
 
 
 class GroupDB(BaseGraphDB):
+    def __init__(self, db_uri: str, scope: str, config: Optional[Dict[str, Any]] = None):
+        super().__init__(db_uri=db_uri, config=config)
+        self._scope = scope
+
     def db_setup(self):
-        with self.db.driver.session(access_mode=WRITE_ACCESS) as session:
+        with self.db.driver.session(default_access_mode=WRITE_ACCESS) as session:
             statements = [
                 # Constraints for Group nodes
                 'CREATE CONSTRAINT ON (n:Group) ASSERT exists(n.scope)',
@@ -56,6 +58,10 @@ class GroupDB(BaseGraphDB):
                     # Constraints already set up
                     pass
         logger.info(f'{self} setup done.')
+
+    @property
+    def scope(self):
+        return self._scope
 
     def _create_or_update_group(self, tx: Transaction, group: Group) -> Group:
         q = """
@@ -120,9 +126,6 @@ class GroupDB(BaseGraphDB):
             RETURN m.scope as scope, m.identifier as identifier, labels(m) as labels
             """
         members_in_db = tx.run(q, scope=self.scope, identifier=group.identifier)
-        # NOTICE: tx.sync() will send the transaction up to and including this query so this
-        #         should probably be done first or last in the save transaction.
-        tx.sync()
         for record in members_in_db:
             if 'Group' in record['labels']:
                 group_member = Group(identifier=record['identifier'])
@@ -196,14 +199,14 @@ class GroupDB(BaseGraphDB):
             display_name=member.display_name,
         ).single()
 
-    def _get_users_and_groups_by_role(self, identifier: str, role: Role) -> List[Union[User, Group]]:
+    def get_users_and_groups_by_role(self, identifier: str, role: Role) -> List[Union[User, Group]]:
         res: List[Union[User, Group]] = []
         q = f"""
             MATCH (g: Group {{scope: $scope, identifier: $identifier}})<-[r:{role.value}]-(m)
             RETURN r.display_name as display_name, r.created_ts as created_ts, r.modified_ts as modified_ts,
                    m.identifier as identifier, m.scope as scope, m.version as version, labels(m) as labels
             """
-        with self.db.driver.session(access_mode=READ_ACCESS) as session:
+        with self.db.driver.session(default_access_mode=READ_ACCESS) as session:
             for record in session.run(q, scope=self.scope, identifier=identifier):
                 labels = record.get('labels', [])
                 if 'User' in labels:
@@ -218,7 +221,7 @@ class GroupDB(BaseGraphDB):
             OPTIONAL MATCH (g)<-[r]-(m)
             RETURN *
             """
-        with self.db.driver.session(access_mode=READ_ACCESS) as session:
+        with self.db.driver.session(default_access_mode=READ_ACCESS) as session:
             group_graph: Graph = session.run(q, scope=self.scope, identifier=identifier).graph()
 
         if not group_graph.nodes and not group_graph.relationships:
@@ -259,7 +262,7 @@ class GroupDB(BaseGraphDB):
             MATCH (g: Group {scope: $scope, identifier: $identifier})
             DETACH DELETE g
             """
-        with self.db.driver.session(access_mode=WRITE_ACCESS) as session:
+        with self.db.driver.session(default_access_mode=WRITE_ACCESS) as session:
             session.run(q, scope=self.scope, identifier=identifier)
 
     def get_groups_by_property(self, key: str, value: str, skip=0, limit=100):
@@ -269,19 +272,19 @@ class GroupDB(BaseGraphDB):
             WHERE g.{key} = $value
             RETURN g as group SKIP $skip LIMIT $limit
             """
-        with self.db.driver.session(access_mode=READ_ACCESS) as session:
+        with self.db.driver.session(default_access_mode=READ_ACCESS) as session:
             for record in session.run(q, scope=self.scope, value=value, skip=skip, limit=limit):
                 res.append(self._load_group(record.data()['group']))
         return res
 
-    def get_groups(self):
+    def get_groups(self, skip=0, limit=100):
         res: List[Group] = []
         q = """
             MATCH (g: Group {scope: $scope})
-            RETURN g as group
+            RETURN g as group SKIP $skip LIMIT $limit
             """
-        with self.db.driver.session(access_mode=READ_ACCESS) as session:
-            for record in session.run(q, scope=self.scope):
+        with self.db.driver.session(default_access_mode=READ_ACCESS) as session:
+            for record in session.run(q, scope=self.scope, skip=skip, limit=limit):
                 res.append(self._load_group(record.data()['group']))
         return res
 
@@ -314,7 +317,7 @@ class GroupDB(BaseGraphDB):
             """
         logger.debug('Crafted _get_groups_for_role query:')
         logger.debug(q)
-        with self.db.driver.session(access_mode=READ_ACCESS) as session:
+        with self.db.driver.session(default_access_mode=READ_ACCESS) as session:
             for record in session.run(q, identifier=identifier, scope=self.scope):
                 group = self._load_group(record.data()['group'])
                 group.owners = [self._load_node(owner) for owner in record.data()['owners'] if owner.get('identifier')]
@@ -341,28 +344,32 @@ class GroupDB(BaseGraphDB):
             MATCH (g: Group {scope: $scope, identifier: $identifier})
             RETURN count(*) as exists LIMIT 1
             """
-        with self.db.driver.session(access_mode=READ_ACCESS) as session:
+        with self.db.driver.session(default_access_mode=READ_ACCESS) as session:
             ret = session.run(q, scope=self.scope, identifier=identifier).single()['exists']
         return bool(ret)
 
     def save(self, group: Group) -> Group:
-        with self.db.driver.session(access_mode=WRITE_ACCESS) as session:
+        logger.info(f'Saving group with scope {self._scope} and identifier {group.identifier}')
+        logger.debug(f'Group: {group}')
+        with self.db.driver.session(default_access_mode=WRITE_ACCESS) as session:
             try:
                 tx = session.begin_transaction()
                 self._remove_missing_users_and_groups(tx, group, Role.OWNER)
                 self._remove_missing_users_and_groups(tx, group, Role.MEMBER)
                 saved_group = self._create_or_update_group(tx, group)
                 saved_members, saved_owners = self._add_or_update_users_and_groups(tx, group)
-                tx.success = True
+                tx.commit()
             except ConstraintError as e:
                 logger.error(e)
                 raise VersionMismatch('Tried to save a group with wrong version')
-            except (ClientError, CypherError) as e:
+            except ClientError as e:
                 logger.error(e)
                 raise EduIDGroupDBError(e.message)
             finally:
-                # If tx.success is not explicitly set to True close will perform a rollback
-                logger.debug(f'Group save successful: {tx.success}')
+                if tx.closed():
+                    logger.info(f'Group save successful')
+                else:
+                    logger.error('Group save error: ROLLING BACK')
                 tx.close()
         saved_group.members = saved_members
         saved_group.owners = saved_owners

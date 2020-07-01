@@ -9,7 +9,7 @@ import unittest
 from os import environ
 from typing import Optional
 
-from neobolt.exceptions import ServiceUnavailable
+from neo4j.exceptions import ServiceUnavailable
 
 from eduid_graphdb.db import Neo4jDB
 
