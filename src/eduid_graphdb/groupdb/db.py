@@ -364,8 +364,10 @@ class GroupDB(BaseGraphDB):
                 logger.error(e)
                 raise EduIDGroupDBError(e.message)
             finally:
-                # If the Transaction is not already closed by commit above it will rollback
-                logger.debug(f'Group save successful: {tx.closed()}')
+                if tx.closed():
+                    logger.info('Group save successful')
+                else:
+                    logger.error('Group save error: ROLLING BACK')
                 tx.close()
         saved_group.members = saved_members
         saved_group.owners = saved_owners
