@@ -189,10 +189,9 @@ class EduidAPITestCase(CommonTestCase):
         This is so we can set  the test configuration in environment variables
         before the flask app loads its config from a file.
         """
-        msg = (
-            'Classes extending EduidAPITestCase must provide a method ' 'where they import the flask app and return it.'
+        raise NotImplementedError(
+            'Classes extending EduidAPITestCase must provide a method where they import the flask app and return it.'
         )
-        raise NotImplementedError(msg)
 
     def update_config(self, config):
         """
