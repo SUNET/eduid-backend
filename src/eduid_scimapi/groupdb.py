@@ -4,7 +4,6 @@ from __future__ import annotations
 import logging
 import pprint
 import uuid
-from copy import deepcopy
 from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime
 from typing import Any, Dict, List, Mapping, Optional, Tuple, Type, Union
@@ -124,7 +123,6 @@ class ScimApiGroupDB(ScimApiBaseDB):
 
     def update_group(self, scim_group: SCIMGroup, db_group: ScimApiGroup) -> ScimApiGroup:
         changed = False
-        original_members = deepcopy(db_group.graph.members)
         updated_members = []
         logger.info(f'Updating group {str(db_group.scim_id)}')
         for this in scim_group.members:
@@ -156,9 +154,9 @@ class ScimApiGroupDB(ScimApiBaseDB):
             db_group.graph = replace(db_group.graph, display_name=scim_group.display_name)
 
         # Check if there where new, changed or removed members
-        if set(original_members) != set(updated_members):
+        if set(db_group.graph.members) != set(updated_members):
             changed = True
-            logger.debug(f'Old members: {original_members}')
+            logger.debug(f'Old members: {db_group.graph.members}')
             logger.debug(f'New members: {updated_members}')
             db_group.graph = replace(db_group.graph, members=updated_members)
 
