@@ -316,7 +316,9 @@ class GroupManagementTests(EduidAPITestCase):
 
     def test_delete_group_not_owner(self):
         # Add test user as group member
-        graph_user = GraphUser(identifier=str(self.scim_user1.scim_id))
+        graph_user = GraphUser(
+            identifier=str(self.scim_user1.scim_id), display_name=self.test_user.mail_addresses.primary.email
+        )
         self.scim_group1.graph.members = [graph_user]
         self.app.scimapi_groupdb.save(self.scim_group1)
 
@@ -614,8 +616,7 @@ class GroupManagementTests(EduidAPITestCase):
         scim_user = self.app.scimapi_userdb.get_user_by_external_id(
             f'{self.test_user2.eppn}@{self.app.config.scim_external_id_scope}'
         )
-        graph_user = GraphUser(identifier=str(scim_user.scim_id))
-        assert graph_user in scim_group.graph.members
+        assert scim_group.graph.has_member(str(scim_user.scim_id)) is True
 
     def test_decline_invite_member(self):
         # Add test user as group owner
@@ -653,8 +654,7 @@ class GroupManagementTests(EduidAPITestCase):
         scim_user = self.app.scimapi_userdb.get_user_by_external_id(
             f'{self.test_user2.eppn}@{self.app.config.scim_external_id_scope}'
         )
-        graph_user = GraphUser(identifier=str(scim_user.scim_id))
-        assert graph_user not in scim_group.graph.members
+        assert scim_group.graph.has_member(str(scim_user.scim_id)) is False
 
     def test_invite_owner(self):
         # Add test user as group owner
@@ -723,8 +723,7 @@ class GroupManagementTests(EduidAPITestCase):
         scim_user = self.app.scimapi_userdb.get_user_by_external_id(
             f'{self.test_user2.eppn}@{self.app.config.scim_external_id_scope}'
         )
-        graph_user = GraphUser(identifier=str(scim_user.scim_id))
-        assert graph_user in scim_group.graph.owners
+        assert scim_group.graph.has_owner(str(scim_user.scim_id)) is True
 
     def test_decline_invite_owner(self):
         # Add test user as group owner
@@ -762,8 +761,7 @@ class GroupManagementTests(EduidAPITestCase):
         scim_user = self.app.scimapi_userdb.get_user_by_external_id(
             f'{self.test_user2.eppn}@{self.app.config.scim_external_id_scope}'
         )
-        graph_user = GraphUser(identifier=str(scim_user.scim_id))
-        assert graph_user not in scim_group.graph.owners
+        assert scim_group.graph.has_owner(str(scim_user.scim_id)) is False
 
     def test_all_invites(self):
         response = self.browser.get('/invites/all')
