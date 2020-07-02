@@ -109,50 +109,40 @@ class GroupDB(BaseGraphDB):
 
     def _remove_missing_users_and_groups(self, tx: Transaction, group: Group, role: Role) -> None:
         """ Remove the relationship between group and member if the member no longer is in the groups member list"""
-
-        # Create lists of current members by type
-        group_list: List[Group] = []
-        user_list: List[User] = []
-        if role is Role.MEMBER:
-            group_list = group.member_groups
-            user_list = group.member_users
-        elif role is Role.OWNER:
-            group_list = group.owner_groups
-            user_list = group.owner_users
-
-        # Compare current members with members in the db and remove the excess members
         q = f"""
             MATCH (Group {{scope: $scope, identifier: $identifier}})<-[r:{role.value}]-(m)
             RETURN m.scope as scope, m.identifier as identifier, labels(m) as labels
             """
         members_in_db = tx.run(q, scope=self.scope, identifier=group.identifier)
         for record in members_in_db:
-            if 'Group' in record['labels']:
-                group_member = Group(identifier=record['identifier'])
-                if group_member not in group_list:
-                    self._remove_group_from_group(tx, group=group, member=group_member, role=role)
-            elif 'User' in record['labels']:
-                user_member = User(identifier=record['identifier'])
-                if user_member not in user_list:
-                    self._remove_user_from_group(tx, group=group, member=user_member, role=role)
+            remove = False
+            if role is Role.MEMBER and group.has_member(record['identifier']) is False:
+                remove = True
+            elif role is Role.OWNER and group.has_owner(record['identifier']) is False:
+                remove = True
+            if remove:
+                if Label.GROUP.value in record['labels']:
+                    self._remove_group_from_group(tx, group=group, group_identifier=record['identifier'], role=role)
+                elif Label.USER.value in record['labels']:
+                    self._remove_user_from_group(tx, group=group, user_identifier=record['identifier'], role=role)
 
-    def _remove_group_from_group(self, tx: Transaction, group: Group, member: Group, role: Role):
+    def _remove_group_from_group(self, tx: Transaction, group: Group, group_identifier: str, role: Role):
         q = f"""
             MATCH (:Group {{scope: $scope, identifier: $identifier}})<-[r:{role.value}]-(:Group
-                    {{scope: $scope, identifier: $member_identifier}})
+                    {{scope: $scope, identifier: $group_identifier}})
             DELETE r
             """
         tx.run(
-            q, scope=self.scope, identifier=group.identifier, member_identifier=member.identifier,
+            q, scope=self.scope, identifier=group.identifier, group_identifier=group_identifier,
         )
 
-    def _remove_user_from_group(self, tx: Transaction, group: Group, member: User, role: Role):
+    def _remove_user_from_group(self, tx: Transaction, group: Group, user_identifier: str, role: Role):
         q = f"""
             MATCH (:Group {{scope: $scope, identifier: $identifier}})<-[r:{role.value}]-(:User
-                    {{identifier: $member_identifier}})
+                    {{identifier: $user_identifier}})
             DELETE r
             """
-        tx.run(q, scope=self.scope, identifier=group.identifier, member_identifier=member.identifier)
+        tx.run(q, scope=self.scope, identifier=group.identifier, user_identifier=user_identifier)
 
     def _add_group_to_group(self, tx, group: Group, member: Group, role: Role) -> Record:
         q = f"""

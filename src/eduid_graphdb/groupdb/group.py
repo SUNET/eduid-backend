@@ -70,6 +70,12 @@ class Group:
     def get_owner_group(self, identifier: str) -> Optional[Group]:
         return self._get_group(self.owner_groups, identifier=identifier)
 
+    def has_member(self, identifier: str) -> bool:
+        return identifier in [member.identifier for member in self.members]
+
+    def has_owner(self, identifier: str) -> bool:
+        return identifier in [owner.identifier for owner in self.owners]
+
     @classmethod
     def from_mapping(cls, data: Mapping) -> Group:
         dt = neo4j_ts_to_dt(data)
