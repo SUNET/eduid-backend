@@ -1,25 +1,62 @@
 # -*- coding: utf-8 -*-
-
-from copy import deepcopy
+from typing import Any, Dict
 
 from mock import patch
 
-from eduid_common.api.helpers import add_nin_to_user, set_user_names_from_offical_address, verify_nin_for_user
-from eduid_common.api.testing import EduidAPITestCase
 from eduid_userdb.exceptions import UserDoesNotExist
 from eduid_userdb.fixtures.users import new_user_example
+from eduid_userdb.logs import ProofingLog
 from eduid_userdb.logs.element import NinProofingLogElement, ProofingLogElement
 from eduid_userdb.nin import Nin
-from eduid_userdb.proofing import NinProofingElement, ProofingUser
+from eduid_userdb.proofing import LetterProofingStateDB, LetterProofingUserDB, NinProofingElement, ProofingUser
 from eduid_userdb.proofing.state import NinProofingState
 from eduid_userdb.user import User
 
-from eduid_webapp.letter_proofing.app import LetterProofingApp
+from eduid_common.api import am, msg
+from eduid_common.api.app import EduIDBaseApp
+from eduid_common.api.helpers import add_nin_to_user, set_user_names_from_offical_address, verify_nin_for_user
+from eduid_common.api.testing import EduidAPITestCase
+from eduid_common.config.base import FlaskConfig
+from eduid_common.session.eduid_session import SessionFactory
 
 __author__ = 'lundberg'
 
 
+class HelpersTestApp(EduIDBaseApp):
+    def __init__(self, name: str, config: Dict[str, Any], **kwargs):
+        self.config = FlaskConfig.init_config(ns='webapp', app_name=name, test_config=config)
+        super().__init__(name, **kwargs)
+        self.session_interface = SessionFactory(self.config)
+        # Init databases
+        self.private_userdb = LetterProofingUserDB(self.config.mongo_uri)
+        self.proofing_statedb = LetterProofingStateDB(self.config.mongo_uri)
+        self.proofing_log = ProofingLog(self.config.mongo_uri)
+        # Init celery
+        msg.init_relay(self)
+        am.init_relay(self, 'eduid_letter_proofing')
+
+
 class NinHelpersTest(EduidAPITestCase):
+    def update_config(self, config):
+        """
+        Called from the parent class, so that we can update the configuration
+        according to the needs of this test case.
+        """
+        config.update(
+            {'am_broker_url': 'amqp://dummy', 'celery_config': {'result_backend': 'amqp', 'task_serializer': 'json'},}
+        )
+        return config
+
+    def load_app(self, config):
+        """
+        Called from the parent class, so we can provide the appropriate flask
+        app for this test case.
+        """
+        app = HelpersTestApp('testing', config)
+        # app.register_blueprint(test_views)
+
+        return app
+
     def setUp(self):
         self.test_user_nin = '200001023456'
         self.wrong_test_user_nin = '199909096789'
@@ -27,22 +64,7 @@ class NinHelpersTest(EduidAPITestCase):
             u'Name': {u'GivenName': u'Testaren Test', u'GivenNameMarking': u'20', u'Surname': u'Testsson'},
             u'OfficialAddress': {u'Address2': u'\xd6RGATAN 79 LGH 10', u'City': u'LANDET', u'PostalCode': u'12345'},
         }
-        super(NinHelpersTest, self).setUp()
-
-    def load_app(self, config):
-        app = LetterProofingApp('test_app', config)
-        return app
-
-    def update_config(self, config):
-        config.update(
-            {'am_broker_url': 'amqp://dummy', 'celery_config': {'result_backend': 'amqp', 'task_serializer': 'json'},}
-        )
-        return config
-
-    def tearDown(self):
-        self.app.central_userdb._drop_whole_collection()
-        self.app.private_userdb._drop_whole_collection()
-        self.app.proofing_log._drop_whole_collection()
+        super().setUp()
 
     def insert_verified_user(self):
         userdata = new_user_example.to_dict()
