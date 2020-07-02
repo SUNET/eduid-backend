@@ -5,7 +5,7 @@ import logging
 import pprint
 import uuid
 from copy import deepcopy
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime
 from typing import Any, Dict, List, Mapping, Optional, Tuple, Type, Union
 from uuid import UUID
@@ -144,7 +144,7 @@ class ScimApiGroupDB(ScimApiBaseDB):
             # Update member attributes if they changed
             elif _member.display_name != this.display:
                 logger.debug(f'Changed display name for existing member: {_member.display_name} -> {this.display}')
-                _member.display_name = this.display
+                _member = replace(_member, display_name=this.display)
                 updated_members.append(_member)
             else:
                 # no change, retain member as-is
@@ -153,14 +153,14 @@ class ScimApiGroupDB(ScimApiBaseDB):
         if db_group.graph.display_name != scim_group.display_name:
             changed = True
             logger.debug(f'Changed display name for group: {db_group.graph.display_name} -> {scim_group.display_name}')
-            db_group.graph.display_name = scim_group.display_name
+            db_group.graph = replace(db_group.graph, display_name=scim_group.display_name)
 
         # Check if there where new, changed or removed members
         if set(original_members) != set(updated_members):
             changed = True
             logger.debug(f'Old members: {original_members}')
             logger.debug(f'New members: {updated_members}')
-            db_group.graph.members = updated_members
+            db_group.graph = replace(db_group.graph, members=updated_members)
 
         _sg_ext = GroupExtensions(data=scim_group.nutid_group_v1.data)
         if db_group.extensions != _sg_ext:
