@@ -14,25 +14,15 @@ from eduid_graphdb.helpers import neo4j_ts_to_dt
 __author__ = 'lundberg'
 
 
-@dataclass()
+@dataclass(unsafe_hash=True)
 class Group:
     identifier: str
-    version: Optional[ObjectId] = None
-    display_name: Optional[str] = None
-    created_ts: Optional[datetime] = None
-    modified_ts: Optional[datetime] = None
-    owners: List[Union[User, Group]] = field(default_factory=list)
-    members: List[Union[User, Group]] = field(default_factory=list)
-
-    def __eq__(self, other: object):
-        if not isinstance(other, Group):
-            return False
-        return self.identifier == other.identifier
-
-    def __hash__(self):
-        # TODO: Hash has to include _all_ fields I think, definitely display_name. Probably owners and members.
-        #       Maybe go with (eq=True, frozen=True)?
-        return hash(self.identifier)
+    display_name: str
+    version: Optional[ObjectId] = field(compare=False, default=None)
+    created_ts: Optional[datetime] = field(compare=False, default=None)
+    modified_ts: Optional[datetime] = field(compare=False, default=None)
+    owners: List[Union[User, Group]] = field(compare=False, default_factory=list)
+    members: List[Union[User, Group]] = field(compare=False, default_factory=list)
 
     @staticmethod
     def _get_user(it: List[User], identifier: str) -> Optional[User]:

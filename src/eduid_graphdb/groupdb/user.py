@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Mapping, Optional
 
@@ -11,22 +11,12 @@ from eduid_graphdb.helpers import neo4j_ts_to_dt
 __author__ = 'lundberg'
 
 
-@dataclass()
+@dataclass(unsafe_hash=True)
 class User:
     identifier: str
-    display_name: Optional[str] = None
-    created_ts: Optional[datetime] = None
-    modified_ts: Optional[datetime] = None
-
-    def __eq__(self, other: object):
-        if not isinstance(other, User):
-            return False
-        if self.identifier == other.identifier:
-            return True
-        return False
-
-    def __hash__(self):
-        return hash(self.identifier)
+    display_name: str
+    created_ts: Optional[datetime] = field(compare=False, default=None)
+    modified_ts: Optional[datetime] = field(compare=False, default=None)
 
     @classmethod
     def from_mapping(cls, data: Mapping) -> User:
