@@ -15,7 +15,7 @@ from eduid_userdb.user import User
 from eduid_common.api import am, msg
 from eduid_common.api.app import EduIDBaseApp
 from eduid_common.api.helpers import add_nin_to_user, set_user_names_from_offical_address, verify_nin_for_user
-from eduid_common.api.testing import EduidAPITestCase
+from eduid_common.api.testing import EduidAPITestCase, normalised_data
 from eduid_common.config.base import FlaskConfig
 from eduid_common.session.eduid_session import SessionFactory
 
@@ -156,6 +156,7 @@ class NinHelpersTest(EduidAPITestCase):
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def test_verify_nin_for_user(self, mock_user_sync):
+        """ Test happy-case when calling verify_nin_for_user with a User instance (deprecated) """
         mock_user_sync.return_value = True
         eppn = self.insert_no_nins_user()
         user = self.app.central_userdb.get_user_by_eppn(eppn)
@@ -173,10 +174,55 @@ class NinHelpersTest(EduidAPITestCase):
         )
         with self.app.app_context():
             verify_nin_for_user(user, proofing_state, proofing_log_entry)
+        # The problem with passing a User to verify_nin_for_user is that the nins list on 'user'
+        # has not been updated
+        assert user.nins.find(self.test_user_nin) is False
+
         user = self.app.private_userdb.get_user_by_eppn(eppn)
         self.assertEqual(user.nins.count, 1)
-        self.assertIsNotNone(user.nins.find(self.test_user_nin))
         user_nin = user.nins.find(self.test_user_nin)
+        assert user_nin is not None
+        self.assertEqual(user_nin.number, self.test_user_nin)
+        self.assertEqual(user_nin.created_by, 'NinHelpersTest')
+        self.assertEqual(user_nin.is_verified, True)
+        self.assertEqual(user_nin.is_primary, True)
+        self.assertEqual(user_nin.verified_by, 'NinHelpersTest')
+        self.assertEqual(self.app.proofing_log.db_count(), 1)
+
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_verify_nin_for_user_with_proofinguser(self, mock_user_sync):
+        """ Test happy-case when calling verify_nin_for_user with a ProofingUser instance """
+        mock_user_sync.return_value = True
+        eppn = self.insert_no_nins_user()
+        user = self.app.central_userdb.get_user_by_eppn(eppn)
+        nin_element = NinProofingElement.from_dict(
+            dict(number=self.test_user_nin, created_by='NinHelpersTest', verified=False)
+        )
+        proofing_state = NinProofingState.from_dict({'eduPersonPrincipalName': eppn, 'nin': nin_element.to_dict()})
+        proofing_log_entry = NinProofingLogElement(
+            user,
+            created_by=proofing_state.nin.created_by,
+            nin=proofing_state.nin.number,
+            user_postal_address=self.navet_response,
+            proofing_method='test',
+            proofing_version='2017',
+        )
+        proofing_user = ProofingUser.from_user(user, self.app.private_userdb)
+        # check that there is no NIN on the proofing_user before calling verify_nin_for_user
+        assert proofing_user.nins.find(self.test_user_nin) is False
+        with self.app.app_context():
+            verify_nin_for_user(proofing_user, proofing_state, proofing_log_entry)
+        # check that there is a NIN there now, and that it is verified
+        found_nin = proofing_user.nins.find(self.test_user_nin)
+        assert found_nin is not False
+        assert found_nin.is_verified is not False
+
+        user = self.app.private_userdb.get_user_by_eppn(eppn)
+        assert normalised_data(user.nins.to_list_of_dicts()) == normalised_data(proofing_user.nins.to_list_of_dicts())
+
+        self.assertEqual(user.nins.count, 1)
+        user_nin = user.nins.find(self.test_user_nin)
+        assert user_nin is not None
         self.assertEqual(user_nin.number, self.test_user_nin)
         self.assertEqual(user_nin.created_by, 'NinHelpersTest')
         self.assertEqual(user_nin.is_verified, True)
