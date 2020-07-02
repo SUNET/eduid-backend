@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import enum
 import logging
+from dataclasses import replace
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 from bson import ObjectId
@@ -310,10 +311,16 @@ class GroupDB(BaseGraphDB):
         with self.db.driver.session(default_access_mode=READ_ACCESS) as session:
             for record in session.run(q, identifier=identifier, scope=self.scope):
                 group = self._load_group(record.data()['group'])
-                group.owners = [self._load_node(owner) for owner in record.data()['owners'] if owner.get('identifier')]
-                group.members = [
-                    self._load_node(member) for member in record.data()['members'] if member.get('identifier')
-                ]
+                group = replace(
+                    group,
+                    owners=[self._load_node(owner) for owner in record.data()['owners'] if owner.get('identifier')],
+                )
+                group = replace(
+                    group,
+                    members=[
+                        self._load_node(member) for member in record.data()['members'] if member.get('identifier')
+                    ],
+                )
                 res.append(group)
         return res
 
@@ -361,8 +368,8 @@ class GroupDB(BaseGraphDB):
                 else:
                     logger.error('Group save error: ROLLING BACK')
                 tx.close()
-        saved_group.members = saved_members
-        saved_group.owners = saved_owners
+        saved_group = replace(saved_group, members=saved_members)
+        saved_group = replace(saved_group, owners=saved_owners)
         return saved_group
 
     def _load_node(self, data: Dict) -> Union[User, Group]:

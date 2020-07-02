@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from dataclasses import replace
 from typing import Dict, Union
 
 from bson import ObjectId
@@ -60,8 +61,8 @@ class TestGroupDB(Neo4jTestCase):
         assert 1 == self.group_db.db.count_nodes(label='Group')
         self._assert_group(group, post_save_group)
 
-        group.display_name = 'A new display name'
-        group.version = post_save_group.version
+        group = replace(group, display_name='A new display name')
+        group = replace(group, version=post_save_group.version)
         post_save_group2 = self.group_db.save(group)
         assert 1 == self.group_db.db.count_nodes(label='Group')
         self._assert_group(group, post_save_group2, modified=True)
@@ -95,8 +96,8 @@ class TestGroupDB(Neo4jTestCase):
     def test_save_with_wrong_group_version(self):
         group = Group.from_mapping(self.group1)
         self.group_db.save(group)
-        group.display_name = 'Another display name'
-        group.version = ObjectId()
+        group = replace(group, display_name='Another display name')
+        group = replace(group, version=ObjectId())
         with self.assertRaises(VersionMismatch):
             self.group_db.save(group)
         assert 1 == self.group_db.db.count_nodes(label='Group')
@@ -337,7 +338,7 @@ class TestGroupDB(Neo4jTestCase):
         group.members.remove(member_user1)
         assert member_user1 not in group.members
         assert member_user2 in group.members
-        group.version = post_save_group.version
+        group = replace(group, version=post_save_group.version)
         post_remove_group = self.group_db.save(group)
 
         assert member_user1 not in post_remove_group.members
@@ -363,7 +364,7 @@ class TestGroupDB(Neo4jTestCase):
         group.members.remove(member_group1)
         assert member_group1 not in group.members
         assert member_user1 in group.members
-        group.version = post_save_group.version
+        group = replace(group, version=post_save_group.version)
         post_remove_group = self.group_db.save(group)
 
         assert member_group1 not in post_remove_group.members

@@ -11,7 +11,7 @@ from eduid_graphdb.helpers import neo4j_ts_to_dt
 __author__ = 'lundberg'
 
 
-@dataclass(unsafe_hash=True)
+@dataclass(frozen=True)
 class User:
     identifier: str
     display_name: str
