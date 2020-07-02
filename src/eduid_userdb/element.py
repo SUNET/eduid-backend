@@ -33,8 +33,8 @@
 #
 import copy
 import datetime
-import warnings
-from typing import Any, Dict, List, Optional, Type, TypeVar, Union
+from dataclasses import dataclass, field, asdict
+from typing import Any, ClassVar, Dict, List, Optional, Type, TypeVar, Tuple, Union
 
 from six import string_types
 
@@ -76,10 +76,46 @@ class PrimaryElementViolation(PrimaryElementError):
     pass
 
 
+class MetaElement(type):
+    def __new__(cls, name: str, bases: tuple, dct: dict):
+        """
+        Here we modify the construction of the Element class and its subclasses.
+
+        We gather the field names marked as immutable in all superclasses
+        and set them in the `immutable` class attr,
+        So that subclasses respect immutability defined in its superclasses.
+
+        We do the same for the `ts_fields` and the `str_fields`
+        """
+        elem_class = super().__new__(cls, name, bases, dct)
+
+        immutable = ()
+        ts_fields = ()
+        str_fields = ()
+
+        for cls in elem_class.__class__.__mro__:
+
+            if hasattr(cls, 'immutable_fields'):
+                immutable += cls.immutable_fields
+
+            if hasattr(cls, 'ts_fields'):
+                ts_fields += cls.ts_fields
+
+            if hasattr(cls, 'str_fields'):
+                str_fields += cls.str_fields
+
+        elem_class._immutable = tuple(set(immutable))
+        elem_class._ts_fields = tuple(set(ts_fields))
+        elem_class._str_fields = tuple(set(str_fields))
+
+        return elem_class
+
+
 TElementSubclass = TypeVar('TElementSubclass', bound='Element')
 
 
-class Element(object):
+@dataclass
+class Element(metaclass=MetaElement):
     """
     Base class for elements.
 
@@ -94,15 +130,51 @@ class Element(object):
 
         created_by
         created_ts
+        modified_ts
     """
+    created_by: Optional[str] = None
+    created_ts: Union[datetime.datetime, bool] = True
+    modified_ts: Union[datetime.datetime, bool] = True
 
-    def __init__(
-        self, data: Dict[str, Any], called_directly: bool = True,
-    ):
-        raise NotImplementedError()
+    # Child classes of Element can mark fields as immutable
+    # in a class attribute `immutable_fileds`
+    immutable_fields: ClassVar[Tuple[str]] = ('created_ts', 'created_by')
+    # In the same vein, mark the timestamp fields so that we can set them as datetime
+    # if they are set to bool and still mark them as immutable
+    ts_fields: ClassVar[Tuple[str]] = ('created_ts', 'modified_ts')
+    # fields which if we try to set w/o a string value, will raise UserDBValueError
+    str_fields: ClassVar[Tuple[str]] = ('created_by',)
 
     def __str__(self):
-        return '<eduID {!s}: {!r}>'.format(self.__class__.__name__, getattr(self, '_data', None))
+        return '<eduID {!s}: {!r}>'.format(self.__class__.__name__, asdict(self))
+
+    def __setattr__(self, key, value):
+        """
+        raise UserDBValueError when trying to reset an immutable field
+        """
+        try:
+            getattr(self, key)
+        except AttributeError:
+            # field has never been set, we set it unconditionally
+            pass
+        else:
+            # field has already been set
+            if key in self._immutable:
+                raise UserDBValueError("Refusing to modify {!r} of element".format(key))
+
+        if key in self._ts_fields:
+            # initialization of ts fields
+            if value is True:
+                value = datetime.datetime.utcnow()
+
+            if not isinstance(value, datetime.datetime):
+                raise UserDBValueError("Invalid {!r} value: {!r}".format(key, value))
+
+        if key in self._str_fields:
+            if not isinstance(value, str):
+                raise UserDBValueError("Invalid {!r} value: {!r}".format(key, value))
+
+        object.__setattr__(self, key, value)
 
     @classmethod
     def from_dict(cls: Type[TElementSubclass], data: Dict[str, Any]) -> TElementSubclass:
@@ -112,76 +184,11 @@ class Element(object):
         if not isinstance(data, dict):
             raise UserDBValueError("Invalid 'data', not dict ({!r})".format(type(data)))
 
-        self = object.__new__(cls)
-        self._data: Dict[str, Any] = {}
+        created_by = data.pop('created_by', None)
+        created_ts = data.pop('created_ts', None)
+        modified_ts = data.pop('modified_ts', None)
 
-        self.created_by = data.pop('created_by', None)
-        self.created_ts = data.pop('created_ts', None)
-        self.modified_ts = data.pop('modified_ts', None)
-
-        return self
-
-    # -----------------------------------------------------------------
-    @property
-    def key(self):
-        """
-        Return the element that is used as key in a PrimaryElementList.
-        Must be implemented in subclasses of PrimaryElement.
-        """
-        raise NotImplementedError("'key' not implemented for Element subclass")
-
-    # -----------------------------------------------------------------
-    @property
-    def created_by(self):
-        """
-        :return: Information about who created the element (None is no-op).
-        :rtype: str | unicode | None
-        """
-        return self._data.get('created_by')
-
-    @created_by.setter
-    def created_by(self, value):
-        """
-        :param value: Information about who created a element.
-        :type value: str | unicode
-        """
-        _set_something_by(self._data, 'created_by', value)
-
-    # -----------------------------------------------------------------
-    @property
-    def created_ts(self):
-        """
-        :return: Timestamp of element creation.
-        :rtype: datetime.datetime
-        """
-        return self._data.get('created_ts')
-
-    @created_ts.setter
-    def created_ts(self, value):
-        """
-        :param value: Timestamp of element creation.
-                      Value None is ignored, True is short for datetime.utcnow().
-        :type value: datetime.datetime | True | None
-        """
-        _set_something_ts(self._data, 'created_ts', value)
-
-    # -----------------------------------------------------------------
-    @property
-    def modified_ts(self) -> Optional[datetime.datetime]:
-        """
-        :return: Timestamp of element last update.
-        """
-        return self._data.get('modified_ts')
-
-    @modified_ts.setter
-    def modified_ts(self, value: Optional[Union[datetime.datetime, bool]]):
-        """
-        :param value: Timestamp of element last update.
-                      Value None is ignored, True is short for datetime.utcnow().
-        """
-        _set_something_ts(self._data, 'modified_ts', value, allow_update=True)
-
-    # -----------------------------------------------------------------
+        return cls(created_by, created_ts, modified_ts)
 
     def to_dict(self, old_userdb_format=False):
         """
@@ -191,8 +198,16 @@ class Element(object):
         :param old_userdb_format: Set to True to get data back in legacy format.
         :type old_userdb_format: bool
         """
-        res = copy.copy(self._data)  # avoid caller messing with our _data
-        return res
+        return asdict(self)
+
+    # -----------------------------------------------------------------
+    @property
+    def key(self):
+        """
+        Return the element that is used as key in a PrimaryElementList.
+        Must be implemented in subclasses of PrimaryElement.
+        """
+        raise NotImplementedError("'key' not implemented for Element subclass")
 
 
 class VerifiedElement(Element):
