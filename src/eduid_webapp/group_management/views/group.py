@@ -109,9 +109,8 @@ def create_group(user: User, display_name: str) -> FluxData:
     scim_user = get_or_create_scim_user_by_eppn(user.eppn)
     graph_user = GraphUser(identifier=str(scim_user.scim_id), display_name=user.mail_addresses.primary.email)
     group = ScimApiGroup(display_name=display_name)
-    group.graph = GraphGroup(identifier=str(group.scim_id), display_name=display_name)
-    group.graph.owners = [graph_user]
-    group.graph.members = [graph_user]
+    group.add_owner(graph_user)
+    group.add_member(graph_user)
 
     if not current_app.scimapi_groupdb.save(group):
         current_app.logger.error(f'Failed to create ScimApiGroup with scim_id: {group.scim_id}')

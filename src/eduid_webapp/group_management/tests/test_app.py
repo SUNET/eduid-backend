@@ -175,10 +175,10 @@ class GroupManagementTests(EduidAPITestCase):
         graph_user = GraphUser(
             identifier=str(self.scim_user1.scim_id), display_name=self.test_user.mail_addresses.primary.email
         )
-        self.scim_group1.graph.owners = [graph_user]
+        self.scim_group1.owners = [graph_user]
         self.app.scimapi_groupdb.save(self.scim_group1)
 
-        self.scim_group2.graph.owners = [graph_user]
+        self.scim_group2.owners = [graph_user]
         self.app.scimapi_groupdb.save(self.scim_group2)
 
         # Invite test_user2 as owner and member of Test Group 1
@@ -217,8 +217,8 @@ class GroupManagementTests(EduidAPITestCase):
         graph_user = GraphUser(
             identifier=str(self.scim_user1.scim_id), display_name=self.test_user.mail_addresses.primary.email
         )
-        self.scim_group1.graph.members = [graph_user]
-        self.scim_group1.graph.owners = [graph_user]
+        self.scim_group1.members = [graph_user]
+        self.scim_group1.owners = [graph_user]
         self.app.scimapi_groupdb.save(self.scim_group1)
 
         response = self.browser.get('/groups')
@@ -281,9 +281,9 @@ class GroupManagementTests(EduidAPITestCase):
         graph_user = GraphUser(
             identifier=str(self.scim_user1.scim_id), display_name=self.test_user.mail_addresses.primary.email
         )
-        self.scim_group1.graph.owners = [graph_user]
+        self.scim_group1.owners = [graph_user]
         self.app.scimapi_groupdb.save(self.scim_group1)
-        self.scim_group2.graph.owners = [graph_user]
+        self.scim_group2.owners = [graph_user]
         self.app.scimapi_groupdb.save(self.scim_group2)
 
         with self.session_cookie(self.browser, self.test_user.eppn) as client:
@@ -319,7 +319,7 @@ class GroupManagementTests(EduidAPITestCase):
         graph_user = GraphUser(
             identifier=str(self.scim_user1.scim_id), display_name=self.test_user.mail_addresses.primary.email
         )
-        self.scim_group1.graph.members = [graph_user]
+        self.scim_group1.members = [graph_user]
         self.app.scimapi_groupdb.save(self.scim_group1)
 
         with self.session_cookie(self.browser, self.test_user.eppn) as client:
@@ -337,7 +337,7 @@ class GroupManagementTests(EduidAPITestCase):
         graph_user = GraphUser(
             identifier=str(self.scim_user1.scim_id), display_name=self.test_user.mail_addresses.primary.email
         )
-        self.scim_group1.graph.owners = [graph_user]
+        self.scim_group1.owners = [graph_user]
         self.app.scimapi_groupdb.save(self.scim_group1)
 
         self._invite_setup()
@@ -357,10 +357,10 @@ class GroupManagementTests(EduidAPITestCase):
     def test_remove_member(self):
         # Add test_user1 as group owner
         graph_user1 = GraphUser(identifier=str(self.scim_user1.scim_id), display_name='Test User 1')
-        self.scim_group1.graph.owners = [graph_user1]
+        self.scim_group1.owners = [graph_user1]
         # Add test_user2 as group member
         graph_user2 = GraphUser(identifier=str(self.scim_user2.scim_id), display_name='Test User 2')
-        self.scim_group1.graph.members = [graph_user2]
+        self.scim_group1.members = [graph_user2]
 
         self.app.scimapi_groupdb.save(self.scim_group1)
 
@@ -392,7 +392,7 @@ class GroupManagementTests(EduidAPITestCase):
     def test_remove_member_not_owner(self):
         # Add test_user2 as group member
         graph_user2 = GraphUser(identifier=str(self.scim_user2.scim_id), display_name='Test User 2')
-        self.scim_group1.graph.members = [graph_user2]
+        self.scim_group1.members = [graph_user2]
 
         self.app.scimapi_groupdb.save(self.scim_group1)
 
@@ -423,7 +423,7 @@ class GroupManagementTests(EduidAPITestCase):
     def test_remove_owner(self):
         # Add test_user1 as group owner
         graph_user1 = GraphUser(identifier=str(self.scim_user1.scim_id), display_name='Test User 1')
-        self.scim_group1.graph.owners = [graph_user1]
+        self.scim_group1.owners = [graph_user1]
         # Add test_user2 as group owner
         graph_user2 = GraphUser(identifier=str(self.scim_user2.scim_id), display_name='Test User 2')
         self.scim_group1.graph.owners.append(graph_user2)
@@ -458,7 +458,7 @@ class GroupManagementTests(EduidAPITestCase):
     def test_remove_last_owner(self):
         # Add test_user1 as group owner
         graph_user1 = GraphUser(identifier=str(self.scim_user1.scim_id), display_name='Test User 1')
-        self.scim_group1.graph.owners = [graph_user1]
+        self.scim_group1.owners = [graph_user1]
 
         self.app.scimapi_groupdb.save(self.scim_group1)
 
@@ -487,7 +487,7 @@ class GroupManagementTests(EduidAPITestCase):
     def test_remove_self_member(self):
         # Add test_user1 as group member
         graph_user1 = GraphUser(identifier=str(self.scim_user1.scim_id), display_name='Test User 1')
-        self.scim_group1.graph.members = [graph_user1]
+        self.scim_group1.members = [graph_user1]
 
         self.app.scimapi_groupdb.save(self.scim_group1)
 
@@ -519,7 +519,7 @@ class GroupManagementTests(EduidAPITestCase):
     def test_remove_non_existing_member(self):
         # Add test_user1 as group owner
         graph_user1 = GraphUser(identifier=str(self.scim_user1.scim_id), display_name='Test User 1')
-        self.scim_group1.graph.owners = [graph_user1]
+        self.scim_group1.owners = [graph_user1]
 
         self.app.scimapi_groupdb.save(self.scim_group1)
 
@@ -553,7 +553,7 @@ class GroupManagementTests(EduidAPITestCase):
         graph_user = GraphUser(
             identifier=str(self.scim_user1.scim_id), display_name=self.test_user.mail_addresses.primary.email
         )
-        self.scim_group1.graph.owners = [graph_user]
+        self.scim_group1.owners = [graph_user]
         self.app.scimapi_groupdb.save(self.scim_group1)
 
         # Invite test user 2 to the group as member
@@ -585,7 +585,7 @@ class GroupManagementTests(EduidAPITestCase):
         graph_user = GraphUser(
             identifier=str(self.scim_user1.scim_id), display_name=self.test_user.mail_addresses.primary.email
         )
-        self.scim_group1.graph.owners = [graph_user]
+        self.scim_group1.owners = [graph_user]
         self.app.scimapi_groupdb.save(self.scim_group1)
 
         # Invite test user 2 to the group as member
@@ -623,7 +623,7 @@ class GroupManagementTests(EduidAPITestCase):
         graph_user = GraphUser(
             identifier=str(self.scim_user1.scim_id), display_name=self.test_user.mail_addresses.primary.email
         )
-        self.scim_group1.graph.owners = [graph_user]
+        self.scim_group1.owners = [graph_user]
         self.app.scimapi_groupdb.save(self.scim_group1)
 
         # Invite test user 2 to the group as member
@@ -661,7 +661,7 @@ class GroupManagementTests(EduidAPITestCase):
         graph_user = GraphUser(
             identifier=str(self.scim_user1.scim_id), display_name=self.test_user.mail_addresses.primary.email
         )
-        self.scim_group1.graph.owners = [graph_user]
+        self.scim_group1.owners = [graph_user]
         self.app.scimapi_groupdb.save(self.scim_group1)
 
         # Invite test user 2 to the group as owner
@@ -692,7 +692,7 @@ class GroupManagementTests(EduidAPITestCase):
         graph_user = GraphUser(
             identifier=str(self.scim_user1.scim_id), display_name=self.test_user.mail_addresses.primary.email
         )
-        self.scim_group1.graph.owners = [graph_user]
+        self.scim_group1.owners = [graph_user]
         self.app.scimapi_groupdb.save(self.scim_group1)
 
         # Invite test user 2 to the group as member
@@ -730,7 +730,7 @@ class GroupManagementTests(EduidAPITestCase):
         graph_user = GraphUser(
             identifier=str(self.scim_user1.scim_id), display_name=self.test_user.mail_addresses.primary.email
         )
-        self.scim_group1.graph.owners = [graph_user]
+        self.scim_group1.owners = [graph_user]
         self.app.scimapi_groupdb.save(self.scim_group1)
 
         # Invite test user 2 to the group as member
