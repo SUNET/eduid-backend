@@ -155,10 +155,10 @@ def verify_code(user: User, code: str) -> FluxData:
         # Remove proofing state
         current_app.proofing_statedb.remove_state(proofing_state)
         current_app.stats.count(name='nin_verified')
+        # TODO: Return nins from ProofingUser created in verify_nin_for_user to get verified=True
         return success_response(payload=dict(nins=user.nins.to_list_of_dicts()), message=LetterMsg.verify_success)
-    except AmTaskFailed as e:
-        current_app.logger.error('Verifying nin for user {} failed'.format(user))
-        current_app.logger.error('{}'.format(e))
+    except AmTaskFailed:
+        current_app.logger.exception(f'Verifying nin for user {user} failed')
         return error_response(message=CommonMsg.temp_problem)
 
 

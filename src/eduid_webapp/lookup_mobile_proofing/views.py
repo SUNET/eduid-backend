@@ -60,9 +60,8 @@ def proofing(user, nin):
             if not verify_nin_for_user(user, proofing_state, proofing_log_entry):
                 return error_response(message=CommonMsg.temp_problem)
             return {'success': True, 'message': str(MobileMsg.verify_success.value)}
-        except AmTaskFailed as e:
-            current_app.logger.error('Verifying nin for user {} failed'.format(user))
-            current_app.logger.error('{}'.format(e))
+        except AmTaskFailed:
+            current_app.logger.exception(f'Verifying nin for user {user} failed')
             return error_response(message=CommonMsg.temp_problem)
 
     return error_response(message=MobileMsg.no_match)

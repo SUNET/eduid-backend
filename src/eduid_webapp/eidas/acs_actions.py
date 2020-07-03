@@ -176,9 +176,8 @@ def nin_verify_action(session_info: Mapping[str, Any], user: User) -> WerkzeugRe
         if not verify_nin_for_user(user, proofing_state, proofing_log_entry):
             current_app.logger.error(f'Failed verifying NIN for user {user}')
             return redirect_with_msg(redirect_url, CommonMsg.temp_problem)
-    except AmTaskFailed as e:
-        current_app.logger.error('Verifying NIN for user failed')
-        current_app.logger.error('{}'.format(e))
+    except AmTaskFailed:
+        current_app.logger.exception('Verifying NIN for user failed')
         return redirect_with_msg(redirect_url, CommonMsg.temp_problem)
     current_app.stats.count(name='nin_verified')
 
@@ -234,9 +233,8 @@ def nin_verify_BACKDOOR(user: User) -> WerkzeugResponse:
         if not verify_nin_for_user(user, proofing_state, proofing_log_entry):
             current_app.logger.error(f'Failed verifying NIN for user {user}')
             return redirect_with_msg(redirect_url, ':ERROR:Temporary technical problems')
-    except AmTaskFailed as e:
-        current_app.logger.error('Verifying NIN for user failed')
-        current_app.logger.error('{}'.format(e))
+    except AmTaskFailed:
+        current_app.logger.exception('Verifying NIN for user failed')
         return redirect_with_msg(redirect_url, ':ERROR:Temporary technical problems')
     current_app.stats.count(name='nin_verified')
 
