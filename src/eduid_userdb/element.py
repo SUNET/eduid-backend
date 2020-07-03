@@ -141,18 +141,21 @@ class Element(metaclass=MetaElement):
     created_ts: Union[datetime.datetime, bool] = True
     modified_ts: Union[datetime.datetime, bool] = True
 
+    # The attributes below are class attributes, typed as ClassVar's
+    # and the dataclass machinery ignores them
+
     # Child classes of Element can mark fields as immutable
     # in a class attribute `immutable_fileds`
     immutable_fields: ClassVar[Tuple[str]] = ('created_ts', 'created_by')
     # In the same vein, mark the timestamp fields so that we can set them as datetime
     # if they are set to bool and still mark them as immutable
     ts_fields: ClassVar[Tuple[str]] = ('created_ts', 'modified_ts')
-    # fields which if we try to set w/o a string value, will raise UserDBValueError
+    # fields which if we try to set w/o a string value or None, will raise UserDBValueError
     str_fields: ClassVar[Tuple[str]] = ('created_by',)
-    # fields which if we try to set w/o a string value, will raise UserDBValueError
+    # fields which if we try to set w/o a bool value, will raise UserDBValueError
     bool_fields: ClassVar[Tuple[str]] = ()
 
-    def __str__(self):
+    def __str__(self) -> str:
         return '<eduID {!s}: {!r}>'.format(self.__class__.__name__, asdict(self))
 
     def __post_init__(self):
@@ -163,7 +166,7 @@ class Element(metaclass=MetaElement):
 
                 object.__setattr__(self, key, value)
 
-    def __setattr__(self, key, value):
+    def __setattr__(self, key: str, value: Any):
         """
         raise UserDBValueError when trying to reset an immutable field
         """
@@ -182,18 +185,18 @@ class Element(metaclass=MetaElement):
 
         object.__setattr__(self, key, new_value)
 
-    def _check_and_process_field(self, key, value):
+    def _check_and_process_field(self, key: str, value: Any) -> Any:
 
         if key in self._ts_fields:
             # initialization of ts fields
             if value is True:
                 value = datetime.datetime.utcnow()
 
-            if not isinstance(value, datetime.datetime):
+            if value is not False and not isinstance(value, datetime.datetime):
                 raise UserDBValueError("Invalid {!r} value: {!r}".format(key, value))
 
         if key in self._str_fields:
-            if not isinstance(value, str):
+            if value is not None and not isinstance(value, str):
                 raise UserDBValueError("Invalid {!r} value: {!r}".format(key, value))
 
         if key in self._bool_fields:
@@ -216,7 +219,7 @@ class Element(metaclass=MetaElement):
 
         return cls(created_by, created_ts, modified_ts)
 
-    def to_dict(self, old_userdb_format=False):
+    def to_dict(self, old_userdb_format: bool = False) -> Dict[str, Any]:
         """
         Convert Element to a dict, that can be used to reconstruct the
         Element later.
@@ -315,7 +318,7 @@ class PrimaryElement(VerifiedElement):
 
         return self
 
-    def __setattr__(self, key, value):
+    def __setattr__(self, key: str, value: Any):
         """
         raise PrimaryElementViolation when trying to set a primary element as unverified
         """
