@@ -100,7 +100,7 @@ def add_nin_to_user(user: User, proofing_state: NinProofingState, user_class: Ty
 
 def verify_nin_for_user(
     user: Union[User, ProofingUser], proofing_state: NinProofingState, proofing_log_entry: ProofingLogElement
-):
+) -> bool:
     """
     Mark a nin on a user as verified, after logging data about the proofing to the proofing log.
 
@@ -112,7 +112,7 @@ def verify_nin_for_user(
     :param proofing_state: Proofing state for user
     :param proofing_log_entry: Proofing log entry element
 
-    :return: None
+    :return: Success or not
     """
     if isinstance(user, ProofingUser):
         proofing_user = user
@@ -139,7 +139,7 @@ def verify_nin_for_user(
     if nin_element and nin_element.is_verified:
         current_app.logger.info('NIN is already verified for user {}'.format(proofing_user))
         current_app.logger.debug('NIN: {}'.format(proofing_state.nin.number))
-        return
+        return True
 
     # Update users nin element
     if proofing_user.nins.primary is None:
@@ -154,17 +154,21 @@ def verify_nin_for_user(
 
     # If user was updated successfully continue with logging the proof and saving the user to central db
     # Send proofing data to the proofing log
-    if current_app.proofing_log.save(proofing_log_entry):
-        current_app.logger.info('Recorded verification for {} in the proofing log'.format(proofing_user))
-        # User from central db is as up to date as it can be no need to check for modified time
-        proofing_user.modified_ts = True
-        # Save user to private db
-        current_app.private_userdb.save(proofing_user, check_sync=False)
+    if not current_app.proofing_log.save(proofing_log_entry):
+        return False
 
-        # Ask am to sync user to central db
-        current_app.logger.info('Request sync for user {!s}'.format(user))
-        result = current_app.am_relay.request_user_sync(proofing_user)
-        current_app.logger.info('Sync result for user {!s}: {!s}'.format(proofing_user, result))
+    current_app.logger.info('Recorded verification for {} in the proofing log'.format(proofing_user))
+    # User from central db is as up to date as it can be no need to check for modified time
+    proofing_user.modified_ts = True
+    # Save user to private db
+    current_app.private_userdb.save(proofing_user, check_sync=False)
+
+    # Ask am to sync user to central db
+    current_app.logger.info('Request sync for user {!s}'.format(user))
+    result = current_app.am_relay.request_user_sync(proofing_user)
+    current_app.logger.info('Sync result for user {!s}: {!s}'.format(proofing_user, result))
+
+    return True
 
 
 def send_mail(

@@ -173,7 +173,7 @@ class NinHelpersTest(EduidAPITestCase):
             proofing_version='2017',
         )
         with self.app.app_context():
-            verify_nin_for_user(user, proofing_state, proofing_log_entry)
+            assert verify_nin_for_user(user, proofing_state, proofing_log_entry) is True
         # The problem with passing a User to verify_nin_for_user is that the nins list on 'user'
         # has not been updated
         assert user.nins.find(self.test_user_nin) is False
@@ -211,7 +211,7 @@ class NinHelpersTest(EduidAPITestCase):
         # check that there is no NIN on the proofing_user before calling verify_nin_for_user
         assert proofing_user.nins.find(self.test_user_nin) is False
         with self.app.app_context():
-            verify_nin_for_user(proofing_user, proofing_state, proofing_log_entry)
+            assert verify_nin_for_user(proofing_user, proofing_state, proofing_log_entry) is True
         # check that there is a NIN there now, and that it is verified
         found_nin = proofing_user.nins.find(self.test_user_nin)
         assert found_nin is not False
@@ -248,7 +248,7 @@ class NinHelpersTest(EduidAPITestCase):
             proofing_version='2017',
         )
         with self.app.app_context():
-            verify_nin_for_user(user, proofing_state, proofing_log_entry)
+            assert verify_nin_for_user(user, proofing_state, proofing_log_entry) is True
         user = self.app.private_userdb.get_user_by_eppn(eppn)
         self.assertEqual(user.nins.count, 1)
         self.assertIsNotNone(user.nins.find(self.test_user_nin))
@@ -271,7 +271,30 @@ class NinHelpersTest(EduidAPITestCase):
             user, created_by=proofing_state.nin.created_by, proofing_method='test', proofing_version='2017'
         )
         with self.app.app_context():
-            verify_nin_for_user(user, proofing_state, proofing_log_entry)
+            assert verify_nin_for_user(user, proofing_state, proofing_log_entry) is True
+
+    def test_verify_nin_with_faulty_proofing_log_element(self):
+        eppn = self.insert_no_nins_user()
+        user = self.app.central_userdb.get_user_by_eppn(eppn)
+        nin_element = NinProofingElement.from_dict(
+            dict(number=self.test_user_nin, created_by='NinHelpersTest', verified=False)
+        )
+        proofing_state = NinProofingState.from_dict({'eduPersonPrincipalName': eppn, 'nin': nin_element.to_dict()})
+        # Create a ProofingLogElement with an empty created_by, which should be rejected on save in LogDB
+        proofing_log_entry = NinProofingLogElement(
+            user,
+            created_by='',
+            nin=proofing_state.nin.number,
+            user_postal_address=self.navet_response,
+            proofing_method='test',
+            proofing_version='2017',
+        )
+        with self.app.app_context():
+            # Verify that failure to save the proofing log element is returned to caller
+            assert verify_nin_for_user(user, proofing_state, proofing_log_entry) is False
+        # Validate that the user wasn't added to the private_userdb
+        user = self.app.private_userdb.get_user_by_eppn(eppn, raise_on_missing=False)
+        assert user is None
 
     def test_set_user_names_from_offical_address_1(self):
         userdata = new_user_example.to_dict()
