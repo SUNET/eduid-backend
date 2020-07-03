@@ -195,7 +195,10 @@ def handle_seleg_userinfo(user, proofing_state, userinfo):
             user_postal_address=address,
             proofing_version='2017v1',
         )
-        verify_nin_for_user(user, proofing_state, proofing_log_entry)
+        if not verify_nin_for_user(user, proofing_state, proofing_log_entry):
+            current_app.logger.error(f'Verifying NIN for user {user} failed')
+            # TODO: propagate error to caller
+            return None
         current_app.stats.count(name='seleg.nin_verified')
     else:
         current_app.logger.info('se-leg proofing did not result in a verified account due to low score')
@@ -237,5 +240,8 @@ def handle_freja_eid_userinfo(user, proofing_state, userinfo):
         user_postal_address=address,
         proofing_version='2017v1',
     )
-    verify_nin_for_user(user, proofing_state, proofing_log_entry)
+    if not verify_nin_for_user(user, proofing_state, proofing_log_entry):
+        current_app.logger.error(f'Verifying NIN for user {user} failed')
+        # TODO: Propagate error to caller
+        return None
     current_app.stats.count(name='freja.nin_verified')

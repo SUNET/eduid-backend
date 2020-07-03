@@ -180,7 +180,9 @@ def nin_verify_action(session_info, user):
     try:
         nin_element = NinProofingElement.from_dict(dict(number=asserted_nin, created_by='eduid-eidas', verified=False))
         proofing_state = NinProofingState(id=None, modified_ts=None, eppn=user.eppn, nin=nin_element)
-        verify_nin_for_user(user, proofing_state, proofing_log_entry)
+        if not verify_nin_for_user(user, proofing_state, proofing_log_entry):
+            current_app.logger.error(f'Failed verifying NIN for user {user}')
+            return redirect_with_msg(redirect_url, CommonMsg.temp_problem)
     except AmTaskFailed as e:
         current_app.logger.error('Verifying NIN for user failed')
         current_app.logger.error('{}'.format(e))
@@ -236,7 +238,9 @@ def nin_verify_BACKDOOR(user: User) -> Response:
     try:
         nin_element = NinProofingElement.from_dict(dict(number=asserted_nin, created_by='eduid-eidas', verified=False))
         proofing_state = NinProofingState(id=None, modified_ts=None, eppn=user.eppn, nin=nin_element)
-        verify_nin_for_user(user, proofing_state, proofing_log_entry)
+        if not verify_nin_for_user(user, proofing_state, proofing_log_entry):
+            current_app.logger.error(f'Failed verifying NIN for user {user}')
+            return redirect_with_msg(redirect_url, ':ERROR:Temporary technical problems')
     except AmTaskFailed as e:
         current_app.logger.error('Verifying NIN for user failed')
         current_app.logger.error('{}'.format(e))

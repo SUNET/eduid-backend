@@ -148,7 +148,9 @@ def verify_code(user: User, code: str) -> FluxData:
     )
     try:
         # Verify nin for user
-        verify_nin_for_user(user, proofing_state, proofing_log_entry)
+        if not verify_nin_for_user(user, proofing_state, proofing_log_entry):
+            current_app.logger.error(f'Failed verifying NIN for user {user}')
+            return error_response(message=CommonMsg.temp_problem)
         current_app.logger.info('Verified code for user {}'.format(user))
         # Remove proofing state
         current_app.proofing_statedb.remove_state(proofing_state)
