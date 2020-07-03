@@ -220,7 +220,8 @@ class LetterProofingTests(EduidAPITestCase):
     def test_resend_letter(self):
         response = self.send_letter(self.test_user_nin)
 
-        # Deliberately test the CSRF token from the send_letter response
+        # Deliberately test the CSRF token from the send_letter response,
+        # instead of always using get_state() to get a token.
         csrf_token = response.json['payload']['csrf_token']
         response2 = self.send_letter(self.test_user_nin, csrf_token, validate_response=False)
         self._check_success_response(
@@ -251,7 +252,8 @@ class LetterProofingTests(EduidAPITestCase):
     def test_verify_letter_code(self):
         response1 = self.send_letter(self.test_user_nin)
         proofing_state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
-        # Deliberately test the CSRF token from the send_letter response
+        # Deliberately test the CSRF token from the send_letter response,
+        # instead of always using get_state() to get a token.
         csrf_token = response1.json['payload']['csrf_token']
         response2 = self.verify_code(proofing_state.nin.verification_code, csrf_token)
         # TODO: The payload incorrectly contains the NIN from before it was marked as verified.
