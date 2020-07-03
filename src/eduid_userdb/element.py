@@ -85,15 +85,16 @@ class MetaElement(type):
         and set them in the `immutable` class attr,
         So that subclasses respect immutability defined in its superclasses.
 
-        We do the same for the `ts_fields` and the `str_fields`
+        We do the same for the `ts_fields` and the `str_fields` and the bool_fields
         """
         elem_class = super().__new__(cls, name, bases, dct)
 
         immutable = ()
         ts_fields = ()
         str_fields = ()
+        bool_fields = ()
 
-        for cls in elem_class.__class__.__mro__:
+        for cls in elem_class.__mro__:
 
             if hasattr(cls, 'immutable_fields'):
                 immutable += cls.immutable_fields
@@ -104,9 +105,13 @@ class MetaElement(type):
             if hasattr(cls, 'str_fields'):
                 str_fields += cls.str_fields
 
+            if hasattr(cls, 'bool_fields'):
+                bool_fields += cls.bool_fields
+
         elem_class._immutable = tuple(set(immutable))
         elem_class._ts_fields = tuple(set(ts_fields))
         elem_class._str_fields = tuple(set(str_fields))
+        elem_class._bool_fields = tuple(set(bool_fields))
 
         return elem_class
 
@@ -144,23 +149,40 @@ class Element(metaclass=MetaElement):
     ts_fields: ClassVar[Tuple[str]] = ('created_ts', 'modified_ts')
     # fields which if we try to set w/o a string value, will raise UserDBValueError
     str_fields: ClassVar[Tuple[str]] = ('created_by',)
+    # fields which if we try to set w/o a string value, will raise UserDBValueError
+    bool_fields: ClassVar[Tuple[str]] = ()
 
     def __str__(self):
         return '<eduID {!s}: {!r}>'.format(self.__class__.__name__, asdict(self))
+
+    def __post_init__(self):
+        for fields in (self._ts_fields, self._str_fields, self._bool_fields):
+            for key in fields:
+                old_value = getattr(self, key)
+                value = self._check_and_process_field(key, old_value)
+
+                object.__setattr__(self, key, value)
 
     def __setattr__(self, key, value):
         """
         raise UserDBValueError when trying to reset an immutable field
         """
         try:
-            getattr(self, key)
+            old_value = getattr(self, key)
         except AttributeError:
             # field has never been set, we set it unconditionally
             pass
         else:
             # field has already been set
-            if key in self._immutable:
+            is_bool_ts = key in self._ts_fields and isinstance(old_value, bool)
+            if not is_bool_ts and old_value is not None and key in self._immutable:
                 raise UserDBValueError("Refusing to modify {!r} of element".format(key))
+
+        new_value = self._check_and_process_field(key, value)
+
+        object.__setattr__(self, key, new_value)
+
+    def _check_and_process_field(self, key, value):
 
         if key in self._ts_fields:
             # initialization of ts fields
@@ -174,7 +196,11 @@ class Element(metaclass=MetaElement):
             if not isinstance(value, str):
                 raise UserDBValueError("Invalid {!r} value: {!r}".format(key, value))
 
-        object.__setattr__(self, key, value)
+        if key in self._bool_fields:
+            if not isinstance(value, bool):
+                raise UserDBValueError("Invalid {!r} value: {!r}".format(key, value))
+
+        return value
 
     @classmethod
     def from_dict(cls: Type[TElementSubclass], data: Dict[str, Any]) -> TElementSubclass:
@@ -210,6 +236,7 @@ class Element(metaclass=MetaElement):
         raise NotImplementedError("'key' not implemented for Element subclass")
 
 
+@dataclass
 class VerifiedElement(Element):
     """
     Elements that can be verified or not.
@@ -220,11 +247,15 @@ class VerifiedElement(Element):
         verified_by
         verified_ts
     """
+    is_verified: bool = False
+    verified_by: Optional[str] = None
+    verified_ts: Union[datetime.datetime, bool] = False
 
-    def __init__(
-        self, data: Dict[str, Any], called_directly: bool = True,
-    ):
-        raise NotImplementedError()
+    ts_fields: ClassVar[Tuple[str]] = ('verified_ts',)
+
+    str_fields: ClassVar[Tuple[str]] = ('verified_by',)
+
+    bool_fields: ClassVar[Tuple[str]] = ('is_verified',)
 
     @classmethod
     def from_dict(cls: Type[TElementSubclass], data: Dict[str, Any]) -> TElementSubclass:
@@ -240,64 +271,11 @@ class VerifiedElement(Element):
 
         return self
 
-    # -----------------------------------------------------------------
-    @property
-    def is_verified(self):
-        """
-        :return: True if this is a verified element.
-        :rtype: bool
-        """
-        return self._data['verified']
-
-    @is_verified.setter
-    def is_verified(self, value):
-        """
-        :param value: New verification status
-        :type value: bool
-        """
-        if not isinstance(value, bool):
-            raise UserDBValueError("Invalid 'is_verified': {!r}".format(value))
-        self._data['verified'] = value
-
-    # -----------------------------------------------------------------
-    @property
-    def verified_by(self):
-        """
-        :return: Information about who verified the element.
-        :rtype: str | unicode
-        """
-        return self._data.get('verified_by', None)
-
-    @verified_by.setter
-    def verified_by(self, value):
-        """
-        :param value: Information about who verified a element (None is no-op).
-        :type value: str | unicode | None
-        """
-        _set_something_by(self._data, 'verified_by', value, allow_update=True)
-
-    # -----------------------------------------------------------------
-    @property
-    def verified_ts(self):
-        """
-        :return: Timestamp of element verification.
-        :rtype: datetime.datetime
-        """
-        return self._data.get('verified_ts')
-
-    @verified_ts.setter
-    def verified_ts(self, value):
-        """
-        :param value: Timestamp of element verification.
-                      Value None is ignored, True is short for datetime.utcnow().
-        :type value: datetime.datetime | True | None
-        """
-        _set_something_ts(self._data, 'verified_ts', value, allow_update=True)
-
 
 TPrimaryElementSubclass = TypeVar('TPrimaryElementSubclass', bound='PrimaryElement')
 
 
+@dataclass
 class PrimaryElement(VerifiedElement):
     """
     Elements that can be either primary or not.
@@ -312,15 +290,9 @@ class PrimaryElement(VerifiedElement):
     :type data: dict
     :type raise_on_unknown: bool
     """
+    is_primary: bool = False
 
-    def __init__(
-        self,
-        data: Dict[str, Any],
-        raise_on_unknown: bool = True,
-        called_directly: bool = True,
-        ignore_data: Optional[List[str]] = None,
-    ):
-        raise NotImplementedError()
+    bool_fields: ClassVar[Tuple[str]] = ('is_primary',)
 
     @classmethod
     def from_dict(
@@ -343,47 +315,14 @@ class PrimaryElement(VerifiedElement):
 
         return self
 
-    # -----------------------------------------------------------------
-    @property
-    def is_primary(self):
+    def __setattr__(self, key, value):
         """
-        :return: True if this is the primary element.
-        :rtype: bool
+        raise PrimaryElementViolation when trying to set a primary element as unverified
         """
-        try:
-            return self._data['primary']
-        except KeyError:
-            # handle init moment 22
-            return False
-
-    @is_primary.setter
-    def is_primary(self, value):
-        """
-        :param value: New verification status
-        :type value: bool
-        """
-        if not isinstance(value, bool):
-            raise UserDBValueError("Invalid 'is_primary': {!r}".format(value))
-        self._data['primary'] = value
-
-    # -----------------------------------------------------------------
-    @property
-    def is_verified(self):
-        """
-        :return: True if this is a verified element.
-        :rtype: bool
-        """
-        return VerifiedElement.is_verified.fget(self)
-
-    @is_verified.setter
-    def is_verified(self, value):
-        """
-        :param value: New verification status
-        :type value: bool
-        """
-        if value is False and self.is_primary:
+        if key == 'is_verified' and value is False and self.is_primary is True:
             raise PrimaryElementViolation("Can't remove verified status of primary element")
-        VerifiedElement.is_verified.fset(self, value)
+
+        super().__setattr__(self, key, value)
 
 
 class ElementList(object):
@@ -627,45 +566,3 @@ class PrimaryElementList(ElementList):
         """
         verified_elements = [e for e in self._elements if e.is_verified]
         return self.__class__(verified_elements)
-
-
-def _set_something_by(data, key, value, allow_update=False):
-    """
-    Shared code to set or update 'verified_by', 'created_by' and similar properties.
-
-    :param data: Where the data is stored
-    :param key: Key name of the data
-    :param value: Information about who did something (None is no-op).
-
-    :type value: str | unicode | None
-    """
-    if data.get(key) is not None and not allow_update:
-        # Once created_by etc. is set, it should not be modified.
-        raise UserDBValueError("Refusing to modify {!r} of element".format(key))
-    if value is None:
-        return
-    if not isinstance(value, string_types):
-        raise UserDBValueError("Invalid {!r} value: {!r}".format(key, value))
-    data[key] = str(value)
-
-
-def _set_something_ts(data, key, value, allow_update=False):
-    """
-    Shared code to set or update 'verified_ts', 'created_ts' and similar properties.
-
-    :param data: Where the data is stored
-    :param key: Key name of the data
-    :param value: Timestamp of element verification.
-                  Value None is ignored, True is short for datetime.utcnow().
-    :type value: datetime.datetime | True | None
-    """
-    if data.get(key) is not None and not allow_update:
-        # Once created_ts etc. is set, it should not be modified.
-        raise UserDBValueError("Refusing to modify {!r} of element".format(key))
-    if value is None:
-        return
-    if value is True:
-        value = datetime.datetime.utcnow()
-    if not isinstance(value, datetime.datetime):
-        raise UserDBValueError("Invalid {!r} value: {!r}".format(key, value))
-    data[key] = value
