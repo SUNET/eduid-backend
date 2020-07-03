@@ -325,7 +325,7 @@ class PrimaryElement(VerifiedElement):
         if key == 'is_verified' and value is False and self.is_primary is True:
             raise PrimaryElementViolation("Can't remove verified status of primary element")
 
-        super().__setattr__(self, key, value)
+        super().__setattr__(key, value)
 
 
 class ElementList(object):

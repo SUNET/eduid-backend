@@ -5,7 +5,7 @@ from unittest import TestCase
 import bson
 
 import eduid_userdb.exceptions
-from eduid_userdb.element import Element, PrimaryElement, VerifiedElement
+from eduid_userdb.element import Element, PrimaryElement, VerifiedElement, PrimaryElementViolation
 from eduid_userdb.exceptions import EduIDUserDBError, UserDBValueError, UserHasUnknownData
 
 
@@ -131,3 +131,77 @@ class TestVerifiedElements(TestCase):
         assert elem.is_verified is True
         assert elem.verified_by == 'test'
         assert elem.verified_ts == now
+
+
+class TestPrimaryElements(TestCase):
+
+    def test_create_primary_element(self):
+        elem = PrimaryElement(created_by='test')
+
+        assert elem.created_by == 'test'
+        assert isinstance(elem.created_ts, datetime)
+        assert isinstance(elem.modified_ts, datetime)
+
+        assert elem.is_verified is False
+        assert elem.verified_by is None
+        assert elem.verified_ts is False
+
+        assert elem.is_primary is False
+
+    def test_modify_primary_element(self):
+        elem = PrimaryElement(created_by='test')
+        now = datetime.utcnow()
+
+        elem.is_verified = True
+        elem.verified_by = 'test'
+        elem.verified_ts = now
+
+        elem.is_primary = True
+
+        assert elem.created_by == 'test'
+        assert isinstance(elem.created_ts, datetime)
+        assert isinstance(elem.modified_ts, datetime)
+
+        assert elem.is_verified is True
+        assert elem.verified_by == 'test'
+        assert elem.verified_ts == now
+
+        assert elem.is_primary is True
+
+    def test_create_full_primary_element(self):
+        now = datetime.utcnow()
+
+        elem = PrimaryElement(
+            created_by='test',
+            created_ts=now,
+            modified_ts=now,
+            is_verified=True,
+            verified_by='test',
+            verified_ts=now,
+            is_primary=True
+        )
+
+        assert elem.created_by == 'test'
+        assert isinstance(elem.created_ts, datetime)
+        assert isinstance(elem.modified_ts, datetime)
+
+        assert elem.is_verified is True
+        assert elem.verified_by == 'test'
+        assert elem.verified_ts == now
+
+        assert elem.is_primary is True
+
+    def test_unverify_primary_element(self):
+        now = datetime.utcnow()
+
+        elem = PrimaryElement(
+            created_by='test',
+            created_ts=now,
+            modified_ts=now,
+            is_verified=True,
+            verified_by='test',
+            verified_ts=now,
+            is_primary=True
+        )
+        with self.assertRaises(PrimaryElementViolation):
+            elem.is_verified = False
