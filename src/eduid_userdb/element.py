@@ -82,10 +82,12 @@ class MetaElement(type):
         Here we modify the construction of the Element class and its subclasses.
 
         We gather the field names marked as immutable in all superclasses
-        and set them in the `immutable` class attr,
-        So that subclasses respect immutability defined in its superclasses.
+        and set them in the `_immutable` class attr,
+        So that subclasses respect immutability defined in their superclasses.
 
-        We do the same for the `ts_fields` and the `str_fields` and the bool_fields
+        We do the same for the `ts_fields` and the `str_fields` and the `bool_fields`,
+        which are used for typing
+        (to raise UserDBValueError when setting a field with a  wrongly typed value)
         """
         elem_class = super().__new__(cls, name, bases, dct)
 
@@ -149,6 +151,7 @@ class Element(metaclass=MetaElement):
     immutable_fields: ClassVar[Tuple[str]] = ('created_ts', 'created_by')
     # In the same vein, mark the timestamp fields so that we can set them as datetime
     # if they are set to bool and still mark them as immutable
+    # Also, if we try to set these fields w/o a datetime or bool value, will raise UserDBValueError
     ts_fields: ClassVar[Tuple[str]] = ('created_ts', 'modified_ts')
     # fields which if we try to set w/o a string value or None, will raise UserDBValueError
     str_fields: ClassVar[Tuple[str]] = ('created_by',)
@@ -156,7 +159,7 @@ class Element(metaclass=MetaElement):
     bool_fields: ClassVar[Tuple[str]] = ()
 
     def __str__(self) -> str:
-        return '<eduID {!s}: {!r}>'.format(self.__class__.__name__, asdict(self))
+        return f'<eduID {self.__class__.__name__}: {asdict(self)}>'
 
     def __post_init__(self):
         for fields in (self._ts_fields, self._str_fields, self._bool_fields):
@@ -168,7 +171,8 @@ class Element(metaclass=MetaElement):
 
     def __setattr__(self, key: str, value: Any):
         """
-        raise UserDBValueError when trying to reset an immutable field
+        raise UserDBValueError when trying to reset an immutable field,
+        or when trying to set a field with a wrongly typed value
         """
         try:
             old_value = getattr(self, key)
@@ -179,29 +183,33 @@ class Element(metaclass=MetaElement):
             # field has already been set
             is_bool_ts = key in self._ts_fields and isinstance(old_value, bool)
             if not is_bool_ts and old_value is not None and key in self._immutable:
-                raise UserDBValueError("Refusing to modify {!r} of element".format(key))
+                raise UserDBValueError(f"Refusing to modify {key} of element")
 
         new_value = self._check_and_process_field(key, value)
 
         object.__setattr__(self, key, new_value)
 
     def _check_and_process_field(self, key: str, value: Any) -> Any:
-
+        """
+        This method does 2 things:
+        * raise UserDBValueError when there is a type error
+        * turn value into datetime.utcnow() if the field is a ts field and the value is True
+        """
         if key in self._ts_fields:
             # initialization of ts fields
             if value is True:
                 value = datetime.datetime.utcnow()
 
             if value is not False and not isinstance(value, datetime.datetime):
-                raise UserDBValueError("Invalid {!r} value: {!r}".format(key, value))
+                raise UserDBValueError(f"Invalid {key} value: {value}")
 
         if key in self._str_fields:
             if value is not None and not isinstance(value, str):
-                raise UserDBValueError("Invalid {!r} value: {!r}".format(key, value))
+                raise UserDBValueError(f"Invalid {key} value: {value}")
 
         if key in self._bool_fields:
             if not isinstance(value, bool):
-                raise UserDBValueError("Invalid {!r} value: {!r}".format(key, value))
+                raise UserDBValueError(f"Invalid {key} value: {value}")
 
         return value
 
@@ -211,7 +219,7 @@ class Element(metaclass=MetaElement):
         Construct element from a data dict.
         """
         if not isinstance(data, dict):
-            raise UserDBValueError("Invalid 'data', not dict ({!r})".format(type(data)))
+            raise UserDBValueError(f"Invalid 'data', not dict ({type(data)})")
 
         created_by = data.pop('created_by', None)
         created_ts = data.pop('created_ts', None)
@@ -225,7 +233,7 @@ class Element(metaclass=MetaElement):
         Element later.
 
         :param old_userdb_format: Set to True to get data back in legacy format.
-        :type old_userdb_format: bool
+                                  This is unused and kept for B/C
         """
         return asdict(self)
 
@@ -263,7 +271,7 @@ class VerifiedElement(Element):
     @classmethod
     def from_dict(cls: Type[TElementSubclass], data: Dict[str, Any]) -> TElementSubclass:
         """
-        Construct element from a data dict.
+        Construct verified element from a data dict.
         """
         self = super().from_dict(data)
         # Remove deprecated verification_code from VerifiedElement
@@ -312,7 +320,7 @@ class PrimaryElement(VerifiedElement):
         leftovers = [x for x in data.keys() if x not in ignore_data]
         if leftovers:
             if raise_on_unknown:
-                raise UserHasUnknownData('{!s} has unknown data: {!r}'.format(self.__class__.__name__, leftovers,))
+                raise UserHasUnknownData(f'{self.__class__.__name__} has unknown data: {leftovers}')
             # Just keep everything that is left as-is
             self._data.update(data)
 
