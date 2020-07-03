@@ -50,6 +50,28 @@ class ScimApiGroup(object):
     def __post_init__(self):
         self.graph = GraphGroup(identifier=str(self.scim_id), display_name=self.display_name)
 
+    @property
+    def members(self) -> List[Union[GraphGroup, GraphUser]]:
+        return self.graph.members
+
+    @members.setter
+    def members(self, members: List[Union[GraphGroup, GraphUser]]):
+        self.graph = replace(self.graph, members=members)
+
+    def add_member(self, member: Union[GraphGroup, GraphUser]) -> None:
+        self.graph.members.append(member)
+
+    @property
+    def owners(self) -> List[Union[GraphGroup, GraphUser]]:
+        return self.graph.owners
+
+    @owners.setter
+    def owners(self, owners: List[Union[GraphGroup, GraphUser]]):
+        self.graph = replace(self.graph, owners=owners)
+
+    def add_owner(self, owner: Union[GraphGroup, GraphUser]) -> None:
+        self.graph.owners.append(owner)
+
     def to_dict(self) -> Dict[str, Any]:
         res = asdict(self)
         res['scim_id'] = str(res['scim_id'])
