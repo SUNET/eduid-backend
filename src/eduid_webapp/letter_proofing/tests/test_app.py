@@ -256,11 +256,10 @@ class LetterProofingTests(EduidAPITestCase):
         # instead of always using get_state() to get a token.
         csrf_token = response1.json['payload']['csrf_token']
         response2 = self.verify_code(proofing_state.nin.verification_code, csrf_token)
-        # TODO: The payload incorrectly contains the NIN from before it was marked as verified.
         self._check_success_response(
             response2,
             type_='POST_LETTER_PROOFING_VERIFY_CODE_SUCCESS',
-            payload={'nins': [{'number': self.test_user_nin, 'primary': False, 'verified': False}],},
+            payload={'nins': [{'number': self.test_user_nin, 'primary': True, 'verified': True}],},
         )
 
         # TODO: When LogElements have working from_dict/to_dict, implement a proofing_log.get_proofings_by_eppn()
