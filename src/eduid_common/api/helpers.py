@@ -146,7 +146,8 @@ def verify_nin_for_user(
         # No primary NIN found, make the only verified NIN primary
         nin_element.is_primary = True
     nin_element.is_verified = True
-    nin_element.verified_ts = True
+    # Ensure matching timestamp in verification log entry, and NIN element on user
+    nin_element.verified_ts = proofing_log_entry.created_ts
     nin_element.verified_by = proofing_state.nin.created_by
 
     # Update users name
