@@ -263,12 +263,20 @@ class LetterProofingTests(EduidAPITestCase):
             payload={'nins': [{'number': self.test_user_nin, 'primary': False, 'verified': False}],},
         )
 
+        # TODO: When LogElements have working from_dict/to_dict, implement a proofing_log.get_proofings_by_eppn()
+        #       and work on the returned LetterProofing instance instead of with a mongo document
+        log_docs = self.app.proofing_log._get_documents_by_attr(
+            'eduPersonPrincipalName', self.test_user_eppn, raise_on_missing=False
+        )
+        assert 1 == len(log_docs)
+
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         self.assertEqual(user.nins.primary.number, self.test_user_nin)
+        self.assertEqual(user.nins.primary.number, proofing_state.nin.number)
         self.assertEqual(user.nins.primary.created_by, proofing_state.nin.created_by)
         self.assertEqual(user.nins.primary.verified_by, proofing_state.nin.created_by)
+        self.assertEqual(user.nins.primary.verified_ts, log_docs[0]['created_ts'])
         self.assertEqual(user.nins.primary.is_verified, True)
-        self.assertEqual(self.app.proofing_log.db_count(), 1)
 
     def test_verify_letter_code_bad_csrf(self):
         self.send_letter(self.test_user_nin)
