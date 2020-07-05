@@ -3,11 +3,6 @@ from typing import Any, Dict
 
 from mock import MagicMock, patch
 
-from eduid_common.api.app import EduIDBaseApp
-from eduid_common.api.helpers import add_nin_to_user, set_user_names_from_offical_address, verify_nin_for_user
-from eduid_common.api.testing import EduidAPITestCase, normalised_data
-from eduid_common.config.base import FlaskConfig
-from eduid_common.session.eduid_session import SessionFactory
 from eduid_userdb.exceptions import UserDoesNotExist
 from eduid_userdb.fixtures.users import new_user_example
 from eduid_userdb.logs import ProofingLog
@@ -16,6 +11,12 @@ from eduid_userdb.nin import Nin
 from eduid_userdb.proofing import LetterProofingStateDB, LetterProofingUserDB, NinProofingElement, ProofingUser
 from eduid_userdb.proofing.state import NinProofingState
 from eduid_userdb.user import User
+
+from eduid_common.api.app import EduIDBaseApp
+from eduid_common.api.helpers import add_nin_to_user, set_user_names_from_offical_address, verify_nin_for_user
+from eduid_common.api.testing import EduidAPITestCase, normalised_data
+from eduid_common.config.base import FlaskConfig
+from eduid_common.session.eduid_session import SessionFactory
 
 __author__ = 'lundberg'
 
