@@ -42,7 +42,7 @@ def token_verify_action(session_info: Mapping[str, Any], user: User) -> Werkzeug
     :param session_info: the SAML session info
     :param user: Central db user
 
-     :return: redirect response
+    :return: redirect response
     """
     redirect_url = current_app.config.token_verify_redirect_url
 
