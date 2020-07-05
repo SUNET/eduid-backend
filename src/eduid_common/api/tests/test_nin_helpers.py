@@ -1,8 +1,13 @@
 # -*- coding: utf-8 -*-
 from typing import Any, Dict
 
-from mock import patch
+from mock import MagicMock, patch
 
+from eduid_common.api.app import EduIDBaseApp
+from eduid_common.api.helpers import add_nin_to_user, set_user_names_from_offical_address, verify_nin_for_user
+from eduid_common.api.testing import EduidAPITestCase, normalised_data
+from eduid_common.config.base import FlaskConfig
+from eduid_common.session.eduid_session import SessionFactory
 from eduid_userdb.exceptions import UserDoesNotExist
 from eduid_userdb.fixtures.users import new_user_example
 from eduid_userdb.logs import ProofingLog
@@ -11,13 +16,6 @@ from eduid_userdb.nin import Nin
 from eduid_userdb.proofing import LetterProofingStateDB, LetterProofingUserDB, NinProofingElement, ProofingUser
 from eduid_userdb.proofing.state import NinProofingState
 from eduid_userdb.user import User
-
-from eduid_common.api import am, msg
-from eduid_common.api.app import EduIDBaseApp
-from eduid_common.api.helpers import add_nin_to_user, set_user_names_from_offical_address, verify_nin_for_user
-from eduid_common.api.testing import EduidAPITestCase, normalised_data
-from eduid_common.config.base import FlaskConfig
-from eduid_common.session.eduid_session import SessionFactory
 
 __author__ = 'lundberg'
 
@@ -32,8 +30,7 @@ class HelpersTestApp(EduIDBaseApp):
         self.proofing_statedb = LetterProofingStateDB(self.config.mongo_uri)
         self.proofing_log = ProofingLog(self.config.mongo_uri)
         # Init celery
-        msg.init_relay(self)
-        am.init_relay(self, 'eduid_letter_proofing')
+        self.am_relay = MagicMock()
 
 
 class NinHelpersTest(EduidAPITestCase):
