@@ -39,7 +39,8 @@ import sys
 import traceback
 from contextlib import contextmanager
 from copy import deepcopy
-from typing import Any, Dict, List, Mapping, Optional
+from datetime import datetime
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
 
 from flask import Response
 from flask.testing import FlaskClient
@@ -189,10 +190,9 @@ class EduidAPITestCase(CommonTestCase):
         This is so we can set  the test configuration in environment variables
         before the flask app loads its config from a file.
         """
-        msg = (
-            'Classes extending EduidAPITestCase must provide a method ' 'where they import the flask app and return it.'
+        raise NotImplementedError(
+            'Classes extending EduidAPITestCase must provide a method where they import the flask app and return it.'
         )
-        raise NotImplementedError(msg)
 
     def update_config(self, config):
         """
@@ -372,3 +372,26 @@ class CSRFTestClient(FlaskClient):
         """
         with super().session_transaction(*args, **kwargs) as sess:  # type: ignore
             yield sess
+
+
+def normalised_data(
+    data: Union[Mapping[str, Any], Sequence[Mapping[str, Any]]]
+) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+    """ Utility function for normalising dicts (or list of dicts) before comparisons in test cases. """
+    if isinstance(data, list):
+        # Recurse into lists of dicts. mypy (correctly) says this recursion can in fact happen
+        # more than once, so the result can be a list of list of dicts or whatever, but the return
+        # type becomes too bloated with that in mind and the code becomes too inelegant when unrolling
+        # this list comprehension into a for-loop checking types for something only intended to be used in test cases.
+        # Hence the type: ignore.
+        return [normalised_data(x) for x in data if isinstance(x, dict)]  # type: ignore
+    elif isinstance(data, dict):
+        # normalise all values found in the dict, returning a new dict (to not modify callers data)
+        return {k: _normalise_datetime(v) for k, v in data.items()}
+    raise TypeError('normalised_data not called on dict (or list of dicts)')
+
+
+def _normalise_datetime(data):
+    if isinstance(data, datetime):
+        return data.replace(microsecond=0, tzinfo=None)
+    return data
