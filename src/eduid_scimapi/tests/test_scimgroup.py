@@ -12,6 +12,7 @@ from marshmallow_dataclass import class_schema
 
 from eduid_graphdb.groupdb import Group as GraphGroup
 from eduid_graphdb.groupdb import User as GraphUser
+
 from eduid_scimapi.group import GroupMember, GroupResponse
 from eduid_scimapi.groupdb import GroupExtensions, ScimApiGroup
 from eduid_scimapi.scimbase import Meta, SCIMResourceType, SCIMSchema, make_etag

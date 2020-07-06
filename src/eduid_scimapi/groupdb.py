@@ -6,7 +6,7 @@ import pprint
 import uuid
 from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime
-from typing import Any, Dict, List, Mapping, Optional, Tuple, Type, Union
+from typing import Any, Dict, List, Mapping, Optional, Set, Tuple, Type, Union
 from uuid import UUID
 
 from bson import ObjectId
@@ -19,7 +19,6 @@ from eduid_scimapi.basedb import ScimApiBaseDB
 from eduid_scimapi.group import Group as SCIMGroup
 
 __author__ = 'lundberg'
-
 
 logger = logging.getLogger(__name__)
 
@@ -51,26 +50,26 @@ class ScimApiGroup(object):
         self.graph = GraphGroup(identifier=str(self.scim_id), display_name=self.display_name)
 
     @property
-    def members(self) -> List[Union[GraphGroup, GraphUser]]:
+    def members(self) -> Set[Union[GraphGroup, GraphUser]]:
         return self.graph.members
 
     @members.setter
-    def members(self, members: List[Union[GraphGroup, GraphUser]]):
+    def members(self, members: Set[Union[GraphGroup, GraphUser]]):
         self.graph = replace(self.graph, members=members)
 
     def add_member(self, member: Union[GraphGroup, GraphUser]) -> None:
-        self.graph.members.append(member)
+        self.graph.members.add(member)
 
     @property
-    def owners(self) -> List[Union[GraphGroup, GraphUser]]:
+    def owners(self) -> Set[Union[GraphGroup, GraphUser]]:
         return self.graph.owners
 
     @owners.setter
-    def owners(self, owners: List[Union[GraphGroup, GraphUser]]):
+    def owners(self, owners: Set[Union[GraphGroup, GraphUser]]):
         self.graph = replace(self.graph, owners=owners)
 
     def add_owner(self, owner: Union[GraphGroup, GraphUser]) -> None:
-        self.graph.owners.append(owner)
+        self.graph.owners.add(owner)
 
     def to_dict(self) -> Dict[str, Any]:
         res = asdict(self)
@@ -145,7 +144,7 @@ class ScimApiGroupDB(ScimApiBaseDB):
 
     def update_group(self, scim_group: SCIMGroup, db_group: ScimApiGroup) -> ScimApiGroup:
         changed = False
-        updated_members = []
+        updated_members = set()
         logger.info(f'Updating group {str(db_group.scim_id)}')
         for this in scim_group.members:
             if this.is_user:
@@ -159,16 +158,16 @@ class ScimApiGroupDB(ScimApiBaseDB):
 
             # Add a new member
             if _new_member:
-                updated_members.append(_new_member)
+                updated_members.add(_new_member)
                 logger.debug(f'Added new member: {_new_member}')
             # Update member attributes if they changed
             elif _member.display_name != this.display:
                 logger.debug(f'Changed display name for existing member: {_member.display_name} -> {this.display}')
                 _member = replace(_member, display_name=this.display)
-                updated_members.append(_member)
+                updated_members.add(_member)
             else:
                 # no change, retain member as-is
-                updated_members.append(_member)
+                updated_members.add(_member)
 
         if db_group.graph.display_name != scim_group.display_name:
             changed = True
@@ -176,7 +175,7 @@ class ScimApiGroupDB(ScimApiBaseDB):
             db_group.graph = replace(db_group.graph, display_name=scim_group.display_name)
 
         # Check if there where new, changed or removed members
-        if set(db_group.graph.members) != set(updated_members):
+        if db_group.graph.members != updated_members:
             changed = True
             logger.debug(f'Old members: {db_group.graph.members}')
             logger.debug(f'New members: {updated_members}')
