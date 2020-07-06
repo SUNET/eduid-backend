@@ -364,8 +364,7 @@ class GroupDB(BaseGraphDB):
                 else:
                     logger.error('Group save error: ROLLING BACK')
                 tx.close()
-        saved_group = replace(saved_group, members=saved_members)
-        saved_group = replace(saved_group, owners=saved_owners)
+        saved_group = replace(saved_group, members=saved_members, owners=saved_owners)
         return saved_group
 
     def _load_node(self, data: Dict) -> Union[User, Group]:
