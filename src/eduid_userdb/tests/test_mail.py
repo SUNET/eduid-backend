@@ -164,11 +164,6 @@ class TestMailAddress(TestCase):
         address = self.two.primary
         self.assertEqual(address.key, address.email)
 
-    def test_setting_invalid_mail(self):
-        this = self.one.primary
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.email = None
-
     def test_parse_cycle(self):
         """
         Tests that we output something we parsed back into the same thing we output.
@@ -176,11 +171,6 @@ class TestMailAddress(TestCase):
         for this in [self.one, self.two, self.three]:
             this_dict = this.to_list_of_dicts()
             self.assertEqual(MailAddressList(this_dict).to_list_of_dicts(), this.to_list_of_dicts())
-
-    def test_bad_is_primary(self):
-        this = self.one.to_list()[0]
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.is_primary = 'foo'
 
     def test_unknown_input_data(self):
         one = copy.deepcopy(_one_dict)
@@ -206,25 +196,16 @@ class TestMailAddress(TestCase):
         this.is_verified = False  # was False already
         this.is_verified = True
 
-    def test_setting_invalid_is_verified(self):
-        this = self.three.find('ft@three.example.org')
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.is_verified = 1
-
     def test_verified_by(self):
         this = self.three.find('ft@three.example.org')
         this.verified_by = 'unit test'
         self.assertEqual(this.verified_by, 'unit test')
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.verified_by = False
 
     def test_modify_verified_by(self):
         this = self.three.find('ft@three.example.org')
         this.verified_by = 'unit test'
         this.verified_by = None
         self.assertEqual(this.verified_by, 'unit test')
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.verified_by = False
         this.verified_by = 'test unit'
         self.assertEqual(this.verified_by, 'test unit')
 
@@ -232,15 +213,11 @@ class TestMailAddress(TestCase):
         this = self.three.find('ft@three.example.org')
         this.verified_ts = True
         self.assertIsInstance(this.verified_ts, datetime.datetime)
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.verified_ts = False
 
     def test_modify_verified_ts(self):
         this = self.three.find('ft@three.example.org')
         now = datetime.datetime.utcnow()
         this.verified_ts = now
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.verified_ts = 'not a datetime'
         this.verified_ts = True
         self.assertGreater(this.verified_ts, now)
         this.verified_ts = now
@@ -250,30 +227,8 @@ class TestMailAddress(TestCase):
         this = self.three.find('ft@three.example.org')
         this.created_by = 'unit test'
         self.assertEqual(this.created_by, 'unit test')
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.created_by = False
-
-    def test_modify_created_by(self):
-        this = self.three.find('ft@three.example.org')
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.created_by = 1
-        this.created_by = 'unit test'
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.created_by = None
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.created_by = 'test unit'
 
     def test_created_ts(self):
         this = self.three.find('ft@three.example.org')
         this.created_ts = True
         self.assertIsInstance(this.created_ts, datetime.datetime)
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.created_ts = False
-
-    def test_modify_created_ts(self):
-        this = self.three.find('ft@three.example.org')
-        this.created_ts = datetime.datetime.utcnow()
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.created_ts = None
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.created_ts = True

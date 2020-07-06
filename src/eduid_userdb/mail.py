@@ -34,6 +34,7 @@
 from __future__ import annotations
 
 import copy
+from dataclasses import dataclass, asdict
 from datetime import datetime
 from typing import Any, Dict, Optional, Type, Union
 
@@ -45,6 +46,7 @@ from eduid_userdb.exceptions import UserDBValueError
 __author__ = 'ft'
 
 
+@dataclass
 class MailAddress(PrimaryElement):
     """
     :param data: Mail address parameters from database
@@ -53,19 +55,7 @@ class MailAddress(PrimaryElement):
     :type data: dict
     :type raise_on_unknown: bool
     """
-
-    def __init__(
-        self,
-        email: Optional[str] = None,
-        application: Optional[str] = None,
-        verified: bool = False,
-        created_ts: Optional[Union[datetime, bool]] = None,
-        primary: bool = False,
-        data: Optional[Dict[str, Any]] = None,
-        raise_on_unknown: bool = True,
-        called_directly: bool = True,
-    ):
-        raise NotImplementedError()
+    email: Optional[str] = None
 
     @classmethod
     def from_dict(
@@ -94,36 +84,6 @@ class MailAddress(PrimaryElement):
 
         return self
 
-    # -----------------------------------------------------------------
-    @property
-    def key(self):
-        """
-        Return the element that is used as key for e-mail addresses in a PrimaryElementList.
-        """
-        return self.email
-
-    # -----------------------------------------------------------------
-    @property
-    def email(self):
-        """
-        This is the e-mail address.
-
-        :return: E-mail address.
-        :rtype: str
-        """
-        return self._data['email']
-
-    @email.setter
-    def email(self, value):
-        """
-        :param value: e-mail address.
-        :type value: str | unicode
-        """
-        if not isinstance(value, string_types):
-            raise UserDBValueError("Invalid 'email': {!r}".format(value))
-        self._data['email'] = str(value.lower())
-
-    # -----------------------------------------------------------------
     def to_dict(self, old_userdb_format=False):
         """
         Convert Element to a dict, that can be used to reconstruct the
@@ -132,14 +92,22 @@ class MailAddress(PrimaryElement):
         :param old_userdb_format: Set to True to get data back in legacy format.
         :type old_userdb_format: bool
         """
-        if not old_userdb_format:
-            return self._data
-        old = copy.copy(self._data)
-        # XXX created_ts -> added_timestamp
-        if 'created_ts' in old:
-            old['added_timestamp'] = old.pop('created_ts')
-        del old['primary']
-        return old
+        data = asdict(self)
+        if old_userdb_format:
+            # XXX created_ts -> added_timestamp
+            if 'created_ts' in data:
+                data['added_timestamp'] = data.pop('created_ts')
+            del data['primary']
+
+        return data
+
+    # -----------------------------------------------------------------
+    @property
+    def key(self):
+        """
+        Return the element that is used as key for e-mail addresses in a PrimaryElementList.
+        """
+        return self.email
 
 
 class MailAddressList(PrimaryElementList):

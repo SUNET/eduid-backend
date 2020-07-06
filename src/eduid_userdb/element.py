@@ -224,8 +224,6 @@ class PrimaryElement(VerifiedElement):
         if leftovers:
             if raise_on_unknown:
                 raise UserHasUnknownData(f'{self.__class__.__name__} has unknown data: {leftovers}')
-            # Just keep everything that is left as-is
-            self._data.update(data)
 
         return self
 
