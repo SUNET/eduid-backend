@@ -69,11 +69,11 @@ def accept_group_invitation(scim_user: ScimApiUser, scim_group: ScimApiGroup, in
     modified = False
     if invite.role == GroupRole.OWNER:
         if not is_owner(scim_user, scim_group.scim_id):
-            scim_group.graph.owners.append(graph_user)
+            scim_group.add_owner(graph_user)
             modified = True
     elif invite.role == GroupRole.MEMBER:
         if not is_member(scim_user, scim_group.scim_id):
-            scim_group.graph.members.append(graph_user)
+            scim_group.add_member(graph_user)
             modified = True
     else:
         raise NotImplementedError(f'Unknown role: {invite.role}')
