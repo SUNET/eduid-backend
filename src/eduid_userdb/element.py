@@ -85,16 +85,13 @@ class MetaElement(type):
         and set them in the `_immutable` class attr,
         So that subclasses respect immutability defined in their superclasses.
 
-        We do the same for the `ts_fields` and the `str_fields` and the `bool_fields`,
-        which are used for typing
-        (to raise UserDBValueError when setting a field with a  wrongly typed value)
+        We do the same for the `ts_fields`, some of which have a special kind of mutability
+        (they are mutable is set with a bool and immutable if set with a datetime).
         """
         elem_class = super().__new__(cls, name, bases, dct)
 
         immutable = ()
         ts_fields = ()
-        str_fields = ()
-        bool_fields = ()
 
         for cls in elem_class.__mro__:
 
@@ -104,16 +101,8 @@ class MetaElement(type):
             if hasattr(cls, 'ts_fields'):
                 ts_fields += cls.ts_fields
 
-            if hasattr(cls, 'str_fields'):
-                str_fields += cls.str_fields
-
-            if hasattr(cls, 'bool_fields'):
-                bool_fields += cls.bool_fields
-
         elem_class._immutable = tuple(set(immutable))
         elem_class._ts_fields = tuple(set(ts_fields))
-        elem_class._str_fields = tuple(set(str_fields))
-        elem_class._bool_fields = tuple(set(bool_fields))
 
         return elem_class
 
@@ -151,23 +140,17 @@ class Element(metaclass=MetaElement):
     immutable_fields: ClassVar[Tuple[str]] = ('created_ts', 'created_by')
     # In the same vein, mark the timestamp fields so that we can set them as datetime
     # if they are set to bool and still mark them as immutable
-    # Also, if we try to set these fields w/o a datetime or bool value, will raise UserDBValueError
     ts_fields: ClassVar[Tuple[str]] = ('created_ts', 'modified_ts')
-    # fields which if we try to set w/o a string value or None, will raise UserDBValueError
-    str_fields: ClassVar[Tuple[str]] = ('created_by',)
-    # fields which if we try to set w/o a bool value, will raise UserDBValueError
-    bool_fields: ClassVar[Tuple[str]] = ()
 
     def __str__(self) -> str:
         return f'<eduID {self.__class__.__name__}: {asdict(self)}>'
 
     def __post_init__(self):
-        for fields in (self._ts_fields, self._str_fields, self._bool_fields):
-            for key in fields:
-                old_value = getattr(self, key)
-                value = self._check_and_process_field(key, old_value)
+        for key in self._ts_fields:
+            old_value = getattr(self, key)
+            value = self._check_boolean_ts(key, old_value)
 
-                object.__setattr__(self, key, value)
+            object.__setattr__(self, key, value)
 
     def __setattr__(self, key: str, value: Any):
         """
@@ -185,11 +168,11 @@ class Element(metaclass=MetaElement):
             if not is_bool_ts and old_value is not None and key in self._immutable:
                 raise UserDBValueError(f"Refusing to modify {key} of element")
 
-        new_value = self._check_and_process_field(key, value)
+        new_value = self._check_boolean_ts(key, value)
 
         object.__setattr__(self, key, new_value)
 
-    def _check_and_process_field(self, key: str, value: Any) -> Any:
+    def _check_boolean_ts(self, key: str, value: Any) -> Any:
         """
         This method does 2 things:
         * raise UserDBValueError when there is a type error
@@ -199,17 +182,6 @@ class Element(metaclass=MetaElement):
             # initialization of ts fields
             if value is True:
                 value = datetime.datetime.utcnow()
-
-            if value is not False and not isinstance(value, datetime.datetime):
-                raise UserDBValueError(f"Invalid {key} value: {value}")
-
-        if key in self._str_fields:
-            if value is not None and not isinstance(value, str):
-                raise UserDBValueError(f"Invalid {key} value: {value}")
-
-        if key in self._bool_fields:
-            if not isinstance(value, bool):
-                raise UserDBValueError(f"Invalid {key} value: {value}")
 
         return value
 
