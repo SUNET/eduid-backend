@@ -56,23 +56,6 @@ class TestElements(TestCase):
         assert elem.created_ts == now
         assert elem.modified_ts == now
 
-    def test_element_reset_created_ts(self):
-        now = datetime.utcnow()
-        elem = Element(created_by='test', modified_ts=now, created_ts=now)
-
-        with self.assertRaises(UserDBValueError):
-            elem.created_ts = True
-
-        with self.assertRaises(UserDBValueError):
-            elem.created_ts = datetime.utcnow()
-
-    def test_element_reset_created_by(self):
-        now = datetime.utcnow()
-        elem = Element(created_by='test', modified_ts=now, created_ts=now)
-
-        with self.assertRaises(UserDBValueError):
-            elem.created_by = 'new'
-
     def test_element_reset_modified_ts(self):
         now = datetime.utcnow()
         elem = Element(created_by='test', modified_ts=now, created_ts=now)

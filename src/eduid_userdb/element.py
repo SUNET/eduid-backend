@@ -33,10 +33,8 @@
 #
 import copy
 import datetime
-from dataclasses import dataclass, field, asdict
-from typing import Any, ClassVar, Dict, List, Optional, Type, TypeVar, Tuple, Union
-
-from six import string_types
+from dataclasses import dataclass, asdict
+from typing import Any, Dict, List, Optional, Type, TypeVar, Union
 
 from eduid_userdb.exceptions import EduIDUserDBError, UserDBValueError, UserHasUnknownData
 
@@ -76,42 +74,11 @@ class PrimaryElementViolation(PrimaryElementError):
     pass
 
 
-class MetaElement(type):
-    def __new__(cls, name: str, bases: tuple, dct: dict):
-        """
-        Here we modify the construction of the Element class and its subclasses.
-
-        We gather the field names marked as immutable in all superclasses
-        and set them in the `_immutable` class attr,
-        So that subclasses respect immutability defined in their superclasses.
-
-        We do the same for the `ts_fields`, some of which have a special kind of mutability
-        (they are mutable is set with a bool and immutable if set with a datetime).
-        """
-        elem_class = super().__new__(cls, name, bases, dct)
-
-        immutable = ()
-        ts_fields = ()
-
-        for cls in elem_class.__mro__:
-
-            if hasattr(cls, 'immutable_fields'):
-                immutable += cls.immutable_fields
-
-            if hasattr(cls, 'ts_fields'):
-                ts_fields += cls.ts_fields
-
-        elem_class._immutable = tuple(set(immutable))
-        elem_class._ts_fields = tuple(set(ts_fields))
-
-        return elem_class
-
-
 TElementSubclass = TypeVar('TElementSubclass', bound='Element')
 
 
 @dataclass
-class Element(metaclass=MetaElement):
+class Element:
     """
     Base class for elements.
 
@@ -132,45 +99,17 @@ class Element(metaclass=MetaElement):
     created_ts: Union[datetime.datetime, bool] = True
     modified_ts: Union[datetime.datetime, bool] = True
 
-    # The attributes below are class attributes, typed as ClassVar's
-    # and the dataclass machinery ignores them
-
-    # Child classes of Element can mark fields as immutable
-    # in a class attribute `immutable_fileds`
-    immutable_fields: ClassVar[Tuple[str]] = ('created_ts', 'created_by')
-    # In the same vein, mark the timestamp fields so that we can set them as datetime
-    # if they are set to bool and still mark them as immutable
-    ts_fields: ClassVar[Tuple[str]] = ('created_ts', 'modified_ts')
-
     def __str__(self) -> str:
         return f'<eduID {self.__class__.__name__}: {asdict(self)}>'
-
-    def __post_init__(self):
-        for key in self._ts_fields:
-            old_value = getattr(self, key)
-            value = self._check_boolean_ts(key, old_value)
-
-            object.__setattr__(self, key, value)
 
     def __setattr__(self, key: str, value: Any):
         """
         raise UserDBValueError when trying to reset an immutable field,
         or when trying to set a field with a wrongly typed value
         """
-        try:
-            old_value = getattr(self, key)
-        except AttributeError:
-            # field has never been set, we set it unconditionally
-            pass
-        else:
-            # field has already been set
-            is_bool_ts = key in self._ts_fields and isinstance(old_value, bool)
-            if not is_bool_ts and old_value is not None and key in self._immutable:
-                raise UserDBValueError(f"Refusing to modify {key} of element")
-
         new_value = self._check_boolean_ts(key, value)
 
-        object.__setattr__(self, key, new_value)
+        super().__setattr__(key, new_value)
 
     def _check_boolean_ts(self, key: str, value: Any) -> Any:
         """
@@ -178,7 +117,7 @@ class Element(metaclass=MetaElement):
         * raise UserDBValueError when there is a type error
         * turn value into datetime.utcnow() if the field is a ts field and the value is True
         """
-        if key in self._ts_fields:
+        if key.endswith('_ts'):
             # initialization of ts fields
             if value is True:
                 value = datetime.datetime.utcnow()
@@ -233,8 +172,6 @@ class VerifiedElement(Element):
     is_verified: bool = False
     verified_by: Optional[str] = None
     verified_ts: Union[datetime.datetime, bool] = False
-
-    ts_fields: ClassVar[Tuple[str]] = ('verified_ts',)
 
     @classmethod
     def from_dict(cls: Type[TElementSubclass], data: Dict[str, Any]) -> TElementSubclass:
