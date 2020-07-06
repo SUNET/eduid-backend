@@ -6,7 +6,7 @@ import bson
 
 import eduid_userdb.element
 import eduid_userdb.exceptions
-from eduid_userdb.credentials import Password
+from eduid_userdb.element import Element
 from eduid_userdb.event import EventList
 from eduid_userdb.tou import ToUEvent, ToUList
 
@@ -62,6 +62,7 @@ class TestEventList(TestCase):
 
         _one_dict_copy = deepcopy(_one_dict)  # Update id to event_id before comparing dicts
         _one_dict_copy['event_id'] = _one_dict_copy.pop('id')
+        _one_dict_copy['data'] = None
         self.assertEqual([_one_dict_copy], self.one.to_list_of_dicts(mixed_format=True))
 
     def test_find(self):
@@ -93,11 +94,10 @@ class TestEventList(TestCase):
         self.assertEqual(this.to_list_of_dicts(), self.three.to_list_of_dicts())
 
     def test_add_wrong_type(self):
-        pwdict = {
+        elemdict = {
             'id': bson.ObjectId(),
-            'salt': 'foo',
         }
-        new = Password.from_dict(pwdict)
+        new = Element.from_dict(elemdict)
         with self.assertRaises(eduid_userdb.element.UserDBValueError):
             self.one.add(new)
 

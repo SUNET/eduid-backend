@@ -35,8 +35,8 @@
 from __future__ import annotations
 
 import copy
-from datetime import datetime
-from typing import Any, Dict, List, Optional, Type, Union
+from dataclasses import dataclass, asdict
+from typing import Any, Dict, List, Optional, Type
 
 from bson import ObjectId
 
@@ -51,26 +51,16 @@ class EventId(ObjectId):
     pass
 
 
+@dataclass
 class Event(Element):
     """
     :param data: Event parameters from database
 
     :type data: dict
     """
-
-    def __init__(
-        self,
-        application: Optional[str] = None,
-        created_ts: Optional[Union[datetime, bool]] = None,
-        modified_ts: Optional[Union[datetime, bool]] = None,
-        data: Optional[Dict[str, Any]] = None,
-        event_type: Optional[str] = None,
-        event_id: Optional[str] = None,
-        raise_on_unknown: bool = True,
-        called_directly: bool = True,
-        ignore_data: Optional[List[str]] = None,
-    ):
-        raise NotImplementedError()
+    data: Optional[Dict[str, Any]] = None
+    event_type: Optional[str] = None
+    event_id: Optional[str] = None
 
     @classmethod
     def from_dict(cls: Type[Event], data: Dict[str, Any], raise_on_unknown: bool = True, ignore_data: Optional[List[str]] = None) -> Event:
@@ -101,53 +91,25 @@ class Event(Element):
         if leftovers:
             if raise_on_unknown:
                 raise EventHasUnknownData('Event {!r} unknown data: {!r}'.format(self.event_id, leftovers,))
-            # Just keep everything that is left as-is
-            self._data.update(data)
 
         return self
 
-    # -----------------------------------------------------------------
-    @property
-    def key(self) -> EventId:
-        """ Return the element that is used as key for events in an ElementList. """
-        return EventId(self.event_id)
-
-    # -----------------------------------------------------------------
-    @property
-    def event_type(self) -> str:
-        """ This is the event type. """
-        return self._data['event_type']
-
-    @event_type.setter
-    def event_type(self, value: str):
-        if value is None:
-            return
-        if not isinstance(value, str):
-            raise UserDBValueError("Invalid 'event_type': {!r}".format(value))
-        self._data['event_type'] = str(value.lower())
-
-    @property
-    def event_id(self) -> EventId:
-        """ This is a unique id for this event. """
-        return self._data['event_id']
-
-    @event_id.setter
-    def event_id(self, value: EventId):
-        if not isinstance(value, ObjectId):
-            raise UserDBValueError("Invalid 'event_id': {!r}".format(value))
-        self._data['event_id'] = value
-
-    # -----------------------------------------------------------------
     def to_dict(self, mixed_format: bool = False) -> Dict[str, Any]:
         """
         Convert Element to a dict, that can be used to reconstruct the Element later.
 
         :param mixed_format: Tag each Event with the event_type. Used when list has multiple types of events.
         """
-        res = copy.copy(self._data)  # avoid caller messing with our _data
+        res = asdict(self)
         if not mixed_format and 'event_type' in res:
             del res['event_type']
         return res
+
+    # -----------------------------------------------------------------
+    @property
+    def key(self) -> EventId:
+        """ Return the element that is used as key for events in an ElementList. """
+        return EventId(self.event_id)
 
 
 class EventList(ElementList):

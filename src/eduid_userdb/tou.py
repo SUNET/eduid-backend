@@ -35,32 +35,22 @@
 from __future__ import annotations
 
 import copy
+from dataclasses import dataclass
 import datetime
-from typing import Any, Dict, List, Optional, Type, Union
-
-from six import string_types
+from typing import Any, ClassVar, Dict, List, Optional, Tuple, Type
 
 from eduid_userdb.event import Event, EventList
 from eduid_userdb.exceptions import BadEvent, EduIDUserDBError, UserDBValueError
 
 
+@dataclass
 class ToUEvent(Event):
     """
     A record of a user's acceptance of a particular version of the Terms of Use.
     """
+    version: Optional[str] = None
 
-    def __init__(
-        self,
-        version: Optional[str] = None,
-        application: Optional[str] = None,
-        created_ts: Optional[Union[datetime.datetime, bool]] = None,
-        modified_ts: Optional[Union[datetime.datetime, bool]] = None,
-        event_id: Optional[str] = None,
-        data: Optional[Dict[str, Any]] = None,
-        raise_on_unknown: bool = True,
-        called_directly: bool = True,
-    ):
-        raise NotImplementedError()
+    immutable_fields: ClassVar[Tuple[str]] = ('version',)
 
     @classmethod
     def from_dict(cls: Type[ToUEvent], data: Dict[str, Any], raise_on_unknown: bool = True) -> ToUEvent:
@@ -82,28 +72,6 @@ class ToUEvent(Event):
 
         return self
 
-    # -----------------------------------------------------------------
-    @property
-    def version(self):
-        """
-        This is the version of the ToU that was accepted.
-
-        :return: ToU version.
-        :rtype: string_types
-        """
-        return self._data['version']
-
-    @version.setter
-    def version(self, value):
-        """
-        :param value: Unique ID of event.
-        :type value: bson.ObjectId | string_types
-        """
-        if not isinstance(value, str) and not isinstance(value, string_types):
-            raise BadEvent("Invalid tou_event 'version': {!r}".format(value))
-        self._data['version'] = value
-
-    # -----------------------------------------------------------------
     def is_expired(self, interval_seconds: int) -> bool:
         """
         Check whether the ToU event needs to be reaccepted.
