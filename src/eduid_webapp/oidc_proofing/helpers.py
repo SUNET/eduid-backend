@@ -4,6 +4,7 @@ from __future__ import absolute_import
 import json
 from datetime import datetime, timedelta
 from enum import unique
+from typing import Any, Mapping
 
 import requests
 from flask import render_template
@@ -13,7 +14,7 @@ from eduid_common.api.helpers import number_match_proofing, verify_nin_for_user
 from eduid_common.api.messages import TranslatableMsg
 from eduid_common.api.utils import get_unique_hash
 from eduid_userdb.logs import SeLegProofing, SeLegProofingFrejaEid
-from eduid_userdb.proofing import OidcProofingState
+from eduid_userdb.proofing import OidcProofingState, ProofingUser
 from eduid_userdb.proofing.element import NinProofingElement
 
 from eduid_webapp.oidc_proofing.app import current_oidcp_app as current_app
@@ -160,16 +161,12 @@ def send_new_verification_method_mail(user):
     current_app.logger.info('Sent email to user {} requesting another vetting method'.format(user))
 
 
-def handle_seleg_userinfo(user, proofing_state, userinfo):
+def handle_seleg_userinfo(user: ProofingUser, proofing_state: OidcProofingState, userinfo: Mapping[str, Any]) -> None:
     """
     :param user: Central userdb user
     :param proofing_state: Proofing state for user
     :param userinfo: userinfo from OP
 
-    :type user: eduid_userdb.user.User
-    :type proofing_state: eduid_userdb.proofing.OidcProofingState
-
-    :type userinfo: dict
     :return: None
     """
     current_app.logger.info('Verifying NIN from seleg for user {}'.format(user))
@@ -178,7 +175,7 @@ def handle_seleg_userinfo(user, proofing_state, userinfo):
     if metadata.get('score', 0) == 100:
         if not number_match_proofing(user, proofing_state, number):
             current_app.logger.warning(
-                'Proofing state number did not match number in userinfo.' 'Using number from userinfo.'
+                'Proofing state number did not match number in userinfo. Using number from userinfo.'
             )
             proofing_state.nin.number = number
         current_app.logger.info('Getting address for user {}'.format(user))
