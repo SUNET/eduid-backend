@@ -37,7 +37,7 @@ from __future__ import annotations
 import copy
 from dataclasses import dataclass
 import datetime
-from typing import Any, ClassVar, Dict, List, Optional, Tuple, Type
+from typing import Any, Dict, List, Optional, Type
 
 from eduid_userdb.event import Event, EventList
 from eduid_userdb.exceptions import BadEvent, EduIDUserDBError, UserDBValueError
@@ -49,8 +49,6 @@ class ToUEvent(Event):
     A record of a user's acceptance of a particular version of the Terms of Use.
     """
     version: Optional[str] = None
-
-    immutable_fields: ClassVar[Tuple[str]] = ('version',)
 
     @classmethod
     def from_dict(cls: Type[ToUEvent], data: Dict[str, Any], raise_on_unknown: bool = True) -> ToUEvent:
