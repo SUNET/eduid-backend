@@ -159,10 +159,9 @@ def verify_nin_for_user(
         return False
 
     current_app.logger.info('Recorded verification for {} in the proofing log'.format(proofing_user))
-    # User from central db is as up to date as it can be no need to check for modified time
-    proofing_user.modified_ts = True
+
     # Save user to private db
-    current_app.private_userdb.save(proofing_user, check_sync=False)
+    current_app.private_userdb.save(proofing_user)
 
     # Ask am to sync user to central db
     current_app.logger.info('Request sync for user {!s}'.format(user))
