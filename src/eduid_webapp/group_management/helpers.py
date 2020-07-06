@@ -90,13 +90,13 @@ def remove_user_from_group(scim_user: ScimApiUser, scim_group: ScimApiGroup, rol
     modified = False
     if role == GroupRole.OWNER:
         if is_owner(scim_user, scim_group.scim_id):
-            scim_group.owners = [owner for owner in scim_group.owners if owner.identifier != str(scim_user.scim_id)]
+            scim_group.owners = set([owner for owner in scim_group.owners if owner.identifier != str(scim_user.scim_id)])
             modified = True
     elif role == GroupRole.MEMBER:
         if is_member(scim_user, scim_group.scim_id):
-            scim_group.members = [
-                member for member in scim_group.graph.members if member.identifier != str(scim_user.scim_id)
-            ]
+            scim_group.members = set([
+                member for member in scim_group.members if member.identifier != str(scim_user.scim_id)
+            ])
             modified = True
     else:
         raise NotImplementedError(f'Unknown role: {role}')
