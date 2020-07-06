@@ -236,10 +236,6 @@ class VerifiedElement(Element):
 
     ts_fields: ClassVar[Tuple[str]] = ('verified_ts',)
 
-    str_fields: ClassVar[Tuple[str]] = ('verified_by',)
-
-    bool_fields: ClassVar[Tuple[str]] = ('is_verified',)
-
     @classmethod
     def from_dict(cls: Type[TElementSubclass], data: Dict[str, Any]) -> TElementSubclass:
         """
@@ -274,8 +270,6 @@ class PrimaryElement(VerifiedElement):
     :type raise_on_unknown: bool
     """
     is_primary: bool = False
-
-    bool_fields: ClassVar[Tuple[str]] = ('is_primary',)
 
     @classmethod
     def from_dict(
