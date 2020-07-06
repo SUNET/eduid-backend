@@ -105,7 +105,7 @@ class TestGroupDB(Neo4jTestCase):
     def test_create_group_with_user_member(self):
         group = Group.from_mapping(self.group1)
         user = User.from_mapping(self.user1)
-        group.members.append(user)
+        group.members.add(user)
 
         self.assertIn(user, group.members)
         self.group_db.save(group)
@@ -119,7 +119,7 @@ class TestGroupDB(Neo4jTestCase):
     def test_create_group_with_group_member(self):
         group = Group.from_mapping(self.group1)
         member_group = Group.from_mapping(self.group2)
-        group.members.append(member_group)
+        group.members.add(member_group)
 
         self.assertIn(member_group, group.member_groups)
         self.group_db.save(group)
@@ -132,11 +132,11 @@ class TestGroupDB(Neo4jTestCase):
     def test_create_group_with_group_member_and_user_owner(self):
         group = Group.from_mapping(self.group1)
         member_group = Group.from_mapping(self.group2)
-        group.members.append(member_group)
+        group.members.add(member_group)
         member_user = User.from_mapping(self.user2)
-        group.members.append(member_user)
+        group.members.add(member_user)
         owner = User.from_mapping(self.user1)
-        group.owners.append(owner)
+        group.owners.add(owner)
 
         self.assertIn(member_group, group.member_groups)
         self.assertIn(member_user, group.member_users)
@@ -151,7 +151,7 @@ class TestGroupDB(Neo4jTestCase):
         post_save_user = post_save_group.member_users[0]
         self._assert_user(member_user, post_save_user)
 
-        post_save_owner = post_save_group.owners[0]
+        post_save_owner = post_save_group.owners.pop()
         self._assert_user(owner, post_save_owner)
 
     def test_remove_group(self):
@@ -165,11 +165,11 @@ class TestGroupDB(Neo4jTestCase):
     def test_get_groups_for_user_member(self):
         group = Group.from_mapping(self.group1)
         member_group = Group.from_mapping(self.group2)
-        group.members.append(member_group)
+        group.members.add(member_group)
         member_user = User.from_mapping(self.user2)
-        group.members.append(member_user)
+        group.members.add(member_user)
         owner = User.from_mapping(self.user1)
-        group.owners.append(owner)
+        group.owners.add(owner)
 
         assert member_group in group.member_groups
         assert member_user in group.member_users
@@ -182,14 +182,14 @@ class TestGroupDB(Neo4jTestCase):
         assert 1 == len(groups)
         self._assert_group(group, groups[0])
         assert 1 == len(group.owners)
-        self._assert_group(group.owners[0], groups[0].owners[0])
+        self._assert_group(group.owners.pop(), groups[0].owners.pop())
 
     def test_get_groups_for_user_member_2(self):
         group1 = Group.from_mapping(self.group1)
         group2 = Group.from_mapping(self.group2)
         member_user = User.from_mapping(self.user1)
-        group1.members.append(member_user)
-        group2.members.append(member_user)
+        group1.members.add(member_user)
+        group2.members.add(member_user)
 
         assert member_user in group1.member_users
         self.group_db.save(group1)
@@ -205,11 +205,11 @@ class TestGroupDB(Neo4jTestCase):
     def test_get_groups_for_group_member(self):
         group = Group.from_mapping(self.group1)
         member_group = Group.from_mapping(self.group2)
-        group.members.append(member_group)
+        group.members.add(member_group)
         member_user = User.from_mapping(self.user2)
-        group.members.append(member_user)
+        group.members.add(member_user)
         owner = User.from_mapping(self.user1)
-        group.owners.append(owner)
+        group.owners.add(owner)
 
         assert member_group in group.member_groups
         assert member_user in group.member_users
@@ -222,16 +222,16 @@ class TestGroupDB(Neo4jTestCase):
         assert 1 == len(groups)
         self._assert_group(group, groups[0])
         assert 1 == len(group.owners)
-        self._assert_user(group.owners[0], groups[0].owners[0])
+        self._assert_user(group.owners.pop(), groups[0].owners.pop())
 
     def test_get_groups_for_user_owner(self):
         group = Group.from_mapping(self.group1)
         member_group = Group.from_mapping(self.group2)
-        group.members.append(member_group)
+        group.members.add(member_group)
         member_user = User.from_mapping(self.user2)
-        group.members.append(member_user)
+        group.members.add(member_user)
         owner = User.from_mapping(self.user1)
-        group.owners.append(owner)
+        group.owners.add(owner)
 
         assert member_group in group.member_groups
         assert member_user in group.member_users
@@ -244,7 +244,7 @@ class TestGroupDB(Neo4jTestCase):
         assert 1 == len(groups)
         self._assert_group(group, groups[0])
         assert 1 == len(groups[0].owners)
-        self._assert_group(group.owners[0], groups[0].owners[0])
+        self._assert_group(group.owners.pop(), groups[0].owners.pop())
         assert 2 == len(groups[0].members)
 
     def test_get_groups_for_user_owner_2(self):
@@ -252,10 +252,10 @@ class TestGroupDB(Neo4jTestCase):
         group2 = Group.from_mapping(self.group2)
         owner_user = User.from_mapping(self.user1)
         member_user = User.from_mapping(self.user2)
-        group1.owners.append(owner_user)
-        group2.owners.append(owner_user)
-        group1.members.append(member_user)
-        group2.members.append(member_user)
+        group1.owners.add(owner_user)
+        group2.owners.add(owner_user)
+        group1.members.add(member_user)
+        group2.members.add(member_user)
 
         assert owner_user in group1.owner_users
         self.group_db.save(group1)
@@ -273,11 +273,11 @@ class TestGroupDB(Neo4jTestCase):
     def test_get_groups_for_group_owner(self):
         group = Group.from_mapping(self.group1)
         member_group = Group.from_mapping(self.group2)
-        group.members.append(member_group)
+        group.members.add(member_group)
         member_user = User.from_mapping(self.user2)
-        group.members.append(member_user)
+        group.members.add(member_user)
         owner = Group.from_mapping(self.group2)
-        group.owners.append(owner)
+        group.owners.add(owner)
 
         assert member_group in group.member_groups
         assert member_user in group.member_users
@@ -290,50 +290,50 @@ class TestGroupDB(Neo4jTestCase):
         assert 1 == len(groups)
         self._assert_group(group, groups[0])
         assert 1 == len(groups[0].owners)
-        self._assert_group(group.owners[0], groups[0].owners[0])
+        self._assert_group(group.owners.pop(), groups[0].owners.pop())
         assert 2 == len(groups[0].members)
 
     def test_get_groups_and_users_by_role(self):
         group = Group.from_mapping(self.group1)
         member_group = Group.from_mapping(self.group2)
-        group.members.append(member_group)
+        group.members.add(member_group)
         member_user = User.from_mapping(self.user2)
-        group.members.append(member_user)
+        group.members.add(member_user)
         owner_group = Group.from_mapping(self.group2)
-        group.owners.append(owner_group)
+        group.owners.add(owner_group)
         owner_user = User.from_mapping(self.user2)
-        group.owners.append(owner_user)
+        group.owners.add(owner_user)
 
-        assert member_group in group.member_groups
-        assert member_user in group.member_users
+        assert group.has_member(member_group.identifier) is True
+        assert group.has_member(member_user.identifier) is True
         assert 2 == len(group.members)
-        assert owner_group in group.owners
-        assert owner_user in group.owners
+        assert group.has_owner(owner_group.identifier) is True
+        assert group.has_owner(owner_user.identifier) is True
         assert 2 == len(group.owners)
         self.group_db.save(group)
 
         members = self.group_db.get_users_and_groups_by_role(group.identifier, Role.MEMBER)
         owners = self.group_db.get_users_and_groups_by_role(group.identifier, Role.OWNER)
 
-        assert member_group in members
-        assert member_user in members
+        assert member_group.identifier in [member.identifier for member in members]
+        assert member_user.identifier in [member.identifier for member in members]
         assert 2 == len(members)
-        assert owner_group in owners
-        assert owner_user in owners
+        assert owner_group.identifier in [owner.identifier for owner in owners]
+        assert owner_user.identifier in [owner.identifier for owner in owners]
         assert 2 == len(owners)
 
     def test_remove_user_from_group(self):
         group = Group.from_mapping(self.group1)
         member_user1 = User.from_mapping(self.user1)
         member_user2 = User.from_mapping(self.user2)
-        group.members.extend([member_user1, member_user2])
+        group.members.update([member_user1, member_user2])
 
         assert member_user1 in group.members
         assert member_user2 in group.members
         post_save_group = self.group_db.save(group)
 
-        assert member_user1 in post_save_group.members
-        assert member_user2 in post_save_group.members
+        assert post_save_group.has_member(member_user1.identifier) is True
+        assert post_save_group.has_member(member_user2.identifier) is True
 
         group.members.remove(member_user1)
         assert member_user1 not in group.members
@@ -341,25 +341,25 @@ class TestGroupDB(Neo4jTestCase):
         group = replace(group, version=post_save_group.version)
         post_remove_group = self.group_db.save(group)
 
-        assert member_user1 not in post_remove_group.members
-        assert member_user2 in post_remove_group.members
+        assert post_remove_group.has_member(member_user1.identifier) is False
+        assert post_remove_group.has_member(member_user2.identifier) is True
 
         get_group = self.group_db.get_group(identifier='test1')
-        assert member_user1 not in get_group.members
-        assert member_user2 in get_group.members
+        assert get_group.has_member(member_user1.identifier) is False
+        assert get_group.has_member(member_user2.identifier) is True
 
     def test_remove_group_from_group(self):
         group = Group.from_mapping(self.group1)
         member_user1 = User.from_mapping(self.user1)
         member_group1 = Group.from_mapping(self.group2)
-        group.members.extend([member_user1, member_group1])
+        group.members.update([member_user1, member_group1])
 
         self.assertIn(member_user1, group.members)
         self.assertIn(member_group1, group.members)
         post_save_group = self.group_db.save(group)
 
-        assert member_user1 in post_save_group.members
-        assert member_group1 in post_save_group.members
+        assert post_save_group.has_member(member_user1.identifier) is True
+        assert post_save_group.has_member(member_group1.identifier) is True
 
         group.members.remove(member_group1)
         assert member_group1 not in group.members
@@ -367,9 +367,9 @@ class TestGroupDB(Neo4jTestCase):
         group = replace(group, version=post_save_group.version)
         post_remove_group = self.group_db.save(group)
 
-        assert member_group1 not in post_remove_group.members
-        assert member_user1 in post_remove_group.members
+        assert post_remove_group.has_member(member_group1.identifier) is False
+        assert post_remove_group.has_member(member_user1.identifier) is True
 
         get_group = self.group_db.get_group(identifier=group.identifier)
-        assert member_group1 not in get_group.members
-        assert member_user1 in get_group.members
+        assert get_group.has_member(member_group1.identifier) is False
+        assert get_group.has_member(member_user1.identifier) is True

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Mapping, Optional
 
@@ -15,8 +15,8 @@ __author__ = 'lundberg'
 class User:
     identifier: str
     display_name: str
-    created_ts: Optional[datetime] = field(compare=False, default=None)
-    modified_ts: Optional[datetime] = field(compare=False, default=None)
+    created_ts: Optional[datetime] = None
+    modified_ts: Optional[datetime] = None
 
     @classmethod
     def from_mapping(cls, data: Mapping) -> User:

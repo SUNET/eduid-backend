@@ -2,7 +2,7 @@
 import enum
 import logging
 from dataclasses import replace
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 from bson import ObjectId
 from neo4j import READ_ACCESS, WRITE_ACCESS, Record, Transaction
@@ -90,22 +90,22 @@ class GroupDB(BaseGraphDB):
 
     def _add_or_update_users_and_groups(
         self, tx: Transaction, group: Group
-    ) -> Tuple[List[Union[User, Group]], List[Union[User, Group]]]:
-        members: List[Union[User, Group]] = []
-        owners: List[Union[User, Group]] = []
+    ) -> Tuple[Set[Union[User, Group]], Set[Union[User, Group]]]:
+        members: Set[Union[User, Group]] = set()
+        owners: Set[Union[User, Group]] = set()
 
         for user_member in group.member_users:
             res = self._add_user_to_group(tx, group=group, member=user_member, role=Role.MEMBER)
-            members.append(User.from_mapping(res.data()))
+            members.add(User.from_mapping(res.data()))
         for group_member in group.member_groups:
             res = self._add_group_to_group(tx, group=group, member=group_member, role=Role.MEMBER)
-            members.append(self._load_group(res.data()))
+            members.add(self._load_group(res.data()))
         for user_owner in group.owner_users:
             res = self._add_user_to_group(tx, group=group, member=user_owner, role=Role.OWNER)
-            owners.append(User.from_mapping(res.data()))
+            owners.add(User.from_mapping(res.data()))
         for group_owner in group.owner_groups:
             res = self._add_group_to_group(tx, group=group, member=group_owner, role=Role.OWNER)
-            owners.append(self._load_group(res.data()))
+            owners.add(self._load_group(res.data()))
         return members, owners
 
     def _remove_missing_users_and_groups(self, tx: Transaction, group: Group, role: Role) -> None:
@@ -238,14 +238,14 @@ class GroupDB(BaseGraphDB):
                 is_member = rel.type == Role.MEMBER.value
                 # Instantiate and add owners
                 if is_owner and 'Group' in labels:
-                    group.owners.append(self._load_group(data))
+                    group.owners.add(self._load_group(data))
                 if is_owner and 'User' in labels:
-                    group.owners.append(User.from_mapping(data))
+                    group.owners.add(User.from_mapping(data))
                 # Instantiate and add members
                 if is_member and 'Group' in labels:
-                    group.members.append(self._load_group(data))
+                    group.members.add(self._load_group(data))
                 if is_member and 'User' in labels:
-                    group.members.append(User.from_mapping(data))
+                    group.members.add(User.from_mapping(data))
         return group
 
     def remove_group(self, identifier: str) -> None:
@@ -311,16 +311,12 @@ class GroupDB(BaseGraphDB):
         with self.db.driver.session(default_access_mode=READ_ACCESS) as session:
             for record in session.run(q, identifier=identifier, scope=self.scope):
                 group = self._load_group(record.data()['group'])
-                group = replace(
-                    group,
-                    owners=[self._load_node(owner) for owner in record.data()['owners'] if owner.get('identifier')],
+                owners = set([self._load_node(owner) for owner in record.data()['owners'] if owner.get('identifier')])
+                group = replace(group, owners=owners)
+                members = set(
+                    [self._load_node(member) for member in record.data()['members'] if member.get('identifier')]
                 )
-                group = replace(
-                    group,
-                    members=[
-                        self._load_node(member) for member in record.data()['members'] if member.get('identifier')
-                    ],
-                )
+                group = replace(group, members=members)
                 res.append(group)
         return res
 

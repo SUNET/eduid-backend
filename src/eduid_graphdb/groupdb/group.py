@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import List, Mapping, Optional, Union
+from typing import List, Mapping, Optional, Set, Union
 
 from bson import ObjectId
 
@@ -18,11 +18,11 @@ __author__ = 'lundberg'
 class Group:
     identifier: str
     display_name: str
-    version: Optional[ObjectId] = field(compare=False, default=None)
-    created_ts: Optional[datetime] = field(compare=False, default=None)
-    modified_ts: Optional[datetime] = field(compare=False, default=None)
-    owners: List[Union[User, Group]] = field(compare=False, default_factory=list)
-    members: List[Union[User, Group]] = field(compare=False, default_factory=list)
+    version: Optional[ObjectId] = None
+    created_ts: Optional[datetime] = None
+    modified_ts: Optional[datetime] = None
+    owners: Set[Union[User, Group]] = field(compare=False, default_factory=set)
+    members: Set[Union[User, Group]] = field(compare=False, default_factory=set)
 
     @staticmethod
     def _get_user(it: List[User], identifier: str) -> Optional[User]:
@@ -88,6 +88,6 @@ class Group:
             display_name=data['display_name'],
             created_ts=dt['created_ts'],
             modified_ts=dt['modified_ts'],
-            members=data.get('members', []),
-            owners=data.get('owners', []),
+            members=set(data.get('members', [])),
+            owners=set(data.get('owners', [])),
         )
