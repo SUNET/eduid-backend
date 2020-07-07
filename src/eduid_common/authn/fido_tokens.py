@@ -32,6 +32,7 @@
 import base64
 import json
 import pprint
+import warnings
 from typing import Optional
 
 from fido2 import cbor
@@ -115,52 +116,37 @@ def start_token_verification(user: User, session_prefix: str) -> dict:
     """
     Begin authentication process based on the hardware tokens registered by the user.
     """
-    credentials_u2f = _get_user_credentials_u2f(user)
-    current_app.logger.debug(f'U2F credentials for user {user}:' f'\n{pprint.pformat(credentials_u2f)}')
+    # TODO: Only make Webauthn challenges for Webauthn tokens, and only U2F challenges for U2F tokens?
+    credential_data = get_user_credentials(user)
+    current_app.logger.debug(f'Extra debug: U2F credentials for user: {user.credentials.filter(U2F).to_list()}')
+    current_app.logger.debug(
+        f'Extra debug: Webauthn credentials for user: {user.credentials.filter(Webauthn).to_list()}'
+    )
+    current_app.logger.debug(f'Webauthn credentials for user {user}:\n{pprint.pformat(credential_data)}')
 
-    # CTAP1/U2F
-    # XXX : CHANGED to only make U2F challenges for U2F tokens
-    challenge = None
-    if current_app.config.generate_u2f_challenges is True:  # type: ignore
-        u2f_tokens = [v['u2f'] for v in credentials_u2f.values()]
-        try:
-            challenge = begin_authentication(current_app.config.u2f_app_id, u2f_tokens)  # type: ignore
-            current_app.logger.debug(f'U2F challenge:\n{pprint.pformat(challenge)}')
-        except ValueError:
-            # there is no U2F key registered for this user
-            pass
-
-    # CTAP2/Webauthn
-    # XXX: CHANGED to only make Webauthn challenges for Webauthn tokens?
-    credentials_webauthn = _get_user_credentials_webauthn(user)
-    current_app.logger.debug(f'Webauthn credentials for user {user}:' f'\n{pprint.pformat(credentials_webauthn)}')
-
-    webauthn_credentials = [v['webauthn'] for v in credentials_webauthn.values()]
+    webauthn_credentials = [v['webauthn'] for v in credential_data.values()]
     fido2rp = RelyingParty(current_app.config.fido2_rp_id, 'eduid.se')  # type: ignore
-    fido2server = _get_fido2server(credentials_webauthn, fido2rp)
+    fido2server = _get_fido2server(credential_data, fido2rp)
     raw_fido2data, fido2state = fido2server.authenticate_begin(webauthn_credentials)
-    current_app.logger.debug('FIDO2 authentication data:\n{pprint.pformat(raw_fido2data)}')
+    current_app.logger.debug(f'FIDO2 authentication data:\n{pprint.pformat(raw_fido2data)}')
     fido2data = base64.urlsafe_b64encode(cbor.encode(raw_fido2data)).decode('ascii')
     fido2data = fido2data.rstrip('=')
-
-    config = {'u2fdata': '{}', 'webauthn_options': fido2data}
-
-    # Save the challenge to be used when validating the signature in perform_action() below
-    if challenge is not None:
-        session[session_prefix + '.u2f.challenge'] = challenge.json
-        config['u2fdata'] = json.dumps(challenge.data_for_client)
-        current_app.logger.debug(f'FIDO1/U2F challenge for user {user}: {challenge.data_for_client}')
 
     current_app.logger.debug(f'FIDO2/Webauthn state for user {user}: {fido2state}')
     session[session_prefix + '.webauthn.state'] = json.dumps(fido2state)
 
-    return config
+    return {'webauthn_options': fido2data}
 
 
 def verify_u2f(user: User, challenge: bytes, token_response: str) -> Optional[dict]:
     """
     verify received U2F data against the user's credentials
+
+    NOTE: We've removed the code to generate U2F challenges from start_token_verification() above,
+          so I think that means we will never get such a response back from the client browser
+          and it should be possible to remove this code. Right?
     """
+    warnings.warn('verify_u2f should be unused, is it not?', DeprecationWarning)
     device, counter, touch = complete_authentication(
         challenge, token_response, current_app.config.u2f_valid_facets  # type: ignore
     )
@@ -170,9 +156,7 @@ def verify_u2f(user: User, challenge: bytes, token_response: str) -> Optional[di
 
     for this in user.credentials.filter(U2F).to_list():
         if this.keyhandle == device['keyHandle']:
-            current_app.logger.info(
-                f'User {user} logged in using U2F token ' f'{this} (touch: {touch}, counter {counter})'
-            )
+            current_app.logger.info(f'User {user} logged in using U2F token {this} (touch: {touch}, counter {counter})')
             return {
                 'success': True,
                 'touch': touch,
@@ -236,7 +220,7 @@ def verify_webauthn(user, request_dict: dict, session_prefix: str) -> dict:
     touch = auth_data.flags
     counter = auth_data.counter
     current_app.logger.info(
-        f'User {user} logged in using Webauthn token ' f'{cred_key} (touch: {touch}, counter {counter})'
+        f'User {user} logged in using Webauthn token {cred_key} (touch: {touch}, counter {counter})'
     )
     return {
         'success': True,
