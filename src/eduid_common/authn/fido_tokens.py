@@ -122,6 +122,8 @@ def start_token_verification(user: User, session_prefix: str) -> dict:
     # XXX : CHANGED to only make U2F challenges for U2F tokens
     challenge = None
     if current_app.config.generate_u2f_challenges is True:  # type: ignore
+        # This is the old way of generating U2F challenges. Should not be needed. Old tokens should
+        # be handled backwards compatible using AttestedCredentialData.from_ctap1() in get_user_credentials().
         u2f_tokens = [v['u2f'] for v in credentials_u2f.values()]
         try:
             challenge = begin_authentication(current_app.config.u2f_app_id, u2f_tokens)  # type: ignore
@@ -133,13 +135,15 @@ def start_token_verification(user: User, session_prefix: str) -> dict:
     # CTAP2/Webauthn
     # TODO: Only make Webauthn challenges for Webauthn tokens?
     credentials_webauthn = get_user_credentials(user)
+    current_app.logger.debug(f'Extra debug: U2F credentials for user: {user.credentials.filter(U2F).to_list()}')
+    current_app.logger.debug(f'Extra debug: Webauthn credentials for user: {user.credentials.filter(Webauthn).to_list()}')
     current_app.logger.debug(f'Webauthn credentials for user {user}:\n{pprint.pformat(credentials_webauthn)}')
 
     webauthn_credentials = [v['webauthn'] for v in credentials_webauthn.values()]
     fido2rp = RelyingParty(current_app.config.fido2_rp_id, 'eduid.se')  # type: ignore
     fido2server = _get_fido2server(credentials_webauthn, fido2rp)
     raw_fido2data, fido2state = fido2server.authenticate_begin(webauthn_credentials)
-    current_app.logger.debug('FIDO2 authentication data:\n{pprint.pformat(raw_fido2data)}')
+    current_app.logger.debug(f'FIDO2 authentication data:\n{pprint.pformat(raw_fido2data)}')
     fido2data = base64.urlsafe_b64encode(cbor.encode(raw_fido2data)).decode('ascii')
     fido2data = fido2data.rstrip('=')
 
