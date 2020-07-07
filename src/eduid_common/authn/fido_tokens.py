@@ -187,7 +187,7 @@ def verify_webauthn(user, request_dict: dict, session_prefix: str) -> dict:
     client_data = ClientData(req['clientDataJSON'])
     auth_data = AuthenticatorData(req['authenticatorData'])
 
-    credentials = _get_user_credentials_webauthn(user)
+    credentials = get_user_credentials(user)
     fido2state = json.loads(session[session_prefix + '.webauthn.state'])
 
     rp_id = current_app.config.fido2_rp_id  # type: ignore
