@@ -30,8 +30,7 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-
-
+import base64
 import json
 from copy import deepcopy
 from dataclasses import dataclass, field
@@ -131,10 +130,17 @@ class FidoTokensTestCase(EduidAPITestCase):
             with client.session_transaction():
                 with self.app.test_request_context():
                     config = start_token_verification(self.test_user, 'testing')
-                    self.assertEqual(json.loads(config['u2fdata'])["appId"], "https://eduid.se/u2f-app-id.json")
+                    assert 'u2fdata' not in config
+                    assert 'webauthn_options' in config
+                    s = config['webauthn_options']
+                    _decoded = base64.urlsafe_b64decode(s + '=' * (-len(s) % 4))
+                    # _decoded is still CBOR encoded, so we just check for some known strings
+                    assert b'publicKey' in _decoded
+                    assert b'idp.dev.eduid.se' in _decoded
+                    assert b'challenge' in _decoded
 
     def test_webauthn_start_verification(self):
-        # Add a working U2F credential for this test
+        # Add a working Webauthn credential for this test
         self.test_user.credentials.add(self.webauthn_credential)
         self.amdb.save(self.test_user, check_sync=False)
 
@@ -144,7 +150,14 @@ class FidoTokensTestCase(EduidAPITestCase):
             with client.session_transaction():
                 with self.app.test_request_context():
                     config = start_token_verification(self.test_user, 'testing')
-                    self.assertEqual(json.loads(config['u2fdata']), {})
+                    assert 'u2fdata' not in config
+                    assert 'webauthn_options' in config
+                    s = config['webauthn_options']
+                    _decoded = base64.urlsafe_b64decode(s + '=' * (-len(s) % 4))
+                    # _decoded is still CBOR encoded, so we just check for some known strings
+                    assert b'publicKey' in _decoded
+                    assert b'idp.dev.eduid.se' in _decoded
+                    assert b'challenge' in _decoded
 
     @patch('fido2.cose.ES256.verify')
     def test_webauthn_verify(self, mock_verify):
