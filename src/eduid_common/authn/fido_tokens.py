@@ -119,7 +119,9 @@ def start_token_verification(user: User, session_prefix: str) -> dict:
     # TODO: Only make Webauthn challenges for Webauthn tokens, and only U2F challenges for U2F tokens?
     credential_data = get_user_credentials(user)
     current_app.logger.debug(f'Extra debug: U2F credentials for user: {user.credentials.filter(U2F).to_list()}')
-    current_app.logger.debug(f'Extra debug: Webauthn credentials for user: {user.credentials.filter(Webauthn).to_list()}')
+    current_app.logger.debug(
+        f'Extra debug: Webauthn credentials for user: {user.credentials.filter(Webauthn).to_list()}'
+    )
     current_app.logger.debug(f'Webauthn credentials for user {user}:\n{pprint.pformat(credential_data)}')
 
     webauthn_credentials = [v['webauthn'] for v in credential_data.values()]
@@ -154,9 +156,7 @@ def verify_u2f(user: User, challenge: bytes, token_response: str) -> Optional[di
 
     for this in user.credentials.filter(U2F).to_list():
         if this.keyhandle == device['keyHandle']:
-            current_app.logger.info(
-                f'User {user} logged in using U2F token {this} (touch: {touch}, counter {counter})'
-            )
+            current_app.logger.info(f'User {user} logged in using U2F token {this} (touch: {touch}, counter {counter})')
             return {
                 'success': True,
                 'touch': touch,
