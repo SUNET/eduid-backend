@@ -128,9 +128,7 @@ class MFAActionPluginTests(ActionsTestCase):
         """
         Get configuration for the actions app for a mfa action
         """
-        mock_idp_app = MockIdPContext(self.app.actions_db)
         with self.app.test_request_context('/config'):
-            self.app.config.generate_u2f_challenges = True
             mock_idp_app = MockIdPContext(self.app.actions_db)
             add_actions(mock_idp_app, self.user, MockTicket('mock-session'))
             self.authenticate(idp_session='mock-session')
@@ -191,10 +189,13 @@ class MFAActionPluginTests(ActionsTestCase):
 
     def test_get_config(self):
         data = self._get_config()
-        u2f_data = json.loads(data['payload']['u2fdata'])
-        self.assertEqual(u2f_data["registeredKeys"][0]["keyHandle"], "test_key_handle")
-        self.assertEqual(u2f_data["registeredKeys"][0]["version"], "U2F_V2")
-        self.assertEqual(u2f_data["appId"], "https://example.com")
+        assert 'webauthn_options' in data['payload']
+        s = data['payload']['webauthn_options']
+        _decoded = base64.urlsafe_b64decode(s + '=' * (-len(s) % 4))
+        # _decoded is still CBOR encoded, so we just check for some known strings
+        assert b'publicKey' in _decoded
+        assert b'idp.example.com' in _decoded
+        assert b'challenge' in _decoded
         self.assertEqual(len(self.app.actions_db.get_actions(self.user.eppn, 'mock-session')), 1)
 
     def test_get_config_no_user(self):

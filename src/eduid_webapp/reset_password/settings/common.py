@@ -68,7 +68,7 @@ class ResetPasswordConfig(FlaskConfig):
     password_reset_link: str = 'https://login.eduid.se/reset-password/'
     password_service_url: str = '/services/reset-password/'
     # webauthn stuff
-    generate_u2f_challenges: bool = False
+    generate_u2f_challenges: bool = False  # UNUSED, remove after updating config everywhere
     u2f_valid_facets: list = field(default_factory=list)
     # Throttle sending SMSs for extra security resetting passwords
     throttle_sms_seconds: int = 300
