@@ -131,9 +131,9 @@ def start_token_verification(user: User, session_prefix: str) -> dict:
             pass
 
     # CTAP2/Webauthn
-    # XXX: CHANGED to only make Webauthn challenges for Webauthn tokens?
-    credentials_webauthn = _get_user_credentials_webauthn(user)
-    current_app.logger.debug(f'Webauthn credentials for user {user}:' f'\n{pprint.pformat(credentials_webauthn)}')
+    # TODO: Only make Webauthn challenges for Webauthn tokens?
+    credentials_webauthn = get_user_credentials(user)
+    current_app.logger.debug(f'Webauthn credentials for user {user}:\n{pprint.pformat(credentials_webauthn)}')
 
     webauthn_credentials = [v['webauthn'] for v in credentials_webauthn.values()]
     fido2rp = RelyingParty(current_app.config.fido2_rp_id, 'eduid.se')  # type: ignore
