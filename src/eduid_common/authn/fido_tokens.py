@@ -32,6 +32,7 @@
 import base64
 import json
 import pprint
+import warnings
 from typing import Optional
 
 from fido2 import cbor
@@ -138,7 +139,12 @@ def start_token_verification(user: User, session_prefix: str) -> dict:
 def verify_u2f(user: User, challenge: bytes, token_response: str) -> Optional[dict]:
     """
     verify received U2F data against the user's credentials
+
+    NOTE: We've removed the code to generate U2F challenges from start_token_verification() above,
+          so I think that means we will never get such a response back from the client browser
+          and it should be possible to remove this code. Right?
     """
+    warnings.warn('verify_u2f should be unused, is it not?', DeprecationWarning)
     device, counter, touch = complete_authentication(
         challenge, token_response, current_app.config.u2f_valid_facets  # type: ignore
     )
@@ -149,7 +155,7 @@ def verify_u2f(user: User, challenge: bytes, token_response: str) -> Optional[di
     for this in user.credentials.filter(U2F).to_list():
         if this.keyhandle == device['keyHandle']:
             current_app.logger.info(
-                f'User {user} logged in using U2F token ' f'{this} (touch: {touch}, counter {counter})'
+                f'User {user} logged in using U2F token {this} (touch: {touch}, counter {counter})'
             )
             return {
                 'success': True,
@@ -214,7 +220,7 @@ def verify_webauthn(user, request_dict: dict, session_prefix: str) -> dict:
     touch = auth_data.flags
     counter = auth_data.counter
     current_app.logger.info(
-        f'User {user} logged in using Webauthn token ' f'{cred_key} (touch: {touch}, counter {counter})'
+        f'User {user} logged in using Webauthn token {cred_key} (touch: {touch}, counter {counter})'
     )
     return {
         'success': True,
