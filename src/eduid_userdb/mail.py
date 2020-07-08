@@ -35,10 +35,7 @@ from __future__ import annotations
 
 import copy
 from dataclasses import dataclass, asdict
-from datetime import datetime
-from typing import Any, Dict, Optional, Type, Union
-
-from six import string_types
+from typing import Any, Dict, Optional, Type
 
 from eduid_userdb.element import PrimaryElement, PrimaryElementList
 from eduid_userdb.exceptions import UserDBValueError
@@ -58,15 +55,10 @@ class MailAddress(PrimaryElement):
     email: Optional[str] = None
 
     @classmethod
-    def from_dict(
-        cls: Type[MailAddress], data: Dict[str, Any], raise_on_unknown: bool = True, ignore_data: Optional[Dict[str, Any]] = None
-    ) -> MailAddress:
-
-        data_in = data
-        data = copy.copy(data_in)  # to not modify callers data
-
-        if not isinstance(data, dict):
-            raise UserDBValueError("Invalid 'data', not dict ({!r})".format(type(data)))
+    def massage_data(cls: Type[MailAddress], data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        """
+        data = super().massage_data(data)
 
         if 'added_timestamp' in data:
             # old userdb-style creation timestamp
@@ -76,13 +68,7 @@ class MailAddress(PrimaryElement):
         if 'csrf' in data:
             del data['csrf']
 
-        email = data.pop('email')
-
-        self = super().from_dict(data, raise_on_unknown=raise_on_unknown, ignore_data=ignore_data)
-
-        self.email = email
-
-        return self
+        return data
 
     def to_dict(self, old_userdb_format=False):
         """
@@ -122,14 +108,14 @@ class MailAddressList(PrimaryElementList):
     :type addresses: [dict | MailAddress]
     """
 
-    def __init__(self, addresses, raise_on_unknown=True):
+    def __init__(self, addresses):
         elements = []
 
         for this in addresses:
             if isinstance(this, MailAddress):
                 address = this
             else:
-                address = address_from_dict(this, raise_on_unknown)
+                address = address_from_dict(this)
             elements.append(address)
 
         PrimaryElementList.__init__(self, elements)
@@ -173,7 +159,7 @@ class MailAddressList(PrimaryElementList):
         return PrimaryElementList.find(self, email)
 
 
-def address_from_dict(data, raise_on_unknown=True):
+def address_from_dict(data):
     """
     Create a MailAddress instance from a dict.
 
@@ -184,4 +170,4 @@ def address_from_dict(data, raise_on_unknown=True):
     :type raise_on_unknown: bool
     :rtype: MailAddress
     """
-    return MailAddress.from_dict(data, raise_on_unknown=raise_on_unknown)
+    return MailAddress.from_dict(data)

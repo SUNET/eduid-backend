@@ -95,7 +95,7 @@ class TestEventList(TestCase):
 
     def test_add_wrong_type(self):
         elemdict = {
-            'id': bson.ObjectId(),
+            'created_by': 'tests',
         }
         new = Element.from_dict(elemdict)
         with self.assertRaises(eduid_userdb.element.UserDBValueError):
