@@ -34,14 +34,13 @@
 #
 from __future__ import annotations
 
-import copy
 from dataclasses import dataclass, asdict
 from typing import Any, Dict, List, Optional, Type
 
 from bson import ObjectId
 
 from eduid_userdb.element import DuplicateElementViolation, Element, ElementList
-from eduid_userdb.exceptions import BadEvent, EventHasUnknownData, UserDBValueError
+from eduid_userdb.exceptions import BadEvent, UserDBValueError
 
 
 # Unique type for the events 'key' property. Not created with EventId = NewType('EventId', ObjectId)
@@ -54,45 +53,21 @@ class EventId(ObjectId):
 @dataclass
 class Event(Element):
     """
-    :param data: Event parameters from database
-
-    :type data: dict
     """
     data: Optional[Dict[str, Any]] = None
     event_type: Optional[str] = None
     event_id: Optional[str] = None
 
     @classmethod
-    def from_dict(cls: Type[Event], data: Dict[str, Any], raise_on_unknown: bool = True, ignore_data: Optional[List[str]] = None) -> Event:
+    def massage_data(cls: Type[Event], data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Construct event from a data dict.
         """
-        data_in = data
-        data = copy.copy(data_in)  # to not modify callers data
+        data = super().massage_data(data)
 
-        if 'created_ts' not in data:
-            data['created_ts'] = True
-        if 'modified_ts' not in data:
-            data['modified_ts'] = data['created_ts']
-
-        # modified_ts was not part of Event from the start, make sure it gets added and default to created_ts
-        if 'modified_ts' not in data:
-            data['modified_ts'] = data.get('created_ts', None)
-
-        self = super().from_dict(data)
-
-        self.event_type = data.pop('event_type', None)
         if 'id' in data:  # Compatibility for old format
             data['event_id'] = data.pop('id')
-        self.event_id = data.pop('event_id')
 
-        ignore_data = ignore_data or []
-        leftovers = [x for x in data.keys() if x not in ignore_data]
-        if leftovers:
-            if raise_on_unknown:
-                raise EventHasUnknownData('Event {!r} unknown data: {!r}'.format(self.event_id, leftovers,))
-
-        return self
+        return data
 
     def to_dict(self, mixed_format: bool = False) -> Dict[str, Any]:
         """
@@ -128,7 +103,7 @@ class EventList(ElementList):
     :type event_class: object
     """
 
-    def __init__(self, events, raise_on_unknown=True, event_class: Type[Event] = Event):
+    def __init__(self, events, event_class: Type[Event] = Event):
         self._event_class = event_class
         ElementList.__init__(self, elements=[])
 
@@ -141,7 +116,7 @@ class EventList(ElementList):
             else:
                 event: Event
                 if 'event_type' in this:
-                    event = event_from_dict(this, raise_on_unknown=raise_on_unknown)
+                    event = event_from_dict(this)
                 else:
                     event = self._event_class.from_dict(this)
                 self.add(event)
@@ -167,17 +142,16 @@ class EventList(ElementList):
         return [this.to_dict(mixed_format=mixed_format) for this in self._elements if isinstance(this, Event)]
 
 
-def event_from_dict(data: Dict[str, Any], raise_on_unknown: bool = True):
+def event_from_dict(data: Dict[str, Any]):
     """
     Create an Event instance (probably really a subclass of Event) from a dict.
 
     :param data: Password parameters from database
-    :param raise_on_unknown: Raise EventHasUnknownData if unrecognized data is encountered
     """
     if 'event_type' not in data:
         raise UserDBValueError('No event type specified')
     if data['event_type'] == 'tou_event':
         from eduid_userdb.tou import ToUEvent  # avoid cyclic dependency by importing this here
 
-        return ToUEvent.from_dict(data=data, raise_on_unknown=raise_on_unknown)
+        return ToUEvent.from_dict(data=data)
     raise BadEvent('Unknown event_type in data: {!s}'.format(data['event_type']))

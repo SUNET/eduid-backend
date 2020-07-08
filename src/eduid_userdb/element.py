@@ -107,7 +107,7 @@ class Element:
         """
         Construct element from a data dict.
         """
-        data = cls._massage_data(data)
+        data = cls.massage_data(data)
         return cls(**data)
 
     def to_dict(self, old_userdb_format: bool = False) -> Dict[str, Any]:
@@ -120,10 +120,18 @@ class Element:
         """
         return asdict(self)
 
-    @staticmethod
-    def massage_data(data: Dict[str, Any]) -> Dict[str, Any]:
+    @classmethod
+    def massage_data(cls: Type[TElementSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
         """
         """
+        if not isinstance(data, dict):
+            raise UserDBValueError(f"Invalid data: {data}")
+
+        data = copy.deepcopy(data)  # to not modify callers data
+
+        if 'created_ts' in data and 'modified_ts' not in data:
+            data['modified_ts'] = data['created_ts']
+
         return data
 
     # -----------------------------------------------------------------
@@ -151,8 +159,11 @@ class VerifiedElement(Element):
     verified_by: Optional[str] = None
     verified_ts: Optional[datetime] = None
 
-    @staticmethod
-    def massage_data(data: Dict[str, Any]) -> Dict[str, Any]:
+    @classmethod
+    def massage_data(cls: Type[TElementSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        """
+        data = super().massage_data(data)
         # Remove deprecated verification_code from VerifiedElement
         data.pop('verification_code', None)
 
@@ -160,9 +171,6 @@ class VerifiedElement(Element):
             data['is_verified'] = data.pop('verified')
 
         return data
-
-
-TPrimaryElementSubclass = TypeVar('TPrimaryElementSubclass', bound='PrimaryElement')
 
 
 @dataclass
@@ -173,17 +181,11 @@ class PrimaryElement(VerifiedElement):
     Properties of PrimaryElement:
 
         is_primary
-
-    :param data: element parameters from database
-    :param raise_on_unknown: Raise exception on unknown values in `data' or not.
-
-    :type data: dict
-    :type raise_on_unknown: bool
     """
     is_primary: bool = False
 
-    @staticmethod
-    def massage_data(data: Dict[str, Any]) -> Dict[str, Any]:
+    @classmethod
+    def massage_data(cls: Type[TElementSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
         """
         """
         data = super().massage_data(data)

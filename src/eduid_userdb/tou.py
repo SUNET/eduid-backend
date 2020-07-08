@@ -34,13 +34,12 @@
 #
 from __future__ import annotations
 
-import copy
 from dataclasses import dataclass
 import datetime
 from typing import Any, Dict, List, Optional, Type
 
 from eduid_userdb.event import Event, EventList
-from eduid_userdb.exceptions import BadEvent, EduIDUserDBError, UserDBValueError
+from eduid_userdb.exceptions import EduIDUserDBError, UserDBValueError
 
 
 @dataclass
@@ -48,27 +47,18 @@ class ToUEvent(Event):
     """
     A record of a user's acceptance of a particular version of the Terms of Use.
     """
+    created_by: str
     version: Optional[str] = None
 
     @classmethod
-    def from_dict(cls: Type[ToUEvent], data: Dict[str, Any], raise_on_unknown: bool = True) -> ToUEvent:
+    def massage_data(cls: Type[ToUEvent], data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Construct ToU event from a data dict.
         """
-        data_in = data
-        data = copy.copy(data_in)  # to not modify callers data
+        data = super().massage_data(data)
 
         data['event_type'] = 'tou_event'
 
-        for required in ['created_by', 'created_ts']:
-            if required not in data or not data.get(required):
-                raise BadEvent('missing required data for event: {!s}'.format(required))
-        self = super().from_dict(
-            data, raise_on_unknown=raise_on_unknown, ignore_data=['version']
-        )
-        self.version = data.pop('version')
-
-        return self
+        return data
 
     def is_expired(self, interval_seconds: int) -> bool:
         """
@@ -94,8 +84,8 @@ class ToUList(EventList):
           has_accepted() is the interface to find an ToU event using a version number.
     """
 
-    def __init__(self, events, raise_on_unknown=True):
-        EventList.__init__(self, events, raise_on_unknown=raise_on_unknown, event_class=ToUEvent)
+    def __init__(self, events):
+        EventList.__init__(self, events, event_class=ToUEvent)
 
     def add(self, event: ToUEvent) -> None:
         """ Add a ToUEvent to the list. """
