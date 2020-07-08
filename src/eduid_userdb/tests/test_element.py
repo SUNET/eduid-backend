@@ -26,26 +26,12 @@ class TestElements(TestCase):
         assert elem.created_ts == now
         assert isinstance(elem.modified_ts, datetime)
 
-    def test_create_element_with_created_ts_bool(self):
-        elem = Element(created_by='test', created_ts=True)
-
-        assert elem.created_by == 'test'
-        assert isinstance(elem.created_ts, datetime)
-        assert isinstance(elem.modified_ts, datetime)
-
     def test_create_element_with_modified_ts(self):
         now = datetime.utcnow()
         elem = Element(created_by='test', modified_ts=now)
 
         assert elem.created_by == 'test'
         assert elem.modified_ts == now
-        assert isinstance(elem.modified_ts, datetime)
-
-    def test_create_element_with_modified_ts_bool(self):
-        elem = Element(created_by='test', modified_ts=True)
-
-        assert elem.created_by == 'test'
-        assert isinstance(elem.modified_ts, datetime)
         assert isinstance(elem.modified_ts, datetime)
 
     def test_create_element_with_created_and_modified_ts(self):
@@ -77,7 +63,7 @@ class TestVerifiedElements(TestCase):
 
         assert elem.is_verified is False
         assert elem.verified_by is None
-        assert elem.verified_ts is False
+        assert elem.verified_ts is None
 
     def test_modify_verified_element(self):
         elem = VerifiedElement(created_by='test')
@@ -127,7 +113,7 @@ class TestPrimaryElements(TestCase):
 
         assert elem.is_verified is False
         assert elem.verified_by is None
-        assert elem.verified_ts is False
+        assert elem.verified_ts is None
 
         assert elem.is_primary is False
 

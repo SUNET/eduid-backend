@@ -32,8 +32,8 @@
 # Author : Fredrik Thulin <fredrik@thulin.net>
 #
 import copy
-import datetime
-from dataclasses import dataclass, asdict
+from datetime import datetime
+from dataclasses import dataclass, asdict, field
 from typing import Any, Dict, List, Optional, Type, TypeVar, Union
 
 from eduid_userdb.exceptions import EduIDUserDBError, UserDBValueError, UserHasUnknownData
@@ -96,47 +96,19 @@ class Element:
         modified_ts
     """
     created_by: Optional[str] = None
-    created_ts: Union[datetime.datetime, bool] = True
-    modified_ts: Union[datetime.datetime, bool] = True
+    created_ts: datetime = field(default_factory=datetime.utcnow)
+    modified_ts: datetime = field(default_factory=datetime.utcnow)
 
     def __str__(self) -> str:
         return f'<eduID {self.__class__.__name__}: {asdict(self)}>'
-
-    def __setattr__(self, key: str, value: Any):
-        """
-        raise UserDBValueError when trying to reset an immutable field,
-        or when trying to set a field with a wrongly typed value
-        """
-        new_value = self._check_boolean_ts(key, value)
-
-        super().__setattr__(key, new_value)
-
-    def _check_boolean_ts(self, key: str, value: Any) -> Any:
-        """
-        This method does 2 things:
-        * raise UserDBValueError when there is a type error
-        * turn value into datetime.utcnow() if the field is a ts field and the value is True
-        """
-        if key.endswith('_ts'):
-            # initialization of ts fields
-            if value is True:
-                value = datetime.datetime.utcnow()
-
-        return value
 
     @classmethod
     def from_dict(cls: Type[TElementSubclass], data: Dict[str, Any]) -> TElementSubclass:
         """
         Construct element from a data dict.
         """
-        if not isinstance(data, dict):
-            raise UserDBValueError(f"Invalid 'data', not dict ({type(data)})")
-
-        created_by = data.pop('created_by', None)
-        created_ts = data.pop('created_ts', None)
-        modified_ts = data.pop('modified_ts', None)
-
-        return cls(created_by, created_ts, modified_ts)
+        data = cls._massage_data(data)
+        return cls(**data)
 
     def to_dict(self, old_userdb_format: bool = False) -> Dict[str, Any]:
         """
@@ -147,6 +119,12 @@ class Element:
                                   This is unused and kept for B/C
         """
         return asdict(self)
+
+    @staticmethod
+    def massage_data(data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        """
+        return data
 
     # -----------------------------------------------------------------
     @property
@@ -171,21 +149,17 @@ class VerifiedElement(Element):
     """
     is_verified: bool = False
     verified_by: Optional[str] = None
-    verified_ts: Union[datetime.datetime, bool] = False
+    verified_ts: Optional[datetime] = None
 
-    @classmethod
-    def from_dict(cls: Type[TElementSubclass], data: Dict[str, Any]) -> TElementSubclass:
-        """
-        Construct verified element from a data dict.
-        """
-        self = super().from_dict(data)
+    @staticmethod
+    def massage_data(data: Dict[str, Any]) -> Dict[str, Any]:
         # Remove deprecated verification_code from VerifiedElement
         data.pop('verification_code', None)
-        self.is_verified = data.pop('verified', False)
-        self.verified_by = data.pop('verified_by', None)
-        self.verified_ts = data.pop('verified_ts', None)
 
-        return self
+        if 'verified' in data:
+            data['is_verified'] = data.pop('verified')
+
+        return data
 
 
 TPrimaryElementSubclass = TypeVar('TPrimaryElementSubclass', bound='PrimaryElement')
@@ -208,24 +182,16 @@ class PrimaryElement(VerifiedElement):
     """
     is_primary: bool = False
 
-    @classmethod
-    def from_dict(
-        cls: Type[TPrimaryElementSubclass], data: Dict[str, Any], raise_on_unknown: bool = True, ignore_data: Optional[Dict[str, Any]] = None
-    ) -> TPrimaryElementSubclass:
+    @staticmethod
+    def massage_data(data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Construct primary element from a data dict.
         """
-        self = super().from_dict(data)
+        data = super().massage_data(data)
 
-        self.is_primary = data.pop('primary', False)
+        if 'primary' in data:
+            data['is_primary'] = data.pop('primary')
 
-        ignore_data = ignore_data or []
-        leftovers = [x for x in data.keys() if x not in ignore_data]
-        if leftovers:
-            if raise_on_unknown:
-                raise UserHasUnknownData(f'{self.__class__.__name__} has unknown data: {leftovers}')
-
-        return self
+        return data
 
     def __setattr__(self, key: str, value: Any):
         """
