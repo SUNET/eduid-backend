@@ -282,3 +282,22 @@ class MongoTestCase(unittest.TestCase):
     # def mongodb_uri(self, dbname):
     #    self.assertIsNotNone(dbname)
     #    return self.tmp_db.uri + '/' + dbname
+
+
+class DictTestCase(unittest.TestCase):
+    """
+    TestCase with a compare_dicts method that compares dicts removing the
+    created_ts and modified_ts keys, that hold timestamps created in general at different times.
+    """
+
+    @staticmethod
+    def compare_dicts(expected, obtained, fail_message):
+        # Remove timestamps that are created at different times
+        for mlist in (expected, obtained):
+            for mail in mlist:
+                if 'created_ts' in mail:
+                    del mail['created_ts']
+                if 'modified_ts' in mail:
+                    del mail['modified_ts']
+
+        assert obtained == expected, fail_message

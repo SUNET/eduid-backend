@@ -5,6 +5,7 @@ from unittest import TestCase
 import eduid_userdb.element
 import eduid_userdb.exceptions
 from eduid_userdb.element import Element
+from eduid_userdb.tests import DictTestCase
 from eduid_userdb.mail import MailAddress, MailAddressList
 
 __author__ = 'ft'
@@ -28,25 +29,13 @@ _three_dict = {
 }
 
 
-class TestMailAddressList(TestCase):
+class TestMailAddressList(DictTestCase):
     def setUp(self):
         self.maxDiff = None
         self.empty = MailAddressList([])
         self.one = MailAddressList([_one_dict])
         self.two = MailAddressList([_one_dict, _two_dict])
         self.three = MailAddressList([_one_dict, _two_dict, _three_dict])
-
-    @staticmethod
-    def _compare_dicts(expected, obtained, fail_message):
-        # Remove timestamps that are created at different times
-        for mlist in (expected, obtained):
-            for mail in mlist:
-                if 'created_ts' in mail:
-                    del mail['created_ts']
-                if 'modified_ts' in mail:
-                    del mail['modified_ts']
-
-        assert obtained == expected, fail_message
 
     def test_init_bad_data(self):
         with self.assertRaises(eduid_userdb.element.UserDBValueError):
@@ -75,7 +64,9 @@ class TestMailAddressList(TestCase):
         expected = self.two.to_list_of_dicts()
         obtained = self.one.to_list_of_dicts()
 
-        self._compare_dicts(expected, obtained, 'Wrong data after adding mail address to list')
+        expected, obtained = self.remove_timestamps(expected, obtained)
+
+        assert expected == obtained, 'Wrong data after adding mail address to list'
 
     def test_add_duplicate(self):
         dup = self.two.find(self.two.primary.email)
@@ -89,7 +80,9 @@ class TestMailAddressList(TestCase):
         expected = self.three.to_list_of_dicts()
         obtained = this.to_list_of_dicts()
 
-        self._compare_dicts(obtained, expected, 'Wrong data in mail address list')
+        expected, obtained = self.remove_timestamps(expected, obtained)
+
+        assert expected == obtained, 'Wrong data in mail address list'
 
     def test_add_another_primary(self):
         new = eduid_userdb.mail.address_from_dict(
@@ -112,7 +105,9 @@ class TestMailAddressList(TestCase):
         expected = self.two.to_list_of_dicts()
         obtained = now_two.to_list_of_dicts()
 
-        self._compare_dicts(expected, obtained, 'Wrong data after removing email from list')
+        expected, obtained = self.remove_timestamps(expected, obtained)
+
+        assert expected == obtained, 'Wrong data after removing email from list'
 
     def test_remove_unknown(self):
         with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
