@@ -50,13 +50,6 @@ class TestNinList(DictTestCase):
     def test_to_list_of_dicts(self):
         self.assertEqual([], self.empty.to_list_of_dicts(), list)
 
-        expected = [_one_dict]
-        obtained = self.one.to_list_of_dicts()
-
-        expected, obtained = self.remove_timestamps(expected, obtained)
-
-        assert expected == obtained, 'List of one NIN has unexpected data'
-
     def test_find(self):
         match = self.one.find('197801011234')
         self.assertIsInstance(match, Nin)
@@ -69,15 +62,11 @@ class TestNinList(DictTestCase):
         self.one.add(second)
 
         expected = self.two.to_list_of_dicts()
-        got = self.one.to_list_of_dicts()
-        # remove timestamps added at different times
-        for d in expected:
-            del d['created_ts']
-        for d in got:
-            if 'created_ts' in d:
-                del d['created_ts']
+        obtained = self.one.to_list_of_dicts()
 
-        assert expected == got, 'List with removed NIN has unexpected data'
+        expected, obtained = self.remove_timestamps(expected, obtained)
+
+        assert expected == obtained, 'List with removed NIN has unexpected data'
 
     def test_add_duplicate(self):
         dup = self.two.find(self.two.primary.number)
@@ -89,15 +78,11 @@ class TestNinList(DictTestCase):
         this = NinList([_one_dict, _two_dict, third])
 
         expected = self.three.to_list_of_dicts()
-        got = this.to_list_of_dicts()
-        # remove added timestamp
-        for d in expected:
-            del d['created_ts']
-        for d in got:
-            if 'created_ts' in d:
-                del d['created_ts']
+        obtained = this.to_list_of_dicts()
 
-        assert expected == got, 'List with added mail address has unexpected data'
+        expected, obtained = self.remove_timestamps(expected, obtained)
+
+        assert expected == obtained, 'List with added mail address has unexpected data'
 
     def test_add_another_primary(self):
         new = eduid_userdb.nin.nin_from_dict({'number': '+46700000009', 'verified': True, 'primary': True,})
@@ -116,14 +101,11 @@ class TestNinList(DictTestCase):
         now_two = self.three.remove('197803033456')
 
         expected = self.two.to_list_of_dicts()
-        got = now_two.to_list_of_dicts()
-        # remove timestamps added at different times
-        for d in expected:
-            del d['created_ts']
-        for d in got:
-            del d['created_ts']
+        obtained = now_two.to_list_of_dicts()
 
-        assert expected == got, 'List with removed NIN has unexpected data'
+        expected, obtained = self.remove_timestamps(expected, obtained)
+
+        assert expected == obtained, 'List with removed NIN has unexpected data'
 
     def test_remove_unknown(self):
         with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
