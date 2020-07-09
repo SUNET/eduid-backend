@@ -34,7 +34,9 @@ legend
     }
 
 end legend
-
+Client->"/all-data": GET
+"/groups"->Client: {"payload": GROUPS_RESPONSE+ALL_INVITES}, 'type': "GET_GROUP_MANAGEMENT_ALL_DATA_SUCCESS"}
+|||
 Client->"/groups": GET
 "/groups"->Client: {"payload": GROUPS_RESPONSE}, 'type': "GET_GROUP_MANAGEMENT_GROUPS_SUCCESS"}
 |||

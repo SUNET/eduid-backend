@@ -875,3 +875,33 @@ class GroupManagementTests(EduidAPITestCase):
             assert self.test_user3.mail_addresses.primary.email == invite['email_address']
             assert 1 == len(invite['owners'])
             assert GroupRole.MEMBER.value == invite['role']
+
+    def test_get_all_data(self):
+        response = self.browser.get('/all-data')
+        assert 302 == response.status_code  # Redirect to token service
+
+        self._invite_setup()
+
+        # Test with owner and invited
+        with self.session_cookie(self.browser, self.test_user.eppn) as client:
+            response = client.get('/all-data', content_type=self.content_type_json)
+        self._check_success_response(response, type_='GET_GROUP_MANAGEMENT_ALL_DATA_SUCCESS')
+        payload = response.json.get('payload')
+        assert 2 == len(payload['outgoing'])
+        assert 2 == len(payload['owner_of'])
+
+        # Accept member invite as test user 2
+        self._accept_invite(
+            group_scim_id=str(self.scim_group1.scim_id),
+            invitee=self.test_user2,
+            invite_address=self.test_user2.mail_addresses.primary.email,
+            role='member',
+        )
+
+        # Test with member and invitee
+        with self.session_cookie(self.browser, self.test_user2.eppn) as client:
+            response = client.get('/all-data', content_type=self.content_type_json)
+        self._check_success_response(response, type_='GET_GROUP_MANAGEMENT_ALL_DATA_SUCCESS')
+        payload = response.json.get('payload')
+        assert 1 == len(payload['incoming'])
+        assert 1 == len(payload['member_of'])
