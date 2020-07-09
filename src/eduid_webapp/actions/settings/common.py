@@ -55,8 +55,8 @@ class ActionsConfig(FlaskConfig):
     bundles_feature_version: Mapping = field(default_factory=dict)
     idp_url: str = ''
     mfa_testing: bool = False
-    generate_u2f_challenges: bool = False
-    u2f_app_id: str = ''
+    generate_u2f_challenges: bool = False  # UNUSED, remove after updating config everywhere
+    u2f_app_id: str = ''  # TODO: can probably be removed
     fido2_rp_id: str = ''
     eidas_url: str = ''
     mfa_authn_idp: str = ''

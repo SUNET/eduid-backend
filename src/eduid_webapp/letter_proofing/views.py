@@ -10,6 +10,7 @@ from eduid_common.api.helpers import add_nin_to_user, check_magic_cookie, verify
 from eduid_common.api.messages import CommonMsg, FluxData, error_response, success_response
 from eduid_userdb import User
 from eduid_userdb.logs import LetterProofing
+from eduid_userdb.proofing import ProofingUser
 
 from eduid_webapp.letter_proofing import pdf, schemas
 from eduid_webapp.letter_proofing.app import current_letterp_app as current_app
@@ -148,15 +149,19 @@ def verify_code(user: User, code: str) -> FluxData:
     )
     try:
         # Verify nin for user
-        verify_nin_for_user(user, proofing_state, proofing_log_entry)
-        current_app.logger.info('Verified code for user {}'.format(user))
+        proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
+        if not verify_nin_for_user(proofing_user, proofing_state, proofing_log_entry):
+            current_app.logger.error(f'Failed verifying NIN for user {user}')
+            return error_response(message=CommonMsg.temp_problem)
+        current_app.logger.info(f'Verified code for user {user}')
         # Remove proofing state
         current_app.proofing_statedb.remove_state(proofing_state)
         current_app.stats.count(name='nin_verified')
-        return success_response(payload=dict(nins=user.nins.to_list_of_dicts()), message=LetterMsg.verify_success)
-    except AmTaskFailed as e:
-        current_app.logger.error('Verifying nin for user {} failed'.format(user))
-        current_app.logger.error('{}'.format(e))
+        return success_response(
+            payload=dict(nins=proofing_user.nins.to_list_of_dicts()), message=LetterMsg.verify_success
+        )
+    except AmTaskFailed:
+        current_app.logger.exception(f'Verifying nin for user {user} failed')
         return error_response(message=CommonMsg.temp_problem)
 
 
