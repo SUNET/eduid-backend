@@ -33,58 +33,31 @@
 #
 from __future__ import annotations
 
-import copy
-from datetime import datetime
-from typing import Any, Dict, Optional, Type, Union
-
-from six import string_types
+from dataclasses import dataclass, asdict
+from typing import Any, Dict, Optional, Type
 
 from eduid_userdb.element import PrimaryElement, PrimaryElementList
-from eduid_userdb.exceptions import UserDBValueError
 
 __author__ = 'ft'
 
 
+@dataclass
 class PhoneNumber(PrimaryElement):
     """
-    :param data: Phone number parameters from database
-    :param raise_on_unknown: Raise exception on unknown values in `data' or not.
-
-    :type data: dict
-    :type raise_on_unknown: bool
     """
-
-    def __init__(
-        self,
-        number: Optional[str] = None,
-        application: Optional[str] = None,
-        verified: bool = False,
-        created_ts: Optional[Union[datetime, bool]] = None,
-        primary: bool = False,
-        data: Optional[Dict[str, Any]] = None,
-        raise_on_unknown: bool = True,
-        called_directly: bool = True,
-    ):
-        raise NotImplementedError()
+    number: Optional[str] = None
 
     @classmethod
-    def from_dict(
-        cls: Type[PhoneNumber], data: Dict[str, Any], raise_on_unknown: bool = True
-    ) -> PhoneNumber:
+    def massage_data(
+        cls: Type[PhoneNumber], data: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """
-        Construct password credential from a data dict.
         """
-        data_in = data
-        data = copy.copy(data_in)  # to not modify callers data
-
-        if not isinstance(data, dict):
-            raise UserDBValueError("Invalid 'data', not dict ({!r})".format(type(data)))
+        data = super().massage_data(data)
 
         if 'added_timestamp' in data:
             # old userdb-style creation timestamp
             data['created_ts'] = data.pop('added_timestamp')
-        if 'created_ts' not in data:
-            data['created_ts'] = True
 
         if 'mobile' in data:
             # old userdb-style entry
@@ -94,13 +67,7 @@ class PhoneNumber(PrimaryElement):
         if 'csrf' in data:
             del data['csrf']
 
-        number = data.pop('number')
-
-        self = super().from_dict(data, raise_on_unknown=raise_on_unknown)
-
-        self.number = number
-
-        return self
+        return data
 
     # -----------------------------------------------------------------
     @property
@@ -110,45 +77,24 @@ class PhoneNumber(PrimaryElement):
         """
         return self.number
 
-    # -----------------------------------------------------------------
-    @property
-    def number(self):
-        """
-        This is the phone number.
-
-        :return: phone number.
-        :rtype: str | unicode
-        """
-        return self._data['number']
-
-    @number.setter
-    def number(self, value):
-        """
-        :param value: phone number.
-        :type value: str | unicode
-        """
-        if not isinstance(value, string_types):
-            raise UserDBValueError("Invalid 'number': {!r}".format(value))
-        self._data['number'] = str(value.lower())
-
-    # -----------------------------------------------------------------
-    def to_dict(self, old_userdb_format=False):
+    def to_dict(self, old_userdb_format: bool = False) -> Dict[str, Any]:
         """
         Convert Element to a dict, that can be used to reconstruct the
         Element later.
 
         :param old_userdb_format: Set to True to get data back in legacy format.
-        :type old_userdb_format: bool
         """
+        data = asdict(self)
         if not old_userdb_format:
-            return self._data
-        old = copy.copy(self._data)
+            return data
+
         # XXX created_ts -> added_timestamp
-        if 'created_ts' in old:
-            old['added_timestamp'] = old.pop('created_ts')
-        if 'number' in old:
-            old['mobile'] = old.pop('number')
-        return old
+        if 'created_ts' in data:
+            data['added_timestamp'] = data.pop('created_ts')
+        if 'number' in data:
+            data['mobile'] = data.pop('number')
+
+        return data
 
 
 class PhoneNumberList(PrimaryElementList):
@@ -163,14 +109,14 @@ class PhoneNumberList(PrimaryElementList):
     :type phones: [dict | PhoneNumber]
     """
 
-    def __init__(self, phones, raise_on_unknown=True):
+    def __init__(self, phones):
         elements = []
 
         for this in phones:
             if isinstance(this, PhoneNumber):
                 phone = this
             else:
-                phone = phone_from_dict(this, raise_on_unknown)
+                phone = phone_from_dict(this)
             elements.append(phone)
 
         PrimaryElementList.__init__(self, elements)
@@ -203,15 +149,10 @@ class PhoneNumberList(PrimaryElementList):
         PrimaryElementList.primary.fset(self, phone)
 
 
-def phone_from_dict(data, raise_on_unknown=True):
+def phone_from_dict(data: Dict[str, Any]) -> PhoneNumber:
     """
     Create a PhoneNumber instance from a dict.
 
     :param data: Phone number parameters from database
-    :param raise_on_unknown: Raise exception on unknown values in `data' or not.
-
-    :type data: dict
-    :type raise_on_unknown: bool
-    :rtype: PhoneNumber
     """
-    return PhoneNumber.from_dict(data, raise_on_unknown=raise_on_unknown)
+    return PhoneNumber.from_dict(data)

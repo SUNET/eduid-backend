@@ -2,11 +2,9 @@ import copy
 import datetime
 from unittest import TestCase
 
-import bson
-
 import eduid_userdb.element
 import eduid_userdb.exceptions
-from eduid_userdb.credentials import Password
+from eduid_userdb.element import Element
 from eduid_userdb.phone import PhoneNumber, PhoneNumberList
 
 __author__ = 'ft'
@@ -58,11 +56,15 @@ class TestPhoneNumberList(TestCase):
         self.assertEqual([], self.empty.to_list_of_dicts(), list)
 
         # remove added timestamps
-        list_of_dicts = self.one.to_list_of_dicts()
-        for d in list_of_dicts:
+        one_dict_list = self.one.to_list_of_dicts()
+        for d in one_dict_list:
             del d['created_ts']
 
-        self.assertEqual([_one_dict], list_of_dicts)
+        _one_dict_list = [_one_dict]
+
+        assert _one_dict_list[0]['primary'] == one_dict_list[0]['is_primary'], 'Created one phone list has wrong is_primary'
+        assert _one_dict_list[0]['verified'] == one_dict_list[0]['is_verified'], 'Created one phone list has wrong is_verified'
+        assert _one_dict_list[0]['number'] == one_dict_list[0]['number'], 'Created one phone list has wrong number'
 
     def test_find(self):
         match = self.one.find('+46700000001')
@@ -79,9 +81,12 @@ class TestPhoneNumberList(TestCase):
         # remove timestamps added at different times
         for d in expected:
             del d['created_ts']
+            del d['modified_ts']
         for d in got:
             if 'created_ts' in d:
                 del d['created_ts']
+            if 'modified_ts' in d:
+                del d['modified_ts']
 
         assert expected == got, 'Adding a phone number to a list results in wrong data'
 
@@ -99,9 +104,12 @@ class TestPhoneNumberList(TestCase):
         # remove timestamps added at different times
         for d in expected:
             del d['created_ts']
+            del d['modified_ts']
         for d in got:
             if 'created_ts' in d:
                 del d['created_ts']
+            if 'modified_ts' in d:
+                del d['modified_ts']
 
         assert expected == got, 'Phone number list contains wrong data'
 
@@ -111,11 +119,10 @@ class TestPhoneNumberList(TestCase):
             self.one.add(new)
 
     def test_add_wrong_type(self):
-        pwdict = {
-            'id': bson.ObjectId(),
-            'salt': 'foo',
+        elemdict = {
+            'created_by': 'foo',
         }
-        new = Password.from_dict(pwdict)
+        new = Element.from_dict(elemdict)
         with self.assertRaises(eduid_userdb.element.UserDBValueError):
             self.one.add(new)
 
@@ -126,8 +133,10 @@ class TestPhoneNumberList(TestCase):
         # remove timestamps - added at different times
         for d in expected:
             del d['created_ts']
+            del d['modified_ts']
         for d in got:
             del d['created_ts']
+            del d['modified_ts']
 
         assert expected == got, 'Phone list has wrong data after removing phone'
 
@@ -215,7 +224,7 @@ class TestPhoneNumberList(TestCase):
         one = copy.deepcopy(_one_dict)
         one['verified'] = False
         with self.assertRaises(eduid_userdb.element.PrimaryElementViolation):
-            this = PhoneNumberList([one])
+            PhoneNumberList([one])
 
 
 class TestPhoneNumber(TestCase):
@@ -232,19 +241,15 @@ class TestPhoneNumber(TestCase):
         address = self.two.primary
         self.assertEqual(address.key, address.number)
 
-    def test_setting_invalid_number(self):
-        this = self.one.primary
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.number = None
-
     def test_create_phone_number(self):
         one = copy.deepcopy(_one_dict)
         one = PhoneNumber.from_dict(one)
         # remove added timestamp
         one_dict = one.to_dict()
-        del one_dict['created_ts']
 
-        assert _one_dict == one_dict, 'Created phone has wrong data'
+        assert _one_dict['primary'] == one_dict['is_primary'], 'Created phone has wrong is_primary'
+        assert _one_dict['verified'] == one_dict['is_verified'], 'Created phone has wrong is_verified'
+        assert _one_dict['number'] == one_dict['number'], 'Created phone has wrong number'
 
     def test_parse_cycle(self):
         """
@@ -254,24 +259,11 @@ class TestPhoneNumber(TestCase):
             this_dict = this.to_list_of_dicts()
             self.assertEqual(PhoneNumberList(this_dict).to_list_of_dicts(), this.to_list_of_dicts())
 
-    def test_bad_is_primary(self):
-        this = self.one.to_list()[0]
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.is_primary = 'foo'
-
     def test_unknown_input_data(self):
         one = copy.deepcopy(_one_dict)
         one['foo'] = 'bar'
-        with self.assertRaises(eduid_userdb.exceptions.UserHasUnknownData):
+        with self.assertRaises(TypeError):
             PhoneNumber.from_dict(one)
-
-    def test_unknown_input_data_allowed(self):
-        one = copy.deepcopy(_one_dict)
-        one['foo'] = 'bar'
-        addr = PhoneNumber.from_dict(one, raise_on_unknown=False)
-        out = addr.to_dict()
-        self.assertIn('foo', out)
-        self.assertEqual(out['foo'], one['foo'])
 
     def test_changing_is_verified_on_primary(self):
         this = self.one.primary
@@ -283,43 +275,21 @@ class TestPhoneNumber(TestCase):
         this.is_verified = False  # was False already
         this.is_verified = True
 
-    def test_setting_invalid_is_verified(self):
-        this = self.three.find('+46700000003')
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.is_verified = 1
-
     def test_verified_by(self):
         this = self.three.find('+46700000003')
         this.verified_by = 'unit test'
         self.assertEqual(this.verified_by, 'unit test')
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.verified_by = False
 
     def test_modify_verified_by(self):
         this = self.three.find('+46700000003')
         this.verified_by = 'unit test'
-        this.verified_by = None
         self.assertEqual(this.verified_by, 'unit test')
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.verified_by = False
         this.verified_by = 'test unit'
         self.assertEqual(this.verified_by, 'test unit')
-
-    def test_verified_ts(self):
-        this = self.three.find('+46700000003')
-        this.verified_ts = True
-        self.assertIsInstance(this.verified_ts, datetime.datetime)
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.verified_ts = False
 
     def test_modify_verified_ts(self):
         this = self.three.find('+46700000003')
         now = datetime.datetime.utcnow()
-        this.verified_ts = now
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.verified_ts = 'not a datetime'
-        this.verified_ts = True
-        self.assertGreater(this.verified_ts, now)
         this.verified_ts = now
         self.assertEqual(this.verified_ts, now)
 
@@ -327,28 +297,7 @@ class TestPhoneNumber(TestCase):
         this = self.three.find('+46700000003')
         this.created_by = 'unit test'
         self.assertEqual(this.created_by, 'unit test')
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.created_by = False
-
-    def test_modify_created_by(self):
-        this = self.three.find('+46700000003')
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.created_by = 1
-        this.created_by = 'unit test'
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.created_by = None
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.created_by = 'test unit'
 
     def test_created_ts(self):
         this = self.three.find('+46700000003')
         self.assertIsInstance(this.created_ts, datetime.datetime)
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.created_ts = False
-
-    def test_modify_created_ts(self):
-        this = self.three.find('+46700000003')
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.created_ts = None
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.created_ts = True
