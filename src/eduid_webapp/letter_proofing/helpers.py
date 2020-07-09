@@ -75,9 +75,9 @@ def check_state(state: LetterProofingState) -> StateExpireInfo:
     current_app.logger.info('Checking state for user with eppn {!s}'.format(state.eppn))
     if not state.proofing_letter.is_sent:
         current_app.logger.info('Unfinished state for user with eppn {!s}'.format(state.eppn))
-        return StateExpireInfo(
-            sent=datetime.now(), expires=datetime.now(), is_expired=True, error=True, message=LetterMsg.not_sent
-        )
+        # need a datetime for typing, but sent/expires/is_expired are not included in error responses
+        _fake_dt = datetime.fromtimestamp(0)
+        return StateExpireInfo(sent=_fake_dt, expires=_fake_dt, is_expired=True, error=True, message=LetterMsg.not_sent)
 
     current_app.logger.info('Letter is sent for user with eppn {!s}'.format(state.eppn))
     # Check how long ago the letter was sent

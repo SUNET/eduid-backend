@@ -2,15 +2,48 @@
 
 title group_management
 
+legend
+    GROUPS_RESPONSE: {
+        "member_of": [
+            {"identifier": str, "display_name": str, "members": [], "owners": [{"identifier": str, "display_name": str}]},
+        ],
+        "owner_of": [
+            {"identifier": str, "display_name": str, "members": [{"identifier": str, "display_name": str}], "owners": [{"identifier": str, "display_name": str}]}
+        ]
+    }
+
+    ALL_INVITES: {
+        "incoming": [
+            {"display_name": str, "email_address": str, "group_identifier": str, "owners": [{"display_name": str, "identifier": str}]},
+        ],
+        "outgoing": [
+            {"group_identifier": str, "member_invites": [{"email_address": str}], "owner_invites": [{"email_address": str}]}
+        ]
+    }
+
+    OUTGOING_INVITES: {
+        "outgoing": [
+            {"group_identifier": str, "member_invites": [{"email_address": str}], "owner_invites": [{"email_address": str}]}
+        ]
+    }
+
+    INCOMING_INVITES: {
+        "incoming": [
+            {"display_name": str, "email_address": str, "group_identifier": str, "owners": [{"display_name": str, "identifier": str}]},
+        ]
+    }
+
+end legend
+
 Client->"/groups": GET
-"/groups"->Client: {"payload":{"member_of": [{"identifier": str, "display_name": str, "members": [], "owners": [{"identifier": str, "display_name": str}]}, "owner_of": [{"identifier": str, "display_name": str, "members": [{"identifier": str, "display_name": str}], "owners": [{"identifier": str, "display_name": str}]}, 'type': "GET_GROUP_MANAGEMENT_GROUPS_SUCCESS"}
+"/groups"->Client: {"payload": GROUPS_RESPONSE}, 'type': "GET_GROUP_MANAGEMENT_GROUPS_SUCCESS"}
 |||
 Client->"/create": POST {"display_name": str}
-"/create"->Client: {"payload":{"member_of": [{"identifier": str, "display_name": str, "members": [], "owners": [{"identifier": str, "display_name": str}]}, "owner_of": [{"identifier": str, "display_name": str, "members": [{"identifier": str, "display_name": str}], "owners": [{"identifier": str, "display_name": str}]}, 'type': "POST_GROUP_MANAGEMENT_CREATE_SUCCESS"}
+"/create"->Client: {"payload": GROUPS_RESPONSE, 'type': "POST_GROUP_MANAGEMENT_CREATE_SUCCESS"}
 |||
-Client->"/delete": POST {"identifier": str}
+Client->"/delete": POST {"group_identifier": str}
 alt User is owner
-    "/delete"->Client: {"payload":{"member_of": [{"identifier": str, "display_name": str, "members": [], "owners": [{"identifier": str, "display_name": str}]}, "owner_of": [{"identifier": str, "display_name": str, "members": [{"identifier": str, "display_name": str}], "owners": [{"identifier": str, "display_name": str}]}, 'type': "POST_GROUP_MANAGEMENT_DELETE_SUCCESS"}
+    "/delete"->Client: {"payload": GROUPS_RESPONSE, 'type': "POST_GROUP_MANAGEMENT_DELETE_SUCCESS"}
 else User does not exist
     "/delete"->Client: {"error": true, "payload": {"message": "group.user_does_not_exist"},"type":"POST_GROUP_MANAGEMENT_DELETE_FAIL"}
 else User is not owner
@@ -19,7 +52,7 @@ end
 |||
 Client->"/remove-user": POST {"group_identifier": str, "user_identifier": str, "role": str}
 alt User is owner or trying to remove self
-    "/delete"->Client: {"payload":{"member_of": [{"identifier": str, "display_name": str, "members": [], "owners": [{"identifier": str, "display_name": str}]}, "owner_of": [{"identifier": str, "display_name": str, "members": [{"identifier": str, "display_name": str}], "owners": [{"identifier": str, "display_name": str}]}, 'type': "POST_GROUP_MANAGEMENT_REMOVE_USER_SUCCESS"}
+    "/delete"->Client: {"payload": GROUPS_RESPONSE, 'type': "POST_GROUP_MANAGEMENT_REMOVE_USER_SUCCESS"}
 else User does not exist
     "/remove-user"->Client: {"error": true, "payload": {"message": "group.user_does_not_exist"},"type":"POST_GROUP_MANAGEMENT_REMOVE_USER_FAIL"}
 else Group does not exist
@@ -33,17 +66,17 @@ else User to be removed is the last owner of the group
 end
 |||
 Client->"/invites/all": GET
-"/invites/all"->Client: {"payload": {"incoming": {"incoming": [{"display_name": str, "email_address": str, "group_identifier": str, "owners": [{"display_name": str, "identifier": str}], "outgoing": [{"group_identifier": str, "member_invites": [{"email_address": str}], "owner_invites": [{"email_address": str}]}]}, "type": "GET_GROUP_INVITE_INVITES_ALL_SUCCESS"}
+"/invites/all"->Client: {"payload": ALL_INVITES, "type": "GET_GROUP_INVITE_INVITES_ALL_SUCCESS"}
 |||
 Client->"/invites/outgoing": GET
-"/invites/outgoing"->Client: {"payload": {"outgoing": [{"group_identifier": str, "member_invites": [{"email_address": str}], "owner_invites": [{"email_address": str}]}]}, "type": "GET_GROUP_INVITE_INVITES_OUTGOING_SUCCESS"}
+"/invites/outgoing"->Client: {"payload": OUTGOING_INVITES, "type": "GET_GROUP_INVITE_INVITES_OUTGOING_SUCCESS"}
 |||
 Client->"/invites/incoming": GET
-"/invites/incoming"->Client: {"payload": {"incoming": [{"display_name": str, "email_address": str, "group_identifier": str, "owners": [{"display_name": str, "identifier": str}]}, "type": "GET_GROUP_INVITE_INVITES_INCOMING_SUCCESS"}
+"/invites/incoming"->Client: {"payload": INCOMING_INVITES, "type": "GET_GROUP_INVITE_INVITES_INCOMING_SUCCESS"}
 |||
 Client->"/invites/create": POST {"group_identifier": str, "email_address": str, "role": str}
 alt User is owner
-    "/invites/create"->Client: {"payload": {"outgoing": [{"group_identifier": str, "member_invites": [{"email_address": str}], "owner_invites": [{"email_address": str}]}]}, "type": "POST_GROUP_INVITE_INVITES_CREATE_SUCCESS"}
+    "/invites/create"->Client: {"payload": OUTGOING_INVITES, "type": "POST_GROUP_INVITE_INVITES_CREATE_SUCCESS"}
 else User does not exist
     "/invites/create"->Client: {"error": true, "payload": {"message": "group.user_does_not_exist"}, "type":"POST_GROUP_INVITE_INVITES_CREATE_FAIL"}
 else User is not owner
@@ -52,7 +85,7 @@ end
 |||
 Client->"/invites/accept": POST {"group_identifier": str, "email_address": str, "role": str}
 alt User is invited
-    "/invites/accept"->Client: {"payload": {"incoming": [{"display_name": str, "email_address": str, "group_identifier": str, "owners": [{"display_name": str, "identifier": str}]}, "type": "POST_GROUP_INVITE_INVITES_ACCEPT_SUCCESS"}
+    "/invites/accept"->Client: {"payload": INCOMING_INVITES, "type": "POST_GROUP_INVITE_INVITES_ACCEPT_SUCCESS"}
 else User does not have email address verified
     "/invites/accept"->Client: {"error": true, "payload": {"message": "group.mail_address_not_verified"},"type":"POST_GROUP_INVITE_INVITES_ACCEPT_FAIL"}
 else User is not invited
@@ -63,7 +96,7 @@ end
 |||
 Client->"/invites/decline": POST {"group_identifier": str, "email_address": str, "role": str}
 alt User declines invite
-    "/invites/decline"->Client: {"payload": {"incoming": [{"display_name": str, "email_address": str, "group_identifier": str, "owners": [{"display_name": str, "identifier": str}]}, "type": "POST_GROUP_INVITE_INVITES_DECLINE_SUCCESS"}
+    "/invites/decline"->Client: {"payload": INCOMING_INVITES, "type": "POST_GROUP_INVITE_INVITES_DECLINE_SUCCESS"}
 else User does not have email address verified
     "/invites/accept"->Client: {"error": true, "payload": {"message": "group.mail_address_not_verified"},"type":"POST_GROUP_INVITE_INVITES_DECLINE_FAIL"}
 else User is not invited

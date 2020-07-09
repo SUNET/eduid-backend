@@ -3,10 +3,11 @@
 from __future__ import absolute_import
 
 import base64
+from typing import Any, Mapping
 
 from flask import redirect, request
 from six.moves.urllib_parse import urlsplit, urlunsplit
-from werkzeug.wrappers import Response
+from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid_common.api.decorators import require_user
 from eduid_common.api.exceptions import AmTaskFailed, MsgTaskFailed
@@ -19,11 +20,11 @@ from eduid_common.authn.utils import get_saml_attribute
 from eduid_common.session import session
 
 # TODO: Import FidoCredential in eduid_userdb.credential.__init__
+from eduid_userdb import User
 from eduid_userdb.credentials.fido import FidoCredential
 from eduid_userdb.logs import MFATokenProofing, SwedenConnectProofing
 from eduid_userdb.proofing.state import NinProofingElement, NinProofingState
 from eduid_userdb.proofing.user import ProofingUser
-from eduid_userdb.user import User
 
 from eduid_webapp.eidas.app import current_eidas_app as current_app
 from eduid_webapp.eidas.helpers import EidasMsg, is_required_loa, is_valid_reauthn
@@ -33,7 +34,7 @@ __author__ = 'lundberg'
 
 @acs_action('token-verify-action')
 @require_user
-def token_verify_action(session_info, user):
+def token_verify_action(session_info: Mapping[str, Any], user: User) -> WerkzeugResponse:
     """
     Use a Sweden Connect federation IdP assertion to verify a users MFA token and, if necessary,
     the users identity.
@@ -41,11 +42,7 @@ def token_verify_action(session_info, user):
     :param session_info: the SAML session info
     :param user: Central db user
 
-    :type session_info: dict
-    :type user: eduid_userdb.User
-
     :return: redirect response
-    :rtype: Response
     """
     redirect_url = current_app.config.token_verify_redirect_url
 
@@ -124,18 +121,14 @@ def token_verify_action(session_info, user):
 
 @acs_action('nin-verify-action')
 @require_user
-def nin_verify_action(session_info, user):
+def nin_verify_action(session_info: Mapping[str, Any], user: User) -> WerkzeugResponse:
     """
     Use a Sweden Connect federation IdP assertion to verify a users identity.
 
     :param session_info: the SAML session info
     :param user: Central db user
 
-    :type session_info: dict
-    :type user: eduid_userdb.User
-
     :return: redirect response
-    :rtype: Response
     """
 
     redirect_url = current_app.config.nin_verify_redirect_url
@@ -180,10 +173,11 @@ def nin_verify_action(session_info, user):
     try:
         nin_element = NinProofingElement.from_dict(dict(number=asserted_nin, created_by='eduid-eidas', verified=False))
         proofing_state = NinProofingState(id=None, modified_ts=None, eppn=user.eppn, nin=nin_element)
-        verify_nin_for_user(user, proofing_state, proofing_log_entry)
-    except AmTaskFailed as e:
-        current_app.logger.error('Verifying NIN for user failed')
-        current_app.logger.error('{}'.format(e))
+        if not verify_nin_for_user(user, proofing_state, proofing_log_entry):
+            current_app.logger.error(f'Failed verifying NIN for user {user}')
+            return redirect_with_msg(redirect_url, CommonMsg.temp_problem)
+    except AmTaskFailed:
+        current_app.logger.exception('Verifying NIN for user failed')
         return redirect_with_msg(redirect_url, CommonMsg.temp_problem)
     current_app.stats.count(name='nin_verified')
 
@@ -191,7 +185,7 @@ def nin_verify_action(session_info, user):
 
 
 @require_user
-def nin_verify_BACKDOOR(user: User) -> Response:
+def nin_verify_BACKDOOR(user: User) -> WerkzeugResponse:
     """
     Mock using a Sweden Connect federation IdP assertion to verify a users identity
     when the request carries a magic cookie.
@@ -236,10 +230,11 @@ def nin_verify_BACKDOOR(user: User) -> Response:
     try:
         nin_element = NinProofingElement.from_dict(dict(number=asserted_nin, created_by='eduid-eidas', verified=False))
         proofing_state = NinProofingState(id=None, modified_ts=None, eppn=user.eppn, nin=nin_element)
-        verify_nin_for_user(user, proofing_state, proofing_log_entry)
-    except AmTaskFailed as e:
-        current_app.logger.error('Verifying NIN for user failed')
-        current_app.logger.error('{}'.format(e))
+        if not verify_nin_for_user(user, proofing_state, proofing_log_entry):
+            current_app.logger.error(f'Failed verifying NIN for user {user}')
+            return redirect_with_msg(redirect_url, ':ERROR:Temporary technical problems')
+    except AmTaskFailed:
+        current_app.logger.exception('Verifying NIN for user failed')
         return redirect_with_msg(redirect_url, ':ERROR:Temporary technical problems')
     current_app.stats.count(name='nin_verified')
 
@@ -248,7 +243,7 @@ def nin_verify_BACKDOOR(user: User) -> Response:
 
 @acs_action('mfa-authentication-action')
 @require_user
-def mfa_authentication_action(session_info, user):
+def mfa_authentication_action(session_info: Mapping[str, Any], user: User) -> WerkzeugResponse:
     relay_state = request.form.get('RelayState')
     current_app.logger.debug('RelayState: {}'.format(relay_state))
     redirect_url = None

@@ -13,13 +13,19 @@ else state exist
         "/proofing"->Client: {"payload":{"message":"letter.expired", letter_sent: datetime, letter_expires: datetime, letter_expired: true},"type":"GET_LETTER_PROOFING_PROOFING_SUCCESS"}
     end
 end
+|||
 
 Client->"/proofing": POST {"nin": number}
-alt letter sent
+alt user has a verified NIN already
+    "/proofing"->Client: {"error": true, "payload":{"message":"User is already verified"},"type":"POST_LETTER_PROOFING_PROOFING_FAIL"}
+else user has verified a different NIN in the past
+    "/proofing"->Client: {"error": true, "payload":{"message":"Another nin is already registered for this user"},"type":"POST_LETTER_PROOFING_PROOFING_FAIL"}
+else letter sent
     "/proofing"->Client: {"payload":{"message":"letter.already-sent", letter_sent: datetime, letter_expires: datetime, letter_expired: false},"type":"POST_LETTER_PROOFING_PROOFING_SUCCESS"}
 else letter not sent
     "/proofing"->Client: {"payload":{"message":"letter.saved-unconfirmed", letter_sent: datetime, letter_expires: datetime, letter_expired: false},"type":"POST_LETTER_PROOFING_PROOFING_SUCCESS"}
 end
+|||
 
 Client -> "/verify-code": POST {"code": code}
 alt state does not exist
@@ -33,4 +39,5 @@ else state exist
         "/verify-code"->Client: {"payload":{"message":"letter.verification_success", "success": true, "nins": [{"number": number, "verified": true, "primary": true}]},"type":"POST_LETTER_PROOFING_VERIFY_CODE_SUCCESS"}
     end
 end
+|||
 @enduml
