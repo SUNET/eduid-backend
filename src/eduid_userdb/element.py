@@ -34,7 +34,7 @@
 import copy
 from datetime import datetime
 from dataclasses import dataclass, asdict, field
-from typing import Any, Dict, List, Optional, Type, TypeVar
+from typing import Any, ClassVar, Dict, List, Optional, Type, TypeVar
 
 from six import string_types
 
@@ -101,15 +101,34 @@ class Element:
     created_ts: datetime = field(default_factory=datetime.utcnow)
     modified_ts: datetime = field(default_factory=datetime.utcnow)
 
+    name_mapping: ClassVar[Dict[str, str]] = {}
+    _inverse_name_mapping: Optional[ClassVar[Dict[str, str]]] = None
+
     def __str__(self) -> str:
         return f'<eduID {self.__class__.__name__}: {asdict(self)}>'
+
+    @classmethod
+    def _get_inverse_mapping(cls):
+        if cls._inverse_name_mapping is None:
+            cls._inverse_name_mapping = {v: k for k, v in cls.name_mapping}
+        return cls._inverse_name_mapping
 
     @classmethod
     def from_dict(cls: Type[TElementSubclass], data: Dict[str, Any]) -> TElementSubclass:
         """
         Construct element from a data dict.
         """
-        data = cls.massage_data(data)
+        if not isinstance(data, dict):
+            raise UserDBValueError(f"Invalid data: {data}")
+
+        data = copy.deepcopy(data)  # to not modify callers data
+
+        for k, v in cls.name_mapping.items():
+            if k in data:
+                data[v] = data.pop(k)
+
+        data = cls.data_transforms(data)
+
         return cls(**data)
 
     def to_dict(self, old_userdb_format: bool = False) -> Dict[str, Any]:
@@ -120,23 +139,15 @@ class Element:
         :param old_userdb_format: Set to True to get data back in legacy format.
                                   This is unused and kept for B/C
         """
-        return asdict(self)
+        data = asdict(self)
+        inverse_mapping = self._get_inverse_mapping()
 
-    @classmethod
-    def massage_data(cls: Type[TElementSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        """
-        if not isinstance(data, dict):
-            raise UserDBValueError(f"Invalid data: {data}")
-
-        data = copy.deepcopy(data)  # to not modify callers data
-
-        if 'created_ts' in data and 'modified_ts' not in data:
-            data['modified_ts'] = data['created_ts']
+        for k, v in inverse_mapping.items():
+            if k in data:
+                data[v] = data.pop(k)
 
         return data
 
-    # -----------------------------------------------------------------
     @property
     def key(self):
         """
