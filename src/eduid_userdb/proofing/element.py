@@ -64,7 +64,7 @@ class ProofingElement(VerifiedElement):
 
 
 @dataclass
-class _NumberProofingElementRequired(ProofingElement):
+class _NumberProofingElementRequired:
     """
     """
     number: str
@@ -92,7 +92,7 @@ class NinProofingElement(ProofingElement, _NumberProofingElementRequired):
 
 
 @dataclass
-class _EmailProofingElementRequired(ProofingElement):
+class _EmailProofingElementRequired:
     """
     """
     email: str

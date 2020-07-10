@@ -65,6 +65,8 @@ class Password(Credential, _PasswordRequired):
         """
         data = super().massage_data(data)
 
+        if 'source' in data:  # TODO: Load and save all users in the database to replace source with created_by
+            data['created_by'] = data.pop('source')
         if 'id' in data:  # TODO: Load and save all users in the database to replace id with credential_id
             data['credential_id'] = data.pop('id')
 
